@@ -1,0 +1,19 @@
+{
+  "name": "kalahari",
+  "version": "1.0.0",
+  "builtin-baseline": "9df46ca3f4ec3bd05984e5668218630c52ea302a",
+  "dependencies": [
+    {
+      "name": "hunspell",
+      "version>=": "1.7.2"
+    },
+    {
+      "name": "wxwidgets",
+      "version>=": "3.2.6"
+    },
+	{
+	  "name": "sqlite3",
+	  "version>=": "3.49.0"
+	}
+  ]
+}

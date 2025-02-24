@@ -1,0 +1,1 @@
+python init_project.py
