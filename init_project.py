@@ -175,7 +175,7 @@ def detect_triplet():
 
 def main():
     print("=" * 60)
-    print(f"Starting Serengeti project setup for {platform.system()}")
+    print(f"Starting project setup for {platform.system()}")
     print("=" * 60)
 
     triplet, system = detect_triplet()

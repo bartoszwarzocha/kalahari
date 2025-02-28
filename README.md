@@ -1,107 +1,106 @@
-# 📝 **Instrukcja użycia skryptów oraz konfiguracji projektu Serengeti**
+# 📝 **Usage Guide for Scripts and Project Configuration – Kalahari**  
 
-**Instrukcja** korzystania ze skryptów oraz konfiguracji projektu **Serengeti**. Dokumentacja obejmuje zarządzanie zależnościami, budowanie projektu oraz integrację CI/CD.
-
----
-
-## 📂 **Struktura i lokalizacja skryptów**
-### ✅ **Ostateczne i spójne nazwy oraz lokalizacje skryptów:**
-- **W katalogu głównym projektu:**
-  - `init_project.py` – Inicjalizacja i budowanie projektu na Windows/Linux/macOS.
-- **Pliki konfiguracyjne:**
-  - `vcpkg.json` – Lista zależności i ich wersji.
-  - `CMakeLists.txt` – Główna konfiguracja projektu.
-- **W katalogu `.github/workflows/`:**
-  - `ci.yml` – Konfiguracja CI/CD przy użyciu GitHub Actions.
+**Guide** for using scripts and configuring the **Kalahari** project. The documentation covers dependency management, project building, and CI/CD integration.
 
 ---
 
-## 🐍 **1️⃣ Skrypt Python – `init_project.py`**
-### 🎯 **Cel:**  
-Automatyczne zarządzanie zależnościami określonymi w `vcpkg.json`, konfigurowanie CMake oraz budowanie projektu.
+## 📂 **Script Structure and Location**  
+### ✅ **Final and Consistent Script Names and Locations:**  
+- **In the project's root directory:**  
+  - `init_project.py` – Initializes and builds the project on Windows/Linux/macOS.  
+- **Configuration files:**  
+  - `vcpkg.json` – List of dependencies and their versions.  
+  - `CMakeLists.txt` – Main project configuration.  
+- **In the `.github/workflows/` directory:**  
+  - `ci.yml` – CI/CD configuration using GitHub Actions.  
 
-**Uwaga!** Dla linux upewnij się, że zainstalowane są wszystkie skłądniki wymagane do budowania:
+---
+
+## 🐍 **1️⃣ Python Script – `init_project.py`**  
+### 🎯 **Purpose:**  
+Automatically manage dependencies specified in `vcpkg.json`, configure CMake, and build the project.  
+
+**Note!** For Linux, ensure all required build components are installed:  
 ```bash
 sudo apt-get install build-essential flex bison cmake ninja-build
 ```
 
-### ✅ **Funkcje skryptu:**
-- Odczytuje plik `vcpkg.json` i analizuje sekcję `dependencies`.
-- Sprawdza, które pakiety są już zainstalowane.
-- Instaluje brakujące zależności przy użyciu `vcpkg`.
-- konfiguruje CMake.
-- buduje projekt (VS (Windows), Code::Blocks (Linux), Xcode (macOS)).
+### ✅ **Script Functions:**  
+- Reads the `vcpkg.json` file and analyzes the `dependencies` section.  
+- Checks which packages are already installed.  
+- Installs missing dependencies using `vcpkg`.  
+- Configures CMake.  
+- Builds the project (VS for Windows, Code::Blocks for Linux, Xcode for macOS).  
 
-### 🚀 **Jak używać:**
+### 🚀 **How to Use:**  
 ```bash
-python init_project.py                         # For every platform or with specific triplet...
+python init_project.py                         # For every platform or with a specific triplet...
 python init_project.py --triplet x64-windows   # Windows
 python init_project.py --triplet x64-linux     # Linux
 python init_project.py --triplet x64-osx       # macOS
 ```
 
-✅ **Wynik:** Zależności pojawią się w katalogu `vcpkg_installed`. Pliki binarne w `build/Release` lub `build/Debug`.
+💪 **Result:** Dependencies will appear in the `vcpkg_installed` directory. Binaries will be in `build/Release` or `build/Debug`.
 
 ---
 
-## 🚀 **2️⃣ CI/CD – GitHub Actions (`.github/workflows/ci.yml`)**
-### 🎯 **Cel:**  
-Automatyczne budowanie i testowanie projektu na **Windows**, **Linux** oraz **macOS**.
+## 🚀 **2️⃣ CI/CD – GitHub Actions (`.github/workflows/ci.yml`)**  
+### 🎯 **Purpose:**  
+Automatically build and test the project on **Windows**, **Linux**, and **macOS**.  
 
-### 🔍 **Co robi pipeline?**
-- Buduje projekt po każdym **push** i **pull request**.
-- Instaluje zależności z `vcpkg.json`.
-- Kompiluje projekt w trybie **Release**.
-- (Opcjonalnie) Uruchamia testy, jeśli są zdefiniowane.
+### 🔍 **What Does the Pipeline Do?**  
+- Builds the project after each **push** and **pull request**.  
+- Installs dependencies from `vcpkg.json`.  
+- Compiles the project in **Release** mode.  
+- (Optional) Runs tests if defined.  
 
-### 🚀 **Jak działa:**
-✅ Pipeline uruchamia się automatycznie po przesłaniu kodu do repozytorium.  
-🔎 Wyniki znajdziesz w zakładce **Actions** na GitHub.
+### 🚀 **How It Works:**  
+💪 The pipeline runs automatically after pushing code to the repository.  
+🔎 Results can be found in the **Actions** tab on GitHub.  
 
 ---
 
-## 🏗️ **Przykładowy przebieg pracy:**
-### 🚀 **Deweloper lokalnie:**
-1. **Instalacja zależności:**
+## 🏗️ **Example Workflow:**  
+### 🚀 **Developer Locally:**  
+1. **Installing dependencies:**  
    ```bash
    python -X utf8 generate_dependencies.py --triplet x64-windows
    ```
-2. **Budowa projektu (Windows):**
+2. **Building the project (Windows):**  
    ```bash
    init_project_win.bat Release
    ```
-3. **Budowa projektu (Linux/macOS):**
+3. **Building the project (Linux/macOS):**  
    ```bash
    ./init_project_unix.sh Debug
    ```
-4. **Przejrzenie wyników w CI/CD:**
-   - Po **push** sprawdź zakładkę **Actions** na GitHub.
+4. **Checking CI/CD results:**  
+   - After **push**, check the **Actions** tab on GitHub.  
 
 ---
 
-## 📝 **FAQ:**
+## 📝 **FAQ:**  
 
-### ❓ **Gdzie są pliki wykonywalne?**
-➡️ Po budowie znajdują się w katalogu: `build/{Release|Debug}`.
+### ❓ **Where are the executable files located?**  
+🤞 After the build, they can be found in: `build/{Release|Debug}`.  
 
-### ❓ **Jak rozwiązać błąd z `UnicodeEncodeError` w Python?**
-➡️ Uruchom skrypt z opcją `-X utf8` lub ustaw kodowanie w skrypcie.
+### ❓ **How to fix `UnicodeEncodeError` in Python?**  
+🤞 Run the script with the `-X utf8` option or set encoding in the script.  
 
-### ❓ **Dlaczego `hunspell` nie jest wykrywany pomimo instalacji?**
-➡️ Jeśli `find_package(hunspell)` zwraca błąd:
-1. Sprawdź, czy w `vcpkg_installed` istnieje plik `hunspellConfig.cmake`.  
-2. Jeśli plik ma nazwę w formacie `hunspell-<wersja>.lib`, w `CMakeLists.txt` dodaj:
+### ❓ **Why is `hunspell` not detected even after installation?**  
+🤞 If `find_package(hunspell)` returns an error:  
+1. Check if the `hunspellConfig.cmake` file exists in `vcpkg_installed`.  
+2. If the file is named `hunspell-<version>.lib`, add the following in `CMakeLists.txt`:  
    ```cmake
    find_library(HUNSPELL_LIBRARY NAMES hunspell hunspell-1.7 PATHS ${CMAKE_PREFIX_PATH}/lib)
    ```
-3. Dodaj ścieżkę do `CMAKE_PREFIX_PATH`:
+3. Add the path to `CMAKE_PREFIX_PATH`:  
    ```cmake
    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}")
    ```
-➡️ To zapewni, że CMake odnajdzie właściwe pliki konfiguracyjne.
+🤞 This ensures that CMake finds the correct configuration files.  
 
-### ❓ **Czy CI/CD wymaga ręcznej interwencji?**
-➡️ Nie. Pipeline działa automatycznie po **push** lub **pull request**.
+### ❓ **Does CI/CD require manual intervention?**  
+🤞 No. The pipeline runs automatically after a **push** or **pull request**.  
 
 ---
-
