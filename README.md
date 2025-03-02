@@ -1,11 +1,13 @@
-# 📝 **Usage Guide for Scripts and Project Configuration – Kalahari**  
+# 🌱 **Usage Guide for Scripts and Project Configuration – Kalahari**  
 
 **Guide** for using scripts and configuring the **Kalahari** project. The documentation covers dependency management, project building, and CI/CD integration.
+
+🛑 ***STATUS: The project is in the organisation and configuration phase. Work is currently underway to correctly configure the CI/CD.***
 
 ---
 
 ## 📂 **Script Structure and Location**  
-### ✅ **Final and Consistent Script Names and Locations:**  
+### **Final and Consistent Script Names and Locations:**  
 - **In the project's root directory:**  
   - `init_project.py` – Initializes and builds the project on Windows/Linux/macOS.  
 - **Configuration files:**  
@@ -16,8 +18,8 @@
 
 ---
 
-## 🐍 **1️⃣ Python Script – `init_project.py`**  
-### 🎯 **Purpose:**  
+## 🐍 ** Python Script – `init_project.py`**  
+### **Purpose:**  
 Automatically manage dependencies specified in `vcpkg.json`, configure CMake, and build the project.  
 
 **Note!** For Linux, ensure all required build components are installed:  
@@ -25,14 +27,14 @@ Automatically manage dependencies specified in `vcpkg.json`, configure CMake, an
 sudo apt-get install build-essential flex bison cmake ninja-build
 ```
 
-### ✅ **Script Functions:**  
+### **Script Functions:**  
 - Reads the `vcpkg.json` file and analyzes the `dependencies` section.  
 - Checks which packages are already installed.  
 - Installs missing dependencies using `vcpkg`.  
 - Configures CMake.  
 - Builds the project (VS for Windows, Code::Blocks for Linux, Xcode for macOS).  
 
-### 🚀 **How to Use:**  
+### **How to Use:**  
 ```bash
 python init_project.py                         # For every platform or with a specific triplet...
 python init_project.py --triplet x64-windows   # Windows
@@ -40,28 +42,28 @@ python init_project.py --triplet x64-linux     # Linux
 python init_project.py --triplet x64-osx       # macOS
 ```
 
-💪 **Result:** Dependencies will appear in the `vcpkg_installed` directory. Binaries will be in `build/Release` or `build/Debug`.
+**Result:** Dependencies will appear in the `vcpkg_installed` directory. Binaries will be in `build/Release` or `build/Debug`.
 
 ---
 
-## 🚀 **2️⃣ CI/CD – GitHub Actions (`.github/workflows/ci.yml`)**  
-### 🎯 **Purpose:**  
+## 🚀 **CI/CD – GitHub Actions (_`.github/workflows/ci.yml`_)**  
+### **Purpose:**  
 Automatically build and test the project on **Windows**, **Linux**, and **macOS**.  
 
-### 🔍 **What Does the Pipeline Do?**  
+### **What Does the Pipeline Do?**  
 - Builds the project after each **push** and **pull request**.  
 - Installs dependencies from `vcpkg.json`.  
 - Compiles the project in **Release** mode.  
 - (Optional) Runs tests if defined.  
 
-### 🚀 **How It Works:**  
-💪 The pipeline runs automatically after pushing code to the repository.  
-🔎 Results can be found in the **Actions** tab on GitHub.  
+### **How It Works:**  
+- The pipeline runs automatically after pushing code to the repository.  
+- Results can be found in the **Actions** tab on GitHub.  
 
 ---
 
 ## 🏗️ **Example Workflow:**  
-### 🚀 **Developer Locally:**  
+### **Developer Locally:**  
 1. **Installing dependencies:**  
    ```bash
    python -X utf8 generate_dependencies.py --triplet x64-windows
