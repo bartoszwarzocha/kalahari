@@ -194,10 +194,11 @@ tests/
 
 ### wxWidgets
 
-**Version:** wxWidgets 3.2+
+**Version:** wxWidgets 3.3.0+
 
 **Why wxWidgets?**
 - **Native look & feel** on all platforms
+- **Dark mode support** (from version 3.3.0 - critical for theme switching)
 - **Mature & stable** (25+ years of development)
 - **Cross-platform** (Windows, macOS, Linux)
 - **Rich widgets** (rich text control, AUI docking)
@@ -642,7 +643,7 @@ strategy:
 │                   KALAHARI APPLICATION                   │
 ├─────────────────────────────────────────────────────────┤
 │  C++ Core (C++20)                                       │
-│  ├─ GUI: wxWidgets 3.2+ (wxAUI)                        │
+│  ├─ GUI: wxWidgets 3.3.0+ (wxAUI, dark mode)           │
 │  ├─ JSON: nlohmann_json                                │
 │  ├─ Logging: spdlog                                    │
 │  ├─ Compression: libzip (.klh files)                   │

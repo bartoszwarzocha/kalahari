@@ -48,7 +48,7 @@ Create a complete writing environment (Writer's IDE) that allows authors to focu
 - **Testing Framework:** Catch2 v3 (BDD style)
 
 **GUI & Core Libraries:**
-- **GUI Framework:** wxWidgets 3.2+ (native cross-platform UI)
+- **GUI Framework:** wxWidgets 3.3.0+ (native cross-platform UI, dark mode support from 3.3.0)
 - **Layout System:** wxAUI (Advanced User Interface - dockable panels)
 - **Logging:** spdlog (fast, structured logging)
 - **JSON:** nlohmann_json (modern C++ JSON)
@@ -462,7 +462,7 @@ These documents include:
 
 ### Technology Stack
 - ✅ Language: **C++20** (GCC 10+, Clang 10+, MSVC 2019+)
-- ✅ GUI: **wxWidgets 3.2+** (native look & feel)
+- ✅ GUI: **wxWidgets 3.3.0+** (native look & feel, dark mode support)
 - ✅ Layout: **wxAUI** (dockable panels)
 - ✅ Build: **CMake 3.21+** (only CMake, no alternatives)
 - ✅ Package Manager: **vcpkg** (manifest mode)
@@ -1394,7 +1394,7 @@ Both files use **Semantic Versioning 2.0.0** ([semver.org](https://semver.org)).
 ### Core Infrastructure
 - [x] CMake build system (all platforms)
 - [x] vcpkg integration (manifest mode)
-- [ ] wxWidgets 3.2+ basic application window
+- [ ] wxWidgets 3.3.0+ basic application window (dark mode support)
 ```
 
 ### Cross-Reference Rules

@@ -28,13 +28,14 @@ target_compile_definitions(kalahari PRIVATE
     KALAHARI_VERSION="${PROJECT_VERSION}"
 )
 
-# Link libraries (commented out until Day 3 - vcpkg dependencies)
-# target_link_libraries(kalahari PRIVATE
-#     wxWidgets::wxWidgets
-#     spdlog::spdlog
-#     nlohmann_json::nlohmann_json
-#     libzip::zip
-# )
+# Link libraries
+target_link_libraries(kalahari PRIVATE
+    wx::core
+    wx::base
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
+    libzip::zip
+)
 
 # Platform-specific settings
 if(WIN32)

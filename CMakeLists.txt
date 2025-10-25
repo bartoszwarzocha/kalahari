@@ -57,12 +57,12 @@ else()
     message(WARNING "Set it with: cmake -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake ..")
 endif()
 
-# Find dependencies (commented out until Day 3 - vcpkg.json creation)
-# find_package(wxWidgets CONFIG REQUIRED)
-# find_package(spdlog CONFIG REQUIRED)
-# find_package(nlohmann_json CONFIG REQUIRED)
-# find_package(libzip CONFIG REQUIRED)
-# find_package(Catch2 3 CONFIG REQUIRED)
+# Find dependencies (Day 3 - vcpkg will install these automatically)
+find_package(wxWidgets CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(libzip CONFIG REQUIRED)
+find_package(Catch2 3 CONFIG REQUIRED)
 
 # Project version accessible in code
 configure_file(

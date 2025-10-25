@@ -23,10 +23,10 @@ target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_BINARY_DIR}/include
 )
 
-# Link libraries (commented out until Day 3 - Catch2 from vcpkg)
-# target_link_libraries(kalahari-tests PRIVATE
-#     Catch2::Catch2WithMain
-# )
+# Link libraries
+target_link_libraries(kalahari-tests PRIVATE
+    Catch2::Catch2WithMain
+)
 
 # Register tests with CTest (commented out until Day 4 - when we have real tests)
 # include(CTest)
