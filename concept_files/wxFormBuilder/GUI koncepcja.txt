@@ -1,0 +1,39 @@
+W katalogu init_concept/wxFormBuilder znajdziesz dwa pliki jpg, któe mniej więcej określają moje oczekiwania co do GUI apliakcji.
+
+Ogólne:
+- wxAUI - pełna konfigurowalność, zapisanie/wczytanie układu, przeciągane panele
+- wtyczki python dla GUI dostępne jako dodatkowe panel
+- wszystkie pozycje w drzewach danych, karty w notebookach oczywiście z ikonami (ikony postaci na podstawie wgranych zdjęć, lub generowane dynamicznie na podstawie ustawień postaci)
+
+Układ:
+- trzy kolumny - lewa narzędziowa, środkowa główna, prawa narzędziowa
+
+Panele:
+- liczne panele narzędziowe (część domyślnie ukryta; powienine być duży wybór - wyprzedzamy oczekiwania użytkownika)
+- podczas pierwszego uruchomienia proponujemy jeden z trzech/czterech układów
+
+
+Lewa kolumna (domyślnie):
+- góra - wxAuiNotebook z kartami: Pliki projektu, Biblioteki
+- dół - Asystent
+
+Biblioteki widoczne chyba w postaci listy ikon; konfiguracja dostępnych bibliotek w zależności od typu książki, definiowane w kreatorze nowej książki (inne biblioteki dla powieści, inne dla reportażu - użytkownik może sobie później dodawać, usuwać, tworzyć własne, przenosić własne elementy). po wyborze prze dwukrotne klinięcie user otwiera nową kartę w oknie głównym (po lewej drzewo elementów), po prawej zakładki z opisem/charakterystyką, timeline elementu, notatki/uwagi (patrz GUI_koncepcja_2.jpg). Co o tym sądzisz?
+Zakłądka pliki zawiera pliki książki (tworzone przez usera) oraz pliki mediów (wczytane przez usera) - nie zawiera plików wewnętrznych programu (biblioteki itd.). Dwukrotne kliknięcie powoduje wyświetlenie pliku tekstowego w edytorze w oknie głównym, media -> podgląd w domyślnym programie systemowym lub w nowej zakładce w oknie głównym.
+
+Środkowa kolumna:
+- góra - Daily statistics (pasek postępu w postaci zapełniającego się tła, krzywa tygodniowa o raz opsiowe statystyki tekstowe - prędkośc pisania, ilośc słów itd. Wszystko co się da i co może motytowac do pracy)
+- góra - opcjonalnie albo na żadanie - timeline przedmiotu/postaci w formie poziomej linii z kluczowymi punktami na osi czasu książki
+- obszar główny - edytory tekstowe, podgląd różnych rzeczy, możliwie wszystko, co wymaga większego obszaru pracy (mapy myśli, edytor/podgąd postaci/miejsc/itemów itd.), poczta -> słowem główny obszar roboczy
+
+Prawa kolumna:
+- góra - statystyki/wyzwania/odznaki (opracować system odznak, dzienne, tygodniowe, miesięczne, projektowe)
+- środek opcjonalnie - podgląd postaci/iemu/miejsca (???) co sądzisz?
+- dół - kartka z kalendarza/podręczny kalendarz (głowny harmonogram/ duży kalendarz, wykres Ganta??? w głównym oknie roboczym)
+
+Paski narzędziowe wg kategorii -> edycja, uruchamianie poszczególnych narzędzi, itd. Menu powinno odzwierciedlać wszystkie opcje z pasków narzędzi a atakże wszystkie inne adimistracyjne, konfiguracyjne itd.
+
+Na dole info bar wyświetlający kluczowe zdarzenia - np. dostępna aktualizacja programu i inne (zaproponuj).
+
+Myślę, że na początek, to dobra koncepcja GUI. Szczególnie, że będzie realizowane, jako system ramek i pluginów, dzięki czemu będziemy mogli to dopieścić w przyszłości.
+
+Co sądzisz? Ultrathink

@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+    },
+    "serena": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/home/bartosz/tools/serena",
+        "serena-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/mnt/e/Python/Projekty/Kalahari"
+      ]
+    }
+  }
+}

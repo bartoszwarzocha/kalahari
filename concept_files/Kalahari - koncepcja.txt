@@ -1,0 +1,33 @@
+KALAHARI
+
+Program komputerowy wspomagający autorów książek w pisaniu książek różnego typu (pełne wsparcie procesu twórczego).
+
+Kluczowe założenia techniczne:
+- bilioteka wxwidgets
+- python, jako lepszy do integracji róznych ciekawych rozwiązań
+- ksiązka jako project (zapis do json) - pliki, źródłą, wszytsko zgodnie ze strukturą danych
+- snapshoty/wersjonowanie (auto-backup + eksport do .zip z checksumami)
+- dane projektu w SQLite (???)
+
+- własna kontrolka edytora tekstu? (chyba zbyt nadmiarowe)
+
+Kluczowe funkcje programu:
+- wizard ułątwiający pierwszą konfigurację programu (przewidywana złożona konfiguracja)
+- zaawansowany edytor tekstu (rich text control z wxwidgets z mniejszym zakresem opcji lub integracja z edytorem open office - wymagany zainstalowany silnik open office w systemie)
+- opcja notatek w tekście, dowiązań źródeł w tekście (może jakaś dodatkowa linijaka w specjalnym kolorze itd.)
+- organizacja warsztatu pisarskiego według kategorii ksiązki (inaczej dla powieści, inaczej dla książki popularnonaukowej ksiązki historycznej - różne plany)
+- szablony według typu/gatunku książki
+- rozbudowana biblioteka źródeł (dokumnety wszelkiego rodzaju, zdjęcia, dźwięki, zasoby sieciowe) + wygodna przeglądarka źródeł + AI do analizy i odpytywania źródeł lub integracja z kontem google i Notebook LM + OCR
+- moduł notatek roboczych + "zółte karteczki", albo coś w tym stylu
+- moduł kartka z kalendzra przezentujący treść podobną do "tradycyjnej" kartki z kalendarza (wschody/zachody słońca księżyca dedykowane na podtsaiw lokalizacji, imieniny, święta itd)
+- planer pracy nad ksiązką (jeszcze nie wiem, co by to miało być, ale coś na zasadzie harmonogramu; dzień, tydzień, miesiąc) - może graficzna mapa myśli
+- moduł komunikacji z wydawcą - automatyczne maile + kalendarz (???)
+- bank postaci, bank miejsc, bank motywów, itd. w kontekście książki - dostępny podręcznie
+- możliwość graficznego ilustrowania powiązań między postaciami, możliwośc graficznego ilustrowania przebiegu wątków, obiegu kluczowych przedmiotów itd.
+- graficzny asystent (np. głowa zwierzęcia z rónymi stanami emocji) w odrębnym subokienku, który będzie "dbał" o pisarza - daj odpocząć oczom, pracujesz już długo, może coś zjesz itd. Do ustalenia harmonogramy i stany.
+- moduł statystyk/motywacji - np. pasek ilustrujący zakłądaną ilość znaków na dzień, który zapełnia się w miarę pisania (ilość/temperatura pracy - np. dużo pomału, dużo szybko itd.) - asystent również komentuje postęp prac
+- tryb "tablicy korkowej" (distraction free)
+- style/arkusze stylów
+- walidator cytatów w powiązaniu ze źródłami
+- system przypisów (do przemyślenia)
+- jasny/ciemny motyw; kustomizacja; motywy ikon itd.
