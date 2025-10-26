@@ -133,3 +133,6 @@ docs/api/       # Doxygen output
 
 # End Kalahari Project .gitignore
 # =============================================================================
+
+# Claude Token Monitor data
+.claude-monitor/
