@@ -46,6 +46,49 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
+# Sanitizers (Debug builds only, GCC/Clang)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
+    option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+    option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+
+    if(ENABLE_ASAN)
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
+        message(STATUS "AddressSanitizer ENABLED")
+    endif()
+
+    if(ENABLE_UBSAN)
+        add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=undefined)
+        message(STATUS "UndefinedBehaviorSanitizer ENABLED")
+    endif()
+endif()
+
+# Link-Time Optimization (Release builds)
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+
+    if(IPO_SUPPORTED)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+        message(STATUS "Link-Time Optimization (LTO/IPO) ENABLED")
+    else()
+        message(STATUS "Link-Time Optimization NOT supported: ${IPO_ERROR}")
+    endif()
+endif()
+
+# clang-tidy integration (optional)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy static analysis" OFF)
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+        message(STATUS "clang-tidy ENABLED: ${CLANG_TIDY_EXE}")
+    else()
+        message(WARNING "clang-tidy requested but not found")
+    endif()
+endif()
+
 # vcpkg integration
 # Note: vcpkg toolchain file should be specified via:
 #   cmake -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake ..
@@ -76,6 +119,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include  # For generated version.h
 )
+
+# Include custom CMake modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(PrecompiledHeaders)
 
 # Subdirectories
 add_subdirectory(src)

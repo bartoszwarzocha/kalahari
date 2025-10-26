@@ -11,10 +11,12 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
+    timeout-minutes: 90  # Prevent runaway builds
 
     strategy:
       matrix:
         build_type: [Debug, Release]
+      fail-fast: false  # Don't cancel other jobs if one fails
 
     steps:
     - name: Checkout code
@@ -27,7 +29,12 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Setup MSVC (Visual Studio BuildTools)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Install CMake and Ninja
       run: |
         choco install cmake ninja -y
 
@@ -37,9 +44,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: windows-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: windows-msvc-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          windows-vcpkg-
+          windows-msvc-vcpkg-${{ hashFiles('vcpkg.json') }}-
+          windows-msvc-vcpkg-
 
     - name: Bootstrap vcpkg
       run: |
@@ -52,7 +60,11 @@ jobs:
         cmake -B build `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -DVCPKG_TARGET_TRIPLET=x64-windows `
           -G Ninja
+      env:
+        CC: cl
+        CXX: cl
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel

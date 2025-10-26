@@ -151,183 +151,24 @@ Both languages are acceptable for discussing the project, asking questions, and 
 
 ## 💼 Business Model
 
-### Strategy: Open Core + SaaS Hybrid
+**Strategy:** Open Core + SaaS Hybrid ✅ FINALIZED
 
-Kalahari follows a proven business model that combines open source with premium features and cloud services.
+**Core (Open Source):**
+- License: MIT License (GitHub public)
+- Free features: Text editor, project management, basic stats, DOCX/PDF export, auto-save
 
-### Core (Open Source)
-**License:** MIT License
-**Repository:** GitHub (public)
-**Features:** All essential writing tools
+**Premium (Closed Source Plugins):**
+- 5 paid plugins: AI Assistant Pro, Advanced Analytics, Export Suite, Research Pro, Collaboration Pack
+- Pricing: $14-39 each, $79 bundle (40% savings)
+- Distribution: .kplugin files, GitHub (MVP) → Own platform (Post-1.0)
 
-**Why Open Source?**
-- ✅ Community trust and contributions
-- ✅ Transparency and security audits
-- ✅ Marketing through open source community
-- ✅ Building user base
-- ✅ Educational value
+**Cloud (SaaS Subscription):**
+- Cloud Sync Pro: $5-10/month
+- Features: Multi-device sync, cloud backups, E2E encryption, premium support
 
-**Core Features (Free Forever):**
-- Text editor (Rich Text + Markdown)
-- Book project management
-- Character bank (basic)
-- Location bank (basic)
-- Source library
-- Export to DOCX, PDF, TXT
-- Basic statistics
-- Auto-save and backups
-- Version control integration
+**Target Conversion:** 80-85% free, 10-15% premium plugins, 3-5% cloud subscription
 
-### Premium Features (Closed Source Plugins) ✅ FINALIZED
-**Distribution:** .kplugin files (one-time purchase)
-**Marketplace:** GitHub (MVP) → Own platform (Post-1.0)
-
-**5 Premium Plugins:**
-
-1. **AI Assistant Pro** ($19-29 one-time)
-   - All 8 animals (MVP has 4 free)
-   - Advanced personality system
-   - AI-powered suggestions (OpenAI/Claude API)
-   - Context-aware prompts
-   - Custom personality creation
-
-2. **Advanced Analytics** ($14-19 one-time)
-   - Timeline visualization
-   - Character relationship graphs
-   - Pacing analysis (action/dialogue/description)
-   - Reading level analysis
-   - Sentiment analysis per chapter
-   - Productivity trends
-
-3. **Professional Export Suite** ($24-34 one-time)
-   - Advanced PDF (formatting, TOC, index)
-   - EPUB (e-book publishing ready)
-   - Advanced DOCX (publisher-ready templates)
-   - HTML (website-ready)
-   - LaTeX (academic writing)
-   - Export templates (Kindle, IngramSpark)
-
-4. **Research & Sources Pro** ($19-24 one-time)
-   - OCR for scans
-   - Web scraping assistant
-   - Citation management (Zotero integration)
-   - Advanced source organization
-   - Automatic fact-checking hints
-   - Bibliography generation
-
-5. **Collaboration Pack** ($29-39 one-time)
-   - Beta-reader mode (comments, suggestions)
-   - Editor mode (track changes)
-   - Version comparison (git-like diffs)
-   - Shared notes & annotations
-   - Real-time writing sprints (online)
-
-**Bundle:** "Kalahari Pro" ($79) - all 5 plugins, save 40%
-
-### Cloud Services (SaaS) ✅ FINALIZED
-**Distribution:** Subscription service
-**Payment:** $5-10/month or $50-100/year
-
-**Cloud Sync Pro Subscription:**
-- ☁️ Cloud synchronization (Dropbox/GDrive integration in MVP, own backend in 2.0)
-- 💾 Automatic cloud backups (unlimited storage)
-- 📱 Mobile app sync (iOS/Android - future)
-- 🌐 Cross-device sessions
-- 🔒 End-to-end encryption
-- 📧 Premium support (email response within 24h)
-
-**Future Ecosystem (Phases 3-4):**
-- 🤝 **Serengeti** - Collaboration tools (beta-readers, co-authors)
-- 🌐 **Victoria** - Advanced cloud features (web access, real-time sync)
-- 📱 **Sahara Mobile** - Mobile companion apps
-
-### Development Phases
-
-**Phase 1: MVP (Open Source Only)**
-- Build and release core features
-- MIT License on GitHub
-- Focus on quality and community feedback
-
-**Phase 2: Premium Features**
-- Add closed-source premium plugins
-- Plugin architecture in core
-- Licensing system
-
-**Phase 3: Cloud Services**
-- Backend infrastructure
-- Victoria sync service
-- Subscription model
-
-**Phase 4: Ecosystem**
-- Plugin marketplace
-- Template marketplace
-- Community + premium content
-- Publishing partnerships
-
-### Revenue Model ✅ FINALIZED
-
-**Target Conversion:**
-- Free tier: 80-85% users (open source core)
-- Premium plugins: 10-15% users (one-time $14-79)
-- Cloud subscription: 3-5% users ($5-10/month)
-
-**Philosophy:**
-> "Free users get a complete, functional writing environment (better than Word).
-> Premium users get professional writer's toolkit (competitive with Scrivener).
-> Cloud subscribers get seamless multi-device experience (modern workflow)."
-
-**Pricing Strategy:**
-- Core: FREE (adoption, recognition)
-- Plugins: $14-39 one-time (accessible, value-based)
-- Bundle: $79 (40% savings, encourages complete purchase)
-- Cloud: $5-10/month (justified by infrastructure costs)
-
-### Technical Implementation
-
-**Code Structure:**
-```
-kalahari/
-├── core/              # Open source (MIT, GitHub)
-├── premium/           # Closed source (private repo)
-└── cloud_services/    # Backend services (private)
-```
-
-**Plugin System:**
-- Core provides plugin API
-- Premium features as plugins
-- License verification in core (open source)
-- Plugin loading mechanism
-
-### Competitive Advantages
-
-**vs Closed Source Competitors:**
-- ✅ Trust (code is visible)
-- ✅ Privacy (self-hosted possible)
-- ✅ Flexibility (can modify core)
-- ✅ No vendor lock-in
-
-**vs Fully Open Source:**
-- ✅ Sustainable revenue model
-- ✅ Professional development
-- ✅ Advanced AI features
-- ✅ Cloud infrastructure
-
-### Success Metrics
-
-**Phase 1 Success:**
-- 1,000+ GitHub stars
-- 50+ community contributors
-- 10,000+ active users
-
-**Phase 2 Success:**
-- 10% conversion to premium
-- Positive reviews
-- Sustainable revenue
-
-**Phase 3 Success:**
-- Cloud service profitability
-- Multi-platform sync working
-- Enterprise customers
+**📄 Full Details:** See [project_docs/05_business_model.md](project_docs/05_business_model.md)
 
 ---
 
@@ -611,205 +452,65 @@ These documents include:
 
 ## 🚀 Roadmap ✅ FINALIZED (C++ Architecture)
 
-**Total Timeline:** 14-20 months (realistically 18 months)
-**Release Target:** Kalahari 1.0 (Q2-Q3 2026)
+**Timeline:** 14-20 months (realistically 18 months)
+**Target:** Kalahari 1.0 (Q2-Q3 2026)
+**Current Status:** 🔄 Phase 0 - Foundation (Week 1 complete)
+
+**6 Development Phases:**
+1. **Phase 0: Foundation** (Weeks 1-8) - CMake, vcpkg, plugin system, Python embedding
+2. **Phase 1: Core Editor** (Weeks 9-20) - Rich text, wxAUI, project management, .klh files
+3. **Phase 2: Plugin System MVP** (Weeks 21-30) - 4 working plugins (DOCX, Markdown, Stats, Lion)
+4. **Phase 3: Feature Plugins** (Weeks 31-44) - Premium plugins (AI Assistant Pro, Analytics)
+5. **Phase 4: Advanced Plugins** (Weeks 45-56) - Export Suite, Research Pro, Character/Location banks
+6. **Phase 5: Polish & Release** (Weeks 57-68) - Testing, docs, packaging, public release 🎉
+
+**Post-1.0 Expansion:**
+- **Phase 6:** Cloud Sync Pro subscription
+- **Phase 7:** Collaboration Pack plugin
+- **Phase 8:** Plugin marketplace, ecosystem (Serengeti, Okavango, Victoria, Zambezi)
+
+**📄 Full Details:** See [ROADMAP.md](ROADMAP.md) and [project_docs/06_roadmap.md](project_docs/06_roadmap.md)
 
 ---
 
-### Phase 0: Foundation (Weeks 1-8 | 2-3 months)
+## 🤖 Claude Code Resources
 
-**Focus:** Build infrastructure & plugin system
+Kalahari uses **Claude Code's automatic resource discovery** for instant access to project knowledge and quality tools.
 
-**Core Infrastructure:**
-- CMake + vcpkg setup (all platforms)
-- wxWidgets basic application window
-- Main window with menu bar, toolbar, status bar
-- Settings system (JSON persistence)
-- Logging system (spdlog)
+### Available Resources
 
-**Plugin Architecture:**
-- Python 3.11 embedding (pybind11)
-- Plugin Manager (discovery, loading, unloading)
-- Extension Points system (interfaces)
-- Event Bus (async, thread-safe)
-- Plugin format (.kplugin ZIP handler)
+- **3 Skills**: `kalahari-wxwidgets`, `kalahari-plugin-system`, `kalahari-i18n`
+- **6 Commands**: `/code-review`, `/architecture-review`, `/best-practices`, `/dependency-check`, `/health-check`, `/testing-strategy`
+- **6 Agents**: `software-architect`, `ux-designer`, `qa-engineer`, `security-engineer`, `deployment-engineer`, `session-manager`
 
-**Document Model:**
-- Core C++ classes (Document, Chapter, Book)
-- JSON serialization
-- .klh file format (ZIP + JSON)
-- Basic CRUD operations
+### Quick Start
 
-**Deliverable:** Technical foundation working, plugin system functional
+```bash
+# AI-driven project health analysis
+/health-check
 
----
+# Automated file/tool checks
+./tools/project-status.sh
 
-### Phase 1: Core Editor (Weeks 9-20 | 3-4 months)
+# Pre-commit quality verification (35+ automated checks)
+./tools/pre-commit-check.sh
 
-**Focus:** Rich text editor & project management
+# CI/CD monitoring
+./tools/check-ci.sh status
 
-**Editor:**
-- wxRichTextCtrl integration & customization
-- Basic formatting (bold, italic, underline)
-- Text styles (headings, body, quotes)
-- Undo/redo system
-- Live word count
+# View release checklist
+cat .claude/QUALITY_CHECKLIST.md
+```
 
-**Project Management:**
-- Project Navigator panel (tree view)
-- Chapter management (add, delete, move, rename)
-- Save/Load (.klh files)
-- Auto-save system (every N minutes)
-- Backup system (snapshots)
+### Resources
 
-**UI:**
-- wxAUI docking system (6 panels)
-- 3 focus modes (Normal, Focused, Distraction-free)
-- Perspectives (saveable layouts)
-- Basic toolbar actions
-
-**Deliverable:** Functional rich text editor with project management
-
----
-
-### Phase 2: Plugin System MVP (Weeks 21-30 | 2-3 months)
-
-**Focus:** 4 working plugins (all features via plugins)
-
-**Plugin 1: DOCX Exporter**
-- python-docx integration
-- Export Document → .docx
-- Basic formatting preservation
-
-**Plugin 2: Markdown Tools**
-- Import .md → Document
-- Export Document → .md
-- Markdown preview
-
-**Plugin 3: Basic Statistics**
-- Word count, character count
-- Reading time estimation
-- Session statistics
-- Charts (matplotlib)
-
-**Plugin 4: Assistant Lion**
-- Graphical assistant panel
-- Lion animal (6 moods)
-- Basic triggers (break reminder, goal reached)
-- Speech bubbles
-
-**Plugin Management UI:**
-- Plugin list (enable/disable/configure)
-- Plugin installation (.kplugin drag & drop)
-
-**Deliverable:** Plugin system proven with 4 working plugins
-
----
-
-### Phase 3: Feature Plugins (Weeks 31-44 | 3-4 months)
-
-**Focus:** Advanced plugins (some premium)
-
-**Free Plugins:**
-- PDF Exporter (reportlab)
-- TXT/RTF import/export
-- Spell checker (hunspell)
-- Themes (Dark, Savanna, Midnight)
-
-**Premium Plugin: AI Assistant Pro**
-- 4 animals (Lion, Meerkat, Elephant, Cheetah)
-- Advanced personality system
-- Flow state detection
-- Smart triggers
-
-**Premium Plugin: Advanced Analytics**
-- Timeline visualization
-- Character mention tracking
-- Pacing analysis
-- Productivity trends
-
-**Deliverable:** Rich plugin ecosystem, premium plugins working
-
----
-
-### Phase 4: Advanced Plugins (Weeks 45-56 | 2-3 months)
-
-**Focus:** Professional features
-
-**Premium Plugin: Export Suite**
-- EPUB (ebooklib)
-- Advanced DOCX (templates)
-- HTML export
-- Export templates (Kindle, IngramSpark)
-
-**Premium Plugin: Research Pro**
-- OCR (pytesseract)
-- Source management
-- Citation tools
-
-**Free Features:**
-- Character bank (cards with photos, traits)
-- Location bank (cards with maps, descriptions)
-- Notes system (yellow stickies)
-- Writer's calendar (goals, deadlines)
-
-**Deliverable:** Professional writer's toolkit complete
-
----
-
-### Phase 5: Polish & Release (Weeks 57-68 | 2-3 months)
-
-**Focus:** Testing, documentation, packaging
-
-**Testing:**
-- Unit tests (Catch2) - 70%+ coverage
-- Integration tests (plugin system)
-- Beta testing program (20-30 testers)
-- Bug fixing marathon
-
-**Documentation:**
-- User manual (English + Polish)
-- Plugin API docs (for developers)
-- Tutorials & screencasts
-- FAQ, troubleshooting
-
-**Packaging:**
-- Installers: Windows (NSIS), macOS (DMG), Linux (AppImage)
-- Embedded Python bundling
-- Code signing (Windows/macOS)
-- GitHub release automation
-
-**Launch:**
-- GitHub public release (MIT License)
-- Website (kalahari.app)
-- Social media, blog posts
-- Community forum setup
-
-**Deliverable:** Kalahari 1.0 - Public Release 🎉
-
----
-
-### Post-1.0: Expansion (Months 18+)
-
-**Phase 6: Cloud Sync (3-6 months post-1.0)**
-- Cloud Sync Pro subscription ($5-10/month)
-- Dropbox/GDrive integration
-- End-to-end encryption
-- Mobile companion app (iOS/Android)
-
-**Phase 7: Collaboration (6-12 months post-1.0)**
-- Collaboration Pack premium plugin
-- Beta-reader mode
-- Editor mode (track changes)
-- Real-time writing sprints
-
-**Phase 8: Ecosystem (12-18 months post-1.0)**
-- Plugin marketplace (own platform)
-- Template marketplace
-- **Serengeti** - Collaborative writing tool
-- **Okavango** - Research & knowledge management
-- **Victoria** - Advanced cloud sync
-- **Zambezi** - Publishing toolkit
+- **Skills** auto-activate based on context (wxWidgets code → kalahari-wxwidgets)
+- **Slash Commands** trigger AI workflows (`/code-review --scope=src/`)
+- **Agents** activate implicitly by keywords or explicitly via slash commands
+- **Quality Tools** in `tools/` provide automated verification
+  - `project-status.sh`: Project health dashboard (files, tools, CI/CD)
+  - `pre-commit-check.sh`: 35+ automated quality checks (70%/90%/100% gates)
+  - `check-ci.sh`: GitHub Actions monitoring without browser
 
 ---
 
@@ -822,6 +523,8 @@ These documents include:
 4. **English as code language** - all code, comments, config files in English
 5. **Communication languages** - English or Polish for communication with user
 6. **Suggest, don't decide** - user leads, AI executes
+7. **Ask when uncertainty ≥10%** - If less than 90% certain about user's intentions, ALWAYS ask for clarification before proceeding
+8. **Quality over size** - Prioritize content quality and correctness over file size or token count. A high-quality document is better than incomplete one.
 
 ### Using Tools
 
@@ -909,114 +612,6 @@ private:
 - **Always ask** before changing CLAUDE.md
 - Propose changes, don't apply automatically
 - Log changes in "Update History" section (see below)
-
----
-
-## 📋 PROJECT STATUS UPDATE PROTOCOL
-
-### When to Update Strategic Files
-
-**After EVERY work session that involves:**
-- ✅ Making architectural decisions
-- ✅ Completing documentation
-- ✅ Finishing phase/milestone
-- ✅ Adding/removing features
-- ✅ Changing project structure
-- ✅ Major refactoring
-
-### End-of-Session Checklist
-
-**MANDATORY steps before closing ANY work session:**
-
-#### 1. CHANGELOG.md Update
-- [ ] Add all changes to `[Unreleased]` section
-- [ ] Use correct categories (Added/Changed/Decided/Removed/Fixed)
-- [ ] Date the entry (YYYY-MM-DD)
-- [ ] Be specific (not "updated docs", but "completed 03_architecture.md with MVP pattern")
-
-#### 2. ROADMAP.md Update (if applicable)
-- [ ] Add architectural decisions to relevant phase descriptions
-- [ ] Update timeline if estimates changed
-- [ ] Mark completed milestones
-- [ ] Add new risks/dependencies if identified
-
-#### 3. CLAUDE.md Update
-- [ ] Update TODO section (mark DONE, add new tasks)
-- [ ] Add entry to "Update History" with version bump
-- [ ] Update "What is DECIDED" if new decisions made
-- [ ] Update "What is NOT YET DECIDED" (remove decided items)
-
-#### 4. project_docs/README.md Update
-- [ ] Update document statuses (✅ Complete / 🔄 In Progress / ⏳ Pending)
-- [ ] Update "Document History" section
-- [ ] Verify all links work
-
-#### 5. Final Verification
-- [ ] All TODO items from session marked as DONE or moved to next session
-- [ ] No temporary files left (.tmp, _backup, _FULL, etc.)
-- [ ] All created files added to git tracking
-- [ ] Consistency check: CLAUDE.md ↔ CHANGELOG.md ↔ ROADMAP.md
-
-### Version Bumping Rules
-
-**CLAUDE.md versions:**
-- **MAJOR (X.0):** Complete stack/architecture change (e.g., Python → C++)
-- **MINOR (X.Y):** New major decisions, completed phases, significant updates
-- **NO PATCH:** CLAUDE.md uses only MAJOR.MINOR
-
-**When to bump:**
-- Added 3+ decisions to "What is DECIDED" → MINOR bump
-- Completed full phase (Phase 0, 1, etc.) → MINOR bump
-- Major architectural change → MAJOR bump
-- Daily work updates → Update History entry, no version bump
-
-### AI Assistant Rules
-
-**Claude Code MUST:**
-1. **Never close session** without running End-of-Session Checklist
-2. **Always propose updates** to CLAUDE.md (never edit automatically)
-3. **Ask user for confirmation** before version bumps
-4. **Report what was updated** at end of session:
-   ```
-   📝 Session Summary:
-   - ✅ CHANGELOG.md updated (3 changes)
-   - ✅ ROADMAP.md updated (Phase 0 details)
-   - ✅ CLAUDE.md updated (v4.2, 7 decisions)
-   - ✅ project_docs/README.md current
-   ```
-
-**Claude Code SHOULD:**
-- Proactively remind user if session is ending without updates
-- Suggest checklist items that might apply
-- Warn if inconsistencies detected between strategic files
-
-### Example Workflow
-
-**User:** "Completed 03_architecture.md with MVP pattern and error handling"
-
-**Claude's End-of-Session Process:**
-1. ✅ Update CHANGELOG.md → Added: "03_architecture.md (MVP pattern, error handling)"
-2. ✅ Update ROADMAP.md → Add architectural decisions to Phase 0 description
-3. ✅ Update CLAUDE.md → Mark TODO item DONE, add v4.2 in Update History
-4. ✅ Update project_docs/README.md → Mark 03_architecture.md as ✅ Complete
-5. ✅ Report summary to user
-6. ✅ Ask: "Should I create a git commit for documentation updates?"
-
----
-
-## 🚨 CRITICAL RULE: No Session Ends Without Checklist
-
-**If Claude Code is about to end session, it MUST:**
-1. Run End-of-Session Checklist
-2. Report what needs updating
-3. Get user approval
-4. Execute updates
-5. Report summary
-
-**User can skip checklist ONLY if explicitly says:**
-- "Skip checklist this time"
-- "WIP session, don't update"
-- "Temporary work, no updates needed"
 
 ---
 

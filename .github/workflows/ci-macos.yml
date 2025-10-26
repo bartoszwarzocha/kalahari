@@ -11,10 +11,12 @@ jobs:
   build:
     name: macOS Build & Test
     runs-on: macos-latest
+    timeout-minutes: 90  # Prevent runaway builds
 
     strategy:
       matrix:
         build_type: [Debug, Release]
+      fail-fast: false  # Don't cancel other jobs if one fails
 
     steps:
     - name: Checkout code
@@ -37,9 +39,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: macos-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: macos-clang-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          macos-vcpkg-
+          macos-clang-vcpkg-${{ hashFiles('vcpkg.json') }}-
+          macos-clang-vcpkg-
 
     - name: Bootstrap vcpkg
       run: |

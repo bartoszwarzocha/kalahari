@@ -113,6 +113,7 @@ core.*
 # Generated documentation (build output)
 docs/build/
 docs/_build/
+docs/api/       # Doxygen output
 
 # Translation binaries (generated from .po files)
 *.mo
