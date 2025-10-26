@@ -363,6 +363,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Console application (main.cpp) - Displays version info, platform, build type
 - Unit tests (test_main.cpp) - 7 assertions, 2 test cases (Catch2 BDD style)
 - Compiled binaries: kalahari + kalahari-tests (both working)
+- **Week 2: wxWidgets GUI & Threading (2025-10-26)**
+  - **Day 1-2: Basic GUI Window (Task #00001)**
+    - Logger singleton (spdlog wrapper, thread-safe)
+      - Dual sinks (console + file)
+      - Platform-agnostic log paths (via wxStandardPaths)
+      - Debug/Release build awareness
+    - KalahariApp (wxApp subclass)
+      - Application initialization with logging setup
+      - Splash screen placeholder (Phase 1)
+      - wxIMPLEMENT_APP macro in main.cpp
+    - MainWindow (wxFrame subclass)
+      - 4 menus: File, Edit, View, Help
+      - 5 toolbar buttons (stock icons via wxArtProvider)
+      - 3-pane status bar (status | position | time)
+      - Placeholder main panel with centered text
+      - Event table with 8 event handlers
+      - Stub implementations (Phase 1 completion)
+    - Internationalization structure
+      - English translation template (locales/en/kalahari.pot)
+      - Polish translations (locales/pl/kalahari.po)
+      - All UI strings wrapped with _() macro
+    - Build system updates
+      - Updated src/CMakeLists.txt with new source files
+      - WIN32_EXECUTABLE for Windows (no console)
+      - MACOSX_BUNDLE for macOS
+      - Links: wx::core, wx::base, spdlog, nlohmann_json, libzip
+    - **Build Results:**
+      - Local Linux: 166 MB Debug executable
+      - CI/CD: macOS (1m9s), Windows (4m19s), Linux (4m36s) - ALL SUCCESS
+      - Code size: 1,704 lines added (13 files)
+  - **Day 3: Threading Infrastructure (Task #00002)**
+    - Hybrid threading approach (std::thread + wxQueueEvent)
+      - std::thread for thread creation (modern C++, Python GIL compatible)
+      - wxQueueEvent for thread→GUI communication (Bartosz's proven pattern)
+      - wxSemaphore for thread pool limiting (max 4 threads)
+      - CallAfter for simple GUI updates (convenience)
+    - Core threading components
+      - submitBackgroundTask() API (68 lines)
+        - Semaphore check (TryWait → work → Post pattern)
+        - Thread tracking (std::vector<std::thread::id>)
+        - Exception handling (try/catch → wxEVT_KALAHARI_TASK_FAILED)
+        - wxQueueEvent for GUI communication (thread-safe, deep copy)
+        - Logging at every step (debug/info/error levels)
+      - Custom events (KALAHARI naming convention)
+        - wxEVT_KALAHARI_TASK_COMPLETED
+        - wxEVT_KALAHARI_TASK_FAILED
+        - Handlers: onTaskCompleted(), onTaskFailed()
+      - Thread safety mechanisms
+        - wxMutex protects thread pool vector
+        - wxSemaphore(4, 4) limits concurrent tasks
+        - Detached threads (fire-and-forget, like wxTHREAD_DETACHED)
+      - Destructor cleanup (20 lines)
+        - Wait up to 5 seconds for tasks to finish
+        - Timeout protection (prevents infinite hang)
+        - Graceful vs forced shutdown logging
+    - Example usage
+      - onFileOpen() demonstrates pattern (32 lines)
+      - 2-second simulated file load
+      - Status bar updates during operation
+      - Thread limit warning dialog
+      - Tests thread limiting (click File→Open 5x rapidly)
+    - **Build Results:**
+      - Local Linux: 166 MB Debug (unchanged, incremental)
+      - CI/CD: macOS (59s), Windows (4m16s), Linux (4m36s) - ALL SUCCESS
+      - Code size: 241 lines added (2 files), +229 net
+    - **Integration Points (Future):**
+      - Week 3-4: Python plugin execution with GIL handling
+      - Week 5+: File I/O, AI API calls, document parsing
+      - Phase 1: Heavy operations (DOCX import, statistics generation)
 
 ### Documentation Phase (Pre-Development)
 
