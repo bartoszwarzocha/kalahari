@@ -37,7 +37,6 @@ jobs:
           cmake \
           ninja-build \
           linux-libc-dev \
-          libxcrypt-dev \
           libgtk-3-dev \
           libgl1-mesa-dev \
           libglu1-mesa-dev \
@@ -51,10 +50,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: linux-gcc-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: linux-gcc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-${{ hashFiles('vcpkg.json') }}-
-          linux-gcc-vcpkg-
+          linux-gcc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-
+          linux-gcc-vcpkg-v2-
 
     - name: Bootstrap vcpkg
       run: |
