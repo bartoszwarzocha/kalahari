@@ -1,0 +1,71 @@
+name: MACOS
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: macOS Build & Test
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        brew install cmake ninja
+
+    - name: Cache vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          vcpkg
+          build/vcpkg_installed
+        key: macos-vcpkg-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          macos-vcpkg-
+
+    - name: Bootstrap vcpkg
+      run: |
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+          -G Ninja
+
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure --build-config ${{ matrix.build_type }}
+
+    - name: Upload binaries (Release only)
+      if: matrix.build_type == 'Release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: kalahari-macos-${{ matrix.build_type }}
+        path: |
+          build/bin/kalahari*
+        retention-days: 7

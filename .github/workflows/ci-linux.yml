@@ -1,4 +1,4 @@
-name: CI/CD
+name: LINUX
 
 on:
   push:
@@ -8,14 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: ${{ matrix.os }} - ${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Linux Build & Test
+    runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         build_type: [Debug, Release]
 
     steps:
@@ -29,9 +27,7 @@ jobs:
       with:
         python-version: '3.11'
 
-    # Linux dependencies
-    - name: Install Linux dependencies
-      if: runner.os == 'Linux'
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -45,44 +41,21 @@ jobs:
           libsm-dev \
           libwebkit2gtk-4.1-dev
 
-    # macOS dependencies
-    - name: Install macOS dependencies
-      if: runner.os == 'macOS'
-      run: |
-        brew install cmake ninja
-
-    # Windows dependencies
-    - name: Install Windows dependencies
-      if: runner.os == 'Windows'
-      run: |
-        choco install cmake ninja -y
-
-    # vcpkg cache
     - name: Cache vcpkg
       uses: actions/cache@v4
       with:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: linux-vcpkg-${{ hashFiles('vcpkg.json') }}
         restore-keys: |
-          ${{ runner.os }}-vcpkg-
+          linux-vcpkg-
 
-    # Bootstrap vcpkg (if not cached)
     - name: Bootstrap vcpkg
       run: |
         cd vcpkg
         ./bootstrap-vcpkg.sh
-      if: runner.os != 'Windows'
 
-    - name: Bootstrap vcpkg (Windows)
-      run: |
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-      if: runner.os == 'Windows'
-      shell: cmd
-
-    # Configure CMake
     - name: Configure CMake
       run: |
         cmake -B build \
@@ -90,32 +63,19 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -G Ninja
 
-    # Build
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
-    # Run tests
     - name: Run tests
       run: |
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
-    # Upload artifacts (Release builds only)
-    - name: Upload binaries
+    - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: kalahari-${{ runner.os }}-${{ matrix.build_type }}
+        name: kalahari-linux-${{ matrix.build_type }}
         path: |
           build/bin/kalahari*
-          !build/bin/*.pdb
         retention-days: 7
-
-    # Upload test results
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ runner.os }}-${{ matrix.build_type }}
-        path: build/Testing/Temporary/LastTest.log
-        retention-days: 3
