@@ -15,6 +15,10 @@
         "media"
       ]
     },
+    {
+      "name": "curl",
+      "default-features": false
+    },
     "spdlog",
     "nlohmann-json",
     {
@@ -25,12 +29,5 @@
       ]
     },
     "catch2"
-  ],
-  "overrides": [
-    {
-      "name": "curl",
-      "version": "8.16.0",
-      "default-features": false
-    }
   ]
 }
