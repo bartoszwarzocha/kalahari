@@ -66,11 +66,24 @@ jobs:
           vcpkg/vcpkg version
         fi
 
+    - name: Verify build tools
+      run: |
+        echo "=== Checking build tools ==="
+        which ninja || echo "ERROR: ninja not found!"
+        which g++ || echo "ERROR: g++ not found!"
+        which cmake || echo "ERROR: cmake not found!"
+        ninja --version
+        g++ --version | head -1
+        cmake --version | head -1
+
     - name: Configure CMake
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+          -DCMAKE_C_COMPILER=gcc \
+          -DCMAKE_CXX_COMPILER=g++ \
+          -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
           -G Ninja
 
     - name: Build
