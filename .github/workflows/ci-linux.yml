@@ -42,7 +42,8 @@ jobs:
           libglu1-mesa-dev \
           libnotify-dev \
           libsm-dev \
-          libwebkit2gtk-4.1-dev
+          libwebkit2gtk-4.1-dev \
+          libltdl-dev
 
     - name: Cache vcpkg
       uses: actions/cache@v4

@@ -28,11 +28,6 @@
         "bzip2"
       ]
     },
-    {
-      "name": "dbus",
-      "default-features": false,
-      "platform": "linux"
-    },
     "catch2"
   ]
 }
