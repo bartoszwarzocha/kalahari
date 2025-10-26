@@ -104,8 +104,8 @@ endif()
 find_package(wxWidgets CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(libzip CONFIG REQUIRED)
 find_package(Catch2 3 CONFIG REQUIRED)
-# Note: libzip will be added in Phase 1 when implementing .klh file format
 
 # Project version accessible in code
 configure_file(

@@ -17,6 +17,13 @@
     },
     "spdlog",
     "nlohmann-json",
+    {
+      "name": "libzip",
+      "default-features": false,
+      "features": [
+        "bzip2"
+      ]
+    },
     "catch2"
   ]
 }
