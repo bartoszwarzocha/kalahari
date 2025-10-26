@@ -4,9 +4,17 @@
 #include "main_window.h"
 #include "../core/logger.h"
 #include <wx/artprov.h>
+#include <chrono>
 
 namespace kalahari {
 namespace gui {
+
+// ============================================================================
+// Custom Event Definitions (KALAHARI convention)
+// ============================================================================
+
+wxDEFINE_EVENT(wxEVT_KALAHARI_TASK_COMPLETED, wxThreadEvent);
+wxDEFINE_EVENT(wxEVT_KALAHARI_TASK_FAILED, wxThreadEvent);
 
 // ============================================================================
 // Event Table (maps events to handler methods)
@@ -36,9 +44,13 @@ wxEND_EVENT_TABLE()
 // ============================================================================
 
 MainWindow::MainWindow()
-    : wxFrame(nullptr, wxID_ANY, _("Kalahari Writer's IDE"))
+    : wxFrame(nullptr, wxID_ANY, _("Kalahari Writer's IDE")),
+      m_threadSemaphore(4, 4)  // Max 4 background threads (initial=4, max=4)
 {
-    core::Logger::getInstance().debug("Constructing MainWindow...");
+    core::Logger::getInstance().info("Initializing main window with threading support");
+
+    // Reserve thread pool capacity (avoid reallocation)
+    m_activeThreads.reserve(4);
 
     // Set window size and position
     SetSize(1024, 768);
@@ -52,11 +64,38 @@ MainWindow::MainWindow()
     createStatusBar();
     setupMainPanel();
 
+    // Bind threading events dynamically (modern approach, allows runtime binding)
+    Bind(wxEVT_KALAHARI_TASK_COMPLETED, &MainWindow::onTaskCompleted, this, wxID_ANY);
+    Bind(wxEVT_KALAHARI_TASK_FAILED, &MainWindow::onTaskFailed, this, wxID_ANY);
+
+    core::Logger::getInstance().debug("Threading infrastructure initialized (max 4 threads)");
     core::Logger::getInstance().info("MainWindow construction complete");
 }
 
 MainWindow::~MainWindow() {
-    core::Logger::getInstance().debug("MainWindow destructor called");
+    core::Logger::getInstance().info("MainWindow shutting down...");
+
+    // Wait for all background tasks to complete (graceful shutdown)
+    if (!m_activeThreads.empty()) {
+        core::Logger::getInstance().warn("Waiting for {} background tasks to finish...",
+                                         m_activeThreads.size());
+
+        // Wait up to 5 seconds for threads to finish
+        auto startTime = std::chrono::steady_clock::now();
+        while (!m_activeThreads.empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            auto elapsed = std::chrono::steady_clock::now() - startTime;
+            if (elapsed > std::chrono::seconds(5)) {
+                core::Logger::getInstance().error(
+                    "Timeout waiting for {} background tasks (forced shutdown)",
+                    m_activeThreads.size());
+                break;
+            }
+        }
+    }
+
+    core::Logger::getInstance().info("MainWindow destroyed (all background tasks completed)");
     // Cleanup handled automatically by wxWidgets for child windows
 }
 
@@ -237,15 +276,35 @@ void MainWindow::onFileNew([[maybe_unused]] wxCommandEvent& event) {
 void MainWindow::onFileOpen([[maybe_unused]] wxCommandEvent& event) {
     core::Logger::getInstance().info("File -> Open clicked");
 
-    m_statusBar->SetStatusText(_("Open document (stub)"), 0);
+    // Update status bar immediately (GUI thread)
+    m_statusBar->SetStatusText(_("Loading file..."), 0);
 
-    wxMessageBox(
-        _("Open document functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("Open Document"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    // Submit background task (demonstrates threading infrastructure - Phase 0 Week 2)
+    bool submitted = submitBackgroundTask([this]() {
+        // Simulate heavy file loading (future: actual wxFile, JSON parsing, etc.)
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+
+        // Simulate file loaded
+        std::string filename = "example.klh";  // Future: from wxFileDialog
+
+        core::Logger::getInstance().debug("Background file load completed: {}", filename);
+
+        // Update GUI when done (CallAfter pattern - marshals to GUI thread)
+        CallAfter([this, filename]() {
+            m_statusBar->SetStatusText(
+                wxString::Format(_("Loaded: %s"), wxString::FromUTF8(filename)),
+                0);
+        });
+    });
+
+    if (!submitted) {
+        // Thread limit reached - show warning
+        wxMessageBox(
+            _("Too many operations in progress. Please wait for current tasks to complete."),
+            _("Busy"),
+            wxOK | wxICON_WARNING,
+            this);
+    }
 }
 
 void MainWindow::onFileSave([[maybe_unused]] wxCommandEvent& event) {
@@ -337,6 +396,109 @@ void MainWindow::onClose(wxCloseEvent& event) {
 
     // Allow window to close
     event.Skip();
+}
+
+// ============================================================================
+// Threading Event Handlers (Phase 0 Week 2)
+// ============================================================================
+
+void MainWindow::onTaskCompleted(wxThreadEvent& event) {
+    int threadId = event.GetId();
+    core::Logger::getInstance().info("Background task completed (thread ID: {})", threadId);
+
+    // Update status bar
+    m_statusBar->SetStatusText(_("Ready"), 0);
+
+    // Future Phase 1+: Handle task results from event.GetPayload()
+    // Update document state, refresh UI, etc.
+}
+
+void MainWindow::onTaskFailed(wxThreadEvent& event) {
+    int threadId = event.GetId();
+    wxString error = event.GetString();
+
+    core::Logger::getInstance().error("Background task failed (thread ID: {}): {}",
+                                      threadId, error.utf8_str().data());
+
+    // Show error to user
+    m_statusBar->SetStatusText(_("Error - check logs"), 0);
+    wxLogError("Background task failed: %s", error);
+
+    // Future Phase 1+: Show error dialog with details
+}
+
+// ============================================================================
+// Threading Methods (Phase 0 Week 2)
+// ============================================================================
+
+bool MainWindow::submitBackgroundTask(std::function<void()> task) {
+    // Check thread limit (Bartosz's semaphore pattern)
+    {
+        wxMutexLocker lock(m_threadMutex);
+        wxSemaError serr = m_threadSemaphore.TryWait();
+        if (serr != wxSEMA_NO_ERROR) {
+            core::Logger::getInstance().warn(
+                "Background task rejected: thread limit reached (4/4 active)");
+
+            // Notify user via status bar (CallAfter pattern for GUI update from any thread)
+            CallAfter([this]() {
+                m_statusBar->SetStatusText(_("Busy - please wait..."), 0);
+            });
+
+            return false;
+        }
+    }
+
+    core::Logger::getInstance().debug("Submitting background task (thread pool: {}/4)",
+                                      m_activeThreads.size() + 1);
+
+    // Create worker thread (std::thread, NOT wxThread)
+    std::thread worker([this, task]() {
+        // Track this thread
+        std::thread::id threadId = std::this_thread::get_id();
+        {
+            wxMutexLocker lock(m_threadMutex);
+            m_activeThreads.push_back(threadId);
+        }
+
+        core::Logger::getInstance().debug("Background task started (thread ID: {})",
+                                          static_cast<unsigned long>(std::hash<std::thread::id>{}(threadId)));
+
+        // Execute task with exception handling
+        try {
+            task();  // User-provided work
+
+            // Task succeeded - notify GUI (Bartosz's wxQueueEvent pattern)
+            wxThreadEvent* evt = new wxThreadEvent(wxEVT_KALAHARI_TASK_COMPLETED);
+            evt->SetId(static_cast<int>(std::hash<std::thread::id>{}(threadId)));
+            wxQueueEvent(this, evt);  // Thread-safe, no mutex needed
+
+        } catch (const std::exception& e) {
+            // Task failed - notify GUI with error
+            core::Logger::getInstance().error("Background task failed: {}", e.what());
+
+            wxThreadEvent* evt = new wxThreadEvent(wxEVT_KALAHARI_TASK_FAILED);
+            evt->SetString(wxString::FromUTF8(e.what()));
+            evt->SetId(static_cast<int>(std::hash<std::thread::id>{}(threadId)));
+            wxQueueEvent(this, evt);  // Thread-safe
+        }
+
+        // Cleanup (Bartosz's OnExit() pattern)
+        {
+            wxMutexLocker lock(m_threadMutex);
+            auto it = std::find(m_activeThreads.begin(), m_activeThreads.end(), threadId);
+            if (it != m_activeThreads.end()) {
+                m_activeThreads.erase(it);
+            }
+        }
+        m_threadSemaphore.Post();  // Release semaphore slot
+
+        core::Logger::getInstance().debug("Background task finished (thread pool: {}/4)",
+                                          m_activeThreads.size());
+    });
+
+    worker.detach();  // Fire-and-forget (like wxTHREAD_DETACHED)
+    return true;
 }
 
 } // namespace gui

@@ -8,9 +8,23 @@
 #pragma once
 
 #include <wx/wx.h>
+#include <thread>
+#include <functional>
+#include <vector>
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
+
+// ============================================================================
+// Custom Event Types (KALAHARI convention)
+// ============================================================================
+
+/// @brief Event fired when a background task completes successfully
+wxDECLARE_EVENT(wxEVT_KALAHARI_TASK_COMPLETED, wxThreadEvent);
+
+/// @brief Event fired when a background task fails with an exception
+wxDECLARE_EVENT(wxEVT_KALAHARI_TASK_FAILED, wxThreadEvent);
 
 /// @brief Main application window
 ///
@@ -52,6 +66,21 @@ private:
     wxPanel* m_mainPanel = nullptr;
 
     // ========================================================================
+    // Threading Infrastructure (Phase 0 Week 2)
+    // ========================================================================
+
+    /// @brief Mutex protecting access to thread pool vector
+    wxMutex m_threadMutex;
+
+    /// @brief Semaphore limiting max concurrent background tasks (max 4)
+    wxSemaphore m_threadSemaphore;
+
+    /// @brief Vector tracking active background thread IDs
+    ///
+    /// Protected by m_threadMutex. Used for graceful shutdown.
+    std::vector<std::thread::id> m_activeThreads;
+
+    // ========================================================================
     // Event Handlers (On prefix, camelCase)
     // ========================================================================
 
@@ -90,6 +119,44 @@ private:
     /// @brief Handle window close event
     /// @param event Close event (from window manager or File->Exit)
     void onClose(wxCloseEvent& event);
+
+    /// @brief Handle background task completion event
+    /// @param event Thread event with task results (from wxQueueEvent)
+    void onTaskCompleted(wxThreadEvent& event);
+
+    /// @brief Handle background task failure event
+    /// @param event Thread event with error message (from wxQueueEvent)
+    void onTaskFailed(wxThreadEvent& event);
+
+    // ========================================================================
+    // Threading Methods (Phase 0 Week 2)
+    // ========================================================================
+
+    /// @brief Submit a background task for execution
+    ///
+    /// Runs the provided task function in a worker thread (std::thread).
+    /// Thread pool is limited to 4 concurrent tasks via semaphore.
+    /// Task results/errors are communicated back to GUI via wxQueueEvent.
+    ///
+    /// @param task Function to execute in background thread
+    /// @return true if task submitted, false if thread limit reached
+    ///
+    /// @note Thread-safe. Can be called from any thread.
+    /// @note Task exceptions are caught and sent as wxEVT_KALAHARI_TASK_FAILED events.
+    ///
+    /// Example:
+    /// @code
+    /// submitBackgroundTask([]() {
+    ///     // Heavy computation here
+    ///     auto result = processData();
+    ///
+    ///     // Notify GUI when done (will be queued to GUI thread)
+    ///     wxThreadEvent* evt = new wxThreadEvent(wxEVT_KALAHARI_TASK_COMPLETED);
+    ///     evt->SetPayload(result);
+    ///     wxQueueEvent(this, evt);
+    /// });
+    /// @endcode
+    bool submitBackgroundTask(std::function<void()> task);
 
     // ========================================================================
     // Helper Methods (camelCase, private)
