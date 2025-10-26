@@ -2,7 +2,7 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🔄 Phase 0 - Foundation (Week 1 Complete)
+**Current Status:** 🔄 Phase 0 - Foundation (Week 2 Complete)
 **Version:** 0.0.1-dev
 **Last Updated:** 2025-10-26
 
@@ -29,10 +29,11 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Goal:** Build technical infrastructure and plugin architecture foundation
 
-**Status:** 🔄 In Progress (Week 1/8 Complete)
+**Status:** 🔄 In Progress (Week 2/8 Complete - GUI & Threading Ready)
 **Target Version:** 0.1.0-alpha
 **Timeline:** 2-3 months from project start
 **Started:** 2025-10-26
+**Week 2 Completed:** 2025-10-26
 
 ### Architectural Decisions ✅ FINALIZED (2025-10-25)
 - ✅ **GUI Pattern:** MVP (Model-View-Presenter)
@@ -62,10 +63,10 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 ### Core Infrastructure
 - [x] **CMake build system** (all platforms: Windows, macOS, Linux) ✅ Week 1
 - [x] **vcpkg integration** (manifest mode) ✅ Week 1
-- [ ] wxWidgets 3.3.0+ basic application window
-- [ ] Main window with menu bar, toolbar, status bar
+- [x] **wxWidgets 3.3.0+ basic application window** ✅ Week 2
+- [x] **Main window with menu bar, toolbar, status bar** ✅ Week 2
 - [ ] Settings system (JSON persistence with nlohmann_json)
-- [ ] Logging system (spdlog - structured, multi-level)
+- [x] **Logging system (spdlog - structured, multi-level)** ✅ Week 2
 
 ### Plugin Architecture
 - [ ] Python 3.11 embedding (bundled with application)
