@@ -44,10 +44,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: windows-msvc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: windows-msvc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          windows-msvc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-
-          windows-msvc-vcpkg-v2-
+          windows-msvc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-
+          windows-msvc-vcpkg-v3-
 
     - name: Bootstrap vcpkg
       run: |

@@ -50,10 +50,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: linux-gcc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: linux-gcc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-
-          linux-gcc-vcpkg-v2-
+          linux-gcc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-
+          linux-gcc-vcpkg-v3-
 
     - name: Bootstrap vcpkg
       run: |

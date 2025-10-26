@@ -39,10 +39,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: macos-clang-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: macos-clang-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          macos-clang-vcpkg-v2-${{ hashFiles('vcpkg.json') }}-
-          macos-clang-vcpkg-v2-
+          macos-clang-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-
+          macos-clang-vcpkg-v3-
 
     - name: Bootstrap vcpkg
       run: |
