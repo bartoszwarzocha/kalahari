@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Development Phase (Phase 0 - Foundation)
+
+#### Added
+- **Week 1: Project Setup & Infrastructure (2025-10-26)**
+  - Day 1: Project structure (src/, include/, tests/, docs/, plugins/, resources/)
+  - Day 2: CMake build system (C++20, multi-platform support, version.h template)
+  - Day 3: vcpkg dependency management (wxWidgets 3.3.1+, spdlog, nlohmann_json, libzip, Catch2)
+  - Day 4: GitHub Actions CI/CD workflow
+    - Matrix build: Windows/macOS/Linux × Debug/Release (6 combinations)
+    - vcpkg caching for 3-5x faster builds
+    - Automated testing with ctest
+    - Build artifacts upload (binaries + test results)
+    - Platform-specific dependencies (GTK3, Ninja, system libraries)
+- Console application (main.cpp) - Displays version info, platform, build type
+- Unit tests (test_main.cpp) - 7 assertions, 2 test cases (Catch2 BDD style)
+- Compiled binaries: kalahari + kalahari-tests (both working)
+
 ### Documentation Phase (Pre-Development)
 
 #### Added
