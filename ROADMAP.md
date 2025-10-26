@@ -2,9 +2,9 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🟢 Documentation Phase
-**Version:** 0.0.0 (Pre-Development)
-**Last Updated:** 2025-10-25
+**Current Status:** 🔄 Phase 0 - Foundation (Week 1 Complete)
+**Version:** 0.0.1-dev
+**Last Updated:** 2025-10-26
 
 ---
 
@@ -29,9 +29,10 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Goal:** Build technical infrastructure and plugin architecture foundation
 
-**Status:** ⏳ Pending
+**Status:** 🔄 In Progress (Week 1/8 Complete)
 **Target Version:** 0.1.0-alpha
 **Timeline:** 2-3 months from project start
+**Started:** 2025-10-26
 
 ### Architectural Decisions ✅ FINALIZED (2025-10-25)
 - ✅ **GUI Pattern:** MVP (Model-View-Presenter)
@@ -59,9 +60,9 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - Book → Parts → Chapters (flexible nested structure)
 
 ### Core Infrastructure
-- [ ] CMake build system (all platforms: Windows, macOS, Linux)
-- [ ] vcpkg integration (manifest mode)
-- [ ] wxWidgets 3.2+ basic application window
+- [x] **CMake build system** (all platforms: Windows, macOS, Linux) ✅ Week 1
+- [x] **vcpkg integration** (manifest mode) ✅ Week 1
+- [ ] wxWidgets 3.3.0+ basic application window
 - [ ] Main window with menu bar, toolbar, status bar
 - [ ] Settings system (JSON persistence with nlohmann_json)
 - [ ] Logging system (spdlog - structured, multi-level)
@@ -83,10 +84,10 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 - [ ] In-memory document management
 
 ### CI/CD Setup
-- [ ] GitHub Actions workflow (matrix builds)
-- [ ] Automated builds (Windows + macOS + Linux)
-- [ ] Basic smoke tests
-- [ ] vcpkg binary caching
+- [x] **GitHub Actions workflow** (platform-specific: ci-linux.yml, ci-windows.yml, ci-macos.yml) ✅ Week 1
+- [x] **Automated builds** (Windows + macOS + Linux, Debug + Release) ✅ Week 1
+- [x] **Basic smoke tests** (Catch2 unit tests via ctest) ✅ Week 1
+- [x] **vcpkg binary caching** (platform-specific cache keys) ✅ Week 1
 
 ### Deliverables
 ✅ Technical foundation working on all platforms
