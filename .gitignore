@@ -98,6 +98,10 @@ work_scripts/*
 !work_scripts/README.md
 !work_scripts/.gitkeep
 
+# Task working directories (temporary work in progress)
+tasks/.wip/
+tasks/.scratch/
+
 # User-specific settings (not project config)
 .user_settings/
 *.local

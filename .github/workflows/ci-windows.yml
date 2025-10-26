@@ -51,9 +51,15 @@ jobs:
 
     - name: Bootstrap vcpkg
       run: |
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-      shell: cmd
+        if (!(Test-Path "vcpkg/vcpkg.exe")) {
+          Write-Host "Bootstrapping vcpkg..."
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+        } else {
+          Write-Host "vcpkg already bootstrapped (from cache or previous run)"
+          .\vcpkg\vcpkg.exe version
+        }
+      shell: powershell
 
     - name: Configure CMake
       run: |

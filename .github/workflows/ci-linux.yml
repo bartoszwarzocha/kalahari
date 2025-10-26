@@ -57,8 +57,14 @@ jobs:
 
     - name: Bootstrap vcpkg
       run: |
-        cd vcpkg
-        ./bootstrap-vcpkg.sh
+        if [ ! -f vcpkg/vcpkg ]; then
+          echo "Bootstrapping vcpkg..."
+          cd vcpkg
+          ./bootstrap-vcpkg.sh
+        else
+          echo "vcpkg already bootstrapped (from cache or previous run)"
+          vcpkg/vcpkg version
+        fi
 
     - name: Configure CMake
       run: |

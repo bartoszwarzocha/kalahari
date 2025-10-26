@@ -525,6 +525,7 @@ cat .claude/QUALITY_CHECKLIST.md
 6. **Suggest, don't decide** - user leads, AI executes
 7. **Ask when uncertainty ≥10%** - If less than 90% certain about user's intentions, ALWAYS ask for clarification before proceeding
 8. **Quality over size** - Prioritize content quality and correctness over file size or token count. A high-quality document is better than incomplete one.
+9. **Follow task workflow** - NEVER start implementation without approved task file (see Task Management Workflow below)
 
 ### Using Tools
 
@@ -612,6 +613,214 @@ private:
 - **Always ask** before changing CLAUDE.md
 - Propose changes, don't apply automatically
 - Log changes in "Update History" section (see below)
+
+---
+
+## 📋 TASK MANAGEMENT WORKFLOW
+
+### Overview
+
+All development tasks follow a structured workflow: **PLAN → REVIEW → APPROVAL → IMPLEMENTATION → VERIFICATION → COMPLETION**
+
+This ensures quality, predictability, and traceability of all work.
+
+### Task Files Structure
+
+**Location:** `tasks/` directory (tracked in git)
+
+**File naming:** `NNNNN_task_name.md` (5-digit zero-padded)
+
+**Examples:**
+- `00001_plugin_manager_skeleton.md`
+- `00042_rtf_editor_widget.md`
+- `00123_ai_assistant_integration.md`
+
+**Working directories (git-ignored):**
+- `tasks/.wip/` - Work in progress, temporary notes
+- `tasks/.scratch/` - Experiments, sketches, throwaway content
+
+### Task File Template
+
+```markdown
+# Task #NNNNN: Task Name
+
+## Context
+- **Phase:** Phase X Week Y
+- **Roadmap Reference:** ROADMAP.md reference
+- **Related Docs:** Links to relevant documentation
+- **Dependencies:** Previous tasks or requirements
+
+## Objective
+Clear, concise description of what needs to be accomplished.
+
+## Proposed Approach
+1. Step-by-step approach
+2. Key technical decisions
+3. Libraries/tools to use
+4. Architecture considerations
+5. Potential challenges
+
+## Implementation Plan (Checklist)
+- [ ] Specific actionable item 1
+- [ ] Specific actionable item 2
+- [ ] Write unit tests (if applicable)
+- [ ] Update CMakeLists.txt (if applicable)
+- [ ] Document API/code
+- [ ] Update related documentation
+
+## Risks & Open Questions
+- Q: Question that needs answering?
+- Q: Alternative approach to consider?
+- Risk: Potential issue to watch for
+
+## Status
+- **Created:** YYYY-MM-DD
+- **Approved:** YYYY-MM-DD (by User)
+- **Started:** YYYY-MM-DD
+- **Completed:** YYYY-MM-DD
+
+## Implementation Notes
+(Added during implementation)
+- Decision: Why we chose X over Y
+- Issue: Problem encountered and solution
+- Change: Deviation from original plan
+
+## Verification
+- [ ] Code compiles on all platforms
+- [ ] Tests pass (Catch2)
+- [ ] No memory leaks (valgrind/ASAN if available)
+- [ ] Code reviewed
+- [ ] Documentation updated
+```
+
+### Workflow Process
+
+#### 1. PLAN (AI creates task file)
+- AI identifies task from ROADMAP.md or user request
+- AI creates task file with proposed approach
+- AI presents file to user for review
+
+#### 2. REVIEW (User examines plan)
+- User reads proposed approach
+- User asks questions if unclear
+- User suggests alternatives if needed
+- User identifies missing considerations
+
+#### 3. APPROVAL (User approves explicitly)
+- User says "Approved, proceed" or similar
+- AI updates Status: Approved + date
+- Only then can implementation begin
+
+#### 4. IMPLEMENTATION (AI executes checklist)
+- AI works through checklist step-by-step
+- AI marks checkboxes as completed
+- AI adds Implementation Notes for non-obvious decisions
+- AI asks user if encountering blockers
+
+#### 5. VERIFICATION (AI runs checks)
+- AI compiles code on all platforms (if applicable)
+- AI runs tests
+- AI checks for memory issues
+- AI verifies documentation updated
+
+#### 6. COMPLETION (Mark done, update docs)
+- AI marks task as Completed + date
+- AI updates CHANGELOG.md (Added/Changed entries)
+- AI updates ROADMAP.md (if milestone completed)
+- AI reports completion to user
+
+### Rules for AI
+
+**MUST:**
+- ✅ **NEVER start implementation** without approved task file
+- ✅ **ALWAYS create task file first** for any non-trivial work
+- ✅ **ALWAYS update checklist** as you progress (real-time)
+- ✅ **ALWAYS add Implementation Notes** for non-obvious decisions
+- ✅ **ALWAYS update related docs** (CHANGELOG, ROADMAP) on completion
+
+**SHOULD:**
+- 💡 **ASK if approach unclear** or multiple valid options exist
+- 💡 **WARN about risks** identified during planning
+- 💡 **SUGGEST alternatives** if better approach discovered
+- 💡 **REPORT blockers immediately** (don't struggle silently)
+
+**MUST NOT:**
+- ❌ **Skip task file** for "quick fixes" (still document in task file)
+- ❌ **Approve own plans** (only user approves)
+- ❌ **Mark complete** if tests fail or implementation incomplete
+- ❌ **Deviate from plan** without discussing with user
+
+### Rules for User
+
+**Responsibilities:**
+- Review approach BEFORE approval
+- Ask questions if plan unclear
+- Suggest alternatives if needed
+- Approve explicitly ("Approved, proceed")
+- Monitor CI/CD status during implementation
+
+**User can say:**
+- "Approved, proceed" - Start implementation
+- "Change X to Y first" - Modify plan before approval
+- "Let's discuss alternatives" - Review other options
+- "Skip task file this time" - Exception (rare, WIP work)
+
+### What Requires Task File?
+
+**✅ ALWAYS create task file for:**
+- New features (any size)
+- Refactoring (more than single function)
+- Architecture changes
+- Plugin implementation
+- Library integration
+- GUI components
+- Testing infrastructure
+- Documentation (major documents)
+- Bug fixes (non-trivial)
+
+**❌ MAY skip task file for:**
+- Typo fixes in comments
+- Formatting adjustments
+- Single-line bug fixes (obvious)
+- Adding missing semicolon
+- User explicitly says "skip task file"
+
+**When in doubt, create task file!** Better over-documented than under-documented.
+
+### Integration with Other Protocols
+
+**End-of-Session Checklist integration:**
+- Completed tasks → Update CHANGELOG.md
+- Milestone tasks → Update ROADMAP.md
+- Architectural decisions → Update CLAUDE.md
+- All task files → Committed to git
+
+**CI/CD monitoring:**
+- Before marking task complete, verify CI passes
+- Fix CI issues before moving to next task
+- Report CI status to user if issues found
+
+### Example Workflow Session
+
+```
+User: "Let's implement Plugin Manager skeleton"
+
+AI: "Creating task file tasks/00001_plugin_manager_skeleton.md..."
+    [AI creates file with proposed approach]
+    "I propose this approach: [summary]. Should I proceed?"
+
+User: "Looks good, but add logging. Approved."
+
+AI: "Updating task file with logging requirement..."
+    "Starting implementation..."
+    [✓] Create PluginManager class
+    [✓] Implement discoverPlugins()
+    [✓] Add logging with spdlog
+    ...
+    "Implementation complete. Running verification..."
+    "All checks passed. Updating CHANGELOG.md..."
+    "Task #00001 completed! ✅"
+```
 
 ---
 
