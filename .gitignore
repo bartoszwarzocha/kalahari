@@ -110,8 +110,8 @@ tasks/.scratch/
 *.backup
 *_backup
 
-# Core dumps
-core
+# Core dumps (only at root, not src/core/)
+/core
 core.*
 
 # Generated documentation (build output)

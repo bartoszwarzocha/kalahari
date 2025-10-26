@@ -3,7 +3,9 @@
 # Source files
 set(KALAHARI_SOURCES
     main.cpp
-    # More source files will be added in Week 2+ (Phase 0)
+    core/logger.cpp
+    gui/kalahari_app.cpp
+    gui/main_window.cpp
 )
 
 # Create executable
@@ -39,14 +41,14 @@ target_link_libraries(kalahari PRIVATE
 
 # Platform-specific settings
 if(WIN32)
-    # Windows: GUI application (not console) - will be enabled in Week 2
-    # set_target_properties(kalahari PROPERTIES WIN32_EXECUTABLE TRUE)
+    # Windows: GUI application (not console)
+    set_target_properties(kalahari PROPERTIES WIN32_EXECUTABLE TRUE)
 
-    # For now: console application for testing
+    # Unicode support
     target_compile_definitions(kalahari PRIVATE UNICODE _UNICODE)
 elseif(APPLE)
-    # macOS: Bundle structure - will be configured in Week 2
-    # set_target_properties(kalahari PROPERTIES MACOSX_BUNDLE TRUE)
+    # macOS: Bundle structure
+    set_target_properties(kalahari PROPERTIES MACOSX_BUNDLE TRUE)
 endif()
 
 message(STATUS "Configured executable target: kalahari")

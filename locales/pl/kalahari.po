@@ -1,0 +1,157 @@
+# Kalahari Writer's IDE - Polish Translation
+# Copyright (C) 2025 Kalahari Project
+# This file is distributed under the MIT License.
+#
+# IMPORTANT: This is a PLACEHOLDER for Phase 0 Week 2.
+# Full i18n implementation will be completed in Phase 1.
+#
+# Translator: Bartosz (bartosz@kalahari-project.org), 2025.
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Kalahari 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-26 12:00+0000\n"
+"PO-Revision-Date: 2025-10-26 12:00+0000\n"
+"Last-Translator: Bartosz <bartosz@kalahari-project.org>\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+# Menu items (File menu)
+msgid "&File"
+msgstr "&Plik"
+
+msgid "&New\tCtrl+N"
+msgstr "&Nowy\tCtrl+N"
+
+msgid "&Open...\tCtrl+O"
+msgstr "&Otwórz...\tCtrl+O"
+
+msgid "&Save\tCtrl+S"
+msgstr "&Zapisz\tCtrl+S"
+
+msgid "Save &As...\tCtrl+Shift+S"
+msgstr "Zapisz &Jako...\tCtrl+Shift+S"
+
+msgid "E&xit\tAlt+F4"
+msgstr "&Zakończ\tAlt+F4"
+
+# Menu items (Edit menu)
+msgid "&Edit"
+msgstr "&Edycja"
+
+msgid "&Undo\tCtrl+Z"
+msgstr "&Cofnij\tCtrl+Z"
+
+msgid "&Redo\tCtrl+Y"
+msgstr "&Ponów\tCtrl+Y"
+
+msgid "Cu&t\tCtrl+X"
+msgstr "Wy&tnij\tCtrl+X"
+
+msgid "&Copy\tCtrl+C"
+msgstr "&Kopiuj\tCtrl+C"
+
+msgid "&Paste\tCtrl+V"
+msgstr "&Wklej\tCtrl+V"
+
+# Menu items (View menu)
+msgid "&View"
+msgstr "&Widok"
+
+msgid "&Fullscreen\tF11"
+msgstr "&Pełny ekran\tF11"
+
+msgid "&Toolbar"
+msgstr "&Pasek narzędzi"
+
+msgid "&Status Bar"
+msgstr "Pasek &stanu"
+
+# Menu items (Help menu)
+msgid "&Help"
+msgstr "Pomo&c"
+
+msgid "&Contents\tF1"
+msgstr "&Spis treści\tF1"
+
+msgid "&About Kalahari"
+msgstr "&O programie Kalahari"
+
+# Toolbar tooltips
+msgid "Create new document"
+msgstr "Utwórz nowy dokument"
+
+msgid "Open existing document"
+msgstr "Otwórz istniejący dokument"
+
+msgid "Save current document"
+msgstr "Zapisz bieżący dokument"
+
+msgid "Undo last action"
+msgstr "Cofnij ostatnią akcję"
+
+msgid "Redo last undone action"
+msgstr "Ponów ostatnią cofniętą akcję"
+
+# Status bar
+msgid "Ready"
+msgstr "Gotowy"
+
+msgid "Line 1, Col 1"
+msgstr "Wiersz 1, Kol 1"
+
+msgid "Session: 00:00"
+msgstr "Sesja: 00:00"
+
+# Main panel placeholder
+msgid "Rich Text Editor\nwill be implemented in Phase 1\n\nPhase 0 Week 2: GUI Infrastructure\nStatus: In Progress"
+msgstr "Edytor tekstu sformatowanego\nzostanie zaimplementowany w Fazie 1\n\nFaza 0 Tydzień 2: Infrastruktura GUI\nStatus: W trakcie"
+
+# Dialog titles
+msgid "New Document"
+msgstr "Nowy dokument"
+
+msgid "Open Document"
+msgstr "Otwórz dokument"
+
+msgid "Save Document"
+msgstr "Zapisz dokument"
+
+msgid "Save As"
+msgstr "Zapisz jako"
+
+msgid "Undo"
+msgstr "Cofnij"
+
+msgid "Redo"
+msgstr "Ponów"
+
+msgid "About Kalahari"
+msgstr "O programie Kalahari"
+
+# Dialog messages
+msgid "New document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność nowego dokumentu zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Open document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność otwierania dokumentu zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Save document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność zapisywania dokumentu zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Save As functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność 'Zapisz jako' zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Undo functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność cofania zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Redo functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr "Funkcjonalność ponawiania zostanie zaimplementowana w Fazie 1.\n\nFaza 0 Tydzień 2: Infrastruktura GUI"
+
+msgid "Kalahari Writer's IDE\nVersion 0.0.1-alpha (Phase 0 Week 2)\n\nA comprehensive writing environment for book authors.\n\n© 2025 Kalahari Project\nLicensed under MIT License"
+msgstr "Kalahari Writer's IDE\nWersja 0.0.1-alpha (Faza 0 Tydzień 2)\n\nKompleksowe środowisko pisarskie dla autorów książek.\n\n© 2025 Projekt Kalahari\nLicencja MIT"

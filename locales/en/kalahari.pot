@@ -1,0 +1,158 @@
+# Kalahari Writer's IDE - English Translation Template
+# Copyright (C) 2025 Kalahari Project
+# This file is distributed under the MIT License.
+#
+# IMPORTANT: This is a PLACEHOLDER for Phase 0 Week 2.
+# Full i18n implementation will be completed in Phase 1.
+#
+# To extract translatable strings, run:
+#   xgettext --keyword=_ --language=C++ --add-comments --sort-output \
+#            --output=locales/en/kalahari.pot src/**/*.cpp src/**/*.h
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Kalahari 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-26 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Menu items (File menu)
+msgid "&File"
+msgstr ""
+
+msgid "&New\tCtrl+N"
+msgstr ""
+
+msgid "&Open...\tCtrl+O"
+msgstr ""
+
+msgid "&Save\tCtrl+S"
+msgstr ""
+
+msgid "Save &As...\tCtrl+Shift+S"
+msgstr ""
+
+msgid "E&xit\tAlt+F4"
+msgstr ""
+
+# Menu items (Edit menu)
+msgid "&Edit"
+msgstr ""
+
+msgid "&Undo\tCtrl+Z"
+msgstr ""
+
+msgid "&Redo\tCtrl+Y"
+msgstr ""
+
+msgid "Cu&t\tCtrl+X"
+msgstr ""
+
+msgid "&Copy\tCtrl+C"
+msgstr ""
+
+msgid "&Paste\tCtrl+V"
+msgstr ""
+
+# Menu items (View menu)
+msgid "&View"
+msgstr ""
+
+msgid "&Fullscreen\tF11"
+msgstr ""
+
+msgid "&Toolbar"
+msgstr ""
+
+msgid "&Status Bar"
+msgstr ""
+
+# Menu items (Help menu)
+msgid "&Help"
+msgstr ""
+
+msgid "&Contents\tF1"
+msgstr ""
+
+msgid "&About Kalahari"
+msgstr ""
+
+# Toolbar tooltips
+msgid "Create new document"
+msgstr ""
+
+msgid "Open existing document"
+msgstr ""
+
+msgid "Save current document"
+msgstr ""
+
+msgid "Undo last action"
+msgstr ""
+
+msgid "Redo last undone action"
+msgstr ""
+
+# Status bar
+msgid "Ready"
+msgstr ""
+
+msgid "Line 1, Col 1"
+msgstr ""
+
+msgid "Session: 00:00"
+msgstr ""
+
+# Main panel placeholder
+msgid "Rich Text Editor\nwill be implemented in Phase 1\n\nPhase 0 Week 2: GUI Infrastructure\nStatus: In Progress"
+msgstr ""
+
+# Dialog titles
+msgid "New Document"
+msgstr ""
+
+msgid "Open Document"
+msgstr ""
+
+msgid "Save Document"
+msgstr ""
+
+msgid "Save As"
+msgstr ""
+
+msgid "Undo"
+msgstr ""
+
+msgid "Redo"
+msgstr ""
+
+msgid "About Kalahari"
+msgstr ""
+
+# Dialog messages
+msgid "New document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Open document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Save document functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Save As functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Undo functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Redo functionality will be implemented in Phase 1.\n\nPhase 0 Week 2: GUI Infrastructure"
+msgstr ""
+
+msgid "Kalahari Writer's IDE\nVersion 0.0.1-alpha (Phase 0 Week 2)\n\nA comprehensive writing environment for book authors.\n\n© 2025 Kalahari Project\nLicensed under MIT License"
+msgstr ""
