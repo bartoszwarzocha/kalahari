@@ -510,14 +510,126 @@ submitBackgroundTask([this]() {
 ## Status
 - **Created:** 2025-10-26
 - **Approved:** ✅ 2025-10-26 (by User - hybrid approach, 4 threads, KALAHARI convention)
-- **Started:** (pending Task #00001 completion)
-- **Completed:** (pending)
+- **Started:** 2025-10-26 (after Task #00001 completion)
+- **Completed:** ✅ 2025-10-26
 
 ## Implementation Notes
-(To be added during implementation)
+
+### Architecture Decisions
+- **Hybrid Pattern:** std::thread + wxQueueEvent (modern C++ + Bartosz's proven pattern)
+- **Thread Pool:** Fixed max 4 threads (wxSemaphore-based limiting)
+- **Event Naming:** wxEVT_KALAHARI_* convention (consistent branding)
+- **Binding:** Dynamic Bind() in constructor (more flexible than event tables)
+- **Thread Safety:** wxMutex protects m_activeThreads vector
+- **Detached Threads:** worker.detach() (fire-and-forget, like wxTHREAD_DETACHED)
+
+### Implementation Details
+- **submitBackgroundTask():** 68 lines
+  - Semaphore check (TryWait → work → Post pattern)
+  - Thread tracking (add on start, remove on finish)
+  - Exception handling (try/catch → wxEVT_KALAHARI_TASK_FAILED)
+  - wxQueueEvent for GUI communication (thread-safe)
+  - Logging at every step (debug/info/error levels)
+
+- **Event Handlers:** 24 lines
+  - onTaskCompleted(): Update status bar, log success
+  - onTaskFailed(): Show error, log to spdlog + wxLog
+
+- **Destructor Cleanup:** 20 lines
+  - Wait up to 5 seconds for tasks to finish
+  - Timeout protection (prevents infinite hang)
+  - Graceful vs forced shutdown logging
+
+- **Example Usage:** 32 lines
+  - onFileOpen() demonstrates pattern
+  - 2-second simulated file load
+  - CallAfter() for status bar updates
+  - Thread limit warning dialog
+
+### Code Statistics
+- **Total Lines Added:** 241 lines (2 files)
+  - main_window.h: +79 lines (includes, declarations, docs)
+  - main_window.cpp: +162 lines (implementation, examples)
+- **Lines Modified:** 12 lines (constructor, imports)
+- **Net Change:** +229 lines
+
+### Key Patterns Implemented
+1. **Semaphore Limiting (Bartosz's pattern):**
+   ```cpp
+   wxMutexLocker lock(m_threadMutex);
+   wxSemaError serr = m_threadSemaphore.TryWait();
+   if (serr != wxSEMA_NO_ERROR) { return false; }
+   ```
+
+2. **wxQueueEvent Communication (Bartosz's pattern):**
+   ```cpp
+   wxThreadEvent* evt = new wxThreadEvent(wxEVT_KALAHARI_TASK_COMPLETED);
+   evt->SetId(threadId);
+   wxQueueEvent(this, evt);  // Thread-safe, deep copy
+   ```
+
+3. **CallAfter for Simple Updates:**
+   ```cpp
+   CallAfter([this]() {
+       m_statusBar->SetStatusText(_("Ready"), 0);
+   });
+   ```
+
+4. **Thread Tracking & Cleanup:**
+   ```cpp
+   // On thread start:
+   m_activeThreads.push_back(threadId);
+
+   // On thread exit:
+   auto it = std::find(m_activeThreads.begin(), m_activeThreads.end(), threadId);
+   m_activeThreads.erase(it);
+   m_threadSemaphore.Post();
+   ```
+
+### Integration Points (Future)
+- **Week 3-4:** Python plugin execution with GIL handling
+- **Week 5+:** File I/O, AI API calls, document parsing
+- **Phase 1:** Heavy operations (DOCX import, statistics generation)
 
 ## Verification Results
-(To be added after implementation)
+
+### Local Build (Linux)
+✅ **PASSED**
+- CMake build: Success (clean compilation)
+- Executable size: 166 MB (Debug, unchanged from Task #00001)
+- Threading symbols verified: submitBackgroundTask, onTaskCompleted, onTaskFailed present in binary
+- No compiler warnings (-Wall -Wextra -Wpedantic -Werror)
+- Build time: ~3 seconds (incremental, 2 files changed)
+
+### CI/CD Matrix Builds
+✅ **ALL PLATFORMS PASSED**
+
+| Platform | Build Type | Status | Time | Run ID |
+|----------|-----------|--------|------|---------|
+| macOS | Debug + Release | ✅ SUCCESS | 59s | 18821590483 |
+| Windows | Debug + Release | ✅ SUCCESS | 4m16s | 18821590487 |
+| Linux | Debug + Release | ✅ SUCCESS | 4m36s | 18821590482 |
+
+**Commit:** `8ee4248` - "feat: Add threading infrastructure (Phase 0 Week 2)"
+
+### Code Quality
+- ✅ No compiler warnings (all platforms)
+- ✅ C++20 compliance verified
+- ✅ Modern C++ patterns (std::thread, std::function, lambda captures)
+- ✅ Thread safety: wxMutex, wxSemaphore, wxQueueEvent
+- ✅ Exception safety: try/catch with error events
+- ✅ Resource safety: RAII (wxMutexLocker), semaphore Post on exit
+- ✅ Cross-platform: No platform-specific code
+
+### Functional Testing (Manual - to be performed)
+**Test Cases from Task #00002:**
+1. ⏳ **Thread limiting:** Click "File → Open" 5x rapidly → 4 tasks run, 5th rejected
+2. ⏳ **Success case:** Single click → Status "Loading file..." → 2s → "Loaded: example.klh"
+3. ⏳ **Cleanup:** Start 2-3 tasks, close window → Wait up to 5s, graceful shutdown
+4. ⏳ **Exception handling:** (Phase 1 - modify task to throw)
+5. ⏳ **Log verification:** Check spdlog output for thread lifecycle messages
+
+**Note:** Manual testing deferred to next session (user requested update ROADMAP/CHANGELOG first)
 
 ---
 
