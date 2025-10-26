@@ -34,7 +34,7 @@ target_link_libraries(kalahari PRIVATE
     wx::base
     spdlog::spdlog
     nlohmann_json::nlohmann_json
-    libzip::zip
+    # Note: libzip will be added in Phase 1 when implementing .klh file format
 )
 
 # Platform-specific settings

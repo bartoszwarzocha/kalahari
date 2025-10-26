@@ -17,7 +17,6 @@
     },
     "spdlog",
     "nlohmann-json",
-    "libzip",
     "catch2"
   ]
 }
