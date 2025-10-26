@@ -451,13 +451,64 @@ This ensures we use **wxWidgets 3.3.0+ current API** (not outdated knowledge).
 - **Created:** 2025-10-26
 - **Approved:** ✅ 2025-10-26 (by User - "Zatwierdzam task 00001")
 - **Started:** 2025-10-26
-- **Completed:** (in progress)
+- **Completed:** ✅ 2025-10-26
 
 ## Implementation Notes
-(To be added during implementation)
+
+### Compilation Fixes Applied
+- **Multi-line comment warning:** Removed trailing backslashes from Windows path comments in `kalahari_app.cpp:66-68`
+- **Unused parameter warnings:** Added `[[maybe_unused]]` attribute to all event handler parameters in `main_window.cpp` (8 event handlers)
+
+### .gitignore Fix
+- **Issue:** Pattern `core` (for Unix core dumps) was ignoring `src/core/` directory
+- **Fix:** Changed `core` to `/core` (only matches at repository root)
+- **Impact:** Logger files (`src/core/logger.h`, `src/core/logger.cpp`) are now properly tracked
+
+### Build Statistics
+- **Local Linux Build:**
+  - Executable size: 166 MB (Debug build with symbols)
+  - Build time: ~3 minutes (after vcpkg cache warmed)
+  - wxWidgets 3.3.1 statically linked with GTK3 backend
+- **CI Build Times:**
+  - macOS: 1m 9s
+  - Windows: 4m 19s
+  - Linux: 4m 36s
+
+### Implementation Decisions
+- **Logging paths:** Platform-specific via `wxStandardPaths::GetUserDataDir()`
+  - Windows: `C:\Users\<user>\AppData\Roaming\Kalahari Project\Kalahari\logs\`
+  - macOS: `~/Library/Application Support/Kalahari/logs/`
+  - Linux: `~/.config/kalahari/logs/`
+- **Event handlers:** Used event table (`wxBEGIN_EVENT_TABLE`) for compile-time safety over `Bind()` for basic events
+- **Stock icons:** Used `wxArtProvider` for toolbar icons (platform-native appearance)
+- **i18n:** All UI strings wrapped with `_()` macro for Phase 1 wxLocale integration
 
 ## Verification Results
-(To be added after implementation)
+
+### Local Build (Linux)
+✅ **PASSED**
+- CMake configuration: Success (1014.8s including vcpkg dependency installation)
+- Ninja build: Success (3 compilation units + linking)
+- Executable created: `build/bin/kalahari` (166 MB Debug)
+- No compilation warnings/errors
+- Symbols verified: wxWidgets and GTK3 statically linked
+
+### CI/CD Matrix Builds
+✅ **ALL PLATFORMS PASSED**
+
+| Platform | Build Type | Status | Time | Run ID |
+|----------|-----------|--------|------|---------|
+| macOS | Debug + Release | ✅ SUCCESS | 1m 9s | 18821426899 |
+| Windows | Debug + Release | ✅ SUCCESS | 4m 19s | 18821426901 |
+| Linux | Debug + Release | ✅ SUCCESS | 4m 36s | 18821426892 |
+
+**Commit:** `733ad81` - "feat: Implement basic wxWidgets GUI window (Phase 0 Week 2)"
+
+### Code Quality
+- ✅ No compiler warnings (-Wall -Wextra -Wpedantic -Werror)
+- ✅ C++20 standard compliance verified
+- ✅ All platforms use consistent code (no platform-specific hacks)
+- ✅ Modern C++: `[[maybe_unused]]`, smart pointers, RAII patterns
 
 ---
 
