@@ -90,6 +90,12 @@ Desktop.ini
 *.bak
 *.orig
 
+# Temporary memo files (personal notes, not documentation)
+DO_PRZECZYTANIA*.md
+TODO_JUTRO*.md
+MEMO_*.md
+NOTES_*.md
+
 # Log files
 *.log
 
