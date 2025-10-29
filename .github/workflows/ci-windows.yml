@@ -38,6 +38,12 @@ jobs:
       run: |
         choco install cmake ninja -y
 
+    - name: Install autotools (for vcpkg Python build)
+      run: |
+        choco install msys2 -y
+        C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf autoconf-archive automake libtool"
+      continue-on-error: true
+
     - name: Cache vcpkg
       uses: actions/cache@v4
       with:
