@@ -2,7 +2,7 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🔄 Phase 0 - Foundation (Week 3-4 | Plugin Foundation Complete)
+**Current Status:** 🔄 Phase 0 - Foundation (Week 5-6 | Extension Points + Event Bus Complete)
 **Version:** 0.0.1-dev
 **Last Updated:** 2025-10-29
 
@@ -29,13 +29,14 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Goal:** Build technical infrastructure and plugin architecture foundation
 
-**Status:** ✅ Week 3-4 COMPLETE (Infrastructure, Settings, Plugin Foundation + Build Fixes)
+**Status:** ✅ Week 5-6 COMPLETE (Extension Points + Event Bus Foundation)
 **Target Version:** 0.1.0-alpha
 **Timeline:** 2-3 months from project start
 **Started:** 2025-10-26
 **Week 2 Completed:** 2025-10-26 (GUI, Threading, Logging)
 **Week 3 Completed:** 2025-10-27 (Settings System, Build Scripts)
 **Week 3-4 Completed:** 2025-10-29 (Plugin Manager + pybind11 + Compilation Fixes)
+**Week 5-6 Completed:** 2025-10-29 (Extension Points + Event Bus + pybind11 Bindings)
 
 ### Architectural Decisions ✅ FINALIZED (2025-10-25)
 - ✅ **GUI Pattern:** MVP (Model-View-Presenter)
@@ -81,14 +82,18 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - Singleton pattern with thread-safe std::mutex
   - Stub methods ready for Week 5-6 actual implementation
   - Unit tests verify singleton behavior + thread safety
-- [ ] Extension Points system (C++ interfaces for plugins) ⏳ Week 5 (Task #00010)
+- [x] **Extension Points system** (C++ interfaces for plugins) ✅ Week 5-6 (Task #00010)
   - IExporter, IPanelProvider, IAssistant, IPlugin base interfaces
-  - Extension point registry
-  - Plugin manifest parsing (.kplugin JSON)
-- [ ] Event Bus (async, thread-safe, GUI-aware marshalling) ⏳ Week 5 (Task #00010)
+  - ExtensionPointRegistry singleton with type-safe retrieval
+  - Thread-safe registration with std::mutex
+  - 12 test cases covering registration, type-casting, thread safety
+- [x] **Event Bus** (async, thread-safe, GUI-aware marshalling) ✅ Week 5-6 (Task #00010)
   - Thread-safe event queue (std::queue + std::mutex)
   - Subscriber pattern with unsubscribe support
-  - GUI marshalling via wxTheApp->CallAfter for main thread
+  - GUI marshalling via wxTheApp->CallAfter for async emission
+  - pybind11 bindings for Python plugins
+  - 11 C++ test cases + 7 Python integration tests
+  - 8 standard event types defined (document, editor, plugin, goal events)
 - [ ] .kplugin format handler (ZIP reading/writing with libzip) ⏳ Week 6 (Task #00011)
   - Package structure: manifest.json + plugin.py + assets/
   - ZIP extraction and validation

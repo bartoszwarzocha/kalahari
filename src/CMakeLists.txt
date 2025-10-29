@@ -8,6 +8,8 @@ set(KALAHARI_CORE_SOURCES
     core/cmd_line_parser.cpp
     core/diagnostic_manager.cpp
     core/plugin_manager.cpp
+    core/extension_points.cpp
+    core/event_bus.cpp
 )
 
 # Create core library as SHARED for Python module compatibility

@@ -152,24 +152,204 @@ Then:
 
 ---
 
-## Future API (Phase 0 Week 5-6)
+## EventBus API (Phase 0 Week 5-6) ✅
 
-### EventBus (Stub)
+The EventBus provides a thread-safe publish/subscribe system for event-driven communication between core and plugins.
 
+### Event Class
+
+Represents an event with a type identifier.
+
+**Constructor:**
 ```python
-# Not yet implemented - Week 5
-# kalahari_api.EventBus.subscribe("event_name", callback)
-# kalahari_api.EventBus.publish("event_name", data)
+Event(type: str)
 ```
 
-### Extension Points
+**Attributes:**
+- `type` (str): Event type identifier (e.g., "document:opened", "goal:reached")
+- `data`: Reserved for future use (currently returns None)
 
-**Future interfaces (Week 5-6):**
+**Example:**
+```python
+import kalahari_api
 
-- `IExporter` - Export documents to various formats
-- `IPanelProvider` - Add custom UI panels
-- `IAssistant` - Add graphical assistant personalities
-- `IPlugin` - Base interface for all plugins
+# Create event
+evt = kalahari_api.Event("document:opened")
+print(evt.type)  # "document:opened"
+```
+
+### EventBus Class (Singleton)
+
+Thread-safe event bus for pub/sub communication.
+
+#### `EventBus.get_instance() -> EventBus`
+
+Get the EventBus singleton instance.
+
+**Example:**
+```python
+bus = kalahari_api.EventBus.get_instance()
+```
+
+#### `subscribe(event_type: str, callback: callable) -> None`
+
+Subscribe to events of a specific type. The callback will be invoked whenever an event of that type is emitted.
+
+**Parameters:**
+- `event_type` (str): Event type to listen for
+- `callback` (callable): Function to call when event is emitted. Signature: `callback(event: Event) -> None`
+
+**Example:**
+```python
+def on_document_opened(event):
+    kalahari_api.Logger.info(f"Document opened: {event.type}")
+
+bus = kalahari_api.EventBus.get_instance()
+bus.subscribe("document:opened", on_document_opened)
+```
+
+#### `unsubscribe(event_type: str) -> None`
+
+Unsubscribe from all listeners for a specific event type.
+
+**Parameters:**
+- `event_type` (str): Event type to stop listening for
+
+**Example:**
+```python
+bus.unsubscribe("document:opened")
+```
+
+#### `emit(event: Event) -> None`
+
+Emit an event synchronously. All registered callbacks for the event type will be invoked immediately in the calling thread.
+
+**Parameters:**
+- `event` (Event): Event to emit
+
+**Example:**
+```python
+evt = kalahari_api.Event("document:saved")
+bus.emit(evt)
+```
+
+#### `emit_async(event: Event) -> None`
+
+Emit an event asynchronously. The event will be queued and callbacks will be invoked on the GUI thread (via wxTheApp->CallAfter). Safe to call from worker threads.
+
+**Parameters:**
+- `event` (Event): Event to emit
+
+**Example:**
+```python
+# Safe to call from background thread
+evt = kalahari_api.Event("export:complete")
+bus.emit_async(evt)
+```
+
+#### `has_subscribers(event_type: str) -> bool`
+
+Check if an event type has any subscribers.
+
+**Parameters:**
+- `event_type` (str): Event type to check
+
+**Returns:**
+- `bool`: True if at least one subscriber exists
+
+**Example:**
+```python
+if bus.has_subscribers("document:opened"):
+    kalahari_api.Logger.info("Document open listeners registered")
+```
+
+#### `get_subscriber_count(event_type: str) -> int`
+
+Get the number of subscribers for an event type.
+
+**Parameters:**
+- `event_type` (str): Event type to query
+
+**Returns:**
+- `int`: Number of registered callbacks
+
+**Example:**
+```python
+count = bus.get_subscriber_count("document:opened")
+kalahari_api.Logger.info(f"Subscribers: {count}")
+```
+
+#### `clear_all() -> None`
+
+Clear all event subscriptions. Use with caution.
+
+**Example:**
+```python
+bus.clear_all()  # Remove all listeners
+```
+
+### Standard Event Types
+
+Kalahari core emits the following standard events:
+
+| Event Type | Description | When Emitted |
+|------------|-------------|--------------|
+| `document:opened` | Document opened | After successful document load |
+| `document:saved` | Document saved | After successful save operation |
+| `document:closed` | Document closed | Before document cleanup |
+| `editor:selection_changed` | Text selection changed | When user changes selection |
+| `editor:content_changed` | Document content modified | After text edit |
+| `plugin:loaded` | Plugin loaded successfully | After plugin initialization |
+| `plugin:unloaded` | Plugin unloaded | Before plugin cleanup |
+| `goal:reached` | User reached writing goal | When word count goal achieved |
+
+### Complete EventBus Example
+
+```python
+#!/usr/bin/env python3
+import kalahari_api
+
+# Get EventBus instance
+bus = kalahari_api.EventBus.get_instance()
+
+# Define event handlers
+def on_document_event(event):
+    kalahari_api.Logger.info(f"Document event: {event.type}")
+
+def on_goal_reached(event):
+    kalahari_api.Logger.info("Congratulations! Goal reached!")
+
+# Subscribe to events
+bus.subscribe("document:opened", on_document_event)
+bus.subscribe("document:saved", on_document_event)
+bus.subscribe("goal:reached", on_goal_reached)
+
+# Emit events (typically done by core, shown here for demo)
+evt1 = kalahari_api.Event("document:opened")
+bus.emit(evt1)
+
+evt2 = kalahari_api.Event("goal:reached")
+bus.emit(evt2)
+
+# Check subscriptions
+print(f"Document listeners: {bus.get_subscriber_count('document:opened')}")
+
+# Cleanup
+bus.unsubscribe("document:opened")
+```
+
+### Extension Points (C++ Only - Week 5-6)
+
+**Note:** Extension point interfaces are currently available only in C++. Python plugin support for extension points will be added in future releases.
+
+**C++ Interfaces:**
+
+- `IExporter` - Export documents to various formats (DOCX, PDF, Markdown)
+- `IPanelProvider` - Add custom dockable UI panels
+- `IAssistant` - Provide graphical assistant personalities
+- `IPlugin` - Base interface all plugins must implement
+
+See C++ API documentation for details.
 
 ---
 
@@ -190,29 +370,48 @@ except:
 
 ## Plugin System Architecture
 
-### Phase 0 Week 3-4 (Current)
+### Phase 0 Week 5-6 (Current) ✅
 
 ```
 Kalahari Core (C++)
-    ↓ pybind11
-kalahari_api Module
+    ├── ExtensionPointRegistry (C++ only)
+    │   ├── IPlugin (base interface)
+    │   ├── IExporter
+    │   ├── IPanelProvider
+    │   └── IAssistant
+    ├── EventBus (thread-safe pub/sub)
+    │   ├── Event struct
+    │   └── Subscriber management
+    └── Logger (multi-level logging)
+
+    ↓ pybind11 bindings
+
+kalahari_api Python Module
     ├── Logger (operational)
-    └── (stub placeholders)
+    │   ├── .info()
+    │   ├── .debug()
+    │   ├── .warn()
+    │   └── .error()
+    └── EventBus (operational)
+        ├── Event class
+        ├── .get_instance()
+        ├── .subscribe()
+        ├── .unsubscribe()
+        ├── .emit()
+        ├── .emit_async()
+        ├── .has_subscribers()
+        ├── .get_subscriber_count()
+        └── .clear_all()
 ```
 
-### Phase 0 Week 5-6 (Coming)
+### Phase 0 Week 7-8 (Coming)
 
 ```
-Kalahari Core (C++)
-    ↓ pybind11
-kalahari_api Module
-    ├── Logger (operational)
-    ├── EventBus (new)
-    └── Extension Points
-        ├── IExporter
-        ├── IPanelProvider
-        ├── IAssistant
-        └── IPlugin (base)
+Additional features:
+    ├── .kplugin format handler (ZIP-based packages)
+    ├── Plugin manifest parsing (JSON metadata)
+    ├── Document model (Book → Parts → Chapters)
+    └── Extension Points Python bindings
 ```
 
 ---

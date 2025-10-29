@@ -5,11 +5,15 @@ set(TEST_SOURCES
     test_main.cpp
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
+    core/test_extension_points.cpp
+    core/test_event_bus.cpp
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cmd_line_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/diagnostic_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/extension_points.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/event_bus.cpp
     # More test files will be added as we implement features
 )
 
