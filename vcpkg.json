@@ -27,6 +27,8 @@
         "bzip2"
       ]
     },
-    "catch2"
+    "catch2",
+    "python3",
+    "pybind11"
   ]
 }

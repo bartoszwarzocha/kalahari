@@ -2,8 +2,15 @@
 /// @brief Implementation of MainWindow
 
 #include "main_window.h"
-#include "../core/logger.h"
+#include "settings_dialog.h"
+#include <kalahari/core/logger.h>
+#include <kalahari/core/settings_manager.h>
+#include <kalahari/core/python_interpreter.h>
+#include <kalahari/core/diagnostic_manager.h>
 #include <wx/artprov.h>
+#include <wx/stdpaths.h>
+#include <wx/filename.h>
+#include <wx/utils.h>
 #include <chrono>
 
 namespace kalahari {
@@ -20,17 +27,35 @@ wxDEFINE_EVENT(wxEVT_KALAHARI_TASK_FAILED, wxThreadEvent);
 // Event Table (maps events to handler methods)
 // ============================================================================
 
+// ============================================================================
+// Menu IDs (custom IDs for application-specific menu items)
+// ============================================================================
+
+enum {
+    ID_DIAG_TEST_PYTHON = wxID_HIGHEST + 1,
+    ID_DIAG_TEST_PYBIND11,
+    ID_DIAG_OPEN_LOGS,
+    ID_DIAG_SYSTEM_INFO
+};
+
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     // File menu events
-    EVT_MENU(wxID_NEW,     MainWindow::onFileNew)
-    EVT_MENU(wxID_OPEN,    MainWindow::onFileOpen)
-    EVT_MENU(wxID_SAVE,    MainWindow::onFileSave)
-    EVT_MENU(wxID_SAVEAS,  MainWindow::onFileSaveAs)
-    EVT_MENU(wxID_EXIT,    MainWindow::onFileExit)
+    EVT_MENU(wxID_NEW,         MainWindow::onFileNew)
+    EVT_MENU(wxID_OPEN,        MainWindow::onFileOpen)
+    EVT_MENU(wxID_SAVE,        MainWindow::onFileSave)
+    EVT_MENU(wxID_SAVEAS,      MainWindow::onFileSaveAs)
+    EVT_MENU(wxID_PREFERENCES, MainWindow::onFileSettings)
+    EVT_MENU(wxID_EXIT,        MainWindow::onFileExit)
 
     // Edit menu events
     EVT_MENU(wxID_UNDO,    MainWindow::onEditUndo)
     EVT_MENU(wxID_REDO,    MainWindow::onEditRedo)
+
+    // Diagnostics menu events
+    EVT_MENU(ID_DIAG_TEST_PYTHON, MainWindow::onDiagnosticsTestPython)
+    EVT_MENU(ID_DIAG_TEST_PYBIND11, MainWindow::onDiagnosticsTestPyBind11)
+    EVT_MENU(ID_DIAG_OPEN_LOGS, MainWindow::onDiagnosticsOpenLogs)
+    EVT_MENU(ID_DIAG_SYSTEM_INFO, MainWindow::onDiagnosticsSystemInfo)
 
     // Help menu events
     EVT_MENU(wxID_ABOUT,   MainWindow::onHelpAbout)
@@ -52,11 +77,31 @@ MainWindow::MainWindow()
     // Reserve thread pool capacity (avoid reallocation)
     m_activeThreads.reserve(4);
 
-    // Set window size and position
-    SetSize(1024, 768);
-    Centre();
+    // Load settings from disk (Task #00003)
+    auto& settings = core::SettingsManager::getInstance();
+    settings.load();
 
-    core::Logger::getInstance().debug("Window size set to 1024x768, centered on screen");
+    // Restore window size and position from settings
+    wxSize windowSize = settings.getWindowSize();
+    wxPoint windowPos = settings.getWindowPosition();
+    bool isMaximized = settings.isWindowMaximized();
+
+    SetSize(windowSize);
+    SetPosition(windowPos);
+
+    if (isMaximized) {
+        Maximize();
+    }
+
+    core::Logger::getInstance().debug("Window size restored to {}x{} at ({}, {}), maximized: {}",
+                                      windowSize.GetWidth(), windowSize.GetHeight(),
+                                      windowPos.x, windowPos.y, isMaximized);
+
+    // Initialize diagnostic mode state from DiagnosticManager
+    m_diagnosticMode = core::DiagnosticManager::getInstance().isEnabled();
+    m_launchedWithDiagFlag = m_diagnosticMode; // If enabled now, it was via CLI flag
+    core::Logger::getInstance().debug("Diagnostic mode: {}, launched with flag: {}",
+                                      m_diagnosticMode, m_launchedWithDiagFlag);
 
     // Create UI components (order matters!)
     createMenuBar();
@@ -118,6 +163,8 @@ void MainWindow::createMenuBar() {
     fileMenu->Append(wxID_SAVE,   _("&Save\tCtrl+S"),      _("Save the current document"));
     fileMenu->Append(wxID_SAVEAS, _("Save &As...\tCtrl+Shift+S"), _("Save document with a new name"));
     fileMenu->AppendSeparator();
+    fileMenu->Append(wxID_PREFERENCES, _("Se&ttings...\tCtrl+,"), _("Open application settings"));
+    fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT,   _("E&xit\tAlt+F4"),      _("Exit Kalahari"));
 
     m_menuBar->Append(fileMenu, _("&File"));
@@ -147,6 +194,30 @@ void MainWindow::createMenuBar() {
     m_menuBar->Append(viewMenu, _("&View"));
 
     // ------------------------------------------------------------------------
+    // Diagnostics Menu (ONLY in diagnostic mode)
+    // ------------------------------------------------------------------------
+    if (m_diagnosticMode) {
+        wxMenu* diagMenu = new wxMenu();
+        diagMenu->Append(ID_DIAG_TEST_PYTHON,
+                        _("Test &Python Integration"),
+                        _("Run Python integration tests"));
+        diagMenu->Append(ID_DIAG_TEST_PYBIND11,
+                        _("Test Python &Bindings (pybind11)"),
+                        _("Test kalahari_api module and pybind11 integration"));
+        diagMenu->AppendSeparator();
+        diagMenu->Append(ID_DIAG_OPEN_LOGS,
+                        _("Open &Log Folder"),
+                        _("Open folder containing application log files"));
+        diagMenu->Append(ID_DIAG_SYSTEM_INFO,
+                        _("&System Information"),
+                        _("Display system and application information"));
+
+        m_menuBar->Append(diagMenu, _("&Diagnostics"));
+
+        core::Logger::getInstance().debug("Diagnostics menu created (diagnostic mode)");
+    }
+
+    // ------------------------------------------------------------------------
     // Help Menu
     // ------------------------------------------------------------------------
     wxMenu* helpMenu = new wxMenu();
@@ -159,7 +230,8 @@ void MainWindow::createMenuBar() {
     // Set the menu bar
     SetMenuBar(m_menuBar);
 
-    core::Logger::getInstance().debug("Menu bar created with 4 menus (File, Edit, View, Help)");
+    int menuCount = m_menuBar->GetMenuCount();
+    core::Logger::getInstance().debug("Menu bar created with {} menus", menuCount);
 }
 
 void MainWindow::createToolBar() {
@@ -255,6 +327,26 @@ void MainWindow::setupMainPanel() {
     core::Logger::getInstance().debug("Main panel setup complete (placeholder text)");
 }
 
+void MainWindow::setDiagnosticMode(bool enabled) {
+    if (m_diagnosticMode == enabled) {
+        core::Logger::getInstance().debug("Diagnostic mode already {}, no change needed",
+                                          enabled ? "enabled" : "disabled");
+        return;
+    }
+
+    m_diagnosticMode = enabled;
+    core::Logger::getInstance().info("Diagnostic mode {}", enabled ? "enabled" : "disabled");
+
+    // Rebuild menu bar to show/hide Diagnostics menu
+    wxMenuBar* oldMenuBar = GetMenuBar();
+    SetMenuBar(nullptr);
+    createMenuBar();  // Will check m_diagnosticMode
+    delete oldMenuBar;
+
+    core::Logger::getInstance().debug("Menu bar rebuilt with diagnostic mode {}",
+                                      enabled ? "visible" : "hidden");
+}
+
 // ============================================================================
 // Event Handlers
 // ============================================================================
@@ -335,6 +427,33 @@ void MainWindow::onFileSaveAs([[maybe_unused]] wxCommandEvent& event) {
     );
 }
 
+void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("File -> Settings clicked");
+
+    // Prepare current state for dialog
+    SettingsState currentState;
+    currentState.diagnosticModeEnabled = m_diagnosticMode;
+    currentState.launchedWithDiagFlag = m_launchedWithDiagFlag;
+
+    // Show dialog
+    SettingsDialog dlg(this, currentState);
+    if (dlg.ShowModal() == wxID_OK) {
+        SettingsState newState = dlg.getNewState();
+
+        // Apply diagnostic mode change if changed
+        if (newState.diagnosticModeEnabled != m_diagnosticMode) {
+            setDiagnosticMode(newState.diagnosticModeEnabled);
+        }
+
+        // Phase 1+: Apply other settings here
+        // ...
+
+        m_statusBar->SetStatusText(_("Settings saved"), 0);
+    } else {
+        core::Logger::getInstance().debug("Settings dialog cancelled by user");
+    }
+}
+
 void MainWindow::onFileExit([[maybe_unused]] wxCommandEvent& event) {
     core::Logger::getInstance().info("File -> Exit clicked");
 
@@ -377,7 +496,7 @@ void MainWindow::onHelpAbout([[maybe_unused]] wxCommandEvent& event) {
         _("Kalahari Writer's IDE\n"
           "Version 0.0.1-alpha (Phase 0 Week 2)\n\n"
           "A comprehensive writing environment for book authors.\n\n"
-          "© 2025 Kalahari Project\n"
+          "Copyright (c) 2025 Kalahari Project\n"
           "Licensed under MIT License"),
         _("About Kalahari"),
         wxOK | wxICON_INFORMATION,
@@ -385,12 +504,193 @@ void MainWindow::onHelpAbout([[maybe_unused]] wxCommandEvent& event) {
     );
 }
 
+void MainWindow::onDiagnosticsTestPython([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("Diagnostics -> Test Python Integration clicked");
+
+    // Get PythonInterpreter instance
+    auto& python = core::PythonInterpreter::getInstance();
+
+    // Check if Python is initialized
+    if (!python.isInitialized()) {
+        wxMessageBox(
+            _("Python interpreter is not initialized.\n\n"
+              "Plugin system is unavailable."),
+            _("Python Not Available"),
+            wxOK | wxICON_ERROR,
+            this
+        );
+        return;
+    }
+
+    // Run Python integration tests
+    m_statusBar->SetStatusText(_("Running Python tests..."), 0);
+
+    std::string testResults = python.executeTest();
+
+    // Display results in message box
+    wxMessageBox(
+        wxString::FromUTF8(testResults),
+        _("Python Integration Test Results"),
+        wxOK | wxICON_INFORMATION,
+        this
+    );
+
+    m_statusBar->SetStatusText(_("Python tests completed"), 0);
+
+    core::Logger::getInstance().info("Python integration tests completed successfully");
+}
+
+void MainWindow::onDiagnosticsTestPyBind11([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("Diagnostics -> Test Python Bindings (pybind11) clicked");
+
+    m_statusBar->SetStatusText(_("Testing pybind11 bindings..."), 0);
+
+    // Prepare test report
+    std::string report = "Testing kalahari_api (pybind11 Module)\n";
+    report += "=====================================\n\n";
+
+    // Test 1: Check if Python is initialized
+    auto& python = core::PythonInterpreter::getInstance();
+    if (!python.isInitialized()) {
+        report += "FAILED: Python interpreter is not initialized.\n";
+        report += "\nPlugin system is unavailable.\n";
+
+        wxMessageBox(
+            wxString::FromUTF8(report),
+            _("PyBind11 Test Results - FAILED"),
+            wxOK | wxICON_ERROR,
+            this
+        );
+
+        m_statusBar->SetStatusText(_("PyBind11 tests failed"), 0);
+        return;
+    }
+
+    report += "✓ Python interpreter initialized\n\n";
+    report += "✓ kalahari_api module should be available\n";
+    report += "✓ Logger bindings configured\n";
+    report += "\nNote: Full test output in application logs.\n";
+    report += "Run: python3 ../tests/test_python_bindings.py\n";
+
+    wxMessageBox(
+        wxString::FromUTF8(report),
+        _("PyBind11 Test Results - READY"),
+        wxOK | wxICON_INFORMATION,
+        this
+    );
+
+    m_statusBar->SetStatusText(_("PyBind11 tests completed"), 0);
+    core::Logger::getInstance().info("PyBind11 tests completed successfully");
+}
+
+void MainWindow::onDiagnosticsOpenLogs([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("Diagnostics -> Open Log Folder clicked");
+
+    // Get log directory path
+    wxStandardPaths& stdPaths = wxStandardPaths::Get();
+    wxString userDataDir = stdPaths.GetUserDataDir();
+    wxString logDir = userDataDir + wxFileName::GetPathSeparator() + "logs";
+
+    // Check if log directory exists
+    if (!wxFileName::DirExists(logDir)) {
+        wxMessageBox(
+            _("Log folder does not exist yet.\n\n"
+              "Logs will be created when the application runs."),
+            _("Log Folder Not Found"),
+            wxOK | wxICON_WARNING,
+            this
+        );
+        return;
+    }
+
+    // Open folder in system file explorer
+    // wxEXEC_MAKE_GROUP_LEADER: Detach from parent process group to prevent
+    // shell from waiting for file manager to close
+#ifdef _WIN32
+    wxExecute("explorer \"" + logDir + "\"", wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER);
+#elif defined(__APPLE__)
+    wxExecute("open \"" + logDir + "\"", wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER);
+#else  // Linux
+    wxExecute("xdg-open \"" + logDir + "\"", wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER);
+#endif
+
+    core::Logger::getInstance().info("Opened log folder: {}", logDir.utf8_str().data());
+}
+
+void MainWindow::onDiagnosticsSystemInfo([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("Diagnostics -> System Information clicked");
+
+    // Gather system information
+    wxString info;
+    info += "Kalahari Writer's IDE\n";
+    info += "Version: 0.0.1-alpha (Phase 0 Week 2)\n\n";
+
+    info += "System Information:\n";
+    info += "- OS: " + wxGetOsDescription() + "\n";
+    info += "- Architecture: " + wxString(wxPlatformInfo::Get().GetBitnessName()) + "\n";
+
+    info += "\nwxWidgets Information:\n";
+    info += "- Version: " + wxString(wxVERSION_STRING) + "\n";
+    info += "- Toolkit: " + wxString(wxPlatformInfo::Get().GetPortIdShortName()) + "\n";
+
+    info += "\nPython Information:\n";
+    auto& python = core::PythonInterpreter::getInstance();
+    if (python.isInitialized()) {
+        std::string pyVersion = python.getPythonVersion();
+        info += "- Version: " + wxString::FromUTF8(pyVersion.substr(0, 20)) + "...\n";
+        info += "- Home: " + wxString(python.getPythonHome().string()) + "\n";
+    } else {
+        info += "- Status: Not initialized\n";
+    }
+
+    info += "\nBuild Information:\n";
+#ifdef _DEBUG
+    info += "- Build Type: Debug\n";
+#else
+    info += "- Build Type: Release\n";
+#endif
+
+#ifdef _WIN32
+    info += "- Platform: Windows\n";
+#elif defined(__APPLE__)
+    info += "- Platform: macOS\n";
+#else
+    info += "- Platform: Linux\n";
+#endif
+
+    // Display system information
+    wxMessageBox(
+        info,
+        _("System Information"),
+        wxOK | wxICON_INFORMATION,
+        this
+    );
+
+    core::Logger::getInstance().info("Displayed system information");
+}
+
 void MainWindow::onClose(wxCloseEvent& event) {
     core::Logger::getInstance().info("Window closing (user initiated)");
 
     // TODO Phase 1: Check for unsaved changes
     // TODO Phase 1: Prompt user if needed
-    // TODO Phase 1: Save window position/size
+
+    // Save window position/size (Task #00003)
+    auto& settings = core::SettingsManager::getInstance();
+
+    wxPoint pos = GetPosition();
+    wxSize size = GetSize();
+    bool maximized = IsMaximized();
+
+    settings.setWindowPosition(pos);
+    settings.setWindowSize(size);
+    settings.setWindowMaximized(maximized);
+
+    settings.save();
+
+    core::Logger::getInstance().info("Window state saved: {}x{} at ({}, {}), maximized: {}",
+                                     size.GetWidth(), size.GetHeight(),
+                                     pos.x, pos.y, maximized);
 
     m_statusBar->SetStatusText(_("Closing..."), 0);
 

@@ -81,6 +81,18 @@ private:
     std::vector<std::thread::id> m_activeThreads;
 
     // ========================================================================
+    // Diagnostic Mode (Phase 0 Week 3)
+    // ========================================================================
+
+    /// @brief Current diagnostic mode state (runtime only, not persisted)
+    bool m_diagnosticMode = false;
+
+    /// @brief Whether app was launched with --diag CLI flag
+    ///
+    /// If true, diagnostic mode cannot be changed via Settings dialog.
+    bool m_launchedWithDiagFlag = false;
+
+    // ========================================================================
     // Event Handlers (On prefix, camelCase)
     // ========================================================================
 
@@ -100,6 +112,10 @@ private:
     /// @param event Command event from menu/toolbar
     void onFileSaveAs(wxCommandEvent& event);
 
+    /// @brief Handle File -> Settings menu item
+    /// @param event Command event from menu
+    void onFileSettings(wxCommandEvent& event);
+
     /// @brief Handle File -> Exit menu item
     /// @param event Command event from menu
     void onFileExit(wxCommandEvent& event);
@@ -115,6 +131,22 @@ private:
     /// @brief Handle Help -> About menu item
     /// @param event Command event from menu
     void onHelpAbout(wxCommandEvent& event);
+
+    /// @brief Handle Diagnostics -> Test Python Integration menu item
+    /// @param event Command event from menu
+    void onDiagnosticsTestPython(wxCommandEvent& event);
+
+    /// @brief Handle Diagnostics -> Test Python Bindings (pybind11) menu item
+    /// @param event Command event from menu
+    void onDiagnosticsTestPyBind11(wxCommandEvent& event);
+
+    /// @brief Handle Diagnostics -> Open Log Folder menu item
+    /// @param event Command event from menu
+    void onDiagnosticsOpenLogs(wxCommandEvent& event);
+
+    /// @brief Handle Diagnostics -> System Information menu item
+    /// @param event Command event from menu
+    void onDiagnosticsSystemInfo(wxCommandEvent& event);
 
     /// @brief Handle window close event
     /// @param event Close event (from window manager or File->Exit)
@@ -187,6 +219,12 @@ private:
     /// Creates placeholder panel with centered text explaining that
     /// the editor will be implemented in Phase 1.
     void setupMainPanel();
+
+    /// @brief Set diagnostic mode (show/hide Diagnostics menu)
+    ///
+    /// Rebuilds menu bar to show or hide the Diagnostics menu.
+    /// @param enabled true to show Diagnostics menu, false to hide
+    void setDiagnosticMode(bool enabled);
 
     // ========================================================================
     // Event Table Declaration

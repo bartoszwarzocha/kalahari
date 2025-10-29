@@ -401,7 +401,7 @@ To learn more about specific aspects:
 - **[Architecture](03_architecture.md)** - System design
 - **[Plugin System](04_plugin_system.md)** - Extensibility design
 - **[Business Model](05_business_model.md)** - Open Core + Plugins
-- **[Roadmap](06_roadmap.md)** - Development timeline
+- **[Roadmap](../ROADMAP.md)** - Development timeline (18-month plan)
 - **[Branding](10_branding.md)** - Visual identity
 
 ---

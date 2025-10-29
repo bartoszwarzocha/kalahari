@@ -3,6 +3,13 @@
 # Test source files
 set(TEST_SOURCES
     test_main.cpp
+    core/test_settings_manager.cpp
+    core/test_cmd_line_parser.cpp
+    # Source files under test (needed for linking)
+    ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/cmd_line_parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diagnostic_manager.cpp
     # More test files will be added as we implement features
 )
 
@@ -25,7 +32,11 @@ target_include_directories(kalahari-tests PRIVATE
 
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
-    Catch2::Catch2WithMain
+    Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()
+    wx::core
+    wx::base
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
 )
 
 # Register tests with CTest (commented out until Day 4 - when we have real tests)

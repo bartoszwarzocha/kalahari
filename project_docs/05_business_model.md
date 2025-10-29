@@ -511,7 +511,7 @@ Kalahari → Tools → Plugin Manager → Browse Marketplace
 
 ## Next Steps
 
-- **[06_roadmap.md](06_roadmap.md)** - Development timeline
+- **[ROADMAP.md](../ROADMAP.md)** - Development timeline (18-month plan)
 - **[04_plugin_system.md](04_plugin_system.md)** - Technical plugin architecture
 - **[10_branding.md](10_branding.md)** - Brand identity & marketing
 

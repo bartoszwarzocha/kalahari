@@ -106,6 +106,8 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)
 find_package(Catch2 3 CONFIG REQUIRED)
+find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
 
 # Project version accessible in code
 configure_file(
@@ -126,6 +128,7 @@ include(PrecompiledHeaders)
 
 # Subdirectories
 add_subdirectory(src)
+add_subdirectory(src/bindings)
 
 # Enable testing
 enable_testing()

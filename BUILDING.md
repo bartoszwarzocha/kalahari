@@ -6,6 +6,42 @@
 
 ---
 
+## Quick Start with Build Scripts 🚀
+
+**Easiest way to build Kalahari:**
+
+```bash
+# Universal script (auto-detects OS)
+./scripts/build.sh
+
+# Or platform-specific:
+./scripts/build_linux.sh              # Linux
+./scripts/build_macos.sh              # macOS
+scripts\build_windows.bat              # Windows
+```
+
+**Key features:**
+- ✅ Auto-checks prerequisites
+- ✅ Auto-initializes vcpkg submodule
+- ✅ Auto-bootstraps vcpkg
+- ✅ Parallel build (uses all CPU cores)
+- ✅ Colorized output
+- ✅ Build time reporting
+
+**Common options:**
+```bash
+./scripts/build.sh --release    # Release build
+./scripts/build.sh --clean      # Clean + rebuild
+./scripts/build.sh --test       # Build + run tests
+./scripts/build.sh --help       # Show all options
+```
+
+**For detailed script documentation, see:** [scripts/README.md](scripts/README.md)
+
+**Manual build instructions below** (if you prefer step-by-step or need troubleshooting).
+
+---
+
 ## Prerequisites
 
 ### All Platforms

@@ -55,25 +55,106 @@ Kalahari • Serengeti • Okavango • Victoria • Zambezi
 
 ## 🚀 Quick Start
 
+### Automated Build (Recommended)
+
+We provide platform-specific build scripts for easy setup:
+
+**Linux/macOS:**
 ```bash
-# Clone with submodules (includes vcpkg)
+git clone --recursive https://github.com/bartoszwarzocha/kalahari.git
+cd kalahari
+./scripts/build_linux.sh    # Or build_macos.sh for macOS
+```
+
+**Windows:**
+```cmd
+git clone --recursive https://github.com/bartoszwarzocha/kalahari.git
+cd kalahari
+scripts\build_windows.bat
+```
+
+The build script will:
+- ✅ Bootstrap vcpkg (automatic)
+- ✅ Configure CMake with correct toolchain
+- ✅ Compile all dependencies (first time: 15-30 min)
+- ✅ Run unit tests
+- ✅ Copy binaries to `build*/bin/`
+
+**Run the application:**
+```bash
+# Linux/macOS
+./build-linux/bin/kalahari
+
+# Windows
+.\build-windows\bin\kalahari.exe
+```
+
+### Manual Build
+
+If you prefer manual control:
+
+```bash
+# Clone with submodules
 git clone --recursive https://github.com/bartoszwarzocha/kalahari.git
 cd kalahari
 
-# Bootstrap vcpkg
+# Bootstrap vcpkg (one-time only)
 cd vcpkg
-./bootstrap-vcpkg.sh  # Linux/macOS
+./bootstrap-vcpkg.sh      # Linux/macOS
 # OR
-bootstrap-vcpkg.bat   # Windows
-
-# Configure and build
+.\bootstrap-vcpkg.bat     # Windows
 cd ..
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build --config Release
+
+# Configure CMake with vcpkg toolchain
+cmake -B build \
+  -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+  -DCMAKE_BUILD_TYPE=Release
+
+# Build
+cmake --build build --config Release --parallel 4
 
 # Run
 ./build/bin/kalahari
+
+# Run tests
+cd build
+ctest --output-on-failure
 ```
+
+### Platform Requirements
+
+**Common (All Platforms):**
+- CMake 3.21+
+- C++ compiler (GCC 10+, Clang 10+, or MSVC 2019+)
+- Python 3.11 (will be installed by vcpkg)
+
+**Linux (Debian/Ubuntu/Fedora):**
+```bash
+# wxWidgets development libraries
+sudo apt-get install libwxgtk-3.2-dev      # Ubuntu/Debian
+# OR
+sudo dnf install wxGTK-devel                # Fedora
+```
+
+**macOS:**
+- Xcode Command Line Tools (automatic installation)
+
+**Windows:**
+- Visual Studio 2019+ (Build Tools sufficient)
+- Windows 10+ or Windows Server 2016+
+
+### Diagnostic Mode
+
+Test Python embedding and plugin system:
+
+```bash
+./build-linux/bin/kalahari --diag
+```
+
+Then open **Diagnostics** menu to verify:
+- ✅ Python interpreter initialization
+- ✅ kalahari_api module loading
+- ✅ Logger bindings working
 
 ---
 
@@ -109,14 +190,26 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ## 🗺️ Development Status
 
-**Phase 0: Foundation** (Weeks 1-8)
-✅ Week 1: Project setup, CMake, vcpkg, CI/CD
-⏳ Week 2: wxWidgets basic window
-⏳ Week 3-4: Python embedding (pybind11)
-⏳ Week 5-6: Plugin Manager core
-⏳ Week 7-8: Extension Points & Event Bus
+**Phase 0: Foundation** (Weeks 1-8) - **Week 3-4 Complete ✅**
 
-[View full roadmap →](ROADMAP.md)
+| Week | Component | Status | Details |
+|------|-----------|--------|---------|
+| 1 | Project Setup, CMake, vcpkg, CI/CD | ✅ Complete | Full infrastructure |
+| 2 | wxWidgets GUI, Logging, Threading | ✅ Complete | Main window with menu/toolbar/status bar |
+| 3 | Settings System | ✅ Complete | JSON persistence + Dialog UI (Task #00003) |
+| 3 | Build Automation Scripts | ✅ Complete | Cross-platform build scripts (Task #00004) |
+| 2 | Python 3.11 Embedding | ✅ Complete | Embedded interpreter + stdlib detection (Task #00005) |
+| **3-4** | **Plugin Foundation** | **✅ Complete** | **PluginManager + pybind11 (Task #00009)** |
+| 5-6 | Extension Points + Event Bus | ⏳ Planned | ExtensionPointRegistry + EventBus (Task #00010) |
+| 6 | .kplugin Format Handler | ⏳ Planned | Plugin discovery, loading, unloading (Task #00011) |
+| 7-8 | Document Model | ⏳ Planned | Document/Chapter/Book classes (Task #00012) |
+
+**Current Phase Progress:** 52% Complete (4.5 / 8 weeks)
+- ✅ 42+ files created
+- ✅ 50+ unit tests passing
+- ✅ All platforms building (Windows, macOS, Linux)
+
+[View detailed roadmap →](ROADMAP.md) | [Phase 0 Strategic Plan →](STRATEGIC_PLAN_PHASE0.md)
 
 ---
 
@@ -159,7 +252,7 @@ Core application is open source. Premium plugins and cloud services available se
 Created with passion for writers who deserve better tools.
 
 **Project Start:** October 2025
-**Current Phase:** Phase 0 (Foundation) - Week 1 Complete ✅
+**Current Phase:** Phase 0 (Foundation) - Week 3-4 Complete ✅ (Plugin Foundation)
 
 **Ecosystem Roadmap:**
 - **Kalahari** - Main writing environment (this project) 🚧

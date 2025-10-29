@@ -354,12 +354,68 @@ core::Logger::getInstance().error("Cannot save settings: {}", error);
 
 ## Status
 - **Created:** 2025-10-26
-- **Approved:** ⏳ Pending user approval
-- **Started:** ⏳ Not started
+- **Approved:** ✅ 2025-10-27 (by User)
+- **Started:** ✅ 2025-10-27
 - **Completed:** ⏳ Not completed
 
 ## Implementation Notes
-(To be added during implementation)
+
+### Key Decisions Made
+
+1. **Platform-specific paths:** Used XDG Base Directory Specification for Linux (~/.config/kalahari), standard paths for Windows/macOS
+   - Windows: `%APPDATA%\Kalahari\settings.json`
+   - macOS: `~/Library/Application Support/Kalahari/settings.json`
+   - Linux: `~/.config/kalahari/settings.json`
+
+2. **JSON structure:** Nested keys use dot notation (e.g., "window.width") converted to JSON Pointers internally via `keyToJsonPointer()` helper
+
+3. **Thread safety:** std::mutex guards all public methods, preventing race conditions in multithreaded environment
+
+4. **Error handling:** Corrupted JSON files are backed up (.bak) before falling back to defaults - ensures user data is never lost
+
+### Implementation Details
+
+- **Template API implementation:**
+  - `get<T>()` and `set<T>()` use nlohmann::json::json_pointer for nested access
+  - Type safety enforced at compile time
+  - Default values returned for non-existent keys (no exceptions)
+
+- **Integration with MainWindow:**
+  - Constructor: Calls `load()` and restores window geometry (size, position, maximized)
+  - OnClose: Saves current window state before exit via `save()`
+  - All state changes logged via spdlog for debugging
+
+- **Convenience methods:**
+  - Type-specific getters/setters for common settings (window geometry, language, theme)
+  - Internal implementation uses template methods for DRY principle
+  - wxWidgets types (wxSize, wxPoint) converted to JSON integers
+
+### Testing
+
+**11 test cases implemented (test_settings_manager.cpp):**
+- Singleton pattern verification
+- Default values (1280x800, position 100,100, language "en", theme "Light")
+- Get/Set operations (all types: int, string, bool)
+- Type-safe get with defaults
+- Persistence (save/load cycle)
+- Error handling:
+  - Missing file → uses defaults (returns true)
+  - Corrupted JSON → backs up and uses defaults (returns false)
+- Thread safety: 10 threads × 100 iterations (no crashes, all values valid)
+- Platform-specific path validation
+
+**Test Results:**
+- All 11 test cases pass on first run
+- No memory leaks detected
+- Thread safety verified under concurrent access
+
+### Issues Encountered
+
+**None.** Implementation went smoothly:
+- All code compiled without warnings
+- All tests passed on first execution
+- Integration with MainWindow worked immediately
+- Manual testing confirmed window state persistence works correctly
 
 ## Verification
 - [ ] Code compiles on all platforms (Windows, macOS, Linux)

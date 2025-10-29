@@ -23,7 +23,8 @@
 10. [Info Bar & Status Bar](#info-bar--status-bar)
 11. [Keyboard Shortcuts](#keyboard-shortcuts)
 12. [Focus Modes](#focus-modes)
-13. [wxWidgets Implementation Notes](#wxwidgets-implementation-notes)
+13. [Settings Dialog](#settings-dialog)
+14. [wxWidgets Implementation Notes](#wxwidgets-implementation-notes)
 
 ---
 
@@ -1680,6 +1681,562 @@ void MainFrame::SetFocusMode(FocusMode mode) {
 
     m_auiMgr.Update();
     m_currentFocusMode = mode;
+}
+```
+
+---
+
+## Settings Dialog
+
+### Overview
+
+The Settings Dialog provides comprehensive access to all application configuration options. It uses a **tree-based navigation system** (wxTreeCtrl + wxScrolledWindow) to organize settings into hierarchical categories, ensuring scalability as the application grows in complexity.
+
+**Access:** File → Settings... (Ctrl+,)
+
+### Design Philosophy
+
+**Why Tree Navigation?**
+
+1. **Scalability** - Can accommodate 50+ settings categories without UI clutter
+2. **Hierarchy** - Natural grouping (General → Appearance → Theme)
+3. **Familiarity** - Industry standard (Visual Studio, FreeCAD, TortoiseGit, Eclipse)
+4. **Expandability** - Plugins can add their own branches seamlessly
+5. **Clarity** - Icons + text labels make navigation intuitive
+
+**Rejected Alternatives:**
+- ❌ **wxNotebook (tabs)** - Doesn't scale beyond ~10 categories, no hierarchy
+- ❌ **Flat list with icons** - No hierarchy, becomes unwieldy with plugins
+
+### Layout Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Settings                                          [X]       │
+├───────────────┬─────────────────────────────────────────────┤
+│               │                                             │
+│  Tree         │  Panel (wxScrolledWindow)                  │
+│  280px        │  Remaining width                           │
+│  (resizable)  │                                             │
+│               │  ┌───────────────────────────────────────┐ │
+│ ⚙️ General    │  │ [Content for selected category]      │ │
+│ ├─ 🌍 Lang    │  │                                       │ │
+│ ├─ 🎨 Theme   │  │  Settings controls here...            │ │
+│ └─ 💾 Save    │  │  - Checkboxes                         │ │
+│               │  │  - Text fields                        │ │
+│ 📝 Editor     │  │  - Dropdowns                          │ │
+│ ├─ 🔤 Font    │  │  - Sliders                            │ │
+│ └─ ⌨️ Keys     │  │  - Color pickers                      │ │
+│               │  │                                       │ │
+│ 🔧 Advanced   │  │  [Vertical scrolling if content       │ │
+│ └─ 🐛 Diag ✓  │  │   exceeds panel height]               │ │
+│               │  │                                       │ │
+│               │  └───────────────────────────────────────┘ │
+├───────────────┴─────────────────────────────────────────────┤
+│                                      [OK] [Cancel] [Apply]  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Implementation Details:**
+- **wxSplitterWindow** - User-resizable divider between tree and panel
+- **Tree width:** 280px default, min 200px, max 400px (resizable via sash drag)
+- **Panel:** wxScrolledWindow with vertical scrolling for long content
+- **Buttons:** OK (save + close), Cancel (discard), Apply (save + keep open)
+
+### Full Settings Tree Structure (Planned)
+
+This section documents the **complete vision** for Kalahari's settings hierarchy across all development phases. Implementation is incremental - only actively needed categories are implemented in each phase.
+
+```
+📋 General
+├─ 🌍 Language                        [Phase 1]
+│  ├─ Interface Language (EN/PL/DE/RU/FR/ES)
+│  ├─ Spellcheck Languages
+│  └─ Date/Time Format
+├─ 🎨 Appearance                      [Phase 1]
+│  ├─ Theme (Light/Dark/Savanna/Midnight)
+│  ├─ Font Size (UI scale)
+│  ├─ Icon Set (default/large/colorblind-friendly)
+│  └─ High Contrast Mode
+├─ 💾 Auto-save                       [Phase 1]
+│  ├─ Auto-save interval (1-60 min)
+│  ├─ Backup location
+│  └─ Version history (keep last N)
+└─ 🗂️ File Locations                 [Phase 1]
+   ├─ Default project folder
+   ├─ Templates folder
+   └─ Export output folder
+
+📝 Editor
+├─ 🔤 Font & Typography               [Phase 1]
+│  ├─ Editor font (monospace/serif/sans-serif)
+│  ├─ Font size (10-24pt)
+│  ├─ Line height (1.0-2.0)
+│  └─ Letter spacing
+├─ ⌨️ Keybindings                     [Phase 2]
+│  ├─ Preset (Default/Vim/Emacs)
+│  └─ Custom shortcuts
+├─ 📐 Layout & Panels                 [Phase 2]
+│  ├─ Default perspective
+│  ├─ Panel positions (saved per perspective)
+│  └─ Focus mode settings
+└─ ✍️ Writing Aids                    [Phase 2]
+   ├─ Auto-capitalize sentences
+   ├─ Smart quotes (" " vs '')
+   ├─ Em/En dash replacement
+   └─ Word suggestions
+
+🦁 Assistant                          [Phase 1+]
+├─ 🎭 Personality Selection
+│  ├─ Default animal (Lion/Meerkat/Elephant/Cheetah)
+│  ├─ Unlock all 8 animals (premium)
+│  └─ Custom personality (Phase 3+)
+├─ 💬 Interaction Settings
+│  ├─ Notification frequency (Never/Hourly/Daily/Smart)
+│  ├─ Encouragement style (Gentle/Motivating/Strict)
+│  └─ Break reminders (20-20-20 rule)
+└─ 🔊 Voice & Appearance             [Phase 3+]
+   ├─ Voice enabled (TTS)
+   ├─ Voice speed
+   └─ Animation level (None/Subtle/Full)
+
+🔌 Plugins                            [Phase 2+]
+├─ 📦 Installed Plugins
+│  ├─ Enable/Disable plugins
+│  ├─ Plugin update settings
+│  └─ Plugin load order
+├─ 🛒 Plugin Marketplace              [Phase 3+]
+│  ├─ Marketplace URL
+│  ├─ Auto-check updates
+│  └─ Beta plugins enabled
+└─ ⚙️ Plugin Settings                [Dynamic - added by plugins]
+   ├─ AI Assistant Pro
+   │  ├─ API Key (OpenAI/Claude)
+   │  ├─ Model selection
+   │  └─ Max tokens
+   ├─ Export Suite
+   │  ├─ PDF settings (margins, fonts)
+   │  ├─ EPUB metadata
+   │  └─ Template paths
+   ├─ Research Pro
+   │  ├─ Citation style (MLA/APA/Chicago)
+   │  ├─ Bibliography format
+   │  └─ Web clipper hotkey
+   └─ [Other installed plugins...]
+
+📚 Project Management                 [Phase 2+]
+├─ 📖 Default Structure
+│  ├─ Default chapter template
+│  ├─ Part/Chapter naming scheme
+│  └─ Metadata fields (author, genre, tags)
+├─ 🏷️ Metadata Templates
+│  ├─ Fiction (genre, POV, tense)
+│  ├─ Non-fiction (topic, audience)
+│  └─ Academic (citations, references)
+└─ 🔖 Bookmarks & Tags               [Phase 3+]
+   ├─ Tag colors
+   ├─ Bookmark shortcuts
+   └─ Search scope (current/all)
+
+✉️ Publishing & Integration           [Phase 3+]
+├─ 📧 Email Configuration
+│  ├─ IMAP/SMTP Settings
+│  │  ├─ Server addresses
+│  │  ├─ Port & encryption (SSL/TLS)
+│  │  └─ Authentication
+│  ├─ Publisher Contacts
+│  │  ├─ Add/edit/remove contacts
+│  │  ├─ Email templates (query/submission)
+│  │  └─ Attachment settings
+│  └─ Email Templates
+│     ├─ Query letter
+│     ├─ Manuscript submission
+│     └─ Follow-up
+├─ ☁️ Cloud Services                 [Phase 4+]
+│  ├─ Dropbox
+│  │  ├─ API token
+│  │  ├─ Sync folder
+│  │  └─ Conflict resolution
+│  ├─ Google Drive
+│  │  ├─ OAuth credentials
+│  │  └─ Sync settings
+│  └─ OneDrive
+│     └─ Similar to above
+└─ 🌐 Web Publishing                 [Phase 4+]
+   ├─ WordPress integration
+   ├─ Medium API
+   └─ Custom blog (FTP/SFTP)
+
+🔧 Advanced
+├─ 🐛 Diagnostics                    [Phase 0] ✅ CURRENT
+│  └─ Enable Diagnostic Options
+│     ├─ Shows "Diagnostics" menu
+│     ├─ Runtime only (not saved)
+│     ├─ Confirmation required
+│     └─ Grayed out if launched with --diag flag
+├─ 🗄️ Database                       [Phase 2+]
+│  ├─ Vacuum on exit
+│  ├─ Index optimization
+│  └─ Cache size (MB)
+├─ 🧵 Threading                      [Phase 2+]
+│  ├─ Worker thread count (2-8)
+│  ├─ Background indexing
+│  └─ Async save enabled
+└─ 🔐 Security                       [Phase 4+]
+   ├─ Master password
+   ├─ Encrypt project files
+   └─ Plugin signature verification
+```
+
+### Phase 0 Implementation (Current)
+
+**Minimal viable implementation:**
+
+```
+🔧 Advanced
+└─ 🐛 Diagnostics
+   └─ [✓] Enable Diagnostic Options
+```
+
+**Features:**
+- Single tree node (Advanced → Diagnostics)
+- One checkbox: "Enable Diagnostic Options"
+- Warning text + confirmation dialog
+- Runtime state only (not persisted to settings.json)
+- Grayed out if `--diag` CLI flag used
+
+**Rationale:**
+- Fixes terminal hang bug (removes wxExecute restart mechanism)
+- Establishes Settings Dialog infrastructure for future expansion
+- Follows YAGNI principle (implement only what's needed now)
+
+### Implementation Details
+
+#### wxWidgets Components
+
+```cpp
+class SettingsDialog : public wxDialog {
+public:
+    SettingsDialog(wxWindow* parent, const SettingsState& currentState);
+
+    bool ShowModal() override;
+    SettingsState GetNewState() const;
+
+private:
+    // UI Components
+    wxSplitterWindow* m_splitter;        // Divider between tree and panel
+    wxTreeCtrl* m_tree;                  // Left: navigation tree
+    wxScrolledWindow* m_contentPanel;    // Right: settings content
+    wxImageList* m_iconList;             // Icons for tree nodes
+
+    // Panel management
+    std::map<wxTreeItemId, wxPanel*> m_panels;  // Category → Panel mapping
+    wxPanel* m_currentPanel;             // Currently visible panel
+
+    // State
+    SettingsState m_originalState;       // State when dialog opened
+    SettingsState m_workingState;        // Modified state (before OK)
+
+    // Event handlers
+    void onTreeSelectionChanged(wxTreeEvent& event);
+    void onOK(wxCommandEvent& event);
+    void onCancel(wxCommandEvent& event);
+    void onApply(wxCommandEvent& event);
+
+    // Helpers
+    void buildTree();                    // Construct tree structure
+    void showPanel(wxTreeItemId item);   // Switch visible panel
+    bool validateSettings();             // Check for invalid values
+    void applyChanges();                 // Commit to SettingsManager
+};
+```
+
+#### Tree Construction (Phase 0)
+
+```cpp
+void SettingsDialog::buildTree() {
+    // Icon indices (loaded from resources)
+    enum IconIndex {
+        ICON_SETTINGS = 0,
+        ICON_ADVANCED = 1,
+        ICON_DIAGNOSTICS = 2,
+        // ... future icons
+    };
+
+    // Root (hidden in most OS styles)
+    wxTreeItemId root = m_tree->AddRoot("Settings", ICON_SETTINGS);
+
+    // Advanced branch
+    wxTreeItemId advanced = m_tree->AppendItem(
+        root,
+        "Advanced",
+        ICON_ADVANCED
+    );
+
+    // Diagnostics leaf
+    wxTreeItemId diagnostics = m_tree->AppendItem(
+        advanced,
+        "Diagnostics",
+        ICON_DIAGNOSTICS
+    );
+
+    // Create panel for Diagnostics
+    DiagnosticsPanel* diagPanel = new DiagnosticsPanel(
+        m_contentPanel,
+        m_workingState
+    );
+    m_panels[diagnostics] = diagPanel;
+
+    // Expand Advanced by default
+    m_tree->Expand(advanced);
+
+    // Select Diagnostics by default
+    m_tree->SelectItem(diagnostics);
+}
+```
+
+#### Panel Switching
+
+```cpp
+void SettingsDialog::onTreeSelectionChanged(wxTreeEvent& event) {
+    wxTreeItemId item = event.GetItem();
+
+    // Hide current panel
+    if (m_currentPanel) {
+        m_currentPanel->Hide();
+    }
+
+    // Show selected panel
+    auto it = m_panels.find(item);
+    if (it != m_panels.end()) {
+        m_currentPanel = it->second;
+        m_currentPanel->Show();
+
+        // Trigger layout recalculation
+        m_contentPanel->Layout();
+        m_contentPanel->FitInside();  // Update scrollbars
+        m_contentPanel->Scroll(0, 0); // Reset to top
+    }
+}
+```
+
+#### Diagnostics Panel (Phase 0)
+
+```cpp
+class DiagnosticsPanel : public wxPanel {
+public:
+    DiagnosticsPanel(wxWindow* parent, SettingsState& state)
+        : wxPanel(parent), m_state(state)
+    {
+        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+        // Warning header
+        wxStaticText* warning = new wxStaticText(
+            this,
+            wxID_ANY,
+            "⚠️ Advanced Diagnostic Options"
+        );
+        warning->SetFont(warning->GetFont().Bold().Larger());
+        sizer->Add(warning, 0, wxALL, 10);
+
+        // Checkbox
+        m_diagnosticCheckbox = new wxCheckBox(
+            this,
+            wxID_ANY,
+            "Enable Diagnostic Options"
+        );
+        m_diagnosticCheckbox->SetValue(m_state.diagnosticModeEnabled);
+        m_diagnosticCheckbox->Bind(wxEVT_CHECKBOX,
+            &DiagnosticsPanel::onCheckboxChanged, this);
+        sizer->Add(m_diagnosticCheckbox, 0, wxALL, 10);
+
+        // Description
+        wxStaticText* desc = new wxStaticText(
+            this,
+            wxID_ANY,
+            "Shows the Diagnostics menu with developer tools for debugging.\n"
+            "This setting is not saved and resets on application restart.\n\n"
+            "Use this only when troubleshooting issues or requested by support."
+        );
+        desc->Wrap(500);
+        sizer->Add(desc, 0, wxALL, 10);
+
+        // Gray out if launched with --diag
+        if (m_state.launchedWithDiagFlag) {
+            m_diagnosticCheckbox->Enable(false);
+            m_diagnosticCheckbox->SetToolTip(
+                "Diagnostic mode was enabled via --diag command-line flag.\n"
+                "It cannot be changed during this session."
+            );
+        }
+
+        SetSizer(sizer);
+    }
+
+    void SaveToState() {
+        if (!m_state.launchedWithDiagFlag) {
+            m_state.diagnosticModeEnabled = m_diagnosticCheckbox->GetValue();
+        }
+    }
+
+private:
+    SettingsState& m_state;
+    wxCheckBox* m_diagnosticCheckbox;
+
+    void onCheckboxChanged(wxCommandEvent&) {
+        // State updated in SaveToState() when OK/Apply clicked
+    }
+};
+```
+
+#### Confirmation Dialog (Diagnostics Enable)
+
+```cpp
+void SettingsDialog::onOK(wxCommandEvent& event) {
+    // Save all panel states to m_workingState
+    for (auto& [id, panel] : m_panels) {
+        if (auto* diagPanel = dynamic_cast<DiagnosticsPanel*>(panel)) {
+            diagPanel->SaveToState();
+        }
+    }
+
+    // Confirmation if enabling diagnostics
+    if (m_workingState.diagnosticModeEnabled &&
+        !m_originalState.diagnosticModeEnabled)
+    {
+        int result = wxMessageBox(
+            "Are you sure you want to enable advanced diagnostic options?\n\n"
+            "These options are intended for debugging and may expose\n"
+            "internal application state. Enable only when troubleshooting.",
+            "Enable Diagnostic Options?",
+            wxYES_NO | wxICON_WARNING,
+            this
+        );
+
+        if (result != wxYES) {
+            m_workingState.diagnosticModeEnabled = false;
+            return; // Don't close dialog
+        }
+    }
+
+    // Validate all settings
+    if (!validateSettings()) {
+        wxMessageBox(
+            "Some settings have invalid values. Please correct them.",
+            "Invalid Settings",
+            wxOK | wxICON_ERROR,
+            this
+        );
+        return;
+    }
+
+    // Apply changes
+    applyChanges();
+
+    EndModal(wxID_OK);
+}
+```
+
+### Future Expansion (Phase 1+)
+
+**Adding new categories is straightforward:**
+
+```cpp
+// In buildTree()
+wxTreeItemId general = m_tree->AppendItem(root, "General", ICON_GENERAL);
+wxTreeItemId language = m_tree->AppendItem(general, "Language", ICON_LANGUAGE);
+
+LanguagePanel* langPanel = new LanguagePanel(m_contentPanel, m_workingState);
+m_panels[language] = langPanel;
+```
+
+**Plugin categories:**
+
+```cpp
+// Plugin registers its settings panel via Extension Point
+PluginManager::registerSettingsPanel("AI Assistant Pro",
+    [](wxWindow* parent, SettingsState& state) {
+        return new AIAssistantSettingsPanel(parent, state);
+    }
+);
+
+// SettingsDialog automatically adds plugin panels under "Plugins" branch
+```
+
+### Design Rationale
+
+**Why runtime-only for Diagnostics?**
+- Prevents accidental leave-on (diagnostic mode is for debugging, not normal use)
+- Cleaner settings.json (no debug flags in production config)
+- CLI `--diag` remains available for developers who need it persistently
+
+**Why confirmation dialog?**
+- Prevents accidental enabling (checkbox misclick)
+- Sets user expectation: "This is advanced/dangerous territory"
+- Consistent with industry patterns (Firefox about:config warning, etc.)
+
+**Why 280px tree width (not 200px)?**
+- Accommodates longer labels: "Publishing & Integration", "Diagnostics"
+- Future-proof for plugin names: "Export Suite Settings"
+- Resizable anyway (user can adjust if needed)
+
+**Why wxSplitterWindow (not fixed layout)?**
+- User preferences vary (some want wider tree, some want more panel space)
+- Persistence: Save splitter position in settings.json (Phase 1+)
+- Professional UX: All modern IDEs have resizable settings panels
+
+### Integration with MainWindow
+
+**Menu item creation:**
+
+```cpp
+void MainWindow::createMenuBar() {
+    wxMenu* fileMenu = new wxMenu;
+    // ... other items
+    fileMenu->Append(wxID_PREFERENCES, "Settings...\tCtrl+,");
+    Bind(wxEVT_MENU, &MainWindow::onFileSettings, this, wxID_PREFERENCES);
+}
+```
+
+**Opening dialog + applying changes:**
+
+```cpp
+void MainWindow::onFileSettings(wxCommandEvent&) {
+    SettingsState currentState;
+    currentState.diagnosticModeEnabled = m_diagnosticMode;
+    currentState.launchedWithDiagFlag = m_launchedWithDiagFlag;
+    // ... other state
+
+    SettingsDialog dlg(this, currentState);
+    if (dlg.ShowModal() == wxID_OK) {
+        SettingsState newState = dlg.GetNewState();
+
+        // Apply diagnostic mode change (immediate)
+        if (newState.diagnosticModeEnabled != m_diagnosticMode) {
+            setDiagnosticMode(newState.diagnosticModeEnabled);
+        }
+
+        // Apply other settings (Phase 1+)
+        // ...
+    }
+}
+```
+
+**Dynamic menu toggle:**
+
+```cpp
+void MainWindow::setDiagnosticMode(bool enabled) {
+    if (m_diagnosticMode == enabled) return;
+
+    m_diagnosticMode = enabled;
+
+    // Rebuild menu bar to show/hide Diagnostics menu
+    wxMenuBar* oldMenuBar = GetMenuBar();
+    SetMenuBar(nullptr);
+    createMenuBar(); // Respects m_diagnosticMode
+    delete oldMenuBar;
+
+    Logger::info("Diagnostic mode {}", enabled ? "enabled" : "disabled");
 }
 ```
 

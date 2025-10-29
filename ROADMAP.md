@@ -2,9 +2,9 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🔄 Phase 0 - Foundation (Week 2 Complete)
+**Current Status:** 🔄 Phase 0 - Foundation (Week 3-4 | Plugin Foundation Complete)
 **Version:** 0.0.1-dev
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-29
 
 ---
 
@@ -29,11 +29,13 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Goal:** Build technical infrastructure and plugin architecture foundation
 
-**Status:** 🔄 In Progress (Week 2/8 Complete - GUI & Threading Ready)
+**Status:** 🔄 In Progress (Week 3-4/8 - Infrastructure, Settings, Plugin Foundation)
 **Target Version:** 0.1.0-alpha
 **Timeline:** 2-3 months from project start
 **Started:** 2025-10-26
-**Week 2 Completed:** 2025-10-26
+**Week 2 Completed:** 2025-10-26 (GUI, Threading, Logging)
+**Week 3 Completed:** 2025-10-27 (Settings System, Build Scripts)
+**Week 3-4 In Progress:** 2025-10-29 (Plugin Manager + pybind11)
 
 ### Architectural Decisions ✅ FINALIZED (2025-10-25)
 - ✅ **GUI Pattern:** MVP (Model-View-Presenter)
@@ -65,17 +67,35 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 - [x] **vcpkg integration** (manifest mode) ✅ Week 1
 - [x] **wxWidgets 3.3.0+ basic application window** ✅ Week 2
 - [x] **Main window with menu bar, toolbar, status bar** ✅ Week 2
-- [ ] Settings system (JSON persistence with nlohmann_json)
+- [x] **Settings system (JSON persistence with nlohmann_json)** ✅ Week 3 (Task #00003)
 - [x] **Logging system (spdlog - structured, multi-level)** ✅ Week 2
+- [x] **Build automation scripts** (cross-platform) ✅ Week 3 (Task #00004)
 
 ### Plugin Architecture
-- [ ] Python 3.11 embedding (bundled with application)
-- [ ] pybind11 integration (C++/Python interop)
-- [ ] Plugin Manager (discovery, loading, unloading, lifecycle)
-- [ ] Extension Points system (C++ interfaces for plugins)
-- [ ] Event Bus (async, thread-safe, GUI-aware marshalling)
-- [ ] .kplugin format handler (ZIP reading/writing with libzip)
-- [ ] Plugin API versioning (semantic versioning checks)
+- [x] **Python 3.11 embedding** (bundled with application) ✅ Week 2 (Task #00005)
+- [x] **pybind11 integration** (C++/Python interop) ✅ Week 3-4 (Task #00009)
+  - kalahari_api module with Logger bindings (info, error, debug, warning)
+  - Python ↔ C++ communication working
+  - Unit tests + Python integration tests passing
+- [x] **Plugin Manager** (discovery, loading, unloading, lifecycle) ✅ Week 3-4 (Task #00009)
+  - Singleton pattern with thread-safe std::mutex
+  - Stub methods ready for Week 5-6 actual implementation
+  - Unit tests verify singleton behavior + thread safety
+- [ ] Extension Points system (C++ interfaces for plugins) ⏳ Week 5 (Task #00010)
+  - IExporter, IPanelProvider, IAssistant, IPlugin base interfaces
+  - Extension point registry
+  - Plugin manifest parsing (.kplugin JSON)
+- [ ] Event Bus (async, thread-safe, GUI-aware marshalling) ⏳ Week 5 (Task #00010)
+  - Thread-safe event queue (std::queue + std::mutex)
+  - Subscriber pattern with unsubscribe support
+  - GUI marshalling via wxTheApp->CallAfter for main thread
+- [ ] .kplugin format handler (ZIP reading/writing with libzip) ⏳ Week 6 (Task #00011)
+  - Package structure: manifest.json + plugin.py + assets/
+  - ZIP extraction and validation
+  - Plugin path detection and loading
+- [ ] Plugin API versioning (semantic versioning checks) ⏳ Week 6 (Task #00011)
+  - Version compatibility checking
+  - Graceful degradation for incompatible plugins
 
 ### Document Model
 - [ ] Core C++ classes (Document, Chapter, Book, Project)
@@ -503,7 +523,7 @@ Features:
 - **Master Project File:** [CLAUDE.md](CLAUDE.md)
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Documentation Index:** [project_docs/README.md](project_docs/README.md)
-- **Detailed Roadmap:** [project_docs/06_roadmap.md](project_docs/06_roadmap.md)
+- **Roadmap Maintenance Rules:** [project_docs/06_roadmap.md](project_docs/06_roadmap.md)
 - **MVP Tasks:** [project_docs/07_mvp_tasks.md](project_docs/07_mvp_tasks.md)
 
 ---

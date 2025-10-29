@@ -3,8 +3,8 @@
 > **Writer's IDE** - Advanced writing environment for book authors
 
 **Status:** 🟢 Architecture Phase
-**Version:** 1.0 (C++ Architecture Finalized)
-**Last Updated:** 2025-10-24
+**Version:** 1.3 (Documentation Restructure Complete)
+**Last Updated:** 2025-10-29
 
 ---
 
@@ -21,12 +21,13 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 03 | [**Architecture**](03_architecture.md) | Core architecture, design patterns, structure | ✅ Complete |
 | 04 | [**Plugin System**](04_plugin_system.md) | Plugin API, extension points, event bus | ✅ Complete |
 | 05 | [**Business Model**](05_business_model.md) | Open Core, premium plugins, pricing | ✅ Complete |
-| 06 | [**Roadmap**](06_roadmap.md) | Phases 0-5, timeline, deliverables | ✅ Complete |
+| 06 | [**Roadmap Rules**](06_roadmap.md) | Rules for maintaining ROADMAP.md and CHANGELOG.md | ✅ Complete |
 | 07 | [**MVP Tasks**](07_mvp_tasks.md) | Detailed task breakdown for MVP (18 months) | ✅ Complete |
 | 08 | [**GUI Design**](08_gui_design.md) | GUI panels, wxAUI, perspectives, customizable toolbars | ✅ Complete |
 | 09 | [**Internationalization**](09_i18n.md) | i18n/l10n system, gettext, translations (bwx_sdk pattern) | ✅ Complete |
 | 10 | [**Branding**](10_branding.md) | Logo, colors, animals, style guide | ✅ Complete |
 | 11 | [**User Docs Plan**](11_user_documentation_plan.md) | MkDocs + Material, phased delivery strategy | ✅ Complete |
+| 12 | [**Dev Protocols**](12_dev_protocols.md) | Task workflow, MCP tools, session management | ✅ Complete |
 
 ### Supporting Files
 
@@ -45,7 +46,7 @@ This directory contains the complete technical documentation for the Kalahari pr
 4. **[Plugin System](04_plugin_system.md)** - Understand the plugin architecture
 5. **[MVP Tasks](07_mvp_tasks.md)** - See the implementation roadmap
 
-**Want to contribute?** Start with [06_roadmap.md](06_roadmap.md) to see current phase and priorities.
+**Want to contribute?** Start with [ROADMAP.md](../ROADMAP.md) to see current phase and priorities.
 
 ---
 
@@ -72,6 +73,22 @@ This directory contains the complete technical documentation for the Kalahari pr
 ---
 
 ## 🔄 Document History
+
+### v1.3 - 2025-10-29
+- ✅ **12_dev_protocols.md** created - Comprehensive development protocols
+  - Task Management Workflow (PLAN → APPROVAL → IMPLEMENTATION)
+  - Session Management Protocol (End-of-Session Checklist)
+  - MCP tools usage (Serena, Context7 detailed examples)
+  - wxWidgets layout protocols (sizer hierarchy, common patterns)
+  - Code quality standards (C++20, testing, documentation)
+- ✅ **06_roadmap.md** converted to meta-document
+  - NOW: Rules for maintaining ROADMAP.md and CHANGELOG.md
+  - BEFORE: Full roadmap content (moved to root /ROADMAP.md)
+- ✅ **README.md** updated
+  - Fixed Quick Start link (now points to /ROADMAP.md)
+  - Added document #12 to core documentation table
+  - Updated 06_roadmap.md description
+- 🎯 **12/12 documents complete, 100% coverage**
 
 ### v1.2 - 2025-10-25
 - ✅ **11_user_documentation_plan.md** completed - User docs strategy

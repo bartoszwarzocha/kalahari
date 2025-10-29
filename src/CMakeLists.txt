@@ -1,11 +1,71 @@
+# Kalahari Core Library (shared with Python bindings)
+
+# Core library source files
+set(KALAHARI_CORE_SOURCES
+    core/logger.cpp
+    core/settings_manager.cpp
+    core/python_interpreter.cpp
+    core/cmd_line_parser.cpp
+    core/diagnostic_manager.cpp
+    core/plugin_manager.cpp
+)
+
+# Create core library as SHARED for Python module compatibility
+# Static library + Python module linkage on Linux requires -fPIC which conflicts with wxWidgets
+add_library(kalahari_core SHARED ${KALAHARI_CORE_SOURCES})
+
+# Core library properties
+set_target_properties(kalahari_core PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    WINDOWS_EXPORT_ALL_SYMBOLS TRUE
+)
+
+# On Windows with multi-config generators (Visual Studio), explicitly set output dirs
+# This is needed because CMAKE_<CONFIG>_POSTFIX doesn't affect import library placement
+if(MSVC AND CMAKE_CONFIGURATION_TYPES)
+    set_target_properties(kalahari_core PROPERTIES
+        PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    )
+    # For multi-config, we need to handle each config
+    foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+        string(TOUPPER ${config} config_upper)
+        set_target_properties(kalahari_core PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${CMAKE_BINARY_DIR}/lib"
+            RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${CMAKE_BINARY_DIR}/lib"
+            ARCHIVE_OUTPUT_DIRECTORY_${config_upper} "${CMAKE_BINARY_DIR}/lib"
+        )
+    endforeach()
+endif()
+
+# Core library include directories
+target_include_directories(kalahari_core PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/include
+)
+
+# Core library dependencies
+target_link_libraries(kalahari_core PUBLIC
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
+    libzip::zip
+    Python3::Python
+    pybind11::embed
+    wx::core
+    wx::base
+)
+
+# Static library - no post-build copy needed
+
 # Kalahari executable target
 
-# Source files
+# Executable source files (GUI + main)
 set(KALAHARI_SOURCES
     main.cpp
-    core/logger.cpp
     gui/kalahari_app.cpp
     gui/main_window.cpp
+    gui/settings_dialog.cpp
 )
 
 # Create executable
@@ -32,11 +92,9 @@ target_compile_definitions(kalahari PRIVATE
 
 # Link libraries
 target_link_libraries(kalahari PRIVATE
+    kalahari_core
     wx::core
     wx::base
-    spdlog::spdlog
-    nlohmann_json::nlohmann_json
-    libzip::zip
 )
 
 # Platform-specific settings
