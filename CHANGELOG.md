@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 0 Week 3-4 - Compilation Fixes & Cross-Platform Verification (2025-10-29)
+
+#### Fixed
+- **Compilation Errors (Windows MSVC + Linux GCC)**
+  - Fixed `fmt::format_string` compile-time requirement errors
+    - Replaced runtime string concatenation with fmt-style placeholders
+    - Affected: `src/core/plugin_manager.cpp` (3 methods), `src/bindings/python_bindings.cpp` (4 bindings)
+  - Fixed Logger method naming: `warning()` → `warn()` (spdlog convention)
+    - Updated pybind11 bindings to expose correct method name
+    - Updated Python test script and documentation references
+
+- **pybind11 Module Linking Issues**
+  - Linux: Undefined symbol error when Python module linked to static core
+  - Windows: LNK1104 - Cannot find import library in multi-config generator
+  - Solution: Refactored CMake architecture
+    - Created `kalahari_core` as shared library instead of bundling in executable
+    - Both application and Python module link to `kalahari_core`
+    - Fixed MSVC multi-config output directory handling (ARCHIVE_OUTPUT_DIRECTORY)
+    - Enabled WINDOWS_EXPORT_ALL_SYMBOLS for proper DLL exports
+
+#### Build Results
+✅ **Linux**: Debug & Release builds successful, all tests pass, Python module works
+✅ **Windows**: Debug & Release builds successful, zero errors/warnings, Python module works
+
+#### Changed
+- **src/CMakeLists.txt**
+  - Refactored to create `kalahari_core` shared library
+  - Application now links to kalahari_core instead of directly including source files
+  - Added explicit MSVC multi-config handling for output directories
+
+- **src/bindings/CMakeLists.txt**
+  - Updated to link against `kalahari_core` shared library
+
+- **Documentation**
+  - `docs/plugin_api_reference.md` - Updated Logger.warn() documentation
+  - `tests/test_python_bindings.py` - Updated test summary to reflect warn() method
+
+---
+
 ### Phase 0 Week 3-4 - Plugin Manager & pybind11 Bindings (2025-10-29)
 
 #### Added
