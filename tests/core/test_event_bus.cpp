@@ -228,7 +228,7 @@ TEST_CASE("Thread-safety of event bus", "[event-bus][thread-safety]") {
         const int SUBSCRIPTIONS_PER_THREAD = 5;
 
         for (int t = 0; t < NUM_THREADS; ++t) {
-            std::thread([&bus, t]() {
+            std::thread([&bus]() {
                 for (int s = 0; s < SUBSCRIPTIONS_PER_THREAD; ++s) {
                     bus.subscribe("concurrent:test", [](const Event&) {});
                 }
@@ -255,7 +255,7 @@ TEST_CASE("Thread-safety of event bus", "[event-bus][thread-safety]") {
 
         std::vector<std::thread> threads;
         for (int t = 0; t < NUM_THREADS; ++t) {
-            threads.emplace_back([&bus, EVENTS_PER_THREAD]() {
+            threads.emplace_back([&bus]() {
                 Event evt("concurrent:emit");
                 for (int e = 0; e < EVENTS_PER_THREAD; ++e) {
                     bus.emit(evt);
