@@ -24,6 +24,17 @@ set_target_properties(kalahari_core PROPERTIES
     WINDOWS_EXPORT_ALL_SYMBOLS TRUE
 )
 
+# MSVC Release: Disable LTCG (Link-Time Code Generation) to avoid corrupted .obj files
+# Issue: vcpkg Python3 + LTCG produces "unrecognized file format" errors in Release builds
+if(MSVC)
+    target_compile_options(kalahari_core PRIVATE
+        $<$<CONFIG:Release>:/GL->  # Disable whole program optimization
+    )
+    target_link_options(kalahari_core PRIVATE
+        $<$<CONFIG:Release>:/LTCG:OFF>  # Disable link-time code generation
+    )
+endif()
+
 # On Windows with multi-config generators (Visual Studio), explicitly set output dirs
 # This is needed because CMAKE_<CONFIG>_POSTFIX doesn't affect import library placement
 if(MSVC AND CMAKE_CONFIGURATION_TYPES)
