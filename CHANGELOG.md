@@ -102,15 +102,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Linux build script copies plugins/ to WSL shared folder
   - Tests now work from any working directory
 - Fixed missing BookElement::touch() implementation
-- Fixed macOS CI/CD Python initialization failure (6 attempts)
-  - Root cause: actions/setup-python provides pre-compiled binary WITHOUT Development files (headers/libs)
-  - CMake found executable but couldnt find Development.Module/Development.Embed
-  - Attempt #5 failed: Even with -DPython3_EXECUTABLE, actions/setup-python Python lacks dev headers
-  - Attempt #6 fix: Replace actions/setup-python with Homebrew python@3.11 (includes full dev files)
-  - Solution: brew install python@3.11 + use /opt/homebrew/bin/python3.11
+- Fixed macOS CI/CD Python initialization failure (7 attempts)
+  - Root cause #1: actions/setup-python provides pre-compiled binary WITHOUT Development files
+  - Root cause #2: vcpkg has Python3 wrapper that may ignore CMake hints
+  - Attempt #6 failed: Even Homebrew Python, CMake couldnt find Development.Module/Embed
+  - Attempt #7 fix: FORCE exact paths to headers and library to bypass vcpkg wrapper
+  - Solution: -DPython3_INCLUDE_DIR + -DPython3_LIBRARY pointing to Homebrew Python framework
+  - Paths: /opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/{include,lib}
   - Result: macOS artifacts have Homebrew Python 3.11 embedded (vs vcpkg 3.12 on Linux/Windows)
   - Impact: ZERO - both versions fully compatible, embedded in binary
-  - Status: Testing attempt #6 in CI/CD...
+  - Status: Testing attempt #7 (nuclear option - explicit paths) in CI/CD...
+  - Status: Testing attempt #7 (nuclear option - explicit paths) in CI/CD...
 
 
 
