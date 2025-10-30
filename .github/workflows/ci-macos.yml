@@ -72,12 +72,12 @@ jobs:
 
     - name: Run tests
       run: |
-        # Point pybind11/Python runtime to Python 3.11 (not vcpkg's Python 3.12)
-        PYTHON_ROOT=$(python3 -c "import sys; print(sys.prefix)")
-        export PYTHONHOME="$PYTHON_ROOT"
-        export DYLD_LIBRARY_PATH="$PYTHON_ROOT/lib:$DYLD_LIBRARY_PATH"
+        # Point pybind11/Python runtime to Python 3.11 from actions/setup-python
+        # Use $pythonLocation environment variable (set by actions/setup-python)
+        export PYTHONHOME="${{ env.pythonLocation }}"
+        export DYLD_LIBRARY_PATH="${{ env.pythonLocation }}/lib:$DYLD_LIBRARY_PATH"
         echo "PYTHONHOME=$PYTHONHOME"
-        echo "Python lib path: $PYTHON_ROOT/lib"
+        echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
 
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}

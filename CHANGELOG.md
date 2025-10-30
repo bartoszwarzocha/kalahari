@@ -106,8 +106,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Previous: vcpkg installed Python 3.12, binary linked against it instead of actions/setup-python 3.11
   - Error: "macOS Python stdlib not found under: /usr/local/opt/python@3.12"
   - Fix (attempt 1): Added -DPython3_ROOT_DIR to CMake configure → didn't fix runtime
-  - Fix (attempt 2): Set PYTHONHOME and DYLD_LIBRARY_PATH before running tests
-  - Impact: Python runtime now uses Python 3.11 from actions/setup-python
+  - Fix (attempt 2): Set PYTHONHOME from `python3 -c "sys.prefix"` → found wrong Python 3.11 (system framework)
+  - Fix (attempt 3): Use `${{ env.pythonLocation }}` from actions/setup-python directly
+  - Impact: PYTHONHOME points to correct Python 3.11 (/Users/runner/hostedtoolcache/...)
+  - Status: Testing in CI/CD...
   - Status: Testing in CI/CD...
 
 #### Testing (Task #00012 - 100% Pass Rate)
