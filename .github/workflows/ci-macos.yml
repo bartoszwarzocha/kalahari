@@ -58,16 +58,14 @@ jobs:
     - name: Configure CMake
       run: |
         # Point CMake to Python 3.11 from actions/setup-python (not vcpkg Python 3.12)
-        # Use Python3_EXECUTABLE to force exact Python binary (standard CMake hint)
-        PYTHON_ROOT=$(python3 -c "import sys; print(sys.prefix)")
+        # Use Python3_EXECUTABLE (standard CMake hint) - CMake finds Development files automatically
         PYTHON_EXECUTABLE=$(which python3)
-        echo "Using Python from: $PYTHON_ROOT"
         echo "Python executable: $PYTHON_EXECUTABLE"
+        echo "Python location: ${{ env.pythonLocation }}"
 
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DPython3_ROOT_DIR="$PYTHON_ROOT" \
           -DPython3_EXECUTABLE="$PYTHON_EXECUTABLE" \
           -G Ninja
 
