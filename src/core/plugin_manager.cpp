@@ -8,11 +8,12 @@
 #include <sstream>
 #include <vector>
 
+#include <climits>    // PATH_MAX (cross-platform)
+
 #ifdef _WIN32
 #include <windows.h>  // GetModuleFileNameW
 #else
 #include <unistd.h>   // readlink
-#include <linux/limits.h>  // PATH_MAX
 #endif
 
 namespace kalahari {
