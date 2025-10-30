@@ -9,6 +9,132 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 0 Week 8 - Document Model + JSON Serialization (2025-10-30)
+
+#### Added
+- **Task #00012: Document Model + JSON Serialization (RTF + 3-Section Structure)**
+  - **8 new files** (~1,890 lines): Complete document model for book projects with ZIP archive support
+  - **Core Classes (Book Structure)**
+    - `include/kalahari/core/book_element.h` + `.cpp` (~400 lines) - Universal book element with flexible type system
+      - String-based type (not enum) for extensibility ("chapter", "title_page", "bibliography", custom types)
+      - Metadata map for plugin-extensible custom fields
+      - RTF file path (relative) for wxRichTextCtrl native support
+      - ISO 8601 timestamp handling (created, modified) with platform-specific conversion
+      - JSON serialization (toJson/fromJson) with optional field handling
+      - 9 predefined types in BookElementTypes namespace (TITLE_PAGE, COPYRIGHT, DEDICATION, PREFACE, CHAPTER, EPILOGUE, GLOSSARY, BIBLIOGRAPHY, ABOUT_AUTHOR)
+    - `include/kalahari/core/part.h` + `.cpp` (~270 lines) - Container for chapters with aggregation
+      - Chapter management (add, remove, get by ID, move by index)
+      - Word count aggregation (sum of all chapters)
+      - JSON serialization with chapter array
+    - `include/kalahari/core/book.h` + `.cpp` (~330 lines) - 3-section professional structure
+      - frontMatter: title page, copyright, dedication, preface, etc.
+      - body: Parts containing Chapters (main content)
+      - backMatter: epilogue, glossary, bibliography, about author
+      - Word count calculation (body only, industry standard)
+      - Section management (add/remove elements by ID)
+  - **Document Wrapper (Project Metadata)**
+    - `include/kalahari/core/document.h` + `.cpp` (~405 lines) - Top-level project wrapper
+      - Document metadata (title, author, language, genre)
+      - Simple UUID generation (timestamp-randomhex format, collision-resistant for single-user)
+      - ISO 8601 timestamps (created, modified) with touch() auto-update
+      - Complete JSON manifest structure (version 1.0.0 format)
+      - save/load methods delegated to DocumentArchive
+  - **DocumentArchive (ZIP Handler)**
+    - `include/kalahari/core/document_archive.h` + `.cpp` (~407 lines) - Static save/load for .klh archives
+      - Phase 0 MVP: Saves/loads manifest.json only (RTF files in Phase 2)
+      - ZIP operations via libzip (ZIP_CREATE | ZIP_TRUNCATE for save, ZIP_RDONLY for load)
+      - zip_source_buffer() for in-memory JSON writing (4-space indent for readability)
+      - zip_file_add() for adding files to archive
+      - zip_name_locate() + zip_fread() for reading manifest
+      - Detailed error logging at every step (open, write, read, parse)
+      - Phase 2 stubs: writeRTFFile() and extractRTFFile() with [[maybe_unused]]
+  - **Architecture Decisions**
+    - RTF format (not txt/HTML/Markdown) for wxRichTextCtrl native support
+    - 3-section book structure (frontMatter/body/backMatter) - publishing industry standard
+    - Flexible string-based types (not enum) - extensible without recompilation
+    - Metadata map - future-proof for plugin custom fields
+    - Lazy loading ready - RTF paths stored, content loaded on-demand (Phase 1)
+    - Git-friendly - separate RTF files for better diffs, human-readable manifest.json
+  - **.klh File Format (Phase 0 MVP)**
+    - ZIP container with manifest.json at root
+    - Complete book structure serialized as JSON (all metadata, paths, word counts)
+    - Phase 2: Will include content/*.rtf files with full book content
+  - **Build Integration**
+    - Added 5 new sources to src/CMakeLists.txt (book_element, part, book, document, document_archive)
+    - Build successful in 5-9 seconds (incremental)
+    - No memory leaks (smart pointers, RAII pattern following PluginArchive)
+    - Forward declaration for libzip types (clean headers)
+  - **JSON Serialization Pattern**
+    - Following nlohmann/json toJson/fromJson static factory pattern
+    - Optional field handling (genre, metadata map)
+    - Version field in manifest for future compatibility
+    - Exception handling with fallback to defaults
+  - **Status**: Core implementation complete, ready for Phase 1 wxRichTextCtrl integration
+  - **Unit Tests**: 68/68 tests passing (2533 assertions) - 100% pass rate on Windows & Linux
+
+#### Added (Task #00012 - Unit Tests & Bug Fixes)
+- **book_constants.h** - Known book element types and utility functions
+  - 9 predefined type constants (TYPE_TITLE_PAGE, TYPE_CHAPTER, etc.)
+  - `isKnownType()` - Validate type strings
+  - `getDisplayName()` - Human-readable type names
+  - `getTypeCategory()` - Categorize as "front", "body", "back"
+- **BookElement::touch()** - Update modified timestamp to current time
+- **PluginManager::getPluginsDirectory()** - Production-ready plugin discovery with fallback chain
+  - Strategy 1: CWD/plugins/ (development/tests)
+  - Strategy 2: exe_dir/plugins/ (portable apps)
+  - Strategy 3: exe_dir/../plugins/ (system installations)
+  - Platform-specific executable path detection (GetModuleFileNameW/readlink)
+  - Works from any working directory (shortcuts, system PATH, double-click)
+
+#### Fixed (Task #00012 - Critical Production Issues)
+- **[CRITICAL]** Fixed dangling pointer bug in DocumentArchive::writeManifest()
+  - zip_source_buffer() with freep=0 doesn't copy data
+  - Local string destroyed before zip_close() → ZIP corruption
+  - Fix: malloc() + freep=1 so libzip owns and frees buffer
+  - Impact: Prevented parse errors and corrupted .klh files
+- **[CRITICAL]** Fixed plugin discovery to work from any working directory
+  - Previous: Hardcoded relative path "plugins" (only worked when CWD = build dir)
+  - Impact: Failed in production scenarios (shortcuts, system PATH, installers)
+  - Fix: Fallback chain with executable-relative paths
+  - Benefit: Production-ready portable apps and system installations
+- Fixed plugin tests by copying plugins/ directory to build directory
+  - CMake POST_BUILD command copies plugins/ to ${CMAKE_BINARY_DIR}
+  - Linux build script copies plugins/ to WSL shared folder
+  - Tests now work from any working directory
+- Fixed missing BookElement::touch() implementation
+
+#### Testing (Task #00012 - 100% Pass Rate)
+- **5 comprehensive test suites** (~1,200 lines)
+  - test_book_element.cpp (15 tests) - Type validation, metadata, JSON serialization
+  - test_part.cpp (11 tests) - Chapter management, word count aggregation
+  - test_book.cpp (16 tests) - 3-section structure, null handling
+  - test_document.cpp (9 tests) - UUID generation, metadata, touch()
+  - test_document_archive.cpp (17 tests) - Save/load, overwrite, Unicode, error handling
+- **Platform verification**
+  - Windows: 68/68 tests passed (2533 assertions)
+  - Linux: 68/68 tests passed (2533 assertions)
+  - Working directory independence verified (root dir, build dir, WSL shared folder)
+- **All bugs fixed during testing**
+  - Dangling pointer → 10 test failures → FIXED
+  - Plugin discovery → 4 test failures → FIXED
+  - 100% pass rate achieved on all platforms
+
+### Phase 0 Week 6 - .kplugin Format Handler + Actual Plugin Loading (2025-10-30)
+
+#### Added
+- **Task #00011: .kplugin Format Handler + Actual Plugin Loading**
+  - **7 new files** (~1,150 lines): plugin_manifest, plugin_archive, enhanced plugin_manager, test_plugin_loading, hello_plugin.kplugin
+  - **Plugin Discovery**: Scans plugins/ directory, reads manifest.json from .kplugin ZIP archives using libzip
+  - **Plugin Loading**: Complete Python lifecycle - extract → sys.path → import → instantiate → on_init() → on_activate()
+  - **Plugin Unloading**: Graceful teardown - on_deactivate() → sys.path cleanup → temp file removal (RAII)
+  - **Plugin Archive**: RAII ZIP extraction to platform-specific temp dirs (~/.local/share/Kalahari/plugins/temp/)
+  - **Plugin Manifest**: JSON parsing with validation (version format, entry_point: "module:class")
+  - **Plugin States**: Enum lifecycle tracking (Discovered → Loading → Loaded → Activated → Unloading → Error)
+  - **Testing**: 8 integration tests (discovery, loading, unloading, full lifecycle) - 100% pass rate
+  - **Sample Plugin**: hello_plugin.kplugin with lifecycle hooks demonstration
+  - Plugin system foundation now complete - ready for Phase 1 MVP plugin development
+
+
 ### Phase 0 Week 5-6 - Extension Points + Event Bus Foundation (2025-10-29)
 
 #### Added

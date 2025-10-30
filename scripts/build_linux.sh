@@ -367,6 +367,12 @@ if [ "$IS_VBOX" = true ]; then
         print_success "Binaries copied to $OUTPUT_DIR/bin/ ($ENV_NAME)"
     fi
 
+    # Copy plugins directory for tests
+    if [ -d "build-linux/plugins" ]; then
+        cp -r build-linux/plugins "$OUTPUT_DIR/"
+        print_success "Plugins copied to $OUTPUT_DIR/plugins/ ($ENV_NAME)"
+    fi
+
     echo ""
     print_info "Build artifacts remain in: $BUILD_DIR_ACTUAL/build-linux/"
     print_info "Binaries available at: $OUTPUT_DIR/bin/"

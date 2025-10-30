@@ -7,6 +7,12 @@ set(TEST_SOURCES
     core/test_cmd_line_parser.cpp
     core/test_extension_points.cpp
     core/test_event_bus.cpp
+    core/test_plugin_loading.cpp
+    core/test_book_element.cpp
+    core/test_part.cpp
+    core/test_book.cpp
+    core/test_document.cpp
+    core/test_document_archive.cpp
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
@@ -14,6 +20,15 @@ set(TEST_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/diagnostic_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/extension_points.cpp
     ${CMAKE_SOURCE_DIR}/src/core/event_bus.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_manifest.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_archive.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_element.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/part.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/document.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     # More test files will be added as we implement features
 )
 
@@ -41,6 +56,18 @@ target_link_libraries(kalahari-tests PRIVATE
     wx::base
     spdlog::spdlog
     nlohmann_json::nlohmann_json
+    libzip::zip
+    Python3::Python
+    pybind11::embed
+)
+
+# Copy plugins directory to build directory for plugin loading tests
+# This ensures test_plugin_loading.cpp can find hello_plugin.kplugin
+add_custom_command(TARGET kalahari-tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/plugins
+        ${CMAKE_BINARY_DIR}/plugins
+    COMMENT "Copying plugins/ to build directory for tests"
 )
 
 # Register tests with CTest (commented out until Day 4 - when we have real tests)
