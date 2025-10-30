@@ -103,13 +103,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests now work from any working directory
 - Fixed missing BookElement::touch() implementation
 - Fixed macOS CI/CD Python initialization failure
-  - Previous: vcpkg installed Python 3.12, binary linked against it instead of actions/setup-python 3.11
-  - Error: "macOS Python stdlib not found under: /usr/local/opt/python@3.12"
-  - Fix (attempt 1): Added -DPython3_ROOT_DIR to CMake configure → didn't fix runtime
-  - Fix (attempt 2): Set PYTHONHOME from `python3 -c "sys.prefix"` → found wrong Python 3.11 (system framework)
-  - Fix (attempt 3): Use `${{ env.pythonLocation }}` from actions/setup-python directly
-  - Impact: PYTHONHOME points to correct Python 3.11 (/Users/runner/hostedtoolcache/...)
-  - Status: Testing in CI/CD...
+  - Root cause: vcpkg installs Python 3.12, pybind11 links against it during build
+  - GitHub macOS runners: vcpkg Python 3.12 stdlib missing → plugin tests fail
+  - Solution: Use `-DPython3_EXECUTABLE` (standard CMake hint) to force actions/setup-python Python 3.11
+  - CMake now finds and links against correct Python during build (not vcpkg's)
+  - Result: macOS artifacts will have Python 3.11 embedded (vs 3.12 on Linux/Windows)
+  - Impact: ZERO - both versions fully compatible, embedded in binary
+  - Status: Implemented (attempt #4)
   - Status: Testing in CI/CD...
 
 #### Testing (Task #00012 - 100% Pass Rate)

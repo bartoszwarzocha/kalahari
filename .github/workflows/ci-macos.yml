@@ -57,14 +57,18 @@ jobs:
 
     - name: Configure CMake
       run: |
-        # Point CMake to Python 3.11 from actions/setup-python (not Homebrew 3.12)
+        # Point CMake to Python 3.11 from actions/setup-python (not vcpkg Python 3.12)
+        # Use Python3_EXECUTABLE to force exact Python binary (standard CMake hint)
         PYTHON_ROOT=$(python3 -c "import sys; print(sys.prefix)")
+        PYTHON_EXECUTABLE=$(which python3)
         echo "Using Python from: $PYTHON_ROOT"
+        echo "Python executable: $PYTHON_EXECUTABLE"
 
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -DPython3_ROOT_DIR="$PYTHON_ROOT" \
+          -DPython3_EXECUTABLE="$PYTHON_EXECUTABLE" \
           -G Ninja
 
     - name: Build
@@ -72,13 +76,6 @@ jobs:
 
     - name: Run tests
       run: |
-        # Point pybind11/Python runtime to Python 3.11 from actions/setup-python
-        # Use $pythonLocation environment variable (set by actions/setup-python)
-        export PYTHONHOME="${{ env.pythonLocation }}"
-        export DYLD_LIBRARY_PATH="${{ env.pythonLocation }}/lib:$DYLD_LIBRARY_PATH"
-        echo "PYTHONHOME=$PYTHONHOME"
-        echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
-
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
