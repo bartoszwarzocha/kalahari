@@ -24,14 +24,9 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
     - name: Install dependencies
       run: |
-        brew install cmake ninja autoconf autoconf-archive automake libtool
+        brew install cmake ninja autoconf autoconf-archive automake libtool python@3.11
 
     - name: Cache vcpkg
       uses: actions/cache@v4
@@ -57,11 +52,11 @@ jobs:
 
     - name: Configure CMake
       run: |
-        # Point CMake to Python 3.11 from actions/setup-python (not vcpkg Python 3.12)
-        # Use Python3_EXECUTABLE (standard CMake hint) - CMake finds Development files automatically
-        PYTHON_EXECUTABLE=$(which python3)
+        # Use Homebrew Python 3.11 (has Development files) instead of vcpkg Python 3.12
+        # Homebrew Python includes headers/libs required by pybind11
+        PYTHON_EXECUTABLE=/opt/homebrew/bin/python3.11
         echo "Python executable: $PYTHON_EXECUTABLE"
-        echo "Python location: ${{ env.pythonLocation }}"
+        $PYTHON_EXECUTABLE --version
 
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
