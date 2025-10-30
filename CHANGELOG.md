@@ -102,6 +102,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Linux build script copies plugins/ to WSL shared folder
   - Tests now work from any working directory
 - Fixed missing BookElement::touch() implementation
+- Fixed macOS CI/CD Python initialization failure
+  - Previous: vcpkg installed Python 3.12, binary linked against it instead of actions/setup-python 3.11
+  - Error: "macOS Python stdlib not found under: /usr/local/opt/python@3.12"
+  - Fix (attempt 1): Added -DPython3_ROOT_DIR to CMake configure → didn't fix runtime
+  - Fix (attempt 2): Set PYTHONHOME and DYLD_LIBRARY_PATH before running tests
+  - Impact: Python runtime now uses Python 3.11 from actions/setup-python
+  - Status: Testing in CI/CD...
 
 #### Testing (Task #00012 - 100% Pass Rate)
 - **5 comprehensive test suites** (~1,200 lines)
