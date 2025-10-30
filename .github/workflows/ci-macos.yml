@@ -57,9 +57,14 @@ jobs:
 
     - name: Configure CMake
       run: |
+        # Point CMake to Python 3.11 from actions/setup-python (not Homebrew 3.12)
+        PYTHON_ROOT=$(python3 -c "import sys; print(sys.prefix)")
+        echo "Using Python from: $PYTHON_ROOT"
+
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+          -DPython3_ROOT_DIR="$PYTHON_ROOT" \
           -G Ninja
 
     - name: Build
