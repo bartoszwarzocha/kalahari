@@ -493,3 +493,308 @@ This plugin system provides:
 **Document Version:** 1.0
 **Last Updated:** 2025-10-25
 **Next Review:** Start of Phase 2 (Plugin System MVP)
+
+---
+
+## Developer Tools & Plugin Creation Support
+
+### Overview
+
+To support external plugin developers and reduce barriers to entry, Kalahari will provide comprehensive tooling for plugin creation. This is planned for **Phase 4-5** (Q3 2026) after the plugin API stabilizes.
+
+### Why Not Earlier?
+
+**Timing Rationale:**
+1. **API Stability** - Plugin API will evolve significantly during Phase 1-3
+2. **Community Feedback** - Need real developer pain points before building tools
+3. **Business Context** - Plugin marketplace (Phase 5) requires quality tooling
+4. **Resource Optimization** - Documentation + CLI tools provide 80% value with 20% effort
+
+### Phase 0-1: Foundation (Q1 2026) ✅
+
+**Current Status:**
+- ✅ Plugin system working (Task #00011)
+- ✅ hello_plugin.kplugin example
+- ✅ Integration tests demonstrating usage
+- 📝 Basic documentation (docs/plugin_development_guide.md)
+
+**Deliverables:**
+```
+docs/
+├── plugin_development_guide.md   # Step-by-step tutorial
+└── plugin_api_reference.md       # Extension Points + Event Bus
+
+examples/
+└── hello_plugin/
+    ├── manifest.json
+    └── plugin.py
+
+tests/
+└── plugins/
+    └── hello_plugin.kplugin      # Working reference
+```
+
+### Phase 2-3: Documentation Expansion (Q2 2026)
+
+**Goal:** Comprehensive documentation as API stabilizes
+
+**Deliverables:**
+- ✅ Complete API reference (all Extension Points)
+- ✅ Event Bus patterns and best practices
+- ✅ Advanced plugin examples (all features)
+- ✅ Common pitfalls and troubleshooting
+- ✅ Performance optimization guide
+
+**Documentation Structure:**
+```markdown
+docs/plugin_development_guide.md
+├── 1. Quick Start (Hello Plugin)
+├── 2. Plugin Architecture
+│   ├── Extension Points (IExporter, IPanelProvider, IAssistant)
+│   ├── Event Bus (pub/sub patterns)
+│   └── Lifecycle Hooks (init, activate, deactivate)
+├── 3. Manifest Reference
+│   ├── Required fields
+│   ├── Optional fields
+│   └── Dependency management
+├── 4. Python API
+│   ├── kalahari_api module
+│   ├── Document model
+│   └── Event handling
+├── 5. Testing
+│   ├── Unit testing
+│   ├── Integration testing
+│   └── Debugging
+├── 6. Best Practices
+│   ├── Performance
+│   ├── Thread safety
+│   └── Error handling
+└── 7. Distribution & Marketplace
+```
+
+### Phase 4: Developer Tools in Application (Q3 2026)
+
+**Goal:** Full GUI-based plugin creation workflow
+
+#### Developer Mode (Optional Feature)
+
+**Activation:** Settings → Advanced → Enable Developer Mode
+
+**Menu Location:** Tools → Developer Tools
+
+**Features:**
+
+1. **Plugin Creator Wizard 🧙**
+   ```
+   Step 1: Basic Info (name, id, author, description)
+   Step 2: Extension Points (which interfaces to implement)
+   Step 3: Events (which events to subscribe to)
+   Step 4: Dependencies (Python packages)
+   Step 5: Generate Template (creates manifest.json + plugin.py skeleton)
+   ```
+
+2. **Plugin Validator 🔍**
+   ```
+   - Manifest validation (required fields, version format)
+   - Python syntax check (AST parsing)
+   - Entry point verification (class exists, correct signature)
+   - Dependency check (packages available)
+   - Extension Point implementation check (methods present)
+   - Asset validation (icons, images exist)
+   ```
+
+3. **Plugin Packager 📦**
+   ```
+   - Select plugin directory
+   - Validate structure
+   - Create .kplugin ZIP
+   - Digital signature (Phase 5)
+   - Test installation
+   ```
+
+4. **Live Plugin Reload 🔄**
+   ```
+   - Watch plugin directory for changes
+   - Auto-reload on save
+   - Error display in real-time
+   - Debug console for print() output
+   ```
+
+**UI Mockup:**
+```
+┌─────────────────────────────────────────────┐
+│ Developer Tools                        [X]  │
+├─────────────────────────────────────────────┤
+│ Tabs: [Creator] [Validator] [Packager]     │
+├─────────────────────────────────────────────┤
+│ Plugin Creator Wizard                       │
+│                                             │
+│ Plugin Name: ________________               │
+│ Plugin ID:   org.example._____              │
+│ Author:      ________________               │
+│                                             │
+│ Extension Points:                           │
+│ ☐ IExporter                                 │
+│ ☑ IPanelProvider                            │
+│ ☐ IAssistant                                │
+│                                             │
+│           [< Back]  [Next >]  [Generate]    │
+└─────────────────────────────────────────────┘
+```
+
+### Phase 4: CLI Tools (Q3 2026)
+
+**Goal:** Automation for power users and CI/CD
+
+**Tools Location:** `tools/plugin_dev/`
+
+#### 1. `create_plugin.py`
+```bash
+$ python tools/plugin_dev/create_plugin.py \
+    --name "My Plugin" \
+    --id "org.example.myplugin" \
+    --author "Your Name" \
+    --extension-points IExporter \
+    --output ./my_plugin/
+
+Created:
+  my_plugin/
+  ├── manifest.json
+  └── plugin.py
+```
+
+#### 2. `validate_plugin.py`
+```bash
+$ python tools/plugin_dev/validate_plugin.py ./my_plugin/
+
+✅ Manifest valid
+✅ Python syntax OK
+✅ Entry point found: plugin:MyPlugin
+✅ Extension Points implemented: IExporter
+⚠️  Warning: No icon.png found
+```
+
+#### 3. `package_plugin.py`
+```bash
+$ python tools/plugin_dev/package_plugin.py \
+    --input ./my_plugin/ \
+    --output ./my_plugin.kplugin
+
+Created: my_plugin.kplugin (2.3 KB)
+Files: manifest.json, plugin.py, icon.png
+```
+
+### Phase 5: Advanced Features (Q3 2026)
+
+#### Plugin Manifest Schema (JSON Schema)
+
+**File:** `schemas/plugin_manifest_schema.json`
+
+**Purpose:** VSCode autocomplete and validation
+
+**Usage:**
+```json
+{
+  "$schema": "https://kalahari.app/schemas/plugin_manifest.json",
+  "id": "org.example.plugin",
+  ...
+}
+```
+
+**Benefits:**
+- Real-time validation in VSCode
+- Autocomplete for all fields
+- Inline documentation tooltips
+- Reduces manifest errors
+
+#### Plugin Template Repository
+
+**Location:** `examples/plugin_templates/`
+
+**Templates:**
+```
+examples/plugin_templates/
+├── minimal/              # Hello World
+├── exporter/            # IExporter implementation
+├── panel/               # IPanelProvider with UI
+├── assistant/           # IAssistant with personality
+├── advanced/            # All features (events, permissions, dependencies)
+└── premium/             # Marketplace-ready structure
+```
+
+### Implementation Priority
+
+**Phase 0-1 (NOW):**
+- ✅ Working plugin system
+- ✅ hello_plugin.kplugin example
+- ✅ Basic docs
+
+**Phase 2-3 (Q2 2026):**
+- 📝 Complete documentation
+- 📝 Advanced examples
+- 📝 Best practices guide
+
+**Phase 4 (Q3 2026):**
+- 🔨 Developer Mode (GUI tools)
+- 🔨 CLI tools
+- 🔨 JSON Schema
+
+**Phase 5 (Q3 2026):**
+- 🔨 Plugin marketplace integration
+- 🔨 Digital signatures
+- 🔨 Automated testing
+
+### Analogies from Other Platforms
+
+| Platform | Developer Tools | Timing |
+|----------|----------------|--------|
+| **VSCode** | Extension Generator (Yeoman) | After API stable |
+| **WordPress** | Plugin Creator in dashboard | Years after launch |
+| **Sublime Text** | Documentation only | Never added GUI |
+| **Obsidian** | Documentation + Templates | After community growth |
+
+**Kalahari Strategy:** Follow VSCode model - CLI tools early, GUI tools when API stable and community exists.
+
+### Success Metrics
+
+**Phase 4 Success:**
+- 🎯 10+ external plugin developers
+- 🎯 50+ community plugins
+- 🎯 90% of new plugins pass validation first try
+- 🎯 Average plugin creation time < 30 minutes (using wizard)
+
+**Phase 5 Success:**
+- 🎯 Plugin marketplace with 100+ plugins
+- 🎯 Community-contributed plugins in top downloads
+- 🎯 External developers contributing to core Extension Points
+
+---
+
+## Summary (Updated)
+
+This plugin system provides:
+
+✅ **Extension Points** - IExporter, IPanelProvider, ICommandProvider
+✅ **Python API** - Document, Chapter, EventBus exposed
+✅ **Event System** - 15+ event types, async subscription
+✅ **Manifest Format** - Complete specification
+✅ **Lifecycle Management** - 7-state machine
+✅ **API Versioning** - Semantic versioning with compatibility checks
+✅ **Thread Safety** - GIL handling, GUI marshalling
+✅ **Error Isolation** - Plugin crashes don't crash app
+✅ **Complete Example** - hello_plugin.kplugin (Task #00011)
+🔜 **Developer Tools** - Planned Phase 4-5 (Q3 2026)
+🔜 **Plugin Marketplace** - Planned Phase 5 (Q3 2026)
+
+**Next Steps:**
+1. ✅ Implement PluginManager (C++) - DONE Task #00011
+2. ✅ Create pybind11 bindings - DONE Task #00009-00010
+3. Build 4 MVP plugins (DOCX, Markdown, Statistics, Assistant Lion) - Phase 1
+4. Expand documentation - Phase 2-3
+5. Develop Developer Tools - Phase 4-5
+
+---
+
+**Document Version:** 1.1
+**Last Updated:** 2025-10-30 (Added Developer Tools section)
+**Next Review:** Start of Phase 2 (Plugin System MVP)

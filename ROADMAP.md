@@ -2,9 +2,9 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🔄 Phase 0 - Foundation (Week 5-6 | Extension Points + Event Bus Complete)
+**Current Status:** 🔄 Phase 0 - Foundation (Week 6-8 | .kplugin Handler + Document Model Complete)
 **Version:** 0.0.1-dev
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-30
 
 ---
 
@@ -29,7 +29,7 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Goal:** Build technical infrastructure and plugin architecture foundation
 
-**Status:** ✅ Week 5-6 COMPLETE (Extension Points + Event Bus Foundation)
+**Status:** ✅ Week 6-8 COMPLETE (.kplugin Handler + Document Model Complete)
 **Target Version:** 0.1.0-alpha
 **Timeline:** 2-3 months from project start
 **Started:** 2025-10-26
@@ -37,6 +37,8 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 **Week 3 Completed:** 2025-10-27 (Settings System, Build Scripts)
 **Week 3-4 Completed:** 2025-10-29 (Plugin Manager + pybind11 + Compilation Fixes)
 **Week 5-6 Completed:** 2025-10-29 (Extension Points + Event Bus + pybind11 Bindings)
+**Week 6 Completed:** 2025-10-30 (.kplugin Format Handler + Actual Plugin Loading)
+**Week 8 Completed:** 2025-10-30 (Document Model + JSON Serialization)
 
 ### Architectural Decisions ✅ FINALIZED (2025-10-25)
 - ✅ **GUI Pattern:** MVP (Model-View-Presenter)
@@ -94,20 +96,39 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - pybind11 bindings for Python plugins
   - 11 C++ test cases + 7 Python integration tests
   - 8 standard event types defined (document, editor, plugin, goal events)
-- [ ] .kplugin format handler (ZIP reading/writing with libzip) ⏳ Week 6 (Task #00011)
+- [x] **.kplugin format handler** (ZIP reading/writing with libzip) ✅ Week 6 (Task #00011)
   - Package structure: manifest.json + plugin.py + assets/
-  - ZIP extraction and validation
-  - Plugin path detection and loading
-- [ ] Plugin API versioning (semantic versioning checks) ⏳ Week 6 (Task #00011)
-  - Version compatibility checking
+  - ZIP extraction and validation (PluginArchive RAII wrapper)
+  - Plugin path detection and loading (full lifecycle)
+  - Platform-specific temp directories (~/.local/share/Kalahari/plugins/temp/)
+  - Actual plugin loading: extract → sys.path → import → instantiate → on_init() → on_activate()
+- [x] **Plugin API versioning** (semantic versioning checks) ✅ Week 6 (Task #00011)
+  - Version compatibility checking (manifest validation)
   - Graceful degradation for incompatible plugins
 
-### Document Model
-- [ ] Core C++ classes (Document, Chapter, Book, Project)
-- [ ] JSON serialization (nlohmann_json)
-- [ ] .klh file format (ZIP container with JSON metadata)
-- [ ] Basic CRUD operations (create, read, update, delete)
-- [ ] In-memory document management
+### Document Model ✅ Week 8 (Task #00012)
+- [x] **Core C++ classes** (BookElement, Part, Book, Document) - 3-section professional structure
+  - BookElement with flexible string-based type system (not enum)
+  - Part as chapter container with aggregation
+  - Book with frontMatter, body (Parts), backMatter (industry standard)
+  - Document wrapper with project metadata (title, author, language, UUID)
+- [x] **JSON serialization** (nlohmann_json) - toJson/fromJson pattern
+  - ISO 8601 timestamps (created, modified) with platform-specific conversion
+  - Metadata map for extensibility (plugins can add custom fields)
+  - Optional field handling (genre, custom metadata)
+- [x] **.klh file format** (ZIP container with JSON metadata) - DocumentArchive implementation
+  - Phase 0 MVP: manifest.json only (RTF files in Phase 2)
+  - libzip integration (ZIP_CREATE | ZIP_TRUNCATE, ZIP_RDONLY)
+  - Static save/load methods with detailed error logging
+- [x] **Basic CRUD operations** - Via Document API
+  - Create: Document(title, author, language) with auto UUID generation
+  - Read: Document::load(path) from .klh ZIP archive
+  - Update: Document setters with touch() auto-timestamp
+  - Delete: std::filesystem operations (external to Document class)
+- [x] **In-memory document management** - Complete object model
+  - Smart pointers (std::shared_ptr) for RAII memory management
+  - Lazy loading ready (RTF paths stored, content on-demand in Phase 1)
+  - Word count aggregation (Part → Book → Document)
 
 ### CI/CD Setup
 - [x] **GitHub Actions workflow** (platform-specific: ci-linux.yml, ci-windows.yml, ci-macos.yml) ✅ Week 1
@@ -283,11 +304,35 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 ## Phase 4: Advanced Plugins (Weeks 45-56 | 2-3 months)
 
-**Goal:** Professional writer's toolkit complete
+**Goal:** Professional writer's toolkit complete + Plugin ecosystem tools
 
 **Status:** ⏳ Pending
 **Target Version:** 0.5.0-rc
 **Timeline:** 2-3 months
+
+### Developer Tools for Plugin Creators
+- [ ] **Plugin Development Guide** (comprehensive documentation)
+  - Step-by-step tutorial with working examples
+  - Plugin manifest reference (all fields explained)
+  - Lifecycle hooks documentation (on_init, on_activate, on_deactivate)
+  - Extension Points API reference
+  - Event Bus usage patterns
+- [ ] **Developer Mode in Kalahari** (optional, hidden by default)
+  - Menu → Tools → Developer Tools (enable in Settings → Advanced)
+  - Plugin Creator Wizard (step-by-step GUI)
+  - Plugin Validator (manifest + structure checks)
+  - Plugin Packager (.kplugin ZIP creator)
+  - Live plugin reload (for development)
+- [ ] **CLI Tools** (optional, for automation)
+  - `tools/create_plugin.py` - Template generator
+  - `tools/validate_plugin.py` - Validation script
+  - `tools/package_plugin.py` - ZIP packager
+- [ ] **Plugin Template Repository**
+  - examples/hello_plugin/ (working minimal example)
+  - examples/advanced_plugin/ (all features demonstrated)
+  - plugin_manifest_schema.json (VSCode autocomplete)
+
+**Why Phase 4?** API stable after Phase 2-3, community feedback available, marketplace preparation
 
 ### Premium Plugin: Professional Export Suite ($24-34)
 - [ ] EPUB export (ebooklib - e-book publishing ready)

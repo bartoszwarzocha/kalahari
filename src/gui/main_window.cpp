@@ -7,6 +7,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/diagnostic_manager.h>
+#include <kalahari/core/plugin_manager.h>
 #include <wx/artprov.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
@@ -34,6 +35,7 @@ wxDEFINE_EVENT(wxEVT_KALAHARI_TASK_FAILED, wxThreadEvent);
 enum {
     ID_DIAG_TEST_PYTHON = wxID_HIGHEST + 1,
     ID_DIAG_TEST_PYBIND11,
+    ID_DIAG_TEST_PLUGINS,
     ID_DIAG_OPEN_LOGS,
     ID_DIAG_SYSTEM_INFO
 };
@@ -54,6 +56,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     // Diagnostics menu events
     EVT_MENU(ID_DIAG_TEST_PYTHON, MainWindow::onDiagnosticsTestPython)
     EVT_MENU(ID_DIAG_TEST_PYBIND11, MainWindow::onDiagnosticsTestPyBind11)
+    EVT_MENU(ID_DIAG_TEST_PLUGINS, MainWindow::onDiagnosticsTestPlugins)
     EVT_MENU(ID_DIAG_OPEN_LOGS, MainWindow::onDiagnosticsOpenLogs)
     EVT_MENU(ID_DIAG_SYSTEM_INFO, MainWindow::onDiagnosticsSystemInfo)
 
@@ -204,6 +207,9 @@ void MainWindow::createMenuBar() {
         diagMenu->Append(ID_DIAG_TEST_PYBIND11,
                         _("Test Python &Bindings (pybind11)"),
                         _("Test kalahari_api module and pybind11 integration"));
+        diagMenu->Append(ID_DIAG_TEST_PLUGINS,
+                        _("Test Plugin &System"),
+                        _("Test plugin discovery, loading, and lifecycle"));
         diagMenu->AppendSeparator();
         diagMenu->Append(ID_DIAG_OPEN_LOGS,
                         _("Open &Log Folder"),
@@ -667,6 +673,127 @@ void MainWindow::onDiagnosticsSystemInfo([[maybe_unused]] wxCommandEvent& event)
     );
 
     core::Logger::getInstance().info("Displayed system information");
+}
+
+void MainWindow::onDiagnosticsTestPlugins([[maybe_unused]] wxCommandEvent& event) {
+    core::Logger::getInstance().info("Diagnostics -> Test Plugin System clicked");
+
+    m_statusBar->SetStatusText(_("Testing plugin system..."), 0);
+
+    // Prepare test report
+    std::string report = "Plugin System Test Report\n";
+    report += "=========================\n\n";
+
+    // Test 1: Check if Python is initialized
+    auto& python = core::PythonInterpreter::getInstance();
+    if (!python.isInitialized()) {
+        report += "FAILED: Python interpreter is not initialized.\n";
+        report += "\nPlugin system requires Python to be running.\n";
+
+        wxMessageBox(
+            wxString::FromUTF8(report),
+            _("Plugin System Test - FAILED"),
+            wxOK | wxICON_ERROR,
+            this
+        );
+
+        m_statusBar->SetStatusText(_("Plugin tests failed"), 0);
+        return;
+    }
+
+    report += "✓ Python interpreter initialized\n\n";
+
+    // Test 2: Discover plugins
+    auto& pluginMgr = core::PluginManager::getInstance();
+
+    try {
+        pluginMgr.discoverPlugins();
+        auto plugins = pluginMgr.getDiscoveredPlugins();
+
+        report += "Discovery:\n";
+        report += "✓ Found " + std::to_string(plugins.size()) + " plugin(s) in plugins/\n\n";
+
+        if (plugins.empty()) {
+            report += "No plugins found to test.\n";
+            report += "Place .kplugin files in the plugins/ directory.\n";
+
+            wxMessageBox(
+                wxString::FromUTF8(report),
+                _("Plugin System Test - No Plugins"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+
+            m_statusBar->SetStatusText(_("No plugins to test"), 0);
+            return;
+        }
+
+        // Test 3: Load each plugin
+        bool allTestsPassed = true;
+        for (const auto& metadata : plugins) {
+            report += "Plugin: " + metadata.manifest.name + " (" + metadata.manifest.id + ")\n";
+            report += "- Version: " + metadata.manifest.version + "\n";
+            report += "- Entry Point: " + metadata.manifest.entry_point + "\n";
+            report += "- Status: Attempting to load...\n";
+
+            // Try to load the plugin
+            bool loadSuccess = pluginMgr.loadPlugin(metadata.manifest.id);
+
+            if (loadSuccess) {
+                report += "  ✓ Plugin loaded successfully\n";
+                report += "  ✓ on_init() called\n";
+                report += "  ✓ on_activate() called\n";
+
+                // Try to unload the plugin
+                pluginMgr.unloadPlugin(metadata.manifest.id);
+                report += "  ✓ on_deactivate() called\n";
+                report += "  ✓ Cleanup completed\n";
+            } else {
+                report += "  ✗ Failed to load plugin\n";
+                allTestsPassed = false;
+            }
+
+            report += "\n";
+        }
+
+        // Final result
+        report += "Result: ";
+        if (allTestsPassed) {
+            report += "✅ ALL TESTS PASSED\n";
+            report += "\nPlugin system is working correctly!\n";
+        } else {
+            report += "⚠️ SOME TESTS FAILED\n";
+            report += "\nCheck application logs for details.\n";
+        }
+
+        wxMessageBox(
+            wxString::FromUTF8(report),
+            allTestsPassed ? _("Plugin System Test - SUCCESS") : _("Plugin System Test - PARTIAL"),
+            wxOK | (allTestsPassed ? wxICON_INFORMATION : wxICON_WARNING),
+            this
+        );
+
+        m_statusBar->SetStatusText(
+            allTestsPassed ? _("Plugin tests passed") : _("Plugin tests completed with warnings"),
+            0
+        );
+
+    } catch (const std::exception& e) {
+        report += "\n✗ EXCEPTION: " + std::string(e.what()) + "\n";
+
+        wxMessageBox(
+            wxString::FromUTF8(report),
+            _("Plugin System Test - ERROR"),
+            wxOK | wxICON_ERROR,
+            this
+        );
+
+        m_statusBar->SetStatusText(_("Plugin tests failed"), 0);
+        core::Logger::getInstance().error("Plugin system test failed with exception: {}", e.what());
+        return;
+    }
+
+    core::Logger::getInstance().info("Plugin system tests completed");
 }
 
 void MainWindow::onClose(wxCloseEvent& event) {

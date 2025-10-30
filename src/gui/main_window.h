@@ -148,6 +148,10 @@ private:
     /// @param event Command event from menu
     void onDiagnosticsSystemInfo(wxCommandEvent& event);
 
+    /// @brief Handle Diagnostics -> Test Plugin System menu item
+    /// @param event Command event from menu
+    void onDiagnosticsTestPlugins(wxCommandEvent& event);
+
     /// @brief Handle window close event
     /// @param event Close event (from window manager or File->Exit)
     void onClose(wxCloseEvent& event);
