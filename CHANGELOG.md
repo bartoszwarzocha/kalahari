@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI/CD Infrastructure Fix (2025-10-31)
+
+#### Fixed
+- **macOS CI/CD Pipeline** - Switched from vcpkg Python to Homebrew Python (`python@3.11`)
+  - vcpkg Python on macOS ARM64 GitHub Actions runners has incomplete directory structure
+  - Homebrew Python provides full Development files required for pybind11 tests
+  - CI/CD Python is build-time only and does not affect production artifacts
+  - Production still uses vcpkg Python embedded in application
+- **Python Interpreter Detection** - Enhanced `detectPythonHome()` for macOS (src/core/python_interpreter.cpp:328-362)
+  - Added Homebrew Python detection strategy: `/opt/homebrew/opt/python@3.11`
+  - Detection priority: vcpkg → bundled → Homebrew (CI/CD) → system fallback
+  - Added `_NSGetExecutablePath()` support for reliable executable path detection
+- **macOS Workflow Configuration** - Re-added `python@3.11` to Homebrew dependencies (.github/workflows/ci-macos.yml:29)
+
+#### Technical Details
+- **Problem**: CMake couldn't find Python3 Development files on macOS runners
+- **Root Cause**: vcpkg Python distribution on arm64-osx has non-standard structure
+- **Solution**: Use Homebrew Python for GitHub Actions, keep vcpkg Python for production
+- **Impact**: All 3 platforms (Linux, macOS, Windows) now passing CI/CD tests
+- **Commits**: 547e85a (successful fix after 3 previous attempts: 5753fd6, 966779c, 2932858)
+
 ### Phase 0 Week 8 - Document Model + JSON Serialization (2025-10-30)
 
 #### Added

@@ -4,7 +4,7 @@
 
 **Current Status:** 🔄 Phase 0 - Foundation (Week 6-8 | .kplugin Handler + Document Model Complete)
 **Version:** 0.0.1-dev
-**Last Updated:** 2025-10-30
+**Last Updated:** 2025-10-31
 
 ---
 
@@ -73,6 +73,7 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 - [x] **Settings system (JSON persistence with nlohmann_json)** ✅ Week 3 (Task #00003)
 - [x] **Logging system (spdlog - structured, multi-level)** ✅ Week 2
 - [x] **Build automation scripts** (cross-platform) ✅ Week 3 (Task #00004)
+- [x] **CI/CD pipelines** (GitHub Actions: Linux, macOS, Windows) ✅ 2025-10-31 (Infrastructure fix)
 
 ### Plugin Architecture
 - [x] **Python 3.11 embedding** (bundled with application) ✅ Week 2 (Task #00005)
