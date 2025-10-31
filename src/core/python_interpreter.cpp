@@ -12,6 +12,9 @@
 #else
 #include <unistd.h>   // readlink
 #include <climits>    // PATH_MAX
+#ifdef __APPLE__
+#include <mach-o/dyld.h>  // _NSGetExecutablePath
+#endif
 #endif
 
 namespace py = pybind11;
@@ -326,9 +329,40 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
                              vcpkgPython.string());
 
 #elif defined(__APPLE__)
-    // macOS: Bundle in .app/Contents/Resources/
-    // TODO: Implement for macOS
-    return "/usr/local/opt/python@3.12";
+    // macOS: Check vcpkg first, then fallback to system/bundled Python
+    char exePath[PATH_MAX];
+    uint32_t size = sizeof(exePath);
+    if (_NSGetExecutablePath(exePath, &size) == 0) {
+        std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
+        Logger::getInstance().debug("Executable directory: {}", exeDir.string());
+
+        // Strategy 1: Development - vcpkg Python (arm64-osx or x64-osx)
+        // build/bin/kalahari
+        // build/vcpkg_installed/arm64-osx/tools/python3/
+        std::filesystem::path vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "arm64-osx" / "tools" / "python3";
+        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
+            Logger::getInstance().info("Found vcpkg Python arm64 (development mode)");
+            return vcpkgPython;
+        }
+
+        // Try x64-osx (Intel Macs)
+        vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "x64-osx" / "tools" / "python3";
+        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
+            Logger::getInstance().info("Found vcpkg Python x64 (development mode)");
+            return vcpkgPython;
+        }
+
+        // Strategy 2: Production - Bundled Python in .app/Contents/Resources/
+        std::filesystem::path bundledPython = exeDir.parent_path() / "Resources" / "python3";
+        if (std::filesystem::exists(bundledPython)) {
+            Logger::getInstance().info("Found bundled Python (production mode)");
+            return bundledPython;
+        }
+    }
+
+    // Strategy 3: Fallback - System Python (Homebrew or system)
+    Logger::getInstance().warn("vcpkg Python not found, falling back to /usr/local");
+    return "/usr/local";
 
 #else
     // Linux: Check vcpkg first, then system
