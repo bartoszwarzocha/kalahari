@@ -375,13 +375,16 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     throw std::runtime_error("Windows Python stdlib not found at: " + stdlibPath.string());
 
 #elif defined(__APPLE__)
-    // macOS: lib/pythonX.Y (lowercase, versioned)
-    // Try multiple Python versions (3.13 → 3.11)
+    // macOS: Multiple possible locations depending on Python distribution
+    // 1. Try lib/pythonX.Y (standard Unix layout - vcpkg, system Python)
+    // 2. Try Frameworks/Python.framework/Versions/X.Y/lib/pythonX.Y (Homebrew Python)
+    // 3. Try lib/ directory scan (vcpkg might use different structure)
     std::vector<std::string> versions = {"3.13", "3.12", "3.11"};
 
+    // Attempt 1: Standard Unix layout (lib/pythonX.Y)
     for (const auto& version : versions) {
         std::filesystem::path stdlibPath = pythonHome / "lib" / ("python" + version);
-        Logger::getInstance().debug("macOS stdlib attempt: {}", stdlibPath.string());
+        Logger::getInstance().debug("macOS stdlib attempt (standard): {}", stdlibPath.string());
 
         if (std::filesystem::exists(stdlibPath)) {
             Logger::getInstance().info("Found macOS stdlib: {}", stdlibPath.string());
@@ -389,11 +392,37 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
         }
     }
 
-    // Fallback: Framework path
-    std::filesystem::path frameworkPath = pythonHome / "lib";
-    if (std::filesystem::exists(frameworkPath)) {
-        Logger::getInstance().info("Found macOS stdlib (framework): {}", frameworkPath.string());
-        return frameworkPath;
+    // Attempt 2: Framework layout (Homebrew)
+    for (const auto& version : versions) {
+        std::filesystem::path frameworkPath = pythonHome / "Frameworks" / "Python.framework" / "Versions" / version / "lib" / ("python" + version);
+        Logger::getInstance().debug("macOS stdlib attempt (framework): {}", frameworkPath.string());
+
+        if (std::filesystem::exists(frameworkPath)) {
+            Logger::getInstance().info("Found macOS stdlib (framework): {}", frameworkPath.string());
+            return frameworkPath;
+        }
+    }
+
+    // Attempt 3: Scan lib/ directory for python3.X folders (vcpkg)
+    std::filesystem::path libDir = pythonHome / "lib";
+    if (std::filesystem::exists(libDir)) {
+        Logger::getInstance().debug("Scanning lib directory: {}", libDir.string());
+
+        for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
+            if (entry.is_directory()) {
+                std::string dirname = entry.path().filename().string();
+                if (dirname.starts_with("python3.") || dirname == "python3") {
+                    Logger::getInstance().info("Found macOS stdlib (scanned): {}", entry.path().string());
+                    return entry.path();
+                }
+            }
+        }
+    }
+
+    // Fallback: Just use lib/ if it exists (some Python distributions)
+    if (std::filesystem::exists(libDir)) {
+        Logger::getInstance().info("Found macOS stdlib (fallback lib/): {}", libDir.string());
+        return libDir;
     }
 
     throw std::runtime_error("macOS Python stdlib not found under: " + pythonHome.string());
