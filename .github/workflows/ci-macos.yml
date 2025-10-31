@@ -26,7 +26,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake ninja autoconf autoconf-archive automake libtool python@3.11
+        brew install cmake ninja autoconf autoconf-archive automake libtool
 
     - name: Cache vcpkg
       uses: actions/cache@v4
@@ -52,20 +52,9 @@ jobs:
 
     - name: Configure CMake
       run: |
-        # Use Homebrew Python 3.11 (has Development files) instead of vcpkg Python 3.12
-        # Force EXACT paths to headers and library to bypass vcpkg wrapper
-        PYTHON_ROOT=/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11
-        PYTHON_EXECUTABLE=/opt/homebrew/bin/python3.11
-        echo "Python executable: $PYTHON_EXECUTABLE"
-        $PYTHON_EXECUTABLE --version
-        echo "Python root: $PYTHON_ROOT"
-
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DPython3_EXECUTABLE="$PYTHON_EXECUTABLE" \
-          -DPython3_INCLUDE_DIR="$PYTHON_ROOT/include/python3.11" \
-          -DPython3_LIBRARY="$PYTHON_ROOT/lib/libpython3.11.dylib" \
           -G Ninja
 
     - name: Build
