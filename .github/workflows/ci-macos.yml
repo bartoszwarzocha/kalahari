@@ -26,7 +26,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake ninja autoconf autoconf-archive automake libtool
+        brew install cmake ninja autoconf autoconf-archive automake libtool python@3.11
 
     - name: Cache vcpkg
       uses: actions/cache@v4

@@ -360,8 +360,15 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
         }
     }
 
-    // Strategy 3: Fallback - System Python (Homebrew or system)
-    Logger::getInstance().warn("vcpkg Python not found, falling back to /usr/local");
+    // Strategy 3: Homebrew Python (CI/CD environment)
+    std::filesystem::path homebrewPython = "/opt/homebrew/opt/python@3.11";
+    if (std::filesystem::exists(homebrewPython)) {
+        Logger::getInstance().info("Found Homebrew Python (CI/CD mode)");
+        return homebrewPython;
+    }
+
+    // Strategy 4: Fallback - System Python
+    Logger::getInstance().warn("vcpkg and Homebrew Python not found, falling back to /usr/local");
     return "/usr/local";
 
 #else
