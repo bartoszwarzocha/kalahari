@@ -145,54 +145,121 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 ---
 
-## Phase 1: Core Editor (Weeks 9-20 | 3-4 months)
+## Phase 1: Core Editor (Weeks 9-20 | 12 weeks)
 
 **Goal:** Functional rich text editor with project management
 
-**Status:** ⏳ Pending
+**Status:** 📋 Planned (Task breakdown complete)
 **Target Version:** 0.2.0-alpha
-**Timeline:** 3-4 months
+**Timeline:** 12 weeks (3 months)
+**Task Breakdown:** See [project_docs/13_phase1_task_breakdown.md](project_docs/13_phase1_task_breakdown.md)
 
-### Editor
-- [ ] wxRichTextCtrl integration and customization
-- [ ] Basic text formatting (bold, italic, underline, font, size, color)
-- [ ] Text styles (headings H1-H6, body text, quotes, code)
-- [ ] Paragraph formatting (alignment, spacing, indentation)
-- [ ] Undo/redo system (command pattern)
-- [ ] Find & Replace (simple text search)
-- [ ] Live word count and statistics
-- [ ] Spell checking integration (basic)
+### Phase 1 Task List (15 Tasks)
 
-### Project Management
-- [ ] Project Navigator panel (wxTreeCtrl - hierarchical view)
-- [ ] Chapter management (add, delete, move, rename, reorder)
-- [ ] Part/Section organization (nested structure)
-- [ ] Document metadata (title, author, dates, custom fields)
-- [ ] Save/Load .klh files (ZIP + JSON + RTF content)
-- [ ] Auto-save system (configurable interval, background thread)
-- [ ] Backup system (rolling snapshots, configurable retention)
-- [ ] Recent projects list (MRU - Most Recently Used)
+**Week 9: Foundation (UI Infrastructure)**
+- [ ] **Task #00013:** wxAUI Docking System + Panel Management
+  - 6 core panels: Navigator, Editor, Properties, Statistics, Search, Assistant
+  - Panel visibility controls (View menu, toolbar)
+  - Perspective system (save/load layouts)
+  - **Status:** 📋 Planned | **File:** [tasks/00013_wxaui_docking_system.md](tasks/00013_wxaui_docking_system.md)
 
-### UI/UX
-- [ ] wxAUI docking system (6 core panels)
-- [ ] Panel visibility controls (View menu, toolbar buttons)
-- [ ] 3 focus modes (Normal, Focused, Distraction-Free)
-- [ ] Perspectives system (saveable layouts)
-- [ ] Keyboard shortcuts (80+ defaults, customizable)
-- [ ] Toolbar customization UI (drag & drop)
-- [ ] Status bar (8 segments: word count, cursor, time, etc.)
-- [ ] Info bar (5 message types: success, warning, error, info, hint)
+**Week 10: Core Editor**
+- [ ] **Task #00014:** wxRichTextCtrl Integration + Basic Formatting
+  - wxRichTextCtrl in Editor panel
+  - Basic formatting: bold, italic, underline, font, color, alignment
+  - Event handling (text changed, cursor moved)
+  - **Status:** 📋 Planned | **File:** [tasks/00014_wxrichtextctrl_integration.md](tasks/00014_wxrichtextctrl_integration.md)
 
-### Testing
-- [ ] Unit tests for document model (Catch2)
-- [ ] Integration tests for save/load
-- [ ] Manual testing on all platforms
+**Week 11: Document Structure**
+- [ ] **Task #00015:** Project Navigator Panel + wxTreeCtrl
+  - Hierarchical tree view: Book → Parts → Chapters
+  - Node selection → load chapter in editor
+  - Context menu (right-click CRUD operations)
+  - **Status:** 📋 Planned | **File:** [tasks/00015_project_navigator_panel.md](tasks/00015_project_navigator_panel.md)
+
+**Week 12: CRUD Operations**
+- [ ] **Task #00016:** Chapter Management CRUD Operations
+  - Add, delete, rename, move chapters and parts
+  - Drag & drop reordering
+  - **Status:** 📋 Planned | **Priority:** P0
+
+**Week 13: Persistence Enhancement**
+- [ ] **Task #00017:** RTF Content Save/Load Integration
+  - RTF serialization from wxRichTextCtrl
+  - RTF storage in .klh ZIP (chapters/*.rtf)
+  - Lazy loading strategy
+  - **Status:** 📋 Planned | **Priority:** P0
+
+**Week 14: Advanced Formatting**
+- [ ] **Task #00018:** Text Styles + Paragraph Formatting
+  - Styles: H1-H6, body, quotes, code
+  - Paragraph spacing, indentation
+  - Bullet/numbered lists
+  - **Status:** 📋 Planned | **Priority:** P1
+
+**Week 15: Editor Reliability**
+- [ ] **Task #00019:** Undo/Redo Command Pattern
+  - ICommand interface (execute/undo)
+  - TextEditCommand + StructureEditCommand
+  - Command history (100 default, configurable)
+  - **Status:** 📋 Planned | **Priority:** P0
+
+**Week 16: Editor Utility**
+- [ ] **Task #00020:** Find & Replace
+  - Search options: case-sensitive, whole word, regex
+  - Find Next/Previous, Replace All
+  - Search scope: current/all chapters
+  - **Status:** 📋 Planned | **Priority:** P1
+
+**Week 17: Data Safety (Auto-Save)**
+- [ ] **Task #00021:** Auto-Save System
+  - Configurable interval (1-10 minutes)
+  - Background thread, dirty flag tracking
+  - Crash recovery
+  - **Status:** 📋 Planned | **Priority:** P0
+
+**Week 18: Data Safety (Backup)**
+- [ ] **Task #00022:** Backup System
+  - Rolling snapshots (hourly, daily, weekly)
+  - Retention policy, restore UI
+  - Background backup thread
+  - **Status:** 📋 Planned | **Priority:** P1
+
+**Week 19: UX Polish**
+- [ ] **Task #00023:** Focus Modes + Perspectives
+  - 3 modes: Normal, Focused, Distraction-Free
+  - Perspective save/load (4 defaults)
+  - **Status:** 📋 Planned | **Priority:** P2
+
+- [ ] **Task #00024:** Keyboard Shortcuts System
+  - 80+ default shortcuts
+  - Customization UI, conflict detection
+  - Platform-specific defaults
+  - **Status:** 📋 Planned | **Priority:** P1
+
+**Week 20: Writing Feedback & Polish**
+- [ ] **Task #00025:** Word Count Live + Statistics Panel
+  - Live word count (status bar)
+  - Session statistics, writing streak
+  - Statistics panel with charts
+  - **Status:** 📋 Planned | **Priority:** P1
+
+- [ ] **Task #00026:** Status Bar + Info Bar
+  - Status bar (8 segments: word count, cursor, time, etc.)
+  - Info bar (5 message types)
+  - **Status:** 📋 Planned | **Priority:** P2
+
+- [ ] **Task #00027:** Spell Checking Integration
+  - Red wavy underline, suggestions
+  - Language selection, custom dictionary
+  - **Status:** 📋 Planned | **Priority:** P2
 
 ### Deliverables
-✅ Functional rich text editor
-✅ Complete project management (create, save, load, organize)
+✅ Functional rich text editor with formatting
+✅ Complete project management (CRUD + navigation)
 ✅ Professional desktop UI with docking panels
 ✅ Auto-save and backup working reliably
+✅ 80+ unit tests, 20+ integration tests
 
 ---
 
