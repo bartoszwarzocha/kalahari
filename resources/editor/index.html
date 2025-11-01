@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalahari Editor - TipTap</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #f0f0f0;
+            font-family: Georgia, serif;
+            overflow-y: auto;
+        }
+
+        /* Editor container - A4 page with shadow */
+        .editor-container {
+            max-width: 21cm;         /* A4 width */
+            min-height: 29.7cm;      /* A4 height */
+            margin: 0 auto 40px auto;
+            background: white;
+            padding: 2.5cm;          /* Standard A4 margins */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* ProseMirror editor styling */
+        .ProseMirror {
+            outline: none;
+            min-height: 24.7cm;      /* A4 height - padding */
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+
+        .ProseMirror p {
+            margin: 0 0 1em 0;
+        }
+
+        .ProseMirror h1 {
+            font-size: 24pt;
+            margin: 0 0 0.5em 0;
+        }
+
+        .ProseMirror h2 {
+            font-size: 18pt;
+            margin: 0 0 0.5em 0;
+        }
+
+        .ProseMirror h3 {
+            font-size: 14pt;
+            margin: 0 0 0.5em 0;
+        }
+
+        /* Placeholder text when empty */
+        .ProseMirror p.is-editor-empty:first-child::before {
+            content: attr(data-placeholder);
+            float: left;
+            color: #999;
+            pointer-events: none;
+            height: 0;
+        }
+
+        /* Bold/Italic/Underline styling */
+        .ProseMirror strong {
+            font-weight: bold;
+        }
+
+        .ProseMirror em {
+            font-style: italic;
+        }
+
+        .ProseMirror u {
+            text-decoration: underline;
+        }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="editor" class="editor-container">
+        <div class="loading">Initializing TipTap editor...</div>
+    </div>
+
+    <script type="module">
+        // Import TipTap from CDN (esm.sh)
+        import { Editor } from 'https://esm.sh/@tiptap/core'
+        import StarterKit from 'https://esm.sh/@tiptap/starter-kit'
+        import Underline from 'https://esm.sh/@tiptap/extension-underline'
+        import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder'
+
+        // Global editor instance
+        window.editor = null;
+
+        // Message handler helper (cross-platform)
+        function sendMessageToCpp(message) {
+            // WebKitGTK (Linux)
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.kalahari) {
+                window.webkit.messageHandlers.kalahari.postMessage(message);
+                return;
+            }
+
+            // Edge WebView2 (Windows) - uses window.chrome.webview
+            if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+                window.chrome.webview.postMessage(JSON.stringify(message));
+                return;
+            }
+
+            // Fallback (no bridge available)
+            console.warn('No message handler available:', message);
+        }
+
+        // Initialize TipTap editor
+        try {
+            const editorElement = document.getElementById('editor');
+            editorElement.innerHTML = ''; // Clear loading message
+
+            window.editor = new Editor({
+                element: editorElement,
+                extensions: [
+                    StarterKit.configure({
+                        heading: {
+                            levels: [1, 2, 3],
+                        },
+                    }),
+                    Underline,
+                    Placeholder.configure({
+                        placeholder: 'Start writing your story...',
+                    }),
+                ],
+                content: '<p>TipTap editor initialized successfully!</p><p>This is a placeholder page. Start typing to replace this content.</p>',
+                editorProps: {
+                    attributes: {
+                        class: 'ProseMirror',
+                    },
+                },
+                // Event handlers
+                onCreate: ({ editor }) => {
+                    console.log('TipTap editor created');
+                    sendMessageToCpp({
+                        type: 'ready',
+                        message: 'Editor initialized successfully',
+                    });
+                },
+                onUpdate: ({ editor }) => {
+                    // Debounced content change notification
+                    if (window.updateTimer) {
+                        clearTimeout(window.updateTimer);
+                    }
+
+                    window.updateTimer = setTimeout(() => {
+                        const html = editor.getHTML();
+                        const text = editor.getText();
+                        const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+
+                        sendMessageToCpp({
+                            type: 'contentChanged',
+                            html: html,
+                            wordCount: wordCount,
+                        });
+                    }, 500); // 500ms debounce
+                },
+                onFocus: ({ editor }) => {
+                    sendMessageToCpp({
+                        type: 'focus',
+                        message: 'Editor focused',
+                    });
+                },
+                onBlur: ({ editor }) => {
+                    sendMessageToCpp({
+                        type: 'blur',
+                        message: 'Editor blurred',
+                    });
+                },
+            });
+
+            // Helper methods for C++ integration
+            window.editorHelpers = {
+                getHTML: () => window.editor ? window.editor.getHTML() : '',
+                setContent: (content) => {
+                    if (window.editor) {
+                        window.editor.commands.setContent(content);
+                    }
+                },
+                clearContent: () => {
+                    if (window.editor) {
+                        window.editor.commands.clearContent();
+                    }
+                },
+                getWordCount: () => {
+                    if (!window.editor) return 0;
+                    const text = window.editor.getText();
+                    return text.split(/\s+/).filter(word => word.length > 0).length;
+                },
+                toggleBold: () => {
+                    if (window.editor) {
+                        window.editor.chain().focus().toggleBold().run();
+                    }
+                },
+                toggleItalic: () => {
+                    if (window.editor) {
+                        window.editor.chain().focus().toggleItalic().run();
+                    }
+                },
+                toggleUnderline: () => {
+                    if (window.editor) {
+                        window.editor.chain().focus().toggleUnderline().run();
+                    }
+                },
+                clearFormatting: () => {
+                    if (window.editor) {
+                        window.editor.chain().focus().clearNodes().unsetAllMarks().run();
+                    }
+                },
+            };
+
+            console.log('TipTap editor initialized successfully');
+            console.log('Editor methods:', Object.keys(window.editorHelpers));
+
+        } catch (error) {
+            console.error('Failed to initialize TipTap:', error);
+            sendMessageToCpp({
+                type: 'error',
+                message: 'Failed to initialize editor: ' + error.message,
+            });
+
+            // Show error in UI
+            document.getElementById('editor').innerHTML =
+                '<div class="loading" style="color: red;">Failed to initialize editor. Check console for details.</div>';
+        }
+    </script>
+</body>
+</html>

@@ -137,9 +137,9 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
 
     // Icon list for tree nodes (16x16 icons)
     m_iconList = new wxImageList(16, 16);
-    // TODO Phase 0: Use stock icons for now (replace with custom icons later)
-    m_iconList->Add(wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(16, 16)));
-    m_iconList->Add(wxArtProvider::GetBitmap(wxART_EXECUTABLE_FILE, wxART_OTHER, wxSize(16, 16)));
+    // Material Design icons from IconRegistry via KalahariArtProvider
+    m_iconList->Add(wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(16, 16)));        // Folder icon
+    m_iconList->Add(wxArtProvider::GetBitmap(wxART_HELP_SETTINGS, wxART_OTHER, wxSize(16, 16))); // Settings icon (for Diagnostics)
     m_tree->AssignImageList(m_iconList);
 
     // Right: Content panel (scrollable)

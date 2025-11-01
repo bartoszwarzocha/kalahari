@@ -8,13 +8,23 @@
 #pragma once
 
 #include <wx/wx.h>
+#include <wx/aui/aui.h>
 #include <thread>
 #include <functional>
 #include <vector>
+#include <map>
 #include <algorithm>
 
 namespace kalahari {
 namespace gui {
+
+// Forward declarations
+class NavigatorPanel;
+class EditorPanel;
+class PropertiesPanel;
+class StatisticsPanel;
+class SearchPanel;
+class AssistantPanel;
 
 // ============================================================================
 // Custom Event Types (KALAHARI convention)
@@ -64,6 +74,47 @@ private:
 
     /// @brief Main content panel (placeholder for future editor)
     wxPanel* m_mainPanel = nullptr;
+
+    // ========================================================================
+    // wxAUI Docking System (Phase 1 Task #00013)
+    // ========================================================================
+
+    /// @brief wxAUI manager for dockable panels
+    wxAuiManager* m_auiManager = nullptr;
+
+    /// @brief Navigator panel (document tree structure)
+    NavigatorPanel* m_navigatorPanel = nullptr;
+
+    /// @brief Editor panel (rich text editing)
+    EditorPanel* m_editorPanel = nullptr;
+
+    /// @brief Properties panel (chapter/document metadata)
+    PropertiesPanel* m_propertiesPanel = nullptr;
+
+    /// @brief Statistics panel (writing metrics)
+    StatisticsPanel* m_statisticsPanel = nullptr;
+
+    /// @brief Search panel (find and replace)
+    SearchPanel* m_searchPanel = nullptr;
+
+    /// @brief Assistant panel (AI writing help)
+    AssistantPanel* m_assistantPanel = nullptr;
+
+    /// @brief View menu items (for checkbox synchronization)
+    wxMenuItem* m_viewNavigatorItem = nullptr;
+    wxMenuItem* m_viewPropertiesItem = nullptr;
+    wxMenuItem* m_viewStatisticsItem = nullptr;
+    wxMenuItem* m_viewSearchItem = nullptr;
+    wxMenuItem* m_viewAssistantItem = nullptr;
+
+    /// @brief Perspectives submenu (for dynamic custom perspectives)
+    wxMenu* m_perspectivesMenu = nullptr;
+
+    /// @brief Dynamic custom perspective menu items
+    std::vector<wxMenuItem*> m_customPerspectiveItems;
+
+    /// @brief Mapping from menu ID to custom perspective name
+    std::map<int, std::string> m_customPerspectiveNames;
 
     // ========================================================================
     // Threading Infrastructure (Phase 0 Week 2)
@@ -128,6 +179,26 @@ private:
     /// @param event Command event from menu/toolbar
     void onEditRedo(wxCommandEvent& event);
 
+    /// @brief Handle Format -> Bold menu item (Task #00014)
+    /// @param event Command event from Format menu
+    void onFormatBold(wxCommandEvent& event);
+
+    /// @brief Handle Format -> Italic menu item (Task #00014)
+    /// @param event Command event from Format menu
+    void onFormatItalic(wxCommandEvent& event);
+
+    /// @brief Handle Format -> Underline menu item (Task #00014)
+    /// @param event Command event from Format menu
+    void onFormatUnderline(wxCommandEvent& event);
+
+    /// @brief Handle Format -> Font menu item (Task #00014)
+    /// @param event Command event from Format menu
+    void onFormatFont(wxCommandEvent& event);
+
+    /// @brief Handle Format -> Clear Formatting menu item (Task #00014)
+    /// @param event Command event from Format menu
+    void onFormatClear(wxCommandEvent& event);
+
     /// @brief Handle Help -> About menu item
     /// @param event Command event from menu
     void onHelpAbout(wxCommandEvent& event);
@@ -163,6 +234,49 @@ private:
     /// @brief Handle background task failure event
     /// @param event Thread event with error message (from wxQueueEvent)
     void onTaskFailed(wxThreadEvent& event);
+
+    // ========================================================================
+    // View Menu Event Handlers (Task #00013)
+    // ========================================================================
+
+    /// @brief Handle View -> Navigator menu item
+    /// @param event Command event from menu
+    void onViewNavigator(wxCommandEvent& event);
+
+    /// @brief Handle View -> Properties menu item
+    /// @param event Command event from menu
+    void onViewProperties(wxCommandEvent& event);
+
+    /// @brief Handle View -> Statistics menu item
+    /// @param event Command event from menu
+    void onViewStatistics(wxCommandEvent& event);
+
+    /// @brief Handle View -> Search menu item
+    /// @param event Command event from menu
+    void onViewSearch(wxCommandEvent& event);
+
+    /// @brief Handle View -> Assistant menu item
+    /// @param event Command event from menu
+    void onViewAssistant(wxCommandEvent& event);
+
+    /// @brief Handle View -> Perspectives -> Load menu items
+    /// @param event Command event from menu
+    void onLoadPerspective(wxCommandEvent& event);
+
+    /// @brief Handle View -> Perspectives -> Save Perspective...
+    /// @param event Command event from menu
+    void onSavePerspective(wxCommandEvent& event);
+
+    /// @brief Handle View -> Perspectives -> Manage Perspectives...
+    /// @param event Command event from menu
+    void onManagePerspectives(wxCommandEvent& event);
+
+    /// @brief Refresh the Perspectives submenu with custom perspectives
+    ///
+    /// Removes old dynamic menu items and adds up to 5 most recent
+    /// custom perspectives (excluding default ones) to the menu.
+    /// Called after save/delete/rename operations.
+    void refreshPerspectivesMenu();
 
     // ========================================================================
     // Threading Methods (Phase 0 Week 2)
@@ -229,6 +343,33 @@ private:
     /// Rebuilds menu bar to show or hide the Diagnostics menu.
     /// @param enabled true to show Diagnostics menu, false to hide
     void setDiagnosticMode(bool enabled);
+
+    // ========================================================================
+    // wxAUI Helper Methods (Task #00013)
+    // ========================================================================
+
+    /// @brief Initialize wxAUI manager and create panels
+    ///
+    /// Creates all 6 panels and adds them to wxAuiManager with default layout.
+    void initializeAUI();
+
+    /// @brief Update View menu checkboxes to match panel visibility
+    ///
+    /// Synchronizes View menu checkboxes with actual wxAuiPaneInfo states.
+    /// Called after loading perspectives or toggling panels.
+    void updateViewMenu();
+
+    /// @brief Load a perspective by name
+    ///
+    /// Loads panel layout from PerspectiveManager.
+    /// @param name Perspective name ("Default", "Writing", etc.)
+    void loadPerspective(const std::string& name);
+
+    /// @brief Save current layout as a named perspective
+    ///
+    /// Saves current wxAuiManager layout to PerspectiveManager.
+    /// @param name Perspective name
+    void savePerspective(const std::string& name);
 
     // ========================================================================
     // Event Table Declaration

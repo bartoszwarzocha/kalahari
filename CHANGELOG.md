@@ -9,6 +9,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 1 Week 9 - wxAUI Docking System + Panel Management (2025-11-01)
+
+#### Added
+- **Task #00013: wxAUI Docking System + 6 Core Panels**
+  - **16 new files** (~2,620 lines): Complete dockable panel workspace with perspective management
+  - **Panel Stub Classes** (6 panels, full implementation in future tasks)
+    - `include/kalahari/gui/panels/navigator_panel.h` + `.cpp` (~60 lines) - Document tree (stub for Task #00015)
+    - `include/kalahari/gui/panels/editor_panel.h` + `.cpp` (~80 lines) - Rich text editor (stub for Task #00014)
+    - `include/kalahari/gui/panels/properties_panel.h` + `.cpp` (~90 lines) - Metadata panel (stub)
+    - `include/kalahari/gui/panels/statistics_panel.h` + `.cpp` (~80 lines) - Writing metrics (stub)
+    - `include/kalahari/gui/panels/search_panel.h` + `.cpp` (~130 lines) - Find & Replace (stub)
+    - `include/kalahari/gui/panels/assistant_panel.h` + `.cpp` (~120 lines) - AI Assistant (stub)
+  - **Perspective Management**
+    - `include/kalahari/gui/perspective_manager.h` + `.cpp` (~380 lines) - Layout save/load system
+      - Singleton pattern for global access
+      - JSON persistence to ~/.config/kalahari/perspectives/
+      - Save/load/list/delete/rename operations
+      - Name validation (alphanumeric + space/dash/underscore)
+      - 4 default perspectives: Default, Writing, Editing, Research
+    - `include/kalahari/gui/dialogs/manage_perspectives_dialog.h` + `.cpp` (~380 lines) - Full perspective management dialog
+      - wxListCtrl with 2 columns: "Perspective Name" and "Type" (Default/Custom)
+      - Load button (loads selected perspective)
+      - Delete button (removes custom perspectives, default ones protected)
+      - Rename button (renames custom perspectives with validation)
+      - Protected perspectives: Default, Writing, Editing, Research (cannot be deleted/renamed)
+      - Double-click to load
+      - Confirmation dialogs for destructive operations
+  - **Dynamic Perspectives Menu** (UX Enhancement)
+    - Custom perspectives appear directly in View → Perspectives menu (max 5 most recent)
+    - Automatic menu refresh after save/delete/rename operations
+    - No need to open management dialog for quick perspective switching
+    - Sorted by modification time (newest first)
+    - listPerspectivesWithTimestamp() in PerspectiveManager for efficient sorting
+  - **Perspective Persistence** (Session Continuity)
+    - Last used perspective automatically restored on application restart
+    - Saved to settings.json as "ui.lastPerspective"
+    - Fallback to "Default" if last perspective was deleted
+    - Seamless user experience across sessions
+  - **wxAUI Integration** (src/gui/main_window.cpp + main_window.h)
+    - wxAuiManager initialization with 6 panels
+    - Default layout: Navigator (left), Editor (center), Properties + Statistics (right), Search + Assistant (hidden/floatable)
+    - Panel visibility controls (F9-F12 keyboard shortcuts)
+    - View menu with checkable panel toggles
+    - Perspectives submenu (load, save, manage)
+    - Proper cleanup in destructor (wxAuiManager::UnInit())
+  - **Build System**
+    - Added `wx::aui` to target_link_libraries (CMakeLists.txt)
+    - All 6 panel sources added to KALAHARI_SOURCES
+
+#### Technical Details
+- **wxAUI Features**: Docking, undocking, resizing, floating, panel minimize/maximize
+- **Persistence**:
+  - Perspective layouts: ~/.config/kalahari/perspectives/ (JSON files)
+  - Last used perspective: settings.json ("ui.lastPerspective")
+  - Automatic save on every perspective switch
+- **Cross-Platform**: Identical behavior on Windows, macOS, Linux
+- **Panel Lifecycle**: All panels created on startup, visibility managed by wxAuiPaneInfo
+- **Memory Management**: wxAuiManager owns panel lifetimes, UnInit() cleans up properly
+
+#### Future Work (Phase 1)
+- Full navigator implementation (Task #00015)
+- Full editor implementation with wxRichTextCtrl (Task #00014)
+- Toolbar buttons for panel toggles (currently only menu + F9-F12)
+- Unit tests for PerspectiveManager
+
 ### CI/CD Infrastructure Fix (2025-10-31)
 
 #### Fixed

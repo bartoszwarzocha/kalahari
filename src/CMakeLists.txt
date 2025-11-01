@@ -74,6 +74,8 @@ target_link_libraries(kalahari_core PUBLIC
     pybind11::embed
     wx::core
     wx::base
+    # Note: wxWebView is part of wx::core on Linux (if WebKitGTK is installed)
+    # On Windows, would be wx::webview (but webview feature not available via vcpkg yet)
 )
 
 # Static library - no post-build copy needed
@@ -86,6 +88,17 @@ set(KALAHARI_SOURCES
     gui/kalahari_app.cpp
     gui/main_window.cpp
     gui/settings_dialog.cpp
+    gui/icon_registry.cpp
+    gui/art_provider.cpp
+    gui/perspective_manager.cpp
+    gui/dialogs/about_dialog.cpp
+    gui/dialogs/manage_perspectives_dialog.cpp
+    gui/panels/navigator_panel.cpp
+    gui/panels/editor_panel.cpp
+    gui/panels/properties_panel.cpp
+    gui/panels/statistics_panel.cpp
+    gui/panels/search_panel.cpp
+    gui/panels/assistant_panel.cpp
 )
 
 # Create executable
@@ -110,11 +123,12 @@ target_compile_definitions(kalahari PRIVATE
     KALAHARI_VERSION="${PROJECT_VERSION}"
 )
 
-# Link libraries
+# Link libraries (Task #00013: wxaui added)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
     wx::core
     wx::base
+    wx::aui
 )
 
 # Platform-specific settings
