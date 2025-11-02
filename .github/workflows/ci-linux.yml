@@ -65,7 +65,7 @@ jobs:
     - name: Cache vcpkg binary packages
       uses: actions/cache@v4
       with:
-        path: ~/.cache/vcpkg/archives
+        path: $HOME/.cache/vcpkg/archives
         key: linux-vcpkg-binaries-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
           linux-vcpkg-binaries-${{ hashFiles('vcpkg.json') }}-
@@ -73,8 +73,8 @@ jobs:
 
     - name: Setup vcpkg binary cache
       run: |
-        mkdir -p ~/.cache/vcpkg/archives
-        echo "VCPKG_BINARY_SOURCES=clear;files,~/.cache/vcpkg/archives,readwrite" >> $GITHUB_ENV
+        mkdir -p $HOME/.cache/vcpkg/archives
+        echo "VCPKG_BINARY_SOURCES=clear;files,$HOME/.cache/vcpkg/archives,readwrite" >> $GITHUB_ENV
 
     - name: Bootstrap vcpkg
       run: |
