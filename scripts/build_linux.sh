@@ -149,6 +149,7 @@ if [ "$IS_VBOX" = true ]; then
         --exclude='vcpkg/buildtrees/' \
         --exclude='vcpkg/downloads/' \
         --exclude='vcpkg/installed/' \
+        --exclude='vcpkg_installed/' \
         --exclude='.git/objects/' \
         --exclude='.git/logs/' \
         --exclude='*.o' --exclude='*.so' --exclude='*.a' \
