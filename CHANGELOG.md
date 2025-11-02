@@ -9,6 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 0 Week 4 - bwx_sdk Refactoring & Integration (2025-11-02)
+
+#### Changed
+- **Task #00018: bwx_sdk Clean Slate Architecture Refactoring**
+  - **Architectural restructuring:**
+    - Headers moved to `include/bwx_sdk/` (single source of truth)
+    - Source files remain in `src/` (no duplicate headers)
+    - Include paths migrated from local `"header.h"` to global `<bwx_sdk/module/header.h>`
+  - **Code quality improvements:**
+    - Fixed type punning in `bwx_math.cpp` (replaced with `std::bit_cast`)
+    - Fixed member initialization order in `bwx_oop.h`
+    - Moved inline functions from `.cpp` to headers (eliminated redefinition errors)
+    - Platform compatibility fix: `long` → `int32_t` for cross-platform `std::bit_cast`
+  - **Build system updates:**
+    - Updated all CMakeLists.txt files (removed internal headers tracking)
+    - Deleted `scripts/copy_headers.py` (no longer needed)
+    - Code formatting: tabs → 4 spaces (entire codebase)
+  - **Commits:**
+    - bwx_sdk `d637490` (Clean Slate refactoring, 47 files changed)
+    - bwx_sdk `8caf951` (platform compatibility fix)
+    - Kalahari `507e10b`, `4de1593` (submodule updates)
+
+#### Fixed
+- **Cross-platform compatibility:**
+  - Fixed `sizeof(long)` mismatch between platforms (8 bytes on Linux/macOS, 4 bytes on Windows)
+  - Used `int32_t` for `std::bit_cast` operations (consistent 4 bytes on all platforms)
+  - Eliminated all compiler warnings on Linux, Windows, and macOS
+
+#### Testing
+- ✅ All platforms passing: Linux (42m7s Debug + 40m55s Release), macOS (2m11s), Windows (9m1s)
+- ✅ Clean builds with zero errors and zero warnings on all platforms
+- ✅ All 50 tests passing (Debug and Release configurations)
+
+
+---
+
+### Phase 0 Week 4 - bwx_sdk Integration (2025-11-02)
+
+#### Added
+- **Task #00017: bwx_sdk Integration via Git Submodule**
+  - **Git submodule** integration at `external/bwx_sdk` (~10,000 lines of wxWidgets utilities)
+  - **Selective module usage** via CMake options (bwx_core, bwx_gui, bwx_utils only)
+  - **BWX_BUILD_GL option** added to bwx_sdk for conditional OpenGL module compilation
+  - **Available utilities:**
+    - bwx_core: DateTime utilities (toISO8601, fromISO8601), string helpers, JSON utilities
+    - bwx_gui: bwxBoxSizer (simplified sizer API), bwxInternat (i18n helpers)
+    - bwx_utils: Additional wxWidgets utilities
+  - **Disabled modules:** bwx_gl (OpenGL, not needed), examples (BUILD_EXAMPLES=OFF)
+
+#### Fixed
+- **bwx_sdk submodule compatibility fixes:**
+  - Fixed include paths (CMAKE_SOURCE_DIR → CMAKE_CURRENT_SOURCE_DIR/../../include)
+  - Fixed MSVC C4702 warning (unreachable code in bwx_json.cpp)
+  - Fixed MSVC D9025 /MDd warning (removed explicit /MD flag, let CMake choose)
+  - Added _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING for bwx_string.cpp
+  - Added /WX- flag to disable warnings-as-errors in submodule
+- **VirtualBox shared folder support:**
+  - Fixed rsync in `scripts/build_linux.sh` to exclude `vcpkg_installed/` directory
+  - Prevents symlink copy errors on vboxsf filesystem
+
+#### Changed
+- **CMakeLists.txt** (lines 127-135): Integrated bwx_sdk with selective module options
+- **src/CMakeLists.txt** (lines 69-81): Linked bwx_core and bwx_gui to kalahari_core
+- **.gitmodules**: Added bwx_sdk submodule entry
+
+#### Testing
+- ✅ All platforms passing: Linux (22min), macOS (2m54s), Windows (9m32s)
+- ✅ VirtualBox shared folder build verified (standalone bwx_sdk build)
+- ✅ Zero build warnings (except cosmetic /WX override on MSVC)
+
+---
+
 ### Phase 1 Week 9 - wxAUI Docking System + Panel Management (2025-11-01)
 
 #### Added
