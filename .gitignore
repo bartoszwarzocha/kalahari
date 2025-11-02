@@ -142,3 +142,4 @@ docs/api/       # Doxygen output
 
 # Claude Token Monitor data
 .claude-monitor/
+.mcp.json

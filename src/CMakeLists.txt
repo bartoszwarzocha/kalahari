@@ -67,6 +67,8 @@ target_include_directories(kalahari_core PUBLIC
 
 # Core library dependencies
 target_link_libraries(kalahari_core PUBLIC
+    bwx_core
+    bwx_gui
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
