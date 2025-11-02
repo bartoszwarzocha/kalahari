@@ -55,16 +55,26 @@ jobs:
           automake \
           libtool
 
-    - name: Cache vcpkg
+    - name: Cache vcpkg tool
       uses: actions/cache@v4
       with:
-        path: |
-          vcpkg
-          build/vcpkg_installed
-        key: linux-gcc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        path: vcpkg
+        key: linux-vcpkg-tool-${{ hashFiles('.git/modules/vcpkg/HEAD') }}
+        restore-keys: linux-vcpkg-tool-
+
+    - name: Cache vcpkg binary packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/vcpkg/archives
+        key: linux-vcpkg-binaries-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-
-          linux-gcc-vcpkg-v3-
+          linux-vcpkg-binaries-${{ hashFiles('vcpkg.json') }}-
+          linux-vcpkg-binaries-
+
+    - name: Setup vcpkg binary cache
+      run: |
+        mkdir -p ~/.cache/vcpkg/archives
+        echo "VCPKG_BINARY_SOURCES=clear;files,~/.cache/vcpkg/archives,readwrite" >> $GITHUB_ENV
 
     - name: Bootstrap vcpkg
       run: |
