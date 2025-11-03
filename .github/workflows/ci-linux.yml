@@ -55,13 +55,6 @@ jobs:
           automake \
           libtool
 
-    - name: Cache vcpkg tool
-      uses: actions/cache@v4
-      with:
-        path: vcpkg
-        key: linux-vcpkg-tool-${{ hashFiles('.git/modules/vcpkg/HEAD') }}
-        restore-keys: linux-vcpkg-tool-
-
     - name: Cache vcpkg binary packages
       uses: actions/cache@v4
       with:
