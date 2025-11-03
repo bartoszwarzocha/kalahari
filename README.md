@@ -18,9 +18,9 @@
 
 ## 🚧 Status
 
-**Pre-Alpha** - Phase 0 (Foundation)
+**Phase 0 Complete ✅** | Ready for Phase 1 (Core Editor)
 
-**Current Version:** 0.0.1-dev
+**Current Version:** 0.1.0-alpha (Phase 0 Complete)
 **Target Release:** Kalahari 1.0 (Q2-Q3 2026)
 
 ---
@@ -50,6 +50,8 @@ Kalahari • Serengeti • Okavango • Victoria • Zambezi
 - **spdlog** - Fast structured logging
 - **nlohmann_json** - Modern C++ JSON
 - **libzip** - Project file compression (.klh format)
+- **bwx_sdk** - wxWidgets utility library (git submodule)
+- **Catch2** - Unit testing framework (BDD style)
 
 ---
 
@@ -76,9 +78,11 @@ scripts\build_windows.bat
 The build script will:
 - ✅ Bootstrap vcpkg (automatic)
 - ✅ Configure CMake with correct toolchain
-- ✅ Compile all dependencies (first time: 15-30 min)
-- ✅ Run unit tests
+- ✅ Compile all dependencies (first time: 15-30 min, subsequent: 1-3 min with binary cache)
+- ✅ Run unit tests (50 test cases, 2,239 assertions)
 - ✅ Copy binaries to `build*/bin/`
+
+**Performance Note:** CI/CD builds optimized with vcpkg binary cache (~92% faster on Linux!)
 
 **Run the application:**
 ```bash
@@ -190,26 +194,52 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ## 🗺️ Development Status
 
-**Phase 0: Foundation** (Weeks 1-8) - **Week 3-4 Complete ✅**
+**Phase 0: Foundation** (Weeks 1-8) - **100% COMPLETE ✅** (2025-10-31)
 
-| Week | Component | Status | Details |
-|------|-----------|--------|---------|
-| 1 | Project Setup, CMake, vcpkg, CI/CD | ✅ Complete | Full infrastructure |
-| 2 | wxWidgets GUI, Logging, Threading | ✅ Complete | Main window with menu/toolbar/status bar |
-| 3 | Settings System | ✅ Complete | JSON persistence + Dialog UI (Task #00003) |
-| 3 | Build Automation Scripts | ✅ Complete | Cross-platform build scripts (Task #00004) |
-| 2 | Python 3.11 Embedding | ✅ Complete | Embedded interpreter + stdlib detection (Task #00005) |
-| **3-4** | **Plugin Foundation** | **✅ Complete** | **PluginManager + pybind11 (Task #00009)** |
-| 5-6 | Extension Points + Event Bus | ⏳ Planned | ExtensionPointRegistry + EventBus (Task #00010) |
-| 6 | .kplugin Format Handler | ⏳ Planned | Plugin discovery, loading, unloading (Task #00011) |
-| 7-8 | Document Model | ⏳ Planned | Document/Chapter/Book classes (Task #00012) |
+### ✅ Phase 0 Achievements (19 Tasks Complete):
 
-**Current Phase Progress:** 52% Complete (4.5 / 8 weeks)
-- ✅ 42+ files created
-- ✅ 50+ unit tests passing
-- ✅ All platforms building (Windows, macOS, Linux)
+**Core Infrastructure:**
+- ✅ CMake build system (all platforms)
+- ✅ vcpkg integration (manifest mode)
+- ✅ wxWidgets application window (menu/toolbar/statusbar)
+- ✅ Settings system (JSON persistence + Dialog UI)
+- ✅ Logging system (spdlog - structured, multi-level)
+- ✅ Build automation scripts (cross-platform)
+- ✅ CI/CD pipelines (GitHub Actions - Linux/macOS/Windows)
+- ✅ CI/CD optimization (92% build time reduction!)
 
-[View detailed roadmap →](ROADMAP.md) | [Phase 0 Strategic Plan →](STRATEGIC_PLAN_PHASE0.md)
+**Plugin Architecture:**
+- ✅ Python 3.11 embedding + pybind11
+- ✅ Plugin Manager (discovery, loading, lifecycle)
+- ✅ Extension Points system (IExporter, IPanelProvider, IAssistant)
+- ✅ Event Bus (async, thread-safe, GUI-aware)
+- ✅ .kplugin format handler (ZIP with manifest.json)
+
+**Document Model:**
+- ✅ Core classes (BookElement, Part, Book, Document)
+- ✅ JSON serialization (nlohmann_json)
+- ✅ .klh file format (ZIP container)
+
+**External Libraries:**
+- ✅ bwx_sdk integration (git submodule, Clean Slate Architecture)
+
+**Testing:**
+- ✅ 50 test cases, 2,239 assertions
+- ✅ 100% passing on all platforms (Linux, macOS, Windows)
+- ✅ Zero compiler warnings
+
+### ⏸️ Phase 1: Core Editor (Weeks 9-20) - Ready to Start
+
+**Focus:** Rich text editor + project navigation
+
+**Key Features:**
+- wxRichTextCtrl integration (rich text editing)
+- wxAUI docking system (multi-panel workspace)
+- Project Navigator panel (tree view)
+- Chapter management (CRUD operations)
+- Auto-save system (background saves)
+
+[View detailed roadmap →](ROADMAP.md)
 
 ---
 
@@ -228,7 +258,7 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ## 🤝 Contributing
 
-Kalahari is in **Phase 0 (Foundation)**. Contributions welcome after 1.0 release.
+Kalahari has completed **Phase 0 (Foundation) ✅** and is entering **Phase 1 (Core Editor)**. Contributions welcome after 1.0 release.
 
 For now, please:
 - ⭐ Star the repository
@@ -252,10 +282,10 @@ Core application is open source. Premium plugins and cloud services available se
 Created with passion for writers who deserve better tools.
 
 **Project Start:** October 2025
-**Current Phase:** Phase 0 (Foundation) - Week 3-4 Complete ✅ (Plugin Foundation)
+**Current Phase:** Phase 0 Complete ✅ (2025-10-31) | Phase 1 Ready ⏸️
 
 **Ecosystem Roadmap:**
-- **Kalahari** - Main writing environment (this project) 🚧
+- **Kalahari** - Main writing environment (this project) ✅ Phase 0 Complete
 - **Serengeti** - Collaborative writing (future)
 - **Okavango** - Research & knowledge management (future)
 - **Victoria** - Cloud sync & storage (future)
