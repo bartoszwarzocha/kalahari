@@ -18,6 +18,8 @@ _deps/
 
 # vcpkg
 vcpkg_installed/
+bin/           # vcpkg build artifacts
+lib/           # vcpkg build artifacts
 
 # Compiled binaries
 *.exe
@@ -51,6 +53,7 @@ dist/
 
 # IDE - VSCode
 .vscode/
+.vscode-ai-assistant/
 *.code-workspace
 
 # IDE - CLion
