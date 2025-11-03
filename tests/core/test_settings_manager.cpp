@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/settings_manager.h>
+#include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -262,10 +263,12 @@ TEST_CASE("SettingsManager thread-safety", "[settings][threading]") {
         constexpr int NUM_THREADS = 10;
         constexpr int ITERATIONS = 100;
 
+        // Atomic counter for successful validations (Catch2 is NOT thread-safe!)
+        std::atomic<int> valid_reads(0);
         std::vector<std::thread> threads;
 
         for (int t = 0; t < NUM_THREADS; ++t) {
-            threads.emplace_back([&settings, t]() {
+            threads.emplace_back([&settings, t, &valid_reads]() {
                 for (int i = 0; i < ITERATIONS; ++i) {
                     // Set window size
                     settings.set("window.width", 1000 + t * 10 + i);
@@ -275,9 +278,10 @@ TEST_CASE("SettingsManager thread-safety", "[settings][threading]") {
                     int width = settings.get<int>("window.width", 1280);
                     int height = settings.get<int>("window.height", 800);
 
-                    // Verify values are reasonable
-                    REQUIRE(width > 0);
-                    REQUIRE(height > 0);
+                    // Verify values are reasonable (cannot use REQUIRE in threads!)
+                    if (width > 0 && height > 0) {
+                        valid_reads.fetch_add(1, std::memory_order_relaxed);
+                    }
                 }
             });
         }
@@ -287,8 +291,8 @@ TEST_CASE("SettingsManager thread-safety", "[settings][threading]") {
             thread.join();
         }
 
-        // If we got here without crashing, thread-safety is OK
-        REQUIRE(true);
+        // Verify all reads were valid (Catch2-safe assertion in main thread)
+        REQUIRE(valid_reads == NUM_THREADS * ITERATIONS);
     }
 }
 

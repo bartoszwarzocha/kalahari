@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Catch2 Thread-Safety Fix (2025-11-03)
+
+#### Fixed
+- **CRITICAL: macOS Debug test failure (Catch2 output redirect race condition)**
+  - **Problem identified:**
+    - macOS Debug build failing: `Assertion failed: (!m_redirectActive && "redirect is already active")`
+    - Test: `SettingsManager thread-safety > Concurrent get/set operations don't crash`
+    - Root cause: **REQUIRE() macros used inside threads** (lines 279-280)
+    - Catch2 is **NOT thread-safe** - concurrent assertions trigger race condition on output redirect
+    - macOS Debug has strict assertion that detected this undefined behavior
+  - **Solution implemented:**
+    - Removed `REQUIRE()` calls from inside thread lambdas
+    - Added `std::atomic<int> valid_reads` counter for thread-safe result collection
+    - Moved assertion to main thread (after `join()`)
+    - Pattern: `if (width > 0 && height > 0) { valid_reads.fetch_add(1); }`
+    - Final check: `REQUIRE(valid_reads == NUM_THREADS * ITERATIONS);`
+  - **Results:**
+    - ✅ Catch2 thread-safety best practice followed
+    - ✅ Test still validates SettingsManager thread-safety (original goal)
+    - ✅ macOS Debug builds should now pass
+    - ✅ Pattern applicable to all future multithreaded tests
+  - **Reference:**
+    - Catch2 Issue #246: "support for multi-threaded test-cases?"
+    - Catch2 Issue #1043: "Support thread safety throughout the API"
+    - PR #2948: Thread-safety improvements (not yet merged)
+  - **Files modified:**
+    - `tests/core/test_settings_manager.cpp` (lines 261-295)
+    - Added `#include <atomic>`
+    - Atomic counter pattern instead of in-thread assertions
+
 ### CI/CD Performance Optimization (2025-11-03)
 
 #### Fixed
