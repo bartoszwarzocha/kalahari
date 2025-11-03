@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Strategic Decisions - Text Editor Architecture (2025-11-03)
+
+#### Decided
+- **DECISION: Custom wxWidgets Text Editor Control (Task #00014_02)**
+  - **Rejected approaches:**
+    - ❌ Task #00014_01: wxRichTextCtrl integration (insufficient control over features)
+    - ❌ Task #00016: TipTap + wxWebView (web-based, browser engine overhead, dependency complexity)
+  - **Chosen approach:** Custom wxWidgets-based text editor control
+  - **Rationale:**
+    1. Better native performance (no browser engine)
+    2. Full control over features and architecture
+    3. Consistent with C++ architecture
+    4. Better integration with wxWidgets ecosystem
+    5. Avoids wxWebView/WebKit dependencies
+    6. Prevents future refactoring (build once, build right)
+  - **Execution order:**
+    1. Task #00014_02 (Custom Editor Control) - FIRST
+    2. Task #00015 (Project Navigator Panel) - AFTER editor complete
+  - **Impact:** Phase 1 timeline unchanged, better long-term architecture
+  - **Files modified:**
+    - `tasks/00014_01_wxrichtextctrl_integration.md` (marked REJECTED)
+    - `tasks/00016_tiptap_rich_text_editor.md` (marked REJECTED)
+    - `tasks/00015_project_navigator_panel.md` (dependency updated to Task #00014_02)
+
+#### Completed
+- **Task #00013: wxAUI Docking System** - Status updated to COMPLETE
+  - All required features implemented (6 panels, PerspectiveManager, IconRegistry, dialogs)
+  - Optional UX polish (drag & drop perspective customization) deferred to Phase 1 end
+  - Foundation ready for custom editor control integration
+
 ### Catch2 Thread-Safety Fix (2025-11-03)
 
 #### Fixed

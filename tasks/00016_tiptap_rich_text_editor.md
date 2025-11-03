@@ -1,18 +1,22 @@
 # Task #00016: TipTap Rich Text Editor with Page View
 
-**Status:** Planned
-**Assignee:** Claude
+**Status:** ❌ REJECTED
+**Assignee:** N/A
 **Estimated effort:** 10 days (2 weeks)
-**Priority:** HIGH
+**Priority:** N/A
 **Phase:** Phase 1 - Core Editor
 **Dependencies:** Task #00014 (EditorPanel foundation)
+**Rejection Date:** 2025-11-03
+**Rejection Reason:** Strategic decision to implement custom wxWidgets-based text editor control (Task #00014_02) instead of web-based solution. Reasons: (1) Better native performance, (2) No wxWebView/WebKit dependencies, (3) Consistent with C++ architecture, (4) Better integration with wxWidgets ecosystem, (5) Avoids browser engine overhead and complexity.
 
 ---
 
-## 📋 Overview
+## 📋 Overview (REJECTED)
 
-Replace wxRichTextCtrl with wxWebView + TipTap editor to provide:
-- Professional page-like view (A4 pages with margins)
+~~Replace wxRichTextCtrl with wxWebView + TipTap editor to provide:
+- Professional page-like view (A4 pages with margins)~~
+
+**Decision:** Custom wxWidgets control (Task #00014_02) chosen for better native integration and performance.
 - Multiple view modes (Author, Publisher, Plain Text)
 - Full rich text editing capabilities (bold, italic, tables, lists, etc.)
 - Separation of content (HTML) and presentation (CSS)

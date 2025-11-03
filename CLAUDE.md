@@ -10,6 +10,26 @@
 
 ## 🔴 CARDINAL RULES - READ FIRST
 
+### 0. AGENT USAGE - MANDATORY (CHECK EVERY TIME)
+
+**BEFORE every action, check if agent activation required:**
+
+| Trigger | Agent | Action | Priority |
+|---------|-------|--------|----------|
+| **Conversation start** | session-manager | Run `/load-session` | 🔴 CRITICAL |
+| **User signals end** ("zakończmy", "koniec", "bye") | session-manager | Run `/save-session` | 🔴 CRITICAL |
+| **Before conversation end** | session-manager | BLOCK until `/save-session` complete | 🔴 CRITICAL |
+| **CI/CD failure** ("build failed", "GitHub Actions") | deployment-engineer | Activate via Task tool | 🟡 HIGH |
+| **Build error** ("CMake error", "vcpkg error") | deployment-engineer | Activate via Task tool | 🟡 HIGH |
+| **Test failure** ("Catch2 failed", "tests fail") | qa-engineer | Activate via Task tool | 🟡 HIGH |
+| **GUI work** ("panel", "dialog", "perspective") | ux-designer | Activate via Task tool | 🟡 MEDIUM |
+| **New module complete** | qa-engineer | Design test strategy | 🟡 MEDIUM |
+
+**Execution rules:**
+- 🔴 CRITICAL: NEVER skip, BLOCK other work until complete
+- 🟡 HIGH/MEDIUM: Activate BEFORE proposing solutions
+- Use `Task` tool with appropriate `subagent_type` or slash command
+
 ### 1. MCP Tools - MANDATORY Usage
 
 **Serena MCP (Code Exploration):**

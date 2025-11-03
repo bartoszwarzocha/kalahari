@@ -1,17 +1,21 @@
-# Task #00014: wxRichTextCtrl Integration + Basic Formatting
+# Task #00014_01: wxRichTextCtrl Integration + Basic Formatting
 
-**Status:** 📋 Planned
+**Status:** ❌ REJECTED
 **Priority:** P0 (Critical - Core)
 **Phase:** Phase 1 Week 10
 **Estimated Duration:** 1 week
-**Assigned To:** TBD
+**Assigned To:** N/A
 **Dependencies:** Task #00013 (wxAUI panels ready)
+**Rejection Date:** 2025-11-03
+**Rejection Reason:** Strategic decision to implement custom text editor control (Task #00014_02) instead of using wxRichTextCtrl. Custom control provides better control over features, performance, and integration with Kalahari's architecture. Avoids future refactoring.
 
 ---
 
-## 🎯 Objective
+## 🎯 Objective (REJECTED)
 
-Integrate wxRichTextCtrl into EditorPanel to create a functional rich text editor with basic formatting (bold, italic, underline, font selection, text alignment). This is the core writing interface for Kalahari.
+~~Integrate wxRichTextCtrl into EditorPanel to create a functional rich text editor with basic formatting (bold, italic, underline, font selection, text alignment). This is the core writing interface for Kalahari.~~
+
+**Decision:** Custom text editor control (Task #00014_02) chosen for better long-term architecture.
 
 ---
 
