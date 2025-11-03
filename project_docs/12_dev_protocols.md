@@ -220,9 +220,11 @@ Clear, concise description of what needs to be accomplished.
 
 #### Step 6: COMPLETION (Mark done, update docs)
 - AI marks task as Completed + date
-- AI updates CHANGELOG.md (Added/Changed entries)
-- AI updates ROADMAP.md (if milestone completed)
+- AI updates CHANGELOG.md (Added/Changed entries) - **ALWAYS**
+- AI updates ROADMAP.md (task status, phase status) - **ALWAYS, not "if milestone completed"**
 - AI reports completion to user
+
+**CRITICAL:** CHANGELOG.md and ROADMAP.md must be updated in parallel! See Section 3 below.
 
 ### 2.5 Rules for AI
 
@@ -320,11 +322,17 @@ AI: "Updating task file with dependency resolution requirement..."
 - [ ] Date the entry (YYYY-MM-DD)
 - [ ] Be specific (not "updated docs", but "completed 03_architecture.md with MVP pattern")
 
-#### 2. ROADMAP.md Update (if applicable)
+#### 2. ROADMAP.md Update - **ALWAYS, not "if applicable"**
+- [ ] Update task status (checkbox, status text)
+- [ ] Update phase status if phase completed
+- [ ] Update "Current Status" header
+- [ ] Update "Last Updated" date
+- [ ] Mark completed milestones in Key Milestones section
 - [ ] Add architectural decisions to relevant phase descriptions
 - [ ] Update timeline if estimates changed
-- [ ] Mark completed milestones
 - [ ] Add new risks/dependencies if identified
+
+**Rule:** ROADMAP.md should ALWAYS be updated in parallel with CHANGELOG.md! If you updated CHANGELOG, check ROADMAP status fields.
 
 #### 3. CLAUDE.md Update (if applicable)
 - [ ] Update TODO section (mark DONE, add new tasks)

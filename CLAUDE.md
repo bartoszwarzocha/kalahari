@@ -96,17 +96,32 @@ SetSizer(mainSizer);
 
 - ✅ **ALWAYS create** task file BEFORE implementation (tasks/NNNNN_name.md)
 - ✅ **ALWAYS wait** for user approval ("Approved, proceed")
-- ✅ **ALWAYS update** CHANGELOG.md on completion
+- ✅ **ALWAYS update BOTH** CHANGELOG.md AND ROADMAP.md on completion
 - ❌ **NEVER start coding** without approved task file
 - ❌ **NEVER skip** task file for "quick fixes" (document it!)
 
 **Full workflow:** See [project_docs/12_dev_protocols.md](project_docs/12_dev_protocols.md)
 
-### 4. End-of-Session Checklist - MANDATORY
+### 4. Documentation Update Rules - MANDATORY
+
+**CHANGELOG.md and ROADMAP.md MUST be updated in parallel:**
+
+| Trigger Event | CHANGELOG.md | ROADMAP.md |
+|--------------|--------------|------------|
+| Task status change | ✅ Add to [Unreleased] | ✅ Update task checkbox/status |
+| Phase complete | ✅ Document completion | ✅ Mark phase ✅ COMPLETE |
+| Architectural decision | ✅ Add to Decided section | ✅ Update relevant phase notes |
+| Task reordering | ✅ Document reasoning | ✅ Update task sequence |
+| Milestone achieved | ✅ Add entry | ✅ Update Key Milestones |
+| Timeline change | ✅ Document why | ✅ Update timeline estimates |
+
+**Rule:** If you update CHANGELOG.md, ask yourself: "Does ROADMAP.md need updating?" (Answer is almost always YES!)
+
+### 5. End-of-Session Checklist - MANDATORY
 
 **Before EVERY session end:**
 1. ✅ Update CHANGELOG.md (all changes to [Unreleased])
-2. ✅ Update ROADMAP.md (if milestone completed)
+2. ✅ Update ROADMAP.md (task status, phase status, milestones) - **ALWAYS, not "if milestone completed"**
 3. ✅ Verify no temporary files (.tmp, _backup, _old)
 4. ✅ Report session summary to user
 5. ✅ Ask about git commit if changes made

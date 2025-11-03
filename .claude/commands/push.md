@@ -22,7 +22,10 @@ git status --porcelain
 # Gate 3: Verify CHANGELOG.md updated
 git diff HEAD..origin/$(git branch --show-current) CHANGELOG.md
 
-# Gate 4: Check CI/CD status
+# Gate 4: Verify ROADMAP.md updated (if task/phase status changed)
+git diff HEAD..origin/$(git branch --show-current) ROADMAP.md
+
+# Gate 5: Check CI/CD status
 ./tools/check-ci.sh status
 ```
 
@@ -30,6 +33,7 @@ git diff HEAD..origin/$(git branch --show-current) CHANGELOG.md
 - ❌ Uncommitted changes exist
 - ❌ pre-commit-check.sh score < 100%
 - ❌ CHANGELOG.md not updated for new commits
+- ❌ ROADMAP.md not updated (task status, phase status)
 - ❌ Last CI/CD run failed
 - ❌ Not on allowed branch (main, develop, feature/*)
 

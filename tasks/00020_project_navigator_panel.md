@@ -1,12 +1,13 @@
-# Task #00015: Project Navigator Panel + wxTreeCtrl
+# Task #00020: Project Navigator Panel + wxTreeCtrl
 
-**Status:** 📋 Planned (Deferred after Task #00014_02)
+**Status:** 📋 Planned (Deferred after Task #00019)
+**Original Number:** Task #00015 (renumbered 2025-11-03 to reflect execution order: after Task #00019)
 **Priority:** P0 (Critical - Core)
 **Phase:** Phase 1 Week 12-13 (after custom editor control)
 **Estimated Duration:** 1 week
 **Assigned To:** TBD
-**Dependencies:** Task #00013 (wxAUI panels), Task #00014_02 (Custom Text Editor - MUST COMPLETE FIRST), Document Model (Phase 0)
-**Note:** Execution deferred until after Task #00014_02 to avoid refactoring when integrating with custom editor control.
+**Dependencies:** Task #00013 (wxAUI panels), Task #00019 (Custom Text Editor Control - MUST COMPLETE FIRST), Document Model (Phase 0)
+**Note:** Execution deferred until after Task #00019 to avoid refactoring when integrating with custom editor control.
 
 ---
 

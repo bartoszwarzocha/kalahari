@@ -1,17 +1,25 @@
-# Task #00014: Rich Text Editor (wxRichTextCtrl)
+# Task #00019: Custom wxWidgets Text Editor Control
 
-**Status:** 📝 Draft (Awaiting Approval)
+**Status:** 📋 Planned (Next task after Phase 0)
 **Priority:** P0 (Critical - Core Functionality)
-**Phase:** Phase 1 Week 10-11
-**Estimated Duration:** 1.5 weeks
-**Assigned To:** Claude Code
-**Dependencies:** Task #00013 (wxAUI completed), Phase 0 (Document Model)
+**Phase:** Phase 1 Week 10-12
+**Estimated Duration:** 2-3 weeks
+**Assigned To:** TBD
+**Dependencies:** Task #00013 (wxAUI completed), Task #00017 (bwx_sdk integration), Task #00018 (bwx_sdk refactoring), Phase 0 (Document Model)
+
+**Rationale for Task #00019 Number:**
+This is the logical continuation of bwx_sdk integration (Tasks #00017, #00018). The custom text editor control will be built using bwx_sdk patterns and utilities, making it a direct application of the bwx_sdk foundation.
 
 ---
 
 ## 🎯 Objective
 
-Replace the EditorPanel stub with a fully functional rich text editor using wxRichTextCtrl. Users can write/edit book content with formatting (bold, italic, fonts), load/save from BookElement RTF files, and see live word count updates.
+Implement a custom wxWidgets-based text editor control for EditorPanel, leveraging bwx_sdk patterns and utilities. This custom control provides full control over features, performance, and architecture, avoiding limitations of wxRichTextCtrl and complexity of web-based solutions.
+
+**Strategic Decision Context:**
+- ❌ wxRichTextCtrl rejected (Task #00014_01) - insufficient feature control
+- ❌ TipTap+wxWebView rejected (Task #00016) - browser overhead, complexity
+- ✅ Custom wxWidgets control approved - native performance, full control, bwx_sdk integration
 
 ---
 

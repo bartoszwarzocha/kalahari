@@ -9,14 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task Renumbering - Logical Sequencing (2025-11-03)
+
+#### Changed
+- **Task renumbering for logical execution order and continuity**
+  - **00014_01 → 00015:** wxRichTextCtrl Integration (REJECTED)
+    - Moved to consolidate rejected tasks together (00015, 00016)
+  - **00014_02 → 00019:** Custom Text Editor Control (NEXT)
+    - Renumbered to follow bwx_sdk integration (00017, 00018)
+    - Shows logical dependency: bwx_sdk foundation → custom control application
+  - **00015 → 00020:** Project Navigator Panel (DEFERRED)
+    - Renumbered to reflect execution order: after Task #00019
+    - Number sequence now matches actual work sequence
+
+  **Rationale:**
+  1. Rejected tasks grouped together (00015-00016) - easy to skip
+  2. bwx_sdk integration (00017-00018) precedes its application (00019)
+  3. Task numbers = execution sequence (00019 before 00020)
+  4. Dependencies visible in numbering (00020 depends on 00019)
+
+  **Task Sequence Now:**
+  ```
+  00013: wxAUI Docking (COMPLETE) ✅
+  00015: wxRichTextCtrl (REJECTED) ❌  ← was 00014_01
+  00016: TipTap+wxWebView (REJECTED) ❌
+  00017: bwx_sdk integration (COMPLETE) ✅
+  00018: bwx_sdk refactoring (COMPLETE) ✅
+  00019: Custom Editor Control (NEXT) 🚀  ← was 00014_02
+  00020: Navigator Panel (AFTER 00019) 📋  ← was 00015
+  ```
+
 ### Strategic Decisions - Text Editor Architecture (2025-11-03)
 
 #### Decided
-- **DECISION: Custom wxWidgets Text Editor Control (Task #00014_02)**
+- **DECISION: Custom wxWidgets Text Editor Control (Task #00019, formerly #00014_02)**
   - **Rejected approaches:**
-    - ❌ Task #00014_01: wxRichTextCtrl integration (insufficient control over features)
+    - ❌ Task #00015 (formerly #00014_01): wxRichTextCtrl integration (insufficient control over features)
     - ❌ Task #00016: TipTap + wxWebView (web-based, browser engine overhead, dependency complexity)
-  - **Chosen approach:** Custom wxWidgets-based text editor control
+  - **Chosen approach:** Custom wxWidgets-based text editor control using bwx_sdk patterns
   - **Rationale:**
     1. Better native performance (no browser engine)
     2. Full control over features and architecture
@@ -24,14 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     4. Better integration with wxWidgets ecosystem
     5. Avoids wxWebView/WebKit dependencies
     6. Prevents future refactoring (build once, build right)
+    7. Leverages bwx_sdk foundation (Tasks #00017, #00018)
   - **Execution order:**
-    1. Task #00014_02 (Custom Editor Control) - FIRST
-    2. Task #00015 (Project Navigator Panel) - AFTER editor complete
+    1. Task #00019 (Custom Editor Control) - FIRST
+    2. Task #00020 (Project Navigator Panel) - AFTER editor complete
   - **Impact:** Phase 1 timeline unchanged, better long-term architecture
   - **Files modified:**
-    - `tasks/00014_01_wxrichtextctrl_integration.md` (marked REJECTED)
+    - `tasks/00014_01_wxrichtextctrl_integration.md` → `tasks/00015_wxrichtextctrl_integration_REJECTED.md` (renumbered + marked REJECTED)
+    - `tasks/00014_02_rich_text_editor.md` → `tasks/00019_custom_text_editor_control.md` (renumbered)
+    - `tasks/00015_project_navigator_panel.md` → `tasks/00020_project_navigator_panel.md` (renumbered, dependency updated to Task #00019)
     - `tasks/00016_tiptap_rich_text_editor.md` (marked REJECTED)
-    - `tasks/00015_project_navigator_panel.md` (dependency updated to Task #00014_02)
 
 #### Completed
 - **Task #00013: wxAUI Docking System** - Status updated to COMPLETE

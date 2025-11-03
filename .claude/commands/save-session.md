@@ -17,9 +17,10 @@ Save complete session state to prevent knowledge loss:
 
 2. **Verify prerequisites:**
    - CHANGELOG.md updated with all changes
+   - ROADMAP.md updated (task/phase status)
    - All commits pushed to git
    - No uncommitted work-in-progress
-   - If check fails: STOP and report to user
+   - If check fails: STOP and report to user (missing CHANGELOG/ROADMAP updates!)
 
 3. **Create Serena memory:**
    - **Session name:** Auto-generated from step 1

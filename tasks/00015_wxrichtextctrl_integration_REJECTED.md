@@ -1,13 +1,14 @@
-# Task #00014_01: wxRichTextCtrl Integration + Basic Formatting
+# Task #00015: wxRichTextCtrl Integration + Basic Formatting (REJECTED)
 
 **Status:** ❌ REJECTED
+**Original Number:** Task #00014_01 (renumbered 2025-11-03 for logical task sequencing)
 **Priority:** P0 (Critical - Core)
 **Phase:** Phase 1 Week 10
 **Estimated Duration:** 1 week
 **Assigned To:** N/A
 **Dependencies:** Task #00013 (wxAUI panels ready)
 **Rejection Date:** 2025-11-03
-**Rejection Reason:** Strategic decision to implement custom text editor control (Task #00014_02) instead of using wxRichTextCtrl. Custom control provides better control over features, performance, and integration with Kalahari's architecture. Avoids future refactoring.
+**Rejection Reason:** Strategic decision to implement custom text editor control (Task #00019, originally #00014_02) instead of using wxRichTextCtrl. Custom control provides better control over features, performance, and integration with Kalahari's architecture. Avoids future refactoring.
 
 ---
 
