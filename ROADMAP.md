@@ -2,7 +2,7 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🚀 Phase 1 IN PROGRESS → Task #00019 (Day 9 of 15)
+**Current Status:** 🚀 Phase 1 IN PROGRESS → Task #00019 (Day 11 of 15)
 **Version:** 0.0.1-dev
 **Last Updated:** 2025-11-04
 
@@ -18,7 +18,7 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 - ✅ **Phase 0: Foundation** (2025-10-26 to 2025-11-03) - **COMPLETE** 🎉
   - Core infrastructure + Plugin system + Document model + bwx_sdk integration + CI/CD optimization
 - 🚀 **Phase 1: Core Editor** (Weeks 9-20 | 3-4 months) - **IN PROGRESS** (Started 2025-11-04)
-  - Current: Task #00019 Day 9/15 (Custom wxWidgets Text Editor Control)
+  - Current: Task #00019 Day 11/15 (Custom wxWidgets Text Editor Control)
   - Progress: Document Model (bwxTextDocument) + Renderer (FullViewRenderer) complete (53%)
 - ⏳ **Phase 2: Plugin System MVP** (Weeks 21-30 | 2-3 months)
 - ⏳ **Phase 3: Feature Plugins** (Weeks 31-44 | 3-4 months)
@@ -161,7 +161,7 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 **Target Version:** 0.2.0-alpha
 **Timeline:** 12 weeks (3 months)
 **Strategic Decision:** Custom wxWidgets text editor control (not wxRichTextCtrl, not web-based)
-**Current Task:** #00019 Day 9/15 - Document Model + Renderer complete, Main Control next
+**Current Task:** #00019 Day 11/15 - Document Model + Renderer complete, Main Control next
 
 ### Phase 1 Task List - UPDATED (2025-11-04)
 
@@ -175,16 +175,28 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Note:** Optional UX polish (drag & drop perspective customization) deferred to Phase 1 end
 
 **Week 10-12: Core Editor (Custom Control)** 🚀 IN PROGRESS
-- [ ] **Task #00019:** Custom wxWidgets Text Editor Control **🚀 IN PROGRESS (Day 9 of 15)**
+- [ ] **Task #00019:** Custom wxWidgets Text Editor Control **🚀 IN PROGRESS (Day 11 of 15)**
   - ✅ **Days 1-8:** Document Model + Renderer (53% complete)
     - bwxTextDocument (Gap Buffer storage, undo/redo, formatting) - 1,450 LOC
     - FullViewRenderer (layout, hit testing, viewport culling) - 850 LOC
     - Test suite (75+ test cases, 2,239 assertions) - 950 LOC
     - Build status: ✅ Linux VB | ✅ Windows | ⚠️ Linux WSL (output issue only)
-  - [ ] **Days 9-10:** bwxTextEditor Main Control (~800 LOC)
-    - Two-phase construction, event handlers (OnPaint, OnChar, OnKeyDown, OnMouse)
-    - Integration Document + Renderer, clipboard operations, caret blinking
-  - [ ] **Days 11-12:** File I/O & Integration (~400 LOC)
+  - ✅ **Days 9-10:** bwxTextEditor Main Control (~1,000 LOC) **67% complete**
+    - Two-phase construction (default + full constructor)
+    - Event handling: Keyboard (OnChar, OnKeyDown), Mouse (OnLeftDown, OnMotion, OnMouseWheel), Focus (OnSetFocus, OnKillFocus)
+    - Editing operations: Copy/Cut/Paste/SelectAll/Undo/Redo with keyboard shortcuts (Ctrl+C/X/V/A/Z/Y)
+    - Formatting shortcuts: Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U)
+    - Navigation: Arrow keys, Home/End (with Shift for selection)
+    - Caret management: Blinking animation (500ms timer), scroll-to-cursor
+    - Scrolling: Mouse wheel, auto-scroll to keep cursor visible
+    - View mode architecture: VIEW_FULL (MVP), VIEW_PAGE/TYPEWRITER/PUBLISHER (future)
+    - MVC architecture: Model (bwxTextDocument) + View (ITextRenderer) + Controller (bwxTextEditor)
+    - Observer Pattern: IDocumentObserver for document notifications
+    - Buffered painting: wxBufferedDC for flicker-free rendering
+    - Test suite: 15 test cases for control creation, view modes, editing ops, document integration
+    - Files: bwx_text_editor.h (250 LOC), bwx_text_editor.cpp (750 LOC), test_bwx_text_editor.cpp (180 LOC)
+    - Build status: ✅ bwx_gui library compiles successfully
+  - [ ] **Days 11-12:** File I/O & Integration (~400 LOC) **NEXT**
     - .ktxt format (JSON), LoadFromFile/SaveToFile, EditorPanel integration
   - [ ] **Days 13-14:** Testing & Polish (~200 LOC)
     - All-platform testing, performance profiling, bug fixes

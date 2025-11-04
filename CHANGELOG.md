@@ -31,11 +31,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_renderer.h` (200 LOC)
   - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_renderer.cpp` (650 LOC)
 
-- **Test Suite** (~950 LOC, 75+ test cases)
+- **bwxTextEditor class** (~1,000 LOC) - Main text editor control (wxControl)
+  - Three-layer MVC architecture: Model (bwxTextDocument) + View (ITextRenderer) + Controller (bwxTextEditor)
+  - Event handling: Keyboard (OnChar, OnKeyDown), Mouse (OnLeftDown, OnMotion, OnMouseWheel), Focus (OnSetFocus, OnKillFocus)
+  - Editing operations: Copy (Ctrl+C), Cut (Ctrl+X), Paste (Ctrl+V), SelectAll (Ctrl+A), Undo (Ctrl+Z), Redo (Ctrl+Y)
+  - Formatting shortcuts: Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U)
+  - Navigation: Arrow keys, Home/End, mouse click (with Shift for selection)
+  - Caret management: Blinking animation (500ms timer), scroll-to-cursor
+  - Scrolling: Mouse wheel, auto-scroll to keep cursor visible
+  - View mode architecture: VIEW_FULL (MVP), VIEW_PAGE/TYPEWRITER/PUBLISHER (future)
+  - Observer Pattern: IDocumentObserver for document change notifications
+  - Buffered painting: wxBufferedDC for flicker-free rendering
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_editor.h` (250 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_editor.cpp` (750 LOC)
+
+- **Test Suite** (~1,130 LOC, 90+ test cases)
   - Document tests: Text ops, cursor, selection, formatting, undo/redo, metadata, observer (50+ cases)
   - Renderer tests: Layout, hit testing, cursor rects, selection rects, resize, config (25+ cases)
+  - Editor tests: Control creation, view modes, editing ops, undo/redo, document integration, cursor, selection, best size (15+ cases)
   - Files: `tests/gui/test_bwx_text_document.cpp` (550 LOC)
   - Files: `tests/gui/test_bwx_text_renderer.cpp` (400 LOC)
+  - Files: `tests/gui/test_bwx_text_editor.cpp` (180 LOC)
 
 - **Documentation & Skills**
   - `.claude/skills/kalahari-bwx-custom-controls.md` (3,000+ lines) - Complete workflow for custom controls
@@ -48,13 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `project_docs/README.md` - Updated to v1.4, added document #14 (bwx_sdk Patterns)
 
 #### Progress
-- **Days 1-8 of 15-day MVP complete (53%)**
+- **Days 1-10 of 15-day MVP complete (67%)**
   - ✅ Day 1-2: Document Model Foundation (Gap Buffer, text operations)
   - ✅ Day 3-4: Undo/Redo System (Command Pattern with merging)
   - ✅ Day 5-6: Formatting System (FormatRun vector)
   - ✅ Day 7-8: Full View Renderer (layout, rendering, hit testing)
-  - ⏳ Day 9-10: bwxTextEditor Main Control (NEXT)
-  - ⏳ Day 11-12: File I/O & Integration
+  - ✅ Day 9-10: bwxTextEditor Main Control (event handling, caret, scrolling)
+  - ⏳ Day 11-12: File I/O & Integration (NEXT)
   - ⏳ Day 13-15: Testing & Polish
 
 #### Build Status
