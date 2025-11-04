@@ -13,6 +13,8 @@ set(TEST_SOURCES
     core/test_book.cpp
     core/test_document.cpp
     core/test_document_archive.cpp
+    gui/test_bwx_text_document.cpp
+    gui/test_bwx_text_renderer.cpp
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
@@ -59,6 +61,7 @@ target_link_libraries(kalahari-tests PRIVATE
     libzip::zip
     Python3::Python
     pybind11::embed
+    bwx_gui  # For bwxTextDocument tests (Task #00019)
 )
 
 # Copy plugins directory to build directory for plugin loading tests

@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00019 - Custom Text Editor Control (MVP Phase 1) (2025-11-04)
+
+#### Added
+- **bwxTextDocument class** (~1,450 LOC) - Document model with Gap Buffer storage
+  - Text operations: Insert, Delete, Get, Clear (O(1) sequential editing)
+  - Cursor & Selection management with line/column calculation
+  - Formatting system: FormatRun vector (memory-efficient, batch rendering)
+  - Undo/Redo: Command Pattern with **command merging** (typing "Hello" = 1 undo step, not 5!)
+  - Word count & metadata (real-time calculation)
+  - Observer Pattern: 4 notification types (text, cursor, selection, format)
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_document.h` (400 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_document.cpp` (1,050 LOC)
+
+- **FullViewRenderer class** (~850 LOC) - Strategy Pattern text rendering
+  - ITextRenderer interface (swappable rendering strategies for future view modes)
+  - Layout calculation: Word wrap, line breaks, viewport culling
+  - Rendering: Text with formatting, cursor (blinking caret), selection (highlight)
+  - Hit testing: Screen coordinates → document position (O(log n) binary search)
+  - Font caching: Reuse wxFont objects (performance optimization)
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_renderer.h` (200 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_renderer.cpp` (650 LOC)
+
+- **Test Suite** (~950 LOC, 75+ test cases)
+  - Document tests: Text ops, cursor, selection, formatting, undo/redo, metadata, observer (50+ cases)
+  - Renderer tests: Layout, hit testing, cursor rects, selection rects, resize, config (25+ cases)
+  - Files: `tests/gui/test_bwx_text_document.cpp` (550 LOC)
+  - Files: `tests/gui/test_bwx_text_renderer.cpp` (400 LOC)
+
+- **Documentation & Skills**
+  - `.claude/skills/kalahari-bwx-custom-controls.md` (3,000+ lines) - Complete workflow for custom controls
+  - `project_docs/14_bwx_sdk_patterns.md` (1,000+ lines) - Custom control architectural patterns
+  - `project_docs/15_text_editor_architecture.md` (15,000+ words) - Complete text editor specification (4 view modes + advanced features)
+  - `tasks/00019_custom_text_editor_control.md` (v3.0) - MVP specification (Full View only)
+
+#### Changed
+- `tests/CMakeLists.txt` - Added `bwx_gui` library linkage and 2 new test files
+- `project_docs/README.md` - Updated to v1.4, added document #14 (bwx_sdk Patterns)
+
+#### Progress
+- **Days 1-8 of 15-day MVP complete (53%)**
+  - ✅ Day 1-2: Document Model Foundation (Gap Buffer, text operations)
+  - ✅ Day 3-4: Undo/Redo System (Command Pattern with merging)
+  - ✅ Day 5-6: Formatting System (FormatRun vector)
+  - ✅ Day 7-8: Full View Renderer (layout, rendering, hit testing)
+  - ⏳ Day 9-10: bwxTextEditor Main Control (NEXT)
+  - ⏳ Day 11-12: File I/O & Integration
+  - ⏳ Day 13-15: Testing & Polish
+
+#### Build Status
+- ✅ **Linux VirtualBox:** SUCCESS (all files compile)
+- ✅ **Windows:** SUCCESS (all files compile)
+- ⚠️ **Linux WSL:** Makefile issue (unrelated to code quality)
+
+#### Technical Decisions
+- **Gap Buffer over Rope/Piece Table:** Simpler implementation (200 LOC vs 500+), O(1) for sequential editing, cache-friendly
+- **FormatRun Vector over per-character map:** Memory efficient (1 run vs N characters), rendering efficient (batch operations)
+- **Command Merging for Undo/Redo:** Natural UX (undo by word/phrase, not character) - typing "Hello" creates 1 undo step
+- **Strategy Pattern for Renderers:** Enables future view modes (Page View, Typewriter, Publisher) without refactoring Document Model
+- **Font Caching:** Reuse wxFont objects (expensive to create) - significant performance gain
+
 ### Task Renumbering - Logical Sequencing (2025-11-03)
 
 #### Changed
