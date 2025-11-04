@@ -60,7 +60,8 @@ TEST_CASE("FullViewRenderer layout calculation", "[gui][text][renderer][layout]"
 
 	SECTION("Empty document - no lines") {
 		wxMemoryDC dc;
-		dc.SelectObject(wxBitmap(800, 600));
+		wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 		fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
@@ -72,7 +73,8 @@ TEST_CASE("FullViewRenderer layout calculation", "[gui][text][renderer][layout]"
 		fixture.doc.SetText("Hello World");
 
 		wxMemoryDC dc;
-		dc.SelectObject(wxBitmap(800, 600));
+		wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 		fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 		// Should create at least one line
@@ -83,7 +85,8 @@ TEST_CASE("FullViewRenderer layout calculation", "[gui][text][renderer][layout]"
 		fixture.doc.SetText("Line 1\nLine 2\nLine 3");
 
 		wxMemoryDC dc;
-		dc.SelectObject(wxBitmap(800, 600));
+		wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 		fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 		// Should create multiple lines
@@ -100,7 +103,8 @@ TEST_CASE("FullViewRenderer layout calculation", "[gui][text][renderer][layout]"
 		fixture.doc.SetText(longText);
 
 		wxMemoryDC dc;
-		dc.SelectObject(wxBitmap(800, 600));
+		wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 		fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 		// Should create multiple lines due to wrapping
@@ -119,7 +123,8 @@ TEST_CASE("FullViewRenderer hit testing", "[gui][text][renderer][hittest]") {
 
 	// Force layout calculation
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 	fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 	SECTION("Hit test - beginning of document") {
@@ -148,7 +153,8 @@ TEST_CASE("FullViewRenderer cursor rectangle", "[gui][text][renderer][cursor]") 
 
 	// Force layout calculation
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 	fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 	SECTION("Cursor at position 0") {
@@ -184,7 +190,8 @@ TEST_CASE("FullViewRenderer selection rectangles", "[gui][text][renderer][select
 
 	// Force layout calculation
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 	fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
 
 	SECTION("Selection - single line") {
@@ -225,7 +232,8 @@ TEST_CASE("FullViewRenderer resize handling", "[gui][text][renderer][resize]") {
 	fixture.doc.SetText("This is a moderately long line that will wrap at different widths.");
 
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 	SECTION("Resize invalidates layout") {
 		// Initial render at 800px
@@ -264,7 +272,8 @@ TEST_CASE("FullViewRenderer layout invalidation", "[gui][text][renderer][invalid
 	fixture.doc.SetText("Hello World");
 
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 	SECTION("InvalidateLayout forces recalculation") {
 		fixture.renderer.Render(dc, wxRect(0, 0, 800, 600), 0);
@@ -289,7 +298,8 @@ TEST_CASE("FullViewRenderer configuration", "[gui][text][renderer][config]") {
 	fixture.doc.SetText("Hello World");
 
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 	SECTION("Margin configuration") {
 		fixture.renderer.SetMarginLeft(50);
@@ -330,7 +340,8 @@ TEST_CASE("FullViewRenderer integration with document", "[gui][text][renderer][i
 	RendererTestFixture fixture;
 
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 	SECTION("Document text change invalidates layout") {
 		fixture.doc.SetText("Short");
@@ -374,7 +385,8 @@ TEST_CASE("FullViewRenderer edge cases", "[gui][text][renderer][edge]") {
 	RendererTestFixture fixture;
 
 	wxMemoryDC dc;
-	dc.SelectObject(wxBitmap(800, 600));
+	wxBitmap tempBmp(800, 600);
+		dc.SelectObject(tempBmp);
 
 	SECTION("Empty line (just newline)") {
 		fixture.doc.SetText("\n\n\n");
