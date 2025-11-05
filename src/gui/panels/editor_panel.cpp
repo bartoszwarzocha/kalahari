@@ -1,10 +1,9 @@
 /// @file editor_panel.cpp
-/// @brief Implementation of EditorPanel (placeholder for Phase 1)
+/// @brief Implementation of EditorPanel using bwxTextEditor (Task #00019)
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/book_element.h"
 #include <kalahari/core/logger.h>
-#include <wx/textctrl.h>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -24,7 +23,7 @@ wxEND_EVENT_TABLE()
 EditorPanel::EditorPanel(wxWindow* parent)
     : wxPanel(parent, wxID_ANY)
 {
-    core::Logger::getInstance().info("Creating Editor panel (placeholder)");
+    core::Logger::getInstance().info("Creating Editor panel (bwxTextEditor)");
     setupLayout();
 }
 
@@ -43,28 +42,20 @@ void EditorPanel::setupLayout() {
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Create simple multiline text control as placeholder
-    // Phase 1 will replace this with wxRichTextCtrl or custom editor
-    m_textCtrl = new wxTextCtrl(this, wxID_ANY,
-        "Editor Panel - Phase 1\n\n"
-        "This is a placeholder for the rich text editor.\n"
-        "Phase 1 will implement:\n"
-        "- wxRichTextCtrl for WYSIWYG editing\n"
-        "- or custom wxGraphicsContext-based editor (via bwx_sdk)\n"
-        "- Chapter content loading/saving\n"
-        "- Basic formatting (bold, italic, underline)\n"
-        "- Word count tracking\n",
+    // Create bwxTextEditor control (Task #00019)
+    // Full View renderer with Command-based undo/redo
+    m_textEditor = new bwx_sdk::gui::bwxTextEditor(this, wxID_ANY,
         wxDefaultPosition, wxDefaultSize,
-        wxTE_MULTILINE | wxTE_WORDWRAP | wxTE_RICH2);
+        wxBORDER_SUNKEN);
 
     // Add to sizer with padding (creates "page on desk" effect)
-    sizer->Add(m_textCtrl, 1, wxALL | wxEXPAND, 20);
+    sizer->Add(m_textEditor, 1, wxALL | wxEXPAND, 20);
     SetSizer(sizer);
 
     // Create word count timer (500ms debounce)
     m_wordCountTimer = new wxTimer(this, ID_WORDCOUNT_TIMER);
 
-    core::Logger::getInstance().info("Editor panel initialized (placeholder)");
+    core::Logger::getInstance().info("Editor panel initialized (bwxTextEditor)");
 }
 
 // ============================================================================
@@ -72,9 +63,9 @@ void EditorPanel::setupLayout() {
 // ============================================================================
 
 bool EditorPanel::loadChapter(const core::BookElement& element) {
-    std::filesystem::path htmlPath = element.getFile();
+    std::filesystem::path filePath = element.getFile();
 
-    if (!std::filesystem::exists(htmlPath)) {
+    if (!std::filesystem::exists(filePath)) {
         // New chapter - clear editor
         clearContent();
         m_currentElement = const_cast<core::BookElement*>(&element);
@@ -82,37 +73,28 @@ bool EditorPanel::loadChapter(const core::BookElement& element) {
         return true;
     }
 
-    // Load HTML file
-    try {
-        std::ifstream file(htmlPath);
-        if (!file.is_open()) {
-            core::Logger::getInstance().error("Failed to open HTML file: {}", htmlPath.string());
-            return false;
-        }
+    // Load .ktxt file using bwxTextEditor
+    if (!m_textEditor) {
+        core::Logger::getInstance().error("Text editor not initialized");
+        return false;
+    }
 
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        std::string htmlContent = buffer.str();
-
-        // Load HTML content into text control
-        if (m_textCtrl) {
-            m_textCtrl->SetValue(wxString::FromUTF8(htmlContent));
-        }
-        m_currentElement = const_cast<core::BookElement*>(&element);
-        m_isModified = false;
-
-        core::Logger::getInstance().info("Loaded chapter '{}' from {}",
-            element.getTitle(), htmlPath.string());
-        return true;
-
-    } catch (const std::exception& e) {
-        core::Logger::getInstance().error("Exception loading chapter: {}", e.what());
+    wxString path = wxString::FromUTF8(filePath.string());
+    if (!m_textEditor->LoadFromFile(path)) {
+        core::Logger::getInstance().error("Failed to load file: {}", filePath.string());
         wxMessageBox(
-            wxString::Format("Failed to load chapter '%s': %s",
-                element.getTitle().c_str(), e.what()),
+            wxString::Format("Failed to load chapter '%s'",
+                element.getTitle().c_str()),
             "Load Error", wxOK | wxICON_ERROR, this);
         return false;
     }
+
+    m_currentElement = const_cast<core::BookElement*>(&element);
+    m_isModified = false;
+
+    core::Logger::getInstance().info("Loaded chapter '{}' from {}",
+        element.getTitle(), filePath.string());
+    return true;
 }
 
 bool EditorPanel::saveChapter(core::BookElement& element) {
@@ -121,10 +103,15 @@ bool EditorPanel::saveChapter(core::BookElement& element) {
         return false;
     }
 
-    std::filesystem::path htmlPath = element.getFile();
+    if (!m_textEditor) {
+        core::Logger::getInstance().error("Text editor not initialized");
+        return false;
+    }
+
+    std::filesystem::path filePath = element.getFile();
 
     // Create directory structure if missing
-    std::filesystem::path dir = htmlPath.parent_path();
+    std::filesystem::path dir = filePath.parent_path();
     if (!dir.empty() && !std::filesystem::exists(dir)) {
         try {
             std::filesystem::create_directories(dir);
@@ -135,54 +122,42 @@ bool EditorPanel::saveChapter(core::BookElement& element) {
         }
     }
 
-    // Get content from text control
-    wxString htmlContent;
-    if (m_textCtrl) {
-        htmlContent = m_textCtrl->GetValue();
-    } else {
-        htmlContent = "<p>Placeholder content</p>";
-    }
-
-    try {
-        std::ofstream file(htmlPath);
-        if (!file.is_open()) {
-            core::Logger::getInstance().error("Failed to open file for writing: {}",
-                htmlPath.string());
-            return false;
-        }
-
-        file << htmlContent.ToStdString();
-        file.close();
-
-        // Update metadata
-        int wordCount = getWordCount();
-        element.setWordCount(wordCount);
-        element.touch();  // Update modified timestamp
-
-        core::Logger::getInstance().info("Saved chapter '{}' ({} words) to {}",
-            element.getTitle(), wordCount, htmlPath.string());
-
-        m_isModified = false;
-        return true;
-
-    } catch (const std::exception& e) {
-        core::Logger::getInstance().error("Exception saving chapter: {}", e.what());
+    // Save .ktxt file using bwxTextEditor
+    wxString path = wxString::FromUTF8(filePath.string());
+    if (!m_textEditor->SaveToFile(path)) {
+        core::Logger::getInstance().error("Failed to save file: {}", filePath.string());
         wxMessageBox(
-            wxString::Format("Failed to save chapter '%s': %s",
-                element.getTitle().c_str(), e.what()),
+            wxString::Format("Failed to save chapter '%s'",
+                element.getTitle().c_str()),
             "Save Error", wxOK | wxICON_ERROR, this);
         return false;
     }
+
+    // Update metadata
+    int wordCount = getWordCount();
+    element.setWordCount(wordCount);
+    element.touch();  // Update modified timestamp
+
+    core::Logger::getInstance().info("Saved chapter '{}' ({} words) to {}",
+        element.getTitle(), wordCount, filePath.string());
+
+    m_isModified = false;
+    return true;
 }
 
 int EditorPanel::getWordCount() const {
-    // Return cached word count (updated by JavaScript messages)
-    return m_cachedWordCount;
+    if (!m_textEditor) {
+        return 0;
+    }
+
+    // Get word count from bwxTextEditor document
+    // Word count is cached in document metadata
+    return m_textEditor->GetDocument().GetWordCount();
 }
 
 void EditorPanel::clearContent() {
-    if (m_textCtrl) {
-        m_textCtrl->Clear();
+    if (m_textEditor) {
+        m_textEditor->GetDocument().Clear();
     }
     m_currentElement = nullptr;
     m_isModified = false;
@@ -225,30 +200,137 @@ void EditorPanel::onWordCountTimer([[maybe_unused]] wxTimerEvent& event) {
 // ============================================================================
 
 void EditorPanel::onFormatBold([[maybe_unused]] wxCommandEvent& event) {
-    // TODO: Implement formatting in Phase 1
-    core::Logger::getInstance().warn("Bold formatting not yet implemented (Phase 1)");
+    if (!m_textEditor) {
+        return;
+    }
+
+    bwx_sdk::gui::bwxTextDocument& doc = m_textEditor->GetDocument();
+    bwx_sdk::gui::Selection sel = doc.GetSelection();
+
+    if (sel.IsEmpty()) {
+        core::Logger::getInstance().debug("Bold: no selection");
+        return;
+    }
+
+    // Toggle bold at selection
+    bwx_sdk::gui::TextFormat format = doc.GetFormatAt(sel.GetMin());
+    format.bold = !format.bold;
+    doc.ApplyFormat(sel.GetMin(), sel.GetMax(), format);
+    m_textEditor->Refresh();
+
+    core::Logger::getInstance().debug("Applied bold={} to selection [{}, {})",
+        format.bold, sel.GetMin(), sel.GetMax());
 }
 
 void EditorPanel::onFormatItalic([[maybe_unused]] wxCommandEvent& event) {
-    // TODO: Implement formatting in Phase 1
-    core::Logger::getInstance().warn("Italic formatting not yet implemented (Phase 1)");
+    if (!m_textEditor) {
+        return;
+    }
+
+    bwx_sdk::gui::bwxTextDocument& doc = m_textEditor->GetDocument();
+    bwx_sdk::gui::Selection sel = doc.GetSelection();
+
+    if (sel.IsEmpty()) {
+        core::Logger::getInstance().debug("Italic: no selection");
+        return;
+    }
+
+    // Toggle italic at selection
+    bwx_sdk::gui::TextFormat format = doc.GetFormatAt(sel.GetMin());
+    format.italic = !format.italic;
+    doc.ApplyFormat(sel.GetMin(), sel.GetMax(), format);
+    m_textEditor->Refresh();
+
+    core::Logger::getInstance().debug("Applied italic={} to selection [{}, {})",
+        format.italic, sel.GetMin(), sel.GetMax());
 }
 
 void EditorPanel::onFormatUnderline([[maybe_unused]] wxCommandEvent& event) {
-    // TODO: Implement formatting in Phase 1
-    core::Logger::getInstance().warn("Underline formatting not yet implemented (Phase 1)");
+    if (!m_textEditor) {
+        return;
+    }
+
+    bwx_sdk::gui::bwxTextDocument& doc = m_textEditor->GetDocument();
+    bwx_sdk::gui::Selection sel = doc.GetSelection();
+
+    if (sel.IsEmpty()) {
+        core::Logger::getInstance().debug("Underline: no selection");
+        return;
+    }
+
+    // Toggle underline at selection
+    bwx_sdk::gui::TextFormat format = doc.GetFormatAt(sel.GetMin());
+    format.underline = !format.underline;
+    doc.ApplyFormat(sel.GetMin(), sel.GetMax(), format);
+    m_textEditor->Refresh();
+
+    core::Logger::getInstance().debug("Applied underline={} to selection [{}, {})",
+        format.underline, sel.GetMin(), sel.GetMax());
 }
 
 void EditorPanel::onFormatFont([[maybe_unused]] wxCommandEvent& event) {
-    // TODO: Implement custom font picker in Phase 1/2
-    core::Logger::getInstance().warn("Font formatting not yet implemented (Phase 1/2)");
-    wxMessageBox("Font formatting will be implemented in Phase 1 or 2",
-        "Not Implemented", wxOK | wxICON_INFORMATION, this);
+    if (!m_textEditor) {
+        return;
+    }
+
+    bwx_sdk::gui::bwxTextDocument& doc = m_textEditor->GetDocument();
+    bwx_sdk::gui::Selection sel = doc.GetSelection();
+
+    if (sel.IsEmpty()) {
+        core::Logger::getInstance().debug("Font: no selection");
+        return;
+    }
+
+    // Get current format
+    bwx_sdk::gui::TextFormat format = doc.GetFormatAt(sel.GetMin());
+
+    // Show font dialog
+    wxFontData fontData;
+    wxFont currentFont(format.fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
+        wxFONTWEIGHT_NORMAL, false, format.fontName);
+    fontData.SetInitialFont(currentFont);
+    fontData.SetColour(format.textColor);
+
+    wxFontDialog dialog(this, fontData);
+    if (dialog.ShowModal() == wxID_OK) {
+        wxFontData selectedData = dialog.GetFontData();
+        wxFont selectedFont = selectedData.GetChosenFont();
+        wxColour selectedColor = selectedData.GetColour();
+
+        // Apply new font and color
+        format.fontName = selectedFont.GetFaceName();
+        format.fontSize = selectedFont.GetPointSize();
+        format.textColor = selectedColor;
+
+        doc.ApplyFormat(sel.GetMin(), sel.GetMax(), format);
+        m_textEditor->Refresh();
+
+        core::Logger::getInstance().debug("Applied font={} size={} color=#{:02X}{:02X}{:02X} to selection [{}, {})",
+            format.fontName.ToStdString(), format.fontSize,
+            format.textColor.Red(), format.textColor.Green(), format.textColor.Blue(),
+            sel.GetMin(), sel.GetMax());
+    }
 }
 
 void EditorPanel::onFormatClear([[maybe_unused]] wxCommandEvent& event) {
-    // TODO: Implement formatting clearing in Phase 1
-    core::Logger::getInstance().warn("Clear formatting not yet implemented (Phase 1)");
+    if (!m_textEditor) {
+        return;
+    }
+
+    bwx_sdk::gui::bwxTextDocument& doc = m_textEditor->GetDocument();
+    bwx_sdk::gui::Selection sel = doc.GetSelection();
+
+    if (sel.IsEmpty()) {
+        core::Logger::getInstance().debug("Clear formatting: no selection");
+        return;
+    }
+
+    // Clear formatting (apply default format)
+    doc.ClearFormatting(sel.GetMin(), sel.GetMax());
+    m_textEditor->Refresh();
+
+    core::Logger::getInstance().debug("Cleared formatting for selection [{}, {})",
+        sel.GetMin(), sel.GetMax());
 }
 
 

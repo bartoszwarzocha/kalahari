@@ -1,15 +1,14 @@
 /// @file editor_panel.h
-/// @brief Rich text editor panel (placeholder for Phase 1)
+/// @brief Rich text editor panel using bwxTextEditor (Task #00019)
 ///
-/// Main content area for book writing. Currently a simple wxTextCtrl placeholder.
-/// Phase 1 will implement: wxRichTextCtrl or custom wxGraphicsContext-based editor.
-/// Implemented in Task #00013.
+/// Main content area for book writing using custom bwx_sdk text editor control.
+/// Integrated in Task #00019 Days 11-12.
 
 #pragma once
 
 #include <wx/wx.h>
-#include <wx/textctrl.h>
 #include <wx/timer.h>
+#include <bwx_sdk/bwx_gui/bwx_text_editor.h>
 #include <filesystem>
 
 // Forward declaration
@@ -20,17 +19,17 @@ namespace kalahari::core {
 namespace kalahari {
 namespace gui {
 
-/// @brief Editor panel for rich text editing (placeholder)
+/// @brief Editor panel for rich text editing using bwxTextEditor
 ///
 /// Main content area where users write their books.
-/// Current state: Simple wxTextCtrl placeholder
-/// Phase 1 planned features:
-/// - wxRichTextCtrl or custom wxGraphicsContext editor
-/// - Page-like view with A4 pages on gray background
-/// - Load/Save from BookElement HTML files
-/// - Real-time word count
-/// - Full formatting (Bold, Italic, etc.)
-/// - Undo/Redo support
+/// Uses bwx_sdk custom text editor control (Task #00019).
+/// Features:
+/// - Custom bwxTextEditor control (Full View mode)
+/// - Load/Save from .ktxt files (JSON format)
+/// - Real-time word count with 500ms debounce
+/// - Full formatting (Bold, Italic, Underline, Font, Color)
+/// - Undo/Redo support (Command pattern, 100 commands)
+/// - Clipboard operations (Copy, Cut, Paste)
 class EditorPanel : public wxPanel {
 public:
     /// @brief Constructor
@@ -101,8 +100,8 @@ private:
     // UI Components
     // ========================================================================
 
-    /// @brief Text control (placeholder for Phase 1 rich editor)
-    wxTextCtrl* m_textCtrl = nullptr;
+    /// @brief Custom text editor control from bwx_sdk (Task #00019)
+    bwx_sdk::gui::bwxTextEditor* m_textEditor = nullptr;
 
     /// @brief Word count timer (500ms debounce for status bar updates)
     wxTimer* m_wordCountTimer = nullptr;
