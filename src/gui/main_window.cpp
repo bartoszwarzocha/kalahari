@@ -536,6 +536,11 @@ void MainWindow::setDiagnosticMode(bool enabled) {
     m_diagnosticMode = enabled;
     core::Logger::getInstance().info("Diagnostic mode {}", enabled ? "enabled" : "disabled");
 
+    // Clear cached menu items before rebuilding menu bar
+    // (items belong to old menu and will be destroyed with it)
+    m_customPerspectiveItems.clear();
+    m_customPerspectiveNames.clear();
+
     // Rebuild menu bar to show/hide Diagnostics menu
     wxMenuBar* oldMenuBar = GetMenuBar();
     SetMenuBar(nullptr);
