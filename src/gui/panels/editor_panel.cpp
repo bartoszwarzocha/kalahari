@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/book_element.h"
 #include <kalahari/core/logger.h>
+#include <wx/fontdlg.h>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
