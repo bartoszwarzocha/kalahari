@@ -61,6 +61,9 @@ jobs:
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
     - name: Run tests
+      env:
+        # Disable macOS GUI for headless testing
+        SDL_VIDEODRIVER: dummy
       run: |
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
