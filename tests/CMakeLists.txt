@@ -13,10 +13,11 @@ set(TEST_SOURCES
     core/test_book.cpp
     core/test_document.cpp
     core/test_document_archive.cpp
-    # GUI tests (business logic only - no windows/dialogs shown)
-    gui/test_bwx_text_document.cpp
-    gui/test_bwx_text_renderer.cpp
-    # Note: test_bwx_text_editor.cpp REMOVED (all 9 test cases created wxFrame windows)
+    # GUI tests REMOVED - all require GTK/X11 display connection (incompatible with console-only CI/CD)
+    # - test_bwx_text_editor.cpp: All 9 test cases created wxFrame windows
+    # - test_bwx_text_document.cpp: Uses wxMemoryDC (requires display on Linux/macOS)
+    # - test_bwx_text_renderer.cpp: Uses wxMemoryDC (requires display on Linux/macOS)
+    # These tests will be moved to manual/integration test suite in Phase 1
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
