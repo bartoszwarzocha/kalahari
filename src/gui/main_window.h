@@ -107,6 +107,12 @@ private:
     wxMenuItem* m_viewSearchItem = nullptr;
     wxMenuItem* m_viewAssistantItem = nullptr;
 
+    /// @brief Editor Mode menu items (Task #00019)
+    wxMenuItem* m_viewModeFullItem = nullptr;
+    wxMenuItem* m_viewModePageItem = nullptr;
+    wxMenuItem* m_viewModeTypewriterItem = nullptr;
+    wxMenuItem* m_viewModePublisherItem = nullptr;
+
     /// @brief Perspectives submenu (for dynamic custom perspectives)
     wxMenu* m_perspectivesMenu = nullptr;
 
@@ -178,6 +184,22 @@ private:
     /// @brief Handle Edit -> Redo menu item
     /// @param event Command event from menu/toolbar
     void onEditRedo(wxCommandEvent& event);
+
+    /// @brief Handle Edit -> Cut menu item (Task #00019)
+    /// @param event Command event from menu/toolbar
+    void onEditCut(wxCommandEvent& event);
+
+    /// @brief Handle Edit -> Copy menu item (Task #00019)
+    /// @param event Command event from menu/toolbar
+    void onEditCopy(wxCommandEvent& event);
+
+    /// @brief Handle Edit -> Paste menu item (Task #00019)
+    /// @param event Command event from menu/toolbar
+    void onEditPaste(wxCommandEvent& event);
+
+    /// @brief Handle Edit -> Select All menu item (Task #00019)
+    /// @param event Command event from menu/toolbar
+    void onEditSelectAll(wxCommandEvent& event);
 
     /// @brief Handle Format -> Bold menu item (Task #00014)
     /// @param event Command event from Format menu
@@ -258,6 +280,10 @@ private:
     /// @brief Handle View -> Assistant menu item
     /// @param event Command event from menu
     void onViewAssistant(wxCommandEvent& event);
+
+    /// @brief Handle View -> Editor Mode menu items (Task #00019)
+    /// @param event Command event from Editor Mode submenu
+    void onViewMode(wxCommandEvent& event);
 
     /// @brief Handle View -> Perspectives -> Load menu items
     /// @param event Command event from menu

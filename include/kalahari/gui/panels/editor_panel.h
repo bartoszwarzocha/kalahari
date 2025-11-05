@@ -95,6 +95,34 @@ public:
     /// @param event Command event from Format menu
     void onFormatClear(wxCommandEvent& event);
 
+    // ========================================================================
+    // Edit Menu Handlers (Task #00019)
+    // ========================================================================
+
+    /// @brief Cut selected text to clipboard
+    /// @param event Command event from Edit menu
+    void onEditCut(wxCommandEvent& event);
+
+    /// @brief Copy selected text to clipboard
+    /// @param event Command event from Edit menu
+    void onEditCopy(wxCommandEvent& event);
+
+    /// @brief Paste text from clipboard
+    /// @param event Command event from Edit menu
+    void onEditPaste(wxCommandEvent& event);
+
+    /// @brief Select all text
+    /// @param event Command event from Edit menu
+    void onEditSelectAll(wxCommandEvent& event);
+
+    // ========================================================================
+    // View Mode Control (Task #00019)
+    // ========================================================================
+
+    /// @brief Set editor view mode
+    /// @param mode View mode (Full/Page/Typewriter/Publisher)
+    void setViewMode(bwx_sdk::gui::bwxTextEditor::ViewMode mode);
+
 private:
     // ========================================================================
     // UI Components

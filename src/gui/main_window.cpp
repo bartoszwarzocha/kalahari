@@ -65,6 +65,12 @@ enum {
     ID_VIEW_SEARCH,
     ID_VIEW_ASSISTANT,
 
+    // Editor View Modes (Task #00019)
+    ID_VIEW_MODE_FULL,
+    ID_VIEW_MODE_PAGE,
+    ID_VIEW_MODE_TYPEWRITER,
+    ID_VIEW_MODE_PUBLISHER,
+
     // Perspectives menu
     ID_PERSPECTIVE_DEFAULT,
     ID_PERSPECTIVE_WRITING,
@@ -88,8 +94,12 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(wxID_EXIT,        MainWindow::onFileExit)
 
     // Edit menu events
-    EVT_MENU(wxID_UNDO,    MainWindow::onEditUndo)
-    EVT_MENU(wxID_REDO,    MainWindow::onEditRedo)
+    EVT_MENU(wxID_UNDO,       MainWindow::onEditUndo)
+    EVT_MENU(wxID_REDO,       MainWindow::onEditRedo)
+    EVT_MENU(wxID_CUT,        MainWindow::onEditCut)
+    EVT_MENU(wxID_COPY,       MainWindow::onEditCopy)
+    EVT_MENU(wxID_PASTE,      MainWindow::onEditPaste)
+    EVT_MENU(wxID_SELECTALL,  MainWindow::onEditSelectAll)
 
     // Format menu events (Task #00014)
     EVT_MENU(ID_FORMAT_BOLD,       MainWindow::onFormatBold)
@@ -104,6 +114,9 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(ID_VIEW_STATISTICS,  MainWindow::onViewStatistics)
     EVT_MENU(ID_VIEW_SEARCH,      MainWindow::onViewSearch)
     EVT_MENU(ID_VIEW_ASSISTANT,   MainWindow::onViewAssistant)
+
+    // Editor View Mode events (Task #00019)
+    EVT_MENU_RANGE(ID_VIEW_MODE_FULL, ID_VIEW_MODE_PUBLISHER, MainWindow::onViewMode)
 
     // Perspectives menu events
     EVT_MENU(ID_PERSPECTIVE_DEFAULT,  MainWindow::onLoadPerspective)
@@ -327,6 +340,11 @@ void MainWindow::createMenuBar() {
     wxMenuItem* pasteItem = editMenu->Append(wxID_PASTE, _("&Paste\tCtrl+V"), _("Paste from clipboard"));
     pasteItem->SetBitmap(wxArtProvider::GetBitmapBundle(wxART_PASTE, wxART_MENU));
 
+    editMenu->AppendSeparator();
+
+    // Select All
+    editMenu->Append(wxID_SELECTALL, _("Select &All\tCtrl+A"), _("Select all text"));
+
     m_menuBar->Append(editMenu, _("&Edit"));
 
     // ------------------------------------------------------------------------
@@ -359,6 +377,28 @@ void MainWindow::createMenuBar() {
     m_viewStatisticsItem = viewMenu->AppendCheckItem(ID_VIEW_STATISTICS, _("&Statistics\tF11"), _("Show/hide Statistics panel"));
     m_viewSearchItem = viewMenu->AppendCheckItem(ID_VIEW_SEARCH, _("S&earch\tF12"), _("Show/hide Search panel"));
     m_viewAssistantItem = viewMenu->AppendCheckItem(ID_VIEW_ASSISTANT, _("&Assistant"), _("Show/hide AI Assistant panel"));
+
+    viewMenu->AppendSeparator();
+
+    // Editor Mode submenu (Task #00019)
+    wxMenu* editorModeMenu = new wxMenu();
+    m_viewModeFullItem = editorModeMenu->AppendRadioItem(ID_VIEW_MODE_FULL,
+        _("&Full View\tCtrl+1"), _("Continuous text view (MVP)"));
+    m_viewModePageItem = editorModeMenu->AppendRadioItem(ID_VIEW_MODE_PAGE,
+        _("&Page View\tCtrl+2"), _("MS Word-like page view (Task #00020)"));
+    m_viewModeTypewriterItem = editorModeMenu->AppendRadioItem(ID_VIEW_MODE_TYPEWRITER,
+        _("&Typewriter Mode\tCtrl+3"), _("Immersive writing mode (Task #00021)"));
+    m_viewModePublisherItem = editorModeMenu->AppendRadioItem(ID_VIEW_MODE_PUBLISHER,
+        _("P&ublisher View\tCtrl+4"), _("Manuscript format (Task #00022)"));
+
+    // Enable only Full View (MVP limitation)
+    m_viewModeFullItem->Check(true);
+    m_viewModePageItem->Enable(false);
+    m_viewModeTypewriterItem->Enable(false);
+    m_viewModePublisherItem->Enable(false);
+
+    viewMenu->AppendSubMenu(editorModeMenu, _("Editor &Mode"),
+        _("Switch editor rendering mode"));
 
     viewMenu->AppendSeparator();
 
@@ -691,6 +731,46 @@ void MainWindow::onEditRedo([[maybe_unused]] wxCommandEvent& event) {
         wxOK | wxICON_INFORMATION,
         this
     );
+}
+
+void MainWindow::onEditCut(wxCommandEvent& event) {
+    core::Logger::getInstance().debug("Edit -> Cut clicked");
+
+    if (m_editorPanel) {
+        m_editorPanel->onEditCut(event);
+    } else {
+        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Cut");
+    }
+}
+
+void MainWindow::onEditCopy(wxCommandEvent& event) {
+    core::Logger::getInstance().debug("Edit -> Copy clicked");
+
+    if (m_editorPanel) {
+        m_editorPanel->onEditCopy(event);
+    } else {
+        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Copy");
+    }
+}
+
+void MainWindow::onEditPaste(wxCommandEvent& event) {
+    core::Logger::getInstance().debug("Edit -> Paste clicked");
+
+    if (m_editorPanel) {
+        m_editorPanel->onEditPaste(event);
+    } else {
+        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Paste");
+    }
+}
+
+void MainWindow::onEditSelectAll(wxCommandEvent& event) {
+    core::Logger::getInstance().debug("Edit -> Select All clicked");
+
+    if (m_editorPanel) {
+        m_editorPanel->onEditSelectAll(event);
+    } else {
+        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Select All");
+    }
 }
 
 // ============================================================================
@@ -1446,6 +1526,66 @@ void MainWindow::onViewAssistant([[maybe_unused]] wxCommandEvent& event) {
     pane.Show(event.IsChecked());
     m_auiManager->Update();
     core::Logger::getInstance().debug("Assistant panel: {}", event.IsChecked() ? "shown" : "hidden");
+}
+
+void MainWindow::onViewMode(wxCommandEvent& event) {
+    int eventId = event.GetId();
+    core::Logger::getInstance().debug("View -> Editor Mode clicked, ID: {}", eventId);
+
+    // Determine which view mode was selected
+    bwx_sdk::gui::bwxTextEditor::ViewMode mode;
+    wxString modeName;
+
+    switch (eventId) {
+        case ID_VIEW_MODE_FULL:
+            mode = bwx_sdk::gui::bwxTextEditor::VIEW_FULL;
+            modeName = "Full View";
+            break;
+        case ID_VIEW_MODE_PAGE:
+            modeName = "Page View";
+            wxMessageBox(
+                _("Page View will be implemented in Task #00020.\n\n"
+                  "This mode provides MS Word-like page layout."),
+                _("Page View (Not Yet Available)"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+            m_viewModeFullItem->Check(true);  // Revert to Full View
+            return;
+        case ID_VIEW_MODE_TYPEWRITER:
+            modeName = "Typewriter Mode";
+            wxMessageBox(
+                _("Typewriter Mode will be implemented in Task #00021.\n\n"
+                  "This mode provides immersive writing experience."),
+                _("Typewriter Mode (Not Yet Available)"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+            m_viewModeFullItem->Check(true);  // Revert to Full View
+            return;
+        case ID_VIEW_MODE_PUBLISHER:
+            modeName = "Publisher View";
+            wxMessageBox(
+                _("Publisher View will be implemented in Task #00022.\n\n"
+                  "This mode provides manuscript-style formatting."),
+                _("Publisher View (Not Yet Available)"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+            m_viewModeFullItem->Check(true);  // Revert to Full View
+            return;
+        default:
+            core::Logger::getInstance().warn("Unknown view mode ID: {}", eventId);
+            return;
+    }
+
+    // Delegate to EditorPanel
+    if (m_editorPanel) {
+        m_editorPanel->setViewMode(mode);
+        core::Logger::getInstance().info("Editor view mode changed to: {}", modeName.ToStdString());
+    } else {
+        core::Logger::getInstance().warn("No EditorPanel available for View Mode change");
+    }
 }
 
 void MainWindow::onLoadPerspective(wxCommandEvent& event) {

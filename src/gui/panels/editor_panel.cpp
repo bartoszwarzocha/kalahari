@@ -49,8 +49,8 @@ void EditorPanel::setupLayout() {
         wxDefaultPosition, wxDefaultSize,
         wxBORDER_SUNKEN);
 
-    // Add to sizer with padding (creates "page on desk" effect)
-    sizer->Add(m_textEditor, 1, wxALL | wxEXPAND, 20);
+    // Add to sizer - fill entire panel (no margins)
+    sizer->Add(m_textEditor, 1, wxEXPAND, 0);
     SetSizer(sizer);
 
     // Create word count timer (500ms debounce)
@@ -332,6 +332,66 @@ void EditorPanel::onFormatClear([[maybe_unused]] wxCommandEvent& event) {
 
     core::Logger::getInstance().debug("Cleared formatting for selection [{}, {})",
         sel.GetMin(), sel.GetMax());
+}
+
+
+// ============================================================================
+// Edit Menu Event Handlers (Task #00019)
+// ============================================================================
+
+void EditorPanel::onEditCut([[maybe_unused]] wxCommandEvent& event) {
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("Cut: text editor not initialized");
+        return;
+    }
+
+    m_textEditor->Cut();
+    core::Logger::getInstance().debug("Cut operation executed");
+}
+
+void EditorPanel::onEditCopy([[maybe_unused]] wxCommandEvent& event) {
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("Copy: text editor not initialized");
+        return;
+    }
+
+    m_textEditor->Copy();
+    core::Logger::getInstance().debug("Copy operation executed");
+}
+
+void EditorPanel::onEditPaste([[maybe_unused]] wxCommandEvent& event) {
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("Paste: text editor not initialized");
+        return;
+    }
+
+    m_textEditor->Paste();
+    core::Logger::getInstance().debug("Paste operation executed");
+}
+
+void EditorPanel::onEditSelectAll([[maybe_unused]] wxCommandEvent& event) {
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("Select All: text editor not initialized");
+        return;
+    }
+
+    m_textEditor->SelectAll();
+    core::Logger::getInstance().debug("Select All operation executed");
+}
+
+
+// ============================================================================
+// View Mode Control (Task #00019)
+// ============================================================================
+
+void EditorPanel::setViewMode(bwx_sdk::gui::bwxTextEditor::ViewMode mode) {
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("setViewMode: text editor not initialized");
+        return;
+    }
+
+    m_textEditor->SetViewMode(mode);
+    core::Logger::getInstance().info("Editor view mode changed to: {}", static_cast<int>(mode));
 }
 
 
