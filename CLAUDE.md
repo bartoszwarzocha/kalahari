@@ -3,8 +3,8 @@
 > **Advanced writing environment for book authors** | C++20 + wxWidgets | Cross-platform Desktop App
 
 **Status:** 🔄 Phase 0 Week 3 - Settings System
-**Version:** 5.0 (Compact)
-**Last Update:** 2025-10-29
+**Version:** 5.1 (Intelligent Sessions)
+**Last Update:** 2025-11-05
 
 ---
 
@@ -16,9 +16,12 @@
 
 | Trigger | Agent | Action | Priority |
 |---------|-------|--------|----------|
-| **Conversation start** | session-manager | Run `/load-session` | 🔴 CRITICAL |
-| **User signals end** ("zakończmy", "koniec", "bye") | session-manager | Run `/save-session` | 🔴 CRITICAL |
+| **Conversation start** | session-manager | Run `/load-session` (auto-detects mode) | 🔴 CRITICAL |
+| **User signals end** ("zakończmy", "koniec", "bye") | session-manager | Run `/save-session` (choose mode) | 🔴 CRITICAL |
 | **Before conversation end** | session-manager | BLOCK until `/save-session` complete | 🔴 CRITICAL |
+| **Hourly checkpoint / WIP** | session-manager | `/save-session` (quick, ~15s) | 🟢 RECOMMENDED |
+| **End of day / subtask done** | session-manager | `/save-session --sync` (~30s) | 🟡 HIGH |
+| **Task/phase complete** | session-manager | `/save-session --full` (~4min) | 🔴 CRITICAL |
 | **CI/CD failure** ("build failed", "GitHub Actions") | deployment-engineer | Activate via Task tool | 🟡 HIGH |
 | **Build error** ("CMake error", "vcpkg error") | deployment-engineer | Activate via Task tool | 🟡 HIGH |
 | **Test failure** ("Catch2 failed", "tests fail") | qa-engineer | Activate via Task tool | 🟡 HIGH |
@@ -27,8 +30,15 @@
 
 **Execution rules:**
 - 🔴 CRITICAL: NEVER skip, BLOCK other work until complete
-- 🟡 HIGH/MEDIUM: Activate BEFORE proposing solutions
+- 🟡 HIGH: Strongly recommended, don't skip without reason
+- 🟢 RECOMMENDED: Use frequently for safety
 - Use `Task` tool with appropriate `subagent_type` or slash command
+
+**Session save modes (intelligent system):**
+- `/save-session` (quick) - Local commit, no push, ~15s, offline-capable
+- `/save-session --sync` - Push to GitHub, trigger CI/CD, ~30s
+- `/save-session --full` - Full verification, CHANGELOG auto-gen, CI/CD wait, ~4min
+- `/load-session` - Single command, auto-detects mode from last session metadata
 
 ### 1. MCP Tools - MANDATORY Usage
 
@@ -117,16 +127,38 @@ SetSizer(mainSizer);
 
 **Rule:** If you update CHANGELOG.md, ask yourself: "Does ROADMAP.md need updating?" (Answer is almost always YES!)
 
-### 5. End-of-Session Checklist - MANDATORY
+### 5. End-of-Session Protocol - MANDATORY
 
-**Before EVERY session end:**
-1. ✅ Update CHANGELOG.md (all changes to [Unreleased])
-2. ✅ Update ROADMAP.md (task status, phase status, milestones) - **ALWAYS, not "if milestone completed"**
-3. ✅ Verify no temporary files (.tmp, _backup, _old)
-4. ✅ Report session summary to user
-5. ✅ Ask about git commit if changes made
+**Use intelligent session save system (choose appropriate mode):**
 
-**User can skip ONLY if explicitly says:** "Skip checklist" or "WIP session"
+**Quick checkpoints (hourly/WIP):**
+- Run `/save-session` (default, ~15s)
+- Local commit only, no push
+- Lightweight memory snapshot
+- Skip docs verification
+
+**End of day / Subtask complete:**
+- Run `/save-session --sync` (~30s)
+- Push to GitHub, trigger CI/CD
+- Don't wait for CI/CD results
+- Enhanced session memory
+
+**Task/Phase milestone complete:**
+- Run `/save-session --full` (~4min)
+- **Auto-generates CHANGELOG/ROADMAP** if missing (with user approval)
+- Waits for CI/CD verification (Linux, macOS, Windows)
+- Full Memory MCP graph update
+- Comprehensive verification report
+
+**Agent handles all verification automatically:**
+- ✅ Git commit/push
+- ✅ CHANGELOG.md auto-generation (--full mode)
+- ✅ ROADMAP.md auto-generation (--full mode)
+- ✅ Temporary files check
+- ✅ CI/CD monitoring (--full mode)
+- ✅ Session summary report
+
+**User can skip ONLY if explicitly says:** "Skip session save" or "WIP - no save"
 
 ---
 
@@ -433,6 +465,24 @@ All Phase 0 deliverables achieved:
 
 ## 📝 Update History
 
+### v5.1 - 2025-11-05 (INTELLIGENT SESSION SYSTEM)
+
+- 🧠 **Session system redesigned** with intelligent mode detection
+- 🔴 **CARDINAL RULES #0 updated** with session save modes:
+  - `/save-session` (quick) - Local, ~15s, offline-capable
+  - `/save-session --sync` - GitHub push + CI/CD trigger, ~30s
+  - `/save-session --full` - Full verification + auto-docs, ~4min
+  - `/load-session` - Auto-detects mode from session metadata
+- ✅ **End-of-Session Protocol** redesigned:
+  - Agent handles all verification (git, docs, CI/CD)
+  - Auto-generates CHANGELOG/ROADMAP in --full mode
+  - Intelligent mode selection guide
+- 📋 **New slash commands:**
+  - `.claude/commands/save-session.md` - 3-tier system with frontmatter metadata
+  - `.claude/commands/load-session.md` - Mode-aware restoration with gap detection
+- 🔍 **Git gap detection** - Finds undocumented commits between sessions
+- 🤖 **session-manager agent** - Fully automated session handling
+
 ### v5.0 - 2025-10-29 (COMPACT VERSION)
 
 - 🔥 **Major refactoring:** 1263 → 300 lines (76% reduction)
@@ -473,7 +523,7 @@ All Phase 0 deliverables achieved:
 
 ---
 
-**Document Version:** 5.0 (Compact)
-**Last Update:** 2025-10-29
+**Document Version:** 5.1 (Intelligent Sessions)
+**Last Update:** 2025-11-05
 **Updated By:** Claude (with user approval)
-**Size:** ~300 lines (target achieved!)
+**Size:** ~330 lines (session system added)
