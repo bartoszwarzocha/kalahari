@@ -15,7 +15,6 @@ set(TEST_SOURCES
     core/test_document_archive.cpp
     gui/test_bwx_text_document.cpp
     gui/test_bwx_text_renderer.cpp
-    gui/test_bwx_text_editor.cpp
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp

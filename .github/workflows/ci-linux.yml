@@ -107,8 +107,7 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        # Run with xvfb for GUI tests requiring display
-        xvfb-run -a ./bin/kalahari-tests --reporter compact
+        ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
     - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'

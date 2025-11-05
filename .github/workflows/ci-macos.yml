@@ -63,9 +63,7 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        # Skip GUI tests on macOS CI (no display server available)
-        # Use Catch2 tag filtering to exclude tests requiring wxApp
-        ./bin/kalahari-tests "~[gui]" --reporter compact
+        ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
     - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'
