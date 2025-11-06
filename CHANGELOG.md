@@ -92,15 +92,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/CMakeLists.txt` - Added `bwx_gui` library linkage and 2 new test files
 - `project_docs/README.md` - Updated to v1.4, added document #14 (bwx_sdk Patterns)
 
+#### Fixed (2025-11-06, Days 13-15)
+- **Compiler Warnings Eliminated** - Zero warnings from our code on all platforms
+  - **Problem:** bwx_sdk stub methods LoadFromFile/SaveToFile triggered -Wunused-parameter on macOS (clang)
+  - **Solution:** Added [[maybe_unused]] attribute to 'path' parameters (C++17 standard)
+  - **Impact:** Clean builds on Linux (GCC), macOS (Clang), Windows (MSVC)
+  - **Testing:**
+    - ✅ Local build: 16s, zero warnings from bwx_sdk or Kalahari code
+    - ✅ Remaining warnings: wxWidgets headers only (wx/event.h:2942 - not our code)
+  - **Files:** `external/bwx_sdk/src/bwx_gui/bwx_text_document.cpp` (2 lines)
+  - **Commit:** f4f3384 (bwx_sdk) "fix(gui): Suppress unused parameter warnings in stub file I/O methods"
+
 #### Progress
-- **Days 1-12 of 15-day MVP complete (80%)**
+- **Days 1-15 of 15-day MVP complete (100%)** ✅
   - ✅ Day 1-2: Document Model Foundation (Gap Buffer, text operations)
   - ✅ Day 3-4: Undo/Redo System (Command Pattern with merging)
   - ✅ Day 5-6: Formatting System (FormatRun vector)
   - ✅ Day 7-8: Full View Renderer (layout, rendering, hit testing)
   - ✅ Day 9-10: bwxTextEditor Main Control (event handling, caret, scrolling)
   - ✅ Day 11-12: Integration & Observer Pattern (EditorPanel, word count debouncing, MainWindow)
-  - ⏳ Day 13-15: Testing & Polish (NEXT)
+  - ✅ Day 13-15: Testing & Polish (testability matrix, warning fixes, verification)
 
 #### Build Status
 - ✅ **Linux VirtualBox:** SUCCESS (all files compile)
