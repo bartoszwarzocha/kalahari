@@ -4,7 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/settings_manager.h"  // Task #00019 Settings
-#include "kalahari/gui/settings_dialog.h"    // Task #00019 Settings (SettingsState)
+#include "../settings_dialog.h"              // Task #00019 Settings (SettingsState) - relative path!
 #include <kalahari/core/logger.h>
 #include <bwx_sdk/bwx_gui/bwx_text_renderer.h>  // Task #00019 Settings (FullViewRenderer)
 #include <wx/fontdlg.h>
