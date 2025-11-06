@@ -40,7 +40,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Files:** `include/kalahari/gui/panels/editor_panel.h` (+35 LOC), `src/gui/panels/editor_panel.cpp` (+96 LOC)
   - **Commit:** 21adfe6 "fix(gui): Implement Observer Pattern for word count with true debouncing"
 
-#### Added
+#### Added (2025-11-06, Days 13-15 - Editor Settings Infrastructure)
+- **EditorSettingsPanel** (383 LOC) - Comprehensive editor configuration UI with live updates
+  - **Purpose:** Allow runtime editor customization for testing and UX personalization
+  - **4 Configuration Sections:**
+    1. **Cursor & Caret:** Blink enable/disable, blink rate (ms), caret width (pixels)
+    2. **Margins & Padding:** Left/Right/Top/Bottom margins (pixels)
+    3. **Rendering:** Line spacing (1.0-2.0x), selection opacity (0-255), selection color picker, antialiasing toggle
+    4. **Behavior:** Auto-focus on load, word wrap toggle, undo limit (10-1000 commands)
+  - **Live Updates:** All settings applied without application restart via `EditorPanel::applySettings()`
+  - **Persistence:** JSON storage in `~/.kalahari/settings.json` via SettingsManager
+  - **Integration Points:**
+    - Settings Dialog: EditorSettingsPanel as top-level tree node (default selection)
+    - FullViewRenderer: New API methods (SetSelectionColor, SetSelectionOpacity, GetSelectionColor, GetSelectionOpacity)
+    - MainWindow: onFileSettings() saves 14 editor fields, triggers applySettings()
+    - bwxTextEditor: GetRenderer() public method for settings access
+  - **Testing Benefit:** Runtime configuration enables "in-flight" parameter testing (margins, spacing, colors) without recompilation
+  - **UX Benefit:** Users customize editor appearance (selection color, margins, line spacing) per personal preference
+  - **Architecture:**
+    - SettingsState extended with 14 editor fields (bool/int/double/wxColour)
+    - Template-based SettingsManager API: `get<int>()`, `get<double>()`, `get<wxColour>()`
+    - Relative include paths: `#include "../settings_dialog.h"` (fixed from absolute path)
+  - **Files Created:**
+    - `src/gui/editor_settings_panel.h` (115 LOC)
+    - `src/gui/editor_settings_panel.cpp` (268 LOC)
+  - **Files Modified:**
+    - `src/gui/settings_dialog.h` (+30 LOC) - SettingsState extension
+    - `src/gui/settings_dialog.cpp` (+42 LOC) - Tree integration
+    - `include/kalahari/gui/panels/editor_panel.h` (+8 LOC) - applySettings() declaration
+    - `src/gui/panels/editor_panel.cpp` (+57 LOC) - applySettings() implementation
+    - `src/gui/main_window.cpp` (+48 LOC) - Settings save/apply logic
+    - `src/CMakeLists.txt` (+1 LOC) - editor_settings_panel.cpp build entry
+    - `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_renderer.h` (+18 LOC) - Selection API
+    - `external/bwx_sdk/src/bwx_gui/bwx_text_renderer.cpp` (+7 LOC) - Selection implementation
+    - `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_editor.h` (+6 LOC) - GetRenderer() method
+  - **Build Status:**
+    - ✅ CI/CD: All platforms passing (Linux, macOS, Windows)
+    - ❌ Build error #1 fixed: Wrong include path (used absolute instead of relative)
+    - ❌ Build error #2 fixed: Wrong API (used getInt()/getDouble() instead of get<T>() template)
+  - **Commits:**
+    - feee265 "fix(build): Correct include path for settings_dialog.h"
+    - 2928b1c "fix(build): Use correct SettingsManager API (get<T> template)"
+    - 7b64c95 "fix(build): Install correct ninja package on Ubuntu/Debian"
+
+- **Build Script Enhancement** (scripts/build_linux.sh)
+  - **Problem:** Script failed on Ubuntu 24 and Linux Mint 22 - package "ninja" doesn't exist
+  - **Solution:** Distro-specific ninja package detection
+    - Ubuntu/Debian/LinuxMint/Pop: `ninja-build` package
+    - Fedora/RHEL/CentOS: `ninja-build` package
+    - Arch/Manjaro: `ninja` package
+    - Default fallback: `ninja-build`
+  - **Impact:** Clean automated builds on all major Linux distributions
+  - **Commit:** 7b64c95 "fix(build): Install correct ninja package on Ubuntu/Debian"
+
+#### Added (Core Editor Implementation)
 - **bwxTextDocument class** (~1,450 LOC) - Document model with Gap Buffer storage
   - Text operations: Insert, Delete, Get, Clear (O(1) sequential editing)
   - Cursor & Selection management with line/column calculation
