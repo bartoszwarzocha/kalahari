@@ -208,24 +208,41 @@ install_package() {
 }
 
 # Check essential tools (autotools removed - vcpkg installs them if needed)
-for tool in cmake ninja g++ git pkg-config; do
+for tool in cmake g++ git pkg-config; do
     if ! command -v $tool &> /dev/null; then
         case $tool in
             g++) install_package "build-essential" ;;
-            ninja)
-                # Ninja package name differs by distro
-                distro=$(detect_distro)
-                case $distro in
-                    ubuntu|debian|linuxmint|pop) install_package "ninja-build" ;;
-                    fedora|rhel|centos) install_package "ninja-build" ;;
-                    arch|manjaro) install_package "ninja" ;;
-                    *) install_package "ninja-build" ;;  # Default to ninja-build
-                esac
-                ;;
             *) install_package "$tool" ;;
         esac
     fi
 done
+
+# Special handling for ninja (executable name differs by distro)
+if ! command -v ninja &> /dev/null && ! command -v ninja-build &> /dev/null; then
+    print_warning "Ninja build system not found - installing..."
+    distro=$(detect_distro)
+    case $distro in
+        ubuntu|debian|linuxmint|pop)
+            install_package "ninja-build"
+            ;;
+        fedora|rhel|centos)
+            install_package "ninja-build"
+            ;;
+        arch|manjaro)
+            install_package "ninja"
+            ;;
+        *)
+            install_package "ninja-build"  # Default to ninja-build
+            ;;
+    esac
+fi
+
+# CMake expects 'ninja' but Ubuntu/Debian installs 'ninja-build'
+# Set CMAKE_MAKE_PROGRAM if only ninja-build is available
+if ! command -v ninja &> /dev/null && command -v ninja-build &> /dev/null; then
+    print_info "Found ninja-build, setting CMAKE_MAKE_PROGRAM for CMake compatibility"
+    export CMAKE_MAKE_PROGRAM=$(command -v ninja-build)
+fi
 
 # Check wxWidgets dependencies
 print_info "Checking wxWidgets system dependencies..."
@@ -305,6 +322,11 @@ CMAKE_ARGS=(
     -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
     -G Ninja
 )
+
+# Add CMAKE_MAKE_PROGRAM if set (for ninja-build compatibility)
+if [ -n "$CMAKE_MAKE_PROGRAM" ]; then
+    CMAKE_ARGS+=(-DCMAKE_MAKE_PROGRAM="$CMAKE_MAKE_PROGRAM")
+fi
 
 if [ "$VERBOSE" = true ]; then
     CMAKE_ARGS+=(-DCMAKE_VERBOSE_MAKEFILE=ON)
