@@ -523,17 +523,17 @@ void EditorPanel::applySettings() {
     }
 
     // Apply editor settings from SettingsManager
-    // Note: SettingsManager uses same field names as SettingsState
-    fullViewRenderer->SetMarginLeft(settingsMgr.getInt("editor.marginLeft", 20));
-    fullViewRenderer->SetMarginRight(settingsMgr.getInt("editor.marginRight", 20));
-    fullViewRenderer->SetLineSpacing(settingsMgr.getDouble("editor.lineSpacing", 1.2));
+    // Note: SettingsManager uses template get<T>() method
+    fullViewRenderer->SetMarginLeft(settingsMgr.get<int>("editor.marginLeft", 20));
+    fullViewRenderer->SetMarginRight(settingsMgr.get<int>("editor.marginRight", 20));
+    fullViewRenderer->SetLineSpacing(settingsMgr.get<double>("editor.lineSpacing", 1.2));
 
     // Selection appearance
-    int selR = settingsMgr.getInt("editor.selectionColor.r", 0);
-    int selG = settingsMgr.getInt("editor.selectionColor.g", 120);
-    int selB = settingsMgr.getInt("editor.selectionColor.b", 215);
+    int selR = settingsMgr.get<int>("editor.selectionColor.r", 0);
+    int selG = settingsMgr.get<int>("editor.selectionColor.g", 120);
+    int selB = settingsMgr.get<int>("editor.selectionColor.b", 215);
     fullViewRenderer->SetSelectionColor(wxColour(selR, selG, selB));
-    fullViewRenderer->SetSelectionOpacity(settingsMgr.getInt("editor.selectionOpacity", 128));
+    fullViewRenderer->SetSelectionOpacity(settingsMgr.get<int>("editor.selectionOpacity", 128));
 
     // Refresh editor to apply new settings visually
     m_textEditor->Refresh();
