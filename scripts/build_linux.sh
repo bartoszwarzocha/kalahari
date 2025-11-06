@@ -212,6 +212,16 @@ for tool in cmake ninja g++ git pkg-config; do
     if ! command -v $tool &> /dev/null; then
         case $tool in
             g++) install_package "build-essential" ;;
+            ninja)
+                # Ninja package name differs by distro
+                distro=$(detect_distro)
+                case $distro in
+                    ubuntu|debian|linuxmint|pop) install_package "ninja-build" ;;
+                    fedora|rhel|centos) install_package "ninja-build" ;;
+                    arch|manjaro) install_package "ninja" ;;
+                    *) install_package "ninja-build" ;;  # Default to ninja-build
+                esac
+                ;;
             *) install_package "$tool" ;;
         esac
     fi
