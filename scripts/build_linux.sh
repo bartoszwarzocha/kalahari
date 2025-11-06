@@ -44,7 +44,7 @@ show_help() {
     cat << EOF
 Kalahari Build Script (Linux)
 
-Automatically detects shared filesystems (VirtualBox, WSL) and builds in local storage.
+Automatically detects shared filesystems (VirtualBox, VMware, WSL) and builds in local storage.
 
 Usage: $0 [OPTIONS]
 
@@ -67,6 +67,7 @@ Examples:
 Shared Filesystem Support:
   Script automatically detects:
   - VirtualBox shared folders (/media/sf_*, vboxsf filesystem)
+  - VMware shared folders (/mnt/hgfs/*, vmhgfs-fuse filesystem)
   - WSL Windows mounts (/mnt/*, 9p/drvfs filesystem)
 
   When detected, builds in ~/kalahari-build/ for full symlink support.
@@ -110,10 +111,14 @@ BUILD_DIR_ACTUAL="$PROJECT_ROOT"
 
 # Detect shared/mounted filesystems with symlink issues
 # VirtualBox: /media/sf_* (vboxsf filesystem)
+# VMware: /mnt/hgfs/* (vmhgfs-fuse filesystem)
 # WSL: /mnt/* (Windows drives via 9p/drvfs)
 if [[ "$PROJECT_ROOT" =~ ^/media/sf_ ]]; then
     IS_VBOX=true
     print_info "VirtualBox shared folder detected (path: /media/sf_*)"
+elif [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
+    IS_VBOX=true  # Reusing same workflow for VMware
+    print_info "VMware shared folder detected (path: /mnt/hgfs/*, type: vmhgfs-fuse)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]] && mount | grep -q "type 9p"; then
     IS_VBOX=true  # Reusing same workflow for WSL
     print_info "WSL Windows mount detected (path: /mnt/*, type: 9p/drvfs)"
@@ -383,7 +388,10 @@ if [ "$IS_VBOX" = true ]; then
     print_info "Copying binaries back to shared folder..."
 
     # Detect environment for unique output directory (avoid conflicts)
-    if [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
+    if [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
+        OUTPUT_DIR="$PROJECT_ROOT/build-linux-vmware"
+        ENV_NAME="VMware"
+    elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
         OUTPUT_DIR="$PROJECT_ROOT/build-linux-wsl"
         ENV_NAME="WSL"
     else
@@ -439,7 +447,10 @@ echo -e "Build type:    ${GREEN}$BUILD_TYPE${NC}"
 
 if [ "$IS_VBOX" = true ]; then
     # Detect environment again for summary (same logic as copy)
-    if [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
+    if [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
+        SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-vmware"
+        SUMMARY_ENV="VMware"
+    elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
         SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-wsl"
         SUMMARY_ENV="WSL"
     else
