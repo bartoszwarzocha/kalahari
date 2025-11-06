@@ -127,6 +127,13 @@ public:
     /// @param mode View mode (Full/Page/Typewriter/Publisher)
     void setViewMode(bwx_sdk::gui::bwxTextEditor::ViewMode mode);
 
+    /// @brief Apply settings from SettingsManager to editor
+    ///
+    /// Applies editor settings (margins, line spacing, selection appearance)
+    /// to the bwxTextEditor renderer. Called when user changes settings
+    /// in Settings Dialog (Task #00019 Settings Infrastructure).
+    void applySettings();
+
     // ========================================================================
     // IDocumentObserver Interface Implementation
     // ========================================================================

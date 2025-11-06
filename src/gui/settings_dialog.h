@@ -22,14 +22,41 @@ namespace gui {
 /// @brief Settings state container
 ///
 /// Holds current application configuration state.
-/// Phase 0: Only diagnostic mode fields.
-/// Phase 1+: Will be expanded with language, theme, auto-save, etc.
+/// Phase 0: Diagnostic mode fields.
+/// Phase 1: Editor settings (Task #00019 - Settings Infrastructure).
+/// Future: Will be expanded with language, theme, auto-save, etc.
 struct SettingsState {
     // Phase 0: Diagnostic mode
     bool diagnosticModeEnabled = false;
     bool launchedWithDiagFlag = false;
 
-    // Phase 1+: Additional settings will go here
+    // ========================================================================
+    // Phase 1: Editor Settings (Task #00019)
+    // ========================================================================
+
+    // Cursor & Caret
+    bool caretBlinkEnabled = true;
+    int caretBlinkRate = 500;      ///< Milliseconds (100-2000)
+    int caretWidth = 1;             ///< Pixels (1-5)
+
+    // Margins & Padding
+    int marginLeft = 20;            ///< Pixels (0-100)
+    int marginRight = 20;           ///< Pixels (0-100)
+    int marginTop = 10;             ///< Pixels (0-100)
+    int marginBottom = 10;          ///< Pixels (0-100)
+
+    // Rendering
+    double lineSpacing = 1.2;       ///< Multiplier (1.0-3.0)
+    int selectionOpacity = 128;     ///< Alpha value (0-255), fixes bug #6
+    wxColour selectionColor = wxColour(0, 120, 215);  ///< RGB selection color
+    bool antialiasing = true;
+
+    // Behavior
+    bool autoFocus = true;          ///< Auto-focus editor on load, fixes bug #1
+    bool wordWrap = true;
+    int undoLimit = 100;            ///< Undo stack size (10-1000)
+
+    // Future phases: Additional settings will go here
     // wxString interfaceLanguage = "en";
     // wxString themeName = "Light";
     // int autoSaveInterval = 5;

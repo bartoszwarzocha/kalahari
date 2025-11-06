@@ -3,7 +3,10 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/book_element.h"
+#include "kalahari/core/settings_manager.h"  // Task #00019 Settings
+#include "kalahari/gui/settings_dialog.h"    // Task #00019 Settings (SettingsState)
 #include <kalahari/core/logger.h>
+#include <bwx_sdk/bwx_gui/bwx_text_renderer.h>  // Task #00019 Settings (FullViewRenderer)
 #include <wx/fontdlg.h>
 #include <filesystem>
 #include <fstream>
@@ -482,6 +485,60 @@ void EditorPanel::OnFormatChanged() {
     m_isModified = true;
 
     core::Logger::getInstance().debug("OnFormatChanged: Timer restarted, modified flag set");
+}
+
+// ============================================================================
+// Settings Application (Task #00019 Settings Infrastructure)
+// ============================================================================
+
+void EditorPanel::applySettings() {
+    core::Logger::getInstance().debug("EditorPanel::applySettings() - Applying settings from SettingsManager");
+
+    if (!m_textEditor) {
+        core::Logger::getInstance().warn("applySettings: m_textEditor is null, skipping");
+        return;
+    }
+
+    // Get settings from SettingsManager
+    core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+
+    // Load current settings (from JSON file)
+    if (!settingsMgr.load()) {
+        core::Logger::getInstance().error("applySettings: Failed to load settings from file");
+        return;
+    }
+
+    // Get renderer (MVP: always FullViewRenderer)
+    bwx_sdk::gui::ITextRenderer* renderer = m_textEditor->GetRenderer();
+    if (!renderer) {
+        core::Logger::getInstance().warn("applySettings: Renderer is null, skipping");
+        return;
+    }
+
+    // Cast to FullViewRenderer (safe for MVP, only VIEW_FULL supported)
+    auto* fullViewRenderer = dynamic_cast<bwx_sdk::gui::FullViewRenderer*>(renderer);
+    if (!fullViewRenderer) {
+        core::Logger::getInstance().error("applySettings: Renderer is not FullViewRenderer!");
+        return;
+    }
+
+    // Apply editor settings from SettingsManager
+    // Note: SettingsManager uses same field names as SettingsState
+    fullViewRenderer->SetMarginLeft(settingsMgr.getInt("editor.marginLeft", 20));
+    fullViewRenderer->SetMarginRight(settingsMgr.getInt("editor.marginRight", 20));
+    fullViewRenderer->SetLineSpacing(settingsMgr.getDouble("editor.lineSpacing", 1.2));
+
+    // Selection appearance
+    int selR = settingsMgr.getInt("editor.selectionColor.r", 0);
+    int selG = settingsMgr.getInt("editor.selectionColor.g", 120);
+    int selB = settingsMgr.getInt("editor.selectionColor.b", 215);
+    fullViewRenderer->SetSelectionColor(wxColour(selR, selG, selB));
+    fullViewRenderer->SetSelectionOpacity(settingsMgr.getInt("editor.selectionOpacity", 128));
+
+    // Refresh editor to apply new settings visually
+    m_textEditor->Refresh();
+
+    core::Logger::getInstance().info("EditorPanel: Settings applied successfully");
 }
 
 

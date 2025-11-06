@@ -689,8 +689,52 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
             setDiagnosticMode(newState.diagnosticModeEnabled);
         }
 
-        // Phase 1+: Apply other settings here
-        // ...
+        // ====================================================================
+        // Phase 1: Save Editor Settings to SettingsManager (Task #00019)
+        // ====================================================================
+
+        core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+
+        // Margins & Padding
+        settingsMgr.set("editor.marginLeft", newState.marginLeft);
+        settingsMgr.set("editor.marginRight", newState.marginRight);
+        settingsMgr.set("editor.marginTop", newState.marginTop);
+        settingsMgr.set("editor.marginBottom", newState.marginBottom);
+
+        // Rendering
+        settingsMgr.set("editor.lineSpacing", newState.lineSpacing);
+        settingsMgr.set("editor.selectionOpacity", newState.selectionOpacity);
+        settingsMgr.set("editor.selectionColor.r", (int)newState.selectionColor.Red());
+        settingsMgr.set("editor.selectionColor.g", (int)newState.selectionColor.Green());
+        settingsMgr.set("editor.selectionColor.b", (int)newState.selectionColor.Blue());
+        settingsMgr.set("editor.antialiasing", newState.antialiasing);
+
+        // Behavior
+        settingsMgr.set("editor.autoFocus", newState.autoFocus);
+        settingsMgr.set("editor.wordWrap", newState.wordWrap);
+        settingsMgr.set("editor.undoLimit", newState.undoLimit);
+
+        // Caret settings
+        settingsMgr.set("editor.caretBlinkEnabled", newState.caretBlinkEnabled);
+        settingsMgr.set("editor.caretBlinkRate", newState.caretBlinkRate);
+        settingsMgr.set("editor.caretWidth", newState.caretWidth);
+
+        // Save to JSON file
+        if (!settingsMgr.save()) {
+            core::Logger::getInstance().error("Failed to save settings to file!");
+            wxMessageBox(
+                "Failed to save settings to file. Changes may not persist.",
+                "Settings Save Error",
+                wxOK | wxICON_ERROR,
+                this
+            );
+        }
+
+        // Apply settings to EditorPanel (live update without restart)
+        if (m_editorPanel) {
+            m_editorPanel->applySettings();
+            core::Logger::getInstance().info("Editor settings applied to EditorPanel");
+        }
 
         m_statusBar->SetStatusText(_("Settings saved"), 0);
     } else {

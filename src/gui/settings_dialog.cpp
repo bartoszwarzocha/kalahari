@@ -2,6 +2,7 @@
 /// @brief Implementation of Settings dialog
 
 #include "settings_dialog.h"
+#include "editor_settings_panel.h"  // Phase 1: Editor settings (Task #00019)
 #include <kalahari/core/logger.h>
 #include <wx/artprov.h>
 
@@ -182,6 +183,28 @@ void SettingsDialog::buildTree() {
     // Root (hidden)
     wxTreeItemId root = m_tree->AddRoot("Settings", ICON_FOLDER);
 
+    // ========================================================================
+    // Phase 1: Editor Settings (Task #00019)
+    // ========================================================================
+
+    // Editor leaf (top-level, not in folder)
+    wxTreeItemId editor = m_tree->AppendItem(
+        root,
+        "Editor",
+        ICON_SETTING
+    );
+
+    // Create panel for Editor
+    EditorSettingsPanel* editorPanel = new EditorSettingsPanel(
+        m_contentPanel,
+        m_workingState
+    );
+    m_panels[editor] = editorPanel;
+
+    // ========================================================================
+    // Phase 0: Advanced → Diagnostics
+    // ========================================================================
+
     // Advanced branch
     wxTreeItemId advanced = m_tree->AppendItem(
         root,
@@ -203,12 +226,16 @@ void SettingsDialog::buildTree() {
     );
     m_panels[diagnostics] = diagPanel;
 
+    // ========================================================================
+    // Default selection
+    // ========================================================================
+
     // Expand Advanced by default
     m_tree->Expand(advanced);
 
-    // Select Diagnostics by default
-    m_tree->SelectItem(diagnostics);
-    showPanel(diagnostics);
+    // Select Editor by default (Phase 1: most important settings)
+    m_tree->SelectItem(editor);
+    showPanel(editor);
 }
 
 void SettingsDialog::showPanel(wxTreeItemId item) {
@@ -317,10 +344,15 @@ void SettingsDialog::onApply([[maybe_unused]] wxCommandEvent& event) {
 void SettingsDialog::applyChanges() {
     // Save all panel states to m_workingState
     for (auto& [id, panel] : m_panels) {
-        if (auto* diagPanel = dynamic_cast<DiagnosticsPanel*>(panel)) {
+        // Phase 1: Editor settings (Task #00019)
+        if (auto* editorPanel = dynamic_cast<EditorSettingsPanel*>(panel)) {
+            editorPanel->saveToState();
+        }
+        // Phase 0: Diagnostics
+        else if (auto* diagPanel = dynamic_cast<DiagnosticsPanel*>(panel)) {
             diagPanel->saveToState();
         }
-        // Phase 1+: Add other panel types here
+        // Future phases: Add other panel types here
     }
 
     core::Logger::getInstance().debug("Settings changes applied to working state");

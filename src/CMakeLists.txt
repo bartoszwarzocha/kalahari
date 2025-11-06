@@ -90,6 +90,7 @@ set(KALAHARI_SOURCES
     gui/kalahari_app.cpp
     gui/main_window.cpp
     gui/settings_dialog.cpp
+    gui/editor_settings_panel.cpp  # Phase 1: Editor settings (Task #00019)
     gui/icon_registry.cpp
     gui/art_provider.cpp
     gui/perspective_manager.cpp
