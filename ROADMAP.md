@@ -2,9 +2,9 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🚀 Phase 1 IN PROGRESS → Task #00019 (Day 11 of 15)
+**Current Status:** 🚀 Phase 1 IN PROGRESS → Task #00019 (Day 12 of 15 complete, 80%)
 **Version:** 0.0.1-dev
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-06
 
 ---
 
@@ -18,8 +18,8 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 - ✅ **Phase 0: Foundation** (2025-10-26 to 2025-11-03) - **COMPLETE** 🎉
   - Core infrastructure + Plugin system + Document model + bwx_sdk integration + CI/CD optimization
 - 🚀 **Phase 1: Core Editor** (Weeks 9-20 | 3-4 months) - **IN PROGRESS** (Started 2025-11-04)
-  - Current: Task #00019 Day 11/15 (Custom wxWidgets Text Editor Control)
-  - Progress: Document Model (bwxTextDocument) + Renderer (FullViewRenderer) complete (53%)
+  - Current: Task #00019 Day 12/15 complete (Custom wxWidgets Text Editor Control)
+  - Progress: Document Model + Renderer + Main Control + Integration (Observer Pattern) - 80% complete
 - ⏳ **Phase 2: Plugin System MVP** (Weeks 21-30 | 2-3 months)
 - ⏳ **Phase 3: Feature Plugins** (Weeks 31-44 | 3-4 months)
 - ⏳ **Phase 4: Advanced Plugins** (Weeks 45-56 | 2-3 months)
@@ -175,13 +175,13 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Note:** Optional UX polish (drag & drop perspective customization) deferred to Phase 1 end
 
 **Week 10-12: Core Editor (Custom Control)** 🚀 IN PROGRESS
-- [ ] **Task #00019:** Custom wxWidgets Text Editor Control **🚀 IN PROGRESS (Day 11 of 15)**
+- [ ] **Task #00019:** Custom wxWidgets Text Editor Control **🚀 IN PROGRESS (Day 12 of 15 - 80% complete)**
   - ✅ **Days 1-8:** Document Model + Renderer (53% complete)
     - bwxTextDocument (Gap Buffer storage, undo/redo, formatting) - 1,450 LOC
     - FullViewRenderer (layout, hit testing, viewport culling) - 850 LOC
     - Test suite (75+ test cases, 2,239 assertions) - 950 LOC
     - Build status: ✅ Linux VB | ✅ Windows | ⚠️ Linux WSL (output issue only)
-  - ✅ **Days 9-10:** bwxTextEditor Main Control (~1,000 LOC) **67% complete**
+  - ✅ **Days 9-10:** bwxTextEditor Main Control (~1,000 LOC) (67% complete)
     - Two-phase construction (default + full constructor)
     - Event handling: Keyboard (OnChar, OnKeyDown), Mouse (OnLeftDown, OnMotion, OnMouseWheel), Focus (OnSetFocus, OnKillFocus)
     - Editing operations: Copy/Cut/Paste/SelectAll/Undo/Redo with keyboard shortcuts (Ctrl+C/X/V/A/Z/Y)
@@ -196,12 +196,24 @@ This roadmap outlines the development journey of Kalahari from initial concept t
     - Test suite: 15 test cases for control creation, view modes, editing ops, document integration
     - Files: bwx_text_editor.h (250 LOC), bwx_text_editor.cpp (750 LOC), test_bwx_text_editor.cpp (180 LOC)
     - Build status: ✅ bwx_gui library compiles successfully
-  - [ ] **Days 11-12:** File I/O & Integration (~400 LOC) **NEXT**
-    - .ktxt format (JSON), LoadFromFile/SaveToFile, EditorPanel integration
-  - [ ] **Days 13-14:** Testing & Polish (~200 LOC)
-    - All-platform testing, performance profiling, bug fixes
+  - ✅ **Days 11-12:** Integration & Observer Pattern (+131 LOC) **80% complete (2025-11-06)**
+    - EditorPanel implements IDocumentObserver (4 callbacks: OnTextChanged, OnCursorMoved, OnSelectionChanged, OnFormatChanged)
+    - Observer lifecycle management: AddObserver() in setupLayout/loadChapter, RemoveObserver() in destructor
+    - **TRUE DEBOUNCING:** wxTIMER_ONE_SHOT restarts on each change, fires 500ms AFTER typing stops
+    - UpdateWordCount() called ONLY in debounced timer (O(n) only after idle)
+    - Bug fixes: m_isModified now set correctly, hasUnsavedChanges() works
+    - MainWindow integration: Format menu (Bold/Italic/Underline/Font/Clear), Edit menu (Cut/Copy/Paste/SelectAll/Undo/Redo), View Mode menu
+    - Edge cases: loadChapter re-registration, clearContent handling, destructor safety
+    - Files: editor_panel.h (+35 LOC), editor_panel.cpp (+96 LOC)
+    - Build: ✅ All platforms (Linux 4m, macOS 2m37s, Windows 12m) - CI/CD passing
+    - Acceptance criteria: ✅ #33-35 (word count real-time, StatusBar, metadata)
+  - [ ] **Days 13-14:** Testing & Polish (~200 LOC) **NEXT**
+    - Manual testing all 41 acceptance criteria
+    - Performance profiling (10K words latency test)
+    - All-platform verification (Linux, macOS, Windows)
+    - Bug fixes, edge case handling
   - [ ] **Day 15:** Final Review
-    - Code review, documentation update, commit
+    - Code review, documentation update, commit, ROADMAP update
   - **Status:** 🚀 IN PROGRESS (2025-11-04) | **File:** [tasks/00019_custom_text_editor_control.md](tasks/00019_custom_text_editor_control.md)
   - **Note:** Custom control FROM SCRATCH (not wxRichTextCtrl-based) with 4 view modes planned (MVP: Full View only)
 - [x] **Task #00015:** wxRichTextCtrl Integration **❌ REJECTED**

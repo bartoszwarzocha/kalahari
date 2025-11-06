@@ -9,7 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Task #00019 - Custom Text Editor Control (MVP Phase 1) (2025-11-04)
+### Task #00019 - Custom Text Editor Control (MVP Phase 1) (2025-11-04 to 2025-11-06)
+
+#### Fixed (2025-11-06, Days 12-13)
+- **Word Count Observer Pattern Implementation** - Fixed non-functional word count in StatusBar
+  - **Root cause:** EditorPanel did NOT implement IDocumentObserver, was NOT registered as observer
+  - **Impact:** Timer created but never started, UpdateWordCount() never called, StatusBar always showed 0 words
+  - **Solution:** Complete Observer Pattern implementation with true debouncing
+  - **Architecture:**
+    - `EditorPanel` now inherits `IDocumentObserver` (4 callbacks: OnTextChanged, OnCursorMoved, OnSelectionChanged, OnFormatChanged)
+    - Observer lifecycle: AddObserver() in setupLayout/loadChapter, RemoveObserver() in destructor/loadChapter
+    - **True debouncing:** OnTextChanged() restarts wxTIMER_ONE_SHOT (500ms), timer triggers AFTER user stops typing
+    - UpdateWordCount() called ONLY in onWordCountTimer() (debounced) - O(n) word count only after 500ms idle
+  - **Bug fixes:**
+    - `m_isModified` now correctly set to `true` in OnTextChanged/OnFormatChanged (was never set!)
+    - `hasUnsavedChanges()` now works correctly
+  - **Edge cases handled:**
+    - loadChapter() with new document: Re-registers observer
+    - clearContent(): Document.Clear() triggers OnTextChanged()
+    - Destructor with active timer: RemoveObserver() → Stop() → delete (safe cleanup)
+    - Format-only changes: OnFormatChanged() restarts timer
+    - Cursor/selection moves: Ignored for optimization (no timer restart)
+  - **Testing:**
+    - ✅ Compiles: Release build successful (17s, zero warnings from our code)
+    - ✅ CI/CD: Linux (4m 6s), macOS (2m 37s), Windows (12m 2s) - ALL PASSING
+  - **Acceptance criteria fixed:**
+    - ✅ #33: Word count updates real-time (debounced 500ms)
+    - ✅ #34: Word count visible in StatusBar
+    - ✅ #35: BookElement metadata updated on save (getWordCount() now returns correct value)
+  - **Files:** `include/kalahari/gui/panels/editor_panel.h` (+35 LOC), `src/gui/panels/editor_panel.cpp` (+96 LOC)
+  - **Commit:** 21adfe6 "fix(gui): Implement Observer Pattern for word count with true debouncing"
 
 #### Added
 - **bwxTextDocument class** (~1,450 LOC) - Document model with Gap Buffer storage
@@ -64,14 +93,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `project_docs/README.md` - Updated to v1.4, added document #14 (bwx_sdk Patterns)
 
 #### Progress
-- **Days 1-10 of 15-day MVP complete (67%)**
+- **Days 1-12 of 15-day MVP complete (80%)**
   - ✅ Day 1-2: Document Model Foundation (Gap Buffer, text operations)
   - ✅ Day 3-4: Undo/Redo System (Command Pattern with merging)
   - ✅ Day 5-6: Formatting System (FormatRun vector)
   - ✅ Day 7-8: Full View Renderer (layout, rendering, hit testing)
   - ✅ Day 9-10: bwxTextEditor Main Control (event handling, caret, scrolling)
-  - ⏳ Day 11-12: File I/O & Integration (NEXT)
-  - ⏳ Day 13-15: Testing & Polish
+  - ✅ Day 11-12: Integration & Observer Pattern (EditorPanel, word count debouncing, MainWindow)
+  - ⏳ Day 13-15: Testing & Polish (NEXT)
 
 #### Build Status
 - ✅ **Linux VirtualBox:** SUCCESS (all files compile)
