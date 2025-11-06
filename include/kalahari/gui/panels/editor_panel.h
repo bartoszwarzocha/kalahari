@@ -26,11 +26,15 @@ namespace gui {
 /// Features:
 /// - Custom bwxTextEditor control (Full View mode)
 /// - Load/Save from .ktxt files (JSON format)
-/// - Real-time word count with 500ms debounce
+/// - Real-time word count with 500ms debounce (Observer Pattern)
 /// - Full formatting (Bold, Italic, Underline, Font, Color)
 /// - Undo/Redo support (Command pattern, 100 commands)
 /// - Clipboard operations (Copy, Cut, Paste)
-class EditorPanel : public wxPanel {
+///
+/// Implements IDocumentObserver to receive document change notifications
+/// for true debounced word count updates (500ms after last change).
+class EditorPanel : public wxPanel,
+                    public bwx_sdk::gui::IDocumentObserver {
 public:
     /// @brief Constructor
     /// @param parent Parent window (usually MainWindow)
@@ -122,6 +126,33 @@ public:
     /// @brief Set editor view mode
     /// @param mode View mode (Full/Page/Typewriter/Publisher)
     void setViewMode(bwx_sdk::gui::bwxTextEditor::ViewMode mode);
+
+    // ========================================================================
+    // IDocumentObserver Interface Implementation
+    // ========================================================================
+
+    /// @brief Called when document text changes
+    ///
+    /// Implements true debouncing: restarts 500ms timer on each change.
+    /// StatusBar updates only after user stops typing for 500ms.
+    /// Also sets m_isModified flag for unsaved changes tracking.
+    void OnTextChanged() override;
+
+    /// @brief Called when cursor position changes
+    ///
+    /// Ignored - cursor movement doesn't affect word count.
+    void OnCursorMoved() override;
+
+    /// @brief Called when text selection changes
+    ///
+    /// Ignored - selection doesn't affect word count.
+    void OnSelectionChanged() override;
+
+    /// @brief Called when text formatting changes
+    ///
+    /// Restarts word count timer (formatting changes like Clear Formatting
+    /// might affect text content, though rare).
+    void OnFormatChanged() override;
 
 private:
     // ========================================================================

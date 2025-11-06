@@ -29,6 +29,14 @@ EditorPanel::EditorPanel(wxWindow* parent)
 }
 
 EditorPanel::~EditorPanel() {
+    // CRITICAL: Unregister observer BEFORE destroying timer
+    // Prevents observer callbacks to destroyed object
+    if (m_textEditor) {
+        m_textEditor->GetDocument().RemoveObserver(this);
+        core::Logger::getInstance().debug("EditorPanel: Observer unregistered");
+    }
+
+    // Stop and destroy timer
     if (m_wordCountTimer) {
         m_wordCountTimer->Stop();
         delete m_wordCountTimer;
@@ -53,10 +61,16 @@ void EditorPanel::setupLayout() {
     sizer->Add(m_textEditor, 1, wxEXPAND, 0);
     SetSizer(sizer);
 
-    // Create word count timer (500ms debounce)
+    // CRITICAL: Register as document observer for word count updates
+    // This enables true debouncing via OnTextChanged() callback
+    m_textEditor->GetDocument().AddObserver(this);
+    core::Logger::getInstance().debug("EditorPanel: Registered as document observer");
+
+    // Create word count timer (ONE_SHOT for debouncing)
+    // Timer will be started by OnTextChanged(), not here
     m_wordCountTimer = new wxTimer(this, ID_WORDCOUNT_TIMER);
 
-    core::Logger::getInstance().info("Editor panel initialized (bwxTextEditor)");
+    core::Logger::getInstance().info("Editor panel initialized (bwxTextEditor + Observer)");
 }
 
 // ============================================================================
@@ -64,12 +78,26 @@ void EditorPanel::setupLayout() {
 // ============================================================================
 
 bool EditorPanel::loadChapter(const core::BookElement& element) {
+    // CRITICAL: Unregister from old document before loading new one
+    // This ensures observer is attached to correct document
+    if (m_textEditor && m_currentElement) {
+        m_textEditor->GetDocument().RemoveObserver(this);
+        core::Logger::getInstance().debug("loadChapter: Unregistered from old document");
+    }
+
     std::filesystem::path filePath = element.getFile();
 
     if (!std::filesystem::exists(filePath)) {
         // New chapter - clear editor
         clearContent();
         m_currentElement = const_cast<core::BookElement*>(&element);
+
+        // Register observer for new empty document
+        if (m_textEditor) {
+            m_textEditor->GetDocument().AddObserver(this);
+            core::Logger::getInstance().debug("loadChapter: Registered with new empty document");
+        }
+
         core::Logger::getInstance().info("New chapter '{}', editor cleared", element.getTitle());
         return true;
     }
@@ -92,6 +120,10 @@ bool EditorPanel::loadChapter(const core::BookElement& element) {
 
     m_currentElement = const_cast<core::BookElement*>(&element);
     m_isModified = false;
+
+    // Register observer with loaded document
+    m_textEditor->GetDocument().AddObserver(this);
+    core::Logger::getInstance().debug("loadChapter: Registered with loaded document");
 
     core::Logger::getInstance().info("Loaded chapter '{}' from {}",
         element.getTitle(), filePath.string());
@@ -175,7 +207,17 @@ bool EditorPanel::hasUnsavedChanges() const {
 // ============================================================================
 
 void EditorPanel::onWordCountTimer([[maybe_unused]] wxTimerEvent& event) {
-    // Update StatusBar with word count
+    if (!m_textEditor) {
+        return;
+    }
+
+    // CRITICAL: Update word count FIRST
+    // This is expensive (O(n) on text length) but debounced - only runs
+    // 500ms after user stops typing, so performance is acceptable
+    m_textEditor->GetDocument().UpdateWordCount();
+    core::Logger::getInstance().debug("onWordCountTimer: Word count updated");
+
+    // Get updated word count from document metadata
     int wordCount = getWordCount();
 
     // Find parent wxFrame (MainWindow) via wxWindow hierarchy
@@ -190,6 +232,7 @@ void EditorPanel::onWordCountTimer([[maybe_unused]] wxTimerEvent& event) {
             wxStatusBar* statusBar = frame->GetStatusBar();
             if (statusBar) {
                 statusBar->SetStatusText(wxString::Format("Words: %d", wordCount), 0);
+                core::Logger::getInstance().debug("StatusBar updated: {} words", wordCount);
             }
         }
     }
@@ -392,6 +435,53 @@ void EditorPanel::setViewMode(bwx_sdk::gui::bwxTextEditor::ViewMode mode) {
 
     m_textEditor->SetViewMode(mode);
     core::Logger::getInstance().info("Editor view mode changed to: {}", static_cast<int>(mode));
+}
+
+
+// ============================================================================
+// IDocumentObserver Implementation (Task #00019 Days 12-13)
+// ============================================================================
+
+void EditorPanel::OnTextChanged() {
+    // Implement TRUE DEBOUNCING:
+    // Restart timer on each text change - timer triggers 500ms AFTER last change
+    // Using wxTIMER_ONE_SHOT = timer triggers once, then stops automatically
+    // Each text change restarts the timer = perfect debouncing pattern!
+    if (m_wordCountTimer) {
+        m_wordCountTimer->Stop();
+        m_wordCountTimer->Start(500, wxTIMER_ONE_SHOT);
+    }
+
+    // CRITICAL: Mark content as modified
+    // Fixes hasUnsavedChanges() bug - was never set to true!
+    m_isModified = true;
+
+    core::Logger::getInstance().debug("OnTextChanged: Timer restarted (debouncing), modified flag set");
+}
+
+void EditorPanel::OnCursorMoved() {
+    // Cursor movement doesn't affect word count - ignore
+    // No timer restart needed (optimization)
+}
+
+void EditorPanel::OnSelectionChanged() {
+    // Selection change doesn't affect word count - ignore
+    // No timer restart needed (optimization)
+}
+
+void EditorPanel::OnFormatChanged() {
+    // Formatting changes MIGHT affect word count in edge cases
+    // (e.g., Clear Formatting could theoretically delete characters - unlikely but possible)
+    // Restart timer to be safe
+    if (m_wordCountTimer) {
+        m_wordCountTimer->Stop();
+        m_wordCountTimer->Start(500, wxTIMER_ONE_SHOT);
+    }
+
+    // Mark as modified
+    m_isModified = true;
+
+    core::Logger::getInstance().debug("OnFormatChanged: Timer restarted, modified flag set");
 }
 
 
