@@ -268,6 +268,12 @@ if ! dpkg -l | grep -q "^ii  autoconf-archive"; then
     install_package "autoconf-archive"
 fi
 
+# Check for python3-jinja2 (needed by meson for libsystemd build)
+if ! python3 -c "import jinja2" &> /dev/null; then
+    print_warning "python3-jinja2 not found - installing..."
+    install_package "python3-jinja2"
+fi
+
 # Special handling for ninja (executable name differs by distro)
 if ! command -v ninja &> /dev/null && ! command -v ninja-build &> /dev/null; then
     print_warning "Ninja build system not found - installing..."
