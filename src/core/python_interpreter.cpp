@@ -6,6 +6,7 @@
 #include <pybind11/embed.h>
 #include <stdexcept>
 #include <chrono>  // For finalization timing diagnostics
+#include <vector>  // For dist-packages paths
 
 #ifdef _WIN32
 #include <windows.h>  // GetModuleFileNameW
@@ -120,14 +121,22 @@ void PythonInterpreter::initialize() {
         PyWideStringList_Append(&config.module_search_paths, libWide);
         Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
 
-        // 2. site-packages (lib/python3.X/site-packages)
-        std::filesystem::path sitePackages = pythonLib / "site-packages";
-        if (std::filesystem::exists(sitePackages)) {
-            wchar_t* sitePackagesWide = Py_DecodeLocale(sitePackages.string().c_str(), nullptr);
-            if (sitePackagesWide) {
-                PyWideStringList_Append(&config.module_search_paths, sitePackagesWide);
-                Logger::getInstance().debug("Added to search path: {}", sitePackages.string());
-                PyMem_RawFree(sitePackagesWide);
+        // 2. site-packages or dist-packages (Debian uses dist-packages)
+        // Try both site-packages and dist-packages (Debian/Ubuntu convention)
+        std::vector<std::filesystem::path> packagePaths = {
+            pythonLib / "site-packages",           // Standard: lib/python3.X/site-packages
+            pythonLib.parent_path() / "python3" / "dist-packages",  // Debian: lib/python3/dist-packages
+            pythonHome / "local" / "lib" / pythonLib.filename() / "dist-packages"  // Debian local: /usr/local/lib/python3.X/dist-packages
+        };
+
+        for (const auto& pkgPath : packagePaths) {
+            if (std::filesystem::exists(pkgPath)) {
+                wchar_t* pkgPathWide = Py_DecodeLocale(pkgPath.string().c_str(), nullptr);
+                if (pkgPathWide) {
+                    PyWideStringList_Append(&config.module_search_paths, pkgPathWide);
+                    Logger::getInstance().debug("Added to search path: {}", pkgPath.string());
+                    PyMem_RawFree(pkgPathWide);
+                }
             }
         }
 
