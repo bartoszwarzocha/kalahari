@@ -79,8 +79,26 @@ void PythonInterpreter::initialize() {
         PyConfig_SetString(&config, &config.home, pythonHome.wstring().c_str());
 
         // Set module search paths explicitly
+        // CRITICAL: Python needs multiple paths for site module to work
         config.module_search_paths_set = 1;
+
+        // 1. Base stdlib (Lib)
         PyWideStringList_Append(&config.module_search_paths, pythonLib.wstring().c_str());
+        Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
+
+        // 2. site-packages (Lib/site-packages)
+        std::filesystem::path sitePackages = pythonLib / "site-packages";
+        if (std::filesystem::exists(sitePackages)) {
+            PyWideStringList_Append(&config.module_search_paths, sitePackages.wstring().c_str());
+            Logger::getInstance().debug("Added to search path: {}", sitePackages.string());
+        }
+
+        // 3. DLLs directory (Python home/DLLs)
+        std::filesystem::path dlls = pythonHome / "DLLs";
+        if (std::filesystem::exists(dlls)) {
+            PyWideStringList_Append(&config.module_search_paths, dlls.wstring().c_str());
+            Logger::getInstance().debug("Added to search path: {}", dlls.string());
+        }
 #else
         // Linux/macOS use UTF-8 → must convert to wchar_t* using Py_DecodeLocale
         wchar_t* homeWide = Py_DecodeLocale(pythonHome.string().c_str(), nullptr);
@@ -94,8 +112,35 @@ void PythonInterpreter::initialize() {
 
         PyConfig_SetString(&config, &config.home, homeWide);
 
+        // Set module search paths explicitly
+        // CRITICAL: Python needs multiple paths for site module to work
         config.module_search_paths_set = 1;
+
+        // 1. Base stdlib (lib/python3.X)
         PyWideStringList_Append(&config.module_search_paths, libWide);
+        Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
+
+        // 2. site-packages (lib/python3.X/site-packages)
+        std::filesystem::path sitePackages = pythonLib / "site-packages";
+        if (std::filesystem::exists(sitePackages)) {
+            wchar_t* sitePackagesWide = Py_DecodeLocale(sitePackages.string().c_str(), nullptr);
+            if (sitePackagesWide) {
+                PyWideStringList_Append(&config.module_search_paths, sitePackagesWide);
+                Logger::getInstance().debug("Added to search path: {}", sitePackages.string());
+                PyMem_RawFree(sitePackagesWide);
+            }
+        }
+
+        // 3. lib-dynload (lib/python3.X/lib-dynload)
+        std::filesystem::path libDynload = pythonLib / "lib-dynload";
+        if (std::filesystem::exists(libDynload)) {
+            wchar_t* libDynloadWide = Py_DecodeLocale(libDynload.string().c_str(), nullptr);
+            if (libDynloadWide) {
+                PyWideStringList_Append(&config.module_search_paths, libDynloadWide);
+                Logger::getInstance().debug("Added to search path: {}", libDynload.string());
+                PyMem_RawFree(libDynloadWide);
+            }
+        }
 
         // Clean up allocated wchar_t* (Python docs: must use PyMem_RawFree)
         PyMem_RawFree(homeWide);
