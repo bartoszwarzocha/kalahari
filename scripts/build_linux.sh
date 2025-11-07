@@ -380,6 +380,13 @@ fi
 # Force system binaries for VirtualBox (avoids cmake download issues)
 export VCPKG_FORCE_SYSTEM_BINARIES=1
 
+# Ensure vcpkg can find ninja (for sub-builds like Python3)
+if command -v ninja &> /dev/null; then
+    export CMAKE_MAKE_PROGRAM=$(command -v ninja)
+elif command -v ninja-build &> /dev/null; then
+    export CMAKE_MAKE_PROGRAM=$(command -v ninja-build)
+fi
+
 if ! cmake "${CMAKE_ARGS[@]}"; then
     print_error "CMake configuration failed"
     echo ""
