@@ -262,6 +262,12 @@ for tool in cmake g++ git pkg-config curl autoconf automake libtool m4; do
     fi
 done
 
+# Check for autoconf-archive (provides additional autoconf macros)
+if ! dpkg -l | grep -q "^ii  autoconf-archive"; then
+    print_warning "autoconf-archive not found - installing..."
+    install_package "autoconf-archive"
+fi
+
 # Special handling for ninja (executable name differs by distro)
 if ! command -v ninja &> /dev/null && ! command -v ninja-build &> /dev/null; then
     print_warning "Ninja build system not found - installing..."
