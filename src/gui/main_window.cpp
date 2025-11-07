@@ -1308,7 +1308,7 @@ void MainWindow::initializeAUI() {
     m_auiManager = new wxAuiManager(this, wxAUI_MGR_DEFAULT);
 
     // Create all 6 panels
-    m_navigatorPanel = new NavigatorPanel(this);
+    m_navigatorPanel = new NavigatorPanel(this, nullptr); // nullptr = no document loaded yet
     m_editorPanel = new EditorPanel(this);
     m_propertiesPanel = new PropertiesPanel(this);
     m_statisticsPanel = new StatisticsPanel(this);

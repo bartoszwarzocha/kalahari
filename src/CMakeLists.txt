@@ -97,6 +97,9 @@ set(KALAHARI_SOURCES
     gui/dialogs/about_dialog.cpp
     gui/dialogs/manage_perspectives_dialog.cpp
     gui/panels/navigator_panel.cpp
+    gui/panels/outline_tab.cpp
+    gui/panels/files_tab.cpp
+    gui/panels/libraries_tab.cpp
     gui/panels/editor_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/statistics_panel.cpp
