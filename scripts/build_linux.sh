@@ -253,7 +253,7 @@ install_package() {
 
 # Check essential tools
 # Note: tar, zip, unzip, wget, perl, python3 usually pre-installed on Ubuntu/Debian
-for tool in cmake g++ git pkg-config curl autoconf automake libtool m4; do
+for tool in cmake g++ git pkg-config curl autoconf automake libtool m4 bison flex; do
     if ! command -v $tool &> /dev/null; then
         case $tool in
             g++) install_package "build-essential" ;;
