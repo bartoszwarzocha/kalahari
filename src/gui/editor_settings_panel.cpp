@@ -90,8 +90,8 @@ void EditorSettingsPanel::createMarginsSection(wxSizer* parent) {
     description->SetFont(description->GetFont().MakeItalic());
     box->Add(description, 0, wxALL | wxEXPAND, 5);
 
-    // Grid for 4 margin spinners (2x2)
-    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 2, 5, 10);
+    // Grid for 4 margin spinners (4 rows × 2 cols = 8 slots)
+    wxFlexGridSizer* grid = new wxFlexGridSizer(4, 2, 5, 10);
     grid->AddGrowableCol(1, 1);
 
     // Left margin
