@@ -252,7 +252,7 @@ install_package() {
 }
 
 # Check essential tools (autotools removed - vcpkg installs them if needed)
-for tool in cmake g++ git pkg-config; do
+for tool in cmake g++ git pkg-config curl; do
     if ! command -v $tool &> /dev/null; then
         case $tool in
             g++) install_package "build-essential" ;;
