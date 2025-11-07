@@ -104,6 +104,45 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # =============================================================================
+# Auto-update check for shared folder scenarios
+# =============================================================================
+check_and_fix_git_permissions() {
+    # Check if we're in a shared folder with git permission issues
+    if ! git status &>/dev/null; then
+        if git status 2>&1 | grep -q "dubious ownership"; then
+            print_warning "Git ownership issue detected (shared folder)"
+            print_info "Auto-fixing: Adding safe.directory to git config..."
+            git config --global --add safe.directory "$PROJECT_ROOT"
+            print_success "Git configuration fixed"
+        fi
+
+        # Check if SSH is failing
+        if git remote -v 2>&1 | grep -q "git@github"; then
+            if ! ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+                print_warning "SSH authentication not configured in VM"
+                print_info "Switching to HTTPS for git operations..."
+                git remote set-url origin https://github.com/bartoszwarzocha/kalahari.git
+                print_success "Git remote switched to HTTPS"
+            fi
+        fi
+    fi
+}
+
+# Try to update script from git if we're in a shared folder
+if [[ "$PROJECT_ROOT" =~ ^/media/sf_ ]] || [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]] || [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
+    check_and_fix_git_permissions
+
+    # Try to pull latest changes (non-blocking)
+    print_info "Checking for script updates..."
+    if git pull --quiet 2>/dev/null; then
+        print_success "Build script updated to latest version"
+    else
+        print_warning "Could not auto-update (will use local version)"
+    fi
+    echo ""
+fi
+
+# =============================================================================
 # VirtualBox Detection & Auto-Setup
 # =============================================================================
 IS_VBOX=false
