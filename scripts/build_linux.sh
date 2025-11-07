@@ -251,8 +251,9 @@ install_package() {
     fi
 }
 
-# Check essential tools (autotools removed - vcpkg installs them if needed)
-for tool in cmake g++ git pkg-config curl; do
+# Check essential tools
+# Note: tar, zip, unzip, wget, perl, python3 usually pre-installed on Ubuntu/Debian
+for tool in cmake g++ git pkg-config curl autoconf automake libtool; do
     if ! command -v $tool &> /dev/null; then
         case $tool in
             g++) install_package "build-essential" ;;
