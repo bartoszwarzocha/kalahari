@@ -135,54 +135,73 @@ parse_arguments() {
 }
 
 # =============================================================================
+# Function: Install package via Homebrew
+# =============================================================================
+install_package() {
+    local package_name=$1
+
+    if ! command -v brew &> /dev/null; then
+        print_error "Homebrew not installed - cannot auto-install $package_name"
+        echo ""
+        echo "Install Homebrew first: https://brew.sh"
+        echo "Then run: brew install $package_name"
+        exit 1
+    fi
+
+    print_warning "$package_name not found - installing..."
+    if brew install "$package_name"; then
+        print_success "$package_name installed"
+    else
+        print_error "Failed to install $package_name"
+        exit 1
+    fi
+}
+
+# =============================================================================
 # Function: Check prerequisites
 # =============================================================================
 check_prerequisites() {
     print_info "Checking prerequisites..."
 
-    # Check Xcode Command Line Tools
+    # Check Xcode Command Line Tools (MANDATORY - cannot auto-install)
     if ! xcode-select -p &> /dev/null; then
         print_error "Xcode Command Line Tools not installed!"
         echo ""
         echo "Install with:"
         echo "  xcode-select --install"
+        echo ""
+        echo "After installation completes, run this script again."
         exit 1
     fi
 
-    # Check Homebrew
+    # Check Homebrew (MANDATORY for auto-install)
     if ! command -v brew &> /dev/null; then
-        print_warning "Homebrew not found (recommended but not required)"
-        echo "Install from: https://brew.sh"
-    fi
-
-    # Check CMake
-    if ! command -v cmake &> /dev/null; then
-        print_error "CMake not found!"
+        print_error "Homebrew not found!"
         echo ""
-        echo "Install CMake:"
-        echo "  brew install cmake"
+        echo "Install Homebrew from: https://brew.sh"
         echo ""
-        echo "Or download from: https://cmake.org/download/"
+        echo "Run this command:"
+        echo '  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        echo ""
+        echo "After installation, run this script again."
         exit 1
     fi
 
-    # Check Ninja (optional but recommended)
-    if ! command -v ninja &> /dev/null; then
-        print_warning "Ninja not found (using Unix Makefiles instead)"
-        echo "For faster builds, install: brew install ninja"
-        GENERATOR="Unix Makefiles"
-    else
-        GENERATOR="Ninja"
+    # Check essential build tools (auto-install if missing)
+    for tool in cmake git pkg-config curl autoconf automake libtool m4 bison flex ninja; do
+        if ! command -v $tool &> /dev/null; then
+            install_package "$tool"
+        fi
+    done
+
+    # Check autoconf-archive (provides additional autoconf macros)
+    if ! brew list autoconf-archive &> /dev/null; then
+        print_warning "autoconf-archive not found - installing..."
+        install_package "autoconf-archive"
     fi
 
-    # Check Git
-    if ! command -v git &> /dev/null; then
-        print_error "Git not found!"
-        echo "Install: brew install git"
-        exit 1
-    fi
-
-    print_success "Prerequisites OK (using $GENERATOR)"
+    GENERATOR="Ninja"
+    print_success "All prerequisites installed (using $GENERATOR)"
 }
 
 # =============================================================================
@@ -271,6 +290,11 @@ configure_cmake() {
 
     if [ "$VERBOSE" = true ]; then
         CMAKE_ARGS+=(-DCMAKE_VERBOSE_MAKEFILE=ON)
+    fi
+
+    # Ensure vcpkg can find ninja (for sub-builds like Python3, OpenSSL)
+    if command -v ninja &> /dev/null; then
+        export CMAKE_MAKE_PROGRAM=$(command -v ninja)
     fi
 
     if ! cmake "${CMAKE_ARGS[@]}"; then
