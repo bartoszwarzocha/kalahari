@@ -101,6 +101,16 @@ private:
     /// @param pos Mouse position
     void showContextMenu(wxTreeItemId item, const wxPoint& pos);
 
+    // ========================================================================
+    // Helper Methods (Phase 2)
+    // ========================================================================
+
+    /// @brief Find tree item by chapter/part/book ID (recursive)
+    /// @param parent Parent item to start search from
+    /// @param id ID to search for
+    /// @return Tree item if found, invalid wxTreeItemId otherwise
+    wxTreeItemId findItemById(wxTreeItemId parent, const std::string& id);
+
     wxDECLARE_EVENT_TABLE();
 };
 

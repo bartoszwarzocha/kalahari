@@ -1,21 +1,49 @@
 /// @file outline_tab.cpp
-/// @brief Implementation of OutlineTab (Task #00020)
+/// @brief Implementation of OutlineTab (Task #00020 Phase 2)
 
 #include "kalahari/gui/panels/outline_tab.h"
 #include <kalahari/core/logger.h>
+#include <kalahari/core/document.h>
+#include <kalahari/core/book.h>
+#include <kalahari/core/part.h>
+#include <kalahari/core/book_element.h>
+#include <wx/artprov.h>
 
 namespace kalahari {
 namespace gui {
+
+// ============================================================================
+// ChapterItemData - Store chapter ID in tree nodes
+// ============================================================================
+
+/// @brief Custom tree item data to store chapter/part/book IDs
+class ChapterItemData : public wxTreeItemData {
+public:
+    enum class NodeType {
+        Book,
+        Part,
+        Chapter
+    };
+
+    ChapterItemData(NodeType type, const std::string& id)
+        : m_type(type), m_id(id) {}
+
+    NodeType getType() const { return m_type; }
+    const std::string& getId() const { return m_id; }
+
+private:
+    NodeType m_type;
+    std::string m_id;
+};
 
 // ============================================================================
 // Event Table (Phase 2)
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(OutlineTab, wxPanel)
-    // Tree events (Phase 2)
-    // EVT_TREE_ITEM_ACTIVATED(wxID_ANY, OutlineTab::onTreeItemActivated)
-    // EVT_TREE_ITEM_RIGHT_CLICK(wxID_ANY, OutlineTab::onTreeItemRightClick)
-    // EVT_TREE_SEL_CHANGED(wxID_ANY, OutlineTab::onTreeSelectionChanged)
+    EVT_TREE_ITEM_ACTIVATED(wxID_ANY, OutlineTab::onTreeItemActivated)
+    EVT_TREE_ITEM_RIGHT_CLICK(wxID_ANY, OutlineTab::onTreeItemRightClick)
+    EVT_TREE_SEL_CHANGED(wxID_ANY, OutlineTab::onTreeSelectionChanged)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -25,44 +53,46 @@ wxEND_EVENT_TABLE()
 OutlineTab::OutlineTab(wxWindow* parent, core::Document* document)
     : wxPanel(parent), m_document(document)
 {
-    core::Logger::getInstance().debug("OutlineTab: Creating (Phase 1 placeholder)");
-
-    // Phase 1: Simple placeholder (like FilesTab/LibrariesTab)
-    // Phase 2: wxTreeCtrl with full functionality
-
-    // Gray background
-    SetBackgroundColour(wxColour(240, 240, 240));
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab: Creating (Phase 2 - Full wxTreeCtrl)");
 
     // Main sizer
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    // Placeholder text
-    m_placeholder = new wxStaticText(this, wxID_ANY,
-        "Outline\n\n"
-        "Book Structure Tree\n"
-        "(Book → Parts → Chapters)\n\n"
-        "Phase 2: Full wxTreeCtrl implementation\n"
-        "- Click chapter → load in editor\n"
-        "- Context menu CRUD operations\n"
-        "- Two-way sync with editor",
+    // Create wxTreeCtrl
+    m_tree = new wxTreeCtrl(this, wxID_ANY,
         wxDefaultPosition, wxDefaultSize,
-        wxALIGN_CENTRE_HORIZONTAL);
+        wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT | wxTR_SINGLE);
 
-    // Slightly larger font
-    wxFont font = m_placeholder->GetFont();
-    font.SetPointSize(font.GetPointSize() + 1);
-    m_placeholder->SetFont(font);
+    // Create image list (16x16 icons)
+    m_imageList = new wxImageList(16, 16);
 
-    // Gray text color
-    m_placeholder->SetForegroundColour(wxColour(128, 128, 128));
+    // Load icons from wxArtProvider (placeholders)
+    // Icon 0: Book (FILE_NEW placeholder, will be 'menu_book' later)
+    wxBitmap bookIcon = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_OTHER, wxSize(16, 16));
+    m_imageList->Add(bookIcon);
 
-    mainSizer->AddStretchSpacer(1);
-    mainSizer->Add(m_placeholder, 0, wxALIGN_CENTER | wxALL, 20);
-    mainSizer->AddStretchSpacer(1);
+    // Icon 1: Part (FOLDER - already correct)
+    wxBitmap partIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(16, 16));
+    m_imageList->Add(partIcon);
 
+    // Icon 2: Chapter (FILE_OPEN placeholder, will be 'description' later)
+    wxBitmap chapterIcon = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, wxSize(16, 16));
+    m_imageList->Add(chapterIcon);
+
+    // Assign image list to tree (tree takes ownership)
+    m_tree->AssignImageList(m_imageList);
+
+    // Add tree to sizer
+    mainSizer->Add(m_tree, 1, wxEXPAND);
     SetSizer(mainSizer);
 
-    core::Logger::getInstance().info("OutlineTab: Placeholder created (Phase 1)");
+    // Populate tree if document available
+    if (m_document) {
+        populateTree();
+    }
+
+    logger.info("OutlineTab: wxTreeCtrl created with 3 icon types");
 }
 
 // ============================================================================
@@ -72,49 +102,253 @@ OutlineTab::OutlineTab(wxWindow* parent, core::Document* document)
 OutlineTab::~OutlineTab()
 {
     core::Logger::getInstance().debug("OutlineTab: Destroying");
-    // Phase 2: Clean up m_imageList if allocated
+    // m_imageList is managed by wxTreeCtrl (AssignImageList), no manual cleanup needed
 }
 
 // ============================================================================
-// Public API (Phase 2 stubs)
+// Public API (Phase 2)
 // ============================================================================
 
 void OutlineTab::populateTree()
 {
-    // Phase 2: Populate wxTreeCtrl from m_document
-    core::Logger::getInstance().debug("OutlineTab::populateTree() - Phase 2 stub");
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::populateTree() - Building tree from Document");
+
+    if (!m_tree) {
+        logger.error("OutlineTab::populateTree() - m_tree is nullptr!");
+        return;
+    }
+
+    // Clear existing tree
+    m_tree->DeleteAllItems();
+
+    if (!m_document) {
+        logger.debug("OutlineTab::populateTree() - No document, tree cleared");
+        return;
+    }
+
+    const core::Book& book = m_document->getBook();
+
+    // Add hidden root
+    wxTreeItemId hiddenRoot = m_tree->AddRoot("Root");
+
+    // Add Book node (visible root)
+    wxTreeItemId bookItem = m_tree->AppendItem(
+        hiddenRoot,
+        m_document->getTitle(),
+        0, // Icon 0 = Book
+        -1,
+        new ChapterItemData(ChapterItemData::NodeType::Book, m_document->getId())
+    );
+
+    // Add Front Matter
+    auto& frontMatter = book.getFrontMatter();
+    if (!frontMatter.empty()) {
+        wxTreeItemId frontItem = m_tree->AppendItem(
+            bookItem,
+            "Front Matter",
+            1, // Icon 1 = Part
+            -1,
+            new ChapterItemData(ChapterItemData::NodeType::Part, "frontMatter")
+        );
+
+        for (const auto& element : frontMatter) {
+            m_tree->AppendItem(
+                frontItem,
+                element->getTitle(),
+                2, // Icon 2 = Chapter
+                -1,
+                new ChapterItemData(ChapterItemData::NodeType::Chapter, element->getId())
+            );
+        }
+    }
+
+    // Add Body (Parts → Chapters)
+    auto& body = book.getBody();
+    for (const auto& part : body) {
+        wxTreeItemId partItem = m_tree->AppendItem(
+            bookItem,
+            part->getTitle(),
+            1, // Icon 1 = Part
+            -1,
+            new ChapterItemData(ChapterItemData::NodeType::Part, part->getId())
+        );
+
+        for (const auto& chapter : part->getChapters()) {
+            m_tree->AppendItem(
+                partItem,
+                chapter->getTitle(),
+                2, // Icon 2 = Chapter
+                -1,
+                new ChapterItemData(ChapterItemData::NodeType::Chapter, chapter->getId())
+            );
+        }
+
+        // Expand part by default
+        m_tree->Expand(partItem);
+    }
+
+    // Add Back Matter
+    auto& backMatter = book.getBackMatter();
+    if (!backMatter.empty()) {
+        wxTreeItemId backItem = m_tree->AppendItem(
+            bookItem,
+            "Back Matter",
+            1, // Icon 1 = Part
+            -1,
+            new ChapterItemData(ChapterItemData::NodeType::Part, "backMatter")
+        );
+
+        for (const auto& element : backMatter) {
+            m_tree->AppendItem(
+                backItem,
+                element->getTitle(),
+                2, // Icon 2 = Chapter
+                -1,
+                new ChapterItemData(ChapterItemData::NodeType::Chapter, element->getId())
+            );
+        }
+    }
+
+    // Expand book node
+    m_tree->Expand(bookItem);
+
+    logger.info("OutlineTab::populateTree() - Tree populated with {} parts",
+        body.size() + (frontMatter.empty() ? 0 : 1) + (backMatter.empty() ? 0 : 1));
 }
 
 void OutlineTab::selectChapter(const std::string& chapterId)
 {
-    // Phase 2: Find tree item by chapter ID and select
-    core::Logger::getInstance().debug("OutlineTab::selectChapter({}) - Phase 2 stub", chapterId);
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::selectChapter({})", chapterId);
+
+    if (!m_tree) {
+        logger.error("OutlineTab::selectChapter() - m_tree is nullptr!");
+        return;
+    }
+
+    // Find tree item by chapter ID (recursive search)
+    wxTreeItemId found = findItemById(m_tree->GetRootItem(), chapterId);
+
+    if (found.IsOk()) {
+        m_tree->SelectItem(found);
+        m_tree->EnsureVisible(found);
+        logger.debug("OutlineTab::selectChapter() - Chapter {} selected", chapterId);
+    } else {
+        logger.warn("OutlineTab::selectChapter() - Chapter {} not found", chapterId);
+    }
 }
 
 void OutlineTab::setDocument(core::Document* document)
 {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::setDocument() - New document: {}",
+        document ? document->getTitle() : "nullptr");
+
     m_document = document;
-    // Phase 2: Call populateTree()
-    core::Logger::getInstance().debug("OutlineTab::setDocument() - Phase 2 stub");
+    populateTree();
 }
 
 // ============================================================================
-// Event Handlers (Phase 2 stubs)
+// Helper Methods
 // ============================================================================
 
-void OutlineTab::onTreeItemActivated([[maybe_unused]] wxTreeEvent& event)
+wxTreeItemId OutlineTab::findItemById(wxTreeItemId parent, const std::string& id)
 {
-    // Phase 2: Load chapter in EditorPanel
+    if (!parent.IsOk()) {
+        return wxTreeItemId();
+    }
+
+    // Check current item
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(parent));
+    if (data && data->getId() == id) {
+        return parent;
+    }
+
+    // Recursively search children
+    wxTreeItemIdValue cookie;
+    wxTreeItemId child = m_tree->GetFirstChild(parent, cookie);
+    while (child.IsOk()) {
+        wxTreeItemId found = findItemById(child, id);
+        if (found.IsOk()) {
+            return found;
+        }
+        child = m_tree->GetNextChild(parent, cookie);
+    }
+
+    return wxTreeItemId(); // Not found
 }
 
-void OutlineTab::onTreeItemRightClick([[maybe_unused]] wxTreeEvent& event)
+// ============================================================================
+// Event Handlers (Phase 3)
+// ============================================================================
+
+void OutlineTab::onTreeItemActivated(wxTreeEvent& event)
 {
-    // Phase 2: Show context menu
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onTreeItemActivated() - Double-click");
+
+    wxTreeItemId item = event.GetItem();
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(item));
+
+    if (!data) {
+        logger.warn("OutlineTab::onTreeItemActivated() - No data attached to item");
+        return;
+    }
+
+    // Only handle Chapter nodes
+    if (data->getType() == ChapterItemData::NodeType::Chapter) {
+        logger.info("OutlineTab::onTreeItemActivated() - Chapter {} activated", data->getId());
+
+        // TODO Phase 3.2: Notify MainWindow to load chapter in EditorPanel
+        // wxCommandEvent evt(wxEVT_KALAHARI_LOAD_CHAPTER);
+        // evt.SetString(data->getId());
+        // wxPostEvent(GetParent(), evt);
+    }
 }
 
-void OutlineTab::onTreeSelectionChanged([[maybe_unused]] wxTreeEvent& event)
+void OutlineTab::onTreeItemRightClick(wxTreeEvent& event)
 {
-    // Phase 2: Update EditorPanel
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onTreeItemRightClick() - Right-click");
+
+    wxTreeItemId item = event.GetItem();
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(item));
+
+    if (!data) {
+        logger.warn("OutlineTab::onTreeItemRightClick() - No data attached to item");
+        return;
+    }
+
+    // Phase 4: Show context menu based on node type
+    // showContextMenu(item, event.GetPoint());
+
+    logger.debug("OutlineTab::onTreeItemRightClick() - Node type: {}, ID: {}",
+        static_cast<int>(data->getType()), data->getId());
+}
+
+void OutlineTab::onTreeSelectionChanged(wxTreeEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onTreeSelectionChanged() - Selection changed");
+
+    wxTreeItemId item = event.GetItem();
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(item));
+
+    if (!data) {
+        logger.warn("OutlineTab::onTreeSelectionChanged() - No data attached to item");
+        return;
+    }
+
+    // Only handle Chapter nodes
+    if (data->getType() == ChapterItemData::NodeType::Chapter) {
+        logger.info("OutlineTab::onTreeSelectionChanged() - Chapter {} selected", data->getId());
+
+        // TODO Phase 3.2: Notify MainWindow to load chapter in EditorPanel
+        // wxCommandEvent evt(wxEVT_KALAHARI_LOAD_CHAPTER);
+        // evt.SetString(data->getId());
+        // wxPostEvent(GetParent()->GetParent(), evt); // NavigatorPanel -> MainWindow
+    }
 }
 
 void OutlineTab::onAddChapter([[maybe_unused]] wxCommandEvent& event)
