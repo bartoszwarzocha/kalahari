@@ -16,6 +16,12 @@
 #include <algorithm>
 
 namespace kalahari {
+
+// Forward declarations (core)
+namespace core {
+    class Document;
+}
+
 namespace gui {
 
 // Forward declarations
@@ -121,6 +127,13 @@ private:
 
     /// @brief Mapping from menu ID to custom perspective name
     std::map<int, std::string> m_customPerspectiveNames;
+
+    // ========================================================================
+    // Document Model (Task #00020 - Testing)
+    // ========================================================================
+
+    /// @brief Current document (sample for testing OutlineTab)
+    std::unique_ptr<core::Document> m_document = nullptr;
 
     // ========================================================================
     // Threading Infrastructure (Phase 0 Week 2)
@@ -357,6 +370,9 @@ private:
     /// - Pane 1: Cursor position ("Line X, Col Y")
     /// - Pane 2: Session time or other info
     void createStatusBar();
+
+    /// @brief Create sample document for testing (Task #00020)
+    void createSampleDocument();
 
     /// @brief Setup main content panel
     ///

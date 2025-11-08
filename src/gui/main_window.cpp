@@ -17,6 +17,10 @@
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/diagnostic_manager.h>
 #include <kalahari/core/plugin_manager.h>
+#include <kalahari/core/document.h>
+#include <kalahari/core/book.h>
+#include <kalahari/core/part.h>
+#include <kalahari/core/book_element.h>
 #include <kalahari/gui/icon_registry.h>
 #include <kalahari/gui/art_provider.h>
 #include <kalahari/resources/icons_material.h>
@@ -1307,8 +1311,11 @@ void MainWindow::initializeAUI() {
     // Create wxAuiManager
     m_auiManager = new wxAuiManager(this, wxAUI_MGR_DEFAULT);
 
+    // Create sample document for testing (Task #00020)
+    createSampleDocument();
+
     // Create all 6 panels
-    m_navigatorPanel = new NavigatorPanel(this, nullptr); // nullptr = no document loaded yet
+    m_navigatorPanel = new NavigatorPanel(this, m_document.get());
     m_editorPanel = new EditorPanel(this);
     m_propertiesPanel = new PropertiesPanel(this);
     m_statisticsPanel = new StatisticsPanel(this);
@@ -1752,6 +1759,90 @@ void MainWindow::refreshPerspectivesMenu() {
 
         core::Logger::getInstance().debug("Added {} custom perspectives to menu", customPerspectives.size());
     }
+}
+
+// ============================================================================
+// Sample Document Creation (Task #00020 - Testing)
+// ============================================================================
+
+void MainWindow::createSampleDocument()
+{
+    auto& logger = core::Logger::getInstance();
+    logger.info("Creating sample document for OutlineTab testing...");
+
+    // Create document
+    m_document = std::make_unique<core::Document>(
+        "My Epic Novel",
+        "Jane Doe",
+        "en"
+    );
+
+    core::Book& book = m_document->getBook();
+
+    // Front Matter
+    auto prologue = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Prologue", ""
+    );
+    prologue->setWordCount(450);
+    book.addFrontMatter(prologue);
+
+    // Body - Part I
+    auto part1 = std::make_shared<core::Part>(
+        core::Document::generateId(),
+        "Part I: The Beginning"
+    );
+
+    auto ch1 = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Chapter 1: The Awakening", ""
+    );
+    ch1->setWordCount(2500);
+    part1->addChapter(ch1);
+
+    auto ch2 = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Chapter 2: First Steps", ""
+    );
+    ch2->setWordCount(2800);
+    part1->addChapter(ch2);
+
+    auto ch3 = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Chapter 3: The Discovery", ""
+    );
+    ch3->setWordCount(3100);
+    part1->addChapter(ch3);
+
+    book.addPart(part1);
+
+    // Body - Part II
+    auto part2 = std::make_shared<core::Part>(
+        core::Document::generateId(),
+        "Part II: The Journey"
+    );
+
+    auto ch4 = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Chapter 4: On the Road", ""
+    );
+    ch4->setWordCount(2700);
+    part2->addChapter(ch4);
+
+    auto ch5 = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Chapter 5: Trials and Tribulations", ""
+    );
+    ch5->setWordCount(3300);
+    part2->addChapter(ch5);
+
+    book.addPart(part2);
+
+    // Back Matter
+    auto epilogue = std::make_shared<core::BookElement>(
+        "chapter", core::Document::generateId(), "Epilogue", ""
+    );
+    epilogue->setWordCount(800);
+    book.addBackMatter(epilogue);
+
+    logger.info("Sample document created: '{}' with {} chapters, {} words total",
+        m_document->getTitle(),
+        book.getChapterCount(),
+        book.getWordCount());
 }
 
 } // namespace gui
