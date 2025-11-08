@@ -5,8 +5,9 @@
 #include <kalahari/core/logger.h>
 #include <pybind11/embed.h>
 #include <stdexcept>
-#include <chrono>  // For finalization timing diagnostics
-#include <vector>  // For dist-packages paths
+#include <chrono>    // For finalization timing diagnostics
+#include <vector>    // For dist-packages paths
+#include <algorithm> // For std::remove (pythonXX.zip path processing)
 
 #ifdef _WIN32
 #include <windows.h>  // GetModuleFileNameW
@@ -117,11 +118,28 @@ void PythonInterpreter::initialize() {
         // CRITICAL: Python needs multiple paths for site module to work
         config.module_search_paths_set = 1;
 
-        // 1. Base stdlib (lib/python3.X)
+        // 1. Python ZIP archive (pythonXX.zip) - contains compiled stdlib modules
+        // This path MUST be in sys.path even if file doesn't exist (Python standard)
+        std::string pythonVersion = pythonLib.filename().string(); // e.g., "python3.13"
+        std::string zipName = pythonVersion;
+        // Remove dots: python3.13 → python313
+        zipName.erase(std::remove(zipName.begin(), zipName.end(), '.'), zipName.end());
+        std::filesystem::path pythonZip = pythonLib.parent_path() / (zipName + ".zip");
+
+        wchar_t* zipWide = Py_DecodeLocale(pythonZip.string().c_str(), nullptr);
+        if (zipWide) {
+            PyWideStringList_Append(&config.module_search_paths, zipWide);
+            Logger::getInstance().debug("Added to search path: {} {}",
+                pythonZip.string(),
+                std::filesystem::exists(pythonZip) ? "(exists)" : "(virtual path)");
+            PyMem_RawFree(zipWide);
+        }
+
+        // 2. Base stdlib (lib/python3.X)
         PyWideStringList_Append(&config.module_search_paths, libWide);
         Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
 
-        // 2. site-packages or dist-packages (Debian uses dist-packages)
+        // 3. site-packages or dist-packages (Debian uses dist-packages)
         // Try both site-packages and dist-packages (Debian/Ubuntu convention)
         std::vector<std::filesystem::path> packagePaths = {
             pythonLib / "site-packages",           // Standard: lib/python3.X/site-packages
@@ -140,7 +158,7 @@ void PythonInterpreter::initialize() {
             }
         }
 
-        // 3. lib-dynload (lib/python3.X/lib-dynload)
+        // 4. lib-dynload (lib/python3.X/lib-dynload)
         std::filesystem::path libDynload = pythonLib / "lib-dynload";
         if (std::filesystem::exists(libDynload)) {
             wchar_t* libDynloadWide = Py_DecodeLocale(libDynload.string().c_str(), nullptr);
