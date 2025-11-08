@@ -74,7 +74,8 @@ private:
     // Data
     // ========================================================================
 
-    core::Document* m_document = nullptr;   ///< Current document
+    core::Document* m_document = nullptr;        ///< Current document
+    wxTreeItemId m_contextMenuItem;              ///< Item for context menu operations
 
     // ========================================================================
     // Event Handlers (Phase 2)

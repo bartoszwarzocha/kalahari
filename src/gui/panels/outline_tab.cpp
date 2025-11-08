@@ -320,11 +320,11 @@ void OutlineTab::onTreeItemRightClick(wxTreeEvent& event)
         return;
     }
 
-    // Phase 4: Show context menu based on node type
-    // showContextMenu(item, event.GetPoint());
-
     logger.debug("OutlineTab::onTreeItemRightClick() - Node type: {}, ID: {}",
         static_cast<int>(data->getType()), data->getId());
+
+    // Phase 4: Show context menu
+    showContextMenu(item, event.GetPoint());
 }
 
 void OutlineTab::onTreeSelectionChanged(wxTreeEvent& event)
@@ -351,34 +351,298 @@ void OutlineTab::onTreeSelectionChanged(wxTreeEvent& event)
     }
 }
 
+// ============================================================================
+// Context Menu Handlers (Phase 4)
+// ============================================================================
+
+enum {
+    ID_ADD_CHAPTER = wxID_HIGHEST + 1000,
+    ID_RENAME_BOOK,
+    ID_RENAME_PART,
+    ID_RENAME_CHAPTER,
+    ID_DELETE_PART,
+    ID_DELETE_CHAPTER,
+    ID_MOVE_CHAPTER_UP,
+    ID_MOVE_CHAPTER_DOWN,
+    ID_ADD_PART
+};
+
+void OutlineTab::showContextMenu(wxTreeItemId item, const wxPoint& pos)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::showContextMenu()");
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(item));
+    if (!data) {
+        logger.warn("OutlineTab::showContextMenu() - No data attached to item");
+        return;
+    }
+
+    wxMenu menu;
+
+    switch (data->getType()) {
+        case ChapterItemData::NodeType::Book:
+            // Book node context menu
+            menu.Append(ID_RENAME_BOOK, "Rename Book");
+            menu.AppendSeparator();
+            menu.Append(ID_ADD_PART, "Add Part");
+            break;
+
+        case ChapterItemData::NodeType::Part:
+            // Part node context menu
+            menu.Append(ID_ADD_CHAPTER, "Add Chapter");
+            menu.AppendSeparator();
+            menu.Append(ID_RENAME_PART, "Rename Part");
+            if (data->getId() != "frontMatter" && data->getId() != "backMatter") {
+                // Only allow deleting custom parts, not front/back matter
+                menu.Append(ID_DELETE_PART, "Delete Part");
+            }
+            break;
+
+        case ChapterItemData::NodeType::Chapter:
+            // Chapter node context menu
+            menu.Append(ID_RENAME_CHAPTER, "Rename Chapter");
+            menu.Append(ID_DELETE_CHAPTER, "Delete Chapter");
+            menu.AppendSeparator();
+            menu.Append(ID_MOVE_CHAPTER_UP, "Move Up");
+            menu.Append(ID_MOVE_CHAPTER_DOWN, "Move Down");
+            break;
+    }
+
+    // Store current item for event handlers
+    m_contextMenuItem = item;
+
+    // Bind events
+    menu.Bind(wxEVT_MENU, &OutlineTab::onAddChapter, this, ID_ADD_CHAPTER);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onRenameChapter, this, ID_RENAME_CHAPTER);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onDeleteChapter, this, ID_DELETE_CHAPTER);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onMoveChapterUp, this, ID_MOVE_CHAPTER_UP);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onMoveChapterDown, this, ID_MOVE_CHAPTER_DOWN);
+
+    // Show menu
+    PopupMenu(&menu, pos);
+}
+
 void OutlineTab::onAddChapter([[maybe_unused]] wxCommandEvent& event)
 {
-    // Phase 2: Add chapter dialog
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onAddChapter()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onAddChapter() - No document or context item");
+        return;
+    }
+
+    // Get part data
+    ChapterItemData* partData = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!partData || partData->getType() != ChapterItemData::NodeType::Part) {
+        logger.error("OutlineTab::onAddChapter() - Context item is not a Part");
+        return;
+    }
+
+    // Show dialog to get chapter name
+    wxTextEntryDialog dialog(this, "Enter chapter name:", "Add Chapter", "New Chapter");
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString chapterName = dialog.GetValue().Trim();
+    if (chapterName.IsEmpty()) {
+        wxMessageBox("Chapter name cannot be empty", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    // Create new chapter
+    std::string chapterId = core::Document::generateId();
+    auto chapter = std::make_shared<core::BookElement>(
+        "chapter",
+        chapterId,
+        chapterName.ToStdString(),
+        ""
+    );
+
+    // Add to document
+    std::string partId = partData->getId();
+    if (partId == "frontMatter") {
+        m_document->getBook().addFrontMatter(chapter);
+    } else if (partId == "backMatter") {
+        m_document->getBook().addBackMatter(chapter);
+    } else {
+        // Find part in body
+        for (auto& part : m_document->getBook().getBody()) {
+            if (part->getId() == partId) {
+                part->addChapter(chapter);
+                break;
+            }
+        }
+    }
+
+    // Update tree
+    m_tree->AppendItem(m_contextMenuItem, chapterName, 2, -1,
+        new ChapterItemData(ChapterItemData::NodeType::Chapter, chapterId));
+
+    m_document->touch();
+    logger.info("OutlineTab::onAddChapter() - Added chapter: {}", chapterName.ToStdString());
 }
 
 void OutlineTab::onRenameChapter([[maybe_unused]] wxCommandEvent& event)
 {
-    // Phase 2: Rename chapter dialog
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onRenameChapter()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onRenameChapter() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Chapter) {
+        logger.error("OutlineTab::onRenameChapter() - Context item is not a Chapter");
+        return;
+    }
+
+    // Get current name
+    wxString currentName = m_tree->GetItemText(m_contextMenuItem);
+
+    // Show dialog
+    wxTextEntryDialog dialog(this, "Enter new chapter name:", "Rename Chapter", currentName);
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString newName = dialog.GetValue().Trim();
+    if (newName.IsEmpty()) {
+        wxMessageBox("Chapter name cannot be empty", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    if (newName == currentName) {
+        return; // No change
+    }
+
+    // Find chapter in document and rename
+    std::string chapterId = data->getId();
+    bool found = false;
+
+    // Search in frontMatter
+    for (auto& element : m_document->getBook().getFrontMatter()) {
+        if (element->getId() == chapterId) {
+            element->setTitle(newName.ToStdString());
+            found = true;
+            break;
+        }
+    }
+
+    // Search in body
+    if (!found) {
+        for (auto& part : m_document->getBook().getBody()) {
+            auto chapter = part->getChapter(chapterId);
+            if (chapter) {
+                chapter->setTitle(newName.ToStdString());
+                found = true;
+                break;
+            }
+        }
+    }
+
+    // Search in backMatter
+    if (!found) {
+        for (auto& element : m_document->getBook().getBackMatter()) {
+            if (element->getId() == chapterId) {
+                element->setTitle(newName.ToStdString());
+                found = true;
+                break;
+            }
+        }
+    }
+
+    if (found) {
+        m_tree->SetItemText(m_contextMenuItem, newName);
+        m_document->touch();
+        logger.info("OutlineTab::onRenameChapter() - Renamed to: {}", newName.ToStdString());
+    } else {
+        logger.error("OutlineTab::onRenameChapter() - Chapter not found: {}", chapterId);
+    }
 }
 
 void OutlineTab::onDeleteChapter([[maybe_unused]] wxCommandEvent& event)
 {
-    // Phase 2: Delete chapter with confirmation
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onDeleteChapter()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onDeleteChapter() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Chapter) {
+        logger.error("OutlineTab::onDeleteChapter() - Context item is not a Chapter");
+        return;
+    }
+
+    // Confirmation dialog
+    wxString chapterName = m_tree->GetItemText(m_contextMenuItem);
+    int result = wxMessageBox(
+        wxString::Format("Delete chapter \"%s\"?\n\nThis action cannot be undone.", chapterName),
+        "Confirm Delete",
+        wxYES_NO | wxICON_WARNING,
+        this
+    );
+
+    if (result != wxYES) {
+        return;
+    }
+
+    // Remove from document
+    std::string chapterId = data->getId();
+    bool removed = false;
+
+    // Try frontMatter
+    if (m_document->getBook().removeFrontMatter(chapterId)) {
+        removed = true;
+    }
+
+    // Try body
+    if (!removed) {
+        for (auto& part : m_document->getBook().getBody()) {
+            if (part->removeChapter(chapterId)) {
+                removed = true;
+                break;
+            }
+        }
+    }
+
+    // Try backMatter
+    if (!removed) {
+        removed = m_document->getBook().removeBackMatter(chapterId);
+    }
+
+    if (removed) {
+        m_tree->Delete(m_contextMenuItem);
+        m_document->touch();
+        logger.info("OutlineTab::onDeleteChapter() - Deleted chapter: {}", chapterName.ToStdString());
+    } else {
+        logger.error("OutlineTab::onDeleteChapter() - Chapter not found: {}", chapterId);
+    }
 }
 
 void OutlineTab::onMoveChapterUp([[maybe_unused]] wxCommandEvent& event)
 {
-    // Phase 2: Move chapter up in tree
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onMoveChapterUp() - Phase 4 stub (TODO: implement)");
+
+    // TODO: Find chapter index, call Part::moveChapter(index, index-1), refresh tree
+    wxMessageBox("Move Up not yet implemented (Phase 4 TODO)", "Info", wxOK | wxICON_INFORMATION, this);
 }
 
 void OutlineTab::onMoveChapterDown([[maybe_unused]] wxCommandEvent& event)
 {
-    // Phase 2: Move chapter down in tree
-}
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onMoveChapterDown() - Phase 4 stub (TODO: implement)");
 
-void OutlineTab::showContextMenu([[maybe_unused]] wxTreeItemId item, [[maybe_unused]] const wxPoint& pos)
-{
-    // Phase 2: Create and show context menu
+    // TODO: Find chapter index, call Part::moveChapter(index, index+1), refresh tree
+    wxMessageBox("Move Down not yet implemented (Phase 4 TODO)", "Info", wxOK | wxICON_INFORMATION, this);
 }
 
 } // namespace gui
