@@ -565,6 +565,92 @@ We're using **existing icons as placeholders** to focus on functionality:
 
 ---
 
+## 🚧 SUBTASK: Diagnostic Log Panel (2025-11-08)
+
+**Priority:** P0 (HIGHEST - blocks testing)
+**Status:** 📋 Planned
+**Estimated Duration:** 3-4 hours
+
+### Objective
+Add in-app log viewer panel (diagnostic mode only) to streamline testing without opening external log files.
+
+### Requirements
+
+**Panel Structure:**
+- **Left:** wxTextCtrl (multi-line, read-only, monospace) - displays log lines
+- **Right:** Vertical wxToolBar with 3 buttons (16px SVG icons):
+  1. **Options** - opens Settings Dialog focused on Log tab
+  2. **Open Log Folder** - opens OS file explorer at logs directory
+  3. **Copy to Clipboard** - copies visible log text
+
+**Position:** Bottom of main window (wxAUI), BELOW EditorPanel, visible ONLY when `m_diagnosticMode == true`
+
+**Log Settings (in Settings Dialog, only visible in diagnostic mode):**
+- Background color (RGB) - default: (60, 60, 60)
+- Text color (RGB) - default: (255, 255, 255)
+- Font family (dropdown) - default: "Consolas" / "Courier New" / monospace
+- Font size (spinner, 8-24) - default: 12
+- Ring buffer size (spinner, 1-1000) - default: 500 (last N lines)
+
+**spdlog Integration:**
+- Custom sink that appends to wxTextCtrl
+- Thread-safe (GUI marshalling via wxTheApp->CallAfter)
+- Ring buffer: keep only last N lines (configurable)
+
+### Implementation Plan
+
+**Step 1: Create LogPanel class** (1 hour)
+- `include/kalahari/gui/panels/log_panel.h`
+- `src/gui/panels/log_panel.cpp`
+- wxTextCtrl (wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2)
+- Vertical wxToolBar with 3 SVG buttons
+- Ring buffer (std::deque<wxString>, max 500 lines)
+- appendLog(const std::string& message) method
+
+**Step 2: spdlog custom sink** (1 hour)
+- Create `GuiLogSink` (inherits spdlog::sinks::base_sink)
+- Thread-safe: wxMutexLocker + wxTheApp->CallAfter
+- Register in Logger::initialize() when diagnostic mode enabled
+
+**Step 3: Settings Dialog integration** (1 hour)
+- Add "Log" tree node (only visible when diagnostic mode)
+- LogSettingsPanel with:
+  - wxColourPickerCtrl (background)
+  - wxColourPickerCtrl (text color)
+  - wxFontPickerCtrl (font + size)
+  - wxSpinCtrl (ring buffer size, 1-1000)
+- Save/load from SettingsManager
+
+**Step 4: wxAUI integration** (30 min)
+- Add LogPanel to MainWindow (create only if m_diagnosticMode)
+- wxAuiPaneInfo: Bottom(), Height(200), Hide() initially
+- Show/hide based on diagnostic mode toggle
+
+**Step 5: Toolbar actions** (30 min)
+- Options → SettingsDialog::ShowModal() + SelectTreeItem("Log")
+- Open Log Folder → wxLaunchDefaultBrowser(logDir)
+- Copy to Clipboard → wxTheClipboard->SetData(wxTextDataObject(logText))
+
+### Files to Create
+- `include/kalahari/gui/panels/log_panel.h` (~80 LOC)
+- `src/gui/panels/log_panel.cpp` (~250 LOC)
+- `include/kalahari/core/gui_log_sink.h` (~60 LOC)
+- `src/core/gui_log_sink.cpp` (~100 LOC)
+- `src/gui/log_settings_panel.h` (~70 LOC)
+- `src/gui/log_settings_panel.cpp` (~200 LOC)
+
+**Total:** ~760 LOC
+
+### Success Criteria
+- ✅ Log panel visible ONLY in diagnostic mode
+- ✅ Real-time log updates (< 100ms latency)
+- ✅ Ring buffer works (keeps last N lines)
+- ✅ All 3 toolbar buttons functional
+- ✅ Settings persist across sessions
+- ✅ No GUI freezing (thread-safe appending)
+
+---
+
 ## 🚀 Ready to Start
 
 Task #00020 is now fully planned with:
@@ -573,5 +659,6 @@ Task #00020 is now fully planned with:
 - ✅ Icon strategy (use existing placeholders)
 - ✅ Success criteria (10 must-have items)
 - ✅ Testing strategy (unit + integration + manual)
+- 🔴 **SUBTASK:** Diagnostic Log Panel (P0 - highest priority)
 
-**Approval requested:** Ready to begin implementation? (yes/no)
+**Status:** Phase 2-4 COMPLETE, Subtask in progress

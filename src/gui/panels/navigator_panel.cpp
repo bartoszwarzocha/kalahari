@@ -5,6 +5,7 @@
 #include "kalahari/gui/panels/outline_tab.h"
 #include "kalahari/gui/panels/files_tab.h"
 #include "kalahari/gui/panels/libraries_tab.h"
+#include "kalahari/gui/icon_registry.h"
 #include <kalahari/core/logger.h>
 #include <wx/artprov.h>
 
@@ -137,31 +138,29 @@ void NavigatorPanel::setupIcons()
     auto& logger = core::Logger::getInstance();
     logger.debug("Navigator Panel: Setting up tab icons");
 
-    // Tab icons (16x16 for tabs)
-    wxSize iconSize(16, 16);
-
+    // Use IconRegistry size for panels/notebooks (24x24 default via wxDefaultSize)
     // Icon 0: Outline tab - wxART_FOLDER (placeholder for account_tree)
-    wxBitmap outlineIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, iconSize);
+    wxBitmap outlineIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxDefaultSize);
     if (outlineIcon.IsOk()) {
         m_notebook->SetPageBitmap(0, outlineIcon);
         logger.debug("Navigator Panel: Outline tab icon set (wxART_FOLDER placeholder)");
     }
 
     // Icon 1: Files tab - wxART_FILE_OPEN (placeholder for folder_open)
-    wxBitmap filesIcon = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, iconSize);
+    wxBitmap filesIcon = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, wxDefaultSize);
     if (filesIcon.IsOk()) {
         m_notebook->SetPageBitmap(1, filesIcon);
         logger.debug("Navigator Panel: Files tab icon set (wxART_FILE_OPEN placeholder)");
     }
 
     // Icon 2: Libraries tab - wxART_FOLDER (placeholder for library_books)
-    wxBitmap librariesIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, iconSize);
+    wxBitmap librariesIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxDefaultSize);
     if (librariesIcon.IsOk()) {
         m_notebook->SetPageBitmap(2, librariesIcon);
         logger.debug("Navigator Panel: Libraries tab icon set (wxART_FOLDER placeholder)");
     }
 
-    logger.info("Navigator Panel: Tab icons configured (using wxArtProvider placeholders)");
+    logger.info("Navigator Panel: Tab icons configured (Material Design SVG via IconRegistry)");
 }
 
 } // namespace gui

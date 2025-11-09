@@ -66,6 +66,7 @@ private:
     // UI Components (Phase 2)
     // ========================================================================
 
+    wxToolBar* m_toolBar = nullptr;         ///< Horizontal toolbar (top)
     wxTreeCtrl* m_tree = nullptr;           ///< Tree control
     wxImageList* m_imageList = nullptr;     ///< Icons for tree nodes
     wxStaticText* m_placeholder = nullptr;  ///< Phase 1 placeholder
@@ -92,7 +93,11 @@ private:
 
     // Context menu handlers (Phase 2)
     void onAddChapter(wxCommandEvent& event);
+    void onAddPart(wxCommandEvent& event);
+    void onRenameBook(wxCommandEvent& event);
+    void onRenamePart(wxCommandEvent& event);
     void onRenameChapter(wxCommandEvent& event);
+    void onDeletePart(wxCommandEvent& event);
     void onDeleteChapter(wxCommandEvent& event);
     void onMoveChapterUp(wxCommandEvent& event);
     void onMoveChapterDown(wxCommandEvent& event);
@@ -101,6 +106,13 @@ private:
     /// @param item Tree item clicked
     /// @param pos Mouse position
     void showContextMenu(wxTreeItemId item, const wxPoint& pos);
+
+    // Toolbar handlers
+    void onExpandAll(wxCommandEvent& event);
+    void onCollapseAll(wxCommandEvent& event);
+
+    // Keyboard shortcuts
+    void onKeyDown(wxKeyEvent& event);
 
     // ========================================================================
     // Helper Methods (Phase 2)
@@ -111,6 +123,16 @@ private:
     /// @param id ID to search for
     /// @return Tree item if found, invalid wxTreeItemId otherwise
     wxTreeItemId findItemById(wxTreeItemId parent, const std::string& id);
+
+    /// @brief Recursively expand all nodes from given item
+    /// @param item Tree item to start expansion from
+    /// @param isRoot Whether this is the root item (don't expand root)
+    void expandAllRecursive(wxTreeItemId item, bool isRoot = false);
+
+    /// @brief Recursively collapse all nodes from given item
+    /// @param item Tree item to start collapsing from
+    /// @param isRoot Whether this is the root item (don't collapse root)
+    void collapseAllRecursive(wxTreeItemId item, bool isRoot = false);
 
     wxDECLARE_EVENT_TABLE();
 };

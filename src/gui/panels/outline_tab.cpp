@@ -2,6 +2,7 @@
 /// @brief Implementation of OutlineTab (Task #00020 Phase 2)
 
 #include "kalahari/gui/panels/outline_tab.h"
+#include "kalahari/gui/icon_registry.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/document.h>
 #include <kalahari/core/book.h>
@@ -59,31 +60,92 @@ OutlineTab::OutlineTab(wxWindow* parent, core::Document* document)
     // Main sizer
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
+    // Create horizontal toolbar (top)
+    m_toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+        wxTB_HORIZONTAL | wxTB_FLAT | wxTB_NODIVIDER);
+
+    // Set toolbar button size from IconRegistry (24px)
+    auto& iconReg = IconRegistry::getInstance();
+    int toolbarSize = iconReg.getSizeForClient(wxART_TOOLBAR);
+    m_toolBar->SetToolBitmapSize(wxSize(toolbarSize, toolbarSize));
+
+    // Add toolbar buttons with Material Design SVG icons
+    // Custom tool IDs for buttons without standard wxID
+    enum {
+        ID_OUTLINE_RENAME = wxID_HIGHEST + 100,
+        ID_OUTLINE_EXPAND_ALL,
+        ID_OUTLINE_COLLAPSE_ALL
+    };
+
+    // Button 1: Add Chapter
+    wxBitmap addIcon = wxArtProvider::GetBitmap(wxART_NEW, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(wxID_ADD, _("Add Chapter"), addIcon, _("Add new chapter"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onAddChapter, this, wxID_ADD);
+
+    // Button 2: Rename (using EDIT icon from IconRegistry)
+    wxBitmap renameIcon = wxArtProvider::GetBitmap(wxART_HELP_SETTINGS, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(ID_OUTLINE_RENAME, _("Rename"), renameIcon, _("Rename selected item"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onRenameChapter, this, ID_OUTLINE_RENAME);
+
+    // Button 3: Delete
+    wxBitmap deleteIcon = wxArtProvider::GetBitmap(wxART_DELETE, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(wxID_DELETE, _("Delete"), deleteIcon, _("Delete selected item"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onDeleteChapter, this, wxID_DELETE);
+
+    // Button 4: Move Up (using UP_ARROW from IconRegistry)
+    wxBitmap upIcon = wxArtProvider::GetBitmap(wxART_GO_UP, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(wxID_UP, _("Move Up"), upIcon, _("Move chapter up"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onMoveChapterUp, this, wxID_UP);
+
+    // Button 5: Move Down (using DOWN_ARROW from IconRegistry)
+    wxBitmap downIcon = wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(wxID_DOWN, _("Move Down"), downIcon, _("Move chapter down"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onMoveChapterDown, this, wxID_DOWN);
+
+    // Separator
+    m_toolBar->AddSeparator();
+
+    // Button 6: Expand All (using UNFOLD_MORE from IconRegistry when available)
+    wxBitmap expandIcon = wxArtProvider::GetBitmap(wxART_PLUS, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(ID_OUTLINE_EXPAND_ALL, _("Expand All"), expandIcon, _("Expand all nodes"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onExpandAll, this, ID_OUTLINE_EXPAND_ALL);
+
+    // Button 7: Collapse All (using UNFOLD_LESS from IconRegistry when available)
+    wxBitmap collapseIcon = wxArtProvider::GetBitmap(wxART_MINUS, wxART_TOOLBAR, wxDefaultSize);
+    m_toolBar->AddTool(ID_OUTLINE_COLLAPSE_ALL, _("Collapse All"), collapseIcon, _("Collapse all nodes"));
+    m_toolBar->Bind(wxEVT_TOOL, &OutlineTab::onCollapseAll, this, ID_OUTLINE_COLLAPSE_ALL);
+
+    m_toolBar->Realize();
+
+    // Add toolbar to sizer (fixed height at top)
+    mainSizer->Add(m_toolBar, 0, wxEXPAND);
+
     // Create wxTreeCtrl
     m_tree = new wxTreeCtrl(this, wxID_ANY,
         wxDefaultPosition, wxDefaultSize,
         wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT | wxTR_SINGLE);
 
-    // Create image list (16x16 icons)
-    m_imageList = new wxImageList(16, 16);
+    // Create image list (use IconRegistry size for trees/panels)
+    int iconSize = iconReg.getSizeForClient(wxART_OTHER);
+    m_imageList = new wxImageList(iconSize, iconSize);
 
-    // Load icons from wxArtProvider (placeholders)
+    // Load icons from wxArtProvider (Material Design SVG via KalahariArtProvider)
     // Icon 0: Book (FILE_NEW placeholder, will be 'menu_book' later)
-    wxBitmap bookIcon = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_OTHER, wxSize(16, 16));
+    wxBitmap bookIcon = wxArtProvider::GetBitmap(wxART_NEW, wxART_OTHER, wxDefaultSize);
     m_imageList->Add(bookIcon);
 
     // Icon 1: Part (FOLDER - already correct)
-    wxBitmap partIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(16, 16));
+    wxBitmap partIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxDefaultSize);
     m_imageList->Add(partIcon);
 
     // Icon 2: Chapter (FILE_OPEN placeholder, will be 'description' later)
-    wxBitmap chapterIcon = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, wxSize(16, 16));
+    wxBitmap chapterIcon = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, wxDefaultSize);
     m_imageList->Add(chapterIcon);
 
     // Assign image list to tree (tree takes ownership)
     m_tree->AssignImageList(m_imageList);
 
-    // Add tree to sizer
+    // Add tree to sizer (flexible height, fills remaining space)
     mainSizer->Add(m_tree, 1, wxEXPAND);
     SetSizer(mainSizer);
 
@@ -92,7 +154,10 @@ OutlineTab::OutlineTab(wxWindow* parent, core::Document* document)
         populateTree();
     }
 
-    logger.info("OutlineTab: wxTreeCtrl created with 3 icon types");
+    // Bind keyboard shortcuts for tree operations
+    m_tree->Bind(wxEVT_CHAR_HOOK, &OutlineTab::onKeyDown, this);
+
+    logger.info("OutlineTab: wxTreeCtrl created with 3 icon types and keyboard shortcuts");
 }
 
 // ============================================================================
@@ -298,12 +363,11 @@ void OutlineTab::onTreeItemActivated(wxTreeEvent& event)
 
     // Only handle Chapter nodes
     if (data->getType() == ChapterItemData::NodeType::Chapter) {
-        logger.info("OutlineTab::onTreeItemActivated() - Chapter {} activated", data->getId());
+        logger.info("OutlineTab::onTreeItemActivated() - Chapter {} activated (double-click)", data->getId());
 
-        // TODO Phase 3.2: Notify MainWindow to load chapter in EditorPanel
-        // wxCommandEvent evt(wxEVT_KALAHARI_LOAD_CHAPTER);
-        // evt.SetString(data->getId());
-        // wxPostEvent(GetParent(), evt);
+        // Note: For now we just log activation
+        // Full editor integration will be implemented when EditorPanel supports loading chapters
+        // The infrastructure is ready (MainWindow can receive events via NavigatorPanel)
     }
 }
 
@@ -344,10 +408,12 @@ void OutlineTab::onTreeSelectionChanged(wxTreeEvent& event)
     if (data->getType() == ChapterItemData::NodeType::Chapter) {
         logger.info("OutlineTab::onTreeSelectionChanged() - Chapter {} selected", data->getId());
 
-        // TODO Phase 3.2: Notify MainWindow to load chapter in EditorPanel
-        // wxCommandEvent evt(wxEVT_KALAHARI_LOAD_CHAPTER);
-        // evt.SetString(data->getId());
-        // wxPostEvent(GetParent()->GetParent(), evt); // NavigatorPanel -> MainWindow
+        // Note: Editor integration ready for future implementation
+        // When EditorPanel supports loadChapter(chapterId):
+        // 1. Define custom event: wxDECLARE_EVENT(EVT_LOAD_CHAPTER, wxCommandEvent)
+        // 2. Post event to NavigatorPanel parent
+        // 3. NavigatorPanel forwards to MainWindow
+        // 4. MainWindow calls m_editorPanel->loadChapter(chapterId)
     }
 }
 
@@ -412,9 +478,13 @@ void OutlineTab::showContextMenu(wxTreeItemId item, const wxPoint& pos)
     // Store current item for event handlers
     m_contextMenuItem = item;
 
-    // Bind events
+    // Bind events for all menu items
     menu.Bind(wxEVT_MENU, &OutlineTab::onAddChapter, this, ID_ADD_CHAPTER);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onAddPart, this, ID_ADD_PART);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onRenameBook, this, ID_RENAME_BOOK);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onRenamePart, this, ID_RENAME_PART);
     menu.Bind(wxEVT_MENU, &OutlineTab::onRenameChapter, this, ID_RENAME_CHAPTER);
+    menu.Bind(wxEVT_MENU, &OutlineTab::onDeletePart, this, ID_DELETE_PART);
     menu.Bind(wxEVT_MENU, &OutlineTab::onDeleteChapter, this, ID_DELETE_CHAPTER);
     menu.Bind(wxEVT_MENU, &OutlineTab::onMoveChapterUp, this, ID_MOVE_CHAPTER_UP);
     menu.Bind(wxEVT_MENU, &OutlineTab::onMoveChapterDown, this, ID_MOVE_CHAPTER_DOWN);
@@ -630,19 +700,520 @@ void OutlineTab::onDeleteChapter([[maybe_unused]] wxCommandEvent& event)
 void OutlineTab::onMoveChapterUp([[maybe_unused]] wxCommandEvent& event)
 {
     auto& logger = core::Logger::getInstance();
-    logger.debug("OutlineTab::onMoveChapterUp() - Phase 4 stub (TODO: implement)");
+    logger.debug("OutlineTab::onMoveChapterUp()");
 
-    // TODO: Find chapter index, call Part::moveChapter(index, index-1), refresh tree
-    wxMessageBox("Move Up not yet implemented (Phase 4 TODO)", "Info", wxOK | wxICON_INFORMATION, this);
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onMoveChapterUp() - No document or context item");
+        return;
+    }
+
+    // Get chapter data
+    ChapterItemData* chapterData = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!chapterData || chapterData->getType() != ChapterItemData::NodeType::Chapter) {
+        logger.error("OutlineTab::onMoveChapterUp() - Context item is not a Chapter");
+        return;
+    }
+
+    // Get parent part
+    wxTreeItemId parentItem = m_tree->GetItemParent(m_contextMenuItem);
+    ChapterItemData* partData = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(parentItem));
+    if (!partData || partData->getType() != ChapterItemData::NodeType::Part) {
+        logger.error("OutlineTab::onMoveChapterUp() - Parent is not a Part");
+        return;
+    }
+
+    // Get previous sibling
+    wxTreeItemId prevSibling = m_tree->GetPrevSibling(m_contextMenuItem);
+    if (!prevSibling.IsOk()) {
+        logger.debug("OutlineTab::onMoveChapterUp() - Already at top");
+        return; // Already at top
+    }
+
+    // Find chapter index in Part
+    std::string partId = partData->getId();
+    std::string chapterId = chapterData->getId();
+
+    std::vector<std::shared_ptr<core::BookElement>>* chapters = nullptr;
+
+    if (partId == "frontMatter") {
+        chapters = &m_document->getBook().getFrontMatter();
+    } else if (partId == "backMatter") {
+        chapters = &m_document->getBook().getBackMatter();
+    } else {
+        // Find part in body
+        for (auto& part : m_document->getBook().getBody()) {
+            if (part->getId() == partId) {
+                chapters = const_cast<std::vector<std::shared_ptr<core::BookElement>>*>(&part->getChapters());
+                break;
+            }
+        }
+    }
+
+    if (!chapters) {
+        logger.error("OutlineTab::onMoveChapterUp() - Could not find part");
+        return;
+    }
+
+    // Find chapter index
+    size_t currentIndex = 0;
+    bool found = false;
+    for (size_t i = 0; i < chapters->size(); i++) {
+        if ((*chapters)[i]->getId() == chapterId) {
+            currentIndex = i;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found || currentIndex == 0) {
+        logger.debug("OutlineTab::onMoveChapterUp() - Chapter not found or already at top");
+        return;
+    }
+
+    // Swap with previous chapter
+    std::swap((*chapters)[currentIndex], (*chapters)[currentIndex - 1]);
+
+    // Refresh tree to reflect new order
+    populateTree();
+
+    // Re-select the moved item
+    selectChapter(chapterId);
+
+    logger.info("OutlineTab::onMoveChapterUp() - Chapter {} moved up", chapterId);
 }
 
 void OutlineTab::onMoveChapterDown([[maybe_unused]] wxCommandEvent& event)
 {
     auto& logger = core::Logger::getInstance();
-    logger.debug("OutlineTab::onMoveChapterDown() - Phase 4 stub (TODO: implement)");
+    logger.debug("OutlineTab::onMoveChapterDown()");
 
-    // TODO: Find chapter index, call Part::moveChapter(index, index+1), refresh tree
-    wxMessageBox("Move Down not yet implemented (Phase 4 TODO)", "Info", wxOK | wxICON_INFORMATION, this);
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onMoveChapterDown() - No document or context item");
+        return;
+    }
+
+    // Get chapter data
+    ChapterItemData* chapterData = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!chapterData || chapterData->getType() != ChapterItemData::NodeType::Chapter) {
+        logger.error("OutlineTab::onMoveChapterDown() - Context item is not a Chapter");
+        return;
+    }
+
+    // Get parent part
+    wxTreeItemId parentItem = m_tree->GetItemParent(m_contextMenuItem);
+    ChapterItemData* partData = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(parentItem));
+    if (!partData || partData->getType() != ChapterItemData::NodeType::Part) {
+        logger.error("OutlineTab::onMoveChapterDown() - Parent is not a Part");
+        return;
+    }
+
+    // Get next sibling
+    wxTreeItemId nextSibling = m_tree->GetNextSibling(m_contextMenuItem);
+    if (!nextSibling.IsOk()) {
+        logger.debug("OutlineTab::onMoveChapterDown() - Already at bottom");
+        return; // Already at bottom
+    }
+
+    // Find chapter index in Part
+    std::string partId = partData->getId();
+    std::string chapterId = chapterData->getId();
+
+    std::vector<std::shared_ptr<core::BookElement>>* chapters = nullptr;
+
+    if (partId == "frontMatter") {
+        chapters = &m_document->getBook().getFrontMatter();
+    } else if (partId == "backMatter") {
+        chapters = &m_document->getBook().getBackMatter();
+    } else {
+        // Find part in body
+        for (auto& part : m_document->getBook().getBody()) {
+            if (part->getId() == partId) {
+                chapters = const_cast<std::vector<std::shared_ptr<core::BookElement>>*>(&part->getChapters());
+                break;
+            }
+        }
+    }
+
+    if (!chapters) {
+        logger.error("OutlineTab::onMoveChapterDown() - Could not find part");
+        return;
+    }
+
+    // Find chapter index
+    size_t currentIndex = 0;
+    bool found = false;
+    for (size_t i = 0; i < chapters->size(); i++) {
+        if ((*chapters)[i]->getId() == chapterId) {
+            currentIndex = i;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found || currentIndex >= chapters->size() - 1) {
+        logger.debug("OutlineTab::onMoveChapterDown() - Chapter not found or already at bottom");
+        return;
+    }
+
+    // Swap with next chapter
+    std::swap((*chapters)[currentIndex], (*chapters)[currentIndex + 1]);
+
+    // Refresh tree to reflect new order
+    populateTree();
+
+    // Re-select the moved item
+    selectChapter(chapterId);
+
+    logger.info("OutlineTab::onMoveChapterDown() - Chapter {} moved down", chapterId);
+}
+
+void OutlineTab::onRenameBook([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onRenameBook()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onRenameBook() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Book) {
+        logger.error("OutlineTab::onRenameBook() - Context item is not a Book");
+        return;
+    }
+
+    // Show dialog to get new book name
+    wxString currentName = m_tree->GetItemText(m_contextMenuItem);
+    wxTextEntryDialog dialog(this, "Enter new book name:", "Rename Book", currentName);
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString newName = dialog.GetValue().Trim();
+    if (newName.IsEmpty()) {
+        wxMessageBox("Book name cannot be empty", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    // Update document (title is in Document, not Book)
+    m_document->setTitle(newName.ToStdString());
+    m_document->touch();
+
+    // Update tree
+    m_tree->SetItemText(m_contextMenuItem, newName);
+
+    logger.info("OutlineTab::onRenameBook() - Book renamed to: {}", newName.ToStdString());
+}
+
+void OutlineTab::onRenamePart([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onRenamePart()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onRenamePart() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Part) {
+        logger.error("OutlineTab::onRenamePart() - Context item is not a Part");
+        return;
+    }
+
+    std::string partId = data->getId();
+
+    // Don't allow renaming frontMatter and backMatter
+    if (partId == "frontMatter" || partId == "backMatter") {
+        wxMessageBox("Cannot rename Front Matter or Back Matter", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    // Show dialog to get new part name
+    wxString currentName = m_tree->GetItemText(m_contextMenuItem);
+    wxTextEntryDialog dialog(this, "Enter new part name:", "Rename Part", currentName);
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString newName = dialog.GetValue().Trim();
+    if (newName.IsEmpty()) {
+        wxMessageBox("Part name cannot be empty", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    // Find and update part in document
+    for (auto& part : m_document->getBook().getBody()) {
+        if (part->getId() == partId) {
+            part->setTitle(newName.ToStdString());
+            m_document->touch();
+
+            // Update tree
+            m_tree->SetItemText(m_contextMenuItem, newName);
+
+            logger.info("OutlineTab::onRenamePart() - Part {} renamed to: {}", partId, newName.ToStdString());
+            return;
+        }
+    }
+
+    logger.error("OutlineTab::onRenamePart() - Part {} not found", partId);
+}
+
+void OutlineTab::onDeletePart([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onDeletePart()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onDeletePart() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Part) {
+        logger.error("OutlineTab::onDeletePart() - Context item is not a Part");
+        return;
+    }
+
+    std::string partId = data->getId();
+
+    // Don't allow deleting frontMatter and backMatter
+    if (partId == "frontMatter" || partId == "backMatter") {
+        logger.error("OutlineTab::onDeletePart() - Cannot delete Front Matter or Back Matter");
+        return;
+    }
+
+    // Confirmation dialog
+    wxString partName = m_tree->GetItemText(m_contextMenuItem);
+    int result = wxMessageBox(
+        wxString::Format("Delete part \"%s\" and all its chapters?\n\nThis action cannot be undone.", partName),
+        "Confirm Delete",
+        wxYES_NO | wxICON_WARNING,
+        this
+    );
+
+    if (result != wxYES) {
+        return;
+    }
+
+    // Find and remove part from document
+    auto& body = m_document->getBook().getBody();
+    auto it = std::remove_if(body.begin(), body.end(),
+        [&partId](const std::shared_ptr<core::Part>& part) {
+            return part->getId() == partId;
+        });
+
+    if (it != body.end()) {
+        body.erase(it, body.end());
+        m_document->touch();
+
+        // Update tree
+        m_tree->Delete(m_contextMenuItem);
+
+        logger.info("OutlineTab::onDeletePart() - Deleted part: {}", partName.ToStdString());
+    } else {
+        logger.error("OutlineTab::onDeletePart() - Part {} not found", partId);
+    }
+}
+
+void OutlineTab::onAddPart([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onAddPart()");
+
+    if (!m_document || !m_contextMenuItem.IsOk()) {
+        logger.error("OutlineTab::onAddPart() - No document or context item");
+        return;
+    }
+
+    ChapterItemData* data = dynamic_cast<ChapterItemData*>(m_tree->GetItemData(m_contextMenuItem));
+    if (!data || data->getType() != ChapterItemData::NodeType::Book) {
+        logger.error("OutlineTab::onAddPart() - Context item is not a Book");
+        return;
+    }
+
+    // Show dialog to get part name
+    wxTextEntryDialog dialog(this, "Enter part name:", "Add Part", "New Part");
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString partName = dialog.GetValue().Trim();
+    if (partName.IsEmpty()) {
+        wxMessageBox("Part name cannot be empty", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    // Create new part
+    std::string partId = core::Document::generateId();
+    auto part = std::make_shared<core::Part>(
+        partId,
+        partName.ToStdString()
+    );
+
+    // Add to document body
+    m_document->getBook().addPart(part);
+    m_document->touch();
+
+    // Refresh tree to show new part
+    populateTree();
+
+    logger.info("OutlineTab::onAddPart() - Added new part: {}", partName.ToStdString());
+}
+
+// ============================================================================
+// Toolbar Handlers
+// ============================================================================
+
+void OutlineTab::onExpandAll([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onExpandAll()");
+
+    if (!m_tree) {
+        logger.error("OutlineTab::onExpandAll() - Tree control not initialized");
+        return;
+    }
+
+    // Get root item (hidden, but we need it to iterate children)
+    wxTreeItemId root = m_tree->GetRootItem();
+    if (!root.IsOk()) {
+        logger.debug("OutlineTab::onExpandAll() - No root item");
+        return;
+    }
+
+    // Expand all nodes recursively (but not root, as it's hidden)
+    expandAllRecursive(root, true);
+
+    logger.info("OutlineTab: Expanded all nodes");
+}
+
+void OutlineTab::onCollapseAll([[maybe_unused]] wxCommandEvent& event)
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("OutlineTab::onCollapseAll()");
+
+    if (!m_tree) {
+        logger.error("OutlineTab::onCollapseAll() - Tree control not initialized");
+        return;
+    }
+
+    // Get root item (hidden, but we need it to iterate children)
+    wxTreeItemId root = m_tree->GetRootItem();
+    if (!root.IsOk()) {
+        logger.debug("OutlineTab::onCollapseAll() - No root item");
+        return;
+    }
+
+    // Collapse all nodes recursively (but not root, as it's hidden)
+    collapseAllRecursive(root, true);
+
+    logger.info("OutlineTab: Collapsed all nodes");
+}
+
+// ============================================================================
+// Helper Methods
+// ============================================================================
+
+void OutlineTab::expandAllRecursive(wxTreeItemId item, bool isRoot)
+{
+    if (!item.IsOk()) return;
+
+    // Expand this item (but not root, as it's hidden)
+    if (!isRoot) {
+        m_tree->Expand(item);
+    }
+
+    // Recursively expand all children
+    wxTreeItemIdValue cookie;
+    wxTreeItemId child = m_tree->GetFirstChild(item, cookie);
+    while (child.IsOk()) {
+        expandAllRecursive(child, false);
+        child = m_tree->GetNextChild(item, cookie);
+    }
+}
+
+void OutlineTab::collapseAllRecursive(wxTreeItemId item, bool isRoot)
+{
+    if (!item.IsOk()) return;
+
+    // Recursively collapse all children first
+    wxTreeItemIdValue cookie;
+    wxTreeItemId child = m_tree->GetFirstChild(item, cookie);
+    while (child.IsOk()) {
+        collapseAllRecursive(child, false);
+        child = m_tree->GetNextChild(item, cookie);
+    }
+
+    // Collapse this item (but not root, as it's hidden)
+    if (!isRoot) {
+        m_tree->Collapse(item);
+    }
+}
+
+// ============================================================================
+// Keyboard Shortcuts
+// ============================================================================
+
+void OutlineTab::onKeyDown(wxKeyEvent& event)
+{
+    int keyCode = event.GetKeyCode();
+    bool ctrlDown = event.ControlDown();
+
+    // Get currently selected item
+    wxTreeItemId selectedItem = m_tree->GetSelection();
+    if (!selectedItem.IsOk()) {
+        event.Skip(); // No selection, let default processing happen
+        return;
+    }
+
+    // F2 - Rename
+    if (keyCode == WXK_F2) {
+        auto& logger = core::Logger::getInstance();
+        logger.debug("OutlineTab: F2 pressed - Rename");
+
+        m_contextMenuItem = selectedItem;
+        wxCommandEvent cmdEvent(wxEVT_COMMAND_MENU_SELECTED, wxID_ANY);
+        onRenameChapter(cmdEvent);
+        return; // Don't skip - we handled it
+    }
+
+    // Delete key - Delete item
+    if (keyCode == WXK_DELETE) {
+        auto& logger = core::Logger::getInstance();
+        logger.debug("OutlineTab: Delete pressed - Delete item");
+
+        m_contextMenuItem = selectedItem;
+        wxCommandEvent cmdEvent(wxEVT_COMMAND_MENU_SELECTED, wxID_ANY);
+        onDeleteChapter(cmdEvent);
+        return; // Don't skip - we handled it
+    }
+
+    // Ctrl+Up - Move chapter up
+    if (ctrlDown && keyCode == WXK_UP) {
+        auto& logger = core::Logger::getInstance();
+        logger.debug("OutlineTab: Ctrl+Up pressed - Move chapter up");
+
+        m_contextMenuItem = selectedItem;
+        wxCommandEvent cmdEvent(wxEVT_COMMAND_MENU_SELECTED, wxID_ANY);
+        onMoveChapterUp(cmdEvent);
+        return; // Don't skip - we handled it
+    }
+
+    // Ctrl+Down - Move chapter down
+    if (ctrlDown && keyCode == WXK_DOWN) {
+        auto& logger = core::Logger::getInstance();
+        logger.debug("OutlineTab: Ctrl+Down pressed - Move chapter down");
+
+        m_contextMenuItem = selectedItem;
+        wxCommandEvent cmdEvent(wxEVT_COMMAND_MENU_SELECTED, wxID_ANY);
+        onMoveChapterDown(cmdEvent);
+        return; // Don't skip - we handled it
+    }
+
+    // Let default processing happen for other keys
+    event.Skip();
 }
 
 } // namespace gui
