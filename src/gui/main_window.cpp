@@ -11,8 +11,10 @@
 #include "kalahari/gui/panels/statistics_panel.h"
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/assistant_panel.h"
+#include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/perspective_manager.h"
 #include <kalahari/core/logger.h>
+#include <kalahari/core/gui_log_sink.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/diagnostic_manager.h>
@@ -29,6 +31,7 @@
 #include <wx/filename.h>
 #include <wx/utils.h>
 #include <chrono>
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -68,6 +71,7 @@ enum {
     ID_VIEW_STATISTICS,
     ID_VIEW_SEARCH,
     ID_VIEW_ASSISTANT,
+    ID_VIEW_LOG,  // Diagnostic Log Panel (only visible in diagnostic mode)
 
     // Editor View Modes (Task #00019)
     ID_VIEW_MODE_FULL,
@@ -118,6 +122,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(ID_VIEW_STATISTICS,  MainWindow::onViewStatistics)
     EVT_MENU(ID_VIEW_SEARCH,      MainWindow::onViewSearch)
     EVT_MENU(ID_VIEW_ASSISTANT,   MainWindow::onViewAssistant)
+    EVT_MENU(ID_VIEW_LOG,         MainWindow::onViewLog)
 
     // Editor View Mode events (Task #00019)
     EVT_MENU_RANGE(ID_VIEW_MODE_FULL, ID_VIEW_MODE_PUBLISHER, MainWindow::onViewMode)
@@ -167,6 +172,17 @@ MainWindow::MainWindow()
     auto& iconRegistry = IconRegistry::getInstance();
     iconRegistry.initialize();
     KalahariArtProvider::Initialize();
+
+    // Set Kalahari brand color for all icons (orange: RGB 233,84,32)
+    iconRegistry.setTheme(IconRegistry::ColorTheme::Custom, wxColour(233, 84, 32));
+
+    // Set icon sizes (24px for toolbar/trees/notebooks, standard 16px for menus)
+    IconSizeConfig sizes;
+    sizes.toolbar = 24;  // Toolbar icons
+    sizes.menu = 16;     // Menu icons (standard size)
+    sizes.panel = 24;    // Tree/Notebook icons
+    sizes.dialog = 32;   // Dialog icons
+    iconRegistry.setSizes(sizes);
 
     // Register Material Design icons for ALL standard wxID operations
     // This prevents GTK/Windows from using stock icons inconsistently
@@ -382,6 +398,13 @@ void MainWindow::createMenuBar() {
     m_viewSearchItem = viewMenu->AppendCheckItem(ID_VIEW_SEARCH, _("S&earch\tF12"), _("Show/hide Search panel"));
     m_viewAssistantItem = viewMenu->AppendCheckItem(ID_VIEW_ASSISTANT, _("&Assistant"), _("Show/hide AI Assistant panel"));
 
+    // Separator before diagnostic-mode-only panels
+    viewMenu->AppendSeparator();
+
+    // Diagnostic Log Panel (only visible when diagnostic mode enabled)
+    m_viewLogItem = viewMenu->AppendCheckItem(ID_VIEW_LOG, _("Diagnostic &Log"), _("Show/hide Diagnostic Log panel"));
+    m_viewLogItem->Enable(m_diagnosticMode);  // Only enable when diagnostic mode active
+
     viewMenu->AppendSeparator();
 
     // Editor Mode submenu (Task #00019)
@@ -593,6 +616,98 @@ void MainWindow::setDiagnosticMode(bool enabled) {
 
     core::Logger::getInstance().debug("Menu bar rebuilt with diagnostic mode {}",
                                       enabled ? "visible" : "hidden");
+
+    // Dynamically create or destroy LogPanel
+    if (enabled) {
+        createLogPanel();
+    } else {
+        destroyLogPanel();
+    }
+
+    // Update View menu checkboxes to reflect new state
+    updateViewMenu();
+}
+
+void MainWindow::createLogPanel() {
+    // Check if already exists
+    if (m_logPanel) {
+        core::Logger::getInstance().debug("LogPanel already exists, skipping creation");
+        return;
+    }
+
+    if (!m_auiManager) {
+        core::Logger::getInstance().error("Cannot create LogPanel: wxAuiManager not initialized");
+        return;
+    }
+
+    core::Logger::getInstance().info("Creating LogPanel dynamically...");
+
+    // Create LogPanel
+    m_logPanel = new LogPanel(this);
+
+    // Add to wxAUI manager (bottom pane)
+    m_auiManager->AddPane(m_logPanel,
+        wxAuiPaneInfo()
+            .Name("log")
+            .Caption(_("Diagnostic Log"))
+            .Bottom()
+            .Layer(0)
+            .MinSize(400, 150)
+            .BestSize(800, 200)
+            .CloseButton(true)
+            .MaximizeButton(false)
+            .PinButton(true)
+            .Dockable(true)
+            .Floatable(true)
+            .Movable(true)
+            .Show());
+
+    m_auiManager->Update();
+
+    // Register GUI log sink with Logger
+    auto logger = core::Logger::getInstance().getLogger();
+    if (logger) {
+        auto gui_sink = std::make_shared<core::GuiLogSink>(m_logPanel);
+        gui_sink->set_level(logger->level());
+        logger->sinks().push_back(gui_sink);
+        core::Logger::getInstance().info("LogPanel created and registered with logger");
+    } else {
+        core::Logger::getInstance().warn("Logger not available, LogPanel created without sink");
+    }
+}
+
+void MainWindow::destroyLogPanel() {
+    if (!m_logPanel) {
+        core::Logger::getInstance().debug("LogPanel does not exist, skipping destruction");
+        return;
+    }
+
+    core::Logger::getInstance().info("Destroying LogPanel...");
+
+    // Unregister GUI sink from Logger
+    auto logger = core::Logger::getInstance().getLogger();
+    if (logger) {
+        auto& sinks = logger->sinks();
+        sinks.erase(
+            std::remove_if(sinks.begin(), sinks.end(),
+                [this](const spdlog::sink_ptr& sink) {
+                    return std::dynamic_pointer_cast<core::GuiLogSink>(sink) != nullptr;
+                }),
+            sinks.end());
+        core::Logger::getInstance().debug("GuiLogSink unregistered from logger");
+    }
+
+    // Remove from wxAUI manager
+    if (m_auiManager) {
+        m_auiManager->DetachPane(m_logPanel);
+        m_auiManager->Update();
+    }
+
+    // Destroy panel
+    m_logPanel->Destroy();
+    m_logPanel = nullptr;
+
+    core::Logger::getInstance().info("LogPanel destroyed");
 }
 
 // ============================================================================
@@ -683,6 +798,53 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
     currentState.diagnosticModeEnabled = m_diagnosticMode;
     currentState.launchedWithDiagFlag = m_launchedWithDiagFlag;
 
+    // Load all settings from SettingsManager into currentState
+    core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+
+    // Load Editor settings (Task #00019)
+    currentState.caretBlinkEnabled = settingsMgr.get<bool>("editor.caretBlinkEnabled", true);
+    currentState.caretBlinkRate = settingsMgr.get<int>("editor.caretBlinkRate", 500);
+    currentState.caretWidth = settingsMgr.get<int>("editor.caretWidth", 1);
+    currentState.marginLeft = settingsMgr.get<int>("editor.marginLeft", 20);
+    currentState.marginRight = settingsMgr.get<int>("editor.marginRight", 20);
+    currentState.marginTop = settingsMgr.get<int>("editor.marginTop", 10);
+    currentState.marginBottom = settingsMgr.get<int>("editor.marginBottom", 10);
+    currentState.lineSpacing = settingsMgr.get<double>("editor.lineSpacing", 1.2);
+    currentState.selectionOpacity = settingsMgr.get<int>("editor.selectionOpacity", 128);
+    currentState.selectionColor = wxColour(
+        settingsMgr.get<int>("editor.selectionColor.r", 0),
+        settingsMgr.get<int>("editor.selectionColor.g", 120),
+        settingsMgr.get<int>("editor.selectionColor.b", 215)
+    );
+    currentState.antialiasing = settingsMgr.get<bool>("editor.antialiasing", true);
+    currentState.autoFocus = settingsMgr.get<bool>("editor.autoFocus", true);
+    currentState.wordWrap = settingsMgr.get<bool>("editor.wordWrap", true);
+    currentState.undoLimit = settingsMgr.get<int>("editor.undoLimit", 100);
+
+    // Load Appearance settings (Task #00020 - Option C)
+    currentState.themeName = wxString::FromUTF8(
+        settingsMgr.get<std::string>("appearance.theme", "System")
+    );
+    currentState.iconSize = settingsMgr.get<int>("appearance.iconSize", 24);
+    currentState.fontScaling = settingsMgr.get<double>("appearance.fontScaling", 1.0);
+
+    // Load Log settings (Task #00020)
+    currentState.logBufferSize = settingsMgr.get<int>("log.bufferSize", 500);
+    currentState.logBackgroundColor = wxColour(
+        settingsMgr.get<int>("log.backgroundColor.r", 60),
+        settingsMgr.get<int>("log.backgroundColor.g", 60),
+        settingsMgr.get<int>("log.backgroundColor.b", 60)
+    );
+    currentState.logTextColor = wxColour(
+        settingsMgr.get<int>("log.textColor.r", 255),
+        settingsMgr.get<int>("log.textColor.g", 255),
+        settingsMgr.get<int>("log.textColor.b", 255)
+    );
+    currentState.logFontSize = settingsMgr.get<int>("log.fontSize", 11);
+
+    core::Logger::getInstance().debug("Loaded settings for dialog (theme='{}')",
+        currentState.themeName.ToStdString());
+
     // Show dialog
     SettingsDialog dlg(this, currentState);
     if (dlg.ShowModal() == wxID_OK) {
@@ -696,8 +858,6 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
         // ====================================================================
         // Phase 1: Save Editor Settings to SettingsManager (Task #00019)
         // ====================================================================
-
-        core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
 
         // Margins & Padding
         settingsMgr.set("editor.marginLeft", newState.marginLeft);
@@ -722,6 +882,33 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
         settingsMgr.set("editor.caretBlinkEnabled", newState.caretBlinkEnabled);
         settingsMgr.set("editor.caretBlinkRate", newState.caretBlinkRate);
         settingsMgr.set("editor.caretWidth", newState.caretWidth);
+
+        // ====================================================================
+        // Phase 1: Save Appearance Settings to SettingsManager (Task #00020 - Option C)
+        // ====================================================================
+
+        settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
+        settingsMgr.set("appearance.iconSize", newState.iconSize);
+        settingsMgr.set("appearance.fontScaling", newState.fontScaling);
+
+        core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={}, fontScaling={})",
+            newState.themeName.ToStdString(), newState.iconSize, newState.fontScaling);
+
+        // ====================================================================
+        // Phase 1: Save Log Settings to SettingsManager (Task #00020)
+        // ====================================================================
+
+        settingsMgr.set("log.bufferSize", newState.logBufferSize);
+        settingsMgr.set("log.backgroundColor.r", (int)newState.logBackgroundColor.Red());
+        settingsMgr.set("log.backgroundColor.g", (int)newState.logBackgroundColor.Green());
+        settingsMgr.set("log.backgroundColor.b", (int)newState.logBackgroundColor.Blue());
+        settingsMgr.set("log.textColor.r", (int)newState.logTextColor.Red());
+        settingsMgr.set("log.textColor.g", (int)newState.logTextColor.Green());
+        settingsMgr.set("log.textColor.b", (int)newState.logTextColor.Blue());
+        settingsMgr.set("log.fontSize", newState.logFontSize);
+
+        core::Logger::getInstance().info("Log settings saved (bufferSize={}, fontSize={})",
+            newState.logBufferSize, newState.logFontSize);
 
         // Save to JSON file
         if (!settingsMgr.save()) {
@@ -1478,6 +1665,16 @@ void MainWindow::initializeAUI() {
         loadPerspective("Default");
     }
 
+    // ========================================================================
+    // BOTTOM - Log panel (diagnostic mode only - Task #00020)
+    // ========================================================================
+    // IMPORTANT: Added AFTER perspective initialization, so it's NOT saved in perspectives
+    // This ensures LogPanel is always visible when diagnostic mode is enabled,
+    // regardless of which perspective is loaded
+    if (m_diagnosticMode) {
+        createLogPanel();
+    }
+
     // Load last used perspective (or Default if none saved)
     auto& settings = core::SettingsManager::getInstance();
     std::string lastPerspective = settings.get<std::string>("ui.lastPerspective", "Default");
@@ -1492,6 +1689,12 @@ void MainWindow::initializeAUI() {
         core::Logger::getInstance().warn("Last perspective '{}' not found, loading Default", lastPerspective);
     }
 
+    // If diagnostic mode, ensure LogPanel is visible after perspective load
+    if (m_diagnosticMode && m_logPanel) {
+        m_auiManager->GetPane("log").Show();
+        m_auiManager->Update();
+    }
+
     core::Logger::getInstance().info("wxAUI initialized with 6 panels and 4 default perspectives");
 }
 
@@ -1503,6 +1706,11 @@ void MainWindow::updateViewMenu() {
     m_viewStatisticsItem->Check(m_auiManager->GetPane("statistics").IsShown());
     m_viewSearchItem->Check(m_auiManager->GetPane("search").IsShown());
     m_viewAssistantItem->Check(m_auiManager->GetPane("assistant").IsShown());
+
+    // Update Log panel checkbox (only if diagnostic mode active)
+    if (m_viewLogItem && m_diagnosticMode && m_logPanel) {
+        m_viewLogItem->Check(m_auiManager->GetPane("log").IsShown());
+    }
 }
 
 void MainWindow::loadPerspective(const std::string& name) {
@@ -1577,6 +1785,19 @@ void MainWindow::onViewAssistant([[maybe_unused]] wxCommandEvent& event) {
     pane.Show(event.IsChecked());
     m_auiManager->Update();
     core::Logger::getInstance().debug("Assistant panel: {}", event.IsChecked() ? "shown" : "hidden");
+}
+
+void MainWindow::onViewLog([[maybe_unused]] wxCommandEvent& event) {
+    // Only allow toggling if diagnostic mode is active (panel exists)
+    if (!m_diagnosticMode || !m_logPanel) {
+        core::Logger::getInstance().warn("Attempted to toggle Log panel, but diagnostic mode is disabled");
+        return;
+    }
+
+    wxAuiPaneInfo& pane = m_auiManager->GetPane("log");
+    pane.Show(event.IsChecked());
+    m_auiManager->Update();
+    core::Logger::getInstance().debug("Diagnostic Log panel: {}", event.IsChecked() ? "shown" : "hidden");
 }
 
 void MainWindow::onViewMode(wxCommandEvent& event) {
