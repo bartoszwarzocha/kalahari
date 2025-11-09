@@ -31,6 +31,7 @@ class PropertiesPanel;
 class StatisticsPanel;
 class SearchPanel;
 class AssistantPanel;
+class LogPanel;
 
 // ============================================================================
 // Custom Event Types (KALAHARI convention)
@@ -106,12 +107,16 @@ private:
     /// @brief Assistant panel (AI writing help)
     AssistantPanel* m_assistantPanel = nullptr;
 
+    /// @brief Log panel (diagnostic mode only - Task #00020)
+    LogPanel* m_logPanel = nullptr;
+
     /// @brief View menu items (for checkbox synchronization)
     wxMenuItem* m_viewNavigatorItem = nullptr;
     wxMenuItem* m_viewPropertiesItem = nullptr;
     wxMenuItem* m_viewStatisticsItem = nullptr;
     wxMenuItem* m_viewSearchItem = nullptr;
     wxMenuItem* m_viewAssistantItem = nullptr;
+    wxMenuItem* m_viewLogItem = nullptr;  // Diagnostic Log (only in diagnostic mode)
 
     /// @brief Editor Mode menu items (Task #00019)
     wxMenuItem* m_viewModeFullItem = nullptr;
@@ -294,6 +299,10 @@ private:
     /// @param event Command event from menu
     void onViewAssistant(wxCommandEvent& event);
 
+    /// @brief Handle View -> Diagnostic Log menu item
+    /// @param event Command event from menu
+    void onViewLog(wxCommandEvent& event);
+
     /// @brief Handle View -> Editor Mode menu items (Task #00019)
     /// @param event Command event from Editor Mode submenu
     void onViewMode(wxCommandEvent& event);
@@ -383,8 +392,21 @@ private:
     /// @brief Set diagnostic mode (show/hide Diagnostics menu)
     ///
     /// Rebuilds menu bar to show or hide the Diagnostics menu.
+    /// Also creates/destroys LogPanel dynamically.
     /// @param enabled true to show Diagnostics menu, false to hide
     void setDiagnosticMode(bool enabled);
+
+    /// @brief Create and register LogPanel (diagnostic mode only)
+    ///
+    /// Creates LogPanel, adds it to wxAUI manager, and registers GuiLogSink.
+    /// Should be called when diagnostic mode is enabled.
+    void createLogPanel();
+
+    /// @brief Destroy LogPanel and unregister sink
+    ///
+    /// Removes LogPanel from wxAUI manager and destroys it.
+    /// Should be called when diagnostic mode is disabled.
+    void destroyLogPanel();
 
     // ========================================================================
     // wxAUI Helper Methods (Task #00013)

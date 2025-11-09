@@ -3,10 +3,12 @@
 
 #include "kalahari_app.h"
 #include "main_window.h"
+#include <kalahari/core/document.h>  // Required for std::unique_ptr<Document> in MainWindow
 #include <kalahari/core/logger.h>
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/cmd_line_parser.h>
 #include <kalahari/core/diagnostic_manager.h>
+#include <kalahari/core/settings_manager.h>  // For theme settings
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 
@@ -73,6 +75,26 @@ bool KalahariApp::OnInit() {
     core::Logger::getInstance().info("Application metadata set (vendor: {}, app: {})",
                                      GetVendorName().utf8_str().data(),
                                      GetAppName().utf8_str().data());
+
+    // 3.5. Apply appearance theme (wxWidgets 3.3+ dark mode support)
+    // IMPORTANT: Must be called BEFORE window creation for proper dark mode rendering
+    core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+    wxString themeName = wxString::FromUTF8(
+        settingsMgr.get<std::string>("appearance.theme", "System")
+    );
+
+    // Apply theme using wxWidgets 3.3 SetAppearance() API
+    if (themeName == "Dark") {
+        SetAppearance(wxApp::Appearance::Dark);
+        core::Logger::getInstance().info("Appearance theme set to: Dark (forced)");
+    } else if (themeName == "Light") {
+        SetAppearance(wxApp::Appearance::Light);
+        core::Logger::getInstance().info("Appearance theme set to: Light (forced)");
+    } else {
+        // "System" or unknown value - follow OS preference
+        SetAppearance(wxApp::Appearance::System);
+        core::Logger::getInstance().info("Appearance theme set to: System (follow OS)");
+    }
 
     // 4. Initialize wxWidgets image handlers (needed for toolbar icons, etc.)
     wxInitAllImageHandlers();

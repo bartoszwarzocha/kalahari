@@ -56,9 +56,25 @@ struct SettingsState {
     bool wordWrap = true;
     int undoLimit = 100;            ///< Undo stack size (10-1000)
 
+    // ========================================================================
+    // Diagnostic Log Settings (Task #00020 - Phase 1)
+    // ========================================================================
+
+    int logBufferSize = 500;                                  ///< Ring buffer size (1-1000)
+    wxColour logBackgroundColor = wxColour(60, 60, 60);       ///< Log background RGB
+    wxColour logTextColor = wxColour(255, 255, 255);          ///< Log text RGB
+    int logFontSize = 11;                                     ///< Log font size in points (6-20)
+
+    // ========================================================================
+    // Appearance Settings (Task #00020 - Option C)
+    // ========================================================================
+
+    wxString themeName = "System";           ///< Theme: "Light", "Dark", "System"
+    int iconSize = 24;                       ///< Icon size in pixels (16, 24, 32, 48)
+    double fontScaling = 1.0;                ///< Font scaling multiplier (0.8-1.5)
+
     // Future phases: Additional settings will go here
     // wxString interfaceLanguage = "en";
-    // wxString themeName = "Light";
     // int autoSaveInterval = 5;
 };
 

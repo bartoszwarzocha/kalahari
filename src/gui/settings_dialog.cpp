@@ -2,7 +2,10 @@
 /// @brief Implementation of Settings dialog
 
 #include "settings_dialog.h"
-#include "editor_settings_panel.h"  // Phase 1: Editor settings (Task #00019)
+#include "editor_settings_panel.h"      // Phase 1: Editor settings (Task #00019)
+#include "log_settings_panel.h"         // Phase 1: Diagnostic Log settings (Task #00020)
+#include "appearance_settings_panel.h"  // Phase 1: Appearance settings (Task #00020 - Option C)
+#include "kalahari/gui/icon_registry.h"
 #include <kalahari/core/logger.h>
 #include <wx/artprov.h>
 
@@ -136,11 +139,14 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
                            wxDefaultPosition, wxDefaultSize,
                            wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT | wxTR_SINGLE);
 
-    // Icon list for tree nodes (16x16 icons)
-    m_iconList = new wxImageList(16, 16);
+    // Icon list for tree nodes (use IconRegistry size for panels - 24x24)
+    auto& iconReg = IconRegistry::getInstance();
+    int iconSize = iconReg.getSizeForClient(wxART_OTHER);
+    m_iconList = new wxImageList(iconSize, iconSize);
+
     // Material Design icons from IconRegistry via KalahariArtProvider
-    m_iconList->Add(wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(16, 16)));        // Folder icon
-    m_iconList->Add(wxArtProvider::GetBitmap(wxART_HELP_SETTINGS, wxART_OTHER, wxSize(16, 16))); // Settings icon (for Diagnostics)
+    m_iconList->Add(wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxDefaultSize));        // Folder icon
+    m_iconList->Add(wxArtProvider::GetBitmap(wxART_HELP_SETTINGS, wxART_OTHER, wxDefaultSize)); // Settings icon (for Diagnostics)
     m_tree->AssignImageList(m_iconList);
 
     // Right: Content panel (scrollable)
@@ -184,6 +190,25 @@ void SettingsDialog::buildTree() {
     wxTreeItemId root = m_tree->AddRoot("Settings", ICON_FOLDER);
 
     // ========================================================================
+    // Phase 1: Appearance Settings (Task #00020 - Option C)
+    // ========================================================================
+
+    // Appearance leaf (top-level, first item for easy access)
+    wxTreeItemId appearance = m_tree->AppendItem(
+        root,
+        "Appearance",
+        ICON_SETTING
+    );
+
+    // Create panel for Appearance
+    AppearanceSettingsPanel* appearancePanel = new AppearanceSettingsPanel(
+        m_contentPanel,
+        m_workingState
+    );
+    appearancePanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+    m_panels[appearance] = appearancePanel;
+
+    // ========================================================================
     // Phase 1: Editor Settings (Task #00019)
     // ========================================================================
 
@@ -199,6 +224,7 @@ void SettingsDialog::buildTree() {
         m_contentPanel,
         m_workingState
     );
+    editorPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
     m_panels[editor] = editorPanel;
 
     // ========================================================================
@@ -224,7 +250,26 @@ void SettingsDialog::buildTree() {
         m_contentPanel,
         m_workingState
     );
+    diagPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
     m_panels[diagnostics] = diagPanel;
+
+    // Diagnostic Log leaf (Task #00020 - Phase 1)
+    // Only show when diagnostic mode is enabled
+    if (m_workingState.diagnosticModeEnabled) {
+        wxTreeItemId diagnosticLog = m_tree->AppendItem(
+            advanced,
+            "Diagnostic Log",
+            ICON_SETTING
+        );
+
+        // Create panel for Diagnostic Log
+        LogSettingsPanel* logPanel = new LogSettingsPanel(
+            m_contentPanel,
+            m_workingState
+        );
+        logPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+        m_panels[diagnosticLog] = logPanel;
+    }
 
     // ========================================================================
     // Default selection
@@ -233,9 +278,9 @@ void SettingsDialog::buildTree() {
     // Expand Advanced by default
     m_tree->Expand(advanced);
 
-    // Select Editor by default (Phase 1: most important settings)
-    m_tree->SelectItem(editor);
-    showPanel(editor);
+    // Select Appearance by default (Phase 1: most visible settings)
+    m_tree->SelectItem(appearance);
+    showPanel(appearance);
 }
 
 void SettingsDialog::showPanel(wxTreeItemId item) {
@@ -312,6 +357,21 @@ void SettingsDialog::onOK([[maybe_unused]] wxCommandEvent& event) {
         return;
     }
 
+    // Notification if theme was changed (Task #00020 - Option C)
+    // Theme changes require application restart to take effect
+    if (m_workingState.themeName != m_originalState.themeName) {
+        wxMessageBox(
+            "Theme changes will take effect after restarting the application.\n\n"
+            "Please close and reopen Kalahari to see the new theme.",
+            "Restart Required",
+            wxOK | wxICON_INFORMATION,
+            this
+        );
+        core::Logger::getInstance().info("Theme changed from '{}' to '{}' (restart required)",
+            m_originalState.themeName.ToStdString(),
+            m_workingState.themeName.ToStdString());
+    }
+
     core::Logger::getInstance().info("Settings saved by user");
     EndModal(wxID_OK);
 }
@@ -344,9 +404,17 @@ void SettingsDialog::onApply([[maybe_unused]] wxCommandEvent& event) {
 void SettingsDialog::applyChanges() {
     // Save all panel states to m_workingState
     for (auto& [id, panel] : m_panels) {
+        // Phase 1: Appearance settings (Task #00020 - Option C)
+        if (auto* appearancePanel = dynamic_cast<AppearanceSettingsPanel*>(panel)) {
+            appearancePanel->saveToState();
+        }
         // Phase 1: Editor settings (Task #00019)
-        if (auto* editorPanel = dynamic_cast<EditorSettingsPanel*>(panel)) {
+        else if (auto* editorPanel = dynamic_cast<EditorSettingsPanel*>(panel)) {
             editorPanel->saveToState();
+        }
+        // Phase 1: Diagnostic Log settings (Task #00020)
+        else if (auto* logPanel = dynamic_cast<LogSettingsPanel*>(panel)) {
+            logPanel->saveToState();
         }
         // Phase 0: Diagnostics
         else if (auto* diagPanel = dynamic_cast<DiagnosticsPanel*>(panel)) {
