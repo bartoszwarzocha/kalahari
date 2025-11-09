@@ -317,6 +317,20 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - Language selection, custom dictionary
   - **Status:** 📋 Planned | **Priority:** P2
 
+**Before Phase 2: Settings System Enhancement**
+- [ ] **Task #TBD:** Settings Schema Validation + Migration Framework (POZIOM 3)
+  - JSON schema validation system for settings.json
+  - Settings schema definitions with required keys, types, ranges
+  - Validation on load with detailed error reporting
+  - "Reset to defaults" dialog on validation errors with user confirmation
+  - More robust migration framework (versioned migrations registry)
+  - Migration testing infrastructure (unit tests for each migration)
+  - Comprehensive error handling (corrupted files, partial migrations)
+  - Documentation for adding new settings and migrations
+  - **Status:** 📋 Planned (before Phase 2) | **Priority:** P0
+  - **Dependencies:** Task #00020 (Settings Migration System - POZIOM 2) COMPLETE
+  - **Rationale:** Professional settings management - automatic validation prevents user errors, robust migration ensures smooth upgrades, eliminates manual file editing
+
 ### Deliverables
 ✅ Functional rich text editor with formatting
 ✅ Complete project management (CRUD + navigation)
