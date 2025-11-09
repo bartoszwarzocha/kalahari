@@ -29,7 +29,7 @@ namespace icons {
 namespace material {
 
 // ============================================================================
-// Embedded SVG Icons (18 icons)
+// Embedded SVG Icons (22 icons)
 // ============================================================================
 // Each icon is a constexpr string containing SVG XML.
 // The {COLOR} placeholder will be replaced with actual color at runtime.
@@ -44,8 +44,11 @@ constexpr const char* COPY = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox=
 /// @brief Cut
 constexpr const char* CUT = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z"/> </svg>)";
 
-/// @brief Delete (renamed to avoid Windows DELETE macro conflict)
+/// @brief Delete Icon
 constexpr const char* DELETE_ICON = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/> </svg>)";
+
+/// @brief Error Icon
+constexpr const char* ERROR_ICON = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{COLOR}"> <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/> </svg>)";
 
 /// @brief Exit
 constexpr const char* EXIT = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/> </svg>)";
@@ -68,11 +71,17 @@ constexpr const char* HELP = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox=
 /// @brief Info
 constexpr const char* INFO = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/> </svg>)";
 
+/// @brief Information
+constexpr const char* INFORMATION = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{COLOR}"> <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/> </svg>)";
+
 /// @brief Paste
 constexpr const char* PASTE = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/> </svg>)";
 
 /// @brief Print
 constexpr const char* PRINT = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/> </svg>)";
+
+/// @brief Question
+constexpr const char* QUESTION = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{COLOR}"> <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/> </svg>)";
 
 /// @brief Redo
 constexpr const char* REDO = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/> </svg>)";
@@ -88,6 +97,9 @@ constexpr const char* SETTINGS = R"(<svg xmlns="http://www.w3.org/2000/svg" view
 
 /// @brief Undo
 constexpr const char* UNDO = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="{COLOR}" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/> </svg>)";
+
+/// @brief Warning
+constexpr const char* WARNING = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{COLOR}"> <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/> </svg>)";
 
 } // namespace material
 } // namespace icons

@@ -43,6 +43,9 @@ private:
     wxColourPickerCtrl* m_textColorPicker = nullptr;
     wxSpinCtrl* m_fontSizeSpinner = nullptr;
 
+    // Text controls that need dynamic wrapping
+    wxStaticText* m_bufferDescription = nullptr;
+
     /// @brief Create buffer settings section
     /// @param parent Parent sizer to add section to
     void createBufferSection(wxSizer* parent);
@@ -50,6 +53,10 @@ private:
     /// @brief Create appearance settings section
     /// @param parent Parent sizer to add section to
     void createAppearanceSection(wxSizer* parent);
+
+    /// @brief Handle panel resize - dynamic text wrapping
+    /// @param event Size event
+    void onSize(wxSizeEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };

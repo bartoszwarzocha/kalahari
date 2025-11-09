@@ -81,12 +81,22 @@ private:
     wxSpinCtrl* m_undoLimitSpinner = nullptr;
 
     // ========================================================================
+    // Text controls that need dynamic wrapping
+    // ========================================================================
+
+    wxStaticText* m_marginsDescription = nullptr;
+
+    // ========================================================================
     // Event Handlers
     // ========================================================================
 
     /// @brief Handle caret blink checkbox toggle
     /// @param event Checkbox event
     void onCaretBlinkChanged(wxCommandEvent& event);
+
+    /// @brief Handle panel resize - dynamic text wrapping
+    /// @param event Size event
+    void onSize(wxSizeEvent& event);
 
     // ========================================================================
     // Helper Methods

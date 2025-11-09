@@ -13,7 +13,7 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(EditorSettingsPanel, wxPanel)
-    // Event handlers will be added as needed
+    EVT_SIZE(EditorSettingsPanel::onSize)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -85,10 +85,11 @@ void EditorSettingsPanel::createCursorSection(wxSizer* parent) {
 void EditorSettingsPanel::createMarginsSection(wxSizer* parent) {
     wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Margins & Padding");
 
-    wxStaticText* description = new wxStaticText(box->GetStaticBox(), wxID_ANY,
-        "Configure text margins around editor content (fixes bug #8)");
-    description->SetFont(description->GetFont().MakeItalic());
-    box->Add(description, 0, wxALL | wxEXPAND, 5);
+    // Store description for dynamic wrapping
+    m_marginsDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+        "Configure text margins around editor content");
+    m_marginsDescription->SetFont(m_marginsDescription->GetFont().MakeItalic());
+    box->Add(m_marginsDescription, 0, wxALL | wxEXPAND, 5);
 
     // Grid for 4 margin spinners (4 rows × 2 cols = 8 slots)
     wxFlexGridSizer* grid = new wxFlexGridSizer(4, 2, 5, 10);
@@ -262,6 +263,37 @@ void EditorSettingsPanel::onCaretBlinkChanged([[maybe_unused]] wxCommandEvent& e
     // Enable/disable blink rate spinner based on checkbox
     bool enabled = m_caretBlinkCheckbox->GetValue();
     m_caretBlinkRateSpinner->Enable(enabled);
+}
+
+void EditorSettingsPanel::onSize(wxSizeEvent& event) {
+    // Dynamic text wrapping mechanism (consistent with other settings panels)
+    // IMPORTANT: Only process if panel is shown (avoid processing during construction)
+    if (!IsShown()) {
+        event.Skip();
+        return;
+    }
+
+    if (m_marginsDescription && m_marginsDescription->IsShown()) {
+        int panelWidth = GetClientSize().GetWidth();
+        int availableWidth = panelWidth - 40;  // Account for borders and margins
+
+        if (availableWidth > 100) {  // Minimum reasonable width
+            m_marginsDescription->Wrap(availableWidth);
+
+            // Trigger layout recalculation
+            Layout();
+
+            // Notify parent (ContentPanel) to update scrollbars
+            if (GetParent()) {
+                GetParent()->Layout();
+                if (auto* scrolled = dynamic_cast<wxScrolledWindow*>(GetParent())) {
+                    scrolled->FitInside();
+                }
+            }
+        }
+    }
+
+    event.Skip();
 }
 
 } // namespace gui

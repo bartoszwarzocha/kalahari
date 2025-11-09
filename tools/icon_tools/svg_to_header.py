@@ -33,11 +33,19 @@ def sanitize_icon_name(filename: str) -> str:
         file-new.svg -> FILE_NEW
         folder-open.svg -> FOLDER_OPEN
         content_copy.svg -> CONTENT_COPY
+        delete.svg -> DELETE_ICON (avoid Windows macro conflict)
+        error.svg -> ERROR_ICON (avoid Windows macro conflict)
     """
     name = Path(filename).stem  # Remove .svg extension
     name = name.upper()  # Uppercase
     name = name.replace('-', '_')  # Replace hyphens
     name = name.replace(' ', '_')  # Replace spaces
+
+    # Avoid conflicts with Windows macros
+    windows_reserved = ['DELETE', 'ERROR', 'DUPLICATE', 'RELATIVE', 'ABSOLUTE']
+    if name in windows_reserved:
+        name = name + '_ICON'
+
     return name
 
 

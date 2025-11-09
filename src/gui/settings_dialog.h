@@ -79,6 +79,35 @@ struct SettingsState {
 };
 
 // ============================================================================
+// Custom Event for Apply Button
+// ============================================================================
+
+/// @brief Event sent when user clicks Apply button (not OK)
+///
+/// Allows MainWindow to save and apply settings immediately
+/// without closing the Settings Dialog.
+class SettingsAppliedEvent : public wxCommandEvent {
+public:
+    SettingsAppliedEvent(wxEventType commandType = wxEVT_NULL, int id = 0)
+        : wxCommandEvent(commandType, id) {}
+
+    /// @brief Get the new settings state
+    SettingsState getNewState() const { return m_newState; }
+
+    /// @brief Set the new settings state
+    void setNewState(const SettingsState& state) { m_newState = state; }
+
+    /// @brief Clone event (required by wxWidgets)
+    wxEvent* Clone() const override { return new SettingsAppliedEvent(*this); }
+
+private:
+    SettingsState m_newState;
+};
+
+// Declare custom event type
+wxDECLARE_EVENT(EVT_SETTINGS_APPLIED, SettingsAppliedEvent);
+
+// ============================================================================
 // Diagnostics Panel (Phase 0)
 // ============================================================================
 

@@ -32,6 +32,7 @@ class StatisticsPanel;
 class SearchPanel;
 class AssistantPanel;
 class LogPanel;
+class SettingsAppliedEvent;
 
 // ============================================================================
 // Custom Event Types (KALAHARI convention)
@@ -190,6 +191,10 @@ private:
     /// @brief Handle File -> Settings menu item
     /// @param event Command event from menu
     void onFileSettings(wxCommandEvent& event);
+
+    /// @brief Handle Settings -> Apply button pressed
+    /// @param event Custom settings applied event from SettingsDialog
+    void onSettingsApplied(SettingsAppliedEvent& event);
 
     /// @brief Handle File -> Exit menu item
     /// @param event Command event from menu

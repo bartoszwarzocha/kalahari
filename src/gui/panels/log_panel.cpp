@@ -5,6 +5,7 @@
 #include "kalahari/gui/icon_registry.h"
 #include "../settings_dialog.h"  // In src/gui/ not include/
 #include <kalahari/core/logger.h>
+#include <kalahari/core/settings_manager.h>
 #include <wx/clipbrd.h>
 #include <wx/artprov.h>
 #include <wx/filename.h>
@@ -92,17 +93,32 @@ void LogPanel::clearLog() {
 }
 
 void LogPanel::applySettings() {
-    // TODO: Load settings from SettingsManager (Step 3)
-    // For now, use hardcoded defaults from specification:
-    // - Background: RGB(60, 60, 60)
-    // - Text: RGB(255, 255, 255)
-    // - Font: Monospace, size 11 (reduced by 1 as requested)
-    // - Ring buffer: 500 lines
+    // Load settings from SettingsManager
+    auto& settingsMgr = core::SettingsManager::getInstance();
 
-    wxColour bgColor(60, 60, 60);
-    wxColour textColor(255, 255, 255);
-    wxFont monoFont(11, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    // Load buffer size
+    int bufferSize = settingsMgr.get<int>("log.bufferSize", 500);
+    setMaxBufferSize(bufferSize);
 
+    // Load background color
+    wxColour bgColor(
+        settingsMgr.get<int>("log.backgroundColor.r", 60),
+        settingsMgr.get<int>("log.backgroundColor.g", 60),
+        settingsMgr.get<int>("log.backgroundColor.b", 60)
+    );
+
+    // Load text color
+    wxColour textColor(
+        settingsMgr.get<int>("log.textColor.r", 255),
+        settingsMgr.get<int>("log.textColor.g", 255),
+        settingsMgr.get<int>("log.textColor.b", 255)
+    );
+
+    // Load font size
+    int fontSize = settingsMgr.get<int>("log.fontSize", 11);
+    wxFont monoFont(fontSize, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+
+    // Apply colors and font to wxTextCtrl
     m_logDisplay->SetBackgroundColour(bgColor);
     m_logDisplay->SetForegroundColour(textColor);
     m_logDisplay->SetFont(monoFont);
@@ -114,10 +130,13 @@ void LogPanel::applySettings() {
     defaultStyle.SetFont(monoFont);
     m_logDisplay->SetDefaultStyle(defaultStyle);
 
-    m_maxBufferSize = 500;
-
     // Rebuild display to apply new styling
     rebuildDisplay();
+
+    core::Logger::getInstance().info("Log panel settings applied (buffer={}, fontSize={}, bg=({},{},{}), text=({},{},{}))",
+        bufferSize, fontSize,
+        bgColor.Red(), bgColor.Green(), bgColor.Blue(),
+        textColor.Red(), textColor.Green(), textColor.Blue());
 }
 
 // ============================================================================

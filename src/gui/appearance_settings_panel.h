@@ -41,6 +41,13 @@ private:
     wxChoice* m_iconSizeChoice = nullptr;
     wxSpinCtrlDouble* m_fontScalingSpinner = nullptr;
 
+    // Text controls that need dynamic wrapping
+    wxStaticText* m_themeDescription = nullptr;
+    wxStaticText* m_restartNote = nullptr;
+    wxStaticText* m_iconDescription = nullptr;
+    wxStaticText* m_typographyDescription = nullptr;
+    wxStaticText* m_exampleText = nullptr;
+
     /// @brief Create theme settings section
     /// @param parent Parent sizer to add section to
     void createThemeSection(wxSizer* parent);
@@ -52,6 +59,14 @@ private:
     /// @brief Create typography settings section
     /// @param parent Parent sizer to add section to
     void createTypographySection(wxSizer* parent);
+
+    /// @brief Handle panel resize - dynamic text wrapping
+    /// @param event Size event
+    void onSize(wxSizeEvent& event);
+
+    /// @brief Handle font scaling spinner value change
+    /// @param event Spin event
+    void onFontScalingChanged(wxSpinDoubleEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };

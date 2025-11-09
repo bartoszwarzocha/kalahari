@@ -13,7 +13,7 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(LogSettingsPanel, wxPanel)
-    // Event handlers will be added as needed
+    EVT_SIZE(LogSettingsPanel::onSize)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -42,10 +42,12 @@ LogSettingsPanel::LogSettingsPanel(wxWindow* parent, SettingsState& state)
 void LogSettingsPanel::createBufferSection(wxSizer* parent) {
     wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Buffer Settings");
 
-    wxStaticText* description = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    // Store description text for dynamic wrapping
+    m_bufferDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
         "Configure the ring buffer for log entries (older entries are automatically removed)");
-    description->SetFont(description->GetFont().MakeItalic());
-    box->Add(description, 0, wxALL | wxEXPAND, 5);
+    m_bufferDescription->SetFont(m_bufferDescription->GetFont().MakeItalic());
+    // NOTE: Don't call Wrap() here - will be done dynamically in onSize()
+    box->Add(m_bufferDescription, 0, wxALL | wxEXPAND, 5);
 
     // Buffer size spinner
     wxBoxSizer* bufferSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -126,6 +128,49 @@ void LogSettingsPanel::saveToState() {
     m_state.logFontSize = m_fontSizeSpinner->GetValue();
 
     core::Logger::getInstance().info("LogSettingsPanel: Saved {} settings values", 4);
+}
+
+// ============================================================================
+// Event Handlers
+// ============================================================================
+
+void LogSettingsPanel::onSize(wxSizeEvent& event) {
+    // Dynamic text wrapping mechanism (as suggested by user)
+    // Recalculate wrap width when panel is resized
+    // IMPORTANT: Only process if panel is shown (avoid processing during construction)
+    if (!IsShown()) {
+        event.Skip();
+        return;
+    }
+
+    if (m_bufferDescription && m_bufferDescription->IsShown()) {
+        // Get available width for text (panel width minus margins and borders)
+        int panelWidth = GetClientSize().GetWidth();
+
+        // Account for:
+        // - StaticBoxSizer border (~10px)
+        // - Left/right margins (2 * 5px = 10px from wxALL flag)
+        // - Additional safety margin (~20px for scrollbar if present)
+        int availableWidth = panelWidth - 40;
+
+        if (availableWidth > 100) {  // Minimum reasonable width
+            m_bufferDescription->Wrap(availableWidth);
+
+            // Trigger layout recalculation
+            Layout();
+
+            // Notify parent (ContentPanel) to update scrollbars
+            if (GetParent()) {
+                GetParent()->Layout();
+                if (auto* scrolled = dynamic_cast<wxScrolledWindow*>(GetParent())) {
+                    scrolled->FitInside();
+                }
+            }
+        }
+    }
+
+    // Important: Call base class handler to process other resize operations
+    event.Skip();
 }
 
 } // namespace gui

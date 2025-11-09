@@ -160,6 +160,9 @@ MainWindow::MainWindow()
 {
     core::Logger::getInstance().info("Initializing main window with threading support");
 
+    // Bind custom event from SettingsDialog (Apply button)
+    Bind(EVT_SETTINGS_APPLIED, &MainWindow::onSettingsApplied, this);
+
     // Reserve thread pool capacity (avoid reallocation)
     m_activeThreads.reserve(4);
 
@@ -213,9 +216,14 @@ MainWindow::MainWindow()
     // Settings and info
     iconRegistry.registerIcon(wxART_HELP_SETTINGS, SETTINGS, _("Settings"));
     iconRegistry.registerIcon(wxART_HELP, HELP, _("Help"));
-    iconRegistry.registerIcon(wxART_INFORMATION, INFO, _("Information"));
+    iconRegistry.registerIcon(wxART_INFORMATION, INFORMATION, _("Information"));
 
-    core::Logger::getInstance().info("Icon system initialized (18 Material Design icons registered)");
+    // Message box icons (system dialogs)
+    iconRegistry.registerIcon(wxART_WARNING, WARNING, _("Warning"));
+    iconRegistry.registerIcon(wxART_ERROR, ERROR_ICON, _("Error"));
+    iconRegistry.registerIcon(wxART_QUESTION, QUESTION, _("Question"));
+
+    core::Logger::getInstance().info("Icon system initialized (22 Material Design icons registered)");
 
     // Restore window size and position from settings
     wxSize windowSize = settings.getWindowSize();
@@ -927,10 +935,171 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
             core::Logger::getInstance().info("Editor settings applied to EditorPanel");
         }
 
+        // Apply settings to LogPanel (live update without restart)
+        if (m_logPanel) {
+            m_logPanel->applySettings();
+            core::Logger::getInstance().info("Log settings applied to LogPanel");
+        }
+
         m_statusBar->SetStatusText(_("Settings saved"), 0);
     } else {
         core::Logger::getInstance().debug("Settings dialog cancelled by user");
     }
+}
+
+void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
+    core::Logger::getInstance().info("Settings -> Apply clicked - applying settings immediately");
+
+    SettingsState newState = event.getNewState();
+    core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+
+    // Apply diagnostic mode change if changed
+    if (newState.diagnosticModeEnabled != m_diagnosticMode) {
+        setDiagnosticMode(newState.diagnosticModeEnabled);
+    }
+
+    // ====================================================================
+    // Save Editor Settings to SettingsManager
+    // ====================================================================
+
+    // Margins & Padding
+    settingsMgr.set("editor.marginLeft", newState.marginLeft);
+    settingsMgr.set("editor.marginRight", newState.marginRight);
+    settingsMgr.set("editor.marginTop", newState.marginTop);
+    settingsMgr.set("editor.marginBottom", newState.marginBottom);
+
+    // Rendering
+    settingsMgr.set("editor.lineSpacing", newState.lineSpacing);
+    settingsMgr.set("editor.selectionOpacity", newState.selectionOpacity);
+    settingsMgr.set("editor.selectionColor.r", (int)newState.selectionColor.Red());
+    settingsMgr.set("editor.selectionColor.g", (int)newState.selectionColor.Green());
+    settingsMgr.set("editor.selectionColor.b", (int)newState.selectionColor.Blue());
+    settingsMgr.set("editor.antialiasing", newState.antialiasing);
+
+    // Behavior
+    settingsMgr.set("editor.autoFocus", newState.autoFocus);
+    settingsMgr.set("editor.wordWrap", newState.wordWrap);
+    settingsMgr.set("editor.undoLimit", newState.undoLimit);
+
+    // Caret settings
+    settingsMgr.set("editor.caretBlinkEnabled", newState.caretBlinkEnabled);
+    settingsMgr.set("editor.caretBlinkRate", newState.caretBlinkRate);
+    settingsMgr.set("editor.caretWidth", newState.caretWidth);
+
+    // ====================================================================
+    // Save Appearance Settings to SettingsManager
+    // ====================================================================
+
+    settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
+    settingsMgr.set("appearance.iconSize", newState.iconSize);
+    settingsMgr.set("appearance.fontScaling", newState.fontScaling);
+
+    core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={}, fontScaling={})",
+        newState.themeName.ToStdString(), newState.iconSize, newState.fontScaling);
+
+    // Apply icon size changes immediately
+    IconRegistry& iconReg = IconRegistry::getInstance();
+    IconSizeConfig newSizes = iconReg.getSizes();
+
+    // Map appearance.iconSize to all icon contexts
+    // User setting controls all icon sizes proportionally
+    newSizes.toolbar = newState.iconSize;
+    newSizes.menu = static_cast<int>(newState.iconSize * 0.67);  // Slightly smaller for menus
+    newSizes.panel = static_cast<int>(newState.iconSize * 0.83); // Medium size for panels
+    newSizes.dialog = static_cast<int>(newState.iconSize * 1.33); // Larger for dialogs
+
+    iconReg.setSizes(newSizes);
+    iconReg.saveToSettings();
+
+    core::Logger::getInstance().info("Icon sizes updated: toolbar={}, menu={}, panel={}, dialog={}",
+        newSizes.toolbar, newSizes.menu, newSizes.panel, newSizes.dialog);
+
+    // ====================================================================
+    // Save Log Settings to SettingsManager
+    // ====================================================================
+
+    settingsMgr.set("log.bufferSize", newState.logBufferSize);
+    settingsMgr.set("log.backgroundColor.r", (int)newState.logBackgroundColor.Red());
+    settingsMgr.set("log.backgroundColor.g", (int)newState.logBackgroundColor.Green());
+    settingsMgr.set("log.backgroundColor.b", (int)newState.logBackgroundColor.Blue());
+    settingsMgr.set("log.textColor.r", (int)newState.logTextColor.Red());
+    settingsMgr.set("log.textColor.g", (int)newState.logTextColor.Green());
+    settingsMgr.set("log.textColor.b", (int)newState.logTextColor.Blue());
+    settingsMgr.set("log.fontSize", newState.logFontSize);
+
+    core::Logger::getInstance().info("Log settings saved (bufferSize={}, fontSize={})",
+        newState.logBufferSize, newState.logFontSize);
+
+    // Save to JSON file
+    if (!settingsMgr.save()) {
+        core::Logger::getInstance().error("Failed to save settings to file!");
+        wxMessageBox(
+            "Failed to save settings to file. Changes may not persist.",
+            "Settings Save Error",
+            wxOK | wxICON_ERROR,
+            this
+        );
+        return;
+    }
+
+    // Apply settings to EditorPanel (live update without restart)
+    if (m_editorPanel) {
+        m_editorPanel->applySettings();
+        core::Logger::getInstance().info("Editor settings applied to EditorPanel");
+    }
+
+    // Apply settings to LogPanel (live update without restart)
+    if (m_logPanel) {
+        m_logPanel->applySettings();
+        core::Logger::getInstance().info("Log settings applied to LogPanel");
+    }
+
+    // ====================================================================
+    // Check if theme was changed - show restart dialog
+    // ====================================================================
+
+    // Get current theme from SettingsManager (saved value before this Apply)
+    std::string currentTheme = settingsMgr.get<std::string>("appearance.theme", "System");
+
+    if (newState.themeName.ToStdString() != currentTheme) {
+        core::Logger::getInstance().info("Theme changed from '{}' to '{}' - showing restart dialog",
+            currentTheme, newState.themeName.ToStdString());
+
+        wxMessageDialog restartDialog(
+            this,
+            _("Theme changes require application restart to take full effect.\n\n"
+              "Would you like to restart Kalahari now?\n\n"
+              "Note: Any unsaved changes will be lost."),
+            _("Restart Required"),
+            wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION
+        );
+
+        restartDialog.SetYesNoLabels(_("Restart Now"), _("Restart Later"));
+
+        int result = restartDialog.ShowModal();
+
+        if (result == wxID_YES) {
+            core::Logger::getInstance().info("User chose to restart application now");
+
+            // TODO Phase 1: Implement proper application restart mechanism
+            // For now, inform user to restart manually and close application
+            wxMessageBox(
+                _("Please restart Kalahari manually to apply the new theme.\n\n"
+                  "The application will now close."),
+                _("Manual Restart Required"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+
+            Close(true);  // Force close
+            return;
+        } else {
+            core::Logger::getInstance().info("User chose to restart later");
+        }
+    }
+
+    m_statusBar->SetStatusText(_("Settings applied"), 0);
+    core::Logger::getInstance().info("All settings applied successfully via Apply button");
 }
 
 void MainWindow::onFileExit([[maybe_unused]] wxCommandEvent& event) {
