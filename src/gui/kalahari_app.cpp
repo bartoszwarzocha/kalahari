@@ -9,6 +9,8 @@
 #include <kalahari/core/cmd_line_parser.h>
 #include <kalahari/core/diagnostic_manager.h>
 #include <kalahari/core/settings_manager.h>  // For theme settings
+#include <bwx_sdk/bwx_core/bwx_exception.h>
+#include <bwx_sdk/bwx_core/bwx_exception_handler.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 
@@ -79,6 +81,7 @@ bool KalahariApp::OnInit() {
     // 3.5. Apply appearance theme (wxWidgets 3.3+ dark mode support)
     // IMPORTANT: Must be called BEFORE window creation for proper dark mode rendering
     core::SettingsManager& settingsMgr = core::SettingsManager::getInstance();
+    settingsMgr.load();  // CRITICAL: Load settings.json BEFORE reading theme
     wxString themeName = wxString::FromUTF8(
         settingsMgr.get<std::string>("appearance.theme", "System")
     );
@@ -196,6 +199,142 @@ void KalahariApp::showSplashScreen() {
     // - One of 8 assistant animals (random)
     // - Loading progress bar
     // - Version information
+}
+
+bool KalahariApp::OnExceptionInMainLoop() {
+    // This method is called by wxWidgets when an exception is thrown in the main event loop.
+    // Standard C++ try-catch doesn't work across event boundaries in wxWidgets,
+    // so this is the proper way to handle exceptions.
+
+    auto& logger = core::Logger::getInstance();
+
+    try {
+        // Rethrow the caught exception to identify its type
+        throw;
+    }
+    catch (const bwx::core::LayoutException& e) {
+        // Layout exceptions (FitInside, sizers, etc.) - usually non-critical
+        logger.error("Layout exception caught in main loop: {}", e.what());
+
+        bwx::core::ExceptionHandler::logException(e,
+            [&logger]([[maybe_unused]] bwx::core::ExceptionSeverity severity,
+                     [[maybe_unused]] const std::string& message,
+                     const std::string& details) {
+                logger.error("Exception details: {}", details);
+            });
+
+        // Show user-friendly error dialog
+        wxMessageBox(
+            wxString::Format("A layout error occurred:\n\n%s\n\nThe application will continue, but some windows may not display correctly.",
+                           e.what()),
+            bwx::core::ExceptionHandler::getErrorTitle(e),
+            wxOK | wxICON_WARNING
+        );
+
+        return true;  // Continue execution
+    }
+    catch (const bwx::core::WidgetException& e) {
+        logger.error("Widget exception caught in main loop: {}", e.what());
+
+        bwx::core::ExceptionHandler::logException(e,
+            [&logger]([[maybe_unused]] bwx::core::ExceptionSeverity severity,
+                     [[maybe_unused]] const std::string& message,
+                     const std::string& details) {
+                logger.error("Exception details: {}", details);
+            });
+
+        wxMessageBox(
+            wxString::Format("A widget error occurred:\n\n%s\n\nThe application will continue.",
+                           e.what()),
+            bwx::core::ExceptionHandler::getErrorTitle(e),
+            wxOK | wxICON_WARNING
+        );
+
+        return true;  // Continue execution
+    }
+    catch (const bwx::core::WindowException& e) {
+        logger.error("Window exception caught in main loop: {}", e.what());
+
+        bwx::core::ExceptionHandler::logException(e,
+            [&logger]([[maybe_unused]] bwx::core::ExceptionSeverity severity,
+                     [[maybe_unused]] const std::string& message,
+                     const std::string& details) {
+                logger.error("Exception details: {}", details);
+            });
+
+        wxMessageBox(
+            wxString::Format("A window error occurred:\n\n%s\n\nThe application will continue.",
+                           e.what()),
+            bwx::core::ExceptionHandler::getErrorTitle(e),
+            wxOK | wxICON_WARNING
+        );
+
+        return true;  // Continue execution
+    }
+    catch (const bwx::core::ResourceException& e) {
+        logger.error("Resource exception caught in main loop: {}", e.what());
+
+        bwx::core::ExceptionHandler::logException(e,
+            [&logger]([[maybe_unused]] bwx::core::ExceptionSeverity severity,
+                     [[maybe_unused]] const std::string& message,
+                     const std::string& details) {
+                logger.error("Exception details: {}", details);
+            });
+
+        wxMessageBox(
+            wxString::Format("A resource error occurred:\n\n%s\n\nThe application will continue.",
+                           e.what()),
+            bwx::core::ExceptionHandler::getErrorTitle(e),
+            wxOK | wxICON_WARNING
+        );
+
+        return true;  // Continue execution
+    }
+    catch (const bwx::core::BwxException& e) {
+        // Generic bwx exception
+        logger.error("BWX exception caught in main loop: {}", e.what());
+
+        bwx::core::ExceptionHandler::logException(e,
+            [&logger]([[maybe_unused]] bwx::core::ExceptionSeverity severity,
+                     [[maybe_unused]] const std::string& message,
+                     const std::string& details) {
+                logger.error("Exception details: {}", details);
+            });
+
+        wxMessageBox(
+            wxString::Format("An application error occurred:\n\n%s\n\nThe application will continue.",
+                           e.what()),
+            bwx::core::ExceptionHandler::getErrorTitle(e),
+            wxOK | wxICON_WARNING
+        );
+
+        return true;  // Continue execution
+    }
+    catch (const std::exception& e) {
+        // Standard C++ exception - potentially critical
+        logger.critical("Unhandled std::exception in main loop: {}", e.what());
+
+        int result = wxMessageBox(
+            wxString::Format("An unexpected error occurred:\n\n%s\n\nContinue running? (Not recommended)",
+                           e.what()),
+            "Critical Error",
+            wxYES_NO | wxICON_ERROR | wxNO_DEFAULT
+        );
+
+        return (result == wxYES);  // Let user decide
+    }
+    catch (...) {
+        // Unknown exception type - very critical
+        logger.critical("Unknown exception caught in main loop!");
+
+        int result = wxMessageBox(
+            "An unknown critical error occurred.\n\nContinue running? (Not recommended)",
+            "Critical Error",
+            wxYES_NO | wxICON_ERROR | wxNO_DEFAULT
+        );
+
+        return (result == wxYES);  // Let user decide
+    }
 }
 
 } // namespace gui

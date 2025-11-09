@@ -34,6 +34,14 @@ public:
     /// Performs cleanup tasks and flushes logs.
     virtual int OnExit() override;
 
+    /// @brief Handle exception in main event loop
+    /// @return true to continue execution, false to abort
+    ///
+    /// Called by wxWidgets when an exception is thrown in the main event loop.
+    /// This enables proper exception handling in wxWidgets applications where
+    /// standard C++ try-catch doesn't work across event boundaries.
+    virtual bool OnExceptionInMainLoop() override;
+
 private:
     /// @brief Initialize logging subsystem
     ///
