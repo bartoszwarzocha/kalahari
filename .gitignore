@@ -93,6 +93,10 @@ Desktop.ini
 *.bak
 *.orig
 
+# Screenshot files (temporary - for issue reporting)
+Schowek_*.jpg
+Schowek_*.png
+
 # Temporary memo files (personal notes, not documentation)
 DO_PRZECZYTANIA*.md
 TODO_JUTRO*.md
@@ -146,3 +150,7 @@ docs/api/       # Doxygen output
 # Claude Token Monitor data
 .claude-monitor/
 .mcp.json
+
+# Screenshot files (temporary - for issue reporting)
+Schowek_*.jpg
+Schowek_*.png

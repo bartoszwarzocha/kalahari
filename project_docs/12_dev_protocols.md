@@ -226,7 +226,146 @@ Clear, concise description of what needs to be accomplished.
 
 **CRITICAL:** CHANGELOG.md and ROADMAP.md must be updated in parallel! See Section 3 below.
 
-### 2.5 Rules for AI
+### 2.5 Atomic Task Model (NEW - 2025-11-09)
+
+**PARADIGM SHIFT:** Tasks are now **ATOMIC** - small, focused, verifiable units of work.
+
+#### What is an Atomic Task?
+
+**Definition:** An atomic task is the smallest meaningful unit of work that:
+- ✅ Can be completed in 30-120 minutes
+- ✅ Changes 1 file (or max 2-3 tightly related files)
+- ✅ Implements ONE functionality or fixes ONE bug
+- ✅ Has clear, testable acceptance criteria
+- ✅ Can be verified independently
+- ✅ Can be committed to git as single logical change
+
+#### EPIC vs ATOMIC
+
+**EPIC** (Large Feature):
+- Example: "Auto-Save System", "Navigator Panel", "Find & Replace"
+- Contains multiple logical steps
+- Takes days or weeks
+- **NOT assigned task number** until broken down
+- Listed in ROADMAP as "EPIC: Name" under future weeks
+
+**ATOMIC TASK** (Small Step):
+- Example: "#00021: Fix Windows Settings crash", "#00022: Bind Apply button event"
+- Single logical step within EPIC
+- Takes 30-120 minutes
+- **HAS task number** (e.g., 00021, 00022)
+- Documented in tasks/NNNNN_name.md
+
+#### Atomic Task Rules
+
+**MUST DO:**
+- ✅ **ONE at a time** - No simultaneous tasks
+- ✅ **ONE functionality** - No scope creep
+- ✅ **100% complete** - Full verification before next
+- ✅ **User approval** - Every plan needs "Approved, proceed"
+- ✅ **Git commit** - One atomic task = one commit
+
+**MUST NOT DO:**
+- ❌ **"Przy okazji"** - No "while I'm here" fixes
+- ❌ **Mix concerns** - No "Navigator + Settings" tasks
+- ❌ **Partial completion** - Finish or rollback, no partial state
+- ❌ **Skip approval** - Even for "obvious" fixes
+
+#### Example: Task #00020 Problem
+
+**BAD (What happened):**
+```
+Task #00020: "Navigator Panel + wxAuiNotebook"
+├─ Created Navigator Panel structure
+├─ Added 3 tabs (Outline, Statistics, Bookmarks)
+├─ Fixed Settings Dialog layout (unplanned)
+├─ Added Appearance Settings Panel (unplanned)
+├─ Added Log Settings Panel (unplanned)
+├─ Integrated Settings Dialog (unplanned)
+└─ Result: 6 bugs, nothing works 100%
+```
+
+**GOOD (New approach):**
+```
+Task #00020: "Navigator Panel structure"
+└─ Create panel + 3 empty tabs → DONE ✅
+
+Task #00021: "Fix Windows Settings crash"
+└─ IconRegistry defensive checks → DONE ✅
+
+Task #00022: "Apply button event binding"
+└─ Wire EVT_BUTTON(wxID_APPLY) → DONE ✅
+
+Task #00023: "Icon size Apply implementation"
+└─ MainWindow updates icons → DONE ✅
+
+... (each step verified before next)
+```
+
+#### EPIC Breakdown Process
+
+When large feature (EPIC) is ready to implement:
+
+1. **Create Breakdown Document**
+   - File: `tasks/.wip/EPIC-NAME-breakdown.md`
+   - List 5-15 atomic steps
+   - Estimate time for each (30-120 min)
+   - Identify dependencies
+
+2. **User Approves Breakdown**
+   - Present breakdown to user
+   - User reviews sequence and scope
+   - User says "Approved, proceed"
+
+3. **Execute Atomically**
+   - Task 00031: Analysis → Plan → Approval → Code → Test → Commit
+   - Task 00032: Analysis → Plan → Approval → Code → Test → Commit
+   - Task 00033: Analysis → Plan → Approval → Code → Test → Commit
+   - ... (no parallelism, strict sequence)
+
+4. **Mark EPIC Complete**
+   - When all atomic tasks done
+   - Update ROADMAP: EPIC status → ✅ COMPLETE
+   - Create summary in CHANGELOG
+
+#### Atomic Task Template (Simplified)
+
+```markdown
+# Task #NNNNN: Short Descriptive Name
+
+**Status:** 📋 Planned / 🚀 In Progress / ✅ Complete
+**Priority:** P0 (CRITICAL) / P1 (HIGH) / P2 (MEDIUM) / P3 (LOW)
+**Estimated:** 30-120 minutes
+**Dependencies:** #NNNNN (if any)
+
+## Problem
+What specific issue needs fixing? (1-2 sentences)
+
+## Solution
+How will we fix it? (3-5 bullet points)
+
+## Implementation Plan
+1. Edit file X, lines Y-Z
+2. Add method foo()
+3. Update tests
+4. Build verification
+
+## Acceptance Criteria
+- [ ] Criterion 1 (testable)
+- [ ] Criterion 2 (testable)
+- [ ] No errors in logs
+
+## Testing Steps
+1. Do action X
+2. Verify result Y
+3. Check edge case Z
+
+---
+**Created:** YYYY-MM-DD
+**Completed:** YYYY-MM-DD (when done)
+```
+
+### 2.6 Rules for AI
 
 **MUST:**
 - ✅ **NEVER start implementation** without approved task file

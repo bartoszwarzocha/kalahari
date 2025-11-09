@@ -2,9 +2,10 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** ✅ Task #00019 COMPLETE (100%) → Phase 1 continues with Task #00020
+**Current Status:** 🔧 RESTRUCTURING (2025-11-09) → Atomic Task Model Implementation
+**Next Task:** #00021 (Fix Windows Settings Crash - CRITICAL)
 **Version:** 0.0.1-dev
-**Last Updated:** 2025-11-06 (Task #00019 COMPLETE)
+**Last Updated:** 2025-11-09 (Atomic Task Model - Restructuring Phase)
 
 ---
 
@@ -232,89 +233,108 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Reason:** Browser engine overhead, web-based complexity, native approach chosen
   - **File:** [tasks/00016_tiptap_rich_text_editor.md](tasks/00016_tiptap_rich_text_editor.md)
 
-**Week 13: Document Structure** (After #00019)
-- [ ] **Task #00020:** Project Navigator Panel + wxTreeCtrl
-  - Hierarchical tree view: Book → Parts → Chapters
-  - Node selection → load chapter in editor
-  - Context menu (right-click CRUD operations)
-  - **Status:** 📋 Planned (deferred after #00019) | **File:** [tasks/00020_project_navigator_panel.md](tasks/00020_project_navigator_panel.md)
-  - **Dependency:** Task #00019 MUST be complete first (avoids refactoring)
+**Week 13: Settings System Fixes (ATOMIC TASKS 00021-00030)** 🔧 IN PROGRESS
 
-**Week 14: CRUD Operations**
-- [ ] **Task #TBD:** Chapter Management CRUD Operations
+> **Context:** Task #00020 (Navigator Panel) was executed but mixed with Settings System work, resulting in 6 bugs. New atomic approach: one small task at a time, full verification before next.
+
+- [x] **Task #00020:** Project Navigator Panel + wxTreeCtrl **⚠️ COMPLETE WITH BUGS**
+  - Hierarchical tree view structure created (3 tabs: Outline, Statistics, Bookmarks)
+  - BUT: Settings System changes introduced bugs (Windows crash, Apply button, font scaling, etc.)
+  - **Status:** ✅ Structure complete, 🔴 Requires fixes (#00021-00030) | **File:** [tasks/00020_project_navigator_panel.md](tasks/00020_project_navigator_panel.md)
+
+- [ ] **Task #00021:** Fix Windows Settings Dialog Crash **P0 CRITICAL** 🚨
+  - IconRegistry::getSizeForClient() causes crash on Windows
+  - Solution: Use fixed 16x16 for tree icons, add defensive checks
+  - **File:** [tasks/00021_fix_windows_settings_crash.md](tasks/00021_fix_windows_settings_crash.md)
+
+- [ ] **Task #00022:** Apply Button Event Binding **P1 HIGH**
+  - Bind EVT_BUTTON(wxID_APPLY) in SettingsDialog
+  - Fire EVT_SETTINGS_APPLIED custom event to MainWindow
+  - **File:** [tasks/00022_apply_button_event_binding.md](tasks/00022_apply_button_event_binding.md)
+
+- [ ] **Task #00023:** Icon Size Apply Implementation **P1 HIGH**
+  - MainWindow::OnSettingsApplied() → IconRegistry::setSizes() → rebuild toolbar
+  - **File:** [tasks/00023_icon_size_apply_implementation.md](tasks/00023_icon_size_apply_implementation.md)
+
+- [ ] **Task #00024:** Icon Size Persistence Verification **P2 MEDIUM**
+  - Verify settings.json save/load cycle
+  - Test restart behavior
+  - **File:** [tasks/00024_icon_size_persistence_verification.md](tasks/00024_icon_size_persistence_verification.md)
+
+- [ ] **Task #00025:** Font Scaling Live Preview **P1 HIGH**
+  - Bind EVT_SPINCTRLDOUBLE to update example text in real-time
+  - **File:** [tasks/00025_font_scaling_live_preview.md](tasks/00025_font_scaling_live_preview.md)
+
+- [ ] **Task #00026:** Font Scaling Apply Implementation **P1 HIGH**
+  - MainWindow::UpdateAllFonts() → iterate panels → update all controls
+  - **File:** [tasks/00026_font_scaling_apply_implementation.md](tasks/00026_font_scaling_apply_implementation.md)
+
+- [ ] **Task #00027:** Font Scaling Persistence Verification **P2 MEDIUM**
+  - Verify settings.json save/load cycle
+  - Test startup font loading
+  - **File:** [tasks/00027_font_scaling_persistence_verification.md](tasks/00027_font_scaling_persistence_verification.md)
+
+- [ ] **Task #00028:** Dynamic Text Wrapping Verification **P2 MEDIUM**
+  - Test help text wrapping on resize
+  - Remove fixed Wrap(400) if needed
+  - **File:** [tasks/00028_dynamic_text_wrapping_verification.md](tasks/00028_dynamic_text_wrapping_verification.md)
+
+- [ ] **Task #00029:** Theme Restart Dialog Verification **P2 MEDIUM**
+  - Verify restart dialog flow for theme changes
+  - Test Yes/No buttons, persistence
+  - **File:** [tasks/00029_theme_restart_dialog_verification.md](tasks/00029_theme_restart_dialog_verification.md)
+
+- [ ] **Task #00030:** Navigator Panel Cleanup Verification **P3 LOW**
+  - Remove debug code, verify docking, document current state
+  - Plan next Navigator tasks (CRUD functionality)
+  - **File:** [tasks/00030_navigator_panel_cleanup_verification.md](tasks/00030_navigator_panel_cleanup_verification.md)
+
+**Week 14-15: Chapter Management (FUTURE EPIC - Will be broken into atomic tasks 00031+)**
+- [ ] **EPIC:** Chapter Management CRUD Operations
   - Add, delete, rename, move chapters and parts
   - Drag & drop reordering
-  - **Status:** 📋 Planned | **Priority:** P0
+  - **Status:** 📋 Planned (after 00021-00030 complete) | **Priority:** P0
+  - **Note:** Will be decomposed into 8-10 atomic tasks when ready
 
-**Week 15: Persistence Enhancement**
-- [ ] **Task #TBD:** Content Save/Load Integration
-  - Serialization from custom editor control
-  - Content storage in .klh ZIP (chapters/*.dat or *.rtf)
-  - Lazy loading strategy
+**Week 15-16: Persistence & Formatting (FUTURE EPICs)**
+- [ ] **EPIC:** Content Save/Load Integration
+  - Serialization, .klh ZIP storage, lazy loading
   - **Status:** 📋 Planned | **Priority:** P0
-
-**Week 16: Advanced Formatting**
-- [ ] **Task #TBD:** Text Styles + Paragraph Formatting
-  - Styles: H1-H6, body, quotes, code
-  - Paragraph spacing, indentation
-  - Bullet/numbered lists
+- [ ] **EPIC:** Text Styles + Paragraph Formatting
+  - H1-H6, spacing, indentation, lists
   - **Status:** 📋 Planned | **Priority:** P1
 
-**Week 15: Editor Reliability**
-- [ ] **Task #00019:** Undo/Redo Command Pattern
-  - ICommand interface (execute/undo)
-  - TextEditCommand + StructureEditCommand
-  - Command history (100 default, configurable)
+**Week 16-17: Editor Reliability (FUTURE EPICs)**
+- [ ] **EPIC:** Undo/Redo Command Pattern
+  - ICommand interface, history management
   - **Status:** 📋 Planned | **Priority:** P0
-
-**Week 16: Editor Utility**
-- [ ] **Task #00020:** Find & Replace
-  - Search options: case-sensitive, whole word, regex
-  - Find Next/Previous, Replace All
-  - Search scope: current/all chapters
+- [ ] **EPIC:** Find & Replace
+  - Search options, scope, Replace All
   - **Status:** 📋 Planned | **Priority:** P1
 
-**Week 17: Data Safety (Auto-Save)**
-- [ ] **Task #00021:** Auto-Save System
-  - Configurable interval (1-10 minutes)
-  - Background thread, dirty flag tracking
-  - Crash recovery
+**Week 17-18: Data Safety (FUTURE EPICs)**
+- [ ] **EPIC:** Auto-Save System
+  - Configurable interval, background thread, crash recovery
   - **Status:** 📋 Planned | **Priority:** P0
-
-**Week 18: Data Safety (Backup)**
-- [ ] **Task #00022:** Backup System
-  - Rolling snapshots (hourly, daily, weekly)
-  - Retention policy, restore UI
-  - Background backup thread
+- [ ] **EPIC:** Backup System
+  - Rolling snapshots, retention policy, restore UI
   - **Status:** 📋 Planned | **Priority:** P1
 
-**Week 19: UX Polish**
-- [ ] **Task #00023:** Focus Modes + Perspectives
-  - 3 modes: Normal, Focused, Distraction-Free
-  - Perspective save/load (4 defaults)
+**Week 19-20: UX Polish (FUTURE EPICs)**
+- [ ] **EPIC:** Focus Modes + Perspectives
+  - Normal, Focused, Distraction-Free modes
   - **Status:** 📋 Planned | **Priority:** P2
-
-- [ ] **Task #00024:** Keyboard Shortcuts System
-  - 80+ default shortcuts
-  - Customization UI, conflict detection
-  - Platform-specific defaults
+- [ ] **EPIC:** Keyboard Shortcuts System
+  - 80+ shortcuts, customization UI, conflict detection
   - **Status:** 📋 Planned | **Priority:** P1
-
-**Week 20: Writing Feedback & Polish**
-- [ ] **Task #00025:** Word Count Live + Statistics Panel
-  - Live word count (status bar)
-  - Session statistics, writing streak
-  - Statistics panel with charts
+- [ ] **EPIC:** Word Count Live + Statistics Panel
+  - Live count, session stats, charts
   - **Status:** 📋 Planned | **Priority:** P1
-
-- [ ] **Task #00026:** Status Bar + Info Bar
-  - Status bar (8 segments: word count, cursor, time, etc.)
-  - Info bar (5 message types)
+- [ ] **EPIC:** Status Bar + Info Bar
+  - 8 segments, 5 message types
   - **Status:** 📋 Planned | **Priority:** P2
-
-- [ ] **Task #00027:** Spell Checking Integration
-  - Red wavy underline, suggestions
-  - Language selection, custom dictionary
+- [ ] **EPIC:** Spell Checking Integration
+  - Red underline, suggestions, custom dictionary
   - **Status:** 📋 Planned | **Priority:** P2
 
 **Before Phase 2: Settings System Enhancement**

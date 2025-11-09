@@ -29,6 +29,7 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 11 | [**User Docs Plan**](11_user_documentation_plan.md) | MkDocs + Material, phased delivery strategy | ✅ Complete |
 | 12 | [**Dev Protocols**](12_dev_protocols.md) | Task workflow, MCP tools, session management | ✅ Complete |
 | 14 | [**bwx_sdk Patterns**](14_bwx_sdk_patterns.md) | Custom wxWidgets controls design patterns, rationale | ✅ Complete |
+| 16 | [**Settings Inventory**](16_settings_inventory.md) | Complete settings catalog (37 parameters tracked) | ✅ Complete |
 
 ### Supporting Files
 

@@ -6,7 +6,60 @@ description: Analyze ROADMAP and tasks to propose next work item
 
 **Automatically detects incomplete work or proposes next logical task**
 
+**⚠️ NEW ATOMIC MODEL (2025-11-09):** Tasks are now small, focused units (30-120 min). EPICs are broken down into numbered atomic tasks (e.g., 00021, 00022) before execution.
+
 ## Execution Steps:
+
+### 0. **Atomic Task Model Rules (NEW - 2025-11-09)**
+
+**MANDATORY: Understand atomic model before proposing tasks**
+
+#### Key Concepts:
+
+**EPIC** (Large Feature):
+- Example: "Auto-Save System", "Chapter CRUD Operations"
+- Contains 5-15 small steps
+- Takes days/weeks
+- **NO task number until broken down**
+- Listed in ROADMAP as "EPIC: Name"
+
+**ATOMIC TASK** (Small Step):
+- Example: "#00021: Fix Windows Settings crash"
+- ONE functionality, ONE file (max 2-3)
+- 30-120 minutes
+- **HAS task number** (00021, 00022, etc.)
+- Verifiable independently
+
+#### When Proposing Next Task:
+
+**✅ DO:**
+- Propose next atomic task in sequence (e.g., after 00020 → propose 00021)
+- Check ROADMAP for atomic tasks (00021-00030 defined)
+- If no atomic tasks exist for EPIC, suggest creating breakdown first
+- ONE task at a time (no parallel suggestions)
+
+**❌ DON'T:**
+- Don't propose large EPICs as tasks
+- Don't skip task numbers (if 00021 exists, don't propose 00025)
+- Don't suggest "quick fixes" bypassing task files
+
+#### Current Project State (as of 2025-11-09):
+
+**Completed:**
+- Tasks 00001-00019: ✅ COMPLETE
+- Task 00020: ⚠️ COMPLETE (with bugs)
+
+**Next Atomic Tasks (Settings System Fixes):**
+- Task 00021: Fix Windows Settings crash (P0 CRITICAL)
+- Task 00022: Apply button event binding (P1 HIGH)
+- Task 00023: Icon size Apply implementation (P1 HIGH)
+- Task 00024-00030: Font scaling, verification tasks
+
+**When /next-task is run:**
+- If no task in progress → Propose Task #00021
+- If 00021 in progress → Remind to complete before 00022
+- If 00021 complete → Propose Task #00022
+- And so on...
 
 ### 1. **Scan for Incomplete Tasks**
 

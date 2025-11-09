@@ -102,13 +102,27 @@ mainSizer->Add(box, 1, wxALL | wxEXPAND, 10);
 SetSizer(mainSizer);
 ```
 
-### 3. Task Workflow - NEVER Skip
+### 3. Atomic Task Workflow - NEVER Skip
 
-- ✅ **ALWAYS create** task file BEFORE implementation (tasks/NNNNN_name.md)
-- ✅ **ALWAYS wait** for user approval ("Approved, proceed")
-- ✅ **ALWAYS update BOTH** CHANGELOG.md AND ROADMAP.md on completion
-- ❌ **NEVER start coding** without approved task file
-- ❌ **NEVER skip** task file for "quick fixes" (document it!)
+**NEW MODEL (since 2025-11-09):** Tasks are now **ATOMIC** - small, focused, 30-120 minute units.
+
+**ATOMIC TASK RULES:**
+- ✅ **ONE task at a time** - No simultaneous work
+- ✅ **ONE functionality per task** - No scope creep
+- ✅ **ONE file changed** (or max 2-3 tightly related)
+- ✅ **100% verifiable** - Clear acceptance criteria
+- ✅ **30-120 minutes** - If longer, split into smaller tasks
+- ❌ **NEVER "przy okazji"** - No "while I'm here" fixes
+- ❌ **NEVER skip approval** - Every plan needs "Approved, proceed"
+- ❌ **NEVER start next** until current is 100% complete
+
+**EPIC vs ATOMIC:**
+- **EPIC** = Large feature (e.g., "Auto-Save System") - NOT a task number yet
+- **ATOMIC TASK** = Small step (e.g., "#00045: Bind auto-save timer event") - HAS task number
+
+**Example:**
+- ❌ BAD: Task #00020 "Navigator Panel + Settings fixes" (too big, mixed concerns)
+- ✅ GOOD: Task #00021 "Fix Windows Settings crash" (30 min, one file, one bug)
 
 **Full workflow:** See [project_docs/12_dev_protocols.md](project_docs/12_dev_protocols.md)
 
@@ -370,15 +384,67 @@ private:
 
 **Detailed workflows:** [project_docs/12_dev_protocols.md](project_docs/12_dev_protocols.md)
 
-### Task Management Workflow
-1. **PLAN** - AI creates task file (tasks/NNNNN_name.md)
-2. **REVIEW** - User examines proposed approach
-3. **APPROVAL** - User says "Approved, proceed"
-4. **IMPLEMENTATION** - AI executes checklist step-by-step
-5. **VERIFICATION** - Build, test, check memory leaks
-6. **COMPLETION** - Update CHANGELOG, ROADMAP, commit
+### Atomic Task Management Workflow
 
-**NEVER start implementation without approved task file!**
+**ATOMIC TASK LIFECYCLE (MANDATORY):**
+
+```
+┌─────────────────────────────────────────────┐
+│ 1. ANALYSIS (5-10 min)                      │
+│    - Read relevant code (Serena MCP!)       │
+│    - Understand context                     │
+│    - Identify exact change needed           │
+│    - Verify ONE small change only           │
+├─────────────────────────────────────────────┤
+│ 2. PLAN (5-10 min)                          │
+│    - Write task file (tasks/NNNNN_name.md) │
+│    - List acceptance criteria               │
+│    - Identify test cases                    │
+│    - Estimate time (30-120 min)            │
+├─────────────────────────────────────────────┤
+│ 3. USER APPROVAL ⛔                         │
+│    - Present plan to user                   │
+│    - Wait for "Approved, proceed"           │
+│    - BLOCK until approval received          │
+│    - NO CODING before this point!           │
+├─────────────────────────────────────────────┤
+│ 4. IMPLEMENTATION (20-60 min)              │
+│    - Code changes (ONE functionality)       │
+│    - Build verification                     │
+│    - NO scope creep!                        │
+│    - NO "przy okazji" fixes!                │
+├─────────────────────────────────────────────┤
+│ 5. TESTING (10-20 min)                      │
+│    - Manual testing (user or AI-guided)     │
+│    - Acceptance criteria check              │
+│    - PASS/FAIL decision                     │
+│    - If FAIL → fix or rollback              │
+├─────────────────────────────────────────────┤
+│ 6. COMPLETION (5-10 min)                    │
+│    - Update task file (mark DONE)           │
+│    - Update ROADMAP.md (checkbox)           │
+│    - Update CHANGELOG.md (if significant)   │
+│    - Git commit (single atomic change)      │
+│    - Move to NEXT task                      │
+└─────────────────────────────────────────────┘
+```
+
+**CRITICAL RULES:**
+- ❌ NO simultaneous tasks (one at a time)
+- ❌ NO scope changes mid-task (stay focused)
+- ❌ NO "quick fixes" while working on task
+- ✅ FULL verification before next task
+- ✅ User approval for EVERY plan
+- ✅ 100% completion or rollback (no partial state)
+
+**EPIC Breakdown Process:**
+
+When large feature (EPIC) is ready:
+1. Create breakdown document (tasks/.wip/EPIC-NAME-breakdown.md)
+2. Split into 5-15 atomic tasks
+3. User approves breakdown
+4. Execute tasks one by one (00031, 00032, 00033...)
+5. When EPIC complete, update ROADMAP
 
 ### End-of-Session Checklist
 1. ✅ Update CHANGELOG.md ([Unreleased] section)
