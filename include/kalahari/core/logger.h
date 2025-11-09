@@ -108,6 +108,14 @@ public:
     /// for critical logging points.
     void flush();
 
+    /// @brief Get the underlying spdlog logger
+    ///
+    /// Provides direct access to spdlog logger for advanced use cases.
+    /// Used by GUI to register custom sinks.
+    ///
+    /// @return Shared pointer to spdlog logger (may be nullptr if not initialized)
+    std::shared_ptr<spdlog::logger> getLogger() { return m_logger; }
+
 private:
     /// @brief Private constructor (singleton pattern)
     Logger() = default;
