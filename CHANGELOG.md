@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Settings Migration System (POZIOM 2) (2025-11-09)
+
+#### Added
+- **Automatic Settings Migration Infrastructure** - Professional settings file upgrade system
+  - **Problem:** User changed theme to "Light" but after restart settings weren't persisted
+  - **Root Cause #1:** Settings not loaded from SettingsManager when opening Settings Dialog (FIXED in previous session)
+  - **Root Cause #2:** Old settings.json format (`ui.theme`) incompatible with new format (`appearance.theme`)
+  - **Unprofessional Approach Rejected:** Manual file editing or deletion (user said: "Podchodzimy do tematu BARDZO RPOFESJONALNIE")
+  - **Professional Solution Implemented (POZIOM 2):**
+    - `hasKey(const std::string& key)` - Check if setting exists in JSON
+    - `removeKey(const std::string& key)` - Remove old keys from JSON (handles nested keys)
+    - `migrateIfNeeded()` - Check version and call appropriate migration
+    - `migrateFrom_1_0_to_1_1()` - Migrate ui.theme → appearance.theme, add new keys
+  - **Automatic Migration:** Called from `load()`, unlocks mutex to allow `set()` calls during migration
+  - **Migration 1.0 → 1.1:**
+    - Migrate `ui.theme` → `appearance.theme` (preserves user's choice)
+    - Add `appearance.iconSize: 24` (default)
+    - Add `appearance.fontScaling: 1.0` (default)
+    - Add `log.bufferSize: 500` and log colors (Phase 1 defaults)
+    - Remove old `ui.theme` key
+    - Update version to "1.1"
+    - Auto-save migrated settings
+  - **Comprehensive Logging:** All migration steps logged (debug + info levels)
+  - **Extensible:** Framework ready for future migrations (1.1 → 1.2, etc.)
+  - **Testing Results:**
+    - ✅ Old settings.json (`version: "1.0"`, `ui.theme: "Light"`) successfully migrated
+    - ✅ New settings.json (`version: "1.1"`, `appearance.theme: "Light"`) created
+    - ✅ All new keys added with defaults
+    - ✅ Migration logged: "Migrating settings from 1.0 to 1.1..." → "Migration complete"
+  - **User Experience:** Zero manual intervention - migration happens transparently on first run
+  - **Files Modified:**
+    - `include/kalahari/core/settings_manager.h` (+20 LOC) - Migration API declarations
+    - `src/core/settings_manager.cpp` (+118 LOC) - Migration implementation
+  - **Future Work (POZIOM 3):** Schema validation + migration framework (planned before Phase 2)
+    - Added to ROADMAP.md as "Task #TBD: Settings Schema Validation + Migration Framework"
+    - Priority: P0 (before Phase 2)
+    - Will include: JSON schema validation, "Reset to defaults" dialog, robust migration registry
+
 ### Task #00019 - Custom Text Editor Control (MVP Phase 1) (2025-11-04 to 2025-11-06)
 
 #### Fixed (2025-11-06, Days 12-13)

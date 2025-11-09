@@ -126,6 +126,19 @@ public:
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;
 
+    /// @brief Check if a setting key exists
+    /// @param key JSON pointer path (e.g., "appearance.theme")
+    /// @return true if key exists, false otherwise
+    bool hasKey(const std::string& key) const;
+
+    /// @brief Remove a setting key
+    /// @param key JSON pointer path (e.g., "ui.theme")
+    void removeKey(const std::string& key);
+
+    /// @brief Migrate settings from older versions if needed
+    /// Called automatically by load()
+    void migrateIfNeeded();
+
 private:
     /// @brief Private constructor (singleton)
     SettingsManager();
@@ -144,6 +157,10 @@ private:
     /// @param key Key like "window.width"
     /// @return JSON pointer like "/window/width"
     std::string keyToJsonPointer(const std::string& key) const;
+
+    /// @brief Migrate settings from version 1.0 to 1.1
+    /// Moves ui.theme -> appearance.theme and adds new appearance keys
+    void migrateFrom_1_0_to_1_1();
 
     /// In-memory settings (nlohmann::json)
     nlohmann::json m_settings;

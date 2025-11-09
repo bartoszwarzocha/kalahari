@@ -61,6 +61,12 @@ bool SettingsManager::load() {
 
         m_settings = nlohmann::json::parse(file);
         Logger::getInstance().info("Settings loaded successfully from: {}", m_filePath.string());
+
+        // Migrate settings if needed (unlock for migration to call set())
+        m_mutex.unlock();
+        migrateIfNeeded();
+        m_mutex.lock();
+
         return true;
 
     } catch (const nlohmann::json::exception& e) {
@@ -288,6 +294,123 @@ std::string SettingsManager::keyToJsonPointer(const std::string& key) const {
         if (c == '.') c = '/';
     }
     return pointer;
+}
+
+// =============================================================================
+// Migration Support (Task #00020 - Settings Migration)
+// =============================================================================
+
+bool SettingsManager::hasKey(const std::string& key) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    try {
+        std::string pointer = keyToJsonPointer(key);
+        m_settings.at(nlohmann::json::json_pointer(pointer));
+        return true;
+    } catch (const nlohmann::json::exception&) {
+        return false;
+    }
+}
+
+void SettingsManager::removeKey(const std::string& key) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    try {
+        std::string pointer = keyToJsonPointer(key);
+        // For removing nested keys, we need to access parent and erase child
+        // Example: "ui.theme" -> find "ui" object and erase "theme" key
+
+        size_t lastSlash = pointer.rfind('/');
+        if (lastSlash == 0) {
+            // Top-level key like "/version"
+            std::string topKey = pointer.substr(1);
+            if (m_settings.contains(topKey)) {
+                m_settings.erase(topKey);
+                Logger::getInstance().debug("Removed setting key: {}", key);
+            }
+        } else {
+            // Nested key like "/ui/theme"
+            std::string parentPointer = pointer.substr(0, lastSlash);
+            std::string childKey = pointer.substr(lastSlash + 1);
+
+            nlohmann::json& parent = m_settings.at(nlohmann::json::json_pointer(parentPointer));
+            if (parent.is_object() && parent.contains(childKey)) {
+                parent.erase(childKey);
+                Logger::getInstance().debug("Removed setting key: {}", key);
+            }
+        }
+    } catch (const nlohmann::json::exception& e) {
+        Logger::getInstance().warn("Failed to remove key '{}': {}", key, e.what());
+    }
+}
+
+void SettingsManager::migrateIfNeeded() {
+    // Check current version (no mutex needed, called from load() which already holds lock)
+    std::string version = get<std::string>("version", "0.0");
+
+    Logger::getInstance().debug("Checking settings version: {}", version);
+
+    if (version == "1.0") {
+        Logger::getInstance().info("Migrating settings from 1.0 to 1.1...");
+        migrateFrom_1_0_to_1_1();
+        set("version", "1.1");
+        save();  // Save migrated settings immediately
+        Logger::getInstance().info("Settings migration complete: 1.0 -> 1.1");
+    }
+
+    // Future migrations here:
+    // if (version == "1.1") { migrateFrom_1_1_to_1_2(); ... }
+}
+
+void SettingsManager::migrateFrom_1_0_to_1_1() {
+    // =========================================================================
+    // Migration 1.0 -> 1.1 (Task #00020 - Appearance Settings)
+    // =========================================================================
+    //
+    // Changes:
+    // 1. Move ui.theme -> appearance.theme
+    // 2. Add appearance.iconSize (default: 24)
+    // 3. Add appearance.fontScaling (default: 1.0)
+    // =========================================================================
+
+    // 1. Migrate ui.theme -> appearance.theme
+    if (hasKey("ui.theme")) {
+        std::string theme = get<std::string>("ui.theme", "System");
+        set("appearance.theme", theme);
+        removeKey("ui.theme");
+        Logger::getInstance().info("Migrated ui.theme='{}' to appearance.theme", theme);
+    } else {
+        // If no ui.theme, create with default
+        set("appearance.theme", "System");
+        Logger::getInstance().info("Created appearance.theme='System' (no ui.theme found)");
+    }
+
+    // 2. Add appearance.iconSize if not exists
+    if (!hasKey("appearance.iconSize")) {
+        set("appearance.iconSize", 24);
+        Logger::getInstance().debug("Added appearance.iconSize=24");
+    }
+
+    // 3. Add appearance.fontScaling if not exists
+    if (!hasKey("appearance.fontScaling")) {
+        set("appearance.fontScaling", 1.0);
+        Logger::getInstance().debug("Added appearance.fontScaling=1.0");
+    }
+
+    // Add default Log settings if not exist (Phase 1)
+    if (!hasKey("log.bufferSize")) {
+        set("log.bufferSize", 500);
+        set("log.backgroundColor.r", 60);
+        set("log.backgroundColor.g", 60);
+        set("log.backgroundColor.b", 60);
+        set("log.textColor.r", 255);
+        set("log.textColor.g", 255);
+        set("log.textColor.b", 255);
+        set("log.fontSize", 11);
+        Logger::getInstance().debug("Added default log settings");
+    }
+
+    Logger::getInstance().info("Migration 1.0 -> 1.1 complete");
 }
 
 } // namespace core
