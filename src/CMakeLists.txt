@@ -87,10 +87,13 @@ target_link_libraries(kalahari_core PUBLIC
 # Executable source files (GUI + main)
 set(KALAHARI_SOURCES
     main.cpp
+    core/gui_log_sink.cpp  # GUI-specific, not in core library
     gui/kalahari_app.cpp
     gui/main_window.cpp
     gui/settings_dialog.cpp
-    gui/editor_settings_panel.cpp  # Phase 1: Editor settings (Task #00019)
+    gui/editor_settings_panel.cpp      # Phase 1: Editor settings (Task #00019)
+    gui/log_settings_panel.cpp         # Phase 1: Diagnostic Log settings (Task #00020)
+    gui/appearance_settings_panel.cpp  # Phase 1: Appearance settings (Task #00020 - Option C)
     gui/icon_registry.cpp
     gui/art_provider.cpp
     gui/perspective_manager.cpp
@@ -105,6 +108,7 @@ set(KALAHARI_SOURCES
     gui/panels/statistics_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/assistant_panel.cpp
+    gui/panels/log_panel.cpp
 )
 
 # Create executable
