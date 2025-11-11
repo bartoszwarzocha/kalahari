@@ -161,7 +161,6 @@ SetSizer(mainSizer);
 - Run `/save-session --full` (~4min)
 - **Auto-generates CHANGELOG/ROADMAP** if missing (with user approval)
 - Waits for CI/CD verification (Linux, macOS, Windows)
-- Full Memory MCP graph update
 - Comprehensive verification report
 
 **Agent handles all verification automatically:**

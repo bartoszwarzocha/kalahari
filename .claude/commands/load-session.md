@@ -69,19 +69,14 @@ Automatically detects session save mode from metadata and adjusts verification d
    - **IF EMPTY:** ✅ No gaps
    - **IF NEW COMMITS:** ⚠️ Gap detected, ask user
 
-3. **Memory MCP quick check:**
-   - Read last checkpoint observation
-   - Verify task entity exists
-   - Skip deep relation analysis
-
-4. **Output:**
+3. **Output:**
    ```
    ⚡ Quick session restored (~6s)
    Last session: 2025-11-05 14:30 (quick checkpoint)
    Context: Task #00019 - Text Editor Integration (WIP)
 
    ✅ Git status: Clean (no new commits)
-   ✅ Memory: Checkpoint loaded
+   ✅ Session: Checkpoint loaded
 
    📋 Next steps (from last session):
    - Continue Task #00019 implementation
@@ -114,12 +109,7 @@ Automatically detects session save mode from metadata and adjusts verification d
    - **IF RUNNING:** Report "still in progress"
    - **IF FAILED:** Extract failure summary from logs
 
-4. **Enhanced Memory MCP check:**
-   - Verify sync observation exists
-   - Check CI/CD run entity (if created)
-   - Report any inconsistencies
-
-5. **Output:**
+4. **Output:**
    ```
    🚀 Sync session restored (~18s)
    Last session: 2025-11-05 18:45 (synced to GitHub)
@@ -135,7 +125,7 @@ Automatically detects session save mode from metadata and adjusts verification d
    - macOS: ✅ PASS (3m 36s)
    - Windows: ✅ PASS (9m 34s)
 
-   ✅ Memory: Sync state loaded
+   ✅ Session: Sync state loaded
 
    📋 Next steps:
    - Continue next subtask
@@ -163,19 +153,13 @@ Automatically detects session save mode from metadata and adjusts verification d
    - Verify ROADMAP.md Task #00019 status matches frontmatter
    - **IF MISMATCH:** ⚠️ Report inconsistency
 
-3. **Full Memory MCP graph verification:**
-   - Read all entities created/updated in session
-   - Verify relations mentioned in session
-   - Cross-reference with git commits
-   - Report comprehensive graph state
-
-4. **CI/CD deep verification:**
+3. **CI/CD deep verification:**
    - Verify all 3 platforms passed (Linux, macOS, Windows)
    - Check test counts, code coverage (if available)
    - Verify no regressions since session
    - **IF NEW FAILURES:** ⚠️ Report regression
 
-5. **Output:**
+4. **Output:**
    ```
    📋 Full session restored (~45s)
    Last session: 2025-11-05 14:30 (full verification)
@@ -190,12 +174,6 @@ Automatically detects session save mode from metadata and adjusts verification d
    - CHANGELOG.md: ✅ All session commits documented
    - ROADMAP.md: ✅ Task #00019 marked COMPLETE
    - Frontmatter: ✅ Matches reality
-
-   ✅ Memory MCP graph:
-   - Entities: 5 verified (bwxTextEditor, EditorPanel, ViewMode, Edit menu, Task #00019)
-   - Relations: 8 verified
-   - Observations: 12 from session
-   - Graph: ✅ Consistent with codebase
 
    ✅ CI/CD verification:
    - Session CI/CD: ✅ All passed (3m 45s total)
@@ -263,8 +241,7 @@ Commits since last session (2025-11-05 14:30):
 This work is not documented in any session memory!
 Please explain what was done so I can:
 1. Create a recovery session memory
-2. Update Memory MCP graph
-3. Ensure continuity for future sessions
+2. Ensure continuity for future sessions
 
 Type your explanation or "skip" to ignore:
 ```
@@ -276,7 +253,6 @@ Type your explanation or "skip" to ignore:
 User: I added Edit menu integration and fixed Windows build error
 Agent: ✅ Creating recovery session...
         ✅ Recovery memory saved: session_2025-11-05_recovery_gap
-        ✅ Memory MCP updated with context
 
         Now continuing with normal session restore...
 ```

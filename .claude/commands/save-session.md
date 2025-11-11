@@ -75,12 +75,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - Continue Task #00019 implementation
    ```
 
-4. **Minimal Memory MCP update:**
-   - Add observation to current task entity: "Quick checkpoint at 2025-11-05 14:30"
-   - Update "last_checkpoint" timestamp
-   - **SKIP** detailed entity/relation analysis
-
-5. **Output:**
+4. **Output:**
    ```
    ⚡ Quick checkpoint saved (~12s)
    Session: session_2025-11-05_task-00019_WIP
@@ -140,11 +135,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - Continue next subtask
    ```
 
-4. **Incremental Memory MCP update:**
-   - Add observation: "Synced to GitHub at 2025-11-05 18:45, CI/CD triggered"
-   - Note CI/CD run URL (if available)
-
-5. **Output:**
+4. **Output:**
    ```
    🚀 Session synced to GitHub (~28s)
    Session: session_2025-11-05_task-00019_subtask-complete
@@ -210,13 +201,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - `edit` → User provides corrections, agent applies
    - `skip` → Session saved, but docs remain incomplete (NOT RECOMMENDED)
 
-3. **Full Memory MCP graph update:**
-   - Create entities for new decisions/components (from commits/tasks)
-   - Add detailed observations with context
-   - Create relations between new/existing entities
-   - Comprehensive architecture documentation
-
-4. **CI/CD monitoring:**
+3. **CI/CD monitoring:**
    - Wait for GitHub Actions to start (30s timeout)
    - Monitor CI/CD progress (Linux, macOS, Windows)
    - Poll status every 30s (max 10 minutes)
@@ -226,7 +211,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
      - ❌ All fail
    - If failures: Extract error logs, add to session blockers
 
-5. **Enhanced Serena memory with frontmatter:**
+4. **Enhanced Serena memory with frontmatter:**
    ```markdown
    ---
    mode: full
@@ -270,7 +255,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - Phase 1 milestone: Project Navigator panel
    ```
 
-6. **Comprehensive verification report:**
+5. **Comprehensive verification report:**
    ```
    📋 Full verification complete (~4m 30s)
    Session: session_2025-11-05_task-00019_complete
@@ -283,9 +268,8 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - CHANGELOG.md: Updated (4 entries added)
    - ROADMAP.md: Task #00019 marked COMPLETE
 
-   ✅ Memory:
+   ✅ Session Memory:
    - Serena: session_2025-11-05_task-00019_complete (2.8 KB)
-   - Memory MCP: 5 entities updated, 8 observations, 3 relations
 
    ✅ CI/CD (waited 3m 45s):
    - Linux: ✅ PASS (3m 16s)
