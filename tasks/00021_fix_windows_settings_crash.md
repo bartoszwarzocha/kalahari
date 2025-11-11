@@ -1,8 +1,10 @@
 # Task #00021: Fix Windows Settings Dialog Crash
 
-**Status:** 📋 Planned
+**Status:** ✅ COMPLETE (2025-11-09, 100%)
 **Priority:** P0 (CRITICAL)
-**Estimated:** 1-2 hours
+**Estimated:** 1-2 hours | **Actual:** 1 hour
+**Completed:** 2025-11-09
+**Commit:** 258210b "fix(gui): Implement exception handling system and fix Settings Dialog crash"
 **Dependencies:** None
 
 ---

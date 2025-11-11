@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00021 - Fix Windows Settings Dialog Crash (2025-11-09)
+
+#### Fixed
+- **Windows Settings Dialog Crash** - Fixed crash when opening Settings Dialog on Windows
+  - **Root Cause:** FitInside() called on zero-size panels during initialization
+  - **Solution:** Defensive checks before FitInside() - skip if width/height <= 0
+  - **Integration:** Comprehensive exception handling system with bwx exception types
+  - **Status:** ✅ Windows build passing, crash eliminated
+  - **Commit:** 258210b "fix(gui): Implement exception handling system and fix Settings Dialog crash"
+
+### Task #00020 - Navigator Panel Structure (2025-11-09)
+
+#### Added
+- **Navigator Panel with wxAuiNotebook** - Three-tab structure for project navigation
+  - Tab 1: Outline (Book → Parts → Chapters tree view)
+  - Tab 2: Statistics (placeholder for Phase 2)
+  - Tab 3: Bookmarks (placeholder for Phase 2)
+- **Settings Dialog Enhancements** - Appearance and font configuration
+  - Icon size slider (16px-48px) with live preview
+  - Font scaling control (0.8x-1.5x) for accessibility
+  - Theme selection (Dark/Light with restart dialog)
+  - Settings tree structure with category icons
+
+#### Known Issues
+- **10 atomic fixes identified (Tasks #00021-#00030):**
+  - #00021: ✅ Windows Settings crash (FIXED)
+  - #00022: Apply button event binding (pending)
+  - #00023-#00024: Icon size apply + persistence (pending)
+  - #00025-#00027: Font scaling live preview + apply + persistence (pending)
+  - #00028: Dynamic text wrapping (pending)
+  - #00029: Theme restart dialog verification (pending)
+  - #00030: Navigator panel cleanup (pending)
+
 ### Settings Migration System (POZIOM 2) (2025-11-09)
 
 #### Added

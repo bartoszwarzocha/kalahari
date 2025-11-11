@@ -103,6 +103,9 @@ TODO_JUTRO*.md
 MEMO_*.md
 NOTES_*.md
 
+# Analysis reports (temporary project analysis)
+.analysis/
+
 # Log files
 *.log
 
