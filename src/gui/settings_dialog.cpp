@@ -354,13 +354,6 @@ void SettingsDialog::buildTree() {
     logger.info("buildTree: Calling showPanel(appearance)");
     showPanel(appearance);
 
-    // CRITICAL FIX: Force dialog layout after adding first panel to sizer
-    // This ensures panels get proper size BEFORE being rendered
-    logger.info("buildTree: Forcing dialog layout (FIX for zero-size panels)");
-    Layout();           // Recalculate all sizer positions
-    m_splitter->Layout(); // Force splitter to compute sizes
-    m_contentPanel->Layout(); // Force content panel layout
-
     logger.info("buildTree: COMPLETE");
 }
 

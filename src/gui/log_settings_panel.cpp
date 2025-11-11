@@ -23,6 +23,11 @@ wxEND_EVENT_TABLE()
 LogSettingsPanel::LogSettingsPanel(wxWindow* parent, SettingsState& state)
     : wxPanel(parent), m_state(state)
 {
+    // CRITICAL FIX (Task #00021): Freeze prevents layout events during construction
+    // When SetValue() is called on controls with values from SettingsManager,
+    // it can trigger events that cause premature Layout() calls before panel has proper size
+    Freeze();
+
     core::Logger::getInstance().debug("LogSettingsPanel: Creating panel");
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -32,6 +37,10 @@ LogSettingsPanel::LogSettingsPanel(wxWindow* parent, SettingsState& state)
     createAppearanceSection(mainSizer);
 
     SetSizer(mainSizer);
+
+    // CRITICAL FIX (Task #00021): Thaw allows layout after all controls initialized
+    Thaw();
+
     core::Logger::getInstance().info("LogSettingsPanel: Panel created with 2 sections");
 }
 
