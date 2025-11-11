@@ -253,18 +253,13 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Appearance
-    /*
     logger.info("buildTree: Creating AppearanceSettingsPanel");
     AppearanceSettingsPanel* appearancePanel = new AppearanceSettingsPanel(
         m_contentPanel,
         m_workingState
     );
-    logger.debug("buildTree: Hiding Appearance panel");
-    appearancePanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+    appearancePanel->Hide();
     m_panels[appearance] = appearancePanel;
-    logger.debug("buildTree: Appearance panel complete");
-    */
 
     // ========================================================================
     // Phase 1: Editor Settings (Task #00019)
@@ -278,16 +273,13 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    wxMessageBox("Before EditorSettingsPanel", "PHASE 3", wxOK);
     logger.info("buildTree: Creating EditorSettingsPanel");
     EditorSettingsPanel* editorPanel = new EditorSettingsPanel(
         m_contentPanel,
         m_workingState
     );
-    wxMessageBox("After EditorSettingsPanel", "PHASE 3", wxOK);
     editorPanel->Hide();
     m_panels[editor] = editorPanel;
-    logger.debug("buildTree: Editor panel complete");
 
     // ========================================================================
     // Phase 0: Advanced → Diagnostics
@@ -315,9 +307,6 @@ void SettingsDialog::buildTree() {
     m_panels[diagnostics] = diagPanel;
     logger.debug("buildTree: Diagnostics panel complete");
 
-    // COMMENTED OUT FOR PHASE 1 DEBUG: Diagnostic Log leaf (Task #00020 - Phase 1)
-    /*
-    // Only show when diagnostic mode is enabled
     if (m_workingState.diagnosticModeEnabled) {
         logger.debug("buildTree: Diagnostic mode enabled, adding Log node");
         wxTreeItemId diagnosticLog = m_tree->AppendItem(
@@ -326,17 +315,14 @@ void SettingsDialog::buildTree() {
             ICON_SETTING
         );
 
-        // Create panel for Diagnostic Log
         logger.info("buildTree: Creating LogSettingsPanel");
         LogSettingsPanel* logPanel = new LogSettingsPanel(
             m_contentPanel,
             m_workingState
         );
-        logPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+        logPanel->Hide();
         m_panels[diagnosticLog] = logPanel;
-        logger.debug("buildTree: Log panel complete");
     }
-    */
 
     // ========================================================================
     // Default selection
@@ -346,11 +332,11 @@ void SettingsDialog::buildTree() {
     logger.debug("buildTree: Expanding Advanced branch");
     m_tree->Expand(advanced);
 
-    logger.debug("buildTree: Selecting Diagnostics node");
-    m_tree->SelectItem(diagnostics);
+    logger.debug("buildTree: Selecting Appearance node");
+    m_tree->SelectItem(appearance);
 
-    logger.info("buildTree: Calling showPanel(diagnostics)");
-    showPanel(diagnostics);
+    logger.info("buildTree: Calling showPanel(appearance)");
+    showPanel(appearance);
 
     logger.info("buildTree: COMPLETE");
 }

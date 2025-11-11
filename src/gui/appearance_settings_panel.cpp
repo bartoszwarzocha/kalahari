@@ -13,7 +13,6 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(AppearanceSettingsPanel, wxPanel)
-    EVT_SIZE(AppearanceSettingsPanel::onSize)
     EVT_SPINCTRLDOUBLE(wxID_ANY, AppearanceSettingsPanel::onFontScalingChanged)
 wxEND_EVENT_TABLE()
 

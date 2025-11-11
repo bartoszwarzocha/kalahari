@@ -13,7 +13,6 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(LogSettingsPanel, wxPanel)
-    EVT_SIZE(LogSettingsPanel::onSize)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
