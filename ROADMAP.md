@@ -2,10 +2,10 @@
 
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
-**Current Status:** 🚀 Phase 1 Week 13 - Atomic Task Model (Settings System Fixes)
-**Next Task:** #00022 (Apply Button Event Binding - HIGH)
+**Current Status:** 🚀 Phase 1 Week 13 - Command Registry Architecture
+**Next Task:** #00024 (Define Command Registry Interface - ARCHITECTURE)
 **Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
-**Last Updated:** 2025-11-11 (Task #00021 complete, documentation sync)
+**Last Updated:** 2025-11-11 (Tasks #00021-23 complete, Command Registry planning)
 
 ---
 
@@ -242,56 +242,113 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - BUT: Settings System changes introduced bugs (Windows crash, Apply button, font scaling, etc.)
   - **Status:** ✅ Structure complete, 🔴 Requires fixes (#00021-00030) | **File:** [tasks/00020_project_navigator_panel.md](tasks/00020_project_navigator_panel.md)
 
-- [x] **Task #00021:** Fix Windows Settings Dialog Crash **P0 CRITICAL** 🚨 → **AWAITING VERIFICATION**
+- [x] **Task #00021:** Fix Windows Settings Dialog Crash **P0 CRITICAL** ✅ COMPLETE
   - Fix implemented: Defensive FitInside() checks, exception handling
   - CI/CD: ✅ Passing (Windows, Linux, macOS)
-  - Status: 🧪 Manual testing required, acceptance criteria unchecked
+  - Manual testing: ✅ Verified working (no crash)
   - **File:** [tasks/00021_fix_windows_settings_crash.md](tasks/00021_fix_windows_settings_crash.md)
   - **Commit:** 258210b
 
-- [ ] **Task #00022:** Apply Button Event Binding **P1 HIGH**
-  - Bind EVT_BUTTON(wxID_APPLY) in SettingsDialog
-  - Fire EVT_SETTINGS_APPLIED custom event to MainWindow
+- [x] **Task #00022:** Apply Button Event Binding **P1 HIGH** ✅ COMPLETE
+  - EVT_BUTTON(wxID_APPLY) bound in SettingsDialog
+  - EVT_SETTINGS_APPLIED custom event firing to MainWindow
+  - Event-driven architecture implemented
   - **File:** [tasks/00022_apply_button_event_binding.md](tasks/00022_apply_button_event_binding.md)
+  - **Commit:** a7299de
 
-- [ ] **Task #00023:** Icon Size Apply Implementation **P1 HIGH**
+- [x] **Task #00023:** Icon Size Live Reload **P1 HIGH** ✅ COMPLETE
   - MainWindow::OnSettingsApplied() → IconRegistry::setSizes() → rebuild toolbar
+  - Live reload working (instant visual feedback without restart)
   - **File:** [tasks/00023_icon_size_apply_implementation.md](tasks/00023_icon_size_apply_implementation.md)
+  - **Commit:** a7299de
 
-- [ ] **Task #00024:** Icon Size Persistence Verification **P2 MEDIUM**
-  - Verify settings.json save/load cycle
-  - Test restart behavior
-  - **File:** [tasks/00024_icon_size_persistence_verification.md](tasks/00024_icon_size_persistence_verification.md)
+**Week 13-14: Command Registry Architecture (EPIC - 12 atomic tasks)** 📋 PLANNED
 
-- [ ] **Task #00025:** Font Scaling Live Preview **P1 HIGH**
-  - Bind EVT_SPINCTRLDOUBLE to update example text in real-time
-  - **File:** [tasks/00025_font_scaling_live_preview.md](tasks/00025_font_scaling_live_preview.md)
+> **Context:** Settings System fixes (Tasks #00021-23) revealed need for centralized menu/toolbar command system. Current approach uses hardcoded command IDs (ID_FORMAT_BOLD, ID_VIEW_NAVIGATOR) scattered across files. Menu System Integration requires architectural rework before implementing Settings commands.
 
-- [ ] **Task #00026:** Font Scaling Apply Implementation **P1 HIGH**
-  - MainWindow::UpdateAllFonts() → iterate panels → update all controls
-  - **File:** [tasks/00026_font_scaling_apply_implementation.md](tasks/00026_font_scaling_apply_implementation.md)
+**Architectural Decision:** Implement Command Registry pattern (centralized command management, separation of concerns, plugin-ready architecture). See tasks/.wip/EPIC-command-registry-breakdown.md for full analysis.
 
-- [ ] **Task #00027:** Font Scaling Persistence Verification **P2 MEDIUM**
-  - Verify settings.json save/load cycle
-  - Test startup font loading
-  - **File:** [tasks/00027_font_scaling_persistence_verification.md](tasks/00027_font_scaling_persistence_verification.md)
+- [ ] **Task #00024:** Define Command Registry Interface **P0 ARCHITECTURE** (45-60 min)
+  - Design ICommand interface (name, ID, label, icon, enabled, handler)
+  - Design CommandRegistry singleton (register, unregister, execute, getAll)
+  - Write interface header files + documentation
+  - **Status:** 📋 PLANNED | **File:** tasks/00024_define_command_registry_interface.md
 
-- [ ] **Task #00028:** Dynamic Text Wrapping Verification **P2 MEDIUM**
-  - Test help text wrapping on resize
-  - Remove fixed Wrap(400) if needed
-  - **File:** [tasks/00028_dynamic_text_wrapping_verification.md](tasks/00028_dynamic_text_wrapping_verification.md)
+- [ ] **Task #00025:** Implement Core Command Registry **P0 ARCHITECTURE** (60-90 min)
+  - Implement CommandRegistry class with thread-safe storage
+  - Add registration/unregistration/lookup methods
+  - Write 15+ unit tests (Catch2)
+  - **Status:** 📋 PLANNED | **Dependencies:** #00024 | **File:** tasks/00025_implement_core_command_registry.md
 
-- [ ] **Task #00029:** Theme Restart Dialog Verification **P2 MEDIUM**
-  - Verify restart dialog flow for theme changes
-  - Test Yes/No buttons, persistence
-  - **File:** [tasks/00029_theme_restart_dialog_verification.md](tasks/00029_theme_restart_dialog_verification.md)
+- [ ] **Task #00026:** Migrate File Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+  - Convert New/Open/Save/SaveAs/Exit to ICommand pattern
+  - Register in CommandRegistry, update MainWindow handlers
+  - Verify all File menu functions work
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00026_migrate_file_menu_commands.md
 
-- [ ] **Task #00030:** Navigator Panel Cleanup Verification **P3 LOW**
-  - Remove debug code, verify docking, document current state
-  - Plan next Navigator tasks (CRUD functionality)
-  - **File:** [tasks/00030_navigator_panel_cleanup_verification.md](tasks/00030_navigator_panel_cleanup_verification.md)
+- [ ] **Task #00027:** Migrate Edit Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+  - Convert Cut/Copy/Paste/SelectAll/Undo/Redo to ICommand pattern
+  - Register in CommandRegistry, update MainWindow handlers
+  - Verify all Edit menu functions work
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00027_migrate_edit_menu_commands.md
 
-**Week 14-15: Chapter Management (FUTURE EPIC - Will be broken into atomic tasks 00031+)**
+- [ ] **Task #00028:** Migrate Format Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+  - Convert Bold/Italic/Underline/Font/ClearFormat to ICommand pattern
+  - Register in CommandRegistry, update MainWindow handlers
+  - Verify all Format menu functions work
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00028_migrate_format_menu_commands.md
+
+- [ ] **Task #00029:** Migrate View Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+  - Convert Navigator/Properties/Stats/Search/Assistant/Perspectives to ICommand pattern
+  - Register in CommandRegistry, update MainWindow handlers
+  - Verify all View menu functions work
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00029_migrate_view_menu_commands.md
+
+- [ ] **Task #00030:** Migrate Help Menu Commands **P1 IMPLEMENTATION** (30-45 min)
+  - Convert Documentation/About/CheckUpdates to ICommand pattern
+  - Register in CommandRegistry, update MainWindow handlers
+  - Verify all Help menu functions work
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00030_migrate_help_menu_commands.md
+
+- [ ] **Task #00031:** Implement Dynamic Menu Builder **P0 ARCHITECTURE** (60-90 min)
+  - Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu)
+  - Replace hardcoded createMenuBar() with dynamic builder
+  - Verify all menus build correctly from CommandRegistry
+  - **Status:** 📋 PLANNED | **Dependencies:** #00026-30 | **File:** tasks/00031_implement_dynamic_menu_builder.md
+
+- [ ] **Task #00032:** Implement Dynamic Toolbar Builder **P0 ARCHITECTURE** (60-90 min)
+  - Create ToolbarBuilder class (buildFromCommands, addSeparator, addControl)
+  - Replace hardcoded createToolBar() with dynamic builder
+  - Verify toolbar builds correctly, icons load properly
+  - **Status:** 📋 PLANNED | **Dependencies:** #00031 | **File:** tasks/00032_implement_dynamic_toolbar_builder.md
+
+- [ ] **Task #00033:** Add Settings Menu Commands **P1 INTEGRATION** (30-45 min)
+  - Create 3 Settings commands (OpenSettings, ApplySettings, ResetSettings)
+  - Register in CommandRegistry, add to Tools menu
+  - Verify Settings Dialog opens, Apply works, Reset shows confirmation
+  - **Status:** 📋 PLANNED | **Dependencies:** #00031 | **File:** tasks/00033_add_settings_menu_commands.md
+
+- [ ] **Task #00034:** Verify Command State Management **P1 TESTING** (45-60 min)
+  - Test enabled/disabled states (no document → Cut/Paste disabled)
+  - Test dynamic updates (selection changes → format menu states)
+  - Verify state propagation (menu + toolbar sync)
+  - **Status:** 📋 PLANNED | **Dependencies:** #00032-33 | **File:** tasks/00034_verify_command_state_management.md
+
+- [ ] **Task #00035:** Document Command Registry Architecture **P2 DOCUMENTATION** (30-45 min)
+  - Write architecture document (class diagram, flow, examples)
+  - Update ARCHITECTURE.md with Command Registry section
+  - Add plugin integration guide (how plugins register commands)
+  - **Status:** 📋 PLANNED | **Dependencies:** #00034 | **File:** tasks/00035_document_command_registry_architecture.md
+
+**EPIC Summary:**
+- **Total tasks:** 12 atomic tasks (all 30-90 minutes)
+- **Estimated time:** 10-14 hours total
+- **Priority:** P0 (blocks Settings System integration)
+- **Dependencies:** Sequential execution (#00024 → #00025 → #00026-30 → #00031 → #00032 → #00033-35)
+- **Benefits:** Centralized command management, plugin-ready architecture, separation of concerns
+- **Breakdown file:** tasks/.wip/EPIC-command-registry-breakdown.md
+
+**Week 14-15: Chapter Management (FUTURE EPIC - Will be broken into atomic tasks 00036+)**
 - [ ] **EPIC:** Chapter Management CRUD Operations
   - Add, delete, rename, move chapters and parts
   - Drag & drop reordering

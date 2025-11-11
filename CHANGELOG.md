@@ -9,6 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Command Registry Architecture Planning (2025-11-11)
+
+#### Decided
+- **Menu System Integration Approach** - Implement Command Registry pattern before Settings System integration
+  - **Problem:** Current hardcoded menu system (ID_FORMAT_BOLD, ID_VIEW_NAVIGATOR scattered across files) blocks Settings commands implementation
+  - **Rejected Approach:** Quick hack adding Settings items to Tools menu (would multiply technical debt)
+  - **Professional Solution (Command Registry):**
+    - Centralized command management (ICommand interface + CommandRegistry singleton)
+    - Separation of concerns (command definition ↔ menu/toolbar building ↔ execution)
+    - Plugin-ready architecture (plugins can register custom commands)
+    - Dynamic UI building (MenuBuilder + ToolbarBuilder generate UI from registry)
+  - **Decision Rationale:**
+    - Architectural necessity (current approach doesn't scale to Settings + Plugins)
+    - Long-term benefit (foundation for plugin system, keyboard shortcuts, context menus)
+    - Modest cost (10-14 hours, 12 atomic tasks)
+    - Quality over speed (professional architecture > quick hacks)
+  - **EPIC Breakdown:** 12 atomic tasks (#00024-#00035)
+    - Tasks #00024-25: Core architecture (Interface + Registry)
+    - Tasks #00026-30: Migration (File/Edit/Format/View/Help menus)
+    - Tasks #00031-32: Dynamic builders (Menu + Toolbar)
+    - Tasks #00033-35: Integration + verification + documentation
+  - **Estimated Time:** 10-14 hours total
+  - **Status:** 📋 Planned (starts after Task #00023)
+  - **Documentation:** tasks/.wip/EPIC-command-registry-breakdown.md (complete analysis)
+
+### Task #00023 - Icon Size Live Reload (2025-11-11)
+
+#### Added
+- **Icon Size Live Reload System** - Instant visual feedback for icon size changes
+  - **Implementation:** MainWindow::OnSettingsApplied() event handler
+    - Reads iconSize from SettingsManager
+    - Calls IconRegistry::setSizes(iconSize, iconSize)
+    - Completely rebuilds toolbar (delete old + create new)
+    - Toolbar icons update instantly without application restart
+  - **Event Flow:** Settings Dialog Apply button → EVT_SETTINGS_APPLIED → MainWindow handler → IconRegistry → Toolbar rebuild
+  - **User Experience:** Change icon size slider → click Apply → see toolbar icons resize immediately
+  - **Files Modified:**
+    - `src/gui/main_window.cpp` (+12 LOC) - OnSettingsApplied() implementation
+  - **Testing:** Manual verification required (change slider 16px → 32px → 48px, verify toolbar)
+  - **Status:** ✅ Implementation complete, awaiting manual testing
+  - **Commit:** a7299de "feat(settings): Implement Apply button and enhance Settings Dialog functionality"
+
+### Task #00022 - Apply Button Event Binding (2025-11-11)
+
+#### Added
+- **Apply Button Event-Driven Architecture** - Custom event system for settings changes
+  - **Problem:** Apply button did nothing (EVT_BUTTON not bound, no event fired to MainWindow)
+  - **Solution:** Implemented custom event-driven architecture
+    - **Custom Event:** wxDECLARE_EVENT(EVT_SETTINGS_APPLIED, wxCommandEvent) in main_window.h
+    - **Event Binding:** EVT_BUTTON(wxID_APPLY, SettingsDialog::onApply) in SettingsDialog constructor
+    - **Event Handler:** onApply() fires EVT_SETTINGS_APPLIED to parent MainWindow
+    - **MainWindow Handler:** OnSettingsApplied() receives event and applies all settings
+  - **Event Flow:** Apply button click → SettingsDialog::onApply() → wxPostEvent(parent, EVT_SETTINGS_APPLIED) → MainWindow::OnSettingsApplied()
+  - **Architecture Benefit:** Decoupling (SettingsDialog doesn't know about MainWindow internals, just fires event)
+  - **Files Modified:**
+    - `include/kalahari/gui/main_window.h` (+4 LOC) - Event declaration + handler
+    - `src/gui/main_window.cpp` (+16 LOC) - Event handler implementation + Bind()
+    - `src/gui/settings_dialog.cpp` (+11 LOC) - onApply() implementation + Bind()
+  - **Testing:** Compile success, event flow verified in code review
+  - **Status:** ✅ Complete (architectural foundation for all Apply-based settings)
+  - **Commit:** a7299de "feat(settings): Implement Apply button and enhance Settings Dialog functionality"
+
+#### Fixed
+- **Font Scaling Preview Calculation** - Fixed incorrect font size calculation in preview text
+  - **Root Cause:** Preview used `12 * scaling` instead of `baseSize * scaling` (baseSize from SettingsManager)
+  - **Impact:** Preview showed incorrect font size (e.g., 12pt * 1.2 = 14.4pt instead of 10pt * 1.2 = 12pt)
+  - **Solution:** Changed to `SettingsManager::getInstance().getInt("appearance.fontSize", 10) * scaling`
+  - **Files Modified:** `src/gui/appearance_settings_panel.cpp` (+1 LOC change)
+  - **Status:** ✅ Fixed (preview now accurate)
+  - **Commit:** a7299de
+
+
 ### Task #00021 - Fix Windows Settings Dialog Crash (2025-11-09)
 
 #### Fixed
