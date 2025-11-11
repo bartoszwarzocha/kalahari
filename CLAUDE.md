@@ -532,9 +532,10 @@ All Phase 0 deliverables achieved (19 tasks complete):
   - wxAuiNotebook with 3 tabs (Outline, Statistics, Bookmarks)
   - Settings Dialog enhancements
   - 6 bugs identified → 10 atomic fixes (Tasks #00021-#00030)
-- ✅ **Task #00021:** Fix Windows Settings Crash (2025-11-09, 100%)
-  - Defensive FitInside() checks
-  - Exception handling system
+- 🧪 **Task #00021:** Fix Windows Settings Crash (2025-11-09, AWAITING VERIFICATION)
+  - Fix implemented: Defensive FitInside() checks + exception handling
+  - CI/CD passing, manual testing required
+  - Acceptance criteria unchecked
 
 **In Progress:** Task #00022 - Apply Button Event Binding (P1 HIGH)
 
