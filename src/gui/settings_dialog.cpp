@@ -141,8 +141,7 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     auto& logger = core::Logger::getInstance();
     logger.info("SettingsDialog: Constructor START");
 
-    // DEBUG PHASE 1: Constructor START
-    wxMessageBox("Constructor START", "DEBUG", wxOK | wxICON_INFORMATION);
+    wxMessageBox("Constructor START", "PHASE 2", wxOK);
 
     // Main vertical sizer
     logger.debug("SettingsDialog: Creating main sizer");
@@ -227,28 +226,16 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     logger.debug("SettingsDialog: Setting main sizer");
     SetSizer(mainSizer);
 
-    // DEBUG PHASE 1: Before buildTree
-    wxMessageBox("Before buildTree()", "DEBUG", wxOK | wxICON_INFORMATION);
-
-    // Build tree structure and panels
-    logger.info("SettingsDialog: Calling buildTree()");
     buildTree();
 
-    // DEBUG PHASE 1: After buildTree
-    wxMessageBox("After buildTree()", "DEBUG", wxOK | wxICON_INFORMATION);
-
-    logger.info("SettingsDialog: Constructor COMPLETE");
-
-    // DEBUG PHASE 1: Constructor END
-    wxMessageBox("Constructor COMPLETE", "DEBUG", wxOK | wxICON_INFORMATION);
+    wxMessageBox("Constructor END", "PHASE 2", wxOK);
 }
 
 void SettingsDialog::buildTree() {
     auto& logger = core::Logger::getInstance();
     logger.info("buildTree: START");
 
-    // DEBUG PHASE 1: Test EMPTY dialog (no panels, only tree structure)
-    wxMessageBox("buildTree START - PHASE 1: NO PANELS CREATED", "DEBUG", wxOK | wxICON_INFORMATION);
+    wxMessageBox("buildTree START", "PHASE 2", wxOK);
 
     // Icon indices
     const int ICON_FOLDER = 0;
@@ -327,17 +314,11 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Diagnostics
-    /*
-    logger.info("buildTree: Creating DiagnosticsPanel");
-    DiagnosticsPanel* diagPanel = new DiagnosticsPanel(
-        m_contentPanel,
-        m_workingState
-    );
-    diagPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+    wxMessageBox("Before DiagnosticsPanel", "PHASE 2", wxOK);
+    DiagnosticsPanel* diagPanel = new DiagnosticsPanel(m_contentPanel, m_workingState);
+    wxMessageBox("After DiagnosticsPanel", "PHASE 2", wxOK);
+    diagPanel->Hide();
     m_panels[diagnostics] = diagPanel;
-    logger.debug("buildTree: Diagnostics panel complete");
-    */
 
     // COMMENTED OUT FOR PHASE 1 DEBUG: Diagnostic Log leaf (Task #00020 - Phase 1)
     /*
@@ -370,18 +351,11 @@ void SettingsDialog::buildTree() {
     logger.debug("buildTree: Expanding Advanced branch");
     m_tree->Expand(advanced);
 
-    // Select Appearance by default (Phase 1: most visible settings)
-    logger.debug("buildTree: Selecting Appearance node");
-    m_tree->SelectItem(appearance);
+    m_tree->SelectItem(diagnostics);
 
-    // COMMENTED OUT FOR PHASE 1 DEBUG: showPanel
-    /*
-    logger.info("buildTree: Calling showPanel(appearance)");
-    showPanel(appearance);
-    */
-
-    // DEBUG PHASE 1: buildTree END
-    wxMessageBox("buildTree END - Tree created, NO PANELS", "DEBUG", wxOK | wxICON_INFORMATION);
+    wxMessageBox("Before showPanel", "PHASE 2", wxOK);
+    showPanel(diagnostics);
+    wxMessageBox("After showPanel", "PHASE 2", wxOK);
 
     logger.info("buildTree: COMPLETE");
 }
