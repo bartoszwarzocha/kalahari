@@ -2,9 +2,9 @@
 
 > **Writer's IDE** - Advanced writing environment for book authors
 
-**Status:** 🟢 Architecture Phase
-**Version:** 1.4 (bwx_sdk Custom Controls Documentation)
-**Last Updated:** 2025-11-04
+**Status:** 🚀 Phase 1 Week 13
+**Version:** 1.5 (Documentation Index Complete - 15 docs)
+**Last Updated:** 2025-11-11
 
 ---
 
@@ -28,7 +28,9 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 10 | [**Branding**](10_branding.md) | Logo, colors, animals, style guide | ✅ Complete |
 | 11 | [**User Docs Plan**](11_user_documentation_plan.md) | MkDocs + Material, phased delivery strategy | ✅ Complete |
 | 12 | [**Dev Protocols**](12_dev_protocols.md) | Task workflow, MCP tools, session management | ✅ Complete |
+| 13 | [**Phase 1 Task Breakdown**](13_phase1_task_breakdown.md) | Phase 1 (Core Editor) detailed task breakdown | ✅ Complete |
 | 14 | [**bwx_sdk Patterns**](14_bwx_sdk_patterns.md) | Custom wxWidgets controls design patterns, rationale | ✅ Complete |
+| 15 | [**Text Editor Architecture**](15_text_editor_architecture.md) | Custom text editor control complete specification | ✅ Complete |
 | 16 | [**Settings Inventory**](16_settings_inventory.md) | Complete settings catalog (37 parameters tracked) | ✅ Complete |
 
 ### Supporting Files
@@ -76,6 +78,15 @@ This directory contains the complete technical documentation for the Kalahari pr
 
 ## 🔄 Document History
 
+### v1.5 - 2025-11-11
+- ✅ **Documentation index complete** - All 15 documents now listed
+  - Added #13: phase1_task_breakdown.md (Phase 1 detailed tasks)
+  - Added #15: text_editor_architecture.md (Custom editor specification)
+  - Corrected document count: 13 → 15 documents
+- ✅ **Status updated** - Phase 1 Week 13 (from Architecture Phase)
+- ✅ **Version tracking** - Synchronized with project status
+- 🎯 **15/15 documents complete** - Full documentation coverage
+
 ### v1.4 - 2025-11-04
 - ✅ **14_bwx_sdk_patterns.md** created - Custom wxWidgets controls documentation
   - Strategic decision: Custom controls in bwx_sdk first, then integrate
@@ -92,7 +103,7 @@ This directory contains the complete technical documentation for the Kalahari pr
 - ✅ **README.md** updated
   - Added document #14 to core documentation table
   - Updated version to 1.4
-- 🎯 **13/13 documents complete** (skipped #13 - reserved for future use)
+- 🎯 **14 documents complete** (added #14, documents 13 and 15 added later)
 
 ### v1.3 - 2025-10-29
 - ✅ **12_dev_protocols.md** created - Comprehensive development protocols

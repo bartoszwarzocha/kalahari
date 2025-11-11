@@ -106,6 +106,9 @@ NOTES_*.md
 # Analysis reports (temporary project analysis)
 .analysis/
 
+# Serena MCP session memories (not committed)
+.serena/memories/
+
 # Log files
 *.log
 
