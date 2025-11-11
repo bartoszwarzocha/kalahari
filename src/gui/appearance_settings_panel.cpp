@@ -157,7 +157,12 @@ void AppearanceSettingsPanel::createTypographySection(wxSizer* parent) {
     m_exampleText = new wxStaticText(box->GetStaticBox(), wxID_ANY,
         "Example: This is how text will appear at current scaling");
     wxFont exampleFont = m_exampleText->GetFont();
-    exampleFont.SetPointSize(static_cast<int>(exampleFont.GetPointSize() * m_state.fontScaling));
+
+    // Store original font size for proper scaling in onFontScalingChanged()
+    m_exampleTextBaseFontSize = exampleFont.GetPointSize();
+
+    // Apply current scaling from state
+    exampleFont.SetPointSize(static_cast<int>(m_exampleTextBaseFontSize * m_state.fontScaling));
     m_exampleText->SetFont(exampleFont);
     box->Add(m_exampleText, 0, wxALL | wxEXPAND, 5);
 
@@ -250,12 +255,9 @@ void AppearanceSettingsPanel::onFontScalingChanged([[maybe_unused]] wxSpinDouble
     if (m_exampleText && m_fontScalingSpinner) {
         double newScaling = m_fontScalingSpinner->GetValue();
 
-        // Get base font and scale it
+        // Use stored base font size for accurate scaling
         wxFont exampleFont = m_exampleText->GetFont();
-
-        // Reset to default size first (10pt is typical default)
-        int baseSize = 10;
-        exampleFont.SetPointSize(static_cast<int>(baseSize * newScaling));
+        exampleFont.SetPointSize(static_cast<int>(m_exampleTextBaseFontSize * newScaling));
 
         m_exampleText->SetFont(exampleFont);
         m_exampleText->Refresh();

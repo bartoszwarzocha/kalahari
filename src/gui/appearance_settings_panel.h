@@ -48,6 +48,9 @@ private:
     wxStaticText* m_typographyDescription = nullptr;
     wxStaticText* m_exampleText = nullptr;
 
+    // Store original font size for scaling preview
+    int m_exampleTextBaseFontSize = 10;
+
     /// @brief Create theme settings section
     /// @param parent Parent sizer to add section to
     void createThemeSection(wxSizer* parent);
