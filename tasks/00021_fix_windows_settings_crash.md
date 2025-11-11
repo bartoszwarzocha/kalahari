@@ -1,119 +1,166 @@
 # Task #00021: Fix Windows Settings Dialog Crash
 
-**Status:** 🧪 AWAITING VERIFICATION (Fix implemented, user testing pending)
+**Status:** ✅ COMPLETE (2025-11-11)
 **Priority:** P0 (CRITICAL)
-**Estimated:** 1-2 hours | **Actual:** 1 hour (implementation)
-**Implemented:** 2025-11-09
-**Commit:** 258210b "fix(gui): Implement exception handling system and fix Settings Dialog crash"
-**Verification Status:** CI/CD passing, manual testing required
+**Estimated:** 1-2 hours | **Actual:** 6 hours (systematic debugging)
+**Implemented:** 2025-11-11
+**Final Commit:** a372a50 "fix(gui): Remove EVT_SIZE handlers from all settings panels"
+**Verified:** Windows + Linux (both platforms working)
 **Dependencies:** None
 
 ---
 
 ## Problem
 
-Settings Dialog crashes immediately when opened on Windows. Linux and macOS work correctly.
+Settings Dialog crashed immediately when opened on **BOTH Windows AND Linux**.
 
-**Error Location:** `SettingsDialog` constructor during icon initialization for tree control.
+**Initial Report (incorrect):** "Only Windows crashes"
+**Actual Issue:** Both platforms crashed, crash happened after adding serialization (loading config data).
 
 ---
 
-## Root Cause Analysis
+## Root Cause Analysis (FINAL - CORRECT)
 
-1. `IconRegistry::getSizeForClient("settings_tree")` returns invalid size on Windows
-2. `wxImageList` creation with invalid size causes crash
-3. Defensive null checks missing
+**ROOT CAUSE:** `EVT_SIZE` event handlers in settings panels triggered premature `Layout()` + `FitInside()` calls during panel construction, before dialog had proper size.
 
-**Suspected Code:**
-```cpp
-// settings_dialog.cpp:148-156
-int iconSize = IconRegistry::getInstance().getSizeForClient("settings_tree");
-wxImageList* imageList = new wxImageList(iconSize, iconSize);
-// If iconSize is 0 or invalid → CRASH
-```
+### Timeline of Problem:
+
+1. **Before serialization:** Panels worked fine
+   - Panel constructors created controls with default values
+   - No events triggered during construction
+   - No premature Layout() calls
+
+2. **After serialization (Task #00020):** Crash introduced
+   - Panel constructors call `SetValue()` with data from `SettingsManager`
+   - `SetValue()` triggers wxWidgets events (wxEVT_SIZE, wxEVT_SPINCTRLDOUBLE)
+   - Event handlers execute **during construction**
+   - `onSize()` handlers call:
+     - `Layout()` on panel
+     - `GetParent()->Layout()` on content panel
+     - `FitInside()` on scrolled window
+   - BUT: Dialog not shown yet, panels have 0x0 size
+   - wxWidgets calculates layout with zero-size panels → CRASH
+
+### Affected Panels:
+
+All 3 panels with `EVT_SIZE` handlers:
+- `AppearanceSettingsPanel` - `onSize()` for dynamic text wrapping
+- `LogSettingsPanel` - `onSize()` for dynamic text wrapping
+- `EditorSettingsPanel` - `onSize()` for dynamic text wrapping
+
+**Design Flaw:** Dynamic text wrapping via `onSize()` handlers was unnecessary - wxWidgets sizers with `wxEXPAND` flag handle this automatically.
 
 ---
 
 ## Solution
 
-Replace dynamic icon size lookup with fixed safe value:
+**Remove all `EVT_SIZE` handlers from settings panels.**
 
-1. Use hardcoded 16x16 for tree icons (standard size)
-2. Add defensive checks: validate bitmap before adding to ImageList
-3. Add fallback: if bitmap invalid, use empty/placeholder icon
-4. Log warnings instead of crashing
+wxWidgets sizers with proper flags (`wxEXPAND`, `wxALL`) handle layout automatically. Manual `onSize()` handlers that call `Layout()` + `FitInside()` are:
+- Unnecessary (sizers do this automatically)
+- Dangerous (cause recursive layout during construction)
+- Bad practice (violates wxWidgets design patterns)
+
+### Files Modified:
+
+1. `src/gui/appearance_settings_panel.cpp` - Removed `EVT_SIZE(AppearanceSettingsPanel::onSize)`
+2. `src/gui/log_settings_panel.cpp` - Removed `EVT_SIZE(LogSettingsPanel::onSize)`
+3. `src/gui/editor_settings_panel.cpp` - Removed `EVT_SIZE(EditorSettingsPanel::onSize)`
+
+**Code Change:**
+```cpp
+// BEFORE (CRASHED):
+wxBEGIN_EVENT_TABLE(EditorSettingsPanel, wxPanel)
+    EVT_SIZE(EditorSettingsPanel::onSize)  // ← CAUSED CRASH
+wxEND_EVENT_TABLE()
+
+// AFTER (WORKS):
+wxBEGIN_EVENT_TABLE(EditorSettingsPanel, wxPanel)
+    // EVT_SIZE removed - unnecessary, sizers handle layout
+wxEND_EVENT_TABLE()
+```
 
 ---
 
-## Implementation Plan
+## Debug Process (Systematic Approach)
 
-### Files to Modify
-- `src/gui/settings_dialog.cpp` (lines ~148-156 in constructor)
+**Phase-by-phase testing with wxMessageBox checkpoints:**
 
-### Code Changes
+1. **Phase 1:** Empty dialog (no panels) → ✅ PASSED
+2. **Phase 2:** DiagnosticsPanel only → ✅ PASSED
+3. **Phase 3:** + EditorSettingsPanel → ❌ FAILED (controls stacked incorrectly)
+4. **Root Cause Found:** `EVT_SIZE` in EditorSettingsPanel
+5. **Verification:** Removed `EVT_SIZE` from all panels → ✅ ALL WORKING
 
-```cpp
-// BEFORE (CRASHES):
-int iconSize = IconRegistry::getInstance().getSizeForClient("settings_tree");
-wxImageList* imageList = new wxImageList(iconSize, iconSize);
-
-// AFTER (SAFE):
-const int TREE_ICON_SIZE = 16;  // Fixed safe size
-wxImageList* imageList = new wxImageList(TREE_ICON_SIZE, TREE_ICON_SIZE);
-
-// For each icon added:
-wxBitmap icon = loadIcon("settings");
-if (icon.IsOk() && icon.GetWidth() == TREE_ICON_SIZE) {
-    imageList->Add(icon);
-} else {
-    // Fallback: empty bitmap
-    imageList->Add(wxBitmap(TREE_ICON_SIZE, TREE_ICON_SIZE));
-    wxLogWarning("Failed to load settings tree icon, using placeholder");
-}
-```
+**Key Insight:** User observation "kontrolki na sobie" (controls stacked) was the breakthrough - indicated layout problem during construction, not after.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Settings Dialog opens on Windows without crash
-- [ ] Tree icons display correctly (or show placeholders if unavailable)
-- [ ] No errors in diagnostic logs
-- [ ] Linux and macOS behavior unchanged (regression test)
+- [x] Settings Dialog opens on Windows without crash
+- [x] Settings Dialog opens on Linux without crash
+- [x] All panels display correctly (Appearance, Editor, Diagnostics, Log)
+- [x] Panel switching works correctly
+- [x] No layout issues (controls properly sized and positioned)
+- [x] Diagnostic mode toggle works
+- [x] Config data loads correctly into all panels
 
 ---
 
-## Testing Steps
+## Testing Results
 
-### Test on Windows:
-1. Build application on Windows (CI/CD or local)
-2. Run application
-3. File → Settings (or Ctrl+,)
-4. Expected: Dialog opens successfully
-5. Verify: Tree icons visible (or empty placeholders)
-6. Check logs: No crash-related errors
+### Linux (VMware WSL):
+- ✅ Settings Dialog opens successfully
+- ✅ All 4 panels display correctly
+- ✅ Panel switching smooth
+- ✅ No crashes, no layout issues
 
-### Regression Test on Linux:
-1. Build on Linux
-2. Open Settings Dialog
-3. Verify: Still works as before
+### Windows:
+- ✅ Settings Dialog opens successfully (reported by user)
+- ✅ All panels functional
 
 ---
 
-## Edge Cases
+## Commits Related to This Task
 
-- Icon files missing: Should show placeholder, not crash
-- ImageList fails to create: Handle gracefully
-- IconRegistry returns 0: Use fixed size fallback
+**Incorrect attempts (wrong diagnosis):**
+- `258210b` - Added defensive FitInside() checks (symptom, not root cause)
+- `f449dee` - Added Layout() calls in buildTree() (wrong diagnosis)
+- `b1781ff` - Tried Freeze()/Thaw() pattern (amateur fix, wrong approach)
+
+**Debug commits (systematic approach):**
+- `c2d6fb7` - PHASE 1: Empty dialog test
+- `81a1ef0` - PHASE 2: DiagnosticsPanel only
+- `b8e544e` - PHASE 3: EditorSettingsPanel added
+- `442b31f` - Disabled EVT_SIZE in EditorSettingsPanel
+
+**Final fix (ROOT CAUSE):**
+- `a372a50` - Removed EVT_SIZE from all panels → **PROBLEM SOLVED**
 
 ---
 
-## Rollback Plan
+## Lessons Learned
 
-If fix introduces new issues:
-- Revert to previous `settings_dialog.cpp`
-- Add temporary platform check: `#ifdef __WXMSW__` disable icons
+1. **Don't guess root cause** - Use systematic debugging (phase-by-phase testing)
+2. **Listen to user observations** - "kontrolki na sobie" was key clue
+3. **Question design patterns** - `onSize()` handlers were unnecessary from the start
+4. **Trust wxWidgets** - Sizers with proper flags handle layout automatically
+5. **Avoid manual Layout() calls** - Let wxWidgets do its job
+6. **Test incrementally** - Adding one component at a time reveals exact problem
+
+---
+
+## Related Files
+
+- `src/gui/settings_dialog.cpp` - Dialog structure
+- `src/gui/appearance_settings_panel.cpp` - Appearance settings
+- `src/gui/log_settings_panel.cpp` - Log settings
+- `src/gui/editor_settings_panel.cpp` - Editor settings
+- `src/gui/settings_dialog.h` - SettingsState structure
 
 ---
 
 **Created:** 2025-11-09
+**Completed:** 2025-11-11
+**Total Time:** 6 hours (including incorrect attempts + systematic debugging)
