@@ -141,8 +141,6 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     auto& logger = core::Logger::getInstance();
     logger.info("SettingsDialog: Constructor START");
 
-    wxMessageBox("Constructor START", "PHASE 2", wxOK);
-
     // Main vertical sizer
     logger.debug("SettingsDialog: Creating main sizer");
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -228,14 +226,12 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
 
     buildTree();
 
-    wxMessageBox("Constructor END", "PHASE 2", wxOK);
+    logger.info("SettingsDialog: Constructor COMPLETE");
 }
 
 void SettingsDialog::buildTree() {
     auto& logger = core::Logger::getInstance();
     logger.info("buildTree: START");
-
-    wxMessageBox("buildTree START", "PHASE 2", wxOK);
 
     // Icon indices
     const int ICON_FOLDER = 0;
@@ -282,17 +278,16 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Editor
-    /*
+    wxMessageBox("Before EditorSettingsPanel", "PHASE 3", wxOK);
     logger.info("buildTree: Creating EditorSettingsPanel");
     EditorSettingsPanel* editorPanel = new EditorSettingsPanel(
         m_contentPanel,
         m_workingState
     );
-    editorPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
+    wxMessageBox("After EditorSettingsPanel", "PHASE 3", wxOK);
+    editorPanel->Hide();
     m_panels[editor] = editorPanel;
     logger.debug("buildTree: Editor panel complete");
-    */
 
     // ========================================================================
     // Phase 0: Advanced → Diagnostics
@@ -314,11 +309,11 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    wxMessageBox("Before DiagnosticsPanel", "PHASE 2", wxOK);
+    logger.info("buildTree: Creating DiagnosticsPanel");
     DiagnosticsPanel* diagPanel = new DiagnosticsPanel(m_contentPanel, m_workingState);
-    wxMessageBox("After DiagnosticsPanel", "PHASE 2", wxOK);
     diagPanel->Hide();
     m_panels[diagnostics] = diagPanel;
+    logger.debug("buildTree: Diagnostics panel complete");
 
     // COMMENTED OUT FOR PHASE 1 DEBUG: Diagnostic Log leaf (Task #00020 - Phase 1)
     /*
@@ -351,11 +346,11 @@ void SettingsDialog::buildTree() {
     logger.debug("buildTree: Expanding Advanced branch");
     m_tree->Expand(advanced);
 
+    logger.debug("buildTree: Selecting Diagnostics node");
     m_tree->SelectItem(diagnostics);
 
-    wxMessageBox("Before showPanel", "PHASE 2", wxOK);
+    logger.info("buildTree: Calling showPanel(diagnostics)");
     showPanel(diagnostics);
-    wxMessageBox("After showPanel", "PHASE 2", wxOK);
 
     logger.info("buildTree: COMPLETE");
 }
