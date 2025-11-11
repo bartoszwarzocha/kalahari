@@ -13,7 +13,8 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(EditorSettingsPanel, wxPanel)
-    EVT_SIZE(EditorSettingsPanel::onSize)
+    // COMMENTED OUT FOR DEBUG: EVT_SIZE causes premature Layout() during construction
+    // EVT_SIZE(EditorSettingsPanel::onSize)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
