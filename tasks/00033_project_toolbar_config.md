@@ -1,9 +1,9 @@
-# Task #00032: Initial Project Toolbar Configuration
+# Task #00033: Initial Project Toolbar Configuration
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH - Architecture Foundation)
 **Estimated:** 45 minutes
-**Dependencies:** #00028 (File commands), #00031 (Toolbar persistence)
+**Dependencies:** #00028 (File commands), #00032 (Toolbar persistence)
 **Phase:** Phase 0 - Architecture
 
 ---

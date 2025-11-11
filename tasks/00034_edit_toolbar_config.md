@@ -1,9 +1,9 @@
-# Task #00033: Initial Edit Toolbar Configuration
+# Task #00034: Initial Edit Toolbar Configuration
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH - Architecture Foundation)
 **Estimated:** 45 minutes
-**Dependencies:** #00029 (Edit commands), #00032 (Project toolbar)
+**Dependencies:** #00029 (Edit commands), #00033 (Project toolbar)
 **Phase:** Phase 0 - Architecture
 
 ---

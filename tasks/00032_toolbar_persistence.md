@@ -1,9 +1,9 @@
-# Task #00031: Toolbar Configuration & Persistence
+# Task #00032: Toolbar Configuration & Persistence
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH - Architecture Foundation)
 **Estimated:** 60 minutes
-**Dependencies:** #00030 (ToolbarManager)
+**Dependencies:** #00031 (ToolbarManager)
 **Phase:** Phase 0 - Architecture
 
 ---

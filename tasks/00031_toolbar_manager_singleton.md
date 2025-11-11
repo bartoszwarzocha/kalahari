@@ -1,4 +1,4 @@
-# Task #00030: ToolbarManager Singleton
+# Task #00031: ToolbarManager Singleton
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH - Architecture Foundation)

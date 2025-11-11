@@ -1,24 +1,37 @@
-# Task #00034: MainWindow Integration with Command System
+# Task #00035: MainWindow Full Integration (Menu + Toolbars)
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH - Architecture Foundation)
-**Estimated:** 90 minutes
-**Dependencies:** #00028 (File commands), #00029 (Edit commands), #00030 (ToolbarManager), #00033 (Edit toolbar)
+**Estimated:** 120 minutes
+**Dependencies:** #00030 (Menu System), #00034 (Edit toolbar)
 **Phase:** Phase 0 - Architecture
 
 ---
 
 ## Goal
 
-Integrate CommandRegistry and ToolbarManager into MainWindow, replacing hardcoded toolbar with command-based system.
+Complete integration of CommandRegistry into MainWindow: replace hardcoded menu and toolbar with command-based system. This is the final task that unifies menu, toolbar, and keyboard shortcut handling through CommandRegistry.
 
 ---
 
 ## Requirements
 
-### 1. Modify `src/gui/main_window.cpp` - Constructor
+### 1. Remove Old Menu and Toolbar Code
 
-Replace toolbar creation with command system initialization:
+**Remove from main_window.h:**
+- `wxToolBar* m_toolBar` member variable
+- `createToolBar()` method declaration
+- `createToolBarContent()` method declaration
+
+**Remove from main_window.cpp:**
+- Old `createMenuBar()` implementation (will be replaced)
+- `createToolBar()` implementation
+- `createToolBarContent()` implementation
+- All old event handlers (onFileNew, onFileSave, etc.) - replaced by commands
+
+### 2. Modify `src/gui/main_window.cpp` - Constructor
+
+Replace menu and toolbar creation with command system initialization:
 
 ```cpp
 MainWindow::MainWindow()
@@ -62,18 +75,47 @@ MainWindow::MainWindow()
 }
 ```
 
-### 2. Remove Old Toolbar Code
+### 3. Rewrite `createMenuBar()` with MenuBuilder
 
-**Remove from main_window.h:**
-- `wxToolBar* m_toolBar` member variable
-- `createToolBar()` method declaration
-- `createToolBarContent()` method declaration
+Use MenuBuilder from Task #00030:
 
-**Remove from main_window.cpp:**
-- `createToolBar()` implementation
-- `createToolBarContent()` implementation
+```cpp
+void MainWindow::createMenuBar() {
+    MenuBuilder builder(this);
+    wxMenuBar* menuBar = new wxMenuBar;
 
-### 3. Update `onSettingsApplied()`
+    // File menu (command-based)
+    wxMenu* fileMenu = new wxMenu;
+    builder.addCommandToMenu(fileMenu, "file.new", false);
+    builder.addCommandToMenu(fileMenu, "file.open", false);
+    builder.addCommandToMenu(fileMenu, "file.save", false);
+    builder.addCommandToMenu(fileMenu, "file.saveas", true);  // separator after
+    builder.addCommandToMenu(fileMenu, "file.settings", true);
+    builder.addCommandToMenu(fileMenu, "file.exit", false);
+    menuBar->Append(fileMenu, _("&File"));
+
+    // Edit menu (command-based)
+    wxMenu* editMenu = new wxMenu;
+    builder.addCommandToMenu(editMenu, "edit.undo", false);
+    builder.addCommandToMenu(editMenu, "edit.redo", true);
+    builder.addCommandToMenu(editMenu, "edit.cut", false);
+    builder.addCommandToMenu(editMenu, "edit.copy", false);
+    builder.addCommandToMenu(editMenu, "edit.paste", true);
+    builder.addCommandToMenu(editMenu, "edit.selectall", false);
+    menuBar->Append(editMenu, _("&Edit"));
+
+    // View, Help menus - keep existing for now
+    wxMenu* viewMenu = createViewMenu();
+    menuBar->Append(viewMenu, _("&View"));
+
+    wxMenu* helpMenu = createHelpMenu();
+    menuBar->Append(helpMenu, _("&Help"));
+
+    SetMenuBar(menuBar);
+}
+```
+
+### 4. Update `onSettingsApplied()`
 
 Replace toolbar reload with ToolbarManager icon size update:
 
@@ -112,7 +154,7 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
 }
 ```
 
-### 4. Add View -> Toolbars Menu
+### 5. Add View -> Toolbars Menu
 
 Add submenu to View menu for toolbar visibility:
 
@@ -126,7 +168,7 @@ toolbarsMenu->Append(ID_VIEW_TOOLBAR_CUSTOMIZE, _("Customize..."));
 viewMenu->AppendSubMenu(toolbarsMenu, _("Toolbars"));
 ```
 
-### 5. Add Event Handlers
+### 6. Add Event Handlers for Toolbar Visibility
 
 ```cpp
 void MainWindow::onViewToolbarProject(wxCommandEvent& event) {
@@ -177,12 +219,16 @@ void MainWindow::onViewToolbarEdit(wxCommandEvent& event) {
 
 - [ ] CommandRegistry initialized in MainWindow constructor
 - [ ] File and Edit commands registered at startup
+- [ ] **Menu system uses MenuBuilder** (from Task #00030)
+- [ ] **File and Edit menus execute commands via CommandRegistry**
 - [ ] ToolbarManager loads configs from file or defaults
 - [ ] Toolbars created and added to wxAuiManager
+- [ ] Old menu event handlers removed (replaced by commands)
 - [ ] Old wxToolBar code removed completely
 - [ ] onSettingsApplied updates toolbar icon sizes
 - [ ] View -> Toolbars menu added with visibility toggles
 - [ ] Toolbar visibility can be toggled via View menu
+- [ ] **Unified execution: Menu, toolbar, keyboard all use CommandRegistry**
 - [ ] Code compiles, no warnings
 - [ ] Application runs without crashes
 
@@ -191,18 +237,36 @@ void MainWindow::onViewToolbarEdit(wxCommandEvent& event) {
 ## Testing
 
 **Manual Test Plan:**
+
+**Menu Testing:**
 1. Launch application
-2. Verify Project and Edit toolbars visible at top
-3. Click toolbar buttons (New, Open, Save, Undo, etc.) - verify they work
-4. Open Settings -> Appearance, change Icon Size to 32, click Apply
-5. Verify toolbar icons resize immediately
-6. Go to View -> Toolbars, uncheck "Project"
-7. Verify Project toolbar disappears
-8. Re-check "Project" in menu
-9. Verify Project toolbar reappears
-10. Close application
-11. Relaunch application
-12. Verify toolbar visibility matches previous session
+2. Click File -> New (should create new document)
+3. Click File -> Save (should save)
+4. Click Edit -> Undo (should undo)
+5. Verify keyboard shortcuts shown in menu (Ctrl+S, Ctrl+Z, etc.)
+
+**Toolbar Testing:**
+6. Verify Project and Edit toolbars visible at top
+7. Click toolbar buttons (New, Open, Save, Undo, etc.) - verify they work
+8. Open Settings -> Appearance, change Icon Size to 32, click Apply
+9. Verify toolbar icons resize immediately
+
+**Unified Execution Testing:**
+10. Try File -> Save from menu
+11. Try Save button from toolbar
+12. Try Ctrl+S keyboard shortcut
+13. **All three should execute identical code path via CommandRegistry**
+
+**Toolbar Visibility:**
+14. Go to View -> Toolbars, uncheck "Project"
+15. Verify Project toolbar disappears
+16. Re-check "Project" in menu
+17. Verify Project toolbar reappears
+
+**Persistence:**
+18. Close application
+19. Relaunch application
+20. Verify toolbar visibility matches previous session
 
 ---
 
@@ -217,14 +281,16 @@ void MainWindow::onViewToolbarEdit(wxCommandEvent& event) {
 
 ## Next Tasks
 
-After this task, existing tasks need to be renumbered:
-- Old #00024 → New #00035 (Icon Size Persistence Verification)
-- Old #00025 → New #00036 (Font Scaling Live Preview)
-- Old #00026 → New #00037 (Font Scaling Apply Implementation)
-- Old #00027 → New #00038 (Font Scaling Persistence Verification)
-- Old #00028 → New #00039 (Dynamic Text Wrapping Verification)
-- Old #00029 → New #00040 (Theme Restart Dialog Verification)
-- Old #00030 → New #00041 (Navigator Panel Cleanup Verification)
+After this task completes, Command Registry architecture is fully integrated.
+
+Remaining tasks (Settings system):
+- Task #00036 - Icon Size Persistence Verification
+- Task #00037 - Font Scaling Live Preview
+- Task #00038 - Font Scaling Apply Implementation
+- Task #00039 - Font Scaling Persistence Verification
+- Task #00040 - Dynamic Text Wrapping Verification
+- Task #00041 - Theme Restart Dialog Verification
+- Task #00042 - Navigator Panel Cleanup Verification
 
 ---
 
