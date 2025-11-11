@@ -377,6 +377,12 @@ private:
     /// (wxArtProvider provides platform-native icons).
     void createToolBar();
 
+    /// @brief Populate toolbar with tools (icons and actions)
+    ///
+    /// Separate method to allow toolbar reload when icon size changes.
+    /// Called by createToolBar() and reloadToolBar().
+    void createToolBarContent();
+
     /// @brief Create and configure the status bar
     ///
     /// Creates 3-pane status bar:

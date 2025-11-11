@@ -242,10 +242,12 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - BUT: Settings System changes introduced bugs (Windows crash, Apply button, font scaling, etc.)
   - **Status:** ✅ Structure complete, 🔴 Requires fixes (#00021-00030) | **File:** [tasks/00020_project_navigator_panel.md](tasks/00020_project_navigator_panel.md)
 
-- [ ] **Task #00021:** Fix Windows Settings Dialog Crash **P0 CRITICAL** 🚨
-  - IconRegistry::getSizeForClient() causes crash on Windows
-  - Solution: Use fixed 16x16 for tree icons, add defensive checks
+- [x] **Task #00021:** Fix Windows Settings Dialog Crash **P0 CRITICAL** 🚨 → **AWAITING VERIFICATION**
+  - Fix implemented: Defensive FitInside() checks, exception handling
+  - CI/CD: ✅ Passing (Windows, Linux, macOS)
+  - Status: 🧪 Manual testing required, acceptance criteria unchecked
   - **File:** [tasks/00021_fix_windows_settings_crash.md](tasks/00021_fix_windows_settings_crash.md)
+  - **Commit:** 258210b
 
 - [ ] **Task #00022:** Apply Button Event Binding **P1 HIGH**
   - Bind EVT_BUTTON(wxID_APPLY) in SettingsDialog

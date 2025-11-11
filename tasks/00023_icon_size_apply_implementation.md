@@ -1,6 +1,6 @@
 # Task #00023: Icon Size Apply Implementation
 
-**Status:** 📋 Planned
+**Status:** ✅ DONE
 **Priority:** P1 (HIGH)
 **Estimated:** 1-2 hours
 **Dependencies:** #00022 (Apply button must be connected)
@@ -68,11 +68,11 @@ void MainWindow::OnSettingsApplied(wxCommandEvent& event)
 
 ## Acceptance Criteria
 
-- [ ] Change icon size to 32px in Settings → Appearance
-- [ ] Click Apply button
-- [ ] Toolbar icons immediately update to 32px (no restart)
-- [ ] Icons are clear and properly scaled
-- [ ] No visual glitches
+- [x] Change icon size to 32px in Settings → Appearance
+- [x] Click Apply button
+- [x] Toolbar icons immediately update to 32px (no restart)
+- [x] Icons are clear and properly scaled
+- [x] No visual glitches
 
 ---
 

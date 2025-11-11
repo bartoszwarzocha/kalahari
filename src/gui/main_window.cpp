@@ -513,34 +513,46 @@ void MainWindow::createToolBar() {
 
     // Create toolbar with horizontal orientation and text labels
     m_toolBar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
+    createToolBarContent();
+
+    core::Logger::getInstance().debug("Toolbar created with 5 tools (New, Open, Save, Undo, Redo)");
+}
+
+void MainWindow::createToolBarContent() {
+    if (!m_toolBar) {
+        return;
+    }
+
+    // Get current icon size from IconRegistry
+    IconRegistry& iconReg = IconRegistry::getInstance();
+    int iconSize = iconReg.getSizes().toolbar;
+    wxSize toolbarIconSize(iconSize, iconSize);
 
     // Add tools using stock icons from wxArtProvider (platform-native)
     m_toolBar->AddTool(wxID_NEW, _("New"),
-        wxArtProvider::GetBitmap(wxART_NEW, wxART_TOOLBAR),
+        wxArtProvider::GetBitmap(wxART_NEW, wxART_TOOLBAR, toolbarIconSize),
         _("Create new document"));
 
     m_toolBar->AddTool(wxID_OPEN, _("Open"),
-        wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_TOOLBAR),
+        wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_TOOLBAR, toolbarIconSize),
         _("Open existing document"));
 
     m_toolBar->AddTool(wxID_SAVE, _("Save"),
-        wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_TOOLBAR),
+        wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_TOOLBAR, toolbarIconSize),
         _("Save current document"));
 
     m_toolBar->AddSeparator();
 
     m_toolBar->AddTool(wxID_UNDO, _("Undo"),
-        wxArtProvider::GetBitmap(wxART_UNDO, wxART_TOOLBAR),
+        wxArtProvider::GetBitmap(wxART_UNDO, wxART_TOOLBAR, toolbarIconSize),
         _("Undo last action"));
 
     m_toolBar->AddTool(wxID_REDO, _("Redo"),
-        wxArtProvider::GetBitmap(wxART_REDO, wxART_TOOLBAR),
+        wxArtProvider::GetBitmap(wxART_REDO, wxART_TOOLBAR, toolbarIconSize),
         _("Redo last undone action"));
 
     // Realize toolbar (required to display tools)
     m_toolBar->Realize();
-
-    core::Logger::getInstance().debug("Toolbar created with 5 tools (New, Open, Save, Undo, Redo)");
 }
 
 void MainWindow::createStatusBar() {
@@ -1013,6 +1025,26 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
 
     core::Logger::getInstance().info("Icon sizes updated: toolbar={}, menu={}, panel={}, dialog={}",
         newSizes.toolbar, newSizes.menu, newSizes.panel, newSizes.dialog);
+
+    // Reload toolbar with new icon sizes
+    if (m_toolBar) {
+        core::Logger::getInstance().debug("Reloading toolbar with new icon size: {}", newState.iconSize);
+
+        // Destroy existing toolbar
+        wxToolBar* oldToolBar = m_toolBar;
+        SetToolBar(nullptr);
+        m_toolBar = nullptr;
+        oldToolBar->Destroy();
+
+        // Recreate toolbar with new icon sizes
+        m_toolBar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
+        createToolBarContent();
+
+        // Refresh layout
+        Layout();
+
+        core::Logger::getInstance().info("Toolbar reloaded successfully with icon size: {}", newState.iconSize);
+    }
 
     // ====================================================================
     // Save Log Settings to SettingsManager
