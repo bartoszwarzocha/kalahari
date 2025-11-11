@@ -24,12 +24,6 @@ wxEND_EVENT_TABLE()
 AppearanceSettingsPanel::AppearanceSettingsPanel(wxWindow* parent, SettingsState& state)
     : wxPanel(parent), m_state(state)
 {
-    // CRITICAL FIX (Task #00021): Freeze prevents layout events during construction
-    // When SetValue() is called on controls (line 148), it triggers wxEVT_SPINCTRLDOUBLE
-    // which calls onFontScalingChanged() → Layout() → FitInside()
-    // If this happens before panel has proper size, wxWidgets calculates 0x0 → CRASH
-    Freeze();
-
     core::Logger::getInstance().debug("AppearanceSettingsPanel: Creating panel");
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -40,10 +34,6 @@ AppearanceSettingsPanel::AppearanceSettingsPanel(wxWindow* parent, SettingsState
     createTypographySection(mainSizer);
 
     SetSizer(mainSizer);
-
-    // CRITICAL FIX (Task #00021): Thaw allows layout after all controls initialized
-    Thaw();
-
     core::Logger::getInstance().info("AppearanceSettingsPanel: Panel created with 3 sections");
 }
 

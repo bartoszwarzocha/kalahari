@@ -141,6 +141,9 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     auto& logger = core::Logger::getInstance();
     logger.info("SettingsDialog: Constructor START");
 
+    // DEBUG PHASE 1: Constructor START
+    wxMessageBox("Constructor START", "DEBUG", wxOK | wxICON_INFORMATION);
+
     // Main vertical sizer
     logger.debug("SettingsDialog: Creating main sizer");
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -224,16 +227,28 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     logger.debug("SettingsDialog: Setting main sizer");
     SetSizer(mainSizer);
 
+    // DEBUG PHASE 1: Before buildTree
+    wxMessageBox("Before buildTree()", "DEBUG", wxOK | wxICON_INFORMATION);
+
     // Build tree structure and panels
     logger.info("SettingsDialog: Calling buildTree()");
     buildTree();
 
+    // DEBUG PHASE 1: After buildTree
+    wxMessageBox("After buildTree()", "DEBUG", wxOK | wxICON_INFORMATION);
+
     logger.info("SettingsDialog: Constructor COMPLETE");
+
+    // DEBUG PHASE 1: Constructor END
+    wxMessageBox("Constructor COMPLETE", "DEBUG", wxOK | wxICON_INFORMATION);
 }
 
 void SettingsDialog::buildTree() {
     auto& logger = core::Logger::getInstance();
     logger.info("buildTree: START");
+
+    // DEBUG PHASE 1: Test EMPTY dialog (no panels, only tree structure)
+    wxMessageBox("buildTree START - PHASE 1: NO PANELS CREATED", "DEBUG", wxOK | wxICON_INFORMATION);
 
     // Icon indices
     const int ICON_FOLDER = 0;
@@ -255,7 +270,8 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // Create panel for Appearance
+    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Appearance
+    /*
     logger.info("buildTree: Creating AppearanceSettingsPanel");
     AppearanceSettingsPanel* appearancePanel = new AppearanceSettingsPanel(
         m_contentPanel,
@@ -265,6 +281,7 @@ void SettingsDialog::buildTree() {
     appearancePanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
     m_panels[appearance] = appearancePanel;
     logger.debug("buildTree: Appearance panel complete");
+    */
 
     // ========================================================================
     // Phase 1: Editor Settings (Task #00019)
@@ -278,7 +295,8 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // Create panel for Editor
+    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Editor
+    /*
     logger.info("buildTree: Creating EditorSettingsPanel");
     EditorSettingsPanel* editorPanel = new EditorSettingsPanel(
         m_contentPanel,
@@ -287,6 +305,7 @@ void SettingsDialog::buildTree() {
     editorPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
     m_panels[editor] = editorPanel;
     logger.debug("buildTree: Editor panel complete");
+    */
 
     // ========================================================================
     // Phase 0: Advanced → Diagnostics
@@ -308,7 +327,8 @@ void SettingsDialog::buildTree() {
         ICON_SETTING
     );
 
-    // Create panel for Diagnostics
+    // COMMENTED OUT FOR PHASE 1 DEBUG: Create panel for Diagnostics
+    /*
     logger.info("buildTree: Creating DiagnosticsPanel");
     DiagnosticsPanel* diagPanel = new DiagnosticsPanel(
         m_contentPanel,
@@ -317,8 +337,10 @@ void SettingsDialog::buildTree() {
     diagPanel->Hide(); // IMPORTANT: Hide initially, showPanel() will show the selected one
     m_panels[diagnostics] = diagPanel;
     logger.debug("buildTree: Diagnostics panel complete");
+    */
 
-    // Diagnostic Log leaf (Task #00020 - Phase 1)
+    // COMMENTED OUT FOR PHASE 1 DEBUG: Diagnostic Log leaf (Task #00020 - Phase 1)
+    /*
     // Only show when diagnostic mode is enabled
     if (m_workingState.diagnosticModeEnabled) {
         logger.debug("buildTree: Diagnostic mode enabled, adding Log node");
@@ -338,6 +360,7 @@ void SettingsDialog::buildTree() {
         m_panels[diagnosticLog] = logPanel;
         logger.debug("buildTree: Log panel complete");
     }
+    */
 
     // ========================================================================
     // Default selection
@@ -351,8 +374,14 @@ void SettingsDialog::buildTree() {
     logger.debug("buildTree: Selecting Appearance node");
     m_tree->SelectItem(appearance);
 
+    // COMMENTED OUT FOR PHASE 1 DEBUG: showPanel
+    /*
     logger.info("buildTree: Calling showPanel(appearance)");
     showPanel(appearance);
+    */
+
+    // DEBUG PHASE 1: buildTree END
+    wxMessageBox("buildTree END - Tree created, NO PANELS", "DEBUG", wxOK | wxICON_INFORMATION);
 
     logger.info("buildTree: COMPLETE");
 }
