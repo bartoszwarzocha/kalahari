@@ -512,7 +512,9 @@ void SettingsDialog::onApply([[maybe_unused]] wxCommandEvent& event) {
     SettingsAppliedEvent applyEvent(EVT_SETTINGS_APPLIED, GetId());
     applyEvent.setNewState(m_workingState);
     applyEvent.SetEventObject(this);
-    ProcessWindowEvent(applyEvent);  // Send to parent window
+
+    // CRITICAL: Use wxPostEvent to send to parent, NOT ProcessWindowEvent
+    wxPostEvent(GetParent(), applyEvent);
 
     core::Logger::getInstance().info("Settings applied (dialog remains open) - event sent to MainWindow");
 }
