@@ -97,6 +97,9 @@ set(KALAHARI_SOURCES
     gui/icon_registry.cpp
     gui/art_provider.cpp
     gui/perspective_manager.cpp
+    gui/command.cpp                    # Phase 1: Command Registry structures (Task #00024)
+    gui/command_registry.cpp           # Phase 1: Command Registry singleton (Task #00025)
+    gui/shortcut_manager.cpp           # Phase 1: Keyboard Shortcut Management (Task #00027)
     gui/dialogs/about_dialog.cpp
     gui/dialogs/manage_perspectives_dialog.cpp
     gui/panels/navigator_panel.cpp

@@ -3,9 +3,9 @@
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
 **Current Status:** 🚀 Phase 1 Week 13 - Command Registry Architecture
-**Next Task:** #00024 (Define Command Registry Interface - ARCHITECTURE)
+**Next Task:** #00028 (Core Command Registration - File Menu)
 **Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
-**Last Updated:** 2025-11-11 (Tasks #00021-23 complete, Command Registry planning)
+**Last Updated:** 2025-11-12 (Tasks #00024-27 complete - Keyboard Shortcut Management ready)
 
 ---
 
@@ -268,23 +268,29 @@ This roadmap outlines the development journey of Kalahari from initial concept t
 
 **Architectural Decision:** Implement Command Registry pattern (centralized command management, separation of concerns, plugin-ready architecture). See tasks/.wip/EPIC-command-registry-breakdown.md for full analysis.
 
-- [ ] **Task #00024:** Define Command Registry Interface **P0 ARCHITECTURE** (45-60 min)
-  - Design ICommand interface (name, ID, label, icon, enabled, handler)
-  - Design CommandRegistry singleton (register, unregister, execute, getAll)
-  - Write interface header files + documentation
-  - **Status:** 📋 PLANNED | **File:** tasks/00024_define_command_registry_interface.md
+- [x] **Task #00024:** Command Structure Implementation **P1 ARCHITECTURE** (45 min) ✅ COMPLETE
+  - Implement IconSet struct (16/24/32px bitmap storage)
+  - Implement KeyboardShortcut struct (toString/fromString parsing)
+  - Implement Command struct (complete descriptor with callbacks)
+  - **Status:** ✅ COMPLETE (2025-11-12) | **File:** tasks/00024_command_structure_implementation.md
+  - **Commit:** (pending)
 
-- [ ] **Task #00025:** Implement Core Command Registry **P0 ARCHITECTURE** (60-90 min)
-  - Implement CommandRegistry class with thread-safe storage
-  - Add registration/unregistration/lookup methods
-  - Write 15+ unit tests (Catch2)
-  - **Status:** 📋 PLANNED | **Dependencies:** #00024 | **File:** tasks/00025_implement_core_command_registry.md
+- [x] **Task #00025:** Implement Core Command Registry **P0 ARCHITECTURE** (75 min) ✅ COMPLETE
+  - Implement CommandRegistry singleton (Meyers pattern, thread-safe)
+  - Registration/unregistration/lookup methods (8 methods total)
+  - 8 test cases (17 sections, 40 assertions) - all passing
+  - **Status:** ✅ COMPLETE (2025-11-12) | **File:** tasks/00025_implement_core_command_registry.md
+  - **Tests:** 100% pass rate (572 total assertions, 76 test cases)
+  - **Commit:** (pending)
 
-- [ ] **Task #00026:** Migrate File Menu Commands **P1 IMPLEMENTATION** (45-60 min)
-  - Convert New/Open/Save/SaveAs/Exit to ICommand pattern
-  - Register in CommandRegistry, update MainWindow handlers
-  - Verify all File menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00026_migrate_file_menu_commands.md
+- [x] **Task #00026:** CommandRegistry Execution + Context **P0 ARCHITECTURE** (70 min) ✅ COMPLETE
+  - Implement executeCommand() with full error handling
+  - Add canExecute() and isChecked() precondition checking
+  - CommandExecutionResult enum (5 states: Success, NotFound, Disabled, NoCallback, Failed)
+  - CommandErrorHandler custom callback support
+  - **Status:** ✅ COMPLETE (2025-11-12) | **File:** tasks/00026_command_registry_execution_context.md
+  - **Tests:** 8 test cases, 41 assertions - 100% pass rate (613 total assertions, 84 test cases)
+  - **Commit:** (pending)
 
 - [ ] **Task #00027:** Migrate Edit Menu Commands **P1 IMPLEMENTATION** (45-60 min)
   - Convert Cut/Copy/Paste/SelectAll/Undo/Redo to ICommand pattern
@@ -292,13 +298,13 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - Verify all Edit menu functions work
   - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00027_migrate_edit_menu_commands.md
 
-- [ ] **Task #00028:** Migrate Format Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+- [ ] **Task #00029:** Migrate Format Menu Commands **P1 IMPLEMENTATION** (45-60 min)
   - Convert Bold/Italic/Underline/Font/ClearFormat to ICommand pattern
   - Register in CommandRegistry, update MainWindow handlers
   - Verify all Format menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00028_migrate_format_menu_commands.md
+  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00029_migrate_format_menu_commands.md
 
-- [ ] **Task #00029:** Migrate View Menu Commands **P1 IMPLEMENTATION** (45-60 min)
+- [ ] **Task #00030:** Migrate View Menu Commands **P1 IMPLEMENTATION** (45-60 min)
   - Convert Navigator/Properties/Stats/Search/Assistant/Perspectives to ICommand pattern
   - Register in CommandRegistry, update MainWindow handlers
   - Verify all View menu functions work

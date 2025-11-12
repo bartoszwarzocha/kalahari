@@ -9,6 +9,161 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00027 - Keyboard Shortcut Management (2025-11-12)
+
+#### Added
+- **ShortcutManager Singleton** - Keyboard shortcut mapping with JSON persistence
+  - **Singleton Pattern:** Meyers singleton (thread-safe C++11+)
+    - getInstance() returns single ShortcutManager instance
+    - Private constructor/destructor, deleted copy/assignment
+  - **Binding API:**
+    - bindShortcut() - Map keyboard shortcut to command ID
+    - unbindShortcut() - Remove shortcut binding
+    - isShortcutBound() - Check if shortcut has binding
+    - Silently overrides existing bindings (exact match conflict detection)
+    - Rejects empty shortcuts (keyCode = 0)
+  - **Query API:**
+    - getCommandForShortcut() - Returns std::optional<std::string> command ID
+    - getAllBindings() - Returns copy of all bindings (std::map)
+    - getBindingCount() - Returns number of bound shortcuts
+  - **Execution API:**
+    - executeShortcut() - Delegates to CommandRegistry::executeCommand()
+    - Returns CommandExecutionResult enum
+    - Integration point: keyboard events → ShortcutManager → CommandRegistry
+  - **JSON Persistence:**
+    - saveToFile() - Serialize bindings to JSON with nlohmann/json
+    - loadFromFile() - Deserialize and restore bindings (clears existing)
+    - Format: `{"shortcuts": [{"shortcut": "Ctrl+S", "commandId": "file.save"}, ...]}`
+    - Human-readable shortcut strings for easy manual editing
+  - **Utility:**
+    - clear() - Remove all bindings (primarily for testing)
+  - **Storage:** std::map<KeyboardShortcut, std::string> for ordered access
+  - **Files Modified:**
+    - `include/kalahari/gui/command.h` (+7 LOC) - Added operator< to KeyboardShortcut struct
+      - Required for std::map key compatibility
+      - Compares by: keyCode, ctrl, alt, shift (in that order)
+  - **Files Created:**
+    - `include/kalahari/gui/shortcut_manager.h` (140 LOC) - Singleton class definition
+    - `src/gui/shortcut_manager.cpp` (165 LOC) - Implementation with JSON support
+    - `tests/gui/test_shortcut_manager.cpp` (330 LOC) - Comprehensive unit tests
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added shortcut_manager.cpp to build (line 102)
+    - `tests/CMakeLists.txt` (+2 LOC) - Added test file and source dependency
+  - **Architecture:** Foundation for customizable keyboard shortcuts (user settings in Phase 1+)
+  - **Testing:** 8 test cases, 42 assertions - 100% pass rate
+    - Singleton pattern verification
+    - Binding/unbinding/query operations
+    - CommandRegistry integration
+    - JSON save/load round-trip
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (75 minutes, within 90 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00026 - CommandRegistry Execution + Context (2025-11-12)
+
+#### Added
+- **Command Execution Layer** - Complete execution API with error handling
+  - **CommandExecutionResult enum** - 5 execution states
+    - Success - Command executed successfully
+    - CommandNotFound - Command ID not registered
+    - CommandDisabled - Command exists but isEnabled returned false
+    - NoExecuteCallback - Command has no execute callback
+    - ExecutionFailed - Execution threw exception
+  - **executeCommand() method** - Unified command execution with comprehensive error handling
+    - Checks command existence, execute callback, enabled state
+    - Executes command with try-catch (std::exception and unknown)
+    - Calls error handler on failures
+    - Returns execution result enum
+  - **canExecute() method** - Precondition checking without execution
+    - Returns true only if: command exists + has callback + is enabled
+    - Used by menu/toolbar builders for state updates
+  - **isChecked() method** - Toggle state checking for menu items
+    - Returns true if command has isChecked callback that returns true
+    - Supports dynamic state tracking (checkmarks, toggles)
+  - **Error Handler System:**
+    - CommandErrorHandler typedef (std::function<void(id, message)>)
+    - setErrorHandler() - Set custom error callback
+    - getErrorHandler() - Retrieve current handler
+    - Error handler called on all failures (not on success)
+    - Provides command ID and error message for UI feedback
+  - **Files Modified:**
+    - `include/kalahari/gui/command_registry.h` (+54 LOC) - Added execution API
+    - `src/gui/command_registry.cpp` (+71 LOC) - Implemented execution methods
+  - **Files Created:**
+    - `tests/gui/test_command_registry_execution.cpp` (357 LOC) - 8 test cases
+  - **Files Modified:**
+    - `tests/CMakeLists.txt` (+1 LOC) - Added execution tests
+  - **Architecture:** Foundation for unified execution path (menu → registry, toolbar → registry, keyboard → registry)
+  - **Testing:** 8 test cases, 9 sections, 41 assertions - 100% pass rate
+  - **Full Test Suite:** 613 assertions, 84 test cases - 100% pass rate
+  - **Status:** ✅ Complete (70 minutes, within 75 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00025 - CommandRegistry Singleton Implementation (2025-11-12)
+
+#### Added
+- **CommandRegistry Singleton** - Central command management system
+  - **Singleton Pattern:** Meyers singleton (thread-safe C++11+)
+    - getInstance() returns single instance across application
+    - Private constructor/destructor, deleted copy/assignment
+  - **Registration API:**
+    - registerCommand() - Add/override command in registry
+    - unregisterCommand() - Remove command (safe if doesn't exist)
+    - isCommandRegistered() - Check command existence
+  - **Query API:**
+    - getCommand() - Get command by ID (const and non-const versions)
+    - getCommandsByCategory() - Filter commands by category
+    - getAllCommands() - Retrieve all registered commands
+    - getCategories() - Get unique sorted category names
+  - **Utility Methods:**
+    - getCommandCount() - Return number of registered commands
+    - clear() - Remove all commands (for testing)
+  - **Storage:** std::unordered_map<std::string, Command> for O(1) lookup
+  - **Files Created:**
+    - `include/kalahari/gui/command_registry.h` (144 LOC) - Singleton class definition
+    - `src/gui/command_registry.cpp` (106 LOC) - Implementation
+    - `tests/gui/test_command_registry.cpp` (283 LOC) - Comprehensive unit tests
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added command_registry.cpp to build
+    - `tests/CMakeLists.txt` (+3 LOC) - Added test file and source files
+  - **Architecture:** Foundation for unified command execution (menu, toolbar, keyboard)
+  - **Testing:** 8 test cases, 17 sections, 40 assertions - 100% pass rate
+  - **Full Test Suite:** 572 assertions, 76 test cases - 100% pass rate
+  - **Status:** ✅ Complete (75 minutes, within 60-90 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00024 - Command Structure Implementation (2025-11-12)
+
+#### Added
+- **Command Registry Core Structures** - Foundation data types for unified command system
+  - **IconSet struct** - Pre-rendered icon storage for menu/toolbar integration
+    - Stores wxBitmap in 3 sizes: 16x16 (menus), 24x24 (default toolbar), 32x32 (large toolbar)
+    - Constructor: `IconSet(const wxString& path)` - loads image and scales to all sizes
+    - Uses wxIMAGE_QUALITY_HIGH for smooth scaling
+    - isEmpty() helper for validation
+  - **KeyboardShortcut struct** - Keyboard binding representation and parsing
+    - Stores keyCode (wxKeyCode) + modifiers (ctrl/alt/shift)
+    - `toString()` - converts to human-readable format ("Ctrl+S", "Ctrl+Shift+F1")
+    - `fromString()` - parses case-insensitive strings to shortcuts
+    - Supports 20+ special keys (F1-F12, Enter, Esc, arrows, navigation keys)
+    - Equality operators for comparison
+  - **Command struct** - Complete command descriptor with execution logic
+    - Identification: id, label, tooltip, category
+    - Visual: IconSet, showInMenu, showInToolbar flags
+    - Keyboard: KeyboardShortcut + customization flag
+    - Execution: std::function callbacks (execute, isEnabled, isChecked)
+    - Plugin metadata: isPluginCommand, pluginId, apiVersion
+    - Helpers: canExecute(), checkEnabled(), checkChecked()
+  - **Files Created:**
+    - `include/kalahari/gui/command.h` (177 LOC) - Complete structure definitions
+    - `src/gui/command.cpp` (203 LOC) - IconSet + KeyboardShortcut implementations
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added gui/command.cpp to build
+  - **Architecture:** Foundation for Command Registry pattern (Task #00025+)
+  - **Testing:** Build successful, no warnings, structures ready for use
+  - **Status:** ✅ Complete (45 minutes, under 60 minute estimate)
+  - **Commit:** (pending)
+
 ### Command Registry Architecture Planning (2025-11-11)
 
 #### Decided

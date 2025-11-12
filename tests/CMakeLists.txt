@@ -13,6 +13,9 @@ set(TEST_SOURCES
     core/test_book.cpp
     core/test_document.cpp
     core/test_document_archive.cpp
+    gui/test_command_registry.cpp  # Task #00025 - CommandRegistry unit tests (no display required)
+    gui/test_command_registry_execution.cpp  # Task #00026 - CommandRegistry execution API tests
+    gui/test_shortcut_manager.cpp     # Task #00027 - ShortcutManager unit tests (no display required)
     # GUI tests REMOVED - all require GTK/X11 display connection (incompatible with console-only CI/CD)
     # - test_bwx_text_editor.cpp: All 9 test cases created wxFrame windows
     # - test_bwx_text_document.cpp: Uses wxMemoryDC (requires display on Linux/macOS)
@@ -34,6 +37,9 @@ set(TEST_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/book.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/command.cpp  # Task #00024 - Command structures
+    ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp  # Task #00025 - CommandRegistry singleton
+    ${CMAKE_SOURCE_DIR}/src/gui/shortcut_manager.cpp  # Task #00027 - ShortcutManager singleton
     # More test files will be added as we implement features
 )
 
