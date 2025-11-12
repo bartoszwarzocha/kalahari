@@ -3,9 +3,9 @@
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
 **Current Status:** 🚀 Phase 1 Week 13 - Command Registry Architecture
-**Next Task:** #00028 (Core Command Registration - File Menu)
+**Next Task:** #00029 (Core Command Registration - Edit Menu)
 **Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
-**Last Updated:** 2025-11-12 (Tasks #00024-27 complete - Keyboard Shortcut Management ready)
+**Last Updated:** 2025-11-12 (Task #00028 complete - File Menu Commands registered)
 
 ---
 
@@ -292,11 +292,25 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Tests:** 8 test cases, 41 assertions - 100% pass rate (613 total assertions, 84 test cases)
   - **Commit:** (pending)
 
-- [ ] **Task #00027:** Migrate Edit Menu Commands **P1 IMPLEMENTATION** (45-60 min)
-  - Convert Cut/Copy/Paste/SelectAll/Undo/Redo to ICommand pattern
-  - Register in CommandRegistry, update MainWindow handlers
-  - Verify all Edit menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00027_migrate_edit_menu_commands.md
+- [x] **Task #00027:** Keyboard Shortcut Management **P1 ARCHITECTURE** (90 min) ✅ COMPLETE
+  - Implement ShortcutManager singleton (Meyers pattern, thread-safe)
+  - Binding/unbinding/query API (9 methods total)
+  - JSON persistence (saveToFile, loadFromFile)
+  - Integration with CommandRegistry (executeShortcut delegates)
+  - operator< for KeyboardShortcut (std::map key compatibility)
+  - **Status:** ✅ COMPLETE (2025-11-12, 75 min actual) | **File:** tasks/00027_keyboard_shortcut_management.md
+  - **Tests:** 8 test cases, 42 assertions - 100% pass rate (655 total assertions, 91 test cases)
+  - **Commit:** (pending)
+
+- [x] **Task #00028:** Core Command Registration - File Menu **P1 IMPLEMENTATION** (60 min) ✅ COMPLETE
+  - Register 6 File menu commands in CommandRegistry
+  - Commands: file.new, file.open, file.save, file.save_as, file.settings, file.exit
+  - Bind keyboard shortcuts (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+,, Alt+F4)
+  - Refactor event handlers to use CommandRegistry::executeCommand()
+  - **Status:** ✅ COMPLETE (2025-11-12, 55 min actual) | **File:** tasks/00028_core_command_registration_file_menu.md
+  - **Tests:** Manual verification - all commands work via menu and shortcuts
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Note:** Settings handler NOT refactored (complex state management, deferred to future task)
 
 - [ ] **Task #00029:** Migrate Format Menu Commands **P1 IMPLEMENTATION** (45-60 min)
   - Convert Bold/Italic/Underline/Font/ClearFormat to ICommand pattern

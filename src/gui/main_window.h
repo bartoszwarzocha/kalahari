@@ -365,6 +365,12 @@ private:
     // Helper Methods (camelCase, private)
     // ========================================================================
 
+    /// @brief Register File menu commands in CommandRegistry
+    ///
+    /// Registers 6 File menu commands (New, Open, Save, Save As, Settings, Exit)
+    /// with keyboard shortcuts and execution callbacks. Called from constructor.
+    void registerFileCommands();
+
     /// @brief Create and populate the menu bar
     ///
     /// Creates File, Edit, View, and Help menus with appropriate items.

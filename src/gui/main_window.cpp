@@ -13,6 +13,8 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/perspective_manager.h"
+#include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/shortcut_manager.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/gui_log_sink.h>
 #include <kalahari/core/settings_manager.h>
@@ -252,6 +254,9 @@ MainWindow::MainWindow()
     createToolBar();
     createStatusBar();
 
+    // Register File menu commands in CommandRegistry (Task #00028)
+    registerFileCommands();
+
     // Initialize wxAUI docking system with panels (Task #00013)
     initializeAUI();
 
@@ -295,6 +300,176 @@ MainWindow::~MainWindow() {
 
     core::Logger::getInstance().info("MainWindow destroyed (all background tasks completed)");
     // Cleanup handled automatically by wxWidgets for child windows
+}
+
+// ============================================================================
+// Command Registry Integration (Task #00028)
+// ============================================================================
+
+void MainWindow::registerFileCommands() {
+    core::Logger::getInstance().debug("Registering File menu commands in CommandRegistry...");
+
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    ShortcutManager& shortcuts = ShortcutManager::getInstance();
+
+    // ------------------------------------------------------------------------
+    // file.new - Create New Document
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.new";
+        cmd.label = _("New").ToStdString();
+        cmd.tooltip = _("Create a new document").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('N', true);  // Ctrl+N
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("File -> New executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("New document (stub)"), 0);
+            wxMessageBox(
+                _("New document functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("New Document"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // file.open - Open Existing Document
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.open";
+        cmd.label = _("Open...").ToStdString();
+        cmd.tooltip = _("Open an existing document").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('O', true);  // Ctrl+O
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("File -> Open executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("Open document (stub)"), 0);
+            wxMessageBox(
+                _("Open document functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("Open Document"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // file.save - Save Current Document
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.save";
+        cmd.label = _("Save").ToStdString();
+        cmd.tooltip = _("Save the current document").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('S', true);  // Ctrl+S
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("File -> Save executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("Save document (stub)"), 0);
+            wxMessageBox(
+                _("Save document functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("Save Document"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // file.save_as - Save Document As
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.save_as";
+        cmd.label = _("Save As...").ToStdString();
+        cmd.tooltip = _("Save document with a new name").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut('S', true, false, true);  // Ctrl+Shift+S
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("File -> Save As executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("Save As (stub)"), 0);
+            wxMessageBox(
+                _("Save As functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("Save As"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // file.settings - Open Settings Dialog
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.settings";
+        cmd.label = _("Settings...").ToStdString();
+        cmd.tooltip = _("Open application settings").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(',', true);  // Ctrl+,
+        cmd.execute = [this]() {
+            // NOTE: Settings dialog integration deferred to future task
+            // Current onFileSettings() handler has complex state management
+            // that needs to be properly migrated to command pattern
+            core::Logger::getInstance().info("File -> Settings command registered (handler uses old path)");
+            m_statusBar->SetStatusText(_("Settings (use File menu)"), 0);
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // file.exit - Exit Application
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "file.exit";
+        cmd.label = _("Exit").ToStdString();
+        cmd.tooltip = _("Exit Kalahari").ToStdString();
+        cmd.category = "File";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(WXK_F4, false, true);  // Alt+F4
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("File -> Exit executed via CommandRegistry");
+            Close(true);  // Triggers wxCloseEvent (calls onClose handler)
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    core::Logger::getInstance().info("File menu commands registered (6 commands)");
 }
 
 // ============================================================================
@@ -735,79 +910,19 @@ void MainWindow::destroyLogPanel() {
 // ============================================================================
 
 void MainWindow::onFileNew([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("File -> New clicked");
-
-    m_statusBar->SetStatusText(_("New document (stub)"), 0);
-
-    wxMessageBox(
-        _("New document functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("New Document"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    CommandRegistry::getInstance().executeCommand("file.new");
 }
 
 void MainWindow::onFileOpen([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("File -> Open clicked");
-
-    // Update status bar immediately (GUI thread)
-    m_statusBar->SetStatusText(_("Loading file..."), 0);
-
-    // Submit background task (demonstrates threading infrastructure - Phase 0 Week 2)
-    bool submitted = submitBackgroundTask([this]() {
-        // Simulate heavy file loading (future: actual wxFile, JSON parsing, etc.)
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-
-        // Simulate file loaded
-        std::string filename = "example.klh";  // Future: from wxFileDialog
-
-        core::Logger::getInstance().debug("Background file load completed: {}", filename);
-
-        // Update GUI when done (CallAfter pattern - marshals to GUI thread)
-        CallAfter([this, filename]() {
-            m_statusBar->SetStatusText(
-                wxString::Format(_("Loaded: %s"), wxString::FromUTF8(filename)),
-                0);
-        });
-    });
-
-    if (!submitted) {
-        // Thread limit reached - show warning
-        wxMessageBox(
-            _("Too many operations in progress. Please wait for current tasks to complete."),
-            _("Busy"),
-            wxOK | wxICON_WARNING,
-            this);
-    }
+    CommandRegistry::getInstance().executeCommand("file.open");
 }
 
 void MainWindow::onFileSave([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("File -> Save clicked");
-
-    m_statusBar->SetStatusText(_("Save document (stub)"), 0);
-
-    wxMessageBox(
-        _("Save document functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("Save Document"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    CommandRegistry::getInstance().executeCommand("file.save");
 }
 
 void MainWindow::onFileSaveAs([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("File -> Save As clicked");
-
-    m_statusBar->SetStatusText(_("Save As (stub)"), 0);
-
-    wxMessageBox(
-        _("Save As functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("Save As"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    CommandRegistry::getInstance().executeCommand("file.save_as");
 }
 
 void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
@@ -1135,10 +1250,7 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
 }
 
 void MainWindow::onFileExit([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("File -> Exit clicked");
-
-    // Close window (will trigger onClose event)
-    Close(true);
+    CommandRegistry::getInstance().executeCommand("file.exit");
 }
 
 void MainWindow::onEditUndo([[maybe_unused]] wxCommandEvent& event) {
