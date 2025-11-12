@@ -3,9 +3,9 @@
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
 **Current Status:** 🚀 Phase 1 Week 13 - Command Registry Architecture
-**Next Task:** #00029 (Core Command Registration - Edit Menu)
+**Next Task:** #00030 (Core Command Registration - Format Menu)
 **Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
-**Last Updated:** 2025-11-12 (Task #00028 complete - File Menu Commands registered)
+**Last Updated:** 2025-11-12 (Task #00029 complete - Edit Menu Commands registered)
 
 ---
 
@@ -312,23 +312,22 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
   - **Note:** Settings handler NOT refactored (complex state management, deferred to future task)
 
-- [ ] **Task #00029:** Migrate Format Menu Commands **P1 IMPLEMENTATION** (45-60 min)
-  - Convert Bold/Italic/Underline/Font/ClearFormat to ICommand pattern
-  - Register in CommandRegistry, update MainWindow handlers
-  - Verify all Format menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00029_migrate_format_menu_commands.md
+- [x] **Task #00029:** Core Command Registration - Edit Menu **P1 IMPLEMENTATION** (45 min) ✅ COMPLETE
+  - Register 6 Edit menu commands in CommandRegistry
+  - Commands: edit.undo, edit.redo (stubs), edit.cut, edit.copy, edit.paste, edit.select_all (EditorPanel delegates)
+  - Bind keyboard shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A)
+  - Refactor event handlers to use CommandRegistry::executeCommand()
+  - **Status:** ✅ COMPLETE (2025-11-12, 42 min actual) | **File:** tasks/00029_core_command_registration_edit_menu.md
+  - **Tests:** Manual verification - all commands work via menu and shortcuts
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Note:** EditorPanel delegation creates dummy wxCommandEvent; TODO for Phase 2 refactoring to direct methods
 
-- [ ] **Task #00030:** Migrate View Menu Commands **P1 IMPLEMENTATION** (45-60 min)
-  - Convert Navigator/Properties/Stats/Search/Assistant/Perspectives to ICommand pattern
-  - Register in CommandRegistry, update MainWindow handlers
-  - Verify all View menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00029_migrate_view_menu_commands.md
-
-- [ ] **Task #00030:** Migrate Help Menu Commands **P1 IMPLEMENTATION** (30-45 min)
-  - Convert Documentation/About/CheckUpdates to ICommand pattern
-  - Register in CommandRegistry, update MainWindow handlers
-  - Verify all Help menu functions work
-  - **Status:** 📋 PLANNED | **Dependencies:** #00025 | **File:** tasks/00030_migrate_help_menu_commands.md
+- [ ] **Task #00030:** Core Command Registration - Format Menu **P1 IMPLEMENTATION** (40 min)
+  - Register 5 Format menu commands in CommandRegistry
+  - Commands: format.bold, format.italic, format.underline, format.font, format.clear_formatting
+  - Bind keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+U)
+  - Refactor event handlers to use CommandRegistry::executeCommand()
+  - **Status:** 📋 PLANNED | **Dependencies:** #00029 | **File:** tasks/00030_core_command_registration_format_menu.md
 
 - [ ] **Task #00031:** Implement Dynamic Menu Builder **P0 ARCHITECTURE** (60-90 min)
   - Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu)

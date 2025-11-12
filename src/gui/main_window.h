@@ -371,6 +371,12 @@ private:
     /// with keyboard shortcuts and execution callbacks. Called from constructor.
     void registerFileCommands();
 
+    /// @brief Register Edit menu commands in CommandRegistry
+    ///
+    /// Registers 6 Edit menu commands (Undo, Redo, Cut, Copy, Paste, Select All)
+    /// with keyboard shortcuts and execution callbacks. Called from constructor.
+    void registerEditCommands();
+
     /// @brief Create and populate the menu bar
     ///
     /// Creates File, Edit, View, and Help menus with appropriate items.

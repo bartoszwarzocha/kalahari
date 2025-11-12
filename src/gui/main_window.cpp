@@ -257,6 +257,9 @@ MainWindow::MainWindow()
     // Register File menu commands in CommandRegistry (Task #00028)
     registerFileCommands();
 
+    // Register Edit menu commands in CommandRegistry (Task #00029)
+    registerEditCommands();
+
     // Initialize wxAUI docking system with panels (Task #00013)
     initializeAUI();
 
@@ -470,6 +473,187 @@ void MainWindow::registerFileCommands() {
     }
 
     core::Logger::getInstance().info("File menu commands registered (6 commands)");
+}
+
+void MainWindow::registerEditCommands() {
+    core::Logger::getInstance().debug("Registering Edit menu commands in CommandRegistry...");
+
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    ShortcutManager& shortcuts = ShortcutManager::getInstance();
+
+    // ------------------------------------------------------------------------
+    // edit.undo - Undo Last Action
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.undo";
+        cmd.label = _("Undo").ToStdString();
+        cmd.tooltip = _("Undo last action").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('Z', true);  // Ctrl+Z
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("Edit -> Undo executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("Undo (stub)"), 0);
+            wxMessageBox(
+                _("Undo functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("Undo"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // edit.redo - Redo Last Undone Action
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.redo";
+        cmd.label = _("Redo").ToStdString();
+        cmd.tooltip = _("Redo last undone action").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('Y', true);  // Ctrl+Y
+        cmd.execute = [this]() {
+            core::Logger::getInstance().info("Edit -> Redo executed via CommandRegistry");
+            m_statusBar->SetStatusText(_("Redo (stub)"), 0);
+            wxMessageBox(
+                _("Redo functionality will be implemented in Phase 1.\n\n"
+                  "Phase 1 Week 13: Command Registry Integration"),
+                _("Redo"),
+                wxOK | wxICON_INFORMATION,
+                this
+            );
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // edit.cut - Cut Selection to Clipboard
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.cut";
+        cmd.label = _("Cut").ToStdString();
+        cmd.tooltip = _("Cut selection to clipboard").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('X', true);  // Ctrl+X
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Edit -> Cut executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct cut() method
+                wxCommandEvent event(wxEVT_MENU, wxID_CUT);
+                m_editorPanel->onEditCut(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Edit -> Cut");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // edit.copy - Copy Selection to Clipboard
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.copy";
+        cmd.label = _("Copy").ToStdString();
+        cmd.tooltip = _("Copy selection to clipboard").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('C', true);  // Ctrl+C
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Edit -> Copy executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct copy() method
+                wxCommandEvent event(wxEVT_MENU, wxID_COPY);
+                m_editorPanel->onEditCopy(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Edit -> Copy");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // edit.paste - Paste from Clipboard
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.paste";
+        cmd.label = _("Paste").ToStdString();
+        cmd.tooltip = _("Paste from clipboard").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('V', true);  // Ctrl+V
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Edit -> Paste executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct paste() method
+                wxCommandEvent event(wxEVT_MENU, wxID_PASTE);
+                m_editorPanel->onEditPaste(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Edit -> Paste");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // edit.select_all - Select All Text
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "edit.select_all";
+        cmd.label = _("Select All").ToStdString();
+        cmd.tooltip = _("Select all text").ToStdString();
+        cmd.category = "Edit";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut('A', true);  // Ctrl+A
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Edit -> Select All executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct selectAll() method
+                wxCommandEvent event(wxEVT_MENU, wxID_SELECTALL);
+                m_editorPanel->onEditSelectAll(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Edit -> Select All");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    core::Logger::getInstance().info("Edit menu commands registered (6 commands)");
 }
 
 // ============================================================================
@@ -1254,71 +1438,27 @@ void MainWindow::onFileExit([[maybe_unused]] wxCommandEvent& event) {
 }
 
 void MainWindow::onEditUndo([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("Edit -> Undo clicked");
-
-    m_statusBar->SetStatusText(_("Undo (stub)"), 0);
-
-    wxMessageBox(
-        _("Undo functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("Undo"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    CommandRegistry::getInstance().executeCommand("edit.undo");
 }
 
 void MainWindow::onEditRedo([[maybe_unused]] wxCommandEvent& event) {
-    core::Logger::getInstance().info("Edit -> Redo clicked");
-
-    m_statusBar->SetStatusText(_("Redo (stub)"), 0);
-
-    wxMessageBox(
-        _("Redo functionality will be implemented in Phase 1.\n\n"
-          "Phase 0 Week 2: GUI Infrastructure"),
-        _("Redo"),
-        wxOK | wxICON_INFORMATION,
-        this
-    );
+    CommandRegistry::getInstance().executeCommand("edit.redo");
 }
 
-void MainWindow::onEditCut(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Edit -> Cut clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onEditCut(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Cut");
-    }
+void MainWindow::onEditCut([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("edit.cut");
 }
 
-void MainWindow::onEditCopy(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Edit -> Copy clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onEditCopy(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Copy");
-    }
+void MainWindow::onEditCopy([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("edit.copy");
 }
 
-void MainWindow::onEditPaste(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Edit -> Paste clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onEditPaste(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Paste");
-    }
+void MainWindow::onEditPaste([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("edit.paste");
 }
 
-void MainWindow::onEditSelectAll(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Edit -> Select All clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onEditSelectAll(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Edit -> Select All");
-    }
+void MainWindow::onEditSelectAll([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("edit.select_all");
 }
 
 // ============================================================================
