@@ -260,6 +260,9 @@ MainWindow::MainWindow()
     // Register Edit menu commands in CommandRegistry (Task #00029)
     registerEditCommands();
 
+    // Register Format menu commands in CommandRegistry (Task #00030)
+    registerFormatCommands();
+
     // Initialize wxAUI docking system with panels (Task #00013)
     initializeAUI();
 
@@ -654,6 +657,158 @@ void MainWindow::registerEditCommands() {
     }
 
     core::Logger::getInstance().info("Edit menu commands registered (6 commands)");
+}
+
+void MainWindow::registerFormatCommands() {
+    core::Logger::getInstance().debug("Registering Format menu commands in CommandRegistry...");
+
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    ShortcutManager& shortcuts = ShortcutManager::getInstance();
+
+    // ------------------------------------------------------------------------
+    // format.bold - Toggle Bold Formatting
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "format.bold";
+        cmd.label = _("Bold").ToStdString();
+        cmd.tooltip = _("Toggle bold formatting").ToStdString();
+        cmd.category = "Format";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('B', true);  // Ctrl+B
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Format -> Bold executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct formatBold() method
+                wxCommandEvent event(wxEVT_MENU, ID_FORMAT_BOLD);
+                m_editorPanel->onFormatBold(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Format -> Bold");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // format.italic - Toggle Italic Formatting
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "format.italic";
+        cmd.label = _("Italic").ToStdString();
+        cmd.tooltip = _("Toggle italic formatting").ToStdString();
+        cmd.category = "Format";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('I', true);  // Ctrl+I
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Format -> Italic executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct formatItalic() method
+                wxCommandEvent event(wxEVT_MENU, ID_FORMAT_ITALIC);
+                m_editorPanel->onFormatItalic(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Format -> Italic");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // format.underline - Toggle Underline
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "format.underline";
+        cmd.label = _("Underline").ToStdString();
+        cmd.tooltip = _("Toggle underline").ToStdString();
+        cmd.category = "Format";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = true;
+        cmd.shortcut = KeyboardShortcut('U', true);  // Ctrl+U
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Format -> Underline executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct formatUnderline() method
+                wxCommandEvent event(wxEVT_MENU, ID_FORMAT_UNDERLINE);
+                m_editorPanel->onFormatUnderline(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Format -> Underline");
+            }
+        };
+
+        registry.registerCommand(cmd);
+        shortcuts.bindShortcut(cmd.shortcut, cmd.id);
+    }
+
+    // ------------------------------------------------------------------------
+    // format.font - Choose Font and Size
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "format.font";
+        cmd.label = _("Font...").ToStdString();
+        cmd.tooltip = _("Choose font and size").ToStdString();
+        cmd.category = "Format";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        // No keyboard shortcut for Font dialog
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Format -> Font executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct formatFont() method
+                wxCommandEvent event(wxEVT_MENU, ID_FORMAT_FONT);
+                m_editorPanel->onFormatFont(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Format -> Font");
+            }
+        };
+
+        registry.registerCommand(cmd);
+    }
+
+    // ------------------------------------------------------------------------
+    // format.clear_formatting - Remove All Formatting
+    // ------------------------------------------------------------------------
+    {
+        Command cmd;
+        cmd.id = "format.clear_formatting";
+        cmd.label = _("Clear Formatting").ToStdString();
+        cmd.tooltip = _("Remove all formatting").ToStdString();
+        cmd.category = "Format";
+        cmd.showInMenu = true;
+        cmd.showInToolbar = false;
+        // No keyboard shortcut for Clear Formatting
+        cmd.execute = [this]() {
+            core::Logger::getInstance().debug("Format -> Clear Formatting executed via CommandRegistry");
+
+            if (m_editorPanel) {
+                // Create dummy event for EditorPanel handler
+                // TODO (Phase 2): Refactor EditorPanel to have direct clearFormatting() method
+                wxCommandEvent event(wxEVT_MENU, ID_FORMAT_CLEAR);
+                m_editorPanel->onFormatClear(event);
+            } else {
+                core::Logger::getInstance().warn("No EditorPanel available for Format -> Clear Formatting");
+            }
+        };
+
+        registry.registerCommand(cmd);
+    }
+
+    core::Logger::getInstance().info("Format menu commands registered (5 commands)");
 }
 
 // ============================================================================
@@ -1465,54 +1620,24 @@ void MainWindow::onEditSelectAll([[maybe_unused]] wxCommandEvent& event) {
 // Format Menu Event Handlers (Task #00014)
 // ============================================================================
 
-void MainWindow::onFormatBold(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Format -> Bold clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onFormatBold(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Format -> Bold");
-    }
+void MainWindow::onFormatBold([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("format.bold");
 }
 
-void MainWindow::onFormatItalic(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Format -> Italic clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onFormatItalic(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Format -> Italic");
-    }
+void MainWindow::onFormatItalic([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("format.italic");
 }
 
-void MainWindow::onFormatUnderline(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Format -> Underline clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onFormatUnderline(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Format -> Underline");
-    }
+void MainWindow::onFormatUnderline([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("format.underline");
 }
 
-void MainWindow::onFormatFont(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Format -> Font clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onFormatFont(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Format -> Font");
-    }
+void MainWindow::onFormatFont([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("format.font");
 }
 
-void MainWindow::onFormatClear(wxCommandEvent& event) {
-    core::Logger::getInstance().debug("Format -> Clear Formatting clicked");
-
-    if (m_editorPanel) {
-        m_editorPanel->onFormatClear(event);
-    } else {
-        core::Logger::getInstance().warn("No EditorPanel available for Format -> Clear");
-    }
+void MainWindow::onFormatClear([[maybe_unused]] wxCommandEvent& event) {
+    CommandRegistry::getInstance().executeCommand("format.clear_formatting");
 }
 
 void MainWindow::onHelpAbout([[maybe_unused]] wxCommandEvent& event) {

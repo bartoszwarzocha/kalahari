@@ -377,6 +377,12 @@ private:
     /// with keyboard shortcuts and execution callbacks. Called from constructor.
     void registerEditCommands();
 
+    /// @brief Register Format menu commands in CommandRegistry
+    ///
+    /// Registers 5 Format menu commands (Bold, Italic, Underline, Font, Clear Formatting)
+    /// with keyboard shortcuts and execution callbacks. Called from constructor.
+    void registerFormatCommands();
+
     /// @brief Create and populate the menu bar
     ///
     /// Creates File, Edit, View, and Help menus with appropriate items.

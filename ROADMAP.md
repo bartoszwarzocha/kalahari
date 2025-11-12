@@ -3,9 +3,9 @@
 > **Writer's IDE** - 18-Month Journey from Concept to Public Release
 
 **Current Status:** 🚀 Phase 1 Week 13 - Command Registry Architecture
-**Next Task:** #00030 (Core Command Registration - Format Menu)
+**Next Task:** #00031 (Dynamic Menu Builder)
 **Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
-**Last Updated:** 2025-11-12 (Task #00029 complete - Edit Menu Commands registered)
+**Last Updated:** 2025-11-12 (Task #00030 complete - Format Menu Commands registered)
 
 ---
 
@@ -322,12 +322,15 @@ This roadmap outlines the development journey of Kalahari from initial concept t
   - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
   - **Note:** EditorPanel delegation creates dummy wxCommandEvent; TODO for Phase 2 refactoring to direct methods
 
-- [ ] **Task #00030:** Core Command Registration - Format Menu **P1 IMPLEMENTATION** (40 min)
+- [x] **Task #00030:** Core Command Registration - Format Menu **P1 IMPLEMENTATION** (40 min) ✅ COMPLETE
   - Register 5 Format menu commands in CommandRegistry
-  - Commands: format.bold, format.italic, format.underline, format.font, format.clear_formatting
+  - Commands: format.bold, format.italic, format.underline, format.font, format.clear_formatting (all delegate to EditorPanel)
   - Bind keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+U)
   - Refactor event handlers to use CommandRegistry::executeCommand()
-  - **Status:** 📋 PLANNED | **Dependencies:** #00029 | **File:** tasks/00030_core_command_registration_format_menu.md
+  - **Status:** ✅ COMPLETE (2025-11-12, 38 min actual) | **File:** tasks/00030_core_command_registration_format_menu.md
+  - **Tests:** Manual verification - all 5 commands work via menu and shortcuts
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Note:** EditorPanel delegation creates dummy wxCommandEvent; TODO for Phase 2 refactoring to direct methods
 
 - [ ] **Task #00031:** Implement Dynamic Menu Builder **P0 ARCHITECTURE** (60-90 min)
   - Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu)

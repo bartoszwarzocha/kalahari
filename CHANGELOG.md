@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00030 - Core Command Registration - Format Menu (2025-11-12)
+
+#### Added
+- **Format Menu Command Registration** - 5 Format commands registered in CommandRegistry
+  - **registerFormatCommands() Method:**
+    - New method in MainWindow (main_window.cpp:659-809, 151 LOC)
+    - Called from MainWindow constructor after registerEditCommands()
+    - Registers 5 Format menu commands with full metadata
+  - **Registered Commands:**
+    - `format.bold` - Toggle bold formatting (Ctrl+B, toolbar: yes, delegates to EditorPanel)
+    - `format.italic` - Toggle italic formatting (Ctrl+I, toolbar: yes, delegates to EditorPanel)
+    - `format.underline` - Toggle underline (Ctrl+U, toolbar: yes, delegates to EditorPanel)
+    - `format.font` - Choose font and size (no shortcut, toolbar: no, delegates to EditorPanel)
+    - `format.clear_formatting` - Remove all formatting (no shortcut, toolbar: no, delegates to EditorPanel)
+  - **Event Handler Refactoring:**
+    - onFormatBold() → executeCommand("format.bold")
+    - onFormatItalic() → executeCommand("format.italic")
+    - onFormatUnderline() → executeCommand("format.underline")
+    - onFormatFont() → executeCommand("format.font")
+    - onFormatClear() → executeCommand("format.clear_formatting")
+  - **Keyboard Shortcuts:**
+    - 3 shortcuts bound in ShortcutManager (Ctrl+B, Ctrl+I, Ctrl+U)
+    - Font and Clear Formatting have no shortcuts
+  - **EditorPanel Delegation:**
+    - All 5 commands create dummy wxCommandEvent and forward to EditorPanel
+    - **TODO (Phase 2):** Refactor EditorPanel to have direct methods (formatBold(), formatItalic(), etc.)
+    - Currently: event-based delegation with EditorPanel->onFormatBold(wxCommandEvent&)
+    - Future: direct method calls EditorPanel->formatBold() without events
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+6 LOC) - Added registerFormatCommands() declaration
+    - `src/gui/main_window.cpp` (+151 LOC, -35 LOC removed from handlers = +116 net)
+      - Added registerFormatCommands() implementation (151 LOC)
+      - Refactored 5 event handlers (5 LOC, removed ~35 LOC)
+  - **Architecture Pattern:** Following Task #00028 and #00029 pattern - minimal disruption, EVT_MENU kept
+  - **Testing:** Manual verification (all 5 commands work via menu and shortcuts)
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (38 minutes, under 40 minute estimate)
+  - **Note:** Added TODO comments in code for future EditorPanel refactoring
+
 ### Task #00029 - Core Command Registration - Edit Menu (2025-11-12)
 
 #### Added
