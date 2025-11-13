@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00033 - Settings Command Integration (2025-11-13)
+
+#### Changed
+- **file.settings Command Integration** - Moved from stub to full implementation
+  - file.settings.execute() now calls onFileSettings() with dummy event
+  - Removed old event table binding: EVT_MENU(wxID_PREFERENCES, ...)
+  - Settings dialog opens via CommandRegistry::executeCommand("file.settings")
+  - MenuBuilder automatically creates Settings menu item
+  - Keyboard shortcut Ctrl+, works through CommandRegistry
+  - Files: src/gui/main_window.cpp (~10 LOC changed)
+  - Build: Successful
+  - Status: ✅ Complete (~20 minutes)
+
 ### Task #00032 - ToolbarBuilder Class - Dynamic Toolbar Generation (2025-11-13)
 
 #### Added

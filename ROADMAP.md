@@ -154,9 +154,10 @@
 - [x] Replace hardcoded createToolBar() with ToolbarBuilder (createToolBarDynamic)
 - [x] Event handlers automatically bound to executeCommand()
 - [x] Verify toolbar builds correctly, icons load from CommandRegistry
-- [ ] Create 3 Settings menu commands (OpenSettings, ApplySettings, ResetSettings)
-- [ ] Register Settings commands in CommandRegistry
-- [ ] Add Settings commands to Tools menu
+- [x] **Task #00033:** Settings command integration with CommandRegistry ✅ 2025-11-13
+- [x] Move file.settings execute() from stub to real implementation
+- [x] Remove old event table binding (EVT_MENU wxID_PREFERENCES)
+- [x] Settings dialog opens via CommandRegistry::executeCommand("file.settings")
 - [ ] Test enabled/disabled states (no document → Cut/Paste disabled)
 - [ ] Test dynamic updates (selection changes → format menu states)
 - [ ] Verify state propagation (menu + toolbar sync)

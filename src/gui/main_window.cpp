@@ -102,7 +102,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(wxID_OPEN,        MainWindow::onFileOpen)
     EVT_MENU(wxID_SAVE,        MainWindow::onFileSave)
     EVT_MENU(wxID_SAVEAS,      MainWindow::onFileSaveAs)
-    EVT_MENU(wxID_PREFERENCES, MainWindow::onFileSettings)
+    // EVT_MENU(wxID_PREFERENCES, MainWindow::onFileSettings)  // Task #00033: Now handled by CommandRegistry
     EVT_MENU(wxID_EXIT,        MainWindow::onFileExit)
 
     // Edit menu events
@@ -445,11 +445,12 @@ void MainWindow::registerFileCommands() {
         cmd.showInToolbar = false;
         cmd.shortcut = KeyboardShortcut(',', true);  // Ctrl+,
         cmd.execute = [this]() {
-            // NOTE: Settings dialog integration deferred to future task
-            // Current onFileSettings() handler has complex state management
-            // that needs to be properly migrated to command pattern
-            core::Logger::getInstance().info("File -> Settings command registered (handler uses old path)");
-            m_statusBar->SetStatusText(_("Settings (use File menu)"), 0);
+            core::Logger::getInstance().info("File -> Settings executed via CommandRegistry");
+
+            // Call existing settings dialog implementation
+            // (Task #00033: Integrated with CommandRegistry)
+            wxCommandEvent dummyEvent(wxEVT_MENU, wxID_PREFERENCES);
+            onFileSettings(dummyEvent);
         };
 
         registry.registerCommand(cmd);
