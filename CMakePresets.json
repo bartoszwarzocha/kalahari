@@ -10,7 +10,7 @@
       "name": "windows-base",
       "hidden": true,
       "description": "Base preset for Windows builds (VS 2026)",
-      "generator": "Visual Studio 17 2026",
+      "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/build-vs2026",
       "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
