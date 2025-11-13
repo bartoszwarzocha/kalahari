@@ -123,16 +123,30 @@ This ensures quality, predictability, and traceability of all work.
 
 **Location:** `tasks/` directory (tracked in git)
 
-**File naming:** `NNNNN_task_name.md` (5-digit zero-padded)
+**File naming (ATOMIC MODEL - 2025-11-09):**
+
+**Standard naming:** `NNNNN_task_name.md` (5-digit zero-padded)
+
+**NEW: Atomic Task Naming Convention:**
+- **From ROADMAP:** `NNNNN_P_Z_description.md`
+  - NNNNN = sequential task number (00001-99999)
+  - P = phase number (0-5)
+  - Z = zagadnienie (main topic) number in phase (1-9)
+  - Example: `00034_1_2_dynamic_menu_builder.md` (Task 34, Phase 1, Zagadnienie 1.2)
+  - Use this format for tasks derived from ROADMAP Zagadnienie checkboxes
+- **Custom tasks:** `NNNNN_description.md` (no phase/zagadnienie)
+  - For fixes, tests, refactors not listed in ROADMAP
+  - Example: `00043_fix_windows_crash.md`
 
 **Examples:**
-- `00001_plugin_manager_skeleton.md`
-- `00042_rtf_editor_widget.md`
-- `00123_ai_assistant_integration.md`
+- `00001_plugin_manager_skeleton.md` (early task, before naming convention)
+- `00034_1_2_dynamic_menu_builder.md` (Phase 1, Zagadnienie 1.2)
+- `00042_fix_settings_dialog_crash.md` (custom fix, no P_Z)
 
 **Working directories (git-ignored):**
-- `tasks/.wip/` - Work in progress, temporary notes
+- `tasks/.wip/` - Work in progress, temporary notes, EPIC breakdowns
 - `tasks/.scratch/` - Experiments, sketches, throwaway content
+- `tasks/.archive/` - Deprecated task files (outdated plans)
 
 ### 2.3 Task File Template
 
@@ -221,10 +235,16 @@ Clear, concise description of what needs to be accomplished.
 #### Step 6: COMPLETION (Mark done, update docs)
 - AI marks task as Completed + date
 - AI updates CHANGELOG.md (Added/Changed entries) - **ALWAYS**
-- AI updates ROADMAP.md (task status, phase status) - **ALWAYS, not "if milestone completed"**
+- AI updates ROADMAP.md (checkbox in Zagadnienie section) - **ALWAYS in parallel with CHANGELOG**
 - AI reports completion to user
 
-**CRITICAL:** CHANGELOG.md and ROADMAP.md must be updated in parallel! See Section 3 below.
+**CRITICAL:** CHANGELOG.md and ROADMAP.md must be updated in parallel!
+
+**ROADMAP update specifics (Atomic Model):**
+- Mark checkbox [x] in relevant Zagadnienie subsection
+- Update Zagadnienie status line (e.g., "7/12 tasks complete" → "8/12 tasks complete")
+- Add task number in comment: `<!-- ✅ Task #00024 -->`
+- NO task numbers in checkbox text itself (prevents divergence)
 
 ### 2.5 Atomic Task Model (NEW - 2025-11-09)
 
@@ -461,17 +481,24 @@ AI: "Updating task file with dependency resolution requirement..."
 - [ ] Date the entry (YYYY-MM-DD)
 - [ ] Be specific (not "updated docs", but "completed 03_architecture.md with MVP pattern")
 
-#### 2. ROADMAP.md Update - **ALWAYS, not "if applicable"**
-- [ ] Update task status (checkbox, status text)
-- [ ] Update phase status if phase completed
-- [ ] Update "Current Status" header
+#### 2. ROADMAP.md Update - **ALWAYS in parallel with CHANGELOG**
+- [ ] Update checkbox in Zagadnienie section (mark [x])
+- [ ] Update Zagadnienie status line (task count: "7/12" → "8/12")
+- [ ] Add task number in comment: `<!-- ✅ Task #00024 -->`
+- [ ] Update phase status if Zagadnienie completed
 - [ ] Update "Last Updated" date
 - [ ] Mark completed milestones in Key Milestones section
-- [ ] Add architectural decisions to relevant phase descriptions
+- [ ] Add architectural decisions to relevant Zagadnienie descriptions
 - [ ] Update timeline if estimates changed
 - [ ] Add new risks/dependencies if identified
 
-**Rule:** ROADMAP.md should ALWAYS be updated in parallel with CHANGELOG.md! If you updated CHANGELOG, check ROADMAP status fields.
+**Rule:** ROADMAP.md should ALWAYS be updated in parallel with CHANGELOG.md! If you updated CHANGELOG, check ROADMAP Zagadnienie status.
+
+**Atomic Model specifics:**
+- Task numbers appear ONLY in comments, NOT in checkbox text
+- This prevents ROADMAP from breaking when task numbers change
+- Example: `- [x] IconSet struct <!-- ✅ Task #00024 -->` (correct)
+- NOT: `- [x] Task #00024: IconSet struct` (wrong - will break on renumbering)
 
 #### 3. CLAUDE.md Update (if applicable)
 - [ ] Update TODO section (mark DONE, add new tasks)

@@ -1,14 +1,32 @@
 # MVP Task Breakdown
 
-> **Detailed Implementation Tasks** - Week-by-week breakdown for 18-month development
+> **DEPRECATED** - Historical reference only
 
-**Status:** ✅ Complete
-**Version:** 1.0
+**Status:** ⚠️ DEPRECATED (as of 2025-11-13)
+**Version:** 1.0 (archived)
 **Last Updated:** 2025-10-25
 
 ---
 
-## Overview
+## ⚠️ DEPRECATION NOTICE
+
+**This document has been superseded by the atomic task model with Phase → Zagadnienie structure.**
+
+**For current project planning, see:**
+- **[ROADMAP.md](../ROADMAP.md)** - Single source of truth for project planning
+- **[CLAUDE.md](../CLAUDE.md)** - Atomic task workflow rules
+
+**Why deprecated:**
+1. Original week-by-week breakdown assumed fixed task sequence
+2. Atomic task model allows flexible, adaptive planning
+3. Task numbers are now assigned on-demand, not pre-planned
+4. ROADMAP.md uses Zagadnienie structure (main topics) instead of numbered weeks
+
+**This document is preserved for historical reference to understand original planning approach.**
+
+---
+
+## Overview (HISTORICAL)
 
 This document provides week-by-week task breakdown for Kalahari 1.0 development (18 months / 68 weeks).
 

@@ -54,6 +54,8 @@ This document defines the RULES and PROTOCOLS for maintaining the project's stra
 
 ### 1.4 Structure
 
+**ATOMIC TASK MODEL (2025-11-09):** ROADMAP now uses Phase → Zagadnienie → Checkbox structure WITHOUT task numbers in checkboxes. Task numbers are assigned when work starts.
+
 **Required sections:**
 - **Overview** - Timeline, phases, strategy
 - **Phase N: Name** - For each phase (0-5):
@@ -61,7 +63,8 @@ This document defines the RULES and PROTOCOLS for maintaining the project's stra
   - Duration estimate
   - Focus area
   - Deliverable
-  - Subsections with checkboxes
+  - **Zagadnienie subsections** (main topics within phase, e.g., 1.2 Command Registry Architecture)
+  - Each Zagadnienie contains checkboxes WITHOUT task numbers
   - Risk assessment
 - **Milestones Summary** - Table showing all phases
 - **Risk Management** - Known risks and mitigations
@@ -71,6 +74,30 @@ This document defines the RULES and PROTOCOLS for maintaining the project's stra
 - 🔴 **Not Started** - Phase hasn't begun
 - 🔄 **In Progress** - Currently working on this phase
 - ✅ **Complete** - Phase finished and verified
+
+**Zagadnienie Structure:**
+```markdown
+### 1.2 Command Registry Architecture 🚀 IN PROGRESS
+**Status:** 🚀 IN PROGRESS (7/12 tasks complete)
+
+#### Core Structures ✅ COMPLETE
+- [x] IconSet struct (16/24/32px bitmap storage)
+- [x] KeyboardShortcut struct (toString/fromString parsing, operators)
+
+#### Dynamic UI Generation 📋 PLANNED (5 tasks remaining)
+- [ ] Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu)
+- [ ] Replace hardcoded createMenuBar() with MenuBuilder
+```
+
+**Task File Naming Convention:**
+- **From ROADMAP:** `NNNNN_P_Z_description.md`
+  - NNNNN = sequential task number (00001-99999)
+  - P = phase number (0-5)
+  - Z = zagadnienie number in phase (1-9)
+  - Example: `00034_1_2_dynamic_menu_builder.md` (Task 34, Phase 1, Zagadnienie 1.2)
+- **Custom tasks:** `NNNNN_description.md` (no P_Z for fixes/tests not in ROADMAP)
+
+**Key Principle:** Task numbers appear ONLY in task files (tasks/NNNNN_*.md), NOT in ROADMAP checkboxes. This prevents divergence when plans change.
 
 ### 1.5 Linking
 
@@ -408,41 +435,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 7. Examples
 
-### 7.1 Example: Completing Task
+### 7.1 Example: Completing Atomic Task
 
-**Scenario:** Just finished Task #00008 (Settings Dialog)
+**Scenario:** Just finished Task #00024 (IconSet struct - Phase 1, Zagadnienie 1.2)
 
 **CHANGELOG.md update:**
 ```markdown
 ## [Unreleased]
 
 ### Added
-- Settings Dialog with tree-based navigation (settings_dialog.h, settings_dialog.cpp)
-- Diagnostic mode toggle in Settings → Advanced → Diagnostics
-- Event handlers for OK/Cancel/Apply buttons
-- Dynamic menu rebuild when diagnostic mode changes (main_window.cpp:setDiagnosticMode)
-
-### Fixed
-- Settings Dialog empty panel issue - added sizer to m_contentPanel (settings_dialog.cpp:131-139)
-- DiagnosticsPanel layout - now uses wxStaticBoxSizer with proper wxEXPAND flags
-- Compiler warning about unused parameter in onOK handler
+- IconSet struct for multi-resolution icon storage (command.h)
+- Support for 16px/24px/32px icon variants in CommandRegistry
+- Icon size management in IconRegistry with DPI awareness
 ```
 
-**ROADMAP.md update:**
+**ROADMAP.md update (Zagadnienie checkbox):**
 ```markdown
-## Phase 0: Foundation
+## PHASE 1: Core Editor 🚀 IN PROGRESS
 
-**Status:** 🔄 In Progress
-**Current Week:** Week 4
-**Last Updated:** 2025-10-29
+### 1.2 Command Registry Architecture 🚀 IN PROGRESS
+**Status:** 🚀 IN PROGRESS (8/12 tasks complete)
 
-### Core Infrastructure
-- [x] CMake build system (all platforms)
-- [x] vcpkg integration (manifest mode)
-- [x] wxWidgets 3.3.0+ basic application window
-- [x] Settings system (JSON-based)  <!-- ✅ JUST COMPLETED -->
-- [ ] Logging system (spdlog)
+#### Core Structures 🚀 IN PROGRESS
+- [x] IconSet struct (16/24/32px bitmap storage)  <!-- ✅ JUST COMPLETED (Task #00024) -->
+- [x] KeyboardShortcut struct (toString/fromString parsing, operators)
+- [x] Command struct (ID, label, callback, icon, shortcut)
+- [ ] CommandRegistry class (singleton, register/query commands)
 ```
+
+**Note:** Task number (00024) appears ONLY in comment and task file, NOT in checkbox text. This prevents ROADMAP from breaking when task numbers change.
 
 ### 7.2 Example: Completing Phase
 

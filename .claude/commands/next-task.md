@@ -79,22 +79,28 @@ ls -1 tasks/ | grep -E "^[0-9]+" | sort -n | tail -1
 3. 🔵 **PAUSED** tasks (resume if blocker removed)
 4. 🟢 **New task** (if all complete)
 
-### 2. **Analyze ROADMAP.md State**
+### 2. **Analyze ROADMAP.md State (ATOMIC MODEL)**
+
+**NEW (2025-11-09):** ROADMAP uses Phase → Zagadnienie → Checkbox structure
 
 ```bash
 # Extract current phase and status
-grep -A 5 "Current Status:" ROADMAP.md
+grep -A 5 "PHASE [0-9].*IN PROGRESS" ROADMAP.md
 
-# Find incomplete checklist items in current phase
-grep "^- \[ \]" ROADMAP.md | head -10
+# Find current Zagadnienie (main topic)
+grep -E "^### [0-9]\.[0-9].*IN PROGRESS" ROADMAP.md
+
+# Find incomplete checklist items in current Zagadnienie
+grep -A 30 "### [0-9]\.[0-9]" ROADMAP.md | grep "^- \[ \]" | head -10
 ```
 
 **Extract key information:**
 - Current phase (Phase 0-5)
-- Current week number
-- Completed tasks (checked boxes)
-- Remaining tasks (unchecked boxes)
-- Next phase preparation items
+- Current Zagadnienie (e.g., 1.2 Command Registry Architecture)
+- Zagadnienie status (e.g., "7/12 tasks complete")
+- Completed checkboxes (marked [x])
+- Remaining checkboxes (marked [ ])
+- Next Zagadnienie in sequence
 
 ### 3. **Check Git and CHANGELOG**
 
@@ -142,44 +148,49 @@ Do you want to:
 Choose option (1/2/3):
 ```
 
-#### **Case B: All Tasks Complete - Propose Next**
+#### **Case B: All Tasks Complete - Propose Next (ATOMIC MODEL)**
 
-Cross-reference ROADMAP with task files:
+Cross-reference ROADMAP Zagadnienie with task files:
 
 ```markdown
 ✅ All tasks complete - Ready for next work
 
 📊 Current State:
-- Phase: Phase 0 (Foundation)
-- Progress: Week 6/8 (75%)
-- Last task: #00018 (bwx_sdk refactoring) ✅
+- Phase: Phase 1 (Core Editor)
+- Current Zagadnienie: 1.2 Command Registry Architecture
+- Progress: 7/12 tasks complete (58%)
+- Last task: #00030 (Format Menu Command Registration) ✅
 
-📋 ROADMAP Analysis:
+📋 ROADMAP Analysis (Zagadnienie 1.2):
 
-Phase 0 remaining items:
-- [ ] Document Model serialization (.klh format)
-- [ ] Unit tests for core modules
-- [ ] Cross-platform build verification
+Current Zagadnienie remaining checkboxes:
+- [ ] Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu)
+- [ ] Replace hardcoded createMenuBar() with MenuBuilder
+- [ ] Add ToolbarBuilder class (buildFromRegistry, addSeparator, toggles)
+- [ ] Replace hardcoded createToolBar() with ToolbarBuilder
+- [ ] Integrate builders into MainWindow (dynamic menu/toolbar creation)
+
+Next Zagadnienie: 1.3 Settings System Enhancement (7 tasks)
 
 🎯 RECOMMENDED NEXT TASK:
 
-**Option 1 (HIGH PRIORITY): Document Model Serialization**
-- Align with: ROADMAP Phase 0, Week 7
-- Dependencies: Document Model (✅ completed in #00012)
-- Estimated time: 4-6 hours
-- Creates foundation for: .klh file save/load
+**Option 1 (HIGH PRIORITY): Create MenuBuilder class**
+- Zagadnienie: 1.2 Command Registry Architecture
+- Task will be: #00031_1_2_menu_builder_class.md
+- Dependencies: CommandRegistry (✅), Menu registration (✅)
+- Estimated time: 90-120 minutes (atomic task)
+- Enables: Dynamic menu creation from CommandRegistry
 
-**Option 2 (ALTERNATIVE): Unit Tests for Plugin System**
-- Align with: ROADMAP Phase 0, Week 7
-- Dependencies: Plugin Manager (✅), Extension Points (✅)
-- Estimated time: 3-4 hours
-- Increases test coverage to 80%+
+**Option 2 (ALTERNATIVE): Settings System verification tasks**
+- Zagadnienie: 1.3 Settings System Enhancement
+- Tasks #00036-00042 already exist (verification tasks)
+- Estimated time: 30-60 minutes each
+- Focus: Verify and fix Settings Dialog issues
 
-**Option 3 (PREPARATION): Phase 1 Planning**
-- Align with: ROADMAP Phase 1 preparation
-- Create Phase 1 Week 1 tasks (wxRichTextCtrl integration)
-- Estimated time: 1-2 hours
-- Enables smooth Phase 0 → Phase 1 transition
+**Option 3 (BLOCKED INVESTIGATION): Navigator Panel bugs**
+- Investigate Task #00020 bugs (created Navigator but has 6 issues)
+- May require breakdown into atomic fixes
+- Estimated time: varies (needs analysis first)
 
 Which option? (1/2/3 or propose different task)
 ```
@@ -309,34 +320,46 @@ Resolution Options:
 What should we do? (1/2/3/4)
 ```
 
-### **ROADMAP Drift Detection**
+### **ROADMAP Drift Detection (ATOMIC MODEL)**
 
-If tasks don't align with ROADMAP:
+If tasks don't align with ROADMAP Zagadnienie:
 
 ```markdown
 ⚠️ ROADMAP DRIFT DETECTED
 
-ROADMAP says (Phase 0 Week 7):
-- [ ] Document Model serialization
-- [ ] Unit tests
+Current Zagadnienie (1.2 Command Registry Architecture):
+**Status:** 🚀 IN PROGRESS (7/12 tasks complete)
+
+Remaining checkboxes in 1.2:
+- [ ] Create MenuBuilder class
+- [ ] Replace hardcoded createMenuBar() with MenuBuilder
+- [ ] Add ToolbarBuilder class
+- [ ] Replace hardcoded createToolBar() with ToolbarBuilder
+- [ ] Integrate builders into MainWindow
 
 Last 3 completed tasks:
-- #00018: bwx_sdk refactoring (NOT in ROADMAP)
-- #00016: TipTap integration (REJECTED)
-- #00014: wxRichTextCtrl (REJECTED)
+- #00030: Format Menu Registration (✅ in Zagadnienie 1.2)
+- #00029: Edit Menu Registration (✅ in Zagadnienie 1.2)
+- #00028: File Menu Registration (✅ in Zagadnienie 1.2)
 
 📊 Analysis:
-- Exploration phase (evaluating rich text options)
-- ROADMAP not updated with research tasks
-- Core Phase 0 items still pending
+- Tasks aligned with Zagadnienie 1.2
+- Menu registration complete, but MenuBuilder not started
+- Should continue with dynamic UI generation (MenuBuilder/ToolbarBuilder)
 
 🎯 Recommendation:
-1. Update ROADMAP.md to reflect actual progress
-2. Return to Phase 0 core tasks
-3. Complete foundation before Phase 1
+1. Continue Zagadnienie 1.2 (5 tasks remaining)
+2. Create Task #00031: MenuBuilder class
+3. Complete dynamic UI before moving to Zagadnienie 1.3
 
-Proceed with ROADMAP update? (yes/no)
+Proceed with Task #00031? (yes/no)
 ```
+
+**Zagadnienie Benefits:**
+- Clearer focus (work on one main topic at a time)
+- Natural grouping (related tasks in same Zagadnienie)
+- Progress tracking (e.g., "7/12 tasks complete in 1.2")
+- Prevents task number chaos (checkboxes don't have numbers)
 
 ## Configuration:
 
