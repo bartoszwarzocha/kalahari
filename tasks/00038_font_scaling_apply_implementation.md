@@ -1,9 +1,9 @@
-# Task #00026: Font Scaling Apply Implementation
+# Task #00038: Font Scaling Apply Implementation
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH)
 **Estimated:** 2-3 hours
-**Dependencies:** #00022 (Apply button must work), #00025 (preview should work first)
+**Dependencies:** #00022 (Apply button must work), #00037 (preview should work first)
 
 ---
 

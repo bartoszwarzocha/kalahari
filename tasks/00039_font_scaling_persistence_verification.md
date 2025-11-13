@@ -1,9 +1,9 @@
-# Task #00027: Font Scaling Persistence Verification
+# Task #00039: Font Scaling Persistence Verification
 
 **Status:** 📋 Planned
 **Priority:** P2 (MEDIUM)
 **Estimated:** 30-60 minutes
-**Dependencies:** #00026 (Apply must work first)
+**Dependencies:** #00022 (Apply button must work), #00038 (Apply implementation must work first)
 
 ---
 

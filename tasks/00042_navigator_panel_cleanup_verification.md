@@ -1,9 +1,9 @@
-# Task #00030: Navigator Panel Cleanup and Verification
+# Task #00042: Navigator Panel Cleanup and Verification
 
 **Status:** 📋 Planned
 **Priority:** P3 (LOW)
 **Estimated:** 1 hour
-**Dependencies:** All SETTINGS tasks (00021-00029)
+**Dependencies:** Settings atomic fixes (00021-00023)
 
 ---
 
