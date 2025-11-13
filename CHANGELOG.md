@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00032 - ToolbarBuilder Class - Dynamic Toolbar Generation (2025-11-13)
+
+#### Added
+- **ToolbarBuilder Class** - Dynamic toolbar generation from CommandRegistry
+  - ToolbarBuilder::buildToolBar() - create wxToolBar from CommandRegistry (11 tools)
+  - Queries commands with showInToolbar=true (File 3, Edit 5, Format 3)
+  - Automatic event binding to executeCommand()
+  - Icon size-aware (respects IconRegistry.getSizes().toolbar)
+  - MainWindow::createToolBarDynamic() - uses ToolbarBuilder
+  - Files: toolbar_builder.h (130 LOC), toolbar_builder.cpp (200 LOC)
+  - Build: Successful (97MB executable)
+  - Status: ✅ Complete (~65 minutes)
+
 ### Task #00031 - MenuBuilder Class - Dynamic Menu Generation (2025-11-13)
 
 #### Added

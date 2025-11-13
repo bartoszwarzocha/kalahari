@@ -400,17 +400,32 @@ private:
     /// @note Special menus (Diagnostics, Perspectives submenus) still use manual creation.
     void createMenuBarDynamic();
 
-    /// @brief Create and populate the toolbar
+    /// @brief Create and populate the toolbar (hardcoded version)
     ///
     /// Creates toolbar with New, Open, Save buttons using stock icons
     /// (wxArtProvider provides platform-native icons).
+    /// @note Legacy method - kept for rollback. Use createToolBarDynamic() for new code.
     void createToolBar();
 
     /// @brief Populate toolbar with tools (icons and actions)
     ///
     /// Separate method to allow toolbar reload when icon size changes.
     /// Called by createToolBar() and reloadToolBar().
+    /// @note Legacy method - kept for rollback. Use createToolBarDynamic() for new code.
     void createToolBarContent();
+
+    /// @brief Create toolbar dynamically from CommandRegistry (Task #00032)
+    ///
+    /// Uses ToolbarBuilder to generate toolbar from registered commands.
+    /// This is the new approach replacing hardcoded toolbar creation.
+    ///
+    /// Builds toolbar from commands with showInToolbar=true:
+    /// - File tools (New, Open, Save)
+    /// - Edit tools (Undo, Redo, Cut, Copy, Paste)
+    /// - Format tools (Bold, Italic, Underline)
+    ///
+    /// @note Tools automatically grouped by category with separators
+    void createToolBarDynamic();
 
     /// @brief Create and configure the status bar
     ///

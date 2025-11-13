@@ -3,7 +3,7 @@
 > **Writer's IDE** - Atomic Task Structure | Phase-based Development
 
 **Current Phase:** Phase 1 (Core Editor) 🚀 IN PROGRESS
-**Current Task:** Zagadnienie 1.2 - Command Registry Architecture (Task #00031 ✅ COMPLETE)
+**Current Task:** Zagadnienie 1.2 - Command Registry Architecture (Tasks #00031-00032 ✅ COMPLETE)
 **Version:** 0.2.0-alpha
 **Last Updated:** 2025-11-13
 
@@ -144,15 +144,16 @@
 - [x] Tests: Manual verification - all commands work via menu and shortcuts
 - [x] Full test suite: 655 assertions, 91 test cases - 100% pass rate
 
-#### Dynamic UI Generation 🚀 IN PROGRESS (Task #00031 ✅)
+#### Dynamic UI Generation ✅ COMPLETE (Tasks #00031-00032)
 
 - [x] **Task #00031:** Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu) ✅ 2025-11-13
 - [x] Replace hardcoded createMenuBar() with MenuBuilder (createMenuBarDynamic)
 - [x] Event handlers automatically bound to CommandRegistry::executeCommand()
 - [x] Verify all menus build correctly from CommandRegistry (build success)
-- [ ] Create ToolbarBuilder class (buildFromCommands, addSeparator, addControl)
-- [ ] Replace hardcoded createToolBar() with ToolbarBuilder
-- [ ] Verify toolbar builds correctly, icons load properly
+- [x] **Task #00032:** Create ToolbarBuilder class (buildFromCommands, addSeparator) ✅ 2025-11-13
+- [x] Replace hardcoded createToolBar() with ToolbarBuilder (createToolBarDynamic)
+- [x] Event handlers automatically bound to executeCommand()
+- [x] Verify toolbar builds correctly, icons load from CommandRegistry
 - [ ] Create 3 Settings menu commands (OpenSettings, ApplySettings, ResetSettings)
 - [ ] Register Settings commands in CommandRegistry
 - [ ] Add Settings commands to Tools menu

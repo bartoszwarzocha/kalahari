@@ -16,6 +16,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/shortcut_manager.h"
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/toolbar_builder.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/gui_log_sink.h>
 #include <kalahari/core/settings_manager.h>
@@ -252,7 +253,7 @@ MainWindow::MainWindow()
 
     // Create UI components (order matters!)
     createMenuBarDynamic();  // Task #00031: Use MenuBuilder instead of hardcoded menus
-    createToolBar();
+    createToolBarDynamic();  // Task #00032: Use ToolbarBuilder instead of hardcoded toolbar
     createStatusBar();
 
     // Register File menu commands in CommandRegistry (Task #00028)
@@ -1096,13 +1097,30 @@ void MainWindow::createMenuBarDynamic() {
 }
 
 void MainWindow::createToolBar() {
-    core::Logger::getInstance().debug("Creating toolbar...");
+    core::Logger::getInstance().debug("Creating toolbar (legacy method)...");
 
     // Create toolbar with horizontal orientation and text labels
     m_toolBar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
     createToolBarContent();
 
-    core::Logger::getInstance().debug("Toolbar created with 5 tools (New, Open, Save, Undo, Redo)");
+    core::Logger::getInstance().debug("Toolbar created with 5 tools (New, Open, Save, Undo, Redo) - legacy");
+}
+
+void MainWindow::createToolBarDynamic() {
+    core::Logger::getInstance().debug("Creating toolbar dynamically from CommandRegistry...");
+
+    // Create ToolbarBuilder and get CommandRegistry instance
+    ToolbarBuilder builder;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    // Build toolbar from CommandRegistry (tools with showInToolbar=true)
+    // ToolbarBuilder will:
+    // - Query commands by category (File, Edit, Format)
+    // - Add separators between categories
+    // - Bind event handlers to executeCommand()
+    m_toolBar = builder.buildToolBar(registry, this, this);
+
+    core::Logger::getInstance().info("Toolbar created dynamically (ToolbarBuilder)");
 }
 
 void MainWindow::createToolBarContent() {
