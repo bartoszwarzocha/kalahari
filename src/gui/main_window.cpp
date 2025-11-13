@@ -15,6 +15,7 @@
 #include "kalahari/gui/perspective_manager.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/shortcut_manager.h"
+#include "kalahari/gui/menu_builder.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/gui_log_sink.h>
 #include <kalahari/core/settings_manager.h>
@@ -250,7 +251,7 @@ MainWindow::MainWindow()
                                       m_diagnosticMode, m_launchedWithDiagFlag);
 
     // Create UI components (order matters!)
-    createMenuBar();
+    createMenuBarDynamic();  // Task #00031: Use MenuBuilder instead of hardcoded menus
     createToolBar();
     createStatusBar();
 
@@ -1022,6 +1023,78 @@ void MainWindow::createMenuBar() {
     core::Logger::getInstance().debug("Menu bar created with {} menus", menuCount);
 }
 
+void MainWindow::createMenuBarDynamic() {
+    core::Logger::getInstance().debug("Creating menu bar dynamically from CommandRegistry...");
+
+    // Create MenuBuilder and get CommandRegistry instance
+    MenuBuilder builder;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    // Build basic menus (File, Edit, Format, View, Help) with event binding to this window
+    m_menuBar = builder.buildMenuBar(registry, this);
+
+    // ========================================================================
+    // Special Menu Handling (not yet in CommandRegistry)
+    // ========================================================================
+
+    // View menu - need to add Editor Mode submenu and Perspectives submenu manually
+    // (These are dynamic/complex menus not suitable for CommandRegistry in MVP)
+    wxMenu* viewMenu = nullptr;
+    for (size_t i = 0; i < m_menuBar->GetMenuCount(); ++i) {
+        if (m_menuBar->GetMenuLabelText(i) == "View") {
+            viewMenu = m_menuBar->GetMenu(i);
+            break;
+        }
+    }
+
+    if (viewMenu) {
+        // Add separator before submenus
+        viewMenu->AppendSeparator();
+
+        // Editor Mode submenu (Task #00019)
+        wxMenu* modeMenu = new wxMenu();
+        m_viewModeFullItem = modeMenu->AppendRadioItem(wxID_ANY, _("&Full Mode\tF11"),
+            _("Full screen distraction-free mode"));
+        m_viewModePageItem = modeMenu->AppendRadioItem(wxID_ANY, _("&Page Mode\tF12"),
+            _("Traditional page-based editor"));
+        m_viewModeTypewriterItem = modeMenu->AppendRadioItem(wxID_ANY, _("&Typewriter Mode"),
+            _("Keep cursor centered like a typewriter"));
+        m_viewModePublisherItem = modeMenu->AppendRadioItem(wxID_ANY, _("P&ublisher Mode"),
+            _("Two-column layout for final review"));
+        m_viewModeFullItem->Check();  // Default to Full Mode
+        viewMenu->AppendSubMenu(modeMenu, _("Editor &Mode"), _("Switch editor layout mode"));
+
+        // Perspectives submenu
+        m_perspectivesMenu = new wxMenu();
+        m_perspectivesMenu->Append(wxID_ANY, _("&Default"), _("Reset to default panel layout"));
+        m_perspectivesMenu->Append(wxID_ANY, _("&Writing"), _("Minimal layout for focused writing"));
+        m_perspectivesMenu->Append(wxID_ANY, _("&Editing"), _("Layout optimized for editing and revision"));
+        m_perspectivesMenu->Append(wxID_ANY, _("&Research"), _("Layout with research and reference panels"));
+        m_perspectivesMenu->AppendSeparator();
+        m_perspectivesMenu->Append(wxID_ANY, _("&Save Perspective..."), _("Save current layout as custom perspective"));
+        m_perspectivesMenu->Append(wxID_ANY, _("&Manage Perspectives..."), _("Manage saved perspectives"));
+        viewMenu->AppendSubMenu(m_perspectivesMenu, _("&Perspectives"), _("Load or save panel layouts"));
+    }
+
+    // Diagnostics menu (conditional on diagnostic mode)
+    if (m_diagnosticMode) {
+        wxMenu* diagMenu = new wxMenu();
+        diagMenu->Append(wxID_ANY, _("Test &Python Integration"), _("Run Python interpreter test"));
+        diagMenu->Append(wxID_ANY, _("Test Python &Bindings (pybind11)"), _("Test C++/Python interop"));
+        diagMenu->AppendSeparator();
+        diagMenu->Append(wxID_ANY, _("Test &Plugin System"), _("Load and test plugin discovery"));
+        diagMenu->AppendSeparator();
+        diagMenu->Append(wxID_ANY, _("&System Information"), _("Display system and build info"));
+        diagMenu->Append(wxID_ANY, _("Open &Log Folder"), _("Open logs directory in file manager"));
+        m_menuBar->Append(diagMenu, _("&Diagnostics"));
+    }
+
+    // Set menubar on frame
+    SetMenuBar(m_menuBar);
+
+    core::Logger::getInstance().info("Menu bar created dynamically (MenuBuilder)");
+}
+
 void MainWindow::createToolBar() {
     core::Logger::getInstance().debug("Creating toolbar...");
 
@@ -1145,7 +1218,7 @@ void MainWindow::setDiagnosticMode(bool enabled) {
     // Rebuild menu bar to show/hide Diagnostics menu
     wxMenuBar* oldMenuBar = GetMenuBar();
     SetMenuBar(nullptr);
-    createMenuBar();  // Will check m_diagnosticMode
+    createMenuBarDynamic();  // Will check m_diagnosticMode (Task #00031)
     delete oldMenuBar;
 
     core::Logger::getInstance().debug("Menu bar rebuilt with diagnostic mode {}",

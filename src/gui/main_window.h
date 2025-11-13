@@ -32,6 +32,7 @@ class StatisticsPanel;
 class SearchPanel;
 class AssistantPanel;
 class LogPanel;
+class MenuBuilder;  // Task #00031: Dynamic menu builder
 class SettingsAppliedEvent;
 
 // ============================================================================
@@ -383,11 +384,21 @@ private:
     /// with keyboard shortcuts and execution callbacks. Called from constructor.
     void registerFormatCommands();
 
-    /// @brief Create and populate the menu bar
+    /// @brief Create and populate the menu bar (hardcoded version)
     ///
     /// Creates File, Edit, View, and Help menus with appropriate items.
     /// Uses standard wxID_* constants for platform integration (e.g., Cmd+Q on macOS).
+    /// @note Legacy method - kept for rollback. Use createMenuBarDynamic() for new code.
     void createMenuBar();
+
+    /// @brief Create menu bar dynamically from CommandRegistry (Task #00031)
+    ///
+    /// Uses MenuBuilder to generate menu bar from registered commands.
+    /// This is the new approach replacing hardcoded menu creation.
+    ///
+    /// @note Currently builds only basic menus (File, Edit, Format, View, Help).
+    /// @note Special menus (Diagnostics, Perspectives submenus) still use manual creation.
+    void createMenuBarDynamic();
 
     /// @brief Create and populate the toolbar
     ///

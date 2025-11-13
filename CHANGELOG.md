@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00031 - MenuBuilder Class - Dynamic Menu Generation (2025-11-13)
+
+#### Added
+- **MenuBuilder Class** - Dynamic menu generation from CommandRegistry
+  - **MenuBuilder::buildMenuBar():**
+    - Dynamically creates wxMenuBar from CommandRegistry
+    - Explicit menu order (File, Edit, Format, View, Help)
+    - Automatic event handler binding to CommandRegistry::executeCommand()
+    - Window* parameter for event binding (typically MainWindow)
+  - **MenuBuilder::buildMenu():**
+    - Creates individual menus by category
+    - Queries CommandRegistry for commands in category
+    - Filters commands by showInMenu flag
+    - Returns wxMenu* with all menu items
+  - **MenuBuilder::createMenuItem():**
+    - Generates wxMenuItem from Command descriptor
+    - Formats label with keyboard shortcut (Label\tCtrl+S)
+    - Sets icon bitmap from Command.icons.icon16
+    - Binds wxEVT_MENU to lambda → executeCommand(commandId)
+    - Uses wxWindow::NewControlId() for unique menu item IDs
+  - **MainWindow::createMenuBarDynamic():**
+    - Replaces hardcoded createMenuBar() method
+    - Uses MenuBuilder to generate menus from CommandRegistry
+    - Manual handling of special menus (Editor Mode submenu, Perspectives submenu, Diagnostics menu)
+    - Called from constructor and onSettingsApplied()
+  - **Architecture Benefits:**
+    - Single source of truth: CommandRegistry drives menu structure
+    - Plugin-friendly: plugins register commands → menus rebuild automatically
+    - Maintainable: change command metadata → menu updates automatically
+    - DRY principle: no duplication between menu/toolbar/shortcuts
+  - **Files Added:**
+    - `include/kalahari/gui/menu_builder.h` (149 LOC) - MenuBuilder class interface
+    - `src/gui/menu_builder.cpp` (171 LOC) - MenuBuilder implementation
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+1 method declaration: createMenuBarDynamic)
+    - `src/gui/main_window.cpp` (+78 LOC createMenuBarDynamic, 2 call sites updated)
+    - `src/CMakeLists.txt` (+1 source file: gui/menu_builder.cpp)
+  - **Testing:** Build successful (Linux WSL), executable created (97MB)
+  - **Status:** ✅ Complete (~100 minutes)
+  - **Note:** Old createMenuBar() kept for rollback safety
+
 ### Task #00030 - Core Command Registration - Format Menu (2025-11-12)
 
 #### Added

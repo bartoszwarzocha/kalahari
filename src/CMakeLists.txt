@@ -100,6 +100,7 @@ set(KALAHARI_SOURCES
     gui/command.cpp                    # Phase 1: Command Registry structures (Task #00024)
     gui/command_registry.cpp           # Phase 1: Command Registry singleton (Task #00025)
     gui/shortcut_manager.cpp           # Phase 1: Keyboard Shortcut Management (Task #00027)
+    gui/menu_builder.cpp               # Phase 1: Dynamic Menu Builder (Task #00031)
     gui/dialogs/about_dialog.cpp
     gui/dialogs/manage_perspectives_dialog.cpp
     gui/panels/navigator_panel.cpp
