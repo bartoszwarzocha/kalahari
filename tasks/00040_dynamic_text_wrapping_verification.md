@@ -1,4 +1,4 @@
-# Task #00028: Dynamic Text Wrapping Verification
+# Task #00040: Dynamic Text Wrapping Verification
 
 **Status:** 📋 Planned
 **Priority:** P2 (MEDIUM)

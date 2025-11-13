@@ -1,4 +1,4 @@
-# Task #00025: Font Scaling Live Preview
+# Task #00037: Font Scaling Live Preview
 
 **Status:** 📋 Planned
 **Priority:** P1 (HIGH)

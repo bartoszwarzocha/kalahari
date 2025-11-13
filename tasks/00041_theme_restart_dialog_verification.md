@@ -1,4 +1,4 @@
-# Task #00029: Theme Restart Dialog Verification
+# Task #00041: Theme Restart Dialog Verification
 
 **Status:** 📋 Planned
 **Priority:** P2 (MEDIUM)

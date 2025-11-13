@@ -115,6 +115,30 @@ SetSizer(mainSizer);
 - ❌ **NEVER "przy okazji"** - No "while I'm here" fixes
 - ❌ **NEVER skip approval** - Every plan needs "Approved, proceed"
 - ❌ **NEVER start next** until current is 100% complete
+- ❌ **NEVER create task files in advance** - ONLY when starting that task
+
+**TASK FILE CREATION RULE (CRITICAL):**
+- ✅ ROADMAP = Source of truth for what tasks exist
+- ✅ Create task file ONLY when STARTING that specific task
+- ✅ Complete current task 100% BEFORE creating next task file
+- ❌ NEVER create multiple task files ahead of time
+- ❌ Task files created prematurely become stale/wrong when plans change
+
+**Why this rule exists:**
+- Requirements change during implementation
+- ROADMAP is updated, but old task files remain unchanged → CONFUSION
+- Premature task files violate atomic workflow (one task at a time)
+- Prevents divergence between ROADMAP (master) and task files (details)
+
+**TASK FILE NAMING CONVENTION:**
+- **From ROADMAP:** `NNNNN_P_Z_description.md`
+  - NNNNN = sequential task number (00001-99999)
+  - P = phase number (0-5)
+  - Z = zagadnienie (main topic) number in phase (1-9)
+  - Example: `00034_1_2_dynamic_menu_builder.md` (Task 34, Phase 1, Zagadnienie 1.2)
+- **Custom tasks:** `NNNNN_description.md`
+  - No phase/zagadnienie (for fixes, tests, refactors not in ROADMAP)
+  - Example: `00043_fix_windows_crash.md`
 
 **EPIC vs ATOMIC:**
 - **EPIC** = Large feature (e.g., "Auto-Save System") - NOT a task number yet

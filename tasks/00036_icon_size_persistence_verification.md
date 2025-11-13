@@ -1,4 +1,4 @@
-# Task #00024: Icon Size Persistence Verification
+# Task #00036: Icon Size Persistence Verification
 
 **Status:** 📋 Planned
 **Priority:** P2 (MEDIUM)
