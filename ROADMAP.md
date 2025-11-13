@@ -162,9 +162,17 @@
 - [x] Write Command Registry architecture document (project_docs/18, ~15k words)
 - [x] Update ARCHITECTURE.md with Command Registry section
 - [x] Add plugin integration guide (how plugins register commands)
+- [ ] **Task #00035:** Manual Testing Session - Command Registry System 📋 Planned
+- [ ] Test all menu items (File, Edit, Format) - 15+ tests
+- [ ] Test all toolbar buttons - 8 tests
+- [ ] Test all keyboard shortcuts - 9 tests
 - [ ] Test enabled/disabled states (no document → Cut/Paste disabled)
+- [ ] Test checked/unchecked states (Format menu toggles)
 - [ ] Test dynamic updates (selection changes → format menu states)
 - [ ] Verify state propagation (menu + toolbar sync)
+- [ ] Verify Settings integration (menu/toolbar/keyboard)
+- [ ] Cross-UI consistency (menu/toolbar/keyboard same behavior)
+- [ ] Document test results and any issues found
 
 ### 1.3 Settings System Enhancement 📋 PLANNED
 
