@@ -98,9 +98,9 @@
 - [x] Test suite (75+ test cases, 2,239 assertions)
 - [x] Build status: ✅ All platforms (Linux, macOS, Windows) CI/CD passing
 
-### 1.2 Command Registry Architecture 🚀 IN PROGRESS
+### 1.2 Command Registry Architecture ✅ COMPLETE
 
-**Status:** 🚀 IN PROGRESS (7/12 tasks complete)
+**Status:** ✅ COMPLETE (Tasks #00031-#00034, Full documentation, 2025-11-13)
 
 #### Core Structures ✅ COMPLETE
 
@@ -158,12 +158,13 @@
 - [x] Move file.settings execute() from stub to real implementation
 - [x] Remove old event table binding (EVT_MENU wxID_PREFERENCES)
 - [x] Settings dialog opens via CommandRegistry::executeCommand("file.settings")
+- [x] **Task #00034:** Command Registry Architecture Documentation ✅ 2025-11-13
+- [x] Write Command Registry architecture document (project_docs/18, ~15k words)
+- [x] Update ARCHITECTURE.md with Command Registry section
+- [x] Add plugin integration guide (how plugins register commands)
 - [ ] Test enabled/disabled states (no document → Cut/Paste disabled)
 - [ ] Test dynamic updates (selection changes → format menu states)
 - [ ] Verify state propagation (menu + toolbar sync)
-- [ ] Write Command Registry architecture document (class diagram, flow, examples)
-- [ ] Update ARCHITECTURE.md with Command Registry section
-- [ ] Add plugin integration guide (how plugins register commands)
 
 ### 1.3 Settings System Enhancement 📋 PLANNED
 

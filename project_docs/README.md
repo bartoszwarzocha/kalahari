@@ -3,7 +3,7 @@
 > **Writer's IDE** - Advanced writing environment for book authors
 
 **Status:** 🚀 Phase 1 Week 13
-**Version:** 1.6 (Visual Studio 2026 Support Added - 17 docs)
+**Version:** 1.7 (Command Registry Architecture Complete - 18 docs)
 **Last Updated:** 2025-11-13
 
 ---
@@ -33,6 +33,7 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 15 | [**Text Editor Architecture**](15_text_editor_architecture.md) | Custom text editor control complete specification | ✅ Complete |
 | 16 | [**Settings Inventory**](16_settings_inventory.md) | Complete settings catalog (37 parameters tracked) | ✅ Complete |
 | 17 | [**Visual Studio Setup**](17_visual_studio_setup.md) | VS 2026 integration, CMakePresets.json, debugging | ✅ Complete |
+| 18 | [**Command Registry Architecture**](18_command_registry_architecture.md) | Unified command system, MenuBuilder, ToolbarBuilder, plugin integration | ✅ Complete |
 
 ### Supporting Files
 
@@ -78,6 +79,19 @@ This directory contains the complete technical documentation for the Kalahari pr
 ---
 
 ## 🔄 Document History
+
+### v1.7 - 2025-11-13
+- ✅ **Command Registry Architecture documented** - Complete Phase 1 Zagadnienie 1.2
+  - Added #18: command_registry_architecture.md (comprehensive architecture guide)
+  - Core components: Command, CommandRegistry, KeyboardShortcut, IconSet
+  - Architecture diagrams (ASCII art, flow diagrams)
+  - Integration guides: MenuBuilder, ToolbarBuilder, ShortcutManager
+  - Plugin integration guide with examples
+  - Execution flow examples and best practices
+  - Thread-safety notes and performance considerations
+  - 15,000+ words complete reference documentation
+- ✅ **Version tracking** - Corrected document count: 17 → 18 documents
+- 🎯 **18/18 documents complete** - Full documentation coverage + Command Registry
 
 ### v1.6 - 2025-11-13
 - ✅ **Visual Studio 2026 support added** - Full IDE integration documented

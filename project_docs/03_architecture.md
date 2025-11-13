@@ -227,6 +227,44 @@ public:
 };
 ```
 
+### Command Registry System
+
+**Purpose:** Unified command execution system for menu items, toolbar buttons, and keyboard shortcuts.
+
+**Implementation:**
+```cpp
+// Command descriptor
+struct Command {
+    std::string id;                    // "file.save", "edit.undo"
+    std::string label;                 // "Save", "Undo"
+    std::string category;              // "File", "Edit"
+    std::function<void()> execute;     // Execution callback
+    std::function<bool()> isEnabled;   // Dynamic enable/disable
+    KeyboardShortcut shortcut;         // Ctrl+S, etc.
+    bool showInMenu = true;
+    bool showInToolbar = false;
+};
+
+// Central registry (Singleton)
+class CommandRegistry {
+    std::unordered_map<std::string, Command> m_commands;
+public:
+    static CommandRegistry& getInstance();
+    void registerCommand(const Command& command);
+    CommandExecutionResult executeCommand(const std::string& commandId);
+    std::vector<Command> getCommandsByCategory(const std::string& category) const;
+};
+```
+
+**Benefits:**
+- Single source of truth for all commands
+- Automatic UI generation (MenuBuilder, ToolbarBuilder)
+- Plugin-friendly (plugins register commands like core)
+- Dynamic state management (enable/disable based on app state)
+- Unified execution path (menu/toolbar/keyboard all route through registry)
+
+**See:** [project_docs/18_command_registry_architecture.md](18_command_registry_architecture.md) for complete documentation.
+
 ---
 
 ## Error Handling Strategy
