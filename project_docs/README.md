@@ -3,8 +3,8 @@
 > **Writer's IDE** - Advanced writing environment for book authors
 
 **Status:** 🚀 Phase 1 Week 13
-**Version:** 1.5 (Documentation Index Complete - 15 docs)
-**Last Updated:** 2025-11-11
+**Version:** 1.6 (Visual Studio 2026 Support Added - 17 docs)
+**Last Updated:** 2025-11-13
 
 ---
 
@@ -32,6 +32,7 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 14 | [**bwx_sdk Patterns**](14_bwx_sdk_patterns.md) | Custom wxWidgets controls design patterns, rationale | ✅ Complete |
 | 15 | [**Text Editor Architecture**](15_text_editor_architecture.md) | Custom text editor control complete specification | ✅ Complete |
 | 16 | [**Settings Inventory**](16_settings_inventory.md) | Complete settings catalog (37 parameters tracked) | ✅ Complete |
+| 17 | [**Visual Studio Setup**](17_visual_studio_setup.md) | VS 2026 integration, CMakePresets.json, debugging | ✅ Complete |
 
 ### Supporting Files
 
@@ -77,6 +78,17 @@ This directory contains the complete technical documentation for the Kalahari pr
 ---
 
 ## 🔄 Document History
+
+### v1.6 - 2025-11-13
+- ✅ **Visual Studio 2026 support added** - Full IDE integration documented
+  - Added #17: visual_studio_setup.md (VS 2026 native CMake support)
+  - CMakePresets.json created with v144 toolset configuration
+  - Cross-platform presets (Windows, Linux, macOS)
+  - Quick start guide for VS 2026 workflow
+  - Troubleshooting section
+  - CI/CD compatibility confirmed (no changes needed)
+- ✅ **Version tracking** - Corrected document count: 16 → 17 documents
+- 🎯 **17/17 documents complete** - Full documentation coverage + IDE setup
 
 ### v1.5 - 2025-11-11
 - ✅ **Documentation index complete** - All 15 documents now listed
