@@ -263,7 +263,8 @@ MainWindow::MainWindow()
 
     // Create UI components (order matters! Commands must be registered first!)
     createMenuBarDynamic();  // Task #00031: Use MenuBuilder - now CommandRegistry has commands!
-    createToolBarDynamic();  // Task #00032: Use ToolbarBuilder - now CommandRegistry has commands!
+    // TODO Task #00036+: Dockable toolbars (wxAUI) - current implementation uses fixed wxFrame toolbar
+    // createToolBarDynamic();  // DISABLED: Causes Realize() errors, not dockable
     createStatusBar();
 
     // Initialize wxAUI docking system with panels (Task #00013)
