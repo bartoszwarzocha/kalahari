@@ -178,10 +178,18 @@ wxBitmap ToolbarBuilder::getIcon(const Command& command, int size) {
         return command.icons.icon24;
     }
 
-    // Priority 4: No icon - return empty bitmap
-    // (wxToolBar handles this gracefully - tool appears without icon)
-    core::Logger::getInstance().debug("ToolbarBuilder: Command '{}' has no icon", command.id);
-    return wxBitmap();
+    // Priority 4: No icon - create transparent placeholder bitmap
+    // Note: wxToolBar on Windows Debug mode asserts if bitmap is invalid (empty)
+    // We create a valid 1x1 transparent bitmap as placeholder
+    core::Logger::getInstance().debug("ToolbarBuilder: Command '{}' has no icon, using placeholder", command.id);
+
+    wxBitmap placeholder(size, size, 32);  // 32-bit with alpha channel
+    wxMemoryDC dc(placeholder);
+    dc.SetBackground(*wxTRANSPARENT_BRUSH);
+    dc.Clear();
+    dc.SelectObject(wxNullBitmap);
+
+    return placeholder;
 }
 
 } // namespace gui
