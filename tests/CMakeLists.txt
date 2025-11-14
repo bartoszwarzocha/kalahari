@@ -16,6 +16,14 @@ set(TEST_SOURCES
     gui/test_command_registry.cpp  # Task #00025 - CommandRegistry unit tests (no display required)
     gui/test_command_registry_execution.cpp  # Task #00026 - CommandRegistry execution API tests
     gui/test_shortcut_manager.cpp     # Task #00027 - ShortcutManager unit tests (no display required)
+)
+
+# Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
+if(WIN32)
+    list(APPEND TEST_SOURCES catch2_windows_compat.cpp)
+endif()
+
+set(TEST_SOURCES ${TEST_SOURCES}
     # GUI tests REMOVED - all require GTK/X11 display connection (incompatible with console-only CI/CD)
     # - test_bwx_text_editor.cpp: All 9 test cases created wxFrame windows
     # - test_bwx_text_document.cpp: Uses wxMemoryDC (requires display on Linux/macOS)
@@ -73,10 +81,12 @@ target_link_libraries(kalahari-tests PRIVATE
     bwx_gui  # For bwxTextDocument tests (Task #00019)
 )
 
-# Windows: Force header-only mode to avoid Catch2d.lib link errors
-# (VS 2022/2026 with vcpkg Catch2 has missing __std_find_* symbols)
+# Windows: Workaround for Catch2d.lib link errors with VS 2022/2026
+# Root cause: vcpkg Catch2 built with incompatible CRT, missing __std_find_* symbols
+# Solution: Provide fallback implementations in catch2_windows_compat.cpp
+# (already added to TEST_SOURCES above)
 if(WIN32)
-    target_compile_definitions(kalahari-tests PRIVATE CATCH_CONFIG_IMPL_ONLY)
+    message(STATUS "Using Catch2 Windows compatibility shims for missing CRT symbols")
 endif()
 
 # Copy plugins directory to build directory for plugin loading tests
