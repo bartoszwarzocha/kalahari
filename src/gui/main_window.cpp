@@ -251,11 +251,7 @@ MainWindow::MainWindow()
     core::Logger::getInstance().debug("Diagnostic mode: {}, launched with flag: {}",
                                       m_diagnosticMode, m_launchedWithDiagFlag);
 
-    // Create UI components (order matters!)
-    createMenuBarDynamic();  // Task #00031: Use MenuBuilder instead of hardcoded menus
-    createToolBarDynamic();  // Task #00032: Use ToolbarBuilder instead of hardcoded toolbar
-    createStatusBar();
-
+    // Register commands in CommandRegistry FIRST (must happen before UI creation!)
     // Register File menu commands in CommandRegistry (Task #00028)
     registerFileCommands();
 
@@ -264,6 +260,11 @@ MainWindow::MainWindow()
 
     // Register Format menu commands in CommandRegistry (Task #00030)
     registerFormatCommands();
+
+    // Create UI components (order matters! Commands must be registered first!)
+    createMenuBarDynamic();  // Task #00031: Use MenuBuilder - now CommandRegistry has commands!
+    createToolBarDynamic();  // Task #00032: Use ToolbarBuilder - now CommandRegistry has commands!
+    createStatusBar();
 
     // Initialize wxAUI docking system with panels (Task #00013)
     initializeAUI();

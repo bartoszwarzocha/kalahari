@@ -73,6 +73,12 @@ target_link_libraries(kalahari-tests PRIVATE
     bwx_gui  # For bwxTextDocument tests (Task #00019)
 )
 
+# Windows: Force header-only mode to avoid Catch2d.lib link errors
+# (VS 2022/2026 with vcpkg Catch2 has missing __std_find_* symbols)
+if(WIN32)
+    target_compile_definitions(kalahari-tests PRIVATE CATCH_CONFIG_IMPL_ONLY)
+endif()
+
 # Copy plugins directory to build directory for plugin loading tests
 # This ensures test_plugin_loading.cpp can find hello_plugin.kplugin
 add_custom_command(TARGET kalahari-tests POST_BUILD
