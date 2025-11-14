@@ -2267,7 +2267,9 @@ void MainWindow::initializeAUI() {
             .CloseButton(true));
 
     // Commit changes and update
+    core::Logger::getInstance().info("Calling wxAuiManager->Update()...");
     m_auiManager->Update();
+    core::Logger::getInstance().info("wxAuiManager->Update() completed successfully");
 
     // Update View menu checkboxes to match initial visibility
     updateViewMenu();

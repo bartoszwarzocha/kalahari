@@ -23,41 +23,18 @@ AssistantPanel::AssistantPanel(wxWindow* parent)
 }
 
 void AssistantPanel::setupLayout() {
+    core::Logger::getInstance().debug("AssistantPanel::setupLayout() - Creating main sizer");
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    wxStaticBoxSizer* assistantBox = new wxStaticBoxSizer(wxVERTICAL, this, "AI Writing Assistant");
+    core::Logger::getInstance().debug("AssistantPanel::setupLayout() - Creating text control");
+    // Simple placeholder text
+    wxStaticText* placeholder = new wxStaticText(this, wxID_ANY,
+        "AI Writing Assistant\n\n(Full interface coming in Phase 2)");
+    mainSizer->Add(placeholder, 1, wxALL | wxALIGN_CENTER, 20);
 
-    // Chat display area
-    m_chatDisplay = new wxTextCtrl(assistantBox->GetStaticBox(), wxID_ANY,
-        "🦁 Lion: Welcome to Kalahari Writer's IDE!\n\n"
-        "This is the AI Assistant panel stub.\n\n"
-        "In Phase 2, you'll be able to:\n"
-        "- Ask writing questions\n"
-        "- Get character development suggestions\n"
-        "- Brainstorm plot ideas\n"
-        "- Receive grammar tips\n\n"
-        "Available assistants:\n"
-        "🦁 Lion - General writing mentor\n"
-        "🐱 Meerkat - Detail-oriented editor\n"
-        "🐘 Elephant - Plot and structure expert\n"
-        "🐆 Cheetah - Speed writing coach",
-        wxDefaultPosition, wxDefaultSize,
-        wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP);
-    assistantBox->Add(m_chatDisplay, 1, wxALL | wxEXPAND, 5);
-
-    // Input area
-    wxBoxSizer* inputSizer = new wxBoxSizer(wxHORIZONTAL);
-    m_inputCtrl = new wxTextCtrl(assistantBox->GetStaticBox(), wxID_ANY, "",
-        wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
-    inputSizer->Add(m_inputCtrl, 1, wxALL | wxEXPAND, 0);
-
-    wxButton* sendBtn = new wxButton(assistantBox->GetStaticBox(), ID_SEND_BUTTON, "Send");
-    inputSizer->Add(sendBtn, 0, wxLEFT, 5);
-
-    assistantBox->Add(inputSizer, 0, wxALL | wxEXPAND, 5);
-
-    mainSizer->Add(assistantBox, 1, wxALL | wxEXPAND, 5);
+    core::Logger::getInstance().debug("AssistantPanel::setupLayout() - Setting sizer");
     SetSizer(mainSizer);
+    core::Logger::getInstance().debug("AssistantPanel::setupLayout() - DONE");
 }
 
 void AssistantPanel::onSend([[maybe_unused]] wxCommandEvent& event) {
@@ -70,7 +47,7 @@ void AssistantPanel::onSend([[maybe_unused]] wxCommandEvent& event) {
 
     // Add to chat display
     m_chatDisplay->AppendText(wxString::Format("\n\nYou: %s\n", message));
-    m_chatDisplay->AppendText("🦁 Lion: AI integration coming in Phase 2!\n");
+    m_chatDisplay->AppendText("Lion: AI integration coming in Phase 2!\n");
 
     m_inputCtrl->Clear();
 }
