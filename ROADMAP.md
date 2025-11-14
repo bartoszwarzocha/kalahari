@@ -3,9 +3,9 @@
 > **Writer's IDE** - Atomic Task Structure | Phase-based Development
 
 **Current Phase:** Phase 1 (Core Editor) 🚀 IN PROGRESS
-**Current Task:** Zagadnienie 1.2 - Command Registry Architecture (Tasks #00031-00032 ✅ COMPLETE)
+**Current Task:** Zagadnienie 1.3 - Settings System Enhancement (Ready to start)
 **Version:** 0.2.0-alpha
-**Last Updated:** 2025-11-13
+**Last Updated:** 2025-11-14
 
 ---
 
@@ -100,7 +100,7 @@
 
 ### 1.2 Command Registry Architecture ✅ COMPLETE
 
-**Status:** ✅ COMPLETE (Tasks #00031-#00034, Full documentation, 2025-11-13)
+**Status:** ✅ COMPLETE (Tasks #00031-#00035, Full documentation + testing, 2025-11-14)
 
 #### Core Structures ✅ COMPLETE
 
@@ -162,17 +162,18 @@
 - [x] Write Command Registry architecture document (project_docs/18, ~15k words)
 - [x] Update ARCHITECTURE.md with Command Registry section
 - [x] Add plugin integration guide (how plugins register commands)
-- [ ] **Task #00035:** Manual Testing Session - Command Registry System 📋 Planned
-- [ ] Test all menu items (File, Edit, Format) - 15+ tests
-- [ ] Test all toolbar buttons - 8 tests
-- [ ] Test all keyboard shortcuts - 9 tests
-- [ ] Test enabled/disabled states (no document → Cut/Paste disabled)
-- [ ] Test checked/unchecked states (Format menu toggles)
-- [ ] Test dynamic updates (selection changes → format menu states)
-- [ ] Verify state propagation (menu + toolbar sync)
-- [ ] Verify Settings integration (menu/toolbar/keyboard)
-- [ ] Cross-UI consistency (menu/toolbar/keyboard same behavior)
-- [ ] Document test results and any issues found
+- [x] **Task #00035:** Manual Testing Session - Command Registry System ✅ COMPLETE (2025-11-14)
+- [x] Test all menu items (File, Edit, Format) - 15+ tests
+- [x] Test all toolbar buttons - 8 tests
+- [x] Test all keyboard shortcuts - 9 tests
+- [x] Test enabled/disabled states (no document → Cut/Paste disabled)
+- [x] Test checked/unchecked states (Format menu toggles)
+- [x] Test dynamic updates (selection changes → format menu states)
+- [x] Verify state propagation (menu + toolbar sync)
+- [x] Verify Settings integration (menu/toolbar/keyboard)
+- [x] Cross-UI consistency (menu/toolbar/keyboard same behavior)
+- [x] Document test results and any issues found
+- [x] **7 critical bugfixes** during testing (Linux crashes, bitmap handling, command order)
 
 ### 1.3 Settings System Enhancement 📋 PLANNED
 

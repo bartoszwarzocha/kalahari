@@ -1,12 +1,14 @@
 # Task #00035: Manual Testing Session - Command Registry System
 
-**Status:** 📋 Planned
+**Status:** ✅ COMPLETE (PASS with known limitations)
 **Priority:** P1 (HIGH)
 **Estimated:** 60-90 minutes
+**Actual:** ~4 hours (including 7 critical bugfixes)
 **Dependencies:** #00031 (MenuBuilder), #00032 (ToolbarBuilder), #00033 (Settings), #00034 (Documentation)
 **Phase:** 1 (Core Editor)
 **Zagadnienie:** 1.2 (Command Registry Architecture)
 **Type:** Manual Testing
+**Completed:** 2025-11-14
 
 ---
 

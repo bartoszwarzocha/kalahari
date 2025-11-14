@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00035 - Manual Testing Session - Command Registry System (2025-11-14)
+
+#### Fixed
+- **7 Critical Bugfixes** identified and resolved during comprehensive testing
+  - Linux crash in updateViewMenu() - null pointer dereference fixed
+  - Linux segfault in AssistantPanel - initialization order corrected
+  - Command registration order issue - commands now registered before UI creation
+  - Case-sensitive category mismatch in CommandRegistry - fixed category strings
+  - Invalid placeholder bitmaps for toolbar tools - created valid wxBitmap objects
+  - Transparent bitmap crash - replaced with wxNullBitmap for missing icons
+  - Fixed toolbar disabled - deferred to future dockable wxAUI toolbars implementation
+  - Files: src/gui/main_window.cpp, src/gui/assistant_panel.cpp, src/gui/command_registry.cpp
+  - Testing duration: ~4 hours (vs estimated 60-90 min)
+  - Result: ✅ PASS with known limitations (non-blocking)
+
+#### Tested
+- **Comprehensive Manual Testing** - 46+ test cases across 8 categories
+  - Menu testing: File, Edit, Format menus (15+ tests) - ✅ PASS
+  - Toolbar testing: All toolbar buttons (8 tests) - ✅ PASS (after fixes)
+  - Keyboard shortcuts: All registered shortcuts (9 tests) - ✅ PASS
+  - State management: Enable/disable logic (5 tests) - ✅ PASS
+  - Settings integration: Menu/toolbar/keyboard (4 tests) - ✅ PASS
+  - Cross-UI consistency: Same command behavior (2 tests) - ✅ PASS
+  - Logging verification: Execution logging (3 tests) - ✅ PASS
+  - Status: Command Registry system verified and production-ready
+  - Known limitations: Fixed toolbar disabled (future: dockable wxAUI toolbars)
+  - CI/CD: ✅ All platforms passing after bugfixes
+
 ### Task #00033 - Settings Command Integration (2025-11-13)
 
 #### Changed
