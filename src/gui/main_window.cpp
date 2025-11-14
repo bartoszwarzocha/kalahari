@@ -329,7 +329,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.new";
         cmd.label = _("New").ToStdString();
         cmd.tooltip = _("Create a new document").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('N', true);  // Ctrl+N
@@ -357,7 +357,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.open";
         cmd.label = _("Open...").ToStdString();
         cmd.tooltip = _("Open an existing document").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('O', true);  // Ctrl+O
@@ -385,7 +385,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.save";
         cmd.label = _("Save").ToStdString();
         cmd.tooltip = _("Save the current document").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('S', true);  // Ctrl+S
@@ -413,7 +413,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.save_as";
         cmd.label = _("Save As...").ToStdString();
         cmd.tooltip = _("Save document with a new name").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         cmd.shortcut = KeyboardShortcut('S', true, false, true);  // Ctrl+Shift+S
@@ -441,7 +441,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.settings";
         cmd.label = _("Settings...").ToStdString();
         cmd.tooltip = _("Open application settings").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         cmd.shortcut = KeyboardShortcut(',', true);  // Ctrl+,
@@ -466,7 +466,7 @@ void MainWindow::registerFileCommands() {
         cmd.id = "file.exit";
         cmd.label = _("Exit").ToStdString();
         cmd.tooltip = _("Exit Kalahari").ToStdString();
-        cmd.category = "File";
+        cmd.category = "file";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         cmd.shortcut = KeyboardShortcut(WXK_F4, false, true);  // Alt+F4
@@ -496,7 +496,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.undo";
         cmd.label = _("Undo").ToStdString();
         cmd.tooltip = _("Undo last action").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('Z', true);  // Ctrl+Z
@@ -524,7 +524,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.redo";
         cmd.label = _("Redo").ToStdString();
         cmd.tooltip = _("Redo last undone action").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('Y', true);  // Ctrl+Y
@@ -552,7 +552,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.cut";
         cmd.label = _("Cut").ToStdString();
         cmd.tooltip = _("Cut selection to clipboard").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('X', true);  // Ctrl+X
@@ -581,7 +581,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.copy";
         cmd.label = _("Copy").ToStdString();
         cmd.tooltip = _("Copy selection to clipboard").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('C', true);  // Ctrl+C
@@ -610,7 +610,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.paste";
         cmd.label = _("Paste").ToStdString();
         cmd.tooltip = _("Paste from clipboard").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('V', true);  // Ctrl+V
@@ -639,7 +639,7 @@ void MainWindow::registerEditCommands() {
         cmd.id = "edit.select_all";
         cmd.label = _("Select All").ToStdString();
         cmd.tooltip = _("Select all text").ToStdString();
-        cmd.category = "Edit";
+        cmd.category = "edit";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         cmd.shortcut = KeyboardShortcut('A', true);  // Ctrl+A
@@ -677,7 +677,7 @@ void MainWindow::registerFormatCommands() {
         cmd.id = "format.bold";
         cmd.label = _("Bold").ToStdString();
         cmd.tooltip = _("Toggle bold formatting").ToStdString();
-        cmd.category = "Format";
+        cmd.category = "format";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('B', true);  // Ctrl+B
@@ -706,7 +706,7 @@ void MainWindow::registerFormatCommands() {
         cmd.id = "format.italic";
         cmd.label = _("Italic").ToStdString();
         cmd.tooltip = _("Toggle italic formatting").ToStdString();
-        cmd.category = "Format";
+        cmd.category = "format";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('I', true);  // Ctrl+I
@@ -735,7 +735,7 @@ void MainWindow::registerFormatCommands() {
         cmd.id = "format.underline";
         cmd.label = _("Underline").ToStdString();
         cmd.tooltip = _("Toggle underline").ToStdString();
-        cmd.category = "Format";
+        cmd.category = "format";
         cmd.showInMenu = true;
         cmd.showInToolbar = true;
         cmd.shortcut = KeyboardShortcut('U', true);  // Ctrl+U
@@ -764,7 +764,7 @@ void MainWindow::registerFormatCommands() {
         cmd.id = "format.font";
         cmd.label = _("Font...").ToStdString();
         cmd.tooltip = _("Choose font and size").ToStdString();
-        cmd.category = "Format";
+        cmd.category = "format";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         // No keyboard shortcut for Font dialog
@@ -792,7 +792,7 @@ void MainWindow::registerFormatCommands() {
         cmd.id = "format.clear_formatting";
         cmd.label = _("Clear Formatting").ToStdString();
         cmd.tooltip = _("Remove all formatting").ToStdString();
-        cmd.category = "Format";
+        cmd.category = "format";
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         // No keyboard shortcut for Clear Formatting
