@@ -2272,9 +2272,12 @@ void MainWindow::initializeAUI() {
     core::Logger::getInstance().info("wxAuiManager->Update() completed successfully");
 
     // Update View menu checkboxes to match initial visibility
+    core::Logger::getInstance().info("Calling updateViewMenu()...");
     updateViewMenu();
+    core::Logger::getInstance().info("updateViewMenu() completed");
 
     // Initialize default perspectives
+    core::Logger::getInstance().info("Initializing default perspectives...");
     auto& perspMgr = PerspectiveManager::getInstance();
     if (!perspMgr.perspectiveExists("Default")) {
         // Save current layout as Default perspective
@@ -2373,11 +2376,19 @@ void MainWindow::initializeAUI() {
 void MainWindow::updateViewMenu() {
     if (!m_auiManager) return;
 
-    m_viewNavigatorItem->Check(m_auiManager->GetPane("navigator").IsShown());
-    m_viewPropertiesItem->Check(m_auiManager->GetPane("properties").IsShown());
-    m_viewStatisticsItem->Check(m_auiManager->GetPane("statistics").IsShown());
-    m_viewSearchItem->Check(m_auiManager->GetPane("search").IsShown());
-    m_viewAssistantItem->Check(m_auiManager->GetPane("assistant").IsShown());
+    // NOTE: These pointers are only set by createMenuBar() (old code).
+    // When using createMenuBarDynamic() (MenuBuilder), they remain nullptr.
+    // TODO Task #00037: Initialize these pointers in createMenuBarDynamic()
+    if (m_viewNavigatorItem)
+        m_viewNavigatorItem->Check(m_auiManager->GetPane("navigator").IsShown());
+    if (m_viewPropertiesItem)
+        m_viewPropertiesItem->Check(m_auiManager->GetPane("properties").IsShown());
+    if (m_viewStatisticsItem)
+        m_viewStatisticsItem->Check(m_auiManager->GetPane("statistics").IsShown());
+    if (m_viewSearchItem)
+        m_viewSearchItem->Check(m_auiManager->GetPane("search").IsShown());
+    if (m_viewAssistantItem)
+        m_viewAssistantItem->Check(m_auiManager->GetPane("assistant").IsShown());
 
     // Update Log panel checkbox (only if diagnostic mode active)
     if (m_viewLogItem && m_diagnosticMode && m_logPanel) {
