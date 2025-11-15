@@ -1,9 +1,14 @@
 # Task #00039: Font Scaling Persistence Verification
 
-**Status:** 📋 Planned
-**Priority:** P2 (MEDIUM)
-**Estimated:** 30-60 minutes
-**Dependencies:** #00022 (Apply button must work), #00038 (Apply implementation must work first)
+⚠️ **OBSOLETE** - This task is merged into BWX SDK verification tasks.
+See ROADMAP.md § 1.3 and Task #00047/#00049 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** Verification merged into BWX SDK integration and testing tasks
+**Replaced by:** Task #00047 (Font Scaling Integration) + Task #00049 (Settings System Verification)
+**Priority:** ~~P2 (MEDIUM)~~ (archived)
+**Estimated:** ~~30-60 minutes~~ (covered by #00047/#00049)
+**Dependencies:** ~~#00022, #00038~~ (obsolete)
 
 ---
 

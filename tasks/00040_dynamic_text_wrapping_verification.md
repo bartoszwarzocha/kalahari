@@ -1,8 +1,13 @@
 # Task #00040: Dynamic Text Wrapping Verification
 
-**Status:** 📋 Planned
-**Priority:** P2 (MEDIUM)
-**Estimated:** 30-60 minutes
+⚠️ **OBSOLETE** - This task is merged into BWX SDK verification tasks.
+See ROADMAP.md § 1.3 and Task #00049 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** Text wrapping verification merged into comprehensive Settings System Verification
+**Replaced by:** Task #00049 (Settings System Verification) - includes text wrapping tests
+**Priority:** ~~P2 (MEDIUM)~~ (archived)
+**Estimated:** ~~30-60 minutes~~ (covered by #00049)
 **Dependencies:** None
 
 ---

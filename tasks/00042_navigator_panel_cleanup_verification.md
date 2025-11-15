@@ -1,9 +1,14 @@
 # Task #00042: Navigator Panel Cleanup and Verification
 
-**Status:** 📋 Planned
-**Priority:** P3 (LOW)
-**Estimated:** 1 hour
-**Dependencies:** Settings atomic fixes (00021-00023)
+⚠️ **OBSOLETE** - This task is merged into BWX SDK verification tasks.
+See ROADMAP.md § 1.3 and Task #00049 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** Navigator cleanup merged into comprehensive Settings System Verification
+**Replaced by:** Task #00049 (Settings System Verification) - includes navigator panel verification
+**Priority:** ~~P3 (LOW)~~ (archived)
+**Estimated:** ~~1 hour~~ (covered by #00049)
+**Dependencies:** ~~Settings atomic fixes~~ (complete)
 
 ---
 

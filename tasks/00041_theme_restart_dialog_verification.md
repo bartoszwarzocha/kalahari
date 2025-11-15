@@ -1,8 +1,13 @@
 # Task #00041: Theme Restart Dialog Verification
 
-**Status:** 📋 Planned
-**Priority:** P2 (MEDIUM)
-**Estimated:** 30 minutes
+⚠️ **OBSOLETE** - This task is merged into BWX SDK verification tasks.
+See ROADMAP.md § 1.3 and Task #00049 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** Theme dialog verification merged into comprehensive Settings System Verification
+**Replaced by:** Task #00049 (Settings System Verification) - includes theme dialog tests
+**Priority:** ~~P2 (MEDIUM)~~ (archived)
+**Estimated:** ~~30 minutes~~ (covered by #00049)
 **Dependencies:** None
 
 ---

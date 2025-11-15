@@ -1,9 +1,14 @@
 # Task #00038: Font Scaling Apply Implementation
 
-**Status:** 📋 Planned
-**Priority:** P1 (HIGH)
-**Estimated:** 2-3 hours
-**Dependencies:** #00022 (Apply button must work), #00037 (preview should work first)
+⚠️ **OBSOLETE** - This task is no longer needed due to BWX SDK Reactive System implementation.
+See ROADMAP.md § 1.3 and Task #00043 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** bwxReactive::broadcastFontScaleChange() provides one-line implementation
+**Replaced by:** Task #00047 (Font Scaling Integration) - broadcast-based approach
+**Priority:** ~~P1 (HIGH)~~ (archived)
+**Estimated:** ~~2-3 hours~~ (not needed)
+**Dependencies:** ~~#00022, #00037~~ (obsolete)
 
 ---
 

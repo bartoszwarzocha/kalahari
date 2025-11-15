@@ -1,9 +1,14 @@
 # Task #00036: Icon Size Persistence Verification
 
-**Status:** 📋 Planned
-**Priority:** P2 (MEDIUM)
-**Estimated:** 30-60 minutes
-**Dependencies:** #00023 (Apply must work first)
+⚠️ **OBSOLETE** - This task is merged into BWX SDK verification tasks.
+See ROADMAP.md § 1.3 and Task #00049 for new approach.
+
+**Status:** ~~📋 Planned~~ → **OBSOLETE** (2025-11-15)
+**Reason:** Icon persistence verification merged into comprehensive Settings System Verification
+**Replaced by:** Task #00049 (Settings System Verification) - includes icon persistence tests
+**Priority:** ~~P2 (MEDIUM)~~ (archived)
+**Estimated:** ~~30-60 minutes~~ (covered by #00049)
+**Dependencies:** ~~#00023~~ (apply button works)
 
 ---
 

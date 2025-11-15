@@ -3,9 +3,9 @@
 > **Writer's IDE** - Atomic Task Structure | Phase-based Development
 
 **Current Phase:** Phase 1 (Core Editor) 🚀 IN PROGRESS
-**Current Task:** Zagadnienie 1.3 - Settings System Enhancement (Ready to start)
+**Current Task:** Zagadnienie 1.3 - BWX SDK Reactive GUI Management System (IN PROGRESS)
 **Version:** 0.2.0-alpha
-**Last Updated:** 2025-11-14
+**Last Updated:** 2025-11-15
 
 ---
 
@@ -175,26 +175,107 @@
 - [x] Document test results and any issues found
 - [x] **7 critical bugfixes** during testing (Linux crashes, bitmap handling, command order)
 
-### 1.3 Settings System Enhancement 📋 PLANNED
+### 1.3 BWX SDK Reactive GUI Management System ⚡ IN PROGRESS
 
-**Status:** 📋 PLANNED (7 tasks)
+**Status:** 🚀 IN PROGRESS (Architecture foundation)
+**Goal:** Professional reactive GUI management system for dynamic UI updates
+**Pattern:** Observer + Template Method + Broadcast (inspired by Qt/WPF/Flutter)
+**Estimated:** 20-25 hours (7 atomic tasks)
 
-#### Settings Verification & Polish
+#### Architecture Overview
 
-- [ ] Icon size persistence verification (verify save/load from settings.json)
-- [ ] After restart, icon size loaded correctly
-- [ ] UI displays correct size on startup
-- [ ] Font scaling live preview (text scaling spinner 0.8x-2.0x)
-- [ ] Real-time font size update in example text
-- [ ] EVT_SPINCTRLDOUBLE event binding
-- [ ] Font scaling apply implementation (apply font scale to all UI)
-- [ ] Update all wxStaticText controls with scaled font
-- [ ] Rebuild UI with new font sizes
-- [ ] Font scaling persistence verification (verify save/load)
-- [ ] After restart, font scaling loaded correctly
-- [ ] Dynamic text wrapping verification (verify word wrap setting)
-- [ ] Theme restart dialog verification (confirm dialog on theme change)
-- [ ] Navigator panel cleanup (remove debug code, verify docking)
+**Problem:** Dynamic UI updates (font scaling, theme switching, accessibility) require manual iteration over 100+ controls. Not scalable, error-prone, inconsistent for plugins.
+
+**Solution:** Reactive broadcast system with managed controls.
+
+**Components:**
+1. **bwxReactive** - Base class with static registry, broadcast methods, pure virtual handlers
+2. **bwxManaged<T>** - Template wrapper for wxWidgets controls (inherits T + bwxReactive)
+3. **Type Aliases** - Convenient names (bwx::StaticText, bwx::Button, etc.)
+
+**Usage:**
+```cpp
+// Replace: wxStaticText* label = new wxStaticText(...);
+// With:    bwx::StaticText* label = new bwx::StaticText(...);
+
+// Apply font scaling to ALL controls:
+bwxReactive::broadcastFontScaleChange(1.5);  // ONE LINE!
+```
+
+#### Atomic Task Breakdown
+
+**Phase 1: Foundation (Week 1)**
+- [ ] **Task #00043:** BWX Reactive Foundation (3-4h)
+  - Create bwx_sdk/gui/ structure
+  - Implement bwxReactive base class (static registry, broadcast API)
+  - Implement bwxManaged<wxStaticText> proof-of-concept
+  - Test with 1 control in AppearanceSettingsPanel
+  - **Acceptance:** Font scaling works for single managed control
+
+**Phase 2: Template & Migration (Week 2)**
+- [ ] **Task #00044:** BWX Managed Template Generalization (2-3h)
+  - Generalize bwxManaged<T> for all wxWindow derivatives
+  - Add theme change support (onThemeChanged handler)
+  - Create type aliases (bwx::Button, bwx::Choice, etc.)
+  - **Acceptance:** Template works for 10+ common controls
+
+- [ ] **Task #00045:** Migrate Settings Panels (3-4h)
+  - Migrate AppearanceSettingsPanel (~30 controls)
+  - Migrate EditorSettingsPanel (~20 controls)
+  - Migrate LogSettingsPanel (~15 controls)
+  - **Acceptance:** All settings dialogs use bwx controls
+
+- [ ] **Task #00046:** Migrate MainWindow & Core Panels (3-4h)
+  - Migrate MainWindow (menu, status bar, toolbar)
+  - Migrate Navigator, Properties, Character, Location, Assistant panels
+  - Migrate EditorPanel
+  - **Acceptance:** All main UI uses bwx controls
+
+**Phase 3: Integration & Testing (Week 2-3)**
+- [ ] **Task #00047:** Font Scaling Integration (2h)
+  - Add broadcastFontScaleChange() in MainWindow::onSettingsApplied()
+  - Implement font scaling persistence on startup
+  - Test full flow: change → apply → restart
+  - **Acceptance:** Font scaling works end-to-end
+
+- [ ] **Task #00048:** BWX SDK Testing & Documentation (3-4h)
+  - Unit tests for bwxReactive (registration, broadcast)
+  - Integration tests for bwxManaged<T>
+  - Update project_docs/03_architecture.md (BWX SDK section)
+  - Create bwx_sdk/README.md (usage guide for plugin developers)
+  - **Acceptance:** Tests pass, docs complete
+
+- [ ] **Task #00049:** Settings System Verification (2-3h)
+  - Verify font scaling persistence (startup load)
+  - Verify icon size persistence (separate system)
+  - Verify text wrapping in settings panels
+  - Verify theme change dialog behavior
+  - Verify Navigator panel cleanup
+  - **Acceptance:** All verification tests pass
+
+#### Obsolete Tasks (Pre-BWX SDK Approach)
+
+**Note:** Tasks #00037-#00042 were planned for manual font scaling implementation.
+After architecture discussion (2025-11-15), we decided to implement professional
+reactive system instead. These tasks remain as documentation of design evolution.
+
+- ~~#00037~~ Font Scaling Live Preview → **OBSOLETE** (covered by bwxManaged<T> automatic reactions)
+- ~~#00038~~ Font Scaling Apply Implementation → **OBSOLETE** (covered by broadcastFontScaleChange())
+- ~~#00039~~ Font Scaling Persistence → **COVERED** by Task #00047 (integration)
+- ~~#00036~~ Icon Persistence Verification → **COVERED** by Task #00049 (verification)
+- ~~#00040~~ Text Wrapping Verification → **COVERED** by Task #00049 (verification)
+- ~~#00041~~ Theme Dialog Verification → **COVERED** by Task #00049 (verification)
+- ~~#00042~~ Navigator Cleanup → **COVERED** by Task #00049 (verification)
+
+#### Benefits
+
+✅ **Font scaling** - One-line broadcast call
+✅ **Theme switching** - Infrastructure ready for Phase 2 dark mode
+✅ **Accessibility** - Foundation for high contrast, large text modes
+✅ **Plugin consistency** - External plugins can use bwx controls
+✅ **Maintainability** - Single template vs 20+ wrapper classes
+✅ **Professional architecture** - Qt/WPF/Flutter-level quality
+✅ **Future-proof** - Easy to add new broadcast types (language, animations, debug mode)
 
 ### 1.4 Chapter Management 📋 PLANNED
 
