@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <bwx_sdk/bwx_gui/bwx_reactive_dialog.h>  // Task #00043: Reactive dialog
 #include <wx/wx.h>
 #include <wx/treectrl.h>
 #include <wx/splitter.h>
@@ -66,16 +67,16 @@ struct SettingsState {
     int logFontSize = 11;                                     ///< Log font size in points (6-20)
 
     // ========================================================================
-    // Appearance Settings (Task #00020 - Option C)
+    // Appearance Settings (Task #00020 - Option C, Task #00043 - Font scaling removed)
     // ========================================================================
 
     wxString themeName = "System";           ///< Theme: "Light", "Dark", "System"
     int iconSize = 24;                       ///< Icon size in pixels (16, 24, 32, 48)
-    double fontScaling = 1.0;                ///< Font scaling multiplier (0.8-1.5)
 
     // Future phases: Additional settings will go here
     // wxString interfaceLanguage = "en";
     // int autoSaveInterval = 5;
+    // double systemDPIScale = 1.0;          ///< System DPI scaling (future: use wxWidgets DPI API)
 };
 
 // ============================================================================
@@ -158,7 +159,11 @@ private:
 /// ```
 ///
 /// **Future phases:** Will expand tree systematically (see 08_gui_design.md).
-class SettingsDialog : public wxDialog {
+///
+/// **Task #00043:** Now inherits from bwx::gui::ReactiveDialog for automatic
+/// font scaling and sizer refresh. Dialog automatically responds to font
+/// broadcasts and updates its layout accordingly.
+class SettingsDialog : public bwx::gui::ReactiveDialog {
 public:
     /// @brief Constructor
     /// @param parent Parent window (MainWindow)

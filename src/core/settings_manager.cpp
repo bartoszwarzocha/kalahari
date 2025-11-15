@@ -370,7 +370,6 @@ void SettingsManager::migrateFrom_1_0_to_1_1() {
     // Changes:
     // 1. Move ui.theme -> appearance.theme
     // 2. Add appearance.iconSize (default: 24)
-    // 3. Add appearance.fontScaling (default: 1.0)
     // =========================================================================
 
     // 1. Migrate ui.theme -> appearance.theme
@@ -389,12 +388,6 @@ void SettingsManager::migrateFrom_1_0_to_1_1() {
     if (!hasKey("appearance.iconSize")) {
         set("appearance.iconSize", 24);
         Logger::getInstance().debug("Added appearance.iconSize=24");
-    }
-
-    // 3. Add appearance.fontScaling if not exists
-    if (!hasKey("appearance.fontScaling")) {
-        set("appearance.fontScaling", 1.0);
-        Logger::getInstance().debug("Added appearance.fontScaling=1.0");
     }
 
     // Add default Log settings if not exist (Phase 1)

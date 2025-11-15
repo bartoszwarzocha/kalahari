@@ -7,7 +7,9 @@
 #include "appearance_settings_panel.h"  // Phase 1: Appearance settings (Task #00020 - Option C)
 #include "kalahari/gui/icon_registry.h"
 #include <kalahari/core/logger.h>
+#include <kalahari/core/settings_manager.h>  // Task #00043: Font scale broadcast
 #include <bwx_sdk/bwx_core/bwx_exception.h>  // For test exception
+#include <bwx_sdk/bwx_gui/bwx_reactive.h>    // Task #00043: Font scale broadcast
 #include <wx/artprov.h>
 
 namespace kalahari {
@@ -133,7 +135,7 @@ wxBEGIN_EVENT_TABLE(SettingsDialog, wxDialog)
 wxEND_EVENT_TABLE()
 
 SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentState)
-    : wxDialog(parent, wxID_ANY, "Settings", wxDefaultPosition, wxSize(800, 600),
+    : bwx::gui::ReactiveDialog(parent, wxID_ANY, "Settings", wxDefaultPosition, wxSize(800, 600),
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_originalState(currentState),
       m_workingState(currentState)
@@ -225,6 +227,9 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     SetSizer(mainSizer);
 
     buildTree();
+
+    // Center dialog on parent window (MANDATORY per CLAUDE.md)
+    CentreOnParent();
 
     logger.info("SettingsDialog: Constructor COMPLETE");
 }

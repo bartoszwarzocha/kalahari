@@ -22,7 +22,8 @@ namespace gui {
 enum {
     ID_LOG_OPTIONS = wxID_HIGHEST + 300,
     ID_LOG_OPEN_FOLDER,
-    ID_LOG_COPY
+    ID_LOG_COPY,
+    ID_LOG_CLEAR
 };
 
 // ============================================================================
@@ -33,6 +34,7 @@ wxBEGIN_EVENT_TABLE(LogPanel, wxPanel)
     EVT_TOOL(ID_LOG_OPTIONS, LogPanel::onOptions)
     EVT_TOOL(ID_LOG_OPEN_FOLDER, LogPanel::onOpenLogFolder)
     EVT_TOOL(ID_LOG_COPY, LogPanel::onCopyToClipboard)
+    EVT_TOOL(ID_LOG_CLEAR, LogPanel::onClearLog)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -242,6 +244,11 @@ void LogPanel::onCopyToClipboard([[maybe_unused]] wxCommandEvent& event) {
     }
 }
 
+void LogPanel::onClearLog([[maybe_unused]] wxCommandEvent& event) {
+    clearLog();
+    core::Logger::getInstance().info("Log panel cleared by user");
+}
+
 // ============================================================================
 // Helper Methods
 // ============================================================================
@@ -294,10 +301,12 @@ void LogPanel::setupLayout() {
     wxBitmap optionsIcon = wxArtProvider::GetBitmap(wxART_HELP_SETTINGS, wxART_TOOLBAR, wxDefaultSize);
     wxBitmap folderIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_TOOLBAR, wxDefaultSize);
     wxBitmap copyIcon = wxArtProvider::GetBitmap(wxART_COPY, wxART_TOOLBAR, wxDefaultSize);
+    wxBitmap clearIcon = wxArtProvider::GetBitmap(wxART_DELETE, wxART_TOOLBAR, wxDefaultSize);
 
     m_toolBar->AddTool(ID_LOG_OPTIONS, "Options", optionsIcon, "Open Settings Dialog (Log tab)");
     m_toolBar->AddTool(ID_LOG_OPEN_FOLDER, "Open Folder", folderIcon, "Open log directory in file explorer");
     m_toolBar->AddTool(ID_LOG_COPY, "Copy", copyIcon, "Copy entire log to clipboard");
+    m_toolBar->AddTool(ID_LOG_CLEAR, "Clear", clearIcon, "Clear all log messages");
 
     m_toolBar->Realize();
 

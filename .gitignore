@@ -120,6 +120,7 @@ work_scripts/*
 # Task working directories (temporary work in progress)
 tasks/.wip/
 tasks/.scratch/
+tasks/.archive/
 
 # User-specific settings (not project config)
 .user_settings/

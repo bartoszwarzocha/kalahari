@@ -30,6 +30,7 @@
 #include <kalahari/gui/icon_registry.h>
 #include <kalahari/gui/art_provider.h>
 #include <kalahari/resources/icons_material.h>
+#include <bwx_sdk/bwx_gui/bwx_reactive.h>  // Task #00043: BWX SDK Reactive System
 #include <wx/artprov.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
@@ -1394,7 +1395,6 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
         settingsMgr.get<std::string>("appearance.theme", "System")
     );
     currentState.iconSize = settingsMgr.get<int>("appearance.iconSize", 24);
-    currentState.fontScaling = settingsMgr.get<double>("appearance.fontScaling", 1.0);
 
     // Load Log settings (Task #00020)
     currentState.logBufferSize = settingsMgr.get<int>("log.bufferSize", 500);
@@ -1457,10 +1457,9 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
 
         settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
         settingsMgr.set("appearance.iconSize", newState.iconSize);
-        settingsMgr.set("appearance.fontScaling", newState.fontScaling);
 
-        core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={}, fontScaling={})",
-            newState.themeName.ToStdString(), newState.iconSize, newState.fontScaling);
+        core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={})",
+            newState.themeName.ToStdString(), newState.iconSize);
 
         // ====================================================================
         // Phase 1: Save Log Settings to SettingsManager (Task #00020)
@@ -1552,10 +1551,9 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
 
     settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
     settingsMgr.set("appearance.iconSize", newState.iconSize);
-    settingsMgr.set("appearance.fontScaling", newState.fontScaling);
 
-    core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={}, fontScaling={})",
-        newState.themeName.ToStdString(), newState.iconSize, newState.fontScaling);
+    core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={})",
+        newState.themeName.ToStdString(), newState.iconSize);
 
     // Apply icon size changes immediately
     IconRegistry& iconReg = IconRegistry::getInstance();
@@ -1594,6 +1592,17 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
         core::Logger::getInstance().info("Toolbar reloaded successfully with icon size: {}", newState.iconSize);
     }
 
+    // ====================================================================
+    // Task #00043: Font Scaling Removed (2025-11-15)
+    // ====================================================================
+    //
+    // Manual font scaling feature removed after discovering it conflicts
+    // with wxWidgets architecture (wxStaticBoxSizer labels don't resize,
+    // requires pixel-based approach instead of proper DPI handling).
+    //
+    // Future: Use wxFont::Scaled() + SetInitialSize() for DPI changes
+    // bwxReactive architecture preserved for theme/icon changes
+    //
     // ====================================================================
     // Save Log Settings to SettingsManager
     // ====================================================================

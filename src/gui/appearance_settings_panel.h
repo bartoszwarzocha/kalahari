@@ -6,6 +6,7 @@
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <wx/choice.h>
+#include <bwx_sdk/bwx_gui/bwx_managed.h>  // Task #00043: BWX SDK Reactive System
 
 namespace kalahari {
 namespace gui {
@@ -18,7 +19,6 @@ struct SettingsState;
 /// Provides controls to configure application appearance:
 /// - Theme selection (Light/Dark/System)
 /// - Icon size (16/24/32/48 pixels)
-/// - Font scaling (0.8x - 1.5x)
 ///
 /// These settings affect the entire application UI.
 class AppearanceSettingsPanel : public wxPanel {
@@ -36,20 +36,14 @@ public:
 private:
     SettingsState& m_state;
 
-    // UI Controls
-    wxChoice* m_themeChoice = nullptr;
-    wxChoice* m_iconSizeChoice = nullptr;
-    wxSpinCtrlDouble* m_fontScalingSpinner = nullptr;
+    // UI Controls (Task #00043: BWX Reactive System)
+    bwx::gui::Choice* m_themeChoice = nullptr;
+    bwx::gui::Choice* m_iconSizeChoice = nullptr;
 
-    // Text controls that need dynamic wrapping
-    wxStaticText* m_themeDescription = nullptr;
-    wxStaticText* m_restartNote = nullptr;
-    wxStaticText* m_iconDescription = nullptr;
-    wxStaticText* m_typographyDescription = nullptr;
-    wxStaticText* m_exampleText = nullptr;
-
-    // Store original font size for scaling preview
-    int m_exampleTextBaseFontSize = 10;
+    // Text controls that need dynamic wrapping (Task #00043: BWX Reactive System)
+    bwx::gui::StaticText* m_themeDescription = nullptr;
+    bwx::gui::StaticText* m_restartNote = nullptr;
+    bwx::gui::StaticText* m_iconDescription = nullptr;
 
     /// @brief Create theme settings section
     /// @param parent Parent sizer to add section to
@@ -59,17 +53,9 @@ private:
     /// @param parent Parent sizer to add section to
     void createIconSection(wxSizer* parent);
 
-    /// @brief Create typography settings section
-    /// @param parent Parent sizer to add section to
-    void createTypographySection(wxSizer* parent);
-
     /// @brief Handle panel resize - dynamic text wrapping
     /// @param event Size event
     void onSize(wxSizeEvent& event);
-
-    /// @brief Handle font scaling spinner value change
-    /// @param event Spin event
-    void onFontScalingChanged(wxSpinDoubleEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };

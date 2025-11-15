@@ -13,7 +13,7 @@ namespace gui {
 // ============================================================================
 
 wxBEGIN_EVENT_TABLE(AppearanceSettingsPanel, wxPanel)
-    EVT_SPINCTRLDOUBLE(wxID_ANY, AppearanceSettingsPanel::onFontScalingChanged)
+    // No event handlers (reserved for future)
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -27,13 +27,12 @@ AppearanceSettingsPanel::AppearanceSettingsPanel(wxWindow* parent, SettingsState
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    // Create 3 sections
+    // Create 2 sections (Task #00043: Font scaling removed after wxWidgets DPI analysis)
     createThemeSection(mainSizer);
     createIconSection(mainSizer);
-    createTypographySection(mainSizer);
 
     SetSizer(mainSizer);
-    core::Logger::getInstance().info("AppearanceSettingsPanel: Panel created with 3 sections");
+    core::Logger::getInstance().info("AppearanceSettingsPanel: Panel created with 2 sections (Theme, Icons)");
 }
 
 // ============================================================================
@@ -43,19 +42,19 @@ AppearanceSettingsPanel::AppearanceSettingsPanel(wxWindow* parent, SettingsState
 void AppearanceSettingsPanel::createThemeSection(wxSizer* parent) {
     wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Theme");
 
-    // Store description for dynamic wrapping
-    m_themeDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    // Store description for dynamic wrapping (Task #00043: BWX Reactive)
+    m_themeDescription = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
         "Choose the color scheme for the application interface");
     m_themeDescription->SetFont(m_themeDescription->GetFont().MakeItalic());
     box->Add(m_themeDescription, 0, wxALL | wxEXPAND, 5);
 
     // Theme choice
     wxBoxSizer* themeSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText* themeLabel = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    bwx::gui::StaticText* themeLabel = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
         "Application theme:");
     themeSizer->Add(themeLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
 
-    m_themeChoice = new wxChoice(box->GetStaticBox(), wxID_ANY);
+    m_themeChoice = new bwx::gui::Choice(box->GetStaticBox(), wxID_ANY);
     m_themeChoice->Append("System");  // Index 0
     m_themeChoice->Append("Light");   // Index 1
     m_themeChoice->Append("Dark");    // Index 2
@@ -74,8 +73,8 @@ void AppearanceSettingsPanel::createThemeSection(wxSizer* parent) {
 
     box->Add(themeSizer, 0, wxALL | wxEXPAND, 5);
 
-    // Note about restart (store for dynamic wrapping)
-    m_restartNote = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    // Note about restart (store for dynamic wrapping, Task #00043: BWX Reactive)
+    m_restartNote = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
         "Note: Theme changes require application restart to fully apply.");
     wxFont noteFont = m_restartNote->GetFont();
     noteFont.MakeItalic();
@@ -90,19 +89,19 @@ void AppearanceSettingsPanel::createThemeSection(wxSizer* parent) {
 void AppearanceSettingsPanel::createIconSection(wxSizer* parent) {
     wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Icons");
 
-    // Store description for dynamic wrapping
-    m_iconDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    // Store description for dynamic wrapping (Task #00043: BWX Reactive)
+    m_iconDescription = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
         "Configure icon display size throughout the application");
     m_iconDescription->SetFont(m_iconDescription->GetFont().MakeItalic());
     box->Add(m_iconDescription, 0, wxALL | wxEXPAND, 5);
 
     // Icon size choice
     wxBoxSizer* iconSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText* iconLabel = new wxStaticText(box->GetStaticBox(), wxID_ANY,
+    bwx::gui::StaticText* iconLabel = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
         "Icon size:");
     iconSizer->Add(iconLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
 
-    m_iconSizeChoice = new wxChoice(box->GetStaticBox(), wxID_ANY);
+    m_iconSizeChoice = new bwx::gui::Choice(box->GetStaticBox(), wxID_ANY);
     m_iconSizeChoice->Append("Small (16px)");   // Index 0
     m_iconSizeChoice->Append("Medium (24px)");  // Index 1
     m_iconSizeChoice->Append("Large (32px)");   // Index 2
@@ -121,50 +120,6 @@ void AppearanceSettingsPanel::createIconSection(wxSizer* parent) {
     iconSizer->Add(m_iconSizeChoice, 1, wxEXPAND, 0);
 
     box->Add(iconSizer, 0, wxALL | wxEXPAND, 5);
-
-    parent->Add(box, 0, wxALL | wxEXPAND, 10);
-}
-
-void AppearanceSettingsPanel::createTypographySection(wxSizer* parent) {
-    wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Typography");
-
-    // Store description for dynamic wrapping
-    m_typographyDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
-        "Adjust text size for better readability");
-    m_typographyDescription->SetFont(m_typographyDescription->GetFont().MakeItalic());
-    box->Add(m_typographyDescription, 0, wxALL | wxEXPAND, 5);
-
-    // Font scaling slider
-    wxBoxSizer* fontSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText* fontLabel = new wxStaticText(box->GetStaticBox(), wxID_ANY,
-        "Font scaling:");
-    fontSizer->Add(fontLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-
-    m_fontScalingSpinner = new wxSpinCtrlDouble(box->GetStaticBox(), wxID_ANY);
-    m_fontScalingSpinner->SetRange(0.8, 1.5);
-    m_fontScalingSpinner->SetIncrement(0.05);
-    m_fontScalingSpinner->SetDigits(2);
-    m_fontScalingSpinner->SetValue(m_state.fontScaling);
-    m_fontScalingSpinner->SetToolTip("Scale all UI fonts (0.8x = smaller, 1.5x = larger)");
-    fontSizer->Add(m_fontScalingSpinner, 1, wxEXPAND, 0);
-
-    wxStaticText* fontUnit = new wxStaticText(box->GetStaticBox(), wxID_ANY, "x");
-    fontSizer->Add(fontUnit, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-
-    box->Add(fontSizer, 0, wxALL | wxEXPAND, 5);
-
-    // Example text (store for dynamic wrapping)
-    m_exampleText = new wxStaticText(box->GetStaticBox(), wxID_ANY,
-        "Example: This is how text will appear at current scaling");
-    wxFont exampleFont = m_exampleText->GetFont();
-
-    // Store original font size for proper scaling in onFontScalingChanged()
-    m_exampleTextBaseFontSize = exampleFont.GetPointSize();
-
-    // Apply current scaling from state
-    exampleFont.SetPointSize(static_cast<int>(m_exampleTextBaseFontSize * m_state.fontScaling));
-    m_exampleText->SetFont(exampleFont);
-    box->Add(m_exampleText, 0, wxALL | wxEXPAND, 5);
 
     parent->Add(box, 0, wxALL | wxEXPAND, 10);
 }
@@ -195,11 +150,8 @@ void AppearanceSettingsPanel::saveToState() {
         default: m_state.iconSize = 24; break;
     }
 
-    // Font scaling
-    m_state.fontScaling = m_fontScalingSpinner->GetValue();
-
-    core::Logger::getInstance().info("AppearanceSettingsPanel: Saved 3 settings values (theme={}, iconSize={}, fontScaling={})",
-        m_state.themeName.ToStdString(), m_state.iconSize, m_state.fontScaling);
+    core::Logger::getInstance().info("AppearanceSettingsPanel: Saved 2 settings values (theme={}, iconSize={})",
+        m_state.themeName.ToStdString(), m_state.iconSize);
 }
 
 // ============================================================================
@@ -228,12 +180,6 @@ void AppearanceSettingsPanel::onSize(wxSizeEvent& event) {
         if (m_iconDescription && m_iconDescription->IsShown()) {
             m_iconDescription->Wrap(availableWidth);
         }
-        if (m_typographyDescription && m_typographyDescription->IsShown()) {
-            m_typographyDescription->Wrap(availableWidth);
-        }
-        if (m_exampleText && m_exampleText->IsShown()) {
-            m_exampleText->Wrap(availableWidth);
-        }
 
         // Trigger layout recalculation
         Layout();
@@ -248,31 +194,6 @@ void AppearanceSettingsPanel::onSize(wxSizeEvent& event) {
     }
 
     event.Skip();
-}
-
-void AppearanceSettingsPanel::onFontScalingChanged([[maybe_unused]] wxSpinDoubleEvent& event) {
-    // Update example text font size dynamically when spinner value changes
-    if (m_exampleText && m_fontScalingSpinner) {
-        double newScaling = m_fontScalingSpinner->GetValue();
-
-        // Use stored base font size for accurate scaling
-        wxFont exampleFont = m_exampleText->GetFont();
-        exampleFont.SetPointSize(static_cast<int>(m_exampleTextBaseFontSize * newScaling));
-
-        m_exampleText->SetFont(exampleFont);
-        m_exampleText->Refresh();
-
-        core::Logger::getInstance().debug("Font scaling changed to {} - example text updated", newScaling);
-
-        // Trigger layout recalculation
-        Layout();
-        if (GetParent()) {
-            GetParent()->Layout();
-            if (auto* scrolled = dynamic_cast<wxScrolledWindow*>(GetParent())) {
-                scrolled->FitInside();
-            }
-        }
-    }
 }
 
 } // namespace gui

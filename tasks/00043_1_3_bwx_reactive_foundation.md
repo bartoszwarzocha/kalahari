@@ -1,8 +1,8 @@
 # Task #00043: BWX SDK Reactive Foundation
 
-**Status:** 📋 Planned
+**Status:** ✅ COMPLETE (Architecture implemented, font scaling removed)
 **Priority:** P0 (CRITICAL - Architecture Foundation)
-**Estimated:** 3-4 hours
+**Actual Time:** 6 hours (including font scaling removal)
 **Dependencies:** Task #00035 (Command Registry complete)
 **Phase:** 1 (Core Editor)
 **Zagadnienie:** 1.3 (BWX SDK Reactive GUI Management System)
@@ -449,6 +449,75 @@ If proof-of-concept fails:
 
 ---
 
+## Lessons Learned - Font Scaling Removal (2025-11-15)
+
+### Problem Discovered
+
+After implementing bwxReactive system with manual font scaling, discovered fundamental architecture conflict:
+
+**Issue #1: wxStaticBoxSizer Labels Don't Resize**
+- wxStaticText controls properly resized via SetFont()
+- wxStaticBoxSizer labels remain original size (not controls!)
+- Forum research confirmed: wxStaticBoxSizer doesn't inform sizer of content changes
+
+**Issue #2: Wrong wxWidgets Approach**
+- Manual pixel-based scaling fights wxWidgets architecture
+- Correct approach: Use wxFont::Scaled() + SetInitialSize()
+- Should use dialog units (wxDLG_UNIT), not pixels
+- Should leverage wxWidgets native DPI handling
+
+**Root Cause:**
+Manual font scaling was fundamentally wrong design - trying to implement a feature that wxWidgets already handles properly via its DPI API.
+
+### Decision: Remove Font Scaling Feature
+
+**What Was Removed (2025-11-15):**
+1. **UI:** Typography section from AppearanceSettingsPanel
+   - Font scaling spinner (0.8x - 1.5x)
+   - Live preview example text
+   - Event handlers
+2. **Data:** fontScaling field from SettingsState struct
+3. **Integration:** broadcastFontScaleChange() calls from MainWindow and SettingsDialog
+4. **Persistence:** appearance.fontScaling from SettingsManager
+
+**What Was Preserved:**
+- ✅ **bwxReactive base class** - Useful for theme/icon changes
+- ✅ **bwxManaged<T> template** - Can be adapted for DPI/theme in future
+- ✅ **bwxReactiveDialog** - Dialog reactive pattern still valuable
+- ✅ **Static registry + broadcast** - Clean Observer pattern architecture
+- ✅ **All 12 migrated reactive controls** - Still functional for future theme support
+
+**Rationale:**
+Font scaling feature was wrong, but reactive architecture is solid and will be used for:
+- Theme switching (Light/Dark already in Settings!)
+- Icon size changes (already implemented and working)
+- Future: Proper DPI change notifications using wxFont::Scaled()
+
+### Future Proper Approach
+
+When implementing DPI-aware scaling (future Task TBD):
+
+```cpp
+// ❌ WRONG - Manual pixel-based scaling (what we removed)
+font.SetPointSize(static_cast<int>(baseSize * scale));
+control->SetFont(font);
+
+// ✅ CORRECT - wxWidgets DPI API
+control->SetFont(control->GetFont().Scaled(dpiScale));  // Use Scaled()!
+control->SetInitialSize(wxDefaultSize);                 // Inform sizer!
+
+// For sizes, use dialog units instead of pixels
+control->SetSize(wxDLG_UNIT(parent, wxSize(444, 451)));
+```
+
+**Key Insight:** Don't fight the framework - use its built-in features!
+
+**Forum References:**
+- https://forums.wxwidgets.org/viewtopic.php?t=4974 (wxStaticBoxSizer issues)
+- https://forums.wxwidgets.org/viewtopic.php?t=41603 (DPI scaling proper approach)
+
+---
+
 **Created:** 2025-11-15
-**Started:** (awaiting approval)
-**Completed:** (pending)
+**Started:** 2025-11-15
+**Completed:** 2025-11-15 (✅ Architecture implemented, font scaling removed by design)

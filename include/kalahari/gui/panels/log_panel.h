@@ -110,6 +110,13 @@ private:
     /// @param event Command event from toolbar
     void onCopyToClipboard(wxCommandEvent& event);
 
+    /// @brief Handle Clear Log toolbar button
+    ///
+    /// Clears entire log buffer and display.
+    ///
+    /// @param event Command event from toolbar
+    void onClearLog(wxCommandEvent& event);
+
     // ========================================================================
     // Helper Methods
     // ========================================================================
