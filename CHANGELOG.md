@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BWX SDK Architecture Decision (2025-11-15)
+
+#### Changed
+- **MAJOR ARCHITECTURE DECISION** - Replaced manual font scaling with BWX SDK Reactive System
+  - Problem: Manual iteration over 100+ controls not scalable
+  - Solution: Professional reactive GUI management (Qt/WPF/Flutter-inspired)
+  - Pattern: Observer + Template Method + Broadcast
+  - Tasks #00037-00042 marked OBSOLETE (kept for design evolution documentation)
+  - Created Task #00043 - BWX Reactive Foundation (first of 7 atomic tasks)
+  - ROADMAP.md § 1.3 completely rewritten
+  - Estimated implementation: 20-25 hours (7 atomic tasks)
+  - Benefits: One-line UI updates, plugin-ready, future-proof
+  - Files: ROADMAP.md, tasks/00036-00043*.md
+
+#### Planned
+- **Task #00043** - BWX Reactive Foundation (3-4h)
+  - bwxReactive base class (static registry + broadcast API)
+  - bwxManaged<wxStaticText> proof-of-concept template
+  - Test with 1 control in AppearanceSettingsPanel
+  - Directory: bwx_sdk/gui/ (new library)
+- **Task #00044** - BWX Managed Template Generalization (2-3h)
+- **Task #00045** - Migrate Settings Panels (3-4h)
+- **Task #00046** - Migrate MainWindow & Core Panels (3-4h)
+- **Task #00047** - Font Scaling Integration (2h)
+- **Task #00048** - BWX SDK Testing & Documentation (3-4h)
+- **Task #00049** - Settings System Verification (2-3h)
+
+#### Documentation
+- **ROADMAP.md** - Section 1.3 rewritten as "BWX SDK Reactive GUI Management System"
+  - Architecture overview (bwxReactive, bwxManaged<T>, type aliases)
+  - 7 atomic task breakdown with estimates
+  - Obsolete tasks documented (design evolution transparency)
+  - Benefits section (font scaling, theme, accessibility, plugins)
+
 ### Task #00035 - Manual Testing Session - Command Registry System (2025-11-14)
 
 #### Fixed
