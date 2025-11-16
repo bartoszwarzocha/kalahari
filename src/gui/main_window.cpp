@@ -2,6 +2,7 @@
 /// @brief Implementation of MainWindow
 
 #include "main_window.h"
+#include "kalahari_app.h"
 #include "settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/manage_perspectives_dialog.h"
@@ -1293,15 +1294,19 @@ void MainWindow::createLogPanel() {
 
     m_auiManager->Update();
 
-    // Register GUI log sink with Logger
-    auto logger = core::Logger::getInstance().getLogger();
-    if (logger) {
-        auto gui_sink = std::make_shared<core::GuiLogSink>(m_logPanel);
-        gui_sink->set_level(logger->level());
-        logger->sinks().push_back(gui_sink);
-        core::Logger::getInstance().info("LogPanel created and registered with logger");
+    // Attach LogPanel to the existing GUILogSink (created early in KalahariApp)
+    // This will backfill the panel with buffered startup logs
+    KalahariApp* app = dynamic_cast<KalahariApp*>(wxTheApp);
+    if (app) {
+        auto gui_sink = app->getGuiLogSink();
+        if (gui_sink) {
+            gui_sink->setPanel(m_logPanel);
+            core::Logger::getInstance().info("LogPanel attached to GUILogSink (backfilled with buffered messages)");
+        } else {
+            core::Logger::getInstance().warn("GUILogSink not available, LogPanel created without backfill");
+        }
     } else {
-        core::Logger::getInstance().warn("Logger not available, LogPanel created without sink");
+        core::Logger::getInstance().warn("KalahariApp not available, LogPanel created without backfill");
     }
 }
 
@@ -1313,17 +1318,15 @@ void MainWindow::destroyLogPanel() {
 
     core::Logger::getInstance().info("Destroying LogPanel...");
 
-    // Unregister GUI sink from Logger
-    auto logger = core::Logger::getInstance().getLogger();
-    if (logger) {
-        auto& sinks = logger->sinks();
-        sinks.erase(
-            std::remove_if(sinks.begin(), sinks.end(),
-                [this](const spdlog::sink_ptr& sink) {
-                    return std::dynamic_pointer_cast<core::GuiLogSink>(sink) != nullptr;
-                }),
-            sinks.end());
-        core::Logger::getInstance().debug("GuiLogSink unregistered from logger");
+    // Detach LogPanel from GUILogSink (return to buffered mode)
+    // GUILogSink remains in logger, will buffer future logs
+    KalahariApp* app = dynamic_cast<KalahariApp*>(wxTheApp);
+    if (app) {
+        auto gui_sink = app->getGuiLogSink();
+        if (gui_sink) {
+            gui_sink->clearPanel();
+            core::Logger::getInstance().debug("LogPanel detached from GUILogSink (returned to buffered mode)");
+        }
     }
 
     // Remove from wxAUI manager

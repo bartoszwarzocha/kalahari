@@ -55,22 +55,28 @@ LogPanel::LogPanel(wxWindow* parent)
 
 void LogPanel::appendLog(const std::string& message) {
     wxString wxMsg(message);
+    if (!wxMsg.EndsWith("\n")) {
+        wxMsg += "\n";
+    }
 
-    // Add to ring buffer
     m_logBuffer.push_back(wxMsg);
 
     // Remove oldest line if buffer exceeds max size
     if (m_logBuffer.size() > m_maxBufferSize) {
         m_logBuffer.pop_front();
-        // Rebuild entire display when buffer overflows
-        rebuildDisplay();
-    } else {
-        // Just append the new line
-        m_logDisplay->AppendText(wxMsg);
-        if (!wxMsg.EndsWith("\n")) {
-            m_logDisplay->AppendText("\n");
+
+        // Remove ONLY first line from display (O(1) operation)
+        // This is much faster than rebuildDisplay() which is O(N)
+        if (m_logDisplay->GetNumberOfLines() > 0) {
+            long firstLineLength = m_logDisplay->GetLineLength(0);
+            if (firstLineLength >= 0) {
+                m_logDisplay->Remove(0, firstLineLength + 1);  // +1 for newline
+            }
         }
     }
+
+    // Append the new line
+    m_logDisplay->AppendText(wxMsg);
 }
 
 void LogPanel::setMaxBufferSize(size_t size) {
@@ -325,6 +331,9 @@ void LogPanel::setupLayout() {
 }
 
 void LogPanel::rebuildDisplay() {
+    // Freeze/Thaw optimization: Disable redrawing during batch operations
+    m_logDisplay->Freeze();
+
     m_logDisplay->Clear();
 
     for (const wxString& line : m_logBuffer) {
@@ -333,6 +342,8 @@ void LogPanel::rebuildDisplay() {
             m_logDisplay->AppendText("\n");
         }
     }
+
+    m_logDisplay->Thaw();
 }
 
 } // namespace gui

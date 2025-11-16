@@ -10,6 +10,8 @@
 #include <spdlog/details/null_mutex.h>
 #include <memory>
 #include <mutex>
+#include <deque>
+#include <string>
 
 namespace kalahari {
 namespace gui {
@@ -23,6 +25,15 @@ namespace core {
 /// Forwards formatted log messages to LogPanel::appendLog() on main thread.
 /// Stores raw pointer to LogPanel (owned by wxWidgets parent).
 ///
+/// **Buffered Mode (panel == nullptr):**
+/// - Messages are stored in internal buffer (m_messageHistory)
+/// - Max buffer size: 1000 messages (configurable)
+/// - When panel is attached via setPanel(), history is backfilled
+///
+/// **Active Mode (panel != nullptr):**
+/// - Messages are forwarded to LogPanel::appendLog() immediately
+/// - No buffering occurs
+///
 /// Thread Safety:
 /// - sink_it_() can be called from any thread (protected by base_sink mutex)
 /// - GUI operations marshalled to main thread via wxTheApp->CallAfter()
@@ -35,23 +46,41 @@ namespace core {
 ///
 /// Usage:
 /// @code
-/// auto gui_sink = std::make_shared<GuiLogSink>(logPanel);
+/// // Early startup (before LogPanel exists)
+/// auto gui_sink = std::make_shared<GuiLogSink>(nullptr);
 /// logger->sinks().push_back(gui_sink);
+///
+/// // Later (when LogPanel is created)
+/// gui_sink->setPanel(logPanel);  // Backfills history automatically
 /// @endcode
 template<typename Mutex>
 class GuiLogSinkImpl : public spdlog::sinks::base_sink<Mutex> {
 public:
     /// @brief Constructor
-    /// @param panel Raw pointer to LogPanel (owned by wxWidgets parent)
-    explicit GuiLogSinkImpl(gui::LogPanel* panel);
+    /// @param panel Raw pointer to LogPanel (can be nullptr initially)
+    explicit GuiLogSinkImpl(gui::LogPanel* panel = nullptr);
 
     /// @brief Destructor
     virtual ~GuiLogSinkImpl() = default;
 
+    /// @brief Attach LogPanel and backfill with message history
+    ///
+    /// If panel was nullptr, this backfills the panel with buffered messages.
+    /// Thread-safe: Protected by base_sink mutex.
+    ///
+    /// @param panel Raw pointer to LogPanel (owned by wxWidgets parent)
+    void setPanel(gui::LogPanel* panel);
+
+    /// @brief Detach LogPanel (return to buffered mode)
+    ///
+    /// Future messages will be buffered instead of forwarded.
+    void clearPanel();
+
 protected:
     /// @brief Handle incoming log message
     ///
-    /// Formats the message and calls LogPanel::appendLog() on main thread.
+    /// If panel is nullptr: Store in buffer (m_messageHistory)
+    /// If panel is set: Forward to LogPanel::appendLog() on main thread
     /// Uses wxTheApp->CallAfter() for thread-safe GUI marshalling.
     ///
     /// @param msg Log message from spdlog
@@ -63,6 +92,12 @@ protected:
 private:
     /// @brief Raw pointer to LogPanel (owned by wxWidgets, not ref-counted)
     gui::LogPanel* m_panel;
+
+    /// @brief Message history buffer (used when panel is nullptr)
+    std::deque<std::string> m_messageHistory;
+
+    /// @brief Maximum history buffer size (default 1000 messages)
+    size_t m_maxHistorySize = 1000;
 };
 
 /// @brief Thread-safe GUI log sink (mutex-protected)

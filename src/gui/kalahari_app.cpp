@@ -5,6 +5,7 @@
 #include "main_window.h"
 #include <kalahari/core/document.h>  // Required for std::unique_ptr<Document> in MainWindow
 #include <kalahari/core/logger.h>
+#include <kalahari/core/gui_log_sink.h>  // For GUILogSink creation in initializeLogging()
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/cmd_line_parser.h>
 #include <kalahari/core/diagnostic_manager.h>
@@ -182,6 +183,16 @@ void KalahariApp::initializeLogging() {
     // Initialize logger
     try {
         core::Logger::getInstance().init(logFilePath.utf8_str().data());
+
+        // Create GUILogSink early (before LogPanel exists) to buffer startup logs
+        // Panel will be attached later via setPanel() when diagnostic mode is enabled
+        m_guiLogSink = std::make_shared<core::GuiLogSinkImpl<std::mutex>>(nullptr);
+        m_guiLogSink->set_level(core::Logger::getInstance().getLogger()->level());
+
+        // Add to logger sinks
+        core::Logger::getInstance().getLogger()->sinks().push_back(m_guiLogSink);
+
+        core::Logger::getInstance().debug("GUILogSink created in buffered mode (panel will be attached when diagnostic mode enabled)");
     } catch (const std::exception& e) {
         // If logging fails, show error dialog and continue
         // (app can still run without logging)

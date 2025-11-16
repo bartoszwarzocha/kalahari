@@ -7,8 +7,17 @@
 #pragma once
 
 #include <wx/wx.h>
+#include <memory>
+#include <mutex>
 
 namespace kalahari {
+
+// Forward declarations
+namespace core {
+    template<typename Mutex>
+    class GuiLogSinkImpl;
+}
+
 namespace gui {
 
 // Forward declarations
@@ -42,6 +51,14 @@ public:
     /// standard C++ try-catch doesn't work across event boundaries.
     virtual bool OnExceptionInMainLoop() override;
 
+    /// @brief Get the shared GUILogSink instance
+    ///
+    /// Returns the GUILogSink created during logging initialization.
+    /// Used by MainWindow to attach LogPanel when diagnostic mode is enabled.
+    ///
+    /// @return Shared pointer to GUILogSink (nullptr if logging failed)
+    std::shared_ptr<core::GuiLogSinkImpl<std::mutex>> getGuiLogSink() const { return m_guiLogSink; }
+
 private:
     /// @brief Initialize logging subsystem
     ///
@@ -57,6 +74,12 @@ private:
 
     /// @brief Main application window (owned by wxWidgets, deleted automatically)
     MainWindow* m_mainWindow = nullptr;
+
+    /// @brief Shared GUILogSink for buffering logs before LogPanel exists
+    ///
+    /// Created early in initializeLogging() with nullptr panel.
+    /// When LogPanel is created, MainWindow calls setPanel() to attach and backfill.
+    std::shared_ptr<core::GuiLogSinkImpl<std::mutex>> m_guiLogSink = nullptr;
 };
 
 } // namespace gui
