@@ -2,28 +2,35 @@
 
 **Directory:** `tools/`
 **Purpose:** Development and quality assurance automation scripts
-**Status:** Active (3 scripts)
-**Last Updated:** 2025-10-26
+**Status:** Active (6 scripts - 3 Bash + 3 PowerShell)
+**Last Updated:** 2025-11-19
 
 ---
 
 ## 📋 Overview
 
-This directory contains **standalone bash scripts** for project monitoring, quality assurance, and CI/CD integration. These scripts are **NOT called automatically** by Claude Code agents, skills, or commands - they are **manual tools** for developers and maintainers.
+This directory contains **cross-platform work scripts** in **both Bash and PowerShell** versions for project monitoring, quality assurance, and CI/CD integration. These scripts are **NOT called automatically** by Claude Code agents, skills, or commands - they are **manual tools** for developers and maintainers.
 
-**Key Principle:** Each script serves a distinct purpose with minimal overlap.
+**Key Principles:**
+- Each script serves a distinct purpose with minimal overlap
+- Full feature parity between Bash (`.sh`) and PowerShell (`.ps1`) versions
+- Use native shell for best performance (Bash on Linux/macOS, PowerShell on Windows)
 
 ---
 
 ## 📊 Script Inventory
 
-| Script | Purpose | Size | Lines | Type |
-|--------|---------|------|-------|------|
-| `check-ci.sh` | CI/CD monitoring via GitHub CLI | 6.4KB | 226 | External monitoring |
-| `pre-commit-check.sh` | Automated quality gates (blocks commits) | 17KB | 538 | Quality enforcement |
-| `project-status.sh` | Overall project health dashboard | 29KB | 751 | Manual overview |
+| Script | Purpose | Bash | PowerShell | Type |
+|--------|---------|------|------------|------|
+| **check-ci** | CI/CD monitoring via GitHub CLI | ✅ `.sh` (226 LOC) | ✅ `.ps1` (323 LOC) | External monitoring |
+| **pre-commit-check** | Automated quality gates (blocks commits) | ✅ `.sh` (538 LOC) | ✅ `.ps1` (581 LOC) | Quality enforcement |
+| **project-status** | Overall project health dashboard | ✅ `.sh` (751 LOC) | ✅ `.ps1` (752 LOC) | Manual overview |
 
-**Total:** 3 scripts, 1,515 lines, 52.4KB
+**Total:** 6 scripts (3 Bash + 3 PowerShell), 3,171 lines, ~110KB
+
+**Platform Recommendation:**
+- **Linux/macOS/WSL:** Use Bash versions (`.sh`)
+- **Windows (native):** Use PowerShell versions (`.ps1`)
 
 ---
 
@@ -40,25 +47,24 @@ This directory contains **standalone bash scripts** for project monitoring, qual
 
 **Usage:**
 
+**Bash (Linux/macOS/WSL):**
 ```bash
-# Show latest workflow status (default)
-./tools/check-ci.sh
-./tools/check-ci.sh status
+./tools/check-ci.sh status        # Show latest workflow status
+./tools/check-ci.sh watch         # Watch runs (auto-refresh)
+./tools/check-ci.sh list 20       # List last 20 runs
+./tools/check-ci.sh logs 12345    # Download logs for run ID
+./tools/check-ci.sh summary       # Detailed summary of latest run
+./tools/check-ci.sh --help        # Show help
+```
 
-# Watch runs in real-time (auto-refresh)
-./tools/check-ci.sh watch
-
-# List last N runs
-./tools/check-ci.sh list 20
-
-# Download logs for specific run
-./tools/check-ci.sh logs 12345678
-
-# Show detailed summary of latest run
-./tools/check-ci.sh summary
-
-# Help
-./tools/check-ci.sh --help
+**PowerShell (Windows):**
+```powershell
+.\tools\check-ci.ps1 status
+.\tools\check-ci.ps1 watch
+.\tools\check-ci.ps1 list 20
+.\tools\check-ci.ps1 logs 12345
+.\tools\check-ci.ps1 summary
+.\tools\check-ci.ps1 help
 ```
 
 **Features:**
@@ -90,14 +96,21 @@ This directory contains **standalone bash scripts** for project monitoring, qual
 
 **Usage:**
 
+**Bash:**
 ```bash
-# Run all checks (recommended before every commit)
 ./tools/pre-commit-check.sh
+```
 
-# Typical output:
-# 📊 QUALITY SCORE: 16 / 17 (94%)
-# ✅ EXCELLENT QUALITY (90%+)
-# Ready to commit!
+**PowerShell:**
+```powershell
+.\tools\pre-commit-check.ps1
+```
+
+**Typical output:**
+```
+📊 QUALITY SCORE: 16 / 17 (94%)
+✅ EXCELLENT QUALITY (90%+)
+Ready to commit!
 ```
 
 **Exit Codes:**
@@ -189,27 +202,34 @@ chmod +x .git/hooks/pre-commit
 
 **Usage:**
 
+**Bash:**
 ```bash
-# Run full health check
 ./tools/project-status.sh
+```
 
-# Typical output:
-# ╔═══════════════════════════════════════════════════════════════╗
-# ║          🏥 KALAHARI PROJECT HEALTH DASHBOARD 🏥              ║
-# ╚═══════════════════════════════════════════════════════════════╝
-#
-# 📚 1. DOCUMENTATION CONSISTENCY
-# 📊 2. CLAUDE CODE RESOURCES
-# 🛠️  3. CODE QUALITY TOOLS
-# 🏗️  4. BUILD SYSTEM
-# 📁 5. SOURCE STRUCTURE
-# 🔧 6. GIT REPOSITORY
-# 🔄 7. CI/CD STATUS
-# 📝 8. WORK SCRIPTS
-#
-# ═══════════════════════════════════════════════════════════════
-# 🏥 OVERALL PROJECT HEALTH: 85% (GOOD)
-# ═══════════════════════════════════════════════════════════════
+**PowerShell:**
+```powershell
+.\tools\project-status.ps1
+```
+
+**Typical output:**
+```
+╔═══════════════════════════════════════════════════════════════╗
+║          🏥 KALAHARI PROJECT HEALTH DASHBOARD 🏥              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📚 1. DOCUMENTATION CONSISTENCY
+📊 2. CLAUDE CODE RESOURCES
+🛠️  3. CODE QUALITY TOOLS
+🏗️  4. BUILD SYSTEM
+📁 5. SOURCE STRUCTURE
+🔧 6. GIT REPOSITORY
+🔄 7. CI/CD STATUS
+📝 8. WORK SCRIPTS
+
+═══════════════════════════════════════════════════════════════
+🏥 OVERALL PROJECT HEALTH: 85% (GOOD)
+═══════════════════════════════════════════════════════════════
 ```
 
 **8 Health Categories:**
@@ -420,9 +440,76 @@ echo ""
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2025-10-26 | Initial creation of all 3 scripts |
+| 1.0 | 2025-10-26 | Initial creation of all 3 Bash scripts |
 | 1.1 | 2025-10-26 | Renamed health-check.sh → project-status.sh (avoid /health-check conflict) |
 | 1.2 | 2025-10-26 | Added tools/README.md documentation |
+| **2.0** | **2025-11-19** | **Added PowerShell versions (.ps1) for all 3 scripts - full cross-platform support** |
+
+---
+
+## 🌐 Cross-Platform Strategy
+
+**Why Both Bash and PowerShell?**
+
+**1. True Cross-Platform Support:**
+- Bash: Native on Linux/macOS, available via WSL on Windows
+- PowerShell: Native on Windows, available on Linux/macOS via PowerShell Core
+- No forced dependencies (e.g., no WSL requirement on Windows)
+
+**2. Development Flexibility:**
+- Work in your native environment (no context switching)
+- No performance overhead from translation layers
+- Better integration with OS-native tools
+
+**3. CI/CD Compatibility:**
+- Bash for Linux/macOS GitHub Actions runners
+- PowerShell for Windows runners
+- Identical logic, identical results
+
+**Platform Selection Guide:**
+
+| Platform | Recommended | Alternative | Performance |
+|----------|-------------|-------------|-------------|
+| **Linux** | Bash (`.sh`) | PowerShell Core | ⚡ Native |
+| **macOS** | Bash (`.sh`) | PowerShell Core | ⚡ Native |
+| **Windows + WSL** | Bash (`.sh`) | PowerShell | ⚠️ WSL overhead |
+| **Windows (native)** | PowerShell (`.ps1`) | WSL + Bash | ⚡ Native |
+
+**Feature Parity Guarantee:**
+- ✅ All commands work identically
+- ✅ Same exit codes
+- ✅ Same output format
+- ✅ Same quality checks
+- ✅ Maintained in parallel (changes to one = changes to both)
+
+**Quick Start - Windows Users:**
+
+If experiencing WSL instability (connection drops, slow I/O):
+
+1. **Switch to native PowerShell:**
+   ```powershell
+   cd E:\Python\Projekty\Kalahari
+   .\tools\check-ci.ps1 status
+   .\tools\pre-commit-check.ps1
+   .\tools\project-status.ps1
+   ```
+
+2. **Build system works natively:**
+   ```powershell
+   cmake -B build
+   cmake --build build --config Debug
+   ```
+
+3. **Claude Code works in PowerShell:**
+   ```powershell
+   claude code
+   ```
+
+**Migration from WSL to PowerShell:**
+- Same git repository (already on Windows filesystem)
+- Same build system (CMake + vcpkg + MSVC)
+- Same quality checks (PowerShell versions)
+- No code changes needed
 
 ---
 
@@ -448,11 +535,28 @@ A: **NO.** These are standalone tools. They are *referenced* in documentation bu
 **Q: Why was health-check.sh renamed to project-status.sh?**
 A: To avoid naming conflict with `/health-check` slash command (AI-driven analysis) vs `project-status.sh` (automated file checks).
 
-**Q: Can I skip pre-commit-check.sh?**
+**Q: Can I skip pre-commit-check?**
 A: You *can*, but it's **strongly recommended** to run before every commit. It catches common issues early.
 
-**Q: What if check-ci.sh fails to authenticate?**
+**Q: What if check-ci fails to authenticate?**
 A: Run `gh auth login` to authenticate GitHub CLI.
+
+**Q: Which version should I use - Bash or PowerShell?**
+A: Use the **native** shell for your platform:
+- Linux/macOS → Bash (`.sh`)
+- Windows → PowerShell (`.ps1`)
+- Experiencing WSL issues on Windows? Switch to PowerShell!
+
+**Q: Are Bash and PowerShell versions identical?**
+A: Yes! Full feature parity:
+- Same commands and options
+- Same exit codes
+- Same output (colors, emojis, formatting)
+- Same quality checks and thresholds
+- Changes to one = changes to both
+
+**Q: Do I need WSL to work on Windows?**
+A: **No!** With PowerShell versions, you can work 100% natively on Windows. WSL is optional.
 
 ---
 
@@ -465,6 +569,7 @@ A: Run `gh auth login` to authenticate GitHub CLI.
 
 ---
 
-**Document Version:** 1.0
+**Document Version:** 2.0 (Cross-Platform)
 **Maintained By:** Project Lead + Claude Code
-**Last Review:** 2025-10-26
+**Last Review:** 2025-11-19
+**Major Changes:** Added PowerShell (.ps1) equivalents for all scripts
