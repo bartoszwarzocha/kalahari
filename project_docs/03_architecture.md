@@ -3,8 +3,8 @@
 > **System Architecture** - Core design patterns, component structure, and technical decisions
 
 **Status:** ✅ Complete
-**Version:** 1.0
-**Last Updated:** 2025-10-25
+**Version:** 2.0 (Qt Migration)
+**Last Updated:** 2025-11-19
 
 ---
 
@@ -24,10 +24,10 @@ Kalahari's architecture is designed around **five core principles**:
 
 **Core Technologies:**
 - **Language:** C++20 (GCC 10+, Clang 10+, MSVC 2019+)
-- **GUI:** wxWidgets 3.2+ with wxAUI (dockable panels)
-- **Build:** CMake 3.21+ with vcpkg (manifest mode)
+- **GUI:** Qt6 6.5.0+ (Core + Widgets) with QDockWidget (dockable panels)
+- **Build:** CMake 3.21+ with vcpkg (manifest mode), CMAKE_AUTOMOC/AUTORCC/AUTOUIC
 - **Plugins:** Python 3.11 embedded via pybind11
-- **Testing:** Catch2 v3 (BDD style)
+- **Testing:** Catch2 v3 (BDD style) + QTest (GUI tests, Phase 1+)
 - **Logging:** spdlog (fast, structured)
 - **JSON:** nlohmann_json
 - **Compression:** libzip (for .klh files)
@@ -37,8 +37,8 @@ Kalahari's architecture is designed around **five core principles**:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| **GUI Pattern** | MVP (Model-View-Presenter) | Clear separation, testable presenters, wxWidgets-friendly |
-| **Error Handling** | Hybrid (exceptions + error codes + wxLog*) | Pragmatic for desktop app, clear guidelines |
+| **GUI Pattern** | MVP (Model-View-Presenter) + Qt Signals/Slots | Clear separation, testable presenters, Qt-native communication |
+| **Error Handling** | Hybrid (exceptions + error codes + spdlog/QMessageBox) | Pragmatic for desktop app, clear guidelines |
 | **Dependency Management** | Hybrid (Singletons infrastructure + DI business logic) | Infrastructure stable, business logic testable |
 | **Threading** | Dynamic thread pool (2-4 workers) | CPU-aware, prevents over-subscription |
 | **Memory** | Lazy loading from Phase 1 + smart pointers | Large document support, RAII principles |
@@ -103,8 +103,9 @@ public:
 
 ```
 ┌────────────────────────────────────────┐
-│     Presentation Layer (wxWidgets)     │
-│  Views (Passive) + Presenters (Logic)  │
+│       Presentation Layer (Qt6)         │
+│  Views (QWidget) + Presenters (Logic)  │
+│      Signals/Slots Communication       │
 ├────────────────────────────────────────┤
 │       Business Logic Layer (C++)       │
 │   Models + Services + Domain Logic     │
@@ -127,44 +128,92 @@ public:
 
 ## Design Patterns
 
-### MVP (Model-View-Presenter)
+### MVP (Model-View-Presenter) + Qt Signals/Slots
 
 **Why MVP not MVC:**
-- Testable presenters (no wxWidgets dependencies)
+- Testable presenters (no Qt widget dependencies)
 - Passive views (minimal logic)
+- Qt signals/slots for type-safe communication
 - Clear separation of concerns
 
 **Example:**
 ```cpp
-// Model - Pure C++, no GUI
-class DocumentModel {
+// Model - Pure C++, no GUI, inherits QObject for signals
+class DocumentModel : public QObject {
+    Q_OBJECT
+
     std::string m_text;
+
 public:
+    DocumentModel(QObject* parent = nullptr) : QObject(parent) {}
+
     const std::string& getText() const { return m_text; }
-    void setText(const std::string& text) { m_text = text; }
+    void setText(const std::string& text) {
+        m_text = text;
+        emit textChanged(QString::fromStdString(text));
+    }
     int getWordCount() const;
+
+signals:
+    void textChanged(const QString& newText);
 };
 
-// View - wxWidgets, passive
-class DocumentView : public wxPanel {
-    wxRichTextCtrl* m_editor;
+// View - Qt, passive, signals for user actions
+class DocumentView : public QWidget {
+    Q_OBJECT
+
+    QPlainTextEdit* m_editor;
+
 public:
-    std::string getText() const { return m_editor->GetValue().ToStdString(); }
-    void setText(const std::string& text) { m_editor->SetValue(text); }
+    DocumentView(QWidget* parent = nullptr);
+
+    QString getText() const { return m_editor->toPlainText(); }
+    void setText(const QString& text) { m_editor->setPlainText(text); }
+
+signals:
+    void userChangedText(const QString& newText);
 };
 
-// Presenter - Mediator
-class DocumentPresenter {
+// Presenter - Mediator, connects Model ↔ View
+class DocumentPresenter : public QObject {
+    Q_OBJECT
+
     DocumentModel* m_model;
     DocumentView* m_view;
+
 public:
-    DocumentPresenter(DocumentModel* model, DocumentView* view);
-    void onTextChanged(const std::string& text) {
-        m_model->setText(text);
-        EventBus::instance().emit(TextChangedEvent{text});
+    DocumentPresenter(DocumentModel* model, DocumentView* view, QObject* parent = nullptr);
+
+private slots:
+    void onUserChangedText(const QString& text) {
+        m_model->setText(text.toStdString());
+        EventBus::instance().emit(TextChangedEvent{text.toStdString()});
+    }
+
+    void onModelTextChanged(const QString& text) {
+        m_view->setText(text);
     }
 };
+
+// Connection setup (in constructor or init)
+DocumentPresenter::DocumentPresenter(DocumentModel* model, DocumentView* view, QObject* parent)
+    : QObject(parent), m_model(model), m_view(view) {
+
+    // View → Presenter
+    connect(m_view, &DocumentView::userChangedText,
+            this, &DocumentPresenter::onUserChangedText);
+
+    // Model → Presenter → View
+    connect(m_model, &DocumentModel::textChanged,
+            this, &DocumentPresenter::onModelTextChanged);
+}
 ```
+
+**Qt Signals/Slots Benefits:**
+- Type-safe at compile-time
+- Automatic thread-safe cross-thread delivery
+- Many-to-many connections (one signal → multiple slots)
+- No manual observer management (disconnect on deletion)
 
 ### Command Pattern (Undo/Redo)
 
@@ -281,12 +330,20 @@ public:
 - User input validation
 - I/O operations
 
-**Use wxLog* for:**
+**Use spdlog for:**
+- Development logging (debug, info, warn, error)
+- File-based logs for diagnostics
+
+**Use QMessageBox for:**
 - User-facing error messages
-- Warnings and info messages
+- Warnings and confirmations
+- Critical errors requiring user attention
 
 **Example:**
 ```cpp
+#include <spdlog/spdlog.h>
+#include <QMessageBox>
+
 // Exceptions for programmer errors
 void setText(const std::string& text) {
     if (text.empty()) {
@@ -297,16 +354,50 @@ void setText(const std::string& text) {
 // Error codes for expected failures
 std::optional<Document> loadDocument(const std::string& path) {
     if (!std::filesystem::exists(path)) {
+        spdlog::debug("File not found: {}", path);
         return std::nullopt;  // Expected failure
     }
     return Document::fromFile(path);
 }
 
-// wxLog for user messages
-void onSaveError() {
-    wxLogError("Failed to save document");
+// spdlog for development diagnostics
+void onSaveDocument(const std::string& path) {
+    spdlog::info("Saving document to: {}", path);
+    try {
+        saveToFile(path);
+        spdlog::debug("Save successful");
+    } catch (const std::exception& e) {
+        spdlog::error("Save failed: {}", e.what());
+        throw;
+    }
+}
+
+// QMessageBox for user-facing errors
+void onSaveError(QWidget* parent, const QString& path) {
+    QMessageBox::critical(
+        parent,
+        tr("Save Failed"),
+        tr("Failed to save document:\n%1").arg(path)
+    );
+}
+
+// QMessageBox for confirmations
+bool confirmUnsavedChanges(QWidget* parent) {
+    auto reply = QMessageBox::question(
+        parent,
+        tr("Unsaved Changes"),
+        tr("Do you want to save your changes?"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel
+    );
+    return reply == QMessageBox::Save;
 }
 ```
+
+**Qt Error Handling Best Practices:**
+- **spdlog:** Background logs for developers and diagnostics
+- **QMessageBox:** User-facing errors/warnings/confirmations
+- **std::optional:** Graceful handling of missing/invalid data
+- **Exceptions:** Only for truly exceptional cases (not control flow)
 
 ---
 
@@ -366,32 +457,65 @@ public:
 ```cpp
 // WRONG - will crash
 threadPool.submit([]() {
-    wxLogMessage("Done");  // CRASH
+    QMessageBox::information(nullptr, "Done", "Work complete");  // CRASH
 });
 
-// CORRECT - marshal to GUI thread
-threadPool.submit([]() {
+// CORRECT - Qt signals/slots (automatic thread-safe delivery)
+class Worker : public QObject {
+    Q_OBJECT
+signals:
+    void workCompleted(int result);
+};
+
+// In worker thread
+worker->workCompleted(result);  // Qt automatically marshals to GUI thread
+
+// Or use QMetaObject::invokeMethod
+threadPool.submit([=]() {
     auto result = heavyWork();
-    wxTheApp->CallAfter([result]() {
-        wxLogMessage("Done: %d", result);
-    });
+    QMetaObject::invokeMethod(mainWindow, [result]() {
+        mainWindow->showResult(result);
+    }, Qt::QueuedConnection);  // Thread-safe queued call
+});
+
+// Or emit signal directly (if worker inherits QObject)
+threadPool.submit([=]() {
+    auto result = heavyWork();
+    emit resultReady(result);  // Qt handles thread-safety
 });
 ```
 
 2. **Python GIL handling:**
 ```cpp
-threadPool.submit([=]() {
+// Worker class with signals
+class PluginWorker : public QObject {
+    Q_OBJECT
+signals:
+    void pluginCompleted();
+};
+
+threadPool.submit([=, worker = pluginWorker]() {
     py::gil_scoped_acquire acquire;  // Get GIL
     {
         py::gil_scoped_release release;  // Release during work
         plugin.execute(command);
     }
-    // Marshal result to GUI
-    wxTheApp->CallAfter([=]() {
+
+    // Marshal result to GUI via Qt signal (thread-safe)
+    emit worker->pluginCompleted();
+
+    // Or use QMetaObject::invokeMethod
+    QMetaObject::invokeMethod(qApp, []() {
         EventBus::instance().emit(PluginComplete{});
-    });
+    }, Qt::QueuedConnection);
 });
 ```
+
+**Qt Threading Benefits:**
+- **Automatic marshaling:** Signals across threads auto-delivered to correct thread
+- **Type-safe:** Compile-time checks for signal/slot signatures
+- **No manual synchronization:** Qt handles queuing and delivery
+- **QueuedConnection:** Explicit thread-safe queued calls via `QMetaObject::invokeMethod`
 
 ---
 
@@ -560,26 +684,40 @@ TEST_CASE("DocumentModel manages chapters", "[document][model]") {
 
 This architecture defines:
 
-✅ **MVP Pattern** - Clear GUI separation (Model/View/Presenter)
-✅ **Hybrid Error Handling** - Exceptions + error codes + wxLog* with clear guidelines
+✅ **MVP Pattern + Qt Signals/Slots** - Clear GUI separation, type-safe communication
+✅ **Hybrid Error Handling** - Exceptions + error codes + spdlog/QMessageBox with clear guidelines
 ✅ **Hybrid Dependencies** - Singletons (infrastructure) + DI (business logic)
-✅ **Dynamic Threading** - 2-4 worker pool, CPU-aware, GIL-safe
+✅ **Dynamic Threading** - 2-4 worker pool, CPU-aware, GIL-safe, Qt thread-safe signals
 ✅ **Lazy Loading** - Metadata eager, content on-demand
 ✅ **Command Pattern** - 100-command undo/redo, mergeable
 ✅ **Composite Model** - Book → Parts → Chapters
-✅ **Event System** - Thread-safe EventBus, async GUI marshalling
+✅ **Event System** - Thread-safe EventBus, Qt signals for GUI marshalling
 ✅ **File Formats** - .klh (ZIP+JSON+RTF), .kplugin (ZIP+manifest)
-✅ **Testing** - 60/30/10 pyramid, Catch2 BDD style
+✅ **Testing** - 60/30/10 pyramid, Catch2 BDD + QTest for GUI
 ✅ **Performance** - Lazy, async, FTS5 (Phase 2+)
 ✅ **Security** - Sandboxing, encryption, keychain
 
+**Qt-Specific Architectural Patterns:**
+- **QObject hierarchy:** Parent-child ownership for automatic memory management
+- **Meta-object system:** Runtime introspection via `Q_OBJECT` macro
+- **Signals/Slots:** Type-safe observer pattern with automatic cleanup
+- **Automatic DPI scaling:** Zero manual code, Qt handles all scaling
+- **QSettings:** Platform-native settings persistence (registry/plist/ini)
+- **QTranslator:** Integrated i18n with lupdate/linguist/lrelease workflow
+
+**Migration Notes (2025-11-19):**
+- **Previous:** wxWidgets 3.3.0+ with manual DPI scaling (400 LOC reactive system)
+- **Current:** Qt6 6.5.0+ with automatic DPI scaling (zero LOC)
+- **Impact:** GUI layer completely rewritten, core/tests/plugins 100% preserved
+- **Benefits:** Superior documentation, automatic scaling, QSS theming, simpler reactive patterns
+
 **Next Steps:**
-1. Finalize 04_plugin_system.md (detailed Extension Points API)
-2. Update 07_mvp_tasks.md (week-by-week implementation breakdown)
-3. Start Phase 0 - Foundation 🚀
+1. Phase 0 Qt Foundation (4 weeks, 12 tasks)
+2. Phase 1 Core Editor (5 months)
+3. Phase 2+ Plugin System MVP
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-10-25
-**Next Review:** Start of Phase 0
+**Document Version:** 2.0 (Qt Migration)
+**Last Updated:** 2025-11-19
+**Next Review:** Phase 0 Week 1 (Task #00001)
