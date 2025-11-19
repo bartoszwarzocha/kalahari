@@ -1,3 +1,25 @@
+---
+**⚠️ ARCHIVED - HISTORICAL REFERENCE ONLY**
+
+**Status:** ARCHIVED (2025-11-19)  
+**Reason:** Kalahari migrated from wxWidgets 3.3.0+ to Qt6 6.5.0+  
+**Relevance:** Historical record of bwx_sdk integration strategy (wxWidgets era)  
+**Current Status:** bwx_sdk submodule removed, "Need → Solution" strategy no longer applies  
+**Preservation:** Complete wxWidgets implementation in wxwidgets-archive branch  
+**Migration Decision:** See `qt_migration_decision_2025-11-19` memory
+
+This MASTER document describes the complete bwx_sdk integration strategy used during wxWidgets development.
+The submodule is no longer active in Kalahari's Qt6 codebase. 
+
+For Qt6 development, Qt provides native utilities that previously required bwx_sdk:
+- ISO 8601: Qt's QDateTime::toString(Qt::ISODate)
+- Math utilities: Qt's QtMath module
+- GUI helpers: Qt's layout system with native DPI scaling
+
+**Do NOT apply bwx_sdk integration patterns to Qt6 development.**
+
+---
+
 # bwx_sdk ↔ Kalahari Integration Strategy (MASTER DOCUMENT)
 
 **Date Created:** 2025-11-03

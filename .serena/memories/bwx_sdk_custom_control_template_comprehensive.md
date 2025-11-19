@@ -1,3 +1,19 @@
+---
+**⚠️ ARCHIVED - HISTORICAL REFERENCE ONLY**
+
+**Status:** ARCHIVED (2025-11-19)  
+**Reason:** Kalahari migrated from wxWidgets 3.3.0+ to Qt6 6.5.0+  
+**Relevance:** Historical reference for bwx_sdk (wxWidgets-specific)  
+**Active Alternative:** Qt6 custom controls (QWidget subclasses)  
+**Migration Decision:** See `qt_migration_decision_2025-11-19` memory
+
+This memory documents wxWidgets custom control patterns used in the bwx_sdk submodule. 
+While bwx_sdk is preserved in the wxwidgets-archive branch, Kalahari's GUI layer is now Qt6-based.
+
+**Do NOT use these patterns for new Kalahari GUI code.**
+
+---
+
 # BWX_SDK Custom Control Development Template
 
 **Date:** 2025-11-03  

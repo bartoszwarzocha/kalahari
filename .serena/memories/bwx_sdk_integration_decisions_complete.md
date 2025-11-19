@@ -1,3 +1,20 @@
+---
+**⚠️ ARCHIVED - HISTORICAL REFERENCE ONLY**
+
+**Status:** ARCHIVED (2025-11-19)  
+**Reason:** Kalahari migrated from wxWidgets 3.3.0+ to Qt6 6.5.0+  
+**Relevance:** Historical record of bwx_sdk integration strategy (wxWidgets era)  
+**Current Status:** bwx_sdk submodule removed from active Kalahari codebase  
+**Preservation:** bwx_sdk code preserved in wxwidgets-archive branch  
+**Migration Decision:** See `qt_migration_decision_2025-11-19` memory
+
+This memory documents the bwx_sdk selective integration strategy used during wxWidgets development.
+The submodule is no longer active in Kalahari's Qt6 implementation.
+
+**Do NOT apply these integration patterns to Qt6 development.**
+
+---
+
 # bwx_sdk Integration - Complete Decisions (2025-11-03)
 
 ## Integration Strategy: Selective Integration
