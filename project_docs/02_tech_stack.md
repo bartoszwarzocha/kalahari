@@ -2,8 +2,8 @@
 
 > Comprehensive technical stack for Kalahari - C++20 core with Python plugin system
 
-**Status:** ✅ Finalized
-**Last Updated:** 2025-10-24
+**Status:** ✅ Updated for Qt6 Migration
+**Last Updated:** 2025-11-19
 
 ---
 
@@ -13,8 +13,10 @@ Kalahari is built as a **C++ core application** with an **embedded Python plugin
 
 - **Performance:** Native C++ for responsive GUI and core operations
 - **Extensibility:** Python plugins for features, importers/exporters
-- **Cross-platform:** wxWidgets provides native look & feel on all platforms
-- **Modern:** C++20 features, contemporary build tools
+- **Cross-platform:** Qt6 provides native look & feel with automatic DPI scaling
+- **Modern:** C++20 features, Qt6 framework, contemporary build tools
+
+**Migration Note (2025-11-19):** Migrated from wxWidgets 3.3.0+ to Qt6 6.5.0+ for superior DPI handling, theming, and documentation. See [CHANGELOG.md](../CHANGELOG.md) for migration details.
 
 ---
 
@@ -75,7 +77,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 # Find packages
-find_package(wxWidgets REQUIRED COMPONENTS core base richtext aui stc webview)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 # ... more packages
@@ -88,7 +93,8 @@ add_executable(kalahari
 )
 
 target_link_libraries(kalahari PRIVATE
-    wxWidgets::wxWidgets
+    Qt6::Core
+    Qt6::Widgets
     nlohmann_json::nlohmann_json
     # ... more libraries
 )
@@ -101,7 +107,7 @@ target_link_libraries(kalahari PRIVATE
 **Package Manager:** vcpkg (manifest mode)
 
 **Why vcpkg?**
-- Best wxWidgets support (critical dependency)
+- Best Qt6 support (critical dependency - qtbase, qttools)
 - Cross-platform (Windows, macOS, Linux)
 - Reproducible builds (vcpkg.json manifest)
 - Binary caching (fast rebuilds)
@@ -133,7 +139,7 @@ target_link_libraries(kalahari PRIVATE
 ```
 
 **Alternatives Considered:**
-- **Conan:** Faster, but worse wxWidgets support
+- **Conan:** Faster, but worse Qt6 support (vcpkg has official Qt ports)
 - **Manual:** Full control, but maintenance nightmare
 - **Verdict:** vcpkg is optimal for Kalahari
 
@@ -192,65 +198,105 @@ tests/
 
 ## GUI Framework
 
-### wxWidgets
+### Qt6
 
-**Version:** wxWidgets 3.3.0+
+**Version:** Qt6 6.5.0+
 
-**Why wxWidgets?**
-- **Native look & feel** on all platforms
-- **Dark mode support** (from version 3.3.0 - critical for theme switching)
-- **Mature & stable** (25+ years of development)
-- **Cross-platform** (Windows, macOS, Linux)
-- **Rich widgets** (rich text control, AUI docking)
-- **Active community**
-- **MIT-like license** (compatible with our MIT core)
+**Why Qt6?**
+- **Automatic DPI scaling** - Zero manual code, works out-of-the-box
+- **Global font scaling** - One line: `QApplication::setFont()`
+- **QSS styling** - CSS-like theming system
+- **Superior documentation** - Comprehensive, well-organized, searchable
+- **Modern architecture** - Signal/slot, QML, declarative UI
+- **Cross-platform** - Windows, macOS, Linux with native look & feel
+- **Mature & stable** - 30+ years of development (KDE, automotive, industrial)
+- **Active community** - Large ecosystem, excellent support
+- **LGPL license** - Dynamic linking compatible with proprietary Python plugins
 
-**Key wxWidgets Components:**
-- `wxFrame` - Main application window
-- `wxAUI` - Advanced User Interface (dockable panels)
-- `wxRichTextCtrl` - Rich text editor widget
-- `wxStyledTextCtrl` - Syntax highlighting (for Markdown mode)
-- `wxTreeCtrl` - Project navigator
-- `wxNotebook`, `wxPanel` - UI containers
-- `wxMenuBar`, `wxToolBar`, `wxStatusBar` - Standard UI elements
+**Migration Decision (2025-11-19):**
+- **From:** wxWidgets 3.3.0+ (manual DPI, wxStaticBoxSizer bugs, 400 LOC reactive system)
+- **To:** Qt6 6.5.0+ (automatic DPI, QApplication::setFont(), QSS styling)
+- **Strategy:** Clean Slate Approach (archived wxWidgets, rebuilt GUI with Qt)
+- **Timeline:** +4 weeks (Phase 0 Qt Foundation)
 
-**wxAUI (Docking System):**
-- Dockable panels (project navigator, assistant, stats)
-- Perspectives (saveable layouts)
-- Drag-and-drop panel repositioning
-- Floating panels
+**Key Qt6 Components:**
+- `QMainWindow` - Main application window with menu/toolbar/statusbar
+- `QDockWidget` - Dockable panels system (cleaner than wxAUI)
+- `QPlainTextEdit` / `QTextEdit` - Text editing widgets
+- `QTreeWidget` / `QTreeView` - Hierarchical data display (project navigator)
+- `QTabWidget` - Tabbed UI containers
+- `QVBoxLayout` / `QHBoxLayout` / `QGroupBox` - Responsive layouts
+- `QMenuBar`, `QToolBar`, `QStatusBar` - Standard UI elements
+- `QSettings` - Platform-native settings persistence
 
-**Example wxAUI Setup:**
+**QDockWidget System:**
+- Dockable panels (project navigator, assistant, statistics)
+- Perspectives (saveable layouts via QSettings)
+- Drag-and-drop repositioning
+- Floating/tabbed/stacked panels
+- Built-in toolbar icons for show/hide
+
+**DPI & Font Scaling:**
 ```cpp
-#include <wx/aui/aui.h>
+// Automatic DPI scaling (no manual code needed)
+QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
-class MainFrame : public wxFrame {
-    wxAuiManager m_auiMgr;
+// Global font scaling (one line vs 400 LOC reactive system)
+QFont baseFont = QApplication::font();
+baseFont.setPointSize(baseFont.pointSize() * scaleFactor);
+QApplication::setFont(baseFont);
 
+// QSS theming (CSS-like)
+qApp->setStyleSheet("QGroupBox { font-weight: bold; }");
+```
+
+**Example QDockWidget Setup:**
+```cpp
+#include <QMainWindow>
+#include <QDockWidget>
+
+class MainWindow : public QMainWindow {
 public:
-    MainFrame() {
-        m_auiMgr.SetManagedWindow(this);
+    MainWindow() {
+        // Create dockable panels
+        QDockWidget *navigatorDock = new QDockWidget("Project Navigator", this);
+        navigatorDock->setWidget(new ProjectNavigator(this));
+        addDockWidget(Qt::LeftDockWidgetArea, navigatorDock);
 
-        // Add panels
-        m_auiMgr.AddPane(new ProjectNavigator(this),
-            wxAuiPaneInfo().Name("navigator").Caption("Project")
-            .Left().MinSize(200, -1).BestSize(250, -1));
+        QDockWidget *assistantDock = new QDockWidget("Assistant", this);
+        assistantDock->setWidget(new AssistantPanel(this));
+        assistantDock->setFloating(true);  // Start floating
+        addDockWidget(Qt::RightDockWidgetArea, assistantDock);
 
-        m_auiMgr.AddPane(new EditorPanel(this),
-            wxAuiPaneInfo().Name("editor").CenterPane());
+        // Central widget (editor)
+        setCentralWidget(new EditorWidget(this));
 
-        m_auiMgr.AddPane(new AssistantPanel(this),
-            wxAuiPaneInfo().Name("assistant").Caption("Assistant")
-            .Right().Float().BestSize(300, 400));
-
-        m_auiMgr.Update();
+        // Perspective save/restore
+        QSettings settings("Kalahari", "App");
+        restoreGeometry(settings.value("geometry").toByteArray());
+        restoreState(settings.value("windowState").toByteArray());
     }
 
-    ~MainFrame() {
-        m_auiMgr.UnInit();
+    ~MainWindow() {
+        // Auto-save perspective
+        QSettings settings("Kalahari", "App");
+        settings.setValue("geometry", saveGeometry());
+        settings.setValue("windowState", saveState());
     }
 };
 ```
+
+**Qt vs wxWidgets Comparison:**
+
+| Feature | wxWidgets 3.3.0+ | Qt6 6.5.0+ |
+|---------|------------------|------------|
+| DPI Scaling | Manual (400 LOC reactive system) | Automatic (built-in) |
+| Font Scaling | Custom broadcast pattern | `QApplication::setFont()` (1 line) |
+| Theming | Complex, platform-specific | QSS (CSS-like) |
+| Docking | wxAUI (complex API) | QDockWidget (simpler) |
+| Documentation | Good, scattered | Excellent, comprehensive |
+| Community | Active | Very active |
+| Licensing | wxWindows (MIT-like) | LGPL/Commercial (LGPL OK for us) |
 
 ---
 
@@ -539,11 +585,11 @@ class DOCXExporter:
 
 ## Internationalization (i18n)
 
-**System:** wxWidgets wxLocale + GNU gettext
+**System:** Qt i18n (tr() + Qt Linguist + .ts/.qm files)
 
 **Formats:**
-- `.po` - Portable Object (human-editable translations)
-- `.mo` - Machine Object (compiled translations)
+- `.ts` - Translation Source (XML, human-editable, created by Qt Linguist)
+- `.qm` - Qt Message (binary, compiled translations)
 
 **Supported Languages (MVP):**
 - 🇬🇧 English (primary)
@@ -643,7 +689,7 @@ strategy:
 │                   KALAHARI APPLICATION                   │
 ├─────────────────────────────────────────────────────────┤
 │  C++ Core (C++20)                                       │
-│  ├─ GUI: wxWidgets 3.3.0+ (wxAUI, dark mode)           │
+│  ├─ GUI: Qt6 6.5.0+ (QDockWidget, auto DPI, QSS)       │
 │  ├─ JSON: nlohmann_json                                │
 │  ├─ Logging: spdlog                                    │
 │  ├─ Compression: libzip (.klh files)                   │
