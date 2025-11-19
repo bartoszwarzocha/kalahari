@@ -101,7 +101,10 @@ else()
 endif()
 
 # Find dependencies (vcpkg will install these automatically)
-find_package(wxWidgets CONFIG REQUIRED)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)
@@ -124,15 +127,8 @@ include_directories(
 
 # Include custom CMake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-set(BWX_SKIP_GL ON CACHE BOOL "Disable bwx_gl module for Kalahari" FORCE)
 include(PrecompiledHeaders)
 
-# bwx_sdk integration (external library)
-message(STATUS "Adding bwx_sdk library...")
-set(BWX_BUILD_EXAMPLES OFF CACHE BOOL "Disable bwx_sdk examples" FORCE)
-set(BWX_BUILD_GL OFF CACHE BOOL "Disable bwx_gl module (OpenGL not needed)" FORCE)
-add_subdirectory(external/bwx_sdk EXCLUDE_FROM_ALL)
-message(STATUS "bwx_sdk targets available: bwx_core, bwx_gui, bwx_utils")
 # Subdirectories
 add_subdirectory(src)
 add_subdirectory(src/bindings)

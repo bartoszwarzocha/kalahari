@@ -20,7 +20,7 @@ set(KALAHARI_CORE_SOURCES
 )
 
 # Create core library as SHARED for Python module compatibility
-# Static library + Python module linkage on Linux requires -fPIC which conflicts with wxWidgets
+# SHARED library ensures Python module can link correctly across all platforms
 add_library(kalahari_core SHARED ${KALAHARI_CORE_SOURCES})
 
 # Core library properties
@@ -65,55 +65,24 @@ target_include_directories(kalahari_core PUBLIC
     ${CMAKE_BINARY_DIR}/include
 )
 
-# Core library dependencies
+# Core library dependencies (Qt-agnostic)
 target_link_libraries(kalahari_core PUBLIC
-    bwx_core
-    bwx_gui
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
     Python3::Python
     pybind11::embed
-    wx::core
-    wx::base
-    # Note: wxWebView is part of wx::core on Linux (if WebKitGTK is installed)
-    # On Windows, would be wx::webview (but webview feature not available via vcpkg yet)
 )
 
 # Static library - no post-build copy needed
 
 # Kalahari executable target
+# NOTE: GUI layer removed during Qt migration (Step 0.2)
+# Will be rebuilt with Qt6 in subsequent phases
 
-# Executable source files (GUI + main)
+# Executable source files (minimal placeholder)
 set(KALAHARI_SOURCES
     main.cpp
-    core/gui_log_sink.cpp  # GUI-specific, not in core library
-    gui/kalahari_app.cpp
-    gui/main_window.cpp
-    gui/settings_dialog.cpp
-    gui/editor_settings_panel.cpp      # Phase 1: Editor settings (Task #00019)
-    gui/log_settings_panel.cpp         # Phase 1: Diagnostic Log settings (Task #00020)
-    gui/appearance_settings_panel.cpp  # Phase 1: Appearance settings (Task #00020 - Option C)
-    gui/icon_registry.cpp
-    gui/art_provider.cpp
-    gui/perspective_manager.cpp
-    gui/command.cpp                    # Phase 1: Command Registry structures (Task #00024)
-    gui/command_registry.cpp           # Phase 1: Command Registry singleton (Task #00025)
-    gui/shortcut_manager.cpp           # Phase 1: Keyboard Shortcut Management (Task #00027)
-    gui/menu_builder.cpp               # Phase 1: Dynamic Menu Builder (Task #00031)
-    gui/toolbar_builder.cpp            # Phase 1: Dynamic Toolbar Builder (Task #00032)
-    gui/dialogs/about_dialog.cpp
-    gui/dialogs/manage_perspectives_dialog.cpp
-    gui/panels/navigator_panel.cpp
-    gui/panels/outline_tab.cpp
-    gui/panels/files_tab.cpp
-    gui/panels/libraries_tab.cpp
-    gui/panels/editor_panel.cpp
-    gui/panels/properties_panel.cpp
-    gui/panels/statistics_panel.cpp
-    gui/panels/search_panel.cpp
-    gui/panels/assistant_panel.cpp
-    gui/panels/log_panel.cpp
 )
 
 # Create executable
@@ -138,12 +107,11 @@ target_compile_definitions(kalahari PRIVATE
     KALAHARI_VERSION="${PROJECT_VERSION}"
 )
 
-# Link libraries (Task #00013: wxaui added)
+# Link libraries (Qt will be added in Phase 0 Week 1)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
-    wx::core
-    wx::base
-    wx::aui
+    Qt6::Core
+    Qt6::Widgets
 )
 
 # Platform-specific settings
