@@ -225,11 +225,24 @@ bwxReactive::broadcastFontScaleChange(1.5);  // ONE LINE!
   - Migrate LogSettingsPanel (~15 controls)
   - **Acceptance:** All settings dialogs use bwx controls
 
-- [ ] **Task #00046:** Migrate MainWindow & Core Panels (3-4h)
-  - Migrate MainWindow (menu, status bar, toolbar)
-  - Migrate Navigator, Properties, Character, Location, Assistant panels
-  - Migrate EditorPanel
-  - **Acceptance:** All main UI uses bwx controls
+- [x] **Task #00045:** BWX Reactive Control Wrappers (2025-11-15 to 2025-11-16) ✅ COMPLETE
+  - Created 14 bwx control wrappers (Button, StaticText, Choice, CheckBox, etc.)
+  - Auto-registration on construction, auto-deregistration on destruction
+  - Granular reactive pattern (only controls that need updates register)
+  - Updated bwx_sdk with reactive GUI management system
+  - **Acceptance:** ✅ All criteria met, controls respond to broadcasts
+
+- [ ] **Task #00046:** ThemeManager + SettingsManager Integration (2025-11-18 to 2025-11-19) 🚧 IN PROGRESS
+  - [x] Created ThemeManager singleton with FontSizePreset enum (6 presets)
+  - [x] Integrated with SettingsManager (appearance.font_size_preset)
+  - [x] Added UI to AppearanceSettingsPanel (font size dropdown)
+  - [x] Fixed initialization order (ThemeManager after initializeAUI)
+  - [x] Fixed dynamic dialog sizing (removed hardcoded wxSize, use Fit())
+  - [ ] Complete GUI scaling verification (all 6 presets)
+  - [ ] Test settings persistence across restarts (PARTIALLY TESTED)
+  - [ ] Verify all acceptance criteria (4/7 unchecked)
+  - **Status:** Build successful, debugging GUI scaling edge cases
+  - **Acceptance:** Font size changes apply immediately, persist across restarts, all controls scale correctly
 
 **Phase 3: Integration & Testing (Week 2-3)**
 - [ ] **Task #00047:** Font Scaling Integration (2h)

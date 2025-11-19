@@ -9,6 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Task #00046 - ThemeManager + SettingsManager Integration (2025-11-18 to 2025-11-19)
+
+#### Added
+- **ThemeManager Singleton** - Central theme management for font scaling and future theme system
+  - FontSizePreset enum (6 presets: ExtraSmall 70%, Small 85%, Normal 100%, Medium 115%, Large 130%, ExtraLarge 150%)
+  - ThemeManager class with singleton pattern (initialize, applyFontSizePreset, preset/scale conversions)
+  - Integration with SettingsManager (appearance.font_size_preset)
+  - Broadcast to bwx reactive controls via bwxReactive::broadcastFontScaleChange()
+  - Files: src/gui/theme_manager.h (150 LOC), src/gui/theme_manager.cpp (250 LOC)
+- **AppearanceSettingsPanel Font Size UI** - User-facing control for font size preset
+  - createFontSizeSection() with wxChoice dropdown (6 presets)
+  - getFontSizePreset() getter for SettingsDialog integration
+  - Description and note text for user guidance
+  - Files: src/gui/appearance_settings_panel.{h,cpp} (~100 LOC added)
+
+#### Changed
+- **SettingsDialog Dynamic Sizing** - Removed hardcoded sizes, full Fit() workflow
+  - Constructor: wxSize(800, 600) → wxDefaultSize
+  - Use Fit() instead of FitInside() (per CLAUDE.md rules)
+  - Dynamic minimum size calculation based on best size
+  - onFontScaleChanged() rewritten for dynamic resize (InvalidateBestSize + Layout + Fit)
+  - m_contentPanel (wxScrolledWindow) minimum size added to prevent collapse
+  - Files: src/gui/settings_dialog.{h,cpp} (~50 LOC changed)
+- **MainWindow Initialization Order** - ThemeManager initialized AFTER controls created
+  - Moved ThemeManager::initialize() from line 237 to after initializeAUI() (line 274)
+  - Ensures bwx controls exist before broadcastFontScaleChange() is called
+  - Fixes bug: saved font preset not applied on restart (broadcast to empty registry)
+  - Files: src/gui/main_window.cpp (~10 LOC)
+- **SettingsState Structure** - Added font size preset field
+  - New field: fontSizePreset (int, default 2 = Normal)
+  - loadSettings() reads appearance.font_size_preset
+  - applySettings() calls ThemeManager::applyFontSizePreset()
+  - onApply() reads from AppearanceSettingsPanel::getFontSizePreset()
+  - Files: src/gui/settings_dialog.{h,cpp} (~30 LOC)
+
+#### Fixed
+- **Initialization Order Bug** - ThemeManager now initializes after control creation
+  - Root cause: broadcastFontScaleChange() called before bwx controls registered
+  - Solution: Move initialization to after initializeAUI() completes
+  - Impact: Saved font preset now correctly applied on application restart
+  - Lesson: Observer pattern requires observers before broadcast
+- **Dynamic Dialog Sizing** - Removed all hardcoded wxSize usage
+  - Problem: Dialog didn't resize when font changed (hardcoded 800x600)
+  - Solution: Use Fit() for dynamic sizing, SetMinSize() for minimum constraints
+  - User directive: "nie mozemy używać żadnych wxSize... Cała kalkulacja wielkości każdego elementu interfejsu powinna być dynamiczna przez Fit()"
+  - Pattern: InvalidateBestSize() → Layout() → Fit() → enforce minimum size
+
+#### Status
+- **Build:** ✅ Successful (CMakeLists.txt updated with theme_manager.cpp)
+- **Testing:** 🚧 IN PROGRESS (debugging GUI scaling edge cases)
+- **CI/CD:** Not yet pushed (WIP commit, checkpoint before environment migration)
+- **Acceptance Criteria:** Partial (4/7 unchecked - awaiting full testing session)
+
 ### BWX SDK Architecture Decision (2025-11-15)
 
 #### Changed
