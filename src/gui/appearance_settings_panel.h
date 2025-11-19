@@ -39,15 +39,21 @@ private:
     // UI Controls (Task #00043: BWX Reactive System)
     bwx::gui::Choice* m_themeChoice = nullptr;
     bwx::gui::Choice* m_iconSizeChoice = nullptr;
+    bwx::gui::Choice* m_fontSizeChoice = nullptr;  // Task #00046: Font size preset
 
     // Text controls that need dynamic wrapping (Task #00043: BWX Reactive System)
     bwx::gui::StaticText* m_themeDescription = nullptr;
     bwx::gui::StaticText* m_restartNote = nullptr;
     bwx::gui::StaticText* m_iconDescription = nullptr;
+    bwx::gui::StaticText* m_fontSizeDescription = nullptr;  // Task #00046: Font size
 
     /// @brief Create theme settings section
     /// @param parent Parent sizer to add section to
     void createThemeSection(wxSizer* parent);
+
+    /// @brief Create font size settings section (Task #00046)
+    /// @param parent Parent sizer to add section to
+    void createFontSizeSection(wxSizer* parent);
 
     /// @brief Create icon settings section
     /// @param parent Parent sizer to add section to

@@ -5,6 +5,7 @@
 #include "editor_settings_panel.h"      // Phase 1: Editor settings (Task #00019)
 #include "log_settings_panel.h"         // Phase 1: Diagnostic Log settings (Task #00020)
 #include "appearance_settings_panel.h"  // Phase 1: Appearance settings (Task #00020 - Option C)
+#include "theme_manager.h"              // Task #00046: Font scaling on dialog open
 #include "kalahari/gui/icon_registry.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/settings_manager.h>  // Task #00043: Font scale broadcast
@@ -135,7 +136,7 @@ wxBEGIN_EVENT_TABLE(SettingsDialog, wxDialog)
 wxEND_EVENT_TABLE()
 
 SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentState)
-    : bwx::gui::ReactiveDialog(parent, wxID_ANY, "Settings", wxDefaultPosition, wxSize(800, 600),
+    : bwx::gui::ReactiveDialog(parent, wxID_ANY, "Settings", wxDefaultPosition, wxDefaultSize,
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_originalState(currentState),
       m_workingState(currentState)
@@ -202,6 +203,11 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
                                           wxVSCROLL);
     m_contentPanel->SetScrollRate(0, 10);
 
+    // Task #00046: Set minimum size for content panel to prevent it from collapsing
+    // This ensures the virtual space is visible without manual resizing
+    // Increased to 600x500 to accommodate Large/ExtraLarge font presets
+    m_contentPanel->SetMinSize(wxSize(600, 500));
+
     // Create sizer for content panel
     logger.debug("SettingsDialog: Creating content sizer");
     wxBoxSizer* contentSizer = new wxBoxSizer(wxVERTICAL);
@@ -227,6 +233,27 @@ SettingsDialog::SettingsDialog(wxWindow* parent, const SettingsState& currentSta
     SetSizer(mainSizer);
 
     buildTree();
+
+    // Task #00046: Dynamic sizing with Fit() instead of hardcoded wxSize
+    // Calculate optimal size based on content
+    logger.debug("SettingsDialog: Calculating optimal size with Fit()");
+    Fit();
+
+    // Set minimum size to prevent dialog from becoming too small
+    wxSize bestSize = GetBestSize();
+    SetMinSize(wxSize(std::max(700, bestSize.GetWidth()), std::max(500, bestSize.GetHeight())));
+
+    logger.debug("SettingsDialog: Best size = {}x{}, MinSize set", bestSize.GetWidth(), bestSize.GetHeight());
+
+    // Task #00046 FIX: Apply current font scale to ALL controls (including dialog's)
+    // SettingsDialog is created AFTER ThemeManager broadcast on startup,
+    // so its controls don't receive scaling. Broadcast again to scale newly created controls.
+    // This is safe because onFontScaleChanged() resets to base font (no cumulative scaling).
+    double currentScale = ThemeManager::getInstance().getCurrentScale();
+    if (currentScale != 1.0) {
+        logger.info("SettingsDialog: Broadcasting font scale {:.2f} to all controls", currentScale);
+        bwx::gui::bwxReactive::broadcastFontScaleChange(currentScale);
+    }
 
     // Center dialog on parent window (MANDATORY per CLAUDE.md)
     CentreOnParent();
@@ -523,6 +550,65 @@ void SettingsDialog::onApply([[maybe_unused]] wxCommandEvent& event) {
 
     core::Logger::getInstance().info("Settings applied (dialog remains open) - event sent to MainWindow");
 }
+
+// ============================================================================
+// bwxReactive Override (Task #00046)
+// ============================================================================
+
+void SettingsDialog::onFontScaleChanged(double scale) {
+    core::Logger::getInstance().debug("SettingsDialog: Font scale changed to {:.2f}", scale);
+
+    // Task #00046: Dynamic resizing with Fit() instead of SetSize()
+    // NO FitInside() - only Fit() per CLAUDE.md guidelines
+
+    // Step 1: Invalidate cached sizes (critical for recalculation)
+    InvalidateBestSize();
+    if (m_contentPanel) {
+        m_contentPanel->InvalidateBestSize();
+    }
+    if (m_currentPanel) {
+        m_currentPanel->InvalidateBestSize();
+    }
+
+    // Step 2: Recalculate layout from bottom to top
+    if (m_currentPanel && m_currentPanel->GetSizer()) {
+        core::Logger::getInstance().debug("SettingsDialog: Recalculating current panel layout");
+        m_currentPanel->Layout();
+    }
+
+    if (m_contentPanel) {
+        core::Logger::getInstance().debug("SettingsDialog: Recalculating content panel layout");
+        m_contentPanel->Layout();
+    }
+
+    // Step 3: Recalculate entire dialog layout
+    Layout();
+
+    // Step 4: Dynamically resize dialog to fit new content (Fit() instead of SetSize!)
+    core::Logger::getInstance().debug("SettingsDialog: Fitting dialog to new content size");
+    Fit();
+
+    // Step 5: Ensure minimum size is respected
+    wxSize currentSize = GetSize();
+    wxSize minSize = GetMinSize();
+    wxSize finalSize(
+        std::max(currentSize.GetWidth(), minSize.GetWidth()),
+        std::max(currentSize.GetHeight(), minSize.GetHeight())
+    );
+
+    if (finalSize != currentSize) {
+        SetSize(finalSize);
+    }
+
+    // Step 6: Visual refresh
+    Refresh();
+
+    core::Logger::getInstance().debug("SettingsDialog: Font scale change complete");
+}
+
+// ============================================================================
+// Helper Methods
+// ============================================================================
 
 void SettingsDialog::applyChanges() {
     // Save all panel states to m_workingState

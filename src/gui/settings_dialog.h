@@ -72,6 +72,7 @@ struct SettingsState {
 
     wxString themeName = "System";           ///< Theme: "Light", "Dark", "System"
     int iconSize = 24;                       ///< Icon size in pixels (16, 24, 32, 48)
+    int fontSizePreset = 2;                  ///< Font size preset: 0-5 (ExtraSmall...ExtraLarge, default: Normal=2) (Task #00046)
 
     // Future phases: Additional settings will go here
     // wxString interfaceLanguage = "en";
@@ -214,6 +215,18 @@ private:
     /// @brief Handle Apply button click
     /// @param event Command event
     void onApply(wxCommandEvent& event);
+
+    // ========================================================================
+    // bwxReactive Override (Task #00046)
+    // ========================================================================
+
+    /// @brief Handle font scale change with scrolled window support
+    /// @param scale New font scaling factor
+    ///
+    /// Overrides ReactiveDialog::onFontScaleChanged() to additionally
+    /// update m_contentPanel (wxScrolledWindow) virtual size after
+    /// font changes, ensuring scrollbars are correctly recalculated.
+    void onFontScaleChanged(double scale) override;
 
     // ========================================================================
     // Helper Methods

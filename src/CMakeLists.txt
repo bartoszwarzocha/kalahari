@@ -94,6 +94,7 @@ set(KALAHARI_SOURCES
     gui/editor_settings_panel.cpp      # Phase 1: Editor settings (Task #00019)
     gui/log_settings_panel.cpp         # Phase 1: Diagnostic Log settings (Task #00020)
     gui/appearance_settings_panel.cpp  # Phase 1: Appearance settings (Task #00020 - Option C)
+    gui/theme_manager.cpp              # Phase 1: Theme management singleton (Task #00046)
     gui/icon_registry.cpp
     gui/art_provider.cpp
     gui/perspective_manager.cpp

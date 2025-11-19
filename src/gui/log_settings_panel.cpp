@@ -45,7 +45,8 @@ void LogSettingsPanel::createBufferSection(wxSizer* parent) {
     m_bufferDescription = new wxStaticText(box->GetStaticBox(), wxID_ANY,
         "Configure the ring buffer for log entries (older entries are automatically removed)");
     m_bufferDescription->SetFont(m_bufferDescription->GetFont().MakeItalic());
-    // NOTE: Don't call Wrap() here - will be done dynamically in onSize()
+    // Task #00046: Set initial wrap width (will be updated dynamically in onSize())
+    m_bufferDescription->Wrap(500);
     box->Add(m_bufferDescription, 0, wxALL | wxEXPAND, 5);
 
     // Buffer size spinner

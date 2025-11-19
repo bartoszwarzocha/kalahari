@@ -4,6 +4,7 @@
 #include "main_window.h"
 #include "kalahari_app.h"
 #include "settings_dialog.h"
+#include "theme_manager.h"  // Task #00046
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/manage_perspectives_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -271,6 +272,12 @@ MainWindow::MainWindow()
 
     // Initialize wxAUI docking system with panels (Task #00013)
     initializeAUI();
+
+    // Initialize ThemeManager AFTER controls are created (Task #00046 fix)
+    // This ensures broadcastFontScaleChange() reaches already-registered bwx controls
+    core::Logger::getInstance().info("Initializing ThemeManager...");
+    gui::ThemeManager::getInstance().initialize(settings);
+    core::Logger::getInstance().info("ThemeManager initialized");
 
     // Bind threading events dynamically (modern approach, allows runtime binding)
     Bind(wxEVT_KALAHARI_TASK_COMPLETED, &MainWindow::onTaskCompleted, this, wxID_ANY);
@@ -1398,6 +1405,7 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
         settingsMgr.get<std::string>("appearance.theme", "System")
     );
     currentState.iconSize = settingsMgr.get<int>("appearance.iconSize", 24);
+    currentState.fontSizePreset = settingsMgr.get<int>("appearance.font_size_preset", 2);  // Task #00046: Default Normal
 
     // Load Log settings (Task #00020)
     currentState.logBufferSize = settingsMgr.get<int>("log.bufferSize", 500);
@@ -1460,9 +1468,15 @@ void MainWindow::onFileSettings([[maybe_unused]] wxCommandEvent& event) {
 
         settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
         settingsMgr.set("appearance.iconSize", newState.iconSize);
+        settingsMgr.set("appearance.font_size_preset", newState.fontSizePreset);  // Task #00046
 
-        core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={})",
-            newState.themeName.ToStdString(), newState.iconSize);
+        core::Logger::getInstance().info("Appearance settings saved (theme={}, fontSizePreset={}, iconSize={})",
+            newState.themeName.ToStdString(), newState.fontSizePreset, newState.iconSize);
+
+        // Apply font size preset immediately (Task #00046)
+        gui::ThemeManager::getInstance().applyFontSizePreset(
+            static_cast<gui::FontSizePreset>(newState.fontSizePreset)
+        );
 
         // ====================================================================
         // Phase 1: Save Log Settings to SettingsManager (Task #00020)
@@ -1554,9 +1568,15 @@ void MainWindow::onSettingsApplied(SettingsAppliedEvent& event) {
 
     settingsMgr.set("appearance.theme", newState.themeName.ToStdString());
     settingsMgr.set("appearance.iconSize", newState.iconSize);
+    settingsMgr.set("appearance.font_size_preset", newState.fontSizePreset);  // Task #00046
 
-    core::Logger::getInstance().info("Appearance settings saved (theme={}, iconSize={})",
-        newState.themeName.ToStdString(), newState.iconSize);
+    core::Logger::getInstance().info("Appearance settings saved (theme={}, fontSizePreset={}, iconSize={})",
+        newState.themeName.ToStdString(), newState.fontSizePreset, newState.iconSize);
+
+    // Apply font size preset immediately (Task #00046)
+    gui::ThemeManager::getInstance().applyFontSizePreset(
+        static_cast<gui::FontSizePreset>(newState.fontSizePreset)
+    );
 
     // Apply icon size changes immediately
     IconRegistry& iconReg = IconRegistry::getInstance();

@@ -27,12 +27,13 @@ AppearanceSettingsPanel::AppearanceSettingsPanel(wxWindow* parent, SettingsState
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    // Create 2 sections (Task #00043: Font scaling removed after wxWidgets DPI analysis)
+    // Create 3 sections (Task #00046: Font size added)
     createThemeSection(mainSizer);
+    createFontSizeSection(mainSizer);
     createIconSection(mainSizer);
 
     SetSizer(mainSizer);
-    core::Logger::getInstance().info("AppearanceSettingsPanel: Panel created with 2 sections (Theme, Icons)");
+    core::Logger::getInstance().info("AppearanceSettingsPanel: Panel created with 3 sections (Theme, Font Size, Icons)");
 }
 
 // ============================================================================
@@ -82,6 +83,50 @@ void AppearanceSettingsPanel::createThemeSection(wxSizer* parent) {
     m_restartNote->SetFont(noteFont);
     m_restartNote->SetForegroundColour(wxColour(100, 100, 100));
     box->Add(m_restartNote, 0, wxALL | wxEXPAND, 5);
+
+    parent->Add(box, 0, wxALL | wxEXPAND, 10);
+}
+
+void AppearanceSettingsPanel::createFontSizeSection(wxSizer* parent) {
+    wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Font Size");
+
+    // Description (Task #00046)
+    m_fontSizeDescription = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
+        "Adjust text size throughout the application");
+    m_fontSizeDescription->SetFont(m_fontSizeDescription->GetFont().MakeItalic());
+    box->Add(m_fontSizeDescription, 0, wxALL | wxEXPAND, 5);
+
+    // Font size choice
+    wxBoxSizer* fontSizeSizer = new wxBoxSizer(wxHORIZONTAL);
+    bwx::gui::StaticText* fontSizeLabel = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
+        "Application font size:");
+    fontSizeLabel->Wrap(200);  // Task #00046: Prevent text overflow with large fonts
+    fontSizeSizer->Add(fontSizeLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+
+    m_fontSizeChoice = new bwx::gui::Choice(box->GetStaticBox(), wxID_ANY);
+    m_fontSizeChoice->Append("Extra Small");  // Index 0 (70%)
+    m_fontSizeChoice->Append("Small");        // Index 1 (85%)
+    m_fontSizeChoice->Append("Normal");       // Index 2 (100%) - DEFAULT
+    m_fontSizeChoice->Append("Medium");       // Index 3 (115%)
+    m_fontSizeChoice->Append("Large");        // Index 4 (130%)
+    m_fontSizeChoice->Append("Extra Large");  // Index 5 (150%)
+
+    // Select current preset from state (default: Normal = 2)
+    m_fontSizeChoice->SetSelection(m_state.fontSizePreset);
+    m_fontSizeChoice->SetToolTip("Choose font size for all text in the application");
+    fontSizeSizer->Add(m_fontSizeChoice, 1, wxEXPAND, 0);
+
+    box->Add(fontSizeSizer, 0, wxALL | wxEXPAND, 5);
+
+    // Note about immediate apply
+    bwx::gui::StaticText* note = new bwx::gui::StaticText(box->GetStaticBox(), wxID_ANY,
+        "Note: Font size changes apply immediately when you click Apply.");
+    wxFont noteFont = note->GetFont();
+    noteFont.MakeItalic();
+    noteFont.SetPointSize(noteFont.GetPointSize() - 1);
+    note->SetFont(noteFont);
+    note->SetForegroundColour(wxColour(100, 100, 100));
+    box->Add(note, 0, wxALL | wxEXPAND, 5);
 
     parent->Add(box, 0, wxALL | wxEXPAND, 10);
 }
@@ -140,6 +185,15 @@ void AppearanceSettingsPanel::saveToState() {
         default: m_state.themeName = "System"; break;
     }
 
+    // Font size preset (Task #00046)
+    int fontSizeSelection = m_fontSizeChoice->GetSelection();
+    // Map directly: selection index = preset value (0-5)
+    if (fontSizeSelection >= 0 && fontSizeSelection <= 5) {
+        m_state.fontSizePreset = fontSizeSelection;
+    } else {
+        m_state.fontSizePreset = 2;  // Default: Normal
+    }
+
     // Icon size
     int iconSelection = m_iconSizeChoice->GetSelection();
     switch (iconSelection) {
@@ -150,8 +204,8 @@ void AppearanceSettingsPanel::saveToState() {
         default: m_state.iconSize = 24; break;
     }
 
-    core::Logger::getInstance().info("AppearanceSettingsPanel: Saved 2 settings values (theme={}, iconSize={})",
-        m_state.themeName.ToStdString(), m_state.iconSize);
+    core::Logger::getInstance().info("AppearanceSettingsPanel: Saved 3 settings values (theme={}, fontSizePreset={}, iconSize={})",
+        m_state.themeName.ToStdString(), m_state.fontSizePreset, m_state.iconSize);
 }
 
 // ============================================================================
@@ -176,6 +230,9 @@ void AppearanceSettingsPanel::onSize(wxSizeEvent& event) {
         }
         if (m_restartNote && m_restartNote->IsShown()) {
             m_restartNote->Wrap(availableWidth);
+        }
+        if (m_fontSizeDescription && m_fontSizeDescription->IsShown()) {  // Task #00046
+            m_fontSizeDescription->Wrap(availableWidth);
         }
         if (m_iconDescription && m_iconDescription->IsShown()) {
             m_iconDescription->Wrap(availableWidth);
