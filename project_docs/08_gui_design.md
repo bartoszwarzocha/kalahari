@@ -2,10 +2,10 @@
 
 > **Writer's IDE** - Comprehensive GUI architecture and layout design
 
-**Document Version:** 1.0
-**Status:** ✅ Complete
-**Last Updated:** 2025-10-25
-**Phase:** Architecture Phase
+**Document Version:** 2.0 (Qt Migration)
+**Status:** 🔄 IN PROGRESS (Qt conversion)
+**Last Updated:** 2025-11-19
+**Phase:** Phase 0 (Qt Foundation)
 
 ---
 
@@ -24,21 +24,23 @@
 11. [Keyboard Shortcuts](#keyboard-shortcuts)
 12. [Focus Modes](#focus-modes)
 13. [Settings Dialog](#settings-dialog)
-14. [wxWidgets Implementation Notes](#wxwidgets-implementation-notes)
+14. [Qt Implementation Notes](#qt-implementation-notes)
 
 ---
 
 ## Overview
 
-This document defines the complete GUI architecture for Kalahari, a professional Writer's IDE built with wxWidgets and wxAUI (Advanced User Interface).
+This document defines the complete GUI architecture for Kalahari, a professional Writer's IDE built with Qt6.
+
+**Migration Note (2025-11-19):** This document is being updated from wxWidgets/wxAUI to Qt6/QDockWidget architecture. Many code examples still reference wxWidgets patterns and will be updated incrementally during Phase 0-1 implementation.
 
 ### Key Features
 
 - **3-column dockable layout** (left tools | center workspace | right tools)
-- **wxAUI framework** - fully customizable, drag & drop panels
-- **Customizable toolbars** - user-defined command shortcuts
+- **Qt QDockWidget framework** - fully customizable, drag & drop panels
+- **Customizable toolbars** - user-defined command shortcuts (QToolBar)
 - **Command Registry** - unified command system (core + plugins)
-- **4 built-in perspectives** (Writer, Editor, Researcher, Planner)
+- **4 built-in perspectives** (Writer, Editor, Researcher, Planner) - QSettings-based
 - **Plugin panels** - extensions can add their own dockable panels
 - **Gamification** - badges, challenges, statistics
 - **3 focus modes** (Normal, Focused, Distraction-free)
@@ -1597,92 +1599,194 @@ Motivate writers through achievements, challenges, and statistics.
 
 ---
 
-## wxWidgets Implementation Notes
+## Qt Implementation Notes
 
-### wxAUI Panel Management
+### Qt QDockWidget Panel Management
 
 ```cpp
-// Adding panel with wxAUI
-m_auiMgr.AddPane(m_filesPanel,
-    wxAuiPaneInfo()
-        .Name("files")
-        .Caption("Files")
-        .Left()
-        .Layer(1)
-        .Position(0)
-        .MinSize(200, -1)
-        .BestSize(250, -1)
-        .CloseButton(true)
-        .MaximizeButton(false)
-        .PinButton(true));
+#include <QMainWindow>
+#include <QDockWidget>
+#include <QWidget>
 
-m_auiMgr.Update();
+// Adding dockable panel with Qt
+QDockWidget* filesPanel = new QDockWidget(tr("Files"), this);
+filesPanel->setObjectName("files");  // Important for QSettings persistence
+filesPanel->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+filesPanel->setFeatures(QDockWidget::DockWidgetClosable |
+                        QDockWidget::DockWidgetMovable |
+                        QDockWidget::DockWidgetFloatable);
+filesPanel->setMinimumWidth(200);
+
+// Set widget content
+FilesWidget* filesWidget = new FilesWidget(filesPanel);
+filesPanel->setWidget(filesWidget);
+
+// Add to main window
+addDockWidget(Qt::LeftDockWidgetArea, filesPanel);
+
+// Tab multiple docks together
+QDockWidget* librariesPanel = new QDockWidget(tr("Libraries"), this);
+// ... configure librariesPanel ...
+tabifyDockWidget(filesPanel, librariesPanel);  // Tab them together
 ```
 
-### Perspective Saving
+**Qt QDockWidget Benefits:**
+- **Automatic persistence:** QMainWindow::saveState() saves dock positions/visibility
+- **Built-in UI:** Close, float, resize handles out-of-the-box
+- **Tabbing:** `tabifyDockWidget()` for tabbed panels
+- **Signals:** `dockLocationChanged`, `visibilityChanged`, `topLevelChanged`
+
+### Perspective Saving with QSettings
 
 ```cpp
-void MainFrame::SavePerspective(const wxString& name) {
-    wxString perspective = m_auiMgr.SavePerspective();
+#include <QSettings>
+#include <QByteArray>
 
-    // Save to JSON
-    nlohmann::json j;
-    j["name"] = name.ToStdString();
-    j["perspective"] = perspective.ToStdString();
-    j["toolbars"] = ToolbarManager::Instance().SaveState();
+void MainWindow::savePerspective(const QString& name) {
+    // Save window state (all dock positions, toolbar state, sizes)
+    QByteArray state = saveState();
+    QByteArray geometry = saveGeometry();
 
-    std::ofstream file(GetPerspectivePath(name));
-    file << j.dump(2);
+    // Save to platform-native storage (registry/plist/ini)
+    QSettings settings("Kalahari", "App");
+    settings.beginGroup("Perspectives");
+    settings.setValue(name + "/state", state);
+    settings.setValue(name + "/geometry", geometry);
+    settings.setValue(name + "/timestamp", QDateTime::currentDateTime());
+    settings.endGroup();
+
+    spdlog::info("Saved perspective: {}", name.toStdString());
 }
 
-void MainFrame::LoadPerspective(const wxString& name) {
-    std::ifstream file(GetPerspectivePath(name));
-    nlohmann::json j = nlohmann::json::parse(file);
+void MainWindow::loadPerspective(const QString& name) {
+    QSettings settings("Kalahari", "App");
+    settings.beginGroup("Perspectives");
 
-    wxString perspective(j["perspective"].get<std::string>());
-    m_auiMgr.LoadPerspective(perspective);
+    if (!settings.contains(name + "/state")) {
+        spdlog::warn("Perspective not found: {}", name.toStdString());
+        return;
+    }
 
-    ToolbarManager::Instance().LoadState(j["toolbars"]);
+    QByteArray state = settings.value(name + "/state").toByteArray();
+    QByteArray geometry = settings.value(name + "/geometry").toByteArray();
+    settings.endGroup();
 
-    m_auiMgr.Update();
+    restoreGeometry(geometry);
+    restoreState(state);
+
+    spdlog::info("Loaded perspective: {}", name.toStdString());
+}
+
+// Default perspectives in Phase 0 Week 1
+void MainWindow::createDefaultPerspectives() {
+    // Writer perspective (focused)
+    // ... configure docks for writing ...
+    savePerspective("Writer");
+
+    // Editor perspective (all tools visible)
+    // ... configure docks for editing ...
+    savePerspective("Editor");
+
+    // Researcher perspective
+    savePerspective("Researcher");
+
+    // Planner perspective
+    savePerspective("Planner");
 }
 ```
 
-### Focus Mode Implementation
+**QSettings Benefits:**
+- **Platform-native:** Windows Registry, macOS plist, Linux ~/.config/
+- **Automatic:** No JSON parsing needed
+- **Hierarchical:** Natural grouping with beginGroup()/endGroup()
+- **Type-safe:** Stores QByteArray, QString, int, bool, etc.
+
+### Focus Mode Implementation with Qt
 
 ```cpp
-void MainFrame::SetFocusMode(FocusMode mode) {
+void MainWindow::setFocusMode(FocusMode mode) {
     switch (mode) {
         case FocusMode::NORMAL:
-            ShowFullScreen(false);
-            GetMenuBar()->Show();
-            m_auiMgr.GetPane("files").Show();
-            m_auiMgr.GetPane("assistant").Show();
-            // ... show all panels
+            // Restore normal state
+            if (isFullScreen()) {
+                showNormal();
+            }
+            menuBar()->show();
+            statusBar()->show();
+
+            // Show all docks
+            findChild<QDockWidget*>("files")->show();
+            findChild<QDockWidget*>("assistant")->show();
+            findChild<QDockWidget*>("statistics")->show();
+
+            // Show toolbars
+            foreach (QToolBar* toolbar, findChildren<QToolBar*>()) {
+                toolbar->show();
+            }
             break;
 
         case FocusMode::FOCUSED:
-            // Dim panels instead of hiding
-            m_filesPanel->SetTransparent(128);  // 50% opacity
-            m_assistantPanel->SetTransparent(128);
-            ToolbarManager::Instance().HideAll();
+            // Dim side panels using QGraphicsOpacityEffect
+            QGraphicsOpacityEffect* filesOpacity = new QGraphicsOpacityEffect(this);
+            filesOpacity->setOpacity(0.5);  // 50% opacity
+            findChild<QDockWidget*>("files")->setGraphicsEffect(filesOpacity);
+
+            QGraphicsOpacityEffect* assistantOpacity = new QGraphicsOpacityEffect(this);
+            assistantOpacity->setOpacity(0.5);
+            findChild<QDockWidget*>("assistant")->setGraphicsEffect(assistantOpacity);
+
+            // Hide toolbars
+            foreach (QToolBar* toolbar, findChildren<QToolBar*>()) {
+                toolbar->hide();
+            }
+
+            // Minimize menu bar (auto-hide not directly supported, use custom)
+            menuBar()->setMaximumHeight(0);  // Workaround: collapse menu
             break;
 
         case FocusMode::DISTRACTION_FREE:
-            ShowFullScreen(true, wxFULLSCREEN_ALL);
-            GetMenuBar()->Hide();
-            GetStatusBar()->Hide();
-            // Hide all panels except editor
-            m_auiMgr.GetPane("files").Hide();
-            m_auiMgr.GetPane("assistant").Hide();
-            // ...
+            // Fullscreen
+            showFullScreen();
+            menuBar()->hide();
+            statusBar()->hide();
+
+            // Hide all docks
+            foreach (QDockWidget* dock, findChildren<QDockWidget*>()) {
+                dock->hide();
+            }
+
+            // Hide all toolbars
+            foreach (QToolBar* toolbar, findChildren<QToolBar*>()) {
+                toolbar->hide();
+            }
+
+            // Only editor visible
+            // (central widget remains visible by default)
             break;
     }
 
-    m_auiMgr.Update();
     m_currentFocusMode = mode;
+    emit focusModeChanged(mode);
 }
 ```
+
+**Qt Focus Mode Patterns:**
+- **QGraphicsOpacityEffect:** Dim widgets without hiding them
+- **showFullScreen():** Native fullscreen support
+- **findChildren<T*>():** Query all widgets of type T
+- **Signals:** Emit `focusModeChanged` for observers to react
+
+### Qt vs wxWidgets Comparison
+
+| Feature | wxWidgets (wxAUI) | Qt6 (QDockWidget) |
+|---------|-------------------|-------------------|
+| **Docking** | wxAuiManager::AddPane() | addDockWidget() (built-in QMainWindow) |
+| **Persistence** | SavePerspective() string → manual JSON | saveState()/restoreState() + QSettings (automatic) |
+| **Tabbing** | Manual configuration | tabifyDockWidget() (one line) |
+| **Styling** | Limited | QSS (CSS-like, full theming) |
+| **Signals** | Custom events | Qt signals/slots (type-safe) |
+| **Opacity** | SetTransparent() | QGraphicsOpacityEffect (hardware-accelerated) |
+| **Layout** | Manual sizer management | Automatic layout system |
 
 ---
 
@@ -2244,32 +2348,59 @@ void MainWindow::setDiagnosticMode(bool enabled) {
 
 ## Related Documents
 
-- **[03_architecture.md](03_architecture.md)** - Core architecture patterns
-- **[04_plugin_system.md](04_plugin_system.md)** - Plugin API details
+- **[03_architecture.md](03_architecture.md)** - Core architecture patterns (Qt MVP + signals/slots)
+- **[04_plugin_system.md](04_plugin_system.md)** - Plugin API details (Qt-agnostic)
 - **[10_branding.md](10_branding.md)** - Colors, fonts, icons
-- **[02_tech_stack.md](02_tech_stack.md)** - wxWidgets version & libraries
+- **[02_tech_stack.md](02_tech_stack.md)** - Qt6 6.5.0+ framework
 
 ---
 
-## Implementation Phases
+## Implementation Phases (Qt)
 
-| Feature | Phase | Priority |
-|---------|-------|----------|
-| Basic layout (3 columns) | Phase 1 | High |
-| Core panels (Files, Editor, Assistant) | Phase 1 | High |
-| Command Registry | Phase 0 | Critical |
-| Default toolbars (6) | Phase 1 | High |
-| Perspectives (4 default) | Phase 2 | Medium |
-| Customizable toolbars UI | Phase 2 | Medium |
-| Quick Access Toolbar | Phase 2 | Medium |
-| Gamification (badges, challenges) | Phase 3 | Low |
-| Live Customization Mode | Phase 3 | Low |
-| Command Palette | Phase 3 | Low |
-| Focus Modes | Phase 2 | High |
-| Info Bar / Status Bar | Phase 1 | High |
+| Feature | Phase | Priority | Qt Components |
+|---------|-------|----------|---------------|
+| Basic layout (3 columns) | Phase 0 Week 1 | Critical | QMainWindow + QDockWidget |
+| Core panels (Files, Editor, Assistant) | Phase 0 Weeks 1-4 | Critical | QTreeWidget, QPlainTextEdit, custom QWidget |
+| Command Registry | Phase 0 (preserved from core) | Critical | Qt-agnostic (pure C++) |
+| Default toolbars (6) | Phase 1 | High | QToolBar + QAction |
+| Perspectives (4 default) | Phase 0 Week 1 | High | QSettings + saveState()/restoreState() |
+| Customizable toolbars UI | Phase 2 | Medium | QDialog + toolbar editor |
+| Quick Access Toolbar | Phase 2 | Medium | Custom QToolBar |
+| Gamification (badges, challenges) | Phase 3 | Low | Custom QWidget panels |
+| Live Customization Mode | Phase 3 | Low | Qt Designer-like UI |
+| Command Palette | Phase 3 | Low | QDialog + fuzzy search |
+| Focus Modes | Phase 1 | High | QGraphicsOpacityEffect + showFullScreen() |
+| Info Bar / Status Bar | Phase 0 Week 1 | High | QStatusBar + custom QWidget |
 
 ---
 
-**Document Status:** ✅ Complete
-**Last Updated:** 2025-10-25
-**Version:** 1.0
+## Migration Notes (2025-11-19)
+
+**Previous Implementation:** wxWidgets 3.3.0+ with wxAUI (Advanced User Interface)
+- Manual perspective serialization (wxAuiManager::SavePerspective() → JSON)
+- Complex sizer-based layouts
+- Custom panel management system
+
+**New Implementation:** Qt6 6.5.0+ with QDockWidget
+- **Automatic persistence:** QMainWindow::saveState() + QSettings (platform-native)
+- **Simpler API:** addDockWidget() vs wxAuiManager::AddPane()
+- **Better theming:** QSS (CSS-like) vs limited wxWidgets styling
+- **Hardware-accelerated effects:** QGraphicsOpacityEffect for dimming
+
+**Code Migration Status:**
+- ✅ Section 14 updated with Qt implementation patterns
+- ⏳ Remaining code examples still use wxWidgets patterns (will update during Phase 0-1)
+- ✅ Architecture concepts remain valid (Command Registry, perspectives, panels)
+
+**Benefits:**
+- Simpler codebase (Qt handles docking/persistence automatically)
+- Better cross-platform consistency
+- Superior documentation and community support
+- Modern QSS styling system
+
+---
+
+**Document Status:** 🔄 IN PROGRESS (Qt conversion)
+**Last Updated:** 2025-11-19
+**Version:** 2.0 (Qt Migration)
+**Next Update:** Phase 0 Week 2-4 (update code examples incrementally)
