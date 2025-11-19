@@ -1,10 +1,10 @@
 # KALAHARI - Writer's IDE
 
-> **Advanced writing environment for book authors** | C++20 + wxWidgets | Cross-platform Desktop App
+> **Advanced writing environment for book authors** | C++20 + Qt6 | Cross-platform Desktop App
 
-**Status:** 🚀 Phase 1 Week 13 - Atomic Task Model (Settings System Fixes)
-**Version:** 5.2 (Atomic Tasks + Phase 1 Update)
-**Last Update:** 2025-11-11
+**Status:** 🔄 Phase 0 - Qt Migration (Clean Slate Approach)
+**Version:** 6.0 (Qt Migration)
+**Last Update:** 2025-11-19
 
 ---
 
@@ -59,47 +59,54 @@
 ```
 User: "Add a checkbox to Settings Dialog"
 → 1. mcp__serena__get_symbols_overview("src/gui/settings_dialog.cpp")
-→ 2. mcp__serena__find_symbol("DiagnosticsPanel", include_body=true)
-→ 3. mcp__context7__resolve-library-id("wxWidgets")
-→ 4. mcp__context7__get-library-docs(received_id, topic="wxCheckBox")
+→ 2. mcp__serena__find_symbol("SettingsDialog", include_body=true)
+→ 3. mcp__context7__resolve-library-id("Qt")
+→ 4. mcp__context7__get-library-docs(received_id, topic="QCheckBox")
 → 5. THEN generate code
 ```
 
-### 2. wxWidgets Layout - ABSOLUTE Rules
+### 2. Qt6 Layout - ABSOLUTE Rules
 
 **MANDATORY patterns:**
-- ✅ **ALWAYS use** wxStaticBoxSizer for configuration sections
-- ✅ **ALWAYS use** wxEXPAND flag for stretching controls
-- ✅ **ALWAYS use** proportions (0=fixed, 1+=flexible) in Add() calls
-- ✅ **ALWAYS parent** controls to StaticBox: `diagBox->GetStaticBox()`
-- ✅ **ALWAYS use** sizers - ALL panels MUST have SetSizer() called
+- ✅ **ALWAYS use** QVBoxLayout/QHBoxLayout for panel layouts
+- ✅ **ALWAYS use** QGroupBox for visual grouping
+- ✅ **ALWAYS use** stretch factors (0=fixed, 1+=flexible) in addWidget()
+- ✅ **ALWAYS set layout** on widget: `setLayout(layout)`
+- ✅ **ALWAYS use** margins and spacing for consistent UI
 
 **FORBIDDEN patterns:**
-- ❌ **NEVER use** fixed pixel sizes (no Wrap(500), no SetSize(400, 300))
-- ❌ **NEVER use** hardcoded dimensions (only proportions and flags)
-- ❌ **NEVER skip** wxEXPAND for controls that should stretch
-- ❌ **NEVER forget** to add panels to parent sizer (causes invisible panels!)
+- ❌ **NEVER use** fixed pixel sizes without scalability
+- ❌ **NEVER use** hardcoded dimensions (prefer size policies)
+- ❌ **NEVER forget** to set layout on parent widget
+- ❌ **NEVER skip** QSizePolicy for responsive controls
+
+**DPI & Font Scaling:**
+- Qt6 handles DPI scaling automatically (no manual code needed)
+- Global font scaling: `QApplication::setFont(QFont("Segoe UI", baseSize * scale))`
+- Per-widget styling: Use QSS (Qt Style Sheets)
 
 **Example correct layout:**
 ```cpp
-// 1. Create sizer for panel
-wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+// 1. Create main layout
+QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-// 2. Create StaticBoxSizer for visual grouping
-wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, this, "Group Title");
+// 2. Create QGroupBox for visual grouping
+QGroupBox *groupBox = new QGroupBox("Settings", this);
+QVBoxLayout *groupLayout = new QVBoxLayout(groupBox);
 
-// 3. Add controls with wxEXPAND and proportions
-wxCheckBox* checkbox = new wxCheckBox(box->GetStaticBox(), wxID_ANY, "Label");
-box->Add(checkbox, 0, wxALL | wxEXPAND, 5);  // proportion=0 (fixed height)
+// 3. Add controls with stretch factors
+QCheckBox *checkbox = new QCheckBox("Enable Feature", groupBox);
+groupLayout->addWidget(checkbox, 0);  // 0 = fixed height
 
-wxStaticText* text = new wxStaticText(box->GetStaticBox(), wxID_ANY, "Description");
-box->Add(text, 1, wxALL | wxEXPAND, 5);  // proportion=1 (fills remaining space)
+QLabel *label = new QLabel("Description text here", groupBox);
+label->setWordWrap(true);
+groupLayout->addWidget(label, 1);  // 1 = fills remaining space
 
-// 4. Add box to main sizer
-mainSizer->Add(box, 1, wxALL | wxEXPAND, 10);
+// 4. Add group to main layout
+mainLayout->addWidget(groupBox);
 
-// 5. CRITICAL: Set sizer on panel
-SetSizer(mainSizer);
+// 5. CRITICAL: Set layout on widget
+setLayout(mainLayout);
 ```
 
 ### 3. Atomic Task Workflow - NEVER Skip
@@ -206,7 +213,7 @@ SetSizer(mainSizer);
 **Purpose:** Complete writing environment for book authors
 **Target Audience:** Novelists, non-fiction authors, book journalists
 **License:** MIT (core) + Trademark ("Kalahari" name)
-**Current Phase:** Phase 0 Week 3 (Foundation)
+**Current Phase:** Phase 0 - Qt Migration (2025-11-19)
 
 **Key Features:**
 - African naming convention (ecosystem: Serengeti, Okavango, Victoria, Zambezi)
@@ -220,7 +227,7 @@ SetSizer(mainSizer);
 ## 🛠️ Technology Stack
 
 **Core:** C++20 (GCC 10+, Clang 10+, MSVC 2019+)
-**GUI:** wxWidgets 3.3.0+ + wxAUI (dockable panels)
+**GUI:** Qt6 6.5.0+ (Widgets, automatic DPI scaling)
 **Build:** CMake 3.21+ + vcpkg (manifest mode)
 **Testing:** Catch2 v3 (BDD style)
 **Logging:** spdlog
@@ -228,6 +235,9 @@ SetSizer(mainSizer);
 **Compression:** libzip (.klh files)
 **Database:** SQLite3 (Phase 2+)
 **Plugins:** Python 3.11 Embedded + pybind11
+
+**Migration Note:** Migrated from wxWidgets to Qt6 (2025-11-19, Clean Slate approach)
+**Archive:** wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
 
 **📄 Full details:** [project_docs/02_tech_stack.md](project_docs/02_tech_stack.md)
 
@@ -246,7 +256,7 @@ SetSizer(mainSizer);
 6. [06_roadmap.md](project_docs/06_roadmap.md) - Rules for maintaining ROADMAP/CHANGELOG
 7. [07_mvp_tasks.md](project_docs/07_mvp_tasks.md) - Week-by-week Phase 0-1 tasks
 8. [08_gui_design.md](project_docs/08_gui_design.md) - Command Registry, toolbars
-9. [09_i18n.md](project_docs/09_i18n.md) - wxLocale + gettext pattern
+9. [09_i18n.md](project_docs/09_i18n.md) - Qt i18n system (tr() + .ts/.qm files)
 10. [10_branding.md](project_docs/10_branding.md) - Logo, colors, animal designs
 11. [11_user_documentation_plan.md](project_docs/11_user_documentation_plan.md) - MkDocs strategy
 12. [12_dev_protocols.md](project_docs/12_dev_protocols.md) - Task workflow, session protocols
@@ -272,13 +282,19 @@ SetSizer(mainSizer);
 
 ## 🚀 Roadmap
 
-**Timeline:** 18 months (Phases 0-5)
-**Target Release:** Kalahari 1.0 (Q2-Q3 2026)
-**Current Status:** 🚀 Phase 1 Week 13 - Atomic Task Model (Settings Fixes)
+**Timeline:** 18 months (Phases 0-5) + 4 weeks Qt migration
+**Target Release:** Kalahari 1.0 (Q3-Q4 2026)
+**Current Status:** 🔄 Phase 0 - Qt Migration (Week 1 of 4, Started 2025-11-19)
+
+**Migration Context:**
+- **Decision:** Migrated from wxWidgets to Qt6 (2025-11-19)
+- **Strategy:** Clean Slate Approach (Option B)
+- **Archived:** wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
+- **Preserved:** Core (5,966 LOC), Tests (5,912 LOC), Bindings (120 LOC), Plugin system
 
 **6 Development Phases:**
-1. **Phase 0:** Foundation (Weeks 1-8) - CMake, vcpkg, plugin system
-2. **Phase 1:** Core Editor (Weeks 9-20) - Rich text, wxAUI, .klh files
+1. **Phase 0:** Qt Foundation (4 weeks) - Qt6 setup, QMainWindow, basic GUI
+2. **Phase 1:** Core Editor (Weeks 1-20) - Rich text, QDockWidget, .klh files
 3. **Phase 2:** Plugin System MVP (Weeks 21-30) - 4 working plugins
 4. **Phase 3:** Feature Plugins (Weeks 31-44) - Premium plugins
 5. **Phase 4:** Advanced Plugins (Weeks 45-56) - Export Suite, Research Pro
@@ -292,21 +308,22 @@ SetSizer(mainSizer);
 
 ### Project Fundamentals
 - ✅ Name: **Kalahari** (Writer's IDE)
-- ✅ Type: **Desktop App** (C++20 + wxWidgets)
+- ✅ Type: **Desktop App** (C++20 + Qt6)
 - ✅ License: **MIT** (core) + Trademark
 - ✅ Platforms: **Windows, macOS, Linux** (all in MVP)
 - ✅ Languages: **EN + PL** (MVP requirement, +4 in Phase 2)
 
 ### Technology
 - ✅ Language: **C++20** (modern STL, smart pointers)
-- ✅ GUI: **wxWidgets 3.3.0+ + wxAUI**
+- ✅ GUI: **Qt6 6.5.0+** (Widgets, QDockWidget, automatic DPI)
 - ✅ Build: **CMake 3.21+ + vcpkg**
 - ✅ Testing: **Catch2 v3**
 - ✅ Plugins: **Python 3.11 Embedded + pybind11**
+- 🔄 **Migration:** wxWidgets → Qt6 (2025-11-19, Clean Slate)
 
 ### Architecture Patterns
 - ✅ GUI Pattern: **MVP** (Model-View-Presenter)
-- ✅ Error Handling: **Hybrid** (exceptions + error codes + wxLog*)
+- ✅ Error Handling: **Hybrid** (exceptions + error codes + spdlog)
 - ✅ Dependency Management: **Hybrid** (Singletons + DI)
 - ✅ Threading: **Dynamic pool** (2-4 workers, CPU-aware)
 - ✅ Memory: **Lazy loading** (metadata eager, content on-demand)
@@ -482,9 +499,11 @@ When large feature (EPIC) is ready:
 
 ## 🤖 Claude Code Resources
 
-**3 Skills:** `kalahari-wxwidgets`, `kalahari-plugin-system`, `kalahari-i18n`
+**2 Skills:** `kalahari-plugin-system`, `kalahari-i18n`
 **6 Commands:** `/code-review`, `/architecture-review`, `/best-practices`, `/dependency-check`, `/health-check`, `/testing-strategy`
 **6 Agents:** `software-architect`, `ux-designer`, `qa-engineer`, `security-engineer`, `deployment-engineer`, `session-manager`
+
+**Note:** kalahari-wxwidgets skill removed during Qt migration (2025-11-19)
 
 **Quick commands:**
 ```bash
@@ -504,72 +523,71 @@ When large feature (EPIC) is ready:
 
 ---
 
-## 🎯 Current Status (Phase 1 IN PROGRESS 🚀)
+## 🎯 Current Status (Phase 0 - Qt Migration 🔄)
 
-### Phase 0 Foundation: 100% Complete ✅ (2025-10-31)
+### Qt Migration: IN PROGRESS (Started 2025-11-19)
 
-All Phase 0 deliverables achieved (19 tasks complete):
+**Strategy:** Clean Slate Approach (Option B)
+**Timeline:** 4 weeks (Phase 0)
+**Current:** Day 1, Step 0.4 (Update CLAUDE.md)
 
-- ✅ **Core Infrastructure** (8/8 tasks)
-  - CMake build system (all platforms)
-  - vcpkg integration (manifest mode)
-  - wxWidgets application window with menu/toolbar/statusbar
-  - Settings system (JSON persistence)
-  - Logging system (spdlog - structured, multi-level)
-  - Build automation scripts (cross-platform)
-  - CI/CD pipelines (GitHub Actions - Linux, macOS, Windows)
+**Completed Steps:**
+- ✅ **Step 0.1:** Archive Current State (30 min)
+  - Created wxwidgets-archive branch
+  - Created v0.2.0-alpha-wxwidgets tag
+  - Deleted 3 feature branches (dpi-scaling, dpi-support-clean, theme-manager)
+  - Reset main to commit e191390
 
-- ✅ **Plugin Architecture** (6/6 tasks)
-  - Python 3.11 embedding (bundled)
-  - pybind11 integration (C++/Python interop)
-  - Plugin Manager (discovery, loading, lifecycle)
-  - Extension Points system (IExporter, IPanelProvider, IAssistant)
-  - Event Bus (async, thread-safe, GUI-aware)
-  - .kplugin format handler (ZIP with manifest.json)
+- ✅ **Step 0.2:** Clean Main Branch (60 min)
+  - Deleted 28,098 LOC (103 files)
+  - Removed src/gui/ and include/kalahari/gui/
+  - Removed 49 wxWidgets task files
+  - Removed bwx_sdk submodule
+  - Removed wxWidgets skills
 
-- ✅ **Document Model** (5/5 tasks)
-  - Core classes (BookElement, Part, Book, Document)
-  - JSON serialization (nlohmann_json)
-  - .klh file format (ZIP container with metadata)
-  - CRUD operations (create, read, update, delete)
-  - In-memory document management (smart pointers, lazy loading ready)
+- ✅ **Step 0.3:** Update Project Configuration (90 min)
+  - vcpkg.json: wxWidgets → Qt6 6.5.0+
+  - CMakeLists.txt: Qt6 integration (AUTOMOC/AUTORCC/AUTOUIC)
+  - src/main.cpp: Qt6 placeholder with QApplication
 
-**Testing Status:**
+**Preserved Core (12,000 LOC):**
+- ✅ Core library (5,966 LOC - ZERO wx dependencies)
+- ✅ Tests (5,912 LOC - 50 test cases, 2,239 assertions)
+- ✅ Python bindings (120 LOC - pure pybind11)
+- ✅ Plugin architecture (Extension Points, Event Bus)
+- ✅ Settings system (JSON persistence)
+- ✅ Document model (Book, Part, Document)
 
-- 50 test cases implemented (Catch2 v3)
-- 2,239 assertions
-- ✅ CI/CD: 100% passing (Linux, macOS, Windows)
-- ⚠️ Local WSL: 1 test fails (Catch2 output redirect issue, not a code problem)
+**Next Steps (Phase 0 - Weeks 1-4):**
+- ⏳ **Step 0.4:** Update CLAUDE.md (60 min) - IN PROGRESS
+- ⏳ **Step 0.5:** Create Fresh ROADMAP.md (90 min)
+- ⏳ **Step 0.6:** Update CHANGELOG.md (30 min)
+- ⏳ **Week 1:** Qt Foundation (QMainWindow, basic GUI)
+- ⏳ **Weeks 2-4:** Settings, Dialogs, Core Editor
 
-### Phase 1: Core Editor - IN PROGRESS 🚀 (Started 2025-11-04)
-
-**Current Week:** Week 13 - Atomic Task Model (Settings System Fixes)
-
-**Completed:**
-- ✅ **Task #00019:** Custom Text Editor Control (100%, Days 1-15) - 2025-11-04 to 2025-11-06
-  - bwxTextDocument (Gap Buffer + undo/redo)
-  - FullViewRenderer (layout + hit testing)
-  - bwxTextEditor (main control with MVC)
-  - Observer Pattern integration
-  - Settings infrastructure (14 parameters)
-- ⚠️ **Task #00020:** Navigator Panel Structure (2025-11-09, COMPLETE WITH BUGS)
-  - wxAuiNotebook with 3 tabs (Outline, Statistics, Bookmarks)
-  - Settings Dialog enhancements
-  - 6 bugs identified → 10 atomic fixes (Tasks #00021-#00030)
-- 🧪 **Task #00021:** Fix Windows Settings Crash (2025-11-09, AWAITING VERIFICATION)
-  - Fix implemented: Defensive FitInside() checks + exception handling
-  - CI/CD passing, manual testing required
-  - Acceptance criteria unchecked
-
-**In Progress:** Task #00022 - Apply Button Event Binding (P1 HIGH)
-
-**Next:** Tasks #00023-#00030 (Atomic fixes: icon size, font scaling, verification)
-
-**📄 Full details:** [ROADMAP.md](ROADMAP.md) | [project_docs/07_mvp_tasks.md](project_docs/07_mvp_tasks.md)
+**📄 Full plan:** [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md)
 
 ---
 
 ## 📝 Update History
+
+### v6.0 - 2025-11-19 (QT MIGRATION)
+
+- 🔄 **BREAKING CHANGE: wxWidgets → Qt6 migration**
+- 🚀 **Status updated:** Phase 1 Week 13 → Phase 0 Qt Migration Day 1
+- 🗑️ **Removed:** All wxWidgets-specific content and patterns
+- ✅ **Added:** Qt6 layout patterns (QVBoxLayout, QGroupBox, QSS)
+- ✅ **Added:** Qt DPI & font scaling patterns (automatic DPI, QApplication::setFont())
+- ✅ **Updated:** Technology Stack (Qt6 6.5.0+)
+- ✅ **Updated:** Current Status section (Qt migration progress)
+- ✅ **Updated:** Skills list (removed kalahari-wxwidgets)
+- ✅ **Updated:** i18n reference (Qt tr() + .ts/.qm files)
+- 📋 **Migration Context added:**
+  - Clean Slate Approach (Option B)
+  - wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
+  - Preserved core: 12,000 LOC (5,966 core + 5,912 tests + 120 bindings)
+  - Deleted GUI: 28,098 LOC (103 files)
+- 📄 **Reference:** [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md)
 
 ### v5.2 - 2025-11-11 (ATOMIC TASKS + PHASE 1 UPDATE)
 
