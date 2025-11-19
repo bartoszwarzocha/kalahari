@@ -180,7 +180,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    ### [Unreleased]
 
    #### Added
-   - Menu integration for bwxTextEditor (Cut/Copy/Paste/SelectAll)
+   - Menu integration for EditorWidget (Cut/Copy/Paste/SelectAll)
    - Editor Mode submenu (Full/Page/Typewriter/Publisher)
 
    #### Fixed
@@ -236,7 +236,7 @@ Save session with mode automatically embedded in metadata for intelligent restor
    - Commits: 8 pushed and verified
 
    ## Completed Work
-   - Menu integration for bwxTextEditor (Edit menu)
+   - Menu integration for EditorWidget (Edit menu)
    - Editor Mode submenu (4 view modes)
    - ViewMode type fixes for Windows build
    - Full panel integration (removed margins)

@@ -209,7 +209,7 @@ Which option? (1/2/3 or propose different task)
 📋 Next Milestone: Phase 1 - Core Editor
 
 Week 9 Tasks (ROADMAP):
-1. wxRichTextCtrl integration
+1. QPlainTextEdit integration
 2. Basic text editing (bold, italic, underline)
 3. Chapter management UI
 4. Auto-save system
@@ -308,7 +308,7 @@ If task marked BLOCKED:
 ```markdown
 🚨 BLOCKED TASK: #00015 - Project Navigator Panel
 
-Blocker: "Waiting for wxAUI layout decision"
+Blocker: "Waiting for QDockWidget layout decision"
 Blocked Since: 2025-11-01 (2 days ago)
 
 Resolution Options:
