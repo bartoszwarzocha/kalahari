@@ -1,703 +1,397 @@
 # Kalahari Development Roadmap
 
-> **Writer's IDE** - Atomic Task Structure | Phase-based Development
+> **Writer's IDE** - Qt6 Architecture | Phase-based Development
 
-**Current Phase:** Phase 1 (Core Editor) 🚀 IN PROGRESS
-**Current Task:** Zagadnienie 1.3 - BWX SDK Reactive GUI Management System (IN PROGRESS)
-**Version:** 0.2.0-alpha
-**Last Updated:** 2025-11-15
-
----
-
-## PHASE 0: Foundation ✅ COMPLETE
-
-**Status:** ✅ 100% COMPLETE (2025-10-26 to 2025-11-03)
-**Duration:** 8 days
-
-### 0.1 Core Infrastructure ✅ COMPLETE
-
-- [x] CMake build system (all platforms: Windows, macOS, Linux)
-- [x] vcpkg integration (manifest mode)
-- [x] wxWidgets 3.3.0+ basic application window
-- [x] Main window with menu bar, toolbar, status bar
-- [x] Settings system (JSON persistence with nlohmann_json)
-- [x] Logging system (spdlog - structured, multi-level)
-- [x] Build automation scripts (cross-platform)
-- [x] CI/CD pipelines (GitHub Actions: Linux, macOS, Windows)
-
-### 0.2 Plugin Architecture ✅ COMPLETE
-
-- [x] Python 3.11 embedding (bundled with application)
-- [x] pybind11 integration (C++/Python interop)
-- [x] kalahari_api module with Logger bindings
-- [x] Plugin Manager singleton (discovery, loading, lifecycle)
-- [x] Extension Points system (IExporter, IPanelProvider, IAssistant, IPlugin)
-- [x] ExtensionPointRegistry singleton (type-safe retrieval)
-- [x] Event Bus (async, thread-safe, GUI-aware marshalling)
-- [x] Event subscriber pattern with unsubscribe support
-- [x] 8 standard event types (document, editor, plugin, goal events)
-- [x] .kplugin format handler (ZIP reading/writing with libzip)
-- [x] Plugin manifest structure (manifest.json + plugin.py + assets/)
-- [x] Plugin extraction and validation (PluginArchive RAII wrapper)
-- [x] Plugin API versioning (semantic versioning checks)
-
-### 0.3 Document Model ✅ COMPLETE
-
-- [x] BookElement base class (flexible string-based type system)
-- [x] Part class (chapter container with aggregation)
-- [x] Book class (frontMatter, body Parts, backMatter structure)
-- [x] Document wrapper class (project metadata: title, author, language, UUID)
-- [x] JSON serialization (toJson/fromJson pattern)
-- [x] ISO 8601 timestamps (created, modified)
-- [x] Metadata map for extensibility (plugin custom fields)
-- [x] .klh file format (ZIP container with JSON metadata)
-- [x] DocumentArchive implementation (libzip integration)
-- [x] Basic CRUD operations (Create, Read, Update, Delete)
-- [x] Document::load() from .klh archive
-- [x] Smart pointers (std::shared_ptr) for RAII memory management
-- [x] Word count aggregation (Part → Book → Document)
+**Current Phase:** Phase 0 (Qt Foundation) 🔄 IN PROGRESS
+**Current Task:** Step 0.5 - Create Fresh ROADMAP.md
+**Version:** 0.3.0-alpha
+**Last Updated:** 2025-11-19
 
 ---
 
-## PHASE 1: Core Editor 🚀 IN PROGRESS
+## 🔄 MIGRATION CONTEXT (2025-11-19)
 
-**Status:** 🚀 IN PROGRESS (Started 2025-11-04)
-**Target:** 0.2.0-alpha
-**Timeline:** Weeks 9-20 (12 weeks)
+**Decision:** Migrated from wxWidgets to Qt6 for long-term quality and maintainability.
 
-### 1.1 Custom Text Editor Control ✅ COMPLETE
+**Reason:** wxWidgets limitations (manual DPI scaling, wxStaticBoxSizer bugs, complex reactive patterns) incompatible with "opus magnum" quality standards. Qt6 provides automatic DPI scaling, QApplication::setFont() global styling, QSS theming, and superior documentation.
 
-**Status:** ✅ COMPLETE (2025-11-04 to 2025-11-06, 3 days)
+**Strategy:** Clean Slate Approach (Option B)
+- **Archived:** wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
+- **Preserved:** Core (5,966 LOC), Tests (5,912 LOC), Bindings (120 LOC), Plugin system
+- **Deleted:** GUI layer (28,098 LOC), 49 task files, bwx_sdk submodule
+- **Timeline:** +4 weeks for Qt Foundation (Phase 0)
 
-- [x] bwxTextDocument class (Gap Buffer storage, undo/redo, formatting) - 1,450 LOC
-- [x] FullViewRenderer class (layout, hit testing, viewport culling) - 850 LOC
-- [x] bwxTextEditor main control (~1,000 LOC)
-- [x] Two-phase construction (default + full constructor)
-- [x] Keyboard event handling (OnChar, OnKeyDown)
-- [x] Mouse event handling (OnLeftDown, OnMotion, OnMouseWheel)
-- [x] Focus management (OnSetFocus, OnKillFocus)
-- [x] Editing operations (Copy/Cut/Paste/SelectAll/Undo/Redo)
-- [x] Keyboard shortcuts (Ctrl+C/X/V/A/Z/Y)
-- [x] Formatting shortcuts (Ctrl+B/I/U for Bold/Italic/Underline)
-- [x] Navigation (Arrow keys, Home/End with Shift for selection)
-- [x] Caret management (blinking animation 500ms, scroll-to-cursor)
-- [x] Mouse wheel scrolling, auto-scroll to keep cursor visible
-- [x] View mode architecture (VIEW_FULL MVP, VIEW_PAGE/TYPEWRITER/PUBLISHER future)
-- [x] MVC architecture (Model: bwxTextDocument, View: ITextRenderer, Controller: bwxTextEditor)
-- [x] Observer Pattern (IDocumentObserver for document notifications)
-- [x] EditorPanel implements IDocumentObserver (4 callbacks)
-- [x] Observer lifecycle management (AddObserver/RemoveObserver)
-- [x] TRUE DEBOUNCING (wxTIMER_ONE_SHOT restarts on change, fires 500ms after typing stops)
-- [x] UpdateWordCount() called only in debounced timer (O(n) only after idle)
-- [x] Bug fixes (m_isModified tracking, hasUnsavedChanges() works)
-- [x] MainWindow integration (Format menu, Edit menu, View Mode menu)
-- [x] Buffered painting (wxBufferedDC for flicker-free rendering)
-- [x] EditorSettingsPanel (14 configurable parameters)
-- [x] Settings persistence (JSON storage in ~/.kalahari/settings.json)
-- [x] Live settings updates (apply without restart)
-- [x] Test suite (75+ test cases, 2,239 assertions)
-- [x] Build status: ✅ All platforms (Linux, macOS, Windows) CI/CD passing
-
-### 1.2 Command Registry Architecture ✅ COMPLETE
-
-**Status:** ✅ COMPLETE (Tasks #00031-#00035, Full documentation + testing, 2025-11-14)
-
-#### Core Structures ✅ COMPLETE
-
-- [x] IconSet struct (16/24/32px bitmap storage)
-- [x] KeyboardShortcut struct (toString/fromString parsing, operators)
-- [x] Command struct (complete descriptor with callbacks)
-- [x] command.h (177 LOC), command.cpp (203 LOC)
-
-#### CommandRegistry ✅ COMPLETE
-
-- [x] CommandRegistry singleton (Meyers pattern, thread-safe C++11+)
-- [x] Registration API (registerCommand, unregisterCommand, isCommandRegistered)
-- [x] Query API (getCommand, getCommandsByCategory, getAllCommands, getCategories)
-- [x] Storage: std::unordered_map for O(1) lookup
-- [x] executeCommand() with full error handling
-- [x] canExecute() and isChecked() precondition checking
-- [x] CommandExecutionResult enum (5 states)
-- [x] CommandErrorHandler custom callback support
-- [x] command_registry.h (195 LOC), command_registry.cpp (174 LOC)
-- [x] Tests: 16 test cases, 81 assertions - 100% pass rate
-
-#### ShortcutManager ✅ COMPLETE
-
-- [x] ShortcutManager singleton (Meyers pattern, thread-safe)
-- [x] Binding API (bindShortcut, unbindShortcut, isShortcutBound)
-- [x] Query API (getCommandForShortcut → std::optional, getAllBindings)
-- [x] Execution API (executeShortcut → delegates to CommandRegistry)
-- [x] JSON persistence (saveToFile, loadFromFile)
-- [x] operator< for KeyboardShortcut (std::map compatibility)
-- [x] shortcut_manager.h (145 LOC), shortcut_manager.cpp (168 LOC)
-- [x] Tests: 8 test cases, 42 assertions - 100% pass rate
-
-#### Command Registration ✅ COMPLETE
-
-- [x] File Menu commands (6 total: new, open, save, save_as, settings, exit)
-- [x] Edit Menu commands (7 total: undo, redo, cut, copy, paste, select_all)
-- [x] Format Menu commands (5 total: bold, italic, underline, font, clear_formatting)
-- [x] Keyboard shortcuts bound (Ctrl+N/O/S/Z/X/C/V/A/B/I/U)
-- [x] Event handlers refactored to use CommandRegistry::executeCommand()
-- [x] Total: 18 commands registered in CommandRegistry
-- [x] Tests: Manual verification - all commands work via menu and shortcuts
-- [x] Full test suite: 655 assertions, 91 test cases - 100% pass rate
-
-#### Dynamic UI Generation ✅ COMPLETE (Tasks #00031-00032)
-
-- [x] **Task #00031:** Create MenuBuilder class (buildFromRegistry, addSeparator, addSubmenu) ✅ 2025-11-13
-- [x] Replace hardcoded createMenuBar() with MenuBuilder (createMenuBarDynamic)
-- [x] Event handlers automatically bound to CommandRegistry::executeCommand()
-- [x] Verify all menus build correctly from CommandRegistry (build success)
-- [x] **Task #00032:** Create ToolbarBuilder class (buildFromCommands, addSeparator) ✅ 2025-11-13
-- [x] Replace hardcoded createToolBar() with ToolbarBuilder (createToolBarDynamic)
-- [x] Event handlers automatically bound to executeCommand()
-- [x] Verify toolbar builds correctly, icons load from CommandRegistry
-- [x] **Task #00033:** Settings command integration with CommandRegistry ✅ 2025-11-13
-- [x] Move file.settings execute() from stub to real implementation
-- [x] Remove old event table binding (EVT_MENU wxID_PREFERENCES)
-- [x] Settings dialog opens via CommandRegistry::executeCommand("file.settings")
-- [x] **Task #00034:** Command Registry Architecture Documentation ✅ 2025-11-13
-- [x] Write Command Registry architecture document (project_docs/18, ~15k words)
-- [x] Update ARCHITECTURE.md with Command Registry section
-- [x] Add plugin integration guide (how plugins register commands)
-- [x] **Task #00035:** Manual Testing Session - Command Registry System ✅ COMPLETE (2025-11-14)
-- [x] Test all menu items (File, Edit, Format) - 15+ tests
-- [x] Test all toolbar buttons - 8 tests
-- [x] Test all keyboard shortcuts - 9 tests
-- [x] Test enabled/disabled states (no document → Cut/Paste disabled)
-- [x] Test checked/unchecked states (Format menu toggles)
-- [x] Test dynamic updates (selection changes → format menu states)
-- [x] Verify state propagation (menu + toolbar sync)
-- [x] Verify Settings integration (menu/toolbar/keyboard)
-- [x] Cross-UI consistency (menu/toolbar/keyboard same behavior)
-- [x] Document test results and any issues found
-- [x] **7 critical bugfixes** during testing (Linux crashes, bitmap handling, command order)
-
-### 1.3 BWX SDK Reactive GUI Management System ⚡ IN PROGRESS
-
-**Status:** 🚀 IN PROGRESS (Architecture foundation)
-**Goal:** Professional reactive GUI management system for dynamic UI updates
-**Pattern:** Observer + Template Method + Broadcast (inspired by Qt/WPF/Flutter)
-**Estimated:** 20-25 hours (7 atomic tasks)
-
-#### Architecture Overview
-
-**Problem:** Dynamic UI updates (font scaling, theme switching, accessibility) require manual iteration over 100+ controls. Not scalable, error-prone, inconsistent for plugins.
-
-**Solution:** Reactive broadcast system with managed controls.
-
-**Components:**
-1. **bwxReactive** - Base class with static registry, broadcast methods, pure virtual handlers
-2. **bwxManaged<T>** - Template wrapper for wxWidgets controls (inherits T + bwxReactive)
-3. **Type Aliases** - Convenient names (bwx::StaticText, bwx::Button, etc.)
-
-**Usage:**
-```cpp
-// Replace: wxStaticText* label = new wxStaticText(...);
-// With:    bwx::StaticText* label = new bwx::StaticText(...);
-
-// Apply font scaling to ALL controls:
-bwxReactive::broadcastFontScaleChange(1.5);  // ONE LINE!
-```
-
-#### Atomic Task Breakdown
-
-**Phase 1: Foundation (Week 1)**
-- [ ] **Task #00043:** BWX Reactive Foundation (3-4h)
-  - Create bwx_sdk/gui/ structure
-  - Implement bwxReactive base class (static registry, broadcast API)
-  - Implement bwxManaged<wxStaticText> proof-of-concept
-  - Test with 1 control in AppearanceSettingsPanel
-  - **Acceptance:** Font scaling works for single managed control
-
-**Phase 2: Template & Migration (Week 2)**
-- [ ] **Task #00044:** BWX Managed Template Generalization (2-3h)
-  - Generalize bwxManaged<T> for all wxWindow derivatives
-  - Add theme change support (onThemeChanged handler)
-  - Create type aliases (bwx::Button, bwx::Choice, etc.)
-  - **Acceptance:** Template works for 10+ common controls
-
-- [ ] **Task #00045:** Migrate Settings Panels (3-4h)
-  - Migrate AppearanceSettingsPanel (~30 controls)
-  - Migrate EditorSettingsPanel (~20 controls)
-  - Migrate LogSettingsPanel (~15 controls)
-  - **Acceptance:** All settings dialogs use bwx controls
-
-- [ ] **Task #00046:** Migrate MainWindow & Core Panels (3-4h)
-  - Migrate MainWindow (menu, status bar, toolbar)
-  - Migrate Navigator, Properties, Character, Location, Assistant panels
-  - Migrate EditorPanel
-  - **Acceptance:** All main UI uses bwx controls
-
-**Phase 3: Integration & Testing (Week 2-3)**
-- [ ] **Task #00047:** Font Scaling Integration (2h)
-  - Add broadcastFontScaleChange() in MainWindow::onSettingsApplied()
-  - Implement font scaling persistence on startup
-  - Test full flow: change → apply → restart
-  - **Acceptance:** Font scaling works end-to-end
-
-- [ ] **Task #00048:** BWX SDK Testing & Documentation (3-4h)
-  - Unit tests for bwxReactive (registration, broadcast)
-  - Integration tests for bwxManaged<T>
-  - Update project_docs/03_architecture.md (BWX SDK section)
-  - Create bwx_sdk/README.md (usage guide for plugin developers)
-  - **Acceptance:** Tests pass, docs complete
-
-- [ ] **Task #00049:** Settings System Verification (2-3h)
-  - Verify font scaling persistence (startup load)
-  - Verify icon size persistence (separate system)
-  - Verify text wrapping in settings panels
-  - Verify theme change dialog behavior
-  - Verify Navigator panel cleanup
-  - **Acceptance:** All verification tests pass
-
-#### Obsolete Tasks (Pre-BWX SDK Approach)
-
-**Note:** Tasks #00037-#00042 were planned for manual font scaling implementation.
-After architecture discussion (2025-11-15), we decided to implement professional
-reactive system instead. These tasks remain as documentation of design evolution.
-
-- ~~#00037~~ Font Scaling Live Preview → **OBSOLETE** (covered by bwxManaged<T> automatic reactions)
-- ~~#00038~~ Font Scaling Apply Implementation → **OBSOLETE** (covered by broadcastFontScaleChange())
-- ~~#00039~~ Font Scaling Persistence → **COVERED** by Task #00047 (integration)
-- ~~#00036~~ Icon Persistence Verification → **COVERED** by Task #00049 (verification)
-- ~~#00040~~ Text Wrapping Verification → **COVERED** by Task #00049 (verification)
-- ~~#00041~~ Theme Dialog Verification → **COVERED** by Task #00049 (verification)
-- ~~#00042~~ Navigator Cleanup → **COVERED** by Task #00049 (verification)
-
-#### Benefits
-
-✅ **Font scaling** - One-line broadcast call
-✅ **Theme switching** - Infrastructure ready for Phase 2 dark mode
-✅ **Accessibility** - Foundation for high contrast, large text modes
-✅ **Plugin consistency** - External plugins can use bwx controls
-✅ **Maintainability** - Single template vs 20+ wrapper classes
-✅ **Professional architecture** - Qt/WPF/Flutter-level quality
-✅ **Future-proof** - Easy to add new broadcast types (language, animations, debug mode)
-
-### 1.4 Chapter Management 📋 PLANNED
-
-- [ ] Add new chapter to Part (UI + model)
-- [ ] Delete chapter from Part (confirmation dialog)
-- [ ] Rename chapter (inline edit or dialog)
-- [ ] Move chapter within Part (drag & drop or move up/down buttons)
-- [ ] Move chapter between Parts (drag & drop)
-- [ ] Add new Part to Book (UI + model)
-- [ ] Delete Part from Book (confirmation dialog)
-- [ ] Rename Part (inline edit or dialog)
-- [ ] Move Part in Book structure (reorder)
-- [ ] wxTreeCtrl integration (Navigator panel)
-- [ ] Tree node icons for Parts and Chapters
-- [ ] Right-click context menu (Add, Delete, Rename, Move)
-- [ ] Keyboard shortcuts for tree operations
-- [ ] Undo support for structure changes
-
-### 1.5 Content Persistence 📋 PLANNED
-
-- [ ] Serialize Chapter content to .klh ZIP
-- [ ] Store each Chapter as separate file in ZIP (chapters/001.json, chapters/002.json)
-- [ ] Lazy loading architecture (load Chapter content on-demand)
-- [ ] Unload Chapter content when not in use (memory optimization)
-- [ ] Save current Chapter on switch (auto-save to .klh)
-- [ ] Document::save() full implementation
-- [ ] Document::saveAs() full implementation
-- [ ] Document::load() full implementation (with Chapter content)
-- [ ] Dirty flag tracking (unsaved changes indicator)
-- [ ] Modified indicator in window title
-- [ ] Confirm on close with unsaved changes
-
-### 1.6 Text Formatting 📋 PLANNED
-
-- [ ] Heading styles (H1-H6) with keyboard shortcuts
-- [ ] Bold/Italic/Underline (already in 1.1, verify)
-- [ ] Font family selection (dialog)
-- [ ] Font size selection (dropdown)
-- [ ] Text color (color picker)
-- [ ] Background color (highlight)
-- [ ] Clear formatting command
-- [ ] Paragraph alignment (left, center, right, justify)
-- [ ] Line spacing (single, 1.5, double, custom)
-- [ ] First-line indentation
-- [ ] Paragraph spacing (before/after)
-- [ ] Lists (bulleted, numbered)
-- [ ] Nested lists support
-- [ ] Formatting toolbar (quick access buttons)
-
-### 1.7 Undo/Redo System 📋 PLANNED
-
-- [ ] ICommand interface (Execute, Undo, Redo)
-- [ ] CommandHistory class (push, undo, redo, clear)
-- [ ] Command stack size limit (default 100, configurable)
-- [ ] Merge consecutive typing commands (performance optimization)
-- [ ] Undo/Redo menu items (already bound in 1.2, implement logic)
-- [ ] Keyboard shortcuts (Ctrl+Z, Ctrl+Y - already bound)
-- [ ] Document modification tracking (integrate with dirty flag)
-- [ ] Undo/Redo for text edits
-- [ ] Undo/Redo for formatting changes
-- [ ] Undo/Redo for structure changes (Chapter add/delete/move)
-
-### 1.8 Find & Replace 📋 PLANNED
-
-- [ ] Find dialog (Ctrl+F)
-- [ ] Find Next (F3)
-- [ ] Find Previous (Shift+F3)
-- [ ] Replace dialog (Ctrl+H)
-- [ ] Replace current match
-- [ ] Replace All (with confirmation)
-- [ ] Case sensitive option
-- [ ] Whole word only option
-- [ ] Regular expression support
-- [ ] Search scope (current Chapter, current Part, whole Book)
-- [ ] Search results highlighting
-- [ ] Find in files (search across all Chapters)
-
-### 1.9 Auto-Save & Backup 📋 PLANNED
-
-- [ ] Auto-save timer (configurable interval: 1-10 minutes)
-- [ ] Auto-save to .klh file (background thread)
-- [ ] Auto-save indicator (status bar)
-- [ ] Disable auto-save option (in Settings)
-- [ ] Crash recovery system (detect unclean shutdown)
-- [ ] Recover unsaved changes dialog (on startup after crash)
-- [ ] Backup system (rolling snapshots)
-- [ ] Backup retention policy (keep last N backups, configurable)
-- [ ] Backup location (default ~/.kalahari/backups/, configurable)
-- [ ] Restore from backup UI (list backups, preview, restore)
-- [ ] Manual backup command (File → Create Backup)
-
-### 1.10 UX Polish 📋 PLANNED
-
-- [ ] Focus modes (Normal, Focused, Distraction-Free)
-- [ ] Focused mode (hide panels, show only Editor)
-- [ ] Distraction-Free mode (fullscreen, hide all UI)
-- [ ] Keyboard shortcuts for focus mode switching (F11, Shift+F11)
-- [ ] Word count live updates (status bar)
-- [ ] Session statistics (words written today, session time)
-- [ ] Writing streak tracking (days in a row)
-- [ ] Goal setting UI (daily word count goal)
-- [ ] Goal progress indicator (status bar)
-- [ ] Spell checking integration (red underline, suggestions)
-- [ ] Custom dictionary (add words)
-- [ ] Statistics Panel (charts, graphs)
-- [ ] Reading time estimation (based on word count, configurable WPM)
+**Reference:** [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md) - Complete migration plan
 
 ---
 
-## PHASE 2: Plugin System MVP 📋 PLANNED
+## PHASE 0: Qt Foundation 🔄 IN PROGRESS
 
-**Status:** ⏳ Pending
-**Target:** 0.3.0-beta
-**Timeline:** Weeks 21-30 (2-3 months)
+**Status:** 🔄 IN PROGRESS (Started 2025-11-19, Day 1)
+**Duration:** 4 weeks (Step 0: Day 1, Weeks 1-4)
+**Target:** 0.3.0-alpha
 
-### 2.1 Plugin Management UI 📋 PLANNED
+### Step 0: Preparation ⚡ IN PROGRESS (Day 1, ~6 hours)
 
-- [ ] Plugin list panel (installed plugins, status: enabled/disabled)
-- [ ] Plugin details view (name, version, author, description)
-- [ ] Enable/disable plugin toggle
-- [ ] Plugin configuration button (opens plugin-specific settings dialog)
-- [ ] .kplugin installation (drag & drop support)
-- [ ] .kplugin installation (file picker dialog)
-- [ ] Plugin uninstallation (with confirmation)
-- [ ] Plugin update checking (version comparison)
-- [ ] Update available indicator (badge or icon)
-- [ ] Download and install update (from URL or file)
+**Goal:** Archive wxWidgets, update build system, refresh documentation
 
-### 2.2 Plugin API Core 📋 PLANNED
+- [x] **Step 0.1:** Archive Current State (30 min)
+  - Created wxwidgets-archive branch
+  - Created v0.2.0-alpha-wxwidgets tag
+  - Deleted 3 feature branches (dpi-scaling, dpi-support-clean, theme-manager)
+  - Reset main to commit e191390 (last stable)
 
-- [ ] Command registration API (plugins add menu items, toolbar buttons)
-- [ ] Panel registration API (plugins add dockable panels)
-- [ ] Event subscription API (plugins listen to document events)
-- [ ] Settings API (plugins save/load preferences to ~/.kalahari/plugins/<name>/)
-- [ ] Resource access API (plugins access icons, translations)
-- [ ] Dialog API (plugins create modal/modeless dialogs)
-- [ ] Logger API extension (plugin-specific log prefix)
+- [x] **Step 0.2:** Clean Main Branch (60 min)
+  - Deleted 28,098 LOC (103 files)
+  - Removed src/gui/ and include/kalahari/gui/
+  - Removed 49 wxWidgets task files
+  - Removed bwx_sdk submodule
+  - Removed wxWidgets skills
 
-### 2.3 Plugin 1: DOCX Exporter (Free) 📋 PLANNED
+- [x] **Step 0.3:** Update Project Configuration (90 min)
+  - vcpkg.json: wxWidgets → Qt6 6.5.0+ (qtbase, qttools)
+  - CMakeLists.txt: Qt6 find_package, CMAKE_AUTOMOC/AUTORCC/AUTOUIC
+  - src/CMakeLists.txt: Removed bwx_sdk, updated to Qt-agnostic core
+  - src/main.cpp: Qt6 placeholder with QApplication
 
-- [ ] python-docx integration (dependency management)
-- [ ] Export Document → .docx command (File → Export → DOCX)
-- [ ] Formatting preservation (bold, italic, underline)
-- [ ] Basic styles mapping (H1-H6 → Word Heading styles)
-- [ ] Paragraph formatting export (alignment, spacing)
-- [ ] Configuration UI (page size, margins, font)
-- [ ] Progress indicator (for large documents)
-- [ ] Error handling (write failures, disk full)
+- [x] **Step 0.4:** Update CLAUDE.md (60 min)
+  - Replaced wxWidgets patterns with Qt6 patterns
+  - Updated Cardinal Rules §2 (Qt6 Layout)
+  - Updated Technology Stack (Qt6 6.5.0+)
+  - Updated Current Status (Qt migration progress)
+  - Added v6.0 update history
 
-### 2.4 Plugin 2: Markdown Tools (Free) 📋 PLANNED
+- [ ] **Step 0.5:** Create Fresh ROADMAP.md (90 min) 🔄 IN PROGRESS
+  - Define Phase 0-5 structure for Qt
+  - Fresh task numbering (00001+)
+  - Remove all wxWidgets-specific content
 
-- [ ] Markdown parsing library integration (python-markdown or similar)
-- [ ] Import .md → Document command (File → Import → Markdown)
-- [ ] Export Document → .md command (File → Export → Markdown)
-- [ ] Formatting conversion (bold/italic/headings → Markdown syntax)
-- [ ] Markdown preview panel (real-time rendering)
-- [ ] Syntax highlighting for Markdown mode (optional editor mode)
-- [ ] Configuration UI (Markdown dialect, extensions)
+- [ ] **Step 0.6:** Update CHANGELOG.md (30 min)
+  - Add [0.3.0-alpha] section with BREAKING CHANGE
+  - Document migration decision and rationale
+  - Archive note for wxWidgets version
 
-### 2.5 Plugin 3: Basic Statistics (Free) 📋 PLANNED
+- [ ] **Step 0.7:** Update project_docs/ (60 min)
+  - 02_tech_stack.md (Qt6 6.5.0+)
+  - 03_architecture.md (Qt patterns)
+  - 08_gui_design.md (QMainWindow, QDockWidget)
+  - 09_i18n.md (Qt i18n: tr() + .ts/.qm files)
+  - Delete wxWidgets-specific sections
 
-- [ ] Word count calculation (with/without spaces)
-- [ ] Character count calculation
-- [ ] Reading time estimation (configurable WPM: 200-300)
-- [ ] Session statistics (words written today, this week, this month)
-- [ ] Writing streak tracking (consecutive days with writing)
-- [ ] Statistics panel (dockable, with charts)
-- [ ] matplotlib integration (bar charts, line graphs)
-- [ ] Export statistics to CSV (for external analysis)
+- [ ] **Step 0.8:** Update .claude/ Resources (30 min)
+  - Update kalahari-i18n skill (Qt tr() patterns)
+  - Verify kalahari-plugin-system skill (Qt-agnostic)
+  - Update slash commands if needed
 
-### 2.6 Plugin 4: Assistant Lion (Free) 📋 PLANNED
+- [ ] **Step 0.9:** Update Serena Memories (30 min)
+  - Create qt_migration_decision.md memory
+  - Archive wxWidgets-specific memories
+  - Update project status memory
 
-- [ ] Graphical assistant panel (dockable, bottom-right default)
-- [ ] Lion animal graphics (6 moods: happy, thinking, praising, warning, sleeping, excited)
-- [ ] Speech bubble UI (text messages from Lion)
-- [ ] Basic triggers (break reminder after N minutes, goal reached, session milestone)
-- [ ] Personality system (Lion voice/tone: encouraging, friendly)
-- [ ] Configuration UI (enable/disable, reminder frequency, personality intensity)
-- [ ] Click interaction (cycle moods, dismiss message)
+- [ ] **Step 0.10:** Final Push & Verification (10 min)
+  - Push all commits to main
+  - Verify git state (clean, all changes committed)
+  - Verify GitHub state (all branches/tags correct)
+
+### Week 1: Qt Hello World (Tasks #00001-00003)
+
+**Goal:** Basic Qt6 application with window, menu, logging
+
+- [ ] **Task #00001:** Qt6 vcpkg Installation & CMake Configuration (2-3h)
+  - Run `vcpkg install` with Qt6 6.5.0+
+  - Verify CMake finds Qt6::Core and Qt6::Widgets
+  - Build minimal QApplication + QMessageBox test
+  - CI/CD: Update workflows for Qt dependencies
+
+- [ ] **Task #00002:** QMainWindow Skeleton (3-4h)
+  - Create KalahariApp (QApplication subclass)
+  - Create MainWindow (QMainWindow subclass)
+  - Add menu bar (File, Edit, View, Help)
+  - Add status bar with version info
+  - Integrate Logger and SettingsManager
+  - Test on all platforms (Windows, macOS, Linux)
+
+- [ ] **Task #00003:** Basic QDockWidget System (4-5h)
+  - Create placeholder dock panels (4 docks)
+  - Add View menu for show/hide docks
+  - Implement perspective save/restore (QSettings)
+  - Test dock layout persistence
+
+### Week 2: Settings System (Tasks #00004-00006)
+
+**Goal:** Settings dialog with Qt layouts, JSON persistence
+
+- [ ] **Task #00004:** Settings Dialog Structure (3-4h)
+  - Create SettingsDialog (QDialog)
+  - Add QListWidget for category navigation
+  - Add QStackedWidget for panels
+  - Implement Apply/OK/Cancel buttons
+  - Connect with existing SettingsManager
+
+- [ ] **Task #00005:** Appearance Settings Panel (2-3h)
+  - Create AppearancePanel (QWidget)
+  - Font size controls (QComboBox with 6 presets)
+  - Theme controls (QComboBox: light/dark)
+  - Icon size controls (QSpinBox)
+  - Apply settings with QApplication::setFont()
+
+- [ ] **Task #00006:** Editor Settings Panel (2-3h)
+  - Create EditorPanel (QWidget)
+  - Tab size, line numbers, word wrap controls
+  - Settings persistence via SettingsManager
+  - Live preview updates
+
+### Week 3: Core Editor Foundation (Tasks #00007-00009)
+
+**Goal:** Basic text editing with QPlainTextEdit
+
+- [ ] **Task #00007:** EditorWidget Basic Implementation (4-5h)
+  - Create EditorWidget (QPlainTextEdit subclass)
+  - Integrate with Document model
+  - Implement load/save operations
+  - Syntax highlighting preparation (QSyntaxHighlighter)
+
+- [ ] **Task #00008:** File Operations (3-4h)
+  - File → New/Open/Save/Save As
+  - .klh file format integration
+  - Document dirty state tracking
+  - Unsaved changes dialog
+
+- [ ] **Task #00009:** Edit Operations (2-3h)
+  - Edit → Undo/Redo/Cut/Copy/Paste/Select All
+  - Keyboard shortcuts (QKeySequence)
+  - Menu/toolbar integration
+  - Status bar updates
+
+### Week 4: Panels & Polish (Tasks #00010-00012)
+
+**Goal:** Navigator panel, About dialog, first release
+
+- [ ] **Task #00010:** Navigator Panel with QTreeWidget (4-5h)
+  - Create NavigatorPanel (QDockWidget)
+  - QTreeWidget for document outline
+  - Chapter/scene hierarchy
+  - Double-click to navigate
+
+- [ ] **Task #00011:** About Dialog & Help Menu (2h)
+  - Create AboutDialog (QDialog)
+  - Version, license, credits
+  - Qt version display
+  - Help → About action
+
+- [ ] **Task #00012:** Qt Foundation Release (3-4h)
+  - Build on all platforms
+  - Create installers (basic)
+  - Tag v0.3.0-alpha
+  - Update CHANGELOG.md
+  - Celebrate Qt migration complete! 🎉
 
 ---
 
-## PHASE 3: Feature Plugins 📋 PLANNED
+## PHASE 1: Core Editor (Weeks 1-20)
 
-**Status:** ⏳ Pending
-**Target:** 0.4.0-beta
-**Timeline:** Weeks 31-44 (3-4 months)
+**Status:** ⏳ PLANNED
+**Target:** 0.4.0-alpha
+**Timeline:** ~5 months
 
-### 3.1 Free Plugins Ecosystem 📋 PLANNED
+### 1.1 Rich Text Editor
 
-- [ ] PDF Exporter (reportlab - export to PDF with basic formatting)
-- [ ] TXT Export (plain text export, configurable line endings)
-- [ ] RTF Import/Export (rich text format support)
-- [ ] Spell Checker (hunspell integration, multi-language)
-- [ ] Themes (Dark, Savanna, Midnight - UI color schemes)
-- [ ] Keyboard Shortcuts Editor (custom shortcut configuration UI)
+- [ ] Custom QTextDocument subclass (Book-aware)
+- [ ] Formatting toolbar (bold, italic, underline, alignment)
+- [ ] Font selection (QFontComboBox)
+- [ ] Paragraph styles (heading, body, quote)
+- [ ] Character formatting (color, size, font family)
 
-### 3.2 Premium Plugin: AI Assistant Pro ($19-29) 📋 PLANNED
+### 1.2 Document Structure
 
-- [ ] 4 animals (Lion, Meerkat, Elephant, Cheetah) with unique personalities
-- [ ] Advanced personality system (mood detection, context awareness)
-- [ ] AI-powered suggestions (OpenAI/Claude API integration)
-- [ ] Context-aware prompts (character development, plot suggestions, dialogue ideas)
-- [ ] Flow state detection (don't interrupt when typing rapidly)
-- [ ] Custom personality creation (user-defined assistant)
-- [ ] License verification system (online activation, grace period)
-- [ ] Trial mode (14 days, limited functionality)
+- [ ] Part management (QListWidget or QTreeView)
+- [ ] Chapter CRUD operations
+- [ ] Drag-and-drop reordering
+- [ ] Document outline synchronization
+- [ ] Word count aggregation
 
-### 3.3 Premium Plugin: Advanced Analytics ($14-19) 📋 PLANNED
+### 1.3 Project Management
 
-- [ ] Timeline visualization (plot events on interactive timeline)
-- [ ] Character mention tracking (heatmap, character presence per chapter)
-- [ ] Pacing analysis (action/dialogue/description ratios)
-- [ ] Reading level analysis (Flesch-Kincaid, Gunning Fog index)
-- [ ] Sentiment analysis (emotional tone per chapter)
-- [ ] Productivity trends (daily/weekly/monthly word counts, charts)
-- [ ] License verification system (online activation)
+- [ ] Recent files (QSettings + QAction list)
+- [ ] File history navigation
+- [ ] Project templates
+- [ ] Metadata editing (title, author, language)
 
-### 3.4 Core Features 📋 PLANNED
+### 1.4 Search & Replace
 
-- [ ] Character Bank (character cards with photos, traits, relationships)
-- [ ] Character card UI (name, photo, age, traits, notes)
-- [ ] Character relationships (graph view, connections)
-- [ ] Location Bank (location cards with maps, descriptions, photos)
-- [ ] Location card UI (name, map, description, photos)
-- [ ] Notes System (yellow sticky notes attachable to chapters)
-- [ ] Note UI (title, content, color, attachment)
-- [ ] Writer's Calendar (goals, deadlines, writing schedule)
-- [ ] Calendar UI (month view, day view, event creation)
+- [ ] Find dialog (QDialog with QLineEdit)
+- [ ] Replace dialog
+- [ ] Find in selection, whole word, case-sensitive
+- [ ] Regular expression support (QRegularExpression)
 
 ---
 
-## PHASE 4: Advanced Plugins 📋 PLANNED
+## PHASE 2: Plugin System MVP (Weeks 21-30)
 
-**Status:** ⏳ Pending
-**Target:** 0.5.0-rc
-**Timeline:** Weeks 45-56 (2-3 months)
+**Status:** ⏳ PLANNED
+**Target:** 0.5.0-alpha
 
-### 4.1 Developer Tools 📋 PLANNED
+### 2.1 Plugin UI Integration
 
-- [ ] Plugin Development Guide (comprehensive documentation)
-- [ ] Step-by-step tutorial with working examples
-- [ ] Plugin manifest reference (all fields explained)
-- [ ] Lifecycle hooks documentation (on_init, on_activate, on_deactivate)
-- [ ] Extension Points API reference
-- [ ] Event Bus usage patterns
-- [ ] Developer Mode in Kalahari (optional, hidden by default)
-- [ ] Menu → Tools → Developer Tools (enable in Settings → Advanced)
-- [ ] Plugin Creator Wizard (step-by-step GUI)
-- [ ] Plugin Validator (manifest + structure checks)
-- [ ] Plugin Packager (.kplugin ZIP creator)
-- [ ] Live plugin reload (for development, auto-reload on file change)
-- [ ] CLI Tools (optional, for automation)
-- [ ] tools/create_plugin.py (template generator)
-- [ ] tools/validate_plugin.py (validation script)
-- [ ] tools/package_plugin.py (ZIP packager)
-- [ ] Plugin Template Repository
-- [ ] examples/hello_plugin/ (working minimal example)
-- [ ] examples/advanced_plugin/ (all features demonstrated)
-- [ ] plugin_manifest_schema.json (VSCode autocomplete)
+- [ ] Plugin Manager dialog (QDialog)
+- [ ] Plugin discovery from ~/.kalahari/plugins/
+- [ ] Install/Uninstall/Enable/Disable UI
+- [ ] Plugin settings panels (QWidget subclasses)
 
-### 4.2 Premium Plugin: Professional Export Suite ($24-34) 📋 PLANNED
+### 2.2 Four MVP Plugins
 
-- [ ] EPUB export (ebooklib - e-book publishing ready)
-- [ ] Advanced PDF (custom formatting, TOC, index, headers/footers)
-- [ ] Advanced DOCX (publisher-ready templates, styles)
-- [ ] HTML export (website-ready, responsive)
-- [ ] LaTeX export (academic writing, thesis templates)
-- [ ] Export templates (Kindle Direct Publishing, IngramSpark)
-- [ ] Batch export (multiple formats at once)
+- [ ] **Meerkat (Statistics):** Word count, character count, reading time
+- [ ] **Lion (Writing Goals):** Daily/weekly goals, progress tracking
+- [ ] **Elephant (Notes):** Research notes, character cards
+- [ ] **Cheetah (Quick Actions):** Keyboard shortcuts, snippets
+
+### 2.3 Extension Point API
+
+- [ ] IExporter C++ interface (PDF, DOCX, HTML)
+- [ ] IPanelProvider C++ interface (dock panels)
+- [ ] IAssistant C++ interface (AI assistants)
+- [ ] Plugin API documentation
+
+---
+
+## PHASE 3: Feature Plugins (Weeks 31-44)
+
+**Status:** ⏳ PLANNED
+**Target:** 0.6.0-beta
+
+### 3.1 Premium Plugin Development
+
+- [ ] **AI Assistant Pro** ($19)
+- [ ] **Advanced Analytics** ($14)
+- [ ] **Export Suite** ($29)
+
+### 3.2 Plugin Marketplace
+
+- [ ] Online plugin repository
 - [ ] License verification system
-
-### 4.3 Premium Plugin: Research & Sources Pro ($19-24) 📋 PLANNED
-
-- [ ] OCR for scanned documents (pytesseract/Tesseract integration)
-- [ ] Web scraping assistant (article extraction)
-- [ ] Citation management (Zotero integration)
-- [ ] Advanced source organization (tagging, categorization)
-- [ ] Automatic fact-checking hints (highlight potential errors)
-- [ ] Bibliography generation (APA, MLA, Chicago formats)
-- [ ] Research timeline (when facts were verified)
-- [ ] License verification system
-
-### 4.4 Premium Plugin: Collaboration Pack ($29-39) 📋 PLANNED
-
-- [ ] Beta-reader mode (comments, suggestions, annotations)
-- [ ] Editor mode (track changes, accept/reject)
-- [ ] Version comparison (git-like diffs, side-by-side)
-- [ ] Shared notes & annotations (multi-user)
-- [ ] Real-time writing sprints (online sessions with friends)
-- [ ] Export with comments (PDF with annotations)
-- [ ] License verification system
+- [ ] Update notification system
 
 ---
 
-## PHASE 5: Polish & Release 📋 PLANNED
+## PHASE 4: Advanced Plugins (Weeks 45-56)
 
-**Status:** ⏳ Pending
+**Status:** ⏳ PLANNED
+**Target:** 0.7.0-beta
+
+### 4.1 Research & Collaboration
+
+- [ ] **Research Pro** ($39)
+- [ ] **Collaboration Pack** ($29)
+
+### 4.2 Cloud Integration
+
+- [ ] Cloud Sync Pro (SaaS $5-10/month)
+- [ ] Auto-save to cloud
+- [ ] Device synchronization
+
+---
+
+## PHASE 5: Polish & Release (Weeks 57-68)
+
+**Status:** ⏳ PLANNED
 **Target:** 1.0.0
-**Timeline:** Weeks 57-68 (2-3 months)
 
-### 5.1 Testing & Quality 📋 PLANNED
+### 5.1 Testing & QA
 
-- [ ] Unit test coverage 70%+ (core modules)
-- [ ] Unit test coverage for all plugins
-- [ ] Integration tests (critical workflows: create document, edit, save, export)
-- [ ] Beta testing program (recruit 20-30 real writers)
-- [ ] Beta testing feedback collection (forms, interviews)
-- [ ] Bug fixing marathon (prioritized backlog, 2-week sprint)
-- [ ] Performance optimization (load time < 3s, memory usage < 200MB idle)
-- [ ] Profiling (identify bottlenecks, optimize hot paths)
-- [ ] Accessibility review (screen readers, keyboard navigation)
-- [ ] Security audit (plugin sandboxing, file handling, input validation)
+- [ ] Comprehensive test suite (unit + integration)
+- [ ] Manual testing on all platforms
+- [ ] Beta testing program (100 users)
+- [ ] Bug triage and fixes
 
-### 5.2 Documentation 📋 PLANNED
+### 5.2 Documentation
 
-- [ ] User Manual (English) - Complete guide for writers
-- [ ] User Manual (Polish) - Pełny przewodnik dla pisarzy
-- [ ] Plugin API Documentation - For plugin developers
-- [ ] Getting Started Guide - Quick start tutorials
-- [ ] Video Tutorials - Screencasts for key features (YouTube)
-- [ ] FAQ - Common questions and troubleshooting
-- [ ] Release Notes - Feature list and known issues
+- [ ] User manual (MkDocs)
+- [ ] Plugin development guide
+- [ ] API reference (Doxygen)
+- [ ] Video tutorials
 
-### 5.3 Packaging & Distribution 📋 PLANNED
+### 5.3 Packaging & Distribution
 
-- [ ] Windows Installer (NSIS - silent install, file associations .klh)
-- [ ] macOS Installer (DMG - drag-to-Applications, code signing)
-- [ ] Linux Packages (AppImage universal)
-- [ ] Linux Packages (DEB for Ubuntu/Debian - optional)
-- [ ] Linux Packages (RPM for Fedora/RHEL - optional)
-- [ ] Embedded Python bundling (all platforms, no external dependency)
-- [ ] Code signing (Windows Authenticode certificate)
-- [ ] Code signing (macOS Developer ID certificate)
-- [ ] Notarization (macOS - required for Gatekeeper)
-- [ ] Auto-update system (check for new versions on startup, optional)
-- [ ] GitHub Release automation (CI/CD release workflow)
+- [ ] Windows installer (NSIS or WiX)
+- [ ] macOS .dmg (notarized)
+- [ ] Linux .deb/.rpm packages
+- [ ] Flatpak/Snap for universal Linux
 
-### 5.4 Launch 📋 PLANNED
+### 5.4 Release 🎉
 
-- [ ] Website (kalahari.app) - Project homepage, download links
-- [ ] GitHub Public Release - MIT License, source code
-- [ ] Social Media announcements (Twitter, Reddit r/writing, WritingForums)
-- [ ] Blog Posts - Launch announcement, feature highlights
-- [ ] Community Forum - Support and discussion platform (Discourse or similar)
-- [ ] Press Kit - Screenshots, logo SVG, description, contact info
+- [ ] Version 1.0.0 release
+- [ ] Press kit
+- [ ] Launch announcement
+- [ ] Community support channels
 
 ---
 
-## POST-1.0: Future Expansion 📋 PLANNED
+## Key Milestones
 
-### Phase 6: Cloud Sync (3-6 months post-1.0) 📋 PLANNED
-
-- [ ] Cloud Sync Pro subscription system ($5-10/month)
-- [ ] Dropbox integration (OAuth, file sync)
-- [ ] Google Drive integration (OAuth, file sync)
-- [ ] Own backend infrastructure (AWS/Azure/GCP - Phase 2)
-- [ ] End-to-end encryption (AES-256, client-side encryption)
-- [ ] Conflict resolution UI (smart merging, manual review)
-- [ ] Mobile companion app (iOS - read-only, view documents)
-- [ ] Mobile companion app (Android - read-only, view documents)
-- [ ] Web access (basic editor in browser, read/write)
-- [ ] Automatic cloud backups (unlimited storage for subscribers)
-- [ ] Cross-device sessions (pick up where you left off)
-- [ ] Premium support (email response within 24h)
-
-### Phase 7: Collaboration (6-12 months post-1.0) 📋 PLANNED
-
-- [ ] Serengeti - Collaborative writing tool (separate app)
-- [ ] Real-time co-writing (Google Docs style, operational transforms)
-- [ ] Role-based permissions (author, editor, beta-reader)
-- [ ] Comment threads (discussions on specific passages)
-- [ ] Task assignments (editorial workflow, assign chapters to editors)
-- [ ] Version history (time machine for documents, git-like)
-- [ ] Integration with Kalahari (seamless switching, import/export)
-
-### Phase 8: Ecosystem (12-18 months post-1.0) 📋 PLANNED
-
-- [ ] Plugin Marketplace - Own platform for plugin distribution
-- [ ] Template Marketplace - Pre-made project templates (genres, formats)
-- [ ] Okavango - Research & knowledge management (separate app)
-- [ ] Kilimanjaro - Project management for writers (separate app)
-- [ ] Victoria - Advanced cloud sync (own backend, web app)
-- [ ] Zambezi - Publishing toolkit (formatting, distribution)
-- [ ] Community content (user-contributed themes, templates)
-- [ ] Publishing partnerships (IngramSpark, Kindle Direct, etc.)
+- [x] **2025-10-31:** Phase 0 Foundation Complete (wxWidgets)
+- [x] **2025-11-19:** Qt Migration Decision & Start
+- [ ] **2025-12-17:** Phase 0 Qt Foundation Complete (4 weeks)
+- [ ] **2026-05:** Phase 1 Core Editor Complete
+- [ ] **2026-07:** Phase 2 Plugin System MVP Complete
+- [ ] **2026-Q3:** Beta Release (0.7.0)
+- [ ] **2026-Q4:** Kalahari 1.0 Release 🚀
 
 ---
 
-## Task File Naming Convention
+## Success Criteria
 
-**For tasks from ROADMAP:**
-```
-NNNNN_P_Z_description.md
+### Phase 0 (Qt Foundation)
+- ✅ wxWidgets archived (branch + tag)
+- ✅ Qt6 build system working (all platforms)
+- ✅ Documentation updated (CLAUDE.md, CHANGELOG.md, project_docs/)
+- ⏳ QMainWindow with menu/toolbar/statusbar
+- ⏳ Settings dialog with Qt layouts
+- ⏳ Basic text editor with QPlainTextEdit
+- ⏳ All 12 tasks complete (00001-00012)
 
-NNNNN = task number (00001-99999, sequential)
-P = phase number (0-5)
-Z = zagadnienie (main topic) number in phase (1-9)
-description = short task description (snake_case)
+### Phase 1 (Core Editor)
+- Rich text editing with formatting
+- Document structure (Parts, Chapters)
+- Search & Replace
+- Project management
+- Word count & statistics
 
-Example:
-00034_1_2_dynamic_menu_builder.md
-  ↑     ↑ ↑  ↑
-  task  │ │  description
-        │ zagadnienie 1.2 (Command Registry)
-        phase 1 (Core Editor)
-```
-
-**For custom tasks (fixes, tests, refactors not in ROADMAP):**
-```
-NNNNN_description.md
-
-NNNNN = task number (sequential)
-description = short task description (snake_case)
-
-Example:
-00043_fix_windows_crash.md
-00044_refactor_settings_dialog.md
-00045_add_integration_tests.md
-```
+### Phases 2-5
+- See individual phase sections above
 
 ---
 
-**Last Updated:** 2025-11-13
-**Next Review:** After completing Zagadnienie 1.2 (Command Registry Architecture)
+## Technical Debt & Future Improvements
+
+### Immediate (Phase 0-1)
+- [ ] Qt Designer .ui files for dialogs (consider for Phase 1)
+- [ ] QTest unit tests for GUI (supplement Catch2)
+- [ ] Qt Linguist integration (.ts/.qm i18n)
+
+### Medium-term (Phase 2-3)
+- [ ] Custom QSyntaxHighlighter for book-specific formatting
+- [ ] QUndoStack/QUndoCommand for undo/redo
+- [ ] QDataStream for binary serialization (performance)
+
+### Long-term (Phase 4-5)
+- [ ] Qt WebEngine for HTML preview
+- [ ] Qt Quick/QML for modern UI (future consideration)
+- [ ] Qt Network for cloud sync
+- [ ] Qt Concurrent for background tasks
+
+---
+
+## Notes
+
+1. **Task Numbering:** Fresh start from #00001 (Qt era)
+2. **wxWidgets Archive:** All wxWidgets code preserved in wxwidgets-archive branch
+3. **Atomic Workflow:** Maintained from v5.x (30-120 min tasks)
+4. **Testing:** Catch2 for core, QTest for GUI (Phase 1+)
+5. **Qt LGPL:** Dynamic linking, no commercial license needed
+6. **Plugin API:** Pure C++ types (no Qt types in API) → proprietary plugins OK
+
+---
+
+**Document Version:** 1.0 (Qt Migration)
+**Last Update:** 2025-11-19
+**Updated By:** Claude (Qt migration - Clean Slate approach)
