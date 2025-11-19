@@ -7,7 +7,173 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0-alpha] - 2025-11-19
+
+### BREAKING CHANGE: Technology Stack Pivot (wxWidgets → Qt6)
+
+**Migration Type:** Clean Slate Approach (Option B)
+**Decision Date:** 2025-11-19
+**Implementation:** Phase 0 - Qt Foundation (4 weeks)
+**Rationale:** wxWidgets limitations (manual DPI scaling, wxStaticBoxSizer bugs, complex reactive patterns) incompatible with "opus magnum" quality standards.
+
+#### Changed
+
+- **GUI Framework:** wxWidgets 3.3.0+ → Qt6 6.5.0+ (Widgets)
+  - Automatic DPI scaling (no manual code needed)
+  - Global font scaling: `QApplication::setFont()`
+  - QSS styling (CSS-like theming)
+  - QDockWidget system (cleaner than wxAuiManager)
+  - Superior documentation and community support
+  - Build: vcpkg Qt6 6.5.0+ (qtbase, qttools)
+
+- **Architecture Patterns:**
+  - Layout: wxBoxSizer/wxStaticBoxSizer → QVBoxLayout/QHBoxLayout/QGroupBox
+  - Docking: wxAUI → QDockWidget
+  - i18n: wxLocale + gettext → Qt i18n (tr() + .ts/.qm files)
+  - Logging: wxLog* → spdlog (already in use)
+  - Error Handling: Hybrid (exceptions + error codes + spdlog)
+
+- **Build System:**
+  - vcpkg.json: Replaced wxwidgets dependency with qt (6.5.0+)
+  - CMakeLists.txt: Added Qt6 find_package, CMAKE_AUTOMOC/AUTORCC/AUTOUIC
+  - src/CMakeLists.txt: Removed bwx_sdk, simplified to Qt-agnostic core
+  - src/main.cpp: Qt6 placeholder (QApplication + QMessageBox)
+
+- **Documentation:**
+  - CLAUDE.md v6.0: Complete Qt6 rewrite (Cardinal Rules §2, Tech Stack, patterns)
+  - ROADMAP.md v1.0: Fresh roadmap with Qt phases (Phase 0-5)
+  - QT_MIGRATION_ROADMAP.md: Detailed migration plan (57KB, ~1,200 lines)
+
+#### Removed
+
+- **GUI Layer (28,098 LOC deleted):**
+  - src/gui/ - All wxWidgets GUI implementation (15 files, ~8,500 LOC)
+  - include/kalahari/gui/ - All GUI headers (10 files)
+  - external/bwx_sdk - wxWidgets-only reactive system (submodule)
+  - .claude/skills/kalahari-wxwidgets/ - wxWidgets skill
+  - .claude/skills/kalahari-bwx-custom-controls.md - BWX patterns
+
+- **Tasks (49 files deleted):**
+  - All wxWidgets-specific task files (00001-00045)
+  - Obsolete architecture decisions
+  - Fresh task numbering from #00001 (Qt era)
+
+- **Git Branches (3 deleted):**
+  - feature/dpi-scaling
+  - feature/dpi-support-clean
+  - feature/theme-manager
+
+#### Added
+
+- **Archive:**
+  - wxwidgets-archive branch - Complete wxWidgets implementation preserved
+  - v0.2.0-alpha-wxwidgets tag - Last stable wxWidgets version
+  - Commit: e191390 (feat(bwx-sdk): Add reactive control wrappers)
+
+- **Documentation:**
+  - QT_MIGRATION_ROADMAP.md - Comprehensive migration plan
+    - Option A vs Option B comparison
+    - Phase 0-4 breakdown (4 weeks timeline)
+    - Risk mitigation strategy
+    - Success criteria
+
+- **Qt Foundation Plan (Phase 0, 4 weeks):**
+  - Step 0: Preparation (Day 1, 6 hours) - Archive, cleanup, docs
+  - Week 1: Qt Hello World (Tasks #00001-00003)
+  - Week 2: Settings System (Tasks #00004-00006)
+  - Week 3: Core Editor Foundation (Tasks #00007-00009)
+  - Week 4: Panels & Polish (Tasks #00010-00012)
+
+#### Preserved (12,000 LOC, 100% portable)
+
+- **Core Library (5,966 LOC):**
+  - src/core/ - ZERO wx dependencies (grep verified)
+  - Book, Document, Settings, Logger, Plugin system
+  - Event Bus, Extension Points
+  - All functionality intact
+
+- **Tests (5,912 LOC):**
+  - tests/ - 50 test cases, 2,239 assertions
+  - 100% portable (no GUI dependencies)
+  - Catch2 v3 framework
+  - Will rerun in Qt project unchanged
+
+- **Python Bindings (120 LOC):**
+  - src/bindings/python_bindings.cpp
+  - Pure pybind11 (no wx types)
+  - Plugin API unchanged
+
+#### Fixed
+
+N/A - This is an architectural migration, not a bug fix release.
+
+#### Technical Details
+
+- **Phase 0 Progress (Day 1, ~4 hours):**
+  - ✅ Step 0.1: Archive Current State (30 min)
+  - ✅ Step 0.2: Clean Main Branch (60 min)
+  - ✅ Step 0.3: Update Project Configuration (90 min)
+  - ✅ Step 0.4: Update CLAUDE.md (60 min)
+  - ✅ Step 0.5: Create Fresh ROADMAP.md (90 min)
+  - 🔄 Step 0.6: Update CHANGELOG.md (30 min) - IN PROGRESS
+
+- **Git Commits Created (Day 1):**
+  1. f78ac88 - docs: Add Qt migration roadmap (Clean Slate strategy)
+  2. bc7ce88 - chore: Remove wxWidgets GUI layer and prepare for Qt migration
+  3. c997ae0 - build: Migrate from wxWidgets to Qt6
+  4. 3e7d63c - docs: Update CLAUDE.md for Qt6 migration (v6.0)
+  5. 6ab7936 - docs: Create fresh ROADMAP.md for Qt6 migration (v1.0)
+
+- **LOC Statistics:**
+  - Deleted: 28,098 LOC (GUI layer + tasks + skills)
+  - Added: 1,200 LOC (QT_MIGRATION_ROADMAP.md)
+  - Net Change: -26,898 LOC
+  - Preserved: 12,000 LOC (core + tests + bindings)
+
+#### Migration Notes
+
+1. **wxWidgets Archive:** All code preserved in wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
+2. **Atomic Workflow:** Maintained (30-120 min tasks, user approval required)
+3. **Plugin System:** Architecture unchanged (Qt-agnostic C++ API)
+4. **Testing:** Catch2 for core (existing), QTest for GUI (Phase 1+)
+5. **Qt LGPL:** Dynamic linking, no commercial license needed ($0 cost)
+6. **Plugin Licensing:** Pure C++ API (no Qt types) → proprietary plugins allowed
+
+#### References
+
+- [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md) - Complete migration plan
+- [ROADMAP.md](ROADMAP.md) - Fresh Qt-based roadmap (Phase 0-5)
+- [CLAUDE.md](CLAUDE.md) v6.0 - Updated project instructions
+- wxwidgets-archive branch - Historical reference
+- Commit e191390 - Last stable wxWidgets state
+
+---
+
 ## [Unreleased]
+
+### Qt Foundation - Phase 0 (Started 2025-11-19)
+
+*This section will track Qt migration progress during Phase 0 (4 weeks)*
+
+#### Planned (Week 1-4)
+- [ ] Task #00001: Qt6 vcpkg Installation & CMake Configuration (2-3h)
+- [ ] Task #00002: QMainWindow Skeleton (3-4h)
+- [ ] Task #00003: Basic QDockWidget System (4-5h)
+- [ ] Task #00004: Settings Dialog Structure (3-4h)
+- [ ] Task #00005: Appearance Settings Panel (2-3h)
+- [ ] Task #00006: Editor Settings Panel (2-3h)
+- [ ] Task #00007: EditorWidget Basic Implementation (4-5h)
+- [ ] Task #00008: File Operations (3-4h)
+- [ ] Task #00009: Edit Operations (2-3h)
+- [ ] Task #00010: Navigator Panel with QTreeWidget (4-5h)
+- [ ] Task #00011: About Dialog & Help Menu (2h)
+- [ ] Task #00012: Qt Foundation Release (3-4h)
+
+---
+
+## [0.2.0-alpha] - 2025-11-15 (wxWidgets - ARCHIVED)
+
+**Note:** This version used wxWidgets 3.3.0+. Archived in wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag.
 
 ### BWX SDK Architecture Decision (2025-11-15)
 
