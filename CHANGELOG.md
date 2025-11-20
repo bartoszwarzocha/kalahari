@@ -153,11 +153,21 @@ N/A - This is an architectural migration, not a bug fix release.
 
 ### Qt Foundation - Phase 0 (Started 2025-11-19)
 
-*This section will track Qt migration progress during Phase 0 (4 weeks)*
+*This section tracks Qt migration progress during Phase 0 (4 weeks)*
+
+#### Completed (Week 1)
+
+- [x] **Task #00001: Qt6 Hello World - Minimal QMainWindow** (2025-11-20, ~45min)
+  - Added Qt6::Gui component to find_package (CMakeLists.txt:104)
+  - Linked Qt6::Gui library (src/CMakeLists.txt:110-116)
+  - Replaced QMessageBox placeholder with QMainWindow
+  - Window: 1280x720 px, title "Kalahari Writer's IDE"
+  - Organization: "Bartosz W. Warzocha & Kalahari Team"
+  - Event loop: app.exec() for persistent window
+  - Files: CMakeLists.txt, src/CMakeLists.txt, src/main.cpp, tasks/00001*.md
 
 #### Planned (Week 1-4)
-- [ ] Task #00001: Qt6 vcpkg Installation & CMake Configuration (2-3h)
-- [ ] Task #00002: QMainWindow Skeleton (3-4h)
+- [ ] Task #00002: QMainWindow Structure (menus/toolbars) (3-4h)
 - [ ] Task #00003: Basic QDockWidget System (4-5h)
 - [ ] Task #00004: Settings Dialog Structure (3-4h)
 - [ ] Task #00005: Appearance Settings Panel (2-3h)

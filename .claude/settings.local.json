@@ -91,7 +91,11 @@
       "Bash(git tag:*)",
       "Bash(git submodule:*)",
       "Bash(git rm:*)",
-      "mcp__serena__edit_memory"
+      "mcp__serena__edit_memory",
+      "Bash(gh api:*)",
+      "mcp__serena__think_about_whether_you_are_done",
+      "Bash(./scripts/build.sh:*)",
+      "Bash(./scripts/build_linux.sh:*)"
     ],
     "deny": [],
     "ask": []

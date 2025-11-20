@@ -107,11 +107,12 @@ target_compile_definitions(kalahari PRIVATE
     KALAHARI_VERSION="${PROJECT_VERSION}"
 )
 
-# Link libraries (Qt will be added in Phase 0 Week 1)
+# Link libraries (Qt6 Hello World - Task #00001)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
     Qt6::Core
     Qt6::Widgets
+    Qt6::Gui
 )
 
 # Platform-specific settings
