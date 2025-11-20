@@ -222,8 +222,31 @@ N/A - This is an architectural migration, not a bug fix release.
   - **Result:** ✅ Build successful (Windows native), all tests passing
   - Files: 8 modified (headers, implementation, tests, CMakeLists, vcpkg.json, main.cpp)
 
+- [x] **Task #00004b: Settings Dialog Structure** (2025-11-20, ~2h)
+  - **SettingsDialog class:**
+    - Created `SettingsDialog` (inherits `QDialog`)
+    - Header: include/kalahari/gui/settings_dialog.h
+    - Implementation: src/gui/settings_dialog.cpp
+    - Q_OBJECT macro for signals/slots support
+  - **Dialog structure:**
+    - QTabWidget with 2 placeholder tabs:
+      - "Appearance" tab (placeholder: QLabel with info message)
+      - "Editor" tab (placeholder: QLabel with info message)
+    - QDialogButtonBox with 3 buttons:
+      - OK: Saves settings and closes (accept())
+      - Cancel: Discards changes and closes (reject())
+      - Apply: Saves settings without closing
+  - **MainWindow integration:**
+    - Added `m_settingsAction` (Edit menu → Settings..., Ctrl+,)
+    - Added slot `onSettings()` - opens SettingsDialog modally
+    - Status bar feedback: "Settings saved" / "Settings changes discarded"
+  - **SettingsManager integration:**
+    - loadSettings(): Placeholder (no controls yet, Tasks #00005-00006)
+    - saveSettings(): Calls SettingsManager::save()
+  - **Result:** ✅ Build successful, dialog opens from Edit menu
+  - Files: 5 new/modified (settings_dialog.h/cpp, main_window.h/cpp, CMakeLists.txt)
+
 #### Planned (Week 1-4)
-- [ ] Task #00004: Settings Dialog Structure (3-4h)
 - [ ] Task #00005: Appearance Settings Panel (2-3h)
 - [ ] Task #00006: Editor Settings Panel (2-3h)
 - [ ] Task #00007: EditorWidget Basic Implementation (4-5h)

@@ -85,6 +85,7 @@ target_link_libraries(kalahari_core PUBLIC
 set(KALAHARI_SOURCES
     main.cpp
     gui/main_window.cpp
+    gui/settings_dialog.cpp
     gui/panels/editor_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
@@ -93,6 +94,7 @@ set(KALAHARI_SOURCES
     gui/panels/log_panel.cpp
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h

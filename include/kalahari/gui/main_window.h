@@ -127,6 +127,9 @@ private slots:
     /// @brief Slot for Edit > Paste action
     void onPaste();
 
+    /// @brief Slot for Edit > Settings action
+    void onSettings();
+
 private:
     // Actions
     QAction* m_newAction;
@@ -140,6 +143,7 @@ private:
     QAction* m_cutAction;
     QAction* m_copyAction;
     QAction* m_pasteAction;
+    QAction* m_settingsAction;
 
     // Menus
     QMenu* m_fileMenu;

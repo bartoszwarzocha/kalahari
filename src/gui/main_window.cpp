@@ -2,6 +2,7 @@
 /// @brief Main application window implementation
 
 #include "kalahari/gui/main_window.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -33,6 +34,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_cutAction(nullptr)
     , m_copyAction(nullptr)
     , m_pasteAction(nullptr)
+    , m_settingsAction(nullptr)
     , m_fileMenu(nullptr)
     , m_editMenu(nullptr)
     , m_viewMenu(nullptr)
@@ -129,6 +131,11 @@ void MainWindow::createActions() {
     m_pasteAction->setStatusTip(tr("Paste from clipboard"));
     connect(m_pasteAction, &QAction::triggered, this, &MainWindow::onPaste);
 
+    m_settingsAction = new QAction(tr("&Settings..."), this);
+    m_settingsAction->setShortcut(QKeySequence(tr("Ctrl+,")));
+    m_settingsAction->setStatusTip(tr("Open settings dialog"));
+    connect(m_settingsAction, &QAction::triggered, this, &MainWindow::onSettings);
+
     logger.debug("Actions created successfully");
 }
 
@@ -154,6 +161,8 @@ void MainWindow::createMenus() {
     m_editMenu->addAction(m_cutAction);
     m_editMenu->addAction(m_copyAction);
     m_editMenu->addAction(m_pasteAction);
+    m_editMenu->addSeparator();
+    m_editMenu->addAction(m_settingsAction);
 
     logger.debug("Menus created successfully");
 }
@@ -241,6 +250,22 @@ void MainWindow::onPaste() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Paste");
     statusBar()->showMessage(tr("Paste (not implemented)"), 2000);
+}
+
+void MainWindow::onSettings() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Settings");
+
+    SettingsDialog dialog(this);
+    int result = dialog.exec();
+
+    if (result == QDialog::Accepted) {
+        logger.info("Settings dialog: OK clicked (settings saved)");
+        statusBar()->showMessage(tr("Settings saved"), 2000);
+    } else {
+        logger.info("Settings dialog: Cancel clicked (changes discarded)");
+        statusBar()->showMessage(tr("Settings changes discarded"), 2000);
+    }
 }
 
 // Dock management
