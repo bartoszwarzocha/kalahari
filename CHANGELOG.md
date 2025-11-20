@@ -44,6 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files added: `kalahari_syntax_highlighter.h`, `kalahari_syntax_highlighter.cpp`
   - Build: Successful, all 68 tests passed (532 assertions)
 
+- **Task #00008:** File Operations (New/Open/Save/Save As) - 2025-11-20
+  - File → New: Creates empty document, clears editor, resets dirty state
+  - File → Open: QFileDialog, loads .klh via DocumentArchive, extracts Phase 0 content from metadata
+  - File → Save: Saves to current file, delegates to Save As if no file path
+  - File → Save As: QFileDialog save, updates document title from filename
+  - Dirty state tracking: Connected to QPlainTextEdit::textChanged signal, shows "*" in window title
+  - Unsaved changes dialog: Prompts on New/Open/Close with Save/Discard/Cancel options
+  - Phase 0 content storage: Uses metadata["_phase0_content"] in first chapter (temporary, Phase 1 will use RTF files)
+  - Files modified: `main_window.h`, `main_window.cpp`, `editor_panel.h`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20

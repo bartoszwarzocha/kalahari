@@ -10,6 +10,11 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/document.h"
+#include "kalahari/core/document_archive.h"
+#include "kalahari/core/book_element.h"
+#include "kalahari/core/part.h"
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -18,6 +23,9 @@
 #include <QDockWidget>
 #include <QCloseEvent>
 #include <QShowEvent>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QPlainTextEdit>
 
 namespace kalahari {
 namespace gui {
@@ -57,6 +65,9 @@ MainWindow::MainWindow(QWidget* parent)
     , m_assistantPanel(nullptr)
     , m_logPanel(nullptr)
     , m_firstShow(true)
+    , m_currentDocument(std::nullopt)
+    , m_currentFilePath("")
+    , m_isDirty(false)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -71,6 +82,13 @@ MainWindow::MainWindow(QWidget* parent)
     createToolbars();
     createStatusBar();
     createDocks();
+
+    // Connect editor textChanged signal to dirty state tracking (Task #00008)
+    connect(m_editorPanel->getTextEdit(), &QPlainTextEdit::textChanged,
+            this, [this]() {
+                if (!m_currentDocument.has_value()) return;
+                setDirty(true);
+            });
 
     logger.info("MainWindow initialized successfully");
 }
@@ -195,25 +213,189 @@ void MainWindow::createStatusBar() {
 void MainWindow::onNewDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Document");
+
+    // Check for unsaved changes
+    if (m_isDirty) {
+        auto reply = QMessageBox::question(
+            this,
+            tr("Unsaved Changes"),
+            tr("Do you want to save changes to the current document?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save
+        );
+
+        if (reply == QMessageBox::Save) {
+            onSaveDocument();
+            if (m_isDirty) return;  // Save was cancelled or failed
+        } else if (reply == QMessageBox::Cancel) {
+            return;
+        }
+        // Discard → continue
+    }
+
+    // Create new document
+    m_currentDocument = core::Document("Untitled", "User", "en");
+    m_currentFilePath = "";
+    m_editorPanel->setText("");
+    setDirty(false);
+
+    logger.info("New document created");
     statusBar()->showMessage(tr("New document created"), 2000);
 }
 
 void MainWindow::onOpenDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Open Document");
-    statusBar()->showMessage(tr("Open document dialog (not implemented)"), 2000);
+
+    // Check for unsaved changes
+    if (m_isDirty) {
+        auto reply = QMessageBox::question(
+            this,
+            tr("Unsaved Changes"),
+            tr("Do you want to save changes to the current document?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save
+        );
+
+        if (reply == QMessageBox::Save) {
+            onSaveDocument();
+            if (m_isDirty) return;
+        } else if (reply == QMessageBox::Cancel) {
+            return;
+        }
+    }
+
+    // Show file dialog
+    QString filename = QFileDialog::getOpenFileName(
+        this,
+        tr("Open Document"),
+        QString(),
+        tr("Kalahari Files (*.klh)")
+    );
+
+    if (filename.isEmpty()) {
+        logger.info("Open cancelled by user");
+        return;
+    }
+
+    // Load document
+    std::filesystem::path filepath = filename.toStdString();
+    auto loaded = core::DocumentArchive::load(filepath);
+
+    if (!loaded.has_value()) {
+        QMessageBox::critical(
+            this,
+            tr("Open Error"),
+            tr("Failed to open document: %1").arg(filename)
+        );
+        logger.error("Failed to load document: {}", filepath.string());
+        return;
+    }
+
+    // Success - update state
+    m_currentDocument = std::move(loaded.value());
+    m_currentFilePath = filepath;
+
+    // Extract text and load into editor
+    QString content = getPhase0Content(m_currentDocument.value());
+    m_editorPanel->setText(content);
+
+    setDirty(false);
+    logger.info("Document loaded: {}", filepath.string());
+    statusBar()->showMessage(tr("Document opened: %1").arg(filename), 2000);
 }
 
 void MainWindow::onSaveDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save Document");
-    statusBar()->showMessage(tr("Document saved (not implemented)"), 2000);
+
+    // If no current file, delegate to Save As
+    if (m_currentFilePath.empty()) {
+        onSaveAsDocument();
+        return;
+    }
+
+    // Ensure we have a document
+    if (!m_currentDocument.has_value()) {
+        m_currentDocument = core::Document("Untitled", "User", "en");
+    }
+
+    // Get text from editor and update document
+    QString text = m_editorPanel->getText();
+    setPhase0Content(m_currentDocument.value(), text);
+
+    // Save to file
+    bool saved = core::DocumentArchive::save(m_currentDocument.value(), m_currentFilePath);
+
+    if (!saved) {
+        QMessageBox::critical(
+            this,
+            tr("Save Error"),
+            tr("Failed to save document: %1").arg(QString::fromStdString(m_currentFilePath.string()))
+        );
+        logger.error("Failed to save document: {}", m_currentFilePath.string());
+        return;
+    }
+
+    setDirty(false);
+    logger.info("Document saved: {}", m_currentFilePath.string());
+    statusBar()->showMessage(tr("Document saved"), 2000);
 }
 
 void MainWindow::onSaveAsDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save As Document");
-    statusBar()->showMessage(tr("Save As dialog (not implemented)"), 2000);
+
+    // Show save file dialog
+    QString filename = QFileDialog::getSaveFileName(
+        this,
+        tr("Save Document As"),
+        QString(),
+        tr("Kalahari Files (*.klh)")
+    );
+
+    if (filename.isEmpty()) {
+        logger.info("Save As cancelled by user");
+        return;
+    }
+
+    // Ensure .klh extension
+    if (!filename.endsWith(".klh", Qt::CaseInsensitive)) {
+        filename += ".klh";
+    }
+
+    // Ensure we have a document
+    if (!m_currentDocument.has_value()) {
+        m_currentDocument = core::Document("Untitled", "User", "en");
+    }
+
+    // Get text from editor and update document
+    QString text = m_editorPanel->getText();
+    setPhase0Content(m_currentDocument.value(), text);
+
+    // Update document title from filename
+    std::filesystem::path filepath = filename.toStdString();
+    std::string title = filepath.stem().string();
+    m_currentDocument->setTitle(title);
+
+    // Save to file
+    bool saved = core::DocumentArchive::save(m_currentDocument.value(), filepath);
+
+    if (!saved) {
+        QMessageBox::critical(
+            this,
+            tr("Save Error"),
+            tr("Failed to save document: %1").arg(filename)
+        );
+        logger.error("Failed to save document: {}", filepath.string());
+        return;
+    }
+
+    // Success - update state
+    m_currentFilePath = filepath;
+    setDirty(false);
+    logger.info("Document saved as: {}", filepath.string());
+    statusBar()->showMessage(tr("Document saved as: %1").arg(filename), 2000);
 }
 
 void MainWindow::onExit() {
@@ -391,6 +573,37 @@ void MainWindow::resetLayout() {
 // Perspective save/restore
 void MainWindow::closeEvent(QCloseEvent* event) {
     auto& logger = core::Logger::getInstance();
+    logger.debug("MainWindow::closeEvent triggered");
+
+    // Check for unsaved changes (Task #00008)
+    if (m_isDirty) {
+        QString filename = m_currentFilePath.empty()
+            ? "Untitled"
+            : QString::fromStdString(m_currentFilePath.filename().string());
+
+        auto reply = QMessageBox::question(
+            this,
+            tr("Unsaved Changes"),
+            tr("Do you want to save changes to %1?").arg(filename),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save
+        );
+
+        if (reply == QMessageBox::Save) {
+            onSaveDocument();
+            if (m_isDirty) {
+                // Save was cancelled or failed
+                event->ignore();
+                return;
+            }
+        } else if (reply == QMessageBox::Cancel) {
+            event->ignore();
+            return;
+        }
+        // Discard → continue with close
+    }
+
+    // Save perspective (existing code)
     logger.debug("Saving window perspective");
 
     QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
@@ -399,7 +612,75 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
     logger.debug("Window perspective saved");
 
-    QMainWindow::closeEvent(event);
+    event->accept();
+}
+
+// Helper methods (Task #00008)
+void MainWindow::setDirty(bool dirty) {
+    m_isDirty = dirty;
+    updateWindowTitle();
+}
+
+void MainWindow::updateWindowTitle() {
+    QString title = "Kalahari - ";
+
+    if (!m_currentFilePath.empty()) {
+        QString filename = QString::fromStdString(m_currentFilePath.filename().string());
+        title += filename;
+    } else {
+        title += "Untitled";
+    }
+
+    if (m_isDirty) {
+        title = "Kalahari - *" + title.mid(11);  // Insert "*" after "Kalahari - "
+    }
+
+    setWindowTitle(title);
+}
+
+QString MainWindow::getPhase0Content(const core::Document& doc) const {
+    const auto& book = doc.getBook();
+    const auto& body = book.getBody();
+
+    if (body.empty()) return "";
+
+    const auto& firstPart = body[0];
+    const auto& chapters = firstPart->getChapters();
+
+    if (chapters.empty()) return "";
+
+    const auto& firstChapter = chapters[0];
+    auto content = firstChapter->getMetadata("_phase0_content");
+
+    return content.has_value() ? QString::fromStdString(content.value()) : "";
+}
+
+void MainWindow::setPhase0Content(core::Document& doc, const QString& text) {
+    auto& book = doc.getBook();
+    auto& body = book.getBody();
+
+    // Create Part if doesn't exist
+    if (body.empty()) {
+        auto part = std::make_shared<core::Part>("part-001", "Content");
+        body.push_back(part);
+    }
+
+    auto& firstPart = body[0];
+    const auto& chapters = firstPart->getChapters();
+
+    // Create Chapter if doesn't exist
+    if (chapters.empty()) {
+        auto chapter = std::make_shared<core::BookElement>(
+            "chapter", "ch-001", "Chapter 1", ""
+        );
+        firstPart->addChapter(chapter);  // Use addChapter() instead of push_back()
+    }
+
+    // Store text in metadata (chapters vector is const, but elements are mutable)
+    const auto& chaptersList = firstPart->getChapters();
+    chaptersList[0]->setMetadata("_phase0_content", text.toStdString());
+    chaptersList[0]->touch();  // Update modified timestamp
+    doc.touch();
 }
 
 void MainWindow::showEvent(QShowEvent* event) {

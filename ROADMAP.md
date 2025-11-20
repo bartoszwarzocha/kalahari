@@ -158,11 +158,14 @@
   - Syntax highlighter stub created (KalahariSyntaxHighlighter, Phase 1 implementation)
   - Actual time: ~90 minutes (estimate: 4-5h)
 
-- [ ] **Task #00008:** File Operations (3-4h)
-  - File → New/Open/Save/Save As
-  - .klh file format integration
-  - Document dirty state tracking
-  - Unsaved changes dialog
+- [x] **Task #00008:** File Operations (3-4h) ✅ **COMPLETE** (2025-11-20)
+  - File operations: New (empty document), Open (QFileDialog + DocumentArchive::load)
+  - Save (to current file), Save As (QFileDialog save + DocumentArchive::save)
+  - Dirty state tracking: textChanged signal → "*" in window title
+  - Unsaved changes dialog: Prompts on New/Open/Close (Save/Discard/Cancel)
+  - Phase 0 content storage: metadata["_phase0_content"] in first chapter (temp solution)
+  - Window title format: "Kalahari - filename.klh" / "Kalahari - *filename.klh" (dirty)
+  - Actual time: ~2.5 hours (estimate: 3-4h)
 
 - [ ] **Task #00009:** Edit Operations (2-3h)
   - Edit → Undo/Redo/Cut/Copy/Paste/Select All

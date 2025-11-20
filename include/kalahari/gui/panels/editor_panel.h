@@ -47,6 +47,13 @@ public:
     /// Used by Document save operations (Task #00008)
     QString getText() const;
 
+    /// @brief Get underlying QPlainTextEdit widget (for signal connections)
+    /// @return Pointer to text edit widget
+    ///
+    /// WARNING: Use only for signal connections, not for direct manipulation.
+    /// Use setText()/getText() for content access. (Task #00008)
+    QPlainTextEdit* getTextEdit() { return m_textEdit; }
+
 private:
     /// @brief Apply settings from SettingsManager
     ///

@@ -11,12 +11,16 @@
 #include <QAction>
 #include <QMenu>
 #include <QToolBar>
+#include <optional>
+#include <filesystem>
+#include "kalahari/core/document.h"
 
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
 
 namespace kalahari {
+
 namespace gui {
 
 // Forward declarations for panels
@@ -178,6 +182,27 @@ private:
 
     // First show flag (for geometry restore)
     bool m_firstShow;
+
+    // Document management (Task #00008 - Phase 0)
+    std::optional<core::Document> m_currentDocument;  ///< Current loaded document
+    std::filesystem::path m_currentFilePath;          ///< Current .klh file path
+    bool m_isDirty;                                   ///< Unsaved changes flag
+
+    /// @brief Mark document as modified (add "*" to title)
+    void setDirty(bool dirty);
+
+    /// @brief Update window title with filename and dirty state
+    void updateWindowTitle();
+
+    /// @brief Get text from first chapter metadata (Phase 0 temporary hack)
+    /// @param doc Document to extract text from
+    /// @return Editor text content, or empty string if no content
+    QString getPhase0Content(const core::Document& doc) const;
+
+    /// @brief Set text in first chapter metadata (Phase 0 temporary hack)
+    /// @param doc Document to update
+    /// @param text Editor text content
+    void setPhase0Content(core::Document& doc, const QString& text);
 };
 
 } // namespace gui
