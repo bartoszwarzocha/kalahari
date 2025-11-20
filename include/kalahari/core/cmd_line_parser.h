@@ -1,7 +1,7 @@
 /// @file cmd_line_parser.h
 /// @brief Command line argument parser for Kalahari
 ///
-/// Provides a simplified wrapper over wxCmdLineParser for parsing
+/// Provides a simplified wrapper over QCommandLineParser for parsing
 /// command line arguments. Inspired by bwx_sdk's bwxCmdLineParser architecture.
 ///
 /// Key features:
@@ -12,7 +12,9 @@
 
 #pragma once
 
-#include <wx/cmdline.h>
+#include <QCommandLineParser>
+#include <QStringList>
+#include <QString>
 #include <string>
 #include <vector>
 
@@ -21,7 +23,7 @@ namespace core {
 
 /// @brief Command line parser for Kalahari application
 ///
-/// Wrapper over wxCmdLineParser providing simplified API for parsing
+/// Wrapper over QCommandLineParser providing simplified API for parsing
 /// command line arguments. Currently supports switches (boolean flags).
 ///
 /// Usage:
@@ -52,6 +54,11 @@ public:
     CmdLineParser(int argc, wchar_t** argv);
 #endif
 
+    /// @brief Set application name and description for help text
+    /// @param appName Application name
+    /// @param appDescription Application description
+    void setApplicationDescription(const QString& appName, const QString& appDescription);
+
     /// @brief Destructor
     ~CmdLineParser() = default;
 
@@ -69,9 +76,9 @@ public:
     /// @param shortName Short name (single character, e.g., "d")
     /// @param longName Long name (full word, e.g., "diag")
     /// @param description Description shown in help text
-    void addSwitch(const wxString& shortName,
-                   const wxString& longName,
-                   const wxString& description);
+    void addSwitch(const QString& shortName,
+                   const QString& longName,
+                   const QString& description);
 
     /// @brief Parse command line arguments
     ///
@@ -89,14 +96,28 @@ public:
     ///
     /// @param name Switch name (short or long)
     /// @return true if switch was present, false otherwise
-    bool hasSwitch(const wxString& name) const;
+    bool hasSwitch(const QString& name) const;
 
 private:
     /// @brief Initialize parser with default settings
     void init();
 
-    /// @brief Underlying wxCmdLineParser
-    wxCmdLineParser m_parser;
+    /// @brief Convert argc/argv to QStringList
+    /// @param argc Number of arguments
+    /// @param argv Array of argument strings
+    /// @return QStringList with arguments
+    static QStringList argsToStringList(int argc, char** argv);
+
+#ifdef _WIN32
+    /// @brief Convert argc/argv to QStringList (wide char version)
+    static QStringList argsToStringList(int argc, wchar_t** argv);
+#endif
+
+    /// @brief Underlying QCommandLineParser
+    QCommandLineParser m_parser;
+
+    /// @brief Arguments as QStringList
+    QStringList m_args;
 
     /// @brief Number of command line arguments
     int m_argc;
@@ -105,7 +126,7 @@ private:
     bool m_parsed = false;
 
     /// @brief List of added switch names (for validation)
-    std::vector<wxString> m_switches;
+    std::vector<QString> m_switches;
 };
 
 } // namespace core

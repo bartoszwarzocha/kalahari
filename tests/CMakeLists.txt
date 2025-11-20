@@ -13,9 +13,7 @@ set(TEST_SOURCES
     core/test_book.cpp
     core/test_document.cpp
     core/test_document_archive.cpp
-    gui/test_command_registry.cpp  # Task #00025 - CommandRegistry unit tests (no display required)
-    gui/test_command_registry_execution.cpp  # Task #00026 - CommandRegistry execution API tests
-    gui/test_shortcut_manager.cpp     # Task #00027 - ShortcutManager unit tests (no display required)
+    # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -45,9 +43,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
-    ${CMAKE_SOURCE_DIR}/src/gui/command.cpp  # Task #00024 - Command structures
-    ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp  # Task #00025 - CommandRegistry singleton
-    ${CMAKE_SOURCE_DIR}/src/gui/shortcut_manager.cpp  # Task #00027 - ShortcutManager singleton
+    # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )
 
@@ -71,14 +67,15 @@ target_include_directories(kalahari-tests PRIVATE
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
     Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()
-    wx::core
-    wx::base
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Gui
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
     Python3::Python
     pybind11::embed
-    bwx_gui  # For bwxTextDocument tests (Task #00019)
+    # bwx_gui removed - wxWidgets library no longer used (Qt6 migration)
 )
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026

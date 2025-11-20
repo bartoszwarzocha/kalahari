@@ -139,26 +139,26 @@ void SettingsManager::resetToDefaults() {
 // Convenience methods
 // =============================================================================
 
-wxSize SettingsManager::getWindowSize() const {
+QSize SettingsManager::getWindowSize() const {
     int width = get<int>("window.width", 1280);
     int height = get<int>("window.height", 800);
-    return wxSize(width, height);
+    return QSize(width, height);
 }
 
-void SettingsManager::setWindowSize(const wxSize& size) {
-    set("window.width", size.GetWidth());
-    set("window.height", size.GetHeight());
+void SettingsManager::setWindowSize(const QSize& size) {
+    set("window.width", size.width());
+    set("window.height", size.height());
 }
 
-wxPoint SettingsManager::getWindowPosition() const {
+QPoint SettingsManager::getWindowPosition() const {
     int x = get<int>("window.x", 100);
     int y = get<int>("window.y", 100);
-    return wxPoint(x, y);
+    return QPoint(x, y);
 }
 
-void SettingsManager::setWindowPosition(const wxPoint& pos) {
-    set("window.x", pos.x);
-    set("window.y", pos.y);
+void SettingsManager::setWindowPosition(const QPoint& pos) {
+    set("window.x", pos.x());
+    set("window.y", pos.y());
 }
 
 bool SettingsManager::isWindowMaximized() const {

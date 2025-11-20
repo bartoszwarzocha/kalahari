@@ -3,6 +3,8 @@
 
 #include <kalahari/core/cmd_line_parser.h>
 #include <kalahari/core/logger.h>
+#include <QCommandLineOption>
+#include <QCoreApplication>
 #include <algorithm>
 
 namespace kalahari {
@@ -13,13 +15,13 @@ namespace core {
 // =============================================================================
 
 CmdLineParser::CmdLineParser(int argc, char** argv)
-    : m_parser(argc, argv), m_argc(argc) {
+    : m_args(argsToStringList(argc, argv)), m_argc(argc) {
     init();
 }
 
 #ifdef _WIN32
 CmdLineParser::CmdLineParser(int argc, wchar_t** argv)
-    : m_parser(argc, argv), m_argc(argc) {
+    : m_args(argsToStringList(argc, argv)), m_argc(argc) {
     init();
 }
 #endif
@@ -28,20 +30,26 @@ CmdLineParser::CmdLineParser(int argc, wchar_t** argv)
 // Public API
 // =============================================================================
 
-void CmdLineParser::addSwitch(const wxString& shortName,
-                               const wxString& longName,
-                               const wxString& description) {
-    // Add switch to wxCmdLineParser
-    int flags = static_cast<int>(wxCMD_LINE_VAL_NONE) | static_cast<int>(wxCMD_LINE_PARAM_OPTIONAL);
-    m_parser.AddSwitch(shortName, longName, description, flags);
+void CmdLineParser::setApplicationDescription(const QString& appName, const QString& appDescription) {
+    QCoreApplication::setApplicationName(appName);
+    m_parser.setApplicationDescription(appDescription);
+    Logger::getInstance().debug("Set application description: {}", appName.toStdString());
+}
+
+void CmdLineParser::addSwitch(const QString& shortName,
+                               const QString& longName,
+                               const QString& description) {
+    // Create QCommandLineOption for boolean switch
+    QCommandLineOption option(QStringList() << shortName << longName, description);
+    m_parser.addOption(option);
 
     // Track switch names for validation
     m_switches.push_back(shortName);
     m_switches.push_back(longName);
 
     Logger::getInstance().debug("Added command line switch: -{} / --{}",
-                                shortName.utf8_str().data(),
-                                longName.utf8_str().data());
+                                shortName.toStdString(),
+                                longName.toStdString());
 }
 
 bool CmdLineParser::parse() {
@@ -54,17 +62,18 @@ bool CmdLineParser::parse() {
     }
 
     // Parse command line
-    int result = m_parser.Parse();
-
-    if (result == -1) {
+    if (!m_parser.parse(m_args)) {
         // Error occurred during parsing
-        Logger::getInstance().error("Command line parsing error");
+        Logger::getInstance().error("Command line parsing error: {}",
+                                    m_parser.errorText().toStdString());
         return false;
     }
 
-    if (result > 0) {
-        // Help was requested (--help or -h)
-        // wxCmdLineParser already printed help text
+    // Check if help was requested
+    if (m_parser.isSet("help")) {
+        // Print help text to stdout
+        QString helpText = m_parser.helpText();
+        fprintf(stdout, "%s\n", helpText.toUtf8().constData());
         Logger::getInstance().info("Help requested via command line");
         return false;
     }
@@ -75,7 +84,7 @@ bool CmdLineParser::parse() {
     return true;
 }
 
-bool CmdLineParser::hasSwitch(const wxString& name) const {
+bool CmdLineParser::hasSwitch(const QString& name) const {
     if (!m_parsed) {
         Logger::getInstance().warn("hasSwitch() called before parse()");
         return false;
@@ -84,13 +93,12 @@ bool CmdLineParser::hasSwitch(const wxString& name) const {
     // Check if switch name is valid (was added via addSwitch)
     auto it = std::find(m_switches.begin(), m_switches.end(), name);
     if (it == m_switches.end()) {
-        Logger::getInstance().warn("Unknown switch: {}", name.utf8_str().data());
+        Logger::getInstance().warn("Unknown switch: {}", name.toStdString());
         return false;
     }
 
     // Check if switch was present on command line
-    wxCmdLineSwitchState state = m_parser.FoundSwitch(name);
-    return (state == wxCMD_SWITCH_ON);
+    return m_parser.isSet(name);
 }
 
 // =============================================================================
@@ -98,16 +106,8 @@ bool CmdLineParser::hasSwitch(const wxString& name) const {
 // =============================================================================
 
 void CmdLineParser::init() {
-    // Set switch characters (standard: - and / for Windows, - for Unix)
-#ifdef _WIN32
-    m_parser.SetSwitchChars("/-");
-#else
-    m_parser.SetSwitchChars("-");
-#endif
-
     // Add default help switch
-    int flags = static_cast<int>(wxCMD_LINE_VAL_NONE) | static_cast<int>(wxCMD_LINE_OPTION_HELP);
-    m_parser.AddSwitch("h", "help", "Display this help message", flags);
+    m_parser.addHelpOption();
 
     // Track help switch
     m_switches.push_back("h");
@@ -115,6 +115,24 @@ void CmdLineParser::init() {
 
     Logger::getInstance().debug("Command line parser initialized");
 }
+
+QStringList CmdLineParser::argsToStringList(int argc, char** argv) {
+    QStringList args;
+    for (int i = 0; i < argc; ++i) {
+        args << QString::fromUtf8(argv[i]);
+    }
+    return args;
+}
+
+#ifdef _WIN32
+QStringList CmdLineParser::argsToStringList(int argc, wchar_t** argv) {
+    QStringList args;
+    for (int i = 0; i < argc; ++i) {
+        args << QString::fromWCharArray(argv[i]);
+    }
+    return args;
+}
+#endif
 
 } // namespace core
 } // namespace kalahari

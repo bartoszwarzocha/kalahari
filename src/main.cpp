@@ -16,10 +16,11 @@ int main(int argc, char *argv[]) {
     app.setApplicationVersion("0.3.0-alpha");
 
     // Initialize core systems
-    kalahari::core::Logger::initialize("kalahari.log");
-    kalahari::core::SettingsManager::initialize("settings.json");
-
     auto& logger = kalahari::core::Logger::getInstance();
+    logger.init("kalahari.log");
+
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.load();  // Load settings from disk
     logger.info("Kalahari {} starting", app.applicationVersion().toStdString());
 
     // Create main window with menus/toolbars

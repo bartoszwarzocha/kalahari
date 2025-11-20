@@ -23,7 +23,8 @@
 #include <filesystem>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <wx/gdicmn.h>  // wxSize, wxPoint
+#include <QSize>
+#include <QPoint>
 
 namespace kalahari {
 namespace core {
@@ -84,19 +85,19 @@ public:
 
     /// @brief Get window size
     /// @return Window size (default: 1280x800)
-    wxSize getWindowSize() const;
+    QSize getWindowSize() const;
 
     /// @brief Set window size
     /// @param size New window size
-    void setWindowSize(const wxSize& size);
+    void setWindowSize(const QSize& size);
 
     /// @brief Get window position
     /// @return Window position (default: 100, 100)
-    wxPoint getWindowPosition() const;
+    QPoint getWindowPosition() const;
 
     /// @brief Set window position
     /// @param pos New window position
-    void setWindowPosition(const wxPoint& pos);
+    void setWindowPosition(const QPoint& pos);
 
     /// @brief Check if window is maximized
     /// @return true if maximized (default: false)

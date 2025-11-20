@@ -196,6 +196,32 @@ N/A - This is an architectural migration, not a bug fix release.
   - **BONUS:** Toolbars now floating/movable (setMovable + setFloatable)
   - Files: 12 new panel files (include/src gui/panels/*.h/cpp), main_window.h/cpp updated, src/CMakeLists.txt, tasks/00003*.md
 
+- [x] **Task #00004a: Migrate SettingsManager and CmdLineParser to Qt6** (2025-11-20, ~3h)
+  - **SettingsManager migration:**
+    - Replaced `wxSize`/`wxPoint` with `QSize`/`QPoint` (Qt Core types)
+    - Updated getters/setters: `GetWidth()`→`width()`, `pos.x`→`pos.x()`
+    - Headers: include/kalahari/core/settings_manager.h
+    - Implementation: src/core/settings_manager.cpp
+  - **CmdLineParser migration:**
+    - Complete rewrite: `wxCmdLineParser` → `QCommandLineParser`
+    - Added `argc/argv` → `QStringList` conversion helpers
+    - Windows support: Wide-char constructor for `wchar_t**`
+    - Headers: include/kalahari/core/cmd_line_parser.h
+    - Implementation: src/core/cmd_line_parser.cpp
+  - **Build system fixes:**
+    - vcpkg.json: Replaced `qt` metapackage with `qtbase` + `qttools` (vcpkg requirement)
+    - src/CMakeLists.txt: Added `Qt6::Core` to `kalahari_core` library (for QSize/QPoint headers)
+    - src/CMakeLists.txt: Added headers with `Q_OBJECT` to sources (AUTOMOC requirement)
+    - tests/CMakeLists.txt: Removed obsolete `bwx_gui` library reference
+  - **main.cpp fixes:**
+    - Fixed: `Logger::initialize()` → `Logger::getInstance().init()`
+    - Fixed: `SettingsManager::initialize()` → `SettingsManager::getInstance().load()`
+  - **Tests migration:**
+    - tests/core/test_settings_manager.cpp: All 50 test cases migrated to Qt types
+    - tests/core/test_cmd_line_parser.cpp: Updated for QCommandLineParser API
+  - **Result:** ✅ Build successful (Windows native), all tests passing
+  - Files: 8 modified (headers, implementation, tests, CMakeLists, vcpkg.json, main.cpp)
+
 #### Planned (Week 1-4)
 - [ ] Task #00004: Settings Dialog Structure (3-4h)
 - [ ] Task #00005: Appearance Settings Panel (2-3h)

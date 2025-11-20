@@ -8,14 +8,17 @@
   "builtin-baseline": "271a5b8850aa50f9a40269cbf3cf414b36e333d6",
   "dependencies": [
     {
-      "name": "qt",
+      "name": "qtbase",
       "version>=": "6.5.0",
       "default-features": false,
-      "features": [
-        "qtbase",
-        "qttools"
-      ],
-      "$comment": "Qt6 used under LGPL v3 (dynamically linked). Do NOT use static triplets (e.g., x64-windows-static) without Commercial License!"
+      "features": ["widgets", "gui"],
+      "$comment": "Qt6 Core + Widgets used under LGPL v3 (dynamically linked). Do NOT use static triplets without Commercial License!"
+    },
+    {
+      "name": "qttools",
+      "version>=": "6.5.0",
+      "default-features": false,
+      "$comment": "Qt6 Tools (Designer, Linguist) used under LGPL v3"
     },
     {
       "name": "curl",

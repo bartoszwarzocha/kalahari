@@ -65,8 +65,9 @@ target_include_directories(kalahari_core PUBLIC
     ${CMAKE_BINARY_DIR}/include
 )
 
-# Core library dependencies (Qt-agnostic)
+# Core library dependencies (includes Qt6::Core for QSize/QPoint in SettingsManager)
 target_link_libraries(kalahari_core PUBLIC
+    Qt6::Core
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
@@ -90,6 +91,14 @@ set(KALAHARI_SOURCES
     gui/panels/search_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/log_panel.cpp
+    # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
 )
 
 # Create executable

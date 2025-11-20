@@ -62,15 +62,15 @@ TEST_CASE("SettingsManager creates default settings", "[settings][defaults]") {
     auto& settings = SettingsManager::getInstance();
 
     SECTION("Default window size is 1280x800") {
-        wxSize size = settings.getWindowSize();
-        REQUIRE(size.GetWidth() == 1280);
-        REQUIRE(size.GetHeight() == 800);
+        QSize size = settings.getWindowSize();
+        REQUIRE(size.width() == 1280);
+        REQUIRE(size.height() == 800);
     }
 
     SECTION("Default window position is (100, 100)") {
-        wxPoint pos = settings.getWindowPosition();
-        REQUIRE(pos.x == 100);
-        REQUIRE(pos.y == 100);
+        QPoint pos = settings.getWindowPosition();
+        REQUIRE(pos.x() == 100);
+        REQUIRE(pos.y() == 100);
     }
 
     SECTION("Default window is not maximized") {
@@ -90,21 +90,21 @@ TEST_CASE("SettingsManager get/set operations", "[settings][api]") {
     auto& settings = SettingsManager::getInstance();
 
     SECTION("Set and get window size") {
-        wxSize newSize(1920, 1080);
+        QSize newSize(1920, 1080);
         settings.setWindowSize(newSize);
 
-        wxSize retrievedSize = settings.getWindowSize();
-        REQUIRE(retrievedSize.GetWidth() == 1920);
-        REQUIRE(retrievedSize.GetHeight() == 1080);
+        QSize retrievedSize = settings.getWindowSize();
+        REQUIRE(retrievedSize.width() == 1920);
+        REQUIRE(retrievedSize.height() == 1080);
     }
 
     SECTION("Set and get window position") {
-        wxPoint newPos(200, 150);
+        QPoint newPos(200, 150);
         settings.setWindowPosition(newPos);
 
-        wxPoint retrievedPos = settings.getWindowPosition();
-        REQUIRE(retrievedPos.x == 200);
-        REQUIRE(retrievedPos.y == 150);
+        QPoint retrievedPos = settings.getWindowPosition();
+        REQUIRE(retrievedPos.x() == 200);
+        REQUIRE(retrievedPos.y() == 150);
     }
 
     SECTION("Set and get maximized state") {
@@ -173,8 +173,8 @@ TEST_CASE("SettingsManager save and load", "[settings][persistence]") {
     auto& settings = SettingsManager::getInstance();
 
     SECTION("Save creates settings file") {
-        settings.setWindowSize(wxSize(1600, 900));
-        settings.setWindowPosition(wxPoint(50, 75));
+        settings.setWindowSize(QSize(1600, 900));
+        settings.setWindowPosition(QPoint(50, 75));
         settings.setLanguage("pl");
 
         REQUIRE(settings.save() == true);
@@ -186,28 +186,28 @@ TEST_CASE("SettingsManager save and load", "[settings][persistence]") {
 
     SECTION("Load reads settings from file") {
         // Save settings
-        settings.setWindowSize(wxSize(800, 600));
-        settings.setWindowPosition(wxPoint(10, 20));
+        settings.setWindowSize(QSize(800, 600));
+        settings.setWindowPosition(QPoint(10, 20));
         settings.setWindowMaximized(true);
         settings.save();
 
         // Modify in-memory settings
-        settings.setWindowSize(wxSize(1024, 768));
-        settings.setWindowPosition(wxPoint(100, 100));
+        settings.setWindowSize(QSize(1024, 768));
+        settings.setWindowPosition(QPoint(100, 100));
         settings.setWindowMaximized(false);
 
         // Load from file (should restore saved values)
         REQUIRE(settings.load() == true);
 
         // Verify values were restored
-        wxSize size = settings.getWindowSize();
-        wxPoint pos = settings.getWindowPosition();
+        QSize size = settings.getWindowSize();
+        QPoint pos = settings.getWindowPosition();
         bool maximized = settings.isWindowMaximized();
 
-        REQUIRE(size.GetWidth() == 800);
-        REQUIRE(size.GetHeight() == 600);
-        REQUIRE(pos.x == 10);
-        REQUIRE(pos.y == 20);
+        REQUIRE(size.width() == 800);
+        REQUIRE(size.height() == 600);
+        REQUIRE(pos.x() == 10);
+        REQUIRE(pos.y() == 20);
         REQUIRE(maximized == true);
     }
 }
@@ -242,9 +242,9 @@ TEST_CASE("SettingsManager error handling", "[settings][errors]") {
         REQUIRE(settings.load() == false);
 
         // Should use defaults (not crash!)
-        wxSize size = settings.getWindowSize();
-        REQUIRE(size.GetWidth() == 1280);
-        REQUIRE(size.GetHeight() == 800);
+        QSize size = settings.getWindowSize();
+        REQUIRE(size.width() == 1280);
+        REQUIRE(size.height() == 800);
 
         // Backup file should be created
         std::filesystem::path backupPath = filePath;
