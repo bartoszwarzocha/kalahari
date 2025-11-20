@@ -82,6 +82,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Build: Successful, all 68 tests passed (532 assertions)
   - Actual time: ~2 hours (estimate: 4-5h)
 
+- **Task #00011:** About Dialog & Help Menu - 2025-11-20
+  - Added Help menu to MainWindow with 2 actions
+  - Help → About Kalahari: Displays app version (0.3.0-alpha), license (MIT), copyright, Qt version
+  - Help → About Qt: Shows standard Qt about dialog via QMessageBox::aboutQt()
+  - Used QMessageBox::about() with HTML-formatted text for Phase 0 simplicity
+  - About dialog includes: Project name, version, license, copyright year, Qt version (qVersion())
+  - Status bar logging for both actions
+  - Files modified: `main_window.h` (+2 slots, +2 actions, +1 menu), `main_window.cpp` (+35 lines)
+  - Phase 0 constraint: Built-in Qt dialogs (no custom AboutDialog class, can extend in Phase 1)
+  - Actual time: ~1 hour (estimate: 2h)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20

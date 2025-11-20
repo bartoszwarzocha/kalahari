@@ -189,11 +189,13 @@
   - MainWindow integration: Called on New/Open operations
   - Actual time: ~2 hours (estimate: 4-5h)
 
-- [ ] **Task #00011:** About Dialog & Help Menu (2h)
-  - Create AboutDialog (QDialog)
-  - Version, license, credits
-  - Qt version display
-  - Help → About action
+- [x] **Task #00011:** About Dialog & Help Menu (2h) ✅ **COMPLETE** (2025-11-20)
+  - Added Help menu with 2 actions (About Kalahari, About Qt)
+  - Help → About Kalahari: QMessageBox::about() with app info
+  - Help → About Qt: QMessageBox::aboutQt() standard dialog
+  - Displays: Version (0.3.0-alpha), License (MIT), Copyright, Qt version
+  - Phase 0: Built-in Qt dialogs (no custom AboutDialog class)
+  - Actual time: ~1 hour (estimate: 2h)
 
 - [ ] **Task #00012:** Qt Foundation Release (3-4h)
   - Build on all platforms
