@@ -84,6 +84,12 @@ target_link_libraries(kalahari_core PUBLIC
 set(KALAHARI_SOURCES
     main.cpp
     gui/main_window.cpp
+    gui/panels/editor_panel.cpp
+    gui/panels/navigator_panel.cpp
+    gui/panels/properties_panel.cpp
+    gui/panels/search_panel.cpp
+    gui/panels/assistant_panel.cpp
+    gui/panels/log_panel.cpp
 )
 
 # Create executable

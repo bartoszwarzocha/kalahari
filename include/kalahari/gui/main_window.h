@@ -12,8 +12,20 @@
 #include <QMenu>
 #include <QToolBar>
 
+class QDockWidget;
+class QCloseEvent;
+class QShowEvent;
+
 namespace kalahari {
 namespace gui {
+
+// Forward declarations for panels
+class EditorPanel;
+class NavigatorPanel;
+class PropertiesPanel;
+class SearchPanel;
+class AssistantPanel;
+class LogPanel;
 
 /// @brief Main application window
 ///
@@ -67,6 +79,23 @@ private:
     /// Shows "Ready" message on application start.
     void createStatusBar();
 
+    /// @brief Create dockable panels
+    ///
+    /// Creates 6 dock widgets and sets up default layout.
+    void createDocks();
+
+    /// @brief Reset dock layout to default
+    void resetLayout();
+
+protected:
+    /// @brief Save perspective on close
+    /// @param event Close event
+    void closeEvent(QCloseEvent* event) override;
+
+    /// @brief Restore perspective on show
+    /// @param event Show event
+    void showEvent(QShowEvent* event) override;
+
 private slots:
     /// @brief Slot for File > New action
     void onNewDocument();
@@ -115,9 +144,36 @@ private:
     // Menus
     QMenu* m_fileMenu;
     QMenu* m_editMenu;
+    QMenu* m_viewMenu;
 
     // Toolbars
     QToolBar* m_fileToolbar;
+
+    // View actions (panel toggles)
+    QAction* m_viewNavigatorAction;
+    QAction* m_viewPropertiesAction;
+    QAction* m_viewLogAction;
+    QAction* m_viewSearchAction;
+    QAction* m_viewAssistantAction;
+    QAction* m_resetLayoutAction;
+
+    // Dock widgets
+    QDockWidget* m_navigatorDock;
+    QDockWidget* m_propertiesDock;
+    QDockWidget* m_logDock;
+    QDockWidget* m_searchDock;
+    QDockWidget* m_assistantDock;
+
+    // Panels (widgets inside docks)
+    EditorPanel* m_editorPanel;
+    NavigatorPanel* m_navigatorPanel;
+    PropertiesPanel* m_propertiesPanel;
+    SearchPanel* m_searchPanel;
+    AssistantPanel* m_assistantPanel;
+    LogPanel* m_logPanel;
+
+    // First show flag (for geometry restore)
+    bool m_firstShow;
 };
 
 } // namespace gui

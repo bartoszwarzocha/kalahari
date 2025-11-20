@@ -178,8 +178,25 @@ N/A - This is an architectural migration, not a bug fix release.
   - QKeySequence: Standard keyboard shortcuts (Ctrl+N, Ctrl+O, etc.)
   - Files: include/kalahari/gui/main_window.h, src/gui/main_window.cpp, src/main.cpp, src/CMakeLists.txt, tasks/00002*.md
 
+- [x] **Task #00003: Basic QDockWidget System** (2025-11-20, ~3h)
+  - Created 6 panel placeholder classes (kalahari::gui namespace):
+    - EditorPanel (QPlainTextEdit - central widget)
+    - NavigatorPanel (QTreeWidget with placeholder tree - left dock)
+    - PropertiesPanel (QLabel placeholder - right dock, tab 1)
+    - SearchPanel (QLineEdit + QListWidget - right dock, tab 2)
+    - AssistantPanel (QLabel with 🦁 - right dock, tab 3)
+    - LogPanel (QPlainTextEdit placeholder - bottom dock)
+  - View menu: Toggle panel visibility (Ctrl+1 through Ctrl+5)
+  - Reset Layout action (Ctrl+0): Restores default dock arrangement
+  - Perspective save/restore: QSettings with geometry + windowState (persists across sessions)
+  - Default layout: Navigator left, Properties/Search/Assistant tabbed right, Log bottom, Editor center
+  - Qt native drag & drop: Panels can be moved, resized, tabbed, floated
+  - QDockWidget::toggleViewAction(): Automatic View menu sync (Qt magic!)
+  - QDockWidget::setObjectName(): Required for saveState() persistence
+  - **BONUS:** Toolbars now floating/movable (setMovable + setFloatable)
+  - Files: 12 new panel files (include/src gui/panels/*.h/cpp), main_window.h/cpp updated, src/CMakeLists.txt, tasks/00003*.md
+
 #### Planned (Week 1-4)
-- [ ] Task #00003: Basic QDockWidget System (4-5h)
 - [ ] Task #00004: Settings Dialog Structure (3-4h)
 - [ ] Task #00005: Appearance Settings Panel (2-3h)
 - [ ] Task #00006: Editor Settings Panel (2-3h)
