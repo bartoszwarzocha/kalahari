@@ -55,6 +55,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `main_window.h`, `main_window.cpp`, `editor_panel.h`
   - Build: Successful, all 68 tests passed (532 assertions)
 
+- **Task #00009:** Edit Operations (Undo/Redo/Cut/Copy/Paste/Select All) - 2025-11-20
+  - Implemented 6 Edit menu operations via QPlainTextEdit delegation
+  - Edit → Undo (Ctrl+Z): Reverts last text change using Qt's built-in undo stack
+  - Edit → Redo (Ctrl+Y): Re-applies last undone change
+  - Edit → Cut (Ctrl+X): Removes selected text and copies to clipboard
+  - Edit → Copy (Ctrl+C): Copies selected text to clipboard
+  - Edit → Paste (Ctrl+V): Inserts clipboard text at cursor position
+  - Edit → Select All (Ctrl+A): Selects all text in editor (NEW action added)
+  - Status bar feedback: Shows operation confirmation messages (2s duration)
+  - Simple delegation pattern: All operations call QPlainTextEdit methods directly
+  - Files modified: `main_window.h` (+2 lines: slot + action), `main_window.cpp` (+40 lines: implementations)
+  - Build: Successful, all 68 tests passed (532 assertions)
+  - Actual time: ~1.5 hours (estimate: 2-3h)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20

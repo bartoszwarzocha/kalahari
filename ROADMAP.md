@@ -167,11 +167,14 @@
   - Window title format: "Kalahari - filename.klh" / "Kalahari - *filename.klh" (dirty)
   - Actual time: ~2.5 hours (estimate: 3-4h)
 
-- [ ] **Task #00009:** Edit Operations (2-3h)
-  - Edit → Undo/Redo/Cut/Copy/Paste/Select All
-  - Keyboard shortcuts (QKeySequence)
-  - Menu/toolbar integration
-  - Status bar updates
+- [x] **Task #00009:** Edit Operations (2-3h) ✅ **COMPLETE** (2025-11-20)
+  - Implemented 6 Edit operations via QPlainTextEdit delegation
+  - Edit → Undo/Redo/Cut/Copy/Paste/Select All (Ctrl+Z/Y/X/C/V/A)
+  - Keyboard shortcuts (QKeySequence standard bindings)
+  - Menu integration (Edit menu with separators)
+  - Status bar feedback ("Undo performed", "Copied to clipboard", etc.)
+  - Simple delegation pattern (Phase 0 simplicity - Qt handles all logic)
+  - Actual time: ~1.5 hours (estimate: 2-3h)
 
 ### Week 4: Panels & Polish (Tasks #00010-00012)
 

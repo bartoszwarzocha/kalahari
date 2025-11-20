@@ -149,6 +149,11 @@ void MainWindow::createActions() {
     m_pasteAction->setStatusTip(tr("Paste from clipboard"));
     connect(m_pasteAction, &QAction::triggered, this, &MainWindow::onPaste);
 
+    m_selectAllAction = new QAction(tr("Select &All"), this);
+    m_selectAllAction->setShortcut(QKeySequence::SelectAll);
+    m_selectAllAction->setStatusTip(tr("Select all text"));
+    connect(m_selectAllAction, &QAction::triggered, this, &MainWindow::onSelectAll);
+
     m_settingsAction = new QAction(tr("&Settings..."), this);
     m_settingsAction->setShortcut(QKeySequence(tr("Ctrl+,")));
     m_settingsAction->setStatusTip(tr("Open settings dialog"));
@@ -179,6 +184,8 @@ void MainWindow::createMenus() {
     m_editMenu->addAction(m_cutAction);
     m_editMenu->addAction(m_copyAction);
     m_editMenu->addAction(m_pasteAction);
+    m_editMenu->addSeparator();
+    m_editMenu->addAction(m_selectAllAction);
     m_editMenu->addSeparator();
     m_editMenu->addAction(m_settingsAction);
 
@@ -407,31 +414,55 @@ void MainWindow::onExit() {
 void MainWindow::onUndo() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Undo");
-    statusBar()->showMessage(tr("Undo (not implemented)"), 2000);
+
+    m_editorPanel->getTextEdit()->undo();
+
+    statusBar()->showMessage(tr("Undo performed"), 2000);
 }
 
 void MainWindow::onRedo() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Redo");
-    statusBar()->showMessage(tr("Redo (not implemented)"), 2000);
+
+    m_editorPanel->getTextEdit()->redo();
+
+    statusBar()->showMessage(tr("Redo performed"), 2000);
 }
 
 void MainWindow::onCut() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Cut");
-    statusBar()->showMessage(tr("Cut (not implemented)"), 2000);
+
+    m_editorPanel->getTextEdit()->cut();
+
+    statusBar()->showMessage(tr("Cut to clipboard"), 2000);
 }
 
 void MainWindow::onCopy() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Copy");
-    statusBar()->showMessage(tr("Copy (not implemented)"), 2000);
+
+    m_editorPanel->getTextEdit()->copy();
+
+    statusBar()->showMessage(tr("Copied to clipboard"), 2000);
 }
 
 void MainWindow::onPaste() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Paste");
-    statusBar()->showMessage(tr("Paste (not implemented)"), 2000);
+
+    m_editorPanel->getTextEdit()->paste();
+
+    statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
+}
+
+void MainWindow::onSelectAll() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Select All");
+
+    m_editorPanel->getTextEdit()->selectAll();
+
+    statusBar()->showMessage(tr("All text selected"), 2000);
 }
 
 void MainWindow::onSettings() {
