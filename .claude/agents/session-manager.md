@@ -1,6 +1,7 @@
 ---
 name: Session Manager
 description: Session preservation, state recovery, context management
+color: magenta
 ---
 
 # Session Manager

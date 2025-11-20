@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Task #00005:** Appearance Settings Panel (Phase 0 Qt Migration) - 2025-11-20
+  - Settings Dialog: Replaced Appearance tab placeholder with functional controls
+  - Theme selection (QComboBox): Light, Dark, Savanna, Midnight
+  - Language selection (QComboBox): English, Polski
+  - Font Size spinner (QSpinBox): 8-32 pt range
+  - Controls load current values from SettingsManager on dialog open
+  - Apply/OK buttons save theme & language (font size logged only - no SettingsManager::setFontSize() yet)
+  - Files modified: `settings_dialog.h`, `settings_dialog.cpp`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
+---
+
 ## [0.3.0-alpha] - 2025-11-19
 
 ### BREAKING CHANGE: Technology Stack Pivot (wxWidgets → Qt6)

@@ -12,6 +12,8 @@
 
 class QTabWidget;
 class QDialogButtonBox;
+class QComboBox;
+class QSpinBox;
 
 namespace kalahari {
 namespace gui {
@@ -73,6 +75,11 @@ private:
     // Placeholder tabs (will be replaced with actual panels in Tasks #00005, #00006)
     QWidget* m_appearanceTab;
     QWidget* m_editorTab;
+
+    // Appearance tab controls (Task #00005)
+    QComboBox* m_themeComboBox;
+    QComboBox* m_languageComboBox;
+    QSpinBox* m_fontSizeSpinBox;
 };
 
 } // namespace gui

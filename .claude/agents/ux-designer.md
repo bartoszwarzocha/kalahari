@@ -1,6 +1,7 @@
 ---
 name: UX Designer
 description: User experience design, interface optimization, accessibility
+color: blue
 ---
 
 # UX Designer

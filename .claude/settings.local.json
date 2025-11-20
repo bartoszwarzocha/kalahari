@@ -95,7 +95,12 @@
       "Bash(gh api:*)",
       "mcp__serena__think_about_whether_you_are_done",
       "Bash(./scripts/build.sh:*)",
-      "Bash(./scripts/build_linux.sh:*)"
+      "Bash(./scripts/build_linux.sh:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(make:*)",
+      "Bash(build_output.log)",
+      "Bash(E:PythonProjektyKalaharibuild-windowsbinkalahari-tests.exe)",
+      "Bash(ctest:*)"
     ],
     "deny": [],
     "ask": []
