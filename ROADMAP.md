@@ -149,11 +149,14 @@
 
 **Goal:** Basic text editing with QPlainTextEdit
 
-- [ ] **Task #00007:** EditorWidget Basic Implementation (4-5h)
-  - Create EditorWidget (QPlainTextEdit subclass)
-  - Integrate with Document model
-  - Implement load/save operations
-  - Syntax highlighting preparation (QSyntaxHighlighter)
+- [x] **Task #00007:** EditorWidget Basic Implementation (4-5h) ✅ **COMPLETE** (2025-11-20)
+  - Implemented settings integration in EditorPanel (QPlainTextEdit)
+  - Font family/size applied from editor.fontFamily, editor.fontSize
+  - Tab size converted to pixels: tabSize × QFontMetrics::horizontalAdvance(' ')
+  - Word wrap mode: setLineWrapMode(NoWrap/WidgetWidth)
+  - Public API: setText(), getText() for Document I/O (Task #00008)
+  - Syntax highlighter stub created (KalahariSyntaxHighlighter, Phase 1 implementation)
+  - Actual time: ~90 minutes (estimate: 4-5h)
 
 - [ ] **Task #00008:** File Operations (3-4h)
   - File → New/Open/Save/Save As

@@ -33,6 +33,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `settings_dialog.h` (5 control members), `settings_dialog.cpp` (UI + load/save logic)
   - Build: Successful, all 68 tests passed (532 assertions)
 
+- **Task #00007:** EditorWidget Basic Implementation (Phase 0 Qt Migration) - 2025-11-20
+  - EditorPanel: Added settings integration (font, tab size, word wrap)
+  - Public API: setText(QString), getText() for Document load/save (Task #00008)
+  - Font settings: editor.fontFamily (default: Consolas), editor.fontSize (12)
+  - Tab settings: editor.tabSize (4) converted to pixels via QFontMetrics
+  - Word wrap: editor.wordWrap (false) via setLineWrapMode()
+  - Syntax highlighter stub: KalahariSyntaxHighlighter (empty, Phase 1 implementation)
+  - Files modified: `editor_panel.h`, `editor_panel.cpp`, `CMakeLists.txt`
+  - Files added: `kalahari_syntax_highlighter.h`, `kalahari_syntax_highlighter.cpp`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20
