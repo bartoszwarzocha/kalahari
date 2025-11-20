@@ -3,9 +3,13 @@
 
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/document.h"
+#include "kalahari/core/book.h"
+#include "kalahari/core/part.h"
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QTreeWidgetItem>
+#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
@@ -23,24 +27,108 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
 
     // Create tree widget
     m_treeWidget = new QTreeWidget(this);
-    m_treeWidget->setHeaderLabel(tr("Project Structure"));
 
-    // Add placeholder items
-    QTreeWidgetItem* bookItem = new QTreeWidgetItem(m_treeWidget);
-    bookItem->setText(0, tr("Book (placeholder)"));
+    // No document loaded yet - tree will be populated via loadDocument()
+    m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 
-    QTreeWidgetItem* chapter1 = new QTreeWidgetItem(bookItem);
-    chapter1->setText(0, tr("Chapter 1"));
+    // Connect double-click signal (Phase 0 stub)
+    connect(m_treeWidget, &QTreeWidget::itemDoubleClicked,
+            this, [this](QTreeWidgetItem* item, int column) {
+                Q_UNUSED(column);
+                auto& logger = core::Logger::getInstance();
+                logger.info("NavigatorPanel: Item double-clicked: {}",
+                           item->text(0).toStdString());
 
-    QTreeWidgetItem* chapter2 = new QTreeWidgetItem(bookItem);
-    chapter2->setText(0, tr("Chapter 2"));
-
-    bookItem->setExpanded(true);
+                QMessageBox::information(
+                    this,
+                    tr("Navigation"),
+                    tr("Chapter navigation will be implemented in Phase 1.\n\n"
+                       "In Phase 0, all text is stored in a single editor.\n"
+                       "Phase 1 will add per-chapter editing and navigation.")
+                );
+            });
 
     layout->addWidget(m_treeWidget);
     setLayout(layout);
 
     logger.debug("NavigatorPanel initialized");
+}
+
+void NavigatorPanel::clearDocument() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::clearDocument()");
+
+    m_treeWidget->clear();
+    m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
+}
+
+void NavigatorPanel::loadDocument(const core::Document& document) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::loadDocument() - Document: {}", document.getTitle());
+
+    // Clear existing items
+    m_treeWidget->clear();
+    m_treeWidget->setHeaderLabel(tr("Project Structure"));
+
+    // Create root item: Document title
+    QTreeWidgetItem* rootItem = new QTreeWidgetItem(m_treeWidget);
+    rootItem->setText(0, QString::fromStdString(document.getTitle()));
+    rootItem->setExpanded(true);
+
+    // Get book structure
+    const auto& book = document.getBook();
+
+    // Add Front Matter section
+    const auto& frontMatter = book.getFrontMatter();
+    if (!frontMatter.empty()) {
+        QTreeWidgetItem* frontMatterItem = new QTreeWidgetItem(rootItem);
+        frontMatterItem->setText(0, tr("Front Matter"));
+
+        for (const auto& element : frontMatter) {
+            QTreeWidgetItem* item = new QTreeWidgetItem(frontMatterItem);
+            item->setText(0, QString::fromStdString(element->getTitle()));
+        }
+
+        frontMatterItem->setExpanded(false);  // Collapsed by default
+    }
+
+    // Add Body section (Parts → Chapters)
+    const auto& body = book.getBody();
+    if (!body.empty()) {
+        QTreeWidgetItem* bodyItem = new QTreeWidgetItem(rootItem);
+        bodyItem->setText(0, tr("Body"));
+
+        for (const auto& part : body) {
+            QTreeWidgetItem* partItem = new QTreeWidgetItem(bodyItem);
+            partItem->setText(0, QString::fromStdString(part->getTitle()));
+
+            const auto& chapters = part->getChapters();
+            for (const auto& chapter : chapters) {
+                QTreeWidgetItem* chapterItem = new QTreeWidgetItem(partItem);
+                chapterItem->setText(0, QString::fromStdString(chapter->getTitle()));
+            }
+
+            partItem->setExpanded(true);  // Expand parts by default
+        }
+
+        bodyItem->setExpanded(true);  // Expand body by default
+    }
+
+    // Add Back Matter section
+    const auto& backMatter = book.getBackMatter();
+    if (!backMatter.empty()) {
+        QTreeWidgetItem* backMatterItem = new QTreeWidgetItem(rootItem);
+        backMatterItem->setText(0, tr("Back Matter"));
+
+        for (const auto& element : backMatter) {
+            QTreeWidgetItem* item = new QTreeWidgetItem(backMatterItem);
+            item->setText(0, QString::fromStdString(element->getTitle()));
+        }
+
+        backMatterItem->setExpanded(false);  // Collapsed by default
+    }
+
+    logger.debug("NavigatorPanel::loadDocument() complete");
 }
 
 } // namespace gui

@@ -180,11 +180,14 @@
 
 **Goal:** Navigator panel, About dialog, first release
 
-- [ ] **Task #00010:** Navigator Panel with QTreeWidget (4-5h)
-  - Create NavigatorPanel (QDockWidget)
-  - QTreeWidget for document outline
-  - Chapter/scene hierarchy
-  - Double-click to navigate
+- [x] **Task #00010:** Navigator Panel with QTreeWidget (4-5h) ✅ **COMPLETE** (2025-11-20)
+  - Integrated NavigatorPanel with Document structure for book hierarchy display
+  - loadDocument() method: Parses Book (frontMatter, body, backMatter) and populates QTreeWidget
+  - Tree structure: Document (root) → Sections (Front Matter/Body/Back Matter) → Parts → Chapters
+  - Body expanded by default, Front/Back Matter collapsed
+  - Double-click stub: Shows "Phase 1 feature" message (no navigation in Phase 0)
+  - MainWindow integration: Called on New/Open operations
+  - Actual time: ~2 hours (estimate: 4-5h)
 
 - [ ] **Task #00011:** About Dialog & Help Menu (2h)
   - Create AboutDialog (QDialog)

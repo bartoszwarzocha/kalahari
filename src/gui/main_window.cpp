@@ -13,6 +13,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/document_archive.h"
+#include "kalahari/core/book.h"
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/part.h"
 #include <QMenuBar>
@@ -159,6 +160,15 @@ void MainWindow::createActions() {
     m_settingsAction->setStatusTip(tr("Open settings dialog"));
     connect(m_settingsAction, &QAction::triggered, this, &MainWindow::onSettings);
 
+    // Help actions
+    m_aboutAction = new QAction(tr("&About Kalahari"), this);
+    m_aboutAction->setStatusTip(tr("Show information about Kalahari"));
+    connect(m_aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
+
+    m_aboutQtAction = new QAction(tr("About &Qt"), this);
+    m_aboutQtAction->setStatusTip(tr("Show information about Qt"));
+    connect(m_aboutQtAction, &QAction::triggered, this, &MainWindow::onAboutQt);
+
     logger.debug("Actions created successfully");
 }
 
@@ -188,6 +198,11 @@ void MainWindow::createMenus() {
     m_editMenu->addAction(m_selectAllAction);
     m_editMenu->addSeparator();
     m_editMenu->addAction(m_settingsAction);
+
+    // Help menu
+    m_helpMenu = menuBar()->addMenu(tr("&Help"));
+    m_helpMenu->addAction(m_aboutAction);
+    m_helpMenu->addAction(m_aboutQtAction);
 
     logger.debug("Menus created successfully");
 }
@@ -245,6 +260,9 @@ void MainWindow::onNewDocument() {
     m_currentFilePath = "";
     m_editorPanel->setText("");
     setDirty(false);
+
+    // Update navigator panel
+    m_navigatorPanel->loadDocument(m_currentDocument.value());
 
     logger.info("New document created");
     statusBar()->showMessage(tr("New document created"), 2000);
@@ -308,6 +326,10 @@ void MainWindow::onOpenDocument() {
     m_editorPanel->setText(content);
 
     setDirty(false);
+
+    // Update navigator panel
+    m_navigatorPanel->loadDocument(m_currentDocument.value());
+
     logger.info("Document loaded: {}", filepath.string());
     statusBar()->showMessage(tr("Document opened: %1").arg(filename), 2000);
 }
@@ -479,6 +501,37 @@ void MainWindow::onSettings() {
         logger.info("Settings dialog: Cancel clicked (changes discarded)");
         statusBar()->showMessage(tr("Settings changes discarded"), 2000);
     }
+}
+
+void MainWindow::onAbout() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: About Kalahari");
+
+    QString aboutText = tr(
+        "<h2>Kalahari Writer's IDE</h2>"
+        "<p><b>Version:</b> 0.3.0-alpha (Qt6 Migration)</p>"
+        "<p><b>License:</b> MIT License</p>"
+        "<p><b>Copyright:</b> © 2025 Kalahari Project</p>"
+        "<br>"
+        "<p>Advanced writing environment for book authors.</p>"
+        "<p>Built with Qt %1</p>"
+        "<br>"
+        "<p>For more information, visit: "
+        "<a href='https://github.com/yourusername/kalahari'>GitHub</a></p>"
+    ).arg(qVersion());
+
+    QMessageBox::about(this, tr("About Kalahari"), aboutText);
+
+    logger.info("About dialog displayed");
+}
+
+void MainWindow::onAboutQt() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: About Qt");
+
+    QMessageBox::aboutQt(this, tr("About Qt"));
+
+    logger.info("About Qt dialog displayed");
 }
 
 // Dock management

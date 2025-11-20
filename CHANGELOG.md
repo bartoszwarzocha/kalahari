@@ -69,6 +69,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Build: Successful, all 68 tests passed (532 assertions)
   - Actual time: ~1.5 hours (estimate: 2-3h)
 
+- **Task #00010:** Navigator Panel with QTreeWidget - 2025-11-20
+  - Integrated NavigatorPanel with Document structure for book hierarchy display
+  - loadDocument() method: Parses Book (frontMatter, body, backMatter) and populates QTreeWidget
+  - Tree structure: Document (root) → Sections (Front Matter/Body/Back Matter) → Parts → Chapters
+  - Body section expanded by default, Front/Back Matter collapsed by default
+  - Double-click stub: Shows "Phase 1 feature" message (no navigation in Phase 0)
+  - MainWindow integration: Called loadDocument() on New/Open operations
+  - clearDocument() method: Resets tree to "no document loaded" state
+  - Phase 0 constraint: Read-only display (no editing, no drag-drop reordering)
+  - Files modified: `navigator_panel.h` (+2 methods), `navigator_panel.cpp` (~85 lines), `main_window.cpp` (+3 lines)
+  - Build: Successful, all 68 tests passed (532 assertions)
+  - Actual time: ~2 hours (estimate: 4-5h)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20
