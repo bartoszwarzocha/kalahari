@@ -137,6 +137,12 @@ private slots:
     /// @brief Slot for Edit > Settings action
     void onSettings();
 
+    /// @brief Slot for Help > About action
+    void onAbout();
+
+    /// @brief Slot for Help > About Qt action
+    void onAboutQt();
+
 private:
     // Actions
     QAction* m_newAction;
@@ -153,10 +159,14 @@ private:
     QAction* m_selectAllAction;
     QAction* m_settingsAction;
 
+    QAction* m_aboutAction;
+    QAction* m_aboutQtAction;
+
     // Menus
     QMenu* m_fileMenu;
     QMenu* m_editMenu;
     QMenu* m_viewMenu;
+    QMenu* m_helpMenu;
 
     // Toolbars
     QToolBar* m_fileToolbar;
