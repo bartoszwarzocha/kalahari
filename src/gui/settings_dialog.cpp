@@ -13,6 +13,8 @@
 #include <QSpinBox>
 #include <QGroupBox>
 #include <QGridLayout>
+#include <QFontComboBox>
+#include <QCheckBox>
 
 namespace kalahari {
 namespace gui {
@@ -26,6 +28,11 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     , m_themeComboBox(nullptr)
     , m_languageComboBox(nullptr)
     , m_fontSizeSpinBox(nullptr)
+    , m_fontFamilyComboBox(nullptr)
+    , m_editorFontSizeSpinBox(nullptr)
+    , m_tabSizeSpinBox(nullptr)
+    , m_lineNumbersCheckBox(nullptr)
+    , m_wordWrapCheckBox(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("SettingsDialog: Constructor called");
@@ -95,13 +102,56 @@ void SettingsDialog::createUI() {
 
     m_tabWidget->addTab(m_appearanceTab, tr("Appearance"));
 
-    // Editor tab (placeholder)
+    // Editor tab
     m_editorTab = new QWidget();
     QVBoxLayout* editorLayout = new QVBoxLayout(m_editorTab);
-    QLabel* editorLabel = new QLabel(tr("Editor settings will be implemented in Task #00006."));
-    editorLabel->setWordWrap(true);
-    editorLayout->addWidget(editorLabel);
-    editorLayout->addStretch();
+
+    // Create group box for visual grouping
+    QGroupBox* editorGroup = new QGroupBox(tr("Editor Settings"));
+    QGridLayout* editorGridLayout = new QGridLayout();
+
+    // Font family (row 0)
+    QLabel* fontFamilyLabel = new QLabel(tr("Font Family:"));
+    m_fontFamilyComboBox = new QFontComboBox();
+    m_fontFamilyComboBox->setFontFilters(QFontComboBox::MonospacedFonts);  // Only monospace
+    editorGridLayout->addWidget(fontFamilyLabel, 0, 0);
+    editorGridLayout->addWidget(m_fontFamilyComboBox, 0, 1);
+
+    // Font size (row 1)
+    QLabel* editorFontSizeLabel = new QLabel(tr("Font Size:"));
+    m_editorFontSizeSpinBox = new QSpinBox();
+    m_editorFontSizeSpinBox->setMinimum(8);
+    m_editorFontSizeSpinBox->setMaximum(32);
+    m_editorFontSizeSpinBox->setSingleStep(1);
+    m_editorFontSizeSpinBox->setSuffix(" pt");
+    editorGridLayout->addWidget(editorFontSizeLabel, 1, 0);
+    editorGridLayout->addWidget(m_editorFontSizeSpinBox, 1, 1);
+
+    // Tab size (row 2)
+    QLabel* tabSizeLabel = new QLabel(tr("Tab Size:"));
+    m_tabSizeSpinBox = new QSpinBox();
+    m_tabSizeSpinBox->setMinimum(2);
+    m_tabSizeSpinBox->setMaximum(8);
+    m_tabSizeSpinBox->setSingleStep(1);
+    m_tabSizeSpinBox->setSuffix(" spaces");
+    editorGridLayout->addWidget(tabSizeLabel, 2, 0);
+    editorGridLayout->addWidget(m_tabSizeSpinBox, 2, 1);
+
+    // Line numbers (row 3)
+    m_lineNumbersCheckBox = new QCheckBox(tr("Show Line Numbers"));
+    editorGridLayout->addWidget(m_lineNumbersCheckBox, 3, 0, 1, 2);  // Span 2 columns
+
+    // Word wrap (row 4)
+    m_wordWrapCheckBox = new QCheckBox(tr("Enable Word Wrap"));
+    editorGridLayout->addWidget(m_wordWrapCheckBox, 4, 0, 1, 2);  // Span 2 columns
+
+    // Make controls stretch horizontally
+    editorGridLayout->setColumnStretch(1, 1);
+
+    editorGroup->setLayout(editorGridLayout);
+    editorLayout->addWidget(editorGroup);
+    editorLayout->addStretch();  // Push group to top
+
     m_tabWidget->addTab(m_editorTab, tr("Editor"));
 
     mainLayout->addWidget(m_tabWidget);
@@ -149,6 +199,28 @@ void SettingsDialog::loadSettings() {
     m_fontSizeSpinBox->setValue(12);
     logger.debug("Loaded font size: 12 (default)");
 
+    // Load editor settings
+    std::string fontFamily = settings.get<std::string>("editor.fontFamily", "Consolas");
+    QFont font(QString::fromStdString(fontFamily));
+    m_fontFamilyComboBox->setCurrentFont(font);
+    logger.debug("Loaded editor font family: {}", fontFamily);
+
+    int editorFontSize = settings.get<int>("editor.fontSize", 12);
+    m_editorFontSizeSpinBox->setValue(editorFontSize);
+    logger.debug("Loaded editor font size: {}", editorFontSize);
+
+    int tabSize = settings.get<int>("editor.tabSize", 4);
+    m_tabSizeSpinBox->setValue(tabSize);
+    logger.debug("Loaded tab size: {}", tabSize);
+
+    bool lineNumbers = settings.get<bool>("editor.lineNumbers", true);
+    m_lineNumbersCheckBox->setChecked(lineNumbers);
+    logger.debug("Loaded line numbers: {}", lineNumbers);
+
+    bool wordWrap = settings.get<bool>("editor.wordWrap", false);
+    m_wordWrapCheckBox->setChecked(wordWrap);
+    logger.debug("Loaded word wrap: {}", wordWrap);
+
     logger.debug("SettingsDialog: Settings loaded successfully");
 }
 
@@ -171,6 +243,27 @@ void SettingsDialog::saveSettings() {
     // Font size (log only - SettingsManager doesn't have setFontSize() yet)
     int fontSize = m_fontSizeSpinBox->value();
     logger.debug("Font size: {} (not saved - no setter available)", fontSize);
+
+    // Save editor settings
+    QString fontFamilyData = m_fontFamilyComboBox->currentFont().family();
+    settings.set("editor.fontFamily", fontFamilyData.toStdString());
+    logger.debug("Saved editor font family: {}", fontFamilyData.toStdString());
+
+    int editorFontSize = m_editorFontSizeSpinBox->value();
+    settings.set("editor.fontSize", editorFontSize);
+    logger.debug("Saved editor font size: {}", editorFontSize);
+
+    int tabSize = m_tabSizeSpinBox->value();
+    settings.set("editor.tabSize", tabSize);
+    logger.debug("Saved tab size: {}", tabSize);
+
+    bool lineNumbers = m_lineNumbersCheckBox->isChecked();
+    settings.set("editor.lineNumbers", lineNumbers);
+    logger.debug("Saved line numbers: {}", lineNumbers);
+
+    bool wordWrap = m_wordWrapCheckBox->isChecked();
+    settings.set("editor.wordWrap", wordWrap);
+    logger.debug("Saved word wrap: {}", wordWrap);
 
     // Save to disk
     if (settings.save()) {

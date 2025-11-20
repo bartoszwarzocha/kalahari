@@ -135,11 +135,11 @@
   - Icon size controls (QSpinBox)
   - Apply settings with QApplication::setFont()
 
-- [ ] **Task #00006:** Editor Settings Panel (2-3h)
-  - Create EditorPanel (QWidget)
-  - Tab size, line numbers, word wrap controls
-  - Settings persistence via SettingsManager
-  - Live preview updates
+- [x] **Task #00006:** Editor Settings Panel (2-3h) ✅ **COMPLETE** (2025-11-20)
+  - Created Editor tab in Settings Dialog (QWidget)
+  - 5 controls: Font Family (QFontComboBox), Font Size (QSpinBox), Tab Size (QSpinBox), Line Numbers (QCheckBox), Word Wrap (QCheckBox)
+  - Settings persistence via SettingsManager (generic get<T>/set<T> API)
+  - All values load/save correctly to settings.json
 
 ### Week 3: Core Editor Foundation (Tasks #00007-00009)
 

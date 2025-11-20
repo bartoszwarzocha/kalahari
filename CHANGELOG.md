@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `settings_dialog.h`, `settings_dialog.cpp`
   - Build: Successful, all 68 tests passed (532 assertions)
 
+- **Task #00006:** Editor Settings Panel (Phase 0 Qt Migration) - 2025-11-20
+  - Settings Dialog: Replaced Editor tab placeholder with functional controls
+  - Font Family selection (QFontComboBox): Monospace fonts only (Consolas, Courier, etc.)
+  - Editor Font Size spinner (QSpinBox): 8-32 pt range
+  - Tab Size spinner (QSpinBox): 2-8 spaces range
+  - Line Numbers checkbox (default: enabled)
+  - Word Wrap checkbox (default: disabled)
+  - Controls load/save values via generic SettingsManager::get<T>()/set<T>() API
+  - All settings persist to settings.json (keys: editor.fontFamily, editor.fontSize, editor.tabSize, editor.lineNumbers, editor.wordWrap)
+  - Files modified: `settings_dialog.h` (5 control members), `settings_dialog.cpp` (UI + load/save logic)
+  - Build: Successful, all 68 tests passed (532 assertions)
+
 ### Fixed
 
 - **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20

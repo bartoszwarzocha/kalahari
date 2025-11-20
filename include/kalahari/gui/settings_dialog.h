@@ -14,6 +14,8 @@ class QTabWidget;
 class QDialogButtonBox;
 class QComboBox;
 class QSpinBox;
+class QFontComboBox;
+class QCheckBox;
 
 namespace kalahari {
 namespace gui {
@@ -80,6 +82,13 @@ private:
     QComboBox* m_themeComboBox;
     QComboBox* m_languageComboBox;
     QSpinBox* m_fontSizeSpinBox;
+
+    // Editor tab controls (Task #00006)
+    QFontComboBox* m_fontFamilyComboBox;
+    QSpinBox* m_editorFontSizeSpinBox;
+    QSpinBox* m_tabSizeSpinBox;
+    QCheckBox* m_lineNumbersCheckBox;
+    QCheckBox* m_wordWrapCheckBox;
 };
 
 } // namespace gui
