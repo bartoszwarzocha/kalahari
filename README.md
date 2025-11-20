@@ -20,16 +20,16 @@
 
 **Phase 0 Complete ✅** | **Phase 1 Week 13** (Settings System Fixes)
 
-**Current Version:** 0.1.0-alpha (Phase 0 Complete, Phase 1 in progress)
+**Current Version:** 0.3.0-alpha (Qt Foundation in progress)
 **Target Release:** Kalahari 1.0 (Q2-Q3 2026)
-**Last Updated:** 2025-11-11
+**Last Updated:** 2025-11-20
 
 ---
 
 ## 🎯 Vision
 
 Kalahari is a comprehensive **Writer's IDE** designed to eliminate technical and organizational barriers in book writing. It combines:
-- Native desktop performance (C++20 + wxWidgets)
+- Native desktop performance (C++20 + Qt6)
 - Powerful plugin system (Python 3.11)
 - Intelligent graphical assistant (8 animal personalities)
 - Professional writing tools (Character banks, Timeline, Analytics)
@@ -42,17 +42,18 @@ Kalahari • Serengeti • Okavango • Victoria • Zambezi
 ## 🛠️ Tech Stack
 
 - **Language:** C++20 (GCC 10+, Clang 10+, MSVC 2019+)
-- **GUI:** wxWidgets 3.3.0+ (native cross-platform, dark mode support)
+- **GUI:** Qt6 6.5+ (Widgets, native cross-platform, automatic DPI scaling)
 - **Build:** CMake 3.21+ with vcpkg (manifest mode)
 - **Plugins:** Python 3.11 (embedded) + pybind11
 - **Testing:** Catch2 v3 (BDD style)
 
 **Core Libraries:**
-- **spdlog** - Fast structured logging
-- **nlohmann_json** - Modern C++ JSON
-- **libzip** - Project file compression (.klh format)
-- **bwx_sdk** - wxWidgets utility library (git submodule)
-- **Catch2** - Unit testing framework (BDD style)
+- **Qt6** - Cross-platform GUI framework (LGPL v3, dynamically linked)
+- **spdlog** - Fast structured logging (MIT)
+- **nlohmann_json** - Modern C++ JSON (MIT)
+- **libzip** - Project file compression (.klh format, BSD)
+- **Catch2** - Unit testing framework (BSL-1.0)
+- **pybind11** - C++/Python bindings (BSD)
 
 ---
 
@@ -270,11 +271,17 @@ For now, please:
 
 ## 📄 License
 
-**MIT License** - See [LICENSE](LICENSE) for details.
+**MIT License** - See [LICENSE](LICENSE) for complete license text and third-party dependencies.
 
-Copyright (c) 2025 Kalahari Project
+Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
-Core application is open source. Premium plugins and cloud services available separately.
+**Key Points:**
+- ✅ Kalahari application code: **MIT License** (permissive, open source)
+- ✅ Qt6 Framework: **LGPL v3** (dynamically linked for compliance)
+- ✅ All other dependencies: MIT/BSD/permissive licenses
+- ✅ Commercial use: **Allowed** (LGPL v3 compliant via dynamic linking)
+
+**Redistribution:** If distributing binaries, include Qt dynamic libraries (.dll, .so, .dylib) and inform users they can replace them. See [LICENSE](LICENSE) for full LGPL v3 requirements.
 
 ---
 

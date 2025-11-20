@@ -102,6 +102,27 @@ endif()
 
 # Find dependencies (vcpkg will install these automatically)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui)
+
+# LGPL v3 Compliance Check - Verify Qt is dynamically linked
+get_target_property(QT_CORE_TYPE Qt6::Core TYPE)
+if(QT_CORE_TYPE STREQUAL "STATIC_LIBRARY")
+    message(FATAL_ERROR
+        "========================================\n"
+        "LGPL v3 VIOLATION DETECTED!\n"
+        "========================================\n"
+        "Qt6 static linking detected. This violates LGPL v3 license.\n"
+        "\n"
+        "Solutions:\n"
+        "1. Use dynamic Qt (vcpkg default triplet, NOT *-static)\n"
+        "2. Purchase Commercial Qt License: https://www.qt.io/licensing/\n"
+        "\n"
+        "Current triplet: ${VCPKG_TARGET_TRIPLET}\n"
+        "Change to: ${VCPKG_TARGET_TRIPLET} WITHOUT '-static' suffix\n"
+        "========================================\n"
+    )
+endif()
+message(STATUS "✅ Qt6 LGPL v3 compliance: Dynamic linking verified")
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)

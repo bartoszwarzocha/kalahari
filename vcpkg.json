@@ -14,7 +14,8 @@
       "features": [
         "qtbase",
         "qttools"
-      ]
+      ],
+      "$comment": "Qt6 used under LGPL v3 (dynamically linked). Do NOT use static triplets (e.g., x64-windows-static) without Commercial License!"
     },
     {
       "name": "curl",
