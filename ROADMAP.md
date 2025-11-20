@@ -97,36 +97,40 @@
 
 **Goal:** Basic Qt6 application with window, menu, logging
 
-- [ ] **Task #00001:** Qt6 vcpkg Installation & CMake Configuration (2-3h)
-  - Run `vcpkg install` with Qt6 6.5.0+
-  - Verify CMake finds Qt6::Core and Qt6::Widgets
-  - Build minimal QApplication + QMessageBox test
-  - CI/CD: Update workflows for Qt dependencies
+- [x] **Task #00001:** Qt6 vcpkg Installation & CMake Configuration (2-3h) ✅ **COMPLETE** (2025-11-20)
+  - Qt6 6.9.1 installed via vcpkg (qtbase, qttools)
+  - CMake finds Qt6::Core, Qt6::Widgets, Qt6::Gui
+  - Built minimal QApplication + QMainWindow test
+  - CI/CD: Workflows updated for Qt dependencies
+  - Commit: `2b7d779` - Qt6 Hello World
 
-- [ ] **Task #00002:** QMainWindow Skeleton (3-4h)
-  - Create KalahariApp (QApplication subclass)
-  - Create MainWindow (QMainWindow subclass)
-  - Add menu bar (File, Edit, View, Help)
-  - Add status bar with version info
-  - Integrate Logger and SettingsManager
-  - Test on all platforms (Windows, macOS, Linux)
+- [x] **Task #00002:** QMainWindow Skeleton (3-4h) ✅ **COMPLETE** (2025-11-20)
+  - Created MainWindow (QMainWindow subclass)
+  - Menu bar: File (New/Open/Save/Exit), Edit (Undo/Redo/Cut/Copy/Paste/Settings)
+  - Toolbar: File actions (New, Open, Save)
+  - Status bar with "Ready" message
+  - Integrated Logger and SettingsManager
+  - Commit: `78ce960` - QMainWindow structure with menus/toolbars
 
-- [ ] **Task #00003:** Basic QDockWidget System (4-5h)
-  - Create placeholder dock panels (4 docks)
-  - Add View menu for show/hide docks
-  - Implement perspective save/restore (QSettings)
-  - Test dock layout persistence
+- [x] **Task #00003:** Basic QDockWidget System (4-5h) ✅ **COMPLETE** (2025-11-20)
+  - Created 5 dock panels: Navigator, Properties, Log, Search, Assistant
+  - View menu with toggle actions for each panel
+  - Perspective save/restore via QSettings (geometry + dock state)
+  - Default layout: Navigator (left), Editor (center), Properties (right)
+  - Commit: `8e0caaf` - QDockWidget system with 6 panels + View menu
 
 ### Week 2: Settings System (Tasks #00004-00006)
 
 **Goal:** Settings dialog with Qt layouts, JSON persistence
 
-- [ ] **Task #00004:** Settings Dialog Structure (3-4h)
-  - Create SettingsDialog (QDialog)
-  - Add QListWidget for category navigation
-  - Add QStackedWidget for panels
-  - Implement Apply/OK/Cancel buttons
-  - Connect with existing SettingsManager
+- [x] **Task #00004:** Settings Dialog Structure (3-4h) ✅ **COMPLETE** (2025-11-20)
+  - **Part A:** Migrated SettingsManager and CmdLineParser to Qt6 (QSize, QPoint)
+    - Commit: `37019b1` - SettingsManager Qt6 migration
+  - **Part B:** Created SettingsDialog (QDialog) with QTabWidget
+    - QTabWidget for category navigation (2 tabs: Appearance, Editor)
+    - Apply/OK/Cancel buttons (QDialogButtonBox)
+    - Connected with SettingsManager (load/save on open/close)
+    - Commit: `dc17e16` - Settings Dialog structure
 
 - [x] **Task #00005:** Appearance Settings Panel (2-3h) ✅ COMPLETE (2025-11-20)
   - Create AppearancePanel (QWidget)
