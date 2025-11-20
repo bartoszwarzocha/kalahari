@@ -21,6 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `settings_dialog.h`, `settings_dialog.cpp`
   - Build: Successful, all 68 tests passed (532 assertions)
 
+### Fixed
+
+- **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20
+  - Root cause: Qt plugins (qwindows.dll, styles, imageformats) not copied to output directory
+  - Solution: Added CMake post-build commands to automatically copy Qt plugins from vcpkg_installed
+  - Affects: Windows (vcpkg), Linux (Qt installation), macOS (embedded in .app bundle)
+  - Files modified: `src/CMakeLists.txt` (add_custom_command for all platforms)
+  - Result: Application now starts successfully without manual plugin copying
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-19

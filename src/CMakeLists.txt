@@ -145,4 +145,39 @@ elseif(APPLE)
     set_target_properties(kalahari PROPERTIES MACOSX_BUNDLE TRUE)
 endif()
 
+# Copy Qt plugins after build (Windows/Linux/macOS)
+# This fixes "no Qt platform plugin could be initialized" error
+if(WIN32)
+    # Windows: Copy Debug plugins from vcpkg_installed
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/platforms"
+            "$<TARGET_FILE_DIR:kalahari>/platforms"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/styles"
+            "$<TARGET_FILE_DIR:kalahari>/styles"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/imageformats"
+            "$<TARGET_FILE_DIR:kalahari>/imageformats"
+        COMMENT "Copying Qt plugins to output directory"
+    )
+elseif(UNIX AND NOT APPLE)
+    # Linux: Copy from Qt installation
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${Qt6_DIR}/../../../plugins/platforms"
+            "$<TARGET_FILE_DIR:kalahari>/platforms"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${Qt6_DIR}/../../../plugins/styles"
+            "$<TARGET_FILE_DIR:kalahari>/styles"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${Qt6_DIR}/../../../plugins/imageformats"
+            "$<TARGET_FILE_DIR:kalahari>/imageformats"
+        COMMENT "Copying Qt plugins to output directory"
+    )
+elseif(APPLE)
+    # macOS: Plugins are embedded in .app bundle automatically by Qt
+    # No manual copying needed
+endif()
+
 message(STATUS "Configured executable target: kalahari")
