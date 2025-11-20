@@ -9,7 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+No unreleased changes yet.
+
+---
+
+## [0.3.0-alpha] - 2025-11-20
+
+🎉 **Phase 0: Qt Foundation COMPLETE!** 🎉
+
+All 12 tasks completed in 1 day (estimate: 4 weeks). Qt6 migration successful!
+
+### Added - Phase 0 Implementation (Tasks #00001-00011)
+
+- **Task #00001:** Qt6 vcpkg Installation & CMake Configuration - 2025-11-20
+  - Qt6 6.9.1 installed via vcpkg (qtbase, qttools)
+  - CMake finds Qt6::Core, Qt6::Widgets, Qt6::Gui
+  - Built minimal QApplication + QMainWindow test
+  - CI/CD workflows updated for Qt dependencies
+
+- **Task #00002:** QMainWindow Skeleton - 2025-11-20
+  - Created MainWindow (QMainWindow subclass)
+  - Menu bar: File (New/Open/Save/Exit), Edit (Undo/Redo/Cut/Copy/Paste/Settings)
+  - Toolbar: File actions (New, Open, Save)
+  - Status bar with "Ready" message
+  - Integrated Logger and SettingsManager
+
+- **Task #00003:** Basic QDockWidget System - 2025-11-20
+  - Created 5 dock panels: Navigator, Properties, Log, Search, Assistant
+  - View menu with toggle actions for each panel
+  - Perspective save/restore via QSettings (geometry + dock state)
+  - Default layout: Navigator (left), Editor (center), Properties (right)
+
+- **Task #00004:** Settings Dialog Structure - 2025-11-20
+  - Migrated SettingsManager and CmdLineParser to Qt6 (QSize, QPoint)
+  - Created SettingsDialog (QDialog) with QTabWidget
+  - QTabWidget for category navigation (2 tabs: Appearance, Editor)
+  - Apply/OK/Cancel buttons (QDialogButtonBox)
+  - Connected with SettingsManager (load/save on open/close)
 
 - **Task #00005:** Appearance Settings Panel (Phase 0 Qt Migration) - 2025-11-20
   - Settings Dialog: Replaced Appearance tab placeholder with functional controls
@@ -101,10 +137,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Affects: Windows (vcpkg), Linux (Qt installation), macOS (embedded in .app bundle)
   - Files modified: `src/CMakeLists.txt` (add_custom_command for all platforms)
   - Result: Application now starts successfully without manual plugin copying
-
----
-
-## [0.3.0-alpha] - 2025-11-19
 
 ### BREAKING CHANGE: Technology Stack Pivot (wxWidgets → Qt6)
 

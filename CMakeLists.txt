@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 # Project definition
 project(Kalahari
-    VERSION 0.0.1
+    VERSION 0.3.0
     DESCRIPTION "Writer's IDE - Advanced writing environment for book authors"
     LANGUAGES CXX
 )
