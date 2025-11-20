@@ -1,12 +1,12 @@
 /// @file main.cpp
 /// @brief Kalahari Writer's IDE - Main entry point (Qt6)
 ///
-/// Task #00001: Qt6 Hello World - Minimal QMainWindow
+/// Task #00002: QMainWindow Structure with Menus and Toolbars
 
 #include <QApplication>
-#include <QMainWindow>
-#include "core/logger.h"
-#include "core/settings_manager.h"
+#include "kalahari/gui/main_window.h"
+#include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 
 int main(int argc, char *argv[]) {
     // Initialize Qt application
@@ -20,12 +20,10 @@ int main(int argc, char *argv[]) {
     kalahari::core::SettingsManager::initialize("settings.json");
 
     auto& logger = kalahari::core::Logger::getInstance();
-    logger.info("Kalahari {} starting (Qt6 Hello World)", app.applicationVersion().toStdString());
+    logger.info("Kalahari {} starting", app.applicationVersion().toStdString());
 
-    // Create minimal main window
-    QMainWindow window;
-    window.setWindowTitle("Kalahari Writer's IDE");
-    window.resize(1280, 720);
+    // Create main window with menus/toolbars
+    kalahari::gui::MainWindow window;
     window.show();
 
     logger.info("Main window shown - entering event loop");

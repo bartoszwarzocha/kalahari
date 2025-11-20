@@ -166,8 +166,19 @@ N/A - This is an architectural migration, not a bug fix release.
   - Event loop: app.exec() for persistent window
   - Files: CMakeLists.txt, src/CMakeLists.txt, src/main.cpp, tasks/00001*.md
 
+- [x] **Task #00002: QMainWindow Structure with Menus and Toolbars** (2025-11-20, ~2h)
+  - Created MainWindow class (kalahari::gui namespace)
+  - File menu: New, Open, Save, Save As, Exit (5 actions)
+  - Edit menu: Undo, Redo, Cut, Copy, Paste (5 actions)
+  - File toolbar: New, Open, Save (3 buttons)
+  - Status bar: "Ready" message, updates on action click
+  - Signal/slot connections: All actions log to console
+  - Q_OBJECT macro: Enables Qt meta-object system (signals/slots)
+  - tr() function: Internationalization support (Qt Linguist ready)
+  - QKeySequence: Standard keyboard shortcuts (Ctrl+N, Ctrl+O, etc.)
+  - Files: include/kalahari/gui/main_window.h, src/gui/main_window.cpp, src/main.cpp, src/CMakeLists.txt, tasks/00002*.md
+
 #### Planned (Week 1-4)
-- [ ] Task #00002: QMainWindow Structure (menus/toolbars) (3-4h)
 - [ ] Task #00003: Basic QDockWidget System (4-5h)
 - [ ] Task #00004: Settings Dialog Structure (3-4h)
 - [ ] Task #00005: Appearance Settings Panel (2-3h)

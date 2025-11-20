@@ -80,9 +80,10 @@ target_link_libraries(kalahari_core PUBLIC
 # NOTE: GUI layer removed during Qt migration (Step 0.2)
 # Will be rebuilt with Qt6 in subsequent phases
 
-# Executable source files (minimal placeholder)
+# Executable source files
 set(KALAHARI_SOURCES
     main.cpp
+    gui/main_window.cpp
 )
 
 # Create executable
