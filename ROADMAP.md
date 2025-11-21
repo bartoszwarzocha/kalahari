@@ -25,11 +25,11 @@
 
 ---
 
-## PHASE 0: Qt Foundation 🔄 IN PROGRESS
+## PHASE 0: Qt Foundation ✅ COMPLETE
 
-**Status:** 🔄 IN PROGRESS (Started 2025-11-19, ~85% complete)
-**Duration:** 1-2 days (estimate: 4 weeks) - 12/13 tasks complete
-**Target:** 0.3.0-alpha ✅ RELEASED (basic GUI) → 0.3.1-alpha (Command Registry)
+**Status:** ✅ COMPLETE (Started 2025-11-19, Finished 2025-11-21)
+**Duration:** 2 days (estimate: 4 weeks) - 13/13 tasks complete
+**Target:** 0.3.0-alpha ✅ RELEASED (basic GUI) → 0.3.1-alpha (Command Registry) ✅ COMPLETE
 
 ### Step 0: Preparation ⚡ IN PROGRESS (Day 1, ~6 hours)
 
@@ -204,29 +204,29 @@
   - ROADMAP.md: Phase 0 marked as COMPLETE
   - 🎉 Qt migration complete! All 12 tasks done in 1 day!
 
-### Week 5: Command Registry Migration 🔄 IN PROGRESS (2025-11-21)
+### Week 5: Command Registry Migration ✅ COMPLETE (2025-11-21)
 
 **Goal:** Migrate Command Registry system from wxWidgets to Qt6
 
-**Context:** Command Registry was fully implemented and tested in wxWidgets (Tasks #00032-#00035, 46+ test cases). System includes CommandRegistry singleton, Command/IconSet/KeyboardShortcut structures, MenuBuilder, ToolbarBuilder. Currently MainWindow uses hardcoded QAction connections - must migrate to unified command system for plugin support and customizable UI.
+**Context:** Command Registry was fully implemented and tested in wxWidgets (Tasks #00032-#00035, 46+ test cases). System includes CommandRegistry singleton, Command/IconSet/KeyboardShortcut structures, MenuBuilder, ToolbarBuilder. MainWindow had hardcoded QAction connections - migrated to unified command system for plugin support and customizable UI.
 
-**Architecture Recovered:**
-- ✅ Command Registry (singleton, ~200 LOC)
+**Architecture Migrated:**
+- ✅ Command Registry (singleton, ~200 LOC, framework-agnostic)
 - ✅ Command struct (id, label, category, icons, shortcuts, execute/isEnabled/isChecked callbacks)
-- ✅ IconSet (16/24/32px pre-rendered bitmaps)
-- ✅ KeyboardShortcut (key + modifiers, toString/fromString)
-- ✅ ToolbarBuilder (dynamic toolbar generation from registry)
-- ✅ MenuBuilder (not recovered yet, will implement fresh)
+- ✅ IconSet (16/24/32px QPixmap, toQIcon() helper)
+- ✅ KeyboardShortcut (Qt::Key + Qt::KeyboardModifiers, toQKeySequence())
+- ✅ ToolbarBuilder (dynamic QToolBar generation from registry)
+- ✅ MenuBuilder (new for Qt, 150 LOC)
 
-**Benefits:**
-- ✅ Single source of truth for all commands
-- ✅ Plugin commands integrate seamlessly (ICommandProvider)
-- ✅ Customizable toolbars (user can add/remove/reorder)
-- ✅ Command Palette ready (Ctrl+Shift+P, Phase 1)
-- ✅ Keyboard shortcuts management
-- ✅ No hardcoded QAction connections
+**Benefits Delivered:**
+- ✅ Single source of truth for all commands (15 registered: File, Edit, Help)
+- ✅ Plugin commands integrate seamlessly (ICommandProvider interface ready)
+- ✅ Customizable toolbars (user can add/remove/reorder in Phase 1)
+- ✅ Command Palette ready (Ctrl+Shift+P foundation, Phase 1 implementation)
+- ✅ Keyboard shortcuts management (centralized)
+- ✅ No hardcoded QAction connections (MainWindow uses builders)
 
-- [ ] **Task #00047:** Command Registry Qt Migration (1-2 days) 🔄 **IN PROGRESS** (2025-11-21)
+- [x] **Task #00013:** Command Registry Qt Migration (2 days) ✅ **COMPLETE** (2025-11-21)
   - **Day 1 Morning:** Recover files from wxwidgets-archive
     - command.h/cpp (Command, IconSet, KeyboardShortcut structs)
     - command_registry.h/cpp (CommandRegistry singleton)

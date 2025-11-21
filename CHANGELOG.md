@@ -9,7 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- **Task #00013:** Command Registry Qt Migration - 2025-11-21
+  - Migrated Command Registry from wxWidgets to Qt6 (6 files, ~670 LOC)
+  - Core structures adapted: IconSet (wxBitmap → QPixmap), KeyboardShortcut (Qt::KeyboardModifiers), Command (added toQAction())
+  - CommandRegistry singleton: Framework-agnostic, zero changes needed
+  - MenuBuilder created for Qt (150 LOC): buildMenuBar(), buildMenu(), dynamic generation from registry
+  - ToolbarBuilder adapted for Qt (82 LOC): buildToolBar(), QAction-based
+  - MainWindow refactored: registerCommands() (15 commands), removed 14 QAction* members, replaced createActions/createMenus/createToolbars
+  - Registered commands: File (6), Edit (6), Help (2) - all with keyboard shortcuts
+  - Architecture benefits: Single source of truth, plugin-friendly, customizable UI foundation
+  - Commits: `d3196b2` (Command Registry files), `b518a5d` (MainWindow refactor)
+  - Files added: `command.h/cpp`, `command_registry.h/cpp`, `toolbar_builder.h/cpp`, `menu_builder.h/cpp`
+  - Files modified: `main_window.h/cpp`, `CMakeLists.txt`
 
 ---
 
