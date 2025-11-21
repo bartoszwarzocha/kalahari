@@ -91,6 +91,7 @@ set(KALAHARI_SOURCES
     gui/command_registry.cpp
     gui/toolbar_builder.cpp
     gui/menu_builder.cpp
+    gui/panels/dashboard_panel.cpp
     gui/panels/editor_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
@@ -101,6 +102,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h

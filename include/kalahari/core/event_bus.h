@@ -9,7 +9,7 @@
 /// - Type-based event filtering (events grouped by type string)
 /// - Thread-safe subscription/emission
 /// - Synchronous emit (direct callback invocation)
-/// - Asynchronous emit (Qt6 GUI thread marshalling via QMetaObject::invokeMethod)
+/// - Asynchronous emit (Qt6 main thread marshalling via QMetaObject::invokeMethod)
 /// - Python integration via pybind11
 ///
 /// **Event Types (Standard):**
@@ -160,11 +160,11 @@ public:
 
     /// @brief Emit event asynchronously
     ///
-    /// Queues the event for delivery on the main GUI thread via
-    /// wxTheApp->CallAfter. This is safe to call from worker threads
+    /// Queues the event for delivery on the main Qt event loop thread via
+    /// QMetaObject::invokeMethod. This is safe to call from worker threads
     /// and ensures GUI updates happen on the correct thread.
     ///
-    /// If wxTheApp is not available, logs a warning and invokes listeners
+    /// If QCoreApplication is not available, logs a warning and invokes listeners
     /// directly as fallback.
     ///
     /// @param event Event to emit asynchronously

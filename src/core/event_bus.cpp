@@ -3,7 +3,13 @@
 
 #include "kalahari/core/event_bus.h"
 #include "kalahari/core/logger.h"
-#include <QApplication>
+
+// Disable Qt keywords (emit, signals, slots) to avoid conflicts with EventBus::emit()
+#ifndef QT_NO_KEYWORDS
+#define QT_NO_KEYWORDS
+#endif
+
+#include <QCoreApplication>
 #include <QMetaObject>
 
 namespace kalahari {
@@ -79,7 +85,7 @@ void EventBus::emitAsync(const Event& event) {
                                event.type, m_eventQueue.size());
 
     // Qt6 GUI thread marshalling via QMetaObject::invokeMethod
-    QApplication* app = qobject_cast<QApplication*>(QApplication::instance());
+    QCoreApplication* app = QCoreApplication::instance();
     if (app) {
         // Schedule event processing on GUI thread (Qt::QueuedConnection)
         QMetaObject::invokeMethod(
@@ -106,8 +112,8 @@ void EventBus::emitAsync(const Event& event) {
         return;
     }
 
-    // Fallback: emit directly if QApplication not available
-    Logger::getInstance().warn("EventBus: QApplication not available for async marshalling, "
+    // Fallback: emit directly if QCoreApplication not available
+    Logger::getInstance().warn("EventBus: QCoreApplication not available for async marshalling, "
                               "emitting directly");
     Event evt = event;
     {

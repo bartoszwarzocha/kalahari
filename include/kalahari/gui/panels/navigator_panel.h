@@ -39,6 +39,13 @@ public:
     /// @brief Destructor
     ~NavigatorPanel() override = default;
 
+signals:
+    /// @brief Emitted when user double-clicks a chapter in tree
+    /// @param chapterTitle Title of the chapter to open
+    /// @note Phase 0: Opens whole document (no per-chapter editing yet)
+    /// @note Phase 1+: Opens specific chapter in editor
+    void chapterDoubleClicked(const QString& chapterTitle);
+
 private:
     QTreeWidget* m_treeWidget;
 };

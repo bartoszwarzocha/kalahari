@@ -90,10 +90,10 @@ private:
     /// logical groups.
     ///
     /// @param menu Target menu (must not be null)
-    /// @param commands List of Command pointers from CommandRegistry
+    /// @param commands List of Command values from CommandRegistry
     /// @param registry CommandRegistry reference for signal connections
     void addCommandsToMenu(QMenu* menu,
-                           const std::vector<Command*>& commands,
+                           const std::vector<Command>& commands,
                            CommandRegistry& registry);
 
     /// @brief Create menu action from Command descriptor

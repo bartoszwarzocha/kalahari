@@ -145,8 +145,8 @@ KeyboardShortcut KeyboardShortcut::fromQKeySequence(const QKeySequence& seq) {
         return KeyboardShortcut();
     }
 
-    // Extract first key combination
-    int combined = seq[0];
+    // Extract first key combination (use toCombined() instead of deprecated operator int)
+    int combined = seq[0].toCombined();
 
     KeyboardShortcut result;
     result.keyCode = combined & ~Qt::KeyboardModifierMask;

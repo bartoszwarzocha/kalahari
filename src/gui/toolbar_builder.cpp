@@ -14,7 +14,7 @@ QToolBar* ToolbarBuilder::buildToolBar(CommandRegistry& registry, QMainWindow* p
     }
 
     // Create toolbar
-    QToolBar* toolbar = new QToolBar(tr("Standard"), parent);
+    QToolBar* toolbar = new QToolBar(QStringLiteral("Standard"), parent);
     toolbar->setObjectName("StandardToolbar");
     toolbar->setMovable(false);  // Phase 0: fixed toolbar
 
@@ -42,12 +42,12 @@ void ToolbarBuilder::addActionsFromCategory(QToolBar* toolbar,
     }
 
     // Get all commands in category
-    std::vector<Command*> commands = registry.getCommandsByCategory(category);
+    std::vector<Command> commands = registry.getCommandsByCategory(category);
 
     // Filter: only commands with showInToolbar=true
-    for (Command* cmd : commands) {
-        if (cmd && cmd->showInToolbar) {
-            createToolAction(toolbar, *cmd, registry);
+    for (const Command& cmd : commands) {
+        if (cmd.showInToolbar) {
+            createToolAction(toolbar, cmd, registry);
         }
     }
 }

@@ -5,6 +5,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/toolbar_builder.h"
+#include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -50,6 +51,8 @@ MainWindow::MainWindow(QWidget* parent)
     , m_logDock(nullptr)
     , m_searchDock(nullptr)
     , m_assistantDock(nullptr)
+    , m_centralTabs(nullptr)
+    , m_dashboardPanel(nullptr)
     , m_editorPanel(nullptr)
     , m_navigatorPanel(nullptr)
     , m_propertiesPanel(nullptr)
@@ -75,12 +78,8 @@ MainWindow::MainWindow(QWidget* parent)
     createStatusBar();
     createDocks();
 
-    // Connect editor textChanged signal to dirty state tracking (Task #00008)
-    connect(m_editorPanel->getTextEdit(), &QPlainTextEdit::textChanged,
-            this, [this]() {
-                if (!m_currentDocument.has_value()) return;
-                setDirty(true);
-            });
+    // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
+    // No m_editorPanel at startup - Dashboard is default first tab
 
     logger.info("MainWindow initialized successfully");
 }
@@ -95,17 +94,18 @@ void MainWindow::registerCommands() {
 
     // File > New
     registry.registerCommand(Command{
-        "file.new",
-        "&New",
-        "Create a new document",
-        "File",
-        IconSet(),  // No icon for now
-        KeyboardShortcut::fromQKeySequence(QKeySequence::New),
-        [this]() { onNewDocument(); },
-        nullptr,  // Always enabled
-        nullptr,  // Not checkable
-        true,     // Show in menu
-        true      // Show in toolbar
+        "file.new",                                             // id
+        "&New",                                                 // label
+        "Create a new document",                                // tooltip
+        "File",                                                 // category
+        IconSet(),                                              // icons
+        true,                                                   // showInMenu
+        true,                                                   // showInToolbar
+        KeyboardShortcut::fromQKeySequence(QKeySequence::New), // shortcut
+        true,                                                   // isShortcutCustomizable
+        [this]() { onNewDocument(); },                         // execute
+        {},                                                     // isEnabled
+        {}                                                      // isChecked
     });
 
     // File > Open
@@ -115,12 +115,13 @@ void MainWindow::registerCommands() {
         "Open an existing document",
         "File",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
-        [this]() { onOpenDocument(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
+        true,
+        [this]() { onOpenDocument(); },
+        {},
+        {}
     });
 
     // File > Save
@@ -130,12 +131,13 @@ void MainWindow::registerCommands() {
         "Save the current document",
         "File",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
-        [this]() { onSaveDocument(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
+        true,
+        [this]() { onSaveDocument(); },
+        {},
+        {}
     });
 
     // File > Save As
@@ -145,12 +147,13 @@ void MainWindow::registerCommands() {
         "Save the current document with a new name",
         "File",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
-        [this]() { onSaveAsDocument(); },
-        nullptr,
-        nullptr,
         true,
-        false  // Not in toolbar
+        false,  // Not in toolbar
+        KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
+        true,
+        [this]() { onSaveAsDocument(); },
+        {},
+        {}
     });
 
     // File > Settings
@@ -160,12 +163,13 @@ void MainWindow::registerCommands() {
         "Open settings dialog",
         "File",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence(tr("Ctrl+,"))),
-        [this]() { onSettings(); },
-        nullptr,
-        nullptr,
         true,
-        false
+        false,
+        KeyboardShortcut::fromQKeySequence(QKeySequence(tr("Ctrl+,"))),
+        true,
+        [this]() { onSettings(); },
+        {},
+        {}
     });
 
     // File > Exit
@@ -175,12 +179,13 @@ void MainWindow::registerCommands() {
         "Exit the application",
         "File",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
-        [this]() { onExit(); },
-        nullptr,
-        nullptr,
         true,
-        false
+        false,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
+        true,
+        [this]() { onExit(); },
+        {},
+        {}
     });
 
     // ===== EDIT CATEGORY =====
@@ -192,12 +197,13 @@ void MainWindow::registerCommands() {
         "Undo the last operation",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
-        [this]() { onUndo(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
+        true,
+        [this]() { onUndo(); },
+        {},
+        {}
     });
 
     // Edit > Redo
@@ -207,12 +213,13 @@ void MainWindow::registerCommands() {
         "Redo the last undone operation",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
-        [this]() { onRedo(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
+        true,
+        [this]() { onRedo(); },
+        {},
+        {}
     });
 
     // Edit > Cut
@@ -222,12 +229,13 @@ void MainWindow::registerCommands() {
         "Cut the selection to clipboard",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
-        [this]() { onCut(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
+        true,
+        [this]() { onCut(); },
+        {},
+        {}
     });
 
     // Edit > Copy
@@ -237,12 +245,13 @@ void MainWindow::registerCommands() {
         "Copy the selection to clipboard",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
-        [this]() { onCopy(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
+        true,
+        [this]() { onCopy(); },
+        {},
+        {}
     });
 
     // Edit > Paste
@@ -252,12 +261,13 @@ void MainWindow::registerCommands() {
         "Paste from clipboard",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
-        [this]() { onPaste(); },
-        nullptr,
-        nullptr,
         true,
-        true
+        true,
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
+        true,
+        [this]() { onPaste(); },
+        {},
+        {}
     });
 
     // Edit > Select All
@@ -267,12 +277,13 @@ void MainWindow::registerCommands() {
         "Select all text",
         "Edit",
         IconSet(),
-        KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
-        [this]() { onSelectAll(); },
-        nullptr,
-        nullptr,
         true,
-        false  // Not in toolbar
+        false,  // Not in toolbar
+        KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
+        true,
+        [this]() { onSelectAll(); },
+        {},
+        {}
     });
 
     // ===== HELP CATEGORY =====
@@ -284,12 +295,13 @@ void MainWindow::registerCommands() {
         "Show information about Kalahari",
         "Help",
         IconSet(),
-        KeyboardShortcut(),  // No shortcut
-        [this]() { onAbout(); },
-        nullptr,
-        nullptr,
         true,
-        false
+        false,
+        KeyboardShortcut(),  // No shortcut
+        true,
+        [this]() { onAbout(); },
+        {},
+        {}
     });
 
     // Help > About Qt
@@ -299,12 +311,13 @@ void MainWindow::registerCommands() {
         "Show information about Qt",
         "Help",
         IconSet(),
-        KeyboardShortcut(),
-        [this]() { onAboutQt(); },
-        nullptr,
-        nullptr,
         true,
-        false
+        false,
+        KeyboardShortcut(),
+        true,
+        [this]() { onAboutQt(); },
+        {},
+        {}
     });
 
     logger.debug("Commands registered successfully (15 commands)");
@@ -359,8 +372,9 @@ void MainWindow::onNewDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Document");
 
-    // Check for unsaved changes
-    if (m_isDirty) {
+    // Task #00015: Check for unsaved changes in current editor tab
+    EditorPanel* currentEditor = getCurrentEditor();
+    if (currentEditor && m_isDirty) {
         auto reply = QMessageBox::question(
             this,
             tr("Unsaved Changes"),
@@ -378,16 +392,28 @@ void MainWindow::onNewDocument() {
         // Discard → continue
     }
 
+    // Task #00015: Create new EditorPanel tab (on-demand)
+    EditorPanel* newEditor = new EditorPanel(this);
+    int tabIndex = m_centralTabs->addTab(newEditor, tr("Untitled"));
+    m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Connect textChanged signal for dirty tracking
+    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+            this, [this]() {
+                if (!m_currentDocument.has_value()) return;
+                setDirty(true);
+            });
+
     // Create new document
     m_currentDocument = core::Document("Untitled", "User", "en");
     m_currentFilePath = "";
-    m_editorPanel->setText("");
+    newEditor->setText("");
     setDirty(false);
 
     // Update navigator panel
     m_navigatorPanel->loadDocument(m_currentDocument.value());
 
-    logger.info("New document created");
+    logger.info("New document created in new tab");
     statusBar()->showMessage(tr("New document created"), 2000);
 }
 
@@ -395,8 +421,9 @@ void MainWindow::onOpenDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Open Document");
 
-    // Check for unsaved changes
-    if (m_isDirty) {
+    // Task #00015: Check for unsaved changes in current editor tab
+    EditorPanel* currentEditor = getCurrentEditor();
+    if (currentEditor && m_isDirty) {
         auto reply = QMessageBox::question(
             this,
             tr("Unsaved Changes"),
@@ -440,26 +467,49 @@ void MainWindow::onOpenDocument() {
         return;
     }
 
+    // Task #00015: Create new EditorPanel tab (on-demand)
+    EditorPanel* newEditor = new EditorPanel(this);
+
+    // Get document title for tab name
+    QString docTitle = QString::fromStdString(loaded.value().getTitle());
+    int tabIndex = m_centralTabs->addTab(newEditor, docTitle);
+    m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Connect textChanged signal for dirty tracking
+    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+            this, [this]() {
+                if (!m_currentDocument.has_value()) return;
+                setDirty(true);
+            });
+
     // Success - update state
     m_currentDocument = std::move(loaded.value());
     m_currentFilePath = filepath;
 
     // Extract text and load into editor
     QString content = getPhase0Content(m_currentDocument.value());
-    m_editorPanel->setText(content);
+    newEditor->setText(content);
 
     setDirty(false);
 
     // Update navigator panel
     m_navigatorPanel->loadDocument(m_currentDocument.value());
 
-    logger.info("Document loaded: {}", filepath.string());
+    logger.info("Document loaded in new tab: {}", filepath.string());
     statusBar()->showMessage(tr("Document opened: %1").arg(filename), 2000);
 }
 
 void MainWindow::onSaveDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save Document");
+
+    // Task #00015: Get current editor (returns nullptr if Dashboard is active)
+    EditorPanel* editor = getCurrentEditor();
+    if (!editor) {
+        logger.debug("No editor tab active - cannot save");
+        statusBar()->showMessage(tr("No document to save"), 2000);
+        return;
+    }
 
     // If no current file, delegate to Save As
     if (m_currentFilePath.empty()) {
@@ -472,8 +522,8 @@ void MainWindow::onSaveDocument() {
         m_currentDocument = core::Document("Untitled", "User", "en");
     }
 
-    // Get text from editor and update document
-    QString text = m_editorPanel->getText();
+    // Get text from current editor and update document
+    QString text = editor->getText();
     setPhase0Content(m_currentDocument.value(), text);
 
     // Save to file
@@ -498,6 +548,14 @@ void MainWindow::onSaveAsDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save As Document");
 
+    // Task #00015: Get current editor (returns nullptr if Dashboard is active)
+    EditorPanel* editor = getCurrentEditor();
+    if (!editor) {
+        logger.debug("No editor tab active - cannot save");
+        statusBar()->showMessage(tr("No document to save"), 2000);
+        return;
+    }
+
     // Show save file dialog
     QString filename = QFileDialog::getSaveFileName(
         this,
@@ -521,8 +579,8 @@ void MainWindow::onSaveAsDocument() {
         m_currentDocument = core::Document("Untitled", "User", "en");
     }
 
-    // Get text from editor and update document
-    QString text = m_editorPanel->getText();
+    // Get text from current editor and update document
+    QString text = editor->getText();
     setPhase0Content(m_currentDocument.value(), text);
 
     // Update document title from filename
@@ -662,9 +720,39 @@ void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("Creating dock widgets");
 
-    // Create central editor panel
-    m_editorPanel = new EditorPanel(this);
-    setCentralWidget(m_editorPanel);
+    // Create central tabbed workspace (Task #00015)
+    m_centralTabs = new QTabWidget(this);
+    m_centralTabs->setTabsClosable(true);       // All tabs can be closed
+    m_centralTabs->setMovable(true);            // Tabs can be reordered
+    m_centralTabs->setDocumentMode(true);       // Better look on macOS/Windows
+    setCentralWidget(m_centralTabs);
+
+    // Add Dashboard as first tab (default at startup, closable)
+    m_dashboardPanel = new DashboardPanel(this);
+    int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, tr("Dashboard"));
+    m_centralTabs->setCurrentIndex(dashboardIndex);
+
+    // Connect tab close signal (Task #00015)
+    connect(m_centralTabs, &QTabWidget::tabCloseRequested, this, [this](int index) {
+        auto& logger = core::Logger::getInstance();
+        QWidget* widget = m_centralTabs->widget(index);
+        EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
+
+        // Check for unsaved changes if EditorPanel
+        if (editor && m_isDirty) {
+            // TODO (Phase 1): Prompt user to save changes
+            // For now: just close
+        }
+
+        // Remove tab and delete widget
+        m_centralTabs->removeTab(index);
+        widget->deleteLater();
+
+        logger.debug("Tab closed at index {}", index);
+    });
+
+    // NOTE (Task #00015): EditorPanel tabs created ON-DEMAND via File > New/Open
+    // No m_editorPanel at startup! Use getCurrentEditor() to access active editor.
 
     // Navigator dock (left)
     m_navigatorPanel = new NavigatorPanel(this);
@@ -672,6 +760,10 @@ void MainWindow::createDocks() {
     m_navigatorDock->setWidget(m_navigatorPanel);
     m_navigatorDock->setObjectName("NavigatorDock");  // Required for saveState!
     addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
+
+    // Connect Navigator double-click signal (Task #00015)
+    connect(m_navigatorPanel, &NavigatorPanel::chapterDoubleClicked,
+            this, &MainWindow::onNavigatorItemDoubleClicked);
 
     // Properties dock (right)
     m_propertiesPanel = new PropertiesPanel(this);
@@ -888,6 +980,51 @@ void MainWindow::setPhase0Content(core::Document& doc, const QString& text) {
     chaptersList[0]->setMetadata("_phase0_content", text.toStdString());
     chaptersList[0]->touch();  // Update modified timestamp
     doc.touch();
+}
+
+EditorPanel* MainWindow::getCurrentEditor() {
+    // Task #00015: Get active EditorPanel tab (or nullptr)
+    if (!m_centralTabs) {
+        return nullptr;
+    }
+
+    QWidget* currentWidget = m_centralTabs->currentWidget();
+    return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
+}
+
+void MainWindow::onNavigatorItemDoubleClicked(const QString& chapterTitle) {
+    // Task #00015: Handle Navigator double-click
+    auto& logger = core::Logger::getInstance();
+    logger.info("Navigator item double-clicked: {}", chapterTitle.toStdString());
+
+    // Check if document is loaded
+    if (!m_currentDocument.has_value()) {
+        logger.debug("No document loaded - ignoring Navigator double-click");
+        statusBar()->showMessage(tr("No document loaded"), 2000);
+        return;
+    }
+
+    // Phase 0: Open whole document content in new editor tab
+    // Phase 1+: Open specific chapter content based on chapterTitle
+
+    EditorPanel* newEditor = new EditorPanel(this);
+    QString tabTitle = chapterTitle;  // Use chapter title as tab name
+    int tabIndex = m_centralTabs->addTab(newEditor, tabTitle);
+    m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Connect textChanged signal for dirty tracking
+    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+            this, [this]() {
+                if (!m_currentDocument.has_value()) return;
+                setDirty(true);
+            });
+
+    // Load document content (Phase 0: whole document)
+    QString content = getPhase0Content(m_currentDocument.value());
+    newEditor->setText(content);
+
+    logger.info("Opened chapter '{}' in new editor tab", chapterTitle.toStdString());
+    statusBar()->showMessage(tr("Opened: %1").arg(chapterTitle), 2000);
 }
 
 void MainWindow::showEvent(QShowEvent* event) {

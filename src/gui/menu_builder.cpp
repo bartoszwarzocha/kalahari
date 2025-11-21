@@ -16,20 +16,20 @@ void MenuBuilder::buildMenuBar(CommandRegistry& registry, QMainWindow* parent) {
     QMenuBar* menuBar = parent->menuBar();
 
     // File menu
-    QMenu* fileMenu = buildMenu(tr("&File"), "File", registry, menuBar);
+    QMenu* fileMenu = buildMenu(QStringLiteral("&File"), "File", registry, menuBar);
     menuBar->addMenu(fileMenu);
 
     // Edit menu
-    QMenu* editMenu = buildMenu(tr("&Edit"), "Edit", registry, menuBar);
+    QMenu* editMenu = buildMenu(QStringLiteral("&Edit"), "Edit", registry, menuBar);
     menuBar->addMenu(editMenu);
 
     // View menu (will be populated by MainWindow with panel toggles)
-    QMenu* viewMenu = new QMenu(tr("&View"), menuBar);
+    QMenu* viewMenu = new QMenu(QStringLiteral("&View"), menuBar);
     viewMenu->setObjectName("ViewMenu");  // MainWindow can find and populate it
     menuBar->addMenu(viewMenu);
 
     // Help menu
-    QMenu* helpMenu = buildMenu(tr("&Help"), "Help", registry, menuBar);
+    QMenu* helpMenu = buildMenu(QStringLiteral("&Help"), "Help", registry, menuBar);
     menuBar->addMenu(helpMenu);
 }
 
@@ -40,7 +40,7 @@ QMenu* MenuBuilder::buildMenu(const QString& title,
     QMenu* menu = new QMenu(title, qobject_cast<QWidget*>(parent));
 
     // Get commands from category
-    std::vector<Command*> commands = registry.getCommandsByCategory(category);
+    std::vector<Command> commands = registry.getCommandsByCategory(category);
 
     // Add commands to menu
     addCommandsToMenu(menu, commands, registry);
@@ -49,16 +49,16 @@ QMenu* MenuBuilder::buildMenu(const QString& title,
 }
 
 void MenuBuilder::addCommandsToMenu(QMenu* menu,
-                                    const std::vector<Command*>& commands,
+                                    const std::vector<Command>& commands,
                                     CommandRegistry& registry) {
     if (!menu) {
         return;
     }
 
     // Filter commands: only those with showInMenu=true
-    for (Command* cmd : commands) {
-        if (cmd && cmd->showInMenu) {
-            createMenuAction(menu, *cmd, registry);
+    for (const Command& cmd : commands) {
+        if (cmd.showInMenu) {
+            createMenuAction(menu, cmd, registry);
         }
     }
 }

@@ -11,6 +11,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QToolBar>
+#include <QTabWidget>
 #include <optional>
 #include <filesystem>
 #include "kalahari/core/document.h"
@@ -25,6 +26,7 @@ namespace kalahari {
 namespace gui {
 
 // Forward declarations for panels
+class DashboardPanel;
 class EditorPanel;
 class NavigatorPanel;
 class PropertiesPanel;
@@ -146,6 +148,12 @@ private slots:
     /// @brief Slot for Help > About Qt action
     void onAboutQt();
 
+    /// @brief Slot for Navigator double-click (Task #00015)
+    /// @param chapterTitle Title of the chapter/item that was double-clicked
+    /// @note Phase 0: Opens whole document in new editor tab
+    /// @note Phase 1+: Opens specific chapter content
+    void onNavigatorItemDoubleClicked(const QString& chapterTitle);
+
 private:
     // Actions removed - now managed by CommandRegistry
     // All actions are dynamically created from Command structs
@@ -174,8 +182,12 @@ private:
     QDockWidget* m_searchDock;
     QDockWidget* m_assistantDock;
 
-    // Panels (widgets inside docks)
-    EditorPanel* m_editorPanel;
+    // Central tabbed workspace (Task #00015)
+    QTabWidget* m_centralTabs;        ///< Central tabbed workspace container
+    DashboardPanel* m_dashboardPanel; ///< Welcome/Dashboard panel (default first tab)
+
+    // Panels (widgets inside docks or tabs)
+    EditorPanel* m_editorPanel;       ///< DEPRECATED: Use getCurrentEditor() instead (Task #00015)
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     SearchPanel* m_searchPanel;
@@ -195,6 +207,11 @@ private:
 
     /// @brief Update window title with filename and dirty state
     void updateWindowTitle();
+
+    /// @brief Get currently active EditorPanel tab (Task #00015)
+    /// @return Active EditorPanel if current tab is an editor, nullptr otherwise
+    /// @note Returns nullptr if current tab is Dashboard or other panel type
+    EditorPanel* getCurrentEditor();
 
     /// @brief Get text from first chapter metadata (Phase 0 temporary hack)
     /// @param doc Document to extract text from

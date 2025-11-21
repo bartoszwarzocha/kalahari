@@ -9,7 +9,6 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QTreeWidgetItem>
-#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
@@ -31,21 +30,19 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     // No document loaded yet - tree will be populated via loadDocument()
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 
-    // Connect double-click signal (Phase 0 stub)
+    // Connect double-click signal (Task #00015)
     connect(m_treeWidget, &QTreeWidget::itemDoubleClicked,
             this, [this](QTreeWidgetItem* item, int column) {
                 Q_UNUSED(column);
                 auto& logger = core::Logger::getInstance();
+                QString itemTitle = item->text(0);
                 logger.info("NavigatorPanel: Item double-clicked: {}",
-                           item->text(0).toStdString());
+                           itemTitle.toStdString());
 
-                QMessageBox::information(
-                    this,
-                    tr("Navigation"),
-                    tr("Chapter navigation will be implemented in Phase 1.\n\n"
-                       "In Phase 0, all text is stored in a single editor.\n"
-                       "Phase 1 will add per-chapter editing and navigation.")
-                );
+                // Emit signal to MainWindow to open chapter in editor
+                // Phase 0: Opens whole document (no per-chapter editing yet)
+                // Phase 1+: Will open specific chapter content
+                emit chapterDoubleClicked(itemTitle);
             });
 
     layout->addWidget(m_treeWidget);
