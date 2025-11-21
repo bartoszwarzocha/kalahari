@@ -3,11 +3,8 @@
 
 #include "kalahari/core/event_bus.h"
 #include "kalahari/core/logger.h"
-
-// Conditional wxWidgets include for GUI thread marshalling
-#ifdef wxUSE_WXWIDGETS
-    #include <wx/app.h>
-#endif
+#include <QApplication>
+#include <QMetaObject>
 
 namespace kalahari {
 namespace core {
@@ -81,34 +78,36 @@ void EventBus::emitAsync(const Event& event) {
     Logger::getInstance().debug("EventBus: Queued async event '{}' (queue size: {})",
                                event.type, m_eventQueue.size());
 
-    // Try to marshal to GUI thread if available
-#ifdef wxUSE_WXWIDGETS
-    wxApp* app = static_cast<wxApp*>(wxApp::GetInstance());
+    // Qt6 GUI thread marshalling via QMetaObject::invokeMethod
+    QApplication* app = qobject_cast<QApplication*>(QApplication::instance());
     if (app) {
-        // Schedule event processing on main thread
-        app->CallAfter([this]() {
-            // Process queued events on main thread
-            while (true) {
-                Event evt;
-                {
-                    std::lock_guard<std::mutex> lock(m_queue_mutex);
-                    if (m_eventQueue.empty()) {
-                        break;
+        // Schedule event processing on GUI thread (Qt::QueuedConnection)
+        QMetaObject::invokeMethod(
+            app,
+            [this]() {
+                // Process all queued events on GUI thread
+                while (true) {
+                    Event evt;
+                    {
+                        std::lock_guard<std::mutex> lock(m_queue_mutex);
+                        if (m_eventQueue.empty()) {
+                            break;
+                        }
+                        evt = m_eventQueue.front();
+                        m_eventQueue.pop();
                     }
-                    evt = m_eventQueue.front();
-                    m_eventQueue.pop();
-                }
 
-                // Emit synchronously on main thread
-                emit(evt);
-            }
-        });
+                    // Emit synchronously on GUI thread
+                    emit(evt);
+                }
+            },
+            Qt::QueuedConnection
+        );
         return;
     }
-#endif
 
-    // Fallback: emit directly if wxApp not available
-    Logger::getInstance().warn("EventBus: wxApp not available for async marshalling, "
+    // Fallback: emit directly if QApplication not available
+    Logger::getInstance().warn("EventBus: QApplication not available for async marshalling, "
                               "emitting directly");
     Event evt = event;
     {

@@ -7,7 +7,8 @@
 /// **Architecture:**
 /// - IPlugin: Base interface all plugins must implement
 /// - IExporter: Export documents to various formats (DOCX, PDF, Markdown)
-/// - IPanelProvider: Add custom dockable UI panels
+/// - IPanelProvider: Add custom dockable UI panels (Qt6 QWidget-based)
+/// - ICommandProvider: Register custom commands for menus/toolbars (Qt6 Command Registry)
 /// - IAssistant: Provide graphical assistant personalities
 /// - ExtensionPointRegistry: Central registry for plugin registration
 ///
@@ -36,7 +37,16 @@
 #include <mutex>
 #include <vector>
 
+// Forward declarations
+class QWidget;
+
 namespace kalahari {
+
+// Forward declaration for Command structure (avoid circular dependency)
+namespace gui {
+    struct Command;
+}
+
 namespace core {
 
 /// @brief Base interface for all plugins
@@ -106,24 +116,98 @@ public:
                                const std::string& filepath) = 0;
 };
 
-/// @brief UI panel provider interface
+/// @brief UI panel provider interface (Qt6)
 ///
 /// Plugins implementing this interface can provide custom dockable panels
 /// for the main window. Used for adding custom UI panels (research, outline, etc.).
+///
+/// **Qt6 Integration:**
+/// - Returned QWidget* is wrapped in QDockWidget by MainWindow
+/// - Ownership transfers to MainWindow (parent manages lifetime)
+/// - Use Qt layouts (QVBoxLayout, QHBoxLayout) for panel content
 class IPanelProvider : public IPlugin {
 public:
     /// @brief Virtual destructor
     ~IPanelProvider() override = default;
 
-    /// @brief Create a dockable panel
+    /// @brief Create a dockable panel widget
     ///
-    /// The returned panel will be integrated into the main window's docking system.
-    /// The parentWindow parameter is provided for proper widget hierarchy.
+    /// The returned widget will be integrated into MainWindow's QDockWidget system.
+    /// Implement this to create custom UI panels using Qt6 widgets.
     ///
-    /// @param parentWindow Parent wxWindow pointer (cast from void* for C++ compatibility)
-    /// @return void* pointer to created wxPanel (or derived class)
-    /// @note In C++, cast to wxPanel*. In Python, this is handled automatically.
-    virtual void* createPanel(void* parentWindow) = 0;
+    /// @param parentWindow Parent QWidget pointer (typically MainWindow)
+    /// @return QWidget* pointer to created panel widget
+    /// @note Ownership transfers to caller. MainWindow manages widget lifetime.
+    /// @note pybind11 automatically handles QWidget* for Python plugins.
+    virtual QWidget* createPanel(QWidget* parentWindow) = 0;
+};
+
+/// @brief Command provider interface (Qt6 Command Registry Integration)
+///
+/// Plugins implementing this interface can register custom commands that
+/// automatically appear in menus, toolbars, and Command Palette.
+///
+/// **Qt6 Command Registry:**
+/// - Commands are registered with CommandRegistry singleton during plugin activation
+/// - Menu/toolbar updates happen automatically via MenuBuilder/ToolbarBuilder
+/// - Keyboard shortcuts, icons, and enable/disable callbacks supported
+///
+/// **Example (C++):**
+/// @code
+/// class MyPlugin : public ICommandProvider {
+///     std::vector<gui::Command> getCommands() override {
+///         return {
+///             gui::Command{
+///                 "myplugin.action",    // id
+///                 "My Action",          // label
+///                 "Do something cool",  // tooltip
+///                 "Plugins",            // category
+///                 gui::IconSet(),       // icons
+///                 gui::KeyboardShortcut(), // shortcut
+///                 [this]() { doAction(); }, // execute callback
+///                 nullptr,              // isEnabled
+///                 nullptr,              // isChecked
+///                 true,                 // showInMenu
+///                 true                  // showInToolbar
+///             }
+///         };
+///     }
+/// };
+/// @endcode
+///
+/// **Example (Python):**
+/// @code
+/// class MyPlugin(kalahari_api.ICommandProvider):
+///     def get_commands(self):
+///         return [
+///             kalahari_api.Command(
+///                 id="myplugin.action",
+///                 label="My Action",
+///                 category="Plugins",
+///                 execute=self.do_action,
+///                 showInMenu=True
+///             )
+///         ]
+/// @endcode
+class ICommandProvider : public IPlugin {
+public:
+    /// @brief Virtual destructor
+    ~ICommandProvider() override = default;
+
+    /// @brief Get list of commands to register
+    ///
+    /// Called once during plugin activation (onActivate()). All returned commands
+    /// are automatically registered with CommandRegistry and appear in menus/toolbars.
+    ///
+    /// **Command Lifecycle:**
+    /// 1. Plugin activated → getCommands() called
+    /// 2. Commands registered with CommandRegistry
+    /// 3. MenuBuilder/ToolbarBuilder query registry → menus/toolbars update
+    /// 4. User clicks menu item → Command::execute callback invoked
+    ///
+    /// @return Vector of Command structures to register
+    /// @note Use gui::Command forward-declared type (full definition in command.h)
+    virtual std::vector<gui::Command> getCommands() = 0;
 };
 
 /// @brief Graphical assistant interface

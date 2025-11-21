@@ -9,7 +9,7 @@
 /// - Type-based event filtering (events grouped by type string)
 /// - Thread-safe subscription/emission
 /// - Synchronous emit (direct callback invocation)
-/// - Asynchronous emit (GUI thread marshalling via wxTheApp->CallAfter)
+/// - Asynchronous emit (Qt6 GUI thread marshalling via QMetaObject::invokeMethod)
 /// - Python integration via pybind11
 ///
 /// **Event Types (Standard):**
