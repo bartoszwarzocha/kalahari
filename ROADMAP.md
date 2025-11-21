@@ -25,11 +25,11 @@
 
 ---
 
-## PHASE 0: Qt Foundation ✅ COMPLETE
+## PHASE 0: Qt Foundation 🔄 IN PROGRESS
 
-**Status:** ✅ COMPLETE (Started 2025-11-19, Completed 2025-11-20)
-**Duration:** 1 day (estimate: 4 weeks) - All 12 tasks complete!
-**Target:** 0.3.0-alpha ✅ RELEASED
+**Status:** 🔄 IN PROGRESS (Started 2025-11-19, ~85% complete)
+**Duration:** 1-2 days (estimate: 4 weeks) - 12/13 tasks complete
+**Target:** 0.3.0-alpha ✅ RELEASED (basic GUI) → 0.3.1-alpha (Command Registry)
 
 ### Step 0: Preparation ⚡ IN PROGRESS (Day 1, ~6 hours)
 
@@ -203,6 +203,51 @@
   - Created git tag v0.3.0-alpha with release notes
   - ROADMAP.md: Phase 0 marked as COMPLETE
   - 🎉 Qt migration complete! All 12 tasks done in 1 day!
+
+### Week 5: Command Registry Migration 🔄 IN PROGRESS (2025-11-21)
+
+**Goal:** Migrate Command Registry system from wxWidgets to Qt6
+
+**Context:** Command Registry was fully implemented and tested in wxWidgets (Tasks #00032-#00035, 46+ test cases). System includes CommandRegistry singleton, Command/IconSet/KeyboardShortcut structures, MenuBuilder, ToolbarBuilder. Currently MainWindow uses hardcoded QAction connections - must migrate to unified command system for plugin support and customizable UI.
+
+**Architecture Recovered:**
+- ✅ Command Registry (singleton, ~200 LOC)
+- ✅ Command struct (id, label, category, icons, shortcuts, execute/isEnabled/isChecked callbacks)
+- ✅ IconSet (16/24/32px pre-rendered bitmaps)
+- ✅ KeyboardShortcut (key + modifiers, toString/fromString)
+- ✅ ToolbarBuilder (dynamic toolbar generation from registry)
+- ✅ MenuBuilder (not recovered yet, will implement fresh)
+
+**Benefits:**
+- ✅ Single source of truth for all commands
+- ✅ Plugin commands integrate seamlessly (ICommandProvider)
+- ✅ Customizable toolbars (user can add/remove/reorder)
+- ✅ Command Palette ready (Ctrl+Shift+P, Phase 1)
+- ✅ Keyboard shortcuts management
+- ✅ No hardcoded QAction connections
+
+- [ ] **Task #00047:** Command Registry Qt Migration (1-2 days) 🔄 **IN PROGRESS** (2025-11-21)
+  - **Day 1 Morning:** Recover files from wxwidgets-archive
+    - command.h/cpp (Command, IconSet, KeyboardShortcut structs)
+    - command_registry.h/cpp (CommandRegistry singleton)
+    - toolbar_builder.h/cpp (ToolbarBuilder class)
+  - **Day 1 Afternoon:** Adapt to Qt6
+    - IconSet: wxBitmap → QPixmap, add toQIcon()
+    - KeyboardShortcut: wxKeyCode → Qt::Key, add toQKeySequence()
+    - Command: Keep std::function<void()>, add toQAction() helper
+    - CommandRegistry: No changes (framework-agnostic)
+  - **Day 2 Morning:** Implement MenuBuilder and ToolbarBuilder for Qt
+    - MenuBuilder: Build QMenuBar from CommandRegistry
+    - ToolbarBuilder: Build QToolBar from CommandRegistry
+    - Integration tests
+  - **Day 2 Afternoon:** Refactor MainWindow
+    - Replace createActions() → registerCommands()
+    - Remove 15+ hardcoded connect() calls
+    - Rebuild menus/toolbars via builders
+    - Verify all shortcuts work
+  - **Documentation:** Update project_docs/08_gui_design.md (Qt code examples)
+  - **Testing:** Manual testing (menu, toolbar, shortcuts)
+  - **Target:** 0.3.1-alpha release
 
 ---
 

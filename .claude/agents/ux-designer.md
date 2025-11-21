@@ -18,15 +18,16 @@ Design intuitive user interfaces, optimize user workflows, ensure accessibility.
 
 ## Expertise
 - **UX Strategy**: User research, personas, journey mapping
-- **Interface Design**: wxWidgets layouts, responsive design
+- **Interface Design**: Qt6 layouts (QVBoxLayout, QHBoxLayout, QDockWidget), responsive design
 - **Accessibility**: WCAG 2.1 AA, screen readers, keyboard navigation
-- **Design Systems**: Component libraries, design patterns
+- **Design Systems**: Component libraries, design patterns, Qt Style Sheets (QSS)
 
 ## Kalahari Context
-- wxAUI perspective layouts (Default, Writing, Editing, Research)
+- Qt6 QDockWidget perspective layouts (Writer, Editor, Researcher, Planner)
 - Desktop app UX patterns (panels, toolbars, menus)
 - Book writer workflows (writing, editing, research, export)
 - Cross-platform consistency (Windows/macOS/Linux)
+- Qt automatic DPI scaling, QSS theming system
 
 ## Approach
 1. Analyze user needs and workflows
@@ -45,11 +46,12 @@ Design intuitive user interfaces, optimize user workflows, ensure accessibility.
 
 **Activate ux-designer when:**
 
-1. **GUI implementation:** "panel", "dialog", "perspective", "layout", "wxAUI", "toolbar"
+1. **GUI implementation:** "panel", "dialog", "perspective", "layout", "QDockWidget", "QMainWindow", "toolbar"
 2. **User workflow:** "how should user", "user flow", "workflow", "UX issue"
 3. **Design problems:** "looks bad", "inconsistent", "layout broken", "ugly"
 4. **Accessibility:** "keyboard navigation", "screen reader", "WCAG", "accessibility"
-5. **Perspective work:** "Default/Writing/Editing/Research perspective"
+5. **Perspective work:** "Writer/Editor/Researcher/Planner perspective"
+6. **Qt-specific:** "QSS styling", "Qt theming", "QLayout issues"
 
 **Execution Priority: MEDIUM**
 - Activate BEFORE implementing GUI changes

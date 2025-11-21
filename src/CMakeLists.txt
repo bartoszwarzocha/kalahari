@@ -87,6 +87,10 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/settings_dialog.cpp
     gui/kalahari_syntax_highlighter.cpp
+    gui/command.cpp
+    gui/command_registry.cpp
+    gui/toolbar_builder.cpp
+    gui/menu_builder.cpp
     gui/panels/editor_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
