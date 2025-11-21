@@ -3,6 +3,8 @@
 
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -33,17 +35,6 @@ namespace gui {
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
-    , m_newAction(nullptr)
-    , m_openAction(nullptr)
-    , m_saveAction(nullptr)
-    , m_saveAsAction(nullptr)
-    , m_exitAction(nullptr)
-    , m_undoAction(nullptr)
-    , m_redoAction(nullptr)
-    , m_cutAction(nullptr)
-    , m_copyAction(nullptr)
-    , m_pasteAction(nullptr)
-    , m_settingsAction(nullptr)
     , m_fileMenu(nullptr)
     , m_editMenu(nullptr)
     , m_viewMenu(nullptr)
@@ -77,10 +68,10 @@ MainWindow::MainWindow(QWidget* parent)
     setWindowTitle("Kalahari Writer's IDE");
     resize(1280, 720);
 
-    // Create UI components
-    createActions();
-    createMenus();
-    createToolbars();
+    // Create UI components (Command Registry pattern)
+    registerCommands();    // Register all commands with CommandRegistry
+    createMenus();         // Build menus from CommandRegistry
+    createToolbars();      // Build toolbars from CommandRegistry
     createStatusBar();
     createDocks();
 
@@ -94,132 +85,264 @@ MainWindow::MainWindow(QWidget* parent)
     logger.info("MainWindow initialized successfully");
 }
 
-void MainWindow::createActions() {
+void MainWindow::registerCommands() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("Creating actions");
+    logger.debug("Registering commands with CommandRegistry");
 
-    // File actions
-    m_newAction = new QAction(tr("&New"), this);
-    m_newAction->setShortcut(QKeySequence::New);
-    m_newAction->setStatusTip(tr("Create a new document"));
-    connect(m_newAction, &QAction::triggered, this, &MainWindow::onNewDocument);
+    CommandRegistry& registry = CommandRegistry::getInstance();
 
-    m_openAction = new QAction(tr("&Open..."), this);
-    m_openAction->setShortcut(QKeySequence::Open);
-    m_openAction->setStatusTip(tr("Open an existing document"));
-    connect(m_openAction, &QAction::triggered, this, &MainWindow::onOpenDocument);
+    // ===== FILE CATEGORY =====
 
-    m_saveAction = new QAction(tr("&Save"), this);
-    m_saveAction->setShortcut(QKeySequence::Save);
-    m_saveAction->setStatusTip(tr("Save the current document"));
-    connect(m_saveAction, &QAction::triggered, this, &MainWindow::onSaveDocument);
+    // File > New
+    registry.registerCommand(Command{
+        "file.new",
+        "&New",
+        "Create a new document",
+        "File",
+        IconSet(),  // No icon for now
+        KeyboardShortcut::fromQKeySequence(QKeySequence::New),
+        [this]() { onNewDocument(); },
+        nullptr,  // Always enabled
+        nullptr,  // Not checkable
+        true,     // Show in menu
+        true      // Show in toolbar
+    });
 
-    m_saveAsAction = new QAction(tr("Save &As..."), this);
-    m_saveAsAction->setShortcut(QKeySequence::SaveAs);
-    m_saveAsAction->setStatusTip(tr("Save the current document with a new name"));
-    connect(m_saveAsAction, &QAction::triggered, this, &MainWindow::onSaveAsDocument);
+    // File > Open
+    registry.registerCommand(Command{
+        "file.open",
+        "&Open...",
+        "Open an existing document",
+        "File",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
+        [this]() { onOpenDocument(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    m_exitAction = new QAction(tr("E&xit"), this);
-    m_exitAction->setShortcut(QKeySequence::Quit);
-    m_exitAction->setStatusTip(tr("Exit the application"));
-    connect(m_exitAction, &QAction::triggered, this, &MainWindow::onExit);
+    // File > Save
+    registry.registerCommand(Command{
+        "file.save",
+        "&Save",
+        "Save the current document",
+        "File",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
+        [this]() { onSaveDocument(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    // Edit actions
-    m_undoAction = new QAction(tr("&Undo"), this);
-    m_undoAction->setShortcut(QKeySequence::Undo);
-    m_undoAction->setStatusTip(tr("Undo the last operation"));
-    connect(m_undoAction, &QAction::triggered, this, &MainWindow::onUndo);
+    // File > Save As
+    registry.registerCommand(Command{
+        "file.saveAs",
+        "Save &As...",
+        "Save the current document with a new name",
+        "File",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
+        [this]() { onSaveAsDocument(); },
+        nullptr,
+        nullptr,
+        true,
+        false  // Not in toolbar
+    });
 
-    m_redoAction = new QAction(tr("&Redo"), this);
-    m_redoAction->setShortcut(QKeySequence::Redo);
-    m_redoAction->setStatusTip(tr("Redo the last undone operation"));
-    connect(m_redoAction, &QAction::triggered, this, &MainWindow::onRedo);
+    // File > Settings
+    registry.registerCommand(Command{
+        "file.settings",
+        "&Settings...",
+        "Open settings dialog",
+        "File",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence(tr("Ctrl+,"))),
+        [this]() { onSettings(); },
+        nullptr,
+        nullptr,
+        true,
+        false
+    });
 
-    m_cutAction = new QAction(tr("Cu&t"), this);
-    m_cutAction->setShortcut(QKeySequence::Cut);
-    m_cutAction->setStatusTip(tr("Cut the selection to clipboard"));
-    connect(m_cutAction, &QAction::triggered, this, &MainWindow::onCut);
+    // File > Exit
+    registry.registerCommand(Command{
+        "file.exit",
+        "E&xit",
+        "Exit the application",
+        "File",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
+        [this]() { onExit(); },
+        nullptr,
+        nullptr,
+        true,
+        false
+    });
 
-    m_copyAction = new QAction(tr("&Copy"), this);
-    m_copyAction->setShortcut(QKeySequence::Copy);
-    m_copyAction->setStatusTip(tr("Copy the selection to clipboard"));
-    connect(m_copyAction, &QAction::triggered, this, &MainWindow::onCopy);
+    // ===== EDIT CATEGORY =====
 
-    m_pasteAction = new QAction(tr("&Paste"), this);
-    m_pasteAction->setShortcut(QKeySequence::Paste);
-    m_pasteAction->setStatusTip(tr("Paste from clipboard"));
-    connect(m_pasteAction, &QAction::triggered, this, &MainWindow::onPaste);
+    // Edit > Undo
+    registry.registerCommand(Command{
+        "edit.undo",
+        "&Undo",
+        "Undo the last operation",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
+        [this]() { onUndo(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    m_selectAllAction = new QAction(tr("Select &All"), this);
-    m_selectAllAction->setShortcut(QKeySequence::SelectAll);
-    m_selectAllAction->setStatusTip(tr("Select all text"));
-    connect(m_selectAllAction, &QAction::triggered, this, &MainWindow::onSelectAll);
+    // Edit > Redo
+    registry.registerCommand(Command{
+        "edit.redo",
+        "&Redo",
+        "Redo the last undone operation",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
+        [this]() { onRedo(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    m_settingsAction = new QAction(tr("&Settings..."), this);
-    m_settingsAction->setShortcut(QKeySequence(tr("Ctrl+,")));
-    m_settingsAction->setStatusTip(tr("Open settings dialog"));
-    connect(m_settingsAction, &QAction::triggered, this, &MainWindow::onSettings);
+    // Edit > Cut
+    registry.registerCommand(Command{
+        "edit.cut",
+        "Cu&t",
+        "Cut the selection to clipboard",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
+        [this]() { onCut(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    // Help actions
-    m_aboutAction = new QAction(tr("&About Kalahari"), this);
-    m_aboutAction->setStatusTip(tr("Show information about Kalahari"));
-    connect(m_aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
+    // Edit > Copy
+    registry.registerCommand(Command{
+        "edit.copy",
+        "&Copy",
+        "Copy the selection to clipboard",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
+        [this]() { onCopy(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    m_aboutQtAction = new QAction(tr("About &Qt"), this);
-    m_aboutQtAction->setStatusTip(tr("Show information about Qt"));
-    connect(m_aboutQtAction, &QAction::triggered, this, &MainWindow::onAboutQt);
+    // Edit > Paste
+    registry.registerCommand(Command{
+        "edit.paste",
+        "&Paste",
+        "Paste from clipboard",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
+        [this]() { onPaste(); },
+        nullptr,
+        nullptr,
+        true,
+        true
+    });
 
-    logger.debug("Actions created successfully");
+    // Edit > Select All
+    registry.registerCommand(Command{
+        "edit.selectAll",
+        "Select &All",
+        "Select all text",
+        "Edit",
+        IconSet(),
+        KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
+        [this]() { onSelectAll(); },
+        nullptr,
+        nullptr,
+        true,
+        false  // Not in toolbar
+    });
+
+    // ===== HELP CATEGORY =====
+
+    // Help > About Kalahari
+    registry.registerCommand(Command{
+        "help.about",
+        "&About Kalahari",
+        "Show information about Kalahari",
+        "Help",
+        IconSet(),
+        KeyboardShortcut(),  // No shortcut
+        [this]() { onAbout(); },
+        nullptr,
+        nullptr,
+        true,
+        false
+    });
+
+    // Help > About Qt
+    registry.registerCommand(Command{
+        "help.aboutQt",
+        "About &Qt",
+        "Show information about Qt",
+        "Help",
+        IconSet(),
+        KeyboardShortcut(),
+        [this]() { onAboutQt(); },
+        nullptr,
+        nullptr,
+        true,
+        false
+    });
+
+    logger.debug("Commands registered successfully (15 commands)");
 }
 
 void MainWindow::createMenus() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("Creating menus");
+    logger.debug("Creating menus from CommandRegistry");
 
-    // File menu
-    m_fileMenu = menuBar()->addMenu(tr("&File"));
-    m_fileMenu->addAction(m_newAction);
-    m_fileMenu->addAction(m_openAction);
-    m_fileMenu->addSeparator();
-    m_fileMenu->addAction(m_saveAction);
-    m_fileMenu->addAction(m_saveAsAction);
-    m_fileMenu->addSeparator();
-    m_fileMenu->addAction(m_exitAction);
+    // Build menu bar from CommandRegistry using MenuBuilder
+    MenuBuilder builder;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    builder.buildMenuBar(registry, this);
 
-    // Edit menu
-    m_editMenu = menuBar()->addMenu(tr("&Edit"));
-    m_editMenu->addAction(m_undoAction);
-    m_editMenu->addAction(m_redoAction);
-    m_editMenu->addSeparator();
-    m_editMenu->addAction(m_cutAction);
-    m_editMenu->addAction(m_copyAction);
-    m_editMenu->addAction(m_pasteAction);
-    m_editMenu->addSeparator();
-    m_editMenu->addAction(m_selectAllAction);
-    m_editMenu->addSeparator();
-    m_editMenu->addAction(m_settingsAction);
+    // Store menu pointers for later access (optional)
+    m_fileMenu = menuBar()->findChild<QMenu*>("", Qt::FindDirectChildrenOnly);
 
-    // Help menu
-    m_helpMenu = menuBar()->addMenu(tr("&Help"));
-    m_helpMenu->addAction(m_aboutAction);
-    m_helpMenu->addAction(m_aboutQtAction);
+    // Note: View menu will be populated by createDocks() with panel toggles
+    // This is intentional - View menu is created empty by MenuBuilder
+    // and filled with QDockWidget toggleViewAction() later
 
-    logger.debug("Menus created successfully");
+    logger.debug("Menus created successfully from CommandRegistry");
 }
 
 void MainWindow::createToolbars() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("Creating toolbars");
+    logger.debug("Creating toolbars from CommandRegistry");
 
-    // File toolbar
-    m_fileToolbar = addToolBar(tr("File"));
-    m_fileToolbar->setMovable(true);      // Can be moved between dock areas
-    m_fileToolbar->setFloatable(true);    // Can be detached as floating window
-    m_fileToolbar->addAction(m_newAction);
-    m_fileToolbar->addAction(m_openAction);
-    m_fileToolbar->addAction(m_saveAction);
+    // Build toolbar from CommandRegistry using ToolbarBuilder
+    ToolbarBuilder builder;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    m_fileToolbar = builder.buildToolBar(registry, this);
 
-    logger.debug("Toolbars created successfully (movable and floatable)");
+    // Add toolbar to window
+    addToolBar(m_fileToolbar);
+
+    // Toolbar is movable and floatable by default in ToolbarBuilder
+    logger.debug("Toolbars created successfully from CommandRegistry");
 }
 
 void MainWindow::createStatusBar() {

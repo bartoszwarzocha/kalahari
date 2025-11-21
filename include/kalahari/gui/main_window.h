@@ -14,6 +14,7 @@
 #include <optional>
 #include <filesystem>
 #include "kalahari/core/document.h"
+#include "kalahari/gui/command_registry.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -59,23 +60,25 @@ public:
     ~MainWindow() override = default;
 
 private:
-    /// @brief Create all QAction objects
+    /// @brief Register all commands in CommandRegistry
     ///
-    /// Initializes actions for File and Edit menus with:
-    /// - Display names
+    /// Registers core commands (File, Edit, Help) with:
+    /// - Command IDs (e.g., "file.new", "edit.undo")
+    /// - Display names and tooltips
     /// - Keyboard shortcuts
-    /// - Status tip text
-    /// - Icons (if available)
-    void createActions();
+    /// - Execute callbacks
+    /// - Enable/disable state callbacks
+    /// @note Must be called BEFORE createMenus() and createToolbars()
+    void registerCommands();
 
-    /// @brief Create menu bar with File and Edit menus
+    /// @brief Create menu bar from CommandRegistry
     ///
-    /// Adds actions to menus and sets up menu structure.
+    /// Uses MenuBuilder to dynamically build menus from registered commands.
     void createMenus();
 
-    /// @brief Create main toolbar
+    /// @brief Create main toolbar from CommandRegistry
     ///
-    /// Adds File actions (New, Open, Save) to toolbar with icons.
+    /// Uses ToolbarBuilder to dynamically build toolbar from registered commands.
     void createToolbars();
 
     /// @brief Create status bar
@@ -144,23 +147,8 @@ private slots:
     void onAboutQt();
 
 private:
-    // Actions
-    QAction* m_newAction;
-    QAction* m_openAction;
-    QAction* m_saveAction;
-    QAction* m_saveAsAction;
-    QAction* m_exitAction;
-
-    QAction* m_undoAction;
-    QAction* m_redoAction;
-    QAction* m_cutAction;
-    QAction* m_copyAction;
-    QAction* m_pasteAction;
-    QAction* m_selectAllAction;
-    QAction* m_settingsAction;
-
-    QAction* m_aboutAction;
-    QAction* m_aboutQtAction;
+    // Actions removed - now managed by CommandRegistry
+    // All actions are dynamically created from Command structs
 
     // Menus
     QMenu* m_fileMenu;
