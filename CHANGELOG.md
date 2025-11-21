@@ -24,6 +24,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files added: `command.h/cpp`, `command_registry.h/cpp`, `toolbar_builder.h/cpp`, `menu_builder.h/cpp`
   - Files modified: `main_window.h/cpp`, `CMakeLists.txt`
 
+- **Task #00014:** Plugin Integration Foundation (Qt Migration) - 2025-11-21
+  - Fixed 3 critical wxWidgets dependencies in plugin system preventing Qt integration
+  - **ICommandProvider Interface:** Added new extension point for plugin command registration
+    - Plugins can now call getCommands() to return std::vector<gui::Command>
+    - Automatic integration with CommandRegistry during plugin activation
+    - Commands appear in menus/toolbars via MenuBuilder/ToolbarBuilder
+  - **EventBus Qt Migration:** Replaced wxWidgets async event system with Qt6
+    - Old: wxTheApp->CallAfter() → New: QMetaObject::invokeMethod(QApplication::instance(), Qt::QueuedConnection)
+    - Thread-safe GUI thread marshalling for async events
+    - Fallback: Direct emit if QApplication not available
+  - **IPanelProvider Type Safety:** Replaced void* with QWidget* for panel creation
+    - Old: void* createPanel(void*) → New: QWidget* createPanel(QWidget*)
+    - pybind11 automatically handles QWidget* for Python plugins
+    - Type-safe Qt6 API, no casting required
+  - Architecture benefits: Plugin system ready for Phase 2, no wxWidgets dependencies
+  - Commit: `3156830` - feat(plugins): Add ICommandProvider, migrate EventBus to Qt6, QWidget* panels
+  - Files modified: `extension_points.h` (+68 lines), `event_bus.h/cpp` (~40 lines)
+  - Python bindings: Deferred to Phase 2 (Plugin System MVP)
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20

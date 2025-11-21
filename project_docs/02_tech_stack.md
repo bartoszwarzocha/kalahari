@@ -121,9 +121,10 @@ target_link_libraries(kalahari PRIVATE
   "version-semver": "1.0.0",
   "dependencies": [
     {
-      "name": "wxwidgets",
-      "features": ["richtext", "aui", "stc", "webview"]
+      "name": "qtbase",
+      "features": ["gui", "widgets"]
     },
+    "qttools",
     "sqlite3",
     "nlohmann-json",
     "fmt",
@@ -733,6 +734,6 @@ strategy:
 
 ---
 
-**Version:** 1.0
+**Version:** 1.1 (Qt6 Migration)
 **Status:** ✅ Finalized
-**Last Updated:** 2025-10-24
+**Last Updated:** 2025-11-21

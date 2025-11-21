@@ -2,8 +2,8 @@
 
 > **Writer's IDE** - Advanced writing environment for book authors
 
-**Status:** ✅ Finalized
-**Last Updated:** 2025-10-24
+**Status:** ✅ Finalized (Qt Migration noted)
+**Last Updated:** 2025-11-21
 
 ---
 
@@ -70,7 +70,7 @@ Every feature designed with writers in mind:
 - macOS 11+ (Intel + Apple Silicon)
 - Linux (Ubuntu, Fedora, and more)
 
-Native look & feel on each platform (wxWidgets).
+Native look & feel on each platform (Qt6).
 
 ---
 
@@ -266,7 +266,7 @@ My Novel.klh
 ### Modern C++20 Architecture
 
 - **Performance:** Native speed, low memory usage
-- **Cross-platform:** wxWidgets for native UI
+- **Cross-platform:** Qt6 for native UI
 - **Maintainable:** Modern C++ patterns, well-structured
 - **Testable:** 70%+ test coverage (Catch2)
 
@@ -292,7 +292,7 @@ My Novel.klh
 
 **Progress:**
 - ✅ Concept finalized
-- ✅ Tech stack decided (C++20, wxWidgets, Python plugins)
+- ✅ Tech stack decided (C++20, Qt6, Python plugins) - Migrated to Qt6 2025-11-19
 - ✅ Business model defined (Open Core + Plugins + SaaS)
 - ✅ Roadmap created (Phases 0-5)
 - ✅ Documentation structure established
@@ -421,5 +421,5 @@ To learn more about specific aspects:
 ---
 
 **Version:** 1.0
-**Status:** ✅ Finalized
-**Last Updated:** 2025-10-24
+**Status:** ✅ Finalized (Qt Migration noted)
+**Last Updated:** 2025-11-21

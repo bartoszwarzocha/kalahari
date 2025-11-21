@@ -2,10 +2,10 @@
 
 > **Writer's IDE** - Comprehensive GUI architecture and layout design
 
-**Document Version:** 2.0 (Qt Migration)
-**Status:** 🔄 IN PROGRESS (Qt conversion)
-**Last Updated:** 2025-11-19
-**Phase:** Phase 0 (Qt Foundation)
+**Document Version:** 2.1 (Qt Migration - Partial Update)
+**Status:** 🔄 IN PROGRESS (Qt conversion - Sections 5, 11 complete)
+**Last Updated:** 2025-11-21
+**Phase:** Phase 0 (Qt Foundation) ✅ COMPLETE
 
 ---
 
@@ -15,7 +15,7 @@
 2. [Design Philosophy](#design-philosophy)
 3. [Three-Column Layout Architecture](#three-column-layout-architecture)
 4. [Panel Catalog](#panel-catalog)
-5. [Command Registry System](#command-registry-system)
+5. [Command Registry System](#command-registry-system) ✅ Qt6
 6. [Customizable Toolbars](#customizable-toolbars)
 7. [Plugin Command Integration](#plugin-command-integration)
 8. [Perspectives (Workspace Presets)](#perspectives-workspace-presets)
@@ -24,7 +24,7 @@
 11. [Keyboard Shortcuts](#keyboard-shortcuts)
 12. [Focus Modes](#focus-modes)
 13. [Settings Dialog](#settings-dialog)
-14. [Qt Implementation Notes](#qt-implementation-notes)
+14. [Qt Implementation Notes](#qt-implementation-notes) ✅ Qt6
 
 ---
 
@@ -32,7 +32,12 @@
 
 This document defines the complete GUI architecture for Kalahari, a professional Writer's IDE built with Qt6.
 
-**Migration Note (2025-11-19):** This document is being updated from wxWidgets/wxAUI to Qt6/QDockWidget architecture. Many code examples still reference wxWidgets patterns and will be updated incrementally during Phase 0-1 implementation.
+**Migration Status (2025-11-21):**
+- ✅ **Command Registry System** (Section 5) - Fully migrated to Qt6 (Task #00013, 2025-11-21)
+- ✅ **Qt Implementation Notes** (Section 14) - Qt6 QDockWidget, QSettings, Focus Modes
+- ⏳ **Panel Catalog** (Section 4) - wxAUI code examples retained as design reference, will be rewritten with Qt6 during Phase 1 panel implementation
+- ⏳ **Customizable Toolbars** (Section 6) - Will be updated during Phase 1 toolbar customization feature
+- 📝 **Note:** Sections 3-4 contain high-level design concepts with wxWidgets code examples from original Phase 1 plan (pre-migration). These serve as design documentation and will be replaced with Qt6 implementations as features are built during Phase 1.
 
 ### Key Features
 
