@@ -2,10 +2,10 @@
 
 > **Writer's IDE** - Comprehensive GUI architecture and layout design
 
-**Document Version:** 2.1 (Qt Migration - Partial Update)
-**Status:** 🔄 IN PROGRESS (Qt conversion - Sections 5, 11 complete)
-**Last Updated:** 2025-11-21
-**Phase:** Phase 0 (Qt Foundation) ✅ COMPLETE
+**Document Version:** 2.2 (Menu System Architecture Update)
+**Status:** 🔄 IN PROGRESS (Qt conversion + menu architecture complete)
+**Last Updated:** 2025-11-22
+**Phase:** Phase 0 (Qt Foundation) ✅ COMPLETE, Task #00016 IN PROGRESS
 
 ---
 
@@ -197,54 +197,45 @@ This section lists all available panels, grouped by default location.
 
 ### LEFT Column Panels
 
-#### 1. Files/Libraries Notebook (default: visible)
+#### 1. Navigator Panel (default: visible)
 
-**Type:** `wxAuiNotebook` (tabbed)
-**Default tabs:** [Files] [Libraries]
+**Type:** QTreeWidget (Qt6)
 **Position:** Top of left column
 **Default size:** 250px wide, 50% of left column height
 
-**Tab: Files**
-- Tree structure: Book → Parts → Chapters → Scenes
-- Icons: Dynamic (📄 chapter, 📋 note, 🖼️ image thumbnail)
+**Content:**
+- Tree structure: Project → Book structure → Libraries
+- **Book structure:**
+  - Front Matter
+  - Body (Parts → Chapters)
+  - Back Matter
+- **Libraries section:**
+  - Characters, Locations, Items
+  - Mind Maps (multiple .kmap files) - NEW
+  - Timelines (multiple .ktl files) - NEW
+  - Resources
+- Icons: Dynamic (📄 chapter, 👤 character, 📍 location, 🗺️ mind map, 📅 timeline)
 - Double-click: Opens in editor (center workspace)
 - Right-click context menu:
-  - New Chapter
-  - New Section
+  - New Chapter/Character/Location/Mind Map/Timeline
   - Rename (F2)
   - Delete (Del)
   - Move Up/Down
   - Properties...
 - Drag & drop: Reorder chapters/sections
 
-**Tab: Libraries**
-- Grid/icon view of available libraries
-- Libraries vary by book type:
-  - **Novel:** Characters, Locations, Items, Timeline, Plot Threads
-  - **Non-fiction:** People, Places, Sources, References, Timeline
-  - **Screenplay:** Characters, Locations, Scenes, Acts, Props
-  - **Reportage:** People, Places, Events, Sources, Interviews
-  - **Historical:** People, Places, Events, Timeline, Sources
-- Double-click library: Opens library manager in center workspace
-- User can add/remove/create custom libraries
-
 **Implementation:**
 ```cpp
-class FilesLibrariesPanel : public wxPanel {
-private:
-    wxAuiNotebook* m_notebook;
-    wxTreeCtrl* m_filesTree;
-    wxScrolledWindow* m_librariesGrid;
-    wxImageList* m_iconList;  // 16x16, 24x24, 32x32
+class NavigatorPanel : public QWidget {
+    QTreeWidget* m_treeWidget;
 
 public:
-    void LoadLibraries(BookType type);
-    void AddLibrary(const wxString& name, const wxString& iconPath);
-    void RemoveLibrary(const wxString& name);
+    void loadDocument(const core::Document& document);
+    void clearDocument();
 
-    // Dynamic icon generation
-    wxBitmap GenerateThumbnail(const wxString& filePath, int size);
-    wxBitmap GenerateCharacterIcon(const Character& character);
+signals:
+    void chapterDoubleClicked(const QString& chapterTitle);
+    void libraryItemDoubleClicked(const QString& itemId);
 };
 ```
 
@@ -308,53 +299,57 @@ private:
 
 ### CENTER Workspace Panels
 
-#### 3. Daily Statistics Panel (default: minimized)
+#### 3. Statistics Bar (default: visible, always on top)
 
-**Type:** Horizontal panel
-**Position:** `wxAUI_DOCK_TOP` (center region, above editor tabs)
-**Default state:** Minimized (single line)
+**Type:** Custom QWidget with 4 layers
+**Position:** Top of central window, above editor tabs
+**Purpose:** Live writing monitoring (Task Manager style)
 
-**Content (Minimized):**
+**4-Layer Architecture:**
 ```
-▓▓▓▓▓░░░░░ 850/1000 words (85%) | 📈 Week: ▁▃▅▇█▆▄ | 🔥 7 days | ⏱️ 45min
-```
-
-**Content (Expanded):**
-```
-┌─────────────────────────────────────────────────────┐
-│ TODAY'S PROGRESS                                     │
-│ ▓▓▓▓▓▓▓▓▓░░░░░░░░░░ 850/1000 words (85%)           │
-│                                                      │
-│ Week Overview:        Speed:        Streak:         │
-│  Mo  850 ▇▇▇▇▇       45 wpm        🔥 7 days       │
-│  Tu 1200 ████████                                   │
-│  We  750 ▇▇▇▇        Session:       Total:          │
-│  Th  920 ▇▇▇▇▇       45 min         12,543 words   │
-│  Fr  850 ▇▇▇▇▇                                      │
-│  Sa    0             Reading time:                  │
-│  Su    0             6 minutes                      │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 1: Time Grid (Hours: 8:00, 9:00, 10:00, ..., 18:00)  │
+│ Layer 2: Daily Graph (Real-time word count bars/line)      │
+│ Layer 3: Weekly/Monthly Trend (Mini sparkline)             │
+│ Layer 4: Text Info (850 words | 45 min | 🔥 7 days)       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Toggle:** Click header to expand/collapse
+**Features:**
+- **Real-time updates:** Word count graph updates as you type
+- **Time-based visualization:** Shows writing activity throughout the day
+- **Live monitoring:** Similar to Windows Task Manager CPU graph
+- **Persistent:** Always visible, cannot be closed
+- **Minimizable:** Can be collapsed to single-line text mode
 
 **Implementation:**
 ```cpp
-class DailyStatsPanel : public wxPanel {
+class StatisticsBar : public QWidget {
 public:
-    void SetExpanded(bool expanded);
-    void UpdateStats(int wordsToday, int wordsGoal, int streak);
-    void UpdateWeeklyData(const std::vector<int>& dailyWords);
+    void updateWordCount(int words);
+    void updateSessionTime(int minutes);
+    void updateStreak(int days);
+    void setMinimized(bool minimized);
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
 
 private:
-    wxGauge* m_progressBar;
-    wxStaticText* m_statsText;
-    wxPanel* m_chartPanel;  // Weekly sparkline
-    bool m_expanded = false;
+    void drawTimeGrid(QPainter& painter);
+    void drawDailyGraph(QPainter& painter);
+    void drawWeeklyTrend(QPainter& painter);
+    void drawTextInfo(QPainter& painter);
 
-    void DrawSparkline(wxDC& dc, const std::vector<int>& data);
+    std::vector<int> m_hourlyWordCounts;  // 24 hours
+    std::vector<int> m_weeklyData;        // 7 days
+    int m_currentWords = 0;
+    int m_sessionMinutes = 0;
+    int m_streak = 0;
+    bool m_minimized = false;
 };
 ```
+
+**See also:** ROADMAP.md Section 1.5 (Statistics Architecture)
 
 ---
 
@@ -475,115 +470,132 @@ private:
 
 ### RIGHT Column Panels
 
-#### 6. Statistics/Challenges Panel (default: visible)
+#### 6. Weekly Statistics Panel (default: visible, dockable)
 
-**Type:** Custom panel
+**Type:** Custom QWidget
 **Position:** Top of right column
 **Default size:** 250px wide, 40% of right column height
+**Purpose:** Quick analytics (weekly/monthly aggregated stats)
 
 **Content:**
 ```
 ┌─────────────────────────┐
-│ 📊 TODAY'S STATS        │
+│ 📊 WEEKLY STATISTICS    │
 ├─────────────────────────┤
-│ Words: 850              │
-│ Characters: 4,523       │
-│ Reading time: 4 min     │
+│ This Week:              │
+│ ▓▓▓▓▓▓░░░ 5,200/7,000  │
 │                         │
-│ 🔥 STREAK               │
-│ 7 days in a row!        │
+│ Daily Breakdown:        │
+│  Mo  850 ▇▇▇▇▇         │
+│  Tu 1200 ████████      │
+│  We  750 ▇▇▇▇          │
+│  Th  920 ▇▇▇▇▇         │
+│  Fr 1480 ████████████  │
+│  Sa    0               │
+│  Su    0               │
+│                         │
+│ 🔥 STREAK: 5 days      │
+│ 📈 Avg: 1,040 wds/day  │
 │                         │
 │ 🎯 ACTIVE CHALLENGES    │
 │ ┌─────────────────────┐ │
 │ │ 5K This Week        │ │
-│ │ ▓▓▓▓░░░ 3,200/5,000 │ │
+│ │ ▓▓▓▓▓░░ 5,200/5,000 │ │
+│ │ ✅ COMPLETED!       │ │
 │ └─────────────────────┘ │
 │                         │
 │ 🏆 RECENT BADGES        │
 │ [🌅] [🏃] [📝] [💪]    │
 │                         │
 │ [View All Achievements] │
+│ [Advanced Analytics...] │
 └─────────────────────────┘
 ```
 
 **Click Interactions:**
 - Click challenge → Shows detailed progress
 - Click badge → Shows badge description & date earned
+- Click "Advanced Analytics" → Opens Advanced Analytics in center window (Premium $14)
 - Click "View All" → Opens achievements panel in center
 
 **Implementation:**
 ```cpp
-class StatsChallengesPanel : public wxPanel {
+class WeeklyStatisticsPanel : public QWidget {
 public:
-    void UpdateTodayStats(int words, int chars, int readingTime);
-    void UpdateStreak(int days);
-    void AddChallenge(const Challenge& challenge);
-    void UpdateChallengeProgress(int challengeId, int current, int total);
-    void ShowBadge(const Badge& badge);
+    void updateWeeklyStats(const std::vector<int>& dailyWords);
+    void updateStreak(int days);
+    void updateAverage(int wordsPerDay);
+    void addChallenge(const Challenge& challenge);
+    void updateChallengeProgress(int challengeId, int current, int total);
+    void showBadge(const Badge& badge);
 
 private:
-    wxStaticText* m_statsText;
-    wxStaticText* m_streakText;
-    wxPanel* m_challengesPanel;
-    wxGridSizer* m_badgeGrid;  // Recent badges (max 8)
+    QLabel* m_weeklyProgressLabel;
+    QProgressBar* m_weeklyProgressBar;
+    QWidget* m_dailyBreakdownWidget;
+    QWidget* m_challengesWidget;
+    QGridLayout* m_badgeGrid;  // Recent badges (max 8)
 };
 ```
 
+**See also:**
+- ROADMAP.md Section 1.5 (Statistics Architecture - 3-Tier System)
+- Statistics Bar (live monitoring, always visible)
+- Advanced Analytics (central window, Premium plugin $14)
+
 ---
 
-#### 7. Character/Item Preview Panel (default: hidden, context-sensitive)
+#### 7. Properties Panel (default: visible, context-sensitive)
 
-**Type:** Custom panel
+**Type:** Custom QWidget
 **Position:** Middle of right column
-**Name:** "Context Preview" or "Quick Preview"
+**Purpose:** Show properties of selected item (chapter, character, location, etc.)
 
 **Content:**
 ```
 ┌─────────────────────────┐
-│ 👤 JOHN DOE             │
+│ 📋 PROPERTIES           │
 ├─────────────────────────┤
-│ [Photo/Generated Icon]  │
+│ [Content depends on     │
+│  selected item]         │
 │                         │
-│ Age: 42                 │
-│ Role: Detective         │
-│ Traits: Cynical, Smart  │
+│ Chapter Properties:     │
+│  - Title                │
+│  - Word count           │
+│  - Status (Draft/Final) │
+│  - Tags                 │
 │                         │
-│ Brief: Veteran NYPD     │
-│ detective investigating │
-│ the serial murders...   │
+│ Character Properties:   │
+│  - Name                 │
+│  - Age                  │
+│  - Role                 │
+│  - Traits               │
+│  - Brief description    │
 │                         │
-│ [Open Full View]        │
+│ [Edit Properties...]    │
 └─────────────────────────┘
 ```
 
 **When visible:**
-- User clicks character mention in text
-- User clicks character in library
-- User selects "Show in Context Panel" from context menu
+- User selects chapter in Navigator
+- User clicks character/location/item in library
 - Auto-show when configured in settings
-
-**Auto-hide:**
-- No selection (after 30s)
-- User clicks × close button
-- User disables in settings
 
 **Implementation:**
 ```cpp
-class ContextPreviewPanel : public wxPanel {
+class PropertiesPanel : public QWidget {
 public:
-    enum PreviewType { CHARACTER, LOCATION, ITEM, NONE };
+    enum ItemType { CHAPTER, CHARACTER, LOCATION, ITEM, MINDMAP, TIMELINE, NONE };
 
-    void ShowPreview(PreviewType type, const Entity& entity);
-    void Hide();
-    void SetAutoHideDelay(int milliseconds);
+    void showProperties(ItemType type, const QVariant& itemData);
+    void clear();
 
 private:
-    wxStaticBitmap* m_icon;
-    wxHtmlWindow* m_contentHtml;
-    wxButton* m_openFullButton;
-    wxTimer m_autoHideTimer;
-
-    PreviewType m_currentType = NONE;
+    QStackedWidget* m_stackedWidget;  // Different layouts for different types
+    ChapterPropertiesWidget* m_chapterWidget;
+    CharacterPropertiesWidget* m_characterWidget;
+    LocationPropertiesWidget* m_locationWidget;
+    // ... other type-specific widgets
 };
 ```
 
@@ -2405,7 +2417,11 @@ void MainWindow::setDiagnosticMode(bool enabled) {
 
 ---
 
-**Document Status:** 🔄 IN PROGRESS (Qt conversion)
-**Last Updated:** 2025-11-19
-**Version:** 2.0 (Qt Migration)
-**Next Update:** Phase 0 Week 2-4 (update code examples incrementally)
+**Document Status:** 🔄 IN PROGRESS (Qt conversion + menu architecture)
+**Last Updated:** 2025-11-22
+**Version:** 2.2 (Menu System Architecture)
+**Updates:**
+- Panel Catalog updated (Navigator, Statistics Bar, Weekly Statistics, Properties)
+- 3-tier Statistics Architecture documented
+- Mind Maps & Timelines library integration
+- Qt6 implementation patterns

@@ -597,8 +597,53 @@ project.klh
 │   ├── characters.json  # Character bank
 │   ├── locations.json   # Location bank
 │   └── notes.json       # Notes
+├── MindMaps/            # Mind Maps library (Phase 1+)
+│   ├── plot_outline.kmap
+│   ├── world_building.kmap
+│   └── character_relationships.kmap
+├── Timelines/           # Timelines library (Phase 1+)
+│   ├── main_story.ktl
+│   ├── flashbacks.ktl
+│   └── parallel_world.ktl
 └── settings.json         # Project-specific settings
 ```
+
+### Library Architecture (Mind Maps & Timelines)
+
+**Philosophy:** Multiple maps/timelines per project, edited in central window
+
+**Mind Maps (.kmap files):**
+- **Purpose:** Visual brainstorming, plot arcs, world building, character relationships
+- **Format:** JSON structure with nodes, connections, positions
+- **Editor:** Graphical editor in central window (tabbed, like chapters)
+- **Navigation:** MindMaps section in Navigator panel (tree view)
+- **Menus/Toolbars:** Mind Map editor has its own context-specific menus and toolbars
+- **Use cases:**
+  - Plot outline brainstorming
+  - World-building connections
+  - Character relationship mapping
+  - Theme exploration
+
+**Timelines (.ktl files):**
+- **Purpose:** Chronological event tracking, multiple timeline support
+- **Format:** JSON with events, dates, references to characters/items
+- **Editor:** Graphical timeline editor in central window (grid + drag&drop)
+- **Navigation:** Timelines section in Navigator panel (tree view)
+- **Menus/Toolbars:** Timeline editor has its own context-specific menus and toolbars
+- **Drag & drop:** Can drag characters/items from library onto timeline
+- **Use cases:**
+  - Main story timeline
+  - Flashback sequences
+  - Parallel world timelines (SF novels)
+  - Historical event chronology (non-fiction)
+  - Multiple epoch timelines
+
+**Central Window Pattern:**
+- Mind Maps and Timelines open as tabs in central QTabWidget
+- NOT dockable panels (unlike Navigator, Properties, etc.)
+- Each has dedicated editor with own menus/toolbars
+- Double-click in Navigator → Opens in new tab
+- Tab management: Close, reorder, detach (like chapter editors)
 
 ### .kplugin Structure (ZIP Container)
 
@@ -718,6 +763,10 @@ This architecture defines:
 
 ---
 
-**Document Version:** 2.0 (Qt Migration)
-**Last Updated:** 2025-11-19
-**Next Review:** Phase 0 Week 1 (Task #00001)
+**Document Version:** 2.1 (Library Architecture Update)
+**Last Updated:** 2025-11-22
+**Updates:**
+- Mind Maps library architecture (.kmap files)
+- Timelines library architecture (.ktl files)
+- Central Window Pattern documentation
+- .klh structure updated with MindMaps/ and Timelines/

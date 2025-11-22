@@ -274,6 +274,39 @@
 **Target:** 0.4.0-alpha
 **Timeline:** ~5 months
 
+### 1.0 Complete Menu System
+
+**Philosophy:** 9 menus (FILE, EDIT, BOOK, INSERT, FORMAT, TOOLS, ASSISTANT, VIEW, HELP)
+
+- [ ] Menu BOOK (book structure operations)
+  - New Chapter/Scene/Character/Location/Item
+  - New Mind Map/Timeline (library objects)
+  - Chapter/Scene breaks
+- [ ] Menu INSERT (text content elements)
+  - Image/Table/Link
+  - Footnote/Endnote/Comment/Annotation
+  - Special Character/Date/Field
+- [ ] Menu FORMAT (rich text formatting)
+  - Font/Paragraph dialogs
+  - Text Style submenu (Heading 1-3, Body, Quote, Code)
+  - Bold/Italic/Underline/Strikethrough
+  - Alignment (Left/Center/Right/Justify)
+  - Bullets/Numbering, Color, Clear Formatting
+- [ ] Menu TOOLS (utilities & plugins)
+  - Statistics (3-tier architecture - see 1.5)
+  - Spellchecker/Grammar/Readability
+  - Focus Mode (Normal/Focused/Distraction-Free)
+  - Backup/Auto-Save/Version History
+  - Plugin Manager/Marketplace
+  - Writing Goals & Deadlines
+- [ ] Menu ASSISTANT (AI assistants)
+  - Switch Assistant dialog (4 free + 4 premium)
+  - Assistant Actions (Grammar/Style/Plot/Research/Speed Draft)
+  - Assistant Settings
+- [ ] All commands registered in CommandRegistry
+- [ ] All menu items show QMessageBox with "Coming in Phase X" (event wiring complete)
+- [ ] Toolbar customization (user can add/remove/reorder commands)
+
 ### 1.1 Rich Text Editor
 
 - [ ] Custom QTextDocument subclass (Book-aware)
@@ -303,6 +336,44 @@
 - [ ] Replace dialog
 - [ ] Find in selection, whole word, case-sensitive
 - [ ] Regular expression support (QRegularExpression)
+
+### 1.5 Statistics Architecture (3-Tier System)
+
+**Philosophy:** Live monitoring (Bar) + Weekly analysis (Panel) + Deep dive (Central Window)
+
+- [ ] **Statistics Bar** (top of central window, always visible)
+  - 4 layers: Time grid + Daily progress graph + Weekly/monthly trend + Text info
+  - Live updates: Word count, char count, reading time, writing speed
+  - Similar to Task Manager graphs (Windows)
+  - Implementation: Custom QWidget with QPainter
+- [ ] **Weekly Statistics Panel** (dockable, toggleable via VIEW menu)
+  - Weekly/monthly aggregated stats
+  - Simple charts and tables
+  - Quick glance analytics
+- [ ] **Advanced Analytics** (central window tab, Premium plugin $14)
+  - Deep dive reports
+  - Long-term trends (months, years)
+  - Detailed tables, charts, export options
+
+### 1.6 Mind Maps & Timelines (Library Architecture)
+
+**Philosophy:** Multiple maps/timelines per project, edited in central window
+
+- [ ] **Mind Maps Library** (MindMaps/*.kmap files)
+  - Project can contain multiple mind maps
+  - BOOK > New Mind Map... creates .kmap file
+  - Navigator shows MindMaps section (tree view)
+  - Double-click opens in central window (tabbed editor)
+  - Mind Map editor has own menu/toolbars (design separately)
+  - Use cases: Brainstorm, Plot Arc, World Building, Character Relationships
+- [ ] **Timelines Library** (Timelines/*.ktl files)
+  - Project can contain multiple timelines (e.g., SF novel: different worlds/epochs)
+  - BOOK > New Timeline... creates .ktl file
+  - Navigator shows Timelines section (tree view)
+  - Double-click opens in central window (graphical editor)
+  - Timeline editor: Grid + drag&drop characters/items from library
+  - Timeline editor has own menu/toolbars (design separately)
+  - Use cases: Main Story, Flashbacks, Parallel World timelines
 
 ---
 

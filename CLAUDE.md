@@ -124,18 +124,22 @@ setLayout(mainLayout);
 - ❌ **NEVER start next** until current is 100% complete
 - ❌ **NEVER create task files in advance** - ONLY when starting that task
 
-**TASK FILE CREATION RULE (CRITICAL):**
-- ✅ ROADMAP = Source of truth for what tasks exist
-- ✅ Create task file ONLY when STARTING that specific task
+**ROADMAP vs TASKS RULE (CRITICAL):**
+- ✅ **ROADMAP.md** = High-level pomysły/zagadnienia (BEZ numerów tasków!)
+  - Example: "1.1 Rich Text Editor", "Menu System", "Statistics Architecture"
+  - Purpose: Uporządkowana lista pomysłów do realizacji
+- ✅ **tasks/** = Atomic taski tworzone "on demand" (00001, 00002...)
+  - Example: tasks/00017_menu_implementation.md
+  - Created ONLY when STARTING work on specific feature
+- ❌ **NEVER mix** task numbers with ROADMAP entries
+- ❌ **NEVER create** multiple task files ahead of time
 - ✅ Complete current task 100% BEFORE creating next task file
-- ❌ NEVER create multiple task files ahead of time
-- ❌ Task files created prematurely become stale/wrong when plans change
 
 **Why this rule exists:**
-- Requirements change during implementation
-- ROADMAP is updated, but old task files remain unchanged → CONFUSION
-- Premature task files violate atomic workflow (one task at a time)
-- Prevents divergence between ROADMAP (master) and task files (details)
+- ROADMAP = strategic vision (changes as we learn)
+- tasks/ = tactical execution (concrete implementation)
+- Premature task files become stale when ROADMAP evolves → CONFUSION
+- Task files tied to specific commits, ROADMAP tied to long-term plan
 
 **TASK FILE NAMING CONVENTION:**
 - **From ROADMAP:** `NNNNN_P_Z_description.md`

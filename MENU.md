@@ -52,17 +52,27 @@ EDIT
   Find...
   Find Next
   Find Previous
-  Replace...
+  Find & Replace...
   Find in Book...
   ─────────────────
   Preferences...
 
-INSERT
+BOOK
+  [Depends on book type]
   New Chapter...
   New Scene...
+  ─────────────────
+  New Character...
+  New Location...
+  New Item...
+  ─────────────────
+  New Mind Map...
+  New Timeline...
+  ─────────────────
   Chapter Break
   Scene Break
-  ─────────────────
+
+INSERT
   Image...
   Table...
   Link...
@@ -87,6 +97,8 @@ FORMAT
     Body Text
     Quote
     Code
+    ─────────────────
+    Manage Styles...
   ─────────────────
   Bold
   Italic
@@ -104,14 +116,15 @@ FORMAT
   Bullets
   Numbering
   ─────────────────
+  Color
+  ─────────────────
   Clear Formatting
 
 TOOLS
   Statistics
-    Current Chapter Stats
-    Book Statistics...
-    Writing Session History
-  Advanced Analytics...
+    Show Statistics Bar
+    Weekly Statistics Panel
+    Advanced Analytics...
   ─────────────────
   Spellchecker
   Grammar Check
@@ -135,7 +148,7 @@ TOOLS
     Reload Plugins
   ─────────────────
   Challenges & Badges...
-  Writing Goals...
+  Writing Goals & Deadlines...
   ─────────────────
   Cloud Sync...
   Collaboration...
@@ -143,17 +156,7 @@ TOOLS
 ASSISTANT
   Ask Assistant...
   ─────────────────
-  Switch Assistant
-    Lion (Grammar & Style)
-    Meerkat (Research Helper)
-    Elephant (Plot Analysis)
-    Cheetah (Speed Writing)
-    ─────────────────
-    [Premium assistants below]
-      Fox (Character Arc)
-      Owl (World-Building)
-      Leopard (Pacing)
-      Buffalo (Research Deep-Dive)
+  Switch Assistant...
   ─────────────────
   Assistant Actions
     Check Grammar
@@ -168,10 +171,8 @@ VIEW
   Panels
     Navigator
     Properties
-    Statistics
+    Weekly Statistics
     Assistant
-    Research
-    Timeline
     Search
     Log
     ─────────────────
@@ -183,18 +184,24 @@ VIEW
     Researcher
     Planner
     ─────────────────
+    [User saved perspectives]
+    ─────────────────
     Save Current Perspective...
     Manage Perspectives...
   ─────────────────
   Toolbars
     Standard Toolbar
+    Book Toolbar
     Format Toolbar
     Quick Access Toolbar
+    ─────────────────
+    [User toolbars]
     ─────────────────
     Customize Toolbars...
   ─────────────────
   Show Info Bar
   Show Status Bar
+  Show Statistics Bar
   Show Formatting Marks
   ─────────────────
   Zoom In
@@ -208,7 +215,6 @@ VIEW
 HELP
   Kalahari Help
   Getting Started Tutorial
-  Video Tutorials
   ─────────────────
   Keyboard Shortcuts
   Tips & Tricks
@@ -221,5 +227,3 @@ HELP
   Check for Updates...
   ─────────────────
   About Kalahari
-  About Qt
-  Licenses
