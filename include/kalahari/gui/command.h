@@ -148,6 +148,14 @@ struct Command {
     std::string category;        ///< Category for grouping ("File", "Edit", "View")
 
     // ========================================================================
+    // Menu Hierarchy (Task #00016)
+    // ========================================================================
+    std::string menuPath;        ///< Hierarchical menu path ("FILE/Import/DOCX Document...")
+    int menuOrder = 0;           ///< Order within menu (10, 20, 30... allows insertion)
+    bool addSeparatorAfter = false; ///< Add separator after this item
+    int phase = 0;               ///< Implementation phase (0=now, 1=Phase 1, etc.)
+
+    // ========================================================================
     // Visual Representation
     // ========================================================================
     IconSet icons;               ///< Icon set (16/24/32px)
