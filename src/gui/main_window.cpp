@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -725,22 +726,10 @@ void MainWindow::onAbout() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: About Kalahari");
 
-    QString aboutText = tr(
-        "<h2>Kalahari Writer's IDE</h2>"
-        "<p><b>Version:</b> 0.3.0-alpha (Qt6 Migration)</p>"
-        "<p><b>License:</b> MIT License</p>"
-        "<p><b>Copyright:</b> © 2025 Kalahari Project</p>"
-        "<br>"
-        "<p>Advanced writing environment for book authors.</p>"
-        "<p>Built with Qt %1</p>"
-        "<br>"
-        "<p>For more information, visit: "
-        "<a href='https://github.com/yourusername/kalahari'>GitHub</a></p>"
-    ).arg(qVersion());
+    dialogs::AboutDialog dialog(this);
+    dialog.exec();
 
-    QMessageBox::about(this, tr("About Kalahari"), aboutText);
-
-    logger.info("About dialog displayed");
+    logger.info("About dialog closed");
 }
 
 void MainWindow::onAboutQt() {

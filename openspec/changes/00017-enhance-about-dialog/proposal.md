@@ -192,17 +192,17 @@ List of all dependencies with licenses:
 
 ## Success Criteria
 
-- [ ] AboutDialog opens from Help → About Kalahari
-- [ ] Banner displays at top (580×100px, black bg, white text)
-- [ ] 3 tabs visible and functional
-- [ ] Tab 1 (About): Application info + credits displayed correctly
-- [ ] Tab 2 (Components): All dependencies listed with licenses
-- [ ] Tab 3 (License): Full MIT license text readable
-- [ ] Close button closes dialog
-- [ ] Dialog is modal (blocks main window)
-- [ ] Dialog size 600×720px (fixed, non-resizable)
-- [ ] Build succeeds on Windows (MSVC)
-- [ ] Manual testing confirms all content correct
+- [x] AboutDialog opens from Help → About Kalahari
+- [x] Banner displays at top (580×100px, black bg, white text)
+- [x] 3 tabs visible and functional
+- [x] Tab 1 (About): Application info + credits displayed correctly
+- [x] Tab 2 (Components): All dependencies listed with licenses
+- [x] Tab 3 (License): Full MIT license text readable
+- [x] Close button closes dialog
+- [x] Dialog is modal (blocks main window)
+- [x] Dialog size 600×720px (fixed, non-resizable)
+- [x] Build succeeds on Windows (MSVC)
+- [x] Manual testing confirms all content correct
 
 ---
 
@@ -229,6 +229,7 @@ List of all dependencies with licenses:
 
 ---
 
-**Status:** ⏳ Awaiting approval
-**Next Step:** User reviews proposal → Approval → Implementation
-**Estimated Timeline:** 2-3 hours implementation + testing
+**Status:** ✅ DONE
+**Completed:** 2025-11-22
+**Implementation Time:** ~2 hours (as estimated)
+**User Feedback:** "Okno wygląda tak, jak chciałem, aby wyglądało."

@@ -43,6 +43,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `extension_points.h` (+68 lines), `event_bus.h/cpp` (~40 lines)
   - Python bindings: Deferred to Phase 2 (Plugin System MVP)
 
+- **Task #00017:** Custom About Dialog (Qt Migration) - 2025-11-22
+  - Replaced simple QMessageBox::about() with professional custom AboutDialog
+  - **AboutDialog class:** QDialog subclass with tabbed interface (250 LOC)
+    - Fixed size: 600×720px, modal behavior
+    - Custom banner: 580×100px black background with white "KALAHARI" text (QPainter)
+    - 3 tabs: "About", "Third-Party Components", "License"
+  - **Tab 1 - About:** Application info (version 0.3.1-alpha), platform support, Qt version, credits, copyright
+  - **Tab 2 - Third-Party Components:** Attribution list for 8 libraries (Qt6, nlohmann_json, spdlog, libzip, Catch2, pybind11, Python 3.11, vcpkg)
+  - **Tab 3 - License:** Full MIT License text + trademark notice
+  - MainWindow integration: Updated onAbout() to use dialogs::AboutDialog
+  - OpenSpec validation: First task using OpenSpec framework (change ID: 00017-enhance-about-dialog)
+  - Files added: `about_dialog.h` (55 LOC), `about_dialog.cpp` (250 LOC)
+  - Files modified: `main_window.cpp`, `CMakeLists.txt`
+  - Feature parity with wxWidgets version achieved
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20

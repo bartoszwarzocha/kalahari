@@ -84,31 +84,33 @@ target_link_libraries(kalahari_core PUBLIC
 # Executable source files
 set(KALAHARI_SOURCES
     main.cpp
-    gui/main_window.cpp
-    gui/settings_dialog.cpp
-    gui/kalahari_syntax_highlighter.cpp
     gui/command.cpp
     gui/command_registry.cpp
-    gui/toolbar_builder.cpp
+    gui/dialogs/about_dialog.cpp
+    gui/kalahari_syntax_highlighter.cpp
+    gui/main_window.cpp
     gui/menu_builder.cpp
+    gui/settings_dialog.cpp
+    gui/toolbar_builder.cpp
+    gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
     gui/panels/editor_panel.cpp
+    gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
-    gui/panels/assistant_panel.cpp
-    gui/panels/log_panel.cpp
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
 )
 
 # Create executable
