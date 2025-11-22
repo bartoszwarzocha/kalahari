@@ -23,7 +23,7 @@ AboutDialog::AboutDialog(QWidget* parent)
     setWindowTitle(tr("About Kalahari Writer's IDE"));
     setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint |
                    Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
-    setFixedSize(600, 720);
+    setFixedSize(600, 600);
 
     // Main layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -84,7 +84,6 @@ QWidget* AboutDialog::createAboutTab() {
     QLabel* desc = new QLabel(
         tr("Kalahari is a modern writing environment designed for book authors.\n"
            "Built with C++20 and Qt6 6.5.0+.\n\n"
-           "Phase 0 - Qt Foundation (Complete)\n\n"
            "A comprehensive writing toolkit with project management,\n"
            "statistics tracking, and powerful export capabilities."), widget);
     desc->setWordWrap(true);
@@ -102,17 +101,15 @@ QWidget* AboutDialog::createAboutTab() {
     QLabel* credits = new QLabel(
         tr("Kalahari Writer's IDE - Development Team\n\n"
            "Project Vision & Architecture:\n"
-           "  Collaborative development between human vision and AI execution\n\n"
+           "  Bartosz Warzocha (bartosz.warzocha@gmail.com)\n"
            "Technology Stack:\n"
            "  C++20, Qt6 6.5.0+, CMake, vcpkg\n\n"
-           "Development Phase:\n"
-           "  Phase 0 - Qt Foundation (Complete)\n"
-           "  Next: Phase 1 - Core Editor\n\n"
            "Special Thanks:\n"
+           "  - Anthropic for Claude AI assistance\n"
            "  - Qt team for excellent cross-platform GUI framework\n"
            "  - Open source community for exceptional libraries\n\n"
            "Project Timeline:\n"
-           "  Start: 2025-01\n"
+           "  Start: 2025-11\n"
            "  Target Release: Q2-Q3 2026 (Kalahari 1.0)"), widget);
     QFont creditsFont = credits->font();
     creditsFont.setPointSize(8);
