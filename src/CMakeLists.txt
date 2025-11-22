@@ -92,6 +92,7 @@ set(KALAHARI_SOURCES
     gui/menu_builder.cpp
     gui/settings_dialog.cpp
     gui/toolbar_builder.cpp
+    gui/toolbar_manager.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
     gui/panels/editor_panel.cpp

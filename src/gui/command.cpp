@@ -4,6 +4,8 @@
 #include "kalahari/gui/command.h"
 #include <QFile>
 #include <QImageReader>
+#include <QApplication>
+#include <QPainter>
 #include <cctype>
 #include <algorithm>
 
@@ -44,6 +46,54 @@ QIcon IconSet::toQIcon() const {
     }
 
     return icon;
+}
+
+IconSet IconSet::fromStandardIcon(QStyle::StandardPixmap icon) {
+    IconSet iconSet;
+    QStyle* style = QApplication::style();
+
+    if (!style) {
+        return iconSet;  // Empty IconSet if no style
+    }
+
+    QIcon qIcon = style->standardIcon(icon);
+
+    // Extract pixmaps in 3 sizes
+    iconSet.icon16 = qIcon.pixmap(16, 16);
+    iconSet.icon24 = qIcon.pixmap(24, 24);
+    iconSet.icon32 = qIcon.pixmap(32, 32);
+
+    return iconSet;
+}
+
+IconSet IconSet::createPlaceholder(const QString& letter, const QColor& color) {
+    IconSet iconSet;
+
+    // Helper lambda to create pixmap of given size
+    auto createPixmap = [&](int size) {
+        QPixmap pixmap(size, size);
+        pixmap.fill(color);
+
+        QPainter painter(&pixmap);
+        painter.setPen(Qt::white);
+
+        // Font configuration
+        QFont font = painter.font();
+        font.setPixelSize(static_cast<int>(size * 0.6));  // 60% of pixmap height
+        font.setBold(true);
+        painter.setFont(font);
+
+        // Draw letter centered
+        painter.drawText(pixmap.rect(), Qt::AlignCenter, letter);
+
+        return pixmap;
+    };
+
+    iconSet.icon16 = createPixmap(16);
+    iconSet.icon24 = createPixmap(24);
+    iconSet.icon32 = createPixmap(32);
+
+    return iconSet;
 }
 
 // ============================================================================

@@ -85,6 +85,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `cmd_line_parser.h/cpp`, `settings_dialog.h/cpp`, `main_window.h/cpp`, `main.cpp`, `log_panel.h/cpp`
   - Feature parity with wxWidgets diagnostic system achieved + Python tools added
 
+- **Task #00019:** Toolbar Manager System with Icons - 2025-11-22
+  - Replaced single hardcoded toolbar with flexible multi-toolbar architecture (5 toolbars)
+  - **ToolbarManager class:** Centralized management of multiple toolbars (~300 LOC)
+    - Configuration-driven design with ToolbarConfig struct (id, label, area, visibility, commands)
+    - 5 toolbars: File, Edit, Book, View, Tools (all visible by default in Qt::TopToolBarArea)
+    - State persistence: toolbar visibility saved/restored via QSettings
+    - View menu integration: 5 checkable actions for toolbar visibility toggles
+  - **IconSet enhancements:** Added 2 factory methods for Phase 0 (no icon files yet)
+    - `IconSet::fromStandardIcon(QStyle::StandardPixmap)` - Qt standard icons (New, Open, Save, Undo, Redo, etc.)
+    - `IconSet::createPlaceholder(letter, color)` - Colored squares with white letters (QPainter-generated)
+    - Pre-rendered in 3 sizes: 16×16 (menu), 24×24 (toolbar default), 32×32 (large toolbar)
+  - **REG_CMD_TOOL_ICON macro:** New 9-parameter registration macro for commands with icons
+  - **Command assignments:** 25 toolbar commands assigned icons (6 File + 7 Edit + 4 Book + 5 View + 3 Tools)
+    - Qt standard icons: SP_FileIcon, SP_DirOpenIcon, SP_DialogSaveButton, SP_ArrowBack, SP_ArrowForward, etc.
+    - Placeholder icons: Colored squares for Cut (red), Copy (blue), Paste (green), Select All (purple), etc.
+  - **MainWindow integration:**
+    - Constructor: Initialize m_toolbarManager (replaces m_fileToolbar)
+    - createToolbars(): Call m_toolbarManager->createToolbars(registry)
+    - createDocks(): Call m_toolbarManager->createViewMenuActions(m_viewMenu)
+    - closeEvent(): Save toolbar state with m_toolbarManager->saveState()
+    - showEvent(): Restore toolbar state with m_toolbarManager->restoreState()
+  - **View menu structure:**
+    - "Panels" submenu (Navigator, Properties, Log, Search, Assistant)
+    - "Reset Layout" action
+    - Separator
+    - 5 toolbar toggle actions (File Toolbar, Edit Toolbar, Book Toolbar, View Toolbar, Tools Toolbar)
+  - **Architecture benefits:** Scalable toolbar system, user-customizable layout, toolbar/icon separation ready for Phase 2
+  - OpenSpec validation: Change ID `00019-toolbar-manager`
+  - Files added: `toolbar_manager.h` (160 LOC), `toolbar_manager.cpp` (300 LOC), `register_commands.hpp` (88 LOC)
+  - Files modified: `command.h/cpp` (IconSet factory methods), `main_window.h/cpp` (ToolbarManager integration)
+  - Toolbar count: 1 → 5, Commands with icons: 8 → 25
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20

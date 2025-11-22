@@ -16,6 +16,7 @@
 #include <filesystem>
 #include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/toolbar_manager.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -208,8 +209,8 @@ private:
     QMenu* m_viewMenu;
     QMenu* m_helpMenu;
 
-    // Toolbars
-    QToolBar* m_fileToolbar;
+    // Toolbars (Task #00019)
+    ToolbarManager* m_toolbarManager;
 
     // View actions (panel toggles)
     QAction* m_viewNavigatorAction;

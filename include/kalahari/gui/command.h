@@ -13,6 +13,8 @@
 #include <QString>
 #include <QKeySequence>
 #include <QAction>
+#include <QStyle>
+#include <QColor>
 #include <functional>
 #include <string>
 
@@ -44,6 +46,19 @@ struct IconSet {
     /// @param path Path to image file (PNG, BMP, or SVG eventually)
     /// @note For now, loads pixmap and scales. SVG support in Phase 2+
     explicit IconSet(const QString& path);
+
+    /// @brief Create IconSet from Qt standard icon (Task #00019)
+    /// @param icon Qt Standard Pixmap enum value (e.g., QStyle::SP_FileIcon)
+    /// @return IconSet with 3 sizes (16/24/32px)
+    /// @note Uses QApplication::style()->standardIcon()
+    static IconSet fromStandardIcon(QStyle::StandardPixmap icon);
+
+    /// @brief Create placeholder icon with colored background and letter (Task #00019)
+    /// @param letter Letter to display (e.g., "B" for Bold, "I" for Italic)
+    /// @param color Background color
+    /// @return IconSet with 3 sizes (16/24/32px)
+    /// @note Letter is white, bold, centered, 60% of pixmap height
+    static IconSet createPlaceholder(const QString& letter, const QColor& color);
 
     /// @brief Check if icon set is empty (all pixmaps invalid)
     bool isEmpty() const {

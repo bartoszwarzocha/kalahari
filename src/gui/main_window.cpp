@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_fileMenu(nullptr)
     , m_editMenu(nullptr)
     , m_viewMenu(nullptr)
-    , m_fileToolbar(nullptr)
+    , m_toolbarManager(nullptr)
     , m_viewNavigatorAction(nullptr)
     , m_viewPropertiesAction(nullptr)
     , m_viewLogAction(nullptr)
@@ -100,26 +100,32 @@ void MainWindow::registerCommands() {
     // FILE MENU
     // =========================================================================
 
-    REG_CMD_TOOL("file.new", "New Book...", "FILE/New Book...", 10, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::New),
-                 [this]() { onNewDocument(); });
+    REG_CMD_TOOL_ICON("file.new", "New Book...", "FILE/New Book...", 10, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::New),
+                      IconSet::fromStandardIcon(QStyle::SP_FileIcon),
+                      [this]() { onNewDocument(); });
 
-    REG_CMD_TOOL("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
-                 [this]() { onOpenDocument(); });
+    REG_CMD_TOOL_ICON("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
+                      IconSet::fromStandardIcon(QStyle::SP_DirOpenIcon),
+                      [this]() { onOpenDocument(); });
 
     // Recent Books - dynamic submenu (registered separately)
 
-    REG_CMD_CB("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
-               []() {});
+    REG_CMD_TOOL_ICON("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
+                      KeyboardShortcut(),
+                      IconSet::fromStandardIcon(QStyle::SP_DialogCancelButton),
+                      []() {});
 
-    REG_CMD_TOOL("file.save", "Save", "FILE/Save", 50, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
-                 [this]() { onSaveDocument(); });
+    REG_CMD_TOOL_ICON("file.save", "Save", "FILE/Save", 50, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
+                      IconSet::fromStandardIcon(QStyle::SP_DialogSaveButton),
+                      [this]() { onSaveDocument(); });
 
-    REG_CMD_TOOL("file.saveAs", "Save As...", "FILE/Save As...", 60, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
-                 [this]() { onSaveAsDocument(); });
+    REG_CMD_TOOL_ICON("file.saveAs", "Save As...", "FILE/Save As...", 60, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
+                      IconSet::createPlaceholder("A", QColor(70, 130, 180)),  // Steel blue
+                      [this]() { onSaveAsDocument(); });
 
     REG_CMD("file.saveAll", "Save All", "FILE/Save All", 70, true, 1);
 
@@ -139,39 +145,47 @@ void MainWindow::registerCommands() {
     REG_CMD("file.export.latex", "LaTeX", "FILE/Export/LaTeX", 180, false, 3);
     REG_CMD("file.export.settings", "Export Settings...", "FILE/Export/Export Settings...", 190, true, 2);
 
-    REG_CMD_TOOL("file.exit", "Exit", "FILE/Exit", 200, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
-                 [this]() { onExit(); });
+    REG_CMD_TOOL_ICON("file.exit", "Exit", "FILE/Exit", 200, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
+                      IconSet::fromStandardIcon(QStyle::SP_DialogCloseButton),
+                      [this]() { onExit(); });
 
     // =========================================================================
     // EDIT MENU
     // =========================================================================
 
-    REG_CMD_TOOL("edit.undo", "Undo", "EDIT/Undo", 10, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
-                 [this]() { onUndo(); });
+    REG_CMD_TOOL_ICON("edit.undo", "Undo", "EDIT/Undo", 10, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
+                      IconSet::fromStandardIcon(QStyle::SP_ArrowBack),
+                      [this]() { onUndo(); });
 
-    REG_CMD_TOOL("edit.redo", "Redo", "EDIT/Redo", 20, true, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
-                 [this]() { onRedo(); });
+    REG_CMD_TOOL_ICON("edit.redo", "Redo", "EDIT/Redo", 20, true, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
+                      IconSet::fromStandardIcon(QStyle::SP_ArrowForward),
+                      [this]() { onRedo(); });
 
-    REG_CMD_TOOL("edit.cut", "Cut", "EDIT/Cut", 30, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
-                 [this]() { onCut(); });
+    REG_CMD_TOOL_ICON("edit.cut", "Cut", "EDIT/Cut", 30, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
+                      IconSet::createPlaceholder("X", QColor(220, 53, 69)),  // Red
+                      [this]() { onCut(); });
 
-    REG_CMD_TOOL("edit.copy", "Copy", "EDIT/Copy", 40, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
-                 [this]() { onCopy(); });
+    REG_CMD_TOOL_ICON("edit.copy", "Copy", "EDIT/Copy", 40, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
+                      IconSet::createPlaceholder("C", QColor(0, 123, 255)),  // Blue
+                      [this]() { onCopy(); });
 
-    REG_CMD_TOOL("edit.paste", "Paste", "EDIT/Paste", 50, false, 0,
-                 KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
-                 [this]() { onPaste(); });
+    REG_CMD_TOOL_ICON("edit.paste", "Paste", "EDIT/Paste", 50, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
+                      IconSet::createPlaceholder("V", QColor(40, 167, 69)),  // Green
+                      [this]() { onPaste(); });
 
     REG_CMD("edit.pasteSpecial", "Paste Special...", "EDIT/Paste Special...", 60, false, 1);
     REG_CMD("edit.delete", "Delete", "EDIT/Delete", 70, true, 1);
 
-    REG_CMD_CB("edit.selectAll", "Select All", "EDIT/Select All", 80, false, 0,
-               [this]() { onSelectAll(); });
+    REG_CMD_TOOL_ICON("edit.selectAll", "Select All", "EDIT/Select All", 80, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
+                      IconSet::createPlaceholder("A", QColor(111, 66, 193)),  // Purple
+                      [this]() { onSelectAll(); });
 
     REG_CMD("edit.selectWord", "Select Word", "EDIT/Select Word", 90, false, 1);
     REG_CMD("edit.selectParagraph", "Select Paragraph", "EDIT/Select Paragraph", 100, true, 1);
@@ -189,11 +203,23 @@ void MainWindow::registerCommands() {
     // BOOK MENU
     // =========================================================================
 
-    REG_CMD("book.newChapter", "New Chapter...", "BOOK/New Chapter...", 10, false, 1);
+    REG_CMD_TOOL_ICON("book.newChapter", "New Chapter...", "BOOK/New Chapter...", 10, false, 1,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("CH", QColor(40, 167, 69)),  // Green
+                      []() {});
+
     REG_CMD("book.newScene", "New Scene...", "BOOK/New Scene...", 20, true, 1);
 
-    REG_CMD("book.newCharacter", "New Character...", "BOOK/New Character...", 30, false, 1);
-    REG_CMD("book.newLocation", "New Location...", "BOOK/New Location...", 40, false, 1);
+    REG_CMD_TOOL_ICON("book.newCharacter", "New Character...", "BOOK/New Character...", 30, false, 1,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("P", QColor(255, 145, 0)),  // Orange (Person)
+                      []() {});
+
+    REG_CMD_TOOL_ICON("book.newLocation", "New Location...", "BOOK/New Location...", 40, false, 1,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("L", QColor(0, 123, 255)),  // Blue
+                      []() {});
+
     REG_CMD("book.newItem", "New Item...", "BOOK/New Item...", 50, true, 1);
 
     REG_CMD("book.newMindMap", "New Mind Map...", "BOOK/New Mind Map...", 60, false, 1);
@@ -202,7 +228,10 @@ void MainWindow::registerCommands() {
     REG_CMD("book.chapterBreak", "Chapter Break", "BOOK/Chapter Break", 80, false, 1);
     REG_CMD("book.sceneBreak", "Scene Break", "BOOK/Scene Break", 90, true, 1);
 
-    REG_CMD("book.properties", "Book Properties...", "BOOK/Book Properties...", 100, false, 1);
+    REG_CMD_TOOL_ICON("book.properties", "Book Properties...", "BOOK/Book Properties...", 100, false, 1,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("i", QColor(108, 117, 125)),  // Gray (info)
+                      []() {});
 
     // =========================================================================
     // INSERT MENU
@@ -264,12 +293,25 @@ void MainWindow::registerCommands() {
     // Statistics submenu (analysis tools only, panels in VIEW)
     REG_CMD("tools.stats.full", "Full Statistics...", "TOOLS/Statistics/Full Statistics...", 10, false, 2);
 
-    REG_CMD("tools.spellcheck", "Spellchecker", "TOOLS/Spellchecker", 40, false, 2);
+    REG_CMD_TOOL_ICON("tools.stats.wordCount", "Word Count", "TOOLS/Statistics/Word Count", 20, true, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("#", QColor(0, 123, 255)),  // Blue
+                      []() {});
+
+    REG_CMD_TOOL_ICON("tools.spellcheck", "Spellchecker", "TOOLS/Spellchecker", 40, false, 2,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("ABC", QColor(220, 53, 69)),  // Red
+                      []() {});
+
     REG_CMD("tools.grammar", "Grammar Check", "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", "Readability Score", "TOOLS/Readability Score", 60, true, 2);
 
     // Focus Mode submenu
-    REG_CMD("tools.focus.normal", "Normal", "TOOLS/Focus Mode/Normal", 70, false, 1);
+    REG_CMD_TOOL_ICON("tools.focus.normal", "Normal", "TOOLS/Focus Mode/Normal", 70, false, 1,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("F", QColor(40, 167, 69)),  // Green
+                      []() {});
+
     REG_CMD("tools.focus.focused", "Focused", "TOOLS/Focus Mode/Focused", 80, false, 1);
     REG_CMD("tools.focus.distractionFree", "Distraction-Free", "TOOLS/Focus Mode/Distraction-Free", 90, false, 1);
 
@@ -310,8 +352,34 @@ void MainWindow::registerCommands() {
     // VIEW MENU
     // =========================================================================
 
-    // NOTE: Panels submenu populated by createDocks() using toggleViewAction()
-    // No registration here to avoid duplicates!
+    // Panel toggle actions (Task #00019 - for View Toolbar)
+    REG_CMD_TOOL_ICON("view.navigator", "Navigator", "VIEW/Panels/Navigator", 10, false, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("N", QColor(0, 123, 255)),  // Blue
+                      []() {});
+
+    REG_CMD_TOOL_ICON("view.properties", "Properties", "VIEW/Panels/Properties", 20, false, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("P", QColor(40, 167, 69)),  // Green
+                      []() {});
+
+    REG_CMD_TOOL_ICON("view.search", "Search", "VIEW/Panels/Search", 30, false, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("S", QColor(255, 145, 0)),  // Orange
+                      []() {});
+
+    REG_CMD_TOOL_ICON("view.assistant", "Assistant", "VIEW/Panels/Assistant", 40, false, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("A", QColor(111, 66, 193)),  // Purple
+                      []() {});
+
+    REG_CMD_TOOL_ICON("view.log", "Log", "VIEW/Panels/Log", 50, true, 0,
+                      KeyboardShortcut(),
+                      IconSet::createPlaceholder("L", QColor(108, 117, 125)),  // Gray
+                      []() {});
+
+    // NOTE: Panel submenu also populated by createDocks() using toggleViewAction()
+    // Above commands are for toolbar only
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
@@ -384,18 +452,14 @@ void MainWindow::createMenus() {
 
 void MainWindow::createToolbars() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("Creating toolbars from CommandRegistry");
+    logger.debug("Creating toolbars from CommandRegistry using ToolbarManager");
 
-    // Build toolbar from CommandRegistry using ToolbarBuilder
-    ToolbarBuilder builder;
+    // Task #00019: Create ToolbarManager and build 5 toolbars
+    m_toolbarManager = new ToolbarManager(this);
     CommandRegistry& registry = CommandRegistry::getInstance();
-    m_fileToolbar = builder.buildToolBar(registry, this);
+    m_toolbarManager->createToolbars(registry);
 
-    // Add toolbar to window
-    addToolBar(m_fileToolbar);
-
-    // Toolbar is movable and floatable by default in ToolbarBuilder
-    logger.debug("Toolbars created successfully from CommandRegistry");
+    logger.debug("5 toolbars created successfully (File, Edit, Book, View, Tools)");
 }
 
 void MainWindow::createStatusBar() {
@@ -878,6 +942,12 @@ void MainWindow::createDocks() {
     connect(m_resetLayoutAction, &QAction::triggered, this, &MainWindow::resetLayout);
     m_viewMenu->addAction(m_resetLayoutAction);
 
+    // Task #00019: Add toolbar toggle actions to View menu
+    if (m_toolbarManager) {
+        m_toolbarManager->createViewMenuActions(m_viewMenu);
+        logger.debug("Toolbar toggle actions added to VIEW menu");
+    }
+
     logger.debug("Dock widgets created successfully");
 }
 
@@ -955,6 +1025,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
     settings.setValue("geometry", saveGeometry());
     settings.setValue("windowState", saveState());
+
+    // Task #00019: Save toolbar state (visibility)
+    if (m_toolbarManager) {
+        m_toolbarManager->saveState();
+    }
 
     logger.debug("Window perspective saved");
 
@@ -1443,6 +1518,11 @@ void MainWindow::showEvent(QShowEvent* event) {
         QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
         restoreGeometry(settings.value("geometry").toByteArray());
         restoreState(settings.value("windowState").toByteArray());
+
+        // Task #00019: Restore toolbar state (visibility)
+        if (m_toolbarManager) {
+            m_toolbarManager->restoreState();
+        }
 
         logger.debug("Window perspective restored");
 
