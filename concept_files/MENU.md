@@ -31,8 +31,6 @@ FILE
       LaTeX
     Export Settings...
   ─────────────────
-  Book Properties...
-  ─────────────────
   Exit
 
 EDIT
@@ -71,6 +69,8 @@ BOOK
   ─────────────────
   Chapter Break
   Scene Break
+  ─────────────────
+  Book Properties...
 
 INSERT
   Image...
@@ -122,9 +122,7 @@ FORMAT
 
 TOOLS
   Statistics
-    Show Statistics Bar
-    Weekly Statistics Panel
-    Advanced Analytics...
+    Full Statistics...
   ─────────────────
   Spellchecker
   Grammar Check
@@ -171,7 +169,7 @@ VIEW
   Panels
     Navigator
     Properties
-    Weekly Statistics
+    Statistics
     Assistant
     Search
     Log
@@ -199,7 +197,6 @@ VIEW
     ─────────────────
     Customize Toolbars...
   ─────────────────
-  Show Info Bar
   Show Status Bar
   Show Statistics Bar
   Show Formatting Marks

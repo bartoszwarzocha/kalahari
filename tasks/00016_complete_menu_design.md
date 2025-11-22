@@ -1,9 +1,10 @@
 # Task #00016: Complete Menu Design (Phase 0-5)
 
 **Date:** 2025-11-21
-**Status:** 🟡 AWAITING REVIEW (redesigned based on roadmap analysis)
+**Completed:** 2025-11-22
+**Status:** ✅ DONE
 **Type:** Design / Planning
-**Estimated Time:** 120 minutes
+**Actual Time:** ~180 minutes
 **Phase:** 0 (Foundation)
 
 ---
@@ -587,5 +588,48 @@ All premium features and polish (Help docs, i18n, etc.): ❌ TODO
 
 ---
 
-**End of Task #00016 - Redesigned Menu Structure**
-**Status:** 🟡 AWAITING USER REVIEW AND FEEDBACK
+## ✅ Completion Summary (2025-11-22)
+
+**Implementation completed and approved by user.**
+
+### Changes Made:
+
+1. **Fixed VIEW/Panels duplicates:**
+   - Removed `view.panels.*` commands from `registerCommands()`
+   - Panel toggles now ONLY in `createDocks()` using `toggleViewAction()`
+   - Clean separation: CommandRegistry for static items, dynamic actions for panels
+
+2. **Fixed TOOLS/Statistics menu:**
+   - BEFORE: "Show Statistics Bar", "Weekly Statistics Panel", "Advanced Analytics..."
+   - AFTER: "Full Statistics..." (Phase 2)
+   - Panels moved to VIEW menu
+
+3. **Removed "Show Info Bar" from menu:**
+   - Will be configuration option in Preferences
+   - Notification system: Info Bar vs Message Box (user setting)
+
+4. **Moved "Book Properties..." from FILE to BOOK menu:**
+   - More logical placement (book-related settings)
+   - BOOK menu now complete with properties dialog
+
+5. **Fixed panel naming:**
+   - "Statistics" (not "Weekly Statistics") - cleaner, more generic
+
+6. **Organized documentation:**
+   - Moved `MENU.md` → `concept_files/MENU.md`
+   - Synchronized with actual implementation
+
+### Files Modified:
+- `src/gui/main_window.cpp` (menu registration, createDocks)
+- `concept_files/MENU.md` (menu structure documentation)
+
+### Build Status:
+✅ Build successful: `build-windows\bin\kalahari.exe`
+
+### User Feedback:
+> "Bardzo ładnie. Myślę, że można zamknąć task 00016 na ten moment."
+
+---
+
+**End of Task #00016 - Complete Menu Design**
+**Status:** ✅ DONE (2025-11-22)

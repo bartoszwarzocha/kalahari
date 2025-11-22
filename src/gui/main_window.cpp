@@ -89,238 +89,275 @@ void MainWindow::registerCommands() {
     logger.debug("Registering commands with CommandRegistry");
 
     CommandRegistry& registry = CommandRegistry::getInstance();
+    int count = 0;
 
-    // ===== FILE CATEGORY =====
+    #include "register_commands.hpp"
 
-    // File > New
-    registry.registerCommand(Command{
-        "file.new",                                             // id
-        "&New",                                                 // label
-        "Create a new document",                                // tooltip
-        "File",                                                 // category
-        IconSet(),                                              // icons
-        true,                                                   // showInMenu
-        true,                                                   // showInToolbar
-        KeyboardShortcut::fromQKeySequence(QKeySequence::New), // shortcut
-        true,                                                   // isShortcutCustomizable
-        [this]() { onNewDocument(); },                         // execute
-        {},                                                     // isEnabled
-        {}                                                      // isChecked
-    });
+    // =========================================================================
+    // FILE MENU
+    // =========================================================================
 
-    // File > Open
-    registry.registerCommand(Command{
-        "file.open",
-        "&Open...",
-        "Open an existing document",
-        "File",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
-        true,
-        [this]() { onOpenDocument(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("file.new", "New Book...", "FILE/New Book...", 10, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::New),
+                 [this]() { onNewDocument(); });
 
-    // File > Save
-    registry.registerCommand(Command{
-        "file.save",
-        "&Save",
-        "Save the current document",
-        "File",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
-        true,
-        [this]() { onSaveDocument(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
+                 [this]() { onOpenDocument(); });
 
-    // File > Save As
-    registry.registerCommand(Command{
-        "file.saveAs",
-        "Save &As...",
-        "Save the current document with a new name",
-        "File",
-        IconSet(),
-        true,
-        false,  // Not in toolbar
-        KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
-        true,
-        [this]() { onSaveAsDocument(); },
-        {},
-        {}
-    });
+    // Recent Books - dynamic submenu (registered separately)
 
-    // File > Settings
-    registry.registerCommand(Command{
-        "file.settings",
-        "&Settings...",
-        "Open settings dialog",
-        "File",
-        IconSet(),
-        true,
-        false,
-        KeyboardShortcut::fromQKeySequence(QKeySequence(tr("Ctrl+,"))),
-        true,
-        [this]() { onSettings(); },
-        {},
-        {}
-    });
+    REG_CMD_CB("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
+               []() {});
 
-    // File > Exit
-    registry.registerCommand(Command{
-        "file.exit",
-        "E&xit",
-        "Exit the application",
-        "File",
-        IconSet(),
-        true,
-        false,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
-        true,
-        [this]() { onExit(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("file.save", "Save", "FILE/Save", 50, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
+                 [this]() { onSaveDocument(); });
 
-    // ===== EDIT CATEGORY =====
+    REG_CMD_TOOL("file.saveAs", "Save As...", "FILE/Save As...", 60, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
+                 [this]() { onSaveAsDocument(); });
 
-    // Edit > Undo
-    registry.registerCommand(Command{
-        "edit.undo",
-        "&Undo",
-        "Undo the last operation",
-        "Edit",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
-        true,
-        [this]() { onUndo(); },
-        {},
-        {}
-    });
+    REG_CMD("file.saveAll", "Save All", "FILE/Save All", 70, true, 1);
 
-    // Edit > Redo
-    registry.registerCommand(Command{
-        "edit.redo",
-        "&Redo",
-        "Redo the last undone operation",
-        "Edit",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
-        true,
-        [this]() { onRedo(); },
-        {},
-        {}
-    });
+    // Import submenu
+    REG_CMD("file.import.docx", "DOCX Document...", "FILE/Import/DOCX Document...", 80, false, 1);
+    REG_CMD("file.import.pdf", "PDF Reference...", "FILE/Import/PDF Reference...", 90, false, 2);
+    REG_CMD("file.import.text", "Plain Text...", "FILE/Import/Plain Text...", 100, false, 1);
+    REG_CMD("file.import.scrivener", "Scrivener Project...", "FILE/Import/Scrivener Project...", 110, false, 2);
 
-    // Edit > Cut
-    registry.registerCommand(Command{
-        "edit.cut",
-        "Cu&t",
-        "Cut the selection to clipboard",
-        "Edit",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
-        true,
-        [this]() { onCut(); },
-        {},
-        {}
-    });
+    // Export submenu
+    REG_CMD("file.export.docx", "DOCX", "FILE/Export/DOCX", 120, false, 1);
+    REG_CMD("file.export.pdf", "PDF", "FILE/Export/PDF", 130, false, 1);
+    REG_CMD("file.export.markdown", "Markdown", "FILE/Export/Markdown", 140, true, 1);
+    REG_CMD("file.export.epub", "EPUB", "FILE/Export/EPUB", 150, false, 2);
+    REG_CMD("file.export.mobi", "MOBI", "FILE/Export/MOBI", 160, false, 2);
+    REG_CMD("file.export.icml", "InDesign ICML", "FILE/Export/InDesign ICML", 170, false, 3);
+    REG_CMD("file.export.latex", "LaTeX", "FILE/Export/LaTeX", 180, false, 3);
+    REG_CMD("file.export.settings", "Export Settings...", "FILE/Export/Export Settings...", 190, true, 2);
 
-    // Edit > Copy
-    registry.registerCommand(Command{
-        "edit.copy",
-        "&Copy",
-        "Copy the selection to clipboard",
-        "Edit",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
-        true,
-        [this]() { onCopy(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("file.exit", "Exit", "FILE/Exit", 200, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
+                 [this]() { onExit(); });
 
-    // Edit > Paste
-    registry.registerCommand(Command{
-        "edit.paste",
-        "&Paste",
-        "Paste from clipboard",
-        "Edit",
-        IconSet(),
-        true,
-        true,
-        KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
-        true,
-        [this]() { onPaste(); },
-        {},
-        {}
-    });
+    // =========================================================================
+    // EDIT MENU
+    // =========================================================================
 
-    // Edit > Select All
-    registry.registerCommand(Command{
-        "edit.selectAll",
-        "Select &All",
-        "Select all text",
-        "Edit",
-        IconSet(),
-        true,
-        false,  // Not in toolbar
-        KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
-        true,
-        [this]() { onSelectAll(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("edit.undo", "Undo", "EDIT/Undo", 10, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
+                 [this]() { onUndo(); });
 
-    // ===== HELP CATEGORY =====
+    REG_CMD_TOOL("edit.redo", "Redo", "EDIT/Redo", 20, true, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
+                 [this]() { onRedo(); });
 
-    // Help > About Kalahari
-    registry.registerCommand(Command{
-        "help.about",
-        "&About Kalahari",
-        "Show information about Kalahari",
-        "Help",
-        IconSet(),
-        true,
-        false,
-        KeyboardShortcut(),  // No shortcut
-        true,
-        [this]() { onAbout(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("edit.cut", "Cut", "EDIT/Cut", 30, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
+                 [this]() { onCut(); });
 
-    // Help > About Qt
-    registry.registerCommand(Command{
-        "help.aboutQt",
-        "About &Qt",
-        "Show information about Qt",
-        "Help",
-        IconSet(),
-        true,
-        false,
-        KeyboardShortcut(),
-        true,
-        [this]() { onAboutQt(); },
-        {},
-        {}
-    });
+    REG_CMD_TOOL("edit.copy", "Copy", "EDIT/Copy", 40, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
+                 [this]() { onCopy(); });
 
-    logger.debug("Commands registered successfully (15 commands)");
+    REG_CMD_TOOL("edit.paste", "Paste", "EDIT/Paste", 50, false, 0,
+                 KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
+                 [this]() { onPaste(); });
+
+    REG_CMD("edit.pasteSpecial", "Paste Special...", "EDIT/Paste Special...", 60, false, 1);
+    REG_CMD("edit.delete", "Delete", "EDIT/Delete", 70, true, 1);
+
+    REG_CMD_CB("edit.selectAll", "Select All", "EDIT/Select All", 80, false, 0,
+               [this]() { onSelectAll(); });
+
+    REG_CMD("edit.selectWord", "Select Word", "EDIT/Select Word", 90, false, 1);
+    REG_CMD("edit.selectParagraph", "Select Paragraph", "EDIT/Select Paragraph", 100, true, 1);
+
+    REG_CMD("edit.find", "Find...", "EDIT/Find...", 110, false, 1);
+    REG_CMD("edit.findNext", "Find Next", "EDIT/Find Next", 120, false, 1);
+    REG_CMD("edit.findPrevious", "Find Previous", "EDIT/Find Previous", 130, false, 1);
+    REG_CMD("edit.findReplace", "Find & Replace...", "EDIT/Find & Replace...", 140, false, 1);
+    REG_CMD("edit.findInBook", "Find in Book...", "EDIT/Find in Book...", 150, true, 1);
+
+    REG_CMD_CB("edit.preferences", "Preferences...", "EDIT/Preferences...", 160, false, 0,
+               [this]() { onSettings(); });
+
+    // =========================================================================
+    // BOOK MENU
+    // =========================================================================
+
+    REG_CMD("book.newChapter", "New Chapter...", "BOOK/New Chapter...", 10, false, 1);
+    REG_CMD("book.newScene", "New Scene...", "BOOK/New Scene...", 20, true, 1);
+
+    REG_CMD("book.newCharacter", "New Character...", "BOOK/New Character...", 30, false, 1);
+    REG_CMD("book.newLocation", "New Location...", "BOOK/New Location...", 40, false, 1);
+    REG_CMD("book.newItem", "New Item...", "BOOK/New Item...", 50, true, 1);
+
+    REG_CMD("book.newMindMap", "New Mind Map...", "BOOK/New Mind Map...", 60, false, 1);
+    REG_CMD("book.newTimeline", "New Timeline...", "BOOK/New Timeline...", 70, true, 1);
+
+    REG_CMD("book.chapterBreak", "Chapter Break", "BOOK/Chapter Break", 80, false, 1);
+    REG_CMD("book.sceneBreak", "Scene Break", "BOOK/Scene Break", 90, true, 1);
+
+    REG_CMD("book.properties", "Book Properties...", "BOOK/Book Properties...", 100, false, 1);
+
+    // =========================================================================
+    // INSERT MENU
+    // =========================================================================
+
+    REG_CMD("insert.image", "Image...", "INSERT/Image...", 10, false, 1);
+    REG_CMD("insert.table", "Table...", "INSERT/Table...", 20, false, 1);
+    REG_CMD("insert.link", "Link...", "INSERT/Link...", 30, true, 1);
+
+    REG_CMD("insert.footnote", "Footnote", "INSERT/Footnote", 40, false, 1);
+    REG_CMD("insert.endnote", "Endnote", "INSERT/Endnote", 50, false, 1);
+    REG_CMD("insert.comment", "Comment", "INSERT/Comment", 60, false, 1);
+    REG_CMD("insert.annotation", "Annotation", "INSERT/Annotation", 70, true, 1);
+
+    REG_CMD("insert.specialChar", "Special Character...", "INSERT/Special Character...", 80, false, 1);
+    REG_CMD("insert.dateTime", "Date & Time", "INSERT/Date & Time", 90, false, 1);
+    REG_CMD("insert.field", "Field...", "INSERT/Field...", 100, false, 1);
+
+    // =========================================================================
+    // FORMAT MENU
+    // =========================================================================
+
+    REG_CMD("format.font", "Font...", "FORMAT/Font...", 10, false, 1);
+    REG_CMD("format.paragraph", "Paragraph...", "FORMAT/Paragraph...", 20, true, 1);
+
+    // Text Style submenu
+    REG_CMD("format.style.heading1", "Heading 1", "FORMAT/Text Style/Heading 1", 30, false, 1);
+    REG_CMD("format.style.heading2", "Heading 2", "FORMAT/Text Style/Heading 2", 40, false, 1);
+    REG_CMD("format.style.heading3", "Heading 3", "FORMAT/Text Style/Heading 3", 50, false, 1);
+    REG_CMD("format.style.body", "Body Text", "FORMAT/Text Style/Body Text", 60, false, 1);
+    REG_CMD("format.style.quote", "Quote", "FORMAT/Text Style/Quote", 70, false, 1);
+    REG_CMD("format.style.code", "Code", "FORMAT/Text Style/Code", 80, true, 1);
+    REG_CMD("format.style.manage", "Manage Styles...", "FORMAT/Text Style/Manage Styles...", 90, false, 1);
+
+    REG_CMD("format.bold", "Bold", "FORMAT/Bold", 100, false, 1);
+    REG_CMD("format.italic", "Italic", "FORMAT/Italic", 110, false, 1);
+    REG_CMD("format.underline", "Underline", "FORMAT/Underline", 120, false, 1);
+    REG_CMD("format.strikethrough", "Strikethrough", "FORMAT/Strikethrough", 130, true, 1);
+
+    REG_CMD("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 1);
+    REG_CMD("format.alignCenter", "Align Center", "FORMAT/Align Center", 150, false, 1);
+    REG_CMD("format.alignRight", "Align Right", "FORMAT/Align Right", 160, false, 1);
+    REG_CMD("format.justify", "Justify", "FORMAT/Justify", 170, true, 1);
+
+    REG_CMD("format.increaseIndent", "Increase Indent", "FORMAT/Increase Indent", 180, false, 1);
+    REG_CMD("format.decreaseIndent", "Decrease Indent", "FORMAT/Decrease Indent", 190, true, 1);
+
+    REG_CMD("format.bullets", "Bullets", "FORMAT/Bullets", 200, false, 1);
+    REG_CMD("format.numbering", "Numbering", "FORMAT/Numbering", 210, true, 1);
+
+    REG_CMD("format.color", "Color", "FORMAT/Color", 220, true, 1);
+
+    REG_CMD("format.clearFormatting", "Clear Formatting", "FORMAT/Clear Formatting", 230, false, 1);
+
+    // =========================================================================
+    // TOOLS MENU
+    // =========================================================================
+
+    // Statistics submenu (analysis tools only, panels in VIEW)
+    REG_CMD("tools.stats.full", "Full Statistics...", "TOOLS/Statistics/Full Statistics...", 10, false, 2);
+
+    REG_CMD("tools.spellcheck", "Spellchecker", "TOOLS/Spellchecker", 40, false, 2);
+    REG_CMD("tools.grammar", "Grammar Check", "TOOLS/Grammar Check", 50, false, 2);
+    REG_CMD("tools.readability", "Readability Score", "TOOLS/Readability Score", 60, true, 2);
+
+    // Focus Mode submenu
+    REG_CMD("tools.focus.normal", "Normal", "TOOLS/Focus Mode/Normal", 70, false, 1);
+    REG_CMD("tools.focus.focused", "Focused", "TOOLS/Focus Mode/Focused", 80, false, 1);
+    REG_CMD("tools.focus.distractionFree", "Distraction-Free", "TOOLS/Focus Mode/Distraction-Free", 90, false, 1);
+
+    REG_CMD("tools.backupNow", "Backup Now", "TOOLS/Backup Now", 100, false, 2);
+    REG_CMD("tools.autoSaveSettings", "Auto-Save Settings...", "TOOLS/Auto-Save Settings...", 110, false, 1);
+    REG_CMD("tools.versionHistory", "Version History...", "TOOLS/Version History...", 120, true, 2);
+
+    // Plugins submenu
+    REG_CMD("tools.plugins.manager", "Plugin Manager...", "TOOLS/Plugins/Plugin Manager...", 130, false, 2);
+    REG_CMD("tools.plugins.marketplace", "Browse Marketplace...", "TOOLS/Plugins/Browse Marketplace...", 140, false, 2);
+    REG_CMD("tools.plugins.updates", "Check for Updates...", "TOOLS/Plugins/Check for Updates...", 150, true, 2);
+    REG_CMD("tools.plugins.reload", "Reload Plugins", "TOOLS/Plugins/Reload Plugins", 160, false, 2);
+
+    REG_CMD("tools.challenges", "Challenges & Badges...", "TOOLS/Challenges & Badges...", 170, false, 2);
+    REG_CMD("tools.writingGoals", "Writing Goals & Deadlines...", "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
+
+    REG_CMD("tools.cloudSync", "Cloud Sync...", "TOOLS/Cloud Sync...", 190, false, 3);
+    REG_CMD("tools.collaboration", "Collaboration...", "TOOLS/Collaboration...", 200, false, 3);
+
+    // =========================================================================
+    // ASSISTANT MENU
+    // =========================================================================
+
+    REG_CMD("assistant.ask", "Ask Assistant...", "ASSISTANT/Ask Assistant...", 10, true, 2);
+
+    REG_CMD("assistant.switch", "Switch Assistant...", "ASSISTANT/Switch Assistant...", 20, true, 2);
+
+    // Assistant Actions submenu
+    REG_CMD("assistant.action.grammar", "Check Grammar", "ASSISTANT/Assistant Actions/Check Grammar", 30, false, 2);
+    REG_CMD("assistant.action.style", "Improve Style", "ASSISTANT/Assistant Actions/Improve Style", 40, false, 2);
+    REG_CMD("assistant.action.plot", "Analyze Plot", "ASSISTANT/Assistant Actions/Analyze Plot", 50, false, 2);
+    REG_CMD("assistant.action.research", "Research Topic...", "ASSISTANT/Assistant Actions/Research Topic...", 60, false, 2);
+    REG_CMD("assistant.action.speedDraft", "Speed Draft Mode", "ASSISTANT/Assistant Actions/Speed Draft Mode", 70, false, 2);
+
+    REG_CMD("assistant.settings", "Assistant Settings...", "ASSISTANT/Assistant Settings...", 80, false, 2);
+
+    // =========================================================================
+    // VIEW MENU
+    // =========================================================================
+
+    // NOTE: Panels submenu populated by createDocks() using toggleViewAction()
+    // No registration here to avoid duplicates!
+
+    // Perspectives submenu
+    REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
+    REG_CMD("view.perspectives.editor", "Editor", "VIEW/Perspectives/Editor", 80, false, 1);
+    REG_CMD("view.perspectives.researcher", "Researcher", "VIEW/Perspectives/Researcher", 90, false, 1);
+    REG_CMD("view.perspectives.planner", "Planner", "VIEW/Perspectives/Planner", 100, true, 1);
+    REG_CMD("view.perspectives.save", "Save Current Perspective...", "VIEW/Perspectives/Save Current Perspective...", 110, false, 1);
+    REG_CMD("view.perspectives.manage", "Manage Perspectives...", "VIEW/Perspectives/Manage Perspectives...", 120, false, 1);
+
+    // Toolbars submenu
+    REG_CMD("view.toolbars.standard", "Standard Toolbar", "VIEW/Toolbars/Standard Toolbar", 130, false, 1);
+    REG_CMD("view.toolbars.book", "Book Toolbar", "VIEW/Toolbars/Book Toolbar", 140, false, 1);
+    REG_CMD("view.toolbars.format", "Format Toolbar", "VIEW/Toolbars/Format Toolbar", 150, false, 1);
+    REG_CMD("view.toolbars.quickAccess", "Quick Access Toolbar", "VIEW/Toolbars/Quick Access Toolbar", 160, true, 1);
+    REG_CMD("view.toolbars.customize", "Customize Toolbars...", "VIEW/Toolbars/Customize Toolbars...", 170, false, 1);
+
+    REG_CMD("view.showStatusBar", "Show Status Bar", "VIEW/Show Status Bar", 180, false, 0);
+    REG_CMD("view.showStatsBar", "Show Statistics Bar", "VIEW/Show Statistics Bar", 190, false, 1);
+    REG_CMD("view.showFormattingMarks", "Show Formatting Marks", "VIEW/Show Formatting Marks", 210, true, 1);
+
+    REG_CMD("view.zoomIn", "Zoom In", "VIEW/Zoom In", 220, false, 1);
+    REG_CMD("view.zoomOut", "Zoom Out", "VIEW/Zoom Out", 230, false, 1);
+    REG_CMD("view.resetZoom", "Reset Zoom", "VIEW/Reset Zoom", 240, true, 1);
+
+    REG_CMD("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 1);
+
+    REG_CMD("view.resetLayout", "Reset Layout", "VIEW/Reset Layout", 260, false, 0);
+
+    // =========================================================================
+    // HELP MENU
+    // =========================================================================
+
+    REG_CMD("help.manual", "Kalahari Help", "HELP/Kalahari Help", 10, false, 2);
+    REG_CMD("help.tutorial", "Getting Started Tutorial", "HELP/Getting Started Tutorial", 20, true, 2);
+
+    REG_CMD("help.shortcuts", "Keyboard Shortcuts", "HELP/Keyboard Shortcuts", 30, false, 1);
+    REG_CMD("help.tipsTricks", "Tips & Tricks", "HELP/Tips & Tricks", 40, false, 2);
+    REG_CMD("help.whatsNew", "What's New", "HELP/What's New", 50, true, 1);
+
+    REG_CMD("help.reportBug", "Report a Bug...", "HELP/Report a Bug...", 60, false, 1);
+    REG_CMD("help.suggestFeature", "Suggest a Feature...", "HELP/Suggest a Feature...", 70, false, 1);
+    REG_CMD("help.communityForum", "Community Forum", "HELP/Community Forum", 80, true, 2);
+
+    REG_CMD("help.checkUpdates", "Check for Updates...", "HELP/Check for Updates...", 90, true, 2);
+
+    REG_CMD_CB("help.about", "About Kalahari", "HELP/About Kalahari", 100, false, 0,
+               [this]() { onAbout(); });
+
+    logger.debug("Commands registered successfully ({} commands)", count);
 }
 
 void MainWindow::createMenus() {
@@ -798,33 +835,46 @@ void MainWindow::createDocks() {
     // Raise Properties tab (default visible)
     m_propertiesDock->raise();
 
-    // Create View menu
-    m_viewMenu = menuBar()->addMenu(tr("&View"));
+    // Find existing View menu from MenuBuilder (DON'T create a new one!)
+    QList<QAction*> menuActions = menuBar()->actions();
+    for (QAction* action : menuActions) {
+        if (action->text().contains("View", Qt::CaseInsensitive)) {
+            m_viewMenu = action->menu();
+            break;
+        }
+    }
 
-    // Create toggle actions (use QDockWidget's built-in toggleViewAction!)
+    if (!m_viewMenu) {
+        logger.warn("VIEW menu not found! Creating fallback menu.");
+        m_viewMenu = menuBar()->addMenu(tr("&View"));
+    }
+
+    // Create Panels submenu (not in CommandRegistry - dynamic toggleViewAction only)
+    QMenu* panelsSubmenu = m_viewMenu->addMenu(tr("Panels"));
+    logger.debug("Created VIEW/Panels submenu for dock toggles");
+
+    // Create toggle actions and add to Panels submenu (use QDockWidget's built-in toggleViewAction!)
     m_viewNavigatorAction = m_navigatorDock->toggleViewAction();
     m_viewNavigatorAction->setShortcut(QKeySequence(tr("Ctrl+1")));
-    m_viewMenu->addAction(m_viewNavigatorAction);
+    panelsSubmenu->addAction(m_viewNavigatorAction);
 
     m_viewPropertiesAction = m_propertiesDock->toggleViewAction();
     m_viewPropertiesAction->setShortcut(QKeySequence(tr("Ctrl+2")));
-    m_viewMenu->addAction(m_viewPropertiesAction);
+    panelsSubmenu->addAction(m_viewPropertiesAction);
 
     m_viewLogAction = m_logDock->toggleViewAction();
     m_viewLogAction->setShortcut(QKeySequence(tr("Ctrl+3")));
-    m_viewMenu->addAction(m_viewLogAction);
+    panelsSubmenu->addAction(m_viewLogAction);
 
     m_viewSearchAction = m_searchDock->toggleViewAction();
     m_viewSearchAction->setShortcut(QKeySequence(tr("Ctrl+4")));
-    m_viewMenu->addAction(m_viewSearchAction);
+    panelsSubmenu->addAction(m_viewSearchAction);
 
     m_viewAssistantAction = m_assistantDock->toggleViewAction();
     m_viewAssistantAction->setShortcut(QKeySequence(tr("Ctrl+5")));
-    m_viewMenu->addAction(m_viewAssistantAction);
+    panelsSubmenu->addAction(m_viewAssistantAction);
 
-    m_viewMenu->addSeparator();
-
-    // Reset layout action
+    // Reset layout action (will appear in main VIEW menu)
     m_resetLayoutAction = new QAction(tr("Reset Layout"), this);
     m_resetLayoutAction->setShortcut(QKeySequence(tr("Ctrl+0")));
     m_resetLayoutAction->setStatusTip(tr("Reset dock layout to default"));
