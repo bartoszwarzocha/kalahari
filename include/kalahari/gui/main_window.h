@@ -61,6 +61,16 @@ public:
     /// @brief Destructor
     ~MainWindow() override = default;
 
+    /// @brief Enable diagnostic mode (show Diagnostics menu)
+    void enableDiagnosticMode();
+
+    /// @brief Disable diagnostic mode (hide Diagnostics menu)
+    void disableDiagnosticMode();
+
+    /// @brief Check if diagnostic mode is enabled
+    /// @return true if diagnostic mode is active, false otherwise
+    bool isDiagnosticMode() const { return m_diagnosticMode; }
+
 private:
     /// @brief Register all commands in CommandRegistry
     ///
@@ -95,6 +105,13 @@ private:
 
     /// @brief Reset dock layout to default
     void resetLayout();
+
+    /// @brief Create diagnostic menu (Task #00018)
+    /// @note Only called when diagnostic mode is enabled
+    void createDiagnosticMenu();
+
+    /// @brief Remove diagnostic menu (Task #00018)
+    void removeDiagnosticMenu();
 
 protected:
     /// @brief Save perspective on close
@@ -154,6 +171,33 @@ private slots:
     /// @note Phase 1+: Opens specific chapter content
     void onNavigatorItemDoubleClicked(const QString& chapterTitle);
 
+    /// @brief Slot for diagnostic mode changed from SettingsDialog (Task #00018)
+    /// @param enabled true if diagnostic mode enabled, false otherwise
+    void onDiagModeChanged(bool enabled);
+
+    // Diagnostic tool slots (Task #00018) - only visible in diagnostic mode
+    void onDiagSystemInfo();
+    void onDiagQtEnvironment();
+    void onDiagFileSystemCheck();
+    void onDiagSettingsDump();
+    void onDiagMemoryStats();
+    void onDiagOpenDocsStats();
+    void onDiagLoggerTest();
+    void onDiagEventBusTest();
+    void onDiagPluginCheck();
+    void onDiagCommandRegistryDump();
+    void onDiagPythonEnvironment();
+    void onDiagPythonImportTest();
+    void onDiagPythonMemoryTest();
+    void onDiagEmbeddedInterpreterStatus();
+    void onDiagPerformanceBenchmark();
+    void onDiagRenderStats();
+    void onDiagClearLog();
+#ifdef _DEBUG
+    void onDiagForceCrash();
+    void onDiagMemoryLeakTest();
+#endif
+
 private:
     // Actions removed - now managed by CommandRegistry
     // All actions are dynamically created from Command structs
@@ -196,6 +240,10 @@ private:
 
     // First show flag (for geometry restore)
     bool m_firstShow;
+
+    // Diagnostic mode (Task #00018)
+    bool m_diagnosticMode;      ///< Diagnostic mode enabled flag
+    QMenu* m_diagnosticMenu;    ///< Diagnostics menu (only visible when m_diagnosticMode=true)
 
     // Document management (Task #00008 - Phase 0)
     std::optional<core::Document> m_currentDocument;  ///< Current loaded document

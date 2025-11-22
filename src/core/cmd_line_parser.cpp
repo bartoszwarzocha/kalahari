@@ -101,6 +101,10 @@ bool CmdLineParser::hasSwitch(const QString& name) const {
     return m_parser.isSet(name);
 }
 
+bool CmdLineParser::isDiagnosticMode() const {
+    return hasSwitch("diag");
+}
+
 // =============================================================================
 // Private helpers
 // =============================================================================

@@ -33,5 +33,11 @@ LogPanel::LogPanel(QWidget* parent)
     logger.debug("LogPanel initialized");
 }
 
+void LogPanel::clear() {
+    if (m_logEdit) {
+        m_logEdit->clear();
+    }
+}
+
 } // namespace gui
 } // namespace kalahari

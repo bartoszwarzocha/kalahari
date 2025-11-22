@@ -61,6 +61,8 @@ MainWindow::MainWindow(QWidget* parent)
     , m_assistantPanel(nullptr)
     , m_logPanel(nullptr)
     , m_firstShow(true)
+    , m_diagnosticMode(false)
+    , m_diagnosticMenu(nullptr)
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
     , m_isDirty(false)
@@ -710,7 +712,13 @@ void MainWindow::onSettings() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Settings");
 
-    SettingsDialog dialog(this);
+    // Pass current diagnostic mode state to dialog (Task #00018)
+    SettingsDialog dialog(this, m_diagnosticMode);
+
+    // Connect diagnostic mode signal (Task #00018)
+    connect(&dialog, &SettingsDialog::diagnosticModeChanged,
+            this, &MainWindow::onDiagModeChanged);
+
     int result = dialog.exec();
 
     if (result == QDialog::Accepted) {
@@ -1065,6 +1073,365 @@ void MainWindow::onNavigatorItemDoubleClicked(const QString& chapterTitle) {
     logger.info("Opened chapter '{}' in new editor tab", chapterTitle.toStdString());
     statusBar()->showMessage(tr("Opened: %1").arg(chapterTitle), 2000);
 }
+
+// =============================================================================
+// Diagnostic Mode (Task #00018)
+// =============================================================================
+
+void MainWindow::enableDiagnosticMode() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Enabling diagnostic mode");
+
+    m_diagnosticMode = true;
+    createDiagnosticMenu();
+
+    statusBar()->showMessage(tr("Diagnostic mode enabled"), 3000);
+}
+
+void MainWindow::disableDiagnosticMode() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Disabling diagnostic mode");
+
+    removeDiagnosticMenu();
+    m_diagnosticMode = false;
+
+    statusBar()->showMessage(tr("Diagnostic mode disabled"), 3000);
+}
+
+void MainWindow::onDiagModeChanged(bool enabled) {
+    if (enabled) {
+        enableDiagnosticMode();
+    } else {
+        disableDiagnosticMode();
+    }
+}
+
+void MainWindow::createDiagnosticMenu() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("Creating Diagnostics menu");
+
+    // Don't create if already exists
+    if (m_diagnosticMenu) {
+        logger.warn("Diagnostics menu already exists");
+        return;
+    }
+
+    // Create menu (inserted between Help and existing menus)
+    m_diagnosticMenu = menuBar()->addMenu(tr("&Diagnostics"));
+
+    // === CATEGORY 1: System Information ===
+    QAction* sysInfoAction = m_diagnosticMenu->addAction(tr("System Information"));
+    connect(sysInfoAction, &QAction::triggered, this, &MainWindow::onDiagSystemInfo);
+
+    QAction* qtEnvAction = m_diagnosticMenu->addAction(tr("Qt Environment"));
+    connect(qtEnvAction, &QAction::triggered, this, &MainWindow::onDiagQtEnvironment);
+
+    QAction* fsCheckAction = m_diagnosticMenu->addAction(tr("File System Check"));
+    connect(fsCheckAction, &QAction::triggered, this, &MainWindow::onDiagFileSystemCheck);
+
+    m_diagnosticMenu->addSeparator();
+
+    // === CATEGORY 2: Application State ===
+    QAction* settingsDumpAction = m_diagnosticMenu->addAction(tr("Settings Dump"));
+    connect(settingsDumpAction, &QAction::triggered, this, &MainWindow::onDiagSettingsDump);
+
+    QAction* memStatsAction = m_diagnosticMenu->addAction(tr("Memory Statistics"));
+    connect(memStatsAction, &QAction::triggered, this, &MainWindow::onDiagMemoryStats);
+
+    QAction* openDocsAction = m_diagnosticMenu->addAction(tr("Open Documents Statistics"));
+    connect(openDocsAction, &QAction::triggered, this, &MainWindow::onDiagOpenDocsStats);
+
+    m_diagnosticMenu->addSeparator();
+
+    // === CATEGORY 3: Core Systems ===
+    QAction* loggerTestAction = m_diagnosticMenu->addAction(tr("Logger Test"));
+    connect(loggerTestAction, &QAction::triggered, this, &MainWindow::onDiagLoggerTest);
+
+    QAction* eventBusTestAction = m_diagnosticMenu->addAction(tr("Event Bus Test"));
+    connect(eventBusTestAction, &QAction::triggered, this, &MainWindow::onDiagEventBusTest);
+
+    QAction* pluginCheckAction = m_diagnosticMenu->addAction(tr("Plugin Manager Check"));
+    connect(pluginCheckAction, &QAction::triggered, this, &MainWindow::onDiagPluginCheck);
+
+    QAction* cmdRegistryDumpAction = m_diagnosticMenu->addAction(tr("Command Registry Dump"));
+    connect(cmdRegistryDumpAction, &QAction::triggered, this, &MainWindow::onDiagCommandRegistryDump);
+
+    m_diagnosticMenu->addSeparator();
+
+    // === CATEGORY 4: Python Environment ===
+    QAction* pyEnvAction = m_diagnosticMenu->addAction(tr("Python Environment"));
+    connect(pyEnvAction, &QAction::triggered, this, &MainWindow::onDiagPythonEnvironment);
+
+    QAction* pyImportAction = m_diagnosticMenu->addAction(tr("Python Import Test"));
+    connect(pyImportAction, &QAction::triggered, this, &MainWindow::onDiagPythonImportTest);
+
+    QAction* pyMemoryAction = m_diagnosticMenu->addAction(tr("Python Memory Test"));
+    connect(pyMemoryAction, &QAction::triggered, this, &MainWindow::onDiagPythonMemoryTest);
+
+    QAction* pyInterpAction = m_diagnosticMenu->addAction(tr("Embedded Interpreter Status"));
+    connect(pyInterpAction, &QAction::triggered, this, &MainWindow::onDiagEmbeddedInterpreterStatus);
+
+    m_diagnosticMenu->addSeparator();
+
+    // === CATEGORY 5: Performance ===
+    QAction* perfBenchAction = m_diagnosticMenu->addAction(tr("Performance Benchmark"));
+    connect(perfBenchAction, &QAction::triggered, this, &MainWindow::onDiagPerformanceBenchmark);
+
+    QAction* renderStatsAction = m_diagnosticMenu->addAction(tr("Render Statistics"));
+    connect(renderStatsAction, &QAction::triggered, this, &MainWindow::onDiagRenderStats);
+
+    m_diagnosticMenu->addSeparator();
+
+    // === CATEGORY 6: Quick Actions ===
+    QAction* clearLogAction = m_diagnosticMenu->addAction(tr("Clear Log"));
+    connect(clearLogAction, &QAction::triggered, this, &MainWindow::onDiagClearLog);
+
+#ifdef _DEBUG
+    m_diagnosticMenu->addSeparator();
+    QAction* forceCrashAction = m_diagnosticMenu->addAction(tr("Force Crash (Debug Only)"));
+    connect(forceCrashAction, &QAction::triggered, this, &MainWindow::onDiagForceCrash);
+
+    QAction* memLeakAction = m_diagnosticMenu->addAction(tr("Memory Leak Test (Debug Only)"));
+    connect(memLeakAction, &QAction::triggered, this, &MainWindow::onDiagMemoryLeakTest);
+#endif
+
+    logger.debug("Diagnostics menu created successfully with 18 tools");
+}
+
+void MainWindow::removeDiagnosticMenu() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("Removing Diagnostics menu");
+
+    if (!m_diagnosticMenu) {
+        logger.debug("Diagnostics menu doesn't exist, nothing to remove");
+        return;
+    }
+
+    // Remove from menu bar
+    menuBar()->removeAction(m_diagnosticMenu->menuAction());
+
+    // Delete menu
+    delete m_diagnosticMenu;
+    m_diagnosticMenu = nullptr;
+
+    logger.debug("Diagnostics menu removed successfully");
+}
+
+// =============================================================================
+// Diagnostic Tool Implementations (Task #00018)
+// =============================================================================
+
+void MainWindow::onDiagSystemInfo() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: System Information ===");
+    logger.info("OS: {}", QSysInfo::prettyProductName().toStdString());
+    logger.info("Kernel: {}", QSysInfo::kernelType().toStdString() + " " + QSysInfo::kernelVersion().toStdString());
+    logger.info("CPU Architecture: {}", QSysInfo::currentCpuArchitecture().toStdString());
+    logger.info("Build ABI: {}", QSysInfo::buildAbi().toStdString());
+    statusBar()->showMessage(tr("System information logged"), 2000);
+}
+
+void MainWindow::onDiagQtEnvironment() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Qt Environment ===");
+    logger.info("Qt Version: {}", qVersion());
+    logger.info("Qt Build Mode: {}",
+#ifdef QT_DEBUG
+        "Debug"
+#else
+        "Release"
+#endif
+    );
+    logger.info("Application: {} {}",
+        QCoreApplication::applicationName().toStdString(),
+        QCoreApplication::applicationVersion().toStdString());
+    logger.info("Organization: {}", QCoreApplication::organizationName().toStdString());
+    statusBar()->showMessage(tr("Qt environment logged"), 2000);
+}
+
+void MainWindow::onDiagFileSystemCheck() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: File System Check ===");
+    logger.info("Working Directory: {}", QDir::currentPath().toStdString());
+    logger.info("Application Path: {}", QCoreApplication::applicationDirPath().toStdString());
+    logger.info("Temp Path: {}", QDir::tempPath().toStdString());
+    logger.info("Home Path: {}", QDir::homePath().toStdString());
+    statusBar()->showMessage(tr("File system check logged"), 2000);
+}
+
+void MainWindow::onDiagSettingsDump() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Settings Dump ===");
+    auto& settings = core::SettingsManager::getInstance();
+    logger.info("Theme: {}", settings.getTheme());
+    logger.info("Language: {}", settings.getLanguage());
+    logger.info("Editor Font: {}", settings.get<std::string>("editor.fontFamily", "N/A"));
+    logger.info("Editor Font Size: {}", settings.get<int>("editor.fontSize", 0));
+    logger.info("Tab Size: {}", settings.get<int>("editor.tabSize", 0));
+    logger.info("Line Numbers: {}", settings.get<bool>("editor.lineNumbers", false));
+    logger.info("Word Wrap: {}", settings.get<bool>("editor.wordWrap", false));
+    statusBar()->showMessage(tr("Settings dumped to log"), 2000);
+}
+
+void MainWindow::onDiagMemoryStats() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Memory Statistics ===");
+    logger.info("NOTE: Detailed memory stats require platform-specific code");
+    logger.info("Document loaded: {}", m_currentDocument.has_value());
+    if (m_currentDocument.has_value()) {
+        logger.info("Document dirty: {}", m_isDirty);
+        logger.info("Document path: {}", m_currentFilePath.string());
+    }
+    statusBar()->showMessage(tr("Memory statistics logged"), 2000);
+}
+
+void MainWindow::onDiagOpenDocsStats() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Open Documents Statistics ===");
+    logger.info("Document loaded: {}", m_currentDocument.has_value());
+    if (m_currentDocument.has_value()) {
+        logger.info("Dirty flag: {}", m_isDirty);
+        logger.info("File path: {}", m_currentFilePath.string());
+    }
+    logger.info("Open editor tabs: {}", m_centralTabs ? m_centralTabs->count() : 0);
+    statusBar()->showMessage(tr("Document statistics logged"), 2000);
+}
+
+void MainWindow::onDiagLoggerTest() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Logger Test ===");
+    logger.debug("DEBUG level message");
+    logger.info("INFO level message");
+    logger.warn("WARN level message");
+    logger.error("ERROR level message");
+    logger.critical("CRITICAL level message");
+    logger.info("Logger test complete - check Log Panel for all levels");
+    statusBar()->showMessage(tr("Logger test complete"), 2000);
+}
+
+void MainWindow::onDiagEventBusTest() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Event Bus Test ===");
+    logger.info("NOTE: Event Bus implementation pending (Phase 1)");
+    logger.info("Event Bus test will be implemented when Event Bus is ready");
+    statusBar()->showMessage(tr("Event Bus test logged"), 2000);
+}
+
+void MainWindow::onDiagPluginCheck() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Plugin Manager Check ===");
+    logger.info("NOTE: Plugin Manager implementation pending (Phase 2)");
+    logger.info("Plugin check will be implemented when Plugin Manager is ready");
+    statusBar()->showMessage(tr("Plugin check logged"), 2000);
+}
+
+void MainWindow::onDiagCommandRegistryDump() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Command Registry Dump ===");
+    logger.info("NOTE: CommandRegistry::dump() not yet implemented");
+    logger.info("Command Registry diagnostic will be enhanced in future");
+    statusBar()->showMessage(tr("Command Registry dump logged"), 2000);
+}
+
+void MainWindow::onDiagPythonEnvironment() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Python Environment ===");
+    logger.info("NOTE: Python environment check requires pybind11 integration");
+    logger.info("This diagnostic will be implemented in Phase 2 (Plugin System)");
+    statusBar()->showMessage(tr("Python environment check logged"), 2000);
+}
+
+void MainWindow::onDiagPythonImportTest() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Python Import Test ===");
+    logger.info("NOTE: Python import test requires embedded interpreter");
+    logger.info("This diagnostic will be implemented in Phase 2 (Plugin System)");
+    statusBar()->showMessage(tr("Python import test logged"), 2000);
+}
+
+void MainWindow::onDiagPythonMemoryTest() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Python Memory Test ===");
+    logger.info("NOTE: Python memory test requires embedded interpreter");
+    logger.info("This diagnostic will be implemented in Phase 2 (Plugin System)");
+    statusBar()->showMessage(tr("Python memory test logged"), 2000);
+}
+
+void MainWindow::onDiagEmbeddedInterpreterStatus() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Embedded Interpreter Status ===");
+    logger.info("NOTE: Embedded interpreter check requires pybind11 integration");
+    logger.info("This diagnostic will be implemented in Phase 2 (Plugin System)");
+    statusBar()->showMessage(tr("Interpreter status logged"), 2000);
+}
+
+void MainWindow::onDiagPerformanceBenchmark() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Performance Benchmark ===");
+    logger.info("NOTE: Performance benchmark requires implementation");
+    logger.info("This will test editor performance, rendering, file I/O, etc.");
+    statusBar()->showMessage(tr("Performance benchmark logged"), 2000);
+}
+
+void MainWindow::onDiagRenderStats() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Render Statistics ===");
+    logger.info("NOTE: Render statistics require Qt rendering metrics");
+    logger.info("This diagnostic will show FPS, paint events, update regions, etc.");
+    statusBar()->showMessage(tr("Render statistics logged"), 2000);
+}
+
+void MainWindow::onDiagClearLog() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("=== DIAGNOSTIC: Clear Log ===");
+
+    // Clear log panel
+    if (m_logPanel) {
+        m_logPanel->clear();
+        logger.info("Log Panel cleared");
+    }
+
+    statusBar()->showMessage(tr("Log cleared"), 2000);
+}
+
+#ifdef _DEBUG
+void MainWindow::onDiagForceCrash() {
+    auto& logger = core::Logger::getInstance();
+    logger.critical("=== DIAGNOSTIC: Force Crash (Debug Only) ===");
+    logger.critical("User requested application crash - SIMULATING CRITICAL ERROR");
+
+    // Show confirmation
+    QMessageBox::StandardButton reply = QMessageBox::critical(this,
+        tr("Force Crash"),
+        tr("This will IMMEDIATELY crash the application!\n\n"
+           "All unsaved work will be LOST.\n\n"
+           "Are you sure you want to continue?"),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        logger.critical("Crashing application NOW!");
+        std::abort();  // Immediate crash
+    } else {
+        logger.info("Crash cancelled by user");
+        statusBar()->showMessage(tr("Crash cancelled"), 2000);
+    }
+}
+
+void MainWindow::onDiagMemoryLeakTest() {
+    auto& logger = core::Logger::getInstance();
+    logger.warn("=== DIAGNOSTIC: Memory Leak Test (Debug Only) ===");
+
+    // Intentionally leak memory for testing
+    const size_t leakSize = 1024 * 1024;  // 1 MB
+    char* leak = new char[leakSize];
+    (void)leak;  // Suppress unused variable warning
+
+    logger.warn("Leaked {} bytes of memory (intentional)", leakSize);
+    logger.info("Use Valgrind/AddressSanitizer to detect this leak");
+    statusBar()->showMessage(tr("Memory leak created (1 MB)"), 3000);
+}
+#endif
 
 void MainWindow::showEvent(QShowEvent* event) {
     QMainWindow::showEvent(event);

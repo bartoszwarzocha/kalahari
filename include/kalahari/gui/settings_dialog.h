@@ -39,10 +39,16 @@ class SettingsDialog : public QDialog {
 public:
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)
-    explicit SettingsDialog(QWidget* parent = nullptr);
+    /// @param diagnosticModeEnabled Current diagnostic mode state from MainWindow (Task #00018)
+    explicit SettingsDialog(QWidget* parent = nullptr, bool diagnosticModeEnabled = false);
 
     /// @brief Destructor
     ~SettingsDialog() override = default;
+
+signals:
+    /// @brief Emitted when diagnostic mode checkbox is toggled
+    /// @param enabled true if diagnostic mode enabled, false otherwise
+    void diagnosticModeChanged(bool enabled);
 
 private slots:
     /// @brief Apply button clicked - save settings without closing
@@ -53,6 +59,10 @@ private slots:
 
     /// @brief Cancel button clicked - discard changes and close
     void onReject();
+
+    /// @brief Diagnostic mode checkbox toggled
+    /// @param checked true if checked, false otherwise
+    void onDiagModeCheckboxToggled(bool checked);
 
 private:
     /// @brief Create dialog UI
@@ -77,6 +87,7 @@ private:
     // Placeholder tabs (will be replaced with actual panels in Tasks #00005, #00006)
     QWidget* m_appearanceTab;
     QWidget* m_editorTab;
+    QWidget* m_advancedTab;
 
     // Appearance tab controls (Task #00005)
     QComboBox* m_themeComboBox;
@@ -89,6 +100,10 @@ private:
     QSpinBox* m_tabSizeSpinBox;
     QCheckBox* m_lineNumbersCheckBox;
     QCheckBox* m_wordWrapCheckBox;
+
+    // Advanced tab controls (Task #00018)
+    QCheckBox* m_diagModeCheckbox;
+    bool m_initialDiagMode;  ///< Initial diagnostic mode state (Task #00018)
 };
 
 } // namespace gui

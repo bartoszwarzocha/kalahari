@@ -28,6 +28,9 @@ public:
     /// @brief Destructor
     ~LogPanel() override = default;
 
+    /// @brief Clear log panel content (Task #00018)
+    void clear();
+
 private:
     QPlainTextEdit* m_logEdit;
 };

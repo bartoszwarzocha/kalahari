@@ -15,16 +15,18 @@
 #include <QGridLayout>
 #include <QFontComboBox>
 #include <QCheckBox>
+#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
 
-SettingsDialog::SettingsDialog(QWidget* parent)
+SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     : QDialog(parent)
     , m_tabWidget(nullptr)
     , m_buttonBox(nullptr)
     , m_appearanceTab(nullptr)
     , m_editorTab(nullptr)
+    , m_advancedTab(nullptr)
     , m_themeComboBox(nullptr)
     , m_languageComboBox(nullptr)
     , m_fontSizeSpinBox(nullptr)
@@ -33,6 +35,8 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     , m_tabSizeSpinBox(nullptr)
     , m_lineNumbersCheckBox(nullptr)
     , m_wordWrapCheckBox(nullptr)
+    , m_diagModeCheckbox(nullptr)
+    , m_initialDiagMode(diagnosticModeEnabled)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("SettingsDialog: Constructor called");
@@ -154,6 +158,29 @@ void SettingsDialog::createUI() {
 
     m_tabWidget->addTab(m_editorTab, tr("Editor"));
 
+    // Advanced tab (Task #00018)
+    m_advancedTab = new QWidget();
+    QVBoxLayout* advancedLayout = new QVBoxLayout(m_advancedTab);
+
+    // Warning label
+    QLabel* warningLabel = new QLabel(tr("⚠️ Warning: Diagnostic tools are for developers only.\n"
+        "Some tools may crash the application or consume significant resources."));
+    warningLabel->setWordWrap(true);
+    warningLabel->setStyleSheet("QLabel { color: #ff6600; font-weight: bold; }");
+    advancedLayout->addWidget(warningLabel);
+
+    advancedLayout->addSpacing(10);
+
+    // Diagnostic mode checkbox
+    m_diagModeCheckbox = new QCheckBox(tr("Enable Diagnostic Menu"), this);
+    m_diagModeCheckbox->setChecked(false); // Will be set in loadSettings() (Task #00018)
+    connect(m_diagModeCheckbox, &QCheckBox::toggled, this, &SettingsDialog::onDiagModeCheckboxToggled);
+    advancedLayout->addWidget(m_diagModeCheckbox);
+
+    advancedLayout->addStretch(); // Push controls to top
+
+    m_tabWidget->addTab(m_advancedTab, tr("Advanced"));
+
     mainLayout->addWidget(m_tabWidget);
 
     // Button box (OK, Cancel, Apply)
@@ -221,6 +248,13 @@ void SettingsDialog::loadSettings() {
     m_wordWrapCheckBox->setChecked(wordWrap);
     logger.debug("Loaded word wrap: {}", wordWrap);
 
+    // Load diagnostic mode state (Task #00018)
+    // Block signals to avoid triggering confirmation dialog during initialization
+    m_diagModeCheckbox->blockSignals(true);
+    m_diagModeCheckbox->setChecked(m_initialDiagMode);
+    m_diagModeCheckbox->blockSignals(false);
+    logger.debug("Loaded diagnostic mode: {}", m_initialDiagMode);
+
     logger.debug("SettingsDialog: Settings loaded successfully");
 }
 
@@ -278,6 +312,14 @@ void SettingsDialog::onAccept() {
     logger.debug("SettingsDialog: OK button clicked");
 
     saveSettings();
+
+    // Check if diagnostic mode changed (Task #00018)
+    bool currentDiagMode = m_diagModeCheckbox->isChecked();
+    if (currentDiagMode != m_initialDiagMode) {
+        logger.info("Diagnostic mode changed: {} -> {}", m_initialDiagMode, currentDiagMode);
+        emit diagnosticModeChanged(currentDiagMode);
+    }
+
     accept();  // Close dialog with Accepted result
 }
 
@@ -294,7 +336,43 @@ void SettingsDialog::onApply() {
     logger.debug("SettingsDialog: Apply button clicked");
 
     saveSettings();
+
+    // Check if diagnostic mode changed (Task #00018)
+    bool currentDiagMode = m_diagModeCheckbox->isChecked();
+    if (currentDiagMode != m_initialDiagMode) {
+        logger.info("Diagnostic mode changed: {} -> {}", m_initialDiagMode, currentDiagMode);
+        emit diagnosticModeChanged(currentDiagMode);
+        m_initialDiagMode = currentDiagMode;  // Update initial state after Apply
+    }
+
     // Don't close dialog
+}
+
+void SettingsDialog::onDiagModeCheckboxToggled(bool checked) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("SettingsDialog: Diagnostic mode checkbox toggled: {}", checked);
+
+    if (checked) {
+        // Show confirmation dialog when enabling
+        QMessageBox::StandardButton reply = QMessageBox::warning(this,
+            tr("Enable Diagnostic Menu"),
+            tr("Are you sure you want to enable diagnostic menu?\n\n"
+               "This exposes advanced debugging tools that may affect application stability."),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+
+        if (reply == QMessageBox::No) {
+            // User cancelled - revert checkbox
+            m_diagModeCheckbox->setChecked(false);
+            logger.debug("User cancelled diagnostic mode activation");
+            return;
+        }
+
+        logger.debug("User confirmed diagnostic mode activation");
+    }
+
+    // Don't emit signal here - wait for Apply/OK (Task #00018)
+    logger.debug("Diagnostic mode change will be applied when clicking Apply/OK");
 }
 
 } // namespace gui

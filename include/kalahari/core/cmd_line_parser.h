@@ -98,6 +98,14 @@ public:
     /// @return true if switch was present, false otherwise
     bool hasSwitch(const QString& name) const;
 
+    /// @brief Check if diagnostic mode was enabled via --diag flag
+    ///
+    /// Convenience method that checks if the --diag switch was specified
+    /// on the command line. Equivalent to hasSwitch("diag").
+    ///
+    /// @return true if --diag flag present, false otherwise
+    bool isDiagnosticMode() const;
+
 private:
     /// @brief Initialize parser with default settings
     void init();

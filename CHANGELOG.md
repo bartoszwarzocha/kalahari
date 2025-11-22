@@ -58,6 +58,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `main_window.cpp`, `CMakeLists.txt`
   - Feature parity with wxWidgets version achieved
 
+- **Task #00018:** Diagnostic Mode with --diag Parameter (Qt Migration) - 2025-11-22
+  - Added comprehensive diagnostic mode with 18 debugging tools in 6 categories
+  - **Two activation methods:**
+    - Command line: `kalahari --diag` (or `-d`) - persistent for session
+    - Advanced Settings: Checkbox in new "Advanced" tab (runtime only, not saved, confirmation dialog)
+  - **CmdLineParser enhancement:** Added `isDiagnosticMode()` convenience method
+  - **SettingsDialog:** New "Advanced" tab with warning label and diagnostic mode toggle
+    - Warning: Orange text alert for developer tools
+    - Confirmation dialog when enabling (QMessageBox::warning)
+    - Signal `diagnosticModeChanged(bool)` connects to MainWindow
+  - **MainWindow diagnostic API:**
+    - Public: `enableDiagnosticMode()`, `disableDiagnosticMode()`
+    - Slot: `onDiagModeChanged(bool)` - responds to Settings checkbox
+    - Private: `createDiagnosticMenu()`, `removeDiagnosticMenu()`
+  - **Diagnostics menu:** 18 tools in 6 categories (all output to Log Panel via Logger)
+    1. **System Information:** System Info, Qt Environment, File System Check
+    2. **Application State:** Settings Dump, Memory Statistics, Open Documents Stats
+    3. **Core Systems:** Logger Test (5 levels: debug/info/warn/error/critical), Event Bus Test, Plugin Check, Command Registry Dump
+    4. **Python Environment:** Python Environment, Import Test, Memory Test, Interpreter Status
+    5. **Performance:** Performance Benchmark, Render Statistics
+    6. **Quick Actions:** Clear Log, Force Crash (#ifdef _DEBUG only), Memory Leak Test (#ifdef _DEBUG only)
+  - **LogPanel enhancement:** Added `clear()` method for diagnostic tool support
+  - **Architecture:** Menu created OUTSIDE Command Registry (direct QAction), no keyboard shortcuts
+  - OpenSpec validation: Change ID `00018-diagnostic-mode`
+  - Files modified: `cmd_line_parser.h/cpp`, `settings_dialog.h/cpp`, `main_window.h/cpp`, `main.cpp`, `log_panel.h/cpp`
+  - Feature parity with wxWidgets diagnostic system achieved + Python tools added
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20
