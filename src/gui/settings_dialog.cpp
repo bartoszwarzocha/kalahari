@@ -16,6 +16,7 @@
 #include <QFontComboBox>
 #include <QCheckBox>
 #include <QMessageBox>
+#include <QColorDialog>
 
 namespace kalahari {
 namespace gui {
@@ -30,6 +31,8 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     , m_themeComboBox(nullptr)
     , m_languageComboBox(nullptr)
     , m_fontSizeSpinBox(nullptr)
+    , m_primaryColorButton(nullptr)
+    , m_secondaryColorButton(nullptr)
     , m_fontFamilyComboBox(nullptr)
     , m_editorFontSizeSpinBox(nullptr)
     , m_tabSizeSpinBox(nullptr)
@@ -96,6 +99,24 @@ void SettingsDialog::createUI() {
     m_fontSizeSpinBox->setSuffix(" pt");
     gridLayout->addWidget(fontSizeLabel, 2, 0);
     gridLayout->addWidget(m_fontSizeSpinBox, 2, 1);
+
+    // Primary icon color (row 3) - Task #00020
+    QLabel* primaryColorLabel = new QLabel(tr("Primary Icon Color:"));
+    m_primaryColorButton = new QPushButton();
+    m_primaryColorButton->setMinimumHeight(30);
+    m_primaryColorButton->setToolTip(tr("Click to change primary icon color"));
+    connect(m_primaryColorButton, &QPushButton::clicked, this, &SettingsDialog::onPrimaryColorButtonClicked);
+    gridLayout->addWidget(primaryColorLabel, 3, 0);
+    gridLayout->addWidget(m_primaryColorButton, 3, 1);
+
+    // Secondary icon color (row 4) - Task #00020
+    QLabel* secondaryColorLabel = new QLabel(tr("Secondary Icon Color:"));
+    m_secondaryColorButton = new QPushButton();
+    m_secondaryColorButton->setMinimumHeight(30);
+    m_secondaryColorButton->setToolTip(tr("Click to change secondary icon color"));
+    connect(m_secondaryColorButton, &QPushButton::clicked, this, &SettingsDialog::onSecondaryColorButtonClicked);
+    gridLayout->addWidget(secondaryColorLabel, 4, 0);
+    gridLayout->addWidget(m_secondaryColorButton, 4, 1);
 
     // Make controls stretch horizontally
     gridLayout->setColumnStretch(1, 1);
@@ -255,6 +276,19 @@ void SettingsDialog::loadSettings() {
     m_diagModeCheckbox->blockSignals(false);
     logger.debug("Loaded diagnostic mode: {}", m_initialDiagMode);
 
+    // Load icon colors (Task #00020)
+    std::string primaryColor = settings.getIconColorPrimary();
+    QString primaryColorStyle = QString("background-color: %1; border: 1px solid #ccc;")
+                                    .arg(QString::fromStdString(primaryColor));
+    m_primaryColorButton->setStyleSheet(primaryColorStyle);
+    logger.debug("Loaded primary icon color: {}", primaryColor);
+
+    std::string secondaryColor = settings.getIconColorSecondary();
+    QString secondaryColorStyle = QString("background-color: %1; border: 1px solid #ccc;")
+                                      .arg(QString::fromStdString(secondaryColor));
+    m_secondaryColorButton->setStyleSheet(secondaryColorStyle);
+    logger.debug("Loaded secondary icon color: {}", secondaryColor);
+
     logger.debug("SettingsDialog: Settings loaded successfully");
 }
 
@@ -298,6 +332,26 @@ void SettingsDialog::saveSettings() {
     bool wordWrap = m_wordWrapCheckBox->isChecked();
     settings.set("editor.wordWrap", wordWrap);
     logger.debug("Saved word wrap: {}", wordWrap);
+
+    // Save icon colors (Task #00020)
+    // Extract color from button stylesheet (format: "background-color: #RRGGBB; ...")
+    QString primaryStyle = m_primaryColorButton->styleSheet();
+    int primaryStart = primaryStyle.indexOf("#");
+    int primaryEnd = primaryStyle.indexOf(";", primaryStart);
+    if (primaryStart != -1 && primaryEnd != -1) {
+        QString primaryColor = primaryStyle.mid(primaryStart, primaryEnd - primaryStart).trimmed();
+        settings.setIconColorPrimary(primaryColor.toStdString());
+        logger.debug("Saved primary icon color: {}", primaryColor.toStdString());
+    }
+
+    QString secondaryStyle = m_secondaryColorButton->styleSheet();
+    int secondaryStart = secondaryStyle.indexOf("#");
+    int secondaryEnd = secondaryStyle.indexOf(";", secondaryStart);
+    if (secondaryStart != -1 && secondaryEnd != -1) {
+        QString secondaryColor = secondaryStyle.mid(secondaryStart, secondaryEnd - secondaryStart).trimmed();
+        settings.setIconColorSecondary(secondaryColor.toStdString());
+        logger.debug("Saved secondary icon color: {}", secondaryColor.toStdString());
+    }
 
     // Save to disk
     if (settings.save()) {
@@ -373,6 +427,58 @@ void SettingsDialog::onDiagModeCheckboxToggled(bool checked) {
 
     // Don't emit signal here - wait for Apply/OK (Task #00018)
     logger.debug("Diagnostic mode change will be applied when clicking Apply/OK");
+}
+
+void SettingsDialog::onPrimaryColorButtonClicked() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("SettingsDialog: Primary color button clicked");
+
+    // Extract current color from button stylesheet
+    QString currentStyle = m_primaryColorButton->styleSheet();
+    int colorStart = currentStyle.indexOf("#");
+    int colorEnd = currentStyle.indexOf(";", colorStart);
+    QColor currentColor(Qt::black);  // Default
+    if (colorStart != -1 && colorEnd != -1) {
+        QString colorStr = currentStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        currentColor = QColor(colorStr);
+    }
+
+    // Open color dialog
+    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Primary Icon Color"));
+    if (color.isValid()) {
+        QString newStyle = QString("background-color: %1; border: 1px solid #ccc;")
+                              .arg(color.name());
+        m_primaryColorButton->setStyleSheet(newStyle);
+        logger.debug("Primary icon color changed to: {}", color.name().toStdString());
+    } else {
+        logger.debug("Primary color selection cancelled");
+    }
+}
+
+void SettingsDialog::onSecondaryColorButtonClicked() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("SettingsDialog: Secondary color button clicked");
+
+    // Extract current color from button stylesheet
+    QString currentStyle = m_secondaryColorButton->styleSheet();
+    int colorStart = currentStyle.indexOf("#");
+    int colorEnd = currentStyle.indexOf(";", colorStart);
+    QColor currentColor(Qt::gray);  // Default
+    if (colorStart != -1 && colorEnd != -1) {
+        QString colorStr = currentStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        currentColor = QColor(colorStr);
+    }
+
+    // Open color dialog
+    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Secondary Icon Color"));
+    if (color.isValid()) {
+        QString newStyle = QString("background-color: %1; border: 1px solid #ccc;")
+                              .arg(color.name());
+        m_secondaryColorButton->setStyleSheet(newStyle);
+        logger.debug("Secondary icon color changed to: {}", color.name().toStdString());
+    } else {
+        logger.debug("Secondary color selection cancelled");
+    }
 }
 
 } // namespace gui

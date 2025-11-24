@@ -342,3 +342,54 @@ TEST_CASE("SettingsManager settings file path", "[settings][paths]") {
         REQUIRE(validPath);
     }
 }
+
+TEST_CASE("SettingsManager icon colors (Task #00020)", "[settings][icons]") {
+    auto& settings = SettingsManager::getInstance();
+
+    SECTION("Default primary icon color is #333333") {
+        std::string primary = settings.getIconColorPrimary();
+        REQUIRE(primary == "#333333");
+    }
+
+    SECTION("Default secondary icon color is #999999") {
+        std::string secondary = settings.getIconColorSecondary();
+        REQUIRE(secondary == "#999999");
+    }
+
+    SECTION("Can set and get primary icon color") {
+        settings.setIconColorPrimary("#ff0000");
+        std::string primary = settings.getIconColorPrimary();
+        REQUIRE(primary == "#ff0000");
+
+        // Restore default
+        settings.setIconColorPrimary("#333333");
+    }
+
+    SECTION("Can set and get secondary icon color") {
+        settings.setIconColorSecondary("#00ff00");
+        std::string secondary = settings.getIconColorSecondary();
+        REQUIRE(secondary == "#00ff00");
+
+        // Restore default
+        settings.setIconColorSecondary("#999999");
+    }
+
+    SECTION("Icon colors persist to disk") {
+        // Set custom colors
+        settings.setIconColorPrimary("#abcdef");
+        settings.setIconColorSecondary("#123456");
+        settings.save();
+
+        // Create new instance (reload from disk)
+        settings.load();
+
+        // Verify colors persisted
+        REQUIRE(settings.getIconColorPrimary() == "#abcdef");
+        REQUIRE(settings.getIconColorSecondary() == "#123456");
+
+        // Restore defaults
+        settings.setIconColorPrimary("#333333");
+        settings.setIconColorSecondary("#999999");
+        settings.save();
+    }
+}

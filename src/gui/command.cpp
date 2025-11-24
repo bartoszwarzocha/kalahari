@@ -2,6 +2,7 @@
 /// @brief Command Registry data structures implementation (Qt6)
 
 #include "kalahari/gui/command.h"
+#include "kalahari/core/icon_registry.h"
 #include <QFile>
 #include <QImageReader>
 #include <QApplication>
@@ -92,6 +93,34 @@ IconSet IconSet::createPlaceholder(const QString& letter, const QColor& color) {
     iconSet.icon16 = createPixmap(16);
     iconSet.icon24 = createPixmap(24);
     iconSet.icon32 = createPixmap(32);
+
+    return iconSet;
+}
+
+IconSet IconSet::fromRegistry(const QString& actionId, const QString& theme) {
+    IconSet iconSet;
+
+    // Get IconRegistry instance
+    auto& registry = kalahari::core::IconRegistry::getInstance();
+
+    // Get icon sizes from registry
+    auto sizes = registry.getSizes();
+
+    // Load icons in 3 sizes with current theme colors
+    QIcon icon16 = registry.getIcon(actionId, theme, sizes.menu);     // 16px (menu)
+    QIcon icon24 = registry.getIcon(actionId, theme, sizes.toolbar);  // 24px (toolbar)
+    QIcon icon32 = registry.getIcon(actionId, theme, sizes.dialog);   // 32px (large toolbar/dialog)
+
+    // Convert QIcon → QPixmap for IconSet
+    if (!icon16.isNull()) {
+        iconSet.icon16 = icon16.pixmap(sizes.menu, sizes.menu);
+    }
+    if (!icon24.isNull()) {
+        iconSet.icon24 = icon24.pixmap(sizes.toolbar, sizes.toolbar);
+    }
+    if (!icon32.isNull()) {
+        iconSet.icon32 = icon32.pixmap(sizes.dialog, sizes.dialog);
+    }
 
     return iconSet;
 }

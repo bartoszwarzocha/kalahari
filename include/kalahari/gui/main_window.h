@@ -72,6 +72,16 @@ public:
     /// @return true if diagnostic mode is active, false otherwise
     bool isDiagnosticMode() const { return m_diagnosticMode; }
 
+    /// @brief Enable dev mode (show Dev Tools menu) - Task #00020
+    void enableDevMode();
+
+    /// @brief Disable dev mode (hide Dev Tools menu) - Task #00020
+    void disableDevMode();
+
+    /// @brief Check if dev mode is enabled - Task #00020
+    /// @return true if dev mode is active, false otherwise
+    bool isDevMode() const { return m_devMode; }
+
 private:
     /// @brief Register all commands in CommandRegistry
     ///
@@ -113,6 +123,13 @@ private:
 
     /// @brief Remove diagnostic menu (Task #00018)
     void removeDiagnosticMenu();
+
+    /// @brief Create dev tools menu (Task #00020)
+    /// @note Only called when dev mode is enabled
+    void createDevToolsMenu();
+
+    /// @brief Remove dev tools menu (Task #00020)
+    void removeDevToolsMenu();
 
 protected:
     /// @brief Save perspective on close
@@ -199,6 +216,9 @@ private slots:
     void onDiagMemoryLeakTest();
 #endif
 
+    // Dev Tools slots (Task #00020) - only visible in dev mode
+    void onDevToolsIconDownloader();
+
 private:
     // Actions removed - now managed by CommandRegistry
     // All actions are dynamically created from Command structs
@@ -245,6 +265,10 @@ private:
     // Diagnostic mode (Task #00018)
     bool m_diagnosticMode;      ///< Diagnostic mode enabled flag
     QMenu* m_diagnosticMenu;    ///< Diagnostics menu (only visible when m_diagnosticMode=true)
+
+    // Dev mode (Task #00020)
+    bool m_devMode;             ///< Dev mode enabled flag
+    QMenu* m_devToolsMenu;      ///< Dev Tools menu (only visible when m_devMode=true)
 
     // Document management (Task #00008 - Phase 0)
     std::optional<core::Document> m_currentDocument;  ///< Current loaded document

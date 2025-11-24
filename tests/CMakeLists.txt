@@ -5,6 +5,7 @@ set(TEST_SOURCES
     test_main.cpp
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
+    core/test_svg_converter.cpp
     core/test_extension_points.cpp
     core/test_event_bus.cpp
     core/test_plugin_loading.cpp
@@ -43,6 +44,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
+    # TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
+    # ${CMAKE_SOURCE_DIR}/src/core/utils/icon_downloader.cpp
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )
@@ -70,6 +74,8 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
+    Qt6::Network
+    Qt6::Xml
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip

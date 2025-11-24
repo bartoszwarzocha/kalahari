@@ -185,6 +185,22 @@ void SettingsManager::setTheme(const std::string& theme) {
     set("ui.theme", theme);
 }
 
+std::string SettingsManager::getIconColorPrimary() const {
+    return get<std::string>("icons.colorPrimary", "#333333");
+}
+
+void SettingsManager::setIconColorPrimary(const std::string& color) {
+    set("icons.colorPrimary", color);
+}
+
+std::string SettingsManager::getIconColorSecondary() const {
+    return get<std::string>("icons.colorSecondary", "#999999");
+}
+
+void SettingsManager::setIconColorSecondary(const std::string& color) {
+    set("icons.colorSecondary", color);
+}
+
 std::filesystem::path SettingsManager::getSettingsFilePath() const {
     return m_filePath;
 }

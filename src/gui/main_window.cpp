@@ -4,6 +4,7 @@
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
+#include "kalahari/gui/dialogs/icon_downloader_dialog.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -15,6 +16,7 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/icon_registry.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/document_archive.h"
 #include "kalahari/core/book.h"
@@ -63,6 +65,8 @@ MainWindow::MainWindow(QWidget* parent)
     , m_firstShow(true)
     , m_diagnosticMode(false)
     , m_diagnosticMenu(nullptr)
+    , m_devMode(false)
+    , m_devToolsMenu(nullptr)
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
     , m_isDirty(false)
@@ -95,6 +99,35 @@ void MainWindow::registerCommands() {
     int count = 0;
 
     #include "register_commands.hpp"
+
+    // =========================================================================
+    // ICON REGISTRY - Register default SVG icons (Task #00021)
+    // =========================================================================
+    auto& iconRegistry = core::IconRegistry::getInstance();
+
+    // File menu icons
+    iconRegistry.registerIcon("file.new", "resources/icons/twotone/file-new.svg", "New File");
+    iconRegistry.registerIcon("file.open", "resources/icons/twotone/folder_open.svg", "Open File");
+    iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
+    iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save-as.svg", "Save As");
+    iconRegistry.registerIcon("file.exit", "resources/icons/twotone/exit.svg", "Exit");
+
+    // Edit menu icons
+    iconRegistry.registerIcon("edit.undo", "resources/icons/twotone/undo.svg", "Undo");
+    iconRegistry.registerIcon("edit.redo", "resources/icons/twotone/redo.svg", "Redo");
+    iconRegistry.registerIcon("edit.cut", "resources/icons/twotone/cut.svg", "Cut");
+    iconRegistry.registerIcon("edit.copy", "resources/icons/twotone/copy.svg", "Copy");
+    iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/paste.svg", "Paste");
+    iconRegistry.registerIcon("edit.delete", "resources/icons/twotone/delete.svg", "Delete");
+    iconRegistry.registerIcon("edit.selectAll", "resources/icons/twotone/select_all.svg", "Select All");
+    iconRegistry.registerIcon("edit.find", "resources/icons/twotone/find.svg", "Find");
+    iconRegistry.registerIcon("edit.settings", "resources/icons/twotone/settings.svg", "Settings");
+
+    // Help menu icons
+    iconRegistry.registerIcon("help.about", "resources/icons/twotone/information.svg", "About");
+    iconRegistry.registerIcon("help.help", "resources/icons/twotone/help.svg", "Help");
+
+    logger.debug("Registered {} default icons with IconRegistry", 16);
 
     // =========================================================================
     // FILE MENU
@@ -1507,6 +1540,84 @@ void MainWindow::onDiagMemoryLeakTest() {
     statusBar()->showMessage(tr("Memory leak created (1 MB)"), 3000);
 }
 #endif
+
+// =============================================================================
+// Dev Tools Mode (Task #00020)
+// =============================================================================
+
+void MainWindow::enableDevMode() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Enabling dev mode");
+
+    m_devMode = true;
+    createDevToolsMenu();
+
+    statusBar()->showMessage(tr("Dev mode enabled"), 3000);
+}
+
+void MainWindow::disableDevMode() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Disabling dev mode");
+
+    m_devMode = false;
+    removeDevToolsMenu();
+
+    statusBar()->showMessage(tr("Dev mode disabled"), 3000);
+}
+
+void MainWindow::createDevToolsMenu() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("Creating Dev Tools menu");
+
+    // Don't create if already exists
+    if (m_devToolsMenu) {
+        logger.warn("Dev Tools menu already exists");
+        return;
+    }
+
+    // Create menu (inserted before Help menu)
+    m_devToolsMenu = menuBar()->addMenu(tr("&Dev Tools"));
+
+    // === Icon Downloader ===
+    QAction* iconDownloaderAction = m_devToolsMenu->addAction(tr("Icon Downloader"));
+    iconDownloaderAction->setToolTip(tr("Download Material Design icons for the project"));
+    connect(iconDownloaderAction, &QAction::triggered, this, &MainWindow::onDevToolsIconDownloader);
+
+    logger.info("Dev Tools menu created");
+}
+
+void MainWindow::removeDevToolsMenu() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("Removing Dev Tools menu");
+
+    if (!m_devToolsMenu) {
+        logger.debug("Dev Tools menu doesn't exist, nothing to remove");
+        return;
+    }
+
+    // Remove from menu bar
+    menuBar()->removeAction(m_devToolsMenu->menuAction());
+
+    // Delete menu
+    delete m_devToolsMenu;
+    m_devToolsMenu = nullptr;
+
+    logger.info("Dev Tools menu removed");
+}
+
+// =============================================================================
+// Dev Tools Implementations (Task #00020)
+// =============================================================================
+
+void MainWindow::onDevToolsIconDownloader() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Opening Icon Downloader dialog");
+
+    IconDownloaderDialog dialog(this);
+    dialog.exec();
+
+    logger.info("Icon Downloader dialog closed");
+}
 
 void MainWindow::showEvent(QShowEvent* event) {
     QMainWindow::showEvent(event);

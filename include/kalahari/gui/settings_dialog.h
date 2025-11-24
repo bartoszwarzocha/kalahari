@@ -16,6 +16,7 @@ class QComboBox;
 class QSpinBox;
 class QFontComboBox;
 class QCheckBox;
+class QPushButton;
 
 namespace kalahari {
 namespace gui {
@@ -64,6 +65,12 @@ private slots:
     /// @param checked true if checked, false otherwise
     void onDiagModeCheckboxToggled(bool checked);
 
+    /// @brief Primary icon color button clicked (Task #00020)
+    void onPrimaryColorButtonClicked();
+
+    /// @brief Secondary icon color button clicked (Task #00020)
+    void onSecondaryColorButtonClicked();
+
 private:
     /// @brief Create dialog UI
     ///
@@ -93,6 +100,8 @@ private:
     QComboBox* m_themeComboBox;
     QComboBox* m_languageComboBox;
     QSpinBox* m_fontSizeSpinBox;
+    QPushButton* m_primaryColorButton;    ///< Primary icon color picker button (Task #00020)
+    QPushButton* m_secondaryColorButton;  ///< Secondary icon color picker button (Task #00020)
 
     // Editor tab controls (Task #00006)
     QFontComboBox* m_fontFamilyComboBox;

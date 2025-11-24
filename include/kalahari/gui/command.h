@@ -60,6 +60,14 @@ struct IconSet {
     /// @note Letter is white, bold, centered, 60% of pixmap height
     static IconSet createPlaceholder(const QString& letter, const QColor& color);
 
+    /// @brief Create IconSet from IconRegistry with runtime theming (Task #00021)
+    /// @param actionId Action ID (e.g., "file.save", "edit.copy")
+    /// @param theme Theme name (e.g., "twotone", "rounded", "outlined")
+    /// @return IconSet with 3 sizes loaded from IconRegistry with current theme colors
+    /// @note Uses IconRegistry to load SVG, apply colors, render to QPixmap
+    /// @note Falls back to empty IconSet if icon not found in registry
+    static IconSet fromRegistry(const QString& actionId, const QString& theme = "twotone");
+
     /// @brief Check if icon set is empty (all pixmaps invalid)
     bool isEmpty() const {
         return icon16.isNull() && icon24.isNull() && icon32.isNull();

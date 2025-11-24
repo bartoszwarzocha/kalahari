@@ -17,6 +17,12 @@ set(KALAHARI_CORE_SOURCES
     core/book.cpp
     core/document.cpp
     core/document_archive.cpp
+    core/icon_registry.cpp
+    # TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
+    # core/utils/icon_downloader.cpp
+    core/utils/svg_converter.cpp
+    # Headers with Q_OBJECT (needed for AUTOMOC)
+    # ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h
 )
 
 # Create core library as SHARED for Python module compatibility
@@ -66,8 +72,14 @@ target_include_directories(kalahari_core PUBLIC
 )
 
 # Core library dependencies (includes Qt6::Core for QSize/QPoint in SettingsManager)
+# Task #00020: Qt6::Network for IconDownloader, Qt6::Xml for SvgConverter
+# Task #00021: Qt6::Svg for IconRegistry (QSvgRenderer), Qt6::Gui for QPixmap/QIcon
 target_link_libraries(kalahari_core PUBLIC
     Qt6::Core
+    Qt6::Gui
+    Qt6::Svg
+    Qt6::Network
+    Qt6::Xml
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
@@ -87,6 +99,7 @@ set(KALAHARI_SOURCES
     gui/command.cpp
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
+    gui/dialogs/icon_downloader_dialog.cpp
     gui/kalahari_syntax_highlighter.cpp
     gui/main_window.cpp
     gui/menu_builder.cpp
@@ -102,6 +115,7 @@ set(KALAHARI_SOURCES
     gui/panels/search_panel.cpp
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
@@ -116,6 +130,9 @@ set(KALAHARI_SOURCES
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
+
+# TEMPORARY: Skip AUTOMOC for main.cpp (DownloadHelper disabled with #if 0)
+set_source_files_properties(main.cpp PROPERTIES SKIP_AUTOMOC ON)
 
 # Target properties
 set_target_properties(kalahari PROPERTIES
@@ -137,11 +154,13 @@ target_compile_definitions(kalahari PRIVATE
 )
 
 # Link libraries (Qt6 Hello World - Task #00001)
+# Task #00020: Added SvgWidgets for IconDownloaderDialog preview
 target_link_libraries(kalahari PRIVATE
     kalahari_core
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
+    Qt6::SvgWidgets
 )
 
 # Platform-specific settings

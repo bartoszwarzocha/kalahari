@@ -117,6 +117,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `command.h/cpp` (IconSet factory methods), `main_window.h/cpp` (ToolbarManager integration)
   - Toolbar count: 1 → 5, Commands with icons: 8 → 25
 
+- **Task #00020:** Icon Downloader Tool with Dev Tools Menu - 2025-11-23
+  - Comprehensive icon management system for Material Design Icons (Google's repository, Apache 2.0 license)
+  - **Two operation modes:**
+    - GUI: IconDownloaderDialog with live preview
+    - CLI: Batch download tool for AI/automation (--cli --dev --get-icon/--get-icons)
+  - **IconDownloader class:** QNetworkAccessManager-based HTTP downloader (~200 LOC)
+    - Supports 3 icon themes: TwoTone (default), Rounded, Outlined
+    - Category mapping for 36 common icons (action, file, content, etc.)
+    - Material Design URL construction: `{base}/{category}/{icon_name}/{variant}/24px.svg`
+    - Signals: downloadComplete(), downloadError(), progress()
+    - 10-second timeout per icon, HTTPS support via OpenSSL
+  - **SvgConverter class:** Opacity-based color placeholder conversion (~150 LOC)
+    - Converts Material Design SVGs to template format with {COLOR_PRIMARY}/{COLOR_SECONDARY}
+    - Logic: opacity > 0.5 → {COLOR_PRIMARY}, opacity ≤ 0.5 → {COLOR_SECONDARY}
+    - QDomDocument API for safe XML manipulation (avoids regex corruption)
+    - Validation: Syntax checking, malformed XML detection
+    - Supports elements: path, circle, rect, polygon, polyline, ellipse, line
+  - **IconDownloaderDialog:** Qt6 modal dialog with live preview (~400 LOC)
+    - 700×600px window with icon name input, theme checkboxes (3), progress bar, QSvgWidget preview
+    - Auto-creates resources/icons/{theme}/ directories
+    - Downloads sequentially, displays progress (1/3, 2/3, 3/3)
+    - Old-style SIGNAL/SLOT macros for Windows DLL compatibility (avoids staticMetaObject export)
+    - Preview shows TwoTone variant with color replacement visualization
+  - **CLI mode:** Command-line icon download tool for AI/developer use
+    - Flags: `--cli` (required), `--dev` (required), `--get-icon <name>`, `--get-icons <list>`, `--themes <list>`, `--source <url>`
+    - Example: `kalahari --cli --dev --get-icons "save,search,folder_open" --themes "twotone,rounded"`
+    - DownloadHelper class in main.cpp for Qt signal/slot cross-DLL support (includes main.moc)
+    - Synchronous download with QEventLoop (15-second timeout)
+    - Success summary: "X downloaded, Y failed"
+  - **Dev Tools menu:** New top-level menu (visible only with --dev flag)
+    - MainWindow API: enableDevMode(), disableDevMode(), isDevMode(), createDevToolsMenu()
+    - Currently 1 tool: "Icon Downloader" (opens IconDownloaderDialog)
+    - Architecture: Menu created OUTSIDE Command Registry (direct QAction)
+  - **Appearance Settings:** Icon color configuration in Settings dialog
+    - SettingsManager methods: getIconColorPrimary(), setIconColorPrimary(), getIconColorSecondary(), setIconColorSecondary()
+    - Defaults: Primary #333333 (dark gray), Secondary #999999 (light gray)
+    - SettingsDialog: 2 new controls in Appearance tab (QPushButton color pickers)
+    - QColorDialog integration for color selection
+    - Persistent storage in settings.json under "icons.colorPrimary" and "icons.colorSecondary"
+  - **Command-line parser enhancement:** Extended with addOption() for options with values
+    - New method: getOptionValue(name) → QString
+    - Qt's showHelp() integration (works on Windows GUI apps automatically)
+  - **Unit tests:** 50+ test cases for SvgConverter and Settings integration
+    - test_svg_converter.cpp: Opacity threshold logic, multi-path conversion, element handling, validation, edge cases
+    - test_settings_manager.cpp: Icon color defaults, persistence, get/set operations
+  - **Dependencies:** Qt6Network, Qt6Xml, Qt6SvgWidgets, OpenSSL (libssl-3-x64.dll, libcrypto-3-x64.dll, qopensslbackendd.dll)
+  - OpenSpec validation: Change ID `00020-icon-downloader`
+  - Files added: `icon_downloader.h/cpp` (~200 LOC), `svg_converter.h/cpp` (~150 LOC), `icon_downloader_dialog.h/cpp` (~400 LOC), `test_svg_converter.cpp` (175 LOC)
+  - Files modified: `settings_manager.h/cpp` (+20 lines), `settings_dialog.h/cpp` (+120 lines), `cmd_line_parser.h/cpp` (+40 lines), `main_window.h/cpp` (+50 lines), `main.cpp` (+140 lines), `vcpkg.json` (qtbase network/openssl features), `CMakeLists.txt`, `tests/CMakeLists.txt`
+  - Material Design integration: Ready for runtime theming system (Phase 2)
+
+- **Task #00021:** IconRegistry Runtime System with Theme Colors - 2025-11-24
+  - Complete runtime icon management system with theme color support and customization
+  - **IconRegistry class:** Singleton managing SVG icon loading, caching, and theming (~550 LOC)
+    - Supports runtime theme colors: PRIMARY (default #424242) and SECONDARY (default #757575)
+    - TwoTone icon support: {COLOR_PRIMARY} and {COLOR_SECONDARY} placeholders replaced at runtime
+    - Per-icon customization: Override default SVG paths and color overrides for specific icons
+    - QPixmap caching: Cache key format `{actionId}_{theme}_{size}_{primaryColor}_{secondaryColor}`
+    - Cache invalidation on theme/size changes for efficient memory usage
+    - Settings persistence: Stores theme colors, icon sizes, and per-icon customizations in JSON
+  - **Data structures:**
+    - IconDescriptor: Stores default SVG path, user override path, color overrides, label
+    - ThemeConfig: Stores primary/secondary colors and theme name (DEFAULT_LIGHT/DEFAULT_DARK presets)
+    - IconSizeConfig: Stores sizes for toolbar (24), menu (16), panel (20), dialog (32)
+  - **IconRegistry API:**
+    - registerIcon(actionId, svgPath, label) - Register icon with default SVG path
+    - getIcon(actionId, theme, size) → QIcon - Load, color-replace, render, and cache SVG
+    - setThemeColors(primary, secondary, name) - Change runtime theme colors (invalidates cache)
+    - setSizes(config) - Configure icon sizes for different UI contexts
+    - loadFromSettings() / saveToSettings() - Persist icon customizations
+  - **SVG processing pipeline:**
+    1. loadSVGFromFile() - Read SVG content from disk
+    2. replaceColorPlaceholders() - Replace {COLOR_PRIMARY}/{COLOR_SECONDARY} with QColor::name()
+    3. renderSVGToPixmap() - QSvgRenderer → QPixmap at specified size
+    4. Cache QPixmap for reuse
+  - **Command Registry integration:**
+    - IconSet::fromRegistry(actionId, theme) factory method - Load icons in 3 sizes (16/24/32) from IconRegistry
+    - Replaces IconSet::fromStandardIcon() and IconSet::createPlaceholder() (Phase 0 temporary icons)
+  - **MainWindow integration:**
+    - registerCommands(): 16 icons registered (file.new, file.open, file.save, file.saveAs, file.exit, edit.undo, edit.redo, edit.cut, edit.copy, edit.paste, edit.delete, edit.selectAll, edit.find, edit.settings, help.about, help.help)
+    - All icons loaded from resources/icons/twotone/*.svg using IconRegistry
+  - **main.cpp initialization:**
+    - IconRegistry::getInstance().initialize() - Load theme/sizes/customizations from settings on startup
+  - **Settings persistence:**
+    - JSON keys: icons/theme/primary_color, icons/theme/secondary_color, icons/theme/name
+    - Icon sizes: icons/sizes/toolbar, icons/sizes/menu, icons/sizes/panel, icons/sizes/dialog
+    - Per-icon customizations: icons/custom/{actionId}/svg_path, icons/custom/{actionId}/primary_color, icons/custom/{actionId}/secondary_color
+  - **Build adjustments:**
+    - Temporarily disabled IconDownloader in kalahari_core library (moc linkage issue #if 0 wrappers in main.cpp and icon_downloader_dialog.cpp)
+    - SKIP_AUTOMOC property on main.cpp to avoid Q_OBJECT inside #if 0 blocks
+    - Qt6::Svg and Qt6::Gui dependencies added to kalahari_core library
+  - **Architecture benefits:** Runtime theme switching foundation, per-icon customization ready for Settings UI (Phase 2), complete separation from Qt Resource System (.qrc)
+  - OpenSpec validation: Change ID `00021-icon-registry-runtime`
+  - Files added: `icon_registry.h` (~250 LOC), `icon_registry.cpp` (~550 LOC)
+  - Files modified: `command.h/cpp` (IconSet::fromRegistry factory), `main_window.cpp` (icon registration), `main.cpp` (IconRegistry initialization), `src/CMakeLists.txt` (Qt6::Svg, Qt6::Gui, SKIP_AUTOMOC), `tests/CMakeLists.txt` (disable icon_downloader)
+  - Total LOC added: ~800 lines
+  - Manual testing: ✅ Application starts successfully, 16 icons registered, settings persisted
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20

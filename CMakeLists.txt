@@ -101,7 +101,8 @@ else()
 endif()
 
 # Find dependencies (vcpkg will install these automatically)
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui)
+# Task #00020: Network for IconDownloader, Xml for SvgConverter, SvgWidgets for preview
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets)
 
 # LGPL v3 Compliance Check - Verify Qt is dynamically linked
 get_target_property(QT_CORE_TYPE Qt6::Core TYPE)

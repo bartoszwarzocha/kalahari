@@ -10,7 +10,7 @@
 - Add `isDiagnosticMode()` method
 - Parse `--diag` flag in parse()
 - **Time:** 15 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 2. Add Advanced Settings tab
 - Create Advanced tab in SettingsDialog
@@ -19,7 +19,7 @@
 - Add confirmation dialog on enable
 - Connect signal to MainWindow
 - **Time:** 30 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 3. Update MainWindow for diagnostic mode
 - Add `enableDiagnosticMode()`, `disableDiagnosticMode()`
@@ -28,7 +28,7 @@
 - Add `m_diagnosticMode` flag
 - Add `m_diagnosticMenu` pointer
 - **Time:** 20 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 4. Create Diagnostic Menu (18 tools)
 - **Category 1: System** (3 tools: System Info, Qt Environment, File System Check)
@@ -38,7 +38,7 @@
 - **Category 5: Performance** (2 tools: Benchmark, Render Stats)
 - **Category 6: Quick Actions** (2 tools: Clear Log, Force Crash/Memory Leak - Debug only)
 - **Time:** 45 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 5. Implement diagnostic tools (18 methods)
 - onDiagSystemInfo()
@@ -61,14 +61,14 @@
 - onDiagForceCrash() [#ifdef _DEBUG]
 - onDiagMemoryLeakTest() [#ifdef _DEBUG]
 - **Time:** 90 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 6. Update main.cpp
 - Check cmdLine.isDiagnosticMode()
 - Call mainWindow.enableDiagnosticMode()
 - Log diagnostic mode status
 - **Time:** 10 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 7. Build and test
 - Build with scripts/build_windows.bat
@@ -78,17 +78,17 @@
 - Verify output in Log Panel
 - Verify Debug-only tools (#ifdef _DEBUG)
 - **Time:** 45 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 8. Update documentation
 - Update CHANGELOG.md
 - **Time:** 10 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ### 9. Commit changes
 - Git commit with proper message
 - **Time:** 5 min
-- **Status:** ⏳ Pending
+- **Status:** ✅ DONE
 
 ---
 

@@ -32,6 +32,7 @@ CmdLineParser::CmdLineParser(int argc, wchar_t** argv)
 
 void CmdLineParser::setApplicationDescription(const QString& appName, const QString& appDescription) {
     QCoreApplication::setApplicationName(appName);
+    QCoreApplication::setApplicationVersion("0.3.0-alpha");
     m_parser.setApplicationDescription(appDescription);
     Logger::getInstance().debug("Set application description: {}", appName.toStdString());
 }
@@ -50,6 +51,26 @@ void CmdLineParser::addSwitch(const QString& shortName,
     Logger::getInstance().debug("Added command line switch: -{} / --{}",
                                 shortName.toStdString(),
                                 longName.toStdString());
+}
+
+void CmdLineParser::addOption(const QString& shortName,
+                               const QString& longName,
+                               const QString& description,
+                               const QString& valueName) {
+    // Create QCommandLineOption with value
+    QCommandLineOption option(QStringList() << shortName << longName,
+                             description,
+                             valueName);
+    m_parser.addOption(option);
+
+    // Track option names for validation
+    m_options.push_back(shortName);
+    m_options.push_back(longName);
+
+    Logger::getInstance().debug("Added command line option: -{} / --{} <{}>",
+                                shortName.toStdString(),
+                                longName.toStdString(),
+                                valueName.toStdString());
 }
 
 bool CmdLineParser::parse() {
@@ -71,11 +92,12 @@ bool CmdLineParser::parse() {
 
     // Check if help was requested
     if (m_parser.isSet("help")) {
-        // Print help text to stdout
-        QString helpText = m_parser.helpText();
-        fprintf(stdout, "%s\n", helpText.toUtf8().constData());
+        // showHelp() displays help and exits the application
+        // On Windows GUI apps: shows QMessageBox when stdout unavailable
+        // On console apps: prints to stdout
         Logger::getInstance().info("Help requested via command line");
-        return false;
+        m_parser.showHelp(0);  // This calls exit(0)
+        // Never reached
     }
 
     // Parsing succeeded
@@ -105,13 +127,49 @@ bool CmdLineParser::isDiagnosticMode() const {
     return hasSwitch("diag");
 }
 
+bool CmdLineParser::hasOption(const QString& name) const {
+    if (!m_parsed) {
+        Logger::getInstance().warn("hasOption() called before parse()");
+        return false;
+    }
+
+    // Check if option name is valid (was added via addOption)
+    auto it = std::find(m_options.begin(), m_options.end(), name);
+    if (it == m_options.end()) {
+        Logger::getInstance().warn("Unknown option: {}", name.toStdString());
+        return false;
+    }
+
+    // Check if option was present on command line
+    return m_parser.isSet(name);
+}
+
+QString CmdLineParser::getOptionValue(const QString& name) const {
+    if (!m_parsed) {
+        Logger::getInstance().warn("getOptionValue() called before parse()");
+        return QString();
+    }
+
+    // Check if option name is valid
+    auto it = std::find(m_options.begin(), m_options.end(), name);
+    if (it == m_options.end()) {
+        Logger::getInstance().warn("Unknown option: {}", name.toStdString());
+        return QString();
+    }
+
+    // Return option value (empty string if not set)
+    return m_parser.value(name);
+}
+
 // =============================================================================
 // Private helpers
 // =============================================================================
 
 void CmdLineParser::init() {
-    // Add default help switch
-    m_parser.addHelpOption();
+    // Add help option manually (only -h and --help, not --help-all)
+    QCommandLineOption helpOption(QStringList() << "h" << "help",
+                                   "Displays help on commandline options.");
+    m_parser.addOption(helpOption);
 
     // Track help switch
     m_switches.push_back("h");

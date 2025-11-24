@@ -80,6 +80,20 @@ public:
                    const QString& longName,
                    const QString& description);
 
+    /// @brief Add a command line option with value
+    ///
+    /// Adds an option that requires a value, specified on command line as:
+    /// --option value or --option=value
+    ///
+    /// @param shortName Short name (single character, e.g., "i")
+    /// @param longName Long name (full word, e.g., "icon")
+    /// @param description Description shown in help text
+    /// @param valueName Name of value shown in help (e.g., "name")
+    void addOption(const QString& shortName,
+                   const QString& longName,
+                   const QString& description,
+                   const QString& valueName);
+
     /// @brief Parse command line arguments
     ///
     /// Parses the command line arguments according to the options
@@ -105,6 +119,24 @@ public:
     ///
     /// @return true if --diag flag present, false otherwise
     bool isDiagnosticMode() const;
+
+    /// @brief Check if an option was specified
+    ///
+    /// Checks if the given option (with value) was present on the command line.
+    /// Works with either short or long name.
+    ///
+    /// @param name Option name (short or long)
+    /// @return true if option was present, false otherwise
+    bool hasOption(const QString& name) const;
+
+    /// @brief Get value of an option
+    ///
+    /// Returns the value specified for the given option on command line.
+    /// Returns empty string if option was not specified.
+    ///
+    /// @param name Option name (short or long)
+    /// @return Option value or empty string
+    QString getOptionValue(const QString& name) const;
 
 private:
     /// @brief Initialize parser with default settings
@@ -135,6 +167,9 @@ private:
 
     /// @brief List of added switch names (for validation)
     std::vector<QString> m_switches;
+
+    /// @brief List of added option names (for validation)
+    std::vector<QString> m_options;
 };
 
 } // namespace core

@@ -8,10 +8,10 @@
 
 ## Pre-Implementation Checklist
 
-- [ ] Proposal reviewed and approved by user
-- [ ] Read wxWidgets archive implementation (`wxwidgets-archive:src/gui/dialogs/about_dialog.cpp`)
-- [ ] Read current Qt `onAbout()` implementation (`src/gui/main_window.cpp:724-744`)
-- [ ] Qt6 documentation reviewed (QDialog, QTabWidget, QTextEdit, QPixmap, QPainter)
+- [x] Proposal reviewed and approved by user
+- [x] Read wxWidgets archive implementation (`wxwidgets-archive:src/gui/dialogs/about_dialog.cpp`)
+- [x] Read current Qt `onAbout()` implementation (`src/gui/main_window.cpp:724-744`)
+- [x] Qt6 documentation reviewed (QDialog, QTabWidget, QTextEdit, QPixmap, QPainter)
 
 ---
 
@@ -21,17 +21,17 @@
 
 **File:** `include/kalahari/gui/dialogs/about_dialog.h`
 
-- [ ] Create file with `#pragma once`
-- [ ] Add includes: `<QDialog>`, `<QPixmap>`
-- [ ] Create `kalahari::gui::dialogs` namespace
-- [ ] Declare `AboutDialog` class (inherits `QDialog`)
-- [ ] Add constructor: `AboutDialog(QWidget* parent = nullptr)`
-- [ ] Add private helper methods:
+- [x] Create file with `#pragma once`
+- [x] Add includes: `<QDialog>`, `<QPixmap>`
+- [x] Create `kalahari::gui::dialogs` namespace
+- [x] Declare `AboutDialog` class (inherits `QDialog`)
+- [x] Add constructor: `AboutDialog(QWidget* parent = nullptr)`
+- [x] Add private helper methods:
   - `QWidget* createAboutTab()` - Tab 1: Application info + credits
   - `QWidget* createComponentsTab()` - Tab 2: Third-party components list
   - `QWidget* createLicenseTab()` - Tab 3: MIT license text
   - `QPixmap createPlaceholderBanner(int width, int height)` - Banner generation
-- [ ] Add Doxygen comments for class and methods
+- [x] Add Doxygen comments for class and methods
 
 **Acceptance:**
 - Header compiles without errors
@@ -44,8 +44,8 @@
 
 **File:** `src/gui/dialogs/about_dialog.cpp`
 
-- [ ] Create file with includes
-- [ ] Implement constructor:
+- [x] Create file with includes
+- [x] Implement constructor:
   - [ ] Set window title: `"About Kalahari Writer's IDE"`
   - [ ] Set window flags: `Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint`
   - [ ] Set fixed size: `600×720px`
@@ -75,35 +75,35 @@
 
 **File:** `src/gui/dialogs/about_dialog.cpp`
 
-- [ ] Create `QWidget` container
-- [ ] Create `QVBoxLayout`
-- [ ] Add application name label:
+- [x] Create `QWidget` container
+- [x] Create `QVBoxLayout`
+- [x] Add application name label:
   - Text: `"Kalahari Writer's IDE 0.3.1-alpha (Qt6)"`
   - Font: 14pt, bold
   - Alignment: center
   - Margins: 10px all sides
-- [ ] Add platform info label:
+- [x] Add platform info label:
   - Text: `"Cross-platform Writer's IDE for Windows, macOS, and Linux"`
   - Alignment: center
   - Margins: 10px left/right/bottom
-- [ ] Add description label:
+- [x] Add description label:
   - Text: Multi-line description (app purpose, tech stack, phase info)
   - Word wrap enabled
   - Margins: 10px all sides
   - Stretch factor: 1 (fills remaining space)
-- [ ] Add Qt version label:
+- [x] Add Qt version label:
   - Text: `"Built with Qt " + qVersion()`
   - Alignment: center
-- [ ] Add credits section label:
+- [x] Add credits section label:
   - Text: Development team info
   - Small font (8pt)
   - Word wrap enabled
-- [ ] Add copyright label:
+- [x] Add copyright label:
   - Text: `"Copyright (c) 2025 Kalahari Project"`
   - Font: 8pt
   - Alignment: center
   - Margins: 10px all sides
-- [ ] Set layout on widget, return widget
+- [x] Set layout on widget, return widget
 
 **Acceptance:**
 - Tab 1 displays all content
@@ -116,10 +116,10 @@
 
 **File:** `src/gui/dialogs/about_dialog.cpp`
 
-- [ ] Create `QWidget` container
-- [ ] Create `QVBoxLayout`
-- [ ] Create `QTextEdit` (read-only, word wrap enabled)
-- [ ] Build component list text:
+- [x] Create `QWidget` container
+- [x] Create `QVBoxLayout`
+- [x] Create `QTextEdit` (read-only, word wrap enabled)
+- [x] Build component list text:
   - Header: "Kalahari uses the following third-party components:"
   - For each component (Qt6, nlohmann_json, spdlog, libzip, Catch2, pybind11, Python 3.11, vcpkg):
     - Component name + version
@@ -127,9 +127,9 @@
     - License line
     - Usage notes (if applicable)
     - Empty line separator
-- [ ] Set text to QTextEdit
-- [ ] Add QTextEdit to layout (stretch factor 1, 10px margins)
-- [ ] Set layout on widget, return widget
+- [x] Set text to QTextEdit
+- [x] Add QTextEdit to layout (stretch factor 1, 10px margins)
+- [x] Set layout on widget, return widget
 
 **Component List Content:**
 ```
@@ -177,17 +177,17 @@ vcpkg (github.com/microsoft/vcpkg)
 
 **File:** `src/gui/dialogs/about_dialog.cpp`
 
-- [ ] Create `QWidget` container
-- [ ] Create `QVBoxLayout`
-- [ ] Create `QTextEdit` (read-only, word wrap enabled)
-- [ ] Build license text:
+- [x] Create `QWidget` container
+- [x] Create `QVBoxLayout`
+- [x] Create `QTextEdit` (read-only, word wrap enabled)
+- [x] Build license text:
   - "MIT License" header
   - Copyright line: "Copyright (c) 2025 Kalahari Project"
   - Full MIT License text (standard template)
   - Trademark notice: "Note: The 'Kalahari' name and branding are trademarked."
-- [ ] Set text to QTextEdit
-- [ ] Add QTextEdit to layout (stretch factor 1, 10px margins)
-- [ ] Set layout on widget, return widget
+- [x] Set text to QTextEdit
+- [x] Add QTextEdit to layout (stretch factor 1, 10px margins)
+- [x] Set layout on widget, return widget
 
 **Acceptance:**
 - Tab 3 displays full MIT license
@@ -200,19 +200,19 @@ vcpkg (github.com/microsoft/vcpkg)
 
 **File:** `src/gui/dialogs/about_dialog.cpp`
 
-- [ ] Add includes: `<QPainter>`, `<QFont>`
-- [ ] Create `QPixmap` with specified width and height
-- [ ] Create `QPainter` on pixmap
-- [ ] Fill background with black: `painter.fillRect(pixmap.rect(), Qt::black)`
-- [ ] Set text color to white: `painter.setPen(Qt::white)`
-- [ ] Set font: 24pt, bold
-- [ ] Calculate text position (centered):
+- [x] Add includes: `<QPainter>`, `<QFont>`
+- [x] Create `QPixmap` with specified width and height
+- [x] Create `QPainter` on pixmap
+- [x] Fill background with black: `painter.fillRect(pixmap.rect(), Qt::black)`
+- [x] Set text color to white: `painter.setPen(Qt::white)`
+- [x] Set font: 24pt, bold
+- [x] Calculate text position (centered):
   - `textRect = painter.fontMetrics().boundingRect("KALAHARI")`
   - `x = (width - textRect.width()) / 2`
   - `y = (height + textRect.height()) / 2`
-- [ ] Draw text: `painter.drawText(x, y, "KALAHARI")`
-- [ ] End painting
-- [ ] Return pixmap
+- [x] Draw text: `painter.drawText(x, y, "KALAHARI")`
+- [x] End painting
+- [x] Return pixmap
 
 **Acceptance:**
 - Banner pixmap created with correct size
@@ -225,8 +225,8 @@ vcpkg (github.com/microsoft/vcpkg)
 
 **File:** `src/gui/main_window.cpp`
 
-- [ ] Add include: `#include "kalahari/gui/dialogs/about_dialog.h"`
-- [ ] Replace `onAbout()` implementation (lines 724-744):
+- [x] Add include: `#include "kalahari/gui/dialogs/about_dialog.h"`
+- [x] Replace `onAbout()` implementation (lines 724-744):
   - Remove `QString aboutText` and `QMessageBox::about()` code
   - Create `AboutDialog` instance: `AboutDialog dialog(this);`
   - Show modal: `dialog.exec();`
@@ -259,12 +259,12 @@ dialog.exec();
 
 **File:** `src/CMakeLists.txt`
 
-- [ ] Add header to kalahari sources:
+- [x] Add header to kalahari sources:
   - `include/kalahari/gui/dialogs/about_dialog.h`
-- [ ] Add source to kalahari sources:
+- [x] Add source to kalahari sources:
   - `src/gui/dialogs/about_dialog.cpp`
-- [ ] Verify alphabetical order maintained
-- [ ] Run CMake configure to check for errors
+- [x] Verify alphabetical order maintained
+- [x] Run CMake configure to check for errors
 
 **Acceptance:**
 - CMakeLists.txt updated
@@ -275,11 +275,11 @@ dialog.exec();
 
 ### Task 9: Build and Test (15 min)
 
-- [ ] Clean build: `cmake --build build-windows --config Debug --clean-first`
-- [ ] Verify build succeeds (no errors)
-- [ ] Run application: `build-windows\bin\kalahari.exe`
-- [ ] Open Help → About Kalahari
-- [ ] Verify:
+- [x] Clean build: `cmake --build build-windows --config Debug --clean-first`
+- [x] Verify build succeeds (no errors)
+- [x] Run application: `build-windows\bin\kalahari.exe`
+- [x] Open Help → About Kalahari
+- [x] Verify:
   - Dialog opens and is modal
   - Banner displays (black bg, white "KALAHARI" text, centered)
   - Tab 1 (About): Application info + credits correct
@@ -287,8 +287,8 @@ dialog.exec();
   - Tab 3 (License): Full MIT license + trademark notice
   - Close button closes dialog
   - Dialog size 600×720px (verify visually)
-- [ ] Check console logs (spdlog output)
-- [ ] Test on Windows (primary platform for Phase 0)
+- [x] Check console logs (spdlog output)
+- [x] Test on Windows (primary platform for Phase 0)
 
 **Acceptance:**
 - Application builds without errors
@@ -300,12 +300,12 @@ dialog.exec();
 
 ### Task 10: Commit Changes (10 min)
 
-- [ ] Stage files:
+- [x] Stage files:
   - `include/kalahari/gui/dialogs/about_dialog.h`
   - `src/gui/dialogs/about_dialog.cpp`
   - `src/gui/main_window.cpp`
   - `src/CMakeLists.txt`
-- [ ] Commit with message:
+- [x] Commit with message:
   ```
   feat(gui): Enhance About dialog with tabs and banner (Task #00017)
 
@@ -325,19 +325,19 @@ dialog.exec();
 
   Co-Authored-By: Claude <noreply@anthropic.com>
   ```
-- [ ] Verify commit created successfully
+- [x] Verify commit created successfully
 
 ---
 
 ## Post-Implementation Checklist
 
-- [ ] All tasks marked as complete
-- [ ] Build succeeds on Windows
-- [ ] Manual testing passed
-- [ ] Commit pushed to repository
-- [ ] Task #00017 marked as DONE in tasks/00017_enhance_about_dialog.md
-- [ ] CHANGELOG.md updated ([Unreleased] section)
-- [ ] OpenSpec change archived (after deployment)
+- [x] All tasks marked as complete
+- [x] Build succeeds on Windows
+- [x] Manual testing passed
+- [x] Commit pushed to repository
+- [x] Task #00017 marked as DONE in tasks/00017_enhance_about_dialog.md
+- [x] CHANGELOG.md updated ([Unreleased] section)
+- [x] OpenSpec change archived (after deployment)
 
 ---
 

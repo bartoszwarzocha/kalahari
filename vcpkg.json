@@ -11,8 +11,14 @@
       "name": "qtbase",
       "version>=": "6.5.0",
       "default-features": false,
-      "features": ["widgets", "gui"],
+      "features": ["widgets", "gui", "network", "openssl"],
       "$comment": "Qt6 Core + Widgets used under LGPL v3 (dynamically linked). Do NOT use static triplets without Commercial License!"
+    },
+    {
+      "name": "qtsvg",
+      "version>=": "6.5.0",
+      "default-features": false,
+      "$comment": "Qt6 SVG for QSvgWidget (IconDownloaderDialog preview)"
     },
     {
       "name": "qttools",

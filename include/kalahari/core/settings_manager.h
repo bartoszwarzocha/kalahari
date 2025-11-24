@@ -123,6 +123,22 @@ public:
     /// @param theme Theme name ("Light", "Dark", "Savanna", "Midnight")
     void setTheme(const std::string& theme);
 
+    /// @brief Get primary icon color (Task #00020)
+    /// @return Color in hex format (default: "#333333")
+    std::string getIconColorPrimary() const;
+
+    /// @brief Set primary icon color (Task #00020)
+    /// @param color Color in hex format (e.g., "#333333")
+    void setIconColorPrimary(const std::string& color);
+
+    /// @brief Get secondary icon color (Task #00020)
+    /// @return Color in hex format (default: "#999999")
+    std::string getIconColorSecondary() const;
+
+    /// @brief Set secondary icon color (Task #00020)
+    /// @param color Color in hex format (e.g., "#999999")
+    void setIconColorSecondary(const std::string& color);
+
     /// @brief Get settings file path
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;
