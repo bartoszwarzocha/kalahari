@@ -2,6 +2,9 @@
 /// @brief Centralized toolbar management system (Task #00019)
 ///
 /// Manages multiple toolbars with icons, configuration, and state persistence.
+///
+/// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
+/// self-updating icons. Icons now refresh automatically when theme changes.
 
 #pragma once
 
@@ -126,14 +129,9 @@ public:
     /// @note Creates separator before "Toolbars" section
     void createViewMenuActions(QMenu* viewMenu);
 
-    /// @brief Refresh all toolbar icons (Task #00025)
-    ///
-    /// Called when theme changes to update all toolbar button icons
-    /// with new theme colors. Iterates through all toolbars and updates
-    /// each action's icon from IconRegistry.
-    ///
-    /// @param registry CommandRegistry to retrieve commands with updated icons
-    void refreshIcons(CommandRegistry& registry);
+    // OpenSpec #00026: refreshIcons() method REMOVED
+    // Icon refresh is now automatic via ArtProvider::createAction()
+    // which connects each action to ArtProvider::resourcesChanged() signal.
 
 private:
     /// @brief Initialize toolbar configurations

@@ -1,9 +1,12 @@
 /// @file menu_builder.cpp
 /// @brief MenuBuilder implementation with hierarchical menu support (Task #00016)
+///
+/// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
+/// self-updating icons. Removed refreshIcons() method entirely.
 
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/art_provider.h"
 #include <QAction>
 #include <QMessageBox>
 #include <QApplication>
@@ -172,11 +175,31 @@ void MenuBuilder::createMenuAction(QMenu* menu,
         return;
     }
 
-    // Create QAction from Command
-    QAction* action = command.toQAction(menu);
+    auto& artProvider = core::ArtProvider::getInstance();
 
-    // Store command ID in action data for icon refresh (Task #00025)
-    action->setData(QString::fromStdString(command.id));
+    // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
+    // This creates an action that automatically refreshes on theme/color changes
+    QAction* action = artProvider.createAction(
+        QString::fromStdString(command.id),
+        QString::fromStdString(command.label),
+        menu,
+        core::IconContext::Menu
+    );
+
+    // Set tooltip and shortcut from command
+    if (!command.tooltip.empty()) {
+        action->setToolTip(QString::fromStdString(command.tooltip));
+        action->setStatusTip(QString::fromStdString(command.tooltip));
+    }
+    if (!command.shortcut.isEmpty()) {
+        action->setShortcut(command.shortcut.toQKeySequence());
+    }
+
+    // Set checkable state if command has isChecked callback
+    if (command.isChecked) {
+        action->setCheckable(true);
+        action->setChecked(command.isChecked());
+    }
 
     // Handle phase marker: if phase > 0, override execute with QMessageBox
     if (command.phase > 0) {
@@ -238,66 +261,11 @@ void MenuBuilder::updateDynamicMenus() {
     }
 }
 
-void MenuBuilder::refreshIcons() {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("MenuBuilder: Refreshing menu icons");
-
-    // Get current icon theme from settings
-    auto& settings = core::SettingsManager::getInstance();
-    QString iconTheme = QString::fromStdString(
-        settings.get<std::string>("appearance.iconTheme", "twotone")
-    );
-
-    int updatedCount = 0;
-    int skippedNoId = 0;
-    int skippedNoIcon = 0;
-
-    // Iterate all menus in cache
-    for (auto& [path, menu] : m_menuCache) {
-        if (!menu) {
-            continue;
-        }
-
-        // Recursively refresh icons in this menu and all submenus
-        std::function<void(QMenu*)> refreshMenuIcons = [&](QMenu* currentMenu) {
-            if (!currentMenu) return;
-
-            for (QAction* action : currentMenu->actions()) {
-                // Skip separators
-                if (action->isSeparator()) {
-                    continue;
-                }
-
-                // If action has submenu, recurse
-                if (action->menu()) {
-                    refreshMenuIcons(action->menu());
-                    continue;
-                }
-
-                // Get command ID from action data
-                QString actionId = action->data().toString();
-                if (actionId.isEmpty()) {
-                    skippedNoId++;
-                    continue;
-                }
-
-                // Get fresh icon from IconRegistry
-                IconSet freshIcons = IconSet::fromRegistry(actionId, iconTheme);
-                if (!freshIcons.isEmpty()) {
-                    action->setIcon(freshIcons.toQIcon());
-                    updatedCount++;
-                } else {
-                    skippedNoIcon++;
-                }
-            }
-        };
-
-        refreshMenuIcons(menu);
-    }
-
-    logger.info("MenuBuilder: Refreshed {} menu icons (skipped: {} no ID, {} no icon)",
-                updatedCount, skippedNoId, skippedNoIcon);
-}
+// OpenSpec #00026: refreshIcons() method REMOVED
+// Icon refresh is now automatic via ArtProvider::createAction() which
+// connects each action to ArtProvider::resourcesChanged() signal.
+// When theme/colors/sizes change, ArtProvider emits resourcesChanged()
+// and all managed actions update their icons automatically.
 
 } // namespace gui
 } // namespace kalahari

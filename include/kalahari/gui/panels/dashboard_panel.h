@@ -1,9 +1,7 @@
 /// @file dashboard_panel.h
 /// @brief Dashboard panel - welcome screen and quick actions
 ///
-/// @author Claude (AI Assistant)
-/// @date 2025-11-21
-/// @task #00015 - Central Tabbed Workspace
+/// Task #00015 - Central Tabbed Workspace
 
 #pragma once
 

@@ -1,9 +1,7 @@
 /// @file toolbar_builder.h
 /// @brief ToolbarBuilder class - dynamically builds QToolBar from CommandRegistry (Qt6)
 ///
-/// @author Claude (AI Assistant)
-/// @date 2025-11-21 (Qt6 migration)
-/// @task #00047 - Command Registry Qt Migration
+/// Task #00047 - Command Registry Qt Migration
 
 #pragma once
 

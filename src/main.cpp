@@ -14,9 +14,11 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/cmd_line_parser.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
+#include "kalahari/gui/kalahari_style.h"
 
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
@@ -63,13 +65,19 @@ int main(int argc, char *argv[]) {
     settings.load();
     logger.info("Kalahari {} starting", app.applicationVersion().toStdString());
 
-    // Set Fusion style for consistent cross-platform palette support
+    // Set KalahariStyle (wraps Fusion) for dynamic icon sizing
     // Must be set BEFORE ThemeManager applies QPalette
-    QApplication::setStyle("Fusion");
+    // OpenSpec #00026: KalahariStyle reads icon sizes from ArtProvider
+    app.setStyle(new kalahari::gui::KalahariStyle());
 
     // Initialize IconRegistry (triggers ThemeManager initialization)
     auto& iconRegistry = kalahari::core::IconRegistry::getInstance();
     iconRegistry.initialize();
+
+    // Initialize ArtProvider (central visual resource manager)
+    // OpenSpec #00026: Must be after IconRegistry
+    auto& artProvider = kalahari::core::ArtProvider::getInstance();
+    artProvider.initialize();
 
     // Parse command line arguments
     kalahari::core::CmdLineParser cmdLine(argc, argv);

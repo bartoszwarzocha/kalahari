@@ -1,9 +1,10 @@
 /// @file menu_builder.h
 /// @brief MenuBuilder class - dynamically builds QMenuBar from CommandRegistry (Qt6)
 ///
-/// @author Claude (AI Assistant)
-/// @date 2025-11-21
-/// @task #00047 - Command Registry Qt Migration
+/// Task #00047 - Command Registry Qt Migration
+///
+/// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
+/// self-updating icons. Icons now refresh automatically when theme changes.
 
 #pragma once
 
@@ -103,12 +104,9 @@ public:
     /// Useful after data changes (e.g., Recent Books list updated).
     void updateDynamicMenus();
 
-    /// @brief Refresh all menu icons with current theme colors (Task #00025)
-    ///
-    /// Iterates all menus and their QActions, fetches fresh icons from IconRegistry
-    /// with current theme colors, and updates QAction icons.
-    /// Call this after theme change or icon color change.
-    void refreshIcons();
+    // OpenSpec #00026: refreshIcons() method REMOVED
+    // Icon refresh is now automatic via ArtProvider::createAction()
+    // which connects each action to ArtProvider::resourcesChanged() signal.
 
 private:
     /// @brief Parse menuPath and build hierarchical structure

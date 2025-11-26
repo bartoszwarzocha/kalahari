@@ -29,7 +29,12 @@ const IconSizeConfig IconSizeConfig::DEFAULT_SIZES = {
     24,  // toolbar
     16,  // menu
     20,  // panel
-    32   // dialog
+    32,  // dialog
+    16,  // treeView
+    16,  // tabBar
+    16,  // statusBar
+    20,  // button
+    16   // comboBox
 };
 
 // ============================================================================
@@ -303,8 +308,8 @@ void IconRegistry::resetAllCustomizations() {
 void IconRegistry::setSizes(const IconSizeConfig& sizes) {
     m_sizes = sizes;
 
-    Logger::getInstance().info("IconRegistry: Icon sizes updated (toolbar={}, menu={}, panel={}, dialog={})",
-        sizes.toolbar, sizes.menu, sizes.panel, sizes.dialog);
+    Logger::getInstance().info("IconRegistry: Icon sizes updated (toolbar={}, menu={}, treeView={}, tabBar={}, button={})",
+        sizes.toolbar, sizes.menu, sizes.treeView, sizes.tabBar, sizes.button);
 
     // Clear cache (all icons need re-render with new sizes)
     clearCache();
@@ -495,6 +500,11 @@ void IconRegistry::saveToSettings() {
     settings.set("icons/sizes/menu", m_sizes.menu);
     settings.set("icons/sizes/panel", m_sizes.panel);
     settings.set("icons/sizes/dialog", m_sizes.dialog);
+    settings.set("icons/sizes/treeView", m_sizes.treeView);
+    settings.set("icons/sizes/tabBar", m_sizes.tabBar);
+    settings.set("icons/sizes/statusBar", m_sizes.statusBar);
+    settings.set("icons/sizes/button", m_sizes.button);
+    settings.set("icons/sizes/comboBox", m_sizes.comboBox);
 
     // Save per-icon customizations
     // First, clear all existing custom settings
@@ -564,6 +574,11 @@ void IconRegistry::loadFromSettings() {
     m_sizes.menu = settings.get<int>("icons/sizes/menu", 16);
     m_sizes.panel = settings.get<int>("icons/sizes/panel", 20);
     m_sizes.dialog = settings.get<int>("icons/sizes/dialog", 32);
+    m_sizes.treeView = settings.get<int>("icons/sizes/treeView", 16);
+    m_sizes.tabBar = settings.get<int>("icons/sizes/tabBar", 16);
+    m_sizes.statusBar = settings.get<int>("icons/sizes/statusBar", 16);
+    m_sizes.button = settings.get<int>("icons/sizes/button", 20);
+    m_sizes.comboBox = settings.get<int>("icons/sizes/comboBox", 16);
 
     // Load per-icon customizations
     // Note: This requires iterating over all registered icons and checking for custom keys

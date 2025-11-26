@@ -1,9 +1,7 @@
 /// @file dashboard_panel.cpp
 /// @brief Dashboard panel implementation
 ///
-/// @author Claude (AI Assistant)
-/// @date 2025-11-21
-/// @task #00015 - Central Tabbed Workspace
+/// Task #00015 - Central Tabbed Workspace
 
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/core/logger.h"

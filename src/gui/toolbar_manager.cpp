@@ -1,11 +1,14 @@
 /// @file toolbar_manager.cpp
 /// @brief Implementation of ToolbarManager
+///
+/// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
+/// self-updating icons. Removed refreshIcons() method entirely.
 
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/icon_registry.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
 #include <QSettings>
 #include <QApplication>
@@ -93,6 +96,7 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 
 QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegistry& registry) {
     auto& logger = core::Logger::getInstance();
+    auto& artProvider = core::ArtProvider::getInstance();
 
     // Create toolbar
     QToolBar* toolbar = new QToolBar(QObject::tr(config.label.c_str()), m_mainWindow);
@@ -105,9 +109,30 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
         } else {
             Command* cmd = registry.getCommand(cmdId);
             if (cmd && cmd->canExecute()) {
-                QAction* action = cmd->toQAction(toolbar);
-                // Task #00025: Store command ID in action data for icon refresh
-                action->setData(QString::fromStdString(cmdId));
+                // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
+                // This creates an action that automatically refreshes on theme/color changes
+                QAction* action = artProvider.createAction(
+                    QString::fromStdString(cmdId),
+                    QString::fromStdString(cmd->label),
+                    toolbar,
+                    core::IconContext::Toolbar
+                );
+
+                // Set tooltip and shortcut from command
+                if (!cmd->tooltip.empty()) {
+                    action->setToolTip(QString::fromStdString(cmd->tooltip));
+                    action->setStatusTip(QString::fromStdString(cmd->tooltip));
+                }
+                if (!cmd->shortcut.isEmpty()) {
+                    action->setShortcut(cmd->shortcut.toQKeySequence());
+                }
+
+                // Set checkable state if command has isChecked callback
+                if (cmd->isChecked) {
+                    action->setCheckable(true);
+                    action->setChecked(cmd->isChecked());
+                }
+
                 toolbar->addAction(action);
 
                 // Connect action to command execution
@@ -123,7 +148,9 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
     // Configure toolbar appearance and behavior
     toolbar->setMovable(true);
     toolbar->setFloatable(true);
-    toolbar->setIconSize(QSize(24, 24));  // 24x24 icons
+    // OpenSpec #00026: Icon size now managed by ArtProvider/IconSizeConfig
+    int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
+    toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);  // Icons only, no text
 
     // Add to main window
@@ -270,59 +297,11 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     logger.info("ToolbarManager: Created {} View menu actions", m_viewActions.size());
 }
 
-void ToolbarManager::refreshIcons(CommandRegistry& /* registry */) {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("ToolbarManager: Refreshing toolbar icons");
-
-    // Get current icon theme from settings
-    auto& settings = core::SettingsManager::getInstance();
-    QString iconTheme = QString::fromStdString(
-        settings.get<std::string>("appearance.iconTheme", "twotone")
-    );
-    logger.debug("ToolbarManager: Using icon theme '{}'", iconTheme.toStdString());
-
-    int updatedCount = 0;
-    int skippedNoId = 0;
-    int skippedNoIcon = 0;
-
-    // Iterate through all toolbars
-    for (auto& [toolbarId, toolbar] : m_toolbars) {
-        if (!toolbar) continue;
-
-        logger.debug("ToolbarManager: Processing toolbar '{}' with {} actions",
-            toolbarId, toolbar->actions().size());
-
-        // Iterate through all actions in toolbar
-        for (QAction* action : toolbar->actions()) {
-            if (!action || action->isSeparator()) continue;
-
-            // Get command ID from action data
-            QString actionId = action->data().toString();
-            if (actionId.isEmpty()) {
-                logger.warn("ToolbarManager: Action '{}' has no data/ID set",
-                    action->text().toStdString());
-                skippedNoId++;
-                continue;
-            }
-
-            // Get fresh icon from IconRegistry (with current theme colors AND icon style)
-            // This re-fetches icons with updated colors after theme change
-            IconSet freshIcons = IconSet::fromRegistry(actionId, iconTheme);
-            if (!freshIcons.isEmpty()) {
-                action->setIcon(freshIcons.toQIcon());
-                updatedCount++;
-                logger.debug("ToolbarManager: Updated icon for '{}'", actionId.toStdString());
-            } else {
-                logger.warn("ToolbarManager: IconSet::fromRegistry('{}') returned empty",
-                    actionId.toStdString());
-                skippedNoIcon++;
-            }
-        }
-    }
-
-    logger.info("ToolbarManager: Refreshed {} toolbar icons (skipped: {} no ID, {} no icon)",
-        updatedCount, skippedNoId, skippedNoIcon);
-}
+// OpenSpec #00026: refreshIcons() method REMOVED
+// Icon refresh is now automatic via ArtProvider::createAction() which
+// connects each action to ArtProvider::resourcesChanged() signal.
+// When theme/colors/sizes change, ArtProvider emits resourcesChanged()
+// and all managed actions update their icons automatically.
 
 } // namespace gui
 } // namespace kalahari

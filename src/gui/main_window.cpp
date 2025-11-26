@@ -1844,18 +1844,9 @@ void MainWindow::onThemeChanged(const core::Theme& theme) {
 
     logger.debug("MainWindow: IconRegistry updated with new theme colors");
 
-    // Task #00025: Refresh toolbar and menu icons with new theme colors
-    if (m_toolbarManager) {
-        auto& registry = CommandRegistry::getInstance();
-        m_toolbarManager->refreshIcons(registry);
-        logger.debug("MainWindow: Toolbar icons refreshed");
-    }
-
-    // Task #00025: Refresh menu icons with new theme colors
-    if (m_menuBuilder) {
-        m_menuBuilder->refreshIcons();
-        logger.debug("MainWindow: Menu icons refreshed");
-    }
+    // OpenSpec #00026: Manual icon refresh REMOVED
+    // Icons now auto-refresh via ArtProvider::resourcesChanged() signal
+    // which is connected to all actions created by ArtProvider::createAction()
 }
 
 void MainWindow::showEvent(QShowEvent* event) {
