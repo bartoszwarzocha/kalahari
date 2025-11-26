@@ -159,6 +159,16 @@ public:
     /// @return QIcon with colors applied, or empty QIcon if not found
     QIcon getIcon(const QString& actionId, const QString& theme, int size);
 
+    /// @brief Get icon with explicit colors (for preview in Settings Dialog)
+    /// @param actionId Action ID (e.g., "file.save")
+    /// @param theme Theme name (e.g., "twotone", "rounded", "outlined")
+    /// @param size Icon size in pixels (e.g., 24)
+    /// @param primary PRIMARY color to use (overrides theme color)
+    /// @param secondary SECONDARY color to use (overrides theme color)
+    /// @return QIcon with specified colors applied
+    QIcon getIconWithColors(const QString& actionId, const QString& theme, int size,
+                            const QColor& primary, const QColor& secondary);
+
     /// @brief Get icon descriptor for action
     /// @return IconDescriptor pointer or nullptr if not found
     const IconDescriptor* getIconDescriptor(const QString& actionId) const;

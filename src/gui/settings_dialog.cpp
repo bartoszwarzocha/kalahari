@@ -7,6 +7,8 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/core/art_provider.h"
+#include "kalahari/core/icon_registry.h"
 
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -49,7 +51,13 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     , m_iconThemeComboBox(nullptr)
     , m_toolbarIconSizeSpinBox(nullptr)
     , m_menuIconSizeSpinBox(nullptr)
+    , m_treeViewIconSizeSpinBox(nullptr)
+    , m_tabBarIconSizeSpinBox(nullptr)
+    , m_statusBarIconSizeSpinBox(nullptr)
+    , m_buttonIconSizeSpinBox(nullptr)
+    , m_comboBoxIconSizeSpinBox(nullptr)
     , m_iconPreviewLabel(nullptr)
+    , m_iconPreviewLayout(nullptr)
     , m_fontFamilyComboBox(nullptr)
     , m_editorFontSizeSpinBox(nullptr)
     , m_tabSizeSpinBox(nullptr)
@@ -459,7 +467,7 @@ QWidget* SettingsDialog::createAppearanceIconsPage() {
     QVBoxLayout* layout = new QVBoxLayout(page);
 
     // Icon theme group
-    QGroupBox* themeGroup = new QGroupBox(tr("Icon Theme"));
+    QGroupBox* themeGroup = new QGroupBox(tr("Icon Style"));
     QGridLayout* themeGrid = new QGridLayout(themeGroup);
 
     QLabel* iconThemeLabel = new QLabel(tr("Icon Style:"));
@@ -473,12 +481,24 @@ QWidget* SettingsDialog::createAppearanceIconsPage() {
     themeGrid->addWidget(iconThemeLabel, 0, 0);
     themeGrid->addWidget(m_iconThemeComboBox, 0, 1);
 
-    // Preview label
-    m_iconPreviewLabel = new QLabel(tr("Preview will be shown here"));
-    m_iconPreviewLabel->setMinimumHeight(48);
-    m_iconPreviewLabel->setAlignment(Qt::AlignCenter);
-    m_iconPreviewLabel->setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;");
-    themeGrid->addWidget(m_iconPreviewLabel, 1, 0, 1, 2);
+    // Preview - horizontal layout with sample icons
+    QLabel* previewTitleLabel = new QLabel(tr("Preview:"));
+    themeGrid->addWidget(previewTitleLabel, 1, 0, Qt::AlignVCenter);
+
+    QWidget* previewWidget = new QWidget();
+    previewWidget->setAutoFillBackground(true);
+    // Use palette for theme-aware background
+    QPalette previewPalette = previewWidget->palette();
+    previewPalette.setColor(QPalette::Window, palette().color(QPalette::Base));
+    previewWidget->setPalette(previewPalette);
+
+    m_iconPreviewLayout = new QHBoxLayout(previewWidget);
+    m_iconPreviewLayout->setContentsMargins(12, 8, 12, 8);
+    m_iconPreviewLayout->setSpacing(16);
+    m_iconPreviewLayout->setAlignment(Qt::AlignCenter);
+    previewWidget->setMinimumHeight(48);
+    previewWidget->setFixedHeight(52);
+    themeGrid->addWidget(previewWidget, 1, 1);
 
     themeGrid->setColumnStretch(1, 1);
     layout->addWidget(themeGroup);
@@ -486,27 +506,85 @@ QWidget* SettingsDialog::createAppearanceIconsPage() {
     // Icon sizes group
     QGroupBox* sizeGroup = new QGroupBox(tr("Icon Sizes"));
     QGridLayout* sizeGrid = new QGridLayout(sizeGroup);
+    int row = 0;
 
-    QLabel* toolbarSizeLabel = new QLabel(tr("Toolbar Icons:"));
+    // Toolbar Icons
+    QLabel* toolbarSizeLabel = new QLabel(tr("Toolbar:"));
     m_toolbarIconSizeSpinBox = new QSpinBox();
     m_toolbarIconSizeSpinBox->setRange(16, 48);
-    m_toolbarIconSizeSpinBox->setSingleStep(4);
+    m_toolbarIconSizeSpinBox->setSingleStep(2);
     m_toolbarIconSizeSpinBox->setSuffix(" px");
-    sizeGrid->addWidget(toolbarSizeLabel, 0, 0);
-    sizeGrid->addWidget(m_toolbarIconSizeSpinBox, 0, 1);
+    sizeGrid->addWidget(toolbarSizeLabel, row, 0);
+    sizeGrid->addWidget(m_toolbarIconSizeSpinBox, row, 1);
+    row++;
 
-    QLabel* menuSizeLabel = new QLabel(tr("Menu Icons:"));
+    // Menu Icons
+    QLabel* menuSizeLabel = new QLabel(tr("Menu:"));
     m_menuIconSizeSpinBox = new QSpinBox();
     m_menuIconSizeSpinBox->setRange(12, 32);
     m_menuIconSizeSpinBox->setSingleStep(2);
     m_menuIconSizeSpinBox->setSuffix(" px");
-    sizeGrid->addWidget(menuSizeLabel, 1, 0);
-    sizeGrid->addWidget(m_menuIconSizeSpinBox, 1, 1);
+    sizeGrid->addWidget(menuSizeLabel, row, 0);
+    sizeGrid->addWidget(m_menuIconSizeSpinBox, row, 1);
+    row++;
+
+    // TreeView/Navigator Icons
+    QLabel* treeViewSizeLabel = new QLabel(tr("Navigator/Tree:"));
+    m_treeViewIconSizeSpinBox = new QSpinBox();
+    m_treeViewIconSizeSpinBox->setRange(12, 32);
+    m_treeViewIconSizeSpinBox->setSingleStep(2);
+    m_treeViewIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(treeViewSizeLabel, row, 0);
+    sizeGrid->addWidget(m_treeViewIconSizeSpinBox, row, 1);
+    row++;
+
+    // TabBar Icons
+    QLabel* tabBarSizeLabel = new QLabel(tr("Tab Bar:"));
+    m_tabBarIconSizeSpinBox = new QSpinBox();
+    m_tabBarIconSizeSpinBox->setRange(12, 32);
+    m_tabBarIconSizeSpinBox->setSingleStep(2);
+    m_tabBarIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(tabBarSizeLabel, row, 0);
+    sizeGrid->addWidget(m_tabBarIconSizeSpinBox, row, 1);
+    row++;
+
+    // Button Icons
+    QLabel* buttonSizeLabel = new QLabel(tr("Buttons:"));
+    m_buttonIconSizeSpinBox = new QSpinBox();
+    m_buttonIconSizeSpinBox->setRange(12, 32);
+    m_buttonIconSizeSpinBox->setSingleStep(2);
+    m_buttonIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(buttonSizeLabel, row, 0);
+    sizeGrid->addWidget(m_buttonIconSizeSpinBox, row, 1);
+    row++;
+
+    // StatusBar Icons
+    QLabel* statusBarSizeLabel = new QLabel(tr("Status Bar:"));
+    m_statusBarIconSizeSpinBox = new QSpinBox();
+    m_statusBarIconSizeSpinBox->setRange(12, 24);
+    m_statusBarIconSizeSpinBox->setSingleStep(2);
+    m_statusBarIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(statusBarSizeLabel, row, 0);
+    sizeGrid->addWidget(m_statusBarIconSizeSpinBox, row, 1);
+    row++;
+
+    // ComboBox Icons
+    QLabel* comboBoxSizeLabel = new QLabel(tr("Combo Boxes:"));
+    m_comboBoxIconSizeSpinBox = new QSpinBox();
+    m_comboBoxIconSizeSpinBox->setRange(12, 24);
+    m_comboBoxIconSizeSpinBox->setSingleStep(2);
+    m_comboBoxIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(comboBoxSizeLabel, row, 0);
+    sizeGrid->addWidget(m_comboBoxIconSizeSpinBox, row, 1);
 
     sizeGrid->setColumnStretch(1, 1);
     layout->addWidget(sizeGroup);
 
     layout->addStretch();
+
+    // Initial preview update
+    updateIconPreview();
+
     return page;
 }
 
@@ -749,8 +827,69 @@ void SettingsDialog::onThemeComboChanged(int index) {
 
 void SettingsDialog::onIconThemeComboChanged(int index) {
     Q_UNUSED(index);
+    updateIconPreview();
+}
+
+void SettingsDialog::updateIconPreview() {
+    if (!m_iconPreviewLayout || !m_iconThemeComboBox) return;
+
+    // Clear existing preview icons
+    QLayoutItem* item;
+    while ((item = m_iconPreviewLayout->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
+    }
+
     QString iconTheme = m_iconThemeComboBox->currentData().toString();
-    m_iconPreviewLabel->setText(tr("Icon style: %1").arg(iconTheme));
+    int logicalSize = 32;  // Logical size for preview
+    qreal dpr = devicePixelRatioF();
+    int physicalSize = static_cast<int>(logicalSize * dpr);
+
+    // Extract colors from UI buttons (not from IconRegistry cache!)
+    QColor primaryColor("#424242");  // Default fallback
+    QColor secondaryColor("#757575");
+
+    if (m_primaryColorButton) {
+        QString style = m_primaryColorButton->styleSheet();
+        int start = style.indexOf("#");
+        int end = style.indexOf(";", start);
+        if (start != -1 && end != -1) {
+            primaryColor = QColor(style.mid(start, end - start));
+        }
+    }
+
+    if (m_secondaryColorButton) {
+        QString style = m_secondaryColorButton->styleSheet();
+        int start = style.indexOf("#");
+        int end = style.indexOf(";", start);
+        if (start != -1 && end != -1) {
+            secondaryColor = QColor(style.mid(start, end - start));
+        }
+    }
+
+    // Sample icons to preview
+    QStringList sampleIcons = {
+        "file.new", "file.open", "file.save",
+        "edit.undo", "edit.redo", "edit.copy"
+    };
+
+    for (const QString& cmdId : sampleIcons) {
+        // Get icon with UI colors (not cached theme colors!)
+        QIcon icon = core::IconRegistry::getInstance().getIconWithColors(
+            cmdId, iconTheme, physicalSize, primaryColor, secondaryColor);
+        if (!icon.isNull()) {
+            QPixmap pixmap = icon.pixmap(physicalSize, physicalSize);
+            // Set device pixel ratio for crisp rendering
+            pixmap.setDevicePixelRatio(dpr);
+
+            QLabel* iconLabel = new QLabel();
+            iconLabel->setPixmap(pixmap);
+            iconLabel->setFixedSize(logicalSize, logicalSize);
+            iconLabel->setAlignment(Qt::AlignCenter);
+            iconLabel->setToolTip(cmdId);
+            m_iconPreviewLayout->addWidget(iconLabel);
+        }
+    }
 }
 
 // ============================================================================
@@ -793,8 +932,18 @@ void SettingsDialog::loadSettings() {
     int iconThemeIndex = m_iconThemeComboBox->findData(iconTheme);
     if (iconThemeIndex >= 0) m_iconThemeComboBox->setCurrentIndex(iconThemeIndex);
 
-    m_toolbarIconSizeSpinBox->setValue(settings.get<int>("appearance.toolbarIconSize", 24));
-    m_menuIconSizeSpinBox->setValue(settings.get<int>("appearance.menuIconSize", 16));
+    // Load all icon sizes from IconRegistry via ArtProvider
+    auto& sizes = core::IconRegistry::getInstance().getSizes();
+    m_toolbarIconSizeSpinBox->setValue(sizes.toolbar);
+    m_menuIconSizeSpinBox->setValue(sizes.menu);
+    m_treeViewIconSizeSpinBox->setValue(sizes.treeView);
+    m_tabBarIconSizeSpinBox->setValue(sizes.tabBar);
+    m_buttonIconSizeSpinBox->setValue(sizes.button);
+    m_statusBarIconSizeSpinBox->setValue(sizes.statusBar);
+    m_comboBoxIconSizeSpinBox->setValue(sizes.comboBox);
+
+    // Update preview after loading
+    updateIconPreview();
 
     // Editor/General
     QString fontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", "Consolas"));
@@ -856,28 +1005,33 @@ void SettingsDialog::saveSettings() {
                  themeName, primaryColorStr.toStdString(), secondaryColorStr.toStdString());
 
 
-    // Appearance/Icons - save BEFORE triggering refresh so iconTheme is available
-    settings.set("appearance.iconTheme", m_iconThemeComboBox->currentData().toString().toStdString());
+    // Appearance/Icons - save icon theme and apply via ArtProvider
+    QString newIconTheme = m_iconThemeComboBox->currentData().toString();
+    settings.set("appearance.iconTheme", newIconTheme.toStdString());
 
-    // Task #00025: ALWAYS apply color overrides to ThemeManager
-    // This triggers IconRegistry update AND toolbar icon refresh (including iconTheme change)
-    {
-        std::map<std::string, QColor> colorOverrides;
-        if (!primaryColorStr.isEmpty()) {
-            colorOverrides["primary"] = QColor(primaryColorStr);
-        }
-        if (!secondaryColorStr.isEmpty()) {
-            colorOverrides["secondary"] = QColor(secondaryColorStr);
-        }
-        // Always call to emit themeChanged signal, even if colorOverrides is empty
-        // This ensures toolbar icons are refreshed with new iconTheme setting
-        core::ThemeManager::getInstance().applyColorOverrides(colorOverrides);
-        logger.debug("SettingsDialog: Applied color overrides to ThemeManager (triggering icon refresh)");
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Apply icon theme change via ArtProvider
+    artProvider.setIconTheme(newIconTheme);
+    logger.debug("SettingsDialog: Applied icon theme '{}' via ArtProvider", newIconTheme.toStdString());
+
+    // Apply color overrides via ArtProvider
+    if (!primaryColorStr.isEmpty()) {
+        artProvider.setPrimaryColor(QColor(primaryColorStr));
+    }
+    if (!secondaryColorStr.isEmpty()) {
+        artProvider.setSecondaryColor(QColor(secondaryColorStr));
     }
 
-    // Appearance/Icons (continued)
-    settings.set("appearance.toolbarIconSize", m_toolbarIconSizeSpinBox->value());
-    settings.set("appearance.menuIconSize", m_menuIconSizeSpinBox->value());
+    // Apply all icon sizes via ArtProvider
+    artProvider.setIconSize(core::IconContext::Toolbar, m_toolbarIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::Menu, m_menuIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::TreeView, m_treeViewIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::TabBar, m_tabBarIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::Button, m_buttonIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::StatusBar, m_statusBarIconSizeSpinBox->value());
+    artProvider.setIconSize(core::IconContext::ComboBox, m_comboBoxIconSizeSpinBox->value());
+    logger.debug("SettingsDialog: Applied all icon sizes via ArtProvider");
 
     // Editor/General
     settings.set("editor.fontFamily", m_fontFamilyComboBox->currentFont().family().toStdString());

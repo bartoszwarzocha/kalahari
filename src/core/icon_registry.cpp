@@ -141,7 +141,22 @@ QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int s
     }
 
     // Cache miss - load and render
+    // Get SVG path and replace theme placeholder if needed
     QString svgPath = desc.getEffectiveSVGPath();
+
+    // Replace theme in path (e.g., "twotone" -> "filled")
+    // Paths are like: resources/icons/twotone/save.svg
+    if (!theme.isEmpty()) {
+        // Try to replace known theme names in the path
+        QStringList themes = {"twotone", "filled", "outlined", "rounded"};
+        for (const QString& t : themes) {
+            if (svgPath.contains("/" + t + "/")) {
+                svgPath.replace("/" + t + "/", "/" + theme + "/");
+                break;
+            }
+        }
+    }
+
     QString svgContent = loadSVGFromFile(svgPath);
 
     if (svgContent.isEmpty()) {
@@ -165,6 +180,54 @@ QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int s
 
     return QIcon(pixmap);
 }
+QIcon IconRegistry::getIconWithColors(const QString& actionId, const QString& theme, int size,
+                                      const QColor& primary, const QColor& secondary) {
+    // Check if icon is registered
+    if (!hasIcon(actionId)) {
+        Logger::getInstance().warn("IconRegistry: Icon '{}' not registered", actionId.toStdString());
+        return QIcon();
+    }
+
+    // Get IconDescriptor
+    const IconDescriptor& desc = m_icons.at(actionId);
+
+    // Get SVG path
+    QString svgPath = desc.getEffectiveSVGPath();
+
+    // Replace theme in path
+    if (!theme.isEmpty()) {
+        QStringList themes = {"twotone", "filled", "outlined", "rounded"};
+        for (const QString& t : themes) {
+            if (svgPath.contains("/" + t + "/")) {
+                svgPath.replace("/" + t + "/", "/" + theme + "/");
+                break;
+            }
+        }
+    }
+
+    QString svgContent = loadSVGFromFile(svgPath);
+
+    if (svgContent.isEmpty()) {
+        Logger::getInstance().warn("IconRegistry: Failed to load SVG from '{}'", svgPath.toStdString());
+        return QIcon();
+    }
+
+    // Replace color placeholders with PROVIDED colors (not theme colors!)
+    QString processedSVG = replaceColorPlaceholders(svgContent, primary, secondary);
+
+    // Render to QPixmap
+    QPixmap pixmap = renderSVGToPixmap(processedSVG, size);
+
+    if (pixmap.isNull()) {
+        Logger::getInstance().error("IconRegistry: Failed to render SVG for '{}'", actionId.toStdString());
+        return QIcon();
+    }
+
+    // Don't cache - this is for preview only
+    return QIcon(pixmap);
+}
+
+
 
 const IconDescriptor* IconRegistry::getIconDescriptor(const QString& actionId) const {
     auto it = m_icons.find(actionId);
