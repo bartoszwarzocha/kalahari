@@ -346,29 +346,29 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("file.new", "New Book...", "FILE/New Book...", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::New),
-                      IconSet::fromRegistry("file.new"),
+                      IconSet(),
                       [this]() { onNewDocument(); });
 
     REG_CMD_TOOL_ICON("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
-                      IconSet::fromRegistry("file.open"),
+                      IconSet(),
                       [this]() { onOpenDocument(); });
 
     // Recent Books - dynamic submenu (registered separately)
 
     REG_CMD_TOOL_ICON("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("file.exit"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("file.save", "Save", "FILE/Save", 50, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
-                      IconSet::fromRegistry("file.save"),
+                      IconSet(),
                       [this]() { onSaveDocument(); });
 
     REG_CMD_TOOL_ICON("file.saveAs", "Save As...", "FILE/Save As...", 60, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
-                      IconSet::fromRegistry("file.saveAs"),
+                      IconSet(),
                       [this]() { onSaveAsDocument(); });
 
     REG_CMD("file.saveAll", "Save All", "FILE/Save All", 70, true, 1);
@@ -391,7 +391,7 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("file.exit", "Exit", "FILE/Exit", 200, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
-                      IconSet::fromRegistry("file.exit"),
+                      IconSet(),
                       [this]() { onExit(); });
 
     // =========================================================================
@@ -400,27 +400,27 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("edit.undo", "Undo", "EDIT/Undo", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
-                      IconSet::fromRegistry("edit.undo"),
+                      IconSet(),
                       [this]() { onUndo(); });
 
     REG_CMD_TOOL_ICON("edit.redo", "Redo", "EDIT/Redo", 20, true, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
-                      IconSet::fromRegistry("edit.redo"),
+                      IconSet(),
                       [this]() { onRedo(); });
 
     REG_CMD_TOOL_ICON("edit.cut", "Cut", "EDIT/Cut", 30, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
-                      IconSet::fromRegistry("edit.cut"),
+                      IconSet(),
                       [this]() { onCut(); });
 
     REG_CMD_TOOL_ICON("edit.copy", "Copy", "EDIT/Copy", 40, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
-                      IconSet::fromRegistry("edit.copy"),
+                      IconSet(),
                       [this]() { onCopy(); });
 
     REG_CMD_TOOL_ICON("edit.paste", "Paste", "EDIT/Paste", 50, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
-                      IconSet::fromRegistry("edit.paste"),
+                      IconSet(),
                       [this]() { onPaste(); });
 
     REG_CMD("edit.pasteSpecial", "Paste Special...", "EDIT/Paste Special...", 60, false, 1);
@@ -428,7 +428,7 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("edit.selectAll", "Select All", "EDIT/Select All", 80, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
-                      IconSet::fromRegistry("edit.selectAll"),
+                      IconSet(),
                       [this]() { onSelectAll(); });
 
     REG_CMD("edit.selectWord", "Select Word", "EDIT/Select Word", 90, false, 1);
@@ -449,19 +449,19 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("book.newChapter", "New Chapter...", "BOOK/New Chapter...", 10, false, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("book.newChapter"),
+                      IconSet(),
                       []() {});
 
     REG_CMD("book.newScene", "New Scene...", "BOOK/New Scene...", 20, true, 1);
 
     REG_CMD_TOOL_ICON("book.newCharacter", "New Character...", "BOOK/New Character...", 30, false, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("book.newCharacter"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("book.newLocation", "New Location...", "BOOK/New Location...", 40, false, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("book.newLocation"),
+                      IconSet(),
                       []() {});
 
     REG_CMD("book.newItem", "New Item...", "BOOK/New Item...", 50, true, 1);
@@ -474,7 +474,7 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("book.properties", "Book Properties...", "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("book.properties"),
+                      IconSet(),
                       []() {});
 
     // =========================================================================
@@ -539,12 +539,12 @@ void MainWindow::registerCommands() {
 
     REG_CMD_TOOL_ICON("tools.stats.wordCount", "Word Count", "TOOLS/Statistics/Word Count", 20, true, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("tools.stats.wordCount"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("tools.spellcheck", "Spellchecker", "TOOLS/Spellchecker", 40, false, 2,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("tools.spellcheck"),
+                      IconSet(),
                       []() {});
 
     REG_CMD("tools.grammar", "Grammar Check", "TOOLS/Grammar Check", 50, false, 2);
@@ -553,7 +553,7 @@ void MainWindow::registerCommands() {
     // Focus Mode submenu
     REG_CMD_TOOL_ICON("tools.focus.normal", "Normal", "TOOLS/Focus Mode/Normal", 70, false, 1,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("tools.focus.normal"),
+                      IconSet(),
                       []() {});
 
     REG_CMD("tools.focus.focused", "Focused", "TOOLS/Focus Mode/Focused", 80, false, 1);
@@ -599,27 +599,27 @@ void MainWindow::registerCommands() {
     // Panel toggle actions (Task #00019 - for View Toolbar)
     REG_CMD_TOOL_ICON("view.navigator", "Navigator", "VIEW/Panels/Navigator", 10, false, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("view.navigator"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("view.properties", "Properties", "VIEW/Panels/Properties", 20, false, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("view.properties"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("view.search", "Search", "VIEW/Panels/Search", 30, false, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("edit.find"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("view.assistant", "Assistant", "VIEW/Panels/Assistant", 40, false, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("view.assistant"),
+                      IconSet(),
                       []() {});
 
     REG_CMD_TOOL_ICON("view.log", "Log", "VIEW/Panels/Log", 50, true, 0,
                       KeyboardShortcut(),
-                      IconSet::fromRegistry("view.log"),
+                      IconSet(),
                       []() {});
 
     // NOTE: Panel submenu also populated by createDocks() using toggleViewAction()

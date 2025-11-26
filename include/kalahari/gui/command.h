@@ -62,11 +62,11 @@ struct IconSet {
 
     /// @brief Create IconSet from IconRegistry with runtime theming (Task #00021)
     /// @param actionId Action ID (e.g., "file.save", "edit.copy")
-    /// @param theme Theme name (e.g., "twotone", "rounded", "outlined")
+    /// @param theme Theme name override (empty = use ArtProvider current theme)
     /// @return IconSet with 3 sizes loaded from IconRegistry with current theme colors
     /// @note Uses IconRegistry to load SVG, apply colors, render to QPixmap
     /// @note Falls back to empty IconSet if icon not found in registry
-    static IconSet fromRegistry(const QString& actionId, const QString& theme = "twotone");
+    static IconSet fromRegistry(const QString& actionId, const QString& theme = QString());
 
     /// @brief Check if icon set is empty (all pixmaps invalid)
     bool isEmpty() const {

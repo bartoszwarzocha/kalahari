@@ -22,8 +22,8 @@ using namespace kalahari::core;
 
 // Note: ThemeConfig::DEFAULT_LIGHT and DEFAULT_DARK removed.
 // Icon colors are now synchronized from ThemeManager at runtime.
-// Fallback values (#424242/#757575) are used only in loadFromSettings()
-// when settings file is missing or corrupted.
+// Fallback values (#333333/#999999) match ThemeManager Light defaults
+// and are used only in loadFromSettings() when settings file is missing or corrupted.
 
 const IconSizeConfig IconSizeConfig::DEFAULT_SIZES = {
     24,  // toolbar
@@ -415,8 +415,8 @@ void IconRegistry::setThemeColors(const QColor& primary, const QColor& secondary
 void IconRegistry::resetTheme() {
     // Reset to default fallback colors (Light theme)
     // Note: Actual theme colors will be provided by ThemeManager via onThemeChanged signal
-    m_theme.primaryColor = QColor("#424242");
-    m_theme.secondaryColor = QColor("#757575");
+    m_theme.primaryColor = QColor("#333333");   // Match ThemeManager Light default
+    m_theme.secondaryColor = QColor("#999999"); // Match ThemeManager Light default
     m_theme.name = "Light";
 
     Logger::getInstance().info("IconRegistry: Theme reset to default Light (will be updated by ThemeManager)");
@@ -619,13 +619,13 @@ void IconRegistry::loadFromSettings() {
     if (!primary.isValid()) {
         Logger::getInstance().warn("IconRegistry: Invalid primary color in settings ({}), using default",
             primaryHex.toStdString());
-        primary = QColor("#424242");
+        primary = QColor("#333333");  // Match ThemeManager Light default
     }
 
     if (!secondary.isValid()) {
         Logger::getInstance().warn("IconRegistry: Invalid secondary color in settings ({}), using default",
             secondaryHex.toStdString());
-        secondary = QColor("#757575");
+        secondary = QColor("#999999");  // Match ThemeManager Light default
     }
 
     m_theme.primaryColor = primary;

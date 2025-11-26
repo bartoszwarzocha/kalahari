@@ -27,6 +27,7 @@ class QFontComboBox;
 class QCheckBox;
 class QPushButton;
 class QLabel;
+class QHBoxLayout;
 
 namespace kalahari {
 namespace gui {
@@ -139,6 +140,9 @@ private:
     /// @brief Update color button appearance
     void updateColorButton(QPushButton* button, const QColor& color);
 
+    /// @brief Update icon preview with current theme
+    void updateIconPreview();
+
     // ========================================================================
     // Member Variables - Navigation
     // ========================================================================
@@ -173,7 +177,13 @@ private:
     QComboBox* m_iconThemeComboBox;
     QSpinBox* m_toolbarIconSizeSpinBox;
     QSpinBox* m_menuIconSizeSpinBox;
+    QSpinBox* m_treeViewIconSizeSpinBox;
+    QSpinBox* m_tabBarIconSizeSpinBox;
+    QSpinBox* m_statusBarIconSizeSpinBox;
+    QSpinBox* m_buttonIconSizeSpinBox;
+    QSpinBox* m_comboBoxIconSizeSpinBox;
     QLabel* m_iconPreviewLabel;
+    QHBoxLayout* m_iconPreviewLayout;
 
     // ========================================================================
     // Member Variables - Editor/General

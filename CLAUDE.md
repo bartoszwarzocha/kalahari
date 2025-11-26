@@ -128,57 +128,35 @@ mainLayout->addWidget(groupBox);
 setLayout(mainLayout);
 ```
 
-### 3. Atomic Task Workflow - NEVER Skip
+### 3. OpenSpec + Build + ROADMAP Rules - MANDATORY
 
-**NEW MODEL (since 2025-11-09):** Tasks are now **ATOMIC** - small, focused, 30-120 minute units.
+**🔴 TASK MANAGEMENT = OpenSpec ONLY:**
+- ✅ **OpenSpec** = Single source of truth for all changes
+- ✅ **Location:** `openspec/changes/NNNNN-name.md`
+- ✅ **Instructions:** Read `openspec/AGENTS.md` for workflow
+- ❌ **NEVER use** `tasks/` folder (DELETED - DO NOT CREATE!)
+- ❌ **NEVER create** files like `00023_xxx.md` or `00024_yyy.md`
 
-**ATOMIC TASK RULES:**
-- ✅ **ONE task at a time** - No simultaneous work
-- ✅ **ONE functionality per task** - No scope creep
-- ✅ **ONE file changed** (or max 2-3 tightly related)
-- ✅ **100% verifiable** - Clear acceptance criteria
-- ✅ **30-120 minutes** - If longer, split into smaller tasks
-- ❌ **NEVER "przy okazji"** - No "while I'm here" fixes
-- ❌ **NEVER skip approval** - Every plan needs "Approved, proceed"
-- ❌ **NEVER start next** until current is 100% complete
-- ❌ **NEVER create task files in advance** - ONLY when starting that task
+**🔴 ROADMAP.md = Ideas/Features Checklist ONLY:**
+- ✅ **Purpose:** Checklist of ideas and features to implement
+- ✅ **Format:** `[ ]` pending, `[x]` done - simple checkboxes
+- ✅ **Content:** Feature names, ideas, concepts
+- ❌ **NEVER put** task numbers (00001, 00026, etc.) in ROADMAP
+- ❌ **NEVER put** OpenSpec IDs in ROADMAP
+- ❌ **NEVER reference** specific implementation details
+- Just check off `[x]` when feature is implemented!
 
-**ROADMAP vs TASKS RULE (CRITICAL):**
-- ✅ **ROADMAP.md** = High-level pomysły/zagadnienia (BEZ numerów tasków!)
-  - Example: "1.1 Rich Text Editor", "Menu System", "Statistics Architecture"
-  - Purpose: Uporządkowana lista pomysłów do realizacji
-- ✅ **tasks/** = Atomic taski tworzone "on demand" (00001, 00002...)
-  - Example: tasks/00017_menu_implementation.md
-  - Created ONLY when STARTING work on specific feature
-- ❌ **NEVER mix** task numbers with ROADMAP entries
-- ❌ **NEVER create** multiple task files ahead of time
-- ✅ Complete current task 100% BEFORE creating next task file
+**🔴 BUILD SYSTEM - ABSOLUTE:**
+- ✅ **Windows:** `scripts/build_windows.bat Debug`
+- ✅ **Linux:** `scripts/build_linux.sh`
+- ❌ **NEVER create** alternative scripts (quick_build.bat, etc.)
+- ❌ **NEVER use** WSL for Windows builds
+- ❌ **NEVER modify** build scripts without explicit approval
 
-**Why this rule exists:**
-- ROADMAP = strategic vision (changes as we learn)
-- tasks/ = tactical execution (concrete implementation)
-- Premature task files become stale when ROADMAP evolves → CONFUSION
-- Task files tied to specific commits, ROADMAP tied to long-term plan
-
-**TASK FILE NAMING CONVENTION:**
-- **From ROADMAP:** `NNNNN_P_Z_description.md`
-  - NNNNN = sequential task number (00001-99999)
-  - P = phase number (0-5)
-  - Z = zagadnienie (main topic) number in phase (1-9)
-  - Example: `00034_1_2_dynamic_menu_builder.md` (Task 34, Phase 1, Zagadnienie 1.2)
-- **Custom tasks:** `NNNNN_description.md`
-  - No phase/zagadnienie (for fixes, tests, refactors not in ROADMAP)
-  - Example: `00043_fix_windows_crash.md`
-
-**EPIC vs ATOMIC:**
-- **EPIC** = Large feature (e.g., "Auto-Save System") - NOT a task number yet
-- **ATOMIC TASK** = Small step (e.g., "#00045: Bind auto-save timer event") - HAS task number
-
-**Example:**
-- ❌ BAD: Task #00020 "Navigator Panel + Settings fixes" (too big, mixed concerns)
-- ✅ GOOD: Task #00021 "Fix Windows Settings crash" (30 min, one file, one bug)
-
-**Full workflow:** See [project_docs/12_dev_protocols.md](project_docs/12_dev_protocols.md)
+**Why these rules exist:**
+- User uses IDENTICAL scripts - consistency is CRITICAL
+- ROADMAP is strategic vision, not task tracker
+- OpenSpec handles all task/change tracking
 
 ### 4. Documentation Update Rules - MANDATORY
 
@@ -447,67 +425,21 @@ private:
 
 **Detailed workflows:** [project_docs/12_dev_protocols.md](project_docs/12_dev_protocols.md)
 
-### Atomic Task Management Workflow
+### OpenSpec Workflow (MANDATORY)
 
-**ATOMIC TASK LIFECYCLE (MANDATORY):**
-
-```
-┌─────────────────────────────────────────────┐
-│ 1. ANALYSIS (5-10 min)                      │
-│    - Read relevant code (Serena MCP!)       │
-│    - Understand context                     │
-│    - Identify exact change needed           │
-│    - Verify ONE small change only           │
-├─────────────────────────────────────────────┤
-│ 2. PLAN (5-10 min)                          │
-│    - Write task file (tasks/NNNNN_name.md) │
-│    - List acceptance criteria               │
-│    - Identify test cases                    │
-│    - Estimate time (30-120 min)            │
-├─────────────────────────────────────────────┤
-│ 3. USER APPROVAL ⛔                         │
-│    - Present plan to user                   │
-│    - Wait for "Approved, proceed"           │
-│    - BLOCK until approval received          │
-│    - NO CODING before this point!           │
-├─────────────────────────────────────────────┤
-│ 4. IMPLEMENTATION (20-60 min)              │
-│    - Code changes (ONE functionality)       │
-│    - Build verification                     │
-│    - NO scope creep!                        │
-│    - NO "przy okazji" fixes!                │
-├─────────────────────────────────────────────┤
-│ 5. TESTING (10-20 min)                      │
-│    - Manual testing (user or AI-guided)     │
-│    - Acceptance criteria check              │
-│    - PASS/FAIL decision                     │
-│    - If FAIL → fix or rollback              │
-├─────────────────────────────────────────────┤
-│ 6. COMPLETION (5-10 min)                    │
-│    - Update task file (mark DONE)           │
-│    - Update ROADMAP.md (checkbox)           │
-│    - Update CHANGELOG.md (if significant)   │
-│    - Git commit (single atomic change)      │
-│    - Move to NEXT task                      │
-└─────────────────────────────────────────────┘
-```
+**ALL changes managed via OpenSpec:**
+1. Check `openspec/changes/` for active change
+2. Read `openspec/AGENTS.md` for instructions
+3. Implement according to spec
+4. Update spec status when done
+5. Check off `[x]` in ROADMAP.md when feature done
 
 **CRITICAL RULES:**
-- ❌ NO simultaneous tasks (one at a time)
-- ❌ NO scope changes mid-task (stay focused)
-- ❌ NO "quick fixes" while working on task
-- ✅ FULL verification before next task
-- ✅ User approval for EVERY plan
-- ✅ 100% completion or rollback (no partial state)
-
-**EPIC Breakdown Process:**
-
-When large feature (EPIC) is ready:
-1. Create breakdown document (tasks/.wip/EPIC-NAME-breakdown.md)
-2. Split into 5-15 atomic tasks
-3. User approves breakdown
-4. Execute tasks one by one (00031, 00032, 00033...)
-5. When EPIC complete, update ROADMAP
+- ❌ NO `tasks/` folder (DELETED!)
+- ❌ NO task numbers in ROADMAP
+- ✅ ONE change at a time
+- ✅ User approval for plans
+- ✅ Commit frequently
 
 ### End-of-Session Checklist
 1. ✅ Update CHANGELOG.md ([Unreleased] section)
@@ -612,6 +544,18 @@ When large feature (EPIC) is ready:
   - Deleted GUI: 28,098 LOC (103 files)
 - 📄 **Reference:** [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md)
 
+### v6.1 - 2025-11-26 (OPENSPEC + BUILD RULES)
+
+- 🔴 **CRITICAL:** OpenSpec is now ONLY task management system
+- ❌ **Removed:** All references to `tasks/` folder (DELETED)
+- ❌ **Removed:** Task numbers from ROADMAP references
+- ✅ **Added:** ROADMAP.md = Ideas/Features checklist ONLY (no task numbers!)
+- ✅ **Added:** Build system rules (scripts/build_windows.bat ONLY)
+- ✅ **Added:** WSL prohibition for Windows builds
+- 🔄 **Updated:** Section 3 (OpenSpec + Build + ROADMAP Rules)
+- 🔄 **Updated:** Development Protocols (OpenSpec Workflow)
+- 🗓️ **Last Update:** 2025-11-26
+
 ### v5.2 - 2025-11-11 (ATOMIC TASKS + PHASE 1 UPDATE)
 
 - 🚀 **Phase 1 status updated** - Current Status section reflects Phase 1 Week 13
@@ -685,7 +629,7 @@ When large feature (EPIC) is ready:
 
 ---
 
-**Document Version:** 5.1 (Intelligent Sessions)
-**Last Update:** 2025-11-05
+**Document Version:** 6.1 (OpenSpec + Build Rules)
+**Last Update:** 2025-11-26
 **Updated By:** Claude (with user approval)
-**Size:** ~330 lines (session system added)
+**Size:** ~620 lines

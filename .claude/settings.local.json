@@ -159,7 +159,19 @@
       "Bash(\"E:\\Python\\Projekty\\Kalahari\\scripts\\build_windows.bat\" Debug)",
       "Bash(tee:*)",
       "Bash(\"E:\\Python\\Projekty\\Kalahari\\scripts\\build_windows.bat\" Debug clean)",
-      "Bash(scriptsbuild_windows.bat Debug)"
+      "Bash(scriptsbuild_windows.bat Debug)",
+      "Bash(git fsck:*)",
+      "Bash(for commit in aac480b 34855b6 15c7b3d 81277a2 9e27968 ce490b1 806d8e8 683061e 96704bb 5b54f6d 0f190e6 cd7d057 ed3f897)",
+      "Bash(do echo \"=== $commit ===\")",
+      "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|art_provider|kalahari_style)\")",
+      "Bash(./scripts/build_windows.bat Debug)",
+      "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|Compiling|Linking)\")",
+      "Bash(python scripts/convert_filled_icons.py:*)",
+      "Bash(taskkill.exe:*)",
+      "Bash(git -C /e/Python/Projekty/Kalahari status --short)",
+      "Bash(python3:*)",
+      "Bash(scripts/build_windows.bat Debug)",
+      "Bash(pwsh.exe:*)"
     ],
     "deny": [],
     "ask": []

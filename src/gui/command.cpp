@@ -2,6 +2,7 @@
 /// @brief Command Registry data structures implementation (Qt6)
 
 #include "kalahari/gui/command.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/icon_registry.h"
 #include <QFile>
 #include <QImageReader>
@@ -97,7 +98,9 @@ IconSet IconSet::createPlaceholder(const QString& letter, const QColor& color) {
     return iconSet;
 }
 
-IconSet IconSet::fromRegistry(const QString& actionId, const QString& theme) {
+IconSet IconSet::fromRegistry(const QString& actionId, const QString& themeOverride) {
+    // Use ArtProvider for current theme if not overridden
+    QString theme = themeOverride.isEmpty() ? kalahari::core::ArtProvider::getInstance().getIconTheme() : themeOverride;
     IconSet iconSet;
 
     // Get IconRegistry instance
