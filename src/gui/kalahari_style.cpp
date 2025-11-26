@@ -1,47 +1,68 @@
 /// @file kalahari_style.cpp
 /// @brief Implementation of KalahariStyle for dynamic icon sizing
+///
+/// OpenSpec #00026: KalahariStyle reads icon sizes from ArtProvider (central visual resource manager)
+/// and forces style refresh when sizes change via resourcesChanged() signal.
 
 #include "kalahari/gui/kalahari_style.h"
-#include "kalahari/core/icon_registry.h"
+#include "kalahari/core/art_provider.h"
+#include <QApplication>
+#include <QWidget>
 
 namespace kalahari {
 namespace gui {
 
 KalahariStyle::KalahariStyle()
-    : QProxyStyle("Fusion") {
+    : QProxyStyle("Fusion")
+{
+    // Connect to ArtProvider::resourcesChanged() to force style refresh
+    QObject::connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+                     this, &KalahariStyle::onResourcesChanged);
 }
 
 int KalahariStyle::pixelMetric(PixelMetric metric,
                                 const QStyleOption* option,
                                 const QWidget* widget) const {
-    // Get icon sizes from IconRegistry (single source of truth)
-    const auto& sizes = core::IconRegistry::getInstance().getSizes();
+    // Get icon sizes from ArtProvider (central source of truth)
+    auto& artProvider = core::ArtProvider::getInstance();
 
     switch (metric) {
         case PM_SmallIconSize:
             // Used by QMenu for menu item icons
-            return sizes.menu;
+            return artProvider.getIconSize(core::IconContext::Menu);
 
         case PM_ToolBarIconSize:
-            // Used by QToolBar (though we also set explicitly via setIconSize)
-            return sizes.toolbar;
+            // Used by QToolBar
+            return artProvider.getIconSize(core::IconContext::Toolbar);
 
         case PM_ListViewIconSize:
         case PM_IconViewIconSize:
             // Used by tree views and list views
-            return sizes.treeView;
+            return artProvider.getIconSize(core::IconContext::TreeView);
 
         case PM_TabBarIconSize:
             // Used by tab bars
-            return sizes.tabBar;
+            return artProvider.getIconSize(core::IconContext::TabBar);
 
         case PM_ButtonIconSize:
             // Used by push buttons
-            return sizes.button;
+            return artProvider.getIconSize(core::IconContext::Button);
 
         default:
             // Fall back to base Fusion style
             return QProxyStyle::pixelMetric(metric, option, widget);
+    }
+}
+
+void KalahariStyle::onResourcesChanged() {
+    // Force all widgets to re-query style metrics
+    // This triggers repaint with new icon sizes
+    if (qApp) {
+        for (QWidget* widget : qApp->allWidgets()) {
+            widget->style()->unpolish(widget);
+            widget->style()->polish(widget);
+            widget->update();
+        }
     }
 }
 

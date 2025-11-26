@@ -133,6 +133,14 @@ public:
     // Icon refresh is now automatic via ArtProvider::createAction()
     // which connects each action to ArtProvider::resourcesChanged() signal.
 
+    /// @brief Update toolbar icon sizes from ArtProvider
+    ///
+    /// Called when icon sizes change in Settings. Updates all toolbars
+    /// to use the new icon size from ArtProvider::getIconSize().
+    ///
+    /// @note Call this from MainWindow when ArtProvider::resourcesChanged() is emitted
+    void updateIconSizes();
+
 private:
     /// @brief Initialize toolbar configurations
     ///

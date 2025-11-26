@@ -17,6 +17,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/document.h"
@@ -703,6 +704,14 @@ void MainWindow::createToolbars() {
     m_toolbarManager = new ToolbarManager(this);
     CommandRegistry& registry = CommandRegistry::getInstance();
     m_toolbarManager->createToolbars(registry);
+
+    // OpenSpec #00026: Connect ArtProvider::resourcesChanged() to update toolbar icon sizes
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            this, [this]() {
+                if (m_toolbarManager) {
+                    m_toolbarManager->updateIconSizes();
+                }
+            });
 
     logger.debug("5 toolbars created successfully (File, Edit, Book, View, Tools)");
 }

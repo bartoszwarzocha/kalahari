@@ -42,6 +42,18 @@ void ArtProvider::initialize() {
         settings.get<std::string>("appearance.iconTheme", "twotone")
     );
 
+    // CRITICAL: Synchronize IconRegistry colors from ThemeManager BEFORE any icons are loaded
+    // This ensures toolbars/menus get correct colors at startup
+    const Theme& currentTheme = ThemeManager::getInstance().getCurrentTheme();
+    IconRegistry::getInstance().setThemeColors(
+        currentTheme.colors.primary,
+        currentTheme.colors.secondary,
+        QString::fromStdString(currentTheme.name)
+    );
+    Logger::getInstance().info("ArtProvider: Synchronized IconRegistry colors from ThemeManager (primary={}, secondary={})",
+        currentTheme.colors.primary.name().toStdString(),
+        currentTheme.colors.secondary.name().toStdString());
+
     // Connect to ThemeManager for automatic updates
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
             this, &ArtProvider::onThemeChanged);

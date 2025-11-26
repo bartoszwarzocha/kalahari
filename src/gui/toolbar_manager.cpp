@@ -303,5 +303,24 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 // When theme/colors/sizes change, ArtProvider emits resourcesChanged()
 // and all managed actions update their icons automatically.
 
+void ToolbarManager::updateIconSizes() {
+    auto& logger = core::Logger::getInstance();
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    int newSize = artProvider.getIconSize(core::IconContext::Toolbar);
+    QSize iconSize(newSize, newSize);
+
+    logger.debug("ToolbarManager: Updating icon sizes to {}x{}", newSize, newSize);
+
+    for (auto& [id, toolbar] : m_toolbars) {
+        if (toolbar) {
+            toolbar->setIconSize(iconSize);
+        }
+    }
+
+    logger.info("ToolbarManager: Updated {} toolbars to icon size {}x{}",
+        m_toolbars.size(), newSize, newSize);
+}
+
 } // namespace gui
 } // namespace kalahari

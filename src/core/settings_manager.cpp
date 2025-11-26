@@ -345,7 +345,12 @@ void SettingsManager::createDefaults() {
             {"uiFontSize", 12},
             {"iconTheme", "twotone"},
             {"toolbarIconSize", 24},
-            {"menuIconSize", 16}
+            {"menuIconSize", 16},
+            {"treeViewIconSize", 16},
+            {"tabBarIconSize", 16},
+            {"statusBarIconSize", 16},
+            {"buttonIconSize", 20},
+            {"comboBoxIconSize", 16}
         }},
         {"session", {
             {"auto_save_interval", 300},

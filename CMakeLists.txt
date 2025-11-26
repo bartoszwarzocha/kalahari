@@ -155,11 +155,11 @@ include(PrecompiledHeaders)
 add_subdirectory(src)
 add_subdirectory(src/bindings)
 
-# Convert filled icons to use color placeholders (run before copying)
+# Convert ALL icons to use color placeholders (run before copying)
 # This ensures SVG icons have {COLOR_PRIMARY} placeholders for theming
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 execute_process(
-    COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/convert_filled_icons.py"
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/convert_all_icons.py"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE CONVERT_RESULT
     OUTPUT_VARIABLE CONVERT_OUTPUT

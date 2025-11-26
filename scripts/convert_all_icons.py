@@ -86,26 +86,36 @@ def main():
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
 
-    # Process filled icons
-    filled_dir = project_root / 'resources' / 'icons' / 'filled'
+    # Process ALL icon theme folders
+    icons_dir = project_root / 'resources' / 'icons'
+    theme_folders = ['filled', 'outlined', 'rounded', 'twotone']
 
-    if not filled_dir.exists():
-        print(f"Directory not found: {filled_dir}")
-        return
+    total_modified = 0
+    total_files = 0
 
-    modified = 0
-    total = 0
+    for theme in theme_folders:
+        theme_dir = icons_dir / theme
 
-    for svg_file in filled_dir.glob('*.svg'):
-        total += 1
-        if convert_svg_file(svg_file):
-            modified += 1
-            print(f"Converted: {svg_file.name}")
+        if not theme_dir.exists():
+            print(f"Skipping (not found): {theme_dir}")
+            continue
 
-    print(f"\nResults:")
-    print(f"  Total files: {total}")
-    print(f"  Modified: {modified}")
-    print(f"  Already OK: {total - modified}")
+        modified = 0
+        count = 0
+
+        for svg_file in theme_dir.glob('*.svg'):
+            count += 1
+            if convert_svg_file(svg_file):
+                modified += 1
+
+        total_files += count
+        total_modified += modified
+        print(f"{theme}: {modified}/{count} converted")
+
+    print(f"\nTotal Results:")
+    print(f"  Total files: {total_files}")
+    print(f"  Modified: {total_modified}")
+    print(f"  Already OK: {total_files - total_modified}")
 
 
 if __name__ == '__main__':
