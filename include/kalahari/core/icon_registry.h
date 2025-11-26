@@ -8,6 +8,7 @@
 /// - User customization (change icons, colors, sizes)
 /// - Settings persistence (JSON via SettingsManager)
 /// - QPixmap caching for performance
+/// - Automatic theme synchronization via ThemeManager signals
 ///
 /// Ported from wxWidgets IconRegistry and extended for Qt6 + TwoTone support.
 
@@ -15,11 +16,15 @@
 
 #include <QColor>
 #include <QIcon>
+#include <QObject>
 #include <QPixmap>
 #include <QString>
 #include <QStringList>
 #include <map>
 #include <optional>
+
+// Forward declaration to avoid circular dependency
+namespace kalahari { namespace core { struct Theme; } }
 
 namespace kalahari {
 namespace core {
@@ -52,16 +57,13 @@ struct IconDescriptor {
 // ============================================================================
 
 /// @brief Theme configuration with PRIMARY and SECONDARY colors
+///
+/// Note: Colors are synchronized from ThemeManager. Do not use hardcoded
+/// defaults - IconRegistry::initialize() loads colors from ThemeManager.
 struct ThemeConfig {
-    QColor primaryColor;   ///< PRIMARY color (main icon shape, default: #424242)
-    QColor secondaryColor; ///< SECONDARY color (TwoTone accent, default: #757575)
+    QColor primaryColor;   ///< PRIMARY color (main icon shape)
+    QColor secondaryColor; ///< SECONDARY color (TwoTone accent)
     QString name;          ///< Theme name ("Light", "Dark", "Custom")
-
-    /// @brief Default Light theme (dark icons on light background)
-    static const ThemeConfig DEFAULT_LIGHT;
-
-    /// @brief Default Dark theme (light icons on dark background)
-    static const ThemeConfig DEFAULT_DARK;
 };
 
 // ============================================================================
@@ -87,6 +89,7 @@ struct IconSizeConfig {
 ///
 /// Singleton managing all icon mappings, sizes, colors, and user customizations.
 /// Integrates with SettingsManager for persistence and QPixmap caching for performance.
+/// Automatically synchronizes with ThemeManager for live theme updates.
 ///
 /// Example usage:
 /// @code
@@ -103,13 +106,15 @@ struct IconSizeConfig {
 /// // Get icon with current theme
 /// QIcon icon = IconRegistry::getInstance().getIcon("file.save", "twotone", 24);
 ///
-/// // Change theme
+/// // Change theme (usually via ThemeManager, but direct call also works)
 /// IconRegistry::getInstance().setThemeColors(QColor("#2196F3"), QColor("#90CAF9"), "Blue");
 ///
 /// // Customize icon color
 /// IconRegistry::getInstance().setIconPrimaryColor("file.save", QColor("#FF0000"));
 /// @endcode
-class IconRegistry {
+class IconRegistry : public QObject {
+    Q_OBJECT
+
 public:
     /// @brief Get singleton instance
     static IconRegistry& getInstance();
@@ -215,9 +220,15 @@ public:
     /// @brief Save customizations to settings
     void saveToSettings();
 
+public slots:
+    /// @brief Slot called when ThemeManager emits themeChanged signal
+    /// Updates icon colors from theme and clears the cache
+    /// @param theme New active theme
+    void onThemeChanged(const Theme& theme);
+
 private:
-    IconRegistry() = default;
-    ~IconRegistry() = default;
+    IconRegistry();
+    ~IconRegistry() override = default;
     IconRegistry(const IconRegistry&) = delete;
     IconRegistry& operator=(const IconRegistry&) = delete;
 
@@ -277,8 +288,8 @@ private:
     /// @brief Icon registry (actionId → IconDescriptor)
     std::map<QString, IconDescriptor> m_icons;
 
-    /// @brief Current theme configuration
-    ThemeConfig m_theme = ThemeConfig::DEFAULT_LIGHT;
+    /// @brief Current theme configuration (initialized from ThemeManager in initialize())
+    ThemeConfig m_theme;
 
     /// @brief Current size configuration
     IconSizeConfig m_sizes = IconSizeConfig::DEFAULT_SIZES;

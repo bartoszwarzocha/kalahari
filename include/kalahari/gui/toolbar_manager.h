@@ -126,6 +126,15 @@ public:
     /// @note Creates separator before "Toolbars" section
     void createViewMenuActions(QMenu* viewMenu);
 
+    /// @brief Refresh all toolbar icons (Task #00025)
+    ///
+    /// Called when theme changes to update all toolbar button icons
+    /// with new theme colors. Iterates through all toolbars and updates
+    /// each action's icon from IconRegistry.
+    ///
+    /// @param registry CommandRegistry to retrieve commands with updated icons
+    void refreshIcons(CommandRegistry& registry);
+
 private:
     /// @brief Initialize toolbar configurations
     ///

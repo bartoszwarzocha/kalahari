@@ -84,8 +84,8 @@ TEST_CASE("Version information is valid", "[version]") {
 
     SECTION("Version components are correct") {
         REQUIRE(kalahari::VERSION_MAJOR == 0);
-        REQUIRE(kalahari::VERSION_MINOR == 0);
-        REQUIRE(kalahari::VERSION_PATCH == 1);
+        REQUIRE(kalahari::VERSION_MINOR == 3);
+        REQUIRE(kalahari::VERSION_PATCH == 0);
     }
 
     SECTION("Platform is recognized") {

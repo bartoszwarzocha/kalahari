@@ -139,6 +139,46 @@ public:
     /// @param color Color in hex format (e.g., "#999999")
     void setIconColorSecondary(const std::string& color);
 
+    // =========================================================================
+    // Per-theme icon colors (Task #00025)
+    // Stores custom icon colors per theme: icons.themes.<ThemeName>.colorPrimary
+    // =========================================================================
+
+    /// @brief Get primary icon color for a specific theme
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param defaultColor Default color if no custom color is set
+    /// @return Color in hex format
+    std::string getIconColorPrimaryForTheme(const std::string& themeName,
+                                            const std::string& defaultColor) const;
+
+    /// @brief Set primary icon color for a specific theme
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param color Color in hex format (e.g., "#333333")
+    void setIconColorPrimaryForTheme(const std::string& themeName,
+                                     const std::string& color);
+
+    /// @brief Get secondary icon color for a specific theme
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param defaultColor Default color if no custom color is set
+    /// @return Color in hex format
+    std::string getIconColorSecondaryForTheme(const std::string& themeName,
+                                              const std::string& defaultColor) const;
+
+    /// @brief Set secondary icon color for a specific theme
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param color Color in hex format (e.g., "#999999")
+    void setIconColorSecondaryForTheme(const std::string& themeName,
+                                       const std::string& color);
+
+    /// @brief Check if a theme has custom icon colors
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @return true if custom colors exist for this theme
+    bool hasCustomIconColorsForTheme(const std::string& themeName) const;
+
+    /// @brief Clear custom icon colors for a theme (restore to theme defaults)
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    void clearCustomIconColorsForTheme(const std::string& themeName);
+
     /// @brief Get settings file path
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;

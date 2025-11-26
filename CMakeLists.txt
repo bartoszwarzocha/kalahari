@@ -155,6 +155,11 @@ include(PrecompiledHeaders)
 add_subdirectory(src)
 add_subdirectory(src/bindings)
 
+# Copy resources directory to build output (icons, themes, etc.)
+file(COPY ${CMAKE_SOURCE_DIR}/resources
+     DESTINATION ${CMAKE_BINARY_DIR}/bin/)
+message(STATUS "Copied resources/ to ${CMAKE_BINARY_DIR}/bin/")
+
 # Enable testing
 enable_testing()
 add_subdirectory(tests)

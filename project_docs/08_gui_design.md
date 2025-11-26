@@ -2,10 +2,10 @@
 
 > **Writer's IDE** - Comprehensive GUI architecture and layout design
 
-**Document Version:** 2.2 (Menu System Architecture Update)
-**Status:** 🔄 IN PROGRESS (Qt conversion + menu architecture complete)
-**Last Updated:** 2025-11-22
-**Phase:** Phase 0 (Qt Foundation) ✅ COMPLETE, Task #00016 IN PROGRESS
+**Document Version:** 2.3 (QPalette Theme System)
+**Status:** 🔄 IN PROGRESS (Qt conversion + theme system complete)
+**Last Updated:** 2025-11-25
+**Phase:** Phase 1 (Core Editor) 🔄 IN PROGRESS, Task #00025 (Log Panel Theming)
 
 ---
 
@@ -25,6 +25,7 @@
 12. [Focus Modes](#focus-modes)
 13. [Settings Dialog](#settings-dialog)
 14. [Qt Implementation Notes](#qt-implementation-notes) ✅ Qt6
+15. [QPalette Theme System](#qpalette-theme-system-task-00023) ✅ Qt6 (NEW)
 
 ---
 
@@ -2417,10 +2418,212 @@ void MainWindow::setDiagnosticMode(bool enabled) {
 
 ---
 
-**Document Status:** 🔄 IN PROGRESS (Qt conversion + menu architecture)
-**Last Updated:** 2025-11-22
-**Version:** 2.2 (Menu System Architecture)
+## QPalette Theme System (Task #00023)
+
+### Overview
+
+Kalahari uses Qt's `QPalette` system for native widget theming. This architecture ensures that **all Qt Fusion style widgets** (spinboxes, comboboxes, scrollbars, etc.) properly display their control elements (arrows, buttons) in both light and dark themes.
+
+### Problem Statement
+
+**Issue:** Qt Fusion style uses QPalette colors to render widget elements. Without proper palette configuration, widget controls (spinbox arrows, combobox dropdowns) become invisible in dark themes because they render with default light colors.
+
+**Previous attempts that failed:**
+- CSS border-based triangles (works in browsers, not in Qt)
+- QSS with hardcoded colors (doesn't integrate with theme system)
+
+**Solution:** Extend Theme JSON with QPalette color roles and apply via `QApplication::setPalette()`.
+
+### Architecture
+
+```
+Theme JSON (Dark.json/Light.json)
+    ↓
+Theme::fromJson() parses "palette" section
+    ↓
+Theme::Palette::toQPalette() creates QPalette
+    ↓
+ThemeManager::applyTheme() calls QApplication::setPalette()
+    ↓
+Qt Fusion style uses palette colors for ALL widgets
+```
+
+### Theme JSON Structure
+
+```json
+{
+  "name": "Dark",
+  "version": "1.1",
+  "colors": {
+    "primary": "#E0E0E0",
+    "secondary": "#808080",
+    "accent": "#0078D4",
+    "background": "#1E1E1E",
+    "text": "#FFFFFF"
+  },
+  "palette": {
+    "window": "#2b2b2b",
+    "windowText": "#e0e0e0",
+    "base": "#3c3c3c",
+    "alternateBase": "#323232",
+    "text": "#e0e0e0",
+    "button": "#4a4a4a",
+    "buttonText": "#e0e0e0",
+    "highlight": "#0078d4",
+    "highlightedText": "#ffffff",
+    "light": "#606060",
+    "midlight": "#505050",
+    "mid": "#404040",
+    "dark": "#202020",
+    "shadow": "#000000",
+    "link": "#0078d4",
+    "linkVisited": "#5856d6"
+  },
+  "log": {
+    "info": "#CCCCCC",
+    "debug": "#888888",
+    "background": "#252525"
+  }
+}
+```
+
+### Theme Struct (C++)
+
+```cpp
+struct Theme {
+    // ... existing fields ...
+
+    /// @brief Qt Palette colors (for native widget styling)
+    struct Palette {
+        QColor window;          ///< General background color
+        QColor windowText;      ///< General foreground color
+        QColor base;            ///< Background for text entry widgets
+        QColor alternateBase;   ///< Alternate background for views
+        QColor text;            ///< Foreground for text entry widgets
+        QColor button;          ///< Button background color
+        QColor buttonText;      ///< Button foreground color
+        QColor highlight;       ///< Selection/focus highlight color
+        QColor highlightedText; ///< Text color when highlighted
+        QColor light;           ///< Lighter than button color
+        QColor midlight;        ///< Between button and light
+        QColor mid;             ///< Between button and dark
+        QColor dark;            ///< Darker than button color
+        QColor shadow;          ///< Very dark, for shadows
+        QColor link;            ///< Hyperlink color
+        QColor linkVisited;     ///< Visited hyperlink color
+
+        /// @brief Convert to QPalette object
+        QPalette toQPalette() const;
+    } palette;
+};
+```
+
+### Key Implementation Details
+
+**toQPalette() method:**
+```cpp
+QPalette Theme::Palette::toQPalette() const {
+    QPalette pal;
+
+    // Set colors for all three color groups (Active, Inactive, Disabled)
+    auto setColorForAllGroups = [&pal](QPalette::ColorRole role, const QColor& color) {
+        pal.setColor(QPalette::Active, role, color);
+        pal.setColor(QPalette::Inactive, role, color);
+        // Disabled state: reduce alpha for grayed-out appearance
+        QColor disabledColor = color;
+        disabledColor.setAlpha(128);
+        pal.setColor(QPalette::Disabled, role, disabledColor);
+    };
+
+    setColorForAllGroups(QPalette::Window, window);
+    setColorForAllGroups(QPalette::WindowText, windowText);
+    // ... all 16 color roles ...
+
+    return pal;
+}
+```
+
+**ThemeManager::applyTheme():**
+```cpp
+void ThemeManager::applyTheme(const Theme& theme) {
+    m_currentTheme = theme;
+    m_baseTheme = theme;
+    m_overrides.clear();
+
+    // KEY: Apply QPalette to entire application
+    QPalette palette = theme.palette.toQPalette();
+    QApplication::setPalette(palette);
+
+    // Save to settings
+    auto& settings = SettingsManager::getInstance();
+    settings.setTheme(theme.name);
+    settings.save();
+
+    emit themeChanged(m_currentTheme);
+}
+```
+
+### QPalette Color Role Reference
+
+| Role | Purpose | Example (Dark) |
+|------|---------|----------------|
+| `Window` | General background | #2b2b2b |
+| `WindowText` | General foreground | #e0e0e0 |
+| `Base` | Text entry background | #3c3c3c |
+| `AlternateBase` | Alternate rows in views | #323232 |
+| `Text` | Text entry foreground | #e0e0e0 |
+| `Button` | Button background | #4a4a4a |
+| `ButtonText` | Button foreground | #e0e0e0 |
+| `Highlight` | Selection highlight | #0078d4 |
+| `HighlightedText` | Text on selection | #ffffff |
+| `Light` | Lighter than Button (3D effects) | #606060 |
+| `Midlight` | Between Button and Light | #505050 |
+| `Mid` | Between Button and Dark | #404040 |
+| `Dark` | Darker than Button (3D effects) | #202020 |
+| `Shadow` | Very dark (shadows) | #000000 |
+| `Link` | Hyperlink color | #0078d4 |
+| `LinkVisited` | Visited link color | #5856d6 |
+
+### Backward Compatibility
+
+If a theme JSON lacks the "palette" section, colors are auto-generated from the basic "colors" section:
+
+```cpp
+if (!json.contains("palette")) {
+    bool isDark = isDarkBackground(theme.colors.background);
+
+    theme.palette.window = theme.colors.background;
+    theme.palette.windowText = theme.colors.text;
+    theme.palette.base = isDark
+        ? theme.colors.background.lighter(120)
+        : theme.colors.background;
+    // ... auto-generate remaining palette colors ...
+}
+```
+
+### Benefits
+
+1. **Native Widget Support:** All Qt Fusion widgets render correctly (spinbox arrows visible in dark theme)
+2. **Single Source of Truth:** Colors defined in JSON, applied system-wide via QPalette
+3. **No QSS Needed:** No hardcoded color values in stylesheets
+4. **Runtime Switching:** Theme changes apply immediately to all widgets
+5. **Disabled State:** Automatic alpha reduction for disabled widgets
+
+### Files
+
+- `include/kalahari/core/theme.h` - Palette struct definition
+- `src/core/theme.cpp` - toQPalette() implementation
+- `src/core/theme_manager.cpp` - applyTheme() with setPalette()
+- `resources/themes/Light.json` - Light theme palette
+- `resources/themes/Dark.json` - Dark theme palette
+
+---
+
+**Document Status:** 🔄 IN PROGRESS (Qt conversion + theme system)
+**Last Updated:** 2025-11-25
+**Version:** 2.3 (QPalette Theme System)
 **Updates:**
+- **2025-11-25:** Added QPalette Theme System section (Task #00023)
 - Panel Catalog updated (Navigator, Statistics Bar, Weekly Statistics, Properties)
 - 3-tier Statistics Architecture documented
 - Mind Maps & Timelines library integration

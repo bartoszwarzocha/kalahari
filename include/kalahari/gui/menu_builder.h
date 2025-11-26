@@ -103,6 +103,13 @@ public:
     /// Useful after data changes (e.g., Recent Books list updated).
     void updateDynamicMenus();
 
+    /// @brief Refresh all menu icons with current theme colors (Task #00025)
+    ///
+    /// Iterates all menus and their QActions, fetches fresh icons from IconRegistry
+    /// with current theme colors, and updates QAction icons.
+    /// Call this after theme change or icon color change.
+    void refreshIcons();
+
 private:
     /// @brief Parse menuPath and build hierarchical structure
     ///

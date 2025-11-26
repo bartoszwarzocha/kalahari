@@ -2,10 +2,9 @@
 
 > **Writer's IDE** - Qt6 Architecture | Phase-based Development
 
-**Current Phase:** Phase 0 (Qt Foundation) ✅ COMPLETE
-**Current Task:** Preparation for Phase 1
-**Version:** 0.3.1-alpha
-**Last Updated:** 2025-11-21
+**Current Phase:** Phase 1 (Core Editor) 🔄 IN PROGRESS
+**Version:** 0.3.2-alpha
+**Last Updated:** 2025-11-26
 
 ---
 
@@ -28,184 +27,59 @@
 ## PHASE 0: Qt Foundation ✅ COMPLETE
 
 **Status:** ✅ COMPLETE (Started 2025-11-19, Finished 2025-11-21)
-**Duration:** 2 days (estimate: 4 weeks) - 13/13 tasks complete
+**Duration:** 2 days (estimate: 4 weeks)
 **Target:** 0.3.0-alpha ✅ RELEASED (basic GUI) → 0.3.1-alpha (Command Registry) ✅ COMPLETE
 
 ### Step 0: Preparation ✅ COMPLETE (Day 1, ~6 hours)
 
 **Goal:** Archive wxWidgets, update build system, refresh documentation
 
-- [x] **Step 0.1:** Archive Current State (30 min)
-  - Created wxwidgets-archive branch
-  - Created v0.2.0-alpha-wxwidgets tag
-  - Deleted 3 feature branches (dpi-scaling, dpi-support-clean, theme-manager)
-  - Reset main to commit e191390 (last stable)
+- [x] Archive Current State - wxwidgets-archive branch, v0.2.0-alpha-wxwidgets tag
+- [x] Clean Main Branch - Deleted 28,098 LOC (103 files)
+- [x] Update Project Configuration - vcpkg.json Qt6, CMakeLists.txt Qt6 integration
+- [x] Update CLAUDE.md - Qt6 patterns, Cardinal Rules
+- [x] Create Fresh ROADMAP.md - Phase 0-5 structure
+- [x] Update CHANGELOG.md - Added [0.3.0-alpha], [0.3.1-alpha] sections
+- [x] Update project_docs/ - 02_tech_stack.md, 08_gui_design.md, 01_overview.md
+- [x] Update .claude/ Resources - Skills verified Qt-compatible
+- [x] Update Serena Memories - Migration decision documented
+- [x] Final Push & Verification - All changes committed
 
-- [x] **Step 0.2:** Clean Main Branch (60 min)
-  - Deleted 28,098 LOC (103 files)
-  - Removed src/gui/ and include/kalahari/gui/
-  - Removed 49 wxWidgets task files
-  - Removed bwx_sdk submodule
-  - Removed wxWidgets skills
-
-- [x] **Step 0.3:** Update Project Configuration (90 min)
-  - vcpkg.json: wxWidgets → Qt6 6.5.0+ (qtbase, qttools)
-  - CMakeLists.txt: Qt6 find_package, CMAKE_AUTOMOC/AUTORCC/AUTOUIC
-  - src/CMakeLists.txt: Removed bwx_sdk, updated to Qt-agnostic core
-  - src/main.cpp: Qt6 placeholder with QApplication
-
-- [x] **Step 0.4:** Update CLAUDE.md (60 min)
-  - Replaced wxWidgets patterns with Qt6 patterns
-  - Updated Cardinal Rules §2 (Qt6 Layout)
-  - Updated Technology Stack (Qt6 6.5.0+)
-  - Updated Current Status (Qt migration progress)
-  - Added v6.0 update history
-
-- [x] **Step 0.5:** Create Fresh ROADMAP.md (90 min) ✅ **COMPLETE**
-  - Defined Phase 0-5 structure for Qt (Tasks #00001-00014 completed)
-  - Fresh task numbering applied (00001+)
-  - Removed all wxWidgets-specific content
-
-- [x] **Step 0.6:** Update CHANGELOG.md (30 min) ✅ **COMPLETE**
-  - Added [0.3.0-alpha] + [0.3.1-alpha] sections
-  - Documented Tasks #00001-00014
-  - Added Qt migration context
-
-- [x] **Step 0.7:** Update project_docs/ (60 min) ✅ **COMPLETE** (2025-11-21)
-  - 02_tech_stack.md (vcpkg.json Qt6 example updated)
-  - 08_gui_design.md (Qt migration status section added)
-  - 01_overview.md (Qt6 references updated)
-  - 09_i18n.md (already Qt6-updated)
-
-- [x] **Step 0.8:** Update .claude/ Resources (30 min) ✅ **COMPLETE** (2025-11-21)
-  - kalahari-i18n skill (already Qt6-updated)
-  - kalahari-plugin-system skill (Qt-agnostic, verified)
-
-- [x] **Step 0.9:** Update Serena Memories (30 min) ✅ **COMPLETE** (2025-11-21)
-  - Created qt_migration_decision_2025-11-19.md memory (comprehensive Qt migration docs)
-  - Created kalahari_project_status_2025-11-21.md memory (Phase 0 complete status)
-
-- [x] **Step 0.10:** Final Push & Verification (10 min) ✅ **COMPLETE** (2025-11-21)
-  - Committed all changes to main
-  - Verified git state (clean, all changes committed)
-  - Steps 0.5-0.10 preparation cleanup complete
-
-### Week 1: Qt Hello World (Tasks #00001-00003)
+### Week 1: Qt Hello World ✅ COMPLETE
 
 **Goal:** Basic Qt6 application with window, menu, logging
 
-- [x] **Task #00001:** Qt6 vcpkg Installation & CMake Configuration (2-3h) ✅ **COMPLETE** (2025-11-20)
-  - Qt6 6.9.1 installed via vcpkg (qtbase, qttools)
-  - CMake finds Qt6::Core, Qt6::Widgets, Qt6::Gui
-  - Built minimal QApplication + QMainWindow test
-  - CI/CD: Workflows updated for Qt dependencies
-  - Commit: `2b7d779` - Qt6 Hello World
+- [x] Qt6 vcpkg Installation & CMake Configuration - Qt6 6.9.1, CI/CD updated
+- [x] QMainWindow Skeleton - Menu bar, toolbar, status bar
+- [x] Basic QDockWidget System - 5 dock panels, perspective save/restore
 
-- [x] **Task #00002:** QMainWindow Skeleton (3-4h) ✅ **COMPLETE** (2025-11-20)
-  - Created MainWindow (QMainWindow subclass)
-  - Menu bar: File (New/Open/Save/Exit), Edit (Undo/Redo/Cut/Copy/Paste/Settings)
-  - Toolbar: File actions (New, Open, Save)
-  - Status bar with "Ready" message
-  - Integrated Logger and SettingsManager
-  - Commit: `78ce960` - QMainWindow structure with menus/toolbars
-
-- [x] **Task #00003:** Basic QDockWidget System (4-5h) ✅ **COMPLETE** (2025-11-20)
-  - Created 5 dock panels: Navigator, Properties, Log, Search, Assistant
-  - View menu with toggle actions for each panel
-  - Perspective save/restore via QSettings (geometry + dock state)
-  - Default layout: Navigator (left), Editor (center), Properties (right)
-  - Commit: `8e0caaf` - QDockWidget system with 6 panels + View menu
-
-### Week 2: Settings System (Tasks #00004-00006)
+### Week 2: Settings System ✅ COMPLETE
 
 **Goal:** Settings dialog with Qt layouts, JSON persistence
 
-- [x] **Task #00004:** Settings Dialog Structure (3-4h) ✅ **COMPLETE** (2025-11-20)
-  - **Part A:** Migrated SettingsManager and CmdLineParser to Qt6 (QSize, QPoint)
-    - Commit: `37019b1` - SettingsManager Qt6 migration
-  - **Part B:** Created SettingsDialog (QDialog) with QTabWidget
-    - QTabWidget for category navigation (2 tabs: Appearance, Editor)
-    - Apply/OK/Cancel buttons (QDialogButtonBox)
-    - Connected with SettingsManager (load/save on open/close)
-    - Commit: `dc17e16` - Settings Dialog structure
+- [x] Settings Dialog Structure - QTabWidget, Apply/OK/Cancel, SettingsManager integration
+- [x] Appearance Settings Panel - Font size, theme, icon size
+- [x] Editor Settings Panel - Font family/size, tab size, line numbers, word wrap
 
-- [x] **Task #00005:** Appearance Settings Panel (2-3h) ✅ COMPLETE (2025-11-20)
-  - Create AppearancePanel (QWidget)
-  - Font size controls (QComboBox with 6 presets)
-  - Theme controls (QComboBox: light/dark)
-  - Icon size controls (QSpinBox)
-  - Apply settings with QApplication::setFont()
-
-- [x] **Task #00006:** Editor Settings Panel (2-3h) ✅ **COMPLETE** (2025-11-20)
-  - Created Editor tab in Settings Dialog (QWidget)
-  - 5 controls: Font Family (QFontComboBox), Font Size (QSpinBox), Tab Size (QSpinBox), Line Numbers (QCheckBox), Word Wrap (QCheckBox)
-  - Settings persistence via SettingsManager (generic get<T>/set<T> API)
-  - All values load/save correctly to settings.json
-
-### Week 3: Core Editor Foundation (Tasks #00007-00009)
+### Week 3: Core Editor Foundation ✅ COMPLETE
 
 **Goal:** Basic text editing with QPlainTextEdit
 
-- [x] **Task #00007:** EditorWidget Basic Implementation (4-5h) ✅ **COMPLETE** (2025-11-20)
-  - Implemented settings integration in EditorPanel (QPlainTextEdit)
-  - Font family/size applied from editor.fontFamily, editor.fontSize
-  - Tab size converted to pixels: tabSize × QFontMetrics::horizontalAdvance(' ')
-  - Word wrap mode: setLineWrapMode(NoWrap/WidgetWidth)
-  - Public API: setText(), getText() for Document I/O (Task #00008)
-  - Syntax highlighter stub created (KalahariSyntaxHighlighter, Phase 1 implementation)
-  - Actual time: ~90 minutes (estimate: 4-5h)
+- [x] EditorWidget Basic Implementation - Settings integration, syntax highlighter stub
+- [x] File Operations - New/Open/Save/SaveAs, dirty state, .klh files
+- [x] Edit Operations - Undo/Redo/Cut/Copy/Paste/SelectAll
 
-- [x] **Task #00008:** File Operations (3-4h) ✅ **COMPLETE** (2025-11-20)
-  - File operations: New (empty document), Open (QFileDialog + DocumentArchive::load)
-  - Save (to current file), Save As (QFileDialog save + DocumentArchive::save)
-  - Dirty state tracking: textChanged signal → "*" in window title
-  - Unsaved changes dialog: Prompts on New/Open/Close (Save/Discard/Cancel)
-  - Phase 0 content storage: metadata["_phase0_content"] in first chapter (temp solution)
-  - Window title format: "Kalahari - filename.klh" / "Kalahari - *filename.klh" (dirty)
-  - Actual time: ~2.5 hours (estimate: 3-4h)
-
-- [x] **Task #00009:** Edit Operations (2-3h) ✅ **COMPLETE** (2025-11-20)
-  - Implemented 6 Edit operations via QPlainTextEdit delegation
-  - Edit → Undo/Redo/Cut/Copy/Paste/Select All (Ctrl+Z/Y/X/C/V/A)
-  - Keyboard shortcuts (QKeySequence standard bindings)
-  - Menu integration (Edit menu with separators)
-  - Status bar feedback ("Undo performed", "Copied to clipboard", etc.)
-  - Simple delegation pattern (Phase 0 simplicity - Qt handles all logic)
-  - Actual time: ~1.5 hours (estimate: 2-3h)
-
-### Week 4: Panels & Polish (Tasks #00010-00012)
+### Week 4: Panels & Polish ✅ COMPLETE
 
 **Goal:** Navigator panel, About dialog, first release
 
-- [x] **Task #00010:** Navigator Panel with QTreeWidget (4-5h) ✅ **COMPLETE** (2025-11-20)
-  - Integrated NavigatorPanel with Document structure for book hierarchy display
-  - loadDocument() method: Parses Book (frontMatter, body, backMatter) and populates QTreeWidget
-  - Tree structure: Document (root) → Sections (Front Matter/Body/Back Matter) → Parts → Chapters
-  - Body expanded by default, Front/Back Matter collapsed
-  - Double-click stub: Shows "Phase 1 feature" message (no navigation in Phase 0)
-  - MainWindow integration: Called on New/Open operations
-  - Actual time: ~2 hours (estimate: 4-5h)
-
-- [x] **Task #00011:** About Dialog & Help Menu (2h) ✅ **COMPLETE** (2025-11-20)
-  - Added Help menu with 2 actions (About Kalahari, About Qt)
-  - Help → About Kalahari: QMessageBox::about() with app info
-  - Help → About Qt: QMessageBox::aboutQt() standard dialog
-  - Displays: Version (0.3.0-alpha), License (MIT), Copyright, Qt version
-  - Phase 0: Built-in Qt dialogs (no custom AboutDialog class)
-  - Actual time: ~1 hour (estimate: 2h)
-
-- [x] **Task #00012:** Qt Foundation Release (3-4h) ✅ **COMPLETE** (2025-11-20)
-  - Updated version: CMakeLists.txt 0.0.1 → 0.3.0
-  - Finalized CHANGELOG.md ([Unreleased] → [0.3.0-alpha])
-  - Created git tag v0.3.0-alpha with release notes
-  - ROADMAP.md: Phase 0 marked as COMPLETE
-  - 🎉 Qt migration complete! All 12 tasks done in 1 day!
+- [x] Navigator Panel with QTreeWidget - Book hierarchy display, document integration
+- [x] About Dialog & Help Menu - QMessageBox dialogs
+- [x] Qt Foundation Release - v0.3.0-alpha tag
 
 ### Week 5: Command Registry Migration ✅ COMPLETE (2025-11-21)
 
 **Goal:** Migrate Command Registry system from wxWidgets to Qt6
-
-**Context:** Command Registry was fully implemented and tested in wxWidgets (Tasks #00032-#00035, 46+ test cases). System includes CommandRegistry singleton, Command/IconSet/KeyboardShortcut structures, MenuBuilder, ToolbarBuilder. MainWindow had hardcoded QAction connections - migrated to unified command system for plugin support and customizable UI.
 
 **Architecture Migrated:**
 - ✅ Command Registry (singleton, ~200 LOC, framework-agnostic)
@@ -213,64 +87,23 @@
 - ✅ IconSet (16/24/32px QPixmap, toQIcon() helper)
 - ✅ KeyboardShortcut (Qt::Key + Qt::KeyboardModifiers, toQKeySequence())
 - ✅ ToolbarBuilder (dynamic QToolBar generation from registry)
-- ✅ MenuBuilder (new for Qt, 150 LOC)
+- ✅ MenuBuilder (hierarchical menu support, 150 LOC)
 
 **Benefits Delivered:**
 - ✅ Single source of truth for all commands (15 registered: File, Edit, Help)
 - ✅ Plugin commands integrate seamlessly (ICommandProvider interface ready)
 - ✅ Customizable toolbars (user can add/remove/reorder in Phase 1)
 - ✅ Command Palette ready (Ctrl+Shift+P foundation, Phase 1 implementation)
-- ✅ Keyboard shortcuts management (centralized)
 - ✅ No hardcoded QAction connections (MainWindow uses builders)
 
-- [x] **Task #00013:** Command Registry Qt Migration (2 days) ✅ **COMPLETE** (2025-11-21)
-  - **Day 1 Morning:** Recover files from wxwidgets-archive
-    - command.h/cpp (Command, IconSet, KeyboardShortcut structs)
-    - command_registry.h/cpp (CommandRegistry singleton)
-    - toolbar_builder.h/cpp (ToolbarBuilder class)
-  - **Day 1 Afternoon:** Adapt to Qt6
-    - IconSet: wxBitmap → QPixmap, add toQIcon()
-    - KeyboardShortcut: wxKeyCode → Qt::Key, add toQKeySequence()
-    - Command: Keep std::function<void()>, add toQAction() helper
-    - CommandRegistry: No changes (framework-agnostic)
-  - **Day 2 Morning:** Implement MenuBuilder and ToolbarBuilder for Qt
-    - MenuBuilder: Build QMenuBar from CommandRegistry
-    - ToolbarBuilder: Build QToolBar from CommandRegistry
-    - Integration tests
-  - **Day 2 Afternoon:** Refactor MainWindow
-    - Replace createActions() → registerCommands()
-    - Remove 15+ hardcoded connect() calls
-    - Rebuild menus/toolbars via builders
-    - Verify all shortcuts work
-  - **Documentation:** Update project_docs/08_gui_design.md (Qt code examples)
-  - **Testing:** Manual testing (menu, toolbar, shortcuts)
-  - **Target:** 0.3.1-alpha release
-
-- [x] **Task #00014:** Plugin Integration Foundation (3-4h) ✅ **COMPLETE** (2025-11-21)
-  - **Context:** Plugin system had wxWidgets dependencies preventing Qt integration
-  - **Critical Issues Fixed:**
-    - ❌ ICommandProvider missing → ✅ Added interface for plugin command registration
-    - ⚠️ EventBus uses wxTheApp->CallAfter() → ✅ Migrated to QMetaObject::invokeMethod
-    - ⚠️ IPanelProvider uses void* → ✅ Changed to QWidget* (type-safe Qt API)
-  - **Files Modified:**
-    - include/kalahari/core/extension_points.h (+68 lines: ICommandProvider interface)
-    - include/kalahari/core/extension_points.h (IPanelProvider: void* → QWidget*)
-    - src/core/event_bus.cpp (~40 lines: wxWidgets → Qt6)
-    - include/kalahari/core/event_bus.h (documentation update)
-  - **Benefits Delivered:**
-    - ✅ Plugins can register commands via getCommands() → CommandRegistry
-    - ✅ Thread-safe async events work in Qt6 (GUI thread marshalling)
-    - ✅ Type-safe panel creation API (QWidget* instead of void*)
-    - ✅ Plugin system ready for Phase 2 (Python bindings will be added then)
-  - **Commit:** 3156830 - feat(plugins): Add ICommandProvider, migrate EventBus to Qt6, QWidget* panels
-  - **Python Bindings:** Deferred to Phase 2 (Plugin System MVP)
-  - **Target:** Blocks Phase 2 development
+- [x] Command Registry Qt Migration - Recovered from wxwidgets-archive, adapted to Qt6
+- [x] Plugin Integration Foundation - ICommandProvider, EventBus Qt6, QWidget* panels
 
 ---
 
-## PHASE 1: Core Editor (Weeks 1-20)
+## PHASE 1: Core Editor (Weeks 1-20) 🔄 IN PROGRESS
 
-**Status:** ⏳ PLANNED
+**Status:** 🔄 IN PROGRESS (Started 2025-11-21)
 **Target:** 0.4.0-alpha
 **Timeline:** ~5 months
 
@@ -279,33 +112,13 @@
 **Philosophy:** 9 menus (FILE, EDIT, BOOK, INSERT, FORMAT, TOOLS, ASSISTANT, VIEW, HELP)
 
 - [ ] Menu BOOK (book structure operations)
-  - New Chapter/Scene/Character/Location/Item
-  - New Mind Map/Timeline (library objects)
-  - Chapter/Scene breaks
 - [ ] Menu INSERT (text content elements)
-  - Image/Table/Link
-  - Footnote/Endnote/Comment/Annotation
-  - Special Character/Date/Field
 - [ ] Menu FORMAT (rich text formatting)
-  - Font/Paragraph dialogs
-  - Text Style submenu (Heading 1-3, Body, Quote, Code)
-  - Bold/Italic/Underline/Strikethrough
-  - Alignment (Left/Center/Right/Justify)
-  - Bullets/Numbering, Color, Clear Formatting
 - [ ] Menu TOOLS (utilities & plugins)
-  - Statistics (3-tier architecture - see 1.5)
-  - Spellchecker/Grammar/Readability
-  - Focus Mode (Normal/Focused/Distraction-Free)
-  - Backup/Auto-Save/Version History
-  - Plugin Manager/Marketplace
-  - Writing Goals & Deadlines
 - [ ] Menu ASSISTANT (AI assistants)
-  - Switch Assistant dialog (4 free + 4 premium)
-  - Assistant Actions (Grammar/Style/Plot/Research/Speed Draft)
-  - Assistant Settings
 - [ ] All commands registered in CommandRegistry
-- [ ] All menu items show QMessageBox with "Coming in Phase X" (event wiring complete)
-- [ ] Toolbar customization (user can add/remove/reorder commands)
+- [ ] All menu items show QMessageBox with "Coming in Phase X"
+- [ ] Toolbar customization
 
 ### 1.1 Rich Text Editor
 
@@ -342,38 +155,72 @@
 **Philosophy:** Live monitoring (Bar) + Weekly analysis (Panel) + Deep dive (Central Window)
 
 - [ ] **Statistics Bar** (top of central window, always visible)
-  - 4 layers: Time grid + Daily progress graph + Weekly/monthly trend + Text info
-  - Live updates: Word count, char count, reading time, writing speed
-  - Similar to Task Manager graphs (Windows)
-  - Implementation: Custom QWidget with QPainter
 - [ ] **Weekly Statistics Panel** (dockable, toggleable via VIEW menu)
-  - Weekly/monthly aggregated stats
-  - Simple charts and tables
-  - Quick glance analytics
 - [ ] **Advanced Analytics** (central window tab, Premium plugin $14)
-  - Deep dive reports
-  - Long-term trends (months, years)
-  - Detailed tables, charts, export options
 
 ### 1.6 Mind Maps & Timelines (Library Architecture)
 
 **Philosophy:** Multiple maps/timelines per project, edited in central window
 
 - [ ] **Mind Maps Library** (MindMaps/*.kmap files)
-  - Project can contain multiple mind maps
-  - BOOK > New Mind Map... creates .kmap file
-  - Navigator shows MindMaps section (tree view)
-  - Double-click opens in central window (tabbed editor)
-  - Mind Map editor has own menu/toolbars (design separately)
-  - Use cases: Brainstorm, Plot Arc, World Building, Character Relationships
 - [ ] **Timelines Library** (Timelines/*.ktl files)
-  - Project can contain multiple timelines (e.g., SF novel: different worlds/epochs)
-  - BOOK > New Timeline... creates .ktl file
-  - Navigator shows Timelines section (tree view)
-  - Double-click opens in central window (graphical editor)
-  - Timeline editor: Grid + drag&drop characters/items from library
-  - Timeline editor has own menu/toolbars (design separately)
-  - Use cases: Main Story, Flashbacks, Parallel World timelines
+
+### 1.7 Theme & Icon System ✅ FOUNDATION COMPLETE
+
+**Philosophy:** User-configurable themes with per-theme color customization and centralized icon management.
+
+**Current Architecture (Implemented):**
+
+1. **ThemeManager (QObject singleton)**
+   - Loads theme JSON files (Light.json, Dark.json)
+   - Emits `themeChanged(const Theme&)` signal on theme switch
+   - Stores per-theme user color overrides in SettingsManager
+   - Applies QPalette to QApplication for native widget styling
+
+2. **IconRegistry (Runtime SVG rendering)**
+   - SVG templates with `{COLOR_PRIMARY}` / `{COLOR_SECONDARY}` placeholders
+   - Renders icons on-demand with current theme colors
+   - Connected to ThemeManager::themeChanged for color updates
+   - Caches rendered QPixmaps for performance
+
+3. **Per-Theme Icon Colors (SettingsManager)**
+   - Each theme can have custom primary/secondary icon colors
+   - Stored as: `iconColors.Light.primary`, `iconColors.Dark.primary`, etc.
+   - User overrides persist across sessions
+   - "Restore Defaults" resets to theme file values
+
+4. **GUI Icon Refresh (Current - Distributed)**
+   - ToolbarManager::refreshIcons() - stores cmdId in QAction::data()
+   - MenuBuilder::refreshIcons() - recursive submenu refresh
+   - MainWindow::onThemeChanged() calls both refresh methods
+   - **Limitation:** Each GUI component must implement own refreshIcons()
+
+**Planned Improvement (Next):**
+
+5. **Centralized Icon Refresh (IconRegistry signal)**
+   - IconRegistry emits `iconsInvalidated()` signal when colors change
+   - GUI components connect to signal and refresh automatically
+   - Single point of control for all icon updates
+   - Eliminates per-component refresh code duplication
+
+**Settings Dialog Structure:**
+
+- **Appearance/General:** Font size, language selection
+- **Appearance/Theme:** Theme selector, color overrides, "Restore Defaults"
+- **Appearance/Icons:** Icon theme selector, sizes, primary/secondary colors
+- **Editor:** Font, line spacing, spell check (placeholder)
+- **Advanced:** Diagnostic mode, log configuration
+
+**Implementation Status:**
+- [x] Theme JSON schema with full color palette
+- [x] ThemeManager class with QPalette integration
+- [x] Default themes: Light.json + Dark.json
+- [x] IconRegistry SVG color replacement
+- [x] Settings Dialog with QTreeWidget + QStackedWidget (14 pages)
+- [x] Per-theme icon color storage and persistence
+- [x] GUI icon refresh on theme/color change (toolbar + menu)
+- [ ] Centralized icon refresh via IconRegistry signal
+- [ ] Log Panel theme-aware colors
 
 ---
 
@@ -481,7 +328,8 @@
 
 - [x] **2025-10-31:** Phase 0 Foundation Complete (wxWidgets)
 - [x] **2025-11-19:** Qt Migration Decision & Start
-- [ ] **2025-12-17:** Phase 0 Qt Foundation Complete (4 weeks)
+- [x] **2025-11-21:** Phase 0 Qt Foundation Complete (2 days!)
+- [x] **2025-11-26:** Theme & Icon System Foundation Complete
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -491,21 +339,22 @@
 
 ## Success Criteria
 
-### Phase 0 (Qt Foundation)
+### Phase 0 (Qt Foundation) ✅ COMPLETE
 - ✅ wxWidgets archived (branch + tag)
 - ✅ Qt6 build system working (all platforms)
 - ✅ Documentation updated (CLAUDE.md, CHANGELOG.md, project_docs/)
-- ⏳ QMainWindow with menu/toolbar/statusbar
-- ⏳ Settings dialog with Qt layouts
-- ⏳ Basic text editor with QPlainTextEdit
-- ⏳ All 12 tasks complete (00001-00012)
+- ✅ QMainWindow with menu/toolbar/statusbar
+- ✅ Settings dialog with Qt layouts
+- ✅ Basic text editor with QPlainTextEdit
+- ✅ Command Registry migrated
 
-### Phase 1 (Core Editor)
+### Phase 1 (Core Editor) 🔄 IN PROGRESS
 - Rich text editing with formatting
 - Document structure (Parts, Chapters)
 - Search & Replace
 - Project management
 - Word count & statistics
+- ✅ Theme & Icon system foundation
 
 ### Phases 2-5
 - See individual phase sections above
@@ -518,6 +367,7 @@
 - [ ] Qt Designer .ui files for dialogs (consider for Phase 1)
 - [ ] QTest unit tests for GUI (supplement Catch2)
 - [ ] Qt Linguist integration (.ts/.qm i18n)
+- [ ] Centralized icon refresh (IconRegistry::iconsInvalidated signal)
 
 ### Medium-term (Phase 2-3)
 - [ ] Custom QSyntaxHighlighter for book-specific formatting
@@ -534,7 +384,7 @@
 
 ## Notes
 
-1. **Task Numbering:** Fresh start from #00001 (Qt era)
+1. **OpenSpec Tasks:** All implementation tasks tracked in `openspec/changes/` directory
 2. **wxWidgets Archive:** All wxWidgets code preserved in wxwidgets-archive branch
 3. **Atomic Workflow:** Maintained from v5.x (30-120 min tasks)
 4. **Testing:** Catch2 for core, QTest for GUI (Phase 1+)
@@ -543,6 +393,6 @@
 
 ---
 
-**Document Version:** 1.0 (Qt Migration)
-**Last Update:** 2025-11-19
-**Updated By:** Claude (Qt migration - Clean Slate approach)
+**Document Version:** 2.0 (Cleaned - no task numbers)
+**Last Update:** 2025-11-26
+**Updated By:** Claude (ROADMAP cleanup, Theme-Icon system documentation)

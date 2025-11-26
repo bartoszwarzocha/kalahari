@@ -41,15 +41,24 @@ void CmdLineParser::addSwitch(const QString& shortName,
                                const QString& longName,
                                const QString& description) {
     // Create QCommandLineOption for boolean switch
-    QCommandLineOption option(QStringList() << shortName << longName, description);
+    // Handle empty shortName (long-name-only switches)
+    QStringList names;
+    if (!shortName.isEmpty()) {
+        names << shortName;
+    }
+    names << longName;
+
+    QCommandLineOption option(names, description);
     m_parser.addOption(option);
 
-    // Track switch names for validation
-    m_switches.push_back(shortName);
+    // Track switch names for validation (only non-empty ones)
+    if (!shortName.isEmpty()) {
+        m_switches.push_back(shortName);
+    }
     m_switches.push_back(longName);
 
-    Logger::getInstance().debug("Added command line switch: -{} / --{}",
-                                shortName.toStdString(),
+    Logger::getInstance().debug("Added command line switch: {} / --{}",
+                                shortName.isEmpty() ? "" : ("-" + shortName).toStdString(),
                                 longName.toStdString());
 }
 
@@ -58,17 +67,24 @@ void CmdLineParser::addOption(const QString& shortName,
                                const QString& description,
                                const QString& valueName) {
     // Create QCommandLineOption with value
-    QCommandLineOption option(QStringList() << shortName << longName,
-                             description,
-                             valueName);
+    // Handle empty shortName (long-name-only options)
+    QStringList names;
+    if (!shortName.isEmpty()) {
+        names << shortName;
+    }
+    names << longName;
+
+    QCommandLineOption option(names, description, valueName);
     m_parser.addOption(option);
 
-    // Track option names for validation
-    m_options.push_back(shortName);
+    // Track option names for validation (only non-empty ones)
+    if (!shortName.isEmpty()) {
+        m_options.push_back(shortName);
+    }
     m_options.push_back(longName);
 
-    Logger::getInstance().debug("Added command line option: -{} / --{} <{}>",
-                                shortName.toStdString(),
+    Logger::getInstance().debug("Added command line option: {} / --{} <{}>",
+                                shortName.isEmpty() ? "" : ("-" + shortName).toStdString(),
                                 longName.toStdString(),
                                 valueName.toStdString());
 }

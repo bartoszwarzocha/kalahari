@@ -1,38 +1,55 @@
 /// @file settings_dialog.cpp
 /// @brief Implementation of SettingsDialog
+///
+/// Task #00024: Refactored to use QTreeWidget + QStackedWidget
 
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
-#include <QTabWidget>
+#include "kalahari/core/theme_manager.h"
+
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QStackedWidget>
+#include <QScrollArea>
 #include <QDialogButtonBox>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QGridLayout>
+#include <QGroupBox>
 #include <QLabel>
 #include <QPushButton>
 #include <QComboBox>
 #include <QSpinBox>
-#include <QGroupBox>
-#include <QGridLayout>
 #include <QFontComboBox>
 #include <QCheckBox>
-#include <QMessageBox>
 #include <QColorDialog>
+#include <QMessageBox>
+#include <QHeaderView>
+#include <QSplitter>
 
 namespace kalahari {
 namespace gui {
 
+// ============================================================================
+// Constructor
+// ============================================================================
+
 SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     : QDialog(parent)
-    , m_tabWidget(nullptr)
+    , m_navTree(nullptr)
+    , m_pageStack(nullptr)
     , m_buttonBox(nullptr)
-    , m_appearanceTab(nullptr)
-    , m_editorTab(nullptr)
-    , m_advancedTab(nullptr)
-    , m_themeComboBox(nullptr)
     , m_languageComboBox(nullptr)
-    , m_fontSizeSpinBox(nullptr)
+    , m_uiFontSizeSpinBox(nullptr)
+    , m_themeComboBox(nullptr)
     , m_primaryColorButton(nullptr)
     , m_secondaryColorButton(nullptr)
+    , m_themePreviewLabel(nullptr)
+    , m_iconThemeComboBox(nullptr)
+    , m_toolbarIconSizeSpinBox(nullptr)
+    , m_menuIconSizeSpinBox(nullptr)
+    , m_iconPreviewLabel(nullptr)
     , m_fontFamilyComboBox(nullptr)
     , m_editorFontSizeSpinBox(nullptr)
     , m_tabSizeSpinBox(nullptr)
@@ -42,11 +59,12 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     , m_initialDiagMode(diagnosticModeEnabled)
 {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Constructor called");
+    logger.debug("SettingsDialog: Constructor called (Task #00024 refactor)");
 
     setWindowTitle(tr("Settings"));
-    setModal(true);  // Block main window when open
-    resize(600, 400);  // Default size
+    setModal(true);
+    resize(750, 500);
+    setMinimumSize(600, 400);
 
     createUI();
     loadSettings();
@@ -54,431 +72,829 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     logger.debug("SettingsDialog: Initialized successfully");
 }
 
+// ============================================================================
+// UI Creation
+// ============================================================================
+
 void SettingsDialog::createUI() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Creating UI");
+    logger.debug("SettingsDialog: Creating UI with tree navigation");
 
-    // Main layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    // Create tab widget
-    m_tabWidget = new QTabWidget(this);
+    // Create splitter for tree and pages
+    QSplitter* splitter = new QSplitter(Qt::Horizontal, this);
 
-    // Appearance tab
-    m_appearanceTab = new QWidget();
-    QVBoxLayout* appearanceLayout = new QVBoxLayout(m_appearanceTab);
+    // Left panel: Navigation tree
+    m_navTree = new QTreeWidget(splitter);
+    m_navTree->setHeaderHidden(true);
+    m_navTree->setMinimumWidth(180);
+    m_navTree->setMaximumWidth(250);
+    createNavigationTree();
 
-    // Create group box for visual grouping
-    QGroupBox* appearanceGroup = new QGroupBox(tr("Appearance Settings"));
-    QGridLayout* gridLayout = new QGridLayout();
+    // Right panel: Stacked pages in scroll area
+    m_pageStack = new QStackedWidget(splitter);
+    createSettingsPages();
 
-    // Theme selection (row 0)
-    QLabel* themeLabel = new QLabel(tr("Theme:"));
-    m_themeComboBox = new QComboBox();
-    m_themeComboBox->addItem(tr("Light"), "Light");
-    m_themeComboBox->addItem(tr("Dark"), "Dark");
-    m_themeComboBox->addItem(tr("Savanna"), "Savanna");
-    m_themeComboBox->addItem(tr("Midnight"), "Midnight");
-    gridLayout->addWidget(themeLabel, 0, 0);
-    gridLayout->addWidget(m_themeComboBox, 0, 1);
+    // Set splitter proportions
+    splitter->addWidget(m_navTree);
+    splitter->addWidget(m_pageStack);
+    splitter->setStretchFactor(0, 0);  // Tree doesn't stretch
+    splitter->setStretchFactor(1, 1);  // Pages stretch
 
-    // Language selection (row 1)
-    QLabel* languageLabel = new QLabel(tr("Language:"));
-    m_languageComboBox = new QComboBox();
-    m_languageComboBox->addItem(tr("English"), "en");
-    m_languageComboBox->addItem(tr("Polski"), "pl");
-    gridLayout->addWidget(languageLabel, 1, 0);
-    gridLayout->addWidget(m_languageComboBox, 1, 1);
+    mainLayout->addWidget(splitter, 1);
 
-    // Font size (row 2)
-    QLabel* fontSizeLabel = new QLabel(tr("Font Size:"));
-    m_fontSizeSpinBox = new QSpinBox();
-    m_fontSizeSpinBox->setMinimum(8);
-    m_fontSizeSpinBox->setMaximum(32);
-    m_fontSizeSpinBox->setSingleStep(1);
-    m_fontSizeSpinBox->setSuffix(" pt");
-    gridLayout->addWidget(fontSizeLabel, 2, 0);
-    gridLayout->addWidget(m_fontSizeSpinBox, 2, 1);
-
-    // Primary icon color (row 3) - Task #00020
-    QLabel* primaryColorLabel = new QLabel(tr("Primary Icon Color:"));
-    m_primaryColorButton = new QPushButton();
-    m_primaryColorButton->setMinimumHeight(30);
-    m_primaryColorButton->setToolTip(tr("Click to change primary icon color"));
-    connect(m_primaryColorButton, &QPushButton::clicked, this, &SettingsDialog::onPrimaryColorButtonClicked);
-    gridLayout->addWidget(primaryColorLabel, 3, 0);
-    gridLayout->addWidget(m_primaryColorButton, 3, 1);
-
-    // Secondary icon color (row 4) - Task #00020
-    QLabel* secondaryColorLabel = new QLabel(tr("Secondary Icon Color:"));
-    m_secondaryColorButton = new QPushButton();
-    m_secondaryColorButton->setMinimumHeight(30);
-    m_secondaryColorButton->setToolTip(tr("Click to change secondary icon color"));
-    connect(m_secondaryColorButton, &QPushButton::clicked, this, &SettingsDialog::onSecondaryColorButtonClicked);
-    gridLayout->addWidget(secondaryColorLabel, 4, 0);
-    gridLayout->addWidget(m_secondaryColorButton, 4, 1);
-
-    // Make controls stretch horizontally
-    gridLayout->setColumnStretch(1, 1);
-
-    appearanceGroup->setLayout(gridLayout);
-    appearanceLayout->addWidget(appearanceGroup);
-    appearanceLayout->addStretch();  // Push group to top
-
-    m_tabWidget->addTab(m_appearanceTab, tr("Appearance"));
-
-    // Editor tab
-    m_editorTab = new QWidget();
-    QVBoxLayout* editorLayout = new QVBoxLayout(m_editorTab);
-
-    // Create group box for visual grouping
-    QGroupBox* editorGroup = new QGroupBox(tr("Editor Settings"));
-    QGridLayout* editorGridLayout = new QGridLayout();
-
-    // Font family (row 0)
-    QLabel* fontFamilyLabel = new QLabel(tr("Font Family:"));
-    m_fontFamilyComboBox = new QFontComboBox();
-    m_fontFamilyComboBox->setFontFilters(QFontComboBox::MonospacedFonts);  // Only monospace
-    editorGridLayout->addWidget(fontFamilyLabel, 0, 0);
-    editorGridLayout->addWidget(m_fontFamilyComboBox, 0, 1);
-
-    // Font size (row 1)
-    QLabel* editorFontSizeLabel = new QLabel(tr("Font Size:"));
-    m_editorFontSizeSpinBox = new QSpinBox();
-    m_editorFontSizeSpinBox->setMinimum(8);
-    m_editorFontSizeSpinBox->setMaximum(32);
-    m_editorFontSizeSpinBox->setSingleStep(1);
-    m_editorFontSizeSpinBox->setSuffix(" pt");
-    editorGridLayout->addWidget(editorFontSizeLabel, 1, 0);
-    editorGridLayout->addWidget(m_editorFontSizeSpinBox, 1, 1);
-
-    // Tab size (row 2)
-    QLabel* tabSizeLabel = new QLabel(tr("Tab Size:"));
-    m_tabSizeSpinBox = new QSpinBox();
-    m_tabSizeSpinBox->setMinimum(2);
-    m_tabSizeSpinBox->setMaximum(8);
-    m_tabSizeSpinBox->setSingleStep(1);
-    m_tabSizeSpinBox->setSuffix(" spaces");
-    editorGridLayout->addWidget(tabSizeLabel, 2, 0);
-    editorGridLayout->addWidget(m_tabSizeSpinBox, 2, 1);
-
-    // Line numbers (row 3)
-    m_lineNumbersCheckBox = new QCheckBox(tr("Show Line Numbers"));
-    editorGridLayout->addWidget(m_lineNumbersCheckBox, 3, 0, 1, 2);  // Span 2 columns
-
-    // Word wrap (row 4)
-    m_wordWrapCheckBox = new QCheckBox(tr("Enable Word Wrap"));
-    editorGridLayout->addWidget(m_wordWrapCheckBox, 4, 0, 1, 2);  // Span 2 columns
-
-    // Make controls stretch horizontally
-    editorGridLayout->setColumnStretch(1, 1);
-
-    editorGroup->setLayout(editorGridLayout);
-    editorLayout->addWidget(editorGroup);
-    editorLayout->addStretch();  // Push group to top
-
-    m_tabWidget->addTab(m_editorTab, tr("Editor"));
-
-    // Advanced tab (Task #00018)
-    m_advancedTab = new QWidget();
-    QVBoxLayout* advancedLayout = new QVBoxLayout(m_advancedTab);
-
-    // Warning label
-    QLabel* warningLabel = new QLabel(tr("⚠️ Warning: Diagnostic tools are for developers only.\n"
-        "Some tools may crash the application or consume significant resources."));
-    warningLabel->setWordWrap(true);
-    warningLabel->setStyleSheet("QLabel { color: #ff6600; font-weight: bold; }");
-    advancedLayout->addWidget(warningLabel);
-
-    advancedLayout->addSpacing(10);
-
-    // Diagnostic mode checkbox
-    m_diagModeCheckbox = new QCheckBox(tr("Enable Diagnostic Menu"), this);
-    m_diagModeCheckbox->setChecked(false); // Will be set in loadSettings() (Task #00018)
-    connect(m_diagModeCheckbox, &QCheckBox::toggled, this, &SettingsDialog::onDiagModeCheckboxToggled);
-    advancedLayout->addWidget(m_diagModeCheckbox);
-
-    advancedLayout->addStretch(); // Push controls to top
-
-    m_tabWidget->addTab(m_advancedTab, tr("Advanced"));
-
-    mainLayout->addWidget(m_tabWidget);
-
-    // Button box (OK, Cancel, Apply)
+    // Button box
     m_buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Apply,
         this
     );
-
     mainLayout->addWidget(m_buttonBox);
 
-    // Connect button signals
-    connect(m_buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onAccept);
-    connect(m_buttonBox, &QDialogButtonBox::rejected, this, &SettingsDialog::onReject);
+    // Connect signals
+    connect(m_navTree, &QTreeWidget::currentItemChanged,
+            this, &SettingsDialog::onTreeItemChanged);
+    connect(m_buttonBox, &QDialogButtonBox::accepted,
+            this, &SettingsDialog::onAccept);
+    connect(m_buttonBox, &QDialogButtonBox::rejected,
+            this, &SettingsDialog::onReject);
     connect(m_buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
             this, &SettingsDialog::onApply);
+
+    // Select first item
+    if (m_navTree->topLevelItemCount() > 0) {
+        QTreeWidgetItem* firstItem = m_navTree->topLevelItem(0);
+        if (firstItem->childCount() > 0) {
+            m_navTree->setCurrentItem(firstItem->child(0));
+        } else {
+            m_navTree->setCurrentItem(firstItem);
+        }
+    }
 
     logger.debug("SettingsDialog: UI created successfully");
 }
 
-void SettingsDialog::loadSettings() {
+void SettingsDialog::createNavigationTree() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Loading settings from SettingsManager");
 
-    auto& settings = core::SettingsManager::getInstance();
+    // Helper lambda for creating placeholder items (grayed out)
+    auto createPlaceholderItem = [](QTreeWidgetItem* parent, const QString& text) {
+        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
+        item->setText(0, text);
+        item->setForeground(0, QColor(Qt::gray));
+        item->setToolTip(0, QObject::tr("Coming in future version"));
+        return item;
+    };
 
-    // Load theme
-    std::string currentTheme = settings.getTheme();
-    int themeIndex = m_themeComboBox->findData(QString::fromStdString(currentTheme));
-    if (themeIndex != -1) {
-        m_themeComboBox->setCurrentIndex(themeIndex);
-    }
-    logger.debug("Loaded theme: {}", currentTheme);
+    // ========================================================================
+    // Appearance category (3 sub-items)
+    // ========================================================================
+    QTreeWidgetItem* appearanceItem = new QTreeWidgetItem(m_navTree);
+    appearanceItem->setText(0, tr("Appearance"));
+    appearanceItem->setExpanded(true);
 
-    // Load language
-    std::string currentLang = settings.getLanguage();
-    int langIndex = m_languageComboBox->findData(QString::fromStdString(currentLang));
-    if (langIndex != -1) {
-        m_languageComboBox->setCurrentIndex(langIndex);
-    }
-    logger.debug("Loaded language: {}", currentLang);
+    QTreeWidgetItem* appearanceGeneral = new QTreeWidgetItem(appearanceItem);
+    appearanceGeneral->setText(0, tr("General"));
+    m_itemToPage[appearanceGeneral] = PAGE_APPEARANCE_GENERAL;
 
-    // Load font size (using default 12 - SettingsManager doesn't have getFontSize() yet)
-    m_fontSizeSpinBox->setValue(12);
-    logger.debug("Loaded font size: 12 (default)");
+    QTreeWidgetItem* appearanceTheme = new QTreeWidgetItem(appearanceItem);
+    appearanceTheme->setText(0, tr("Theme"));
+    m_itemToPage[appearanceTheme] = PAGE_APPEARANCE_THEME;
 
-    // Load editor settings
-    std::string fontFamily = settings.get<std::string>("editor.fontFamily", "Consolas");
-    QFont font(QString::fromStdString(fontFamily));
-    m_fontFamilyComboBox->setCurrentFont(font);
-    logger.debug("Loaded editor font family: {}", fontFamily);
+    QTreeWidgetItem* appearanceIcons = new QTreeWidgetItem(appearanceItem);
+    appearanceIcons->setText(0, tr("Icons"));
+    m_itemToPage[appearanceIcons] = PAGE_APPEARANCE_ICONS;
 
-    int editorFontSize = settings.get<int>("editor.fontSize", 12);
-    m_editorFontSizeSpinBox->setValue(editorFontSize);
-    logger.debug("Loaded editor font size: {}", editorFontSize);
+    // ========================================================================
+    // Editor category (4 sub-items)
+    // ========================================================================
+    QTreeWidgetItem* editorItem = new QTreeWidgetItem(m_navTree);
+    editorItem->setText(0, tr("Editor"));
+    editorItem->setExpanded(true);
 
-    int tabSize = settings.get<int>("editor.tabSize", 4);
-    m_tabSizeSpinBox->setValue(tabSize);
-    logger.debug("Loaded tab size: {}", tabSize);
+    QTreeWidgetItem* editorGeneral = new QTreeWidgetItem(editorItem);
+    editorGeneral->setText(0, tr("General"));
+    m_itemToPage[editorGeneral] = PAGE_EDITOR_GENERAL;
 
-    bool lineNumbers = settings.get<bool>("editor.lineNumbers", true);
-    m_lineNumbersCheckBox->setChecked(lineNumbers);
-    logger.debug("Loaded line numbers: {}", lineNumbers);
+    QTreeWidgetItem* editorSpelling = createPlaceholderItem(editorItem, tr("Spelling"));
+    m_itemToPage[editorSpelling] = PAGE_EDITOR_SPELLING;
 
-    bool wordWrap = settings.get<bool>("editor.wordWrap", false);
-    m_wordWrapCheckBox->setChecked(wordWrap);
-    logger.debug("Loaded word wrap: {}", wordWrap);
+    QTreeWidgetItem* editorAutocorrect = createPlaceholderItem(editorItem, tr("Auto-correct"));
+    m_itemToPage[editorAutocorrect] = PAGE_EDITOR_AUTOCORRECT;
 
-    // Load diagnostic mode state (Task #00018)
-    // Block signals to avoid triggering confirmation dialog during initialization
-    m_diagModeCheckbox->blockSignals(true);
-    m_diagModeCheckbox->setChecked(m_initialDiagMode);
-    m_diagModeCheckbox->blockSignals(false);
-    logger.debug("Loaded diagnostic mode: {}", m_initialDiagMode);
+    QTreeWidgetItem* editorCompletion = createPlaceholderItem(editorItem, tr("Completion"));
+    m_itemToPage[editorCompletion] = PAGE_EDITOR_COMPLETION;
 
-    // Load icon colors (Task #00020)
-    std::string primaryColor = settings.getIconColorPrimary();
-    QString primaryColorStyle = QString("background-color: %1; border: 1px solid #ccc;")
-                                    .arg(QString::fromStdString(primaryColor));
-    m_primaryColorButton->setStyleSheet(primaryColorStyle);
-    logger.debug("Loaded primary icon color: {}", primaryColor);
+    // ========================================================================
+    // Files category (3 sub-items)
+    // ========================================================================
+    QTreeWidgetItem* filesItem = new QTreeWidgetItem(m_navTree);
+    filesItem->setText(0, tr("Files"));
+    filesItem->setExpanded(true);
 
-    std::string secondaryColor = settings.getIconColorSecondary();
-    QString secondaryColorStyle = QString("background-color: %1; border: 1px solid #ccc;")
-                                      .arg(QString::fromStdString(secondaryColor));
-    m_secondaryColorButton->setStyleSheet(secondaryColorStyle);
-    logger.debug("Loaded secondary icon color: {}", secondaryColor);
+    QTreeWidgetItem* filesBackup = createPlaceholderItem(filesItem, tr("Backup"));
+    m_itemToPage[filesBackup] = PAGE_FILES_BACKUP;
 
-    logger.debug("SettingsDialog: Settings loaded successfully");
+    QTreeWidgetItem* filesAutosave = createPlaceholderItem(filesItem, tr("Auto-save"));
+    m_itemToPage[filesAutosave] = PAGE_FILES_AUTOSAVE;
+
+    QTreeWidgetItem* filesImportExport = createPlaceholderItem(filesItem, tr("Import/Export"));
+    m_itemToPage[filesImportExport] = PAGE_FILES_IMPORT_EXPORT;
+
+    // ========================================================================
+    // Network category (2 sub-items)
+    // ========================================================================
+    QTreeWidgetItem* networkItem = new QTreeWidgetItem(m_navTree);
+    networkItem->setText(0, tr("Network"));
+    networkItem->setExpanded(true);
+
+    QTreeWidgetItem* networkCloudSync = createPlaceholderItem(networkItem, tr("Cloud Sync"));
+    m_itemToPage[networkCloudSync] = PAGE_NETWORK_CLOUD_SYNC;
+
+    QTreeWidgetItem* networkUpdates = createPlaceholderItem(networkItem, tr("Updates"));
+    m_itemToPage[networkUpdates] = PAGE_NETWORK_UPDATES;
+
+    // ========================================================================
+    // Advanced category (2 sub-items)
+    // ========================================================================
+    QTreeWidgetItem* advancedItem = new QTreeWidgetItem(m_navTree);
+    advancedItem->setText(0, tr("Advanced"));
+    advancedItem->setExpanded(true);
+
+    QTreeWidgetItem* advancedGeneral = new QTreeWidgetItem(advancedItem);
+    advancedGeneral->setText(0, tr("General"));
+    m_itemToPage[advancedGeneral] = PAGE_ADVANCED_GENERAL;
+
+    QTreeWidgetItem* advancedPerformance = createPlaceholderItem(advancedItem, tr("Performance"));
+    m_itemToPage[advancedPerformance] = PAGE_ADVANCED_PERFORMANCE;
+
+    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 14 pages");
 }
 
-void SettingsDialog::saveSettings() {
+void SettingsDialog::createSettingsPages() {
+    // ========================================================================
+    // Appearance pages (0-2)
+    // ========================================================================
+    // Page 0: Appearance/General
+    m_pageStack->addWidget(createAppearanceGeneralPage());
+    // Page 1: Appearance/Theme
+    m_pageStack->addWidget(createAppearanceThemePage());
+    // Page 2: Appearance/Icons
+    m_pageStack->addWidget(createAppearanceIconsPage());
+
+    // ========================================================================
+    // Editor pages (3-6)
+    // ========================================================================
+    // Page 3: Editor/General
+    m_pageStack->addWidget(createEditorGeneralPage());
+    // Page 4: Editor/Spelling
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Spelling"),
+        tr("Spelling settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Spell check language selection\n"
+           "- Custom dictionary management\n"
+           "- Ignore rules for technical terms")
+    ));
+    // Page 5: Editor/Auto-correct
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Auto-correct"),
+        tr("Auto-correct settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Automatic capitalization\n"
+           "- Common typo corrections\n"
+           "- Custom replacement rules")
+    ));
+    // Page 6: Editor/Completion
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Completion"),
+        tr("Completion settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Word completion suggestions\n"
+           "- Character name completion\n"
+           "- Location name completion")
+    ));
+
+    // ========================================================================
+    // Files pages (7-9)
+    // ========================================================================
+    // Page 7: Files/Backup
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Backup"),
+        tr("Backup settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Automatic backup frequency\n"
+           "- Backup location selection\n"
+           "- Number of backup copies to keep\n"
+           "- Restore from backup")
+    ));
+    // Page 8: Files/Auto-save
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Auto-save"),
+        tr("Auto-save settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Auto-save interval\n"
+           "- Auto-save on focus loss\n"
+           "- Session recovery options")
+    ));
+    // Page 9: Files/Import/Export
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Import/Export"),
+        tr("Import/Export settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Default export format\n"
+           "- Import source preferences\n"
+           "- Encoding settings")
+    ));
+
+    // ========================================================================
+    // Network pages (10-11)
+    // ========================================================================
+    // Page 10: Network/Cloud Sync
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Cloud Sync"),
+        tr("Cloud Sync settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Cloud provider selection\n"
+           "- Sync frequency\n"
+           "- Conflict resolution\n"
+           "- Sync status and history")
+    ));
+    // Page 11: Network/Updates
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Updates"),
+        tr("Update settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Automatic update checks\n"
+           "- Update channel (stable/beta)\n"
+           "- Plugin updates")
+    ));
+
+    // ========================================================================
+    // Advanced pages (12-13)
+    // ========================================================================
+    // Page 12: Advanced/General
+    m_pageStack->addWidget(createAdvancedGeneralPage());
+    // Page 13: Advanced/Performance
+    m_pageStack->addWidget(createPlaceholderPage(
+        tr("Performance"),
+        tr("Performance settings will be available in a future version.\n\n"
+           "Planned features:\n"
+           "- Memory usage limits\n"
+           "- Thread pool configuration\n"
+           "- Cache settings\n"
+           "- Hardware acceleration")
+    ));
+}
+
+QWidget* SettingsDialog::createAppearanceGeneralPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // General settings group
+    QGroupBox* group = new QGroupBox(tr("General Appearance"));
+    QGridLayout* grid = new QGridLayout(group);
+
+    // Language
+    QLabel* langLabel = new QLabel(tr("Language:"));
+    m_languageComboBox = new QComboBox();
+    m_languageComboBox->addItem(tr("English"), "en");
+    m_languageComboBox->addItem(tr("Polski"), "pl");
+    grid->addWidget(langLabel, 0, 0);
+    grid->addWidget(m_languageComboBox, 0, 1);
+
+    // UI Font Size
+    QLabel* fontSizeLabel = new QLabel(tr("UI Font Size:"));
+    m_uiFontSizeSpinBox = new QSpinBox();
+    m_uiFontSizeSpinBox->setRange(8, 24);
+    m_uiFontSizeSpinBox->setSuffix(" pt");
+    grid->addWidget(fontSizeLabel, 1, 0);
+    grid->addWidget(m_uiFontSizeSpinBox, 1, 1);
+
+    // Note about restart
+    QLabel* restartNote = new QLabel(tr("Note: Some changes require application restart."));
+    restartNote->setStyleSheet("color: #666; font-style: italic;");
+    grid->addWidget(restartNote, 2, 0, 1, 2);
+
+    grid->setColumnStretch(1, 1);
+    layout->addWidget(group);
+    layout->addStretch();
+
+    return page;
+}
+
+QWidget* SettingsDialog::createAppearanceThemePage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Theme selection group
+    QGroupBox* themeGroup = new QGroupBox(tr("Color Theme"));
+    QGridLayout* themeGrid = new QGridLayout(themeGroup);
+
+    QLabel* themeLabel = new QLabel(tr("Theme:"));
+    m_themeComboBox = new QComboBox();
+    m_themeComboBox->addItem(tr("Light"), "Light");
+    m_themeComboBox->addItem(tr("Dark"), "Dark");
+    connect(m_themeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::onThemeComboChanged);
+    themeGrid->addWidget(themeLabel, 0, 0);
+    themeGrid->addWidget(m_themeComboBox, 0, 1);
+
+    themeGrid->setColumnStretch(1, 1);
+    layout->addWidget(themeGroup);
+
+    // Color overrides group
+    QGroupBox* colorGroup = new QGroupBox(tr("Color Overrides"));
+    QGridLayout* colorGrid = new QGridLayout(colorGroup);
+
+    QLabel* primaryLabel = new QLabel(tr("Primary Color:"));
+    m_primaryColorButton = new QPushButton();
+    m_primaryColorButton->setMinimumHeight(30);
+    m_primaryColorButton->setToolTip(tr("Click to change primary color"));
+    connect(m_primaryColorButton, &QPushButton::clicked,
+            this, &SettingsDialog::onPrimaryColorButtonClicked);
+    colorGrid->addWidget(primaryLabel, 0, 0);
+    colorGrid->addWidget(m_primaryColorButton, 0, 1);
+
+    QLabel* secondaryLabel = new QLabel(tr("Secondary Color:"));
+    m_secondaryColorButton = new QPushButton();
+    m_secondaryColorButton->setMinimumHeight(30);
+    m_secondaryColorButton->setToolTip(tr("Click to change secondary color"));
+    connect(m_secondaryColorButton, &QPushButton::clicked,
+            this, &SettingsDialog::onSecondaryColorButtonClicked);
+    colorGrid->addWidget(secondaryLabel, 1, 0);
+    colorGrid->addWidget(m_secondaryColorButton, 1, 1);
+
+    // Reset button - clears custom colors and restores theme defaults (Task #00025)
+    QPushButton* resetColorsBtn = new QPushButton(tr("Reset to Theme Defaults"));
+    connect(resetColorsBtn, &QPushButton::clicked, [this]() {
+        QString theme = m_themeComboBox->currentData().toString();
+        std::string themeName = theme.toStdString();
+
+        // Clear custom colors from storage
+        core::SettingsManager::getInstance().clearCustomIconColorsForTheme(themeName);
+
+        // Reset buttons to theme defaults
+        if (theme == "Dark") {
+            updateColorButton(m_primaryColorButton, QColor("#999999"));
+            updateColorButton(m_secondaryColorButton, QColor("#333333"));
+        } else {
+            updateColorButton(m_primaryColorButton, QColor("#333333"));
+            updateColorButton(m_secondaryColorButton, QColor("#999999"));
+        }
+
+        core::Logger::getInstance().info("SettingsDialog: Reset colors to theme defaults for '{}'", themeName);
+    });
+    colorGrid->addWidget(resetColorsBtn, 2, 0, 1, 2);
+
+    colorGrid->setColumnStretch(1, 1);
+    layout->addWidget(colorGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createAppearanceIconsPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Icon theme group
+    QGroupBox* themeGroup = new QGroupBox(tr("Icon Theme"));
+    QGridLayout* themeGrid = new QGridLayout(themeGroup);
+
+    QLabel* iconThemeLabel = new QLabel(tr("Icon Style:"));
+    m_iconThemeComboBox = new QComboBox();
+    m_iconThemeComboBox->addItem(tr("Two-tone (Default)"), "twotone");
+    m_iconThemeComboBox->addItem(tr("Filled"), "filled");
+    m_iconThemeComboBox->addItem(tr("Outlined"), "outlined");
+    m_iconThemeComboBox->addItem(tr("Rounded"), "rounded");
+    connect(m_iconThemeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::onIconThemeComboChanged);
+    themeGrid->addWidget(iconThemeLabel, 0, 0);
+    themeGrid->addWidget(m_iconThemeComboBox, 0, 1);
+
+    // Preview label
+    m_iconPreviewLabel = new QLabel(tr("Preview will be shown here"));
+    m_iconPreviewLabel->setMinimumHeight(48);
+    m_iconPreviewLabel->setAlignment(Qt::AlignCenter);
+    m_iconPreviewLabel->setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;");
+    themeGrid->addWidget(m_iconPreviewLabel, 1, 0, 1, 2);
+
+    themeGrid->setColumnStretch(1, 1);
+    layout->addWidget(themeGroup);
+
+    // Icon sizes group
+    QGroupBox* sizeGroup = new QGroupBox(tr("Icon Sizes"));
+    QGridLayout* sizeGrid = new QGridLayout(sizeGroup);
+
+    QLabel* toolbarSizeLabel = new QLabel(tr("Toolbar Icons:"));
+    m_toolbarIconSizeSpinBox = new QSpinBox();
+    m_toolbarIconSizeSpinBox->setRange(16, 48);
+    m_toolbarIconSizeSpinBox->setSingleStep(4);
+    m_toolbarIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(toolbarSizeLabel, 0, 0);
+    sizeGrid->addWidget(m_toolbarIconSizeSpinBox, 0, 1);
+
+    QLabel* menuSizeLabel = new QLabel(tr("Menu Icons:"));
+    m_menuIconSizeSpinBox = new QSpinBox();
+    m_menuIconSizeSpinBox->setRange(12, 32);
+    m_menuIconSizeSpinBox->setSingleStep(2);
+    m_menuIconSizeSpinBox->setSuffix(" px");
+    sizeGrid->addWidget(menuSizeLabel, 1, 0);
+    sizeGrid->addWidget(m_menuIconSizeSpinBox, 1, 1);
+
+    sizeGrid->setColumnStretch(1, 1);
+    layout->addWidget(sizeGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createEditorGeneralPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Font group
+    QGroupBox* fontGroup = new QGroupBox(tr("Editor Font"));
+    QGridLayout* fontGrid = new QGridLayout(fontGroup);
+
+    QLabel* fontFamilyLabel = new QLabel(tr("Font Family:"));
+    m_fontFamilyComboBox = new QFontComboBox();
+    m_fontFamilyComboBox->setFontFilters(QFontComboBox::MonospacedFonts);
+    fontGrid->addWidget(fontFamilyLabel, 0, 0);
+    fontGrid->addWidget(m_fontFamilyComboBox, 0, 1);
+
+    QLabel* fontSizeLabel = new QLabel(tr("Font Size:"));
+    m_editorFontSizeSpinBox = new QSpinBox();
+    m_editorFontSizeSpinBox->setRange(8, 32);
+    m_editorFontSizeSpinBox->setSuffix(" pt");
+    fontGrid->addWidget(fontSizeLabel, 1, 0);
+    fontGrid->addWidget(m_editorFontSizeSpinBox, 1, 1);
+
+    fontGrid->setColumnStretch(1, 1);
+    layout->addWidget(fontGroup);
+
+    // Behavior group
+    QGroupBox* behaviorGroup = new QGroupBox(tr("Editor Behavior"));
+    QGridLayout* behaviorGrid = new QGridLayout(behaviorGroup);
+
+    QLabel* tabSizeLabel = new QLabel(tr("Tab Size:"));
+    m_tabSizeSpinBox = new QSpinBox();
+    m_tabSizeSpinBox->setRange(2, 8);
+    m_tabSizeSpinBox->setSuffix(tr(" spaces"));
+    behaviorGrid->addWidget(tabSizeLabel, 0, 0);
+    behaviorGrid->addWidget(m_tabSizeSpinBox, 0, 1);
+
+    m_lineNumbersCheckBox = new QCheckBox(tr("Show Line Numbers"));
+    behaviorGrid->addWidget(m_lineNumbersCheckBox, 1, 0, 1, 2);
+
+    m_wordWrapCheckBox = new QCheckBox(tr("Enable Word Wrap"));
+    behaviorGrid->addWidget(m_wordWrapCheckBox, 2, 0, 1, 2);
+
+    behaviorGrid->setColumnStretch(1, 1);
+    layout->addWidget(behaviorGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createAdvancedGeneralPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Warning
+    QLabel* warningLabel = new QLabel(
+        tr("Warning: These settings are for advanced users and developers.\n"
+           "Incorrect configuration may affect application stability.")
+    );
+    warningLabel->setWordWrap(true);
+    warningLabel->setStyleSheet("QLabel { color: #ff6600; font-weight: bold; padding: 10px; "
+                                 "background-color: #fff3e0; border: 1px solid #ffcc80; }");
+    layout->addWidget(warningLabel);
+
+    // Diagnostic group
+    QGroupBox* diagGroup = new QGroupBox(tr("Diagnostic Tools"));
+    QVBoxLayout* diagLayout = new QVBoxLayout(diagGroup);
+
+    m_diagModeCheckbox = new QCheckBox(tr("Enable Diagnostic Menu"));
+    m_diagModeCheckbox->setToolTip(tr("Shows additional menu with debugging tools"));
+    connect(m_diagModeCheckbox, &QCheckBox::toggled,
+            this, &SettingsDialog::onDiagModeCheckboxToggled);
+    diagLayout->addWidget(m_diagModeCheckbox);
+
+    QLabel* diagNote = new QLabel(
+        tr("When enabled, a 'Diagnostic' menu appears in the menu bar with:\n"
+           "- System information\n"
+           "- Log viewer\n"
+           "- Component status")
+    );
+    diagNote->setStyleSheet("color: #666; margin-left: 20px;");
+    diagLayout->addWidget(diagNote);
+
+    layout->addWidget(diagGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createPlaceholderPage(const QString& title, const QString& description) {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    QLabel* titleLabel = new QLabel(title);
+    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #666;");
+    layout->addWidget(titleLabel);
+
+    QLabel* descLabel = new QLabel(description);
+    descLabel->setWordWrap(true);
+    descLabel->setStyleSheet("color: #888; margin-top: 20px;");
+    layout->addWidget(descLabel);
+
+    layout->addStretch();
+    return page;
+}
+
+// ============================================================================
+// Slots
+// ============================================================================
+
+void SettingsDialog::onTreeItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* /*previous*/) {
+    if (!current) return;
+
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Saving settings to SettingsManager");
 
-    auto& settings = core::SettingsManager::getInstance();
-
-    // Save theme
-    QString themeData = m_themeComboBox->currentData().toString();
-    settings.setTheme(themeData.toStdString());
-    logger.debug("Saved theme: {}", themeData.toStdString());
-
-    // Save language
-    QString langData = m_languageComboBox->currentData().toString();
-    settings.setLanguage(langData.toStdString());
-    logger.debug("Saved language: {}", langData.toStdString());
-
-    // Font size (log only - SettingsManager doesn't have setFontSize() yet)
-    int fontSize = m_fontSizeSpinBox->value();
-    logger.debug("Font size: {} (not saved - no setter available)", fontSize);
-
-    // Save editor settings
-    QString fontFamilyData = m_fontFamilyComboBox->currentFont().family();
-    settings.set("editor.fontFamily", fontFamilyData.toStdString());
-    logger.debug("Saved editor font family: {}", fontFamilyData.toStdString());
-
-    int editorFontSize = m_editorFontSizeSpinBox->value();
-    settings.set("editor.fontSize", editorFontSize);
-    logger.debug("Saved editor font size: {}", editorFontSize);
-
-    int tabSize = m_tabSizeSpinBox->value();
-    settings.set("editor.tabSize", tabSize);
-    logger.debug("Saved tab size: {}", tabSize);
-
-    bool lineNumbers = m_lineNumbersCheckBox->isChecked();
-    settings.set("editor.lineNumbers", lineNumbers);
-    logger.debug("Saved line numbers: {}", lineNumbers);
-
-    bool wordWrap = m_wordWrapCheckBox->isChecked();
-    settings.set("editor.wordWrap", wordWrap);
-    logger.debug("Saved word wrap: {}", wordWrap);
-
-    // Save icon colors (Task #00020)
-    // Extract color from button stylesheet (format: "background-color: #RRGGBB; ...")
-    QString primaryStyle = m_primaryColorButton->styleSheet();
-    int primaryStart = primaryStyle.indexOf("#");
-    int primaryEnd = primaryStyle.indexOf(";", primaryStart);
-    if (primaryStart != -1 && primaryEnd != -1) {
-        QString primaryColor = primaryStyle.mid(primaryStart, primaryEnd - primaryStart).trimmed();
-        settings.setIconColorPrimary(primaryColor.toStdString());
-        logger.debug("Saved primary icon color: {}", primaryColor.toStdString());
-    }
-
-    QString secondaryStyle = m_secondaryColorButton->styleSheet();
-    int secondaryStart = secondaryStyle.indexOf("#");
-    int secondaryEnd = secondaryStyle.indexOf(";", secondaryStart);
-    if (secondaryStart != -1 && secondaryEnd != -1) {
-        QString secondaryColor = secondaryStyle.mid(secondaryStart, secondaryEnd - secondaryStart).trimmed();
-        settings.setIconColorSecondary(secondaryColor.toStdString());
-        logger.debug("Saved secondary icon color: {}", secondaryColor.toStdString());
-    }
-
-    // Save to disk
-    if (settings.save()) {
-        logger.info("SettingsDialog: Settings saved successfully");
+    if (m_itemToPage.contains(current)) {
+        int pageIndex = m_itemToPage[current];
+        m_pageStack->setCurrentIndex(pageIndex);
+        logger.debug("SettingsDialog: Switched to page {}", pageIndex);
     } else {
-        logger.error("SettingsDialog: Failed to save settings");
+        // Parent item clicked - select first child
+        if (current->childCount() > 0) {
+            m_navTree->setCurrentItem(current->child(0));
+        }
     }
 }
 
 void SettingsDialog::onAccept() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: OK button clicked");
+    logger.debug("SettingsDialog: OK clicked");
 
     saveSettings();
 
-    // Check if diagnostic mode changed (Task #00018)
+    // Emit signals for changes
     bool currentDiagMode = m_diagModeCheckbox->isChecked();
     if (currentDiagMode != m_initialDiagMode) {
-        logger.info("Diagnostic mode changed: {} -> {}", m_initialDiagMode, currentDiagMode);
         emit diagnosticModeChanged(currentDiagMode);
     }
 
-    accept();  // Close dialog with Accepted result
+    accept();
 }
 
 void SettingsDialog::onReject() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Cancel button clicked");
-
-    // Don't save settings, just close
-    reject();  // Close dialog with Rejected result
+    logger.debug("SettingsDialog: Cancel clicked");
+    reject();
 }
 
 void SettingsDialog::onApply() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Apply button clicked");
+    logger.debug("SettingsDialog: Apply clicked");
 
     saveSettings();
 
-    // Check if diagnostic mode changed (Task #00018)
+    // Emit signals for changes
     bool currentDiagMode = m_diagModeCheckbox->isChecked();
     if (currentDiagMode != m_initialDiagMode) {
-        logger.info("Diagnostic mode changed: {} -> {}", m_initialDiagMode, currentDiagMode);
         emit diagnosticModeChanged(currentDiagMode);
-        m_initialDiagMode = currentDiagMode;  // Update initial state after Apply
+        m_initialDiagMode = currentDiagMode;
     }
-
-    // Don't close dialog
 }
 
 void SettingsDialog::onDiagModeCheckboxToggled(bool checked) {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Diagnostic mode checkbox toggled: {}", checked);
-
     if (checked) {
-        // Show confirmation dialog when enabling
         QMessageBox::StandardButton reply = QMessageBox::warning(this,
             tr("Enable Diagnostic Menu"),
             tr("Are you sure you want to enable diagnostic menu?\n\n"
-               "This exposes advanced debugging tools that may affect application stability."),
+               "This exposes advanced debugging tools."),
             QMessageBox::Yes | QMessageBox::No,
             QMessageBox::No);
 
         if (reply == QMessageBox::No) {
-            // User cancelled - revert checkbox
             m_diagModeCheckbox->setChecked(false);
-            logger.debug("User cancelled diagnostic mode activation");
-            return;
         }
-
-        logger.debug("User confirmed diagnostic mode activation");
     }
-
-    // Don't emit signal here - wait for Apply/OK (Task #00018)
-    logger.debug("Diagnostic mode change will be applied when clicking Apply/OK");
 }
 
 void SettingsDialog::onPrimaryColorButtonClicked() {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Primary color button clicked");
-
-    // Extract current color from button stylesheet
     QString currentStyle = m_primaryColorButton->styleSheet();
-    int colorStart = currentStyle.indexOf("#");
-    int colorEnd = currentStyle.indexOf(";", colorStart);
-    QColor currentColor(Qt::black);  // Default
-    if (colorStart != -1 && colorEnd != -1) {
-        QString colorStr = currentStyle.mid(colorStart, colorEnd - colorStart).trimmed();
-        currentColor = QColor(colorStr);
+    QColor currentColor = QColor("#333333");
+
+    int start = currentStyle.indexOf("#");
+    int end = currentStyle.indexOf(";", start);
+    if (start != -1 && end != -1) {
+        currentColor = QColor(currentStyle.mid(start, end - start));
     }
 
-    // Open color dialog
-    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Primary Icon Color"));
+    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Primary Color"));
     if (color.isValid()) {
-        QString newStyle = QString("background-color: %1; border: 1px solid #ccc;")
-                              .arg(color.name());
-        m_primaryColorButton->setStyleSheet(newStyle);
-        logger.debug("Primary icon color changed to: {}", color.name().toStdString());
-    } else {
-        logger.debug("Primary color selection cancelled");
+        updateColorButton(m_primaryColorButton, color);
     }
 }
 
 void SettingsDialog::onSecondaryColorButtonClicked() {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Secondary color button clicked");
-
-    // Extract current color from button stylesheet
     QString currentStyle = m_secondaryColorButton->styleSheet();
-    int colorStart = currentStyle.indexOf("#");
-    int colorEnd = currentStyle.indexOf(";", colorStart);
-    QColor currentColor(Qt::gray);  // Default
-    if (colorStart != -1 && colorEnd != -1) {
-        QString colorStr = currentStyle.mid(colorStart, colorEnd - colorStart).trimmed();
-        currentColor = QColor(colorStr);
+    QColor currentColor = QColor("#999999");
+
+    int start = currentStyle.indexOf("#");
+    int end = currentStyle.indexOf(";", start);
+    if (start != -1 && end != -1) {
+        currentColor = QColor(currentStyle.mid(start, end - start));
     }
 
-    // Open color dialog
-    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Secondary Icon Color"));
+    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Secondary Color"));
     if (color.isValid()) {
-        QString newStyle = QString("background-color: %1; border: 1px solid #ccc;")
-                              .arg(color.name());
-        m_secondaryColorButton->setStyleSheet(newStyle);
-        logger.debug("Secondary icon color changed to: {}", color.name().toStdString());
-    } else {
-        logger.debug("Secondary color selection cancelled");
+        updateColorButton(m_secondaryColorButton, color);
     }
+}
+
+void SettingsDialog::onThemeComboChanged(int index) {
+    Q_UNUSED(index);
+    QString theme = m_themeComboBox->currentData().toString();
+    std::string themeName = theme.toStdString();
+
+    // Theme defaults:
+    // Light: primary=#333333 (dark gray for icons), secondary=#999999 (light gray)
+    // Dark: primary=#999999 (light gray for icons), secondary=#333333 (dark gray)
+    std::string defaultPrimary = (theme == "Dark") ? "#999999" : "#333333";
+    std::string defaultSecondary = (theme == "Dark") ? "#333333" : "#999999";
+
+    // Check if user has custom colors for this theme (Task #00025)
+    auto& settings = core::SettingsManager::getInstance();
+    if (settings.hasCustomIconColorsForTheme(themeName)) {
+        // Load user's custom colors for this theme
+        std::string primary = settings.getIconColorPrimaryForTheme(themeName, defaultPrimary);
+        std::string secondary = settings.getIconColorSecondaryForTheme(themeName, defaultSecondary);
+        updateColorButton(m_primaryColorButton, QColor(QString::fromStdString(primary)));
+        updateColorButton(m_secondaryColorButton, QColor(QString::fromStdString(secondary)));
+        core::Logger::getInstance().debug("SettingsDialog: Loaded custom colors for theme '{}': primary={}, secondary={}",
+                                          themeName, primary, secondary);
+    } else {
+        // Use theme defaults
+        updateColorButton(m_primaryColorButton, QColor(QString::fromStdString(defaultPrimary)));
+        updateColorButton(m_secondaryColorButton, QColor(QString::fromStdString(defaultSecondary)));
+        core::Logger::getInstance().debug("SettingsDialog: Using default colors for theme '{}': primary={}, secondary={}",
+                                          themeName, defaultPrimary, defaultSecondary);
+    }
+}
+
+void SettingsDialog::onIconThemeComboChanged(int index) {
+    Q_UNUSED(index);
+    QString iconTheme = m_iconThemeComboBox->currentData().toString();
+    m_iconPreviewLabel->setText(tr("Icon style: %1").arg(iconTheme));
+}
+
+// ============================================================================
+// Settings Management
+// ============================================================================
+
+void SettingsDialog::loadSettings() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("SettingsDialog: Loading settings");
+
+    auto& settings = core::SettingsManager::getInstance();
+
+    // Appearance/General
+    QString lang = QString::fromStdString(settings.getLanguage());
+    int langIndex = m_languageComboBox->findData(lang);
+    if (langIndex >= 0) m_languageComboBox->setCurrentIndex(langIndex);
+
+    m_uiFontSizeSpinBox->setValue(settings.get<int>("appearance.uiFontSize", 12));
+
+    // Appearance/Theme
+    QString theme = QString::fromStdString(settings.getTheme());
+    int themeIndex = m_themeComboBox->findData(theme);
+    if (themeIndex >= 0) m_themeComboBox->setCurrentIndex(themeIndex);
+
+    // Load per-theme icon colors (Task #00025)
+    std::string themeName = theme.toStdString();
+    std::string defaultPrimary = (theme == "Dark") ? "#999999" : "#333333";
+    std::string defaultSecondary = (theme == "Dark") ? "#333333" : "#999999";
+
+    QString primaryColor = QString::fromStdString(
+        settings.getIconColorPrimaryForTheme(themeName, defaultPrimary));
+    updateColorButton(m_primaryColorButton, QColor(primaryColor));
+
+    QString secondaryColor = QString::fromStdString(
+        settings.getIconColorSecondaryForTheme(themeName, defaultSecondary));
+    updateColorButton(m_secondaryColorButton, QColor(secondaryColor));
+
+    // Appearance/Icons
+    QString iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));
+    int iconThemeIndex = m_iconThemeComboBox->findData(iconTheme);
+    if (iconThemeIndex >= 0) m_iconThemeComboBox->setCurrentIndex(iconThemeIndex);
+
+    m_toolbarIconSizeSpinBox->setValue(settings.get<int>("appearance.toolbarIconSize", 24));
+    m_menuIconSizeSpinBox->setValue(settings.get<int>("appearance.menuIconSize", 16));
+
+    // Editor/General
+    QString fontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", "Consolas"));
+    m_fontFamilyComboBox->setCurrentFont(QFont(fontFamily));
+
+    m_editorFontSizeSpinBox->setValue(settings.get<int>("editor.fontSize", 12));
+    m_tabSizeSpinBox->setValue(settings.get<int>("editor.tabSize", 4));
+    m_lineNumbersCheckBox->setChecked(settings.get<bool>("editor.lineNumbers", true));
+    m_wordWrapCheckBox->setChecked(settings.get<bool>("editor.wordWrap", false));
+
+    // Advanced/General
+    m_diagModeCheckbox->blockSignals(true);
+    m_diagModeCheckbox->setChecked(m_initialDiagMode);
+    m_diagModeCheckbox->blockSignals(false);
+
+    logger.debug("SettingsDialog: Settings loaded");
+}
+
+void SettingsDialog::saveSettings() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("SettingsDialog: Saving settings");
+
+    auto& settings = core::SettingsManager::getInstance();
+
+    // Appearance/General
+    settings.setLanguage(m_languageComboBox->currentData().toString().toStdString());
+    settings.set("appearance.uiFontSize", m_uiFontSizeSpinBox->value());
+
+    // Appearance/Theme
+    QString newTheme = m_themeComboBox->currentData().toString();
+    settings.setTheme(newTheme.toStdString());
+
+    // Apply theme to UI (switches QPalette for full theme support)
+    // This loads theme JSON and applies QPalette to QApplication
+    core::ThemeManager::getInstance().switchTheme(newTheme);
+
+    // Extract colors from buttons and save per-theme (Task #00025)
+    std::string themeName = newTheme.toStdString();
+
+    QString primaryStyle = m_primaryColorButton->styleSheet();
+    int pStart = primaryStyle.indexOf("#");
+    int pEnd = primaryStyle.indexOf(";", pStart);
+    QString primaryColorStr;
+    if (pStart != -1 && pEnd != -1) {
+        primaryColorStr = primaryStyle.mid(pStart, pEnd - pStart);
+        settings.setIconColorPrimaryForTheme(themeName, primaryColorStr.toStdString());
+    }
+
+    QString secondaryStyle = m_secondaryColorButton->styleSheet();
+    int sStart = secondaryStyle.indexOf("#");
+    int sEnd = secondaryStyle.indexOf(";", sStart);
+    QString secondaryColorStr;
+    if (sStart != -1 && sEnd != -1) {
+        secondaryColorStr = secondaryStyle.mid(sStart, sEnd - sStart);
+        settings.setIconColorSecondaryForTheme(themeName, secondaryColorStr.toStdString());
+    }
+
+    logger.debug("SettingsDialog: Saved custom colors for theme '{}': primary={}, secondary={}",
+                 themeName, primaryColorStr.toStdString(), secondaryColorStr.toStdString());
+
+
+    // Appearance/Icons - save BEFORE triggering refresh so iconTheme is available
+    settings.set("appearance.iconTheme", m_iconThemeComboBox->currentData().toString().toStdString());
+
+    // Task #00025: ALWAYS apply color overrides to ThemeManager
+    // This triggers IconRegistry update AND toolbar icon refresh (including iconTheme change)
+    {
+        std::map<std::string, QColor> colorOverrides;
+        if (!primaryColorStr.isEmpty()) {
+            colorOverrides["primary"] = QColor(primaryColorStr);
+        }
+        if (!secondaryColorStr.isEmpty()) {
+            colorOverrides["secondary"] = QColor(secondaryColorStr);
+        }
+        // Always call to emit themeChanged signal, even if colorOverrides is empty
+        // This ensures toolbar icons are refreshed with new iconTheme setting
+        core::ThemeManager::getInstance().applyColorOverrides(colorOverrides);
+        logger.debug("SettingsDialog: Applied color overrides to ThemeManager (triggering icon refresh)");
+    }
+
+    // Appearance/Icons (continued)
+    settings.set("appearance.toolbarIconSize", m_toolbarIconSizeSpinBox->value());
+    settings.set("appearance.menuIconSize", m_menuIconSizeSpinBox->value());
+
+    // Editor/General
+    settings.set("editor.fontFamily", m_fontFamilyComboBox->currentFont().family().toStdString());
+    settings.set("editor.fontSize", m_editorFontSizeSpinBox->value());
+    settings.set("editor.tabSize", m_tabSizeSpinBox->value());
+    settings.set("editor.lineNumbers", m_lineNumbersCheckBox->isChecked());
+    settings.set("editor.wordWrap", m_wordWrapCheckBox->isChecked());
+
+    // Save to disk
+    settings.save();
+
+    logger.info("SettingsDialog: Settings saved");
+}
+
+void SettingsDialog::updateColorButton(QPushButton* button, const QColor& color) {
+    QString style = QString("background-color: %1; border: 1px solid #888;").arg(color.name());
+    button->setStyleSheet(style);
 }
 
 } // namespace gui

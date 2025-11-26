@@ -11,7 +11,7 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
-#include <QCheckBox>
+#include <QComboBox>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QTextEdit>
@@ -36,8 +36,7 @@ IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     , m_cancelButton(nullptr)
     , m_errorDisplay(nullptr)
     , m_previewWidget(nullptr)
-    // TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    // , m_downloader(nullptr)
+    , m_downloader(nullptr)
     , m_converter(nullptr)
     , m_totalDownloads(0)
     , m_completedDownloads(0)
@@ -48,69 +47,64 @@ IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     setupConnections();
 
     // Initialize downloader and converter
-    // TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    // m_downloader = new IconDownloader(IconDownloader::getDefaultSourceUrl(), this);
-    m_converter = new SvgConverter(); // SvgConverter doesn't inherit QObject, no parent needed
+    m_downloader = new IconDownloader(this);
+    m_converter = new SvgConverter();
 
     Logger::getInstance().debug("IconDownloaderDialog initialized");
 }
 
 IconDownloaderDialog::~IconDownloaderDialog() {
-    delete m_converter; // Not a QObject, so needs manual cleanup
-    // TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    // m_downloader is deleted by Qt parent-child relationship
+    delete m_converter;
 }
 
 void IconDownloaderDialog::setupUi() {
-    setWindowTitle("Icon Downloader - Material Design Icons");
+    setWindowTitle("Icon Downloader");
     setModal(true);
-    resize(500, 600);
+    resize(600, 650);
 
-    // Main layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    // === Icon Name Group ===
-    QGroupBox* iconGroup = new QGroupBox("Icon Name", this);
-    QVBoxLayout* iconLayout = new QVBoxLayout(iconGroup);
+    // === URL Input Group ===
+    QGroupBox* urlGroup = new QGroupBox("Icon URL", this);
+    QVBoxLayout* urlLayout = new QVBoxLayout(urlGroup);
 
-    m_iconNameEdit = new QLineEdit(iconGroup);
-    m_iconNameEdit->setPlaceholderText("e.g., save, folder_open, search");
-    m_iconNameEdit->setToolTip("Enter Material Design icon name (snake_case)");
-    iconLayout->addWidget(m_iconNameEdit);
+    QLabel* urlHint = new QLabel(
+        "Enter full URL to SVG icon. Example:\n"
+        "https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg",
+        urlGroup);
+    urlHint->setWordWrap(true);
+    urlHint->setStyleSheet("color: #666; font-size: 11px;");
+    urlLayout->addWidget(urlHint);
 
-    mainLayout->addWidget(iconGroup);
+    m_sourceUrlEdit = new QLineEdit(urlGroup);
+    m_sourceUrlEdit->setPlaceholderText("https://...");
+    m_sourceUrlEdit->setToolTip("Full URL to SVG file");
+    urlLayout->addWidget(m_sourceUrlEdit);
 
-    // === Themes Group ===
-    QGroupBox* themesGroup = new QGroupBox("Icon Themes", this);
-    QVBoxLayout* themesLayout = new QVBoxLayout(themesGroup);
+    mainLayout->addWidget(urlGroup);
 
-    m_twotoneCheckBox = new QCheckBox("TwoTone (default)", themesGroup);
-    m_twotoneCheckBox->setChecked(true);
-    m_twotoneCheckBox->setToolTip("Material Icons TwoTone variant");
-    themesLayout->addWidget(m_twotoneCheckBox);
+    // === Output Settings Group ===
+    QGroupBox* outputGroup = new QGroupBox("Output Settings", this);
+    QVBoxLayout* outputLayout = new QVBoxLayout(outputGroup);
 
-    m_roundedCheckBox = new QCheckBox("Rounded", themesGroup);
-    m_roundedCheckBox->setChecked(true);
-    m_roundedCheckBox->setToolTip("Material Icons Rounded variant");
-    themesLayout->addWidget(m_roundedCheckBox);
+    QHBoxLayout* nameLayout = new QHBoxLayout();
+    nameLayout->addWidget(new QLabel("Icon name:", outputGroup));
+    m_iconNameEdit = new QLineEdit(outputGroup);
+    m_iconNameEdit->setPlaceholderText("e.g., save, folder_open");
+    m_iconNameEdit->setToolTip("Name for saved file (without .svg)");
+    nameLayout->addWidget(m_iconNameEdit);
+    outputLayout->addLayout(nameLayout);
 
-    m_outlinedCheckBox = new QCheckBox("Outlined", themesGroup);
-    m_outlinedCheckBox->setChecked(true);
-    m_outlinedCheckBox->setToolTip("Material Icons Outlined variant");
-    themesLayout->addWidget(m_outlinedCheckBox);
+    QHBoxLayout* themeLayout = new QHBoxLayout();
+    themeLayout->addWidget(new QLabel("Save to theme:", outputGroup));
+    m_themeCombo = new QComboBox(outputGroup);
+    m_themeCombo->addItems({"twotone", "rounded", "outlined"});
+    m_themeCombo->setToolTip("Target theme directory");
+    themeLayout->addWidget(m_themeCombo);
+    themeLayout->addStretch();
+    outputLayout->addLayout(themeLayout);
 
-    mainLayout->addWidget(themesGroup);
-
-    // === Source URL Group (optional) ===
-    QGroupBox* sourceGroup = new QGroupBox("Source URL (optional)", this);
-    QVBoxLayout* sourceLayout = new QVBoxLayout(sourceGroup);
-
-    m_sourceUrlEdit = new QLineEdit(sourceGroup);
-    m_sourceUrlEdit->setPlaceholderText("Default: GitHub Raw Material Design Icons");
-    m_sourceUrlEdit->setToolTip("Override default Material Design icon source URL");
-    sourceLayout->addWidget(m_sourceUrlEdit);
-
-    mainLayout->addWidget(sourceGroup);
+    mainLayout->addWidget(outputGroup);
 
     // === Progress Group ===
     QGroupBox* progressGroup = new QGroupBox("Download Progress", this);
@@ -127,7 +121,7 @@ void IconDownloaderDialog::setupUi() {
     mainLayout->addWidget(progressGroup);
 
     // === Preview Group ===
-    QGroupBox* previewGroup = new QGroupBox("Preview (TwoTone)", this);
+    QGroupBox* previewGroup = new QGroupBox("Preview", this);
     QVBoxLayout* previewLayout = new QVBoxLayout(previewGroup);
 
     m_previewWidget = new QSvgWidget(previewGroup);
@@ -153,11 +147,9 @@ void IconDownloaderDialog::setupUi() {
 
     m_downloadButton = new QPushButton("Download", this);
     m_downloadButton->setDefault(true);
-    m_downloadButton->setToolTip("Start downloading selected icons (Ctrl+Enter)");
     buttonLayout->addWidget(m_downloadButton);
 
-    m_cancelButton = new QPushButton("Cancel", this);
-    m_cancelButton->setToolTip("Close dialog (Esc)");
+    m_cancelButton = new QPushButton("Close", this);
     buttonLayout->addWidget(m_cancelButton);
 
     mainLayout->addLayout(buttonLayout);
@@ -166,12 +158,9 @@ void IconDownloaderDialog::setupUi() {
 }
 
 void IconDownloaderDialog::setupConnections() {
-    // Button connections
     connect(m_downloadButton, &QPushButton::clicked, this, &IconDownloaderDialog::onDownloadClicked);
     connect(m_cancelButton, &QPushButton::clicked, this, &IconDownloaderDialog::onCancelClicked);
-
-    // Enter key in icon name field triggers download
-    connect(m_iconNameEdit, &QLineEdit::returnPressed, this, &IconDownloaderDialog::onDownloadClicked);
+    connect(m_sourceUrlEdit, &QLineEdit::returnPressed, this, &IconDownloaderDialog::onDownloadClicked);
 }
 
 void IconDownloaderDialog::onDownloadClicked() {
@@ -190,39 +179,27 @@ void IconDownloaderDialog::onDownloadClicked() {
     m_failedDownloads = 0;
     m_progressBar->setValue(0);
 
-    // Get icon name and themes
+    // Get input values
+    QString url = m_sourceUrlEdit->text().trimmed();
     m_currentIconName = m_iconNameEdit->text().trimmed();
-    QStringList themes = getSelectedThemes();
-    m_totalDownloads = themes.size();
+    QString theme = m_themeCombo->currentText();
+    m_totalDownloads = 1;
 
-#if 0  // TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    // Update source URL if provided
-    QString sourceUrl = m_sourceUrlEdit->text().trimmed();
-    if (!sourceUrl.isEmpty()) {
-        m_downloader->setSourceUrl(sourceUrl);
-    } else {
-        m_downloader->setSourceUrl(IconDownloader::getDefaultSourceUrl());
-    }
-
-    // Connect downloader signals (use old-style SIGNAL/SLOT for Windows DLL compatibility)
-    connect(m_downloader, SIGNAL(downloadComplete(QString,QString)),
-            this, SLOT(onDownloadComplete(QString,QString)), Qt::UniqueConnection);
-    connect(m_downloader, SIGNAL(downloadError(QString,QString,QString)),
-            this, SLOT(onDownloadError(QString,QString,QString)), Qt::UniqueConnection);
-    connect(m_downloader, SIGNAL(progress(int,int,QString)),
-            this, SLOT(onDownloadProgress(int,int,QString)), Qt::UniqueConnection);
+    // Connect downloader signals
+    connect(m_downloader, &IconDownloader::downloadComplete,
+            this, &IconDownloaderDialog::onDownloadComplete, Qt::UniqueConnection);
+    connect(m_downloader, &IconDownloader::downloadError,
+            this, &IconDownloaderDialog::onDownloadError, Qt::UniqueConnection);
 
     // Update UI state
     m_isDownloading = true;
     m_downloadButton->setEnabled(false);
-    m_statusLabel->setText(QString("Downloading '%1'...").arg(m_currentIconName));
+    m_statusLabel->setText(QString("Downloading..."));
 
-    Logger::getInstance().info("IconDownloaderDialog: Starting download of '{}' in {} themes",
-                               m_currentIconName.toStdString(), themes.size());
+    Logger::getInstance().info("IconDownloaderDialog: Downloading from {}", url.toStdString());
 
     // Start download
-    m_downloader->downloadIcon(m_currentIconName, themes);
-#endif  // IconDownloader disabled
+    m_downloader->downloadFromUrl(url, theme);
 }
 
 void IconDownloaderDialog::onCancelClicked() {
@@ -240,17 +217,17 @@ void IconDownloaderDialog::onCancelClicked() {
     }
 
     Logger::getInstance().info("IconDownloaderDialog: Closing dialog");
-    reject(); // Close dialog with Rejected status
+    reject();
 }
 
 void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QString& svgData) {
     Logger::getInstance().info("IconDownloaderDialog: Download complete for theme '{}'",
                                theme.toStdString());
 
-    // Convert SVG
+    // Convert SVG to template format
     auto conversionResult = m_converter->convertToTemplate(svgData);
     if (!conversionResult.success) {
-        addError(QString("Conversion failed (%1): %2").arg(theme, conversionResult.errorMessage));
+        addError(QString("Conversion failed: %1").arg(conversionResult.errorMessage));
         m_failedDownloads++;
         checkDownloadComplete();
         return;
@@ -282,72 +259,64 @@ void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QStrin
 
     Logger::getInstance().info("IconDownloaderDialog: Saved {}", filePath.toStdString());
 
-    // Update preview with first downloaded icon (TwoTone)
-    if (theme == "twotone" && m_previewWidget) {
-        updatePreview(conversionResult.svg);
-    }
+    // Update preview
+    updatePreview(conversionResult.svg);
 
     m_completedDownloads++;
     checkDownloadComplete();
 }
 
-void IconDownloaderDialog::onDownloadError(const QString& iconName, const QString& theme,
-                                          const QString& errorMessage) {
-    Logger::getInstance().error("IconDownloaderDialog: Download error for '{}' ({}): {}",
-                                iconName.toStdString(), theme.toStdString(),
-                                errorMessage.toStdString());
+void IconDownloaderDialog::onDownloadError(const QString& /*url*/, const QString& errorMessage) {
+    Logger::getInstance().error("IconDownloaderDialog: Download error: {}", errorMessage.toStdString());
 
-    addError(QString("%1 (%2): %3").arg(iconName, theme, errorMessage));
+    addError(QString("%1").arg(errorMessage));
     m_failedDownloads++;
     checkDownloadComplete();
 }
 
-void IconDownloaderDialog::onDownloadProgress(int current, int total, const QString& iconName) {
+void IconDownloaderDialog::onDownloadProgress(int current, int total, const QString& /*url*/) {
     int percentage = (total > 0) ? (current * 100 / total) : 0;
     m_progressBar->setValue(percentage);
-    m_statusLabel->setText(QString("Downloading '%1' (%2/%3)").arg(iconName).arg(current).arg(total));
-
-    Logger::getInstance().debug("IconDownloaderDialog: Progress {}/{} ({}%)",
-                                current, total, percentage);
+    m_statusLabel->setText(QString("Downloading... (%1/%2)").arg(current).arg(total));
 }
 
 void IconDownloaderDialog::checkDownloadComplete() {
     int totalProcessed = m_completedDownloads + m_failedDownloads;
 
     if (totalProcessed >= m_totalDownloads) {
-        // All downloads complete
         m_isDownloading = false;
         m_downloadButton->setEnabled(true);
         m_progressBar->setValue(100);
 
         if (m_failedDownloads == 0) {
-            m_statusLabel->setText(QString("✓ Downloaded %1 theme(s) successfully")
-                                  .arg(m_completedDownloads));
-            Logger::getInstance().info("IconDownloaderDialog: All downloads successful ({} themes)",
-                                       m_completedDownloads);
+            m_statusLabel->setText(QString("✓ Downloaded and saved successfully"));
+            Logger::getInstance().info("IconDownloaderDialog: Download successful");
         } else {
-            m_statusLabel->setText(QString("Downloaded %1/%2 themes (%3 failed)")
-                                  .arg(m_completedDownloads)
-                                  .arg(m_totalDownloads)
-                                  .arg(m_failedDownloads));
-            Logger::getInstance().warn("IconDownloaderDialog: Downloads complete with {} failures",
-                                       m_failedDownloads);
+            m_statusLabel->setText(QString("✗ Download failed"));
+            Logger::getInstance().warn("IconDownloaderDialog: Download failed");
         }
     }
 }
 
 bool IconDownloaderDialog::validateInput() {
+    QString url = m_sourceUrlEdit->text().trimmed();
     QString iconName = m_iconNameEdit->text().trimmed();
+
+    if (url.isEmpty()) {
+        QMessageBox::warning(this, "Invalid Input", "Please enter a URL.");
+        m_sourceUrlEdit->setFocus();
+        return false;
+    }
+
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        QMessageBox::warning(this, "Invalid Input", "URL must start with http:// or https://");
+        m_sourceUrlEdit->setFocus();
+        return false;
+    }
 
     if (iconName.isEmpty()) {
         QMessageBox::warning(this, "Invalid Input", "Please enter an icon name.");
         m_iconNameEdit->setFocus();
-        return false;
-    }
-
-    QStringList themes = getSelectedThemes();
-    if (themes.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Please select at least one theme.");
         return false;
     }
 
@@ -356,17 +325,7 @@ bool IconDownloaderDialog::validateInput() {
 
 QStringList IconDownloaderDialog::getSelectedThemes() const {
     QStringList themes;
-
-    if (m_twotoneCheckBox->isChecked()) {
-        themes << "twotone";
-    }
-    if (m_roundedCheckBox->isChecked()) {
-        themes << "rounded";
-    }
-    if (m_outlinedCheckBox->isChecked()) {
-        themes << "outlined";
-    }
-
+    themes << m_themeCombo->currentText();
     return themes;
 }
 
@@ -375,12 +334,11 @@ void IconDownloaderDialog::updatePreview(const QString& svgData) {
         return;
     }
 
-    // Replace color placeholders with actual colors for preview
+    // Replace placeholders with preview colors
     QString previewSvg = svgData;
-    previewSvg.replace("{COLOR_PRIMARY}", "#333333");   // Dark gray for primary
-    previewSvg.replace("{COLOR_SECONDARY}", "#999999"); // Light gray for secondary
+    previewSvg.replace("{COLOR_PRIMARY}", "#333333");
+    previewSvg.replace("{COLOR_SECONDARY}", "#999999");
 
-    // Load SVG into widget
     m_previewWidget->load(previewSvg.toUtf8());
 
     Logger::getInstance().debug("IconDownloaderDialog: Preview updated");
@@ -398,7 +356,6 @@ void IconDownloaderDialog::addError(const QString& error) {
     currentText += "• " + error;
     m_errorDisplay->setPlainText(currentText);
 
-    // Scroll to bottom
     QTextCursor cursor = m_errorDisplay->textCursor();
     cursor.movePosition(QTextCursor::End);
     m_errorDisplay->setTextCursor(cursor);

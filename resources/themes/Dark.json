@@ -1,0 +1,36 @@
+{
+  "name": "Dark",
+  "version": "1.1",
+  "author": "Kalahari Team",
+  "description": "Default dark theme optimized for low-light environments",
+  "colors": {
+    "primary": "#999999",
+    "secondary": "#333333",
+    "accent": "#0078D4",
+    "background": "#1E1E1E",
+    "text": "#FFFFFF"
+  },
+  "palette": {
+    "window": "#2b2b2b",
+    "windowText": "#e0e0e0",
+    "base": "#3c3c3c",
+    "alternateBase": "#323232",
+    "text": "#e0e0e0",
+    "button": "#4a4a4a",
+    "buttonText": "#e0e0e0",
+    "highlight": "#0078d4",
+    "highlightedText": "#ffffff",
+    "light": "#606060",
+    "midlight": "#505050",
+    "mid": "#404040",
+    "dark": "#202020",
+    "shadow": "#000000",
+    "link": "#0078d4",
+    "linkVisited": "#5856d6"
+  },
+  "log": {
+    "info": "#CCCCCC",
+    "debug": "#888888",
+    "background": "#252525"
+  }
+}

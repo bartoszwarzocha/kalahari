@@ -178,11 +178,11 @@ void SettingsManager::setLanguage(const std::string& lang) {
 }
 
 std::string SettingsManager::getTheme() const {
-    return get<std::string>("ui.theme", "Light");
+    return get<std::string>("appearance.theme", "Light");
 }
 
 void SettingsManager::setTheme(const std::string& theme) {
-    set("ui.theme", theme);
+    set("appearance.theme", theme);
 }
 
 std::string SettingsManager::getIconColorPrimary() const {
@@ -199,6 +199,54 @@ std::string SettingsManager::getIconColorSecondary() const {
 
 void SettingsManager::setIconColorSecondary(const std::string& color) {
     set("icons.colorSecondary", color);
+}
+
+// =============================================================================
+// Per-theme icon colors (Task #00025)
+// =============================================================================
+
+std::string SettingsManager::getIconColorPrimaryForTheme(const std::string& themeName,
+                                                          const std::string& defaultColor) const {
+    std::string key = "icons.themes." + themeName + ".colorPrimary";
+    return get<std::string>(key, defaultColor);
+}
+
+void SettingsManager::setIconColorPrimaryForTheme(const std::string& themeName,
+                                                   const std::string& color) {
+    std::string key = "icons.themes." + themeName + ".colorPrimary";
+    set(key, color);
+}
+
+std::string SettingsManager::getIconColorSecondaryForTheme(const std::string& themeName,
+                                                            const std::string& defaultColor) const {
+    std::string key = "icons.themes." + themeName + ".colorSecondary";
+    return get<std::string>(key, defaultColor);
+}
+
+void SettingsManager::setIconColorSecondaryForTheme(const std::string& themeName,
+                                                     const std::string& color) {
+    std::string key = "icons.themes." + themeName + ".colorSecondary";
+    set(key, color);
+}
+
+bool SettingsManager::hasCustomIconColorsForTheme(const std::string& themeName) const {
+    std::string keyPrimary = "icons.themes." + themeName + ".colorPrimary";
+    std::string keySecondary = "icons.themes." + themeName + ".colorSecondary";
+    return hasKey(keyPrimary) || hasKey(keySecondary);
+}
+
+void SettingsManager::clearCustomIconColorsForTheme(const std::string& themeName) {
+    std::string keyPrimary = "icons.themes." + themeName + ".colorPrimary";
+    std::string keySecondary = "icons.themes." + themeName + ".colorSecondary";
+
+    if (hasKey(keyPrimary)) {
+        removeKey(keyPrimary);
+    }
+    if (hasKey(keySecondary)) {
+        removeKey(keySecondary);
+    }
+
+    Logger::getInstance().info("Cleared custom icon colors for theme: {}", themeName);
 }
 
 std::filesystem::path SettingsManager::getSettingsFilePath() const {
@@ -290,8 +338,14 @@ void SettingsManager::createDefaults() {
         }},
         {"ui", {
             {"language", "en"},
-            {"theme", "Light"},
             {"font_size", 12}
+        }},
+        {"appearance", {
+            {"theme", "Light"},
+            {"uiFontSize", 12},
+            {"iconTheme", "twotone"},
+            {"toolbarIconSize", 24},
+            {"menuIconSize", 16}
         }},
         {"session", {
             {"auto_save_interval", 300},
@@ -388,17 +442,16 @@ void SettingsManager::migrateFrom_1_0_to_1_1() {
     // 2. Add appearance.iconSize (default: 24)
     // =========================================================================
 
-    // 1. Migrate ui.theme -> appearance.theme
+    // 1. Migrate ui.theme -> appearance.theme (only if appearance.theme doesn't exist)
     if (hasKey("ui.theme")) {
-        std::string theme = get<std::string>("ui.theme", "System");
-        set("appearance.theme", theme);
+        std::string theme = get<std::string>("ui.theme", "Light");
+        if (!hasKey("appearance.theme")) {
+            set("appearance.theme", theme);
+        }
         removeKey("ui.theme");
-        Logger::getInstance().info("Migrated ui.theme='{}' to appearance.theme", theme);
-    } else {
-        // If no ui.theme, create with default
-        set("appearance.theme", "System");
-        Logger::getInstance().info("Created appearance.theme='System' (no ui.theme found)");
+        Logger::getInstance().info("Migrated ui.theme='{}' (removed legacy key)", theme);
     }
+    // Note: appearance.theme default is now in createDefaultSettings(), no need to create here
 
     // 2. Add appearance.iconSize if not exists
     if (!hasKey("appearance.iconSize")) {

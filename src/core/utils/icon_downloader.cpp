@@ -5,18 +5,10 @@
 #include "kalahari/core/logger.h"
 #include <QNetworkRequest>
 #include <QUrl>
-#include <QTimer>
 
 using namespace kalahari::core;
 
-// ============================================================================
-// Constants
-// ============================================================================
-
 namespace {
-    constexpr const char* DEFAULT_SOURCE_URL =
-        "https://raw.githubusercontent.com/google/material-design-icons/master/src/";
-
     constexpr int DOWNLOAD_TIMEOUT_MS = 10000; // 10 seconds
 }
 
@@ -24,87 +16,61 @@ namespace {
 // IconDownloader Implementation
 // ============================================================================
 
-IconDownloader::IconDownloader(const QString& sourceUrl, QObject* parent)
+IconDownloader::IconDownloader(QObject* parent)
     : QObject(parent)
-    , m_sourceUrl(sourceUrl)
     , m_networkManager(new QNetworkAccessManager(this))
 {
-    initializeCategoryMap();
-
-    Logger::getInstance().debug("IconDownloader: Initialized with source URL: {}",
-                                m_sourceUrl.toStdString());
+    Logger::getInstance().debug("IconDownloader: Initialized");
 }
 
-QString IconDownloader::getDefaultSourceUrl() {
-    return QString(DEFAULT_SOURCE_URL);
-}
+void IconDownloader::downloadFromUrl(const QString& url, const QString& theme) {
+    Logger::getInstance().info("IconDownloader: Downloading from URL: {}", url.toStdString());
 
-void IconDownloader::setSourceUrl(const QString& url) {
-    m_sourceUrl = url;
-
-    // Ensure trailing slash
-    if (!m_sourceUrl.endsWith('/')) {
-        m_sourceUrl += '/';
-    }
-
-    Logger::getInstance().info("IconDownloader: Source URL changed to: {}",
-                               m_sourceUrl.toStdString());
-}
-
-void IconDownloader::downloadIcon(const QString& iconName, const QStringList& themes) {
-    Logger::getInstance().info("IconDownloader: Downloading icon '{}' in {} themes",
-                               iconName.toStdString(), themes.size());
-
-    for (const QString& theme : themes) {
-        QString url = constructUrl(iconName, theme);
-
-        if (url.isEmpty()) {
-            QString error = QString("Cannot construct URL for icon '%1' (unknown category). "
-                                  "Please provide custom source URL with full path.")
-                          .arg(iconName);
-            emit downloadError(iconName, theme, error);
-            Logger::getInstance().warn("IconDownloader: {}", error.toStdString());
-            continue;
-        }
-
-        Logger::getInstance().debug("IconDownloader: Requesting URL: {}", url.toStdString());
-
-        // Create HTTP GET request
-        QUrl qurl(url);
-        QNetworkRequest request(qurl);
-        request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader, "Kalahari/1.0");
-
-        // Set timeout
-        request.setTransferTimeout(DOWNLOAD_TIMEOUT_MS);
-
-        // Send request
-        QNetworkReply* reply = m_networkManager->get(request);
-
-        // Track request
-        m_pendingRequests.insert(reply, qMakePair(iconName, theme));
-
-        // Connect finished signal
-        connect(reply, &QNetworkReply::finished, this, &IconDownloader::onReplyFinished);
-    }
-}
-
-void IconDownloader::downloadIcons(const QStringList& iconNames, const QStringList& themes) {
-    if (iconNames.isEmpty()) {
-        Logger::getInstance().warn("IconDownloader: Batch download called with empty icon list");
+    // Validate URL
+    QUrl qurl(url);
+    if (!qurl.isValid()) {
+        QString error = QString("Invalid URL: %1").arg(url);
+        emit downloadError(url, error);
+        Logger::getInstance().error("IconDownloader: {}", error.toStdString());
         return;
     }
 
-    Logger::getInstance().info("IconDownloader: Starting batch download of {} icons",
-                               iconNames.size());
+    // Create HTTP GET request
+    QNetworkRequest request(qurl);
+    request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader, "Kalahari/1.0");
+    request.setTransferTimeout(DOWNLOAD_TIMEOUT_MS);
+
+    // Send request
+    QNetworkReply* reply = m_networkManager->get(request);
+
+    // Track request
+    m_pendingRequests.insert(reply, qMakePair(url, theme));
+
+    // Connect finished signal
+    connect(reply, &QNetworkReply::finished, this, &IconDownloader::onReplyFinished);
+}
+
+void IconDownloader::downloadFromUrls(const QStringList& urls, const QStringList& themes) {
+    if (urls.isEmpty()) {
+        Logger::getInstance().warn("IconDownloader: Batch download called with empty URL list");
+        return;
+    }
+
+    if (urls.size() != themes.size()) {
+        Logger::getInstance().error("IconDownloader: URLs and themes lists must have same size");
+        return;
+    }
+
+    Logger::getInstance().info("IconDownloader: Starting batch download of {} icons", urls.size());
 
     // Initialize batch state
-    m_batchIconNames = iconNames;
+    m_batchUrls = urls;
     m_batchThemes = themes;
-    m_batchTotal = iconNames.size();
+    m_batchTotal = urls.size();
     m_batchCurrent = 0;
 
     // Download first icon (rest will be triggered by progress signal)
-    downloadIcon(m_batchIconNames.first(), m_batchThemes);
+    downloadFromUrl(m_batchUrls.first(), m_batchThemes.first());
 }
 
 void IconDownloader::onReplyFinished() {
@@ -122,7 +88,7 @@ void IconDownloader::onReplyFinished() {
     }
 
     auto metadata = m_pendingRequests.take(reply);
-    QString iconName = metadata.first;
+    QString url = metadata.first;
     QString theme = metadata.second;
 
     // Check for errors
@@ -131,18 +97,16 @@ void IconDownloader::onReplyFinished() {
 
         switch (reply->error()) {
             case QNetworkReply::ContentNotFoundError:
-                errorMsg = QString("Icon '%1' not found (404). Check icon name or category mapping.")
-                         .arg(iconName);
+                errorMsg = QString("Not found (404): %1").arg(url);
                 break;
 
             case QNetworkReply::TimeoutError:
-                errorMsg = QString("Download timeout (%1ms). Check internet connection.")
-                         .arg(DOWNLOAD_TIMEOUT_MS);
+                errorMsg = QString("Download timeout (%1ms)").arg(DOWNLOAD_TIMEOUT_MS);
                 break;
 
             case QNetworkReply::HostNotFoundError:
             case QNetworkReply::ConnectionRefusedError:
-                errorMsg = QString("Network error: Cannot connect to icon source. Check internet connection.");
+                errorMsg = QString("Network error: Cannot connect");
                 break;
 
             default:
@@ -150,11 +114,8 @@ void IconDownloader::onReplyFinished() {
                 break;
         }
 
-        Logger::getInstance().error("IconDownloader: Download failed for '{}' ({}): {}",
-                                    iconName.toStdString(), theme.toStdString(),
-                                    errorMsg.toStdString());
-
-        emit downloadError(iconName, theme, errorMsg);
+        Logger::getInstance().error("IconDownloader: Download failed: {}", errorMsg.toStdString());
+        emit downloadError(url, errorMsg);
         reply->deleteLater();
         return;
     }
@@ -166,142 +127,35 @@ void IconDownloader::onReplyFinished() {
     if (svgString.isEmpty()) {
         QString error = QString("Downloaded SVG is empty");
         Logger::getInstance().error("IconDownloader: {}", error.toStdString());
-        emit downloadError(iconName, theme, error);
+        emit downloadError(url, error);
         reply->deleteLater();
         return;
     }
 
-    Logger::getInstance().info("IconDownloader: ✓ Downloaded '{}' ({}) - {} bytes",
-                               iconName.toStdString(), theme.toStdString(),
-                               svgData.size());
+    Logger::getInstance().info("IconDownloader: ✓ Downloaded ({}) - {} bytes",
+                               theme.toStdString(), svgData.size());
 
-    // Emit success signal (conversion happens externally)
+    // Emit success signal
     emit downloadComplete(theme, svgString);
 
     // Handle batch download progress
     if (m_batchTotal > 0) {
         m_batchCurrent++;
-        emit progress(m_batchCurrent, m_batchTotal, iconName);
+        emit progress(m_batchCurrent, m_batchTotal, url);
 
         // Download next icon in batch
         if (m_batchCurrent < m_batchTotal) {
-            downloadIcon(m_batchIconNames[m_batchCurrent], m_batchThemes);
+            downloadFromUrl(m_batchUrls[m_batchCurrent], m_batchThemes[m_batchCurrent]);
         } else {
             // Batch complete
             Logger::getInstance().info("IconDownloader: Batch download complete ({} icons)",
                                        m_batchTotal);
             m_batchTotal = 0;
             m_batchCurrent = 0;
-            m_batchIconNames.clear();
+            m_batchUrls.clear();
             m_batchThemes.clear();
         }
     }
 
     reply->deleteLater();
-}
-
-QString IconDownloader::constructUrl(const QString& iconName, const QString& theme) const {
-    // Get category for icon
-    QString category = getCategoryForIcon(iconName);
-    if (category.isEmpty()) {
-        Logger::getInstance().debug("IconDownloader: No category mapping for icon '{}'",
-                                    iconName.toStdString());
-        return QString(); // Unknown category
-    }
-
-    // Get Material Design variant name
-    QString variant = getVariantForTheme(theme);
-    if (variant.isEmpty()) {
-        Logger::getInstance().error("IconDownloader: Unknown theme '{}'",
-                                    theme.toStdString());
-        return QString();
-    }
-
-    // Construct URL: {base}/{category}/{icon_name}/{variant}/24px.svg
-    QString url = QString("%1%2/%3/%4/24px.svg")
-                 .arg(m_sourceUrl)
-                 .arg(category)
-                 .arg(iconName)
-                 .arg(variant);
-
-    return url;
-}
-
-QString IconDownloader::getVariantForTheme(const QString& theme) {
-    if (theme == "twotone") {
-        return "materialiconstwotone";
-    } else if (theme == "rounded") {
-        return "materialiconsround";
-    } else if (theme == "outlined") {
-        return "materialiconsoutlined";
-    } else if (theme == "filled") {
-        return "materialicons"; // Filled variant (optional)
-    } else {
-        return QString(); // Unknown theme
-    }
-}
-
-QString IconDownloader::getCategoryForIcon(const QString& iconName) {
-    // Static category map (initialized once)
-    static IconDownloader tempInstance;
-    return tempInstance.m_categoryMap.value(iconName, QString());
-}
-
-void IconDownloader::initializeCategoryMap() {
-    // File operations (category: "file")
-    m_categoryMap["folder_open"] = "file";
-    m_categoryMap["folder"] = "file";
-    m_categoryMap["description"] = "action"; // "file" icon
-    m_categoryMap["insert_drive_file"] = "file";
-
-    // Content operations (category: "content")
-    m_categoryMap["save"] = "content";
-    m_categoryMap["save_as"] = "content";
-    m_categoryMap["content_copy"] = "content";
-    m_categoryMap["content_cut"] = "content";
-    m_categoryMap["content_paste"] = "content";
-    m_categoryMap["add"] = "content";
-    m_categoryMap["remove"] = "content";
-    m_categoryMap["undo"] = "content";
-    m_categoryMap["redo"] = "content";
-
-    // Action icons (category: "action")
-    m_categoryMap["delete"] = "action";
-    m_categoryMap["close"] = "navigation"; // "close" is in navigation
-    m_categoryMap["search"] = "action";
-    m_categoryMap["settings"] = "action";
-    m_categoryMap["info"] = "action";
-    m_categoryMap["help"] = "action";
-    m_categoryMap["check_circle"] = "action";
-    m_categoryMap["error"] = "alert"; // Error icon
-    m_categoryMap["warning"] = "alert"; // Warning icon
-
-    // Editor operations (category: "editor")
-    m_categoryMap["format_bold"] = "editor";
-    m_categoryMap["format_italic"] = "editor";
-    m_categoryMap["format_underlined"] = "editor";
-    m_categoryMap["insert_photo"] = "editor";
-
-    // Navigation (category: "navigation")
-    m_categoryMap["menu"] = "navigation";
-    m_categoryMap["arrow_back"] = "navigation";
-    m_categoryMap["arrow_forward"] = "navigation";
-
-    // Image operations (category: "image")
-    m_categoryMap["image"] = "image";
-    m_categoryMap["photo"] = "image";
-
-    // Communication (category: "communication")
-    m_categoryMap["email"] = "communication";
-    m_categoryMap["message"] = "communication";
-
-    // Device (category: "device")
-    m_categoryMap["devices"] = "device";
-
-    // Toggle (category: "toggle")
-    m_categoryMap["check_box"] = "toggle";
-    m_categoryMap["radio_button_checked"] = "toggle";
-
-    Logger::getInstance().debug("IconDownloader: Initialized category map with {} entries",
-                                m_categoryMap.size());
 }

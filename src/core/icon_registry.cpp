@@ -4,10 +4,15 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme.h"
+// Note: ThemeManager.h not included here - connection made externally by MainWindow
+// to avoid circular dependencies between kalahari_core.dll and kalahari.exe
 #include <QFile>
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QTextStream>
+#include <QDir>
+#include <QCoreApplication>
 
 using namespace kalahari::core;
 
@@ -15,17 +20,10 @@ using namespace kalahari::core;
 // Static Constants
 // ============================================================================
 
-const ThemeConfig ThemeConfig::DEFAULT_LIGHT = {
-    QColor("#424242"),  // Primary: Dark gray
-    QColor("#757575"),  // Secondary: Medium gray
-    "Light"
-};
-
-const ThemeConfig ThemeConfig::DEFAULT_DARK = {
-    QColor("#E0E0E0"),  // Primary: Light gray
-    QColor("#B0B0B0"),  // Secondary: Medium-light gray
-    "Dark"
-};
+// Note: ThemeConfig::DEFAULT_LIGHT and DEFAULT_DARK removed.
+// Icon colors are now synchronized from ThemeManager at runtime.
+// Fallback values (#424242/#757575) are used only in loadFromSettings()
+// when settings file is missing or corrupted.
 
 const IconSizeConfig IconSizeConfig::DEFAULT_SIZES = {
     24,  // toolbar
@@ -43,14 +41,36 @@ IconRegistry& IconRegistry::getInstance() {
     return instance;
 }
 
+// ============================================================================
+// Constructor
+// ============================================================================
+
+IconRegistry::IconRegistry()
+    : QObject(nullptr)
+{
+    // QObject initialization
+}
+
+// ============================================================================
+// Initialization and Theme Connection
+// ============================================================================
+
 void IconRegistry::initialize() {
     Logger::getInstance().info("IconRegistry: Initializing icon system...");
 
-    // Load customizations from QSettings
+    // Load customizations from QSettings (includes default theme colors as fallback)
     loadFromSettings();
 
-    Logger::getInstance().info("IconRegistry: Icon system initialized ({} icons registered, theme: {})",
-        m_icons.size(), m_theme.name.toStdString());
+    // Note: Connection to ThemeManager is done externally by MainWindow
+    // to avoid circular dependency between kalahari_core.dll and kalahari.exe
+    // MainWindow calls: connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
+    //                          &IconRegistry::getInstance(), &IconRegistry::onThemeChanged);
+
+    Logger::getInstance().info("IconRegistry: Icon system initialized ({} icons registered, theme: '{}', primary={}, secondary={})",
+        m_icons.size(),
+        m_theme.name.toStdString(),
+        m_theme.primaryColor.name().toStdString(),
+        m_theme.secondaryColor.name().toStdString());
 }
 
 // ============================================================================
@@ -325,15 +345,18 @@ void IconRegistry::setThemeColors(const QColor& primary, const QColor& secondary
 }
 
 void IconRegistry::resetTheme() {
-    m_theme = ThemeConfig::DEFAULT_LIGHT;
+    // Reset to default fallback colors (Light theme)
+    // Note: Actual theme colors will be provided by ThemeManager via onThemeChanged signal
+    m_theme.primaryColor = QColor("#424242");
+    m_theme.secondaryColor = QColor("#757575");
+    m_theme.name = "Light";
 
-    Logger::getInstance().info("IconRegistry: Theme reset to default Light");
+    Logger::getInstance().info("IconRegistry: Theme reset to default Light (will be updated by ThemeManager)");
 
     // Clear cache
     clearCache();
 
-    // Save to settings
-    saveToSettings();
+    // Note: Don't save to settings here - theme is owned by ThemeManager
 }
 
 // ============================================================================
@@ -341,10 +364,16 @@ void IconRegistry::resetTheme() {
 // ============================================================================
 
 QString IconRegistry::loadSVGFromFile(const QString& filePath) const {
-    QFile file(filePath);
+    // Resolve path relative to application directory
+    QString resolvedPath = filePath;
+    if (!QDir::isAbsolutePath(filePath)) {
+        resolvedPath = QCoreApplication::applicationDirPath() + "/" + filePath;
+    }
+
+    QFile file(resolvedPath);
 
     if (!file.exists()) {
-        Logger::getInstance().warn("IconRegistry: Icon file not found: {}", filePath.toStdString());
+        Logger::getInstance().warn("IconRegistry: Icon file not found: {}", resolvedPath.toStdString());
         return QString();
     }
 
@@ -457,8 +486,8 @@ void IconRegistry::saveToSettings() {
     auto& settings = SettingsManager::getInstance();
 
     // Save theme
-    settings.set("icons/theme/primary_color", m_theme.primaryColor.name().toStdString());
-    settings.set("icons/theme/secondary_color", m_theme.secondaryColor.name().toStdString());
+    settings.setIconColorPrimary(m_theme.primaryColor.name().toStdString());
+    settings.setIconColorSecondary(m_theme.secondaryColor.name().toStdString());
     settings.set("icons/theme/name", m_theme.name.toStdString());
 
     // Save sizes
@@ -503,8 +532,8 @@ void IconRegistry::loadFromSettings() {
     auto& settings = SettingsManager::getInstance();
 
     // Load theme (with defaults if missing)
-    std::string primaryHexStr = settings.get<std::string>("icons/theme/primary_color", "#424242");
-    std::string secondaryHexStr = settings.get<std::string>("icons/theme/secondary_color", "#757575");
+    std::string primaryHexStr = settings.getIconColorPrimary();
+    std::string secondaryHexStr = settings.getIconColorSecondary();
     std::string themeNameStr = settings.get<std::string>("icons/theme/name", "Light");
 
     QString primaryHex = QString::fromStdString(primaryHexStr);
@@ -542,4 +571,25 @@ void IconRegistry::loadFromSettings() {
 
     Logger::getInstance().debug("IconRegistry: Settings loaded (theme={}, sizes={}x{}x{}x{})",
         themeName.toStdString(), m_sizes.toolbar, m_sizes.menu, m_sizes.panel, m_sizes.dialog);
+}
+
+// ============================================================================
+// Theme Changed Slot
+// ============================================================================
+
+void IconRegistry::onThemeChanged(const Theme& theme) {
+    Logger::getInstance().info("IconRegistry: Theme changed to '{}' (via ThemeManager signal)",
+        theme.name);
+
+    // Update icon colors from new theme
+    m_theme.primaryColor = theme.colors.primary;
+    m_theme.secondaryColor = theme.colors.secondary;
+    m_theme.name = QString::fromStdString(theme.name);
+
+    // Clear cache (all icons need re-render with new colors)
+    clearCache();
+
+    Logger::getInstance().info("IconRegistry: Colors updated (primary={}, secondary={})",
+        m_theme.primaryColor.name().toStdString(),
+        m_theme.secondaryColor.name().toStdString());
 }

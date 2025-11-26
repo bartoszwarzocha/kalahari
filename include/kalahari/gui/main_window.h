@@ -24,6 +24,10 @@ class QShowEvent;
 
 namespace kalahari {
 
+namespace core {
+    struct Theme;  // Forward declaration for Theme (Task #00023)
+}
+
 namespace gui {
 
 // Forward declarations for panels
@@ -34,6 +38,7 @@ class PropertiesPanel;
 class SearchPanel;
 class AssistantPanel;
 class LogPanel;
+class MenuBuilder;  // Task #00025
 
 /// @brief Main application window
 ///
@@ -193,6 +198,10 @@ private slots:
     /// @param enabled true if diagnostic mode enabled, false otherwise
     void onDiagModeChanged(bool enabled);
 
+    /// @brief Slot for theme changed (Task #00023)
+    /// @param theme New theme to apply to IconRegistry
+    void onThemeChanged(const kalahari::core::Theme& theme);
+
     // Diagnostic tool slots (Task #00018) - only visible in diagnostic mode
     void onDiagSystemInfo();
     void onDiagQtEnvironment();
@@ -231,6 +240,9 @@ private:
 
     // Toolbars (Task #00019)
     ToolbarManager* m_toolbarManager;
+
+    // Menu builder (Task #00025 - centralized icon refresh)
+    MenuBuilder* m_menuBuilder;
 
     // View actions (panel toggles)
     QAction* m_viewNavigatorAction;

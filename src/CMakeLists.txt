@@ -17,12 +17,11 @@ set(KALAHARI_CORE_SOURCES
     core/book.cpp
     core/document.cpp
     core/document_archive.cpp
-    core/icon_registry.cpp
-    # TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    # core/utils/icon_downloader.cpp
     core/utils/svg_converter.cpp
-    # Headers with Q_OBJECT (needed for AUTOMOC)
-    # ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h
+    core/theme.cpp
+    core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
+    # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable
+    # (avoid Q_OBJECT DLL export issues with MOC-generated symbols)
 )
 
 # Create core library as SHARED for Python module compatibility
@@ -96,6 +95,9 @@ target_link_libraries(kalahari_core PUBLIC
 # Executable source files
 set(KALAHARI_SOURCES
     main.cpp
+    core/utils/icon_downloader.cpp  # IconDownloader moved to executable (avoid moc DLL export issues)
+    core/theme_manager.cpp  # ThemeManager moved to executable (avoid moc DLL export issues)
+    core/icon_registry.cpp  # IconRegistry moved to executable (Task #00025: Q_OBJECT for theme signals)
     gui/command.cpp
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
@@ -114,6 +116,9 @@ set(KALAHARI_SOURCES
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h  # IconRegistry with Q_OBJECT (Task #00025)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
@@ -130,9 +135,6 @@ set(KALAHARI_SOURCES
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
-
-# TEMPORARY: Skip AUTOMOC for main.cpp (DownloadHelper disabled with #if 0)
-set_source_files_properties(main.cpp PROPERTIES SKIP_AUTOMOC ON)
 
 # Target properties
 set_target_properties(kalahari PROPERTIES
@@ -189,7 +191,16 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/imageformats"
             "$<TARGET_FILE_DIR:kalahari>/imageformats"
-        COMMENT "Copying Qt plugins to output directory"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/tls"
+            "$<TARGET_FILE_DIR:kalahari>/tls"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/bin/libcrypto-3-x64.dll"
+            "$<TARGET_FILE_DIR:kalahari>/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/bin/libssl-3-x64.dll"
+            "$<TARGET_FILE_DIR:kalahari>/"
+        COMMENT "Copying Qt plugins and OpenSSL DLLs to output directory"
     )
 elseif(UNIX AND NOT APPLE)
     # Linux: Copy from Qt installation

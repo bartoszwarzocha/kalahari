@@ -215,6 +215,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Total LOC added: ~800 lines
   - Manual testing: ✅ Application starts successfully, 16 icons registered, settings persisted
 
+- **Task #00023:** Theme System Foundation with QPalette Integration - 2025-11-25
+  - Complete theme architecture redesign using Qt QPalette for native widget styling
+  - **Problem solved:** QSpinBox/QComboBox arrows invisible in dark theme (Qt Fusion style requires QPalette colors)
+  - **Theme JSON architecture extended:**
+    - Added "palette" section with 16 QPalette color roles (window, windowText, base, alternateBase, text, button, buttonText, highlight, highlightedText, light, midlight, mid, dark, shadow, link, linkVisited)
+    - Light.json and Dark.json updated to version 1.1 with full palette definitions
+    - Backward compatibility: Auto-generates palette from "colors" section if "palette" missing
+  - **Theme struct (theme.h) extended:**
+    - Added Palette sub-struct with 16 QColor members mapping to QPalette::ColorRole
+    - Added toQPalette() method converting Theme::Palette to QPalette object
+    - Sets colors for all three QPalette::ColorGroup states (Active, Inactive, Disabled)
+  - **ThemeManager (theme_manager.cpp) enhanced:**
+    - applyTheme() now calls QApplication::setPalette() with theme-derived QPalette
+    - Removed broken dark.qss file approach (CSS border-triangles don't work in Qt)
+    - Theme colors in ONE place (JSON), applied system-wide via QPalette
+  - **Architecture benefits:**
+    - Qt Fusion style uses QPalette for ALL widget colors (spinbox arrows, combobox dropdowns, scrollbars)
+    - No hardcoded colors in QSS needed - QPalette handles everything
+    - Runtime theme switching works correctly with all native widgets
+    - Log panel colors integrated (theme.log.info, theme.log.debug, theme.log.background)
+  - OpenSpec validation: Change ID `00023-theme-system-foundation`
+  - Files modified: `theme.h` (+50 LOC Palette struct), `theme.cpp` (+80 LOC toQPalette + parsing), `theme_manager.cpp` (+5 LOC setPalette), `Dark.json` (+17 lines palette), `Light.json` (+17 lines palette)
+  - Total architecture LOC: ~150 lines
+  - Manual testing: ✅ Dark theme spinbox/combobox arrows visible, all controls styled correctly
+
+- **Task #00024:** Settings Dialog Refactor with Hierarchical Navigation - 2025-11-25
+  - Complete Settings Dialog restructure from flat tabs to hierarchical tree + stacked panels
+  - **Layout change:** QTabWidget (2 tabs) → QTreeWidget (left sidebar) + QStackedWidget (right panels)
+  - **14 settings pages implemented:**
+    - **Appearance:** General, Theme, Icons (3 pages)
+    - **Editor:** General, Spelling, Auto-correct, Completion (4 pages)
+    - **Files:** Backup, Auto-save, Import/Export (3 pages)
+    - **Network:** Cloud Sync, Updates (2 pages)
+    - **Advanced:** General, Performance (2 pages)
+  - **PageIndex enum:** Extended from 7 to 14 entries for direct page access
+  - **Tree navigation:** Categories expand to show sub-items, single-click switches page
+  - **Assistant icon:** Changed from "smart_toy" (robot) to "pets" (animal mascot) per brand guidelines
+  - **Icon downloads:** Added "pets" icon for all 4 Material Design styles (twotone, outlined, rounded, filled)
+  - OpenSpec validation: Change ID `00024-settings-dialog-refactor`
+  - Files modified: `settings_dialog.h` (+30 LOC PageIndex enum), `settings_dialog.cpp` (+200 LOC tree structure + 11 new pages), `main_window.cpp` (assistant icon registration), `download_all_icons.sh` (pets icon)
+  - Manual testing: ✅ All 14 pages accessible, tree navigation works correctly
+
+- **OpenSpec #00025:** Theme-Icon Integration - 2025-11-26
+  - Complete integration between ThemeManager and IconRegistry for unified icon theming
+  - **Per-theme icon color storage:**
+    - SettingsManager: Added `iconColors.{theme}.primary` and `iconColors.{theme}.secondary` JSON keys
+    - Each theme (Light, Dark) stores its own icon color preferences
+    - New API: `hasCustomIconColorsForTheme()`, `getIconColorPrimaryForTheme()`, `setIconColorPrimaryForTheme()`
+    - User overrides persist independently per theme
+  - **ThemeManager per-theme color loading:**
+    - On startup: Loads saved per-theme icon colors from SettingsManager
+    - On theme switch: Loads per-theme colors for the new theme
+    - `switchTheme()` applies custom colors after loading base theme
+    - Color overrides applied via `applyColorOverrides()` method
+  - **Settings Dialog icon color controls:**
+    - Appearance/Icons page: Primary and secondary color pickers (QPushButton + QColorDialog)
+    - Colors synchronized with ThemeManager and IconRegistry
+    - "Apply" updates icons in real-time
+    - Theme switch auto-loads saved per-theme colors
+  - **GUI icon refresh mechanism:**
+    - `ToolbarManager::refreshIcons()` - stores cmdId in QAction::data(), refreshes from IconRegistry
+    - `MenuBuilder::refreshIcons()` - recursive submenu traversal, same pattern as toolbar
+    - `MainWindow::onThemeChanged()` - calls both refresh methods after theme/color change
+    - All toolbar AND menu icons update immediately on color change
+  - **Architecture established:**
+    - ThemeManager emits `themeChanged(const Theme&)` signal
+    - GUI components (ToolbarManager, MenuBuilder) listen and refresh their icons
+    - IconRegistry provides fresh icons with current theme colors
+    - **Limitation identified:** Each GUI component needs own refreshIcons() - centralization planned for next task
+  - OpenSpec validation: Change ID `00025-theme-icon-integration`
+  - Files modified: `settings_manager.h/cpp` (+60 LOC per-theme storage), `settings_dialog.h/cpp` (+80 LOC color controls), `theme_manager.cpp` (+40 LOC per-theme loading), `menu_builder.h/cpp` (+70 LOC refreshIcons), `main_window.h/cpp` (+15 LOC MenuBuilder integration)
+  - Manual testing: ✅ Per-theme colors persist, toolbar + menu icons refresh on color change
+
+### Changed
+
+- **ROADMAP.md restructured (2025-11-26):**
+  - Removed ALL task numbers from ROADMAP (OpenSpec is now source of truth for tasks)
+  - Updated section 1.7 "Theme & Icon System" with current architecture documentation
+  - Added "Key Milestones" entry for Theme & Icon System Foundation
+  - Changed Notes section: "OpenSpec Tasks" replaces "Task Numbering"
+  - Document version bumped to 2.0
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20

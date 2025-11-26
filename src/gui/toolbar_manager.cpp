@@ -3,7 +3,10 @@
 
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/icon_registry.h"
+#include "kalahari/core/settings_manager.h"
 #include <QSettings>
 #include <QApplication>
 
@@ -103,6 +106,8 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
             Command* cmd = registry.getCommand(cmdId);
             if (cmd && cmd->canExecute()) {
                 QAction* action = cmd->toQAction(toolbar);
+                // Task #00025: Store command ID in action data for icon refresh
+                action->setData(QString::fromStdString(cmdId));
                 toolbar->addAction(action);
 
                 // Connect action to command execution
@@ -263,6 +268,60 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     }
 
     logger.info("ToolbarManager: Created {} View menu actions", m_viewActions.size());
+}
+
+void ToolbarManager::refreshIcons(CommandRegistry& /* registry */) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("ToolbarManager: Refreshing toolbar icons");
+
+    // Get current icon theme from settings
+    auto& settings = core::SettingsManager::getInstance();
+    QString iconTheme = QString::fromStdString(
+        settings.get<std::string>("appearance.iconTheme", "twotone")
+    );
+    logger.debug("ToolbarManager: Using icon theme '{}'", iconTheme.toStdString());
+
+    int updatedCount = 0;
+    int skippedNoId = 0;
+    int skippedNoIcon = 0;
+
+    // Iterate through all toolbars
+    for (auto& [toolbarId, toolbar] : m_toolbars) {
+        if (!toolbar) continue;
+
+        logger.debug("ToolbarManager: Processing toolbar '{}' with {} actions",
+            toolbarId, toolbar->actions().size());
+
+        // Iterate through all actions in toolbar
+        for (QAction* action : toolbar->actions()) {
+            if (!action || action->isSeparator()) continue;
+
+            // Get command ID from action data
+            QString actionId = action->data().toString();
+            if (actionId.isEmpty()) {
+                logger.warn("ToolbarManager: Action '{}' has no data/ID set",
+                    action->text().toStdString());
+                skippedNoId++;
+                continue;
+            }
+
+            // Get fresh icon from IconRegistry (with current theme colors AND icon style)
+            // This re-fetches icons with updated colors after theme change
+            IconSet freshIcons = IconSet::fromRegistry(actionId, iconTheme);
+            if (!freshIcons.isEmpty()) {
+                action->setIcon(freshIcons.toQIcon());
+                updatedCount++;
+                logger.debug("ToolbarManager: Updated icon for '{}'", actionId.toStdString());
+            } else {
+                logger.warn("ToolbarManager: IconSet::fromRegistry('{}') returned empty",
+                    actionId.toStdString());
+                skippedNoIcon++;
+            }
+        }
+    }
+
+    logger.info("ToolbarManager: Refreshed {} toolbar icons (skipped: {} no ID, {} no icon)",
+        updatedCount, skippedNoId, skippedNoIcon);
 }
 
 } // namespace gui

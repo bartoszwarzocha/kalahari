@@ -73,22 +73,7 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
         return {false, QString(), "Missing required 'viewBox' attribute on <svg> element"};
     }
 
-    // Check 4: Contains at least one drawable element
-    QStringList drawableElements = {"path", "circle", "rect", "polygon", "polyline", "ellipse", "line"};
-    bool hasDrawable = false;
-
-    for (const QString& tagName : drawableElements) {
-        QDomNodeList elements = doc.elementsByTagName(tagName);
-        if (elements.count() > 0) {
-            hasDrawable = true;
-            break;
-        }
-    }
-
-    if (!hasDrawable) {
-        return {false, QString(), "SVG contains no drawable elements (path, circle, rect, etc.)"};
-    }
-
+    // Note: SVG with no drawable elements is valid - just nothing to convert
     // All checks passed
     return {true, QString(), QString()};
 }
@@ -116,19 +101,22 @@ QString SvgConverter::replaceColorPlaceholders(const QString& svgXml) {
 
             // Get opacity (default 1.0)
             double opacity = 1.0;
-            if (element.hasAttribute("opacity")) {
+            bool hadOpacity = element.hasAttribute("opacity");
+            if (hadOpacity) {
                 bool ok;
                 opacity = element.attribute("opacity").toDouble(&ok);
                 if (!ok) {
                     opacity = 1.0;
                 }
+                // Remove opacity attribute after reading (it's encoded in color choice)
+                element.removeAttribute("opacity");
             }
 
             // Determine color based on opacity
             QString colorPlaceholder = (opacity <= 0.5) ? "{COLOR_SECONDARY}" : "{COLOR_PRIMARY}";
 
-            // Case 1: Replace fill="currentColor"
-            if (element.attribute("fill") == "currentColor") {
+            // Case 1: Replace existing fill attribute
+            if (element.hasAttribute("fill") && element.attribute("fill") != "none") {
                 element.setAttribute("fill", colorPlaceholder);
             }
             // Case 2: Add fill if missing (and not fill="none")

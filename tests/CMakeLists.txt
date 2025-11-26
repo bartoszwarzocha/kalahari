@@ -45,8 +45,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
-    # TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-    # ${CMAKE_SOURCE_DIR}/src/core/utils/icon_downloader.cpp
+    # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )

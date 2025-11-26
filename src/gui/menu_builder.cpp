@@ -3,9 +3,11 @@
 
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 #include <QAction>
 #include <QMessageBox>
 #include <QApplication>
+#include <QMenuBar>
 #include <algorithm>
 #include <sstream>
 #include <vector>
@@ -173,6 +175,9 @@ void MenuBuilder::createMenuAction(QMenu* menu,
     // Create QAction from Command
     QAction* action = command.toQAction(menu);
 
+    // Store command ID in action data for icon refresh (Task #00025)
+    action->setData(QString::fromStdString(command.id));
+
     // Handle phase marker: if phase > 0, override execute with QMessageBox
     if (command.phase > 0) {
         QObject::connect(action, &QAction::triggered, [phase = command.phase, label = command.label]() {
@@ -231,6 +236,67 @@ void MenuBuilder::updateDynamicMenus() {
 
         logger.debug("MenuBuilder: Updated dynamic menu '{}' with {} actions", path, actions.size());
     }
+}
+
+void MenuBuilder::refreshIcons() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("MenuBuilder: Refreshing menu icons");
+
+    // Get current icon theme from settings
+    auto& settings = core::SettingsManager::getInstance();
+    QString iconTheme = QString::fromStdString(
+        settings.get<std::string>("appearance.iconTheme", "twotone")
+    );
+
+    int updatedCount = 0;
+    int skippedNoId = 0;
+    int skippedNoIcon = 0;
+
+    // Iterate all menus in cache
+    for (auto& [path, menu] : m_menuCache) {
+        if (!menu) {
+            continue;
+        }
+
+        // Recursively refresh icons in this menu and all submenus
+        std::function<void(QMenu*)> refreshMenuIcons = [&](QMenu* currentMenu) {
+            if (!currentMenu) return;
+
+            for (QAction* action : currentMenu->actions()) {
+                // Skip separators
+                if (action->isSeparator()) {
+                    continue;
+                }
+
+                // If action has submenu, recurse
+                if (action->menu()) {
+                    refreshMenuIcons(action->menu());
+                    continue;
+                }
+
+                // Get command ID from action data
+                QString actionId = action->data().toString();
+                if (actionId.isEmpty()) {
+                    skippedNoId++;
+                    continue;
+                }
+
+                // Get fresh icon from IconRegistry
+                IconSet freshIcons = IconSet::fromRegistry(actionId, iconTheme);
+                if (!freshIcons.isEmpty()) {
+                    action->setIcon(freshIcons.toQIcon());
+                    updatedCount++;
+                } else {
+                    skippedNoIcon++;
+                }
+            }
+        };
+
+        refreshMenuIcons(menu);
+    }
+
+    logger.info("MenuBuilder: Refreshed {} menu icons (skipped: {} no ID, {} no icon)",
+                updatedCount, skippedNoId, skippedNoIcon);
 }
 
 } // namespace gui

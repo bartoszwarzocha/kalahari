@@ -3,7 +3,7 @@
 ///
 /// Task #00002: QMainWindow Structure with Menus and Toolbars
 /// Task #00018: Diagnostic Mode with --diag parameter
-/// Task #00020: Icon Downloader Tool (CLI mode) - TEMPORARILY DISABLED
+/// Task #00020: Icon Downloader Tool (CLI mode)
 
 #include <QApplication>
 #include <QDir>
@@ -15,16 +15,12 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/cmd_line_parser.h"
-// TEMPORARY: IconDownloader disabled (moc linkage issue from Task #00020)
-// #include "kalahari/core/utils/icon_downloader.h"
+#include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 
-#if 0  // TEMPORARY: IconDownloader CLI mode disabled (moc linkage issue from Task #00020)
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
 // ============================================================================
-// This helper class avoids DLL export issues with Qt signals on Windows.
-// Using old-style SIGNAL/SLOT macros doesn't require staticMetaObject export.
 class DownloadHelper : public QObject {
     Q_OBJECT
 
@@ -44,16 +40,13 @@ public slots:
         }
     }
 
-    void onError(const QString& /*iconName*/, const QString& theme, const QString& error) {
-        if (theme == expectedTheme) {
-            auto& logger = kalahari::core::Logger::getInstance();
-            logger.error("CLI: Download failed: {}", error.toStdString());
-            fprintf(stderr, "Error: %s\n", error.toUtf8().constData());
-            downloadSuccess = false;
-        }
+    void onError(const QString& /*url*/, const QString& error) {
+        auto& logger = kalahari::core::Logger::getInstance();
+        logger.error("CLI: Download failed: {}", error.toStdString());
+        fprintf(stderr, "Error: %s\n", error.toUtf8().constData());
+        downloadSuccess = false;
     }
 };
-#endif  // DownloadHelper class disabled
 
 int main(int argc, char *argv[]) {
     // Initialize Qt application
@@ -67,168 +60,154 @@ int main(int argc, char *argv[]) {
     logger.init("kalahari.log");
 
     auto& settings = kalahari::core::SettingsManager::getInstance();
-    settings.load();  // Load settings from disk
+    settings.load();
     logger.info("Kalahari {} starting", app.applicationVersion().toStdString());
 
-    // Initialize IconRegistry (Task #00021)
-    auto& iconRegistry = kalahari::core::IconRegistry::getInstance();
-    iconRegistry.initialize();  // Load theme/sizes/customizations from settings
+    // Set Fusion style for consistent cross-platform palette support
+    // Must be set BEFORE ThemeManager applies QPalette
+    QApplication::setStyle("Fusion");
 
-    // Parse command line arguments (Task #00018, #00020)
+    // Initialize IconRegistry (triggers ThemeManager initialization)
+    auto& iconRegistry = kalahari::core::IconRegistry::getInstance();
+    iconRegistry.initialize();
+
+    // Parse command line arguments
     kalahari::core::CmdLineParser cmdLine(argc, argv);
     cmdLine.setApplicationDescription("Kalahari", "Writer's IDE for book authors");
     cmdLine.addSwitch("", "cli", "Run in CLI mode (no GUI)");
     cmdLine.addSwitch("d", "diag", "Enable diagnostic mode (show Diagnostics menu)");
     cmdLine.addSwitch("", "dev", "Enable developer tools (Dev Tools menu + CLI features)");
-    cmdLine.addOption("", "get-icon", "Download Material Design icon (requires --cli --dev)", "name");
-    cmdLine.addOption("", "get-icons", "Download multiple icons (comma-separated, requires --cli --dev)", "list");
-    cmdLine.addOption("", "themes", "Icon themes to download (comma-separated, default: twotone,rounded,outlined)", "list");
-    cmdLine.addOption("", "source", "Custom Material Design source URL (default: GitHub Raw)", "url");
+    cmdLine.addOption("", "get-icon", "Download icon from URL (requires --cli)", "url");
+    cmdLine.addOption("", "icon-name", "Output icon name (required with --get-icon)", "name");
+    cmdLine.addOption("", "theme", "Target theme: twotone, rounded, outlined (default: twotone)", "theme");
 
     if (!cmdLine.parse()) {
-        // Parsing failed (error or --help requested)
         logger.info("Command line parsing failed or help requested");
         return 0;
     }
 
-#if 0  // TEMPORARY: IconDownloader CLI mode disabled (moc linkage issue from Task #00020)
     // ========================================================================
-    // CLI Mode: Icon Downloader (Task #00020)
+    // CLI Mode: Icon Downloader
     // ========================================================================
-    if (cmdLine.hasSwitch("cli")) {
-        logger.info("CLI Mode activated");
+    if (cmdLine.hasSwitch("cli") && cmdLine.hasOption("get-icon")) {
+        logger.info("CLI Mode: Icon download");
 
-        // Get icon name(s)
-        QStringList iconNames;
-        if (cmdLine.hasOption("get-icon")) {
-            iconNames << cmdLine.getOptionValue("get-icon");
-        } else if (cmdLine.hasOption("get-icons")) {
-            QString iconList = cmdLine.getOptionValue("get-icons");
-            iconNames = iconList.split(',', Qt::SkipEmptyParts);
+        QString url = cmdLine.getOptionValue("get-icon");
+        QString iconName = cmdLine.getOptionValue("icon-name");
+        QString theme = cmdLine.hasOption("theme") ? cmdLine.getOptionValue("theme") : "twotone";
+
+        // Validate inputs
+        if (url.isEmpty()) {
+            fprintf(stderr, "Error: --get-icon requires a URL\n");
+            return 1;
         }
 
-        // Get themes (default: all 3)
-        QStringList themes;
-        if (cmdLine.hasOption("themes")) {
-            QString themeList = cmdLine.getOptionValue("themes");
-            themes = themeList.split(',', Qt::SkipEmptyParts);
-        } else {
-            themes << "twotone" << "rounded" << "outlined";
+        if (iconName.isEmpty()) {
+            fprintf(stderr, "Error: --icon-name is required\n");
+            fprintf(stderr, "Usage: kalahari --cli --get-icon URL --icon-name NAME [--theme THEME]\n");
+            return 1;
         }
 
-        // Get source URL (default: GitHub Raw)
-        QString sourceUrl = kalahari::core::IconDownloader::getDefaultSourceUrl();
-        if (cmdLine.hasOption("source")) {
-            sourceUrl = cmdLine.getOptionValue("source");
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            fprintf(stderr, "Error: URL must start with http:// or https://\n");
+            return 1;
         }
 
-        logger.info("CLI: Downloading {} icon(s) in {} theme(s)", iconNames.size(), themes.size());
+        logger.info("CLI: Downloading from {} -> {}/{}.svg", url.toStdString(), theme.toStdString(), iconName.toStdString());
+        fprintf(stdout, "Downloading: %s\n", url.toUtf8().constData());
 
-        // Create icon downloader
-        kalahari::core::IconDownloader downloader(sourceUrl);
+        // Create downloader
+        kalahari::core::IconDownloader downloader;
         kalahari::core::SvgConverter converter;
 
-        // Track success/failure
-        int downloadedCount = 0;
-        int failedCount = 0;
+        // Create helper for signal/slot handling
+        DownloadHelper helper;
+        helper.expectedTheme = theme;
+        helper.downloadSuccess = false;
+        helper.downloadedSvg.clear();
 
-        // Download each icon
-        for (const QString& iconName : iconNames) {
-            for (const QString& theme : themes) {
-                logger.info("CLI: Downloading '{}'  (theme: {})", iconName.toStdString(), theme.toStdString());
+        // Use QEventLoop for synchronous download
+        QEventLoop loop;
 
-                // Create helper for signal/slot handling (avoids DLL export issues)
-                DownloadHelper helper;
-                helper.expectedTheme = theme;
-                helper.downloadSuccess = false;
-                helper.downloadedSvg.clear();
+        QObject::connect(&downloader, &kalahari::core::IconDownloader::downloadComplete,
+                        &helper, &DownloadHelper::onComplete);
+        QObject::connect(&downloader, &kalahari::core::IconDownloader::downloadError,
+                        &helper, &DownloadHelper::onError);
+        QObject::connect(&downloader, &kalahari::core::IconDownloader::downloadComplete,
+                        &loop, &QEventLoop::quit);
+        QObject::connect(&downloader, &kalahari::core::IconDownloader::downloadError,
+                        &loop, &QEventLoop::quit);
 
-                // Use QEventLoop for synchronous download
-                QEventLoop loop;
+        // Start download
+        downloader.downloadFromUrl(url, theme);
 
-                // Connect signals using old-style SIGNAL/SLOT (no staticMetaObject export needed)
-                QObject::connect(&downloader, SIGNAL(downloadComplete(QString,QString)),
-                               &helper, SLOT(onComplete(QString,QString)));
-                QObject::connect(&downloader, SIGNAL(downloadError(QString,QString,QString)),
-                               &helper, SLOT(onError(QString,QString,QString)));
-                QObject::connect(&downloader, SIGNAL(downloadComplete(QString,QString)),
-                               &loop, SLOT(quit()));
-                QObject::connect(&downloader, SIGNAL(downloadError(QString,QString,QString)),
-                               &loop, SLOT(quit()));
+        // Wait for completion (with 15 second timeout)
+        QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+        loop.exec();
 
-                // Start download
-                downloader.downloadIcon(iconName, {theme});
+        if (!helper.downloadSuccess) {
+            fprintf(stderr, "Download failed\n");
+            return 1;
+        }
 
-                // Wait for completion (with 15 second timeout)
-                QTimer::singleShot(15000, &loop, &QEventLoop::quit);
-                loop.exec();
+        // Convert SVG
+        auto conversionResult = converter.convertToTemplate(helper.downloadedSvg);
+        if (!conversionResult.success) {
+            logger.error("CLI: Conversion failed: {}", conversionResult.errorMessage.toStdString());
+            fprintf(stderr, "Error: Conversion failed: %s\n", conversionResult.errorMessage.toUtf8().constData());
+            return 1;
+        }
 
-                if (!helper.downloadSuccess) {
-                    failedCount++;
-                    continue;
-                }
-
-                // Convert SVG
-                auto conversionResult = converter.convertToTemplate(helper.downloadedSvg);
-                if (!conversionResult.success) {
-                    logger.error("CLI: Conversion failed: {}", conversionResult.errorMessage.toStdString());
-                    fprintf(stderr, "Error: Conversion failed: %s\n",
-                           conversionResult.errorMessage.toUtf8().constData());
-                    failedCount++;
-                    continue;
-                }
-
-                // Ensure directory exists
-                QString dirPath = QString("resources/icons/%1").arg(theme);
-                QDir dir;
-                if (!dir.exists(dirPath)) {
-                    if (!dir.mkpath(dirPath)) {
-                        logger.error("CLI: Failed to create directory: {}", dirPath.toStdString());
-                        fprintf(stderr, "Error: Cannot create directory: %s\n", dirPath.toUtf8().constData());
-                        failedCount++;
-                        continue;
-                    }
-                    logger.info("CLI: Created directory: {}", dirPath.toStdString());
-                }
-
-                // Save SVG to file
-                QString filePath = QString("resources/icons/%1/%2.svg").arg(theme, iconName);
-                QFile file(filePath);
-                if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                    logger.error("CLI: Failed to open file for writing: {}", filePath.toStdString());
-                    fprintf(stderr, "Error: Cannot write to file: %s\n", filePath.toUtf8().constData());
-                    failedCount++;
-                    continue;
-                }
-
-                file.write(conversionResult.svg.toUtf8());
-                file.close();
-
-                logger.info("CLI: ✓ Saved {} ({} bytes)", filePath.toStdString(), conversionResult.svg.length());
-                fprintf(stdout, "✓ Downloaded: %s\n", filePath.toUtf8().constData());
-                downloadedCount++;
+        // Ensure directory exists
+        QString dirPath = QString("resources/icons/%1").arg(theme);
+        QDir dir;
+        if (!dir.exists(dirPath)) {
+            if (!dir.mkpath(dirPath)) {
+                logger.error("CLI: Failed to create directory: {}", dirPath.toStdString());
+                fprintf(stderr, "Error: Cannot create directory: %s\n", dirPath.toUtf8().constData());
+                return 1;
             }
         }
 
-        // Print summary
-        logger.info("CLI: Download complete - {} succeeded, {} failed", downloadedCount, failedCount);
-        fprintf(stdout, "\nSummary: %d downloaded, %d failed\n", downloadedCount, failedCount);
+        // Save SVG to file
+        QString filePath = QString("resources/icons/%1/%2.svg").arg(theme, iconName);
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            logger.error("CLI: Failed to open file for writing: {}", filePath.toStdString());
+            fprintf(stderr, "Error: Cannot write to file: %s\n", filePath.toUtf8().constData());
+            return 1;
+        }
 
-        // Exit without starting GUI
-        return (failedCount == 0) ? 0 : 1;
+        file.write(conversionResult.svg.toUtf8());
+        file.close();
+
+        logger.info("CLI: ✓ Saved {} ({} bytes)", filePath.toStdString(), conversionResult.svg.length());
+        fprintf(stdout, "✓ Saved: %s\n", filePath.toUtf8().constData());
+
+        return 0;
     }
-#endif  // IconDownloader CLI mode disabled
 
-    // Create main window with menus/toolbars
+    // CLI mode without valid command
+    if (cmdLine.hasSwitch("cli")) {
+        fprintf(stderr, "CLI mode requires --get-icon URL\n");
+        fprintf(stderr, "Usage: kalahari --cli --get-icon URL --icon-name NAME [--theme THEME]\n");
+        fprintf(stderr, "\nExample:\n");
+        fprintf(stderr, "  kalahari --cli --get-icon https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg --icon-name save --theme twotone\n");
+        return 1;
+    }
+
+    // ========================================================================
+    // GUI Mode
+    // ========================================================================
     kalahari::gui::MainWindow window;
 
-    // Enable diagnostic mode if --diag flag present (Task #00018)
+    // Enable diagnostic mode if --diag flag present
     if (cmdLine.isDiagnosticMode()) {
         logger.info("Diagnostic mode enabled via --diag flag");
         window.enableDiagnosticMode();
     }
 
-    // Enable dev mode if --dev flag present (Task #00020)
+    // Enable dev mode if --dev flag present
     if (cmdLine.hasSwitch("dev")) {
         logger.info("Dev mode enabled via --dev flag");
         window.enableDevMode();
@@ -238,12 +217,11 @@ int main(int argc, char *argv[]) {
 
     logger.info("Main window shown - entering event loop");
 
-    // Enter Qt event loop
     int result = app.exec();
 
     logger.info("Application exited with code: {}", result);
     return result;
 }
 
-// TEMPORARY: MOC disabled (DownloadHelper class disabled)
-// #include "main.moc"
+// Include MOC-generated code for DownloadHelper class
+#include "main.moc"
