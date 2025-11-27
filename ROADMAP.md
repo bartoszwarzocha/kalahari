@@ -228,7 +228,7 @@
 - [x] Extended icon size configuration (9 contexts)
 - [x] Icon theme selector UI with preview
 - [x] BusyIndicator reusable spinner widget
-- [ ] Log Panel theme-aware colors
+- [ ] Log Panel enhanced (real-time logs, colored output, mode-based visibility)
 
 ---
 
