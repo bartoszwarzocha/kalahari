@@ -1030,18 +1030,23 @@ void MainWindow::onSettings() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Settings");
 
-    // Pass current diagnostic mode state to dialog (Task #00018)
-    SettingsDialog dialog(this, m_diagnosticMode);
+    // Collect current settings to pass to dialog
+    SettingsData currentSettings = collectCurrentSettings();
 
-    // Connect diagnostic mode signal (Task #00018)
-    connect(&dialog, &SettingsDialog::diagnosticModeChanged,
-            this, &MainWindow::onDiagModeChanged);
+    // Create dialog with current settings
+    SettingsDialog dialog(this, currentSettings);
+
+    // Connect settings applied signal - MainWindow reacts (e.g., diagnostic mode)
+    connect(&dialog, &SettingsDialog::settingsApplied,
+            this, [this](const SettingsData& settings) {
+                onApplySettings(settings, false);
+            });
 
     int result = dialog.exec();
 
     if (result == QDialog::Accepted) {
-        logger.info("Settings dialog: OK clicked (settings saved)");
-        statusBar()->showMessage(tr("Settings saved"), 2000);
+        logger.info("Settings dialog: OK clicked");
+        statusBar()->showMessage(tr("Settings applied"), 2000);
     } else {
         logger.info("Settings dialog: Cancel clicked (changes discarded)");
         statusBar()->showMessage(tr("Settings changes discarded"), 2000);
@@ -1878,6 +1883,71 @@ void MainWindow::showEvent(QShowEvent* event) {
 
         m_firstShow = false;
     }
+}
+
+// =============================================================================
+// Settings Management (SettingsData architecture)
+// =============================================================================
+
+SettingsData MainWindow::collectCurrentSettings() const {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("MainWindow: Collecting current settings");
+
+    auto& settings = core::SettingsManager::getInstance();
+    auto& themeManager = core::ThemeManager::getInstance();
+    auto& iconRegistry = core::IconRegistry::getInstance();
+    const auto& theme = themeManager.getCurrentTheme();
+
+    SettingsData settingsData;
+
+    // Appearance/General
+    settingsData.language = QString::fromStdString(settings.getLanguage());
+    settingsData.uiFontSize = settings.get<int>("appearance.uiFontSize", 12);
+
+    // Appearance/Theme
+    settingsData.theme = QString::fromStdString(settings.getTheme());
+    settingsData.primaryColor = theme.colors.primary;
+    settingsData.secondaryColor = theme.colors.secondary;
+
+    // Appearance/Icons
+    settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));
+    const auto& sizes = iconRegistry.getSizes();
+    settingsData.iconSizes[core::IconContext::Toolbar] = sizes.toolbar;
+    settingsData.iconSizes[core::IconContext::Menu] = sizes.menu;
+    settingsData.iconSizes[core::IconContext::TreeView] = sizes.treeView;
+    settingsData.iconSizes[core::IconContext::TabBar] = sizes.tabBar;
+    settingsData.iconSizes[core::IconContext::Button] = sizes.button;
+    settingsData.iconSizes[core::IconContext::StatusBar] = sizes.statusBar;
+    settingsData.iconSizes[core::IconContext::ComboBox] = sizes.comboBox;
+
+    // Editor/General
+    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", "Consolas"));
+    settingsData.editorFontSize = settings.get<int>("editor.fontSize", 12);
+    settingsData.tabSize = settings.get<int>("editor.tabSize", 4);
+    settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers", true);
+    settingsData.wordWrap = settings.get<bool>("editor.wordWrap", false);
+
+    // Advanced/General
+    settingsData.diagnosticMode = m_diagnosticMode;
+
+    logger.debug("MainWindow: Settings collected");
+    return settingsData;
+}
+
+void MainWindow::onApplySettings(const SettingsData& settings, bool /*fromOkButton*/) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("MainWindow: Reacting to settings applied");
+
+    // Handle diagnostic mode change (only thing MainWindow needs to do)
+    if (settings.diagnosticMode != m_diagnosticMode) {
+        if (settings.diagnosticMode) {
+            enableDiagnosticMode();
+        } else {
+            disableDiagnosticMode();
+        }
+    }
+
+    logger.info("MainWindow: Settings reaction complete");
 }
 
 } // namespace gui

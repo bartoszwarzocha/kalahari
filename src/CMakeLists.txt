@@ -107,6 +107,7 @@ set(KALAHARI_SOURCES
     gui/kalahari_syntax_highlighter.cpp
     gui/main_window.cpp
     gui/menu_builder.cpp
+    gui/busy_indicator.cpp
     gui/settings_dialog.cpp
     gui/toolbar_builder.cpp
     gui/toolbar_manager.cpp
@@ -123,6 +124,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h  # IconRegistry with Q_OBJECT (Task #00025)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h   # ArtProvider with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h  # BusyIndicator with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

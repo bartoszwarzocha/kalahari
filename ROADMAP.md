@@ -165,11 +165,11 @@
 - [ ] **Mind Maps Library** (MindMaps/*.kmap files)
 - [ ] **Timelines Library** (Timelines/*.ktl files)
 
-### 1.7 Theme & Icon System ✅ FOUNDATION COMPLETE
+### 1.7 Theme & Icon System ✅ COMPLETE
 
 **Philosophy:** User-configurable themes with per-theme color customization and centralized icon management.
 
-**Current Architecture (Implemented):**
+**Architecture (Implemented):**
 
 1. **ThemeManager (QObject singleton)**
    - Loads theme JSON files (Light.json, Dark.json)
@@ -189,25 +189,29 @@
    - User overrides persist across sessions
    - "Restore Defaults" resets to theme file values
 
-4. **GUI Icon Refresh (Current - Distributed)**
-   - ToolbarManager::refreshIcons() - stores cmdId in QAction::data()
-   - MenuBuilder::refreshIcons() - recursive submenu refresh
-   - MainWindow::onThemeChanged() calls both refresh methods
-   - **Limitation:** Each GUI component must implement own refreshIcons()
+4. **ArtProvider (Central Visual Resource Manager)**
+   - Singleton facade for all icon/image requests
+   - 9 icon contexts (toolbar, menu, treeView, tabBar, statusBar, button, panel, dialog, comboBox)
+   - Self-updating QActions via `createAction()` method
+   - `getPreviewPixmap()` for HiDPI icon previews
+   - Automatic icon refresh on theme/color changes
 
-**Planned Improvement (Next):**
+5. **KalahariStyle (QProxyStyle)**
+   - Reads icon sizes from ArtProvider for each context
+   - Applied globally in main.cpp
+   - Provides consistent icon sizing across all Qt widgets
 
-5. **Centralized Icon Refresh (IconRegistry signal)**
-   - IconRegistry emits `iconsInvalidated()` signal when colors change
-   - GUI components connect to signal and refresh automatically
-   - Single point of control for all icon updates
-   - Eliminates per-component refresh code duplication
+6. **BusyIndicator (Reusable Spinner Widget)**
+   - Modal overlay with animated 3 pulsating dots
+   - Theme-aware primary color
+   - Static `tick()` method for animation during blocking operations
+   - `BusyIndicator::run()` helper for simple usage
 
 **Settings Dialog Structure:**
 
 - **Appearance/General:** Font size, language selection
 - **Appearance/Theme:** Theme selector, color overrides, "Restore Defaults"
-- **Appearance/Icons:** Icon theme selector, sizes, primary/secondary colors
+- **Appearance/Icons:** Icon theme selector (twotone/filled/outlined/rounded), sizes for all 9 contexts, primary/secondary color buttons with preview
 - **Editor:** Font, line spacing, spell check (placeholder)
 - **Advanced:** Diagnostic mode, log configuration
 
@@ -219,7 +223,11 @@
 - [x] Settings Dialog with QTreeWidget + QStackedWidget (14 pages)
 - [x] Per-theme icon color storage and persistence
 - [x] GUI icon refresh on theme/color change (toolbar + menu)
-- [ ] Centralized icon refresh via IconRegistry signal
+- [x] ArtProvider central visual resource manager
+- [x] KalahariStyle QProxyStyle integration
+- [x] Extended icon size configuration (9 contexts)
+- [x] Icon theme selector UI with preview
+- [x] BusyIndicator reusable spinner widget
 - [ ] Log Panel theme-aware colors
 
 ---
@@ -329,7 +337,7 @@
 - [x] **2025-10-31:** Phase 0 Foundation Complete (wxWidgets)
 - [x] **2025-11-19:** Qt Migration Decision & Start
 - [x] **2025-11-21:** Phase 0 Qt Foundation Complete (2 days!)
-- [x] **2025-11-26:** Theme & Icon System Foundation Complete
+- [x] **2025-11-27:** Theme & Icon System Complete (ArtProvider, BusyIndicator)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -393,6 +401,6 @@
 
 ---
 
-**Document Version:** 2.0 (Cleaned - no task numbers)
-**Last Update:** 2025-11-26
-**Updated By:** Claude (ROADMAP cleanup, Theme-Icon system documentation)
+**Document Version:** 2.1
+**Last Update:** 2025-11-27
+**Updated By:** Claude (Theme & Icon System Complete - ArtProvider, BusyIndicator)

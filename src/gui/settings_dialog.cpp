@@ -1,9 +1,11 @@
 /// @file settings_dialog.cpp
 /// @brief Implementation of SettingsDialog
 ///
-/// Task #00024: Refactored to use QTreeWidget + QStackedWidget
+/// Architecture: Dialog collects data, MainWindow applies with BusyIndicator.
+/// See settings_dialog.h for detailed flow description.
 
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/busy_indicator.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -37,7 +39,7 @@ namespace gui {
 // Constructor
 // ============================================================================
 
-SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
+SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSettings)
     : QDialog(parent)
     , m_navTree(nullptr)
     , m_pageStack(nullptr)
@@ -64,10 +66,10 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     , m_lineNumbersCheckBox(nullptr)
     , m_wordWrapCheckBox(nullptr)
     , m_diagModeCheckbox(nullptr)
-    , m_initialDiagMode(diagnosticModeEnabled)
+    , m_originalSettings(currentSettings)
 {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Constructor called (Task #00024 refactor)");
+    logger.debug("SettingsDialog: Constructor called (new architecture)");
 
     setWindowTitle(tr("Settings"));
     setModal(true);
@@ -75,7 +77,7 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticModeEnabled)
     setMinimumSize(600, 400);
 
     createUI();
-    loadSettings();
+    populateFromSettings(currentSettings);
 
     logger.debug("SettingsDialog: Initialized successfully");
 }
@@ -715,16 +717,16 @@ void SettingsDialog::onTreeItemChanged(QTreeWidgetItem* current, QTreeWidgetItem
 
 void SettingsDialog::onAccept() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: OK clicked");
+    logger.debug("SettingsDialog: OK clicked - applying settings with spinner");
 
-    saveSettings();
+    // Collect and apply settings with spinner ON THIS DIALOG
+    SettingsData settings = collectSettings();
+    applySettingsWithSpinner(settings);
 
-    // Emit signals for changes
-    bool currentDiagMode = m_diagModeCheckbox->isChecked();
-    if (currentDiagMode != m_initialDiagMode) {
-        emit diagnosticModeChanged(currentDiagMode);
-    }
+    // Update original settings
+    m_originalSettings = settings;
 
+    // NOW close dialog (after spinner finished)
     accept();
 }
 
@@ -736,16 +738,16 @@ void SettingsDialog::onReject() {
 
 void SettingsDialog::onApply() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Apply clicked");
+    logger.debug("SettingsDialog: Apply clicked - applying settings with spinner");
 
-    saveSettings();
+    // Collect and apply settings with spinner ON THIS DIALOG
+    SettingsData settings = collectSettings();
+    applySettingsWithSpinner(settings);
 
-    // Emit signals for changes
-    bool currentDiagMode = m_diagModeCheckbox->isChecked();
-    if (currentDiagMode != m_initialDiagMode) {
-        emit diagnosticModeChanged(currentDiagMode);
-        m_initialDiagMode = currentDiagMode;
-    }
+    // Update original settings so we know what changed next time
+    m_originalSettings = settings;
+
+    // Dialog stays open
 }
 
 void SettingsDialog::onDiagModeCheckboxToggled(bool checked) {
@@ -896,159 +898,187 @@ void SettingsDialog::updateIconPreview() {
 // Settings Management
 // ============================================================================
 
-void SettingsDialog::loadSettings() {
+void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Loading settings");
-
-    auto& settings = core::SettingsManager::getInstance();
+    logger.debug("SettingsDialog: Populating UI from SettingsData");
 
     // Appearance/General
-    QString lang = QString::fromStdString(settings.getLanguage());
-    int langIndex = m_languageComboBox->findData(lang);
+    int langIndex = m_languageComboBox->findData(settings.language);
     if (langIndex >= 0) m_languageComboBox->setCurrentIndex(langIndex);
-
-    m_uiFontSizeSpinBox->setValue(settings.get<int>("appearance.uiFontSize", 12));
+    m_uiFontSizeSpinBox->setValue(settings.uiFontSize);
 
     // Appearance/Theme
-    QString theme = QString::fromStdString(settings.getTheme());
-    int themeIndex = m_themeComboBox->findData(theme);
+    int themeIndex = m_themeComboBox->findData(settings.theme);
     if (themeIndex >= 0) m_themeComboBox->setCurrentIndex(themeIndex);
 
-    // Load per-theme icon colors (Task #00025)
-    std::string themeName = theme.toStdString();
-    std::string defaultPrimary = (theme == "Dark") ? "#999999" : "#333333";
-    std::string defaultSecondary = (theme == "Dark") ? "#333333" : "#999999";
-
-    QString primaryColor = QString::fromStdString(
-        settings.getIconColorPrimaryForTheme(themeName, defaultPrimary));
-    updateColorButton(m_primaryColorButton, QColor(primaryColor));
-
-    QString secondaryColor = QString::fromStdString(
-        settings.getIconColorSecondaryForTheme(themeName, defaultSecondary));
-    updateColorButton(m_secondaryColorButton, QColor(secondaryColor));
+    // Icon colors
+    updateColorButton(m_primaryColorButton, settings.primaryColor);
+    updateColorButton(m_secondaryColorButton, settings.secondaryColor);
 
     // Appearance/Icons
-    QString iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));
-    int iconThemeIndex = m_iconThemeComboBox->findData(iconTheme);
+    int iconThemeIndex = m_iconThemeComboBox->findData(settings.iconTheme);
     if (iconThemeIndex >= 0) m_iconThemeComboBox->setCurrentIndex(iconThemeIndex);
 
-    // Load all icon sizes from IconRegistry via ArtProvider
-    auto& sizes = core::IconRegistry::getInstance().getSizes();
-    m_toolbarIconSizeSpinBox->setValue(sizes.toolbar);
-    m_menuIconSizeSpinBox->setValue(sizes.menu);
-    m_treeViewIconSizeSpinBox->setValue(sizes.treeView);
-    m_tabBarIconSizeSpinBox->setValue(sizes.tabBar);
-    m_buttonIconSizeSpinBox->setValue(sizes.button);
-    m_statusBarIconSizeSpinBox->setValue(sizes.statusBar);
-    m_comboBoxIconSizeSpinBox->setValue(sizes.comboBox);
+    // Icon sizes
+    m_toolbarIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::Toolbar, 24));
+    m_menuIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::Menu, 16));
+    m_treeViewIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::TreeView, 16));
+    m_tabBarIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::TabBar, 16));
+    m_buttonIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::Button, 20));
+    m_statusBarIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::StatusBar, 16));
+    m_comboBoxIconSizeSpinBox->setValue(settings.iconSizes.value(core::IconContext::ComboBox, 16));
 
     // Update preview after loading
     updateIconPreview();
 
     // Editor/General
-    QString fontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", "Consolas"));
-    m_fontFamilyComboBox->setCurrentFont(QFont(fontFamily));
-
-    m_editorFontSizeSpinBox->setValue(settings.get<int>("editor.fontSize", 12));
-    m_tabSizeSpinBox->setValue(settings.get<int>("editor.tabSize", 4));
-    m_lineNumbersCheckBox->setChecked(settings.get<bool>("editor.lineNumbers", true));
-    m_wordWrapCheckBox->setChecked(settings.get<bool>("editor.wordWrap", false));
+    m_fontFamilyComboBox->setCurrentFont(QFont(settings.editorFontFamily));
+    m_editorFontSizeSpinBox->setValue(settings.editorFontSize);
+    m_tabSizeSpinBox->setValue(settings.tabSize);
+    m_lineNumbersCheckBox->setChecked(settings.showLineNumbers);
+    m_wordWrapCheckBox->setChecked(settings.wordWrap);
 
     // Advanced/General
     m_diagModeCheckbox->blockSignals(true);
-    m_diagModeCheckbox->setChecked(m_initialDiagMode);
+    m_diagModeCheckbox->setChecked(settings.diagnosticMode);
     m_diagModeCheckbox->blockSignals(false);
 
-    logger.debug("SettingsDialog: Settings loaded");
+    logger.debug("SettingsDialog: UI populated");
 }
 
-void SettingsDialog::saveSettings() {
+SettingsData SettingsDialog::collectSettings() const {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Saving settings");
+    logger.debug("SettingsDialog: Collecting settings from UI");
 
-    auto& settings = core::SettingsManager::getInstance();
+    SettingsData settingsData;
 
     // Appearance/General
-    settings.setLanguage(m_languageComboBox->currentData().toString().toStdString());
-    settings.set("appearance.uiFontSize", m_uiFontSizeSpinBox->value());
+    settingsData.language = m_languageComboBox->currentData().toString();
+    settingsData.uiFontSize = m_uiFontSizeSpinBox->value();
 
     // Appearance/Theme
-    QString newTheme = m_themeComboBox->currentData().toString();
-    settings.setTheme(newTheme.toStdString());
+    settingsData.theme = m_themeComboBox->currentData().toString();
+    settingsData.primaryColor = getColorFromButton(m_primaryColorButton);
+    settingsData.secondaryColor = getColorFromButton(m_secondaryColorButton);
 
-    // Apply theme to UI (switches QPalette for full theme support)
-    // This loads theme JSON and applies QPalette to QApplication
-    core::ThemeManager::getInstance().switchTheme(newTheme);
-
-    // Extract colors from buttons and save per-theme (Task #00025)
-    std::string themeName = newTheme.toStdString();
-
-    QString primaryStyle = m_primaryColorButton->styleSheet();
-    int pStart = primaryStyle.indexOf("#");
-    int pEnd = primaryStyle.indexOf(";", pStart);
-    QString primaryColorStr;
-    if (pStart != -1 && pEnd != -1) {
-        primaryColorStr = primaryStyle.mid(pStart, pEnd - pStart);
-        settings.setIconColorPrimaryForTheme(themeName, primaryColorStr.toStdString());
-    }
-
-    QString secondaryStyle = m_secondaryColorButton->styleSheet();
-    int sStart = secondaryStyle.indexOf("#");
-    int sEnd = secondaryStyle.indexOf(";", sStart);
-    QString secondaryColorStr;
-    if (sStart != -1 && sEnd != -1) {
-        secondaryColorStr = secondaryStyle.mid(sStart, sEnd - sStart);
-        settings.setIconColorSecondaryForTheme(themeName, secondaryColorStr.toStdString());
-    }
-
-    logger.debug("SettingsDialog: Saved custom colors for theme '{}': primary={}, secondary={}",
-                 themeName, primaryColorStr.toStdString(), secondaryColorStr.toStdString());
-
-
-    // Appearance/Icons - save icon theme and apply via ArtProvider
-    QString newIconTheme = m_iconThemeComboBox->currentData().toString();
-    settings.set("appearance.iconTheme", newIconTheme.toStdString());
-
-    auto& artProvider = core::ArtProvider::getInstance();
-
-    // Apply icon theme change via ArtProvider
-    artProvider.setIconTheme(newIconTheme);
-    logger.debug("SettingsDialog: Applied icon theme '{}' via ArtProvider", newIconTheme.toStdString());
-
-    // Apply color overrides via ArtProvider
-    if (!primaryColorStr.isEmpty()) {
-        artProvider.setPrimaryColor(QColor(primaryColorStr));
-    }
-    if (!secondaryColorStr.isEmpty()) {
-        artProvider.setSecondaryColor(QColor(secondaryColorStr));
-    }
-
-    // Apply all icon sizes via ArtProvider
-    artProvider.setIconSize(core::IconContext::Toolbar, m_toolbarIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::Menu, m_menuIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::TreeView, m_treeViewIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::TabBar, m_tabBarIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::Button, m_buttonIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::StatusBar, m_statusBarIconSizeSpinBox->value());
-    artProvider.setIconSize(core::IconContext::ComboBox, m_comboBoxIconSizeSpinBox->value());
-    logger.debug("SettingsDialog: Applied all icon sizes via ArtProvider");
+    // Appearance/Icons
+    settingsData.iconTheme = m_iconThemeComboBox->currentData().toString();
+    settingsData.iconSizes[core::IconContext::Toolbar] = m_toolbarIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::Menu] = m_menuIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::TreeView] = m_treeViewIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::TabBar] = m_tabBarIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::Button] = m_buttonIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::StatusBar] = m_statusBarIconSizeSpinBox->value();
+    settingsData.iconSizes[core::IconContext::ComboBox] = m_comboBoxIconSizeSpinBox->value();
 
     // Editor/General
-    settings.set("editor.fontFamily", m_fontFamilyComboBox->currentFont().family().toStdString());
-    settings.set("editor.fontSize", m_editorFontSizeSpinBox->value());
-    settings.set("editor.tabSize", m_tabSizeSpinBox->value());
-    settings.set("editor.lineNumbers", m_lineNumbersCheckBox->isChecked());
-    settings.set("editor.wordWrap", m_wordWrapCheckBox->isChecked());
+    settingsData.editorFontFamily = m_fontFamilyComboBox->currentFont().family();
+    settingsData.editorFontSize = m_editorFontSizeSpinBox->value();
+    settingsData.tabSize = m_tabSizeSpinBox->value();
+    settingsData.showLineNumbers = m_lineNumbersCheckBox->isChecked();
+    settingsData.wordWrap = m_wordWrapCheckBox->isChecked();
 
-    // Save to disk
-    settings.save();
+    // Advanced/General
+    settingsData.diagnosticMode = m_diagModeCheckbox->isChecked();
 
-    logger.info("SettingsDialog: Settings saved");
+    logger.debug("SettingsDialog: Settings collected");
+    return settingsData;
+}
+
+QColor SettingsDialog::getColorFromButton(QPushButton* button) const {
+    if (!button) {
+        // Fallback to theme default, never hardcode
+        return core::ThemeManager::getInstance().getCurrentTheme().colors.primary;
+    }
+
+    QString style = button->styleSheet();
+    int start = style.indexOf("#");
+    int end = style.indexOf(";", start);
+    if (start != -1 && end != -1) {
+        return QColor(style.mid(start, end - start));
+    }
+
+    // Fallback to theme default
+    return core::ThemeManager::getInstance().getCurrentTheme().colors.primary;
 }
 
 void SettingsDialog::updateColorButton(QPushButton* button, const QColor& color) {
     QString style = QString("background-color: %1; border: 1px solid #888;").arg(color.name());
     button->setStyleSheet(style);
+}
+
+void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
+    auto& logger = core::Logger::getInstance();
+
+    // Show BusyIndicator on THIS DIALOG (modal overlay)
+    // Use BusyIndicator::tick() between steps to keep animation alive
+    BusyIndicator::run(this, tr("Applying settings..."), [this, &settings, &logger]() {
+        auto& settingsManager = core::SettingsManager::getInstance();
+        auto& themeManager = core::ThemeManager::getInstance();
+        auto& artProvider = core::ArtProvider::getInstance();
+
+        // =====================================================================
+        // Step 1: Appearance/General
+        // =====================================================================
+        settingsManager.setLanguage(settings.language.toStdString());
+        settingsManager.set("appearance.uiFontSize", settings.uiFontSize);
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 2: Appearance/Theme
+        // =====================================================================
+        settingsManager.setTheme(settings.theme.toStdString());
+        themeManager.switchTheme(settings.theme);
+
+        // Save per-theme colors
+        std::string themeName = settings.theme.toStdString();
+        settingsManager.setIconColorPrimaryForTheme(themeName, settings.primaryColor.name().toStdString());
+        settingsManager.setIconColorSecondaryForTheme(themeName, settings.secondaryColor.name().toStdString());
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 3: Appearance/Icons (slowest - triggers icon regeneration)
+        // =====================================================================
+        settingsManager.set("appearance.iconTheme", settings.iconTheme.toStdString());
+        artProvider.setIconTheme(settings.iconTheme);
+
+        BusyIndicator::tick();  // Animate
+
+        artProvider.setPrimaryColor(settings.primaryColor);
+        artProvider.setSecondaryColor(settings.secondaryColor);
+
+        BusyIndicator::tick();  // Animate
+
+        // Apply icon sizes
+        for (auto it = settings.iconSizes.constBegin(); it != settings.iconSizes.constEnd(); ++it) {
+            artProvider.setIconSize(it.key(), it.value());
+        }
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 4: Editor/General
+        // =====================================================================
+        settingsManager.set("editor.fontFamily", settings.editorFontFamily.toStdString());
+        settingsManager.set("editor.fontSize", settings.editorFontSize);
+        settingsManager.set("editor.tabSize", settings.tabSize);
+        settingsManager.set("editor.lineNumbers", settings.showLineNumbers);
+        settingsManager.set("editor.wordWrap", settings.wordWrap);
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 5: Save to disk
+        // =====================================================================
+        settingsManager.save();
+
+        logger.info("SettingsDialog: All settings persisted to disk");
+    });
+
+    // Emit signal AFTER spinner finished (MainWindow can react)
+    emit settingsApplied(settings);
 }
 
 } // namespace gui

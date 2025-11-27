@@ -17,6 +17,7 @@
 #include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/settings_data.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -38,7 +39,8 @@ class PropertiesPanel;
 class SearchPanel;
 class AssistantPanel;
 class LogPanel;
-class MenuBuilder;  // Task #00025
+class MenuBuilder;      // Task #00025
+class BusyIndicator;    // Reusable spinner overlay
 
 /// @brief Main application window
 ///
@@ -202,6 +204,11 @@ private slots:
     /// @param theme New theme to apply to IconRegistry
     void onThemeChanged(const kalahari::core::Theme& theme);
 
+    /// @brief Slot for settings apply requested from SettingsDialog
+    /// @param settings Settings data to apply
+    /// @param fromOkButton true if triggered by OK (dialog closed), false if Apply
+    void onApplySettings(const SettingsData& settings, bool fromOkButton);
+
     // Diagnostic tool slots (Task #00018) - only visible in diagnostic mode
     void onDiagSystemInfo();
     void onDiagQtEnvironment();
@@ -297,6 +304,10 @@ private:
     /// @return Active EditorPanel if current tab is an editor, nullptr otherwise
     /// @note Returns nullptr if current tab is Dashboard or other panel type
     EditorPanel* getCurrentEditor();
+
+    /// @brief Collect current application settings into SettingsData
+    /// @return Current settings from SettingsManager and runtime state
+    SettingsData collectCurrentSettings() const;
 
     /// @brief Get text from first chapter metadata (Phase 0 temporary hack)
     /// @param doc Document to extract text from
