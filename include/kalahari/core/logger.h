@@ -116,6 +116,31 @@ public:
     /// @return Shared pointer to spdlog logger (may be nullptr if not initialized)
     std::shared_ptr<spdlog::logger> getLogger() { return m_logger; }
 
+    /// @brief Add a custom sink to the logger (OpenSpec #00024)
+    ///
+    /// Adds a sink to receive log messages. Used for LogPanel integration.
+    /// The sink will receive all log messages at the current level.
+    ///
+    /// @param sink Shared pointer to spdlog sink
+    template<typename Sink>
+    void addSink(std::shared_ptr<Sink> sink) {
+        if (m_logger && sink) {
+            m_logger->sinks().push_back(sink);
+        }
+    }
+
+    /// @brief Set the logging level at runtime (OpenSpec #00024)
+    ///
+    /// Allows changing log level dynamically, e.g., when diagnostic mode is enabled.
+    /// This affects ALL sinks - messages below this level won't reach any sink.
+    ///
+    /// @param level spdlog level (trace, debug, info, warn, error, critical)
+    void setLevel(spdlog::level::level_enum level);
+
+    /// @brief Get the current logging level
+    /// @return Current spdlog level
+    spdlog::level::level_enum getLevel() const;
+
 private:
     /// @brief Private constructor (singleton pattern)
     Logger() = default;

@@ -74,5 +74,19 @@ void Logger::flush() {
     }
 }
 
+void Logger::setLevel(spdlog::level::level_enum level) {
+    if (m_logger) {
+        m_logger->set_level(level);
+        m_logger->info("Logger level changed to: {}", spdlog::level::to_string_view(level));
+    }
+}
+
+spdlog::level::level_enum Logger::getLevel() const {
+    if (m_logger) {
+        return m_logger->level();
+    }
+    return spdlog::level::info;  // Default if not initialized
+}
+
 } // namespace core
 } // namespace kalahari

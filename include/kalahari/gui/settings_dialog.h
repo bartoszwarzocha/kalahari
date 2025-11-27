@@ -114,6 +114,7 @@ private:
     QWidget* createAppearanceIconsPage();
     QWidget* createEditorGeneralPage();
     QWidget* createAdvancedGeneralPage();
+    QWidget* createAdvancedLogPage();
     QWidget* createPlaceholderPage(const QString& title, const QString& description);
 
     // ========================================================================
@@ -194,6 +195,12 @@ private:
     QCheckBox* m_diagModeCheckbox;
 
     // ========================================================================
+    // Member Variables - Advanced/Log
+    // ========================================================================
+
+    QSpinBox* m_logBufferSizeSpinBox;
+
+    // ========================================================================
     // Original settings (for comparison)
     // ========================================================================
 
@@ -217,7 +224,8 @@ private:
         PAGE_NETWORK_CLOUD_SYNC = 10,
         PAGE_NETWORK_UPDATES = 11,
         PAGE_ADVANCED_GENERAL = 12,
-        PAGE_ADVANCED_PERFORMANCE = 13
+        PAGE_ADVANCED_PERFORMANCE = 13,
+        PAGE_ADVANCED_LOG = 14
     };
 };
 

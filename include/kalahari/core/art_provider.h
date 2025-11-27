@@ -163,6 +163,22 @@ public:
     /// @note Emits resourcesChanged() signal
     void setSecondaryColor(const QColor& color);
 
+    // ========================================================================
+    // Batch Mode (for SettingsDialog - prevents multiple refreshes)
+    // ========================================================================
+
+    /// @brief Begin batch update mode
+    ///
+    /// While in batch mode, resourcesChanged() is deferred until endBatchUpdate().
+    /// Use this in SettingsDialog when applying multiple changes at once.
+    void beginBatchUpdate();
+
+    /// @brief End batch update mode and emit resourcesChanged() if any changes occurred
+    void endBatchUpdate();
+
+    /// @brief Check if batch mode is active
+    bool isBatchMode() const { return m_batchMode; }
+
 signals:
     /// @brief Emitted when any visual resource changes
     ///
@@ -191,6 +207,15 @@ private:
 
     /// @brief Set of managed actions (for cleanup when destroyed)
     QSet<QAction*> m_managedActions;
+
+    /// @brief Batch mode flag - when true, resourcesChanged() is deferred
+    bool m_batchMode = false;
+
+    /// @brief Flag indicating changes occurred during batch mode
+    bool m_pendingChanges = false;
+
+    /// @brief Emit resourcesChanged() unless in batch mode
+    void emitResourcesChanged();
 };
 
 } // namespace core

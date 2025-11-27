@@ -238,7 +238,11 @@ void SettingsDialog::createNavigationTree() {
     QTreeWidgetItem* advancedPerformance = createPlaceholderItem(advancedItem, tr("Performance"));
     m_itemToPage[advancedPerformance] = PAGE_ADVANCED_PERFORMANCE;
 
-    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 14 pages");
+    QTreeWidgetItem* advancedLog = new QTreeWidgetItem(advancedItem);
+    advancedLog->setText(0, tr("Log"));
+    m_itemToPage[advancedLog] = PAGE_ADVANCED_LOG;
+
+    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 15 pages");
 }
 
 void SettingsDialog::createSettingsPages() {
@@ -341,7 +345,7 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Advanced pages (12-13)
+    // Advanced pages (12-14)
     // ========================================================================
     // Page 12: Advanced/General
     m_pageStack->addWidget(createAdvancedGeneralPage());
@@ -355,6 +359,8 @@ void SettingsDialog::createSettingsPages() {
            "- Cache settings\n"
            "- Hardware acceleration")
     ));
+    // Page 14: Advanced/Log
+    m_pageStack->addWidget(createAdvancedLogPage());
 }
 
 QWidget* SettingsDialog::createAppearanceGeneralPage() {
@@ -677,6 +683,62 @@ QWidget* SettingsDialog::createAdvancedGeneralPage() {
     return page;
 }
 
+QWidget* SettingsDialog::createAdvancedLogPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Log Panel Settings group
+    QGroupBox* logGroup = new QGroupBox(tr("Log Panel Settings"));
+    QGridLayout* logGrid = new QGridLayout(logGroup);
+
+    // Buffer Size
+    QLabel* bufferLabel = new QLabel(tr("Buffer Size (lines):"));
+    bufferLabel->setToolTip(tr("Maximum number of log entries to keep in memory"));
+    m_logBufferSizeSpinBox = new QSpinBox();
+    m_logBufferSizeSpinBox->setRange(1, 1000);
+    m_logBufferSizeSpinBox->setValue(500);
+    m_logBufferSizeSpinBox->setSuffix(tr(" lines"));
+    m_logBufferSizeSpinBox->setToolTip(tr("Higher values use more memory but keep more history"));
+
+    logGrid->addWidget(bufferLabel, 0, 0);
+    logGrid->addWidget(m_logBufferSizeSpinBox, 0, 1);
+
+    // Help text
+    QLabel* helpLabel = new QLabel(
+        tr("The log panel displays application messages in real-time.\n\n"
+           "Buffer size determines how many log entries are kept in memory.\n"
+           "When the buffer is full, oldest entries are removed.\n\n"
+           "Note: Log files are always saved to disk regardless of this setting.")
+    );
+    helpLabel->setWordWrap(true);
+    helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
+
+    logGrid->addWidget(helpLabel, 1, 0, 1, 2);
+    logGrid->setColumnStretch(1, 1);
+    layout->addWidget(logGroup);
+
+    // Log File Info group
+    QGroupBox* fileGroup = new QGroupBox(tr("Log File"));
+    QVBoxLayout* fileLayout = new QVBoxLayout(fileGroup);
+
+    QLabel* fileInfo = new QLabel(
+        tr("Log files are stored in the application directory:\n"
+           "• kalahari.log - Current session log\n\n"
+           "Use the log panel toolbar buttons to:\n"
+           "• Open log folder in file explorer\n"
+           "• Copy log contents to clipboard\n"
+           "• Clear the log panel display")
+    );
+    fileInfo->setWordWrap(true);
+    fileInfo->setStyleSheet("color: #666;");
+    fileLayout->addWidget(fileInfo);
+
+    layout->addWidget(fileGroup);
+
+    layout->addStretch();
+    return page;
+}
+
 QWidget* SettingsDialog::createPlaceholderPage(const QString& title, const QString& description) {
     QWidget* page = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(page);
@@ -953,6 +1015,9 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_diagModeCheckbox->setChecked(settings.diagnosticMode);
     m_diagModeCheckbox->blockSignals(false);
 
+    // Advanced/Log
+    m_logBufferSizeSpinBox->setValue(settings.logBufferSize);
+
     logger.debug("SettingsDialog: UI populated");
 }
 
@@ -991,6 +1056,9 @@ SettingsData SettingsDialog::collectSettings() const {
     // Advanced/General
     settingsData.diagnosticMode = m_diagModeCheckbox->isChecked();
 
+    // Advanced/Log
+    settingsData.logBufferSize = m_logBufferSizeSpinBox->value();
+
     logger.debug("SettingsDialog: Settings collected");
     return settingsData;
 }
@@ -1026,6 +1094,14 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         auto& settingsManager = core::SettingsManager::getInstance();
         auto& themeManager = core::ThemeManager::getInstance();
         auto& artProvider = core::ArtProvider::getInstance();
+
+        // =====================================================================
+        // CRITICAL: Enable batch mode to prevent multiple resourcesChanged emissions
+        // Without this, each setIconTheme/setPrimaryColor/setSecondaryColor/setIconSize
+        // emits resourcesChanged, causing ~600-700 icon re-renders (134 actions × ~5 signals)
+        // Batch mode coalesces all changes into a single resourcesChanged at the end
+        // =====================================================================
+        artProvider.beginBatchUpdate();
 
         // =====================================================================
         // Step 1: Appearance/General
@@ -1080,9 +1156,22 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         BusyIndicator::tick();  // Animate
 
         // =====================================================================
-        // Step 5: Save to disk
+        // Step 5: Advanced/Log
+        // =====================================================================
+        settingsManager.set("log.bufferSize", settings.logBufferSize);
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 6: Save to disk
         // =====================================================================
         settingsManager.save();
+
+        // =====================================================================
+        // CRITICAL: End batch mode - emit single resourcesChanged signal
+        // This triggers ONE refresh of all 134 actions instead of ~11 refreshes
+        // =====================================================================
+        artProvider.endBatchUpdate();
 
         logger.info("SettingsDialog: All settings persisted to disk");
     });

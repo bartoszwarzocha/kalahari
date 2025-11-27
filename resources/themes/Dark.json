@@ -29,8 +29,12 @@
     "linkVisited": "#5856d6"
   },
   "log": {
-    "info": "#CCCCCC",
-    "debug": "#888888",
+    "trace": "#FF66FF",
+    "debug": "#FF66FF",
+    "info": "#FFFFFF",
+    "warning": "#FFA500",
+    "error": "#FF4444",
+    "critical": "#FF4444",
     "background": "#252525"
   }
 }

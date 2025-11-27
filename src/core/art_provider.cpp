@@ -194,7 +194,7 @@ void ArtProvider::setIconSize(IconContext context, int size) {
     Logger::getInstance().info("ArtProvider: Icon size changed for context {} to {}px",
         static_cast<int>(context), size);
 
-    emit resourcesChanged();
+    emitResourcesChanged();
 }
 
 // ============================================================================
@@ -215,7 +215,7 @@ void ArtProvider::setIconTheme(const QString& theme) {
     Logger::getInstance().info("ArtProvider: Icon theme changed to '{}'",
         theme.toStdString());
 
-    emit resourcesChanged();
+    emitResourcesChanged();
 }
 
 void ArtProvider::setPrimaryColor(const QColor& color) {
@@ -231,7 +231,7 @@ void ArtProvider::setPrimaryColor(const QColor& color) {
     Logger::getInstance().info("ArtProvider: Primary color changed to {}",
         color.name().toStdString());
 
-    emit resourcesChanged();
+    emitResourcesChanged();
 }
 
 void ArtProvider::setSecondaryColor(const QColor& color) {
@@ -247,7 +247,7 @@ void ArtProvider::setSecondaryColor(const QColor& color) {
     Logger::getInstance().info("ArtProvider: Secondary color changed to {}",
         color.name().toStdString());
 
-    emit resourcesChanged();
+    emitResourcesChanged();
 }
 
 // ============================================================================
@@ -256,7 +256,37 @@ void ArtProvider::setSecondaryColor(const QColor& color) {
 
 void ArtProvider::onThemeChanged() {
     Logger::getInstance().info("ArtProvider: Theme changed, refreshing all icons...");
-    emit resourcesChanged();
+    emitResourcesChanged();
+}
+
+// ============================================================================
+// Batch Mode
+// ============================================================================
+
+void ArtProvider::beginBatchUpdate() {
+    m_batchMode = true;
+    m_pendingChanges = false;
+    Logger::getInstance().debug("ArtProvider: Batch update mode started");
+}
+
+void ArtProvider::endBatchUpdate() {
+    m_batchMode = false;
+    if (m_pendingChanges) {
+        Logger::getInstance().debug("ArtProvider: Batch update ended, emitting resourcesChanged");
+        m_pendingChanges = false;
+        emit resourcesChanged();
+    } else {
+        Logger::getInstance().debug("ArtProvider: Batch update ended, no changes pending");
+    }
+}
+
+void ArtProvider::emitResourcesChanged() {
+    if (m_batchMode) {
+        m_pendingChanges = true;
+        Logger::getInstance().debug("ArtProvider: Change deferred (batch mode active)");
+    } else {
+        emit resourcesChanged();
+    }
 }
 
 // ============================================================================

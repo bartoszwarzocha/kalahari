@@ -61,8 +61,12 @@ struct Theme {
 
     /// @brief Log panel specific colors
     struct LogColors {
+        QColor trace;      ///< TRACE message color (diagnostic mode only)
+        QColor debug;      ///< DEBUG message color (diagnostic mode only)
         QColor info;       ///< INFO message color
-        QColor debug;      ///< DEBUG message color
+        QColor warning;    ///< WARNING message color (orange)
+        QColor error;      ///< ERROR message color (red)
+        QColor critical;   ///< CRITICAL message color (red, same as error)
         QColor background; ///< Log panel background color
     } log;
 

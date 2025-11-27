@@ -1,8 +1,9 @@
 # Tasks: Enhanced Log Panel (Theme-Aware, Mode-Restricted)
 
-**Status:** PENDING
+**Status:** DEPLOYED
 
 **Created:** 2025-11-27
+**Completed:** 2025-11-27
 
 ## Summary
 
@@ -15,99 +16,106 @@ Enhance LogPanel from placeholder to full-featured diagnostic log viewer with:
 
 ## Phase 1: Core Infrastructure
 
-- [ ] Create `LogPanelSink` class (spdlog custom sink)
+- [x] Create `LogPanelSink` class (spdlog custom sink)
   - Inherits from `spdlog::sinks::base_sink<std::mutex>`
   - Emits Qt signal `logMessage(int level, QString message)`
   - Thread-safe (spdlog calls from any thread)
 
-- [ ] Create `LogEntry` struct for ring buffer
+- [x] Create `LogEntry` struct for ring buffer
   ```cpp
   struct LogEntry {
-      spdlog::level::level_enum level;
+      int level;
       QString message;
-      QDateTime timestamp;
   };
   ```
 
-- [ ] Implement ring buffer in LogPanel
+- [x] Implement ring buffer in LogPanel
   - `std::deque<LogEntry> m_logBuffer`
   - `size_t m_maxBufferSize = 500`
   - Auto-trim oldest when full
 
-- [ ] Register sink in main.cpp
+- [x] Register sink in main.cpp
   - Create LogPanelSink before MainWindow
   - Add to Logger sinks
   - Pass sink pointer to MainWindow/LogPanel
 
 ## Phase 2: Enhanced UI
 
-- [ ] Replace QPlainTextEdit with QTextEdit
+- [x] Replace QPlainTextEdit with QTextEdit
   - QTextEdit supports rich text (colors)
   - Read-only mode
 
-- [ ] Implement `appendLog(level, message)`
-  - Format with timestamp (optional)
+- [x] Implement `appendLog(level, message)`
+  - Format with timestamp
   - Apply color based on level
   - Handle ring buffer overflow
+  - Skip UI update when panel hidden (optimization)
 
-- [ ] Add vertical toolbar
+- [x] Add vertical toolbar
   - QToolBar with Qt::Vertical orientation
   - 4 buttons: Options, Open Folder, Copy, Clear
   - Use ArtProvider for icons
 
-- [ ] Implement toolbar actions
-  - `onOptions()` - Open Settings Dialog
+- [x] Implement toolbar actions
+  - `onOptions()` - Open Settings Dialog (via signal)
   - `onOpenLogFolder()` - Platform-specific file explorer
   - `onCopyToClipboard()` - Copy buffer to clipboard
   - `onClearLog()` - Clear display and buffer
 
 ## Phase 3: Theme Integration
 
-- [ ] Define log color schemes
+- [x] Define log color schemes
   - Light theme colors (dark text)
   - Dark theme colors (light text)
-  - Store in SettingsManager or ThemeManager
+  - Stored in Theme struct (theme.log.*)
 
-- [ ] Connect to ThemeManager::themeChanged
+- [x] Connect to ThemeManager::themeChanged
   - Update colors on theme switch
   - Call `rebuildDisplay()`
 
-- [ ] Implement `rebuildDisplay()`
+- [x] Implement `rebuildDisplay()`
   - Clear QTextEdit
   - Re-append all buffer entries with new colors
-  - Use Freeze/Thaw pattern (blockSignals)
+  - Use single setHtml() for performance
 
 ## Phase 4: Mode-Based Visibility
 
-- [ ] Parse command-line flags in main.cpp
+- [x] Parse command-line flags in main.cpp
   - Detect `--diag` and `--dev` flags
   - Store in application-wide flag
 
-- [ ] Pass mode to MainWindow
-  - Constructor parameter or method
+- [x] Pass mode to MainWindow
+  - Via enableDiagnosticMode() / enableDevMode()
   - Store as member variable
 
-- [ ] Set initial panel visibility
+- [x] Set initial panel visibility
   - Normal mode: `m_logDock->hide()`
   - Diag/Dev mode: `m_logDock->show()`
 
-- [ ] Implement log level filtering
+- [x] Implement log level filtering
   - Normal mode: Filter out TRACE, DEBUG
   - Diag/Dev mode: Show all levels
-  - Filter in `appendLog()` based on mode
+  - Filter in `shouldDisplayLevel()` based on mode
 
-## Phase 5: Settings UI (Optional)
+## Phase 5: Settings UI
 
-- [ ] Add "Log" page to Settings Dialog
+- [x] Add "Log" page to Settings Dialog
   - Under Advanced category
   - Buffer size spinner (1-1000)
-  - Font size selector
-  - Show timestamp checkbox
 
-- [ ] Implement `applySettings()`
-  - Read from SettingsManager
-  - Update buffer size, font, timestamp
-  - Call `rebuildDisplay()`
+- [x] Implement settings persistence
+  - Save to SettingsManager (log.bufferSize)
+  - Apply via MainWindow::onApplySettings()
+
+## Performance Optimizations (Added)
+
+- [x] ArtProvider batch mode
+  - Prevents multiple resourcesChanged emissions during settings apply
+  - Coalesces ~11 signals into 1
+
+- [x] LogPanel visibility optimization
+  - Skip UI updates when panel hidden
+  - Rebuild display on showEvent()
 
 ## Files to Create
 

@@ -15,6 +15,7 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/art_provider.h"
@@ -289,6 +290,14 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("view.resetZoom", "resources/icons/twotone/fit_screen.svg", "Reset Zoom");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
+
+    // -------------------------------------------------------------------------
+    // LOG PANEL TOOLBAR ICONS (OpenSpec #00024)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("log.options", "resources/icons/twotone/settings.svg", "Log Options");
+    iconRegistry.registerIcon("log.openFolder", "resources/icons/twotone/folder_open.svg", "Open Log Folder");
+    iconRegistry.registerIcon("log.copy", "resources/icons/twotone/content_copy.svg", "Copy Log");
+    iconRegistry.registerIcon("log.clear", "resources/icons/twotone/delete.svg", "Clear Log");
 
     // -------------------------------------------------------------------------
     // HELP MENU ICONS
@@ -597,34 +606,10 @@ void MainWindow::registerCommands() {
     // VIEW MENU
     // =========================================================================
 
-    // Panel toggle actions (Task #00019 - for View Toolbar)
-    REG_CMD_TOOL_ICON("view.navigator", "Navigator", "VIEW/Panels/Navigator", 10, false, 0,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      []() {});
-
-    REG_CMD_TOOL_ICON("view.properties", "Properties", "VIEW/Panels/Properties", 20, false, 0,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      []() {});
-
-    REG_CMD_TOOL_ICON("view.search", "Search", "VIEW/Panels/Search", 30, false, 0,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      []() {});
-
-    REG_CMD_TOOL_ICON("view.assistant", "Assistant", "VIEW/Panels/Assistant", 40, false, 0,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      []() {});
-
-    REG_CMD_TOOL_ICON("view.log", "Log", "VIEW/Panels/Log", 50, true, 0,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      []() {});
-
-    // NOTE: Panel submenu also populated by createDocks() using toggleViewAction()
-    // Above commands are for toolbar only
+    // NOTE: Panel toggle actions are NOT registered here!
+    // They use QDockWidget::toggleViewAction() which is the proper Qt pattern.
+    // See createDocks() where they are added to VIEW/Panels submenu.
+    // This ensures proper checkmark state and automatic show/hide behavior.
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
@@ -1130,11 +1115,24 @@ void MainWindow::createDocks() {
     addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
 
     // Log dock (bottom)
-    m_logPanel = new LogPanel(this);
+    // Pass diagnosticMode to control log level filtering (INFO+ vs ALL)
+    m_logPanel = new LogPanel(this, m_diagnosticMode);
     m_logDock = new QDockWidget(tr("Log"), this);
     m_logDock->setWidget(m_logPanel);
     m_logDock->setObjectName("LogDock");
     addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
+
+    // Register LogPanel's sink with spdlog logger (OpenSpec #00024)
+    // This enables real-time log display in the panel
+    core::Logger::getInstance().addSink(m_logPanel->getSink());
+
+    // Connect LogPanel's Options button to open Settings Dialog
+    connect(m_logPanel, &LogPanel::openSettingsRequested, this, &MainWindow::onSettings);
+
+    // Hide log panel by default in normal mode, show in diagnostic mode
+    if (!m_diagnosticMode) {
+        m_logDock->hide();
+    }
 
     // Search dock (right, tabbed with Properties)
     m_searchPanel = new SearchPanel(this);
@@ -1155,17 +1153,16 @@ void MainWindow::createDocks() {
     // Raise Properties tab (default visible)
     m_propertiesDock->raise();
 
-    // Find existing View menu from MenuBuilder (DON'T create a new one!)
-    QList<QAction*> menuActions = menuBar()->actions();
-    for (QAction* action : menuActions) {
-        if (action->text().contains("View", Qt::CaseInsensitive)) {
-            m_viewMenu = action->menu();
-            break;
+    // Get VIEW menu from MenuBuilder (i18n-safe - uses technical name, not translated text)
+    if (m_menuBuilder) {
+        m_viewMenu = m_menuBuilder->getMenu("VIEW");
+        if (m_viewMenu) {
+            logger.debug("Found VIEW menu via MenuBuilder::getMenu()");
         }
     }
 
     if (!m_viewMenu) {
-        logger.warn("VIEW menu not found! Creating fallback menu.");
+        logger.warn("VIEW menu not found in MenuBuilder! Creating fallback menu.");
         m_viewMenu = menuBar()->addMenu(tr("&View"));
     }
 
@@ -1419,6 +1416,19 @@ void MainWindow::enableDiagnosticMode() {
     m_diagnosticMode = true;
     createDiagnosticMenu();
 
+    // Set Logger level to TRACE to enable ALL log messages (OpenSpec #00024)
+    // This must be done BEFORE setDiagnosticMode on LogPanel, otherwise
+    // debug/trace messages won't reach the sink
+    logger.setLevel(spdlog::level::trace);
+
+    // Show log panel and enable all log levels (OpenSpec #00024)
+    if (m_logPanel) {
+        m_logPanel->setDiagnosticMode(true);
+    }
+    if (m_logDock) {
+        m_logDock->show();
+    }
+
     statusBar()->showMessage(tr("Diagnostic mode enabled"), 3000);
 }
 
@@ -1428,6 +1438,24 @@ void MainWindow::disableDiagnosticMode() {
 
     removeDiagnosticMenu();
     m_diagnosticMode = false;
+
+    // Only restore log level and hide panel if dev mode is also disabled
+    if (!m_devMode) {
+        // Restore Logger level based on build type (OpenSpec #00024)
+#ifdef NDEBUG
+        logger.setLevel(spdlog::level::info);   // Release: info and above
+#else
+        logger.setLevel(spdlog::level::debug);  // Debug: debug and above
+#endif
+
+        // Hide log panel and filter to INFO+ only (OpenSpec #00024)
+        if (m_logPanel) {
+            m_logPanel->setDiagnosticMode(false);
+        }
+        if (m_logDock) {
+            m_logDock->hide();
+        }
+    }
 
     statusBar()->showMessage(tr("Diagnostic mode disabled"), 3000);
 }
@@ -1778,6 +1806,17 @@ void MainWindow::enableDevMode() {
     m_devMode = true;
     createDevToolsMenu();
 
+    // Dev mode also enables full logging like diagnostic mode (OpenSpec #00024)
+    logger.setLevel(spdlog::level::trace);
+
+    // Show log panel and enable all log levels
+    if (m_logPanel) {
+        m_logPanel->setDiagnosticMode(true);
+    }
+    if (m_logDock) {
+        m_logDock->show();
+    }
+
     statusBar()->showMessage(tr("Dev mode enabled"), 3000);
 }
 
@@ -1787,6 +1826,24 @@ void MainWindow::disableDevMode() {
 
     m_devMode = false;
     removeDevToolsMenu();
+
+    // Only restore log level and hide panel if diagnostic mode is also disabled
+    if (!m_diagnosticMode) {
+        // Restore Logger level based on build type (OpenSpec #00024)
+#ifdef NDEBUG
+        logger.setLevel(spdlog::level::info);   // Release: info and above
+#else
+        logger.setLevel(spdlog::level::debug);  // Debug: debug and above
+#endif
+
+        // Hide log panel and filter to INFO+ only
+        if (m_logPanel) {
+            m_logPanel->setDiagnosticMode(false);
+        }
+        if (m_logDock) {
+            m_logDock->hide();
+        }
+    }
 
     statusBar()->showMessage(tr("Dev mode disabled"), 3000);
 }
@@ -1879,6 +1936,16 @@ void MainWindow::showEvent(QShowEvent* event) {
             m_toolbarManager->restoreState();
         }
 
+        // OpenSpec #00024: LogDock visibility is INDEPENDENT of saveState/restoreState
+        // It depends ONLY on diagnostic mode, not on saved window state
+        // Use setVisible() instead of show()/hide() for more reliable behavior
+        if (m_logDock) {
+            bool shouldShow = m_diagnosticMode || m_devMode;
+            m_logDock->setVisible(shouldShow);
+            logger.info("LogDock: {} (diagnosticMode={}, devMode={})",
+                       shouldShow ? "shown" : "hidden", m_diagnosticMode, m_devMode);
+        }
+
         logger.debug("Window perspective restored");
 
         m_firstShow = false;
@@ -1931,6 +1998,9 @@ SettingsData MainWindow::collectCurrentSettings() const {
     // Advanced/General
     settingsData.diagnosticMode = m_diagnosticMode;
 
+    // Advanced/Log
+    settingsData.logBufferSize = settings.get<int>("log.bufferSize", 500);
+
     logger.debug("MainWindow: Settings collected");
     return settingsData;
 }
@@ -1939,13 +2009,19 @@ void MainWindow::onApplySettings(const SettingsData& settings, bool /*fromOkButt
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow: Reacting to settings applied");
 
-    // Handle diagnostic mode change (only thing MainWindow needs to do)
+    // Handle diagnostic mode change
     if (settings.diagnosticMode != m_diagnosticMode) {
         if (settings.diagnosticMode) {
             enableDiagnosticMode();
         } else {
             disableDiagnosticMode();
         }
+    }
+
+    // Handle log buffer size change
+    if (m_logPanel && static_cast<int>(m_logPanel->getMaxBufferSize()) != settings.logBufferSize) {
+        m_logPanel->setMaxBufferSize(static_cast<size_t>(settings.logBufferSize));
+        logger.info("MainWindow: Log buffer size updated to {}", settings.logBufferSize);
     }
 
     logger.info("MainWindow: Settings reaction complete");

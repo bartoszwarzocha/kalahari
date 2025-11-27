@@ -152,14 +152,25 @@ Theme Theme::fromJson(const nlohmann::json& json) {
     // Parse log colors (optional, use defaults if missing)
     if (json.contains("log") && json["log"].is_object()) {
         const auto& log = json["log"];
-        theme.log.info = parseColor(log.value("info", "#000000"));
-        theme.log.debug = parseColor(log.value("debug", "#666666"));
-        theme.log.background = parseColor(log.value("background", "#F5F5F5"));
+        bool isDark = isDarkBackground(theme.colors.background);
+
+        // Colors for all log levels
+        theme.log.trace = parseColor(log.value("trace", isDark ? "#FF66FF" : "#CC00CC"));     // Magenta
+        theme.log.debug = parseColor(log.value("debug", isDark ? "#FF66FF" : "#CC00CC"));     // Magenta
+        theme.log.info = parseColor(log.value("info", isDark ? "#FFFFFF" : "#000000"));       // Default text
+        theme.log.warning = parseColor(log.value("warning", isDark ? "#FFA500" : "#FF8C00")); // Orange
+        theme.log.error = parseColor(log.value("error", isDark ? "#FF4444" : "#CC0000"));     // Red
+        theme.log.critical = parseColor(log.value("critical", isDark ? "#FF4444" : "#CC0000")); // Red (same as error)
+        theme.log.background = parseColor(log.value("background", isDark ? "#252525" : "#F5F5F5"));
     } else {
         // Default log colors based on theme type
         bool isDark = isDarkBackground(theme.colors.background);
-        theme.log.info = isDark ? QColor("#cccccc") : QColor("#000000");
-        theme.log.debug = isDark ? QColor("#888888") : QColor("#666666");
+        theme.log.trace = isDark ? QColor("#FF66FF") : QColor("#CC00CC");     // Magenta
+        theme.log.debug = isDark ? QColor("#FF66FF") : QColor("#CC00CC");     // Magenta
+        theme.log.info = isDark ? QColor("#FFFFFF") : QColor("#000000");       // Default text
+        theme.log.warning = isDark ? QColor("#FFA500") : QColor("#FF8C00");   // Orange
+        theme.log.error = isDark ? QColor("#FF4444") : QColor("#CC0000");     // Red
+        theme.log.critical = isDark ? QColor("#FF4444") : QColor("#CC0000");  // Red (same as error)
         theme.log.background = isDark ? QColor("#252525") : QColor("#f5f5f5");
     }
 
@@ -210,8 +221,12 @@ nlohmann::json Theme::toJson() const {
 
     // Log colors
     json["log"] = {
-        {"info", colorToHex(log.info)},
+        {"trace", colorToHex(log.trace)},
         {"debug", colorToHex(log.debug)},
+        {"info", colorToHex(log.info)},
+        {"warning", colorToHex(log.warning)},
+        {"error", colorToHex(log.error)},
+        {"critical", colorToHex(log.critical)},
         {"background", colorToHex(log.background)}
     };
 

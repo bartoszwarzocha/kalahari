@@ -53,10 +53,16 @@ struct SettingsData {
     bool wordWrap = true;       ///< Enable word wrap
 
     // ========================================================================
-    // Advanced
+    // Advanced / General
     // ========================================================================
 
     bool diagnosticMode = false;///< Enable diagnostic menu
+
+    // ========================================================================
+    // Advanced / Log
+    // ========================================================================
+
+    int logBufferSize = 500;    ///< Log panel buffer size (1-1000 lines)
 
     // ========================================================================
     // Helper Methods
@@ -90,7 +96,8 @@ struct SettingsData {
                tabSize != other.tabSize ||
                showLineNumbers != other.showLineNumbers ||
                wordWrap != other.wordWrap ||
-               diagnosticMode != other.diagnosticMode;
+               diagnosticMode != other.diagnosticMode ||
+               logBufferSize != other.logBufferSize;
     }
 
     bool operator==(const SettingsData& other) const {
