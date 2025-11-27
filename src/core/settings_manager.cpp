@@ -352,6 +352,10 @@ void SettingsManager::createDefaults() {
             {"buttonIconSize", 20},
             {"comboBoxIconSize", 16}
         }},
+        {"log", {
+            {"bufferSize", 500},
+            {"fontSize", 10}
+        }},
         {"session", {
             {"auto_save_interval", 300},
             {"backup_enabled", true}
@@ -408,14 +412,22 @@ void SettingsManager::removeKey(const std::string& key) {
             std::string parentPointer = pointer.substr(0, lastSlash);
             std::string childKey = pointer.substr(lastSlash + 1);
 
-            nlohmann::json& parent = m_settings.at(nlohmann::json::json_pointer(parentPointer));
+            // Check if parent path exists before accessing
+            nlohmann::json::json_pointer parentPtr(parentPointer);
+            if (!m_settings.contains(parentPtr)) {
+                // Parent doesn't exist, nothing to remove - silently ignore
+                return;
+            }
+
+            nlohmann::json& parent = m_settings.at(parentPtr);
             if (parent.is_object() && parent.contains(childKey)) {
                 parent.erase(childKey);
                 Logger::getInstance().debug("Removed setting key: {}", key);
             }
         }
-    } catch (const nlohmann::json::exception& e) {
-        Logger::getInstance().warn("Failed to remove key '{}': {}", key, e.what());
+    } catch (const nlohmann::json::exception&) {
+        // Silently ignore - key doesn't exist, which is fine for removeKey
+        Logger::getInstance().debug("Key '{}' not found (nothing to remove)", key);
     }
 }
 

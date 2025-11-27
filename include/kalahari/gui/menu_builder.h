@@ -104,6 +104,15 @@ public:
     /// Useful after data changes (e.g., Recent Books list updated).
     void updateDynamicMenus();
 
+    /// @brief Get menu by technical name (i18n-safe)
+    ///
+    /// Returns cached menu by technical name (e.g., "VIEW", "FILE").
+    /// Use this instead of searching by translated text!
+    ///
+    /// @param technicalName Technical menu name (e.g., "VIEW", "FILE", "EDIT")
+    /// @return QMenu pointer or nullptr if not found
+    QMenu* getMenu(const std::string& technicalName) const;
+
     // OpenSpec #00026: refreshIcons() method REMOVED
     // Icon refresh is now automatic via ArtProvider::createAction()
     // which connects each action to ArtProvider::resourcesChanged() signal.

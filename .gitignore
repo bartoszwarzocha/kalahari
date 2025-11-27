@@ -161,3 +161,4 @@ docs/api/       # Doxygen output
 # Screenshot files (temporary - for issue reporting)
 Schowek_*.jpg
 Schowek_*.png
+/Claude Code Agents Strategy.docx

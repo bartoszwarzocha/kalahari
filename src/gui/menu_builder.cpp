@@ -108,9 +108,11 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
         QString menuTitle = translateMenuName(topLevel);
 
         QMenu* topMenu = menuBar->addMenu(menuTitle);
+        topMenu->setObjectName(QString::fromStdString(topLevel + "Menu"));  // e.g., "VIEWMenu"
         m_menuCache[topLevel] = topMenu;
 
-        logger.debug("MenuBuilder: Created top-level menu: {}", topLevel);
+        logger.debug("MenuBuilder: Created top-level menu: {} (objectName={})",
+                     topLevel, topMenu->objectName().toStdString());
 
         // Sort ALL commands by menuOrder (CRITICAL for correct order!)
         std::vector<Command> sortedCommands = it->second;
@@ -259,6 +261,14 @@ void MenuBuilder::updateDynamicMenus() {
 
         logger.debug("MenuBuilder: Updated dynamic menu '{}' with {} actions", path, actions.size());
     }
+}
+
+QMenu* MenuBuilder::getMenu(const std::string& technicalName) const {
+    auto it = m_menuCache.find(technicalName);
+    if (it != m_menuCache.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
 
 // OpenSpec #00026: refreshIcons() method REMOVED
