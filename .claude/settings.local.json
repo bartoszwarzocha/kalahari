@@ -175,7 +175,10 @@
       "Bash(python scripts/convert_all_icons.py:*)",
       "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|kalahari_style)\")",
       "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe\" --build /e/Python/Projekty/Kalahari/build-windows --config Debug --target kalahari)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|main_window)\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \"cd E:\\Python\\Projekty\\Kalahari; & ''C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'' --build build-windows --config Debug --target kalahari 2>&1 | Select-Object -Last 30\")",
+      "Bash(/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \"cd ''E:\\Python\\Projekty\\Kalahari''; & ''C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'' --build build-windows --config Debug --target kalahari 2>&1 | Select-Object -Last 40\")"
     ],
     "deny": [],
     "ask": []

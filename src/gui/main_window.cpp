@@ -1894,9 +1894,7 @@ SettingsData MainWindow::collectCurrentSettings() const {
     logger.debug("MainWindow: Collecting current settings");
 
     auto& settings = core::SettingsManager::getInstance();
-    auto& themeManager = core::ThemeManager::getInstance();
     auto& iconRegistry = core::IconRegistry::getInstance();
-    const auto& theme = themeManager.getCurrentTheme();
 
     SettingsData settingsData;
 
@@ -1906,8 +1904,11 @@ SettingsData MainWindow::collectCurrentSettings() const {
 
     // Appearance/Theme
     settingsData.theme = QString::fromStdString(settings.getTheme());
-    settingsData.primaryColor = theme.colors.primary;
-    settingsData.secondaryColor = theme.colors.secondary;
+    // Get colors from ArtProvider (which uses IconRegistry's current colors)
+    // This ensures we get the user's custom colors, not theme defaults
+    auto& artProvider = core::ArtProvider::getInstance();
+    settingsData.primaryColor = artProvider.getPrimaryColor();
+    settingsData.secondaryColor = artProvider.getSecondaryColor();
 
     // Appearance/Icons
     settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));

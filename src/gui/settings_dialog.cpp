@@ -717,16 +717,21 @@ void SettingsDialog::onTreeItemChanged(QTreeWidgetItem* current, QTreeWidgetItem
 
 void SettingsDialog::onAccept() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: OK clicked - applying settings with spinner");
+    logger.debug("SettingsDialog: OK clicked");
 
-    // Collect and apply settings with spinner ON THIS DIALOG
+    // Collect current settings
     SettingsData settings = collectSettings();
-    applySettingsWithSpinner(settings);
 
-    // Update original settings
-    m_originalSettings = settings;
+    // Only apply if settings actually changed (dirty check)
+    if (settings != m_originalSettings) {
+        logger.debug("SettingsDialog: Settings changed, applying with spinner");
+        applySettingsWithSpinner(settings);
+        m_originalSettings = settings;
+    } else {
+        logger.debug("SettingsDialog: No changes detected, skipping apply");
+    }
 
-    // NOW close dialog (after spinner finished)
+    // Close dialog
     accept();
 }
 
@@ -738,14 +743,19 @@ void SettingsDialog::onReject() {
 
 void SettingsDialog::onApply() {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsDialog: Apply clicked - applying settings with spinner");
+    logger.debug("SettingsDialog: Apply clicked");
 
-    // Collect and apply settings with spinner ON THIS DIALOG
+    // Collect current settings
     SettingsData settings = collectSettings();
-    applySettingsWithSpinner(settings);
 
-    // Update original settings so we know what changed next time
-    m_originalSettings = settings;
+    // Only apply if settings actually changed (dirty check)
+    if (settings != m_originalSettings) {
+        logger.debug("SettingsDialog: Settings changed, applying with spinner");
+        applySettingsWithSpinner(settings);
+        m_originalSettings = settings;
+    } else {
+        logger.debug("SettingsDialog: No changes detected, skipping apply");
+    }
 
     // Dialog stays open
 }
