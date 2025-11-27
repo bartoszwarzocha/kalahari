@@ -288,6 +288,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `settings_manager.h/cpp` (+60 LOC per-theme storage), `settings_dialog.h/cpp` (+80 LOC color controls), `theme_manager.cpp` (+40 LOC per-theme loading), `menu_builder.h/cpp` (+70 LOC refreshIcons), `main_window.h/cpp` (+15 LOC MenuBuilder integration)
   - Manual testing: ✅ Per-theme colors persist, toolbar + menu icons refresh on color change
 
+- **OpenSpec #00026:** ArtProvider Central Visual Resource Manager - 2025-11-27
+  - Central facade pattern for all visual resources (icons, cursors, animations)
+  - **ArtProvider class:** Singleton managing all visual resource access (~300 LOC)
+    - Central API: `getIcon()`, `getCursor()`, `getAnimation()` with unified interface
+    - Delegates to IconRegistry, future CursorManager, AnimationManager
+    - resourcesChanged signal for GUI component synchronization
+    - **Batch mode optimization:** `beginBatchUpdate()` / `endBatchUpdate()` to coalesce signal emissions
+    - Prevents freeze during settings apply (~11 signals → 1 signal, ~1340 re-renders → ~134)
+  - **SettingsDialog integration:**
+    - Uses ArtProvider batch mode during Apply to prevent theme change freeze
+    - Icon/cursor/toolbar updates coalesced into single resourcesChanged emission
+  - **BusyIndicator pattern:** Framework for async operations with progress indication
+    - QProgressDialog integration for long-running operations
+    - Cancelable operations with progress callback
+  - **SettingsData centralization:**
+    - All settings in single struct with operator!=() for dirty detection
+    - Collected once from UI controls, compared with current state
+    - Only changed settings applied (performance optimization)
+  - OpenSpec validation: Change ID `00026-art-provider-central`
+  - Files added: `art_provider.h/cpp` (~300 LOC), `busy_indicator.h/cpp`
+  - Files modified: `settings_dialog.h/cpp` (batch mode), `main_window.h/cpp` (onApplySettings refactor)
+
+- **OpenSpec #00024:** Enhanced Log Panel with Settings UI - 2025-11-27
+  - Complete LogPanel enhancement from placeholder to full-featured diagnostic log viewer
+  - **LogPanelSink class:** Custom spdlog sink for Qt integration (~100 LOC)
+    - Thread-safe Qt signal emission from any thread (spdlog callbacks)
+    - Emits `logMessage(int level, QString message)` signal
+    - Registered in main.cpp before MainWindow creation
+  - **LogPanel enhancements:**
+    - QPlainTextEdit → QTextEdit for rich text (colored output)
+    - Ring buffer: `std::deque<LogEntry>` with configurable size (default 500, range 1-1000)
+    - Theme-aware colors: 6 log levels + background from Theme struct
+    - Vertical toolbar: Options, Open Folder, Copy, Clear buttons
+    - **Visibility optimization:** Skip UI updates when panel hidden, rebuild on showEvent()
+  - **Mode-based visibility:**
+    - Normal mode: LogPanel hidden, TRACE/DEBUG filtered out
+    - --diag/--dev mode: LogPanel visible, all log levels shown
+    - Command-line flags parsed in main.cpp, passed to MainWindow
+  - **Settings UI:**
+    - New "Advanced / Log" page in Settings Dialog
+    - Buffer size spinner (1-1000 lines)
+    - Settings persist via SettingsManager (log.bufferSize)
+  - **Theme integration:**
+    - Log colors from Theme JSON (theme.log.trace, debug, info, warning, error, critical, background)
+    - rebuildDisplay() on theme change with single setHtml() for performance
+  - OpenSpec validation: Change ID `00024-log-panel-enhanced`
+  - Files added: `log_panel_sink.h/cpp` (~100 LOC)
+  - Files modified: `log_panel.h/cpp` (+400 LOC), `settings_dialog.h/cpp` (Advanced/Log page), `main_window.h/cpp` (mode flags), `main.cpp` (sink registration)
+
 ### Changed
 
 - **ROADMAP.md restructured (2025-11-26):**
