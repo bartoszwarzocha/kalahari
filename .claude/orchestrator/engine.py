@@ -108,7 +108,8 @@ class RuleEngine:
             trigger = rule.get("trigger", {})
 
             # Skip initial rules (already handled)
-            if trigger.get("type") == "start":
+            trigger_type = trigger.get("type")
+            if trigger_type in ("start", "session_start", "session", "sesja"):
                 continue
 
             # Check agent match
