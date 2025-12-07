@@ -14,6 +14,7 @@
 
 #include <QWidget>
 #include <QColor>
+#include <QTimer>
 #include <deque>
 
 class QTextEdit;
@@ -169,10 +170,15 @@ private:
     void refreshColorCache();
 
     // ========================================================================
-    // Visibility Optimization
+    // Visibility Optimization & Batching
     // ========================================================================
 
     bool m_needsRebuild = false;        ///< Flag: UI needs sync when visible
+    QTimer m_updateTimer;               ///< Timer for batched UI updates (100ms)
+
+private slots:
+    /// @brief Deferred UI update (called by timer)
+    void onDeferredUpdate();
 
 protected:
     /// @brief Called when widget becomes visible - syncs UI if needed

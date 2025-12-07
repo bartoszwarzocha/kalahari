@@ -62,6 +62,11 @@ LogPanel::LogPanel(QWidget* parent, bool diagnosticMode)
                 applyThemeColors();
             });
 
+    // Setup update timer for batched UI updates (prevents freeze on rapid log messages)
+    m_updateTimer.setSingleShot(true);
+    m_updateTimer.setInterval(100);  // 100ms batching window
+    connect(&m_updateTimer, &QTimer::timeout, this, &LogPanel::onDeferredUpdate);
+
     // Initial welcome message
     appendLog(2, tr("[%1] Log panel initialized").arg(QTime::currentTime().toString("HH:mm:ss.zzz")));
     if (diagnosticMode) {
@@ -130,31 +135,17 @@ void LogPanel::appendLog(int level, const QString& message) {
     }
 
     // OPTIMIZATION: Skip UI update if panel is hidden
-    // Set flag so showEvent() can rebuild when visible again
     if (!isVisible()) {
         m_needsRebuild = true;
         return;
     }
 
-    // Check if this level should be displayed
-    if (!shouldDisplayLevel(level)) {
-        return;  // Filtered out
+    // BATCHING: Instead of updating UI for each message, schedule deferred update
+    // This prevents freeze when many log messages arrive rapidly (startup, color change)
+    if (!m_updateTimer.isActive()) {
+        m_updateTimer.start();  // Will call onDeferredUpdate() after 100ms
     }
-
-    // Get color for this level
-    QColor color = getColorForLevel(level);
-
-    // Append to display with color
-    if (m_logEdit) {
-        // Build HTML for colored text
-        QString html = QString("<span style=\"color: %1;\">%2</span><br>")
-                           .arg(color.name())
-                           .arg(message.toHtmlEscaped());
-        m_logEdit->insertHtml(html);
-
-        // Scroll to bottom
-        m_logEdit->verticalScrollBar()->setValue(m_logEdit->verticalScrollBar()->maximum());
-    }
+    m_needsRebuild = true;
 }
 
 // ============================================================================
@@ -209,6 +200,15 @@ void LogPanel::onCopyToClipboard() {
 void LogPanel::onClearLog() {
     clear();
     appendLog(2, tr("[%1] Log cleared by user").arg(QTime::currentTime().toString("HH:mm:ss.zzz")));
+}
+
+void LogPanel::onDeferredUpdate() {
+    // Called by timer after batching window (100ms)
+    // Rebuilds display once for all accumulated log messages
+    if (m_needsRebuild && isVisible()) {
+        m_needsRebuild = false;
+        rebuildDisplay();
+    }
 }
 
 // ============================================================================
@@ -372,6 +372,7 @@ void LogPanel::showEvent(QShowEvent* event) {
 
     // Sync UI with buffer when becoming visible (if needed)
     if (m_needsRebuild) {
+        m_updateTimer.stop();  // Cancel pending timer, we're rebuilding now
         m_needsRebuild = false;
         rebuildDisplay();
         core::Logger::getInstance().debug("LogPanel: Rebuilt display on show ({} entries)", m_logBuffer.size());
