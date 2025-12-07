@@ -2,13 +2,13 @@
 
 > **Writer's IDE** - Qt6 Architecture | Phase-based Development
 
-**Current Phase:** Phase 1 (Core Editor) 🔄 IN PROGRESS
+**Current Phase:** Phase 1 (Core Editor) IN PROGRESS
 **Version:** 0.3.2-alpha
-**Last Updated:** 2025-11-27
+**Last Updated:** 2025-12-07
 
 ---
 
-## 🔄 MIGRATION CONTEXT (2025-11-19)
+## MIGRATION CONTEXT (2025-11-19)
 
 **Decision:** Migrated from wxWidgets to Qt6 for long-term quality and maintainability.
 
@@ -24,13 +24,13 @@
 
 ---
 
-## PHASE 0: Qt Foundation ✅ COMPLETE
+## PHASE 0: Qt Foundation COMPLETE
 
-**Status:** ✅ COMPLETE (Started 2025-11-19, Finished 2025-11-21)
+**Status:** COMPLETE (Started 2025-11-19, Finished 2025-11-21)
 **Duration:** 2 days (estimate: 4 weeks)
-**Target:** 0.3.0-alpha ✅ RELEASED (basic GUI) → 0.3.1-alpha (Command Registry) ✅ COMPLETE
+**Target:** 0.3.0-alpha RELEASED (basic GUI) -> 0.3.1-alpha (Command Registry) COMPLETE
 
-### Step 0: Preparation ✅ COMPLETE (Day 1, ~6 hours)
+### Step 0: Preparation COMPLETE (Day 1, ~6 hours)
 
 **Goal:** Archive wxWidgets, update build system, refresh documentation
 
@@ -45,7 +45,7 @@
 - [x] Update Serena Memories - Migration decision documented
 - [x] Final Push & Verification - All changes committed
 
-### Week 1: Qt Hello World ✅ COMPLETE
+### Week 1: Qt Hello World COMPLETE
 
 **Goal:** Basic Qt6 application with window, menu, logging
 
@@ -53,7 +53,7 @@
 - [x] QMainWindow Skeleton - Menu bar, toolbar, status bar
 - [x] Basic QDockWidget System - 5 dock panels, perspective save/restore
 
-### Week 2: Settings System ✅ COMPLETE
+### Week 2: Settings System COMPLETE
 
 **Goal:** Settings dialog with Qt layouts, JSON persistence
 
@@ -61,7 +61,7 @@
 - [x] Appearance Settings Panel - Font size, theme, icon size
 - [x] Editor Settings Panel - Font family/size, tab size, line numbers, word wrap
 
-### Week 3: Core Editor Foundation ✅ COMPLETE
+### Week 3: Core Editor Foundation COMPLETE
 
 **Goal:** Basic text editing with QPlainTextEdit
 
@@ -69,7 +69,7 @@
 - [x] File Operations - New/Open/Save/SaveAs, dirty state, .klh files
 - [x] Edit Operations - Undo/Redo/Cut/Copy/Paste/SelectAll
 
-### Week 4: Panels & Polish ✅ COMPLETE
+### Week 4: Panels & Polish COMPLETE
 
 **Goal:** Navigator panel, About dialog, first release
 
@@ -77,33 +77,33 @@
 - [x] About Dialog & Help Menu - QMessageBox dialogs
 - [x] Qt Foundation Release - v0.3.0-alpha tag
 
-### Week 5: Command Registry Migration ✅ COMPLETE (2025-11-21)
+### Week 5: Command Registry Migration COMPLETE (2025-11-21)
 
 **Goal:** Migrate Command Registry system from wxWidgets to Qt6
 
 **Architecture Migrated:**
-- ✅ Command Registry (singleton, ~200 LOC, framework-agnostic)
-- ✅ Command struct (id, label, category, icons, shortcuts, execute/isEnabled/isChecked callbacks)
-- ✅ IconSet (16/24/32px QPixmap, toQIcon() helper)
-- ✅ KeyboardShortcut (Qt::Key + Qt::KeyboardModifiers, toQKeySequence())
-- ✅ ToolbarBuilder (dynamic QToolBar generation from registry)
-- ✅ MenuBuilder (hierarchical menu support, 150 LOC)
+- Command Registry (singleton, ~200 LOC, framework-agnostic)
+- Command struct (id, label, category, icons, shortcuts, execute/isEnabled/isChecked callbacks)
+- IconSet (16/24/32px QPixmap, toQIcon() helper)
+- KeyboardShortcut (Qt::Key + Qt::KeyboardModifiers, toQKeySequence())
+- ToolbarBuilder (dynamic QToolBar generation from registry)
+- MenuBuilder (hierarchical menu support, 150 LOC)
 
 **Benefits Delivered:**
-- ✅ Single source of truth for all commands (15 registered: File, Edit, Help)
-- ✅ Plugin commands integrate seamlessly (ICommandProvider interface ready)
-- ✅ Customizable toolbars (user can add/remove/reorder in Phase 1)
-- ✅ Command Palette ready (Ctrl+Shift+P foundation, Phase 1 implementation)
-- ✅ No hardcoded QAction connections (MainWindow uses builders)
+- Single source of truth for all commands (15 registered: File, Edit, Help)
+- Plugin commands integrate seamlessly (ICommandProvider interface ready)
+- Customizable toolbars (user can add/remove/reorder in Phase 1)
+- Command Palette ready (Ctrl+Shift+P foundation, Phase 1 implementation)
+- No hardcoded QAction connections (MainWindow uses builders)
 
 - [x] Command Registry Qt Migration - Recovered from wxwidgets-archive, adapted to Qt6
 - [x] Plugin Integration Foundation - ICommandProvider, EventBus Qt6, QWidget* panels
 
 ---
 
-## PHASE 1: Core Editor (Weeks 1-20) 🔄 IN PROGRESS
+## PHASE 1: Core Editor (Weeks 1-20) IN PROGRESS
 
-**Status:** 🔄 IN PROGRESS (Started 2025-11-21)
+**Status:** IN PROGRESS (Started 2025-11-21)
 **Target:** 0.4.0-alpha
 **Timeline:** ~5 months
 
@@ -165,7 +165,7 @@
 - [ ] **Mind Maps Library** (MindMaps/*.kmap files)
 - [ ] **Timelines Library** (Timelines/*.ktl files)
 
-### 1.7 Theme & Icon System ✅ COMPLETE
+### 1.7 Theme & Icon System COMPLETE
 
 **Philosophy:** User-configurable themes with per-theme color customization and centralized icon management.
 
@@ -228,13 +228,13 @@
 - [x] Extended icon size configuration (9 contexts)
 - [x] Icon theme selector UI with preview
 - [x] BusyIndicator reusable spinner widget
-- [x] Log Panel enhanced (real-time logs, colored output, mode-based visibility)
+- [x] Log Panel enhanced (real-time logs, colored output, batched updates) - OpenSpec #00027
 
 ---
 
 ## PHASE 2: Plugin System MVP (Weeks 21-30)
 
-**Status:** ⏳ PLANNED
+**Status:** PLANNED
 **Target:** 0.5.0-alpha
 
 ### 2.1 Plugin UI Integration
@@ -262,7 +262,7 @@
 
 ## PHASE 3: Feature Plugins (Weeks 31-44)
 
-**Status:** ⏳ PLANNED
+**Status:** PLANNED
 **Target:** 0.6.0-beta
 
 ### 3.1 Premium Plugin Development
@@ -281,7 +281,7 @@
 
 ## PHASE 4: Advanced Plugins (Weeks 45-56)
 
-**Status:** ⏳ PLANNED
+**Status:** PLANNED
 **Target:** 0.7.0-beta
 
 ### 4.1 Research & Collaboration
@@ -299,7 +299,7 @@
 
 ## PHASE 5: Polish & Release (Weeks 57-68)
 
-**Status:** ⏳ PLANNED
+**Status:** PLANNED
 **Target:** 1.0.0
 
 ### 5.1 Testing & QA
@@ -323,7 +323,7 @@
 - [ ] Linux .deb/.rpm packages
 - [ ] Flatpak/Snap for universal Linux
 
-### 5.4 Release 🎉
+### 5.4 Release
 
 - [ ] Version 1.0.0 release
 - [ ] Press kit
@@ -339,31 +339,32 @@
 - [x] **2025-11-21:** Phase 0 Qt Foundation Complete (2 days!)
 - [x] **2025-11-27:** Theme & Icon System Complete (ArtProvider, BusyIndicator)
 - [x] **2025-11-27:** Enhanced Log Panel Complete (real-time spdlog, mode visibility)
+- [x] **2025-12-07:** Theme Color Configuration Complete (OpenSpec #00027)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
-- [ ] **2026-Q4:** Kalahari 1.0 Release 🚀
+- [ ] **2026-Q4:** Kalahari 1.0 Release
 
 ---
 
 ## Success Criteria
 
-### Phase 0 (Qt Foundation) ✅ COMPLETE
-- ✅ wxWidgets archived (branch + tag)
-- ✅ Qt6 build system working (all platforms)
-- ✅ Documentation updated (CLAUDE.md, CHANGELOG.md, project_docs/)
-- ✅ QMainWindow with menu/toolbar/statusbar
-- ✅ Settings dialog with Qt layouts
-- ✅ Basic text editor with QPlainTextEdit
-- ✅ Command Registry migrated
+### Phase 0 (Qt Foundation) COMPLETE
+- wxWidgets archived (branch + tag)
+- Qt6 build system working (all platforms)
+- Documentation updated (CLAUDE.md, CHANGELOG.md, project_docs/)
+- QMainWindow with menu/toolbar/statusbar
+- Settings dialog with Qt layouts
+- Basic text editor with QPlainTextEdit
+- Command Registry migrated
 
-### Phase 1 (Core Editor) 🔄 IN PROGRESS
+### Phase 1 (Core Editor) IN PROGRESS
 - Rich text editing with formatting
 - Document structure (Parts, Chapters)
 - Search & Replace
 - Project management
 - Word count & statistics
-- ✅ Theme & Icon system foundation
+- Theme & Icon system foundation
 
 ### Phases 2-5
 - See individual phase sections above
@@ -398,10 +399,10 @@
 3. **Atomic Workflow:** Maintained from v5.x (30-120 min tasks)
 4. **Testing:** Catch2 for core, QTest for GUI (Phase 1+)
 5. **Qt LGPL:** Dynamic linking, no commercial license needed
-6. **Plugin API:** Pure C++ types (no Qt types in API) → proprietary plugins OK
+6. **Plugin API:** Pure C++ types (no Qt types in API) -> proprietary plugins OK
 
 ---
 
-**Document Version:** 2.1
-**Last Update:** 2025-11-27
-**Updated By:** Claude (Theme & Icon System Complete - ArtProvider, BusyIndicator)
+**Document Version:** 2.2
+**Last Update:** 2025-12-07
+**Updated By:** Claude (OpenSpec #00027 Theme Color Configuration Complete)

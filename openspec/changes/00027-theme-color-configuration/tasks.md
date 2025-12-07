@@ -59,6 +59,33 @@ Create a centralized UI for configuring all theme colors in one place (Appearanc
 - [x] Tests: PASS
 - [x] Manual testing: Theme page functional with Icon Colors and Log Panel Colors groups
 
+## Phase 6: Bug Fixes (2025-12-07)
+
+- [x] Fix: Dark theme showed #000000 for all log colors (b160dbf)
+  - `getCurrentSettingsAsData()` was missing log color loading
+  - Now correctly loads per-theme log colors
+
+- [x] Fix: Auto-detect and clear corrupted log color settings (cd5f0bc)
+  - Detects when all 7 log colors are identical (#000000)
+  - Automatically clears corrupted settings on theme switch
+  - Logs corrective action via Logger
+
+- [x] Fix: LogPanel not updating colors after settings change (627d92f)
+  - Added `applyLogColors()` method to LogPanel
+  - Connected MainWindow::onThemeChanged() to refresh log panel
+  - Colors now apply immediately after closing Settings dialog
+
+- [x] Fix: UI freeze when changing log colors (cf17d1b)
+  - Log colors were read 500x from SettingsManager (once per log entry)
+  - Added color caching in LogPanel (m_cachedColors map)
+  - Cache invalidated on theme change
+
+- [x] Perf: Batch UI updates with 100ms timer (6d11d28)
+  - Slow start in --diag mode (many insertHtml() calls)
+  - Added m_pendingMessages queue and m_updateTimer
+  - Batches log messages into single HTML update
+  - Significantly faster diagnostic mode startup
+
 ## Files Created
 
 | File | Status |
@@ -71,11 +98,25 @@ Create a centralized UI for configuring all theme colors in one place (Appearanc
 | File | Status |
 |------|--------|
 | `include/kalahari/core/settings_manager.h` | MODIFIED - 4 log color methods |
-| `src/core/settings_manager.cpp` | MODIFIED - log color implementation |
+| `src/core/settings_manager.cpp` | MODIFIED - log color implementation + corruption detection |
 | `include/kalahari/gui/settings_data.h` | MODIFIED - 7 log color fields |
 | `include/kalahari/gui/settings_dialog.h` | MODIFIED - ColorConfigWidget pointers |
 | `src/gui/settings_dialog.cpp` | MODIFIED - Theme page with color groups |
 | `src/CMakeLists.txt` | MODIFIED - added color_config_widget |
+| `include/kalahari/gui/panels/log_panel.h` | MODIFIED - color caching, batching |
+| `src/gui/panels/log_panel.cpp` | MODIFIED - applyLogColors(), cached lookup, timer batching |
+| `src/gui/main_window.cpp` | MODIFIED - LogPanel refresh on theme change |
+
+## Commits
+
+| Hash | Type | Description |
+|------|------|-------------|
+| b2fb36c | feat | Restore Theme Color Configuration (#00027) |
+| b160dbf | fix | Load log colors in getCurrentSettingsAsData |
+| cd5f0bc | fix | Auto-detect and clear corrupted log color settings |
+| 627d92f | fix | Apply user log colors to LogPanel |
+| cf17d1b | fix | Cache log colors to prevent UI freeze |
+| 6d11d28 | perf | Batch UI updates with 100ms timer |
 
 ## Dependencies
 
@@ -85,4 +126,4 @@ Create a centralized UI for configuring all theme colors in one place (Appearanc
 
 ## Implementation Notes
 
-Feature was originally implemented but lost when code on branch `feature/claude-workflow-redesign` was never merged to main. Restored 2025-12-07.
+Feature was originally implemented but lost when code on branch `feature/claude-workflow-redesign` was never merged to main. Restored 2025-12-07. Multiple bug fixes applied same day to ensure proper functionality.
