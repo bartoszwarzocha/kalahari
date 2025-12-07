@@ -5,6 +5,7 @@
 #include <kalahari/core/logger.h>
 #include <fstream>
 #include <cstdlib>  // std::getenv
+#include <vector>   // std::vector for log color keys
 
 #ifdef _WIN32
     #include <windows.h>
@@ -247,6 +248,54 @@ void SettingsManager::clearCustomIconColorsForTheme(const std::string& themeName
     }
 
     Logger::getInstance().info("Cleared custom icon colors for theme: {}", themeName);
+}
+
+// =============================================================================
+// Per-theme log colors (Task #00027)
+// =============================================================================
+
+std::string SettingsManager::getLogColorForTheme(const std::string& themeName,
+                                                  const std::string& colorKey,
+                                                  const std::string& defaultColor) const {
+    std::string key = "themes." + themeName + ".log." + colorKey;
+    return get<std::string>(key, defaultColor);
+}
+
+void SettingsManager::setLogColorForTheme(const std::string& themeName,
+                                           const std::string& colorKey,
+                                           const std::string& color) {
+    std::string key = "themes." + themeName + ".log." + colorKey;
+    set(key, color);
+}
+
+bool SettingsManager::hasCustomLogColorsForTheme(const std::string& themeName) const {
+    // Check if any of the log color keys exist for this theme
+    static const std::vector<std::string> colorKeys = {
+        "trace", "debug", "info", "warning", "error", "critical", "background"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".log." + colorKey;
+        if (hasKey(key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void SettingsManager::clearCustomLogColorsForTheme(const std::string& themeName) {
+    static const std::vector<std::string> colorKeys = {
+        "trace", "debug", "info", "warning", "error", "critical", "background"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".log." + colorKey;
+        if (hasKey(key)) {
+            removeKey(key);
+        }
+    }
+
+    Logger::getInstance().info("Cleared custom log colors for theme: {}", themeName);
 }
 
 std::filesystem::path SettingsManager::getSettingsFilePath() const {

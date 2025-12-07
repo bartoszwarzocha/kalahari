@@ -1,8 +1,9 @@
 # Proposal: Centralized Theme Color Configuration
 
 **ID:** 00027-theme-color-configuration
-**Status:** PENDING
+**Status:** DEPLOYED
 **Created:** 2025-11-27
+**Deployed:** 2025-12-07
 **Author:** Claude
 
 ## Summary
@@ -93,39 +94,35 @@ Replace current Theme tab content with dynamic color editor:
 3. **User control**: Full theme customization
 4. **Clean architecture**: Single source of truth for color overrides
 
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `settings_dialog.cpp` | Replace Theme tab with dynamic color editor |
-| `settings_manager.h/cpp` | Add per-theme color getters/setters for log colors |
-| `theme_manager.cpp` | Load user color overrides from settings |
-| `settings_data.h` | Add log color fields |
-
-## Files to Create
+## Files Created
 
 | File | Purpose |
 |------|---------|
-| `color_config_widget.h/cpp` | Reusable color picker widget |
-| `theme_color_editor.h/cpp` | Dynamic theme color editor |
+| `include/kalahari/gui/widgets/color_config_widget.h` | Reusable color picker widget header |
+| `src/gui/widgets/color_config_widget.cpp` | Reusable color picker widget implementation |
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `include/kalahari/gui/settings_dialog.h` | ColorConfigWidget pointers for 9 colors (2 icon + 7 log) |
+| `src/gui/settings_dialog.cpp` | Theme page redesign with Icon Colors and Log Panel Colors groups |
+| `include/kalahari/core/settings_manager.h` | 4 per-theme log color methods |
+| `src/core/settings_manager.cpp` | Log color getter/setter implementation |
+| `include/kalahari/gui/settings_data.h` | 7 log color fields (trace through background) |
+| `src/CMakeLists.txt` | Added color_config_widget to build |
 
 ## Dependencies
 
 - OpenSpec #00022 (Theme System Foundation) - DEPLOYED
 - OpenSpec #00025 (Theme-Icon Integration) - DEPLOYED
 
-## Estimated Effort
+## Implementation Notes
 
-- Phase 1: Color storage architecture (2h)
-- Phase 2: ColorConfigWidget (1h)
-- Phase 3: ThemeColorEditor UI (3h)
-- Phase 4: Reset to Defaults (1h)
-- Phase 5: Testing & polish (1h)
+Feature was originally implemented but lost when code on branch `feature/claude-workflow-redesign` was never merged to main. Restored 2025-12-07.
 
-**Total:** ~8 hours
+## Open Questions (Resolved)
 
-## Open Questions
-
-1. Should we support custom themes (user-created JSON files)?
-2. Should color changes apply immediately (live preview) or on Apply?
-3. Should we add color presets (e.g., "High Contrast", "Solarized")?
+1. Should we support custom themes (user-created JSON files)? - **Deferred to future task**
+2. Should color changes apply immediately (live preview) or on Apply? - **On Apply**
+3. Should we add color presets (e.g., "High Contrast", "Solarized")? - **Deferred to future task**

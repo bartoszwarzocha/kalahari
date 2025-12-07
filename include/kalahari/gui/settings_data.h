@@ -59,6 +59,18 @@ struct SettingsData {
     bool diagnosticMode = false;///< Enable diagnostic menu
 
     // ========================================================================
+    // Appearance / Theme - Log Panel Colors
+    // ========================================================================
+
+    QColor logTraceColor;       ///< Log TRACE message color
+    QColor logDebugColor;       ///< Log DEBUG message color
+    QColor logInfoColor;        ///< Log INFO message color
+    QColor logWarningColor;     ///< Log WARNING message color
+    QColor logErrorColor;       ///< Log ERROR message color
+    QColor logCriticalColor;    ///< Log CRITICAL message color
+    QColor logBackgroundColor;  ///< Log panel background color
+
+    // ========================================================================
     // Advanced / Log
     // ========================================================================
 
@@ -77,7 +89,14 @@ struct SettingsData {
                primaryColor != other.primaryColor ||
                secondaryColor != other.secondaryColor ||
                iconSizes != other.iconSizes ||
-               uiFontSize != other.uiFontSize;
+               uiFontSize != other.uiFontSize ||
+               logTraceColor != other.logTraceColor ||
+               logDebugColor != other.logDebugColor ||
+               logInfoColor != other.logInfoColor ||
+               logWarningColor != other.logWarningColor ||
+               logErrorColor != other.logErrorColor ||
+               logCriticalColor != other.logCriticalColor ||
+               logBackgroundColor != other.logBackgroundColor;
     }
 
     /// @brief Check if any setting changed
@@ -97,7 +116,14 @@ struct SettingsData {
                showLineNumbers != other.showLineNumbers ||
                wordWrap != other.wordWrap ||
                diagnosticMode != other.diagnosticMode ||
-               logBufferSize != other.logBufferSize;
+               logBufferSize != other.logBufferSize ||
+               logTraceColor != other.logTraceColor ||
+               logDebugColor != other.logDebugColor ||
+               logInfoColor != other.logInfoColor ||
+               logWarningColor != other.logWarningColor ||
+               logErrorColor != other.logErrorColor ||
+               logCriticalColor != other.logCriticalColor ||
+               logBackgroundColor != other.logBackgroundColor;
     }
 
     bool operator==(const SettingsData& other) const {

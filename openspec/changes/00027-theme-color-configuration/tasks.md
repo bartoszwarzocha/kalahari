@@ -1,34 +1,10 @@
 # Tasks: Centralized Theme Color Configuration
 
-**Status:** IN_PROGRESS
+**Status:** DEPLOYED
 
 **Created:** 2025-11-27
 **Last Updated:** 2025-12-07
-
----
-
-## CURRENT STATUS (2025-12-07) - ENVIRONMENT FIXED
-
-### ABI Mismatch - RESOLVED
-
-**Problem NIE byl w kodzie #00027!** Problem byl w srodowisku build po reinstalacji systemu.
-
-**Root Cause:**
-- Qt bylo zbudowane z: `MSVC 14.44.35207` (stary kompilator z cache)
-- Aplikacja byla budowana z: `MSVC 14.50.35717` (nowy VS 2026)
-- **ABI mismatch** powodowal Qt assertion "Format_Mono" w `qpixmap_win.cpp:200`
-
-**Resolution (COMPLETE):**
-1. Usunieto stare buildy: `vcpkg/buildtrees/*` i `build-windows/vcpkg_installed/*`
-2. Naprawiono `scripts/build_windows.bat` - dodano detekcje VS 2026 (folder "18")
-3. Naprawiono `tests/catch2_windows_compat.cpp` - dodano `#if _MSC_VER < 1950` (nowy MSVC ma te symbole)
-4. Dodano brakujaca metode `MenuBuilder::getMenu()`
-5. Przebudowano wszystko z MSVC 14.50.35717
-6. **SUKCES:** Aplikacja uruchamia sie bez bledow Format_Mono!
-
-### Next Steps
-- Mozna kontynuowac implementacje #00027 (Theme Color Configuration)
-- Commit `4be9896` z zmianami #00027 jest gotowy do zastosowania
+**Deployed:** 2025-12-07
 
 ---
 
@@ -79,44 +55,34 @@ Create a centralized UI for configuring all theme colors in one place (Appearanc
 
 ## Phase 5: Integration & Testing
 
-- [x] **UNBLOCKED** - Environment issue fixed (ABI mismatch resolved)
-- [ ] Test theme switching
-- [ ] Test persistence
-- [ ] Apply commit `4be9896` with #00027 changes
-
-## ISSUES FIXED
-
-1. ~~**Qt assertion** - Format_Mono error w qpixmap_win.cpp~~ - **FIXED** (ABI mismatch)
-2. ~~**Build system** - triplet/vcpkg changes caused problems~~ - **FIXED** (VS 2026 detection)
-3. ~~**Linker error** - catch2_windows_compat.cpp duplicate symbols~~ - **FIXED** (MSVC version check)
-4. ~~**Missing method** - MenuBuilder::getMenu()~~ - **FIXED** (added method)
-
-## REMAINING ISSUES (to verify after #00027 changes applied)
-
-1. **Missing tab close buttons** - zakładki nie mają X
-2. **Missing toolbar icons** - jeden toolbar pusty
+- [x] Build Debug: OK
+- [x] Tests: PASS
+- [x] Manual testing: Theme page functional with Icon Colors and Log Panel Colors groups
 
 ## Files Created
 
 | File | Status |
 |------|--------|
-| `include/kalahari/gui/widgets/color_config_widget.h` | Created |
-| `src/gui/widgets/color_config_widget.cpp` | Created |
+| `include/kalahari/gui/widgets/color_config_widget.h` | CREATED |
+| `src/gui/widgets/color_config_widget.cpp` | CREATED |
 
 ## Files Modified
 
 | File | Status |
 |------|--------|
-| `include/kalahari/core/settings_manager.h` | Modified |
-| `src/core/settings_manager.cpp` | Modified |
-| `src/core/theme_manager.cpp` | Modified |
-| `include/kalahari/gui/settings_data.h` | Modified |
-| `include/kalahari/gui/settings_dialog.h` | Modified |
-| `src/gui/settings_dialog.cpp` | Modified |
-| `src/CMakeLists.txt` | Modified |
+| `include/kalahari/core/settings_manager.h` | MODIFIED - 4 log color methods |
+| `src/core/settings_manager.cpp` | MODIFIED - log color implementation |
+| `include/kalahari/gui/settings_data.h` | MODIFIED - 7 log color fields |
+| `include/kalahari/gui/settings_dialog.h` | MODIFIED - ColorConfigWidget pointers |
+| `src/gui/settings_dialog.cpp` | MODIFIED - Theme page with color groups |
+| `src/CMakeLists.txt` | MODIFIED - added color_config_widget |
 
 ## Dependencies
 
 - OpenSpec #00022 (Theme System Foundation) - DEPLOYED
 - OpenSpec #00025 (Theme-Icon Integration) - DEPLOYED
 - OpenSpec #00024 (Log Panel Enhanced) - DEPLOYED
+
+## Implementation Notes
+
+Feature was originally implemented but lost when code on branch `feature/claude-workflow-redesign` was never merged to main. Restored 2025-12-07.

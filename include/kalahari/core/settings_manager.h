@@ -179,6 +179,38 @@ public:
     /// @param themeName Theme name (e.g., "Light", "Dark")
     void clearCustomIconColorsForTheme(const std::string& themeName);
 
+    // =========================================================================
+    // Per-theme log colors (Task #00027)
+    // Stores custom log colors per theme: themes.<ThemeName>.log.<colorKey>
+    // Valid colorKey values: trace, debug, info, warning, error, critical, background
+    // =========================================================================
+
+    /// @brief Get log color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey Log color key (trace, debug, info, warning, error, critical, background)
+    /// @param defaultColor Default color if no custom color is set
+    /// @return Color in hex format
+    std::string getLogColorForTheme(const std::string& themeName,
+                                    const std::string& colorKey,
+                                    const std::string& defaultColor) const;
+
+    /// @brief Set log color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey Log color key (trace, debug, info, warning, error, critical, background)
+    /// @param color Color in hex format (e.g., "#FF0000")
+    void setLogColorForTheme(const std::string& themeName,
+                             const std::string& colorKey,
+                             const std::string& color);
+
+    /// @brief Check if a theme has custom log colors
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @return true if custom log colors exist for this theme
+    bool hasCustomLogColorsForTheme(const std::string& themeName) const;
+
+    /// @brief Clear custom log colors for a theme (restore to theme defaults)
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    void clearCustomLogColorsForTheme(const std::string& themeName);
+
     /// @brief Get settings file path
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;

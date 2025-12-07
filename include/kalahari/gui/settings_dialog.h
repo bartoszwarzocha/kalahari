@@ -33,6 +33,12 @@ class QHBoxLayout;
 
 namespace kalahari {
 namespace gui {
+class ColorConfigWidget;
+}
+}
+
+namespace kalahari {
+namespace gui {
 
 /// @brief Settings dialog with hierarchical tree navigation
 ///
@@ -89,13 +95,7 @@ private slots:
     /// @brief Diagnostic mode checkbox toggled
     void onDiagModeCheckboxToggled(bool checked);
 
-    /// @brief Primary icon color button clicked
-    void onPrimaryColorButtonClicked();
-
-    /// @brief Secondary icon color button clicked
-    void onSecondaryColorButtonClicked();
-
-    /// @brief Theme combo box changed - update color buttons
+    /// @brief Theme combo box changed - update color widgets
     void onThemeComboChanged(int index);
 
     /// @brief Icon theme combo box changed - update preview
@@ -123,12 +123,6 @@ private:
 
     /// @brief Populate UI controls from settings data
     void populateFromSettings(const SettingsData& settings);
-
-    /// @brief Update color button appearance
-    void updateColorButton(QPushButton* button, const QColor& color);
-
-    /// @brief Extract color from button stylesheet
-    QColor getColorFromButton(QPushButton* button) const;
 
     /// @brief Update icon preview with current theme and colors
     void updateIconPreview();
@@ -159,8 +153,15 @@ private:
     // ========================================================================
 
     QComboBox* m_themeComboBox;
-    QPushButton* m_primaryColorButton;
-    QPushButton* m_secondaryColorButton;
+    ColorConfigWidget* m_primaryColorWidget;
+    ColorConfigWidget* m_secondaryColorWidget;
+    ColorConfigWidget* m_logTraceColorWidget;
+    ColorConfigWidget* m_logDebugColorWidget;
+    ColorConfigWidget* m_logInfoColorWidget;
+    ColorConfigWidget* m_logWarningColorWidget;
+    ColorConfigWidget* m_logErrorColorWidget;
+    ColorConfigWidget* m_logCriticalColorWidget;
+    ColorConfigWidget* m_logBackgroundColorWidget;
     QLabel* m_themePreviewLabel;
 
     // ========================================================================

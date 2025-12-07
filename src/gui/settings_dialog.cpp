@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/busy_indicator.h"
+#include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -47,8 +48,15 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_languageComboBox(nullptr)
     , m_uiFontSizeSpinBox(nullptr)
     , m_themeComboBox(nullptr)
-    , m_primaryColorButton(nullptr)
-    , m_secondaryColorButton(nullptr)
+    , m_primaryColorWidget(nullptr)
+    , m_secondaryColorWidget(nullptr)
+    , m_logTraceColorWidget(nullptr)
+    , m_logDebugColorWidget(nullptr)
+    , m_logInfoColorWidget(nullptr)
+    , m_logWarningColorWidget(nullptr)
+    , m_logErrorColorWidget(nullptr)
+    , m_logCriticalColorWidget(nullptr)
+    , m_logBackgroundColorWidget(nullptr)
     , m_themePreviewLabel(nullptr)
     , m_iconThemeComboBox(nullptr)
     , m_toolbarIconSizeSpinBox(nullptr)
@@ -403,68 +411,106 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     QWidget* page = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(page);
 
-    // Theme selection group
-    QGroupBox* themeGroup = new QGroupBox(tr("Color Theme"));
-    QGridLayout* themeGrid = new QGridLayout(themeGroup);
-
+    // Theme selection row
+    QHBoxLayout* themeRow = new QHBoxLayout();
     QLabel* themeLabel = new QLabel(tr("Theme:"));
     m_themeComboBox = new QComboBox();
     m_themeComboBox->addItem(tr("Light"), "Light");
     m_themeComboBox->addItem(tr("Dark"), "Dark");
     connect(m_themeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::onThemeComboChanged);
-    themeGrid->addWidget(themeLabel, 0, 0);
-    themeGrid->addWidget(m_themeComboBox, 0, 1);
+    themeRow->addWidget(themeLabel);
+    themeRow->addWidget(m_themeComboBox, 1);
+    layout->addLayout(themeRow);
 
-    themeGrid->setColumnStretch(1, 1);
-    layout->addWidget(themeGroup);
+    // ========================================================================
+    // Icon Colors group
+    // ========================================================================
+    QGroupBox* iconColorsGroup = new QGroupBox(tr("Icon Colors"));
+    QVBoxLayout* iconColorsLayout = new QVBoxLayout(iconColorsGroup);
 
-    // Color overrides group
-    QGroupBox* colorGroup = new QGroupBox(tr("Color Overrides"));
-    QGridLayout* colorGrid = new QGridLayout(colorGroup);
+    m_primaryColorWidget = new ColorConfigWidget(tr("Primary"), iconColorsGroup);
+    m_primaryColorWidget->setToolTip(tr("Primary icon color used for main icon elements"));
+    iconColorsLayout->addWidget(m_primaryColorWidget);
 
-    QLabel* primaryLabel = new QLabel(tr("Primary Color:"));
-    m_primaryColorButton = new QPushButton();
-    m_primaryColorButton->setMinimumHeight(30);
-    m_primaryColorButton->setToolTip(tr("Click to change primary color"));
-    connect(m_primaryColorButton, &QPushButton::clicked,
-            this, &SettingsDialog::onPrimaryColorButtonClicked);
-    colorGrid->addWidget(primaryLabel, 0, 0);
-    colorGrid->addWidget(m_primaryColorButton, 0, 1);
+    m_secondaryColorWidget = new ColorConfigWidget(tr("Secondary"), iconColorsGroup);
+    m_secondaryColorWidget->setToolTip(tr("Secondary icon color used for icon accents"));
+    iconColorsLayout->addWidget(m_secondaryColorWidget);
 
-    QLabel* secondaryLabel = new QLabel(tr("Secondary Color:"));
-    m_secondaryColorButton = new QPushButton();
-    m_secondaryColorButton->setMinimumHeight(30);
-    m_secondaryColorButton->setToolTip(tr("Click to change secondary color"));
-    connect(m_secondaryColorButton, &QPushButton::clicked,
-            this, &SettingsDialog::onSecondaryColorButtonClicked);
-    colorGrid->addWidget(secondaryLabel, 1, 0);
-    colorGrid->addWidget(m_secondaryColorButton, 1, 1);
+    layout->addWidget(iconColorsGroup);
 
-    // Reset button - clears custom colors and restores theme defaults (Task #00025)
+    // ========================================================================
+    // Log Panel Colors group
+    // ========================================================================
+    QGroupBox* logColorsGroup = new QGroupBox(tr("Log Panel Colors"));
+    QVBoxLayout* logColorsLayout = new QVBoxLayout(logColorsGroup);
+
+    m_logTraceColorWidget = new ColorConfigWidget(tr("Trace"), logColorsGroup);
+    m_logTraceColorWidget->setToolTip(tr("Color for TRACE level log messages (diagnostic mode only)"));
+    logColorsLayout->addWidget(m_logTraceColorWidget);
+
+    m_logDebugColorWidget = new ColorConfigWidget(tr("Debug"), logColorsGroup);
+    m_logDebugColorWidget->setToolTip(tr("Color for DEBUG level log messages (diagnostic mode only)"));
+    logColorsLayout->addWidget(m_logDebugColorWidget);
+
+    m_logInfoColorWidget = new ColorConfigWidget(tr("Info"), logColorsGroup);
+    m_logInfoColorWidget->setToolTip(tr("Color for INFO level log messages"));
+    logColorsLayout->addWidget(m_logInfoColorWidget);
+
+    m_logWarningColorWidget = new ColorConfigWidget(tr("Warning"), logColorsGroup);
+    m_logWarningColorWidget->setToolTip(tr("Color for WARNING level log messages"));
+    logColorsLayout->addWidget(m_logWarningColorWidget);
+
+    m_logErrorColorWidget = new ColorConfigWidget(tr("Error"), logColorsGroup);
+    m_logErrorColorWidget->setToolTip(tr("Color for ERROR level log messages"));
+    logColorsLayout->addWidget(m_logErrorColorWidget);
+
+    m_logCriticalColorWidget = new ColorConfigWidget(tr("Critical"), logColorsGroup);
+    m_logCriticalColorWidget->setToolTip(tr("Color for CRITICAL level log messages"));
+    logColorsLayout->addWidget(m_logCriticalColorWidget);
+
+    m_logBackgroundColorWidget = new ColorConfigWidget(tr("Background"), logColorsGroup);
+    m_logBackgroundColorWidget->setToolTip(tr("Background color of the log panel"));
+    logColorsLayout->addWidget(m_logBackgroundColorWidget);
+
+    layout->addWidget(logColorsGroup);
+
+    // ========================================================================
+    // Reset button
+    // ========================================================================
     QPushButton* resetColorsBtn = new QPushButton(tr("Reset to Theme Defaults"));
+    resetColorsBtn->setToolTip(tr("Reset all colors to the default values for the selected theme"));
     connect(resetColorsBtn, &QPushButton::clicked, [this]() {
         QString theme = m_themeComboBox->currentData().toString();
         std::string themeName = theme.toStdString();
+        bool isDark = (theme == "Dark");
 
         // Clear custom colors from storage
-        core::SettingsManager::getInstance().clearCustomIconColorsForTheme(themeName);
+        auto& settings = core::SettingsManager::getInstance();
+        settings.clearCustomIconColorsForTheme(themeName);
+        settings.clearCustomLogColorsForTheme(themeName);
 
-        // Reset buttons to theme defaults
-        if (theme == "Dark") {
-            updateColorButton(m_primaryColorButton, QColor("#999999"));
-            updateColorButton(m_secondaryColorButton, QColor("#333333"));
+        // Reset icon colors to theme defaults
+        if (isDark) {
+            m_primaryColorWidget->setColor(QColor("#999999"));
+            m_secondaryColorWidget->setColor(QColor("#333333"));
         } else {
-            updateColorButton(m_primaryColorButton, QColor("#333333"));
-            updateColorButton(m_secondaryColorButton, QColor("#999999"));
+            m_primaryColorWidget->setColor(QColor("#333333"));
+            m_secondaryColorWidget->setColor(QColor("#999999"));
         }
 
-        core::Logger::getInstance().info("SettingsDialog: Reset colors to theme defaults for '{}'", themeName);
-    });
-    colorGrid->addWidget(resetColorsBtn, 2, 0, 1, 2);
+        // Reset log colors to theme defaults
+        m_logTraceColorWidget->setColor(isDark ? QColor("#FF66FF") : QColor("#CC00CC"));
+        m_logDebugColorWidget->setColor(isDark ? QColor("#FF66FF") : QColor("#CC00CC"));
+        m_logInfoColorWidget->setColor(isDark ? QColor("#FFFFFF") : QColor("#000000"));
+        m_logWarningColorWidget->setColor(isDark ? QColor("#FFA500") : QColor("#FF8C00"));
+        m_logErrorColorWidget->setColor(isDark ? QColor("#FF4444") : QColor("#CC0000"));
+        m_logCriticalColorWidget->setColor(isDark ? QColor("#FF4444") : QColor("#CC0000"));
+        m_logBackgroundColorWidget->setColor(isDark ? QColor("#252525") : QColor("#F5F5F5"));
 
-    colorGrid->setColumnStretch(1, 1);
-    layout->addWidget(colorGroup);
+        core::Logger::getInstance().info("SettingsDialog: Reset all colors to theme defaults for '{}'", themeName);
+    });
+    layout->addWidget(resetColorsBtn);
 
     layout->addStretch();
     return page;
@@ -837,65 +883,72 @@ void SettingsDialog::onDiagModeCheckboxToggled(bool checked) {
     }
 }
 
-void SettingsDialog::onPrimaryColorButtonClicked() {
-    QString currentStyle = m_primaryColorButton->styleSheet();
-    QColor currentColor = QColor("#333333");
-
-    int start = currentStyle.indexOf("#");
-    int end = currentStyle.indexOf(";", start);
-    if (start != -1 && end != -1) {
-        currentColor = QColor(currentStyle.mid(start, end - start));
-    }
-
-    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Primary Color"));
-    if (color.isValid()) {
-        updateColorButton(m_primaryColorButton, color);
-    }
-}
-
-void SettingsDialog::onSecondaryColorButtonClicked() {
-    QString currentStyle = m_secondaryColorButton->styleSheet();
-    QColor currentColor = QColor("#999999");
-
-    int start = currentStyle.indexOf("#");
-    int end = currentStyle.indexOf(";", start);
-    if (start != -1 && end != -1) {
-        currentColor = QColor(currentStyle.mid(start, end - start));
-    }
-
-    QColor color = QColorDialog::getColor(currentColor, this, tr("Select Secondary Color"));
-    if (color.isValid()) {
-        updateColorButton(m_secondaryColorButton, color);
-    }
-}
-
 void SettingsDialog::onThemeComboChanged(int index) {
     Q_UNUSED(index);
     QString theme = m_themeComboBox->currentData().toString();
     std::string themeName = theme.toStdString();
+    bool isDark = (theme == "Dark");
+    auto& logger = core::Logger::getInstance();
 
     // Theme defaults:
     // Light: primary=#333333 (dark gray for icons), secondary=#999999 (light gray)
     // Dark: primary=#999999 (light gray for icons), secondary=#333333 (dark gray)
-    std::string defaultPrimary = (theme == "Dark") ? "#999999" : "#333333";
-    std::string defaultSecondary = (theme == "Dark") ? "#333333" : "#999999";
+    std::string defaultPrimary = isDark ? "#999999" : "#333333";
+    std::string defaultSecondary = isDark ? "#333333" : "#999999";
 
-    // Check if user has custom colors for this theme (Task #00025)
+    // Log color defaults per theme
+    std::string defTrace = isDark ? "#FF66FF" : "#CC00CC";
+    std::string defDebug = isDark ? "#FF66FF" : "#CC00CC";
+    std::string defInfo = isDark ? "#FFFFFF" : "#000000";
+    std::string defWarning = isDark ? "#FFA500" : "#FF8C00";
+    std::string defError = isDark ? "#FF4444" : "#CC0000";
+    std::string defCritical = isDark ? "#FF4444" : "#CC0000";
+    std::string defBackground = isDark ? "#252525" : "#F5F5F5";
+
+    // Check if user has custom icon colors for this theme (Task #00025)
     auto& settings = core::SettingsManager::getInstance();
     if (settings.hasCustomIconColorsForTheme(themeName)) {
         // Load user's custom colors for this theme
         std::string primary = settings.getIconColorPrimaryForTheme(themeName, defaultPrimary);
         std::string secondary = settings.getIconColorSecondaryForTheme(themeName, defaultSecondary);
-        updateColorButton(m_primaryColorButton, QColor(QString::fromStdString(primary)));
-        updateColorButton(m_secondaryColorButton, QColor(QString::fromStdString(secondary)));
-        core::Logger::getInstance().debug("SettingsDialog: Loaded custom colors for theme '{}': primary={}, secondary={}",
-                                          themeName, primary, secondary);
+        m_primaryColorWidget->setColor(QColor(QString::fromStdString(primary)));
+        m_secondaryColorWidget->setColor(QColor(QString::fromStdString(secondary)));
+        logger.debug("SettingsDialog: Loaded custom icon colors for theme '{}': primary={}, secondary={}",
+                     themeName, primary, secondary);
     } else {
         // Use theme defaults
-        updateColorButton(m_primaryColorButton, QColor(QString::fromStdString(defaultPrimary)));
-        updateColorButton(m_secondaryColorButton, QColor(QString::fromStdString(defaultSecondary)));
-        core::Logger::getInstance().debug("SettingsDialog: Using default colors for theme '{}': primary={}, secondary={}",
-                                          themeName, defaultPrimary, defaultSecondary);
+        m_primaryColorWidget->setColor(QColor(QString::fromStdString(defaultPrimary)));
+        m_secondaryColorWidget->setColor(QColor(QString::fromStdString(defaultSecondary)));
+        logger.debug("SettingsDialog: Using default icon colors for theme '{}': primary={}, secondary={}",
+                     themeName, defaultPrimary, defaultSecondary);
+    }
+
+    // Check if user has custom log colors for this theme (Task #00027)
+    if (settings.hasCustomLogColorsForTheme(themeName)) {
+        m_logTraceColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "trace", defTrace))));
+        m_logDebugColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "debug", defDebug))));
+        m_logInfoColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "info", defInfo))));
+        m_logWarningColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "warning", defWarning))));
+        m_logErrorColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "error", defError))));
+        m_logCriticalColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "critical", defCritical))));
+        m_logBackgroundColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "background", defBackground))));
+        logger.debug("SettingsDialog: Loaded custom log colors for theme '{}'", themeName);
+    } else {
+        m_logTraceColorWidget->setColor(QColor(QString::fromStdString(defTrace)));
+        m_logDebugColorWidget->setColor(QColor(QString::fromStdString(defDebug)));
+        m_logInfoColorWidget->setColor(QColor(QString::fromStdString(defInfo)));
+        m_logWarningColorWidget->setColor(QColor(QString::fromStdString(defWarning)));
+        m_logErrorColorWidget->setColor(QColor(QString::fromStdString(defError)));
+        m_logCriticalColorWidget->setColor(QColor(QString::fromStdString(defCritical)));
+        m_logBackgroundColorWidget->setColor(QColor(QString::fromStdString(defBackground)));
+        logger.debug("SettingsDialog: Using default log colors for theme '{}'", themeName);
     }
 }
 
@@ -919,27 +972,9 @@ void SettingsDialog::updateIconPreview() {
     qreal dpr = devicePixelRatioF();
     int physicalSize = static_cast<int>(logicalSize * dpr);
 
-    // Extract colors from UI buttons (not from IconRegistry cache!)
-    QColor primaryColor("#424242");  // Default fallback
-    QColor secondaryColor("#757575");
-
-    if (m_primaryColorButton) {
-        QString style = m_primaryColorButton->styleSheet();
-        int start = style.indexOf("#");
-        int end = style.indexOf(";", start);
-        if (start != -1 && end != -1) {
-            primaryColor = QColor(style.mid(start, end - start));
-        }
-    }
-
-    if (m_secondaryColorButton) {
-        QString style = m_secondaryColorButton->styleSheet();
-        int start = style.indexOf("#");
-        int end = style.indexOf(";", start);
-        if (start != -1 && end != -1) {
-            secondaryColor = QColor(style.mid(start, end - start));
-        }
-    }
+    // Get colors from ColorConfigWidgets
+    QColor primaryColor = m_primaryColorWidget ? m_primaryColorWidget->color() : QColor("#424242");
+    QColor secondaryColor = m_secondaryColorWidget ? m_secondaryColorWidget->color() : QColor("#757575");
 
     // Sample icons to preview
     QStringList sampleIcons = {
@@ -984,8 +1019,17 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     if (themeIndex >= 0) m_themeComboBox->setCurrentIndex(themeIndex);
 
     // Icon colors
-    updateColorButton(m_primaryColorButton, settings.primaryColor);
-    updateColorButton(m_secondaryColorButton, settings.secondaryColor);
+    m_primaryColorWidget->setColor(settings.primaryColor);
+    m_secondaryColorWidget->setColor(settings.secondaryColor);
+
+    // Log colors
+    m_logTraceColorWidget->setColor(settings.logTraceColor);
+    m_logDebugColorWidget->setColor(settings.logDebugColor);
+    m_logInfoColorWidget->setColor(settings.logInfoColor);
+    m_logWarningColorWidget->setColor(settings.logWarningColor);
+    m_logErrorColorWidget->setColor(settings.logErrorColor);
+    m_logCriticalColorWidget->setColor(settings.logCriticalColor);
+    m_logBackgroundColorWidget->setColor(settings.logBackgroundColor);
 
     // Appearance/Icons
     int iconThemeIndex = m_iconThemeComboBox->findData(settings.iconTheme);
@@ -1033,8 +1077,17 @@ SettingsData SettingsDialog::collectSettings() const {
 
     // Appearance/Theme
     settingsData.theme = m_themeComboBox->currentData().toString();
-    settingsData.primaryColor = getColorFromButton(m_primaryColorButton);
-    settingsData.secondaryColor = getColorFromButton(m_secondaryColorButton);
+    settingsData.primaryColor = m_primaryColorWidget->color();
+    settingsData.secondaryColor = m_secondaryColorWidget->color();
+
+    // Log colors
+    settingsData.logTraceColor = m_logTraceColorWidget->color();
+    settingsData.logDebugColor = m_logDebugColorWidget->color();
+    settingsData.logInfoColor = m_logInfoColorWidget->color();
+    settingsData.logWarningColor = m_logWarningColorWidget->color();
+    settingsData.logErrorColor = m_logErrorColorWidget->color();
+    settingsData.logCriticalColor = m_logCriticalColorWidget->color();
+    settingsData.logBackgroundColor = m_logBackgroundColorWidget->color();
 
     // Appearance/Icons
     settingsData.iconTheme = m_iconThemeComboBox->currentData().toString();
@@ -1063,27 +1116,6 @@ SettingsData SettingsDialog::collectSettings() const {
     return settingsData;
 }
 
-QColor SettingsDialog::getColorFromButton(QPushButton* button) const {
-    if (!button) {
-        // Fallback to theme default, never hardcode
-        return core::ThemeManager::getInstance().getCurrentTheme().colors.primary;
-    }
-
-    QString style = button->styleSheet();
-    int start = style.indexOf("#");
-    int end = style.indexOf(";", start);
-    if (start != -1 && end != -1) {
-        return QColor(style.mid(start, end - start));
-    }
-
-    // Fallback to theme default
-    return core::ThemeManager::getInstance().getCurrentTheme().colors.primary;
-}
-
-void SettingsDialog::updateColorButton(QPushButton* button, const QColor& color) {
-    QString style = QString("background-color: %1; border: 1px solid #888;").arg(color.name());
-    button->setStyleSheet(style);
-}
 
 void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
     auto& logger = core::Logger::getInstance();
@@ -1117,10 +1149,19 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.setTheme(settings.theme.toStdString());
         themeManager.switchTheme(settings.theme);
 
-        // Save per-theme colors
+        // Save per-theme icon colors
         std::string themeName = settings.theme.toStdString();
         settingsManager.setIconColorPrimaryForTheme(themeName, settings.primaryColor.name().toStdString());
         settingsManager.setIconColorSecondaryForTheme(themeName, settings.secondaryColor.name().toStdString());
+
+        // Save per-theme log colors (Task #00027)
+        settingsManager.setLogColorForTheme(themeName, "trace", settings.logTraceColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "debug", settings.logDebugColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "info", settings.logInfoColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "warning", settings.logWarningColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "error", settings.logErrorColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "critical", settings.logCriticalColor.name().toStdString());
+        settingsManager.setLogColorForTheme(themeName, "background", settings.logBackgroundColor.name().toStdString());
 
         BusyIndicator::tick();  // Animate
 
