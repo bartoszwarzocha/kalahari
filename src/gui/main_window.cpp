@@ -2015,20 +2015,49 @@ SettingsData MainWindow::collectCurrentSettings() const {
     std::string defCritical = isDark ? "#FF4444" : "#CC0000";
     std::string defBackground = isDark ? "#252525" : "#F5F5F5";
 
-    settingsData.logTraceColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "trace", defTrace)));
-    settingsData.logDebugColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "debug", defDebug)));
-    settingsData.logInfoColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "info", defInfo)));
-    settingsData.logWarningColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "warning", defWarning)));
-    settingsData.logErrorColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "error", defError)));
-    settingsData.logCriticalColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "critical", defCritical)));
-    settingsData.logBackgroundColor = QColor(QString::fromStdString(
-        settings.getLogColorForTheme(themeName, "background", defBackground)));
+    // Check for corrupted log color settings (all #000000 due to previous bug)
+    bool useStoredLogColors = false;
+    if (settings.hasCustomLogColorsForTheme(themeName)) {
+        std::string storedTrace = settings.getLogColorForTheme(themeName, "trace", defTrace);
+        std::string storedWarning = settings.getLogColorForTheme(themeName, "warning", defWarning);
+        std::string storedError = settings.getLogColorForTheme(themeName, "error", defError);
+
+        // If trace, warning, AND error are all #000000, data is corrupted
+        bool corrupted = (storedTrace == "#000000" && storedWarning == "#000000" && storedError == "#000000");
+
+        if (corrupted) {
+            logger.warn("MainWindow: Detected corrupted log colors for theme '{}', clearing", themeName);
+            settings.clearCustomLogColorsForTheme(themeName);
+            useStoredLogColors = false;
+        } else {
+            useStoredLogColors = true;
+        }
+    }
+
+    if (useStoredLogColors) {
+        settingsData.logTraceColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "trace", defTrace)));
+        settingsData.logDebugColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "debug", defDebug)));
+        settingsData.logInfoColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "info", defInfo)));
+        settingsData.logWarningColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "warning", defWarning)));
+        settingsData.logErrorColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "error", defError)));
+        settingsData.logCriticalColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "critical", defCritical)));
+        settingsData.logBackgroundColor = QColor(QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "background", defBackground)));
+    } else {
+        settingsData.logTraceColor = QColor(QString::fromStdString(defTrace));
+        settingsData.logDebugColor = QColor(QString::fromStdString(defDebug));
+        settingsData.logInfoColor = QColor(QString::fromStdString(defInfo));
+        settingsData.logWarningColor = QColor(QString::fromStdString(defWarning));
+        settingsData.logErrorColor = QColor(QString::fromStdString(defError));
+        settingsData.logCriticalColor = QColor(QString::fromStdString(defCritical));
+        settingsData.logBackgroundColor = QColor(QString::fromStdString(defBackground));
+    }
 
     logger.debug("MainWindow: Settings collected");
     return settingsData;

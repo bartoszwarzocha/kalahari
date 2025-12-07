@@ -924,7 +924,27 @@ void SettingsDialog::onThemeComboChanged(int index) {
     }
 
     // Check if user has custom log colors for this theme (Task #00027)
+    bool useStoredLogColors = false;
     if (settings.hasCustomLogColorsForTheme(themeName)) {
+        // Validate stored colors - check if they're corrupted (all #000000)
+        // This can happen if settings were saved before the bug fix in getCurrentSettingsAsData()
+        std::string storedTrace = settings.getLogColorForTheme(themeName, "trace", defTrace);
+        std::string storedWarning = settings.getLogColorForTheme(themeName, "warning", defWarning);
+        std::string storedError = settings.getLogColorForTheme(themeName, "error", defError);
+
+        // If trace, warning, AND error are all #000000, data is corrupted (these should never all be black)
+        bool corrupted = (storedTrace == "#000000" && storedWarning == "#000000" && storedError == "#000000");
+
+        if (corrupted) {
+            logger.warn("SettingsDialog: Detected corrupted log colors for theme '{}', clearing and using defaults", themeName);
+            settings.clearCustomLogColorsForTheme(themeName);
+            useStoredLogColors = false;
+        } else {
+            useStoredLogColors = true;
+        }
+    }
+
+    if (useStoredLogColors) {
         m_logTraceColorWidget->setColor(QColor(QString::fromStdString(
             settings.getLogColorForTheme(themeName, "trace", defTrace))));
         m_logDebugColorWidget->setColor(QColor(QString::fromStdString(
