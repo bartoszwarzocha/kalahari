@@ -1,9 +1,27 @@
 {
   "hooks": {
-    "SessionStart": [],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\validate_triggers.py"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo [SESSION START] && if exist E:\\Python\\Projekty\\Kalahari\\.claude\\session-state.json (echo Session state found. Consider running /load-session to restore context.) else (echo No saved session found.)"
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
