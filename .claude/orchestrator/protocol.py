@@ -160,32 +160,32 @@ class PromptInjector:
 
     PROTOCOL_TEMPLATE = '''
 
-───────────────────────────────────────────────────────────────
+---------------------------------------------------------------
 [WORKFLOW_PROTOCOL]
 
 When you complete your task, END your response with this block:
 
-═══════════════════════════════════════════════════════════════
+===============================================================
 [WORKFLOW_STATUS]
 status: <STATUS>
 context: <brief outcome description>
 next_hint: <suggested next step>
-═══════════════════════════════════════════════════════════════
+===============================================================
 
 Valid STATUS values:
-• READY           - Task completed successfully
-• BLOCKED         - Issue found, needs fixing (describe in context)
-• FAILED          - Critical error, cannot proceed
-• DECISION_NEEDED - Multiple paths, user must choose
+- READY           - Task completed successfully
+- BLOCKED         - Issue found, needs fixing (describe in context)
+- FAILED          - Critical error, cannot proceed
+- DECISION_NEEDED - Multiple paths, user must choose
 
 Example:
-═══════════════════════════════════════════════════════════════
+===============================================================
 [WORKFLOW_STATUS]
 status: READY
 context: OpenSpec #00028 created successfully
 next_hint: architect should design solution
-═══════════════════════════════════════════════════════════════
-───────────────────────────────────────────────────────────────
+===============================================================
+---------------------------------------------------------------
 '''
 
     def __init__(self, enabled: bool = True):

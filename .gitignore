@@ -158,6 +158,9 @@ docs/api/       # Doxygen output
 .claude-monitor/
 .mcp.json
 
+# Claude Code logs (session data)
+.claude/logs/*.json
+
 # Screenshot files (temporary - for issue reporting)
 Schowek_*.jpg
 Schowek_*.png

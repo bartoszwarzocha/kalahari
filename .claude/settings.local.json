@@ -186,6 +186,10 @@
       "Bash(git -C /e/Python/Projekty/Kalahari ls-tree:*)",
       "Bash(git -C /e/Python/Projekty/Kalahari reflog --date=short -30)",
       "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --date=short --format=\"%h %ad %s\" -- .claude/)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --format=\"%h %ad %s\" --date=short 4be9896 -1)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --name-only -- scripts/)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --diff-filter=A -- \"*.bat\")",
+      "Bash(python -m orchestrator.main:*)",
       "Bash(git rebase:*)",
       "Bash(GIT_EDITOR=true git rebase:*)"
     ],
