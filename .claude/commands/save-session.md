@@ -44,8 +44,24 @@ argument-hint: [--sync | --full]
      "saved_at": "2025-11-27T14:30:00",
      "git_commit": "abc1234",
      "git_pushed": false,
-     "current_task": "OpenSpec #00026",
-     "next_steps": ["Continue implementation", "Run tests"]
+     "openspec": "00027",
+     "openspec_status": "IN_PROGRESS",
+     "working_on": "Implementing feature X",
+     "next_steps": ["Continue implementation", "Run tests"],
+     "implementation_status": "IN_PROGRESS",
+     "completed_tasks": [
+       "Backend API complete",
+       "Unit tests written"
+     ],
+     "pending_tasks": [
+       "UI integration",
+       "Manual testing"
+     ],
+     "task_progress": {
+       "completed": 5,
+       "total": 8,
+       "percentage": 62
+     }
    }
    ```
 
@@ -54,6 +70,7 @@ argument-hint: [--sync | --full]
    Quick checkpoint saved (~12s)
    Session: .claude/session-state.json
    Commit: abc1234 (local only)
+   Progress: 5/8 tasks (62%)
    ```
 
 ---
@@ -73,11 +90,28 @@ argument-hint: [--sync | --full]
    {
      "mode": "sync",
      "saved_at": "2025-11-27T18:45:00",
-     "git_commits": ["abc1234", "def5678"],
+     "git_commit": "def5678",
      "git_pushed": true,
-     "ci_triggered": true,
-     "current_task": "OpenSpec #00026",
-     "next_steps": ["Check CI/CD results", "Continue next subtask"]
+     "openspec": "00027",
+     "openspec_status": "IN_PROGRESS",
+     "working_on": "Theme Color Configuration - end of day sync",
+     "next_steps": ["Check CI/CD results", "Continue next subtask"],
+     "blocker": null,
+     "implementation_status": "IN_PROGRESS",
+     "completed_tasks": [
+       "Backend API complete",
+       "Unit tests written",
+       "UI integration"
+     ],
+     "pending_tasks": [
+       "Manual testing",
+       "Documentation"
+     ],
+     "task_progress": {
+       "completed": 6,
+       "total": 8,
+       "percentage": 75
+     }
    }
    ```
 
@@ -87,6 +121,7 @@ argument-hint: [--sync | --full]
    Commits: 5 pushed
    GitHub: Push successful
    CI/CD: Triggered
+   Progress: 6/8 tasks (75%)
    ```
 
 ---
@@ -111,19 +146,30 @@ argument-hint: [--sync | --full]
    {
      "mode": "full",
      "saved_at": "2025-11-27T14:30:00",
-     "duration": "4m 30s",
-     "git_commits": ["abc1234", "def5678", "ghi9012"],
+     "git_commit": "ghi9012",
      "git_pushed": true,
-     "ci_verified": true,
-     "ci_status": {
-       "linux": "pass",
-       "macos": "pass",
-       "windows": "pass"
-     },
-     "changelog_updated": true,
-     "roadmap_updated": true,
-     "completed_task": "00026",
-     "next_steps": ["Start OpenSpec #00027"]
+     "openspec": "00027",
+     "openspec_status": "DEPLOYED",
+     "working_on": "Theme Color Configuration - COMPLETE",
+     "next_steps": ["Start OpenSpec #00028"],
+     "blocker": null,
+     "implementation_status": "COMPLETE",
+     "completed_tasks": [
+       "Backend API complete",
+       "Unit tests written",
+       "UI integration",
+       "Manual testing",
+       "Documentation",
+       "Code review",
+       "CI/CD verification",
+       "Deployment"
+     ],
+     "pending_tasks": [],
+     "task_progress": {
+       "completed": 8,
+       "total": 8,
+       "percentage": 100
+     }
    }
    ```
 
@@ -138,8 +184,26 @@ argument-hint: [--sync | --full]
    - macOS: PASS
    - Windows: PASS
 
+   Task #00027: COMPLETE (8/8 tasks)
    Ready for next milestone!
    ```
+
+---
+
+## Blocker Tracking
+
+If work is blocked, include blocker object:
+
+```json
+{
+  "blocker": {
+    "type": "vscode_terminal|build_error|test_failure|dependency|other",
+    "description": "VSCode terminal not executing commands properly",
+    "resolution": "Switch to CLI version of Claude Code",
+    "appeared_after": "Extended debugging session"
+  }
+}
+```
 
 ---
 
