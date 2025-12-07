@@ -1,14 +1,20 @@
+---
+description: Run workflow orchestrator in mock/test mode
+argument-hint: <task description>
+allowed-tools: Bash(python:*), Bash(cd:*)
+---
+
 # Workflow Orchestrator (Mock Mode)
 
-Uruchom orkiestratora workflow w trybie testowym (bez prawdziwych wywołań agentów).
+Run the workflow orchestrator in test mode (without real agent calls).
 
-## Instrukcje
+## Instructions
 
-1. Pobierz opis zadania z argumentu: $ARGUMENTS
-2. Uruchom orkiestratora w trybie mock:
+1. Get task description from argument: $ARGUMENTS
+2. Run orchestrator in mock mode:
 
 ```bash
 cd E:\Python\Projekty\Kalahari\.claude && python -m orchestrator.main --mock "$ARGUMENTS"
 ```
 
-3. Tryb mock symuluje odpowiedzi agentów - służy do testowania flow bez kosztów API.
+3. Mock mode simulates agent responses - useful for testing flow without API costs.

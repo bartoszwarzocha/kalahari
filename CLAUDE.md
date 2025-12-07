@@ -42,6 +42,17 @@ Full context: `.claude/context/project-brief.txt`
 
 ## Workflow
 
+**PREFERRED: Use `/workflow` command for automatic orchestration:**
+
+```bash
+/workflow "description of task"       # Full orchestration
+/workflow-mock "test task"            # Mock mode (no API costs)
+```
+
+The orchestrator automatically enforces the full workflow sequence.
+
+**Manual workflow (if orchestrator not used):**
+
 ```
 NEW TASK:
 1. task-manager  → Creates OpenSpec (requirements gathering)
@@ -56,6 +67,8 @@ CONTINUE TASK:
 2. architect     → Reviews/updates design if needed
 3. ... (continues from step 3 above)
 ```
+
+**CRITICAL:** Never skip code-reviewer or tester steps! Task is NOT DEPLOYED until all steps pass.
 
 ## MCP Servers
 

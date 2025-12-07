@@ -1,23 +1,29 @@
+---
+description: Run workflow orchestrator for a task
+argument-hint: <task description>
+allowed-tools: Bash(python:*), Bash(cd:*)
+---
+
 # Workflow Orchestrator
 
-Uruchom orkiestratora workflow dla zadania podanego przez użytkownika.
+Run the workflow orchestrator for the given task.
 
-## Instrukcje
+## Instructions
 
-1. Pobierz opis zadania z argumentu: $ARGUMENTS
-2. Uruchom orkiestratora Python:
+1. Get task description from argument: $ARGUMENTS
+2. Run the Python orchestrator:
 
 ```bash
 cd E:\Python\Projekty\Kalahari\.claude && python -m orchestrator.main "$ARGUMENTS"
 ```
 
-3. Orkiestrator automatycznie:
-   - Uruchomi task-manager → architect → implementację → review → testy → zamknięcie
-   - Będzie pytał o decyzje w kluczowych momentach
-   - Wyświetli podsumowanie na końcu
+3. The orchestrator automatically:
+   - Runs: task-manager → architect → implementation → code-review → tests → close
+   - Asks for decisions at key moments
+   - Shows summary at the end
 
-## Uwagi
+## Notes
 
-- Orkiestrator używa SDK do wywoływania agentów
-- Każdy agent musi zakończyć odpowiedź blokiem [WORKFLOW_STATUS]
-- W przypadku problemów orkiestrator pyta użytkownika o dalsze kroki
+- Orchestrator uses SDK to call agents
+- Each agent must end response with [WORKFLOW_STATUS] block
+- On issues, orchestrator asks user for next steps
