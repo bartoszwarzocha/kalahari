@@ -2082,6 +2082,12 @@ void MainWindow::onApplySettings(const SettingsData& settings, bool /*fromOkButt
         logger.info("MainWindow: Log buffer size updated to {}", settings.logBufferSize);
     }
 
+    // Apply log panel color changes (Task #00027)
+    if (m_logPanel) {
+        m_logPanel->applyThemeColors();
+        logger.info("MainWindow: Log panel colors updated");
+    }
+
     logger.info("MainWindow: Settings reaction complete");
 }
 

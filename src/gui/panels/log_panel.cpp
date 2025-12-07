@@ -5,6 +5,7 @@
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/art_provider.h"
 
 #include <QTextEdit>
@@ -101,9 +102,13 @@ void LogPanel::setMaxBufferSize(size_t size) {
 }
 
 void LogPanel::applyThemeColors() {
-    // Update background color based on theme
+    // Update background color from SettingsManager (user customizable, Task #00027)
     if (m_logEdit) {
-        QString bgColor = m_isDarkTheme ? "#1E1E1E" : "#FFFFFF";
+        auto& settings = core::SettingsManager::getInstance();
+        std::string themeName = m_isDarkTheme ? "Dark" : "Light";
+        std::string defBackground = m_isDarkTheme ? "#252525" : "#F5F5F5";
+        QString bgColor = QString::fromStdString(
+            settings.getLogColorForTheme(themeName, "background", defBackground));
         m_logEdit->setStyleSheet(QString("QTextEdit { background-color: %1; }").arg(bgColor));
     }
     rebuildDisplay();
@@ -304,23 +309,41 @@ void LogPanel::rebuildDisplay() {
 QColor LogPanel::getColorForLevel(int level) const {
     // spdlog levels: 0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical
     //
-    // Colors are loaded from current theme (ThemeManager)
+    // Colors are loaded from SettingsManager (user customizable, Task #00027)
+    // Falls back to theme defaults if not customized
+    //
     // Color scheme:
     // - TRACE/DEBUG: Magenta (diagnostic mode only)
     // - INFO: Default text color
     // - WARN: Orange
     // - ERROR/CRITICAL: Red (same color)
 
-    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    auto& settings = core::SettingsManager::getInstance();
+    std::string themeName = m_isDarkTheme ? "Dark" : "Light";
+
+    // Theme defaults
+    std::string defTrace = m_isDarkTheme ? "#FF66FF" : "#CC00CC";
+    std::string defDebug = m_isDarkTheme ? "#FF66FF" : "#CC00CC";
+    std::string defInfo = m_isDarkTheme ? "#FFFFFF" : "#000000";
+    std::string defWarning = m_isDarkTheme ? "#FFA500" : "#FF8C00";
+    std::string defError = m_isDarkTheme ? "#FF4444" : "#CC0000";
+    std::string defCritical = m_isDarkTheme ? "#FF4444" : "#CC0000";
 
     switch (level) {
-        case 0: return theme.log.trace;     // TRACE - Magenta
-        case 1: return theme.log.debug;     // DEBUG - Magenta
-        case 2: return theme.log.info;      // INFO - Default text
-        case 3: return theme.log.warning;   // WARN - Orange
-        case 4: return theme.log.error;     // ERROR - Red
-        case 5: return theme.log.critical;  // CRITICAL - Red (same as error)
-        default: return theme.log.info;
+        case 0: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "trace", defTrace)));
+        case 1: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "debug", defDebug)));
+        case 2: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "info", defInfo)));
+        case 3: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "warning", defWarning)));
+        case 4: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "error", defError)));
+        case 5: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "critical", defCritical)));
+        default: return QColor(QString::fromStdString(
+                    settings.getLogColorForTheme(themeName, "info", defInfo)));
     }
 }
 
