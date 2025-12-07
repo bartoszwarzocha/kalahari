@@ -28,6 +28,37 @@
       "template": "STATUS_PROTOCOL_V1"
     },
 
+    "triggers": {
+      "_comment": "Single source of truth for agent dispatch triggers. Used by validate_triggers.py hook and CLAUDE.md",
+      "task-manager": [
+        "session", "nowe zadanie", "new task", "kontynuuj task", "continue task",
+        "wznów", "co dalej", "status taska", "zamknij task", "status",
+        "gdzie jesteśmy", "task gotowy"
+      ],
+      "architect": [
+        "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "design"
+      ],
+      "code-writer": [
+        "napisz", "utwórz klasę", "dodaj nową funkcję", "nowy plik", "create", "new class"
+      ],
+      "code-editor": [
+        "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
+      ],
+      "ui-designer": [
+        "dialog", "panel", "toolbar", "UI", "widget", "layout"
+      ],
+      "code-reviewer": [
+        "review", "sprawdź kod", "przed commitem", "czy mogę commitować", "code review"
+      ],
+      "tester": [
+        "testy", "przetestuj", "uruchom testy", "QA", "czy działa", "run tests"
+      ],
+      "devops": [
+        "CI", "CD", "napraw CI", "pipeline", "GitHub Actions", "workflow failed",
+        "build failed", "deploy"
+      ]
+    },
+
     "rules": [
       {
         "id": "session_restore",

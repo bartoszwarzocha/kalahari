@@ -7,11 +7,11 @@ Full context: `.claude/context/project-brief.txt`
 
 **ALWAYS, for EVERY user message, BEFORE doing anything else:**
 
-1. **CHECK** if the message contains ANY trigger from the Agents table below
+1. **CHECK** if the message contains ANY trigger from `.claude/workflow.json` -> `triggers`
 2. **If match found** → use `Task` tool to launch the corresponding agent
 3. **You MUST NOT perform the agent's work yourself**
 
-**Trigger matching examples:**
+**Trigger matching examples (full list in workflow.json):**
 
 | User message | Trigger match | Agent | Action |
 |--------------|---------------|-------|--------|
@@ -29,16 +29,18 @@ Full context: `.claude/context/project-brief.txt`
 
 ## Agents (8)
 
-| Triggers | Agent | Role |
-|----------|-------|------|
-| "session", "nowe zadanie", "new task", "kontynuuj task", "continue task", "wznów", "co dalej", "status taska", "zamknij task", "status", "gdzie jesteśmy", "task gotowy" | task-manager | Creates/tracks/closes OpenSpec, manages workflow, SESSION RESTORE |
-| "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "design" | architect | Analyzes code (Serena), designs solutions |
-| "napisz", "utwórz klasę", "dodaj nową funkcję", "nowy plik", "create", "new class" | code-writer | Writes NEW code (new files, new classes) |
-| "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change" | code-editor | Modifies EXISTING code |
-| "dialog", "panel", "toolbar", "UI", "widget", "layout" | ui-designer | Creates UI components (Qt6 widgets) |
-| "review", "sprawdź kod", "przed commitem", "czy mogę commitować", "code review" | code-reviewer | Code review, quality checks |
-| "testy", "przetestuj", "uruchom testy", "QA", "czy działa", "run tests" | tester | Runs build and tests, reports results |
-| "CI", "CD", "napraw CI", "pipeline", "GitHub Actions", "workflow failed", "deploy" | devops | CI/CD specialist (standalone, not in main workflow) |
+**Triggers are defined in:** `.claude/workflow.json` -> `triggers` section (single source of truth)
+
+| Agent | Role |
+|-------|------|
+| task-manager | Creates/tracks/closes OpenSpec, manages workflow, SESSION RESTORE |
+| architect | Analyzes code (Serena), designs solutions |
+| code-writer | Writes NEW code (new files, new classes) |
+| code-editor | Modifies EXISTING code |
+| ui-designer | Creates UI components (Qt6 widgets) |
+| code-reviewer | Code review, quality checks |
+| tester | Runs build and tests, reports results |
+| devops | CI/CD specialist (standalone, not in main workflow) |
 
 ## Workflow
 
