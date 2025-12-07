@@ -2001,6 +2001,35 @@ SettingsData MainWindow::collectCurrentSettings() const {
     // Advanced/Log
     settingsData.logBufferSize = settings.get<int>("log.bufferSize", 500);
 
+    // Log Panel Colors (Task #00027)
+    // Load per-theme colors with theme-appropriate defaults
+    std::string themeName = settingsData.theme.toStdString();
+    bool isDark = (themeName == "Dark");
+
+    // Define theme defaults
+    std::string defTrace = isDark ? "#FF66FF" : "#CC00CC";
+    std::string defDebug = isDark ? "#FF66FF" : "#CC00CC";
+    std::string defInfo = isDark ? "#FFFFFF" : "#000000";
+    std::string defWarning = isDark ? "#FFA500" : "#FF8C00";
+    std::string defError = isDark ? "#FF4444" : "#CC0000";
+    std::string defCritical = isDark ? "#FF4444" : "#CC0000";
+    std::string defBackground = isDark ? "#252525" : "#F5F5F5";
+
+    settingsData.logTraceColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "trace", defTrace)));
+    settingsData.logDebugColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "debug", defDebug)));
+    settingsData.logInfoColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "info", defInfo)));
+    settingsData.logWarningColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "warning", defWarning)));
+    settingsData.logErrorColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "error", defError)));
+    settingsData.logCriticalColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "critical", defCritical)));
+    settingsData.logBackgroundColor = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "background", defBackground)));
+
     logger.debug("MainWindow: Settings collected");
     return settingsData;
 }

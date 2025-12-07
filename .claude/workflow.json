@@ -29,7 +29,6 @@
     },
 
     "triggers": {
-      "_comment": "Single source of truth for agent dispatch triggers. Used by validate_triggers.py hook and CLAUDE.md",
       "task-manager": [
         "session", "nowe zadanie", "new task", "kontynuuj task", "continue task",
         "wznów", "co dalej", "status taska", "zamknij task", "status",
@@ -42,10 +41,10 @@
         "napisz", "utwórz klasę", "dodaj nową funkcję", "nowy plik", "create", "new class"
       ],
       "code-editor": [
-        "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
+        "zmień", "popraw", "napraw", "refaktoruj", "refaktoryzuj", "fix", "modify", "change", "refactor"
       ],
       "ui-designer": [
-        "dialog", "panel", "toolbar", "UI", "widget", "layout"
+        "dialog", "panel", "toolbar", "UI", "widget", "layout", "window", "przygotuj", "GUI"
       ],
       "code-reviewer": [
         "review", "sprawdź kod", "przed commitem", "czy mogę commitować", "code review"

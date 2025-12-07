@@ -1,7 +1,7 @@
 # Kalahari - Strategiczny Dokument Roboczy
 
 **Data utworzenia:** 2025-11-27
-**Ostatnia aktualizacja:** 2025-11-28
+**Ostatnia aktualizacja:** 2025-12-07
 **Cel:** Strategiczne planowanie automatyzacji workflow Claude Code
 **Status:** WDROŻONE - Implementacja ukończona, pozostały testy agentów
 
@@ -53,6 +53,7 @@
 | Prompt-based hooks | ✅ | ✅ **WDROŻONE** | PreToolUse: walidacja przed git commit (haiku) |
 | `SessionStart` hook | ✅ | ✅ **WDROŻONE** | Auto-load session-state.json przy starcie sesji |
 | `SessionEnd` hook | ✅ | ✅ **WDROŻONE** | Przypomnienie o /save-session przy wyjściu |
+| `UserPromptSubmit` hook | ✅ | ✅ **WDROŻONE** | Walidacja triggerów agentów (workflow.json = single source) |
 | `PermissionRequest` hook | ❌ | 🟡 **ROZWAŻYĆ** | Custom approval - może wystarczy permissionMode? |
 | Opus 4.5 | ✅ | ✅ **OK** | Już używamy |
 
@@ -791,6 +792,7 @@ ZAWARTOŚĆ:
 
 | Hook | Trigger | Cel | Status |
 |------|---------|-----|--------|
+| UserPromptSubmit | Przed przetworzeniem promptu | Walidacja triggerów agentów | ✅ WDROŻONE |
 | SessionStart | Start sesji (startup, resume, clear, compact) | Auto-load session-state.json | ✅ WDROŻONE |
 | SessionEnd | Koniec sesji (exit, Ctrl+C, logout, clear) | Przypomnienie o /save-session | ✅ WDROŻONE |
 | SubagentStart | Start KAŻDEGO agenta | Inject project context | ✅ WDROŻONE |
@@ -798,6 +800,50 @@ ZAWARTOŚĆ:
 | PreToolUse(git commit) | Przed commitem | Walidacja docs (haiku) | ✅ WDROŻONE |
 
 ### 5.2 Szczegóły Implementacji (AKTUALNE w settings.json)
+
+#### HOOK: UserPromptSubmit (✅ WDROŻONE)
+```json
+{
+  "UserPromptSubmit": [{
+    "hooks": [{
+      "type": "command",
+      "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\validate_triggers.py"
+    }]
+  }]
+}
+```
+**Cel:** Wymuszenie dispatch do właściwego agenta na podstawie triggerów
+**Implementacja:** `.claude/hooks/validate_triggers.py`
+**Single Source of Truth:** `.claude/workflow.json` -> sekcja `triggers`
+
+**Zasada działania:**
+1. Hook uruchamia się PRZED przetworzeniem promptu przez Claude
+2. Skrypt czyta triggery z `workflow.json` (jedyne źródło prawdy)
+3. Analizuje prompt użytkownika pod kątem słów kluczowych
+4. Jeśli znajdzie trigger → dodaje `[AGENT DISPATCH REQUIRED]` do kontekstu
+5. Pomija prompty `/workflow` (orchestrator sam zarządza dispatch)
+
+**Przykład output:**
+```
+[AGENT DISPATCH REQUIRED]
+  Trigger: 'napraw' -> Agent: code-editor
+
+Use Task tool with subagent_type parameter. Do NOT perform agent work yourself!
+```
+
+**Triggery (w workflow.json):**
+```json
+"triggers": {
+  "task-manager": ["session", "nowe zadanie", "new task", ...],
+  "architect": ["zaprojektuj", "przeanalizuj", "design", ...],
+  "code-editor": ["zmień", "popraw", "napraw", "fix", ...],
+  "code-writer": ["napisz", "utwórz klasę", "create", ...],
+  "ui-designer": ["dialog", "panel", "toolbar", "UI", ...],
+  "code-reviewer": ["review", "sprawdź kod", ...],
+  "tester": ["testy", "przetestuj", "run tests", ...],
+  "devops": ["CI", "CD", "pipeline", "deploy", ...]
+}
+```
 
 #### HOOK: SessionStart (✅ WDROŻONE)
 ```json
