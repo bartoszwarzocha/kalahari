@@ -45,6 +45,9 @@ LogPanel::LogPanel(QWidget* parent, bool diagnosticMode)
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     m_isDarkTheme = (theme.name == "Dark");
 
+    // Initialize color cache from SettingsManager
+    refreshColorCache();
+
     // Setup UI
     setupLayout();
 
@@ -102,14 +105,12 @@ void LogPanel::setMaxBufferSize(size_t size) {
 }
 
 void LogPanel::applyThemeColors() {
-    // Update background color from SettingsManager (user customizable, Task #00027)
+    // Refresh color cache from SettingsManager (Task #00027)
+    refreshColorCache();
+
+    // Apply background color from cache
     if (m_logEdit) {
-        auto& settings = core::SettingsManager::getInstance();
-        std::string themeName = m_isDarkTheme ? "Dark" : "Light";
-        std::string defBackground = m_isDarkTheme ? "#252525" : "#F5F5F5";
-        QString bgColor = QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "background", defBackground));
-        m_logEdit->setStyleSheet(QString("QTextEdit { background-color: %1; }").arg(bgColor));
+        m_logEdit->setStyleSheet(QString("QTextEdit { background-color: %1; }").arg(m_colorBackground.name()));
     }
     rebuildDisplay();
 }
@@ -231,9 +232,8 @@ void LogPanel::setupLayout() {
     monoFont.setStyleHint(QFont::Monospace);
     m_logEdit->setFont(monoFont);
 
-    // Apply initial theme colors
-    QString bgColor = m_isDarkTheme ? "#1E1E1E" : "#FFFFFF";
-    m_logEdit->setStyleSheet(QString("QTextEdit { background-color: %1; }").arg(bgColor));
+    // Apply initial theme colors (using cached m_colorBackground from refreshColorCache())
+    m_logEdit->setStyleSheet(QString("QTextEdit { background-color: %1; }").arg(m_colorBackground.name()));
 
     mainLayout->addWidget(m_logEdit, 1);  // Stretch factor 1
 
@@ -308,16 +308,20 @@ void LogPanel::rebuildDisplay() {
 
 QColor LogPanel::getColorForLevel(int level) const {
     // spdlog levels: 0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical
-    //
-    // Colors are loaded from SettingsManager (user customizable, Task #00027)
-    // Falls back to theme defaults if not customized
-    //
-    // Color scheme:
-    // - TRACE/DEBUG: Magenta (diagnostic mode only)
-    // - INFO: Default text color
-    // - WARN: Orange
-    // - ERROR/CRITICAL: Red (same color)
+    // Uses cached colors for performance (Task #00027)
+    switch (level) {
+        case 0: return m_colorTrace;
+        case 1: return m_colorDebug;
+        case 2: return m_colorInfo;
+        case 3: return m_colorWarning;
+        case 4: return m_colorError;
+        case 5: return m_colorCritical;
+        default: return m_colorInfo;
+    }
+}
 
+void LogPanel::refreshColorCache() {
+    // Load colors from SettingsManager (Task #00027)
     auto& settings = core::SettingsManager::getInstance();
     std::string themeName = m_isDarkTheme ? "Dark" : "Light";
 
@@ -328,23 +332,22 @@ QColor LogPanel::getColorForLevel(int level) const {
     std::string defWarning = m_isDarkTheme ? "#FFA500" : "#FF8C00";
     std::string defError = m_isDarkTheme ? "#FF4444" : "#CC0000";
     std::string defCritical = m_isDarkTheme ? "#FF4444" : "#CC0000";
+    std::string defBackground = m_isDarkTheme ? "#252525" : "#F5F5F5";
 
-    switch (level) {
-        case 0: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "trace", defTrace)));
-        case 1: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "debug", defDebug)));
-        case 2: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "info", defInfo)));
-        case 3: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "warning", defWarning)));
-        case 4: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "error", defError)));
-        case 5: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "critical", defCritical)));
-        default: return QColor(QString::fromStdString(
-                    settings.getLogColorForTheme(themeName, "info", defInfo)));
-    }
+    m_colorTrace = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "trace", defTrace)));
+    m_colorDebug = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "debug", defDebug)));
+    m_colorInfo = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "info", defInfo)));
+    m_colorWarning = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "warning", defWarning)));
+    m_colorError = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "error", defError)));
+    m_colorCritical = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "critical", defCritical)));
+    m_colorBackground = QColor(QString::fromStdString(
+        settings.getLogColorForTheme(themeName, "background", defBackground)));
 }
 
 bool LogPanel::shouldDisplayLevel(int level) const {

@@ -154,6 +154,21 @@ private:
     bool m_isDarkTheme;                 ///< Current theme (for colors)
 
     // ========================================================================
+    // Cached Colors (Task #00027 - performance fix)
+    // ========================================================================
+
+    QColor m_colorTrace;                ///< Cached TRACE color
+    QColor m_colorDebug;                ///< Cached DEBUG color
+    QColor m_colorInfo;                 ///< Cached INFO color
+    QColor m_colorWarning;              ///< Cached WARNING color
+    QColor m_colorError;                ///< Cached ERROR color
+    QColor m_colorCritical;             ///< Cached CRITICAL color
+    QColor m_colorBackground;           ///< Cached background color
+
+    /// @brief Refresh cached colors from SettingsManager
+    void refreshColorCache();
+
+    // ========================================================================
     // Visibility Optimization
     // ========================================================================
 
