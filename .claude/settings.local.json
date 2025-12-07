@@ -178,7 +178,16 @@
       "Bash(xxd:*)",
       "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|main_window)\")",
       "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \"cd E:\\Python\\Projekty\\Kalahari; & ''C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'' --build build-windows --config Debug --target kalahari 2>&1 | Select-Object -Last 30\")",
-      "Bash(/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \"cd ''E:\\Python\\Projekty\\Kalahari''; & ''C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'' --build build-windows --config Debug --target kalahari 2>&1 | Select-Object -Last 40\")"
+      "Bash(/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \"cd ''E:\\Python\\Projekty\\Kalahari''; & ''C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'' --build build-windows --config Debug --target kalahari 2>&1 | Select-Object -Last 40\")",
+      "Bash(ls:*)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --oneline -20 -- .claude/)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --oneline -20 -- STRATEGY_WORKSPACE.md)",
+      "Bash(git -C /e/Python/Projekty/Kalahari status --short .claude/ STRATEGY_WORKSPACE.md)",
+      "Bash(git -C /e/Python/Projekty/Kalahari ls-tree:*)",
+      "Bash(git -C /e/Python/Projekty/Kalahari reflog --date=short -30)",
+      "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --date=short --format=\"%h %ad %s\" -- .claude/)",
+      "Bash(git rebase:*)",
+      "Bash(GIT_EDITOR=true git rebase:*)"
     ],
     "deny": [],
     "ask": []

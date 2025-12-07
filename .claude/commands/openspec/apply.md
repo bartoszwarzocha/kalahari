@@ -1,23 +1,53 @@
 ---
-name: OpenSpec: Apply
-description: Implement an approved OpenSpec change and keep tasks in sync.
+name: OpenSpec Apply
+description: Implement an approved OpenSpec change
 category: OpenSpec
-tags: [openspec, apply]
+tags: [openspec, apply, implementation]
 ---
-<!-- OPENSPEC:START -->
-**Guardrails**
-- Favor straightforward, minimal implementations first and add complexity only when it is requested or clearly required.
-- Keep changes tightly scoped to the requested outcome.
-- Refer to `openspec/AGENTS.md` (located inside the `openspec/` directory—run `ls openspec` or `openspec update` if you don't see it) if you need additional OpenSpec conventions or clarifications.
 
-**Steps**
-Track these steps as TODOs and complete them one by one.
-1. Read `changes/<id>/proposal.md`, `design.md` (if present), and `tasks.md` to confirm scope and acceptance criteria.
-2. Work through tasks sequentially, keeping edits minimal and focused on the requested change.
-3. Confirm completion before updating statuses—make sure every item in `tasks.md` is finished.
-4. Update the checklist after all work is done so each task is marked `- [x]` and reflects reality.
-5. Reference `openspec list` or `openspec show <item>` when additional context is required.
+# OpenSpec: Apply Change
 
-**Reference**
-- Use `openspec show <id> --json --deltas-only` if you need additional context from the proposal while implementing.
-<!-- OPENSPEC:END -->
+Implement an approved OpenSpec change and keep tasks in sync.
+
+## Guardrails
+
+- Favor straightforward, minimal implementations
+- Keep changes tightly scoped
+- Refer to `openspec/AGENTS.md` for conventions
+
+## Steps
+
+1. **Read change documents:**
+   - `changes/<id>/proposal.md`
+   - `changes/<id>/design.md` (if present)
+   - `changes/<id>/tasks.md`
+
+2. **Confirm scope:**
+   - Review acceptance criteria
+   - Verify understanding
+
+3. **Implement sequentially:**
+   - Work through tasks in order
+   - Keep edits minimal and focused
+   - Run build after each change:
+     ```bash
+     scripts/build_windows.bat Debug
+     ```
+
+4. **Update task status:**
+   - Mark completed: `- [x]`
+   - Update status in proposal.md
+
+5. **Verify completion:**
+   - All tasks marked `[x]`
+   - Build passes
+   - Tests pass
+
+## Reference
+
+- `openspec show <id> --json --deltas-only` for context
+- `openspec list` for active changes
+
+## Output
+
+Change implemented, all tasks complete, ready for archive.

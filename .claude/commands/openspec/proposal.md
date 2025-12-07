@@ -1,28 +1,57 @@
 ---
-name: OpenSpec: Proposal
-description: Scaffold a new OpenSpec change and validate strictly.
+name: OpenSpec Proposal
+description: Create a new OpenSpec change proposal
 category: OpenSpec
-tags: [openspec, change]
+tags: [openspec, change, proposal]
 ---
-<!-- OPENSPEC:START -->
-**Guardrails**
-- Favor straightforward, minimal implementations first and add complexity only when it is requested or clearly required.
-- Keep changes tightly scoped to the requested outcome.
-- Refer to `openspec/AGENTS.md` (located inside the `openspec/` directory—run `ls openspec` or `openspec update` if you don't see it) if you need additional OpenSpec conventions or clarifications.
-- Identify any vague or ambiguous details and ask the necessary follow-up questions before editing files.
-- Do not write any code during the proposal stage. Only create design documents (proposal.md, tasks.md, design.md, and spec deltas). Implementation happens in the apply stage after approval.
 
-**Steps**
-1. Review `openspec/project.md`, run `openspec list` and `openspec list --specs`, and inspect related code or docs (e.g., via `rg`/`ls`) to ground the proposal in current behaviour; note any gaps that require clarification.
-2. Choose a unique verb-led `change-id` and scaffold `proposal.md`, `tasks.md`, and `design.md` (when needed) under `openspec/changes/<id>/`.
-3. Map the change into concrete capabilities or requirements, breaking multi-scope efforts into distinct spec deltas with clear relationships and sequencing.
-4. Capture architectural reasoning in `design.md` when the solution spans multiple systems, introduces new patterns, or demands trade-off discussion before committing to specs.
-5. Draft spec deltas in `changes/<id>/specs/<capability>/spec.md` (one folder per capability) using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement and cross-reference related capabilities when relevant.
-6. Draft `tasks.md` as an ordered list of small, verifiable work items that deliver user-visible progress, include validation (tests, tooling), and highlight dependencies or parallelizable work.
-7. Validate with `openspec validate <id> --strict` and resolve every issue before sharing the proposal.
+# OpenSpec: Create Proposal
 
-**Reference**
-- Use `openspec show <id> --json --deltas-only` or `openspec show <spec> --type spec` to inspect details when validation fails.
-- Search existing requirements with `rg -n "Requirement:|Scenario:" openspec/specs` before writing new ones.
-- Explore the codebase with `rg <keyword>`, `ls`, or direct file reads so proposals align with current implementation realities.
-<!-- OPENSPEC:END -->
+Scaffold a new OpenSpec change with strict validation.
+
+## Guardrails
+
+- Favor straightforward, minimal implementations
+- Keep changes tightly scoped
+- Refer to `openspec/AGENTS.md` for conventions
+- Ask follow-up questions before editing files
+- **NO CODE during proposal stage** - only design documents
+
+## Steps
+
+1. **Review current state:**
+   - Read `openspec/project.md`
+   - Run `openspec list` and `openspec list --specs`
+   - Inspect related code/docs
+
+2. **Choose change ID:**
+   - Unique, verb-led name
+   - Format: `NNNNN-verb-description`
+   - Example: `00027-add-stats-panel`
+
+3. **Create scaffold:**
+   ```
+   openspec/changes/NNNNN-name/
+   ├── proposal.md    # Change overview
+   ├── tasks.md       # Implementation checklist
+   └── design.md      # Architecture (if needed)
+   ```
+
+4. **Draft documents:**
+   - `proposal.md`: Goal, scope, acceptance criteria
+   - `tasks.md`: Ordered, verifiable work items
+   - `design.md`: Architecture decisions (if complex)
+
+5. **Validate:**
+   ```bash
+   openspec validate <id> --strict
+   ```
+
+## Reference
+
+- `openspec show <id> --json --deltas-only` for details
+- `rg -n "Requirement:|Scenario:" openspec/specs` for existing requirements
+
+## Output
+
+New OpenSpec change created in `openspec/changes/<id>/` ready for approval.

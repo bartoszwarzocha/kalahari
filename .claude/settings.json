@@ -1,17 +1,51 @@
 {
-  "mcpServers": {
-    "serena": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/home/bartosz/tools/serena",
-        "serena-mcp-server",
-        "--context",
-        "ide-assistant",
-        "--project",
-        "/mnt/e/Python/Projekty/Kalahari"
-      ]
-    }
+  "hooks": {
+    "SessionStart": [],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo === SESSION END === && echo Remember to use /save-session before leaving! && echo Session ended at: %date% %time%"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "type E:\\Python\\Projekty\\Kalahari\\.claude\\context\\project-brief.txt 2>nul || echo Kalahari | C++20 + Qt6 | Build: scripts/build_windows.bat Debug"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo %date% %time%|%CLAUDE_AGENT_ID%|complete >> E:\\Python\\Projekty\\Kalahari\\.claude\\logs\\agents.log"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. OpenSpec status current?\n4. No TODO in staged files?\n\nReturn JSON:\n{\"decision\": \"approve\"} or\n{\"decision\": \"block\", \"reason\": \"...\"}",
+            "model": "haiku",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
   }
 }

@@ -1,0 +1,35 @@
+{
+  "start_time": "2025-12-07T11:54:22.337205",
+  "end_time": "2025-12-07T11:54:23.357157",
+  "iterations": 2,
+  "complete": false,
+  "failed": false,
+  "agents_used": [
+    "architect",
+    "task-manager"
+  ],
+  "total_duration_seconds": 1.017806053161621,
+  "retry_counts": {},
+  "history": [
+    {
+      "agent": "task-manager",
+      "prompt": "nowe zadanie - test panel statystyk",
+      "status": "READY",
+      "context": "OpenSpec #00029 created - panel statystyk",
+      "source": "explicit",
+      "timestamp": "2025-12-07T11:54:22.846795",
+      "duration_seconds": 0.50797438621521,
+      "rule_id": "session_restore"
+    },
+    {
+      "agent": "architect",
+      "prompt": "Analyze and design solution based on the OpenSpec. Context: OpenSpec #00029 created - panel statystyk",
+      "status": "READY",
+      "context": "Design complete for StatsPanel",
+      "source": "explicit",
+      "timestamp": "2025-12-07T11:54:23.356777",
+      "duration_seconds": 0.5098316669464111,
+      "rule_id": "task_to_architect"
+    }
+  ]
+}

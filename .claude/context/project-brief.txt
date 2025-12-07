@@ -1,0 +1,80 @@
+# KALAHARI - Project Brief
+# Injected via SubagentStart hook into every agent
+
+## Project
+- Name: Kalahari (Writer's IDE)
+- Type: Desktop Application
+- Stack: C++20 + Qt6 6.5.0+
+- Phase: Phase 0 - Qt Migration
+
+## Build
+- Windows: scripts/build_windows.bat Debug
+- Linux: scripts/build_linux.sh
+- NEVER: cmake directly, WSL for Windows builds
+
+## Source Structure
+include/kalahari/
+├── core/       # business logic, singletons
+├── gui/        # UI components
+└── utils/      # utilities
+
+src/
+├── core/
+├── gui/
+└── utils/
+
+## Singletons (CORRECT API)
+- core::ArtProvider::getInstance()      # icons, colors, actions
+- core::SettingsManager::getInstance()  # configuration
+- core::ThemeManager::getInstance()     # themes, palettes
+- core::IconRegistry::getInstance()     # icon registry (internal)
+- core::Logger::getInstance()           # logging
+- gui::CommandRegistry::getInstance()   # command registry
+
+## MANDATORY Patterns (CORRECT API)
+
+### Icons
+core::ArtProvider::getInstance().getIcon("cmd_id")
+core::ArtProvider::getInstance().createAction("cmd_id", parent)
+
+### Icon Colors
+core::ArtProvider::getInstance().getPrimaryColor()
+core::ArtProvider::getInstance().getSecondaryColor()
+core::ArtProvider::getInstance().setPrimaryColor(QColor("#hex"))
+
+### Configuration
+core::SettingsManager::getInstance().getValue("key", "default")
+core::SettingsManager::getInstance().setValue("key", "value")
+
+### Themes
+core::ThemeManager::getInstance().getCurrentTheme()
+// Access: theme.colors.primary, theme.colors.secondary, theme.palette
+
+### UI Strings
+tr("User visible text")
+
+### Logging
+core::Logger::getInstance().info("Message: {}", value)
+
+## NEVER Use
+- QIcon("path/to/icon.svg")     # Use ArtProvider
+- QColor(255, 0, 0) hardcoded   # Use ArtProvider colors
+- "Hardcoded string" in UI      # Use tr()
+- Theme::instance()             # Does NOT exist!
+- ArtProvider::instance()       # Wrong method name!
+
+## Naming Conventions
+- Files: snake_case.cpp
+- Classes: PascalCase
+- Methods: camelCase
+- Members: m_camelCase
+- Constants: UPPER_SNAKE_CASE
+
+## OpenSpec (Task Management)
+- Location: openspec/changes/NNNNN-name/
+- Files: proposal.md, tasks.md
+- Lifecycle: PENDING → IN_PROGRESS → DEPLOYED
+
+## MCP Servers
+- Serena: code navigation (get_symbols_overview, find_symbol)
+- Context7: external library documentation

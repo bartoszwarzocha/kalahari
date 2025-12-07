@@ -11,8 +11,14 @@
 /// the C++ runtime, but vcpkg Catch2 was built with a different CRT version.
 ///
 /// This file provides fallback implementations to resolve link errors.
+///
+/// NOTE: MSVC 14.50+ (_MSC_VER >= 1950) provides these symbols natively,
+/// so we only define them for older compiler versions to avoid LNK2005 errors.
 
 #ifdef _WIN32
+// Only provide fallbacks for MSVC versions older than 14.50
+// MSVC 14.50 (VS 2026) has these symbols in msvcprt.lib
+#if defined(_MSC_VER) && _MSC_VER < 1950
 
 #include <cstddef>
 #include <cstring>
@@ -127,4 +133,5 @@ size_t __std_find_last_not_of_trivial_pos_1(
 
 } // extern "C"
 
+#endif // _MSC_VER < 1950
 #endif // _WIN32

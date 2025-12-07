@@ -57,6 +57,24 @@ if defined VCINSTALLDIR (
 
 echo [INFO] Detecting Visual Studio installation...
 
+REM Try Visual Studio 2026 Preview (newest)
+set "VS_PATH=C:\Program Files\Microsoft Visual Studio\18"
+if exist "%VS_PATH%\Community\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\Community\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2026 Preview Community"
+    goto found_vs
+)
+if exist "%VS_PATH%\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\Professional\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2026 Preview Professional"
+    goto found_vs
+)
+if exist "%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2026 Preview Enterprise"
+    goto found_vs
+)
+
 REM Try Visual Studio 2022 (most common)
 set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022"
 if exist "%VS_PATH%\Community\VC\Auxiliary\Build\vcvarsall.bat" (
@@ -96,7 +114,7 @@ if exist "%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
 REM Visual Studio not found
 echo [ERROR] Visual Studio 2019+ not found!
 echo.
-echo Please install Visual Studio 2019 or 2022 with:
+echo Please install Visual Studio 2019, 2022, or 2026 Preview with:
 echo   - Desktop development with C++
 echo   - CMake tools for Windows
 echo.
