@@ -1,6 +1,15 @@
 {
   "hooks": {
-    "SessionStart": [],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo === SESSION START === && if exist E:\\Python\\Projekty\\Kalahari\\.claude\\session-state.json (type E:\\Python\\Projekty\\Kalahari\\.claude\\session-state.json) else (echo {\"status\": \"new_session\", \"note\": \"No previous session found\"})"
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "matcher": "*",
