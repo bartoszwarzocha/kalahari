@@ -150,17 +150,28 @@ BUILD_DIR_ACTUAL="$PROJECT_ROOT"
 
 # Detect shared/mounted filesystems with symlink issues
 # VirtualBox: /media/sf_* (vboxsf filesystem)
-# VMware: /mnt/hgfs/* (vmhgfs-fuse filesystem)
+# VMware: /mnt/hgfs/* or custom mounts like /mnt/windows/* (vmhgfs-fuse, fuse.vmhgfs-fuse)
 # WSL: /mnt/* (Windows drives via 9p/drvfs)
 if [[ "$PROJECT_ROOT" =~ ^/media/sf_ ]]; then
     IS_VBOX=true
     print_info "VirtualBox shared folder detected (path: /media/sf_*)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
     IS_VBOX=true  # Reusing same workflow for VMware
-    print_info "VMware shared folder detected (path: /mnt/hgfs/*, type: vmhgfs-fuse)"
+    print_info "VMware shared folder detected (path: /mnt/hgfs/*)"
+elif [[ "$PROJECT_ROOT" =~ ^/mnt/ ]] && mount | grep -qE "vmhgfs|fuse\.vmhgfs"; then
+    IS_VBOX=true  # VMware with custom mount point
+    print_info "VMware shared folder detected (custom mount under /mnt/*)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]] && mount | grep -q "type 9p"; then
     IS_VBOX=true  # Reusing same workflow for WSL
     print_info "WSL Windows mount detected (path: /mnt/*, type: 9p/drvfs)"
+elif [[ "$PROJECT_ROOT" =~ ^/mnt/ ]]; then
+    # Generic /mnt/* detection - check if it's a Windows-style path
+    # Look for patterns like /mnt/windows/, /mnt/c/, etc. with NTFS or CIFS
+    MOUNT_TYPE=$(df -T "$PROJECT_ROOT" 2>/dev/null | tail -1 | awk '{print $2}')
+    if [[ "$MOUNT_TYPE" =~ ^(ntfs|cifs|vfat|fuseblk|fuse|9p|drvfs)$ ]]; then
+        IS_VBOX=true
+        print_info "Windows/NTFS mount detected (path: /mnt/*, type: $MOUNT_TYPE)"
+    fi
 fi
 
 # Apply force flags if set
@@ -472,6 +483,7 @@ CMAKE_ARGS=(
     -B build-linux
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
     -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+    -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
     -G Ninja
 )
 
