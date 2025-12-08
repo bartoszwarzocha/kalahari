@@ -22,7 +22,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false  # Don't use recursive - it creates shallow clones
+
+    - name: Initialize vcpkg submodule (full clone)
+      run: |
+        # Full clone required for vcpkg (shallow clone causes issues)
+        git submodule update --init --recursive
+        # Ensure vcpkg is not shallow (required for baseline resolution)
+        cd vcpkg
+        if git rev-parse --is-shallow-repository | grep -q true; then
+          echo "Converting vcpkg to full clone..."
+          git fetch --unshallow || true
+        fi
 
     - name: Install dependencies
       run: |

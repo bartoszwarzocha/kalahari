@@ -308,20 +308,42 @@ check_and_install_qt6_deps() {
     local distro=$(detect_distro)
     local missing_deps=false
 
-    # Check for essential X11/XCB libraries via pkg-config
-    local required_pkgs="x11 xcb xcb-xkb xkbcommon xkbcommon-x11 fontconfig freetype2 gl"
-
-    for pkg in $required_pkgs; do
-        if ! pkg-config --exists "$pkg" 2>/dev/null; then
-            missing_deps=true
-            print_warning "Missing pkg-config: $pkg"
-        fi
-    done
-
-    # Check for GTK3 (needed for native dialogs)
-    if ! pkg-config --exists gtk+-3.0 2>/dev/null; then
+    # FIRST: Check for essential build tools (cmake, ninja, g++)
+    if ! command -v cmake &> /dev/null; then
         missing_deps=true
-        print_warning "Missing pkg-config: gtk+-3.0"
+        print_warning "Missing: cmake"
+    fi
+    if ! command -v ninja &> /dev/null && ! command -v ninja-build &> /dev/null; then
+        missing_deps=true
+        print_warning "Missing: ninja"
+    fi
+    if ! command -v g++ &> /dev/null; then
+        missing_deps=true
+        print_warning "Missing: g++ (C++ compiler)"
+    fi
+    if ! command -v pkg-config &> /dev/null; then
+        missing_deps=true
+        print_warning "Missing: pkg-config"
+    fi
+
+    # THEN: Check for essential X11/XCB libraries via pkg-config
+    if command -v pkg-config &> /dev/null; then
+        local required_pkgs="x11 xcb xcb-xkb xkbcommon xkbcommon-x11 fontconfig freetype2 gl"
+        for pkg in $required_pkgs; do
+            if ! pkg-config --exists "$pkg" 2>/dev/null; then
+                missing_deps=true
+                print_warning "Missing pkg-config: $pkg"
+            fi
+        done
+
+        # Check for GTK3 (needed for native dialogs)
+        if ! pkg-config --exists gtk+-3.0 2>/dev/null; then
+            missing_deps=true
+            print_warning "Missing pkg-config: gtk+-3.0"
+        fi
+    else
+        # If pkg-config is missing, we need to install everything
+        missing_deps=true
     fi
 
     if [ "$missing_deps" = true ]; then
@@ -399,7 +421,7 @@ check_and_install_qt6_deps
 print_success "All prerequisites found"
 
 # =============================================================================
-# Initialize vcpkg
+# Initialize vcpkg (MUST be full clone, not shallow!)
 # =============================================================================
 if [ ! -f "vcpkg/bootstrap-vcpkg.sh" ]; then
     print_warning "vcpkg submodule not initialized"
@@ -408,6 +430,15 @@ if [ ! -f "vcpkg/bootstrap-vcpkg.sh" ]; then
     print_success "Submodules initialized"
 else
     print_success "vcpkg submodule already initialized"
+fi
+
+# Ensure vcpkg is NOT a shallow clone (required for builtin-baseline in vcpkg.json)
+if [ -d "vcpkg/.git" ]; then
+    if git -C vcpkg rev-parse --is-shallow-repository 2>/dev/null | grep -q "true"; then
+        print_warning "vcpkg is a shallow clone - fetching full history (required for Qt6)..."
+        git -C vcpkg fetch --unshallow
+        print_success "vcpkg repository unshallowed"
+    fi
 fi
 
 if [ ! -f "vcpkg/vcpkg" ]; then

@@ -1,53 +1,36 @@
 {
   "mode": "sync",
-  "saved_at": "2025-12-06T11:30:00",
-  "git_commit": null,
-  "git_pushed": false,
-  "openspec": "00027",
-  "openspec_status": "IN_PROGRESS",
-  "working_on": "Theme Color Configuration - implementation COMPLETE (17/22 tasks), switching to CLI due to VSCode terminal issues",
+  "saved_at": "2025-12-08T14:00:00",
+  "git_commit": "985de66",
+  "git_pushed": true,
+  "openspec": null,
+  "openspec_status": null,
+  "working_on": "CI/CD stabilization - Linux build fix",
   "next_steps": [
-    "1. Run build in CLI: scripts\\build_windows.bat Debug",
-    "2. Run tests: build-windows\\bin\\kalahari-tests.exe",
-    "3. Manual testing of Theme Color Configuration UI",
-    "4. Close task #00027 after all tests pass"
+    "1. Test Linux build on Ubuntu (Qt6 via vcpkg)",
+    "2. Fix Windows/macOS CI workflows (same vcpkg shallow clone issue)",
+    "3. Verify GitHub Actions passes"
   ],
   "blocker": {
-    "type": "vscode_terminal",
-    "description": "VSCode terminal has issues executing CMD commands - output is empty, builds don't run properly. Need to switch to CLI version of Claude Code.",
-    "resolution": "Use CLI version of Claude Code instead of VSCode extension",
-    "appeared_after": "Extended debugging session in VSCode"
+    "type": "linux_build",
+    "description": "Qt6 via vcpkg on Linux never tested after Qt migration",
+    "resolution": "Run ./scripts/build_linux.sh on Ubuntu - script should auto-install dependencies"
   },
-  "implementation_status": "COMPLETE",
   "completed_tasks": [
-    "BACKEND: ThemeManager - applyColorOverrides() fixed for all log levels",
-    "BACKEND: ThemeManager - startup loading of log color overrides",
-    "BACKEND: SettingsManager - log color API methods",
-    "BACKEND: SettingsManager - JSON structure migration",
-    "UI: LogPanel - removed hardcoded background",
-    "UI: IconDownloaderDialog - using theme colors",
-    "UI: ColorConfigWidget - new reusable component",
-    "UI: Theme page redesign with Icon Colors and Log Panel Colors groups",
-    "INTEGRATION: Reset to Defaults + Apply/Save",
-    "BACKEND: All icon color infrastructure",
-    "BACKEND: All log panel color infrastructure",
-    "UI: Settings dialog theme page complete",
-    "UI: Real-time preview working",
-    "BACKEND: Color persistence to JSON",
-    "BACKEND: Theme switching with color overrides",
-    "BACKEND: Reset to defaults functionality",
-    "CODE REVIEW: All implementations reviewed and approved"
+    "OpenSpec #00027 - Theme Color Configuration (DEPLOYED)",
+    "OpenSpec #00028 - Complete Theme Styling System (DEPLOYED)",
+    "Git push to GitHub (18 commits rebased and pushed)",
+    "Linux CI workflow fix (vcpkg full clone)",
+    "build_linux.sh dependency checker added"
   ],
   "pending_tasks": [
-    "TESTING: Theme switching persistence",
-    "TESTING: Icon color customization",
-    "TESTING: Log panel color customization",
-    "TESTING: Real-time preview verification",
-    "TESTING: Reset to defaults verification"
+    "Test Linux build on Ubuntu",
+    "Fix ci-windows.yml vcpkg issue",
+    "Fix ci-macos.yml vcpkg issue"
   ],
-  "task_progress": {
-    "completed": 17,
-    "total": 22,
-    "percentage": 77
-  }
+  "notes": [
+    "QPalette + Fusion handles 99% of widget colors",
+    "QSS only for tooltips",
+    "Ubuntu accesses same source via /mnt/windows/"
+  ]
 }

@@ -22,7 +22,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false  # Don't use recursive - it creates shallow clones
+
+    - name: Initialize vcpkg submodule (full clone)
+      run: |
+        # Full clone required for vcpkg (shallow clone causes issues)
+        git submodule update --init --recursive
+        # Ensure vcpkg is not shallow (required for baseline resolution)
+        cd vcpkg
+        $isShallow = git rev-parse --is-shallow-repository
+        if ($isShallow -eq "true") {
+          Write-Host "Converting vcpkg to full clone..."
+          git fetch --unshallow 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Host "Already unshallowed or error (continuing)" }
+        }
+      shell: powershell
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
