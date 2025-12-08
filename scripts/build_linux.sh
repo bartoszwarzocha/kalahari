@@ -371,7 +371,8 @@ check_and_install_qt6_deps() {
                     libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render0-dev \
                     libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
                     libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
-                    libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+                    libxcb-xinerama0-dev libxcb-xkb-dev libxcb-xinput-dev \
+                    libxkbcommon-dev \
                     libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
                     libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
                     libdrm-dev libegl1-mesa-dev libgbm-dev \
