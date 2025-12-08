@@ -298,6 +298,108 @@ void SettingsManager::clearCustomLogColorsForTheme(const std::string& themeName)
     Logger::getInstance().info("Cleared custom log colors for theme: {}", themeName);
 }
 
+// =============================================================================
+// Per-theme UI colors (Task #00028)
+// =============================================================================
+
+std::string SettingsManager::getUiColorForTheme(const std::string& themeName,
+                                                 const std::string& colorKey,
+                                                 const std::string& defaultColor) const {
+    std::string key = "themes." + themeName + ".ui." + colorKey;
+    return get<std::string>(key, defaultColor);
+}
+
+void SettingsManager::setUiColorForTheme(const std::string& themeName,
+                                          const std::string& colorKey,
+                                          const std::string& color) {
+    std::string key = "themes." + themeName + ".ui." + colorKey;
+    set(key, color);
+}
+
+bool SettingsManager::hasCustomUiColorsForTheme(const std::string& themeName) const {
+    // Check if any of the UI color keys exist for this theme
+    static const std::vector<std::string> colorKeys = {
+        "toolTipBase", "toolTipText", "placeholderText", "brightText"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".ui." + colorKey;
+        if (hasKey(key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void SettingsManager::clearCustomUiColorsForTheme(const std::string& themeName) {
+    static const std::vector<std::string> colorKeys = {
+        "toolTipBase", "toolTipText", "placeholderText", "brightText"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".ui." + colorKey;
+        if (hasKey(key)) {
+            removeKey(key);
+        }
+    }
+
+    Logger::getInstance().info("Cleared custom UI colors for theme: {}", themeName);
+}
+
+// =============================================================================
+// Per-theme palette colors (Task #00028 - Full QPalette support)
+// =============================================================================
+
+std::string SettingsManager::getPaletteColorForTheme(const std::string& themeName,
+                                                      const std::string& colorKey,
+                                                      const std::string& defaultColor) const {
+    std::string key = "themes." + themeName + ".palette." + colorKey;
+    return get<std::string>(key, defaultColor);
+}
+
+void SettingsManager::setPaletteColorForTheme(const std::string& themeName,
+                                               const std::string& colorKey,
+                                               const std::string& color) {
+    std::string key = "themes." + themeName + ".palette." + colorKey;
+    set(key, color);
+}
+
+bool SettingsManager::hasCustomPaletteColorsForTheme(const std::string& themeName) const {
+    // Check if any of the palette color keys exist for this theme
+    static const std::vector<std::string> colorKeys = {
+        "window", "windowText", "base", "alternateBase", "text",
+        "button", "buttonText", "highlight", "highlightedText",
+        "light", "midlight", "mid", "dark", "shadow",
+        "link", "linkVisited"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".palette." + colorKey;
+        if (hasKey(key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void SettingsManager::clearCustomPaletteColorsForTheme(const std::string& themeName) {
+    static const std::vector<std::string> colorKeys = {
+        "window", "windowText", "base", "alternateBase", "text",
+        "button", "buttonText", "highlight", "highlightedText",
+        "light", "midlight", "mid", "dark", "shadow",
+        "link", "linkVisited"
+    };
+
+    for (const auto& colorKey : colorKeys) {
+        std::string key = "themes." + themeName + ".palette." + colorKey;
+        if (hasKey(key)) {
+            removeKey(key);
+        }
+    }
+
+    Logger::getInstance().info("Cleared custom palette colors for theme: {}", themeName);
+}
+
 std::filesystem::path SettingsManager::getSettingsFilePath() const {
     return m_filePath;
 }

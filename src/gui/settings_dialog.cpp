@@ -50,6 +50,28 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_themeComboBox(nullptr)
     , m_primaryColorWidget(nullptr)
     , m_secondaryColorWidget(nullptr)
+    , m_tooltipBackgroundColorWidget(nullptr)
+    , m_tooltipTextColorWidget(nullptr)
+    , m_placeholderTextColorWidget(nullptr)
+    , m_brightTextColorWidget(nullptr)
+    // Palette colors
+    , m_paletteWindowColorWidget(nullptr)
+    , m_paletteWindowTextColorWidget(nullptr)
+    , m_paletteBaseColorWidget(nullptr)
+    , m_paletteAlternateBaseColorWidget(nullptr)
+    , m_paletteTextColorWidget(nullptr)
+    , m_paletteButtonColorWidget(nullptr)
+    , m_paletteButtonTextColorWidget(nullptr)
+    , m_paletteHighlightColorWidget(nullptr)
+    , m_paletteHighlightedTextColorWidget(nullptr)
+    , m_paletteLightColorWidget(nullptr)
+    , m_paletteMidlightColorWidget(nullptr)
+    , m_paletteMidColorWidget(nullptr)
+    , m_paletteDarkColorWidget(nullptr)
+    , m_paletteShadowColorWidget(nullptr)
+    , m_paletteLinkColorWidget(nullptr)
+    , m_paletteLinkVisitedColorWidget(nullptr)
+    // Log colors
     , m_logTraceColorWidget(nullptr)
     , m_logDebugColorWidget(nullptr)
     , m_logInfoColorWidget(nullptr)
@@ -395,9 +417,11 @@ QWidget* SettingsDialog::createAppearanceGeneralPage() {
     grid->addWidget(fontSizeLabel, 1, 0);
     grid->addWidget(m_uiFontSizeSpinBox, 1, 1);
 
-    // Note about restart
+    // Note about restart - use mid color from theme for muted text
     QLabel* restartNote = new QLabel(tr("Note: Some changes require application restart."));
-    restartNote->setStyleSheet("color: #666; font-style: italic;");
+    const auto& appearanceTheme = core::ThemeManager::getInstance().getCurrentTheme();
+    restartNote->setStyleSheet(QString("color: %1; font-style: italic;")
+        .arg(appearanceTheme.palette.mid.name()));
     grid->addWidget(restartNote, 2, 0, 1, 2);
 
     grid->setColumnStretch(1, 1);
@@ -408,8 +432,10 @@ QWidget* SettingsDialog::createAppearanceGeneralPage() {
 }
 
 QWidget* SettingsDialog::createAppearanceThemePage() {
-    QWidget* page = new QWidget();
-    QVBoxLayout* layout = new QVBoxLayout(page);
+    // Create the actual content widget
+    auto* contentWidget = new QWidget();
+    auto* layout = new QVBoxLayout(contentWidget);
+    layout->setContentsMargins(0, 0, 8, 0);  // Right margin for scrollbar
 
     // Theme selection row
     QHBoxLayout* themeRow = new QHBoxLayout();
@@ -438,6 +464,127 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     iconColorsLayout->addWidget(m_secondaryColorWidget);
 
     layout->addWidget(iconColorsGroup);
+
+    // ========================================================================
+    // UI Colors group (QPalette roles)
+    // ========================================================================
+    QGroupBox* uiColorsGroup = new QGroupBox(tr("UI Colors"));
+    QVBoxLayout* uiColorsLayout = new QVBoxLayout(uiColorsGroup);
+
+    m_tooltipBackgroundColorWidget = new ColorConfigWidget(tr("Tooltip Background"), uiColorsGroup);
+    m_tooltipBackgroundColorWidget->setToolTip(tr("Background color for tooltips"));
+    uiColorsLayout->addWidget(m_tooltipBackgroundColorWidget);
+
+    m_tooltipTextColorWidget = new ColorConfigWidget(tr("Tooltip Text"), uiColorsGroup);
+    m_tooltipTextColorWidget->setToolTip(tr("Text color for tooltips"));
+    uiColorsLayout->addWidget(m_tooltipTextColorWidget);
+
+    m_placeholderTextColorWidget = new ColorConfigWidget(tr("Placeholder Text"), uiColorsGroup);
+    m_placeholderTextColorWidget->setToolTip(tr("Color for placeholder text in input fields"));
+    uiColorsLayout->addWidget(m_placeholderTextColorWidget);
+
+    m_brightTextColorWidget = new ColorConfigWidget(tr("Bright Text"), uiColorsGroup);
+    m_brightTextColorWidget->setToolTip(tr("High contrast text color for dark backgrounds"));
+    uiColorsLayout->addWidget(m_brightTextColorWidget);
+
+    layout->addWidget(uiColorsGroup);
+
+    // ========================================================================
+    // Palette Colors group (all 16 QPalette roles)
+    // ========================================================================
+    QGroupBox* paletteColorsGroup = new QGroupBox(tr("Palette Colors"));
+    QVBoxLayout* paletteColorsLayout = new QVBoxLayout(paletteColorsGroup);
+
+    // --- Basic Colors section ---
+    QLabel* basicColorsLabel = new QLabel(tr("Basic Colors"));
+    basicColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    paletteColorsLayout->addWidget(basicColorsLabel);
+
+    m_paletteWindowColorWidget = new ColorConfigWidget(tr("Window"), paletteColorsGroup);
+    m_paletteWindowColorWidget->setToolTip(tr("General background color for windows and panels"));
+    paletteColorsLayout->addWidget(m_paletteWindowColorWidget);
+
+    m_paletteWindowTextColorWidget = new ColorConfigWidget(tr("Window Text"), paletteColorsGroup);
+    m_paletteWindowTextColorWidget->setToolTip(tr("General text color used throughout the interface"));
+    paletteColorsLayout->addWidget(m_paletteWindowTextColorWidget);
+
+    m_paletteBaseColorWidget = new ColorConfigWidget(tr("Base"), paletteColorsGroup);
+    m_paletteBaseColorWidget->setToolTip(tr("Background color for input fields and text editors"));
+    paletteColorsLayout->addWidget(m_paletteBaseColorWidget);
+
+    m_paletteAlternateBaseColorWidget = new ColorConfigWidget(tr("Alternate Base"), paletteColorsGroup);
+    m_paletteAlternateBaseColorWidget->setToolTip(tr("Alternating row background color in lists and tables"));
+    paletteColorsLayout->addWidget(m_paletteAlternateBaseColorWidget);
+
+    m_paletteTextColorWidget = new ColorConfigWidget(tr("Text"), paletteColorsGroup);
+    m_paletteTextColorWidget->setToolTip(tr("Text color for input fields and text editors"));
+    paletteColorsLayout->addWidget(m_paletteTextColorWidget);
+
+    // --- Button Colors section ---
+    QLabel* buttonColorsLabel = new QLabel(tr("Button Colors"));
+    buttonColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    paletteColorsLayout->addWidget(buttonColorsLabel);
+
+    m_paletteButtonColorWidget = new ColorConfigWidget(tr("Button"), paletteColorsGroup);
+    m_paletteButtonColorWidget->setToolTip(tr("Background color for buttons"));
+    paletteColorsLayout->addWidget(m_paletteButtonColorWidget);
+
+    m_paletteButtonTextColorWidget = new ColorConfigWidget(tr("Button Text"), paletteColorsGroup);
+    m_paletteButtonTextColorWidget->setToolTip(tr("Text color for buttons"));
+    paletteColorsLayout->addWidget(m_paletteButtonTextColorWidget);
+
+    // --- Selection Colors section ---
+    QLabel* selectionColorsLabel = new QLabel(tr("Selection Colors"));
+    selectionColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    paletteColorsLayout->addWidget(selectionColorsLabel);
+
+    m_paletteHighlightColorWidget = new ColorConfigWidget(tr("Highlight"), paletteColorsGroup);
+    m_paletteHighlightColorWidget->setToolTip(tr("Background color for selected items"));
+    paletteColorsLayout->addWidget(m_paletteHighlightColorWidget);
+
+    m_paletteHighlightedTextColorWidget = new ColorConfigWidget(tr("Highlighted Text"), paletteColorsGroup);
+    m_paletteHighlightedTextColorWidget->setToolTip(tr("Text color for selected items"));
+    paletteColorsLayout->addWidget(m_paletteHighlightedTextColorWidget);
+
+    // --- 3D Effect Colors section ---
+    QLabel* effectColorsLabel = new QLabel(tr("3D Effect Colors"));
+    effectColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    paletteColorsLayout->addWidget(effectColorsLabel);
+
+    m_paletteLightColorWidget = new ColorConfigWidget(tr("Light"), paletteColorsGroup);
+    m_paletteLightColorWidget->setToolTip(tr("Lightest color for 3D effects (bevels, shadows)"));
+    paletteColorsLayout->addWidget(m_paletteLightColorWidget);
+
+    m_paletteMidlightColorWidget = new ColorConfigWidget(tr("Midlight"), paletteColorsGroup);
+    m_paletteMidlightColorWidget->setToolTip(tr("Color between Light and Button for 3D effects"));
+    paletteColorsLayout->addWidget(m_paletteMidlightColorWidget);
+
+    m_paletteMidColorWidget = new ColorConfigWidget(tr("Mid"), paletteColorsGroup);
+    m_paletteMidColorWidget->setToolTip(tr("Medium color for borders and dividers"));
+    paletteColorsLayout->addWidget(m_paletteMidColorWidget);
+
+    m_paletteDarkColorWidget = new ColorConfigWidget(tr("Dark"), paletteColorsGroup);
+    m_paletteDarkColorWidget->setToolTip(tr("Darker color for 3D effects"));
+    paletteColorsLayout->addWidget(m_paletteDarkColorWidget);
+
+    m_paletteShadowColorWidget = new ColorConfigWidget(tr("Shadow"), paletteColorsGroup);
+    m_paletteShadowColorWidget->setToolTip(tr("Darkest color for shadows"));
+    paletteColorsLayout->addWidget(m_paletteShadowColorWidget);
+
+    // --- Link Colors section ---
+    QLabel* linkColorsLabel = new QLabel(tr("Link Colors"));
+    linkColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    paletteColorsLayout->addWidget(linkColorsLabel);
+
+    m_paletteLinkColorWidget = new ColorConfigWidget(tr("Link"), paletteColorsGroup);
+    m_paletteLinkColorWidget->setToolTip(tr("Color for hyperlinks"));
+    paletteColorsLayout->addWidget(m_paletteLinkColorWidget);
+
+    m_paletteLinkVisitedColorWidget = new ColorConfigWidget(tr("Link Visited"), paletteColorsGroup);
+    m_paletteLinkVisitedColorWidget->setToolTip(tr("Color for visited hyperlinks"));
+    paletteColorsLayout->addWidget(m_paletteLinkVisitedColorWidget);
+
+    layout->addWidget(paletteColorsGroup);
 
     // ========================================================================
     // Log Panel Colors group
@@ -489,6 +636,8 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
         auto& settings = core::SettingsManager::getInstance();
         settings.clearCustomIconColorsForTheme(themeName);
         settings.clearCustomLogColorsForTheme(themeName);
+        settings.clearCustomUiColorsForTheme(themeName);
+        settings.clearCustomPaletteColorsForTheme(themeName);
 
         // Reset icon colors to theme defaults
         if (isDark) {
@@ -498,6 +647,35 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
             m_primaryColorWidget->setColor(QColor("#333333"));
             m_secondaryColorWidget->setColor(QColor("#999999"));
         }
+
+        // Reset UI colors to theme defaults (values from theme.cpp)
+        m_tooltipBackgroundColorWidget->setColor(isDark ? QColor("#3c3c3c") : QColor("#ffffdc"));
+        m_tooltipTextColorWidget->setColor(isDark ? QColor("#e0e0e0") : QColor("#000000"));
+        m_placeholderTextColorWidget->setColor(isDark ? QColor("#808080") : QColor("#a0a0a0"));
+        m_brightTextColorWidget->setColor(QColor("#ffffff"));
+
+        // Reset palette colors to theme defaults (values from theme.cpp)
+        // Basic Colors
+        m_paletteWindowColorWidget->setColor(isDark ? QColor("#2d2d2d") : QColor("#f0f0f0"));
+        m_paletteWindowTextColorWidget->setColor(isDark ? QColor("#e0e0e0") : QColor("#000000"));
+        m_paletteBaseColorWidget->setColor(isDark ? QColor("#252525") : QColor("#ffffff"));
+        m_paletteAlternateBaseColorWidget->setColor(isDark ? QColor("#323232") : QColor("#f5f5f5"));
+        m_paletteTextColorWidget->setColor(isDark ? QColor("#e0e0e0") : QColor("#000000"));
+        // Button Colors
+        m_paletteButtonColorWidget->setColor(isDark ? QColor("#404040") : QColor("#e0e0e0"));
+        m_paletteButtonTextColorWidget->setColor(isDark ? QColor("#e0e0e0") : QColor("#000000"));
+        // Selection Colors
+        m_paletteHighlightColorWidget->setColor(isDark ? QColor("#0078d4") : QColor("#0078d4"));
+        m_paletteHighlightedTextColorWidget->setColor(isDark ? QColor("#ffffff") : QColor("#ffffff"));
+        // 3D Effect Colors
+        m_paletteLightColorWidget->setColor(isDark ? QColor("#505050") : QColor("#ffffff"));
+        m_paletteMidlightColorWidget->setColor(isDark ? QColor("#404040") : QColor("#e0e0e0"));
+        m_paletteMidColorWidget->setColor(isDark ? QColor("#303030") : QColor("#a0a0a0"));
+        m_paletteDarkColorWidget->setColor(isDark ? QColor("#202020") : QColor("#606060"));
+        m_paletteShadowColorWidget->setColor(isDark ? QColor("#000000") : QColor("#000000"));
+        // Link Colors
+        m_paletteLinkColorWidget->setColor(isDark ? QColor("#5eb3f0") : QColor("#0078d4"));
+        m_paletteLinkVisitedColorWidget->setColor(isDark ? QColor("#b48ade") : QColor("#551a8b"));
 
         // Reset log colors to theme defaults
         m_logTraceColorWidget->setColor(isDark ? QColor("#FF66FF") : QColor("#CC00CC"));
@@ -513,6 +691,19 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     layout->addWidget(resetColorsBtn);
 
     layout->addStretch();
+
+    // Wrap in scroll area for Theme page (lots of color settings)
+    auto* scrollArea = new QScrollArea();
+    scrollArea->setWidget(contentWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    // Create wrapper page to return
+    auto* page = new QWidget();
+    auto* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+
     return page;
 }
 
@@ -694,14 +885,20 @@ QWidget* SettingsDialog::createAdvancedGeneralPage() {
     QWidget* page = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(page);
 
-    // Warning
+    // Warning - use theme-aware warning colors
     QLabel* warningLabel = new QLabel(
         tr("Warning: These settings are for advanced users and developers.\n"
            "Incorrect configuration may affect application stability.")
     );
     warningLabel->setWordWrap(true);
-    warningLabel->setStyleSheet("QLabel { color: #ff6600; font-weight: bold; padding: 10px; "
-                                 "background-color: #fff3e0; border: 1px solid #ffcc80; }");
+    const auto& advTheme = core::ThemeManager::getInstance().getCurrentTheme();
+    bool isDarkAdvanced = advTheme.palette.window.lightnessF() < 0.5;
+    QString warningTextColor = isDarkAdvanced ? "#ff9933" : "#ff6600";
+    QString warningBgColor = isDarkAdvanced ? "#4a3000" : "#fff3e0";
+    QString warningBorderColor = isDarkAdvanced ? "#996600" : "#ffcc80";
+    warningLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; padding: 10px; "
+                                 "background-color: %2; border: 1px solid %3; }")
+                                 .arg(warningTextColor).arg(warningBgColor).arg(warningBorderColor));
     layout->addWidget(warningLabel);
 
     // Diagnostic group
@@ -720,7 +917,8 @@ QWidget* SettingsDialog::createAdvancedGeneralPage() {
            "- Log viewer\n"
            "- Component status")
     );
-    diagNote->setStyleSheet("color: #666; margin-left: 20px;");
+    diagNote->setStyleSheet(QString("color: %1; margin-left: 20px;")
+        .arg(advTheme.palette.mid.name()));
     diagLayout->addWidget(diagNote);
 
     layout->addWidget(diagGroup);
@@ -749,7 +947,8 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
     logGrid->addWidget(bufferLabel, 0, 0);
     logGrid->addWidget(m_logBufferSizeSpinBox, 0, 1);
 
-    // Help text
+    // Help text - use mid color from theme for muted text
+    const auto& logTheme = core::ThemeManager::getInstance().getCurrentTheme();
     QLabel* helpLabel = new QLabel(
         tr("The log panel displays application messages in real-time.\n\n"
            "Buffer size determines how many log entries are kept in memory.\n"
@@ -757,7 +956,8 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
            "Note: Log files are always saved to disk regardless of this setting.")
     );
     helpLabel->setWordWrap(true);
-    helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
+    helpLabel->setStyleSheet(QString("color: %1; margin-top: 10px;")
+        .arg(logTheme.palette.mid.name()));
 
     logGrid->addWidget(helpLabel, 1, 0, 1, 2);
     logGrid->setColumnStretch(1, 1);
@@ -776,7 +976,7 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
            "• Clear the log panel display")
     );
     fileInfo->setWordWrap(true);
-    fileInfo->setStyleSheet("color: #666;");
+    fileInfo->setStyleSheet(QString("color: %1;").arg(logTheme.palette.mid.name()));
     fileLayout->addWidget(fileInfo);
 
     layout->addWidget(fileGroup);
@@ -789,13 +989,17 @@ QWidget* SettingsDialog::createPlaceholderPage(const QString& title, const QStri
     QWidget* page = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(page);
 
+    const auto& placeholderTheme = core::ThemeManager::getInstance().getCurrentTheme();
+
     QLabel* titleLabel = new QLabel(title);
-    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #666;");
+    titleLabel->setStyleSheet(QString("font-size: 18px; font-weight: bold; color: %1;")
+        .arg(placeholderTheme.palette.mid.name()));
     layout->addWidget(titleLabel);
 
     QLabel* descLabel = new QLabel(description);
     descLabel->setWordWrap(true);
-    descLabel->setStyleSheet("color: #888; margin-top: 20px;");
+    descLabel->setStyleSheet(QString("color: %1; margin-top: 20px;")
+        .arg(placeholderTheme.palette.mid.name()));
     layout->addWidget(descLabel);
 
     layout->addStretch();
@@ -896,6 +1100,12 @@ void SettingsDialog::onThemeComboChanged(int index) {
     std::string defaultPrimary = isDark ? "#999999" : "#333333";
     std::string defaultSecondary = isDark ? "#333333" : "#999999";
 
+    // UI color defaults per theme (QPalette roles)
+    std::string defToolTipBase = isDark ? "#3c3c3c" : "#ffffdc";
+    std::string defToolTipText = isDark ? "#e0e0e0" : "#000000";
+    std::string defPlaceholderText = isDark ? "#808080" : "#a0a0a0";
+    std::string defBrightText = "#ffffff";
+
     // Log color defaults per theme
     std::string defTrace = isDark ? "#FF66FF" : "#CC00CC";
     std::string defDebug = isDark ? "#FF66FF" : "#CC00CC";
@@ -921,6 +1131,25 @@ void SettingsDialog::onThemeComboChanged(int index) {
         m_secondaryColorWidget->setColor(QColor(QString::fromStdString(defaultSecondary)));
         logger.debug("SettingsDialog: Using default icon colors for theme '{}': primary={}, secondary={}",
                      themeName, defaultPrimary, defaultSecondary);
+    }
+
+    // Check if user has custom UI colors for this theme (Task #00028)
+    if (settings.hasCustomUiColorsForTheme(themeName)) {
+        m_tooltipBackgroundColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "toolTipBase", defToolTipBase))));
+        m_tooltipTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "toolTipText", defToolTipText))));
+        m_placeholderTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "placeholderText", defPlaceholderText))));
+        m_brightTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "brightText", defBrightText))));
+        logger.debug("SettingsDialog: Loaded custom UI colors for theme '{}'", themeName);
+    } else {
+        m_tooltipBackgroundColorWidget->setColor(QColor(QString::fromStdString(defToolTipBase)));
+        m_tooltipTextColorWidget->setColor(QColor(QString::fromStdString(defToolTipText)));
+        m_placeholderTextColorWidget->setColor(QColor(QString::fromStdString(defPlaceholderText)));
+        m_brightTextColorWidget->setColor(QColor(QString::fromStdString(defBrightText)));
+        logger.debug("SettingsDialog: Using default UI colors for theme '{}'", themeName);
     }
 
     // Check if user has custom log colors for this theme (Task #00027)
@@ -969,6 +1198,79 @@ void SettingsDialog::onThemeComboChanged(int index) {
         m_logCriticalColorWidget->setColor(QColor(QString::fromStdString(defCritical)));
         m_logBackgroundColorWidget->setColor(QColor(QString::fromStdString(defBackground)));
         logger.debug("SettingsDialog: Using default log colors for theme '{}'", themeName);
+    }
+
+    // Palette color defaults per theme
+    std::string defWindow = isDark ? "#2d2d2d" : "#f0f0f0";
+    std::string defWindowText = isDark ? "#e0e0e0" : "#000000";
+    std::string defBase = isDark ? "#252525" : "#ffffff";
+    std::string defAlternateBase = isDark ? "#323232" : "#f5f5f5";
+    std::string defText = isDark ? "#e0e0e0" : "#000000";
+    std::string defButton = isDark ? "#404040" : "#e0e0e0";
+    std::string defButtonText = isDark ? "#e0e0e0" : "#000000";
+    std::string defHighlight = "#0078d4";
+    std::string defHighlightedText = "#ffffff";
+    std::string defLight = isDark ? "#505050" : "#ffffff";
+    std::string defMidlight = isDark ? "#404040" : "#e0e0e0";
+    std::string defMid = isDark ? "#303030" : "#a0a0a0";
+    std::string defDark = isDark ? "#202020" : "#606060";
+    std::string defShadow = "#000000";
+    std::string defLink = isDark ? "#5eb3f0" : "#0078d4";
+    std::string defLinkVisited = isDark ? "#b48ade" : "#551a8b";
+
+    // Check if user has custom palette colors for this theme
+    if (settings.hasCustomPaletteColorsForTheme(themeName)) {
+        m_paletteWindowColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "window", defWindow))));
+        m_paletteWindowTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "windowText", defWindowText))));
+        m_paletteBaseColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "base", defBase))));
+        m_paletteAlternateBaseColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "alternateBase", defAlternateBase))));
+        m_paletteTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "text", defText))));
+        m_paletteButtonColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "button", defButton))));
+        m_paletteButtonTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "buttonText", defButtonText))));
+        m_paletteHighlightColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "highlight", defHighlight))));
+        m_paletteHighlightedTextColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "highlightedText", defHighlightedText))));
+        m_paletteLightColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "light", defLight))));
+        m_paletteMidlightColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "midlight", defMidlight))));
+        m_paletteMidColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "mid", defMid))));
+        m_paletteDarkColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "dark", defDark))));
+        m_paletteShadowColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "shadow", defShadow))));
+        m_paletteLinkColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "link", defLink))));
+        m_paletteLinkVisitedColorWidget->setColor(QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "linkVisited", defLinkVisited))));
+        logger.debug("SettingsDialog: Loaded custom palette colors for theme '{}'", themeName);
+    } else {
+        m_paletteWindowColorWidget->setColor(QColor(QString::fromStdString(defWindow)));
+        m_paletteWindowTextColorWidget->setColor(QColor(QString::fromStdString(defWindowText)));
+        m_paletteBaseColorWidget->setColor(QColor(QString::fromStdString(defBase)));
+        m_paletteAlternateBaseColorWidget->setColor(QColor(QString::fromStdString(defAlternateBase)));
+        m_paletteTextColorWidget->setColor(QColor(QString::fromStdString(defText)));
+        m_paletteButtonColorWidget->setColor(QColor(QString::fromStdString(defButton)));
+        m_paletteButtonTextColorWidget->setColor(QColor(QString::fromStdString(defButtonText)));
+        m_paletteHighlightColorWidget->setColor(QColor(QString::fromStdString(defHighlight)));
+        m_paletteHighlightedTextColorWidget->setColor(QColor(QString::fromStdString(defHighlightedText)));
+        m_paletteLightColorWidget->setColor(QColor(QString::fromStdString(defLight)));
+        m_paletteMidlightColorWidget->setColor(QColor(QString::fromStdString(defMidlight)));
+        m_paletteMidColorWidget->setColor(QColor(QString::fromStdString(defMid)));
+        m_paletteDarkColorWidget->setColor(QColor(QString::fromStdString(defDark)));
+        m_paletteShadowColorWidget->setColor(QColor(QString::fromStdString(defShadow)));
+        m_paletteLinkColorWidget->setColor(QColor(QString::fromStdString(defLink)));
+        m_paletteLinkVisitedColorWidget->setColor(QColor(QString::fromStdString(defLinkVisited)));
+        logger.debug("SettingsDialog: Using default palette colors for theme '{}'", themeName);
     }
 }
 
@@ -1042,6 +1344,30 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_primaryColorWidget->setColor(settings.primaryColor);
     m_secondaryColorWidget->setColor(settings.secondaryColor);
 
+    // UI colors (QPalette roles)
+    m_tooltipBackgroundColorWidget->setColor(settings.tooltipBackgroundColor);
+    m_tooltipTextColorWidget->setColor(settings.tooltipTextColor);
+    m_placeholderTextColorWidget->setColor(settings.placeholderTextColor);
+    m_brightTextColorWidget->setColor(settings.brightTextColor);
+
+    // Palette colors (all 16 QPalette roles)
+    m_paletteWindowColorWidget->setColor(settings.paletteWindowColor);
+    m_paletteWindowTextColorWidget->setColor(settings.paletteWindowTextColor);
+    m_paletteBaseColorWidget->setColor(settings.paletteBaseColor);
+    m_paletteAlternateBaseColorWidget->setColor(settings.paletteAlternateBaseColor);
+    m_paletteTextColorWidget->setColor(settings.paletteTextColor);
+    m_paletteButtonColorWidget->setColor(settings.paletteButtonColor);
+    m_paletteButtonTextColorWidget->setColor(settings.paletteButtonTextColor);
+    m_paletteHighlightColorWidget->setColor(settings.paletteHighlightColor);
+    m_paletteHighlightedTextColorWidget->setColor(settings.paletteHighlightedTextColor);
+    m_paletteLightColorWidget->setColor(settings.paletteLightColor);
+    m_paletteMidlightColorWidget->setColor(settings.paletteMidlightColor);
+    m_paletteMidColorWidget->setColor(settings.paletteMidColor);
+    m_paletteDarkColorWidget->setColor(settings.paletteDarkColor);
+    m_paletteShadowColorWidget->setColor(settings.paletteShadowColor);
+    m_paletteLinkColorWidget->setColor(settings.paletteLinkColor);
+    m_paletteLinkVisitedColorWidget->setColor(settings.paletteLinkVisitedColor);
+
     // Log colors
     m_logTraceColorWidget->setColor(settings.logTraceColor);
     m_logDebugColorWidget->setColor(settings.logDebugColor);
@@ -1099,6 +1425,30 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.theme = m_themeComboBox->currentData().toString();
     settingsData.primaryColor = m_primaryColorWidget->color();
     settingsData.secondaryColor = m_secondaryColorWidget->color();
+
+    // UI colors (QPalette roles)
+    settingsData.tooltipBackgroundColor = m_tooltipBackgroundColorWidget->color();
+    settingsData.tooltipTextColor = m_tooltipTextColorWidget->color();
+    settingsData.placeholderTextColor = m_placeholderTextColorWidget->color();
+    settingsData.brightTextColor = m_brightTextColorWidget->color();
+
+    // Palette colors (all 16 QPalette roles)
+    settingsData.paletteWindowColor = m_paletteWindowColorWidget->color();
+    settingsData.paletteWindowTextColor = m_paletteWindowTextColorWidget->color();
+    settingsData.paletteBaseColor = m_paletteBaseColorWidget->color();
+    settingsData.paletteAlternateBaseColor = m_paletteAlternateBaseColorWidget->color();
+    settingsData.paletteTextColor = m_paletteTextColorWidget->color();
+    settingsData.paletteButtonColor = m_paletteButtonColorWidget->color();
+    settingsData.paletteButtonTextColor = m_paletteButtonTextColorWidget->color();
+    settingsData.paletteHighlightColor = m_paletteHighlightColorWidget->color();
+    settingsData.paletteHighlightedTextColor = m_paletteHighlightedTextColorWidget->color();
+    settingsData.paletteLightColor = m_paletteLightColorWidget->color();
+    settingsData.paletteMidlightColor = m_paletteMidlightColorWidget->color();
+    settingsData.paletteMidColor = m_paletteMidColorWidget->color();
+    settingsData.paletteDarkColor = m_paletteDarkColorWidget->color();
+    settingsData.paletteShadowColor = m_paletteShadowColorWidget->color();
+    settingsData.paletteLinkColor = m_paletteLinkColorWidget->color();
+    settingsData.paletteLinkVisitedColor = m_paletteLinkVisitedColorWidget->color();
 
     // Log colors
     settingsData.logTraceColor = m_logTraceColorWidget->color();
@@ -1174,6 +1524,12 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.setIconColorPrimaryForTheme(themeName, settings.primaryColor.name().toStdString());
         settingsManager.setIconColorSecondaryForTheme(themeName, settings.secondaryColor.name().toStdString());
 
+        // Save per-theme UI colors (Task #00028)
+        settingsManager.setUiColorForTheme(themeName, "toolTipBase", settings.tooltipBackgroundColor.name().toStdString());
+        settingsManager.setUiColorForTheme(themeName, "toolTipText", settings.tooltipTextColor.name().toStdString());
+        settingsManager.setUiColorForTheme(themeName, "placeholderText", settings.placeholderTextColor.name().toStdString());
+        settingsManager.setUiColorForTheme(themeName, "brightText", settings.brightTextColor.name().toStdString());
+
         // Save per-theme log colors (Task #00027)
         settingsManager.setLogColorForTheme(themeName, "trace", settings.logTraceColor.name().toStdString());
         settingsManager.setLogColorForTheme(themeName, "debug", settings.logDebugColor.name().toStdString());
@@ -1182,6 +1538,61 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.setLogColorForTheme(themeName, "error", settings.logErrorColor.name().toStdString());
         settingsManager.setLogColorForTheme(themeName, "critical", settings.logCriticalColor.name().toStdString());
         settingsManager.setLogColorForTheme(themeName, "background", settings.logBackgroundColor.name().toStdString());
+
+        // Save per-theme palette colors (Task #00028)
+        settingsManager.setPaletteColorForTheme(themeName, "window", settings.paletteWindowColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "windowText", settings.paletteWindowTextColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "base", settings.paletteBaseColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "alternateBase", settings.paletteAlternateBaseColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "text", settings.paletteTextColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "button", settings.paletteButtonColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "buttonText", settings.paletteButtonTextColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "highlight", settings.paletteHighlightColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "highlightedText", settings.paletteHighlightedTextColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "light", settings.paletteLightColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "midlight", settings.paletteMidlightColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "mid", settings.paletteMidColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "dark", settings.paletteDarkColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "shadow", settings.paletteShadowColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "link", settings.paletteLinkColor.name().toStdString());
+        settingsManager.setPaletteColorForTheme(themeName, "linkVisited", settings.paletteLinkVisitedColor.name().toStdString());
+
+        // Apply palette color overrides to ThemeManager (Task #00028)
+        // These override the theme's default palette and are applied to QApplication
+        themeManager.setColorOverride("palette.window", settings.paletteWindowColor);
+        themeManager.setColorOverride("palette.windowText", settings.paletteWindowTextColor);
+        themeManager.setColorOverride("palette.base", settings.paletteBaseColor);
+        themeManager.setColorOverride("palette.alternateBase", settings.paletteAlternateBaseColor);
+        themeManager.setColorOverride("palette.text", settings.paletteTextColor);
+        themeManager.setColorOverride("palette.button", settings.paletteButtonColor);
+        themeManager.setColorOverride("palette.buttonText", settings.paletteButtonTextColor);
+        themeManager.setColorOverride("palette.highlight", settings.paletteHighlightColor);
+        themeManager.setColorOverride("palette.highlightedText", settings.paletteHighlightedTextColor);
+        themeManager.setColorOverride("palette.light", settings.paletteLightColor);
+        themeManager.setColorOverride("palette.midlight", settings.paletteMidlightColor);
+        themeManager.setColorOverride("palette.mid", settings.paletteMidColor);
+        themeManager.setColorOverride("palette.dark", settings.paletteDarkColor);
+        themeManager.setColorOverride("palette.shadow", settings.paletteShadowColor);
+        themeManager.setColorOverride("palette.link", settings.paletteLinkColor);
+        themeManager.setColorOverride("palette.linkVisited", settings.paletteLinkVisitedColor);
+
+        // Apply UI color overrides (tooltip, placeholder, brightText)
+        themeManager.setColorOverride("palette.toolTipBase", settings.tooltipBackgroundColor);
+        themeManager.setColorOverride("palette.toolTipText", settings.tooltipTextColor);
+        themeManager.setColorOverride("palette.placeholderText", settings.placeholderTextColor);
+        themeManager.setColorOverride("palette.brightText", settings.brightTextColor);
+
+        // Apply log color overrides (Task #00027)
+        themeManager.setColorOverride("log.trace", settings.logTraceColor);
+        themeManager.setColorOverride("log.debug", settings.logDebugColor);
+        themeManager.setColorOverride("log.info", settings.logInfoColor);
+        themeManager.setColorOverride("log.warning", settings.logWarningColor);
+        themeManager.setColorOverride("log.error", settings.logErrorColor);
+        themeManager.setColorOverride("log.critical", settings.logCriticalColor);
+        themeManager.setColorOverride("log.background", settings.logBackgroundColor);
+
+        // Refresh the theme to apply all color overrides (palette + stylesheet)
+        themeManager.refreshTheme();
 
         BusyIndicator::tick();  // Animate
 

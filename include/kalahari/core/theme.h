@@ -54,6 +54,12 @@ struct Theme {
         QColor link;            ///< Hyperlink color
         QColor linkVisited;     ///< Visited hyperlink color
 
+        // Additional QPalette roles (OpenSpec #00028)
+        QColor toolTipBase;     ///< Tooltip background color
+        QColor toolTipText;     ///< Tooltip text color
+        QColor placeholderText; ///< Input placeholder text color
+        QColor brightText;      ///< High contrast text (on dark backgrounds)
+
         /// @brief Convert to QPalette object
         /// @return QPalette with all color roles set
         QPalette toQPalette() const;

@@ -4,6 +4,7 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/stylesheet.h"
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
@@ -91,11 +92,84 @@ ThemeManager::ThemeManager() {
         Logger::getInstance().info("ThemeManager: Using default icon colors for theme '{}'", themeName);
     }
 
+    // Task #00028: Load per-theme custom palette colors if they exist
+    bool isDark = (savedThemeName == "Dark");
+    if (settings.hasCustomPaletteColorsForTheme(themeName)) {
+        // Load and apply all 16 palette colors
+        auto loadPaletteColor = [&](const std::string& key, QColor& target, const std::string& defValue) {
+            std::string saved = settings.getPaletteColorForTheme(themeName, key, defValue);
+            QColor color(QString::fromStdString(saved));
+            if (color.isValid()) {
+                target = color;
+                m_overrides["palette." + key] = color;
+            }
+        };
+
+        // Basic Colors
+        loadPaletteColor("window", m_currentTheme.palette.window, isDark ? "#2d2d2d" : "#f0f0f0");
+        loadPaletteColor("windowText", m_currentTheme.palette.windowText, isDark ? "#e0e0e0" : "#000000");
+        loadPaletteColor("base", m_currentTheme.palette.base, isDark ? "#252525" : "#ffffff");
+        loadPaletteColor("alternateBase", m_currentTheme.palette.alternateBase, isDark ? "#323232" : "#f5f5f5");
+        loadPaletteColor("text", m_currentTheme.palette.text, isDark ? "#e0e0e0" : "#000000");
+        // Button Colors
+        loadPaletteColor("button", m_currentTheme.palette.button, isDark ? "#404040" : "#e0e0e0");
+        loadPaletteColor("buttonText", m_currentTheme.palette.buttonText, isDark ? "#e0e0e0" : "#000000");
+        // Selection Colors
+        loadPaletteColor("highlight", m_currentTheme.palette.highlight, "#0078d4");
+        loadPaletteColor("highlightedText", m_currentTheme.palette.highlightedText, "#ffffff");
+        // 3D Effect Colors
+        loadPaletteColor("light", m_currentTheme.palette.light, isDark ? "#505050" : "#ffffff");
+        loadPaletteColor("midlight", m_currentTheme.palette.midlight, isDark ? "#404040" : "#e0e0e0");
+        loadPaletteColor("mid", m_currentTheme.palette.mid, isDark ? "#303030" : "#a0a0a0");
+        loadPaletteColor("dark", m_currentTheme.palette.dark, isDark ? "#202020" : "#606060");
+        loadPaletteColor("shadow", m_currentTheme.palette.shadow, "#000000");
+        // Link Colors
+        loadPaletteColor("link", m_currentTheme.palette.link, isDark ? "#5eb3f0" : "#0078d4");
+        loadPaletteColor("linkVisited", m_currentTheme.palette.linkVisited, isDark ? "#b48ade" : "#551a8b");
+        // UI Colors
+        loadPaletteColor("toolTipBase", m_currentTheme.palette.toolTipBase, isDark ? "#3c3c3c" : "#ffffdc");
+        loadPaletteColor("toolTipText", m_currentTheme.palette.toolTipText, isDark ? "#e0e0e0" : "#000000");
+        loadPaletteColor("placeholderText", m_currentTheme.palette.placeholderText, isDark ? "#808080" : "#a0a0a0");
+        loadPaletteColor("brightText", m_currentTheme.palette.brightText, "#ffffff");
+
+        Logger::getInstance().info("ThemeManager: Loaded custom palette colors for theme '{}'", themeName);
+    }
+
+    // Task #00027: Load per-theme custom log colors if they exist
+    if (settings.hasCustomLogColorsForTheme(themeName)) {
+        auto loadLogColor = [&](const std::string& key, QColor& target, const std::string& defValue) {
+            std::string saved = settings.getLogColorForTheme(themeName, key, defValue);
+            QColor color(QString::fromStdString(saved));
+            if (color.isValid()) {
+                target = color;
+                m_overrides["log." + key] = color;
+            }
+        };
+
+        loadLogColor("trace", m_currentTheme.log.trace, isDark ? "#FF66FF" : "#CC00CC");
+        loadLogColor("debug", m_currentTheme.log.debug, isDark ? "#FF66FF" : "#CC00CC");
+        loadLogColor("info", m_currentTheme.log.info, isDark ? "#FFFFFF" : "#000000");
+        loadLogColor("warning", m_currentTheme.log.warning, isDark ? "#FFA500" : "#FF8C00");
+        loadLogColor("error", m_currentTheme.log.error, isDark ? "#FF4444" : "#CC0000");
+        loadLogColor("critical", m_currentTheme.log.critical, isDark ? "#FF4444" : "#CC0000");
+        loadLogColor("background", m_currentTheme.log.background, isDark ? "#252525" : "#F5F5F5");
+
+        Logger::getInstance().info("ThemeManager: Loaded custom log colors for theme '{}'", themeName);
+    }
+
     // Apply palette to QApplication at startup for full theme support
     // Requires Fusion style (set in main.cpp before ThemeManager init)
     QPalette palette = m_currentTheme.palette.toQPalette();
     QApplication::setPalette(palette);
-    Logger::getInstance().info("ThemeManager: Initial palette applied (Fusion style)");
+
+    // Apply QSS stylesheet (OpenSpec #00028)
+    QString qss = StyleSheet::generate(m_currentTheme);
+    if (qApp) {
+        qApp->setStyleSheet(qss);
+        Logger::getInstance().debug("ThemeManager: Applied stylesheet ({} chars)", qss.length());
+    }
+
+    Logger::getInstance().info("ThemeManager: Initial palette and stylesheet applied (Fusion style)");
 }
 
 // ============================================================================
@@ -189,6 +263,13 @@ void ThemeManager::applyTheme(const Theme& theme) {
     QPalette palette = theme.palette.toQPalette();
     QApplication::setPalette(palette);
 
+    // Apply QSS stylesheet (OpenSpec #00028)
+    QString qss = StyleSheet::generate(theme);
+    if (qApp) {
+        qApp->setStyleSheet(qss);
+    }
+
+    Logger::getInstance().debug("ThemeManager: Applied stylesheet ({} chars)", qss.length());
     Logger::getInstance().debug("ThemeManager: QPalette applied with {} color roles",
                                 static_cast<int>(QPalette::NColorRoles));
 
@@ -197,9 +278,10 @@ void ThemeManager::applyTheme(const Theme& theme) {
     settings.setTheme(theme.name);
     settings.save();
 
-    Logger::getInstance().info("ThemeManager: Applied theme '{}' (palette + settings)", theme.name);
+    Logger::getInstance().info("ThemeManager: Applied theme '{}' (palette + stylesheet + settings)", theme.name);
 
     emit themeChanged(m_currentTheme);
+    emit themeStyleChanged();
 }
 
 bool ThemeManager::switchTheme(const QString& themeName) {
@@ -273,8 +355,124 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
         }
     }
 
+    // Re-apply palette with overrides
+    QPalette palette = m_currentTheme.palette.toQPalette();
+    QApplication::setPalette(palette);
+
+    // Re-apply stylesheet with updated colors (OpenSpec #00028)
+    QString qss = StyleSheet::generate(m_currentTheme);
+    if (qApp) {
+        qApp->setStyleSheet(qss);
+    }
+
     Logger::getInstance().info("ThemeManager: Applied {} color overrides", overrides.size());
+    Logger::getInstance().debug("ThemeManager: Re-applied stylesheet ({} chars)", qss.length());
+
     emit themeChanged(m_currentTheme);
+    emit themeStyleChanged();
+}
+
+void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
+    if (!color.isValid()) {
+        Logger::getInstance().warn("ThemeManager: Invalid color for key '{}'", key.toStdString());
+        return;
+    }
+
+    // Store the override
+    m_overrides[key.toStdString()] = color;
+
+    // Apply override to current theme
+    // Theme colors
+    if (key == "primary" || key == "colors.primary") {
+        m_currentTheme.colors.primary = color;
+    } else if (key == "secondary" || key == "colors.secondary") {
+        m_currentTheme.colors.secondary = color;
+    } else if (key == "accent" || key == "colors.accent") {
+        m_currentTheme.colors.accent = color;
+    } else if (key == "background" || key == "colors.background") {
+        m_currentTheme.colors.background = color;
+    } else if (key == "text" || key == "colors.text") {
+        m_currentTheme.colors.text = color;
+    }
+    // Log colors
+    else if (key == "log.trace") {
+        m_currentTheme.log.trace = color;
+    } else if (key == "log.debug") {
+        m_currentTheme.log.debug = color;
+    } else if (key == "log.info") {
+        m_currentTheme.log.info = color;
+    } else if (key == "log.warning") {
+        m_currentTheme.log.warning = color;
+    } else if (key == "log.error") {
+        m_currentTheme.log.error = color;
+    } else if (key == "log.critical") {
+        m_currentTheme.log.critical = color;
+    } else if (key == "log.background") {
+        m_currentTheme.log.background = color;
+    }
+    // Palette colors (16 standard QPalette roles)
+    else if (key == "palette.window") {
+        m_currentTheme.palette.window = color;
+    } else if (key == "palette.windowText") {
+        m_currentTheme.palette.windowText = color;
+    } else if (key == "palette.base") {
+        m_currentTheme.palette.base = color;
+    } else if (key == "palette.alternateBase") {
+        m_currentTheme.palette.alternateBase = color;
+    } else if (key == "palette.text") {
+        m_currentTheme.palette.text = color;
+    } else if (key == "palette.button") {
+        m_currentTheme.palette.button = color;
+    } else if (key == "palette.buttonText") {
+        m_currentTheme.palette.buttonText = color;
+    } else if (key == "palette.highlight") {
+        m_currentTheme.palette.highlight = color;
+    } else if (key == "palette.highlightedText") {
+        m_currentTheme.palette.highlightedText = color;
+    } else if (key == "palette.light") {
+        m_currentTheme.palette.light = color;
+    } else if (key == "palette.midlight") {
+        m_currentTheme.palette.midlight = color;
+    } else if (key == "palette.mid") {
+        m_currentTheme.palette.mid = color;
+    } else if (key == "palette.dark") {
+        m_currentTheme.palette.dark = color;
+    } else if (key == "palette.shadow") {
+        m_currentTheme.palette.shadow = color;
+    } else if (key == "palette.link") {
+        m_currentTheme.palette.link = color;
+    } else if (key == "palette.linkVisited") {
+        m_currentTheme.palette.linkVisited = color;
+    }
+    // Additional UI palette colors
+    else if (key == "palette.toolTipBase") {
+        m_currentTheme.palette.toolTipBase = color;
+    } else if (key == "palette.toolTipText") {
+        m_currentTheme.palette.toolTipText = color;
+    } else if (key == "palette.placeholderText") {
+        m_currentTheme.palette.placeholderText = color;
+    } else if (key == "palette.brightText") {
+        m_currentTheme.palette.brightText = color;
+    } else {
+        Logger::getInstance().warn("ThemeManager: Unknown color key '{}'", key.toStdString());
+    }
+}
+
+void ThemeManager::refreshTheme() {
+    // Re-apply palette with current overrides
+    QPalette palette = m_currentTheme.palette.toQPalette();
+    QApplication::setPalette(palette);
+
+    // Re-apply stylesheet with updated colors
+    QString qss = StyleSheet::generate(m_currentTheme);
+    if (qApp) {
+        qApp->setStyleSheet(qss);
+    }
+
+    Logger::getInstance().debug("ThemeManager: Theme refreshed (palette + stylesheet)");
+
+    emit themeChanged(m_currentTheme);
+    emit themeStyleChanged();
 }
 
 void ThemeManager::resetColorOverrides() {

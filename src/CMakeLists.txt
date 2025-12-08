@@ -20,6 +20,7 @@ set(KALAHARI_CORE_SOURCES
     core/utils/svg_converter.cpp
     core/theme.cpp
     core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
+    core/stylesheet.cpp      # OpenSpec #00028: Qt Style Sheet generator
     # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable
     # (avoid Q_OBJECT DLL export issues with MOC-generated symbols)
 )

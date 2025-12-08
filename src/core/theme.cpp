@@ -66,6 +66,12 @@ QPalette Theme::Palette::toQPalette() const {
     setColorForAllGroups(QPalette::Link, link);
     setColorForAllGroups(QPalette::LinkVisited, linkVisited);
 
+    // Additional QPalette roles (OpenSpec #00028)
+    setColorForAllGroups(QPalette::ToolTipBase, toolTipBase);
+    setColorForAllGroups(QPalette::ToolTipText, toolTipText);
+    setColorForAllGroups(QPalette::PlaceholderText, placeholderText);
+    setColorForAllGroups(QPalette::BrightText, brightText);
+
     return pal;
 }
 
@@ -113,6 +119,16 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.palette.shadow = parseColor(pal.value("shadow", "#000000"));
         theme.palette.link = parseColor(pal.value("link", "#0078d4"));
         theme.palette.linkVisited = parseColor(pal.value("linkVisited", "#551a8b"));
+
+        // Additional QPalette roles with backward-compatible defaults (OpenSpec #00028)
+        bool isDark = isDarkBackground(theme.palette.window);
+        theme.palette.toolTipBase = parseColor(pal.value("toolTipBase",
+            isDark ? "#3c3c3c" : "#ffffdc"));
+        theme.palette.toolTipText = parseColor(pal.value("toolTipText",
+            isDark ? "#e0e0e0" : "#000000"));
+        theme.palette.placeholderText = parseColor(pal.value("placeholderText",
+            isDark ? "#808080" : "#a0a0a0"));
+        theme.palette.brightText = parseColor(pal.value("brightText", "#ffffff"));
     } else {
         // Auto-generate palette from main colors (backward compatibility)
         bool isDark = isDarkBackground(theme.colors.background);
@@ -147,6 +163,16 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.palette.shadow = QColor("#000000");
         theme.palette.link = theme.colors.accent;
         theme.palette.linkVisited = theme.colors.accent.darker(120);
+
+        // Additional QPalette roles (OpenSpec #00028)
+        theme.palette.toolTipBase = isDark
+            ? theme.colors.background.lighter(120)
+            : QColor("#ffffdc");
+        theme.palette.toolTipText = theme.colors.text;
+        theme.palette.placeholderText = isDark
+            ? QColor("#808080")
+            : QColor("#a0a0a0");
+        theme.palette.brightText = QColor("#ffffff");
     }
 
     // Parse log colors (optional, use defaults if missing)
@@ -216,7 +242,12 @@ nlohmann::json Theme::toJson() const {
         {"dark", colorToHex(palette.dark)},
         {"shadow", colorToHex(palette.shadow)},
         {"link", colorToHex(palette.link)},
-        {"linkVisited", colorToHex(palette.linkVisited)}
+        {"linkVisited", colorToHex(palette.linkVisited)},
+        // Additional QPalette roles (OpenSpec #00028)
+        {"toolTipBase", colorToHex(palette.toolTipBase)},
+        {"toolTipText", colorToHex(palette.toolTipText)},
+        {"placeholderText", colorToHex(palette.placeholderText)},
+        {"brightText", colorToHex(palette.brightText)}
     };
 
     // Log colors

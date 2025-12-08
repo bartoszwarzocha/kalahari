@@ -49,9 +49,10 @@ BusyIndicator::BusyIndicator(QWidget* parent)
     // Create message label
     m_messageLabel = new QLabel(this);
     m_messageLabel->setAlignment(Qt::AlignCenter);
+    // Use brightText from theme for text on dark overlay background
     m_messageLabel->setStyleSheet(
-        "QLabel { color: white; font-size: 14px; font-weight: bold; "
-        "background: transparent; }");
+        QString("QLabel { color: %1; font-size: 14px; font-weight: bold; "
+        "background: transparent; }").arg(theme.palette.brightText.name()));
     m_messageLabel->hide();
 
     // Setup animation timer (60 FPS)

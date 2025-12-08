@@ -211,6 +211,72 @@ public:
     /// @param themeName Theme name (e.g., "Light", "Dark")
     void clearCustomLogColorsForTheme(const std::string& themeName);
 
+    // =========================================================================
+    // Per-theme UI colors (Task #00028)
+    // Stores custom UI colors per theme: themes.<ThemeName>.ui.<colorKey>
+    // Valid colorKey values: toolTipBase, toolTipText, placeholderText, brightText
+    // =========================================================================
+
+    /// @brief Get UI color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey UI color key (toolTipBase, toolTipText, placeholderText, brightText)
+    /// @param defaultColor Default color if no custom color is set
+    /// @return Color in hex format
+    std::string getUiColorForTheme(const std::string& themeName,
+                                   const std::string& colorKey,
+                                   const std::string& defaultColor) const;
+
+    /// @brief Set UI color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey UI color key (toolTipBase, toolTipText, placeholderText, brightText)
+    /// @param color Color in hex format (e.g., "#ffffdc")
+    void setUiColorForTheme(const std::string& themeName,
+                            const std::string& colorKey,
+                            const std::string& color);
+
+    /// @brief Check if a theme has custom UI colors
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @return true if custom UI colors exist for this theme
+    bool hasCustomUiColorsForTheme(const std::string& themeName) const;
+
+    /// @brief Clear custom UI colors for a theme (restore to theme defaults)
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    void clearCustomUiColorsForTheme(const std::string& themeName);
+
+    // =========================================================================
+    // Per-theme palette colors (Task #00028 - Full QPalette support)
+    // Stores custom palette colors per theme: themes.<ThemeName>.palette.<colorKey>
+    // Valid colorKey values: window, windowText, base, alternateBase, text,
+    //   button, buttonText, highlight, highlightedText, light, midlight,
+    //   mid, dark, shadow, link, linkVisited
+    // =========================================================================
+
+    /// @brief Get palette color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey Palette color key (window, windowText, base, etc.)
+    /// @param defaultColor Default color if no custom color is set
+    /// @return Color in hex format
+    std::string getPaletteColorForTheme(const std::string& themeName,
+                                        const std::string& colorKey,
+                                        const std::string& defaultColor) const;
+
+    /// @brief Set palette color for a specific theme and color key
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @param colorKey Palette color key (window, windowText, base, etc.)
+    /// @param color Color in hex format (e.g., "#f0f0f0")
+    void setPaletteColorForTheme(const std::string& themeName,
+                                 const std::string& colorKey,
+                                 const std::string& color);
+
+    /// @brief Check if a theme has custom palette colors
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    /// @return true if custom palette colors exist for this theme
+    bool hasCustomPaletteColorsForTheme(const std::string& themeName) const;
+
+    /// @brief Clear custom palette colors for a theme (restore to theme defaults)
+    /// @param themeName Theme name (e.g., "Light", "Dark")
+    void clearCustomPaletteColorsForTheme(const std::string& themeName);
+
     /// @brief Get settings file path
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;

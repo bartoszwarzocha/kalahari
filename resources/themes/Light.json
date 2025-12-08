@@ -26,7 +26,11 @@
     "dark": "#606060",
     "shadow": "#505050",
     "link": "#0078d4",
-    "linkVisited": "#551a8b"
+    "linkVisited": "#551a8b",
+    "toolTipBase": "#ffffdc",
+    "toolTipText": "#000000",
+    "placeholderText": "#a0a0a0",
+    "brightText": "#ffffff"
   },
   "log": {
     "trace": "#CC00CC",

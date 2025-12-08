@@ -59,6 +59,45 @@ struct SettingsData {
     bool diagnosticMode = false;///< Enable diagnostic menu
 
     // ========================================================================
+    // Appearance / Theme - UI Colors (QPalette roles)
+    // ========================================================================
+
+    QColor tooltipBackgroundColor; ///< Tooltip background color (toolTipBase)
+    QColor tooltipTextColor;       ///< Tooltip text color (toolTipText)
+    QColor placeholderTextColor;   ///< Placeholder text color in inputs
+    QColor brightTextColor;        ///< High contrast text on dark backgrounds
+
+    // ========================================================================
+    // Appearance / Theme - Palette Colors (all 16 QPalette roles)
+    // ========================================================================
+
+    // Basic Colors
+    QColor paletteWindowColor;        ///< Window background color
+    QColor paletteWindowTextColor;    ///< General text color
+    QColor paletteBaseColor;          ///< Input field background color
+    QColor paletteAlternateBaseColor; ///< Alternating row background color
+    QColor paletteTextColor;          ///< Input field text color
+
+    // Button Colors
+    QColor paletteButtonColor;        ///< Button background color
+    QColor paletteButtonTextColor;    ///< Button text color
+
+    // Selection Colors
+    QColor paletteHighlightColor;       ///< Selection background color
+    QColor paletteHighlightedTextColor; ///< Selected text color
+
+    // 3D Effect Colors
+    QColor paletteLightColor;    ///< Lightest color for 3D effects
+    QColor paletteMidlightColor; ///< Between light and button
+    QColor paletteMidColor;      ///< Medium color for borders
+    QColor paletteDarkColor;     ///< Darker color for 3D effects
+    QColor paletteShadowColor;   ///< Darkest color for shadows
+
+    // Link Colors
+    QColor paletteLinkColor;        ///< Hyperlink color
+    QColor paletteLinkVisitedColor; ///< Visited hyperlink color
+
+    // ========================================================================
     // Appearance / Theme - Log Panel Colors
     // ========================================================================
 
@@ -90,6 +129,28 @@ struct SettingsData {
                secondaryColor != other.secondaryColor ||
                iconSizes != other.iconSizes ||
                uiFontSize != other.uiFontSize ||
+               tooltipBackgroundColor != other.tooltipBackgroundColor ||
+               tooltipTextColor != other.tooltipTextColor ||
+               placeholderTextColor != other.placeholderTextColor ||
+               brightTextColor != other.brightTextColor ||
+               // Palette colors
+               paletteWindowColor != other.paletteWindowColor ||
+               paletteWindowTextColor != other.paletteWindowTextColor ||
+               paletteBaseColor != other.paletteBaseColor ||
+               paletteAlternateBaseColor != other.paletteAlternateBaseColor ||
+               paletteTextColor != other.paletteTextColor ||
+               paletteButtonColor != other.paletteButtonColor ||
+               paletteButtonTextColor != other.paletteButtonTextColor ||
+               paletteHighlightColor != other.paletteHighlightColor ||
+               paletteHighlightedTextColor != other.paletteHighlightedTextColor ||
+               paletteLightColor != other.paletteLightColor ||
+               paletteMidlightColor != other.paletteMidlightColor ||
+               paletteMidColor != other.paletteMidColor ||
+               paletteDarkColor != other.paletteDarkColor ||
+               paletteShadowColor != other.paletteShadowColor ||
+               paletteLinkColor != other.paletteLinkColor ||
+               paletteLinkVisitedColor != other.paletteLinkVisitedColor ||
+               // Log colors
                logTraceColor != other.logTraceColor ||
                logDebugColor != other.logDebugColor ||
                logInfoColor != other.logInfoColor ||
@@ -117,6 +178,28 @@ struct SettingsData {
                wordWrap != other.wordWrap ||
                diagnosticMode != other.diagnosticMode ||
                logBufferSize != other.logBufferSize ||
+               tooltipBackgroundColor != other.tooltipBackgroundColor ||
+               tooltipTextColor != other.tooltipTextColor ||
+               placeholderTextColor != other.placeholderTextColor ||
+               brightTextColor != other.brightTextColor ||
+               // Palette colors
+               paletteWindowColor != other.paletteWindowColor ||
+               paletteWindowTextColor != other.paletteWindowTextColor ||
+               paletteBaseColor != other.paletteBaseColor ||
+               paletteAlternateBaseColor != other.paletteAlternateBaseColor ||
+               paletteTextColor != other.paletteTextColor ||
+               paletteButtonColor != other.paletteButtonColor ||
+               paletteButtonTextColor != other.paletteButtonTextColor ||
+               paletteHighlightColor != other.paletteHighlightColor ||
+               paletteHighlightedTextColor != other.paletteHighlightedTextColor ||
+               paletteLightColor != other.paletteLightColor ||
+               paletteMidlightColor != other.paletteMidlightColor ||
+               paletteMidColor != other.paletteMidColor ||
+               paletteDarkColor != other.paletteDarkColor ||
+               paletteShadowColor != other.paletteShadowColor ||
+               paletteLinkColor != other.paletteLinkColor ||
+               paletteLinkVisitedColor != other.paletteLinkVisitedColor ||
+               // Log colors
                logTraceColor != other.logTraceColor ||
                logDebugColor != other.logDebugColor ||
                logInfoColor != other.logInfoColor ||

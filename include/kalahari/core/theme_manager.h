@@ -63,13 +63,29 @@ public:
     /// Example: {"primary": "#FF0000", "secondary": "#00FF00"}
     void applyColorOverrides(const std::map<std::string, QColor>& overrides);
 
+    /// @brief Set a single color override
+    /// @param key Color key (e.g., "primary", "secondary", "palette.window", "log.info")
+    /// @param color Color value to set
+    /// Supported keys:
+    /// - "primary", "secondary", "accent", "background", "text" - Theme colors
+    /// - "palette.*" - QPalette colors (window, windowText, base, etc.)
+    /// - "log.*" - Log panel colors (trace, debug, info, etc.)
+    void setColorOverride(const QString& key, const QColor& color);
+
     /// @brief Reset all color overrides (restore theme defaults)
     void resetColorOverrides();
+
+    /// @brief Refresh theme application (reapply palette and stylesheet)
+    /// Call this after multiple setColorOverride() calls to apply changes
+    void refreshTheme();
 
 signals:
     /// @brief Emitted when theme changes
     /// @param theme New active theme (with overrides applied)
     void themeChanged(const Theme& theme);
+
+    /// @brief Emitted after stylesheet applied (for additional widget refresh)
+    void themeStyleChanged();
 
 private:
     ThemeManager(); // Private constructor (singleton)

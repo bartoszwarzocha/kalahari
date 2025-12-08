@@ -2,6 +2,7 @@
 /// @brief Implementation of ColorConfigWidget
 
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/core/theme_manager.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -18,15 +19,21 @@ ColorConfigWidget::ColorConfigWidget(const QString& label, QWidget* parent)
     , m_hexLabel(nullptr)
     , m_color(Qt::black)
 {
-    // Create horizontal layout
+    // Create horizontal layout with 40/60 split for label/controls
     QHBoxLayout* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(8);
 
-    // Label
+    // Label (40% width via stretch factor 2)
     m_label = new QLabel(label, this);
-    m_label->setMinimumWidth(80);
-    layout->addWidget(m_label);
+    m_label->setMinimumWidth(100);
+    m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    layout->addWidget(m_label, 2);  // stretch factor 2 = 40%
+
+    // Controls container (60% width via stretch factor 3)
+    QHBoxLayout* controlsLayout = new QHBoxLayout();
+    controlsLayout->setContentsMargins(0, 0, 0, 0);
+    controlsLayout->setSpacing(8);
 
     // Color button - 24x24 with color as background
     m_colorButton = new QPushButton(this);
@@ -35,16 +42,18 @@ ColorConfigWidget::ColorConfigWidget(const QString& label, QWidget* parent)
     m_colorButton->setToolTip(tr("Click to select color"));
     connect(m_colorButton, &QPushButton::clicked,
             this, &ColorConfigWidget::onColorButtonClicked);
-    layout->addWidget(m_colorButton);
+    controlsLayout->addWidget(m_colorButton);
 
     // Hex label
     m_hexLabel = new QLabel(this);
     m_hexLabel->setMinimumWidth(60);
     m_hexLabel->setStyleSheet("font-family: monospace;");
-    layout->addWidget(m_hexLabel);
+    controlsLayout->addWidget(m_hexLabel);
 
-    // Add stretch to push everything to the left
-    layout->addStretch();
+    // Push controls to the left within the 60% area
+    controlsLayout->addStretch();
+
+    layout->addLayout(controlsLayout, 3);  // stretch factor 3 = 60%
 
     // Initialize display
     updateColorDisplay();
@@ -78,12 +87,13 @@ void ColorConfigWidget::onColorButtonClicked() {
 }
 
 void ColorConfigWidget::updateColorDisplay() {
-    // Update button background
+    // Update button background - use theme-aware border color
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     QString buttonStyle = QString(
         "background-color: %1; "
-        "border: 1px solid #888; "
+        "border: 1px solid %2; "
         "border-radius: 2px;"
-    ).arg(m_color.name());
+    ).arg(m_color.name()).arg(theme.palette.mid.name());
     m_colorButton->setStyleSheet(buttonStyle);
 
     // Update hex label

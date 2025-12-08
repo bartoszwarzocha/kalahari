@@ -155,6 +155,37 @@ private:
     QComboBox* m_themeComboBox;
     ColorConfigWidget* m_primaryColorWidget;
     ColorConfigWidget* m_secondaryColorWidget;
+
+    // UI Colors (QPalette roles)
+    ColorConfigWidget* m_tooltipBackgroundColorWidget;
+    ColorConfigWidget* m_tooltipTextColorWidget;
+    ColorConfigWidget* m_placeholderTextColorWidget;
+    ColorConfigWidget* m_brightTextColorWidget;
+
+    // Palette Colors (all 16 QPalette roles)
+    // Basic Colors
+    ColorConfigWidget* m_paletteWindowColorWidget;
+    ColorConfigWidget* m_paletteWindowTextColorWidget;
+    ColorConfigWidget* m_paletteBaseColorWidget;
+    ColorConfigWidget* m_paletteAlternateBaseColorWidget;
+    ColorConfigWidget* m_paletteTextColorWidget;
+    // Button Colors
+    ColorConfigWidget* m_paletteButtonColorWidget;
+    ColorConfigWidget* m_paletteButtonTextColorWidget;
+    // Selection Colors
+    ColorConfigWidget* m_paletteHighlightColorWidget;
+    ColorConfigWidget* m_paletteHighlightedTextColorWidget;
+    // 3D Effect Colors
+    ColorConfigWidget* m_paletteLightColorWidget;
+    ColorConfigWidget* m_paletteMidlightColorWidget;
+    ColorConfigWidget* m_paletteMidColorWidget;
+    ColorConfigWidget* m_paletteDarkColorWidget;
+    ColorConfigWidget* m_paletteShadowColorWidget;
+    // Link Colors
+    ColorConfigWidget* m_paletteLinkColorWidget;
+    ColorConfigWidget* m_paletteLinkVisitedColorWidget;
+
+    // Log Panel Colors
     ColorConfigWidget* m_logTraceColorWidget;
     ColorConfigWidget* m_logDebugColorWidget;
     ColorConfigWidget* m_logInfoColorWidget;

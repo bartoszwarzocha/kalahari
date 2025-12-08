@@ -37,6 +37,10 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPlainTextEdit>
+#include <QLabel>
+#include <QHBoxLayout>
+#include <QToolButton>
+#include <QStyle>
 
 namespace kalahari {
 namespace gui {
@@ -1058,6 +1062,90 @@ void MainWindow::onAboutQt() {
 }
 
 // Dock management
+
+/// @brief Setup custom title bar widget with icon for QDockWidget (Task #00028)
+/// @param dock The dock widget to customize
+/// @param iconId Icon command ID (e.g., "view.navigator")
+/// @param title Translated title text
+/// @note Creates horizontal layout with icon label + title label + float/close buttons
+/// @note Since setTitleBarWidget() replaces Qt's default title bar, we add our own buttons
+/// @note Stores icon label in m_dockIconLabels for theme refresh
+void MainWindow::setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title) {
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Create custom title bar widget
+    QWidget* titleBar = new QWidget(dock);
+    QHBoxLayout* layout = new QHBoxLayout(titleBar);
+    layout->setContentsMargins(6, 2, 6, 2);
+    layout->setSpacing(4);
+
+    // Icon label (16x16 for title bar)
+    QLabel* iconLabel = new QLabel(titleBar);
+    QIcon icon = artProvider.getIcon(iconId);
+    iconLabel->setPixmap(icon.pixmap(16, 16));
+    iconLabel->setFixedSize(16, 16);
+    iconLabel->setProperty("iconId", iconId);  // Store icon ID for theme refresh (Task #00028)
+    layout->addWidget(iconLabel);
+
+    // Store reference for theme refresh (Task #00028)
+    m_dockIconLabels.append(iconLabel);
+
+    // Title label
+    QLabel* titleLabel = new QLabel(title, titleBar);
+    titleLabel->setStyleSheet("font-weight: bold;");
+    layout->addWidget(titleLabel);
+
+    // Stretch to push buttons to the right
+    layout->addStretch();
+
+    // Float button (if dock is floatable)
+    QDockWidget::DockWidgetFeatures features = dock->features();
+    if (features & QDockWidget::DockWidgetFloatable) {
+        QToolButton* floatButton = new QToolButton(titleBar);
+        floatButton->setAutoRaise(true);
+        floatButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TitleBarNormalButton));
+        floatButton->setToolTip(QObject::tr("Float"));
+        floatButton->setFixedSize(16, 16);
+        QObject::connect(floatButton, &QToolButton::clicked, dock, [dock]() {
+            dock->setFloating(!dock->isFloating());
+        });
+        layout->addWidget(floatButton);
+    }
+
+    // Close button (if dock is closable)
+    if (features & QDockWidget::DockWidgetClosable) {
+        QToolButton* closeButton = new QToolButton(titleBar);
+        closeButton->setAutoRaise(true);
+        closeButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeButton->setToolTip(QObject::tr("Close"));
+        closeButton->setFixedSize(16, 16);
+        QObject::connect(closeButton, &QToolButton::clicked, dock, &QDockWidget::close);
+        layout->addWidget(closeButton);
+    }
+
+    dock->setTitleBarWidget(titleBar);
+}
+
+/// @brief Refresh all dock title bar icons (Task #00028)
+/// @note Called when theme changes to update icon colors
+void MainWindow::refreshDockIcons() {
+    auto& artProvider = core::ArtProvider::getInstance();
+    auto& logger = core::Logger::getInstance();
+
+    int refreshedCount = 0;
+    for (QLabel* label : m_dockIconLabels) {
+        if (label) {
+            QString iconId = label->property("iconId").toString();
+            if (!iconId.isEmpty()) {
+                label->setPixmap(artProvider.getIcon(iconId).pixmap(16, 16));
+                ++refreshedCount;
+            }
+        }
+    }
+
+    logger.debug("MainWindow: Refreshed {} dock title bar icons", refreshedCount);
+}
+
 void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("Creating dock widgets");
@@ -1101,6 +1189,7 @@ void MainWindow::createDocks() {
     m_navigatorDock = new QDockWidget(tr("Navigator"), this);
     m_navigatorDock->setWidget(m_navigatorPanel);
     m_navigatorDock->setObjectName("NavigatorDock");  // Required for saveState!
+    setupDockTitleBar(m_navigatorDock, "view.navigator", tr("Navigator"));
     addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
 
     // Connect Navigator double-click signal (Task #00015)
@@ -1112,6 +1201,7 @@ void MainWindow::createDocks() {
     m_propertiesDock = new QDockWidget(tr("Properties"), this);
     m_propertiesDock->setWidget(m_propertiesPanel);
     m_propertiesDock->setObjectName("PropertiesDock");
+    setupDockTitleBar(m_propertiesDock, "view.properties", tr("Properties"));
     addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
 
     // Log dock (bottom)
@@ -1120,6 +1210,7 @@ void MainWindow::createDocks() {
     m_logDock = new QDockWidget(tr("Log"), this);
     m_logDock->setWidget(m_logPanel);
     m_logDock->setObjectName("LogDock");
+    setupDockTitleBar(m_logDock, "view.log", tr("Log"));
     addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
 
     // Register LogPanel's sink with spdlog logger (OpenSpec #00024)
@@ -1139,6 +1230,7 @@ void MainWindow::createDocks() {
     m_searchDock = new QDockWidget(tr("Search"), this);
     m_searchDock->setWidget(m_searchPanel);
     m_searchDock->setObjectName("SearchDock");
+    setupDockTitleBar(m_searchDock, "view.search", tr("Search"));
     addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     tabifyDockWidget(m_propertiesDock, m_searchDock);
 
@@ -1147,6 +1239,7 @@ void MainWindow::createDocks() {
     m_assistantDock = new QDockWidget(tr("Assistant"), this);
     m_assistantDock->setWidget(m_assistantPanel);
     m_assistantDock->setObjectName("AssistantDock");
+    setupDockTitleBar(m_assistantDock, "view.assistant", tr("Assistant"));
     addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     tabifyDockWidget(m_searchDock, m_assistantDock);
 
@@ -1171,23 +1264,31 @@ void MainWindow::createDocks() {
     logger.debug("Created VIEW/Panels submenu for dock toggles");
 
     // Create toggle actions and add to Panels submenu (use QDockWidget's built-in toggleViewAction!)
+    // Set icons through ArtProvider for proper theme coloring
+    auto& artProvider = core::ArtProvider::getInstance();
+
     m_viewNavigatorAction = m_navigatorDock->toggleViewAction();
+    m_viewNavigatorAction->setIcon(artProvider.getIcon("view.navigator"));
     m_viewNavigatorAction->setShortcut(QKeySequence(tr("Ctrl+1")));
     panelsSubmenu->addAction(m_viewNavigatorAction);
 
     m_viewPropertiesAction = m_propertiesDock->toggleViewAction();
+    m_viewPropertiesAction->setIcon(artProvider.getIcon("view.properties"));
     m_viewPropertiesAction->setShortcut(QKeySequence(tr("Ctrl+2")));
     panelsSubmenu->addAction(m_viewPropertiesAction);
 
     m_viewLogAction = m_logDock->toggleViewAction();
+    m_viewLogAction->setIcon(artProvider.getIcon("view.log"));
     m_viewLogAction->setShortcut(QKeySequence(tr("Ctrl+3")));
     panelsSubmenu->addAction(m_viewLogAction);
 
     m_viewSearchAction = m_searchDock->toggleViewAction();
+    m_viewSearchAction->setIcon(artProvider.getIcon("view.search"));
     m_viewSearchAction->setShortcut(QKeySequence(tr("Ctrl+4")));
     panelsSubmenu->addAction(m_viewSearchAction);
 
     m_viewAssistantAction = m_assistantDock->toggleViewAction();
+    m_viewAssistantAction->setIcon(artProvider.getIcon("view.assistant"));
     m_viewAssistantAction->setShortcut(QKeySequence(tr("Ctrl+5")));
     panelsSubmenu->addAction(m_viewAssistantAction);
 
@@ -1915,9 +2016,13 @@ void MainWindow::onThemeChanged(const core::Theme& theme) {
 
     logger.debug("MainWindow: IconRegistry updated with new theme colors");
 
-    // OpenSpec #00026: Manual icon refresh REMOVED
+    // OpenSpec #00026: Manual icon refresh REMOVED for menu/toolbar actions
     // Icons now auto-refresh via ArtProvider::resourcesChanged() signal
     // which is connected to all actions created by ArtProvider::createAction()
+
+    // Task #00028: Refresh dock panel title bar icons
+    // These are QLabel pixmaps, not QActions, so they need manual refresh
+    refreshDockIcons();
 }
 
 void MainWindow::showEvent(QShowEvent* event) {
@@ -2001,11 +2106,34 @@ SettingsData MainWindow::collectCurrentSettings() const {
     // Advanced/Log
     settingsData.logBufferSize = settings.get<int>("log.bufferSize", 500);
 
-    // Log Panel Colors (Task #00027)
+    // UI Colors (Task #00028)
     // Load per-theme colors with theme-appropriate defaults
     std::string themeName = settingsData.theme.toStdString();
     bool isDark = (themeName == "Dark");
 
+    // Define UI color defaults (from theme.cpp)
+    std::string defToolTipBase = isDark ? "#3c3c3c" : "#ffffdc";
+    std::string defToolTipText = isDark ? "#e0e0e0" : "#000000";
+    std::string defPlaceholderText = isDark ? "#808080" : "#a0a0a0";
+    std::string defBrightText = "#ffffff";
+
+    if (settings.hasCustomUiColorsForTheme(themeName)) {
+        settingsData.tooltipBackgroundColor = QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "toolTipBase", defToolTipBase)));
+        settingsData.tooltipTextColor = QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "toolTipText", defToolTipText)));
+        settingsData.placeholderTextColor = QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "placeholderText", defPlaceholderText)));
+        settingsData.brightTextColor = QColor(QString::fromStdString(
+            settings.getUiColorForTheme(themeName, "brightText", defBrightText)));
+    } else {
+        settingsData.tooltipBackgroundColor = QColor(QString::fromStdString(defToolTipBase));
+        settingsData.tooltipTextColor = QColor(QString::fromStdString(defToolTipText));
+        settingsData.placeholderTextColor = QColor(QString::fromStdString(defPlaceholderText));
+        settingsData.brightTextColor = QColor(QString::fromStdString(defBrightText));
+    }
+
+    // Log Panel Colors (Task #00027)
     // Define theme defaults
     std::string defTrace = isDark ? "#FF66FF" : "#CC00CC";
     std::string defDebug = isDark ? "#FF66FF" : "#CC00CC";
@@ -2057,6 +2185,77 @@ SettingsData MainWindow::collectCurrentSettings() const {
         settingsData.logErrorColor = QColor(QString::fromStdString(defError));
         settingsData.logCriticalColor = QColor(QString::fromStdString(defCritical));
         settingsData.logBackgroundColor = QColor(QString::fromStdString(defBackground));
+    }
+
+    // Palette Colors (Task #00028)
+    // Define palette color defaults (from theme.cpp)
+    std::string defWindow = isDark ? "#2d2d2d" : "#f0f0f0";
+    std::string defWindowText = isDark ? "#e0e0e0" : "#000000";
+    std::string defBase = isDark ? "#252525" : "#ffffff";
+    std::string defAlternateBase = isDark ? "#323232" : "#f5f5f5";
+    std::string defTextPalette = isDark ? "#e0e0e0" : "#000000";
+    std::string defButton = isDark ? "#404040" : "#e0e0e0";
+    std::string defButtonText = isDark ? "#e0e0e0" : "#000000";
+    std::string defHighlight = "#0078d4";
+    std::string defHighlightedText = "#ffffff";
+    std::string defLight = isDark ? "#505050" : "#ffffff";
+    std::string defMidlight = isDark ? "#404040" : "#e0e0e0";
+    std::string defMid = isDark ? "#303030" : "#a0a0a0";
+    std::string defDark = isDark ? "#202020" : "#606060";
+    std::string defShadow = "#000000";
+    std::string defLink = isDark ? "#5eb3f0" : "#0078d4";
+    std::string defLinkVisited = isDark ? "#b48ade" : "#551a8b";
+
+    if (settings.hasCustomPaletteColorsForTheme(themeName)) {
+        settingsData.paletteWindowColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "window", defWindow)));
+        settingsData.paletteWindowTextColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "windowText", defWindowText)));
+        settingsData.paletteBaseColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "base", defBase)));
+        settingsData.paletteAlternateBaseColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "alternateBase", defAlternateBase)));
+        settingsData.paletteTextColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "text", defTextPalette)));
+        settingsData.paletteButtonColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "button", defButton)));
+        settingsData.paletteButtonTextColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "buttonText", defButtonText)));
+        settingsData.paletteHighlightColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "highlight", defHighlight)));
+        settingsData.paletteHighlightedTextColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "highlightedText", defHighlightedText)));
+        settingsData.paletteLightColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "light", defLight)));
+        settingsData.paletteMidlightColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "midlight", defMidlight)));
+        settingsData.paletteMidColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "mid", defMid)));
+        settingsData.paletteDarkColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "dark", defDark)));
+        settingsData.paletteShadowColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "shadow", defShadow)));
+        settingsData.paletteLinkColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "link", defLink)));
+        settingsData.paletteLinkVisitedColor = QColor(QString::fromStdString(
+            settings.getPaletteColorForTheme(themeName, "linkVisited", defLinkVisited)));
+    } else {
+        settingsData.paletteWindowColor = QColor(QString::fromStdString(defWindow));
+        settingsData.paletteWindowTextColor = QColor(QString::fromStdString(defWindowText));
+        settingsData.paletteBaseColor = QColor(QString::fromStdString(defBase));
+        settingsData.paletteAlternateBaseColor = QColor(QString::fromStdString(defAlternateBase));
+        settingsData.paletteTextColor = QColor(QString::fromStdString(defTextPalette));
+        settingsData.paletteButtonColor = QColor(QString::fromStdString(defButton));
+        settingsData.paletteButtonTextColor = QColor(QString::fromStdString(defButtonText));
+        settingsData.paletteHighlightColor = QColor(QString::fromStdString(defHighlight));
+        settingsData.paletteHighlightedTextColor = QColor(QString::fromStdString(defHighlightedText));
+        settingsData.paletteLightColor = QColor(QString::fromStdString(defLight));
+        settingsData.paletteMidlightColor = QColor(QString::fromStdString(defMidlight));
+        settingsData.paletteMidColor = QColor(QString::fromStdString(defMid));
+        settingsData.paletteDarkColor = QColor(QString::fromStdString(defDark));
+        settingsData.paletteShadowColor = QColor(QString::fromStdString(defShadow));
+        settingsData.paletteLinkColor = QColor(QString::fromStdString(defLink));
+        settingsData.paletteLinkVisitedColor = QColor(QString::fromStdString(defLinkVisited));
     }
 
     logger.debug("MainWindow: Settings collected");

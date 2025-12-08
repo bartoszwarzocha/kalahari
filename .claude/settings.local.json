@@ -190,6 +190,11 @@
       "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --name-only -- scripts/)",
       "Bash(git -C /e/Python/Projekty/Kalahari log --all --oneline --diff-filter=A -- \"*.bat\")",
       "Bash(python -m orchestrator.main:*)",
+      "Bash(scripts/build_windows.bat Release)",
+      "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|color_config|settings_dialog)\")",
+      "Bash(E:/Python/Projekty/Kalahari/build-windows/bin/kalahari-tests.exe:*)",
+      "Bash(python:*)",
+      "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|log_panel)\")",
       "Bash(git rebase:*)",
       "Bash(GIT_EDITOR=true git rebase:*)"
     ],

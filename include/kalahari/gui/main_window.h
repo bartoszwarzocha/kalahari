@@ -22,6 +22,7 @@
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
+class QLabel;
 
 namespace kalahari {
 
@@ -137,6 +138,18 @@ private:
 
     /// @brief Remove dev tools menu (Task #00020)
     void removeDevToolsMenu();
+
+    /// @brief Setup custom title bar for dock widget (Task #00028)
+    /// @param dock The dock widget to customize
+    /// @param iconId Icon command ID (e.g., "view.navigator")
+    /// @param title Translated title text
+    /// @note Creates horizontal layout with icon label + title label + float/close buttons
+    /// @note Stores icon label in m_dockIconLabels for theme refresh
+    void setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title);
+
+    /// @brief Refresh all dock title bar icons (Task #00028)
+    /// @note Called when theme changes to update icon colors
+    void refreshDockIcons();
 
 protected:
     /// @brief Save perspective on close
@@ -288,6 +301,9 @@ private:
     // Dev mode (Task #00020)
     bool m_devMode;             ///< Dev mode enabled flag
     QMenu* m_devToolsMenu;      ///< Dev Tools menu (only visible when m_devMode=true)
+
+    // Dock title bar icons (Task #00028)
+    QList<QLabel*> m_dockIconLabels;  ///< Icon labels in dock title bars (for theme refresh)
 
     // Document management (Task #00008 - Phase 0)
     std::optional<core::Document> m_currentDocument;  ///< Current loaded document

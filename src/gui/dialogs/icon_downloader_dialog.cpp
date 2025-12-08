@@ -5,6 +5,7 @@
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/theme_manager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -68,12 +69,15 @@ void IconDownloaderDialog::setupUi() {
     QGroupBox* urlGroup = new QGroupBox("Icon URL", this);
     QVBoxLayout* urlLayout = new QVBoxLayout(urlGroup);
 
+    // Use theme-aware muted text color
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     QLabel* urlHint = new QLabel(
         "Enter full URL to SVG icon. Example:\n"
         "https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg",
         urlGroup);
     urlHint->setWordWrap(true);
-    urlHint->setStyleSheet("color: #666; font-size: 11px;");
+    urlHint->setStyleSheet(QString("color: %1; font-size: 11px;")
+        .arg(theme.palette.mid.name()));
     urlLayout->addWidget(urlHint);
 
     m_sourceUrlEdit = new QLineEdit(urlGroup);
@@ -126,7 +130,9 @@ void IconDownloaderDialog::setupUi() {
 
     m_previewWidget = new QSvgWidget(previewGroup);
     m_previewWidget->setFixedSize(120, 120);
-    m_previewWidget->setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;");
+    // Use theme-aware colors for preview background and border
+    m_previewWidget->setStyleSheet(QString("background-color: %1; border: 1px solid %2;")
+        .arg(theme.palette.base.name()).arg(theme.palette.mid.name()));
     previewLayout->addWidget(m_previewWidget, 0, Qt::AlignCenter);
 
     mainLayout->addWidget(previewGroup);
