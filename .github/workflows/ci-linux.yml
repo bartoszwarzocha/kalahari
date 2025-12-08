@@ -66,7 +66,7 @@ jobs:
           libinput-dev libmtdev-dev libudev-dev \
           libvulkan-dev libwayland-dev libwayland-egl1 \
           libnotify-dev libsm-dev \
-          python3-jinja2 autoconf autoconf-archive automake libtool \
+          python3-jinja2 autoconf autoconf-archive automake libtool libltdl-dev \
           xvfb
 
     - name: Cache vcpkg binary packages

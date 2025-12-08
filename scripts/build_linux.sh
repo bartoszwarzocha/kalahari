@@ -378,7 +378,7 @@ check_and_install_qt6_deps() {
                     libdrm-dev libegl1-mesa-dev libgbm-dev \
                     libinput-dev libmtdev-dev libudev-dev \
                     libvulkan-dev libwayland-dev libwayland-egl1 \
-                    linux-libc-dev
+                    linux-libc-dev autoconf autoconf-archive automake libtool libltdl-dev
                 ;;
             fedora|rhel|centos)
                 sudo dnf install -y \
