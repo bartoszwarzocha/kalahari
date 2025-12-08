@@ -339,7 +339,7 @@ check_and_install_qt6_deps() {
 
     # THEN: Check for essential X11/XCB libraries via pkg-config
     if command -v pkg-config &> /dev/null; then
-        local required_pkgs="x11 xcb xcb-xkb xkbcommon xkbcommon-x11 fontconfig freetype2 gl"
+        local required_pkgs="x11 xcb xcb-xkb xcb-xinput xkbcommon xkbcommon-x11 fontconfig freetype2 gl"
         for pkg in $required_pkgs; do
             if ! pkg-config --exists "$pkg" 2>/dev/null; then
                 missing_deps=true
