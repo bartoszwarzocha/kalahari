@@ -173,20 +173,37 @@ Test project E:/Python/Projekty/Kalahari/build
 sudo apt update
 
 # Install build tools
-sudo apt install -y build-essential cmake ninja-build git pkg-config
+sudo apt install -y build-essential g++ cmake ninja-build git pkg-config
 
-# Install wxWidgets dependencies (GTK3, X11 libraries)
-sudo apt install -y libgtk-3-dev libx11-dev libxext-dev libxrandr-dev \
-    libxrender-dev libxi-dev libxfixes-dev libxtst-dev libglu1-mesa-dev \
-    libpng-dev libjpeg-dev libtiff-dev libwebp-dev libcurl4-openssl-dev \
-    libnotify-dev libsecret-1-dev libsdl2-dev liblzma-dev libbz2-dev \
-    libzip-dev zlib1g-dev
+# Install Qt6/X11/XCB dependencies (required for vcpkg Qt6 build)
+sudo apt install -y \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+    libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
+    libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render0-dev \
+    libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+    libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
+    libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+    libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
+    libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
+    libdrm-dev libegl1-mesa-dev libgbm-dev \
+    libinput-dev libmtdev-dev libudev-dev \
+    libvulkan-dev libwayland-dev libwayland-egl1 \
+    linux-libc-dev
+
+# Install additional build dependencies
+sudo apt install -y \
+    autoconf autoconf-archive automake libtool \
+    python3-jinja2
 
 # Verify installation
 cmake --version       # Should show 3.21+
 ninja --version       # Should show 1.10+
 g++ --version         # Should show 10+
 ```
+
+**Note:** The build script (`scripts/build_linux.sh`) will automatically check and install missing dependencies.
 
 ### 2. Clone Repository
 
@@ -511,11 +528,42 @@ ctest --output-on-failure
 
 ### Build Errors
 
-**Error: "Could not find wxWidgets"**
-- **Solution:** vcpkg didn't install correctly. Run:
+**Error: "qttools:x64-linux BUILD_FAILED" or "Qt6 not found" (Linux)**
+- **Cause:** Missing X11/XCB development libraries required for Qt6 build via vcpkg
+- **Solution:** Install all Qt6 dependencies:
   ```bash
-  cd vcpkg
-  ./vcpkg install wxwidgets[core,debug-support,fonts,sound]:x64-linux
+  sudo apt install -y \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+    libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
+    libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render0-dev \
+    libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+    libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
+    libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+    libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
+    libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
+    libdrm-dev libegl1-mesa-dev libgbm-dev \
+    libinput-dev libmtdev-dev libudev-dev \
+    libvulkan-dev libwayland-dev libwayland-egl1
+  ```
+- Or use the build script which auto-installs dependencies:
+  ```bash
+  ./scripts/build_linux.sh
+  ```
+
+**Error: "CMAKE_MAKE_PROGRAM is not set" (Linux)**
+- **Cause:** Ninja build system not found
+- **Solution:** Install ninja-build:
+  ```bash
+  sudo apt install -y ninja-build
+  ```
+
+**Error: "CMAKE_CXX_COMPILER not set" (Linux)**
+- **Cause:** C++ compiler not detected
+- **Solution:** Install build-essential:
+  ```bash
+  sudo apt install -y build-essential g++
   ```
 
 **Error: "libxcrypt.so not found" (Linux)**

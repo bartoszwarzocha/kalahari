@@ -301,36 +301,100 @@ if ! command -v ninja &> /dev/null && command -v ninja-build &> /dev/null; then
     export CMAKE_MAKE_PROGRAM=$(command -v ninja-build)
 fi
 
-# Check wxWidgets dependencies
-print_info "Checking wxWidgets system dependencies..."
-if ! pkg-config --exists gtk+-3.0 2>/dev/null; then
-    print_warning "GTK3 development files not found - installing..."
-    distro=$(detect_distro)
-    case $distro in
-        ubuntu|debian|linuxmint|pop)
-            sudo apt update && sudo apt install -y \
-                libgtk-3-dev libx11-dev libxext-dev libxtst-dev \
-                libgl1-mesa-dev libglu1-mesa-dev
-            ;;
-        fedora|rhel|centos)
-            sudo dnf install -y \
-                gtk3-devel libX11-devel libXext-devel libXtst-devel \
-                mesa-libGL-devel mesa-libGLU-devel
-            ;;
-        *)
-            print_error "Unsupported distribution: $distro"
-            print_error "Please install GTK3 development files manually"
-            exit 1
-            ;;
-    esac
+# Check Qt6 system dependencies (required for vcpkg Qt6 build)
+print_info "Checking Qt6 system dependencies..."
 
-    if [ $? -eq 0 ]; then
-        print_success "GTK3 dependencies installed"
-    else
-        print_error "Failed to install GTK3 dependencies"
-        exit 1
+check_and_install_qt6_deps() {
+    local distro=$(detect_distro)
+    local missing_deps=false
+
+    # Check for essential X11/XCB libraries via pkg-config
+    local required_pkgs="x11 xcb xcb-xkb xkbcommon xkbcommon-x11 fontconfig freetype2 gl"
+
+    for pkg in $required_pkgs; do
+        if ! pkg-config --exists "$pkg" 2>/dev/null; then
+            missing_deps=true
+            print_warning "Missing pkg-config: $pkg"
+        fi
+    done
+
+    # Check for GTK3 (needed for native dialogs)
+    if ! pkg-config --exists gtk+-3.0 2>/dev/null; then
+        missing_deps=true
+        print_warning "Missing pkg-config: gtk+-3.0"
     fi
-fi
+
+    if [ "$missing_deps" = true ]; then
+        print_warning "Installing Qt6/X11/XCB development dependencies..."
+
+        case $distro in
+            ubuntu|debian|linuxmint|pop)
+                sudo apt update && sudo apt install -y \
+                    build-essential g++ cmake ninja-build pkg-config \
+                    libgl1-mesa-dev libglu1-mesa-dev \
+                    libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+                    libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
+                    libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+                    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render0-dev \
+                    libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+                    libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
+                    libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+                    libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
+                    libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
+                    libdrm-dev libegl1-mesa-dev libgbm-dev \
+                    libinput-dev libmtdev-dev libudev-dev \
+                    libvulkan-dev libwayland-dev libwayland-egl1 \
+                    linux-libc-dev
+                ;;
+            fedora|rhel|centos)
+                sudo dnf install -y \
+                    gcc-c++ cmake ninja-build pkgconfig \
+                    mesa-libGL-devel mesa-libGLU-devel \
+                    libX11-devel libX11-xcb libXext-devel libXfixes-devel \
+                    libXi-devel libXrender-devel libxcb-devel \
+                    xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel \
+                    xcb-util-keysyms-devel xcb-util-renderutil-devel \
+                    xcb-util-wm-devel libxkbcommon-devel libxkbcommon-x11-devel \
+                    fontconfig-devel freetype-devel \
+                    gtk3-devel at-spi2-core-devel dbus-devel \
+                    libdrm-devel mesa-libEGL-devel libgbm-devel \
+                    libinput-devel mtdev-devel systemd-devel \
+                    vulkan-loader-devel wayland-devel
+                ;;
+            arch|manjaro)
+                sudo pacman -S --noconfirm \
+                    base-devel cmake ninja pkgconf \
+                    mesa glu \
+                    libx11 libxcb libxext libxfixes \
+                    libxi libxrender xcb-util xcb-util-cursor \
+                    xcb-util-image xcb-util-keysyms xcb-util-renderutil \
+                    xcb-util-wm libxkbcommon libxkbcommon-x11 \
+                    fontconfig freetype2 \
+                    gtk3 at-spi2-core dbus \
+                    libdrm libinput mtdev \
+                    vulkan-icd-loader wayland
+                ;;
+            *)
+                print_error "Unsupported distribution: $distro"
+                print_error "Please install Qt6/X11/XCB development files manually"
+                print_error "Required packages: libx11-dev, libxcb*-dev, libxkbcommon*-dev,"
+                print_error "                   libgl1-mesa-dev, libgtk-3-dev, libfontconfig1-dev"
+                exit 1
+                ;;
+        esac
+
+        if [ $? -eq 0 ]; then
+            print_success "Qt6/X11/XCB dependencies installed"
+        else
+            print_error "Failed to install Qt6/X11/XCB dependencies"
+            exit 1
+        fi
+    else
+        print_success "Qt6/X11/XCB dependencies already installed"
+    fi
+}
+
+check_and_install_qt6_deps
 
 print_success "All prerequisites found"
 

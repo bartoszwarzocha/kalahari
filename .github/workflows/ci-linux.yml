@@ -22,7 +22,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false
+
+    - name: Initialize vcpkg submodule (full clone)
+      run: |
+        # Full clone required for vcpkg (shallow clone causes issues)
+        git submodule update --init --recursive --depth 0
+        # Ensure vcpkg is not shallow (required for baseline resolution)
+        cd vcpkg
+        if git rev-parse --is-shallow-repository | grep -q true; then
+          echo "Converting vcpkg to full clone..."
+          git fetch --unshallow || true
+        fi
+        cd ..
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -33,27 +45,27 @@ jobs:
       run: |
         pip install jinja2
 
-    - name: Install dependencies
+    - name: Install Qt6/X11/XCB dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          build-essential \
-          cmake \
-          ninja-build \
+          build-essential g++ cmake ninja-build pkg-config \
           linux-libc-dev \
-          libgtk-3-dev \
-          libgl1-mesa-dev \
-          libglu1-mesa-dev \
-          libnotify-dev \
-          libsm-dev \
-          libwebkit2gtk-4.1-dev \
-          libltdl-dev \
-          python3-jinja2 \
-          libcryptsetup-dev \
-          autoconf \
-          autoconf-archive \
-          automake \
-          libtool \
+          libgl1-mesa-dev libglu1-mesa-dev \
+          libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+          libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
+          libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+          libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render0-dev \
+          libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+          libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
+          libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+          libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
+          libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
+          libdrm-dev libegl1-mesa-dev libgbm-dev \
+          libinput-dev libmtdev-dev libudev-dev \
+          libvulkan-dev libwayland-dev libwayland-egl1 \
+          libnotify-dev libsm-dev \
+          python3-jinja2 autoconf autoconf-archive automake libtool \
           xvfb
 
     - name: Cache vcpkg binary packages
