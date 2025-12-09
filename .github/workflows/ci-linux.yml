@@ -41,14 +41,13 @@ jobs:
     - name: Initialize vcpkg submodule (full clone)
       run: |
         # Full clone required for vcpkg (shallow clone causes issues)
-        git submodule update --init --recursive --depth 0
+        git submodule update --init --recursive
         # Ensure vcpkg is not shallow (required for baseline resolution)
         cd vcpkg
         if git rev-parse --is-shallow-repository | grep -q true; then
           echo "Converting vcpkg to full clone..."
           git fetch --unshallow || true
         fi
-        cd ..
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -60,9 +59,11 @@ jobs:
         pip install jinja2
 
     - name: Install Qt6/X11/XCB dependencies
+      env:
+        DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
+        sudo apt-get install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
           linux-libc-dev \
           libgl1-mesa-dev libglu1-mesa-dev \
