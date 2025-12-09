@@ -197,7 +197,9 @@
       "Bash(Select-String -Pattern \"(error|warning C|Build succeeded|Build FAILED|log_panel)\")",
       "Bash(git rebase:*)",
       "Bash(GIT_EDITOR=true git rebase:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(paste - - -)",
+      "WebFetch(domain:packages.ubuntu.com)"
     ],
     "deny": [],
     "ask": []

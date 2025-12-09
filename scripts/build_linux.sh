@@ -143,9 +143,34 @@ if [[ "$PROJECT_ROOT" =~ ^/media/sf_ ]] || [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]] 
 fi
 
 # =============================================================================
-# VirtualBox Detection & Auto-Setup
+# Environment Detection (WSL vs VMware vs VirtualBox vs Native)
 # =============================================================================
-IS_VBOX=false
+DETECTED_ENV="Native"
+
+# Detect virtualization environment via DMI/kernel modules
+if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null || \
+   grep -qiE "microsoft|wsl" /proc/sys/kernel/osrelease 2>/dev/null || \
+   [ -n "$WSL_DISTRO_NAME" ]; then
+    DETECTED_ENV="WSL"
+    print_info "WSL environment detected"
+elif grep -qi "vmware" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+     grep -qi "vmware" /sys/class/dmi/id/product_name 2>/dev/null || \
+     lsmod 2>/dev/null | grep -qE "^vmw_|^vmhgfs"; then
+    DETECTED_ENV="VMware"
+    print_info "VMware environment detected"
+elif grep -qiE "virtualbox|oracle|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+     grep -qiE "virtualbox|oracle|innotek" /sys/class/dmi/id/product_name 2>/dev/null || \
+     lsmod 2>/dev/null | grep -qE "^vboxguest|^vboxsf"; then
+    DETECTED_ENV="VirtualBox"
+    print_info "VirtualBox environment detected"
+else
+    print_info "Native Linux environment detected"
+fi
+
+# =============================================================================
+# Shared Filesystem Detection & Auto-Setup
+# =============================================================================
+IS_SHARED_FS=false
 BUILD_DIR_ACTUAL="$PROJECT_ROOT"
 
 # Detect shared/mounted filesystems with symlink issues
@@ -153,39 +178,39 @@ BUILD_DIR_ACTUAL="$PROJECT_ROOT"
 # VMware: /mnt/hgfs/* or custom mounts like /mnt/windows/* (vmhgfs-fuse, fuse.vmhgfs-fuse)
 # WSL: /mnt/* (Windows drives via 9p/drvfs)
 if [[ "$PROJECT_ROOT" =~ ^/media/sf_ ]]; then
-    IS_VBOX=true
+    IS_SHARED_FS=true
     print_info "VirtualBox shared folder detected (path: /media/sf_*)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
-    IS_VBOX=true  # Reusing same workflow for VMware
+    IS_SHARED_FS=true
     print_info "VMware shared folder detected (path: /mnt/hgfs/*)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/ ]] && mount | grep -qE "vmhgfs|fuse\.vmhgfs"; then
-    IS_VBOX=true  # VMware with custom mount point
+    IS_SHARED_FS=true
     print_info "VMware shared folder detected (custom mount under /mnt/*)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]] && mount | grep -q "type 9p"; then
-    IS_VBOX=true  # Reusing same workflow for WSL
+    IS_SHARED_FS=true
     print_info "WSL Windows mount detected (path: /mnt/*, type: 9p/drvfs)"
 elif [[ "$PROJECT_ROOT" =~ ^/mnt/ ]]; then
     # Generic /mnt/* detection - check if it's a Windows-style path
     # Look for patterns like /mnt/windows/, /mnt/c/, etc. with NTFS or CIFS
     MOUNT_TYPE=$(df -T "$PROJECT_ROOT" 2>/dev/null | tail -1 | awk '{print $2}')
     if [[ "$MOUNT_TYPE" =~ ^(ntfs|cifs|vfat|fuseblk|fuse|9p|drvfs)$ ]]; then
-        IS_VBOX=true
-        print_info "Windows/NTFS mount detected (path: /mnt/*, type: $MOUNT_TYPE)"
+        IS_SHARED_FS=true
+        print_info "Shared filesystem detected (path: /mnt/*, type: $MOUNT_TYPE)"
     fi
 fi
 
 # Apply force flags if set
 if [ "$FORCE_MODE" = "vbox" ]; then
-    IS_VBOX=true
-    print_warning "VirtualBox workflow FORCED by --force-vbox flag"
+    IS_SHARED_FS=true
+    print_warning "Shared filesystem workflow FORCED by --force-vbox flag"
 elif [ "$FORCE_MODE" = "native" ]; then
-    IS_VBOX=false
+    IS_SHARED_FS=false
     print_warning "Native build FORCED by --force-native flag"
 fi
 
 # Shared filesystem workflow: rsync to local storage and build there
-# (VirtualBox vboxsf or WSL 9p/drvfs - both have symlink issues)
-if [ "$IS_VBOX" = true ]; then
+# (VirtualBox vboxsf or WSL 9p/drvfs or VMware vmhgfs - all have symlink issues)
+if [ "$IS_SHARED_FS" = true ]; then
     BUILD_DIR_ACTUAL="$HOME/kalahari-build"
 
     print_warning "Shared filesystem detected (symlink issues during build)"
@@ -551,20 +576,28 @@ print_success "Build completed in ${BUILD_TIME}s"
 # =============================================================================
 # Copy binaries back to shared folder (environment-specific directories)
 # =============================================================================
-if [ "$IS_VBOX" = true ]; then
+if [ "$IS_SHARED_FS" = true ]; then
     print_info "Copying binaries back to shared folder..."
 
-    # Detect environment for unique output directory (avoid conflicts)
-    if [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
-        OUTPUT_DIR="$PROJECT_ROOT/build-linux-vmware"
-        ENV_NAME="VMware"
-    elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
-        OUTPUT_DIR="$PROJECT_ROOT/build-linux-wsl"
-        ENV_NAME="WSL"
-    else
-        OUTPUT_DIR="$PROJECT_ROOT/build-linux-vbox"
-        ENV_NAME="VirtualBox"
-    fi
+    # Use DETECTED_ENV set during early detection phase
+    case "$DETECTED_ENV" in
+        WSL)
+            OUTPUT_DIR="$PROJECT_ROOT/build-linux-wsl"
+            ENV_NAME="WSL"
+            ;;
+        VMware)
+            OUTPUT_DIR="$PROJECT_ROOT/build-linux-vmware"
+            ENV_NAME="VMware"
+            ;;
+        VirtualBox)
+            OUTPUT_DIR="$PROJECT_ROOT/build-linux-vbox"
+            ENV_NAME="VirtualBox"
+            ;;
+        Native|*)
+            OUTPUT_DIR="$PROJECT_ROOT/build-linux-shared"
+            ENV_NAME="Shared filesystem"
+            ;;
+    esac
 
     # Create bin directory on shared folder
     mkdir -p "$OUTPUT_DIR/bin"
@@ -612,18 +645,26 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo -e "Build type:    ${GREEN}$BUILD_TYPE${NC}"
 
-if [ "$IS_VBOX" = true ]; then
-    # Detect environment again for summary (same logic as copy)
-    if [[ "$PROJECT_ROOT" =~ ^/mnt/hgfs/ ]]; then
-        SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-vmware"
-        SUMMARY_ENV="VMware"
-    elif [[ "$PROJECT_ROOT" =~ ^/mnt/[a-z] ]]; then
-        SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-wsl"
-        SUMMARY_ENV="WSL"
-    else
-        SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-vbox"
-        SUMMARY_ENV="VirtualBox"
-    fi
+if [ "$IS_SHARED_FS" = true ]; then
+    # Use already detected environment (DETECTED_ENV set earlier)
+    case "$DETECTED_ENV" in
+        WSL)
+            SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-wsl"
+            SUMMARY_ENV="WSL"
+            ;;
+        VMware)
+            SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-vmware"
+            SUMMARY_ENV="VMware"
+            ;;
+        VirtualBox)
+            SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-vbox"
+            SUMMARY_ENV="VirtualBox"
+            ;;
+        Native|*)
+            SUMMARY_OUTPUT="$PROJECT_ROOT/build-linux-shared"
+            SUMMARY_ENV="Shared filesystem"
+            ;;
+    esac
 
     echo -e "Environment:    ${GREEN}$SUMMARY_ENV${NC}"
     echo -e "Build location: ${BLUE}$BUILD_DIR_ACTUAL/build-linux/${NC}"

@@ -11,7 +11,7 @@ jobs:
   build:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 60  # Much faster with system Qt6
+    timeout-minutes: 30  # Fast with all system packages, no vcpkg
 
     strategy:
       matrix:
@@ -19,33 +19,10 @@ jobs:
       fail-fast: false
 
     steps:
-    - name: Free disk space
-      run: |
-        echo "=== Disk space before cleanup ==="
-        df -h
-        # Remove large unnecessary packages
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        sudo apt-get clean
-        docker system prune -af 2>/dev/null || true
-        echo "=== Disk space after cleanup ==="
-        df -h
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: false
-
-    - name: Initialize vcpkg submodule (full clone)
-      run: |
-        git submodule update --init --recursive
-        cd vcpkg
-        if git rev-parse --is-shallow-repository | grep -q true; then
-          echo "Converting vcpkg to full clone..."
-          git fetch --unshallow || true
-        fi
+        submodules: false  # No vcpkg needed for Linux
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -55,12 +32,12 @@ jobs:
     - name: Install Python dependencies
       run: pip install jinja2
 
-    - name: Install system Qt6 and dependencies
+    - name: Install all dependencies from apt (no vcpkg)
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt-get update
-        # Install Qt6 from system packages (MUCH faster than vcpkg, no disk space issues)
+        # All dependencies from system packages - fast, reliable, no disk space issues
         sudo apt-get install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
           qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
@@ -78,60 +55,31 @@ jobs:
           libdrm-dev libegl1-mesa-dev libgbm-dev \
           libinput-dev libmtdev-dev libudev-dev \
           libvulkan-dev libwayland-dev \
-          autoconf autoconf-archive automake libtool libltdl-dev \
+          libspdlog-dev nlohmann-json3-dev libzip-dev \
+          libcurl4-openssl-dev catch2 \
+          python3-dev pybind11-dev \
           xvfb
-        echo "=== Qt6 version ==="
-        qmake6 --version || echo "qmake6 not found, checking pkg-config..."
-        pkg-config --modversion Qt6Core || true
-
-    - name: Cache vcpkg (without Qt6)
-      uses: actions/cache@v4
-      with:
-        path: |
-          vcpkg
-          build/vcpkg_installed
-        key: linux-gcc-vcpkg-v7-noqt6-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
-        restore-keys: |
-          linux-gcc-vcpkg-v7-noqt6-
-
-    - name: Bootstrap vcpkg
-      run: |
-        if [ ! -f vcpkg/vcpkg ]; then
-          echo "Bootstrapping vcpkg..."
-          cd vcpkg
-          ./bootstrap-vcpkg.sh
-        else
-          echo "vcpkg already bootstrapped (from cache)"
-          vcpkg/vcpkg version
-        fi
+        echo "=== Installed versions ==="
+        pkg-config --modversion Qt6Core Qt6Widgets Qt6Svg spdlog nlohmann_json libzip libcurl 2>/dev/null || true
 
     - name: Verify build tools
       run: |
-        echo "=== Checking build tools ==="
+        echo "=== Build tools ==="
         ninja --version
         g++ --version | head -1
         cmake --version | head -1
-        echo "=== Qt6 from system ==="
-        pkg-config --modversion Qt6Core Qt6Widgets Qt6Svg 2>/dev/null || echo "Qt6 packages found via apt"
+        echo "=== Disk space ==="
+        df -h /
 
-    - name: Configure CMake (system Qt6 + vcpkg for other deps)
+    - name: Configure CMake (system packages only)
       run: |
-        # Use system Qt6, vcpkg for other dependencies (spdlog, curl, etc.)
-        # VCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON disables the "qt6" feature
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic \
-          -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
+          -DUSE_SYSTEM_PACKAGES=ON \
           -DCMAKE_C_COMPILER=gcc \
           -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
           -G Ninja
-
-    - name: Clean vcpkg buildtrees (save disk space)
-      run: |
-        rm -rf vcpkg/buildtrees vcpkg/packages vcpkg/downloads
-        df -h
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
