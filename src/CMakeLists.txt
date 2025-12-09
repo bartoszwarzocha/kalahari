@@ -214,19 +214,89 @@ if(WIN32)
         COMMENT "Copying Qt plugins and OpenSSL DLLs to output directory"
     )
 elseif(UNIX AND NOT APPLE)
-    # Linux: Copy from Qt installation
-    add_custom_command(TARGET kalahari POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${Qt6_DIR}/../../../plugins/platforms"
-            "$<TARGET_FILE_DIR:kalahari>/platforms"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${Qt6_DIR}/../../../plugins/styles"
-            "$<TARGET_FILE_DIR:kalahari>/styles"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${Qt6_DIR}/../../../plugins/imageformats"
-            "$<TARGET_FILE_DIR:kalahari>/imageformats"
-        COMMENT "Copying Qt plugins to output directory"
+    # Linux: Find Qt plugins directory dynamically
+    # vcpkg on Linux places plugins in different locations depending on triplet:
+    # - x64-linux-dynamic: lib/qt6/plugins/
+    # - system Qt: lib/qt6/plugins/ or lib/x86_64-linux-gnu/qt6/plugins/
+    #
+    # Qt6_DIR points to: <prefix>/share/Qt6 (cmake config location)
+    # Need to find: <prefix>/lib/qt6/plugins/ or <prefix>/plugins/
+
+    # Get vcpkg installed directory (Qt6_DIR is <prefix>/share/Qt6)
+    get_filename_component(_qt6_share_dir "${Qt6_DIR}" DIRECTORY)  # <prefix>/share
+    get_filename_component(_qt6_prefix "${_qt6_share_dir}" DIRECTORY)  # <prefix>
+
+    message(STATUS "Qt6_DIR: ${Qt6_DIR}")
+    message(STATUS "Qt6 prefix (calculated): ${_qt6_prefix}")
+
+    # Try common plugin locations (ordered by likelihood for vcpkg)
+    set(_qt6_plugin_candidates
+        "${_qt6_prefix}/Qt6/plugins"           # vcpkg x64-linux-dynamic actual location
+        "${_qt6_prefix}/lib/qt6/plugins"       # vcpkg x64-linux-dynamic alternative
+        "${_qt6_prefix}/plugins"               # some vcpkg configurations
+        "${_qt6_prefix}/lib/plugins"           # fallback
+        "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/qt6/plugins"
+        "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/plugins"
     )
+
+    set(_qt6_plugins_dir "")
+    foreach(_candidate IN LISTS _qt6_plugin_candidates)
+        message(STATUS "Checking Qt6 plugins at: ${_candidate}")
+        if(EXISTS "${_candidate}/platforms")
+            set(_qt6_plugins_dir "${_candidate}")
+            message(STATUS "  -> Found platforms/ subdirectory!")
+            break()
+        endif()
+    endforeach()
+
+    if(_qt6_plugins_dir)
+        message(STATUS "Using Qt6 plugins directory: ${_qt6_plugins_dir}")
+
+        # REQUIRED: platforms plugin (application cannot start without it)
+        if(EXISTS "${_qt6_plugins_dir}/platforms")
+            add_custom_command(TARGET kalahari POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${_qt6_plugins_dir}/platforms"
+                    "$<TARGET_FILE_DIR:kalahari>/platforms"
+                COMMENT "Copying Qt6 platforms plugins"
+            )
+        else()
+            message(FATAL_ERROR "Qt6 platforms plugin not found at ${_qt6_plugins_dir}/platforms - required for application to start")
+        endif()
+
+        # OPTIONAL: styles plugin (application works without it, just uses default style)
+        if(EXISTS "${_qt6_plugins_dir}/styles")
+            add_custom_command(TARGET kalahari POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${_qt6_plugins_dir}/styles"
+                    "$<TARGET_FILE_DIR:kalahari>/styles"
+                COMMENT "Copying Qt6 styles plugins"
+            )
+        else()
+            message(STATUS "Qt6 styles plugin not found at ${_qt6_plugins_dir}/styles (optional, skipping)")
+        endif()
+
+        # OPTIONAL: imageformats plugin (application works without it, just limited image format support)
+        if(EXISTS "${_qt6_plugins_dir}/imageformats")
+            add_custom_command(TARGET kalahari POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${_qt6_plugins_dir}/imageformats"
+                    "$<TARGET_FILE_DIR:kalahari>/imageformats"
+                COMMENT "Copying Qt6 imageformats plugins"
+            )
+        else()
+            message(STATUS "Qt6 imageformats plugin not found at ${_qt6_plugins_dir}/imageformats (optional, skipping)")
+        endif()
+    else()
+        message(WARNING "Could not find Qt6 plugins directory!")
+        message(WARNING "Searched locations:")
+        foreach(_candidate IN LISTS _qt6_plugin_candidates)
+            message(WARNING "  - ${_candidate}")
+        endforeach()
+        message(WARNING "Qt6_DIR: ${Qt6_DIR}")
+        message(WARNING "VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
+        message(FATAL_ERROR "Qt6 plugins not found. Cannot build without platform plugin.")
+    endif()
 elseif(APPLE)
     # macOS: Plugins are embedded in .app bundle automatically by Qt
     # No manual copying needed

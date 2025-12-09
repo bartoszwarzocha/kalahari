@@ -20,6 +20,8 @@ IconDownloader::IconDownloader(QObject* parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
 {
+    // Set transfer timeout on the network manager (Qt6 API)
+    m_networkManager->setTransferTimeout(DOWNLOAD_TIMEOUT_MS);
     Logger::getInstance().debug("IconDownloader: Initialized");
 }
 
@@ -38,7 +40,6 @@ void IconDownloader::downloadFromUrl(const QString& url, const QString& theme) {
     // Create HTTP GET request
     QNetworkRequest request(qurl);
     request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader, "Kalahari/1.0");
-    request.setTransferTimeout(DOWNLOAD_TIMEOUT_MS);
 
     // Send request
     QNetworkReply* reply = m_networkManager->get(request);

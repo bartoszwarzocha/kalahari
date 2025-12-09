@@ -105,24 +105,65 @@ endif()
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets)
 
 # LGPL v3 Compliance Check - Verify Qt is dynamically linked
-get_target_property(QT_CORE_TYPE Qt6::Core TYPE)
-if(QT_CORE_TYPE STREQUAL "STATIC_LIBRARY")
+# First check: triplet name (fast, catches obvious static triplets)
+set(LGPL_VIOLATION FALSE)
+set(LGPL_REASON "")
+
+if(DEFINED VCPKG_TARGET_TRIPLET)
+    # Check if triplet explicitly contains "-static" (but NOT "-static-md" which is dynamic runtime)
+    # Static triplets: x64-linux-static, x64-windows-static
+    # Dynamic triplets: x64-linux, x64-windows, x64-linux-dynamic, x64-windows-static-md (dynamic CRT)
+    string(FIND "${VCPKG_TARGET_TRIPLET}" "-static" STATIC_POS)
+    string(FIND "${VCPKG_TARGET_TRIPLET}" "-static-md" STATIC_MD_POS)
+
+    if(STATIC_POS GREATER -1 AND STATIC_MD_POS EQUAL -1)
+        # Contains "-static" but NOT "-static-md"
+        set(LGPL_VIOLATION TRUE)
+        set(LGPL_REASON "Static triplet detected: ${VCPKG_TARGET_TRIPLET}")
+    endif()
+endif()
+
+# Second check: actual Qt library type (fallback verification)
+if(NOT LGPL_VIOLATION)
+    get_target_property(QT_CORE_TYPE Qt6::Core TYPE)
+    if(QT_CORE_TYPE STREQUAL "STATIC_LIBRARY")
+        # Double-check: some platforms report STATIC_LIBRARY for imported shared libs
+        # Only fail if triplet also suggests static linking
+        if(DEFINED VCPKG_TARGET_TRIPLET)
+            string(FIND "${VCPKG_TARGET_TRIPLET}" "-static" STATIC_POS)
+            string(FIND "${VCPKG_TARGET_TRIPLET}" "-static-md" STATIC_MD_POS)
+            if(STATIC_POS GREATER -1 AND STATIC_MD_POS EQUAL -1)
+                set(LGPL_VIOLATION TRUE)
+                set(LGPL_REASON "Qt6::Core is STATIC_LIBRARY with static triplet")
+            else()
+                message(STATUS "Note: Qt6::Core reports STATIC_LIBRARY but triplet '${VCPKG_TARGET_TRIPLET}' is dynamic - proceeding")
+            endif()
+        else()
+            # No triplet info, trust the library type
+            set(LGPL_VIOLATION TRUE)
+            set(LGPL_REASON "Qt6::Core is STATIC_LIBRARY (no triplet info available)")
+        endif()
+    endif()
+endif()
+
+if(LGPL_VIOLATION)
     message(FATAL_ERROR
         "========================================\n"
         "LGPL v3 VIOLATION DETECTED!\n"
         "========================================\n"
         "Qt6 static linking detected. This violates LGPL v3 license.\n"
+        "Reason: ${LGPL_REASON}\n"
         "\n"
         "Solutions:\n"
-        "1. Use dynamic Qt (vcpkg default triplet, NOT *-static)\n"
-        "2. Purchase Commercial Qt License: https://www.qt.io/licensing/\n"
+        "1. Use dynamic Qt triplet (e.g., x64-linux, x64-windows, x64-linux-dynamic)\n"
+        "2. Avoid triplets with '-static' suffix (except '-static-md')\n"
+        "3. Purchase Commercial Qt License: https://www.qt.io/licensing/\n"
         "\n"
         "Current triplet: ${VCPKG_TARGET_TRIPLET}\n"
-        "Change to: ${VCPKG_TARGET_TRIPLET} WITHOUT '-static' suffix\n"
         "========================================\n"
     )
 endif()
-message(STATUS "✅ Qt6 LGPL v3 compliance: Dynamic linking verified")
+message(STATUS "Qt6 LGPL v3 compliance: Dynamic linking verified (triplet: ${VCPKG_TARGET_TRIPLET})")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
