@@ -15,21 +15,31 @@ jobs:
 
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        build_type: [Release]  # Only Release to save disk space (Qt6 is huge)
       fail-fast: false  # Don't cancel other jobs if one fails
 
     steps:
-    - name: Free disk space
+    - name: Free disk space (aggressive)
       run: |
         echo "=== Disk space before cleanup ==="
         df -h
-        echo "=== Removing unnecessary tools ==="
+        echo "=== Aggressive cleanup ==="
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
         sudo rm -rf /opt/hostedtoolcache/CodeQL
         sudo rm -rf /usr/local/share/boost
         sudo rm -rf /usr/share/swift
+        # More aggressive cleanup
+        sudo rm -rf /opt/hostedtoolcache/go
+        sudo rm -rf /opt/hostedtoolcache/node
+        sudo rm -rf /opt/hostedtoolcache/Python
+        sudo rm -rf /usr/local/graalvm
+        sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/local/share/powershell
+        sudo rm -rf /usr/local/lib/heroku
+        sudo apt-get clean
+        docker system prune -af 2>/dev/null || true
         echo "=== Disk space after cleanup ==="
         df -h
 
@@ -90,10 +100,10 @@ jobs:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: linux-gcc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: linux-gcc-vcpkg-v5-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-
-          linux-gcc-vcpkg-v4-
+          linux-gcc-vcpkg-v5-${{ hashFiles('vcpkg.json') }}-
+          linux-gcc-vcpkg-v5-
 
     - name: Bootstrap vcpkg
       run: |
@@ -126,6 +136,16 @@ jobs:
           -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
           -G Ninja
+
+    - name: Clean vcpkg buildtrees (save disk space)
+      run: |
+        echo "=== Disk space before vcpkg cleanup ==="
+        df -h
+        rm -rf vcpkg/buildtrees
+        rm -rf vcpkg/packages
+        rm -rf vcpkg/downloads
+        echo "=== Disk space after vcpkg cleanup ==="
+        df -h
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
