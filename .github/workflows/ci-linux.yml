@@ -11,7 +11,7 @@ jobs:
   build:
     name: Linux Build & Test
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # Prevent runaway builds
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time
 
     strategy:
       matrix:
@@ -82,6 +82,17 @@ jobs:
           libnotify-dev libsm-dev \
           python3-jinja2 autoconf autoconf-archive automake libtool libltdl-dev \
           xvfb
+
+    - name: Cache vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          vcpkg
+          build/vcpkg_installed
+        key: linux-gcc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        restore-keys: |
+          linux-gcc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-
+          linux-gcc-vcpkg-v4-
 
     - name: Export GitHub Actions cache environment variables
       uses: actions/github-script@v7

@@ -11,7 +11,7 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
-    timeout-minutes: 90  # Prevent runaway builds
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time
 
     strategy:
       matrix:
