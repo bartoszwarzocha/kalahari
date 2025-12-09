@@ -19,6 +19,17 @@ jobs:
       fail-fast: false  # Don't cancel other jobs if one fails
 
     steps:
+    - name: Free disk space
+      run: |
+        echo "Disk space before cleanup:"
+        df -h
+        # Remove unnecessary tools
+        sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
+        sudo rm -rf /usr/local/lib/android 2>/dev/null || true
+        sudo rm -rf /opt/hostedtoolcache/CodeQL 2>/dev/null || true
+        echo "Disk space after cleanup:"
+        df -h
+
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -61,12 +72,21 @@ jobs:
           vcpkg/vcpkg version
         fi
 
+    - name: Export GitHub Actions cache environment variables
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
     - name: Configure CMake
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -G Ninja
+      env:
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
