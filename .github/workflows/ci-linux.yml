@@ -84,15 +84,15 @@ jobs:
         qmake6 --version || echo "qmake6 not found, checking pkg-config..."
         pkg-config --modversion Qt6Core || true
 
-    - name: Cache vcpkg (spdlog only)
+    - name: Cache vcpkg (without Qt6)
       uses: actions/cache@v4
       with:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: linux-gcc-vcpkg-v6-spdlog-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: linux-gcc-vcpkg-v7-noqt6-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-v6-spdlog-
+          linux-gcc-vcpkg-v7-noqt6-
 
     - name: Bootstrap vcpkg
       run: |
@@ -114,14 +114,15 @@ jobs:
         echo "=== Qt6 from system ==="
         pkg-config --modversion Qt6Core Qt6Widgets Qt6Svg 2>/dev/null || echo "Qt6 packages found via apt"
 
-    - name: Configure CMake (system Qt6 + vcpkg for spdlog)
+    - name: Configure CMake (system Qt6 + vcpkg for other deps)
       run: |
-        # Use system Qt6, vcpkg only for spdlog
+        # Use system Qt6, vcpkg for other dependencies (spdlog, curl, etc.)
+        # VCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON disables the "qt6" feature
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic \
-          -DVCPKG_MANIFEST_FEATURES="core" \
+          -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
           -DCMAKE_C_COMPILER=gcc \
           -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \

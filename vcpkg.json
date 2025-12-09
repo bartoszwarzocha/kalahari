@@ -6,26 +6,37 @@
   "homepage": "https://github.com/kalahari-project/kalahari",
   "license": "MIT",
   "builtin-baseline": "271a5b8850aa50f9a40269cbf3cf414b36e333d6",
+  "default-features": ["qt6"],
+  "features": {
+    "qt6": {
+      "description": "Build Qt6 from vcpkg (disable on Linux CI where system Qt6 is used)",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "version>=": "6.5.0",
+          "default-features": false,
+          "features": ["widgets", "gui", "network", "openssl"]
+        },
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": ["xcb", "xcb-xlib", "xkbcommon-x11", "fontconfig", "freetype"],
+          "platform": "linux"
+        },
+        {
+          "name": "qtsvg",
+          "version>=": "6.5.0",
+          "default-features": false
+        },
+        {
+          "name": "qttools",
+          "version>=": "6.5.0",
+          "default-features": false
+        }
+      ]
+    }
+  },
   "dependencies": [
-    {
-      "name": "qtbase",
-      "version>=": "6.5.0",
-      "default-features": false,
-      "features": ["widgets", "gui", "network", "openssl"],
-      "$comment": "Qt6 Core + Widgets used under LGPL v3 (dynamically linked). Do NOT use static triplets without Commercial License!"
-    },
-    {
-      "name": "qtsvg",
-      "version>=": "6.5.0",
-      "default-features": false,
-      "$comment": "Qt6 SVG for QSvgWidget (IconDownloaderDialog preview)"
-    },
-    {
-      "name": "qttools",
-      "version>=": "6.5.0",
-      "default-features": false,
-      "$comment": "Qt6 Tools (Designer, Linguist) used under LGPL v3"
-    },
     {
       "name": "curl",
       "default-features": false
