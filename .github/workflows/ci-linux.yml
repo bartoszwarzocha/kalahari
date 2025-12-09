@@ -10,34 +10,24 @@ on:
 jobs:
   build:
     name: Linux Build & Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 120  # Qt6 via vcpkg takes a long time
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60  # Much faster with system Qt6
 
     strategy:
       matrix:
-        build_type: [Release]  # Only Release to save disk space (Qt6 is huge)
-      fail-fast: false  # Don't cancel other jobs if one fails
+        build_type: [Release]
+      fail-fast: false
 
     steps:
-    - name: Free disk space (aggressive)
+    - name: Free disk space
       run: |
         echo "=== Disk space before cleanup ==="
         df -h
-        echo "=== Aggressive cleanup ==="
+        # Remove large unnecessary packages
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
         sudo rm -rf /opt/hostedtoolcache/CodeQL
-        sudo rm -rf /usr/local/share/boost
-        sudo rm -rf /usr/share/swift
-        # More aggressive cleanup
-        sudo rm -rf /opt/hostedtoolcache/go
-        sudo rm -rf /opt/hostedtoolcache/node
-        sudo rm -rf /opt/hostedtoolcache/Python
-        sudo rm -rf /usr/local/graalvm
-        sudo rm -rf /usr/local/.ghcup
-        sudo rm -rf /usr/local/share/powershell
-        sudo rm -rf /usr/local/lib/heroku
         sudo apt-get clean
         docker system prune -af 2>/dev/null || true
         echo "=== Disk space after cleanup ==="
@@ -50,9 +40,7 @@ jobs:
 
     - name: Initialize vcpkg submodule (full clone)
       run: |
-        # Full clone required for vcpkg (shallow clone causes issues)
         git submodule update --init --recursive
-        # Ensure vcpkg is not shallow (required for baseline resolution)
         cd vcpkg
         if git rev-parse --is-shallow-repository | grep -q true; then
           echo "Converting vcpkg to full clone..."
@@ -65,17 +53,17 @@ jobs:
         python-version: '3.11'
 
     - name: Install Python dependencies
-      run: |
-        pip install jinja2
+      run: pip install jinja2
 
-    - name: Install Qt6/X11/XCB dependencies
+    - name: Install system Qt6 and dependencies
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt-get update
+        # Install Qt6 from system packages (MUCH faster than vcpkg, no disk space issues)
         sudo apt-get install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
-          linux-libc-dev \
+          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libglu1-mesa-dev \
           libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
           libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
@@ -84,26 +72,27 @@ jobs:
           libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
           libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev \
           libxcb-xinerama0-dev libxcb-xkb-dev libxcb-xinput-dev \
-          libxkbcommon-dev \
-          libxkbcommon-x11-dev libfontconfig1-dev libfreetype6-dev \
-          libgtk-3-dev libatspi2.0-dev libdbus-1-dev \
+          libxkbcommon-dev libxkbcommon-x11-dev \
+          libfontconfig1-dev libfreetype6-dev \
+          libgtk-3-dev libdbus-1-dev \
           libdrm-dev libegl1-mesa-dev libgbm-dev \
           libinput-dev libmtdev-dev libudev-dev \
-          libvulkan-dev libwayland-dev libwayland-egl1 \
-          libnotify-dev libsm-dev \
-          python3-jinja2 autoconf autoconf-archive automake libtool libltdl-dev \
+          libvulkan-dev libwayland-dev \
+          autoconf autoconf-archive automake libtool libltdl-dev \
           xvfb
+        echo "=== Qt6 version ==="
+        qmake6 --version || echo "qmake6 not found, checking pkg-config..."
+        pkg-config --modversion Qt6Core || true
 
-    - name: Cache vcpkg
+    - name: Cache vcpkg (spdlog only)
       uses: actions/cache@v4
       with:
         path: |
           vcpkg
           build/vcpkg_installed
-        key: linux-gcc-vcpkg-v5-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        key: linux-gcc-vcpkg-v6-spdlog-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
         restore-keys: |
-          linux-gcc-vcpkg-v5-${{ hashFiles('vcpkg.json') }}-
-          linux-gcc-vcpkg-v5-
+          linux-gcc-vcpkg-v6-spdlog-
 
     - name: Bootstrap vcpkg
       run: |
@@ -112,26 +101,27 @@ jobs:
           cd vcpkg
           ./bootstrap-vcpkg.sh
         else
-          echo "vcpkg already bootstrapped (from cache or previous run)"
+          echo "vcpkg already bootstrapped (from cache)"
           vcpkg/vcpkg version
         fi
 
     - name: Verify build tools
       run: |
         echo "=== Checking build tools ==="
-        which ninja || echo "ERROR: ninja not found!"
-        which g++ || echo "ERROR: g++ not found!"
-        which cmake || echo "ERROR: cmake not found!"
         ninja --version
         g++ --version | head -1
         cmake --version | head -1
+        echo "=== Qt6 from system ==="
+        pkg-config --modversion Qt6Core Qt6Widgets Qt6Svg 2>/dev/null || echo "Qt6 packages found via apt"
 
-    - name: Configure CMake
+    - name: Configure CMake (system Qt6 + vcpkg for spdlog)
       run: |
+        # Use system Qt6, vcpkg only for spdlog
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic \
+          -DVCPKG_MANIFEST_FEATURES="core" \
           -DCMAKE_C_COMPILER=gcc \
           -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
@@ -139,12 +129,7 @@ jobs:
 
     - name: Clean vcpkg buildtrees (save disk space)
       run: |
-        echo "=== Disk space before vcpkg cleanup ==="
-        df -h
-        rm -rf vcpkg/buildtrees
-        rm -rf vcpkg/packages
-        rm -rf vcpkg/downloads
-        echo "=== Disk space after vcpkg cleanup ==="
+        rm -rf vcpkg/buildtrees vcpkg/packages vcpkg/downloads
         df -h
 
     - name: Build
@@ -160,6 +145,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: kalahari-linux-${{ matrix.build_type }}
-        path: |
-          build/bin/kalahari*
+        path: build/bin/kalahari*
         retention-days: 7
