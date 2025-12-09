@@ -52,7 +52,8 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
     // Check 1: Valid XML syntax
     QDomDocument doc;
 
-    // Qt6: Use ParseResult instead of old setContent signature
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    // Qt 6.5+: Use ParseResult struct
     auto parseResult = doc.setContent(svgData);
     if (!parseResult) {
         QString error = QString("Invalid XML syntax at line %1, column %2: %3")
@@ -61,6 +62,19 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
                        .arg(parseResult.errorMessage);
         return {false, QString(), error};
     }
+#else
+    // Qt 6.4 and earlier: Use old setContent signature with output parameters
+    QString errorMsg;
+    int errorLine = 0;
+    int errorColumn = 0;
+    if (!doc.setContent(svgData, &errorMsg, &errorLine, &errorColumn)) {
+        QString error = QString("Invalid XML syntax at line %1, column %2: %3")
+                       .arg(errorLine)
+                       .arg(errorColumn)
+                       .arg(errorMsg);
+        return {false, QString(), error};
+    }
+#endif
 
     // Check 2: Root element is <svg>
     QDomElement root = doc.documentElement();
