@@ -55,7 +55,7 @@ jobs:
           libdrm-dev libegl1-mesa-dev libgbm-dev \
           libinput-dev libmtdev-dev libudev-dev \
           libvulkan-dev libwayland-dev \
-          libspdlog-dev nlohmann-json3-dev libzip-dev zipmerge \
+          libspdlog-dev nlohmann-json3-dev libzip-dev zipcmp zipmerge ziptool \
           libcurl4-openssl-dev catch2 \
           python3-dev pybind11-dev \
           xvfb
