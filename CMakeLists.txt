@@ -65,15 +65,22 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
 endif()
 
 # Link-Time Optimization (Release builds)
+# NOTE: Disabled for MSVC because vcpkg libraries are built without /GL flag,
+# which causes "overriding '/GL' with '/GL-'" warning and potential link issues.
+# LTO is only enabled for GCC/Clang where it works correctly with vcpkg.
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    include(CheckIPOSupported)
-    check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+    if(NOT MSVC)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 
-    if(IPO_SUPPORTED)
-        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-        message(STATUS "Link-Time Optimization (LTO/IPO) ENABLED")
+        if(IPO_SUPPORTED)
+            set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+            message(STATUS "Link-Time Optimization (LTO/IPO) ENABLED")
+        else()
+            message(STATUS "Link-Time Optimization NOT supported: ${IPO_ERROR}")
+        endif()
     else()
-        message(STATUS "Link-Time Optimization NOT supported: ${IPO_ERROR}")
+        message(STATUS "Link-Time Optimization DISABLED for MSVC (vcpkg compatibility)")
     endif()
 endif()
 
