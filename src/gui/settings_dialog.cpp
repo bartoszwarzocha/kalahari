@@ -1492,7 +1492,7 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
 
     // Show BusyIndicator on THIS DIALOG (modal overlay)
     // Use BusyIndicator::tick() between steps to keep animation alive
-    BusyIndicator::run(this, tr("Applying settings..."), [this, &settings, &logger]() {
+    BusyIndicator::run(this, tr("Applying settings..."), [&settings, &logger]() {
         auto& settingsManager = core::SettingsManager::getInstance();
         auto& themeManager = core::ThemeManager::getInstance();
         auto& artProvider = core::ArtProvider::getInstance();
