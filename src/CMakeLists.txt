@@ -229,7 +229,7 @@ elseif(UNIX AND NOT APPLE)
     message(STATUS "Qt6_DIR: ${Qt6_DIR}")
     message(STATUS "Qt6 prefix (calculated): ${_qt6_prefix}")
 
-    # Try common plugin locations (ordered by likelihood for vcpkg)
+    # Try common plugin locations (ordered by likelihood)
     set(_qt6_plugin_candidates
         "${_qt6_prefix}/Qt6/plugins"           # vcpkg x64-linux-dynamic actual location
         "${_qt6_prefix}/lib/qt6/plugins"       # vcpkg x64-linux-dynamic alternative
@@ -237,6 +237,10 @@ elseif(UNIX AND NOT APPLE)
         "${_qt6_prefix}/lib/plugins"           # fallback
         "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/qt6/plugins"
         "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/plugins"
+        # System Qt6 from apt (Ubuntu/Debian)
+        "/usr/lib/x86_64-linux-gnu/qt6/plugins"
+        "/usr/lib/qt6/plugins"
+        "/usr/lib64/qt6/plugins"
     )
 
     set(_qt6_plugins_dir "")
