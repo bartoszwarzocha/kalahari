@@ -321,7 +321,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // OpenSpec #00031: Connect Toolbar Manager dialog
     QObject::connect(managerAction, &QAction::triggered, m_mainWindow, [this]() {
-        dialogs::ToolbarManagerDialog dialog(m_mainWindow);
+        dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
         if (dialog.exec() == QDialog::Accepted) {
             // Configurations already applied via dialog
             if (m_mainWindow->statusBar()) {

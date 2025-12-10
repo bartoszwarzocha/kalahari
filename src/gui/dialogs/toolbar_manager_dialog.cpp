@@ -5,9 +5,8 @@
 
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/art_provider.h"
-// Note: ToolbarManager integration will be added in Phase C/D
-// #include "kalahari/gui/toolbar_manager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -25,7 +24,7 @@ using namespace kalahari::gui::dialogs;
 // Constructor
 // ============================================================================
 
-ToolbarManagerDialog::ToolbarManagerDialog(QWidget* parent)
+ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* parent)
     : QDialog(parent)
     , m_toolbarList(nullptr)
     , m_categoryCombo(nullptr)
@@ -43,6 +42,7 @@ ToolbarManagerDialog::ToolbarManagerDialog(QWidget* parent)
     , m_resetBtn(nullptr)
     , m_buttonBox(nullptr)
     , m_modified(false)
+    , m_toolbarManager(manager)
 {
     setWindowTitle(tr("Customize Toolbars"));
     setMinimumSize(900, 600);
@@ -296,60 +296,62 @@ void ToolbarManagerDialog::loadToolbarConfigs() {
     m_originalConfigs.clear();
     m_toolbarNames.clear();
 
-    // Load built-in toolbars from ToolbarManager
-    // Note: In a full implementation, we would get this from ToolbarManager
-    // For now, we define default configurations here
-
-    // File toolbar
-    m_originalConfigs["file"] = {"file.new", "file.open", "file.save", "file.save_as"};
-    m_toolbarNames["file"] = tr("File");
-
-    // Edit toolbar
-    m_originalConfigs["edit"] = {"edit.undo", "edit.redo", ToolbarConstants::SEPARATOR_MARKER,
-                                  "edit.cut", "edit.copy", "edit.paste"};
-    m_toolbarNames["edit"] = tr("Edit");
-
-    // Format toolbar
-    m_originalConfigs["format"] = {"format.bold", "format.italic", "format.underline",
-                                    ToolbarConstants::SEPARATOR_MARKER,
-                                    "format.align_left", "format.align_center", "format.align_right"};
-    m_toolbarNames["format"] = tr("Format");
-
-    // View toolbar
-    m_originalConfigs["view"] = {"view.navigator", "view.properties", "view.search",
-                                  "view.assistant", "view.log"};
-    m_toolbarNames["view"] = tr("View");
-
-    // Tools toolbar
-    m_originalConfigs["tools"] = {"tools.spellcheck", "tools.wordcount", "tools.focus_mode"};
-    m_toolbarNames["tools"] = tr("Tools");
-
-    // Book toolbar
-    m_originalConfigs["book"] = {"book.new_chapter", "book.new_character", "book.new_location",
-                                  "book.properties"};
-    m_toolbarNames["book"] = tr("Book");
-
-    // Copy original configs as pending changes
-    for (auto it = m_originalConfigs.constBegin(); it != m_originalConfigs.constEnd(); ++it) {
-        m_pendingChanges[it.key()] = it.value();
+    if (!m_toolbarManager) {
+        return;
     }
 
-    // Note: User-defined toolbars will be loaded when ToolbarManager
-    // integration is completed in Phase C/D
+    // Load all toolbars from ToolbarManager
+    QStringList toolbarIds = m_toolbarManager->getToolbarIds();
+
+    for (const QString& id : toolbarIds) {
+        QStringList commands = m_toolbarManager->getToolbarCommands(id);
+        QString name = m_toolbarManager->getToolbarName(id);
+
+        m_originalConfigs[id] = commands;
+        m_pendingChanges[id] = commands;
+        m_toolbarNames[id] = name;
+    }
 }
 
 void ToolbarManagerDialog::saveToolbarConfigs() {
-    // Note: Full ToolbarManager integration will be completed in Phase C/D
-    // For now, configurations are stored locally in the dialog
-    // and will be connected to actual toolbars when rebuildToolbar() is available
+    if (!m_toolbarManager) {
+        setModified(false);
+        return;
+    }
 
-    // Placeholder: Would iterate m_pendingChanges and apply to ToolbarManager
-    // auto& manager = getToolbarManager();
-    // for (auto it = m_pendingChanges.constBegin(); it != m_pendingChanges.constEnd(); ++it) {
-    //     manager.setToolbarCommands(it.key(), it.value());
-    //     manager.rebuildToolbar(it.key());
-    // }
-    // manager.saveConfigurations();
+    // Apply all pending changes to ToolbarManager
+    for (auto it = m_pendingChanges.constBegin(); it != m_pendingChanges.constEnd(); ++it) {
+        const QString& toolbarId = it.key();
+        const QStringList& commands = it.value();
+
+        // Check if this toolbar still exists or was deleted
+        if (!m_toolbarNames.contains(toolbarId)) {
+            continue;
+        }
+
+        // Check if configuration changed from original
+        if (m_originalConfigs.contains(toolbarId) && m_originalConfigs[toolbarId] == commands) {
+            // No change for this toolbar
+            continue;
+        }
+
+        // Apply changes via ToolbarManager API
+        // setToolbarCommands will rebuild and save automatically
+        m_toolbarManager->setToolbarCommands(toolbarId, commands);
+    }
+
+    // Handle user toolbar renames
+    for (auto it = m_toolbarNames.constBegin(); it != m_toolbarNames.constEnd(); ++it) {
+        if (m_toolbarManager->isUserToolbar(it.key())) {
+            QString currentName = m_toolbarManager->getToolbarName(it.key());
+            if (currentName != it.value()) {
+                m_toolbarManager->renameUserToolbar(it.key(), it.value());
+            }
+        }
+    }
+
+    // Save configurations to settings
+    m_toolbarManager->saveConfigurations();
 
     setModified(false);
 }
@@ -705,6 +707,10 @@ void ToolbarManagerDialog::onSearchTextChanged(const QString& text) {
 // ============================================================================
 
 void ToolbarManagerDialog::onNewToolbar() {
+    if (!m_toolbarManager) {
+        return;
+    }
+
     bool ok;
     QString name = QInputDialog::getText(this,
         tr("New Toolbar"),
@@ -717,17 +723,10 @@ void ToolbarManagerDialog::onNewToolbar() {
         return;
     }
 
-    QString toolbarId = ToolbarConstants::USER_TOOLBAR_PREFIX + sanitizeToolbarName(name);
+    // Create toolbar via ToolbarManager (it will generate unique ID)
+    QString toolbarId = m_toolbarManager->createUserToolbar(name.trimmed());
 
-    // Check if ID already exists
-    if (m_pendingChanges.contains(toolbarId)) {
-        QMessageBox::warning(this,
-            tr("Toolbar Exists"),
-            tr("A toolbar with this name already exists."));
-        return;
-    }
-
-    // Create new empty toolbar
+    // Update local state
     m_pendingChanges[toolbarId] = QStringList();
     m_toolbarNames[toolbarId] = name.trimmed();
     m_originalConfigs[toolbarId] = QStringList();
@@ -750,6 +749,10 @@ void ToolbarManagerDialog::onDeleteToolbar() {
         return;
     }
 
+    if (!m_toolbarManager) {
+        return;
+    }
+
     QMessageBox::StandardButton result = QMessageBox::question(this,
         tr("Delete Toolbar"),
         tr("Are you sure you want to delete the toolbar '%1'?")
@@ -761,6 +764,10 @@ void ToolbarManagerDialog::onDeleteToolbar() {
         return;
     }
 
+    // Delete via ToolbarManager
+    m_toolbarManager->deleteUserToolbar(m_selectedToolbarId);
+
+    // Update local state
     m_pendingChanges.remove(m_selectedToolbarId);
     m_toolbarNames.remove(m_selectedToolbarId);
     m_originalConfigs.remove(m_selectedToolbarId);
@@ -814,6 +821,10 @@ void ToolbarManagerDialog::onApply() {
 }
 
 void ToolbarManagerDialog::onReset() {
+    if (!m_toolbarManager) {
+        return;
+    }
+
     QMessageBox::StandardButton result = QMessageBox::question(this,
         tr("Reset Toolbars"),
         tr("Are you sure you want to reset all toolbars to their default configurations?\n\n"
@@ -825,19 +836,10 @@ void ToolbarManagerDialog::onReset() {
         return;
     }
 
-    // Remove user toolbars
-    QStringList toRemove;
-    for (auto it = m_pendingChanges.constBegin(); it != m_pendingChanges.constEnd(); ++it) {
-        if (isUserToolbar(it.key())) {
-            toRemove << it.key();
-        }
-    }
-    for (const QString& id : toRemove) {
-        m_pendingChanges.remove(id);
-        m_toolbarNames.remove(id);
-    }
+    // Reset via ToolbarManager
+    m_toolbarManager->resetToDefaults();
 
-    // Reset built-in toolbars
+    // Reload from ToolbarManager
     loadToolbarConfigs();
     populateToolbarList();
 
@@ -845,7 +847,7 @@ void ToolbarManagerDialog::onReset() {
         m_toolbarList->setCurrentRow(1);
     }
 
-    setModified(true);
+    setModified(false);
 }
 
 void ToolbarManagerDialog::onAccept() {

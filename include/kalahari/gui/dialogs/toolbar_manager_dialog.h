@@ -23,6 +23,10 @@
 
 namespace kalahari {
 namespace gui {
+
+// Forward declaration
+class ToolbarManager;
+
 namespace dialogs {
 
 /// @brief Constants for toolbar management
@@ -59,8 +63,9 @@ class ToolbarManagerDialog : public QDialog {
 
 public:
     /// @brief Constructs the toolbar manager dialog
+    /// @param manager ToolbarManager instance for reading/writing toolbar configurations
     /// @param parent Parent widget (typically MainWindow)
-    explicit ToolbarManagerDialog(QWidget* parent = nullptr);
+    explicit ToolbarManagerDialog(ToolbarManager* manager, QWidget* parent = nullptr);
 
     /// @brief Destructor
     ~ToolbarManagerDialog() override = default;
@@ -290,6 +295,9 @@ private:
 
     /// @brief Built-in toolbar IDs
     QStringList m_builtInToolbarIds;
+
+    /// @brief ToolbarManager reference for API access
+    ToolbarManager* m_toolbarManager;
 };
 
 } // namespace dialogs
