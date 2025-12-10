@@ -3,6 +3,7 @@
 
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
 // Note: ThemeManager.h not included here - connection made externally by MainWindow
@@ -432,10 +433,26 @@ void IconRegistry::resetTheme() {
 // ============================================================================
 
 QString IconRegistry::loadSVGFromFile(const QString& filePath) const {
-    // Resolve path relative to application directory
-    QString resolvedPath = filePath;
-    if (!QDir::isAbsolutePath(filePath)) {
-        resolvedPath = QCoreApplication::applicationDirPath() + "/" + filePath;
+    QString resolvedPath;
+
+    if (QDir::isAbsolutePath(filePath)) {
+        resolvedPath = filePath;
+    } else {
+        // Use ResourcePaths for relative paths like "resources/icons/twotone/save.svg"
+        if (filePath.startsWith("resources/icons/")) {
+            QString relativePart = filePath.mid(16);  // Remove "resources/icons/"
+            int slashPos = relativePart.indexOf('/');
+            if (slashPos > 0) {
+                QString iconTheme = relativePart.left(slashPos);
+                QString iconName = relativePart.mid(slashPos + 1);
+                resolvedPath = ResourcePaths::getInstance().getIconPath(iconTheme, iconName);
+            }
+        }
+
+        // Fallback to old behavior if ResourcePaths didn't resolve
+        if (resolvedPath.isEmpty()) {
+            resolvedPath = QCoreApplication::applicationDirPath() + "/" + filePath;
+        }
     }
 
     QFile file(resolvedPath);

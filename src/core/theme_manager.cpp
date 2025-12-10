@@ -3,6 +3,7 @@
 
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/stylesheet.h"
 #include <QFile>
@@ -177,10 +178,14 @@ ThemeManager::ThemeManager() {
 // ============================================================================
 
 std::optional<nlohmann::json> ThemeManager::loadThemeFile(const QString& themeName) {
-    QString relativePath = QString("resources/themes/%1.json").arg(themeName);
+    // Use ResourcePaths for cross-platform resource resolution (OpenSpec #00029)
+    QString themePath = ResourcePaths::getInstance().getThemePath(themeName);
 
-    // Resolve path relative to application directory
-    QString themePath = QCoreApplication::applicationDirPath() + "/" + relativePath;
+    if (themePath.isEmpty()) {
+        Logger::getInstance().error("ThemeManager: Resources not found, cannot load theme '{}'",
+            themeName.toStdString());
+        return std::nullopt;
+    }
 
     QFile file(themePath);
     if (!file.exists()) {
@@ -232,7 +237,13 @@ const Theme& ThemeManager::getCurrentTheme() const {
 QStringList ThemeManager::getAvailableThemes() const {
     QStringList themes;
 
-    QString themesPath = QCoreApplication::applicationDirPath() + "/resources/themes";
+    // Use ResourcePaths for cross-platform resource resolution (OpenSpec #00029)
+    QString themesPath = ResourcePaths::getInstance().getThemesDir();
+    if (themesPath.isEmpty()) {
+        Logger::getInstance().warn("ThemeManager: Resources not found, cannot list themes");
+        return themes;
+    }
+
     QDir themesDir(themesPath);
     if (!themesDir.exists()) {
         Logger::getInstance().warn("ThemeManager: Themes directory not found: {}", themesPath.toStdString());

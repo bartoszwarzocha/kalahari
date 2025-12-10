@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00029:** Fix Theme and Icon Loading on Linux/macOS - 2025-12-10
+  - Created ResourcePaths singleton for cross-platform resource discovery
+  - Multi-path search: executable dir, macOS bundle, Linux FHS, development fallbacks
+  - Updated IconRegistry.loadSVGFromFile() to use ResourcePaths
+  - Updated ThemeManager.loadThemeFile() and getAvailableThemes() to use ResourcePaths
+  - Changed CMake from configure-time file(COPY) to POST_BUILD commands
+  - Added macOS bundle resource copying to Contents/Resources
+  - Files added: `resource_paths.h`, `resource_paths.cpp`
+  - Files modified: `icon_registry.cpp`, `theme_manager.cpp`, `CMakeLists.txt`, `src/CMakeLists.txt`
+
 - **Task #00013:** Command Registry Qt Migration - 2025-11-21
   - Migrated Command Registry from wxWidgets to Qt6 (6 files, ~670 LOC)
   - Core structures adapted: IconSet (wxBitmap -> QPixmap), KeyboardShortcut (Qt::KeyboardModifiers), Command (added toQAction())

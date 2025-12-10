@@ -101,6 +101,7 @@ set(KALAHARI_SOURCES
     core/icon_registry.cpp  # IconRegistry moved to executable (Task #00025: Q_OBJECT for theme signals)
     core/art_provider.cpp   # ArtProvider - Central Visual Resource Manager (OpenSpec #00026)
     core/log_panel_sink.cpp # LogPanelSink - spdlog Qt sink (OpenSpec #00024)
+    core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/command.cpp
     gui/command_registry.cpp
@@ -176,6 +177,15 @@ target_link_libraries(kalahari PRIVATE
     Qt6::SvgWidgets
 )
 
+# Copy resources to output directory after each build (OpenSpec #00029)
+# This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time
+add_custom_command(TARGET kalahari POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/resources"
+        "$<TARGET_FILE_DIR:kalahari>/resources"
+    COMMENT "Copying resources to output directory"
+)
+
 # Platform-specific settings
 if(WIN32)
     # Windows: GUI application (not console)
@@ -186,6 +196,14 @@ if(WIN32)
 elseif(APPLE)
     # macOS: Bundle structure
     set_target_properties(kalahari PROPERTIES MACOSX_BUNDLE TRUE)
+
+    # macOS: Copy resources to bundle (OpenSpec #00029)
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resources"
+            "$<TARGET_BUNDLE_CONTENT_DIR:kalahari>/Resources/resources"
+        COMMENT "Copying resources to macOS bundle"
+    )
 endif()
 
 # Copy Qt plugins after build (Windows/Linux/macOS)

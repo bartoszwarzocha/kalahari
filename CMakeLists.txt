@@ -244,10 +244,9 @@ else()
     message(WARNING "SVG icon conversion failed: ${CONVERT_ERROR}")
 endif()
 
-# Copy resources directory to build output (icons, themes, etc.)
-file(COPY ${CMAKE_SOURCE_DIR}/resources
-     DESTINATION ${CMAKE_BINARY_DIR}/bin/)
-message(STATUS "Copied resources/ to ${CMAKE_BINARY_DIR}/bin/")
+# Resources are copied via POST_BUILD command in src/CMakeLists.txt
+# This ensures resources are always up-to-date after each build
+message(STATUS "Resources will be copied to output directory via POST_BUILD")
 
 # Enable testing
 enable_testing()
