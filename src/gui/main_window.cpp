@@ -26,6 +26,7 @@
 #include "kalahari/core/book.h"
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/part.h"
+#include "kalahari/core/recent_books_manager.h"
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -57,7 +58,6 @@ MainWindow::MainWindow(QWidget* parent)
     , m_viewLogAction(nullptr)
     , m_viewSearchAction(nullptr)
     , m_viewAssistantAction(nullptr)
-    , m_resetLayoutAction(nullptr)
     , m_navigatorDock(nullptr)
     , m_propertiesDock(nullptr)
     , m_logDock(nullptr)
@@ -370,8 +370,9 @@ void MainWindow::registerCommands() {
 
     // Recent Books - dynamic submenu (registered separately)
 
+    // OpenSpec #00030: Added Ctrl+W shortcut for Close Book
     REG_CMD_TOOL_ICON("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
-                      KeyboardShortcut(),
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Close),
                       IconSet(),
                       []() {});
 
@@ -448,10 +449,15 @@ void MainWindow::registerCommands() {
     REG_CMD("edit.selectWord", "Select Word", "EDIT/Select Word", 90, false, 1);
     REG_CMD("edit.selectParagraph", "Select Paragraph", "EDIT/Select Paragraph", 100, true, 1);
 
-    REG_CMD("edit.find", "Find...", "EDIT/Find...", 110, false, 1);
-    REG_CMD("edit.findNext", "Find Next", "EDIT/Find Next", 120, false, 1);
-    REG_CMD("edit.findPrevious", "Find Previous", "EDIT/Find Previous", 130, false, 1);
-    REG_CMD("edit.findReplace", "Find & Replace...", "EDIT/Find & Replace...", 140, false, 1);
+    // OpenSpec #00030: Added keyboard shortcuts for Find operations
+    REG_CMD_KEY("edit.find", "Find...", "EDIT/Find...", 110, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::Find));
+    REG_CMD_KEY("edit.findNext", "Find Next", "EDIT/Find Next", 120, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::FindNext));
+    REG_CMD_KEY("edit.findPrevious", "Find Previous", "EDIT/Find Previous", 130, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::FindPrevious));
+    REG_CMD_KEY("edit.findReplace", "Find & Replace...", "EDIT/Find & Replace...", 140, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::Replace));
     REG_CMD("edit.findInBook", "Find in Book...", "EDIT/Find in Book...", 150, true, 1);
 
     REG_CMD_CB("edit.preferences", "Preferences...", "EDIT/Preferences...", 160, false, 0,
@@ -524,9 +530,13 @@ void MainWindow::registerCommands() {
     REG_CMD("format.style.code", "Code", "FORMAT/Text Style/Code", 80, true, 1);
     REG_CMD("format.style.manage", "Manage Styles...", "FORMAT/Text Style/Manage Styles...", 90, false, 1);
 
-    REG_CMD("format.bold", "Bold", "FORMAT/Bold", 100, false, 1);
-    REG_CMD("format.italic", "Italic", "FORMAT/Italic", 110, false, 1);
-    REG_CMD("format.underline", "Underline", "FORMAT/Underline", 120, false, 1);
+    // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
+    REG_CMD_KEY("format.bold", "Bold", "FORMAT/Bold", 100, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::Bold));
+    REG_CMD_KEY("format.italic", "Italic", "FORMAT/Italic", 110, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::Italic));
+    REG_CMD_KEY("format.underline", "Underline", "FORMAT/Underline", 120, false, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::Underline));
     REG_CMD("format.strikethrough", "Strikethrough", "FORMAT/Strikethrough", 130, true, 1);
 
     REG_CMD("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 1);
@@ -623,12 +633,9 @@ void MainWindow::registerCommands() {
     REG_CMD("view.perspectives.save", "Save Current Perspective...", "VIEW/Perspectives/Save Current Perspective...", 110, false, 1);
     REG_CMD("view.perspectives.manage", "Manage Perspectives...", "VIEW/Perspectives/Manage Perspectives...", 120, false, 1);
 
-    // Toolbars submenu
-    REG_CMD("view.toolbars.standard", "Standard Toolbar", "VIEW/Toolbars/Standard Toolbar", 130, false, 1);
-    REG_CMD("view.toolbars.book", "Book Toolbar", "VIEW/Toolbars/Book Toolbar", 140, false, 1);
-    REG_CMD("view.toolbars.format", "Format Toolbar", "VIEW/Toolbars/Format Toolbar", 150, false, 1);
-    REG_CMD("view.toolbars.quickAccess", "Quick Access Toolbar", "VIEW/Toolbars/Quick Access Toolbar", 160, true, 1);
-    REG_CMD("view.toolbars.customize", "Customize Toolbars...", "VIEW/Toolbars/Customize Toolbars...", 170, false, 1);
+    // OpenSpec #00030: VIEW/Toolbars submenu is created DYNAMICALLY
+    // by ToolbarManager::createViewMenuActions() - no static commands here.
+    // Toolbar toggle actions + "Toolbar Manager..." are all dynamic.
 
     REG_CMD("view.showStatusBar", "Show Status Bar", "VIEW/Show Status Bar", 180, false, 0);
     REG_CMD("view.showStatsBar", "Show Statistics Bar", "VIEW/Show Statistics Bar", 190, false, 1);
@@ -638,15 +645,20 @@ void MainWindow::registerCommands() {
     REG_CMD("view.zoomOut", "Zoom Out", "VIEW/Zoom Out", 230, false, 1);
     REG_CMD("view.resetZoom", "Reset Zoom", "VIEW/Reset Zoom", 240, true, 1);
 
-    REG_CMD("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 1);
+    // OpenSpec #00030: F11 for Full Screen (standard)
+    REG_CMD_KEY("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 1,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::FullScreen));
 
-    REG_CMD("view.resetLayout", "Reset Layout", "VIEW/Reset Layout", 260, false, 0);
+    REG_CMD_CB("view.resetLayout", "Reset Layout", "VIEW/Reset Layout", 260, false, 0,
+               [this]() { resetLayout(); });
 
     // =========================================================================
     // HELP MENU
     // =========================================================================
 
-    REG_CMD("help.manual", "Kalahari Help", "HELP/Kalahari Help", 10, false, 2);
+    // OpenSpec #00030: F1 for Help (standard)
+    REG_CMD_KEY("help.manual", "Kalahari Help", "HELP/Kalahari Help", 10, false, 2,
+                KeyboardShortcut::fromQKeySequence(QKeySequence::HelpContents));
     REG_CMD("help.tutorial", "Getting Started Tutorial", "HELP/Getting Started Tutorial", 20, true, 2);
 
     REG_CMD("help.shortcuts", "Keyboard Shortcuts", "HELP/Keyboard Shortcuts", 30, false, 1);
@@ -675,8 +687,20 @@ void MainWindow::createMenus() {
     CommandRegistry& registry = CommandRegistry::getInstance();
     m_menuBuilder->buildMenuBar(registry, this);
 
-    // Store menu pointers for later access (optional)
-    m_fileMenu = menuBar()->findChild<QMenu*>("", Qt::FindDirectChildrenOnly);
+    // Store FILE menu pointer for Recent Books integration
+    m_fileMenu = m_menuBuilder->getMenu("FILE");
+
+    // OpenSpec #00030: Add Recent Books submenu to FILE menu
+    if (m_fileMenu) {
+        auto& recentBooks = core::RecentBooksManager::getInstance();
+        recentBooks.createRecentBooksMenu(m_fileMenu);
+
+        // Connect signal to open recent file
+        connect(&recentBooks, &core::RecentBooksManager::recentFileClicked,
+                this, &MainWindow::onOpenRecentFile);
+
+        logger.debug("Recent Books submenu added to FILE menu");
+    }
 
     // Note: View menu will be populated by createDocks() with panel toggles
     // This is intentional - View menu is created empty by MenuBuilder
@@ -844,6 +868,94 @@ void MainWindow::onOpenDocument() {
 
     logger.info("Document loaded in new tab: {}", filepath.string());
     statusBar()->showMessage(tr("Document opened: %1").arg(filename), 2000);
+
+    // OpenSpec #00030: Add to recent files list
+    core::RecentBooksManager::getInstance().addRecentFile(filename);
+}
+
+void MainWindow::onOpenRecentFile(const QString& filePath) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Opening recent file: {}", filePath.toStdString());
+
+    // Check if file still exists
+    if (!QFileInfo::exists(filePath)) {
+        QMessageBox::warning(
+            this,
+            tr("File Not Found"),
+            tr("The file '%1' no longer exists.").arg(filePath)
+        );
+
+        // Remove from recent files
+        core::RecentBooksManager::getInstance().removeRecentFile(filePath);
+        return;
+    }
+
+    // Check for unsaved changes in current editor tab
+    EditorPanel* currentEditor = getCurrentEditor();
+    if (currentEditor && m_isDirty) {
+        auto reply = QMessageBox::question(
+            this,
+            tr("Unsaved Changes"),
+            tr("Do you want to save changes to the current document?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save
+        );
+
+        if (reply == QMessageBox::Save) {
+            onSaveDocument();
+            if (m_isDirty) return;
+        } else if (reply == QMessageBox::Cancel) {
+            return;
+        }
+    }
+
+    // Load document
+    std::filesystem::path filepath = filePath.toStdString();
+    auto loaded = core::DocumentArchive::load(filepath);
+
+    if (!loaded.has_value()) {
+        QMessageBox::critical(
+            this,
+            tr("Open Error"),
+            tr("Failed to open document: %1").arg(filePath)
+        );
+        logger.error("Failed to load recent file: {}", filepath.string());
+
+        // Remove from recent files
+        core::RecentBooksManager::getInstance().removeRecentFile(filePath);
+        return;
+    }
+
+    // Create new EditorPanel tab
+    EditorPanel* newEditor = new EditorPanel(this);
+    QString docTitle = QString::fromStdString(loaded.value().getTitle());
+    int tabIndex = m_centralTabs->addTab(newEditor, docTitle);
+    m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Connect textChanged signal for dirty tracking
+    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+            this, [this]() {
+                if (!m_currentDocument.has_value()) return;
+                setDirty(true);
+            });
+
+    // Update state
+    m_currentDocument = std::move(loaded.value());
+    m_currentFilePath = filepath;
+
+    // Extract text and load into editor
+    QString content = getPhase0Content(m_currentDocument.value());
+    newEditor->setText(content);
+    setDirty(false);
+
+    // Update navigator panel
+    m_navigatorPanel->loadDocument(m_currentDocument.value());
+
+    // Move to top of recent files
+    core::RecentBooksManager::getInstance().addRecentFile(filePath);
+
+    logger.info("Recent file loaded: {}", filepath.string());
+    statusBar()->showMessage(tr("Document opened: %1").arg(filePath), 2000);
 }
 
 void MainWindow::onSaveDocument() {
@@ -1267,37 +1379,34 @@ void MainWindow::createDocks() {
     // Set icons through ArtProvider for proper theme coloring
     auto& artProvider = core::ArtProvider::getInstance();
 
+    // OpenSpec #00030: Panel shortcuts changed from Ctrl+1-5 to F2-F6
     m_viewNavigatorAction = m_navigatorDock->toggleViewAction();
     m_viewNavigatorAction->setIcon(artProvider.getIcon("view.navigator"));
-    m_viewNavigatorAction->setShortcut(QKeySequence(tr("Ctrl+1")));
+    m_viewNavigatorAction->setShortcut(QKeySequence(Qt::Key_F2));
     panelsSubmenu->addAction(m_viewNavigatorAction);
 
     m_viewPropertiesAction = m_propertiesDock->toggleViewAction();
     m_viewPropertiesAction->setIcon(artProvider.getIcon("view.properties"));
-    m_viewPropertiesAction->setShortcut(QKeySequence(tr("Ctrl+2")));
+    m_viewPropertiesAction->setShortcut(QKeySequence(Qt::Key_F3));
     panelsSubmenu->addAction(m_viewPropertiesAction);
 
     m_viewLogAction = m_logDock->toggleViewAction();
     m_viewLogAction->setIcon(artProvider.getIcon("view.log"));
-    m_viewLogAction->setShortcut(QKeySequence(tr("Ctrl+3")));
+    m_viewLogAction->setShortcut(QKeySequence(Qt::Key_F4));
     panelsSubmenu->addAction(m_viewLogAction);
 
     m_viewSearchAction = m_searchDock->toggleViewAction();
     m_viewSearchAction->setIcon(artProvider.getIcon("view.search"));
-    m_viewSearchAction->setShortcut(QKeySequence(tr("Ctrl+4")));
+    m_viewSearchAction->setShortcut(QKeySequence(Qt::Key_F5));
     panelsSubmenu->addAction(m_viewSearchAction);
 
     m_viewAssistantAction = m_assistantDock->toggleViewAction();
     m_viewAssistantAction->setIcon(artProvider.getIcon("view.assistant"));
-    m_viewAssistantAction->setShortcut(QKeySequence(tr("Ctrl+5")));
+    m_viewAssistantAction->setShortcut(QKeySequence(Qt::Key_F6));
     panelsSubmenu->addAction(m_viewAssistantAction);
 
-    // Reset layout action (will appear in main VIEW menu)
-    m_resetLayoutAction = new QAction(tr("Reset Layout"), this);
-    m_resetLayoutAction->setShortcut(QKeySequence(tr("Ctrl+0")));
-    m_resetLayoutAction->setStatusTip(tr("Reset dock layout to default"));
-    connect(m_resetLayoutAction, &QAction::triggered, this, &MainWindow::resetLayout);
-    m_viewMenu->addAction(m_resetLayoutAction);
+    // NOTE: Reset Layout action is registered in CommandRegistry (view.resetLayout)
+    // and built by MenuBuilder - no need to add manually here
 
     // Task #00019: Add toolbar toggle actions to View menu
     if (m_toolbarManager) {

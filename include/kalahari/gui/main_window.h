@@ -209,6 +209,10 @@ private slots:
     /// @note Phase 1+: Opens specific chapter content
     void onNavigatorItemDoubleClicked(const QString& chapterTitle);
 
+    /// @brief Slot for opening recent file (OpenSpec #00030)
+    /// @param filePath Path to the file to open
+    void onOpenRecentFile(const QString& filePath);
+
     /// @brief Slot for diagnostic mode changed from SettingsDialog (Task #00018)
     /// @param enabled true if diagnostic mode enabled, false otherwise
     void onDiagModeChanged(bool enabled);
@@ -270,7 +274,6 @@ private:
     QAction* m_viewLogAction;
     QAction* m_viewSearchAction;
     QAction* m_viewAssistantAction;
-    QAction* m_resetLayoutAction;
 
     // Dock widgets
     QDockWidget* m_navigatorDock;

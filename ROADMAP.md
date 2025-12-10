@@ -107,50 +107,112 @@
 **Target:** 0.4.0-alpha
 **Timeline:** ~5 months
 
-### 1.0 Complete Menu System
+**Development Order:** Menu → Toolbars → Project File → Perspectives → Navigator → Editor
 
-**Philosophy:** 9 menus (FILE, EDIT, BOOK, INSERT, FORMAT, TOOLS, ASSISTANT, VIEW, HELP)
+### 1.0 Menu System Review & Cleanup COMPLETE
 
-- [ ] Menu BOOK (book structure operations)
-- [ ] Menu INSERT (text content elements)
-- [ ] Menu FORMAT (rich text formatting)
-- [ ] Menu TOOLS (utilities & plugins)
-- [ ] Menu ASSISTANT (AI assistants)
-- [ ] All commands registered in CommandRegistry
-- [ ] All menu items show QMessageBox with "Coming in Phase X"
-- [ ] Toolbar customization
+**Philosophy:** Clean, coherent menu structure without duplicates. Every menu item serves a purpose.
 
-### 1.1 Rich Text Editor
+**Resolved Issues (OpenSpec #00030):**
+- ~~Duplicate toolbar entries in VIEW menu~~ → Dynamic Toolbars submenu via ToolbarManager
+- ~~Inconsistent naming~~ → Toolbars now use consistent names
+- Added standard keyboard shortcuts (F1-F6, F11, Ctrl+B/I/U/F/H/W)
+- Created RecentBooksManager for FILE/Recent Books submenu
 
-- [ ] Custom QTextDocument subclass (Book-aware)
-- [ ] Formatting toolbar (bold, italic, underline, alignment)
-- [ ] Font selection (QFontComboBox)
-- [ ] Paragraph styles (heading, body, quote)
-- [ ] Character formatting (color, size, font family)
+**Tasks:**
+- [x] Full menu audit - document all 9 menus and their items
+- [x] Remove VIEW/Toolbars duplicates (dynamic submenu)
+- [x] Verify all CommandRegistry commands have correct phase markers
+- [x] Ensure menu structure matches application architecture
+- [x] Review keyboard shortcuts for conflicts
+- [x] Document final menu specification (in OpenSpec #00030)
 
-### 1.2 Document Structure
+### 1.1 Toolbar System
 
-- [ ] Part management (QListWidget or QTreeView)
-- [ ] Chapter CRUD operations
-- [ ] Drag-and-drop reordering
-- [ ] Document outline synchronization
-- [ ] Word count aggregation
+**Philosophy:** Toolbars mirror menu structure. Each toolbar groups related actions.
 
-### 1.3 Project Management
+**Tasks:**
+- [ ] Synchronize toolbar names with menu structure
+- [ ] Create missing toolbars (Format Toolbar if needed)
+- [ ] Remove redundant toolbars
+- [ ] Toolbar customization UI ("Customize Toolbars..." dialog)
+- [ ] Drag & drop toolbar button reordering
+- [ ] Save/restore toolbar configuration per user
 
-- [ ] Recent files (QSettings + QAction list)
-- [ ] File history navigation
-- [ ] Project templates
-- [ ] Metadata editing (title, author, language)
+### 1.2 Project File System
 
-### 1.4 Search & Replace
+**Philosophy:** .klh is a ZIP archive containing book structure, content, and metadata.
 
-- [ ] Find dialog (QDialog with QLineEdit)
-- [ ] Replace dialog
-- [ ] Find in selection, whole word, case-sensitive
-- [ ] Regular expression support (QRegularExpression)
+**Current State:** Phase 0 MVP - manifest.json only, content in metadata field
 
-### 1.5 Statistics Architecture (3-Tier System)
+**Tasks:**
+- [ ] Verify and document .klh format specification
+- [ ] Implement proper chapter file extraction (RTF/HTML)
+- [ ] Chapter content lazy loading
+- [ ] Project metadata editing (title, author, language, genre)
+- [ ] Recent files list (QSettings + QAction)
+- [ ] Project templates system
+
+### 1.3 Perspective System
+
+**Philosophy:** Named window layouts for different workflows (Writer, Editor, Researcher).
+
+**Current State:** Basic saveState/restoreState works, but no named perspectives
+
+**Tasks:**
+- [ ] Define default perspectives (Writer, Editor, Researcher, Planner)
+- [ ] Perspective save/load mechanism
+- [ ] "Save Current Perspective..." dialog
+- [ ] "Manage Perspectives..." dialog
+- [ ] Default perspective on first run
+- [ ] Perspective switching via VIEW menu and keyboard shortcuts
+
+### 1.4 Navigator Panel
+
+**Philosophy:** Tree view of project structure with full editing capabilities.
+
+**Current State:** Basic QTreeWidget showing book structure
+
+**Tasks:**
+- [ ] Context menu (right-click) for all operations
+- [ ] Drag & drop reordering of chapters/parts
+- [ ] Icons for element types (Part, Chapter, Scene, Note)
+- [ ] Double-click opens chapter in editor
+- [ ] Synchronization with editor (highlight current chapter)
+- [ ] Search/filter within navigator
+
+### 1.5 Custom Text Editor
+
+**Philosophy:** Rich text editor optimized for long-form writing (novels, books).
+
+**Current State:** QPlainTextEdit (plain text only)
+
+**Tasks:**
+- [ ] Custom QTextEdit subclass (BookEditor)
+- [ ] Rich text formatting (bold, italic, underline, strikethrough)
+- [ ] Paragraph styles (Heading 1-3, Body, Quote, Code)
+- [ ] Font selection toolbar (QFontComboBox)
+- [ ] Text alignment (left, center, right, justify)
+- [ ] Line/paragraph spacing
+- [ ] Line numbers (optional)
+- [ ] Word count in status bar (live update)
+- [ ] Spell checking integration (Phase 2)
+- [ ] Focus mode (dim everything except current paragraph)
+
+### 1.6 Search & Replace
+
+**Philosophy:** Fast, powerful search within current document and entire project.
+
+**Tasks:**
+- [ ] Find dialog (Ctrl+F)
+- [ ] Replace dialog (Ctrl+H)
+- [ ] Options: case-sensitive, whole word, regex
+- [ ] Find in selection
+- [ ] Find in entire project (all chapters)
+- [ ] Search results panel
+- [ ] Highlight all matches
+
+### 1.7 Statistics Architecture (3-Tier System)
 
 **Philosophy:** Live monitoring (Bar) + Weekly analysis (Panel) + Deep dive (Central Window)
 
@@ -158,14 +220,14 @@
 - [ ] **Weekly Statistics Panel** (dockable, toggleable via VIEW menu)
 - [ ] **Advanced Analytics** (central window tab, Premium plugin $14)
 
-### 1.6 Mind Maps & Timelines (Library Architecture)
+### 1.8 Mind Maps & Timelines (Library Architecture)
 
 **Philosophy:** Multiple maps/timelines per project, edited in central window
 
 - [ ] **Mind Maps Library** (MindMaps/*.kmap files)
 - [ ] **Timelines Library** (Timelines/*.ktl files)
 
-### 1.7 Theme & Icon System COMPLETE
+### 1.9 Theme & Icon System COMPLETE
 
 **Philosophy:** User-configurable themes with per-theme color customization and centralized icon management.
 
@@ -340,6 +402,7 @@
 - [x] **2025-11-27:** Theme & Icon System Complete (ArtProvider, BusyIndicator)
 - [x] **2025-11-27:** Enhanced Log Panel Complete (real-time spdlog, mode visibility)
 - [x] **2025-12-07:** Theme Color Configuration Complete (OpenSpec #00027)
+- [x] **2025-12-10:** Menu System Review & Cleanup Complete (OpenSpec #00030)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -403,6 +466,6 @@
 
 ---
 
-**Document Version:** 2.2
-**Last Update:** 2025-12-07
-**Updated By:** Claude (OpenSpec #00027 Theme Color Configuration Complete)
+**Document Version:** 2.3
+**Last Update:** 2025-12-10
+**Updated By:** Claude (OpenSpec #00030 Menu System Review & Cleanup Complete)

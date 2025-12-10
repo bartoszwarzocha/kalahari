@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00030:** Menu System Review & Cleanup - 2025-12-10
+  - **Keyboard Shortcuts:**
+    - Panel toggles: F2 (Navigator), F3 (Properties), F4 (Log), F5 (Search), F6 (Assistant)
+    - F11 for Full Screen (standard)
+    - F1 for Help (standard)
+    - Ctrl+F/H for Find/Find & Replace
+    - Ctrl+B/I/U for Bold/Italic/Underline
+    - Ctrl+W for Close Book
+  - **Dynamic Toolbars Submenu:**
+    - VIEW/Toolbars now dynamically built by ToolbarManager
+    - Removed static CommandRegistry entries (no duplicates)
+    - Added "Toolbar Manager..." action
+  - **Recent Books Submenu:**
+    - New RecentBooksManager singleton class
+    - Stores up to 10 recent files in QSettings
+    - Dynamic FILE/Recent Books submenu with numbered items (1-9, 0)
+    - Auto-removes non-existent files
+    - "Clear Recent Files" action
+  - Files added: `recent_books_manager.h`, `recent_books_manager.cpp`
+  - Files modified: `main_window.cpp`, `main_window.h`, `toolbar_manager.cpp`,
+    `register_commands.hpp`, `CMakeLists.txt`
+
 - **OpenSpec #00029:** Fix Theme and Icon Loading on Linux/macOS - 2025-12-10
   - Created ResourcePaths singleton for cross-platform resource discovery
   - Multi-path search: executable dir, macOS bundle, Linux FHS, development fallbacks

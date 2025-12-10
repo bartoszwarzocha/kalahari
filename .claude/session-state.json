@@ -1,28 +1,33 @@
 {
   "mode": "sync",
-  "saved_at": "2025-12-10T12:00:00",
+  "saved_at": "2025-12-10T13:00:00",
   "git_commit": "a267f46",
-  "git_pushed": true,
-  "openspec": null,
-  "openspec_status": null,
-  "working_on": null,
-  "next_steps": [],
+  "git_pushed": false,
+  "openspec": "00030",
+  "openspec_status": "DEPLOYED",
+  "working_on": "OpenSpec #00030 - Menu System Review & Cleanup COMPLETE",
+  "next_steps": [
+    "Commit and push changes",
+    "Continue with ROADMAP Phase 1.1 (Toolbar System)",
+    "Or start Phase 1.2 (Project File System)"
+  ],
   "blocker": null,
   "completed_tasks": [
     "OpenSpec #00027 - Theme Color Configuration (DEPLOYED)",
     "OpenSpec #00028 - Complete Theme Styling System (DEPLOYED)",
     "OpenSpec #00029 - Fix Theme and Icon Loading on Linux/macOS (DEPLOYED)",
-    "CI/CD stabilization - ALL PLATFORMS SUCCESS",
-    "Linux CI fix - system Qt6 from apt (no vcpkg, 2m43s build)",
-    "Qt 6.4/6.5 API compatibility (svg_converter.cpp)",
-    "macOS CI SUCCESS (10m19s)",
-    "Windows CI SUCCESS (20m30s)"
+    "OpenSpec #00030 - Menu System Review & Cleanup (DEPLOYED)",
+    "CI/CD stabilization - ALL PLATFORMS SUCCESS"
   ],
-  "pending_tasks": [],
+  "pending_tasks": [
+    "Phase 1.1: Toolbar System (customization, user-defined toolbars)",
+    "Phase 1.2: Project File System (.klh format, chapters)",
+    "Phase 1.3: Perspective System (save/load named perspectives)"
+  ],
   "notes": [
-    "Linux CI uses system packages from apt (no vcpkg) - much faster",
-    "USE_SYSTEM_PACKAGES CMake option for Linux CI",
-    "Qt 6.4 and 6.5+ API differences handled with #if QT_VERSION",
-    "ResourcePaths singleton for cross-platform resource discovery"
+    "RecentBooksManager created for FILE/Recent Books",
+    "Toolbars submenu now dynamic (no duplicates)",
+    "Panel shortcuts changed to F2-F6",
+    "Standard shortcuts added: F1/F11/Ctrl+B/I/U/F/H/W"
   ]
 }

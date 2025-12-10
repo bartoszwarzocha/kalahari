@@ -249,8 +249,9 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
         return;
     }
 
-    // Add separator before "Toolbars" section
-    viewMenu->addSeparator();
+    // OpenSpec #00030: Create Toolbars submenu instead of adding directly to VIEW menu
+    // Structure: Standard Toolbars → separator → User-defined (future) → separator → Toolbar Manager...
+    QMenu* toolbarsMenu = viewMenu->addMenu(QObject::tr("Toolbars"));
 
     // Create checkable action for each toolbar
     std::vector<std::string> order = {"file", "edit", "book", "view", "tools"};
@@ -269,7 +270,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
         // Create checkable action
         QString actionText = QObject::tr(config.label.c_str());
-        QAction* action = new QAction(actionText, viewMenu);
+        QAction* action = new QAction(actionText, toolbarsMenu);
         action->setCheckable(true);
         action->setChecked(toolbar->isVisible());
 
@@ -288,13 +289,19 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
             action->blockSignals(false);
         });
 
-        viewMenu->addAction(action);
+        toolbarsMenu->addAction(action);
         m_viewActions[id] = action;
 
         logger.debug("ToolbarManager: Created View menu action for toolbar '{}'", id);
     }
 
-    logger.info("ToolbarManager: Created {} View menu actions", m_viewActions.size());
+    // Add separator and Toolbar Manager... action
+    toolbarsMenu->addSeparator();
+    QAction* managerAction = new QAction(QObject::tr("Toolbar Manager..."), toolbarsMenu);
+    toolbarsMenu->addAction(managerAction);
+    // Note: Toolbar Manager dialog will be implemented in Phase 1.1
+
+    logger.info("ToolbarManager: Created {} View menu actions in Toolbars submenu", m_viewActions.size());
 }
 
 // OpenSpec #00026: refreshIcons() method REMOVED

@@ -199,7 +199,18 @@
       "Bash(GIT_EDITOR=true git rebase:*)",
       "Bash(git stash:*)",
       "Bash(paste - - -)",
-      "WebFetch(domain:packages.ubuntu.com)"
+      "WebFetch(domain:packages.ubuntu.com)",
+      "Bash(device\" error, even with aggressive disk cleanup (takes 1h30m, fills 72GB).\n\nSolution: Use system packages from Ubuntu 24.04 apt repository instead\nof vcpkg for Linux CI builds:\n- Qt 6.4.2 from qt6-base-dev, qt6-svg-dev, qt6-tools-dev\n- spdlog, nlohmann-json3, libzip, catch2, pybind11 from apt\n- No vcpkg submodule needed for Linux CI\n- Build time reduced from 1h30m+ to ~10-15min (estimated)\n\nChanges:\n- ci-linux.yml: Removed vcpkg, install all deps via apt\n- CMakeLists.txt: Added USE_SYSTEM_PACKAGES option for system deps\n- scripts/build_linux.sh: Improved environment detection (WSL/VMware/VBox)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(for icon in import_contacts tune description search pets science)",
+      "Bash(path=\"E:/Python/Projekty/Kalahari/resources/icons/twotone/$icon.svg\")",
+      "Bash(if [ -f \"$path\" ])",
+      "Bash(else)",
+      "Bash(path=\"E:/Python/Projekty/Kalahari/build-windows/bin/resources/icons/twotone/$icon.svg\")",
+      "Bash(\"E:/Python/Projekty/Kalahari/build-windows/bin/kalahari-tests.exe\")",
+      "SlashCommand(/save-session)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(claude --version:*)",
+      "Bash(powershell -Command \"(Get-Content ''E:\\Python\\Projekty\\Kalahari\\STRATEGY_WORKSPACE.md'' | Measure-Object -Line).Lines\")"
     ],
     "deny": [],
     "ask": []
