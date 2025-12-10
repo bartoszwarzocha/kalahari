@@ -108,6 +108,7 @@ set(KALAHARI_SOURCES
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
     gui/dialogs/icon_downloader_dialog.cpp
+    gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/kalahari_syntax_highlighter.cpp
     gui/main_window.cpp
     gui/menu_builder.cpp
@@ -134,6 +135,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h  # BusyIndicator with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h

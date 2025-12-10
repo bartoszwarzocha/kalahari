@@ -1,15 +1,15 @@
 {
   "mode": "sync",
-  "saved_at": "2025-12-10T13:00:00",
+  "saved_at": "2025-12-10T15:00:00",
   "git_commit": "a267f46",
   "git_pushed": false,
-  "openspec": "00030",
-  "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00030 - Menu System Review & Cleanup COMPLETE",
+  "openspec": "00031",
+  "openspec_status": "IN_PROGRESS",
+  "working_on": "OpenSpec #00031 - Toolbar System (Phase A-B complete, Phase C-F pending)",
   "next_steps": [
-    "Commit and push changes",
-    "Continue with ROADMAP Phase 1.1 (Toolbar System)",
-    "Or start Phase 1.2 (Project File System)"
+    "Test dialog UI manually",
+    "Commit Phase A-B (UI implementation)",
+    "Continue with Phase C (ToolbarManager API integration)"
   ],
   "blocker": null,
   "completed_tasks": [
@@ -17,17 +17,20 @@
     "OpenSpec #00028 - Complete Theme Styling System (DEPLOYED)",
     "OpenSpec #00029 - Fix Theme and Icon Loading on Linux/macOS (DEPLOYED)",
     "OpenSpec #00030 - Menu System Review & Cleanup (DEPLOYED)",
-    "CI/CD stabilization - ALL PLATFORMS SUCCESS"
+    "OpenSpec #00031 - Phase A-B: ToolbarManagerDialog UI (COMPLETE)"
   ],
   "pending_tasks": [
-    "Phase 1.1: Toolbar System (customization, user-defined toolbars)",
-    "Phase 1.2: Project File System (.klh format, chapters)",
-    "Phase 1.3: Perspective System (save/load named perspectives)"
+    "OpenSpec #00031 - Phase C: ToolbarManager API Integration",
+    "OpenSpec #00031 - Phase D: Dynamic Toolbar Rebuilding",
+    "OpenSpec #00031 - Phase E: Context Menu & Locking",
+    "OpenSpec #00031 - Phase F: Enhanced Floating/Docking"
   ],
   "notes": [
-    "RecentBooksManager created for FILE/Recent Books",
-    "Toolbars submenu now dynamic (no duplicates)",
-    "Panel shortcuts changed to F2-F6",
-    "Standard shortcuts added: F1/F11/Ctrl+B/I/U/F/H/W"
+    "ToolbarManagerDialog UI fully functional (3-column VS-style)",
+    "Category filter and search for commands",
+    "Add/remove/reorder commands works",
+    "User toolbar create/delete/rename works",
+    "Actual toolbar modification pending (Phase C-D)",
+    "ToolbarManager not singleton - needs accessor pattern"
   ]
 }

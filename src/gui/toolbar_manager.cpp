@@ -5,6 +5,7 @@
 /// self-updating icons. Removed refreshIcons() method entirely.
 
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/core/logger.h"
@@ -12,6 +13,11 @@
 #include "kalahari/core/settings_manager.h"
 #include <QSettings>
 #include <QApplication>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QStatusBar>
+#include <QRegularExpression>
 
 namespace kalahari {
 namespace gui {
@@ -23,6 +29,19 @@ ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
     logger.debug("ToolbarManager: Constructor called");
 
     initializeConfigs();
+
+    // OpenSpec #00031: Initialize default configs for reset functionality
+    for (const auto& [id, config] : m_configs) {
+        QStringList commands;
+        for (const auto& cmdId : config.commandIds) {
+            commands << QString::fromStdString(cmdId);
+        }
+        m_defaultConfigs[QString::fromStdString(id)] = commands;
+        m_toolbarCommands[QString::fromStdString(id)] = commands;
+    }
+
+    // Load user configurations (may override defaults)
+    loadConfigurations();
 
     logger.debug("ToolbarManager: Initialized with {} toolbar configs", m_configs.size());
 }
@@ -299,7 +318,17 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     toolbarsMenu->addSeparator();
     QAction* managerAction = new QAction(QObject::tr("Toolbar Manager..."), toolbarsMenu);
     toolbarsMenu->addAction(managerAction);
-    // Note: Toolbar Manager dialog will be implemented in Phase 1.1
+
+    // OpenSpec #00031: Connect Toolbar Manager dialog
+    QObject::connect(managerAction, &QAction::triggered, m_mainWindow, [this]() {
+        dialogs::ToolbarManagerDialog dialog(m_mainWindow);
+        if (dialog.exec() == QDialog::Accepted) {
+            // Configurations already applied via dialog
+            if (m_mainWindow->statusBar()) {
+                m_mainWindow->statusBar()->showMessage(QObject::tr("Toolbar configuration saved"), 3000);
+            }
+        }
+    });
 
     logger.info("ToolbarManager: Created {} View menu actions in Toolbars submenu", m_viewActions.size());
 }
@@ -327,6 +356,333 @@ void ToolbarManager::updateIconSizes() {
 
     logger.info("ToolbarManager: Updated {} toolbars to icon size {}x{}",
         m_toolbars.size(), newSize, newSize);
+}
+
+// ============================================================================
+// Customization API (OpenSpec #00031)
+// ============================================================================
+
+QStringList ToolbarManager::getToolbarCommands(const QString& toolbarId) const {
+    return m_toolbarCommands.value(toolbarId, QStringList());
+}
+
+void ToolbarManager::setToolbarCommands(const QString& toolbarId, const QStringList& commands) {
+    auto& logger = core::Logger::getInstance();
+
+    if (!m_toolbarCommands.contains(toolbarId) && !toolbarId.startsWith("user_")) {
+        logger.warn("ToolbarManager: Cannot set commands for unknown toolbar '{}'",
+                    toolbarId.toStdString());
+        return;
+    }
+
+    m_toolbarCommands[toolbarId] = commands;
+    rebuildToolbar(toolbarId);
+    saveConfigurations();
+
+    logger.debug("ToolbarManager: Updated commands for toolbar '{}'", toolbarId.toStdString());
+}
+
+QStringList ToolbarManager::getToolbarIds() const {
+    return m_toolbarCommands.keys();
+}
+
+QString ToolbarManager::getToolbarName(const QString& toolbarId) const {
+    // Check user toolbar names first
+    if (m_userToolbarNames.contains(toolbarId)) {
+        return m_userToolbarNames[toolbarId];
+    }
+
+    // Check built-in toolbars
+    std::string id = toolbarId.toStdString();
+    auto it = m_configs.find(id);
+    if (it != m_configs.end()) {
+        return QString::fromStdString(it->second.label);
+    }
+
+    return toolbarId;
+}
+
+bool ToolbarManager::isUserToolbar(const QString& toolbarId) const {
+    return toolbarId.startsWith("user_");
+}
+
+QString ToolbarManager::createUserToolbar(const QString& name, const QStringList& commands) {
+    auto& logger = core::Logger::getInstance();
+
+    // Generate unique ID
+    QString baseId = "user_" + name.toLower().replace(QRegularExpression("[^a-z0-9]"), "_");
+    QString toolbarId = baseId;
+    int counter = 1;
+    while (m_toolbarCommands.contains(toolbarId)) {
+        toolbarId = baseId + "_" + QString::number(counter++);
+    }
+
+    // Store configuration
+    m_userToolbarNames[toolbarId] = name;
+    m_toolbarCommands[toolbarId] = commands;
+
+    // Create the actual QToolBar
+    QToolBar* toolbar = new QToolBar(name, m_mainWindow);
+    toolbar->setObjectName(toolbarId);
+    toolbar->setMovable(true);
+    toolbar->setFloatable(true);
+
+    auto& artProvider = core::ArtProvider::getInstance();
+    int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
+    toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
+    toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+    m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
+    m_toolbars[toolbarId.toStdString()] = toolbar;
+
+    // Build toolbar content
+    rebuildToolbar(toolbarId);
+    saveConfigurations();
+
+    logger.info("ToolbarManager: Created user toolbar '{}' with ID '{}'",
+                name.toStdString(), toolbarId.toStdString());
+
+    return toolbarId;
+}
+
+bool ToolbarManager::deleteUserToolbar(const QString& toolbarId) {
+    auto& logger = core::Logger::getInstance();
+
+    if (!isUserToolbar(toolbarId)) {
+        logger.warn("ToolbarManager: Cannot delete non-user toolbar '{}'", toolbarId.toStdString());
+        return false;
+    }
+
+    if (!m_toolbarCommands.contains(toolbarId)) {
+        logger.warn("ToolbarManager: User toolbar '{}' not found", toolbarId.toStdString());
+        return false;
+    }
+
+    // Remove from configurations
+    m_toolbarCommands.remove(toolbarId);
+    m_userToolbarNames.remove(toolbarId);
+
+    // Remove QToolBar from MainWindow
+    std::string id = toolbarId.toStdString();
+    auto it = m_toolbars.find(id);
+    if (it != m_toolbars.end()) {
+        QToolBar* toolbar = it->second;
+        m_mainWindow->removeToolBar(toolbar);
+        toolbar->deleteLater();
+        m_toolbars.erase(it);
+    }
+
+    saveConfigurations();
+
+    logger.info("ToolbarManager: Deleted user toolbar '{}'", toolbarId.toStdString());
+    return true;
+}
+
+bool ToolbarManager::renameUserToolbar(const QString& toolbarId, const QString& newName) {
+    auto& logger = core::Logger::getInstance();
+
+    if (!isUserToolbar(toolbarId)) {
+        logger.warn("ToolbarManager: Cannot rename non-user toolbar '{}'", toolbarId.toStdString());
+        return false;
+    }
+
+    if (!m_userToolbarNames.contains(toolbarId)) {
+        logger.warn("ToolbarManager: User toolbar '{}' not found", toolbarId.toStdString());
+        return false;
+    }
+
+    m_userToolbarNames[toolbarId] = newName;
+
+    // Update QToolBar title
+    std::string id = toolbarId.toStdString();
+    auto it = m_toolbars.find(id);
+    if (it != m_toolbars.end()) {
+        it->second->setWindowTitle(newName);
+    }
+
+    saveConfigurations();
+
+    logger.debug("ToolbarManager: Renamed toolbar '{}' to '{}'",
+                 toolbarId.toStdString(), newName.toStdString());
+    return true;
+}
+
+void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
+    auto& logger = core::Logger::getInstance();
+    std::string id = toolbarId.toStdString();
+
+    auto toolbarIt = m_toolbars.find(id);
+    if (toolbarIt == m_toolbars.end()) {
+        logger.warn("ToolbarManager: Cannot rebuild unknown toolbar '{}'", id);
+        return;
+    }
+
+    QToolBar* toolbar = toolbarIt->second;
+    toolbar->clear();
+
+    const QStringList& commands = m_toolbarCommands[toolbarId];
+    auto& registry = CommandRegistry::getInstance();
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    for (const QString& cmdId : commands) {
+        if (cmdId == "_SEPARATOR_") {
+            toolbar->addSeparator();
+        } else {
+            std::string cmdIdStd = cmdId.toStdString();
+            Command* cmd = registry.getCommand(cmdIdStd);
+            if (cmd && cmd->canExecute()) {
+                QAction* action = artProvider.createAction(
+                    cmdId,
+                    QString::fromStdString(cmd->label),
+                    toolbar,
+                    core::IconContext::Toolbar
+                );
+
+                if (!cmd->tooltip.empty()) {
+                    action->setToolTip(QString::fromStdString(cmd->tooltip));
+                    action->setStatusTip(QString::fromStdString(cmd->tooltip));
+                }
+                if (!cmd->shortcut.isEmpty()) {
+                    action->setShortcut(cmd->shortcut.toQKeySequence());
+                }
+                if (cmd->isChecked) {
+                    action->setCheckable(true);
+                    action->setChecked(cmd->isChecked());
+                }
+
+                toolbar->addAction(action);
+
+                QObject::connect(action, &QAction::triggered, [cmdIdStd, &registry]() {
+                    registry.executeCommand(cmdIdStd);
+                });
+            } else {
+                logger.warn("ToolbarManager: Command '{}' not found for rebuild", cmdIdStd);
+            }
+        }
+    }
+
+    logger.debug("ToolbarManager: Rebuilt toolbar '{}' with {} commands", id, commands.size());
+}
+
+void ToolbarManager::resetToDefaults() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("ToolbarManager: Resetting all toolbars to defaults");
+
+    // Delete all user toolbars
+    QStringList userToolbars;
+    for (const QString& id : m_toolbarCommands.keys()) {
+        if (isUserToolbar(id)) {
+            userToolbars << id;
+        }
+    }
+    for (const QString& id : userToolbars) {
+        deleteUserToolbar(id);
+    }
+
+    // Reset built-in toolbars to defaults
+    for (auto it = m_defaultConfigs.constBegin(); it != m_defaultConfigs.constEnd(); ++it) {
+        m_toolbarCommands[it.key()] = it.value();
+        rebuildToolbar(it.key());
+    }
+
+    saveConfigurations();
+    logger.info("ToolbarManager: Reset complete");
+}
+
+void ToolbarManager::loadConfigurations() {
+    auto& logger = core::Logger::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+
+    logger.debug("ToolbarManager: Loading configurations from settings");
+
+    // Load built-in toolbar customizations
+    std::string toolbarConfigJson = settings.get<std::string>("toolbars.configurations", "{}");
+    QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(toolbarConfigJson));
+
+    if (doc.isObject()) {
+        QJsonObject root = doc.object();
+
+        // Load built-in toolbar customizations
+        if (root.contains("builtIn") && root["builtIn"].isObject()) {
+            QJsonObject builtIn = root["builtIn"].toObject();
+            for (auto it = builtIn.begin(); it != builtIn.end(); ++it) {
+                if (it.value().isArray()) {
+                    QStringList commands;
+                    for (const QJsonValue& v : it.value().toArray()) {
+                        commands << v.toString();
+                    }
+                    m_toolbarCommands[it.key()] = commands;
+                }
+            }
+        }
+
+        // Load user toolbars
+        if (root.contains("userToolbars") && root["userToolbars"].isObject()) {
+            QJsonObject userToolbars = root["userToolbars"].toObject();
+            for (auto it = userToolbars.begin(); it != userToolbars.end(); ++it) {
+                if (it.value().isObject()) {
+                    QJsonObject toolbarObj = it.value().toObject();
+                    QString name = toolbarObj["name"].toString();
+                    QStringList commands;
+                    for (const QJsonValue& v : toolbarObj["commands"].toArray()) {
+                        commands << v.toString();
+                    }
+                    m_userToolbarNames[it.key()] = name;
+                    m_toolbarCommands[it.key()] = commands;
+                }
+            }
+        }
+    }
+
+    logger.debug("ToolbarManager: Loaded {} toolbar configurations", m_toolbarCommands.size());
+}
+
+void ToolbarManager::saveConfigurations() {
+    auto& logger = core::Logger::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+
+    logger.debug("ToolbarManager: Saving configurations to settings");
+
+    QJsonObject root;
+
+    // Save built-in toolbar customizations (only if different from defaults)
+    QJsonObject builtIn;
+    for (auto it = m_defaultConfigs.constBegin(); it != m_defaultConfigs.constEnd(); ++it) {
+        const QString& id = it.key();
+        if (m_toolbarCommands.contains(id) && m_toolbarCommands[id] != it.value()) {
+            QJsonArray commands;
+            for (const QString& cmd : m_toolbarCommands[id]) {
+                commands.append(cmd);
+            }
+            builtIn[id] = commands;
+        }
+    }
+    if (!builtIn.isEmpty()) {
+        root["builtIn"] = builtIn;
+    }
+
+    // Save user toolbars
+    QJsonObject userToolbars;
+    for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
+        QJsonObject toolbarObj;
+        toolbarObj["name"] = it.value();
+        QJsonArray commands;
+        for (const QString& cmd : m_toolbarCommands[it.key()]) {
+            commands.append(cmd);
+        }
+        toolbarObj["commands"] = commands;
+        userToolbars[it.key()] = toolbarObj;
+    }
+    if (!userToolbars.isEmpty()) {
+        root["userToolbars"] = userToolbars;
+    }
+
+    QJsonDocument doc(root);
+    std::string jsonStr = doc.toJson(QJsonDocument::Compact).toStdString();
+    settings.set<std::string>("toolbars.configurations", jsonStr);
+    settings.save();
+
+    logger.debug("ToolbarManager: Saved toolbar configurations");
 }
 
 } // namespace gui

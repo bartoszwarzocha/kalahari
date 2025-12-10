@@ -12,6 +12,8 @@
 #include <QToolBar>
 #include <QAction>
 #include <QMenu>
+#include <QMap>
+#include <QStringList>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -141,6 +143,64 @@ public:
     /// @note Call this from MainWindow when ArtProvider::resourcesChanged() is emitted
     void updateIconSizes();
 
+    // ========================================================================
+    // Customization API (OpenSpec #00031)
+    // ========================================================================
+
+    /// @brief Get custom toolbar configuration
+    /// @param toolbarId Toolbar ID (e.g., "main", "edit", "user_xxx")
+    /// @return List of command IDs in toolbar
+    QStringList getToolbarCommands(const QString& toolbarId) const;
+
+    /// @brief Set custom toolbar configuration
+    /// @param toolbarId Toolbar ID
+    /// @param commands List of command IDs (use "_SEPARATOR_" for separators)
+    void setToolbarCommands(const QString& toolbarId, const QStringList& commands);
+
+    /// @brief Get list of all toolbar IDs
+    /// @return List of toolbar IDs (built-in + user-defined)
+    QStringList getToolbarIds() const;
+
+    /// @brief Get toolbar display name
+    /// @param toolbarId Toolbar ID
+    /// @return User-visible toolbar name
+    QString getToolbarName(const QString& toolbarId) const;
+
+    /// @brief Check if toolbar is user-defined
+    /// @param toolbarId Toolbar ID
+    /// @return true if user-created toolbar
+    bool isUserToolbar(const QString& toolbarId) const;
+
+    /// @brief Create new user-defined toolbar
+    /// @param name Display name for toolbar
+    /// @param commands Initial command IDs
+    /// @return Generated toolbar ID
+    QString createUserToolbar(const QString& name, const QStringList& commands = {});
+
+    /// @brief Delete user-defined toolbar
+    /// @param toolbarId Toolbar ID (must be user toolbar)
+    /// @return true if deleted, false if not found or not user toolbar
+    bool deleteUserToolbar(const QString& toolbarId);
+
+    /// @brief Rename user-defined toolbar
+    /// @param toolbarId Toolbar ID
+    /// @param newName New display name
+    /// @return true if renamed
+    bool renameUserToolbar(const QString& toolbarId, const QString& newName);
+
+    /// @brief Rebuild toolbar from current configuration
+    /// @param toolbarId Toolbar ID to rebuild
+    void rebuildToolbar(const QString& toolbarId);
+
+    /// @brief Reset all toolbars to default configuration
+    void resetToDefaults();
+
+    /// @brief Load toolbar configurations from SettingsManager
+    void loadConfigurations();
+
+    /// @brief Save toolbar configurations to SettingsManager
+    void saveConfigurations();
+
 private:
     /// @brief Initialize toolbar configurations
     ///
@@ -164,6 +224,11 @@ private:
     std::unordered_map<std::string, QToolBar*> m_toolbars;       ///< Toolbars by ID
     std::unordered_map<std::string, ToolbarConfig> m_configs;    ///< Toolbar configs
     std::unordered_map<std::string, QAction*> m_viewActions;     ///< View menu actions
+
+    // OpenSpec #00031: Customization support
+    QMap<QString, QStringList> m_toolbarCommands;    ///< Toolbar configurations (toolbar ID -> command list)
+    QMap<QString, QString> m_userToolbarNames;       ///< User toolbar names (toolbar ID -> display name)
+    QMap<QString, QStringList> m_defaultConfigs;     ///< Default configurations for reset
 };
 
 } // namespace gui

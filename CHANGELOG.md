@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00031:** Toolbar System - 2025-12-10
+  - **ToolbarManagerDialog:** Visual Studio-style 3-column toolbar customization
+    - Left panel: Toolbar list with Built-in, User, Plugin sections
+    - Center panel: Command browser with category filter and search
+    - Right panel: Current toolbar commands with reordering controls
+  - **Toolbar Customization Features:**
+    - Drag & drop and double-click to add commands
+    - Move up/down, remove, add separator buttons
+    - Create/delete/rename user-defined toolbars
+    - Reset to defaults functionality
+    - Overflow menu (chevron) for narrow toolbars
+    - Right-click context menu on toolbar area
+  - **ToolbarManager API Extensions:**
+    - `getToolbarCommands()`, `setToolbarCommands()` - customization
+    - `createUserToolbar()`, `deleteUserToolbar()`, `renameUserToolbar()` - user toolbars
+    - `rebuildToolbar()`, `resetToDefaults()` - toolbar management
+    - `loadConfigurations()`, `saveConfigurations()` - JSON persistence via SettingsManager
+  - Files added: `toolbar_manager_dialog.h`, `toolbar_manager_dialog.cpp`
+  - Files modified: `toolbar_manager.h`, `toolbar_manager.cpp`, `CMakeLists.txt`
+
 - **OpenSpec #00030:** Menu System Review & Cleanup - 2025-12-10
   - **Keyboard Shortcuts:**
     - Panel toggles: F2 (Navigator), F3 (Properties), F4 (Log), F5 (Search), F6 (Assistant)
