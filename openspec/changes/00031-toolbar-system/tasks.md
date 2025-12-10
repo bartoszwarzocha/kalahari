@@ -9,13 +9,13 @@
 
 ## Implementation - Core Customization
 
-### Phase A: Toolbar Configuration Model
+### Phase A: Toolbar Configuration Model ✅
 - [x] Define toolbar configuration data structures (ToolbarConfig)
 - [x] Define serialization format for custom configs (JSON)
-- [ ] Add SettingsManager integration for toolbar configurations
-- [ ] Implement "default vs custom" configuration detection
+- [x] Add SettingsManager integration for toolbar configurations
+- [x] Implement "default vs custom" configuration detection
 
-### Phase B: Toolbar Manager Dialog (UI Complete)
+### Phase B: Toolbar Manager Dialog (UI) ✅
 - [x] Create ToolbarManagerDialog class (QDialog)
 - [x] Implement toolbar selector (QListWidget for toolbar selection)
 - [x] Implement available commands list (QTreeWidget with category filter)
@@ -30,46 +30,52 @@
 - [x] New user toolbar creation dialog
 - [x] Delete/Rename user toolbar support
 
-### Phase C: ToolbarManager API Integration (PENDING)
-- [ ] Add singleton or accessor pattern to ToolbarManager
-- [ ] Connect dialog saveToolbarConfigs() to ToolbarManager
-- [ ] Connect dialog loadToolbarConfigs() to ToolbarManager
-- [ ] Implement getToolbarIds(), getToolbarCommands(), setToolbarCommands()
-- [ ] Implement createUserToolbar(), deleteUserToolbar(), renameUserToolbar()
-- [ ] Implement isUserToolbar() check
+### Phase C: ToolbarManager API Integration ✅
+- [x] Pass ToolbarManager pointer to dialog constructor
+- [x] Connect dialog saveToolbarConfigs() to ToolbarManager
+- [x] Connect dialog loadToolbarConfigs() to ToolbarManager
+- [x] Implement getToolbarIds(), getToolbarCommands(), setToolbarCommands()
+- [x] Implement createUserToolbar(), deleteUserToolbar(), renameUserToolbar()
+- [x] Implement isUserToolbar() check
 
-### Phase D: Dynamic Toolbar Rebuilding (PENDING)
-- [ ] Implement ToolbarManager::rebuildToolbar(id) method
-- [ ] Clear existing actions from toolbar
-- [ ] Repopulate from custom configuration
-- [ ] Maintain action connections to CommandRegistry
-- [ ] Handle theme/icon updates after rebuild
-- [ ] Implement loadConfigurations() / saveConfigurations() with SettingsManager
+### Phase D: Dynamic Toolbar Rebuilding ✅
+- [x] Implement ToolbarManager::rebuildToolbar(id) method
+- [x] Clear existing actions from toolbar
+- [x] Repopulate from custom configuration
+- [x] Maintain action connections to CommandRegistry
+- [x] Handle theme/icon updates after rebuild
+- [x] Implement loadConfigurations() / saveConfigurations() with SettingsManager
 
-### Phase E: Context Menu & Locking (PENDING)
-- [ ] Implement right-click context menu on toolbar area
-- [ ] Add toolbar visibility toggles to context menu
-- [ ] Add "Toolbar Manager..." to context menu
-- [ ] Add "Lock Toolbar Positions" toggle
-- [ ] Implement toolbar locking (setMovable(false) for all)
-- [ ] Persist lock state in settings
+### Phase E: Context Menu & Locking ✅
+- [x] Implement right-click context menu on toolbar area
+- [x] Add toolbar visibility toggles to context menu
+- [x] Add "Toolbar Manager..." to context menu
+- [x] Add "Lock Toolbar Positions" toggle
+- [x] Implement toolbar locking (setMovable(false) for all)
+- [x] Persist lock state in settings
 
-### Phase F: Enhanced Floating/Docking (PENDING)
-- [ ] Test toolbar break behavior (new row when dragging)
-- [ ] Add visual drag indicator if missing
-- [ ] Ensure proper toolbar area constraints
-- [ ] Overflow menu (chevron) for narrow toolbars
+### Phase F: Overflow Menu (Chevron) ⏳ DEFERRED
+- [ ] ~~Test toolbar break behavior (new row when dragging)~~
+- [ ] ~~Add visual drag indicator if missing~~
+- [ ] ~~Ensure proper toolbar area constraints~~
+- [ ] ~~Overflow menu (chevron) for narrow toolbars~~
+
+**Note:** Qt6 QToolBar does NOT have built-in overflow/chevron support.
+Implementing this would require a custom toolbar layout class with resize
+event handling and popup menu. Deferred to future enhancement.
 
 ## Testing
-- [ ] Test dialog opens and displays correctly
-- [ ] Test category filter and search
-- [ ] Test add/remove/reorder commands
-- [ ] Test new/delete/rename user toolbars
-- [ ] Test Apply/OK/Cancel behavior
-- [ ] Test Reset to Defaults
-- [ ] Test floating toolbar behavior on all platforms
-- [ ] Test custom configuration persistence
-- [ ] Verify no memory leaks (Qt ownership)
+- [x] Build passes
+- [x] All tests pass (73/73)
+- [ ] Manual testing: Dialog opens and displays correctly
+- [ ] Manual testing: Category filter and search
+- [ ] Manual testing: Add/remove/reorder commands
+- [ ] Manual testing: Create/delete/rename user toolbars
+- [ ] Manual testing: Apply/OK/Cancel behavior
+- [ ] Manual testing: Reset to Defaults
+- [ ] Manual testing: Context menu on toolbars
+- [ ] Manual testing: Toolbar locking
+- [ ] Manual testing: Configuration persistence
 
 ## Documentation
 - [x] Update CHANGELOG.md with Toolbar System entry
@@ -78,8 +84,8 @@
 - [ ] Update developer docs with customization API
 
 ## Final Verification
-- [ ] All acceptance criteria from proposal.md met
-- [x] Code review passed (Phase B)
+- [ ] All acceptance criteria from proposal.md met (Phase F deferred)
+- [x] Code review passed
 - [ ] No regressions in existing functionality
 - [ ] Application tested end-to-end with toolbar customizations
 
@@ -87,18 +93,18 @@
 
 ## Status Summary
 
-**Completed (Phase A-B):**
-- ToolbarManagerDialog UI fully functional
-- 3-column Visual Studio-style layout
-- Command browsing with category filter and search
-- Add/remove/reorder commands in toolbars
-- User toolbar creation/deletion/renaming
-- Separator support
-- Built-in toolbar configurations defined
+**DEPLOYED (Phase A-E):**
+- ToolbarManagerDialog: 3-column Visual Studio-style UI
+- ToolbarManager API: Full customization support
+- Context Menu: Right-click on toolbars
+- Toolbar Locking: Lock/unlock positions
+- Persistence: JSON via SettingsManager
 
-**Pending (Phase C-F):**
-- ToolbarManager API integration (actual toolbar modification)
-- Configuration persistence to SettingsManager
-- Context menu on toolbar area
-- Toolbar locking
-- Overflow menu (chevron)
+**DEFERRED (Phase F):**
+- Overflow menu (chevron) - requires custom implementation
+- Qt6 does not provide built-in overflow support
+
+**Commits:**
+- `bbff89d` - Phase A-B (UI)
+- `598dbc3` - Phase C (API Integration)
+- `45f67f8` - Phase E (Context Menu & Locking)

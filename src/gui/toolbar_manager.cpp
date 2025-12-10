@@ -181,6 +181,14 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
             showContextMenu(toolbar->mapToGlobal(pos));
         });
 
+    // OpenSpec #00031 - Phase F: Overflow menu (chevron)
+    // NOTE: Qt6 QToolBar does NOT have built-in setOverflowEnabled() method.
+    // A custom overflow implementation would require:
+    // 1. Custom QToolBarLayout subclass
+    // 2. Resize event handling to detect when buttons don't fit
+    // 3. Custom chevron button with popup menu
+    // This is deferred to a future enhancement as it requires significant work.
+
     // Add to main window
     m_mainWindow->addToolBar(config.defaultArea, toolbar);
     toolbar->setVisible(config.defaultVisible);
@@ -440,6 +448,9 @@ QString ToolbarManager::createUserToolbar(const QString& name, const QStringList
     int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
     toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+    // OpenSpec #00031 - Phase F: Overflow menu not available in Qt6
+    // See note in createToolbar() for details
 
     m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
     m_toolbars[toolbarId.toStdString()] = toolbar;

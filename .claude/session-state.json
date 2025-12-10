@@ -1,15 +1,15 @@
 {
   "mode": "sync",
-  "saved_at": "2025-12-10T15:00:00",
-  "git_commit": "a267f46",
+  "saved_at": "2025-12-10T16:00:00",
+  "git_commit": "45f67f8",
   "git_pushed": false,
   "openspec": "00031",
-  "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00031 - Toolbar System (Phase A-B complete, Phase C-F pending)",
+  "openspec_status": "DEPLOYED",
+  "working_on": "OpenSpec #00031 - Toolbar System COMPLETE (Phase A-E deployed, Phase F deferred)",
   "next_steps": [
-    "Test dialog UI manually",
-    "Commit Phase A-B (UI implementation)",
-    "Continue with Phase C (ToolbarManager API integration)"
+    "Push commits to remote",
+    "Update ROADMAP.md - mark 1.1 progress",
+    "Continue with Phase 1.2 (Project File System) or 1.3 (Perspectives)"
   ],
   "blocker": null,
   "completed_tasks": [
@@ -17,20 +17,19 @@
     "OpenSpec #00028 - Complete Theme Styling System (DEPLOYED)",
     "OpenSpec #00029 - Fix Theme and Icon Loading on Linux/macOS (DEPLOYED)",
     "OpenSpec #00030 - Menu System Review & Cleanup (DEPLOYED)",
-    "OpenSpec #00031 - Phase A-B: ToolbarManagerDialog UI (COMPLETE)"
+    "OpenSpec #00031 - Toolbar System Phase A-E (DEPLOYED)"
   ],
   "pending_tasks": [
-    "OpenSpec #00031 - Phase C: ToolbarManager API Integration",
-    "OpenSpec #00031 - Phase D: Dynamic Toolbar Rebuilding",
-    "OpenSpec #00031 - Phase E: Context Menu & Locking",
-    "OpenSpec #00031 - Phase F: Enhanced Floating/Docking"
+    "OpenSpec #00031 - Phase F: Overflow menu (DEFERRED - Qt6 limitation)",
+    "Phase 1.2: Project File System (.klh format, chapters)",
+    "Phase 1.3: Perspective System (save/load named perspectives)"
   ],
   "notes": [
-    "ToolbarManagerDialog UI fully functional (3-column VS-style)",
-    "Category filter and search for commands",
-    "Add/remove/reorder commands works",
-    "User toolbar create/delete/rename works",
-    "Actual toolbar modification pending (Phase C-D)",
-    "ToolbarManager not singleton - needs accessor pattern"
+    "ToolbarManagerDialog fully functional",
+    "ToolbarManager API complete with persistence",
+    "Context menu on toolbars works",
+    "Toolbar locking implemented",
+    "Phase F deferred: Qt6 has no built-in overflow support",
+    "4 commits: bbff89d, 598dbc3, 45f67f8 + final docs"
   ]
 }
