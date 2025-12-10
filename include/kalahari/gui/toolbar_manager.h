@@ -198,6 +198,22 @@ public:
     /// @brief Load toolbar configurations from SettingsManager
     void loadConfigurations();
 
+    // ========================================================================
+    // Context Menu & Locking API (OpenSpec #00031 - Phase E)
+    // ========================================================================
+
+    /// @brief Show context menu at position
+    /// @param globalPos Global screen position to show menu at
+    void showContextMenu(const QPoint& globalPos);
+
+    /// @brief Set toolbar positions locked/unlocked
+    /// @param locked true to lock (prevent moving), false to unlock
+    void setToolbarsLocked(bool locked);
+
+    /// @brief Check if toolbars are locked
+    /// @return true if toolbars are locked (cannot be moved)
+    bool isToolbarsLocked() const;
+
     /// @brief Save toolbar configurations to SettingsManager
     void saveConfigurations();
 
@@ -229,6 +245,9 @@ private:
     QMap<QString, QStringList> m_toolbarCommands;    ///< Toolbar configurations (toolbar ID -> command list)
     QMap<QString, QString> m_userToolbarNames;       ///< User toolbar names (toolbar ID -> display name)
     QMap<QString, QStringList> m_defaultConfigs;     ///< Default configurations for reset
+
+    // OpenSpec #00031 - Phase E: Toolbar locking
+    bool m_toolbarsLocked = false;                   ///< Whether toolbar positions are locked
 };
 
 } // namespace gui

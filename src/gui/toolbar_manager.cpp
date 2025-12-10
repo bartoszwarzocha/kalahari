@@ -18,6 +18,7 @@
 #include <QJsonObject>
 #include <QStatusBar>
 #include <QRegularExpression>
+#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
@@ -165,12 +166,20 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
     }
 
     // Configure toolbar appearance and behavior
-    toolbar->setMovable(true);
+    // OpenSpec #00031 - Phase E: Apply lock state when creating toolbar
+    toolbar->setMovable(!m_toolbarsLocked);
     toolbar->setFloatable(true);
     // OpenSpec #00026: Icon size now managed by ArtProvider/IconSizeConfig
     int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
     toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);  // Icons only, no text
+
+    // OpenSpec #00031 - Phase E: Set up context menu for right-click
+    toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(toolbar, &QWidget::customContextMenuRequested,
+        [this, toolbar](const QPoint& pos) {
+            showContextMenu(toolbar->mapToGlobal(pos));
+        });
 
     // Add to main window
     m_mainWindow->addToolBar(config.defaultArea, toolbar);
@@ -634,6 +643,10 @@ void ToolbarManager::loadConfigurations() {
         }
     }
 
+    // OpenSpec #00031 - Phase E: Load toolbar lock state
+    m_toolbarsLocked = settings.get<bool>("toolbars.locked", false);
+    logger.debug("ToolbarManager: Toolbars locked state: {}", m_toolbarsLocked);
+
     logger.debug("ToolbarManager: Loaded {} toolbar configurations", m_toolbarCommands.size());
 }
 
@@ -683,6 +696,88 @@ void ToolbarManager::saveConfigurations() {
     settings.save();
 
     logger.debug("ToolbarManager: Saved toolbar configurations");
+}
+
+// ============================================================================
+// Context Menu & Locking API (OpenSpec #00031 - Phase E)
+// ============================================================================
+
+void ToolbarManager::showContextMenu(const QPoint& globalPos) {
+    QMenu menu;
+
+    // Add toolbar visibility toggles
+    for (const QString& id : getToolbarIds()) {
+        std::string idStd = id.toStdString();
+        auto it = m_toolbars.find(idStd);
+        if (it == m_toolbars.end()) continue;
+        QToolBar* toolbar = it->second;
+        if (!toolbar) continue;
+
+        QAction* action = menu.addAction(getToolbarName(id));
+        action->setCheckable(true);
+        action->setChecked(toolbar->isVisible());
+        QObject::connect(action, &QAction::toggled, [toolbar](bool checked) {
+            toolbar->setVisible(checked);
+        });
+    }
+
+    menu.addSeparator();
+
+    // Lock toggle
+    QAction* lockAction = menu.addAction(QObject::tr("Lock Toolbar Positions"));
+    lockAction->setCheckable(true);
+    lockAction->setChecked(m_toolbarsLocked);
+    QObject::connect(lockAction, &QAction::toggled, [this](bool checked) {
+        setToolbarsLocked(checked);
+    });
+
+    menu.addSeparator();
+
+    // Customize
+    QAction* customizeAction = menu.addAction(QObject::tr("Customize..."));
+    QObject::connect(customizeAction, &QAction::triggered, [this]() {
+        dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
+        dialog.exec();
+    });
+
+    // Reset
+    QAction* resetAction = menu.addAction(QObject::tr("Reset to Default"));
+    QObject::connect(resetAction, &QAction::triggered, [this]() {
+        // Confirm before reset
+        QMessageBox::StandardButton result = QMessageBox::question(
+            m_mainWindow,
+            QObject::tr("Reset Toolbars"),
+            QObject::tr("Reset all toolbars to default configuration?"),
+            QMessageBox::Yes | QMessageBox::No);
+        if (result == QMessageBox::Yes) {
+            resetToDefaults();
+        }
+    });
+
+    menu.exec(globalPos);
+}
+
+void ToolbarManager::setToolbarsLocked(bool locked) {
+    auto& logger = core::Logger::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+
+    m_toolbarsLocked = locked;
+
+    for (auto& [id, toolbar] : m_toolbars) {
+        if (toolbar) {
+            toolbar->setMovable(!locked);
+        }
+    }
+
+    // Persist setting
+    settings.set<bool>("toolbars.locked", locked);
+    settings.save();
+
+    logger.info("ToolbarManager: Toolbars locked state set to {}", locked);
+}
+
+bool ToolbarManager::isToolbarsLocked() const {
+    return m_toolbarsLocked;
 }
 
 } // namespace gui
