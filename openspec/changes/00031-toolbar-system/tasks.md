@@ -67,27 +67,30 @@ event handling and popup menu. Deferred to future enhancement.
 ## Testing
 - [x] Build passes
 - [x] All tests pass (73/73)
-- [ ] Manual testing: Dialog opens and displays correctly
-- [ ] Manual testing: Category filter and search
-- [ ] Manual testing: Add/remove/reorder commands
-- [ ] Manual testing: Create/delete/rename user toolbars
-- [ ] Manual testing: Apply/OK/Cancel behavior
-- [ ] Manual testing: Reset to Defaults
-- [ ] Manual testing: Context menu on toolbars
-- [ ] Manual testing: Toolbar locking
-- [ ] Manual testing: Configuration persistence
+- [x] Manual testing: Dialog opens and displays correctly
+- [x] Manual testing: Category filter and search
+- [x] Manual testing: Add/remove/reorder commands
+- [x] Manual testing: Create/delete/rename user toolbars
+- [x] Manual testing: Apply/OK/Cancel behavior
+- [x] Manual testing: Reset to Defaults
+- [x] Manual testing: Context menu on toolbars
+- [x] Manual testing: Toolbar locking
+- [x] Manual testing: Configuration persistence
 
 ## Documentation
 - [x] Update CHANGELOG.md with Toolbar System entry
-- [ ] Update ROADMAP.md - mark 1.1 Toolbar System progress
-- [ ] Document Toolbar Manager dialog usage (user guide)
-- [ ] Update developer docs with customization API
+- [x] Update ROADMAP.md - mark 1.1 Toolbar System progress
+- [ ] Document Toolbar Manager dialog usage (user guide) - deferred
+- [ ] Update developer docs with customization API - deferred
 
 ## Final Verification
-- [ ] All acceptance criteria from proposal.md met (Phase F deferred)
+- [x] All acceptance criteria from proposal.md met (Phase F deferred)
 - [x] Code review passed
-- [ ] No regressions in existing functionality
-- [ ] Application tested end-to-end with toolbar customizations
+- [x] No regressions in existing functionality
+- [x] Application tested end-to-end with toolbar customizations
+
+## Known Limitations
+- Toolbar drag behavior: dragging toolbar shrinks adjacent toolbar instead of swapping positions (Qt default behavior)
 
 ---
 
@@ -108,3 +111,4 @@ event handling and popup menu. Deferred to future enhancement.
 - `bbff89d` - Phase A-B (UI)
 - `598dbc3` - Phase C (API Integration)
 - `45f67f8` - Phase E (Context Menu & Locking)
+- `ae3a63e` - Format Toolbar, dialog fixes, refactoring

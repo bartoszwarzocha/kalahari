@@ -4,7 +4,7 @@
 
 **Current Phase:** Phase 1 (Core Editor) IN PROGRESS
 **Version:** 0.3.2-alpha
-**Last Updated:** 2025-12-07
+**Last Updated:** 2025-12-11
 
 ---
 
@@ -127,17 +127,23 @@
 - [x] Review keyboard shortcuts for conflicts
 - [x] Document final menu specification (in OpenSpec #00030)
 
-### 1.1 Toolbar System
+### 1.1 Toolbar System COMPLETE (OpenSpec #00031)
 
 **Philosophy:** Toolbars mirror menu structure. Each toolbar groups related actions.
 
 **Tasks:**
-- [ ] Synchronize toolbar names with menu structure
-- [ ] Create missing toolbars (Format Toolbar if needed)
-- [ ] Remove redundant toolbars
-- [ ] Toolbar customization UI ("Customize Toolbars..." dialog)
-- [ ] Drag & drop toolbar button reordering
-- [ ] Save/restore toolbar configuration per user
+- [x] Synchronize toolbar names with menu structure
+- [x] Create Format Toolbar (font dropdown, size spinner, formatting commands)
+- [x] Create Insert Toolbar, Styles Toolbar (optional, hidden by default)
+- [x] Toolbar customization UI ("Customize Toolbars..." dialog)
+- [x] Drag & drop toolbar button reordering (via dialog Move Up/Down)
+- [x] Save/restore toolbar configuration per user
+- [x] Context menu on toolbars (visibility toggles, lock positions)
+- [x] User-defined toolbar creation/deletion/rename
+
+**Known Limitations:**
+- Toolbar drag behavior shrinks adjacent toolbar instead of swapping (Qt default)
+- Overflow menu (chevron) deferred - Qt6 lacks built-in support
 
 ### 1.2 Project File System
 
@@ -291,6 +297,7 @@
 - [x] Icon theme selector UI with preview
 - [x] BusyIndicator reusable spinner widget
 - [x] Log Panel enhanced (real-time logs, colored output, batched updates) - OpenSpec #00027
+- [x] Centralized icon color management (ArtProvider single source of truth) - OpenSpec #00032
 
 ---
 
@@ -403,6 +410,7 @@
 - [x] **2025-11-27:** Enhanced Log Panel Complete (real-time spdlog, mode visibility)
 - [x] **2025-12-07:** Theme Color Configuration Complete (OpenSpec #00027)
 - [x] **2025-12-10:** Menu System Review & Cleanup Complete (OpenSpec #00030)
+- [x] **2025-12-11:** Theme & Icons Optimization Complete (OpenSpec #00032)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -440,7 +448,7 @@
 - [ ] Qt Designer .ui files for dialogs (consider for Phase 1)
 - [ ] QTest unit tests for GUI (supplement Catch2)
 - [ ] Qt Linguist integration (.ts/.qm i18n)
-- [ ] Centralized icon refresh (IconRegistry::iconsInvalidated signal)
+- [x] Centralized icon refresh (ArtProvider::resourcesChanged signal) - OpenSpec #00032
 
 ### Medium-term (Phase 2-3)
 - [ ] Custom QSyntaxHighlighter for book-specific formatting
@@ -466,6 +474,6 @@
 
 ---
 
-**Document Version:** 2.3
-**Last Update:** 2025-12-10
-**Updated By:** Claude (OpenSpec #00030 Menu System Review & Cleanup Complete)
+**Document Version:** 2.4
+**Last Update:** 2025-12-11
+**Updated By:** Claude (OpenSpec #00032 Theme & Icons Optimization Complete)

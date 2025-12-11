@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00032:** Theme & Icons Optimization - 2025-12-11
+  - **Problem solved:** Triple theme update path causing 3x IconRegistry updates on startup
+  - **Problem solved:** Panel header icons not updating on color change
+  - **Problem solved:** Fragmented icon color management across components
+  - **Architecture improvements:**
+    - ArtProvider is now single source of truth for theme propagation
+    - Removed redundant ThemeManager->IconRegistry direct connection
+    - Removed duplicate setThemeColors() call in MainWindow::onThemeChanged()
+    - Removed redundant startup initialization in MainWindow constructor
+    - Connected ArtProvider::resourcesChanged to MainWindow::refreshDockIcons()
+  - **Bug fixes:**
+    - CRITICAL-1: Triple theme update path (3x IconRegistry updates) - Fixed
+    - CRITICAL-2: Redundant startup initialization - Fixed
+    - MAJOR-1: Hardcoded QColor in BusyIndicator - Fixed (uses theme.palette.shadow)
+    - MAJOR-2: Non-themed dock button icons - Fixed (registered dock.float, dock.close)
+    - MAJOR-3: ToolbarManagerDialog missing auto-refresh - Fixed (added refreshButtonIcons)
+  - Files modified: `main_window.cpp`, `main_window.h`, `busy_indicator.cpp`, `toolbar_manager_dialog.cpp`, `toolbar_manager_dialog.h`
+  - All 73 tests pass (571 assertions)
+  - Commit: `ebd7716`
+
 - **OpenSpec #00031:** Toolbar System - 2025-12-10
   - **ToolbarManagerDialog:** Visual Studio-style 3-column toolbar customization
     - Left panel: Toolbar list with Built-in, User, Plugin sections
@@ -445,7 +465,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Mode-based visibility:**
     - Normal mode: LogPanel hidden, TRACE/DEBUG filtered out
     - --diag/--dev mode: LogPanel visible, all log levels shown
-    - Command-line flags parsed in main.cpp, passed to MainWindow
   - **Settings UI:**
     - New "Advanced / Log" page in Settings Dialog
     - Buffer size spinner (1-1000 lines)
