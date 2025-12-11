@@ -152,6 +152,9 @@ private slots:
     /// @brief Handle current toolbar item selection change
     void onCurrentToolbarSelectionChanged();
 
+    /// @brief Refresh button icons when theme changes (OpenSpec #00032)
+    void refreshButtonIcons();
+
 private:
     // ========================================================================
     // UI Setup

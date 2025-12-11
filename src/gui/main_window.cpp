@@ -102,22 +102,9 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::onThemeChanged);
     logger.debug("MainWindow: Connected ThemeManager::themeChanged signal to MainWindow");
 
-    // Connect ThemeManager to IconRegistry (Task #00025: Theme-Icon Integration)
-    // This enables automatic icon color updates when theme changes
-    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
-            &core::IconRegistry::getInstance(), &core::IconRegistry::onThemeChanged);
-    logger.debug("MainWindow: Connected ThemeManager::themeChanged signal to IconRegistry");
-
-    // Initialize IconRegistry colors from current theme (Task #00025)
-    // IconRegistry::initialize() only loads from settings, we need to sync with ThemeManager
-    const core::Theme& currentTheme = core::ThemeManager::getInstance().getCurrentTheme();
-    core::IconRegistry::getInstance().setThemeColors(
-        currentTheme.colors.primary,
-        currentTheme.colors.secondary,
-        QString::fromStdString(currentTheme.name)
-    );
-    logger.debug("MainWindow: IconRegistry colors synchronized from ThemeManager ({})",
-        currentTheme.name);
+    // Note: ThemeManager->IconRegistry connection is handled internally by ArtProvider
+    // ArtProvider::initialize() connects ThemeManager::themeChanged to IconRegistry::onThemeChanged
+    // and synchronizes colors from the current theme
 
     logger.info("MainWindow initialized successfully");
 }
@@ -357,8 +344,11 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("common.createNewFolder", "resources/icons/twotone/create_new_folder.svg", "Create Folder");
     iconRegistry.registerIcon("common.driveFileMove", "resources/icons/twotone/drive_file_move.svg", "Move File");
     iconRegistry.registerIcon("common.fileCopy", "resources/icons/twotone/file_copy.svg", "Copy File");
+    // Dock title bar button icons (OpenSpec #00032)
+    iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
+    iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");
 
-    logger.debug("Registered {} icons with IconRegistry", 150);
+    logger.debug("Registered {} icons with IconRegistry", 152);
 
     // =========================================================================
     // FILE MENU
@@ -743,6 +733,10 @@ void MainWindow::createToolbars() {
                     m_toolbarManager->updateIconSizes();
                 }
             });
+
+    // OpenSpec #00032: Connect ArtProvider::resourcesChanged() to refresh dock title bar icons
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            this, &MainWindow::refreshDockIcons);
 
     logger.debug("5 toolbars created successfully (File, Edit, Book, View, Tools)");
 }
@@ -1228,46 +1222,63 @@ void MainWindow::setupDockTitleBar(QDockWidget* dock, const QString& iconId, con
     // Stretch to push buttons to the right
     layout->addStretch();
 
-    // Float button (if dock is floatable)
+    // Float button (if dock is floatable) - OpenSpec #00032: Use themed icons
     QDockWidget::DockWidgetFeatures features = dock->features();
     if (features & QDockWidget::DockWidgetFloatable) {
         QToolButton* floatButton = new QToolButton(titleBar);
         floatButton->setAutoRaise(true);
-        floatButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TitleBarNormalButton));
+        floatButton->setIcon(artProvider.getIcon("dock.float"));
         floatButton->setToolTip(QObject::tr("Float"));
         floatButton->setFixedSize(16, 16);
+        floatButton->setProperty("iconId", "dock.float");  // Store for theme refresh
         QObject::connect(floatButton, &QToolButton::clicked, dock, [dock]() {
             dock->setFloating(!dock->isFloating());
         });
         layout->addWidget(floatButton);
+        m_dockToolButtons.append(floatButton);
     }
 
-    // Close button (if dock is closable)
+    // Close button (if dock is closable) - OpenSpec #00032: Use themed icons
     if (features & QDockWidget::DockWidgetClosable) {
         QToolButton* closeButton = new QToolButton(titleBar);
         closeButton->setAutoRaise(true);
-        closeButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeButton->setIcon(artProvider.getIcon("dock.close"));
         closeButton->setToolTip(QObject::tr("Close"));
         closeButton->setFixedSize(16, 16);
+        closeButton->setProperty("iconId", "dock.close");  // Store for theme refresh
         QObject::connect(closeButton, &QToolButton::clicked, dock, &QDockWidget::close);
         layout->addWidget(closeButton);
+        m_dockToolButtons.append(closeButton);
     }
 
     dock->setTitleBarWidget(titleBar);
 }
 
-/// @brief Refresh all dock title bar icons (Task #00028)
+/// @brief Refresh all dock title bar icons (Task #00028, OpenSpec #00032)
 /// @note Called when theme changes to update icon colors
 void MainWindow::refreshDockIcons() {
     auto& artProvider = core::ArtProvider::getInstance();
     auto& logger = core::Logger::getInstance();
 
     int refreshedCount = 0;
+
+    // Refresh icon labels (panel icons)
     for (QLabel* label : m_dockIconLabels) {
         if (label) {
             QString iconId = label->property("iconId").toString();
             if (!iconId.isEmpty()) {
                 label->setPixmap(artProvider.getIcon(iconId).pixmap(16, 16));
+                ++refreshedCount;
+            }
+        }
+    }
+
+    // Refresh tool buttons (float/close buttons) - OpenSpec #00032
+    for (QToolButton* button : m_dockToolButtons) {
+        if (button) {
+            QString iconId = button->property("iconId").toString();
+            if (!iconId.isEmpty()) {
+                button->setIcon(artProvider.getIcon(iconId));
                 ++refreshedCount;
             }
         }
@@ -2167,16 +2178,10 @@ void MainWindow::onDevToolsIconDownloader() {
 
 void MainWindow::onThemeChanged(const core::Theme& theme) {
     auto& logger = core::Logger::getInstance();
-    logger.info("MainWindow: Theme changed to '{}', applying to IconRegistry", theme.name);
+    logger.info("MainWindow: Theme changed to '{}'", theme.name);
 
-    // Apply theme colors to IconRegistry
-    core::IconRegistry::getInstance().setThemeColors(
-        theme.colors.primary,
-        theme.colors.secondary,
-        QString::fromStdString(theme.name)
-    );
-
-    logger.debug("MainWindow: IconRegistry updated with new theme colors");
+    // Note: IconRegistry::setThemeColors() is called automatically by ArtProvider
+    // when ThemeManager::themeChanged is emitted - no need to call it here
 
     // OpenSpec #00026: Manual icon refresh REMOVED for menu/toolbar actions
     // Icons now auto-refresh via ArtProvider::resourcesChanged() signal

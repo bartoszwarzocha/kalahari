@@ -180,8 +180,11 @@ void BusyIndicator::paintEvent(QPaintEvent* event) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Draw semi-transparent overlay
-    painter.fillRect(rect(), QColor(0, 0, 0, 128));
+    // Draw semi-transparent overlay using theme shadow color
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    QColor overlayColor = theme.palette.shadow;
+    overlayColor.setAlpha(128);
+    painter.fillRect(rect(), overlayColor);
 
     // Calculate center position
     int centerX = width() / 2;

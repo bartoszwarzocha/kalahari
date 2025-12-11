@@ -23,6 +23,7 @@ class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
 class QLabel;
+class QToolButton;
 
 namespace kalahari {
 
@@ -305,8 +306,9 @@ private:
     bool m_devMode;             ///< Dev mode enabled flag
     QMenu* m_devToolsMenu;      ///< Dev Tools menu (only visible when m_devMode=true)
 
-    // Dock title bar icons (Task #00028)
+    // Dock title bar icons (Task #00028, OpenSpec #00032)
     QList<QLabel*> m_dockIconLabels;  ///< Icon labels in dock title bars (for theme refresh)
+    QList<QToolButton*> m_dockToolButtons;  ///< Tool buttons in dock title bars (for theme refresh)
 
     // Document management (Task #00008 - Phase 0)
     std::optional<core::Document> m_currentDocument;  ///< Current loaded document

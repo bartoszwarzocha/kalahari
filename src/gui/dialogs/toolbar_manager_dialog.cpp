@@ -289,6 +289,11 @@ void ToolbarManagerDialog::createConnections() {
             this, &ToolbarManagerDialog::onApply);
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &ToolbarManagerDialog::onAccept);
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    // OpenSpec #00032: Auto-refresh button icons when theme changes
+    connect(&kalahari::core::ArtProvider::getInstance(),
+            &kalahari::core::ArtProvider::resourcesChanged,
+            this, &ToolbarManagerDialog::refreshButtonIcons);
 }
 
 // ============================================================================
@@ -933,4 +938,17 @@ void ToolbarManagerDialog::setModified(bool modified) {
     setWindowTitle(title);
 
     updateButtonStates();
+}
+
+// ============================================================================
+// Theme Refresh (OpenSpec #00032)
+// ============================================================================
+
+void ToolbarManagerDialog::refreshButtonIcons() {
+    auto& art = kalahari::core::ArtProvider::getInstance();
+
+    // Refresh control button icons
+    m_moveUpBtn->setIcon(art.getIcon("navigation.up", kalahari::core::IconContext::Button));
+    m_moveDownBtn->setIcon(art.getIcon("navigation.down", kalahari::core::IconContext::Button));
+    m_removeBtn->setIcon(art.getIcon("action.delete", kalahari::core::IconContext::Button));
 }
