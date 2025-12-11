@@ -19,6 +19,9 @@
 #include <QStatusBar>
 #include <QRegularExpression>
 #include <QMessageBox>
+#include <QFontComboBox>
+#include <QSpinBox>
+#include <QLabel>
 
 namespace kalahari {
 namespace gui {
@@ -63,7 +66,7 @@ void ToolbarManager::initializeConfigs() {
         "Edit Toolbar",
         Qt::TopToolBarArea,
         true,  // visible by default
-        {"edit.undo", "edit.redo", "_SEPARATOR_",
+        {"edit.undo", "edit.redo", SEPARATOR_ID,
          "edit.cut", "edit.copy", "edit.paste", "edit.selectAll"}
     };
 
@@ -93,14 +96,48 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default
         {"tools.spellcheck", "tools.stats.wordCount", "tools.focus.normal"}
     };
+
+    // Format Toolbar (text formatting - essential for writer's IDE)
+    // Special widget IDs: WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID
+    m_configs["format"] = {
+        "format",
+        "Format Toolbar",
+        Qt::TopToolBarArea,
+        true,  // visible by default
+        {WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID, SEPARATOR_ID,
+         "format.bold", "format.italic", "format.underline", "format.strikethrough", SEPARATOR_ID,
+         "format.alignLeft", "format.alignCenter", "format.alignRight", "format.justify", SEPARATOR_ID,
+         "format.bullets", "format.numbering", SEPARATOR_ID,
+         "format.clearFormatting"}
+    };
+
+    // Insert Toolbar (quick access to insert elements)
+    m_configs["insert"] = {
+        "insert",
+        "Insert Toolbar",
+        Qt::TopToolBarArea,
+        false,  // hidden by default (optional toolbar)
+        {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
+         "insert.footnote", "insert.comment"}
+    };
+
+    // Styles Toolbar (quick paragraph styles)
+    m_configs["styles"] = {
+        "styles",
+        "Styles Toolbar",
+        Qt::TopToolBarArea,
+        false,  // hidden by default (optional toolbar)
+        {"format.style.heading1", "format.style.heading2", "format.style.heading3",
+         "format.style.body", "format.style.quote", "format.style.code"}
+    };
 }
 
 void ToolbarManager::createToolbars(CommandRegistry& registry) {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Creating toolbars from configurations");
 
-    // Create toolbars in order: File, Edit, Book, View, Tools
-    std::vector<std::string> order = {"file", "edit", "book", "view", "tools"};
+    // Create toolbars in order: File, Edit, Format, Insert, Styles, Book, View, Tools
+    std::vector<std::string> order = {"file", "edit", "format", "insert", "styles", "book", "view", "tools"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -115,54 +152,24 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 }
 
 QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegistry& registry) {
-    auto& logger = core::Logger::getInstance();
     auto& artProvider = core::ArtProvider::getInstance();
+    auto& logger = core::Logger::getInstance();
 
     // Create toolbar
     QToolBar* toolbar = new QToolBar(QObject::tr(config.label.c_str()), m_mainWindow);
     toolbar->setObjectName(QString::fromStdString(config.id));  // For QSettings
 
-    // Add actions
-    for (const std::string& cmdId : config.commandIds) {
-        if (cmdId == "_SEPARATOR_") {
-            toolbar->addSeparator();
-        } else {
-            Command* cmd = registry.getCommand(cmdId);
-            if (cmd && cmd->canExecute()) {
-                // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
-                // This creates an action that automatically refreshes on theme/color changes
-                QAction* action = artProvider.createAction(
-                    QString::fromStdString(cmdId),
-                    QString::fromStdString(cmd->label),
-                    toolbar,
-                    core::IconContext::Toolbar
-                );
+    // OpenSpec #00031 FIX: Use m_toolbarCommands (loaded from settings) instead of
+    // config.commandIds (defaults). This ensures user customizations persist across restarts.
+    QString toolbarId = QString::fromStdString(config.id);
+    const QStringList& commands = m_toolbarCommands.value(toolbarId);
 
-                // Set tooltip and shortcut from command
-                if (!cmd->tooltip.empty()) {
-                    action->setToolTip(QString::fromStdString(cmd->tooltip));
-                    action->setStatusTip(QString::fromStdString(cmd->tooltip));
-                }
-                if (!cmd->shortcut.isEmpty()) {
-                    action->setShortcut(cmd->shortcut.toQKeySequence());
-                }
+    logger.debug("ToolbarManager: Creating toolbar '{}' with {} commands from m_toolbarCommands",
+                 config.id, commands.size());
 
-                // Set checkable state if command has isChecked callback
-                if (cmd->isChecked) {
-                    action->setCheckable(true);
-                    action->setChecked(cmd->isChecked());
-                }
-
-                toolbar->addAction(action);
-
-                // Connect action to command execution
-                QObject::connect(action, &QAction::triggered, [cmdId, &registry]() {
-                    registry.executeCommand(cmdId);
-                });
-            } else {
-                logger.warn("ToolbarManager: Command '{}' not found or not executable", cmdId);
-            }
-        }
+    // Add actions and widgets using shared helper method
+    for (const QString& cmdId : commands) {
+        addToolbarItem(toolbar, cmdId, registry);
     }
 
     // Configure toolbar appearance and behavior
@@ -180,14 +187,6 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
         [this, toolbar](const QPoint& pos) {
             showContextMenu(toolbar->mapToGlobal(pos));
         });
-
-    // OpenSpec #00031 - Phase F: Overflow menu (chevron)
-    // NOTE: Qt6 QToolBar does NOT have built-in setOverflowEnabled() method.
-    // A custom overflow implementation would require:
-    // 1. Custom QToolBarLayout subclass
-    // 2. Resize event handling to detect when buttons don't fit
-    // 3. Custom chevron button with popup menu
-    // This is deferred to a future enhancement as it requires significant work.
 
     // Add to main window
     m_mainWindow->addToolBar(config.defaultArea, toolbar);
@@ -290,7 +289,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     QMenu* toolbarsMenu = viewMenu->addMenu(QObject::tr("Toolbars"));
 
     // Create checkable action for each toolbar
-    std::vector<std::string> order = {"file", "edit", "book", "view", "tools"};
+    std::vector<std::string> order = {"file", "edit", "format", "insert", "styles", "book", "view", "tools"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -449,9 +448,6 @@ QString ToolbarManager::createUserToolbar(const QString& name, const QStringList
     toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-    // OpenSpec #00031 - Phase F: Overflow menu not available in Qt6
-    // See note in createToolbar() for details
-
     m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
     m_toolbars[toolbarId.toStdString()] = toolbar;
 
@@ -542,46 +538,82 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
 
     const QStringList& commands = m_toolbarCommands[toolbarId];
     auto& registry = CommandRegistry::getInstance();
-    auto& artProvider = core::ArtProvider::getInstance();
 
+    // Add actions and widgets using shared helper method
     for (const QString& cmdId : commands) {
-        if (cmdId == "_SEPARATOR_") {
-            toolbar->addSeparator();
-        } else {
-            std::string cmdIdStd = cmdId.toStdString();
-            Command* cmd = registry.getCommand(cmdIdStd);
-            if (cmd && cmd->canExecute()) {
-                QAction* action = artProvider.createAction(
-                    cmdId,
-                    QString::fromStdString(cmd->label),
-                    toolbar,
-                    core::IconContext::Toolbar
-                );
-
-                if (!cmd->tooltip.empty()) {
-                    action->setToolTip(QString::fromStdString(cmd->tooltip));
-                    action->setStatusTip(QString::fromStdString(cmd->tooltip));
-                }
-                if (!cmd->shortcut.isEmpty()) {
-                    action->setShortcut(cmd->shortcut.toQKeySequence());
-                }
-                if (cmd->isChecked) {
-                    action->setCheckable(true);
-                    action->setChecked(cmd->isChecked());
-                }
-
-                toolbar->addAction(action);
-
-                QObject::connect(action, &QAction::triggered, [cmdIdStd, &registry]() {
-                    registry.executeCommand(cmdIdStd);
-                });
-            } else {
-                logger.warn("ToolbarManager: Command '{}' not found for rebuild", cmdIdStd);
-            }
-        }
+        addToolbarItem(toolbar, cmdId, registry);
     }
 
     logger.debug("ToolbarManager: Rebuilt toolbar '{}' with {} commands", id, commands.size());
+}
+
+void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, CommandRegistry& registry) {
+    auto& logger = core::Logger::getInstance();
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    if (cmdId == SEPARATOR_ID) {
+        toolbar->addSeparator();
+    } else if (cmdId == WIDGET_FONT_COMBO_ID) {
+        // Font family dropdown
+        QFontComboBox* fontCombo = new QFontComboBox(toolbar);
+        fontCombo->setObjectName("formatFontCombo");
+        fontCombo->setToolTip(QObject::tr("Font Family"));
+        fontCombo->setMaximumWidth(150);
+        fontCombo->setMinimumWidth(100);
+        // TODO: Connect to editor when available
+        toolbar->addWidget(fontCombo);
+        m_fontComboBox = fontCombo;
+    } else if (cmdId == WIDGET_FONT_SIZE_ID) {
+        // Font size spinner
+        QSpinBox* sizeSpinner = new QSpinBox(toolbar);
+        sizeSpinner->setObjectName("formatFontSize");
+        sizeSpinner->setToolTip(QObject::tr("Font Size"));
+        sizeSpinner->setRange(6, 72);
+        sizeSpinner->setValue(12);
+        sizeSpinner->setSuffix(" pt");
+        sizeSpinner->setMinimumWidth(60);
+        sizeSpinner->setMaximumWidth(80);
+        // TODO: Connect to editor when available
+        toolbar->addWidget(sizeSpinner);
+        m_fontSizeSpinner = sizeSpinner;
+    } else {
+        std::string cmdIdStd = cmdId.toStdString();
+        Command* cmd = registry.getCommand(cmdIdStd);
+        if (cmd && cmd->canExecute()) {
+            // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
+            // This creates an action that automatically refreshes on theme/color changes
+            QAction* action = artProvider.createAction(
+                cmdId,
+                QString::fromStdString(cmd->label),
+                toolbar,
+                core::IconContext::Toolbar
+            );
+
+            // Set tooltip and shortcut from command
+            if (!cmd->tooltip.empty()) {
+                action->setToolTip(QString::fromStdString(cmd->tooltip));
+                action->setStatusTip(QString::fromStdString(cmd->tooltip));
+            }
+            if (!cmd->shortcut.isEmpty()) {
+                action->setShortcut(cmd->shortcut.toQKeySequence());
+            }
+
+            // Set checkable state if command has isChecked callback
+            if (cmd->isChecked) {
+                action->setCheckable(true);
+                action->setChecked(cmd->isChecked());
+            }
+
+            toolbar->addAction(action);
+
+            // Connect action to command execution
+            QObject::connect(action, &QAction::triggered, [cmdIdStd, &registry]() {
+                registry.executeCommand(cmdIdStd);
+            });
+        } else {
+            logger.warn("ToolbarManager: Command '{}' not found or not executable", cmdIdStd);
+        }
+    }
 }
 
 void ToolbarManager::resetToDefaults() {

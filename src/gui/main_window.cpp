@@ -329,6 +329,7 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("common.home", "resources/icons/twotone/home.svg", "Home");
     iconRegistry.registerIcon("common.menu", "resources/icons/twotone/menu.svg", "Menu");
     iconRegistry.registerIcon("common.moreVert", "resources/icons/twotone/more_vert.svg", "More Options");
+    iconRegistry.registerIcon("common.moreHoriz", "resources/icons/twotone/more_horiz.svg", "More Options Horizontal");
     iconRegistry.registerIcon("common.expandMore", "resources/icons/twotone/expand_more.svg", "Expand More");
     iconRegistry.registerIcon("common.expandLess", "resources/icons/twotone/expand_less.svg", "Expand Less");
     iconRegistry.registerIcon("common.chevronRight", "resources/icons/twotone/chevron_right.svg", "Chevron Right");
@@ -337,6 +338,11 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("common.arrowForward", "resources/icons/twotone/arrow_forward.svg", "Arrow Forward");
     iconRegistry.registerIcon("common.arrowUpward", "resources/icons/twotone/arrow_upward.svg", "Arrow Up");
     iconRegistry.registerIcon("common.arrowDownward", "resources/icons/twotone/arrow_downward.svg", "Arrow Down");
+    iconRegistry.registerIcon("common.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
+    iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
+    iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");
+    iconRegistry.registerIcon("action.delete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("common.firstPage", "resources/icons/twotone/first_page.svg", "First Page");
     iconRegistry.registerIcon("common.lastPage", "resources/icons/twotone/last_page.svg", "Last Page");
     iconRegistry.registerIcon("common.sort", "resources/icons/twotone/sort.svg", "Sort");
@@ -352,7 +358,7 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("common.driveFileMove", "resources/icons/twotone/drive_file_move.svg", "Move File");
     iconRegistry.registerIcon("common.fileCopy", "resources/icons/twotone/file_copy.svg", "Copy File");
 
-    logger.debug("Registered {} icons with IconRegistry", 156);
+    logger.debug("Registered {} icons with IconRegistry", 150);
 
     // =========================================================================
     // FILE MENU
@@ -620,10 +626,22 @@ void MainWindow::registerCommands() {
     // VIEW MENU
     // =========================================================================
 
-    // NOTE: Panel toggle actions are NOT registered here!
-    // They use QDockWidget::toggleViewAction() which is the proper Qt pattern.
-    // See createDocks() where they are added to VIEW/Panels submenu.
-    // This ensures proper checkmark state and automatic show/hide behavior.
+    // Panel toggle commands - registered here for CommandRegistry/Toolbar system
+    // Execute callbacks are set later in createDocks() after dock widgets exist
+    REG_CMD_KEY("view.navigator", "Navigator", "VIEW/Panels/Navigator", 10, false, 0,
+                KeyboardShortcut(Qt::Key_F2, Qt::NoModifier));
+
+    REG_CMD_KEY("view.properties", "Properties", "VIEW/Panels/Properties", 20, false, 0,
+                KeyboardShortcut(Qt::Key_F3, Qt::NoModifier));
+
+    REG_CMD_KEY("view.log", "Log", "VIEW/Panels/Log", 30, false, 0,
+                KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
+
+    REG_CMD_KEY("view.search", "Search", "VIEW/Panels/Search", 40, false, 0,
+                KeyboardShortcut(Qt::Key_F5, Qt::NoModifier));
+
+    REG_CMD_KEY("view.assistant", "Assistant", "VIEW/Panels/Assistant", 50, false, 0,
+                KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
@@ -1371,39 +1389,74 @@ void MainWindow::createDocks() {
         m_viewMenu = menuBar()->addMenu(tr("&View"));
     }
 
-    // Create Panels submenu (not in CommandRegistry - dynamic toggleViewAction only)
+    // Connect panel toggle commands to dock widgets (commands registered in registerCommands)
+    auto& registry = CommandRegistry::getInstance();
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Helper lambda to setup two-way binding between command and dock widget
+    auto connectPanelCommand = [&registry](const std::string& cmdId, QDockWidget* dock) {
+        Command* cmd = registry.getCommand(cmdId);
+        if (cmd) {
+            // Set execute callback to toggle dock visibility
+            cmd->execute = [dock]() {
+                dock->setVisible(!dock->isVisible());
+            };
+            // Set isChecked callback for checkable state
+            cmd->isChecked = [dock]() {
+                return dock->isVisible();
+            };
+        }
+    };
+
+    connectPanelCommand("view.navigator", m_navigatorDock);
+    connectPanelCommand("view.properties", m_propertiesDock);
+    connectPanelCommand("view.log", m_logDock);
+    connectPanelCommand("view.search", m_searchDock);
+    connectPanelCommand("view.assistant", m_assistantDock);
+
+    // Create Panels submenu with actions from CommandRegistry
     QMenu* panelsSubmenu = m_viewMenu->addMenu(tr("Panels"));
     logger.debug("Created VIEW/Panels submenu for dock toggles");
 
-    // Create toggle actions and add to Panels submenu (use QDockWidget's built-in toggleViewAction!)
-    // Set icons through ArtProvider for proper theme coloring
-    auto& artProvider = core::ArtProvider::getInstance();
+    // Helper lambda to create panel toggle action with two-way binding
+    auto createPanelAction = [&](const std::string& cmdId, QDockWidget* dock) -> QAction* {
+        Command* cmd = registry.getCommand(cmdId);
+        if (!cmd) {
+            logger.warn("Command not found: {}", cmdId);
+            return nullptr;
+        }
 
-    // OpenSpec #00030: Panel shortcuts changed from Ctrl+1-5 to F2-F6
-    m_viewNavigatorAction = m_navigatorDock->toggleViewAction();
-    m_viewNavigatorAction->setIcon(artProvider.getIcon("view.navigator"));
-    m_viewNavigatorAction->setShortcut(QKeySequence(Qt::Key_F2));
-    panelsSubmenu->addAction(m_viewNavigatorAction);
+        QAction* action = artProvider.createAction(
+            QString::fromStdString(cmdId),
+            QString::fromStdString(cmd->label),
+            panelsSubmenu,
+            core::IconContext::Menu
+        );
+        action->setCheckable(true);
+        action->setChecked(dock->isVisible());
+        action->setShortcut(cmd->shortcut.toQKeySequence());
 
-    m_viewPropertiesAction = m_propertiesDock->toggleViewAction();
-    m_viewPropertiesAction->setIcon(artProvider.getIcon("view.properties"));
-    m_viewPropertiesAction->setShortcut(QKeySequence(Qt::Key_F3));
-    panelsSubmenu->addAction(m_viewPropertiesAction);
+        // Two-way binding: action -> dock
+        QObject::connect(action, &QAction::triggered, [dock](bool) {
+            dock->setVisible(!dock->isVisible());
+        });
+        // Two-way binding: dock -> action
+        QObject::connect(dock, &QDockWidget::visibilityChanged, [action](bool visible) {
+            action->blockSignals(true);
+            action->setChecked(visible);
+            action->blockSignals(false);
+        });
 
-    m_viewLogAction = m_logDock->toggleViewAction();
-    m_viewLogAction->setIcon(artProvider.getIcon("view.log"));
-    m_viewLogAction->setShortcut(QKeySequence(Qt::Key_F4));
-    panelsSubmenu->addAction(m_viewLogAction);
+        panelsSubmenu->addAction(action);
+        return action;
+    };
 
-    m_viewSearchAction = m_searchDock->toggleViewAction();
-    m_viewSearchAction->setIcon(artProvider.getIcon("view.search"));
-    m_viewSearchAction->setShortcut(QKeySequence(Qt::Key_F5));
-    panelsSubmenu->addAction(m_viewSearchAction);
-
-    m_viewAssistantAction = m_assistantDock->toggleViewAction();
-    m_viewAssistantAction->setIcon(artProvider.getIcon("view.assistant"));
-    m_viewAssistantAction->setShortcut(QKeySequence(Qt::Key_F6));
-    panelsSubmenu->addAction(m_viewAssistantAction);
+    // OpenSpec #00030: Panel shortcuts F2-F6 (set in registerCommands)
+    m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock);
+    m_viewPropertiesAction = createPanelAction("view.properties", m_propertiesDock);
+    m_viewLogAction = createPanelAction("view.log", m_logDock);
+    m_viewSearchAction = createPanelAction("view.search", m_searchDock);
+    m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
 
     // NOTE: Reset Layout action is registered in CommandRegistry (view.resetLayout)
     // and built by MenuBuilder - no need to add manually here

@@ -32,6 +32,19 @@ public:
                     const QStyleOption* option = nullptr,
                     const QWidget* widget = nullptr) const override;
 
+    /// @brief Override standard icons to provide theme-aware icons
+    ///
+    /// Used to replace default Qt icons (like toolbar extension button chevron)
+    /// with theme-appropriate icons from ArtProvider.
+    ///
+    /// @param standardIcon The standard icon being requested
+    /// @param option Style option (may be nullptr)
+    /// @param widget Widget context (may be nullptr)
+    /// @return Theme-appropriate icon
+    QIcon standardIcon(StandardPixmap standardIcon,
+                       const QStyleOption* option = nullptr,
+                       const QWidget* widget = nullptr) const override;
+
 private slots:
     /// @brief Slot called when ArtProvider resources change
     ///

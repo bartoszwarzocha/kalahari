@@ -203,6 +203,8 @@ QWidget* ToolbarManagerDialog::createCurrentToolbarPanel() {
     m_currentToolbar->setSelectionMode(QAbstractItemView::SingleSelection);
     m_currentToolbar->setDragDropMode(QAbstractItemView::InternalMove);
     m_currentToolbar->setDefaultDropAction(Qt::MoveAction);
+    // QListWidget requires explicit icon size (default is too small/zero)
+    m_currentToolbar->setIconSize(QSize(16, 16));
     contentLayout->addWidget(m_currentToolbar, 1);
 
     // Control buttons (vertical)
@@ -255,6 +257,8 @@ void ToolbarManagerDialog::createConnections() {
     // Available commands
     connect(m_availableCommands, &QTreeWidget::itemDoubleClicked,
             this, &ToolbarManagerDialog::onCommandDoubleClicked);
+    connect(m_availableCommands, &QTreeWidget::currentItemChanged,
+            this, [this](QTreeWidgetItem*, QTreeWidgetItem*) { updateButtonStates(); });
     connect(m_addCommandBtn, &QPushButton::clicked,
             this, &ToolbarManagerDialog::onAddCommand);
 
@@ -481,6 +485,14 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
             item->setText(tr("--- Separator ---"));
             item->setData(Qt::UserRole, ToolbarConstants::SEPARATOR_MARKER);
             item->setForeground(palette().color(QPalette::Disabled, QPalette::Text));
+        } else if (cmdId == "_WIDGET_FONT_COMBO_") {
+            item->setText(tr("Font Family (dropdown)"));
+            item->setData(Qt::UserRole, cmdId);
+            item->setIcon(art.getIcon("format.font", kalahari::core::IconContext::Menu));
+        } else if (cmdId == "_WIDGET_FONT_SIZE_") {
+            item->setText(tr("Font Size (spinner)"));
+            item->setData(Qt::UserRole, cmdId);
+            item->setIcon(art.getIcon("format.font", kalahari::core::IconContext::Menu));
         } else {
             // Get command info
             const Command* cmd = CommandRegistry::getInstance().getCommand(cmdId.toStdString());
@@ -496,7 +508,6 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
                 // Command not found - show ID
                 item->setText(cmdId + tr(" (not found)"));
                 item->setData(Qt::UserRole, cmdId);
-                // Use palette highlight color for theme consistency
                 item->setForeground(palette().color(QPalette::Highlight));
             }
         }

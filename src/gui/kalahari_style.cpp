@@ -54,6 +54,25 @@ int KalahariStyle::pixelMetric(PixelMetric metric,
     }
 }
 
+QIcon KalahariStyle::standardIcon(StandardPixmap standardIcon,
+                                   const QStyleOption* option,
+                                   const QWidget* widget) const {
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Override toolbar extension button icons to use theme-aware chevrons
+    // These are the ">>" buttons shown when toolbar overflows
+    switch (standardIcon) {
+        case SP_ToolBarHorizontalExtensionButton:
+            return artProvider.getIcon("chevron_right", core::IconContext::Toolbar);
+
+        case SP_ToolBarVerticalExtensionButton:
+            return artProvider.getIcon("arrow_downward", core::IconContext::Toolbar);
+
+        default:
+            return QProxyStyle::standardIcon(standardIcon, option, widget);
+    }
+}
+
 void KalahariStyle::onResourcesChanged() {
     // Force all widgets to re-query style metrics
     // This triggers repaint with new icon sizes

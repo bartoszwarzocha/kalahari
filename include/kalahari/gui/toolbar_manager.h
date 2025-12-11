@@ -18,6 +18,10 @@
 #include <unordered_map>
 #include <vector>
 
+// Forward declarations for Qt widgets
+class QFontComboBox;
+class QSpinBox;
+
 namespace kalahari {
 namespace gui {
 
@@ -217,6 +221,13 @@ public:
     /// @brief Save toolbar configurations to SettingsManager
     void saveConfigurations();
 
+    // ========================================================================
+    // Constants for special toolbar items
+    // ========================================================================
+    static constexpr const char* SEPARATOR_ID = "_SEPARATOR_";
+    static constexpr const char* WIDGET_FONT_COMBO_ID = "_WIDGET_FONT_COMBO_";
+    static constexpr const char* WIDGET_FONT_SIZE_ID = "_WIDGET_FONT_SIZE_";
+
 private:
     /// @brief Initialize toolbar configurations
     ///
@@ -229,6 +240,16 @@ private:
     /// @param registry CommandRegistry to retrieve commands
     /// @return Created QToolBar
     QToolBar* createToolbar(const ToolbarConfig& config, CommandRegistry& registry);
+
+    /// @brief Add toolbar item (action, separator, or widget) to toolbar
+    ///
+    /// Shared helper method used by both createToolbar() and rebuildToolbar()
+    /// to avoid code duplication.
+    ///
+    /// @param toolbar Target toolbar to add item to
+    /// @param cmdId Command ID or special widget ID (SEPARATOR_ID, WIDGET_FONT_COMBO_ID, etc.)
+    /// @param registry CommandRegistry to retrieve command info
+    void addToolbarItem(QToolBar* toolbar, const QString& cmdId, CommandRegistry& registry);
 
     /// @brief Slot called when View menu toolbar action is toggled
     ///
@@ -248,6 +269,10 @@ private:
 
     // OpenSpec #00031 - Phase E: Toolbar locking
     bool m_toolbarsLocked = false;                   ///< Whether toolbar positions are locked
+
+    // Format toolbar widgets (for future editor integration)
+    QFontComboBox* m_fontComboBox = nullptr;         ///< Font family dropdown
+    QSpinBox* m_fontSizeSpinner = nullptr;           ///< Font size spinner
 };
 
 } // namespace gui
