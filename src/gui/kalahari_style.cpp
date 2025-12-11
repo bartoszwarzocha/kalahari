@@ -63,10 +63,10 @@ QIcon KalahariStyle::standardIcon(StandardPixmap standardIcon,
     // These are the ">>" buttons shown when toolbar overflows
     switch (standardIcon) {
         case SP_ToolBarHorizontalExtensionButton:
-            return artProvider.getIcon("chevron_right", core::IconContext::Toolbar);
+            return artProvider.getIcon("common.chevronRight", core::IconContext::Toolbar);
 
         case SP_ToolBarVerticalExtensionButton:
-            return artProvider.getIcon("arrow_downward", core::IconContext::Toolbar);
+            return artProvider.getIcon("navigation.down", core::IconContext::Toolbar);
 
         default:
             return QProxyStyle::standardIcon(standardIcon, option, widget);
