@@ -8,13 +8,13 @@
 - [x] Document full specification in proposal.md
 
 ## Phase B: Core Infrastructure
-- [ ] Create `ProjectManager` class (project folder operations)
-  - [ ] `createProject(path, name)` - create folder structure
-  - [ ] `openProject(klhPath)` - load manifest, validate structure
-  - [ ] `closeProject()` - cleanup, save pending changes
-  - [ ] `saveManifest()` - write .klh file
-  - [ ] `getProjectPath()`, `getContentPath()`, etc.
-- [ ] Define `WorkMode` enum (NoDocument, ProjectMode, StandaloneMode)
+- [x] Create `ProjectManager` class (project folder operations)
+  - [x] `createProject(path, name)` - create folder structure
+  - [x] `openProject(klhPath)` - load manifest, validate structure
+  - [x] `closeProject()` - cleanup, save pending changes
+  - [x] `saveManifest()` - write .klh file
+  - [x] `getProjectPath()`, `getContentPath()`, etc.
+- [x] Define `WorkMode` enum (NoDocument, ProjectMode, StandaloneMode)
 - [ ] Update Document/Book classes for folder-based structure
 - [ ] Create example project folder manually for development
 
@@ -128,8 +128,8 @@
 
 ## Status Summary
 
-**Current Phase:** A (Analysis & Design) - COMPLETE
-**Next Phase:** B (Core Infrastructure)
+**Current Phase:** B (Core Infrastructure) - IN PROGRESS
+**Next Phase:** C (Project Creation)
 
 **Architecture Decision:** Solution-like folder structure
 - `.klh` = JSON manifest file (like .sln)

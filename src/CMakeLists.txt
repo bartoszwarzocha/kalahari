@@ -103,6 +103,7 @@ set(KALAHARI_SOURCES
     core/log_panel_sink.cpp # LogPanelSink - spdlog Qt sink (OpenSpec #00024)
     core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
+    core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/command.cpp
     gui/command_registry.cpp
@@ -130,6 +131,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h  # IconRegistry with Q_OBJECT (Task #00025)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h   # ArtProvider with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/recent_books_manager.h  # RecentBooksManager with Q_OBJECT (OpenSpec #00030)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h  # ProjectManager with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h # LogPanelSink with Q_OBJECT (OpenSpec #00024)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h  # BusyIndicator with Q_OBJECT (OpenSpec #00026)

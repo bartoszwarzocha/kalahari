@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00033:** Project File System - Solution-like Architecture - 2025-12-12
+  - ProjectManager class for solution-like project architecture
+  - WorkMode enum (NoDocument, ProjectMode, StandaloneMode)
+  - Project folder structure with .klh manifest files
+  - Core API: createProject(), openProject(), closeProject(), saveManifest()
+  - Path helpers: getContentPath(), getMetadataPath(), getMindmapsPath(), etc.
+  - Automatic folder structure creation (content/, metadata/, mindmaps/, timelines/, resources/, .kalahari/)
+  - Files added: `project_manager.h`, `project_manager.cpp`
+
 - **OpenSpec #00032:** Theme & Icons Optimization - 2025-12-11
   - **Problem solved:** Triple theme update path causing 3x IconRegistry updates on startup
   - **Problem solved:** Panel header icons not updating on color change
