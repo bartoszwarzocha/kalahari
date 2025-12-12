@@ -95,6 +95,37 @@ void BookElement::clearMetadata() {
 }
 
 // ===========================================================================
+// Dirty Tracking and Content Cache
+// ===========================================================================
+
+bool BookElement::isDirty() const {
+    return m_isDirty;
+}
+
+void BookElement::setDirty(bool dirty) {
+    m_isDirty = dirty;
+}
+
+bool BookElement::isContentLoaded() const {
+    return !m_content.isEmpty();
+}
+
+const QString& BookElement::getContent() const {
+    return m_content;
+}
+
+void BookElement::setContent(const QString& content) {
+    m_content = content;
+    m_isDirty = true;
+    m_modified = std::chrono::system_clock::now();
+}
+
+void BookElement::unloadContent() {
+    m_content.clear();
+    // Note: m_isDirty is NOT changed - if content was dirty, it should be saved first
+}
+
+// ===========================================================================
 // JSON Serialization
 // ===========================================================================
 

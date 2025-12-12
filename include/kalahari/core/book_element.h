@@ -29,6 +29,7 @@
 #include <filesystem>
 #include <chrono>
 #include <optional>
+#include <QString>
 #include <nlohmann/json.hpp>
 #include <kalahari/core/book_constants.h>
 
@@ -122,6 +123,39 @@ public:
     /// @brief Clear all metadata
     void clearMetadata();
 
+    // =========================================================================
+    // Dirty Tracking and Content Cache (Lazy Loading Support)
+    // =========================================================================
+
+    /// @brief Check if content is dirty (modified since last save)
+    /// @return true if content has been modified
+    bool isDirty() const;
+
+    /// @brief Set dirty state
+    /// @param dirty New dirty state
+    void setDirty(bool dirty);
+
+    /// @brief Check if content is loaded in memory
+    /// @return true if content cache is not empty
+    bool isContentLoaded() const;
+
+    /// @brief Get cached content
+    /// @return Reference to cached RTF content (may be empty if not loaded)
+    const QString& getContent() const;
+
+    /// @brief Set content and mark dirty
+    /// @param content RTF content to cache
+    ///
+    /// This method caches the content in memory and sets the dirty flag.
+    /// The content should be persisted to file when the project is saved.
+    void setContent(const QString& content);
+
+    /// @brief Clear cached content (for memory management)
+    ///
+    /// Clears the content cache to free memory but does NOT change the dirty flag.
+    /// If content was dirty, it should be saved before calling this.
+    void unloadContent();
+
     /// @brief Serialize to JSON
     /// @return JSON object with all fields
     json toJson() const;
@@ -141,6 +175,10 @@ private:
     std::chrono::system_clock::time_point m_created;   ///< Creation timestamp
     std::chrono::system_clock::time_point m_modified;  ///< Last modification timestamp
     std::map<std::string, std::string> m_metadata;     ///< Extensible custom metadata
+
+    // Dirty tracking and content cache (lazy loading support)
+    bool m_isDirty = false;       ///< Content modified since last save
+    QString m_content;            ///< Cached RTF content (loaded on demand)
 
     /// @brief Helper: Convert time_point to ISO 8601 string
     static std::string timeToString(const std::chrono::system_clock::time_point& time);

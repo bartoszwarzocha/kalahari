@@ -29,14 +29,19 @@
 
 #include <QObject>
 #include <QString>
+#include <QJsonObject>
 #include <memory>
 #include <filesystem>
+#include <vector>
 
 namespace kalahari {
 namespace core {
 
 // Forward declarations
 class Document;
+class Book;
+class Part;
+class BookElement;
 
 /// @brief Work mode enumeration for application state
 ///
@@ -208,6 +213,69 @@ public:
     /// @brief Set dirty state
     /// @param dirty true to mark as dirty, false to mark as clean
     void setDirty(bool dirty);
+
+    // =========================================================================
+    // Book Structure Management
+    // =========================================================================
+
+    /// @brief Load book structure from manifest JSON
+    /// @param structureObj The "structure" object from manifest
+    /// @return true if successful
+    ///
+    /// Parses the structure section of manifest:
+    /// - "frontmatter" array -> BookElements in Book::frontMatter
+    /// - "body" array -> Parts with chapters in Book::body
+    /// - "backmatter" array -> BookElements in Book::backMatter
+    bool loadStructureFromManifest(const QJsonObject& structureObj);
+
+    /// @brief Serialize book structure to manifest JSON
+    /// @return "structure" QJsonObject for manifest
+    ///
+    /// Creates JSON structure:
+    /// - "frontmatter": array of element objects
+    /// - "body": array of part objects with chapters
+    /// - "backmatter": array of element objects
+    QJsonObject saveStructureToManifest() const;
+
+    /// @brief Load chapter content from RTF file
+    /// @param elementId Chapter/element ID
+    /// @return Content string, empty if failed
+    ///
+    /// Loads RTF content from the file specified in element's file path.
+    /// Uses project path to resolve relative paths.
+    QString loadChapterContent(const QString& elementId);
+
+    /// @brief Save chapter content to RTF file
+    /// @param elementId Chapter/element ID
+    /// @return true if saved successfully
+    ///
+    /// Saves element's cached content to RTF file.
+    /// Creates parent directories if needed.
+    bool saveChapterContent(const QString& elementId);
+
+    /// @brief Find element by ID across all sections
+    /// @param elementId Element ID to find
+    /// @return Pointer to element, nullptr if not found
+    ///
+    /// Searches frontmatter, body (all parts), and backmatter.
+    BookElement* findElement(const QString& elementId);
+
+    /// @brief Find part by ID
+    /// @param partId Part ID to find
+    /// @return Pointer to part, nullptr if not found
+    Part* findPart(const QString& partId);
+
+    /// @brief Get all dirty elements
+    /// @return Vector of IDs of elements with unsaved changes
+    ///
+    /// Returns IDs of all elements where isDirty() == true.
+    std::vector<QString> getDirtyElements() const;
+
+    /// @brief Save all dirty elements
+    /// @return true if all saved successfully
+    ///
+    /// Iterates all dirty elements and calls saveChapterContent().
+    bool saveAllDirty();
 
 signals:
     /// @brief Emitted when a project is successfully opened

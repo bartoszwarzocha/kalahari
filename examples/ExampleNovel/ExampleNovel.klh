@@ -1,0 +1,44 @@
+{
+  "kalahari": {
+    "version": "1.0",
+    "minVersion": "0.4.0"
+  },
+  "document": {
+    "id": "example-novel-001",
+    "title": "Example Novel",
+    "author": "Test Author",
+    "language": "en",
+    "genre": "fiction",
+    "created": "2025-12-12T10:00:00Z",
+    "modified": "2025-12-12T10:00:00Z"
+  },
+  "structure": {
+    "frontmatter": [
+      {"id": "fm_001", "type": "title_page", "title": "Title Page", "file": "frontmatter/001_title_page.rtf", "wordCount": 10}
+    ],
+    "body": [
+      {
+        "id": "part_001",
+        "type": "part",
+        "title": "Beginning",
+        "folder": "body/part_001_beginning",
+        "chapters": [
+          {"id": "ch_001", "type": "chapter", "title": "Chapter One", "file": "chapter_001.rtf", "wordCount": 150},
+          {"id": "ch_002", "type": "chapter", "title": "Chapter Two", "file": "chapter_002.rtf", "wordCount": 120}
+        ]
+      }
+    ],
+    "backmatter": [
+      {"id": "bm_001", "type": "epilogue", "title": "Epilogue", "file": "backmatter/001_epilogue.rtf", "wordCount": 50}
+    ]
+  },
+  "statistics": {
+    "totalWords": 330,
+    "totalChapters": 2,
+    "lastEdited": "ch_001"
+  },
+  "settings": {
+    "defaultPerspective": "writer",
+    "autoSaveInterval": 300
+  }
+}

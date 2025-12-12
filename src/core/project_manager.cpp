@@ -5,9 +5,14 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/document.h>
+#include <kalahari/core/book.h>
+#include <kalahari/core/part.h>
+#include <kalahari/core/book_element.h>
+#include <kalahari/core/book_constants.h>
 #include <kalahari/core/logger.h>
 
 #include <QFile>
+#include <QTextStream>
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -210,6 +215,14 @@ bool ProjectManager::openProject(const QString& manifestPath) {
     m_manifestPath = path;
     m_projectPath = path.parent_path();
 
+    // Load book structure from manifest
+    if (root.contains("structure")) {
+        QJsonObject structureSection = root["structure"].toObject();
+        if (!loadStructureFromManifest(structureSection)) {
+            Logger::getInstance().warn("Failed to load book structure from manifest");
+        }
+    }
+
     // Validate folder structure (warn if missing, but continue)
     if (!validateFolderStructure(m_projectPath)) {
         Logger::getInstance().warn("Project folder structure is incomplete");
@@ -285,12 +298,8 @@ bool ProjectManager::saveManifest() {
     documentSection["modified"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     root["document"] = documentSection;
 
-    // Structure section (placeholder for now)
-    QJsonObject structureSection;
-    structureSection["frontmatter"] = QJsonArray();
-    structureSection["body"] = QJsonArray();
-    structureSection["backmatter"] = QJsonArray();
-    root["structure"] = structureSection;
+    // Structure section - serialize book structure
+    root["structure"] = saveStructureToManifest();
 
     // Statistics section
     QJsonObject statisticsSection;
@@ -426,6 +435,371 @@ void ProjectManager::setDirty(bool dirty) {
         m_isDirty = dirty;
         emit dirtyStateChanged(dirty);
     }
+}
+
+// =============================================================================
+// Book Structure Management
+// =============================================================================
+
+bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) {
+    if (!m_document) {
+        Logger::getInstance().error("loadStructureFromManifest: No document loaded");
+        return false;
+    }
+
+    Book& book = m_document->getBook();
+
+    // Clear existing structure
+    book.clearAll();
+
+    // Parse frontmatter array
+    if (structureObj.contains("frontmatter")) {
+        QJsonArray frontmatterArray = structureObj["frontmatter"].toArray();
+        for (const QJsonValue& val : frontmatterArray) {
+            QJsonObject elemObj = val.toObject();
+            QString id = elemObj["id"].toString();
+            QString title = elemObj["title"].toString();
+            QString file = elemObj["file"].toString();
+            QString type = elemObj["type"].toString(TYPE_PREFACE);
+            int wordCount = elemObj["wordCount"].toInt(0);
+
+            auto element = std::make_shared<BookElement>(
+                type.toStdString(),
+                id.toStdString(),
+                title.toStdString(),
+                std::filesystem::path(file.toStdWString())
+            );
+            element->setWordCount(wordCount);
+            book.addFrontMatter(element);
+
+            Logger::getInstance().debug("Loaded frontmatter: {} ({})",
+                                        title.toStdString(), id.toStdString());
+        }
+    }
+
+    // Parse body array (parts with chapters)
+    if (structureObj.contains("body")) {
+        QJsonArray bodyArray = structureObj["body"].toArray();
+        for (const QJsonValue& partVal : bodyArray) {
+            QJsonObject partObj = partVal.toObject();
+            QString partId = partObj["id"].toString();
+            QString partTitle = partObj["title"].toString();
+
+            auto part = std::make_shared<Part>(
+                partId.toStdString(),
+                partTitle.toStdString()
+            );
+
+            // Parse chapters within this part
+            if (partObj.contains("chapters")) {
+                QJsonArray chaptersArray = partObj["chapters"].toArray();
+                for (const QJsonValue& chapVal : chaptersArray) {
+                    QJsonObject chapObj = chapVal.toObject();
+                    QString chapId = chapObj["id"].toString();
+                    QString chapTitle = chapObj["title"].toString();
+                    QString chapFile = chapObj["file"].toString();
+                    int wordCount = chapObj["wordCount"].toInt(0);
+
+                    auto chapter = std::make_shared<BookElement>(
+                        TYPE_CHAPTER,
+                        chapId.toStdString(),
+                        chapTitle.toStdString(),
+                        std::filesystem::path(chapFile.toStdWString())
+                    );
+                    chapter->setWordCount(wordCount);
+                    part->addChapter(chapter);
+
+                    Logger::getInstance().debug("Loaded chapter: {} ({})",
+                                                chapTitle.toStdString(), chapId.toStdString());
+                }
+            }
+
+            book.addPart(part);
+            Logger::getInstance().debug("Loaded part: {} with {} chapters",
+                                        partTitle.toStdString(), part->getChapterCount());
+        }
+    }
+
+    // Parse backmatter array
+    if (structureObj.contains("backmatter")) {
+        QJsonArray backmatterArray = structureObj["backmatter"].toArray();
+        for (const QJsonValue& val : backmatterArray) {
+            QJsonObject elemObj = val.toObject();
+            QString id = elemObj["id"].toString();
+            QString title = elemObj["title"].toString();
+            QString file = elemObj["file"].toString();
+            QString type = elemObj["type"].toString(TYPE_EPILOGUE);
+            int wordCount = elemObj["wordCount"].toInt(0);
+
+            auto element = std::make_shared<BookElement>(
+                type.toStdString(),
+                id.toStdString(),
+                title.toStdString(),
+                std::filesystem::path(file.toStdWString())
+            );
+            element->setWordCount(wordCount);
+            book.addBackMatter(element);
+
+            Logger::getInstance().debug("Loaded backmatter: {} ({})",
+                                        title.toStdString(), id.toStdString());
+        }
+    }
+
+    Logger::getInstance().info("Book structure loaded: {} frontmatter, {} parts, {} backmatter",
+                               book.getFrontMatter().size(),
+                               book.getPartCount(),
+                               book.getBackMatter().size());
+    return true;
+}
+
+QJsonObject ProjectManager::saveStructureToManifest() const {
+    QJsonObject structureObj;
+
+    if (!m_document) {
+        // Return empty structure if no document
+        structureObj["frontmatter"] = QJsonArray();
+        structureObj["body"] = QJsonArray();
+        structureObj["backmatter"] = QJsonArray();
+        return structureObj;
+    }
+
+    const Book& book = m_document->getBook();
+
+    // Serialize frontmatter
+    QJsonArray frontmatterArray;
+    for (const auto& element : book.getFrontMatter()) {
+        QJsonObject elemObj;
+        elemObj["id"] = QString::fromStdString(element->getId());
+        elemObj["title"] = QString::fromStdString(element->getTitle());
+        elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
+        elemObj["type"] = QString::fromStdString(element->getType());
+        elemObj["wordCount"] = element->getWordCount();
+        frontmatterArray.append(elemObj);
+    }
+    structureObj["frontmatter"] = frontmatterArray;
+
+    // Serialize body (parts with chapters)
+    QJsonArray bodyArray;
+    for (const auto& part : book.getBody()) {
+        QJsonObject partObj;
+        partObj["id"] = QString::fromStdString(part->getId());
+        partObj["title"] = QString::fromStdString(part->getTitle());
+
+        QJsonArray chaptersArray;
+        for (const auto& chapter : part->getChapters()) {
+            QJsonObject chapObj;
+            chapObj["id"] = QString::fromStdString(chapter->getId());
+            chapObj["title"] = QString::fromStdString(chapter->getTitle());
+            chapObj["file"] = QString::fromStdWString(chapter->getFile().wstring());
+            chapObj["wordCount"] = chapter->getWordCount();
+            chaptersArray.append(chapObj);
+        }
+        partObj["chapters"] = chaptersArray;
+        bodyArray.append(partObj);
+    }
+    structureObj["body"] = bodyArray;
+
+    // Serialize backmatter
+    QJsonArray backmatterArray;
+    for (const auto& element : book.getBackMatter()) {
+        QJsonObject elemObj;
+        elemObj["id"] = QString::fromStdString(element->getId());
+        elemObj["title"] = QString::fromStdString(element->getTitle());
+        elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
+        elemObj["type"] = QString::fromStdString(element->getType());
+        elemObj["wordCount"] = element->getWordCount();
+        backmatterArray.append(elemObj);
+    }
+    structureObj["backmatter"] = backmatterArray;
+
+    return structureObj;
+}
+
+QString ProjectManager::loadChapterContent(const QString& elementId) {
+    BookElement* element = findElement(elementId);
+    if (!element) {
+        Logger::getInstance().warn("loadChapterContent: Element not found: {}",
+                                   elementId.toStdString());
+        return QString();
+    }
+
+    // Resolve relative path against project path
+    std::filesystem::path absolutePath = m_projectPath / element->getFile();
+
+    QFile file(QString::fromStdWString(absolutePath.wstring()));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        Logger::getInstance().warn("loadChapterContent: Failed to open file: {}",
+                                   absolutePath.string());
+        return QString();
+    }
+
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QString content = in.readAll();
+    file.close();
+
+    // Cache content in element
+    element->setContent(content);
+    element->setDirty(false);  // Just loaded, not dirty
+
+    Logger::getInstance().debug("Loaded content for element: {} ({} chars)",
+                                elementId.toStdString(), content.length());
+    return content;
+}
+
+bool ProjectManager::saveChapterContent(const QString& elementId) {
+    BookElement* element = findElement(elementId);
+    if (!element) {
+        Logger::getInstance().warn("saveChapterContent: Element not found: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+
+    if (!element->isContentLoaded()) {
+        Logger::getInstance().debug("saveChapterContent: No content loaded for: {}",
+                                    elementId.toStdString());
+        return true;  // Nothing to save
+    }
+
+    // Resolve relative path against project path
+    std::filesystem::path absolutePath = m_projectPath / element->getFile();
+
+    // Create parent directories if needed
+    std::filesystem::path parentDir = absolutePath.parent_path();
+    if (!std::filesystem::exists(parentDir)) {
+        std::error_code ec;
+        if (!std::filesystem::create_directories(parentDir, ec)) {
+            Logger::getInstance().error("saveChapterContent: Failed to create directory: {} ({})",
+                                        parentDir.string(), ec.message());
+            return false;
+        }
+    }
+
+    QFile file(QString::fromStdWString(absolutePath.wstring()));
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        Logger::getInstance().error("saveChapterContent: Failed to open file for writing: {}",
+                                    absolutePath.string());
+        return false;
+    }
+
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+    out << element->getContent();
+    file.close();
+
+    element->setDirty(false);
+    element->touch();  // Update modified timestamp
+
+    Logger::getInstance().debug("Saved content for element: {} ({} chars)",
+                                elementId.toStdString(), element->getContent().length());
+    return true;
+}
+
+BookElement* ProjectManager::findElement(const QString& elementId) {
+    if (!m_document) {
+        return nullptr;
+    }
+
+    std::string id = elementId.toStdString();
+    Book& book = m_document->getBook();
+
+    // Search frontmatter
+    for (auto& element : book.getFrontMatter()) {
+        if (element->getId() == id) {
+            return element.get();
+        }
+    }
+
+    // Search body (parts and chapters)
+    for (auto& part : book.getBody()) {
+        for (const auto& chapter : part->getChapters()) {
+            if (chapter->getId() == id) {
+                return chapter.get();
+            }
+        }
+    }
+
+    // Search backmatter
+    for (auto& element : book.getBackMatter()) {
+        if (element->getId() == id) {
+            return element.get();
+        }
+    }
+
+    return nullptr;
+}
+
+Part* ProjectManager::findPart(const QString& partId) {
+    if (!m_document) {
+        return nullptr;
+    }
+
+    std::string id = partId.toStdString();
+    Book& book = m_document->getBook();
+
+    for (auto& part : book.getBody()) {
+        if (part->getId() == id) {
+            return part.get();
+        }
+    }
+
+    return nullptr;
+}
+
+std::vector<QString> ProjectManager::getDirtyElements() const {
+    std::vector<QString> dirtyIds;
+
+    if (!m_document) {
+        return dirtyIds;
+    }
+
+    const Book& book = m_document->getBook();
+
+    // Check frontmatter
+    for (const auto& element : book.getFrontMatter()) {
+        if (element->isDirty()) {
+            dirtyIds.push_back(QString::fromStdString(element->getId()));
+        }
+    }
+
+    // Check body (chapters)
+    for (const auto& part : book.getBody()) {
+        for (const auto& chapter : part->getChapters()) {
+            if (chapter->isDirty()) {
+                dirtyIds.push_back(QString::fromStdString(chapter->getId()));
+            }
+        }
+    }
+
+    // Check backmatter
+    for (const auto& element : book.getBackMatter()) {
+        if (element->isDirty()) {
+            dirtyIds.push_back(QString::fromStdString(element->getId()));
+        }
+    }
+
+    return dirtyIds;
+}
+
+bool ProjectManager::saveAllDirty() {
+    std::vector<QString> dirtyIds = getDirtyElements();
+
+    if (dirtyIds.empty()) {
+        Logger::getInstance().debug("saveAllDirty: No dirty elements to save");
+        return true;
+    }
+
+    Logger::getInstance().info("Saving {} dirty elements", dirtyIds.size());
+
+    bool allSaved = true;
+    for (const QString& id : dirtyIds) {
+        if (!saveChapterContent(id)) {
+            Logger::getInstance().error("Failed to save element: {}", id.toStdString());
+            allSaved = false;
+        }
+    }
+
+    return allSaved;
 }
 
 // =============================================================================
