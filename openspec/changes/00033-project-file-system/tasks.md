@@ -45,18 +45,24 @@
 - [ ] Add "File > New > Project..." menu item
 - [ ] Register `file.new.project` command
 
-## Phase D: Project Loading
+## Phase D: Project Loading - IN PROGRESS
 - [ ] Implement `ProjectManager::openProject()`
   - [ ] Read and parse .klh manifest
   - [ ] Validate folder structure
   - [ ] Build Document/Book objects from manifest
   - [ ] Handle missing files gracefully
-- [ ] Update `NavigatorPanel` for new structure
-  - [ ] Display project tree from manifest
-  - [ ] Show Front Matter / Body / Back Matter sections
-  - [ ] Add Mind Maps section
-  - [ ] Add Timelines section
-  - [ ] Add "Other Files" section for standalone files
+- [x] Update `NavigatorPanel` for new structure
+  - [x] Changed signal: `chapterDoubleClicked` -> `elementSelected(elementId, elementTitle)`
+  - [x] Store element ID and type in tree items using Qt::UserRole
+  - [x] Add icons to tree items using ArtProvider (folder/chapter)
+  - [x] Connect to ArtProvider::resourcesChanged() for theme refresh
+  - [x] Added refreshIcons() private method
+  - [x] Updated MainWindow slot to new signal signature
+  - [ ] Display project tree from manifest (needs ProjectManager integration)
+  - [ ] Show Front Matter / Body / Back Matter sections (needs ProjectManager integration)
+  - [ ] Add Mind Maps section (future)
+  - [ ] Add Timelines section (future)
+  - [ ] Add "Other Files" section for standalone files (future)
 - [ ] Update "File > Open > Project..." to use new loader
 - [ ] Handle double-click on .klh file (command line argument)
 
@@ -142,8 +148,8 @@
 
 ## Status Summary
 
-**Current Phase:** C (Project Creation) - NewItemDialog DONE
-**Next Phase:** C continued (folder structure creation, menu integration)
+**Current Phase:** D (Project Loading) - NavigatorPanel DONE
+**Next Phase:** D continued (ProjectManager::openProject() integration)
 
 **Architecture Decision:** Solution-like folder structure
 - `.klh` = JSON manifest file (like .sln)

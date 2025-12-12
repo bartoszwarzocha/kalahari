@@ -207,11 +207,12 @@ private slots:
     /// @brief Slot for Help > About Qt action
     void onAboutQt();
 
-    /// @brief Slot for Navigator double-click (Task #00015)
-    /// @param chapterTitle Title of the chapter/item that was double-clicked
+    /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
+    /// @param elementId Unique ID of the selected element (BookElement::getId())
+    /// @param elementTitle Display title of the element
     /// @note Phase 0: Opens whole document in new editor tab
-    /// @note Phase 1+: Opens specific chapter content
-    void onNavigatorItemDoubleClicked(const QString& chapterTitle);
+    /// @note Phase 1+: Opens specific element content based on elementId
+    void onNavigatorElementSelected(const QString& elementId, const QString& elementTitle);
 
     /// @brief Slot for opening recent file (OpenSpec #00030)
     /// @param filePath Path to the file to open
@@ -224,6 +225,13 @@ private slots:
     /// @brief Slot for theme changed (Task #00023)
     /// @param theme New theme to apply to IconRegistry
     void onThemeChanged(const kalahari::core::Theme& theme);
+
+    /// @brief Slot for project opened (OpenSpec #00033 Phase D)
+    /// @param projectPath Path to the opened project
+    void onProjectOpened(const QString& projectPath);
+
+    /// @brief Slot for project closed (OpenSpec #00033 Phase D)
+    void onProjectClosed();
 
     /// @brief Slot for settings apply requested from SettingsDialog
     /// @param settings Settings data to apply

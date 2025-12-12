@@ -109,6 +109,14 @@ MainWindow::MainWindow(QWidget* parent)
     // ArtProvider::initialize() connects ThemeManager::themeChanged to IconRegistry::onThemeChanged
     // and synchronizes colors from the current theme
 
+    // Connect ProjectManager signals (OpenSpec #00033 Phase D)
+    auto& pm = core::ProjectManager::getInstance();
+    connect(&pm, &core::ProjectManager::projectOpened,
+            this, &MainWindow::onProjectOpened);
+    connect(&pm, &core::ProjectManager::projectClosed,
+            this, &MainWindow::onProjectClosed);
+    logger.debug("MainWindow: Connected ProjectManager signals");
+
     logger.info("MainWindow initialized successfully");
 }
 
@@ -870,31 +878,12 @@ void MainWindow::onOpenDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Open Document");
 
-    // Task #00015: Check for unsaved changes in current editor tab
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (currentEditor && m_isDirty) {
-        auto reply = QMessageBox::question(
-            this,
-            tr("Unsaved Changes"),
-            tr("Do you want to save changes to the current document?"),
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-            QMessageBox::Save
-        );
-
-        if (reply == QMessageBox::Save) {
-            onSaveDocument();
-            if (m_isDirty) return;
-        } else if (reply == QMessageBox::Cancel) {
-            return;
-        }
-    }
-
-    // Show file dialog
+    // OpenSpec #00033 Phase D: Use ProjectManager for opening projects
     QString filename = QFileDialog::getOpenFileName(
         this,
-        tr("Open Document"),
+        tr("Open Book"),
         QString(),
-        tr("Kalahari Files (*.klh)")
+        tr("Kalahari Books (*.klh)")
     );
 
     if (filename.isEmpty()) {
@@ -902,50 +891,17 @@ void MainWindow::onOpenDocument() {
         return;
     }
 
-    // Load document
-    std::filesystem::path filepath = filename.toStdString();
-    auto loaded = core::DocumentArchive::load(filepath);
-
-    if (!loaded.has_value()) {
+    // Use ProjectManager to open the project
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.openProject(filename)) {
         QMessageBox::critical(
             this,
             tr("Open Error"),
-            tr("Failed to open document: %1").arg(filename)
+            tr("Failed to open book: %1").arg(filename)
         );
-        logger.error("Failed to load document: {}", filepath.string());
         return;
     }
-
-    // Task #00015: Create new EditorPanel tab (on-demand)
-    EditorPanel* newEditor = new EditorPanel(this);
-
-    // Get document title for tab name
-    QString docTitle = QString::fromStdString(loaded.value().getTitle());
-    int tabIndex = m_centralTabs->addTab(newEditor, docTitle);
-    m_centralTabs->setCurrentIndex(tabIndex);
-
-    // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
-            this, [this]() {
-                if (!m_currentDocument.has_value()) return;
-                setDirty(true);
-            });
-
-    // Success - update state
-    m_currentDocument = std::move(loaded.value());
-    m_currentFilePath = filepath;
-
-    // Extract text and load into editor
-    QString content = getPhase0Content(m_currentDocument.value());
-    newEditor->setText(content);
-
-    setDirty(false);
-
-    // Update navigator panel
-    m_navigatorPanel->loadDocument(m_currentDocument.value());
-
-    logger.info("Document loaded in new tab: {}", filepath.string());
-    statusBar()->showMessage(tr("Document opened: %1").arg(filename), 2000);
+    // ProjectManager emits projectOpened, which triggers onProjectOpened()
 
     // OpenSpec #00030: Add to recent files list
     core::RecentBooksManager::getInstance().addRecentFile(filename);
@@ -1399,9 +1355,9 @@ void MainWindow::createDocks() {
     setupDockTitleBar(m_navigatorDock, "view.navigator", tr("Navigator"));
     addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
 
-    // Connect Navigator double-click signal (Task #00015)
-    connect(m_navigatorPanel, &NavigatorPanel::chapterDoubleClicked,
-            this, &MainWindow::onNavigatorItemDoubleClicked);
+    // Connect Navigator element selection signal (Task #00015, OpenSpec #00033)
+    connect(m_navigatorPanel, &NavigatorPanel::elementSelected,
+            this, &MainWindow::onNavigatorElementSelected);
 
     // Properties dock (right)
     m_propertiesPanel = new PropertiesPanel(this);
@@ -1710,39 +1666,91 @@ EditorPanel* MainWindow::getCurrentEditor() {
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
 }
 
-void MainWindow::onNavigatorItemDoubleClicked(const QString& chapterTitle) {
-    // Task #00015: Handle Navigator double-click
-    auto& logger = core::Logger::getInstance();
-    logger.info("Navigator item double-clicked: {}", chapterTitle.toStdString());
+// =============================================================================
+// Project Manager Slots (OpenSpec #00033 Phase D)
+// =============================================================================
 
-    // Check if document is loaded
-    if (!m_currentDocument.has_value()) {
-        logger.debug("No document loaded - ignoring Navigator double-click");
-        statusBar()->showMessage(tr("No document loaded"), 2000);
+void MainWindow::onProjectOpened(const QString& projectPath) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    const core::Document* doc = pm.getDocument();
+
+    if (!doc) {
+        logger.error("onProjectOpened: Document is null");
         return;
     }
 
-    // Phase 0: Open whole document content in new editor tab
-    // Phase 1+: Open specific chapter content based on chapterTitle
+    // Update Navigator panel with document structure
+    m_navigatorPanel->loadDocument(*doc);
 
+    // Update window title with book title
+    setWindowTitle(QString::fromStdString(doc->getTitle()) + " - Kalahari");
+
+    // Log and status bar
+    logger.info("Project opened: {}", projectPath.toStdString());
+    statusBar()->showMessage(tr("Book opened: %1").arg(projectPath), 3000);
+}
+
+void MainWindow::onProjectClosed() {
+    auto& logger = core::Logger::getInstance();
+
+    // Clear Navigator panel
+    m_navigatorPanel->clearDocument();
+
+    // Reset window title
+    setWindowTitle("Kalahari");
+
+    // Log and status bar
+    logger.info("Project closed");
+    statusBar()->showMessage(tr("Book closed"), 2000);
+}
+
+void MainWindow::onNavigatorElementSelected(const QString& elementId, const QString& elementTitle) {
+    // Task #00015, OpenSpec #00033 Phase D: Handle Navigator element selection
+    auto& logger = core::Logger::getInstance();
+    logger.info("Navigator element selected: {} (id={})",
+                elementTitle.toStdString(), elementId.toStdString());
+
+    // Check if project is loaded via ProjectManager
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        logger.debug("No project loaded - ignoring Navigator selection");
+        statusBar()->showMessage(tr("No project loaded"), 2000);
+        return;
+    }
+
+    // Load chapter content from file via ProjectManager
+    QString content = pm.loadChapterContent(elementId);
+
+    if (content.isEmpty()) {
+        logger.warn("Failed to load content for element: {}", elementId.toStdString());
+        // Still create tab but with empty content
+    }
+
+    // Create new editor tab
     EditorPanel* newEditor = new EditorPanel(this);
-    QString tabTitle = chapterTitle;  // Use chapter title as tab name
-    int tabIndex = m_centralTabs->addTab(newEditor, tabTitle);
+    int tabIndex = m_centralTabs->addTab(newEditor, elementTitle);
     m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Store element ID for save operations
+    newEditor->setProperty("elementId", elementId);
 
     // Connect textChanged signal for dirty tracking
     connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
-            this, [this]() {
-                if (!m_currentDocument.has_value()) return;
-                setDirty(true);
+            this, [this, elementId]() {
+                auto& pm = core::ProjectManager::getInstance();
+                if (pm.isProjectOpen()) {
+                    pm.setDirty(true);
+                }
             });
 
-    // Load document content (Phase 0: whole document)
-    QString content = getPhase0Content(m_currentDocument.value());
-    newEditor->setText(content);
+    // Set content
+    if (!content.isEmpty()) {
+        newEditor->getTextEdit()->setPlainText(content);
+    }
 
-    logger.info("Opened chapter '{}' in new editor tab", chapterTitle.toStdString());
-    statusBar()->showMessage(tr("Opened: %1").arg(chapterTitle), 2000);
+    logger.info("Opened chapter: {} ({})", elementTitle.toStdString(), elementId.toStdString());
+    statusBar()->showMessage(tr("Opened: %1").arg(elementTitle), 2000);
 }
 
 // =============================================================================

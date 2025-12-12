@@ -1,14 +1,17 @@
 /// @file navigator_panel.h
-/// @brief Navigator panel placeholder (Qt6)
+/// @brief Navigator panel for project structure navigation (Qt6)
 ///
-/// This file defines the NavigatorPanel class, a placeholder for the
-/// project structure tree. Will be enhanced in Phase 1 with real tree.
+/// This file defines the NavigatorPanel class, displaying the project
+/// structure tree with icons and element selection support.
+///
+/// OpenSpec #00033 Phase D: Enhanced with icons, element IDs, and theme refresh.
 
 #pragma once
 
 #include <QWidget>
 
 class QTreeWidget;
+class QTreeWidgetItem;
 
 namespace kalahari {
 namespace core {
@@ -17,10 +20,10 @@ namespace core {
 
 namespace gui {
 
-/// @brief Navigator panel (placeholder)
+/// @brief Navigator panel showing project structure tree
 ///
 /// Displays a QTreeWidget for project structure (chapters/scenes).
-/// This is a placeholder - full implementation comes in Phase 1.
+/// Supports icons, element selection, and automatic theme refresh.
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -40,13 +43,27 @@ public:
     ~NavigatorPanel() override = default;
 
 signals:
-    /// @brief Emitted when user double-clicks a chapter in tree
-    /// @param chapterTitle Title of the chapter to open
-    /// @note Phase 0: Opens whole document (no per-chapter editing yet)
-    /// @note Phase 1+: Opens specific chapter in editor
-    void chapterDoubleClicked(const QString& chapterTitle);
+    /// @brief Emitted when user double-clicks a selectable element in tree
+    /// @param elementId Unique ID of the element (from BookElement::getId())
+    /// @param elementTitle Display title of the element
+    /// @note Only emitted for leaf elements (chapters, frontmatter items, backmatter items)
+    /// @note Section headers (Front Matter, Body, Back Matter) and Parts do not emit this signal
+    void elementSelected(const QString& elementId, const QString& elementTitle);
+
+private slots:
+    /// @brief Refresh icons when theme/colors change
+    void refreshIcons();
 
 private:
+    /// @brief Recursively refresh icons on all tree items
+    /// @param item Starting item (nullptr for root)
+    void refreshItemIcons(QTreeWidgetItem* item);
+
+    /// @brief Get icon ID for element type
+    /// @param elementType Type string stored in Qt::UserRole + 1
+    /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
+    QString getIconIdForType(const QString& elementType) const;
+
     QTreeWidget* m_treeWidget;
 };
 
