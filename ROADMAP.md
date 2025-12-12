@@ -145,19 +145,26 @@
 - Toolbar drag behavior shrinks adjacent toolbar instead of swapping (Qt default)
 - Overflow menu (chevron) deferred - Qt6 lacks built-in support
 
-### 1.2 Project File System
+### 1.2 Project File System (OpenSpec #00033)
 
-**Philosophy:** .klh is a ZIP archive containing book structure, content, and metadata.
+**Philosophy:** Solution-like folder structure with .klh JSON manifest.
 
-**Current State:** Phase 0 MVP - manifest.json only, content in metadata field
+**Current State:** Phase D complete - Project loading works
 
-**Tasks:**
-- [ ] Verify and document .klh format specification
-- [ ] Implement proper chapter file extraction (RTF/HTML)
-- [ ] Chapter content lazy loading
-- [ ] Project metadata editing (title, author, language, genre)
-- [ ] Recent files list (QSettings + QAction)
-- [ ] Project templates system
+**Architecture Decision (ADR-005):** Interim RTF editing uses QTextEdit.
+- ProjectManager handles RTF file I/O (separation of concerns)
+- EditorPanel uses QTextEdit for display (can swap to custom editor later)
+- See `project_docs/15_text_editor_architecture.md` for migration path
+
+**Completed:**
+- [x] Phase A: Analysis & Design
+- [x] Phase B: Core Infrastructure (ProjectManager, BookElement)
+- [x] Phase C: NewItemDialog
+- [x] Phase D: Project Loading
+
+**Pending:**
+- [ ] Phase E: Chapter Editing
+- [ ] Phase F-J: Remaining phases
 
 ### 1.3 Perspective System
 

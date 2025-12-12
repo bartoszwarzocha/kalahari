@@ -67,6 +67,16 @@
 - [ ] Handle double-click on .klh file (command line argument)
 
 ## Phase E: Chapter Editing
+
+> **Architecture Decision (ADR-005):** Use QTextEdit as interim editor.
+> ProjectManager handles RTF I/O, EditorPanel uses QTextEdit for display.
+> This does NOT conflict with future custom editor - file format and editor
+> format are separate concerns. See `project_docs/15_text_editor_architecture.md`.
+
+- [ ] Upgrade EditorPanel from QPlainTextEdit to QTextEdit
+- [ ] Implement RTF ↔ HTML conversion in ProjectManager
+  - [ ] `loadChapterContent()` returns HTML for QTextEdit
+  - [ ] `saveChapterContent()` converts HTML back to RTF
 - [ ] Implement RTF file loading
   - [ ] `ProjectManager::loadChapterContent(chapterId)`
   - [ ] Lazy loading (load on demand)

@@ -1569,6 +1569,54 @@ external/bwx_sdk/
 - Slightly longer development cycle (commit to 2 repos)
 - Better code organization long-term
 
+### ADR-005: Interim RTF Editing (QTextEdit)
+
+**Date:** 2025-12-12
+**Status:** Accepted for Phase 1
+**Related:** OpenSpec #00033 Phase E
+
+**Context:** Need chapter editing before custom editor is ready
+
+**Decision:** Use QTextEdit (Qt's built-in rich text editor) as interim solution
+
+**Architecture:**
+```
+┌─────────────────┐       QString/HTML      ┌─────────────────┐
+│ ProjectManager  │ ◄────────────────────► │  EditorPanel    │
+│                 │                         │                 │
+│ RTF file I/O    │   RTF ↔ HTML convert   │ QTextEdit       │
+│ (loadChapter)   │                         │ (rich text)     │
+│ (saveChapter)   │                         │                 │
+└─────────────────┘                         └─────────────────┘
+```
+
+**Key Principle:** Separation of concerns
+- **ProjectManager:** Handles file I/O (RTF files on disk)
+- **Editor:** Handles display/editing (internal format)
+- **Interface:** QString or QTextDocument (can change later)
+
+**Rationale:**
+- QTextEdit handles basic RTF/HTML formatting
+- ProjectManager already isolates file I/O
+- Migration path clear: swap EditorPanel → CustomEditor
+- No architectural conflict with future custom editor
+
+**Alternatives Considered:**
+- QPlainTextEdit: Current, but no formatting support
+- Custom editor now: Delays Project File System too much
+- Abstract interface: Over-engineering at this stage
+
+**Migration Path:**
+1. **Now:** ProjectManager converts RTF ↔ HTML, EditorPanel uses QTextEdit
+2. **Later:** ProjectManager converts RTF ↔ custom format, CustomEditor uses own model
+3. **Interface change:** QString → QTextDocument → custom (incremental)
+
+**Consequences:**
+- Basic formatting works immediately
+- File format (RTF) independent of editor format
+- Custom editor development not blocked
+- Format discussion deferred to editor implementation phase
+
 ---
 
 ## Summary
