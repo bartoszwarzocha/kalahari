@@ -5,6 +5,8 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/new_item_dialog.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -37,6 +39,7 @@
 #include <QShowEvent>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QDir>
 #include <QPlainTextEdit>
 #include <QLabel>
 #include <QHBoxLayout>
@@ -127,6 +130,7 @@ void MainWindow::registerCommands() {
     // FILE MENU ICONS (Material Design twotone style)
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("file.new", "resources/icons/twotone/note_add.svg", "New File");
+    iconRegistry.registerIcon("file.new.project", "resources/icons/twotone/create_new_folder.svg", "New Book");
     iconRegistry.registerIcon("file.open", "resources/icons/twotone/folder_open.svg", "Open File");
     iconRegistry.registerIcon("file.close", "resources/icons/twotone/close.svg", "Close File");
     iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
@@ -348,16 +352,38 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
     iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");
 
-    logger.debug("Registered {} icons with IconRegistry", 152);
+    // -------------------------------------------------------------------------
+    // NEW ITEM DIALOG ICONS (OpenSpec #00033)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("template.novel", "resources/icons/twotone/auto_stories.svg", "Novel");
+    iconRegistry.registerIcon("template.shortStories", "resources/icons/twotone/book.svg", "Short Stories");
+    iconRegistry.registerIcon("template.nonfiction", "resources/icons/twotone/menu_book.svg", "Non-fiction");
+    iconRegistry.registerIcon("template.screenplay", "resources/icons/twotone/theaters.svg", "Screenplay");
+    iconRegistry.registerIcon("template.poetry", "resources/icons/twotone/edit_note.svg", "Poetry");
+    iconRegistry.registerIcon("template.empty", "resources/icons/twotone/folder_open.svg", "Empty Project");
+    iconRegistry.registerIcon("template.chapter", "resources/icons/twotone/article.svg", "Chapter");
+    iconRegistry.registerIcon("template.mindmap", "resources/icons/twotone/account_tree.svg", "Mind Map");
+    iconRegistry.registerIcon("template.timeline", "resources/icons/twotone/timeline.svg", "Timeline");
+    iconRegistry.registerIcon("template.note", "resources/icons/twotone/sticky_note_2.svg", "Note");
+    iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
+    iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
+
+    logger.debug("Registered {} icons with IconRegistry", 177);
 
     // =========================================================================
     // FILE MENU
     // =========================================================================
 
-    REG_CMD_TOOL_ICON("file.new", "New Book...", "FILE/New Book...", 10, false, 0,
+    REG_CMD_TOOL_ICON("file.new", "New File", "FILE/New File", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::New),
                       IconSet(),
                       [this]() { onNewDocument(); });
+
+    // OpenSpec #00033: New Book command (Ctrl+Shift+N)
+    REG_CMD_TOOL_ICON("file.new.project", "New Book...", "FILE/New Book...", 15, false, 0,
+                      KeyboardShortcut(Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      [this]() { onNewProject(); });
 
     REG_CMD_TOOL_ICON("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
@@ -798,6 +824,46 @@ void MainWindow::onNewDocument() {
 
     logger.info("New document created in new tab");
     statusBar()->showMessage(tr("New document created"), 2000);
+}
+
+void MainWindow::onNewProject() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: New Project (OpenSpec #00033)");
+
+    // Show NewItemDialog in Project mode
+    dialogs::NewItemDialog dialog(dialogs::NewItemMode::Project, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        auto result = dialog.result();
+
+        // Create project folder path
+        QString projectPath = result.location;
+        if (result.createSubfolder) {
+            projectPath = QDir(result.location).filePath(result.title);
+        }
+
+        // Use ProjectManager to create project
+        auto& pm = core::ProjectManager::getInstance();
+        if (pm.createProject(projectPath, result.title, result.author, result.language, false)) {
+            // Project created successfully - update UI
+            updateWindowTitle();
+
+            // Update navigator if document available
+            if (pm.getDocument()) {
+                m_navigatorPanel->loadDocument(*pm.getDocument());
+            }
+
+            logger.info("Project created: {} at {}", result.title.toStdString(), projectPath.toStdString());
+            statusBar()->showMessage(tr("Project created: %1").arg(result.title), 3000);
+        } else {
+            logger.error("Failed to create project: {}", result.title.toStdString());
+            QMessageBox::critical(
+                this,
+                tr("Project Creation Failed"),
+                tr("Could not create project '%1'.\n\nCheck that the location is writable and try again.")
+                    .arg(result.title)
+            );
+        }
+    }
 }
 
 void MainWindow::onOpenDocument() {

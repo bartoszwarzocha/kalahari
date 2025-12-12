@@ -165,6 +165,9 @@ private slots:
     /// @brief Slot for File > New action
     void onNewDocument();
 
+    /// @brief Slot for File > New Project action (OpenSpec #00033)
+    void onNewProject();
+
     /// @brief Slot for File > Open action
     void onOpenDocument();
 

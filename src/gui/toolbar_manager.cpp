@@ -57,7 +57,7 @@ void ToolbarManager::initializeConfigs() {
         "File Toolbar",
         Qt::TopToolBarArea,
         true,  // visible by default
-        {"file.new", "file.open", "file.save", "file.saveAs", "file.close"}
+        {"file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
     };
 
     // Edit Toolbar

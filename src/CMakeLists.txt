@@ -109,6 +109,8 @@ set(KALAHARI_SOURCES
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
     gui/dialogs/icon_downloader_dialog.cpp
+    gui/dialogs/item_templates.cpp  # TemplateRegistry - Project/file templates (OpenSpec #00033)
+    gui/dialogs/new_item_dialog.cpp  # NewItemDialog - New project/file dialog (OpenSpec #00033)
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/kalahari_syntax_highlighter.cpp
     gui/main_window.cpp
@@ -138,6 +140,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h

@@ -23,12 +23,21 @@
 - [x] Create example project folder manually for development
   - [x] examples/ExampleNovel/ with .klh manifest and RTF content files
 
-## Phase C: Project Creation
-- [ ] Create `NewProjectDialog` (QDialog)
-  - [ ] Project name input
-  - [ ] Location selector (folder picker)
-  - [ ] Template selector (Novel, Short Story - future)
-  - [ ] Author/Language defaults from settings
+## Phase C: Project Creation ✅
+- [x] Create `TemplateRegistry` class for project/file templates
+  - [x] `TemplateInfo` struct with metadata for display
+  - [x] Singleton pattern (like ArtProvider)
+  - [x] Plugin-friendly registration API
+  - [x] 6 built-in project templates (Novel, Short Story, Non-fiction, etc.)
+  - [x] 6 built-in file templates (Chapter, Mind Map, Timeline, etc.)
+- [x] Create `NewItemDialog` (QDialog) - dual-purpose dialog
+  - [x] Project name / file name input
+  - [x] Location selector (folder picker) - project mode only
+  - [x] Template selector using TemplateRegistry with icon grid
+  - [x] Author/Language defaults from settings
+  - [x] Left panel: description with 64x64 icon and features
+  - [x] Right panel: template grid with 48x48 icons
+  - [x] Theme-aware icon refresh
 - [ ] Implement folder structure creation
   - [ ] Create project folder with subfolders
   - [ ] Create initial .klh manifest
@@ -133,8 +142,8 @@
 
 ## Status Summary
 
-**Current Phase:** B (Core Infrastructure) - IN PROGRESS
-**Next Phase:** C (Project Creation)
+**Current Phase:** C (Project Creation) - NewItemDialog DONE
+**Next Phase:** C continued (folder structure creation, menu integration)
 
 **Architecture Decision:** Solution-like folder structure
 - `.klh` = JSON manifest file (like .sln)
