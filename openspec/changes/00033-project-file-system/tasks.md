@@ -7,7 +7,7 @@
 - [x] **Decision: Solution-like folder structure**
 - [x] Document full specification in proposal.md
 
-## Phase B: Core Infrastructure
+## Phase B: Core Infrastructure ✅
 - [x] Create `ProjectManager` class (project folder operations)
   - [x] `createProject(path, name)` - create folder structure
   - [x] `openProject(klhPath)` - load manifest, validate structure
@@ -15,8 +15,13 @@
   - [x] `saveManifest()` - write .klh file
   - [x] `getProjectPath()`, `getContentPath()`, etc.
 - [x] Define `WorkMode` enum (NoDocument, ProjectMode, StandaloneMode)
-- [ ] Update Document/Book classes for folder-based structure
-- [ ] Create example project folder manually for development
+- [x] Update Document/Book classes for folder-based structure
+  - [x] BookElement: dirty tracking (m_isDirty) and content cache (m_content)
+  - [x] ProjectManager: loadStructureFromManifest(), saveStructureToManifest()
+  - [x] ProjectManager: loadChapterContent(), saveChapterContent()
+  - [x] ProjectManager: findElement(), findPart(), getDirtyElements(), saveAllDirty()
+- [x] Create example project folder manually for development
+  - [x] examples/ExampleNovel/ with .klh manifest and RTF content files
 
 ## Phase C: Project Creation
 - [ ] Create `NewProjectDialog` (QDialog)
