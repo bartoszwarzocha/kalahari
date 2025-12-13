@@ -49,6 +49,7 @@
 #include <QVBoxLayout>
 #include <QToolButton>
 #include <QStyle>
+#include <QProgressDialog>
 
 namespace kalahari {
 namespace gui {
@@ -438,6 +439,12 @@ void MainWindow::registerCommands() {
     REG_CMD("file.import.text", "Plain Text...", "FILE/Import/Plain Text...", 100, false, 1);
     REG_CMD("file.import.scrivener", "Scrivener Project...", "FILE/Import/Scrivener Project...", 110, false, 2);
 
+    // Import Archive (priority 75 in Import submenu)
+    REG_CMD_TOOL_ICON("file.import.archive", "Project Archive...", "FILE/Import/Project Archive...", 75, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      [this]() { onImportArchive(); });
+
     // Export submenu
     REG_CMD("file.export.docx", "DOCX", "FILE/Export/DOCX", 120, false, 1);
     REG_CMD("file.export.pdf", "PDF", "FILE/Export/PDF", 130, false, 1);
@@ -447,6 +454,12 @@ void MainWindow::registerCommands() {
     REG_CMD("file.export.icml", "InDesign ICML", "FILE/Export/InDesign ICML", 170, false, 3);
     REG_CMD("file.export.latex", "LaTeX", "FILE/Export/LaTeX", 180, false, 3);
     REG_CMD("file.export.settings", "Export Settings...", "FILE/Export/Export Settings...", 190, true, 2);
+
+    // Export Archive (priority 195 = end of Export submenu)
+    REG_CMD_TOOL_ICON("file.export.archive", "Project Archive...", "FILE/Export/Project Archive...", 195, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      [this]() { onExportArchive(); });
 
     REG_CMD_TOOL_ICON("file.exit", "Exit", "FILE/Exit", 200, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
@@ -2854,6 +2867,113 @@ void MainWindow::onAddToProject() {
         }
     } else {
         logger.info("Add to Project: User cancelled");
+    }
+}
+
+void MainWindow::onExportArchive() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        QMessageBox::information(this, tr("No Project Open"),
+            tr("Please open a project first before exporting."));
+        return;
+    }
+
+    // Get project title for default filename
+    QString defaultName = pm.getDocument() ?
+        QString::fromStdString(pm.getDocument()->getTitle()) : "project";
+
+    QString outputPath = QFileDialog::getSaveFileName(
+        this,
+        tr("Export Project Archive"),
+        QDir::homePath() + "/" + defaultName + ".klh.zip",
+        tr("Kalahari Archive (*.klh.zip)")
+    );
+
+    if (outputPath.isEmpty()) return;
+
+    // Create progress dialog
+    QProgressDialog progress(tr("Exporting project archive..."), tr("Cancel"), 0, 100, this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(500);
+
+    bool success = pm.exportArchive(outputPath, [&progress](int percent) {
+        progress.setValue(percent);
+        QApplication::processEvents();
+    });
+
+    if (success) {
+        QMessageBox::information(this, tr("Export Complete"),
+            tr("Project exported successfully to:\n%1").arg(outputPath));
+        logger.info("Project exported to: {}", outputPath.toStdString());
+    } else {
+        QMessageBox::warning(this, tr("Export Failed"),
+            tr("Failed to export project archive."));
+        logger.error("Failed to export project archive");
+    }
+}
+
+void MainWindow::onImportArchive() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    // Select archive to import
+    QString archivePath = QFileDialog::getOpenFileName(
+        this,
+        tr("Import Project Archive"),
+        QDir::homePath(),
+        tr("Kalahari Archive (*.klh.zip)")
+    );
+
+    if (archivePath.isEmpty()) return;
+
+    // Select target directory
+    QString targetDir = QFileDialog::getExistingDirectory(
+        this,
+        tr("Select Destination Folder"),
+        QDir::homePath()
+    );
+
+    if (targetDir.isEmpty()) return;
+
+    // Check if project folder would already exist
+    QFileInfo archiveInfo(archivePath);
+    QString projectName = archiveInfo.completeBaseName();
+    if (projectName.endsWith(".klh", Qt::CaseInsensitive)) {
+        projectName.chop(4);
+    }
+    QString extractDir = targetDir + "/" + projectName;
+
+    if (QDir(extractDir).exists()) {
+        auto reply = QMessageBox::question(this, tr("Folder Exists"),
+            tr("A folder named '%1' already exists in the destination.\n"
+               "Do you want to choose a different location?").arg(projectName),
+            QMessageBox::Yes | QMessageBox::Cancel);
+        if (reply == QMessageBox::Yes) {
+            onImportArchive();  // Retry
+        }
+        return;
+    }
+
+    // Create progress dialog
+    QProgressDialog progress(tr("Importing project archive..."), tr("Cancel"), 0, 100, this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(500);
+
+    bool success = pm.importArchive(archivePath, targetDir, [&progress](int percent) {
+        progress.setValue(percent);
+        QApplication::processEvents();
+    });
+
+    if (success) {
+        QMessageBox::information(this, tr("Import Complete"),
+            tr("Project imported and opened successfully."));
+        logger.info("Project imported from: {}", archivePath.toStdString());
+    } else {
+        QMessageBox::warning(this, tr("Import Failed"),
+            tr("Failed to import project archive."));
+        logger.error("Failed to import project archive");
     }
 }
 

@@ -252,6 +252,14 @@ private slots:
     /// Shows dialog to add standalone file to current project
     void onAddToProject();
 
+    /// @brief Slot for File > Export > Project Archive... action (OpenSpec #00033 Phase H)
+    /// Exports current project as .klh.zip archive
+    void onExportArchive();
+
+    /// @brief Slot for File > Import > Project Archive... action (OpenSpec #00033 Phase H)
+    /// Imports project from .klh.zip archive
+    void onImportArchive();
+
     /// @brief Open a standalone file by path (OpenSpec #00033 Phase F)
     /// @param path Absolute path to the file
     void openStandaloneFile(const QString& path);

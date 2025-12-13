@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ProjectManager::addChapterToSection() for adding files to project (Phase F)
 - PropertiesPanel with 3 views: NoProject, Project Properties, Chapter Properties (Phase G)
 - Tab icons for editor tabs based on file type (Phase F)
+- Export/Import project archive (.klh.zip) with progress dialog (Phase H)
+- Deleted obsolete test.klh artifact
 
 - **OpenSpec #00033:** Project File System - Solution-like Architecture - 2025-12-12
   - ProjectManager class for solution-like project architecture

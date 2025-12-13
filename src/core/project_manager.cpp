@@ -15,12 +15,15 @@
 #include <QFileInfo>
 #include <QTextStream>
 #include <QDir>
+#include <QDirIterator>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDateTime>
 #include <QTimeZone>
 #include <QUuid>
+
+#include <zip.h>
 
 namespace kalahari {
 namespace core {
@@ -1010,6 +1013,181 @@ void ProjectManager::setWorkMode(WorkMode mode) {
                                     mode == WorkMode::ProjectMode ? "ProjectMode" : "StandaloneMode");
         emit workModeChanged(mode);
     }
+}
+
+void ProjectManager::collectFilesForArchive(const std::filesystem::path& dir,
+                                           std::vector<std::filesystem::path>& files,
+                                           const std::string& excludeFolder) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
+        // Skip excluded folder
+        std::string pathStr = entry.path().string();
+        if (pathStr.find("/" + excludeFolder + "/") != std::string::npos ||
+            pathStr.find("\\" + excludeFolder + "\\") != std::string::npos ||
+            entry.path().filename() == excludeFolder) {
+            continue;
+        }
+
+        if (entry.is_regular_file()) {
+            files.push_back(entry.path());
+        }
+    }
+}
+
+bool ProjectManager::exportArchive(const QString& outputPath,
+                                   std::function<void(int)> progressCallback) {
+    auto& logger = Logger::getInstance();
+
+    if (!isProjectOpen()) {
+        logger.error("exportArchive: No project open");
+        return false;
+    }
+
+    logger.info("Exporting project to: {}", outputPath.toStdString());
+
+    // Collect files to archive (excluding .kalahari folder)
+    std::vector<std::filesystem::path> files;
+    collectFilesForArchive(m_projectPath, files, ".kalahari");
+
+    if (files.empty()) {
+        logger.error("exportArchive: No files to archive");
+        return false;
+    }
+
+    // Create ZIP archive
+    int zipError = 0;
+    zip_t* archive = zip_open(outputPath.toStdString().c_str(),
+                              ZIP_CREATE | ZIP_TRUNCATE, &zipError);
+    if (!archive) {
+        logger.error("exportArchive: Failed to create ZIP file: error {}", zipError);
+        return false;
+    }
+
+    // Add each file to archive
+    for (size_t i = 0; i < files.size(); ++i) {
+        std::filesystem::path relativePath = files[i].lexically_relative(m_projectPath);
+
+        // Create zip source from file
+        zip_source_t* source = zip_source_file(archive, files[i].string().c_str(), 0, -1);
+        if (!source) {
+            logger.warn("exportArchive: Failed to create source for: {}", files[i].string());
+            continue;
+        }
+
+        // Add file to archive with UTF-8 encoding for path
+        if (zip_file_add(archive, relativePath.string().c_str(), source, ZIP_FL_ENC_UTF_8) < 0) {
+            logger.warn("exportArchive: Failed to add file: {}", relativePath.string());
+            zip_source_free(source);
+            continue;
+        }
+
+        // Report progress
+        if (progressCallback) {
+            progressCallback(static_cast<int>((i + 1) * 100 / files.size()));
+        }
+    }
+
+    // Close archive
+    if (zip_close(archive) < 0) {
+        logger.error("exportArchive: Failed to close ZIP file");
+        return false;
+    }
+
+    logger.info("exportArchive: Successfully exported {} files", files.size());
+    return true;
+}
+
+bool ProjectManager::importArchive(const QString& archivePath,
+                                   const QString& targetDir,
+                                   std::function<void(int)> progressCallback) {
+    auto& logger = Logger::getInstance();
+
+    logger.info("Importing archive: {} to {}", archivePath.toStdString(), targetDir.toStdString());
+
+    // Open ZIP archive
+    int zipError = 0;
+    zip_t* archive = zip_open(archivePath.toStdString().c_str(), ZIP_RDONLY, &zipError);
+    if (!archive) {
+        logger.error("importArchive: Failed to open ZIP file: error {}", zipError);
+        return false;
+    }
+
+    // Determine project name from archive name
+    QFileInfo archiveInfo(archivePath);
+    QString projectName = archiveInfo.completeBaseName();
+    if (projectName.endsWith(".klh", Qt::CaseInsensitive)) {
+        projectName.chop(4);
+    }
+
+    QString extractDir = targetDir + "/" + projectName;
+
+    // Check for name conflicts
+    if (QDir(extractDir).exists()) {
+        logger.error("importArchive: Target directory already exists: {}", extractDir.toStdString());
+        zip_close(archive);
+        return false;
+    }
+
+    // Create extract directory
+    QDir().mkpath(extractDir);
+
+    // Extract all entries
+    zip_int64_t numEntries = zip_get_num_entries(archive, 0);
+    for (zip_int64_t i = 0; i < numEntries; ++i) {
+        const char* name = zip_get_name(archive, i, ZIP_FL_ENC_UTF_8);
+        if (!name) continue;
+
+        QString entryPath = extractDir + "/" + QString::fromUtf8(name);
+
+        // Check if it's a directory (ends with /)
+        if (QString::fromUtf8(name).endsWith('/')) {
+            QDir().mkpath(entryPath);
+            continue;
+        }
+
+        // Ensure parent directory exists
+        QFileInfo fileInfo(entryPath);
+        QDir().mkpath(fileInfo.absolutePath());
+
+        // Open file in archive
+        zip_file_t* zf = zip_fopen_index(archive, i, 0);
+        if (!zf) {
+            logger.warn("importArchive: Failed to open entry: {}", name);
+            continue;
+        }
+
+        // Read and write file
+        QFile outFile(entryPath);
+        if (outFile.open(QIODevice::WriteOnly)) {
+            char buffer[8192];
+            zip_int64_t bytesRead;
+            while ((bytesRead = zip_fread(zf, buffer, sizeof(buffer))) > 0) {
+                outFile.write(buffer, bytesRead);
+            }
+            outFile.close();
+        } else {
+            logger.warn("importArchive: Failed to create file: {}", entryPath.toStdString());
+        }
+
+        zip_fclose(zf);
+
+        // Report progress
+        if (progressCallback) {
+            progressCallback(static_cast<int>((i + 1) * 100 / numEntries));
+        }
+    }
+
+    zip_close(archive);
+
+    // Find and open the .klh manifest
+    QDir projectDir(extractDir);
+    QStringList klhFiles = projectDir.entryList({"*.klh"}, QDir::Files);
+    if (klhFiles.isEmpty()) {
+        logger.error("importArchive: No .klh manifest found in archive");
+        return false;
+    }
+
+    logger.info("importArchive: Opening extracted project: {}", klhFiles.first().toStdString());
+    return openProject(extractDir + "/" + klhFiles.first());
 }
 
 } // namespace core

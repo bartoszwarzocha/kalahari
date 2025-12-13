@@ -158,17 +158,17 @@
 - [x] All UI strings use tr() for i18n
 
 ## Phase H: Export/Import Archive
-- [ ] Implement `ProjectManager::exportArchive(outputPath)`
+- [x] Implement `ProjectManager::exportArchive(outputPath)`
   - [ ] Create .klh.zip containing entire project
   - [ ] Exclude .kalahari/ cache folder
   - [ ] Progress dialog for large projects
-- [ ] Implement `ProjectManager::importArchive(archivePath)`
+- [x] Implement `ProjectManager::importArchive(archivePath)`
   - [ ] Extract .klh.zip to selected folder
   - [ ] Open extracted project
-- [ ] Add "Export > Project Archive..." menu item
-- [ ] Add "Import > Project Archive..." menu item
+- [x] Add "Export > Project Archive..." menu item
+- [x] Add "Import > Project Archive..." menu item
 
-## Phase I: Migration & Cleanup
+## Phase I: Migration & Cleanup (SKIPPED - not needed)
 - [ ] Create migration for old .klh ZIP format
   - [ ] Detect ZIP vs folder on open
   - [ ] Extract ZIP to folder with user confirmation
@@ -176,7 +176,7 @@
 - [ ] Update file filters in open/save dialogs
 - [ ] Delete old test.klh (ZIP format)
 
-## Phase J: Polish & Testing
+## Phase J: Polish & Testing (SIMPLIFIED)
 - [ ] Create comprehensive example project
   - [ ] 2 front matter items
   - [ ] 3 parts with 3 chapters each

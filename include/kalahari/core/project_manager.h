@@ -33,6 +33,7 @@
 #include <memory>
 #include <filesystem>
 #include <vector>
+#include <functional>
 
 namespace kalahari {
 namespace core {
@@ -277,6 +278,32 @@ public:
     /// Iterates all dirty elements and calls saveChapterContent().
     bool saveAllDirty();
 
+    // =========================================================================
+    // Archive Operations
+    // =========================================================================
+
+    /// @brief Export project to .klh.zip archive
+    /// @param outputPath Path to output .klh.zip file
+    /// @param progressCallback Optional callback for progress (0-100)
+    /// @return true if export succeeded, false otherwise
+    ///
+    /// Creates ZIP archive containing entire project folder structure.
+    /// Excludes .kalahari/ cache folder (backup, cache, recovery).
+    bool exportArchive(const QString& outputPath,
+                       std::function<void(int)> progressCallback = nullptr);
+
+    /// @brief Import project from .klh.zip archive
+    /// @param archivePath Path to .klh.zip file
+    /// @param targetDir Directory where project will be extracted
+    /// @param progressCallback Optional callback for progress (0-100)
+    /// @return true if import succeeded and project opened, false otherwise
+    ///
+    /// Extracts archive to targetDir/<archive_name>/ folder.
+    /// Automatically opens the extracted project on success.
+    bool importArchive(const QString& archivePath,
+                       const QString& targetDir,
+                       std::function<void(int)> progressCallback = nullptr);
+
     /// @brief Add a new chapter to a section
     /// @param sectionType "frontmatter", "body", or "backmatter"
     /// @param partId Part ID (only used if sectionType is "body")
@@ -329,6 +356,14 @@ private:
     /// @brief Set work mode and emit signal
     /// @param mode New work mode
     void setWorkMode(WorkMode mode);
+
+    /// @brief Collect files recursively for archive export
+    /// @param dir Directory to scan
+    /// @param files Output vector of file paths
+    /// @param excludeFolder Folder name to exclude (e.g., ".kalahari")
+    void collectFilesForArchive(const std::filesystem::path& dir,
+                               std::vector<std::filesystem::path>& files,
+                               const std::string& excludeFolder);
 
     // =========================================================================
     // Member Variables
