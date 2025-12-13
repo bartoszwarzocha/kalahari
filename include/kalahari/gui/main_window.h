@@ -12,6 +12,7 @@
 #include <QMenu>
 #include <QToolBar>
 #include <QTabWidget>
+#include <QMap>
 #include <optional>
 #include <filesystem>
 #include "kalahari/core/document.h"
@@ -233,6 +234,10 @@ private slots:
     /// @brief Slot for project closed (OpenSpec #00033 Phase D)
     void onProjectClosed();
 
+    /// @brief Slot for Save All action (OpenSpec #00033 Phase E)
+    /// Saves all dirty chapters to their respective files.
+    void onSaveAll();
+
     /// @brief Slot for settings apply requested from SettingsDialog
     /// @param settings Settings data to apply
     /// @param fromOkButton true if triggered by OK (dialog closed), false if Apply
@@ -325,6 +330,10 @@ private:
     std::optional<core::Document> m_currentDocument;  ///< Current loaded document
     std::filesystem::path m_currentFilePath;          ///< Current .klh file path
     bool m_isDirty;                                   ///< Unsaved changes flag
+
+    // Chapter editing (OpenSpec #00033 Phase E)
+    QMap<QString, bool> m_dirtyChapters;  ///< Tracks dirty state per elementId
+    QString m_currentElementId;           ///< Currently active element in editor
 
     /// @brief Mark document as modified (add "*" to title)
     void setDirty(bool dirty);

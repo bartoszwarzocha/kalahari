@@ -10,14 +10,14 @@
 #include <QWidget>
 #include <QString>
 
-class QPlainTextEdit;
+class QTextEdit;
 
 namespace kalahari {
 namespace gui {
 
 /// @brief Editor panel with settings integration
 ///
-/// Displays QPlainTextEdit for text editing with:
+/// Displays QTextEdit for text editing with:
 /// - Font settings (family, size)
 /// - Tab size configuration
 /// - Word wrap mode
@@ -47,12 +47,26 @@ public:
     /// Used by Document save operations (Task #00008)
     QString getText() const;
 
-    /// @brief Get underlying QPlainTextEdit widget (for signal connections)
+    /// @brief Set editor content (OpenSpec #00033 Phase E)
+    /// @param content Text content to display
+    ///
+    /// Sets editor content using plain text mode.
+    /// RTF conversion will be added in later phase.
+    void setContent(const QString& content);
+
+    /// @brief Get editor content (OpenSpec #00033 Phase E)
+    /// @return Current editor content as plain text
+    ///
+    /// Returns editor content using plain text mode.
+    /// RTF conversion will be added in later phase.
+    QString getContent() const;
+
+    /// @brief Get underlying QTextEdit widget (for signal connections)
     /// @return Pointer to text edit widget
     ///
     /// WARNING: Use only for signal connections, not for direct manipulation.
-    /// Use setText()/getText() for content access. (Task #00008)
-    QPlainTextEdit* getTextEdit() { return m_textEdit; }
+    /// Use setText()/getText() or setContent()/getContent() for content access.
+    QTextEdit* getTextEdit() { return m_textEdit; }
 
 private:
     /// @brief Apply settings from SettingsManager
@@ -67,7 +81,7 @@ private:
     /// Called on construction and when settings change.
     void applySettings();
 
-    QPlainTextEdit* m_textEdit;
+    QTextEdit* m_textEdit;
 };
 
 } // namespace gui

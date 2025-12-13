@@ -40,7 +40,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QDir>
-#include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QToolButton>
@@ -82,6 +82,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
     , m_isDirty(false)
+    , m_currentElementId()
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -815,7 +816,7 @@ void MainWindow::onNewDocument() {
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
             this, [this]() {
                 if (!m_currentDocument.has_value()) return;
                 setDirty(true);
@@ -967,7 +968,7 @@ void MainWindow::onOpenRecentFile(const QString& filePath) {
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
+    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
             this, [this]() {
                 if (!m_currentDocument.has_value()) return;
                 setDirty(true);
@@ -1099,6 +1100,68 @@ void MainWindow::onSaveAsDocument() {
     setDirty(false);
     logger.info("Document saved as: {}", filepath.string());
     statusBar()->showMessage(tr("Document saved as: %1").arg(filename), 2000);
+}
+
+void MainWindow::onSaveAll() {
+    // OpenSpec #00033 Phase E: Save all dirty chapters
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Save All");
+
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        logger.debug("No project open - Save All does nothing");
+        statusBar()->showMessage(tr("No project open"), 2000);
+        return;
+    }
+
+    // First, update content cache for all dirty chapters from open tabs
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (!editor) continue;
+
+        QString elemId = editor->property("elementId").toString();
+        if (elemId.isEmpty()) continue;
+
+        if (m_dirtyChapters.value(elemId, false)) {
+            core::BookElement* element = pm.findElement(elemId);
+            if (element) {
+                element->setContent(editor->getContent());
+                logger.debug("Updated content cache for: {}", elemId.toStdString());
+            }
+        }
+    }
+
+    // Save all dirty elements via ProjectManager
+    bool success = pm.saveAllDirty();
+
+    if (success) {
+        // Clear dirty flags and update tab titles
+        for (int i = 0; i < m_centralTabs->count(); ++i) {
+            EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+            if (!editor) continue;
+
+            QString elemId = editor->property("elementId").toString();
+            if (!elemId.isEmpty() && m_dirtyChapters.value(elemId, false)) {
+                // Clear dirty flag
+                m_dirtyChapters[elemId] = false;
+
+                // Remove asterisk from tab title
+                QString tabText = m_centralTabs->tabText(i);
+                if (tabText.startsWith("*")) {
+                    m_centralTabs->setTabText(i, tabText.mid(1));
+                }
+            }
+        }
+
+        pm.setDirty(false);
+        logger.info("All chapters saved successfully");
+        statusBar()->showMessage(tr("All changes saved"), 2000);
+    } else {
+        logger.error("Failed to save some chapters");
+        statusBar()->showMessage(tr("Error saving some chapters"), 3000);
+        QMessageBox::warning(this, tr("Save Warning"),
+            tr("Some chapters could not be saved. Check the log for details."));
+    }
 }
 
 void MainWindow::onExit() {
@@ -1700,13 +1763,17 @@ void MainWindow::onProjectClosed() {
     // Reset window title
     setWindowTitle("Kalahari");
 
+    // Phase E: Clear chapter editing state
+    m_dirtyChapters.clear();
+    m_currentElementId.clear();
+
     // Log and status bar
     logger.info("Project closed");
     statusBar()->showMessage(tr("Book closed"), 2000);
 }
 
 void MainWindow::onNavigatorElementSelected(const QString& elementId, const QString& elementTitle) {
-    // Task #00015, OpenSpec #00033 Phase D: Handle Navigator element selection
+    // Task #00015, OpenSpec #00033 Phase D+E: Handle Navigator element selection
     auto& logger = core::Logger::getInstance();
     logger.info("Navigator element selected: {} (id={})",
                 elementTitle.toStdString(), elementId.toStdString());
@@ -1717,6 +1784,19 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
         logger.debug("No project loaded - ignoring Navigator selection");
         statusBar()->showMessage(tr("No project loaded"), 2000);
         return;
+    }
+
+    // Phase E: Save current chapter if dirty before switching
+    if (!m_currentElementId.isEmpty() && m_dirtyChapters.value(m_currentElementId, false)) {
+        EditorPanel* currentEditor = getCurrentEditor();
+        if (currentEditor) {
+            // Update element content cache
+            core::BookElement* element = pm.findElement(m_currentElementId);
+            if (element) {
+                element->setContent(currentEditor->getContent());
+                logger.debug("Cached content for element: {}", m_currentElementId.toStdString());
+            }
+        }
     }
 
     // Load chapter content from file via ProjectManager
@@ -1734,20 +1814,32 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
 
     // Store element ID for save operations
     newEditor->setProperty("elementId", elementId);
+    m_currentElementId = elementId;
 
-    // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QPlainTextEdit::textChanged,
-            this, [this, elementId]() {
+    // Phase E: Connect textChanged signal for per-chapter dirty tracking
+    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+            this, [this, elementId, elementTitle, newEditor]() {
                 auto& pm = core::ProjectManager::getInstance();
                 if (pm.isProjectOpen()) {
-                    pm.setDirty(true);
+                    // Mark chapter as dirty
+                    if (!m_dirtyChapters.value(elementId, false)) {
+                        m_dirtyChapters[elementId] = true;
+                        pm.setDirty(true);
+
+                        // Update tab title with asterisk
+                        int currentIdx = m_centralTabs->indexOf(newEditor);
+                        if (currentIdx >= 0) {
+                            QString tabText = m_centralTabs->tabText(currentIdx);
+                            if (!tabText.startsWith("*")) {
+                                m_centralTabs->setTabText(currentIdx, "*" + tabText);
+                            }
+                        }
+                    }
                 }
             });
 
-    // Set content
-    if (!content.isEmpty()) {
-        newEditor->getTextEdit()->setPlainText(content);
-    }
+    // Set content using new setContent method (Phase E)
+    newEditor->setContent(content);
 
     logger.info("Opened chapter: {} ({})", elementTitle.toStdString(), elementId.toStdString());
     statusBar()->showMessage(tr("Opened: %1").arg(elementTitle), 2000);

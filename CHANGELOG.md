@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- EditorPanel upgraded from QPlainTextEdit to QTextEdit (Phase E)
+- Added per-chapter dirty tracking with asterisk indicator in tab title
+- Added Save All functionality for dirty chapters
+
 ### Added
 
 - **OpenSpec #00033:** Project File System - Solution-like Architecture - 2025-12-12

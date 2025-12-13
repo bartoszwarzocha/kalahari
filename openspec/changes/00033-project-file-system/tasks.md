@@ -66,28 +66,42 @@
 - [ ] Update "File > Open > Project..." to use new loader
 - [ ] Handle double-click on .klh file (command line argument)
 
-## Phase E: Chapter Editing
+## Phase E: Chapter Editing - IN PROGRESS
 
 > **Architecture Decision (ADR-005):** Use QTextEdit as interim editor.
 > ProjectManager handles RTF I/O, EditorPanel uses QTextEdit for display.
 > This does NOT conflict with future custom editor - file format and editor
 > format are separate concerns. See `project_docs/15_text_editor_architecture.md`.
 
-- [ ] Upgrade EditorPanel from QPlainTextEdit to QTextEdit
-- [ ] Implement RTF ↔ HTML conversion in ProjectManager
+- [x] Upgrade EditorPanel from QPlainTextEdit to QTextEdit
+  - [x] Changed header from QPlainTextEdit to QTextEdit
+  - [x] Updated implementation with QTextEdit
+  - [x] Added setContent()/getContent() methods (plain text for MVP)
+  - [x] Fixed word wrap mode enum (QTextEdit::WidgetWidth/NoWrap)
+- [ ] Implement RTF ↔ HTML conversion in ProjectManager (future phase)
   - [ ] `loadChapterContent()` returns HTML for QTextEdit
   - [ ] `saveChapterContent()` converts HTML back to RTF
-- [ ] Implement RTF file loading
-  - [ ] `ProjectManager::loadChapterContent(chapterId)`
-  - [ ] Lazy loading (load on demand)
-  - [ ] Track loaded/unloaded state
-- [ ] Implement RTF file saving
-  - [ ] `ProjectManager::saveChapter(chapterId)`
-  - [ ] Save only changed files (incremental)
-  - [ ] Update word count in manifest
-- [ ] Connect Navigator double-click to chapter opening
-- [ ] Connect Editor changes to dirty state tracking
-- [ ] Implement "Save All" command
+- [x] Implement chapter loading integration
+  - [x] `ProjectManager::loadChapterContent()` already implemented in Phase B
+  - [x] Lazy loading (load on demand) via Navigator click
+  - [x] Track loaded/unloaded state in BookElement
+- [x] Implement chapter saving integration
+  - [x] `ProjectManager::saveChapterContent()` already implemented in Phase B
+  - [x] Save only changed files (incremental) via m_dirtyChapters tracking
+  - [ ] Update word count in manifest (future)
+- [x] Connect Navigator double-click to chapter opening
+  - [x] Save current chapter content cache before switching
+  - [x] Load new chapter via ProjectManager
+  - [x] Track m_currentElementId for save operations
+- [x] Connect Editor changes to dirty state tracking
+  - [x] Added m_dirtyChapters QMap<QString, bool> per elementId
+  - [x] Connect QTextEdit::textChanged to update dirty state
+  - [x] Update tab title with asterisk (*) when dirty
+- [x] Implement "Save All" command
+  - [x] Added onSaveAll() slot in MainWindow
+  - [x] Iterates all open tabs, updates content cache
+  - [x] Calls ProjectManager::saveAllDirty()
+  - [x] Clears dirty flags and removes asterisks from tabs
 
 ## Phase F: Standalone Mode
 - [ ] Implement `MainWindow::openStandaloneFile(path)`
@@ -158,8 +172,8 @@
 
 ## Status Summary
 
-**Current Phase:** D (Project Loading) - NavigatorPanel DONE
-**Next Phase:** D continued (ProjectManager::openProject() integration)
+**Current Phase:** E (Chapter Editing) - Core implementation DONE
+**Next Phase:** RTF conversion (future) or Phase F (Standalone Mode)
 
 **Architecture Decision:** Solution-like folder structure
 - `.klh` = JSON manifest file (like .sln)

@@ -4,7 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
-#include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QVBoxLayout>
 #include <QFontMetrics>
 
@@ -22,8 +22,8 @@ EditorPanel::EditorPanel(QWidget* parent)
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Create text edit widget
-    m_textEdit = new QPlainTextEdit(this);
+    // Create text edit widget (QTextEdit for future RTF support)
+    m_textEdit = new QTextEdit(this);
     layout->addWidget(m_textEdit);
 
     setLayout(layout);
@@ -41,6 +41,23 @@ void EditorPanel::setText(const QString& text) {
 }
 
 QString EditorPanel::getText() const {
+    if (m_textEdit) {
+        return m_textEdit->toPlainText();
+    }
+    return QString();
+}
+
+void EditorPanel::setContent(const QString& content) {
+    // OpenSpec #00033 Phase E: Use plain text for MVP
+    // RTF conversion will be added in later phase (ADR-005)
+    if (m_textEdit) {
+        m_textEdit->setPlainText(content);
+    }
+}
+
+QString EditorPanel::getContent() const {
+    // OpenSpec #00033 Phase E: Use plain text for MVP
+    // RTF conversion will be added in later phase (ADR-005)
     if (m_textEdit) {
         return m_textEdit->toPlainText();
     }
@@ -65,9 +82,9 @@ void EditorPanel::applySettings() {
     m_textEdit->setTabStopDistance(tabWidth);
     logger.debug("Applied tab size: {} spaces ({} px)", tabSize, tabWidth);
 
-    // Word wrap
+    // Word wrap (QTextEdit uses different enum than QPlainTextEdit)
     bool wordWrap = settings.get<bool>("editor.wordWrap", false);
-    m_textEdit->setLineWrapMode(wordWrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+    m_textEdit->setLineWrapMode(wordWrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
     logger.debug("Applied word wrap: {}", wordWrap);
 
     // Line numbers (feature not implemented yet - placeholder)
