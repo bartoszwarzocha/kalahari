@@ -165,3 +165,6 @@ docs/api/       # Doxygen output
 Schowek_*.jpg
 Schowek_*.png
 /Claude Code Agents Strategy.docx
+
+# Test projects (for development testing, not committed)
+examples/TestBook/

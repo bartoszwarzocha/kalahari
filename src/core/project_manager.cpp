@@ -12,6 +12,7 @@
 #include <kalahari/core/logger.h>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QDir>
 #include <QJsonDocument>
@@ -800,6 +801,114 @@ bool ProjectManager::saveAllDirty() {
     }
 
     return allSaved;
+}
+
+QString ProjectManager::addChapterToSection(const QString& sectionType,
+                                           const QString& partId,
+                                           const QString& title,
+                                           const QString& sourceFilePath,
+                                           bool copyFile) {
+    auto& logger = Logger::getInstance();
+
+    if (!isProjectOpen() || !m_document) {
+        logger.error("addChapterToSection: No project open");
+        return QString();
+    }
+
+    Book& book = m_document->getBook();
+
+    // Generate unique element ID
+    QString elementId = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
+
+    // Determine target directory and file path
+    QString targetDir;
+    if (sectionType == "frontmatter") {
+        targetDir = getFrontmatterPath();
+    } else if (sectionType == "body") {
+        targetDir = getBodyPath() + "/" + partId;
+    } else if (sectionType == "backmatter") {
+        targetDir = getBackmatterPath();
+    } else {
+        logger.error("addChapterToSection: Invalid section type: {}", sectionType.toStdString());
+        return QString();
+    }
+
+    // Create target directory if needed
+    QDir().mkpath(targetDir);
+
+    // Determine target filename (use element ID + original extension or .rtf)
+    QFileInfo sourceInfo(sourceFilePath);
+    QString extension = sourceInfo.suffix().isEmpty() ? "rtf" : sourceInfo.suffix();
+    QString targetFileName = elementId + "." + extension;
+    QString targetFilePath = targetDir + "/" + targetFileName;
+
+    // Copy or move file
+    QFile sourceFile(sourceFilePath);
+    bool fileOk = false;
+    if (copyFile) {
+        fileOk = sourceFile.copy(targetFilePath);
+    } else {
+        fileOk = sourceFile.rename(targetFilePath);
+    }
+
+    if (!fileOk) {
+        logger.error("addChapterToSection: Failed to {} file from {} to {}",
+                    copyFile ? "copy" : "move",
+                    sourceFilePath.toStdString(),
+                    targetFilePath.toStdString());
+        return QString();
+    }
+
+    // Determine element type based on section
+    std::string elementType;
+    if (sectionType == "frontmatter") {
+        elementType = TYPE_PREFACE;  // Default for front matter
+    } else if (sectionType == "body") {
+        elementType = TYPE_CHAPTER;
+    } else {
+        elementType = TYPE_EPILOGUE;  // Default for back matter
+    }
+
+    // Create relative path from project root
+    QString relativePath = QDir(QString::fromStdString(m_projectPath.string())).relativeFilePath(targetFilePath);
+
+    // Create new BookElement
+    auto element = std::make_shared<BookElement>(
+        elementType,
+        elementId.toStdString(),
+        title.toStdString(),
+        std::filesystem::path(relativePath.toStdWString())
+    );
+
+    // Add to book structure
+    if (sectionType == "frontmatter") {
+        book.addFrontMatter(element);
+    } else if (sectionType == "body") {
+        Part* part = findPart(partId);
+        if (part) {
+            part->addChapter(element);
+        } else {
+            logger.error("addChapterToSection: Part not found: {}", partId.toStdString());
+            // Cleanup copied file
+            QFile::remove(targetFilePath);
+            return QString();
+        }
+    } else if (sectionType == "backmatter") {
+        book.addBackMatter(element);
+    }
+
+    // Save manifest
+    saveManifest();
+    setDirty(false);
+
+    logger.info("addChapterToSection: Added '{}' to {} (part: {}, id: {})",
+               title.toStdString(), sectionType.toStdString(),
+               partId.toStdString(), elementId.toStdString());
+
+    // Emit signal to refresh UI
+    emit projectOpened(QString::fromStdWString(m_projectPath.wstring()));
+
+    return elementId;
 }
 
 // =============================================================================

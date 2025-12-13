@@ -4,6 +4,7 @@
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
+#include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
@@ -956,7 +957,19 @@ void MainWindow::onOpenRecentFile(const QString& filePath) {
         }
     }
 
-    // Load document
+    // Check if file is a .klh manifest - try ProjectManager first
+    if (filePath.endsWith(".klh", Qt::CaseInsensitive)) {
+        auto& pm = core::ProjectManager::getInstance();
+        if (pm.openProject(filePath)) {
+            // Successfully opened as project
+            logger.info("Opened .klh file as project: {}", filePath.toStdString());
+            return;
+        }
+        // If failed, fall through to try old archive format
+        logger.debug("Failed to open .klh as project, trying old archive format");
+    }
+
+    // Load document (old archive format)
     std::filesystem::path filepath = filePath.toStdString();
     auto loaded = core::DocumentArchive::load(filepath);
 
@@ -1394,7 +1407,14 @@ void MainWindow::createDocks() {
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
 
-    // OpenSpec #00033 Phase F: Create standalone info bar (hidden by default)
+    // Create central tabbed workspace (Task #00015)
+    m_centralTabs = new QTabWidget(m_centralWrapper);
+    m_centralTabs->setTabsClosable(true);       // All tabs can be closed
+    m_centralTabs->setMovable(true);            // Tabs can be reordered
+    m_centralTabs->setDocumentMode(true);       // Better look on macOS/Windows
+    centralLayout->addWidget(m_centralTabs, 1); // Stretch factor 1 to fill space
+
+    // OpenSpec #00033 Phase F: Create standalone info bar at BOTTOM (hidden by default)
     m_standaloneInfoBar = new StandaloneInfoBar(m_centralWrapper);
     m_standaloneInfoBar->hide();
     centralLayout->addWidget(m_standaloneInfoBar);
@@ -1404,13 +1424,6 @@ void MainWindow::createDocks() {
             this, &MainWindow::onAddToProject);
     connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed,
             m_standaloneInfoBar, &QWidget::hide);
-
-    // Create central tabbed workspace (Task #00015)
-    m_centralTabs = new QTabWidget(m_centralWrapper);
-    m_centralTabs->setTabsClosable(true);       // All tabs can be closed
-    m_centralTabs->setMovable(true);            // Tabs can be reordered
-    m_centralTabs->setDocumentMode(true);       // Better look on macOS/Windows
-    centralLayout->addWidget(m_centralTabs, 1); // Stretch factor 1 to fill space
 
     setCentralWidget(m_centralWrapper);
 
@@ -1838,9 +1851,10 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
         // Still create tab but with empty content
     }
 
-    // Create new editor tab
+    // Create new editor tab with chapter icon
     EditorPanel* newEditor = new EditorPanel(this);
-    int tabIndex = m_centralTabs->addTab(newEditor, elementTitle);
+    QIcon chapterIcon = core::ArtProvider::getInstance().getIcon("template.chapter");
+    int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store element ID for save operations
@@ -1871,6 +1885,9 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
 
     // Set content using new setContent method (Phase E)
     newEditor->setContent(content);
+
+    // Update PropertiesPanel to show chapter properties
+    m_propertiesPanel->showChapterProperties(elementId);
 
     logger.info("Opened chapter: {} ({})", elementTitle.toStdString(), elementId.toStdString());
     statusBar()->showMessage(tr("Opened: %1").arg(elementTitle), 2000);
@@ -2710,10 +2727,22 @@ void MainWindow::openStandaloneFile(const QString& path) {
     QString content = QString::fromUtf8(file.readAll());
     file.close();
 
-    // Create new editor tab
+    // Create new editor tab with icon based on file extension
     EditorPanel* newEditor = new EditorPanel(this);
     QString tabTitle = fileInfo.fileName();
-    int tabIndex = m_centralTabs->addTab(newEditor, tabTitle);
+    QString suffix = fileInfo.suffix().toLower();
+    QString iconId;
+    if (suffix == "rtf") {
+        iconId = "template.chapter";
+    } else if (suffix == "kmap") {
+        iconId = "book.newMindMap";
+    } else if (suffix == "ktl") {
+        iconId = "book.newTimeline";
+    } else {
+        iconId = "common.file";
+    }
+    QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
+    int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store file path for this tab
@@ -2731,12 +2760,14 @@ void MainWindow::openStandaloneFile(const QString& path) {
     // Add to Navigator "Other Files" section
     m_navigatorPanel->addStandaloneFile(path);
 
-    // Show info bar if not in project mode
-    auto& pm = core::ProjectManager::getInstance();
-    if (!pm.isProjectOpen()) {
-        m_standaloneInfoBar->setFilePath(path);
-        m_standaloneInfoBar->show();
+    // Show info bar for standalone files with context-aware message
+    m_standaloneInfoBar->setFilePath(path);
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        m_standaloneInfoBar->setMessage(tr("This file is not part of the current project."));
+    } else {
+        m_standaloneInfoBar->setMessage(tr("This file is not part of a project. Limited features available."));
     }
+    m_standaloneInfoBar->show();
 
     // Connect textChanged signal for dirty tracking
     connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
@@ -2780,16 +2811,50 @@ void MainWindow::onAddToProject() {
         return;
     }
 
-    // TODO Phase F+: Show AddToProjectDialog for copy/move options
-    // For now, show a message that this feature is coming
-    QMessageBox::information(
-        this,
-        tr("Coming Soon"),
-        tr("The 'Add to Project' feature will be available in a future update.\n\n"
-           "It will allow you to copy or move standalone files into your book project.")
-    );
+    // Show AddToProjectDialog for copy/move options
+    dialogs::AddToProjectDialog dialog(filePath, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        auto result = dialog.result();
 
-    logger.info("Add to Project: Feature not yet implemented");
+        // Add file to project using ProjectManager
+        QString elementId = pm.addChapterToSection(
+            result.targetSection,
+            result.targetPart,
+            result.newTitle,
+            filePath,
+            result.copyFile
+        );
+
+        if (!elementId.isEmpty()) {
+            // Success - hide info bar and remove from standalone files
+            m_standaloneInfoBar->hide();
+            m_navigatorPanel->removeStandaloneFile(filePath);
+
+            // Remove standalone file tab if exists
+            for (int i = 0; i < m_centralTabs->count(); ++i) {
+                EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+                if (editor && editor->property("standaloneFilePath").toString() == filePath) {
+                    m_centralTabs->removeTab(i);
+                    editor->deleteLater();
+                    break;
+                }
+            }
+
+            // Remove from standalone files list
+            m_standaloneFilePaths.removeAll(filePath);
+
+            statusBar()->showMessage(
+                tr("File added to project: %1").arg(result.newTitle), 3000);
+            logger.info("Add to Project: Successfully added {} as {}",
+                       filePath.toStdString(), elementId.toStdString());
+        } else {
+            QMessageBox::warning(this, tr("Error"),
+                tr("Failed to add file to project. Check logs for details."));
+            logger.error("Add to Project: Failed to add file");
+        }
+    } else {
+        logger.info("Add to Project: User cancelled");
+    }
 }
 
 } // namespace gui

@@ -149,7 +149,7 @@
 
 **Philosophy:** Solution-like folder structure with .klh JSON manifest.
 
-**Current State:** Phase D complete - Project loading works
+**Current State:** Phase G complete (70%) - PropertiesPanel implemented
 
 **Architecture Decision (ADR-005):** Interim RTF editing uses QTextEdit.
 - ProjectManager handles RTF file I/O (separation of concerns)
@@ -161,10 +161,19 @@
 - [x] Phase B: Core Infrastructure (ProjectManager, BookElement)
 - [x] Phase C: NewItemDialog
 - [x] Phase D: Project Loading
+- [x] Phase E: Chapter Editing (QTextEdit, dirty tracking, Save All)
+- [x] Phase F: Standalone Mode (StandaloneInfoBar, AddToProject, Other Files)
+- [x] Phase G: PropertiesPanel (project/chapter properties, contextual views)
 
 **Pending:**
-- [ ] Phase E: Chapter Editing
-- [ ] Phase F-J: Remaining phases
+- [ ] Phase H: Export/Import Archive (.klh.zip)
+- [ ] Phase I: Migration & Cleanup (old ZIP format)
+- [ ] Phase J: Testing & Documentation
+
+**Dependencies for full functionality:**
+- Word count (chapters): Requires Custom Text Editor (1.5)
+- Statistics aggregation: Requires Statistics Module (1.7)
+- Chapter status field: Add to BookElement class
 
 ### 1.3 Perspective System
 

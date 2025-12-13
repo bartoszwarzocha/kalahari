@@ -277,6 +277,22 @@ public:
     /// Iterates all dirty elements and calls saveChapterContent().
     bool saveAllDirty();
 
+    /// @brief Add a new chapter to a section
+    /// @param sectionType "frontmatter", "body", or "backmatter"
+    /// @param partId Part ID (only used if sectionType is "body")
+    /// @param title Chapter title
+    /// @param sourceFilePath Source file to copy/move
+    /// @param copyFile true to copy, false to move
+    /// @return Element ID if successful, empty string if failed
+    ///
+    /// Copies/moves the source file to the appropriate project folder,
+    /// creates a BookElement, adds it to the book structure, and saves manifest.
+    QString addChapterToSection(const QString& sectionType,
+                               const QString& partId,
+                               const QString& title,
+                               const QString& sourceFilePath,
+                               bool copyFile = true);
+
 signals:
     /// @brief Emitted when a project is successfully opened
     /// @param projectPath Absolute path to the project folder

@@ -127,13 +127,35 @@
   - [ ] Update manifest and refresh Navigator (post-MVP)
 - [x] Handle file associations (.rtf, .kmap, .ktl) - icons mapped in Navigator
 
-## Phase G: Project Properties
-- [ ] Create `ProjectPropertiesDialog` (QDialog)
-  - [ ] Title, Author, Language, Genre inputs
-  - [ ] Statistics display (word count, chapters)
-  - [ ] Created/Modified dates (read-only)
-- [ ] Connect to "File > Project Properties..." menu
-- [ ] Save changes to manifest on OK
+## Phase G: Properties Panel ✅
+- [x] Implement contextual `PropertiesPanel` (QStackedWidget)
+  - [x] Three views: NoProject, Project, Chapter
+  - [x] QStackedWidget with page switching
+  - [x] QScrollArea for responsive content
+- [x] Project Properties view
+  - [x] Title (editable QLineEdit)
+  - [x] Author (editable QLineEdit)
+  - [x] Language (QComboBox with 10 languages)
+  - [x] Genre (editable QLineEdit)
+  - [x] Statistics section (QGroupBox):
+    - [x] Total Chapters (read-only)
+    - [x] Total Words (read-only)
+    - [x] Created date (read-only)
+    - [x] Modified date (read-only)
+- [x] Chapter Properties view
+  - [x] Title (editable QLineEdit)
+  - [x] Word Count (read-only QLabel)
+  - [x] Status (QComboBox: Draft, In Progress, Complete, Final)
+  - [x] Notes (QTextEdit with min/max height)
+- [x] No Project view
+  - [x] Placeholder message "Open a project to see properties"
+- [x] Connect to ProjectManager signals
+  - [x] projectOpened -> showProjectProperties()
+  - [x] projectClosed -> showNoProject()
+- [x] Auto-save changes on edit (no Save button needed)
+- [x] m_isUpdating flag to prevent recursive updates
+- [x] formatDate() helper for time_point display
+- [x] All UI strings use tr() for i18n
 
 ## Phase H: Export/Import Archive
 - [ ] Implement `ProjectManager::exportArchive(outputPath)`
@@ -182,8 +204,8 @@
 
 ## Status Summary
 
-**Current Phase:** E (Chapter Editing) - Core implementation DONE
-**Next Phase:** RTF conversion (future) or Phase F (Standalone Mode)
+**Current Phase:** G (Properties Panel) - COMPLETE
+**Next Phase:** Phase H (Export/Import Archive) or integration with Navigator
 
 **Architecture Decision:** Solution-like folder structure
 - `.klh` = JSON manifest file (like .sln)
