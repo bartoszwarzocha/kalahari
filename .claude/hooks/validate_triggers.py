@@ -88,6 +88,45 @@ def is_workflow_command(prompt: str) -> bool:
     return prompt_stripped.startswith("/workflow")
 
 
+# Auto-action patterns - detect user confirmations that should trigger automatic actions
+AUTO_ACTION_PATTERNS = {
+    "auto_commit": [
+        r"test\s+manualny\s+OK",
+        r"testy\s+OK",
+        r"manual\s+test\s+OK",
+        r"tests?\s+pass(ed)?",
+        r"działa",
+        r"works",
+        r"LGTM",
+        r"zatwierdzone",
+        r"zatwierdzam",
+        r"approved",
+        r"wygląda\s+dobrze",
+        r"looks\s+good",
+    ],
+    "auto_save_session": [
+        r"koniec\s+sesji",
+        r"end\s+session",
+        r"zapisz\s+i\s+zakończ",
+        r"save\s+and\s+quit",
+    ],
+}
+
+
+def detect_auto_actions(prompt: str) -> list:
+    """Detect patterns that trigger automatic actions without asking."""
+    detected = []
+    prompt_lower = prompt.lower()
+
+    for action, patterns in AUTO_ACTION_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, prompt_lower, re.IGNORECASE):
+                detected.append(action)
+                break  # One match per action is enough
+
+    return detected
+
+
 def main():
     # Read hook input from stdin
     try:
@@ -114,13 +153,33 @@ def main():
     # Find triggers
     found = find_triggers(prompt, triggers)
 
-    if found:
-        # Build context message
-        lines = ["[AGENT DISPATCH REQUIRED]"]
-        for trigger, agent in found:
-            lines.append(f"  Trigger: '{trigger}' -> Agent: {agent}")
-        lines.append("")
-        lines.append("Use Task tool with subagent_type parameter. Do NOT perform agent work yourself!")
+    # Check for auto-action patterns
+    auto_actions = detect_auto_actions(prompt)
+
+    if auto_actions or found:
+        lines = []
+
+        # Auto-actions take priority
+        if auto_actions:
+            lines.append("[AUTO-ACTION DETECTED]")
+            if "auto_commit" in auto_actions:
+                lines.append("User confirmed tests/changes. AUTO-COMMIT without asking:")
+                lines.append("1. Run: git status")
+                lines.append("2. Run: git add -A (or relevant files)")
+                lines.append("3. Run: git commit with appropriate message")
+                lines.append("4. Do NOT ask for permission - user already confirmed!")
+                lines.append("")
+            if "auto_save_session" in auto_actions:
+                lines.append("User requested session end. Run /save-session automatically.")
+                lines.append("")
+
+        # Agent dispatch
+        if found:
+            lines.append("[AGENT DISPATCH REQUIRED]")
+            for trigger, agent in found:
+                lines.append(f"  Trigger: '{trigger}' -> Agent: {agent}")
+            lines.append("")
+            lines.append("Use Task tool with subagent_type parameter. Do NOT perform agent work yourself!")
 
         context = "\n".join(lines)
 

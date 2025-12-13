@@ -2,62 +2,128 @@
   "workflow": {
     "name": "kalahari-standard",
     "version": "1.0",
-
     "protocol": {
       "status_block_marker": "[WORKFLOW_STATUS]",
-      "valid_statuses": ["READY", "BLOCKED", "FAILED", "DECISION_NEEDED"],
-
+      "valid_statuses": [
+        "READY",
+        "BLOCKED",
+        "FAILED",
+        "DECISION_NEEDED"
+      ],
       "fallback_patterns": {
         "READY": "READY|DONE|COMPLETE|PASS|APPROVE|SUCCESS|CREATED|DEPLOYED",
         "BLOCKED": "BLOCKED|CHANGES|REJECT|NEED|REQUEST_CHANGES|ISSUES|MISSING",
         "FAILED": "FAIL|ERROR|ABORT|CRITICAL|CANNOT|FATAL"
       },
-      "pattern_priority": ["FAILED", "BLOCKED", "READY"],
+      "pattern_priority": [
+        "FAILED",
+        "BLOCKED",
+        "READY"
+      ],
       "fallback_search_lines": 10,
       "on_unknown_status": "ask_user"
     },
-
     "limits": {
       "max_workflow_iterations": 20,
       "max_retries_per_rule": 3,
       "agent_timeout_seconds": 300
     },
-
     "prompt_injection": {
       "enabled": true,
       "template": "STATUS_PROTOCOL_V1"
     },
-
     "triggers": {
       "task-manager": [
-        "session", "nowe zadanie", "new task", "kontynuuj task", "continue task",
-        "wznów", "co dalej", "status taska", "zamknij task", "status",
-        "gdzie jesteśmy", "task gotowy"
+        "session",
+        "nowe zadanie",
+        "new task",
+        "kontynuuj task",
+        "continue task",
+        "wznów",
+        "co dalej",
+        "status taska",
+        "zamknij task",
+        "status",
+        "gdzie jesteśmy",
+        "task gotowy"
       ],
       "architect": [
-        "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "design"
+        "zaprojektuj",
+        "przeanalizuj",
+        "jak to zrobić",
+        "gdzie to dodać",
+        "design"
       ],
       "code-writer": [
-        "napisz", "utwórz klasę", "dodaj nową funkcję", "nowy plik", "create", "new class"
+        "napisz",
+        "utwórz klasę",
+        "dodaj nową funkcję",
+        "nowy plik",
+        "create",
+        "new class"
       ],
       "code-editor": [
-        "zmień", "popraw", "napraw", "refaktoruj", "refaktoryzuj", "fix", "modify", "change", "refactor"
+        "zmień",
+        "popraw",
+        "napraw",
+        "refaktoruj",
+        "refaktoryzuj",
+        "fix",
+        "modify",
+        "change",
+        "refactor"
       ],
       "ui-designer": [
-        "dialog", "panel", "toolbar", "UI", "widget", "layout", "window", "przygotuj", "GUI"
+        "dialog",
+        "panel",
+        "toolbar",
+        "UI",
+        "widget",
+        "layout",
+        "window",
+        "przygotuj",
+        "GUI"
       ],
       "code-reviewer": [
-        "review", "sprawdź kod", "przed commitem", "czy mogę commitować", "code review"
+        "review",
+        "sprawdź kod",
+        "przed commitem",
+        "czy mogę commitować",
+        "code review"
       ],
       "tester": [
-        "testy", "przetestuj", "uruchom testy", "QA", "czy działa", "run tests"
+        "testy",
+        "przetestuj",
+        "uruchom testy",
+        "QA",
+        "czy działa",
+        "run tests"
       ],
       "devops": [
-        "CI", "CD", "napraw CI", "pipeline", "GitHub Actions", "workflow failed",
-        "build failed", "deploy"
+        "CI",
+        "CD",
+        "napraw CI",
+        "pipeline",
+        "GitHub Actions",
+        "workflow failed",
+        "build failed",
+        "deploy"
+      ],
+      "Explore": [
+        "websearch",
+        "poszukaj w sieci",
+        "sprawdź w internecie",
+        "znajdź w internecie",
+        "sprawdź dokumentację",
+        "poszukaj",
+        "research",
+        "wyszukaj",
+        "google",
+        "co mówi dokumentacja",
+        "jak to zrobić w Qt",
+        "jak to zrobić w C++"
       ]
     },
-
     "rules": [
       {
         "id": "session_restore",
@@ -73,17 +139,17 @@
           "prompt": "SESSION INSTRUCTION detected. Read .claude/session-state.json, display session status box, ask user to continue or start new task."
         }
       },
-
       {
         "id": "initial",
         "description": "Start workflow with task-manager",
-        "trigger": { "type": "start" },
+        "trigger": {
+          "type": "start"
+        },
         "action": {
           "agent": "task-manager",
           "prompt_mode": "passthrough"
         }
       },
-
       {
         "id": "task_to_architect",
         "description": "After task created/continued, run architect",
@@ -97,7 +163,6 @@
           "prompt": "Analyze and design solution based on the OpenSpec. Context: {context}"
         }
       },
-
       {
         "id": "task_needs_edit",
         "description": "User wants to edit specification",
@@ -111,7 +176,6 @@
           "prompt": "User wants to modify the specification. Ask what they want to change and update the OpenSpec files accordingly. Context: {context}"
         }
       },
-
       {
         "id": "architect_decision",
         "description": "After design, choose implementation approach",
@@ -123,19 +187,34 @@
           "type": "decision",
           "message": "Design complete. Choose implementation approach:",
           "options": [
-            {"key": "1", "label": "New files (code-writer)", "agent": "code-writer"},
-            {"key": "2", "label": "Modify existing (code-editor)", "agent": "code-editor"},
-            {"key": "3", "label": "UI component (ui-designer)", "agent": "ui-designer"}
+            {
+              "key": "1",
+              "label": "New files (code-writer)",
+              "agent": "code-writer"
+            },
+            {
+              "key": "2",
+              "label": "Modify existing (code-editor)",
+              "agent": "code-editor"
+            },
+            {
+              "key": "3",
+              "label": "UI component (ui-designer)",
+              "agent": "ui-designer"
+            }
           ],
           "prompt_template": "Implement according to design. Context: {context}"
         }
       },
-
       {
         "id": "implementation_to_review",
         "description": "After implementation, run code review",
         "trigger": {
-          "agent": ["code-writer", "code-editor", "ui-designer"],
+          "agent": [
+            "code-writer",
+            "code-editor",
+            "ui-designer"
+          ],
           "status": "READY"
         },
         "action": {
@@ -143,7 +222,6 @@
           "prompt": "Review the implemented changes"
         }
       },
-
       {
         "id": "review_blocked_loop",
         "description": "Review found issues, fix them",
@@ -164,7 +242,6 @@
           }
         }
       },
-
       {
         "id": "review_to_tests",
         "description": "After review approved, run tests",
@@ -177,7 +254,6 @@
           "prompt": "Run build and tests"
         }
       },
-
       {
         "id": "tests_blocked_loop",
         "description": "Tests failed, fix them",
@@ -198,7 +274,6 @@
           }
         }
       },
-
       {
         "id": "tests_to_close",
         "description": "Tests passed, close task",
@@ -211,7 +286,6 @@
           "prompt": "Close the task - all checks passed"
         }
       },
-
       {
         "id": "workflow_complete",
         "description": "Task closed, workflow complete",
