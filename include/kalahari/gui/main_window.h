@@ -19,6 +19,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/settings_data.h"
+#include "kalahari/gui/widgets/standalone_info_bar.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -243,6 +244,18 @@ private slots:
     /// @param fromOkButton true if triggered by OK (dialog closed), false if Apply
     void onApplySettings(const SettingsData& settings, bool fromOkButton);
 
+    /// @brief Slot for File > Open > File... action (OpenSpec #00033 Phase F)
+    /// Shows file dialog and opens standalone file
+    void onOpenStandaloneFile();
+
+    /// @brief Slot for "Add to Project" button in info bar (OpenSpec #00033 Phase F)
+    /// Shows dialog to add standalone file to current project
+    void onAddToProject();
+
+    /// @brief Open a standalone file by path (OpenSpec #00033 Phase F)
+    /// @param path Absolute path to the file
+    void openStandaloneFile(const QString& path);
+
     // Diagnostic tool slots (Task #00018) - only visible in diagnostic mode
     void onDiagSystemInfo();
     void onDiagQtEnvironment();
@@ -334,6 +347,11 @@ private:
     // Chapter editing (OpenSpec #00033 Phase E)
     QMap<QString, bool> m_dirtyChapters;  ///< Tracks dirty state per elementId
     QString m_currentElementId;           ///< Currently active element in editor
+
+    // Standalone file support (OpenSpec #00033 Phase F)
+    StandaloneInfoBar* m_standaloneInfoBar;   ///< Info bar for standalone files
+    QList<QString> m_standaloneFilePaths;     ///< List of open standalone file paths
+    QWidget* m_centralWrapper;                ///< Wrapper widget for info bar + tabs
 
     /// @brief Mark document as modified (add "*" to title)
     void setDirty(bool dirty);

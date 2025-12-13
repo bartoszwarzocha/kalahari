@@ -104,18 +104,28 @@
   - [x] Clears dirty flags and removes asterisks from tabs
 
 ## Phase F: Standalone Mode
-- [ ] Implement `MainWindow::openStandaloneFile(path)`
-  - [ ] Set WorkMode::StandaloneMode
-  - [ ] Load file into editor
-  - [ ] Add to "Other Files" in Navigator
-- [ ] Create info bar for standalone mode
-  - [ ] "Add to project for full features" message
-  - [ ] "Add to Project" button
-- [ ] Implement "Add to Project" action
-  - [ ] Dialog to select target location
-  - [ ] Copy/move file to project folder
-  - [ ] Update manifest and refresh Navigator
-- [ ] Handle file associations (.rtf, .kmap, .ktl)
+- [x] Implement `MainWindow::openStandaloneFile(path)`
+  - [ ] Set WorkMode::StandaloneMode (pending - currently loads file directly)
+  - [x] Load file into editor
+  - [x] Add to "Other Files" in Navigator
+- [x] Create info bar for standalone mode (`StandaloneInfoBar` widget)
+  - [x] Info icon + message label
+  - [x] "Add to Project" button with signal
+  - [x] Close/dismiss button with signal
+  - [x] Theme-aware styling (light/dark)
+  - [x] Connect to ThemeManager for dynamic theme changes
+- [x] Implement "Add to Project" action
+  - [x] Create `AddToProjectDialog` (QDialog) for target selection
+    - [x] Target section combo (frontmatter, body, backmatter, mindmaps, timelines)
+    - [x] Target part combo (enabled only for body section)
+    - [x] Display title input
+    - [x] Copy/Move file radio buttons
+    - [x] Validates input before enabling Add button
+    - [x] Uses QFormLayout for clean form structure
+    - [x] Integrates with ProjectManager to get parts list
+  - [ ] Copy/move file to project folder (dialog UI ready, action pending)
+  - [ ] Update manifest and refresh Navigator (post-MVP)
+- [x] Handle file associations (.rtf, .kmap, .ktl) - icons mapped in Navigator
 
 ## Phase G: Project Properties
 - [ ] Create `ProjectPropertiesDialog` (QDialog)

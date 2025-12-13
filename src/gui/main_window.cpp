@@ -38,11 +38,14 @@
 #include <QCloseEvent>
 #include <QShowEvent>
 #include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QDir>
 #include <QTextEdit>
 #include <QLabel>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QToolButton>
 #include <QStyle>
 
@@ -83,6 +86,8 @@ MainWindow::MainWindow(QWidget* parent)
     , m_currentFilePath("")
     , m_isDirty(false)
     , m_currentElementId()
+    , m_standaloneInfoBar(nullptr)
+    , m_centralWrapper(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -146,6 +151,7 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save_as.svg", "Save As");
     iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/layers.svg", "Save All");
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
+    iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
     iconRegistry.registerIcon("file.import.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Import PDF");
     iconRegistry.registerIcon("file.import.text", "resources/icons/twotone/text_snippet.svg", "Import Text");
@@ -398,6 +404,12 @@ void MainWindow::registerCommands() {
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
                       IconSet(),
                       [this]() { onOpenDocument(); });
+
+    // OpenSpec #00033 Phase F: Open standalone file (Ctrl+Shift+O)
+    REG_CMD_TOOL_ICON("file.open.file", "Open File...", "FILE/Open/Open File...", 35, false, 0,
+                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      [this]() { onOpenStandaloneFile(); });
 
     // Recent Books - dynamic submenu (registered separately)
 
@@ -1376,12 +1388,31 @@ void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("Creating dock widgets");
 
+    // OpenSpec #00033 Phase F: Create wrapper widget for info bar + tabs
+    m_centralWrapper = new QWidget(this);
+    QVBoxLayout* centralLayout = new QVBoxLayout(m_centralWrapper);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+
+    // OpenSpec #00033 Phase F: Create standalone info bar (hidden by default)
+    m_standaloneInfoBar = new StandaloneInfoBar(m_centralWrapper);
+    m_standaloneInfoBar->hide();
+    centralLayout->addWidget(m_standaloneInfoBar);
+
+    // Connect info bar signals
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::addToProjectClicked,
+            this, &MainWindow::onAddToProject);
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed,
+            m_standaloneInfoBar, &QWidget::hide);
+
     // Create central tabbed workspace (Task #00015)
-    m_centralTabs = new QTabWidget(this);
+    m_centralTabs = new QTabWidget(m_centralWrapper);
     m_centralTabs->setTabsClosable(true);       // All tabs can be closed
     m_centralTabs->setMovable(true);            // Tabs can be reordered
     m_centralTabs->setDocumentMode(true);       // Better look on macOS/Windows
-    setCentralWidget(m_centralTabs);
+    centralLayout->addWidget(m_centralTabs, 1); // Stretch factor 1 to fill space
+
+    setCentralWidget(m_centralWrapper);
 
     // Add Dashboard as first tab (default at startup, closable)
     m_dashboardPanel = new DashboardPanel(this);
@@ -2621,6 +2652,144 @@ void MainWindow::onApplySettings(const SettingsData& settings, bool /*fromOkButt
     }
 
     logger.info("MainWindow: Settings reaction complete");
+}
+
+// =============================================================================
+// Standalone File Support (OpenSpec #00033 Phase F)
+// =============================================================================
+
+void MainWindow::onOpenStandaloneFile() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Open Standalone File");
+
+    // Show file dialog with supported file types
+    QString filename = QFileDialog::getOpenFileName(
+        this,
+        tr("Open File"),
+        QString(),
+        tr("Kalahari Files (*.rtf *.kmap *.ktl);;Rich Text Format (*.rtf);;Mind Maps (*.kmap);;Timelines (*.ktl);;All Files (*.*)")
+    );
+
+    if (filename.isEmpty()) {
+        logger.info("Open standalone file cancelled by user");
+        return;
+    }
+
+    openStandaloneFile(filename);
+}
+
+void MainWindow::openStandaloneFile(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Opening standalone file: {}", path.toStdString());
+
+    // Check if file exists
+    QFileInfo fileInfo(path);
+    if (!fileInfo.exists()) {
+        QMessageBox::warning(
+            this,
+            tr("File Not Found"),
+            tr("The file '%1' does not exist.").arg(path)
+        );
+        logger.error("Standalone file not found: {}", path.toStdString());
+        return;
+    }
+
+    // Read file content
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(
+            this,
+            tr("Open Error"),
+            tr("Failed to open file: %1\n\n%2").arg(path, file.errorString())
+        );
+        logger.error("Failed to open standalone file: {} ({})",
+                     path.toStdString(), file.errorString().toStdString());
+        return;
+    }
+
+    QString content = QString::fromUtf8(file.readAll());
+    file.close();
+
+    // Create new editor tab
+    EditorPanel* newEditor = new EditorPanel(this);
+    QString tabTitle = fileInfo.fileName();
+    int tabIndex = m_centralTabs->addTab(newEditor, tabTitle);
+    m_centralTabs->setCurrentIndex(tabIndex);
+
+    // Store file path for this tab
+    newEditor->setProperty("standaloneFilePath", path);
+    newEditor->setProperty("isStandaloneFile", true);
+
+    // Set content
+    newEditor->setContent(content);
+
+    // Add to standalone files list
+    if (!m_standaloneFilePaths.contains(path)) {
+        m_standaloneFilePaths.append(path);
+    }
+
+    // Add to Navigator "Other Files" section
+    m_navigatorPanel->addStandaloneFile(path);
+
+    // Show info bar if not in project mode
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        m_standaloneInfoBar->setFilePath(path);
+        m_standaloneInfoBar->show();
+    }
+
+    // Connect textChanged signal for dirty tracking
+    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+            this, [this, path, newEditor]() {
+                // Mark tab as dirty
+                int currentIdx = m_centralTabs->indexOf(newEditor);
+                if (currentIdx >= 0) {
+                    QString tabText = m_centralTabs->tabText(currentIdx);
+                    if (!tabText.startsWith("*")) {
+                        m_centralTabs->setTabText(currentIdx, "*" + tabText);
+                    }
+                }
+            });
+
+    logger.info("Standalone file opened: {}", path.toStdString());
+    statusBar()->showMessage(tr("Opened: %1").arg(tabTitle), 2000);
+}
+
+void MainWindow::onAddToProject() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Add to Project");
+
+    auto& pm = core::ProjectManager::getInstance();
+
+    // Check if a project is open
+    if (!pm.isProjectOpen()) {
+        QMessageBox::information(
+            this,
+            tr("No Project Open"),
+            tr("Please open or create a book project first.\n\n"
+               "Use File > New Book... or File > Open Book... to start.")
+        );
+        logger.info("Add to Project: No project open");
+        return;
+    }
+
+    // Get current standalone file path from info bar
+    QString filePath = m_standaloneInfoBar->filePath();
+    if (filePath.isEmpty()) {
+        logger.warn("Add to Project: No file path in info bar");
+        return;
+    }
+
+    // TODO Phase F+: Show AddToProjectDialog for copy/move options
+    // For now, show a message that this feature is coming
+    QMessageBox::information(
+        this,
+        tr("Coming Soon"),
+        tr("The 'Add to Project' feature will be available in a future update.\n\n"
+           "It will allow you to copy or move standalone files into your book project.")
+    );
+
+    logger.info("Add to Project: Feature not yet implemented");
 }
 
 } // namespace gui

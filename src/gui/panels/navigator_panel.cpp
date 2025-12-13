@@ -2,6 +2,7 @@
 /// @brief Navigator panel implementation
 ///
 /// OpenSpec #00033 Phase D: Enhanced with icons, element IDs, and theme refresh.
+/// OpenSpec #00033 Phase F: Added "Other Files" section for standalone files.
 
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/logger.h"
@@ -12,6 +13,7 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QTreeWidgetItem>
+#include <QFileInfo>
 
 namespace kalahari {
 namespace gui {
@@ -19,6 +21,7 @@ namespace gui {
 NavigatorPanel::NavigatorPanel(QWidget* parent)
     : QWidget(parent)
     , m_treeWidget(nullptr)
+    , m_otherFilesItem(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
@@ -73,6 +76,8 @@ void NavigatorPanel::clearDocument() {
     logger.debug("NavigatorPanel::clearDocument()");
 
     m_treeWidget->clear();
+    m_otherFilesItem = nullptr;
+    m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 }
 
@@ -82,8 +87,13 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
 
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Clear existing items
+    // Save standalone files to re-add after clearing
+    QStringList standaloneFilePaths = m_standaloneFiles.keys();
+
+    // Clear existing items (this clears tree and standalone file tracking)
     m_treeWidget->clear();
+    m_otherFilesItem = nullptr;
+    m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure"));
 
     // Create root item: Document title
@@ -168,6 +178,11 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
         backMatterItem->setExpanded(false);  // Collapsed by default
     }
 
+    // Re-add standalone files (they were saved before clearing)
+    for (const QString& path : standaloneFilePaths) {
+        addStandaloneFile(path);
+    }
+
     logger.debug("NavigatorPanel::loadDocument() complete");
 }
 
@@ -192,7 +207,15 @@ void NavigatorPanel::refreshItemIcons(QTreeWidgetItem* item) {
     QString elementType = item->data(0, Qt::UserRole + 1).toString();
 
     // Get appropriate icon ID and set the icon
-    QString iconId = getIconIdForType(elementType);
+    QString iconId;
+    if (elementType == "standalone_file") {
+        // For standalone files, use file path to determine icon
+        QString path = item->data(0, Qt::UserRole).toString();
+        iconId = getIconIdForFile(path);
+    } else {
+        iconId = getIconIdForType(elementType);
+    }
+
     if (!iconId.isEmpty()) {
         item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
     }
@@ -207,8 +230,14 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
     // Map element types to icon IDs
     if (elementType == "document" ||
         elementType == "section" ||
-        elementType == "part") {
+        elementType == "part" ||
+        elementType == "other_files" ||
+        elementType == "root") {
         return "common.folder";
+    } else if (elementType == "standalone_file") {
+        // Standalone files use getIconIdForFile() based on extension
+        // This shouldn't be reached normally, but return generic file icon
+        return "common.file";
     } else if (elementType == "chapter" ||
                elementType == "title_page" ||
                elementType == "copyright" ||
@@ -232,6 +261,131 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
 
     // Default: use chapter icon for unknown types
     return "template.chapter";
+}
+
+QString NavigatorPanel::getIconIdForFile(const QString& path) const {
+    QFileInfo fileInfo(path);
+    QString extension = fileInfo.suffix().toLower();
+
+    // Map extensions to icon IDs
+    if (extension == "rtf") {
+        return "template.chapter";
+    } else if (extension == "kmap") {
+        return "book.newMindMap";
+    } else if (extension == "ktl") {
+        return "book.newTimeline";
+    }
+
+    // Default icon for unknown file types
+    return "common.file";
+}
+
+void NavigatorPanel::ensureOtherFilesSection() {
+    if (m_otherFilesItem) {
+        return;  // Section already exists
+    }
+
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Get or create root item
+    QTreeWidgetItem* rootItem = nullptr;
+    if (m_treeWidget->topLevelItemCount() > 0) {
+        rootItem = m_treeWidget->topLevelItem(0);
+    } else {
+        // No document loaded, create a placeholder root
+        rootItem = new QTreeWidgetItem(m_treeWidget);
+        rootItem->setText(0, tr("Files"));
+        rootItem->setData(0, Qt::UserRole, QString());
+        rootItem->setData(0, Qt::UserRole + 1, "root");
+        rootItem->setIcon(0, artProvider.getIcon("common.folder", core::IconContext::TreeView));
+        rootItem->setExpanded(true);
+    }
+
+    // Create "Other Files" section as child of root (always at bottom)
+    m_otherFilesItem = new QTreeWidgetItem(rootItem);
+    m_otherFilesItem->setText(0, tr("Other Files"));
+    m_otherFilesItem->setData(0, Qt::UserRole, QString());
+    m_otherFilesItem->setData(0, Qt::UserRole + 1, "other_files");
+    m_otherFilesItem->setIcon(0, artProvider.getIcon("common.folder", core::IconContext::TreeView));
+    m_otherFilesItem->setExpanded(true);
+}
+
+void NavigatorPanel::addStandaloneFile(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::addStandaloneFile() - Path: {}", path.toStdString());
+
+    // Check if already added
+    if (m_standaloneFiles.contains(path)) {
+        logger.debug("NavigatorPanel: File already in navigator: {}", path.toStdString());
+        return;
+    }
+
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    // Ensure "Other Files" section exists
+    ensureOtherFilesSection();
+
+    // Create item for the file
+    QFileInfo fileInfo(path);
+    QTreeWidgetItem* fileItem = new QTreeWidgetItem(m_otherFilesItem);
+    fileItem->setText(0, fileInfo.fileName());
+    fileItem->setData(0, Qt::UserRole, path);  // Store full path as ID
+    fileItem->setData(0, Qt::UserRole + 1, "standalone_file");
+    fileItem->setToolTip(0, path);
+
+    // Set icon based on file extension
+    QString iconId = getIconIdForFile(path);
+    fileItem->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
+
+    // Store reference
+    m_standaloneFiles.insert(path, fileItem);
+
+    logger.info("NavigatorPanel: Added standalone file: {}", path.toStdString());
+}
+
+void NavigatorPanel::removeStandaloneFile(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::removeStandaloneFile() - Path: {}", path.toStdString());
+
+    // Find the item
+    auto it = m_standaloneFiles.find(path);
+    if (it == m_standaloneFiles.end()) {
+        logger.debug("NavigatorPanel: File not found in navigator: {}", path.toStdString());
+        return;
+    }
+
+    // Remove the item
+    QTreeWidgetItem* item = it.value();
+    m_standaloneFiles.erase(it);
+    delete item;
+
+    // Hide "Other Files" section if empty
+    if (m_standaloneFiles.isEmpty() && m_otherFilesItem) {
+        delete m_otherFilesItem;
+        m_otherFilesItem = nullptr;
+    }
+
+    logger.info("NavigatorPanel: Removed standalone file: {}", path.toStdString());
+}
+
+void NavigatorPanel::clearStandaloneFiles() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::clearStandaloneFiles()");
+
+    // Clear all standalone files
+    m_standaloneFiles.clear();
+
+    // Remove "Other Files" section
+    if (m_otherFilesItem) {
+        delete m_otherFilesItem;
+        m_otherFilesItem = nullptr;
+    }
+
+    logger.debug("NavigatorPanel: Cleared all standalone files");
+}
+
+bool NavigatorPanel::hasStandaloneFiles() const {
+    return !m_standaloneFiles.isEmpty();
 }
 
 } // namespace gui

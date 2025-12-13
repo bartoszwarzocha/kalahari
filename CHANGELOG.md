@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EditorPanel upgraded from QPlainTextEdit to QTextEdit (Phase E)
 - Added per-chapter dirty tracking with asterisk indicator in tab title
 - Added Save All functionality for dirty chapters
+- NavigatorPanel: Added "Other Files" section for standalone files (Phase F)
 
 ### Added
+
+- StandaloneInfoBar widget for standalone file mode notification (Phase F)
+- AddToProjectDialog for adding standalone files to project (Phase F)
+- Menu item "File > Open > File..." (Ctrl+Shift+O) for opening standalone files (Phase F)
 
 - **OpenSpec #00033:** Project File System - Solution-like Architecture - 2025-12-12
   - ProjectManager class for solution-like project architecture
