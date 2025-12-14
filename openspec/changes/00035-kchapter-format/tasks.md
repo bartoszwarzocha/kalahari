@@ -58,4 +58,21 @@
 - [ ] Add unit tests for ChapterDocument
 - [ ] Pass word count from ChapterDocument to PropertiesPanel
 - [ ] Create new chapters directly in .kchapter format
-- [ ] Update example project to use .kchapter
+- [x] Update example project to use .kchapter
+
+## Future Work (Status Feature)
+
+### Navigator Status Display
+- [ ] Show chapter status in Navigator: `Chapter One [Draft]`
+- [ ] Final status = no suffix (clean display)
+- [ ] Predefined statuses: Draft, Revision, Final, NeedsReview
+
+### Statistics by Status
+- [ ] Project statistics panel: count files by status
+- [ ] Example: "5 Draft, 3 Revision, 10 Final"
+- [ ] PropertiesPanel project view integration
+
+### Export Warnings
+- [ ] Warn on export if project contains Draft/Revision files
+- [ ] Option to export anyway or cancel
+- [ ] List incomplete files in warning dialog
