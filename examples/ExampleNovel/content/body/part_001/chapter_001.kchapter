@@ -1,0 +1,25 @@
+{
+  "kalahari": {
+    "version": "1.0",
+    "type": "chapter"
+  },
+  "content": {
+    "html": "<h2>Chapter One: The Beginning</h2><p>It was a dark and stormy night. The wind howled through the empty streets of the old town, carrying with it whispers of ancient secrets long forgotten.</p><p>Sarah pulled her coat tighter and quickened her pace. She had been warned about nights like this, but the letter in her pocket was too important to ignore.</p><p>\"Just a few more blocks,\" she muttered to herself, glancing at the flickering streetlamps that seemed to dance in the wind.</p>",
+    "plainText": "Chapter One: The Beginning\n\nIt was a dark and stormy night. The wind howled through the empty streets of the old town, carrying with it whispers of ancient secrets long forgotten.\n\nSarah pulled her coat tighter and quickened her pace. She had been warned about nights like this, but the letter in her pocket was too important to ignore.\n\n\"Just a few more blocks,\" she muttered to herself, glancing at the flickering streetlamps that seemed to dance in the wind."
+  },
+  "statistics": {
+    "wordCount": 89,
+    "characterCount": 512,
+    "paragraphCount": 4,
+    "lastModified": "2025-12-14T15:30:00Z"
+  },
+  "metadata": {
+    "title": "Chapter One: The Beginning",
+    "status": "draft",
+    "notes": ""
+  },
+  "annotations": {
+    "comments": [],
+    "highlights": []
+  }
+}

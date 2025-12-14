@@ -1,7 +1,7 @@
 {
   "kalahari": {
     "version": "1.0",
-    "minVersion": "0.4.0"
+    "minVersion": "0.3.0"
   },
   "document": {
     "id": "example-novel-001",
@@ -9,33 +9,53 @@
     "author": "Test Author",
     "language": "en",
     "genre": "fiction",
-    "created": "2025-12-12T10:00:00Z",
-    "modified": "2025-12-12T10:00:00Z"
+    "created": "2025-12-14T15:30:00Z",
+    "modified": "2025-12-14T15:30:00Z"
   },
   "structure": {
     "frontmatter": [
-      {"id": "fm_001", "type": "title_page", "title": "Title Page", "file": "frontmatter/001_title_page.rtf", "wordCount": 10}
+      {
+        "id": "fm-title",
+        "type": "title_page",
+        "title": "Title Page",
+        "file": "content/frontmatter/title_page.kchapter",
+        "wordCount": 4
+      }
     ],
     "body": [
       {
-        "id": "part_001",
-        "type": "part",
-        "title": "Beginning",
-        "folder": "body/part_001_beginning",
+        "id": "part-001",
+        "title": "Part One: Beginnings",
         "chapters": [
-          {"id": "ch_001", "type": "chapter", "title": "Chapter One", "file": "chapter_001.rtf", "wordCount": 150},
-          {"id": "ch_002", "type": "chapter", "title": "Chapter Two", "file": "chapter_002.rtf", "wordCount": 120}
+          {
+            "id": "ch-001",
+            "title": "Chapter One: The Beginning",
+            "file": "content/body/part_001/chapter_001.kchapter",
+            "wordCount": 89
+          },
+          {
+            "id": "ch-002",
+            "title": "Chapter Two: The Discovery",
+            "file": "content/body/part_001/chapter_002.kchapter",
+            "wordCount": 85
+          }
         ]
       }
     ],
     "backmatter": [
-      {"id": "bm_001", "type": "epilogue", "title": "Epilogue", "file": "backmatter/001_epilogue.rtf", "wordCount": 50}
+      {
+        "id": "bm-epilogue",
+        "type": "epilogue",
+        "title": "Epilogue",
+        "file": "content/backmatter/epilogue.kchapter",
+        "wordCount": 38
+      }
     ]
   },
   "statistics": {
-    "totalWords": 330,
-    "totalChapters": 2,
-    "lastEdited": "ch_001"
+    "totalWords": 216,
+    "totalChapters": 4,
+    "lastEdited": "2025-12-14T15:30:00Z"
   },
   "settings": {
     "defaultPerspective": "writer",
