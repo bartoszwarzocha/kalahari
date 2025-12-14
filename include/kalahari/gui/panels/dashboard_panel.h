@@ -1,32 +1,33 @@
 /// @file dashboard_panel.h
-/// @brief Dashboard panel - welcome screen and quick actions
+/// @brief Dashboard panel - welcome screen with HTML content
 ///
 /// Task #00015 - Central Tabbed Workspace
 /// OpenSpec #00036 - Enhanced Dashboard with recent books
+/// Redesign: Pure HTML rendering via QTextBrowser
 
 #pragma once
 
 #include <QWidget>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QList>
 #include <QCheckBox>
+#include <QUrl>
+
+class QTextBrowser;
 
 namespace kalahari {
 namespace gui {
 
-class RecentBookCard;
-
-/// @brief Dashboard panel - welcome screen with recent books
+/// @brief Dashboard panel - welcome screen rendered as HTML
 ///
-/// Displays welcome message, recent books cards, and quick start actions.
-/// Integrates with RecentBooksManager for dynamic recent files list.
+/// Displays welcome message, keyboard shortcuts, and recent books
+/// as a nicely formatted HTML document in a QTextBrowser.
+/// Clicking on recent book links emits openRecentBookRequested signal.
 ///
 /// Features:
 /// - Welcome header with app description
-/// - Recent books section (max 5 cards)
-/// - Quick start section with keyboard shortcuts
+/// - Keyboard shortcuts section
+/// - Recent books as clickable HTML cards
 /// - Auto-refresh when recent files change
+/// - Theme-aware colors in HTML CSS
 ///
 /// Example usage:
 /// @code
@@ -52,34 +53,35 @@ signals:
     void openRecentBookRequested(const QString& filePath);
 
 private slots:
-    /// @brief Handle click on a recent book card
-    /// @param filePath Path to the clicked book
-    void onRecentBookClicked(const QString& filePath);
+    /// @brief Handle click on a link in the HTML content
+    /// @param url URL of the clicked link (file:// for recent books)
+    void onAnchorClicked(const QUrl& url);
 
-    /// @brief Refresh the recent books section
-    void refreshRecentBooks();
+    /// @brief Refresh the HTML content (called when recent files change)
+    void refreshContent();
+
+    /// @brief Handle theme changes
+    void onThemeChanged();
 
 private:
     /// @brief Setup UI components
     void setupUI();
 
-    /// @brief Create welcome header section
-    /// @return Widget containing welcome header
-    QWidget* createWelcomeHeader();
+    /// @brief Generate complete HTML content for the dashboard
+    /// @return HTML string with inline CSS
+    QString generateHtml();
 
-    /// @brief Create recent books section
-    /// @return Widget containing recent books group
-    QWidget* createRecentBooksSection();
+    /// @brief Generate CSS styles for HTML content
+    /// @return CSS string with theme-aware colors
+    QString generateCss();
 
-    /// @brief Clear all recent book cards
-    void clearRecentBookCards();
+    /// @brief Generate HTML for a single recent book card
+    /// @param filePath Path to the .klh file
+    /// @return HTML string for the book card
+    QString generateBookCardHtml(const QString& filePath);
 
-    QLabel* m_welcomeLabel;               ///< Welcome message label (HTML-styled)
-    QVBoxLayout* m_recentBooksLayout;     ///< Layout for recent book cards
-    QWidget* m_recentBooksContainer;      ///< Container for recent books section
-    QLabel* m_noRecentBooksLabel;         ///< "No recent books" message
-    QList<RecentBookCard*> m_bookCards;   ///< List of recent book card widgets
-    QCheckBox* m_autoLoadCheckbox;        ///< Auto-load last project on startup checkbox
+    QTextBrowser* m_browser;          ///< HTML content browser
+    QCheckBox* m_autoLoadCheckbox;    ///< Auto-load last project on startup checkbox
 
     static constexpr int MAX_RECENT_BOOKS = 5;  ///< Maximum recent books to display
 };

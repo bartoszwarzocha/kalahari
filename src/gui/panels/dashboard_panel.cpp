@@ -1,30 +1,27 @@
 /// @file dashboard_panel.cpp
-/// @brief Dashboard panel implementation
+/// @brief Dashboard panel implementation - pure HTML rendering
 ///
 /// Task #00015 - Central Tabbed Workspace
 /// OpenSpec #00036 - Enhanced Dashboard with recent books
+/// Redesign: Pure HTML rendering via QTextBrowser
 
 #include "kalahari/gui/panels/dashboard_panel.h"
-#include "kalahari/gui/widgets/recent_book_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
-#include <QGroupBox>
-#include <QScrollArea>
-#include <QFont>
-#include <QFrame>
+#include <QVBoxLayout>
+#include <QTextBrowser>
+#include <QFileInfo>
+#include <QDateTime>
 
 namespace kalahari {
 namespace gui {
 
 DashboardPanel::DashboardPanel(QWidget* parent)
     : QWidget(parent)
-    , m_welcomeLabel(nullptr)
-    , m_recentBooksLayout(nullptr)
-    , m_recentBooksContainer(nullptr)
-    , m_noRecentBooksLabel(nullptr)
+    , m_browser(nullptr)
     , m_autoLoadCheckbox(nullptr)
 {
     auto& logger = core::Logger::getInstance();
@@ -34,49 +31,37 @@ DashboardPanel::DashboardPanel(QWidget* parent)
 
     // Connect to RecentBooksManager for auto-refresh
     connect(&core::RecentBooksManager::getInstance(), &core::RecentBooksManager::recentFilesChanged,
-            this, &DashboardPanel::refreshRecentBooks);
+            this, &DashboardPanel::refreshContent);
 
-    logger.debug("DashboardPanel initialized");
+    // Connect to ThemeManager for theme changes
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
+            this, &DashboardPanel::onThemeChanged);
+
+    logger.debug("DashboardPanel initialized with HTML rendering");
 }
 
 void DashboardPanel::setupUI()
 {
-    // Create main layout with scroll area
-    QVBoxLayout* outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(0, 0, 0, 0);
+    QVBoxLayout* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
-    QScrollArea* scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
+    // QTextBrowser for HTML content
+    m_browser = new QTextBrowser(this);
+    m_browser->setOpenLinks(false);  // Handle links manually
+    m_browser->setOpenExternalLinks(false);
+    m_browser->setFrameShape(QFrame::NoFrame);
+    m_browser->setHtml(generateHtml());
 
-    QWidget* scrollContent = new QWidget();
-    QVBoxLayout* mainLayout = new QVBoxLayout(scrollContent);
-    mainLayout->setContentsMargins(40, 40, 40, 40);
-    mainLayout->setSpacing(0);
+    connect(m_browser, &QTextBrowser::anchorClicked,
+            this, &DashboardPanel::onAnchorClicked);
 
-    // Top stretch to center welcome content
-    mainLayout->addStretch(1);
+    layout->addWidget(m_browser, 1);
 
-    // Welcome section (centered, professional HTML styling)
-    mainLayout->addWidget(createWelcomeHeader(), 0, Qt::AlignCenter);
-
-    // Bottom stretch before recent books
-    mainLayout->addStretch(1);
-
-    // Separator line
-    QFrame* separator = new QFrame(this);
-    separator->setFrameShape(QFrame::HLine);
-    separator->setFrameShadow(QFrame::Sunken);
-    separator->setStyleSheet("QFrame { color: #bdc3c7; margin: 20px 0px; }");
-    mainLayout->addWidget(separator);
-
-    // Recent Books section (below, left-aligned)
-    mainLayout->addWidget(createRecentBooksSection());
-
-    // Checkbox at the very bottom
-    mainLayout->addSpacing(15);
+    // Auto-load checkbox at the bottom
     m_autoLoadCheckbox = new QCheckBox(tr("Open last project on startup"), this);
     m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+    m_autoLoadCheckbox->setContentsMargins(11, 6, 11, 11);
 
     // Load current setting
     auto& settings = core::SettingsManager::getInstance();
@@ -88,138 +73,252 @@ void DashboardPanel::setupUI()
         settings.set("startup.autoLoadLastProject", checked);
     });
 
-    mainLayout->addWidget(m_autoLoadCheckbox);
-
-    // Small bottom margin
-    mainLayout->addSpacing(20);
-
-    scrollArea->setWidget(scrollContent);
-    outerLayout->addWidget(scrollArea);
-
-    // Initial population of recent books
-    refreshRecentBooks();
+    layout->addWidget(m_autoLoadCheckbox);
 }
 
-QWidget* DashboardPanel::createWelcomeHeader()
+QString DashboardPanel::generateCss()
 {
-    QWidget* headerWidget = new QWidget(this);
-    QVBoxLayout* headerLayout = new QVBoxLayout(headerWidget);
-    headerLayout->setContentsMargins(0, 0, 0, 0);
+    // Get theme colors for dynamic styling
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
 
-    // Create welcome label with professional HTML styling (restored original design)
-    m_welcomeLabel = new QLabel(this);
-    m_welcomeLabel->setText(
-        tr("<h1 style='color: #2c3e50; font-size: 28px; margin-bottom: 10px;'>Welcome to Kalahari</h1>"
-           "<p style='font-size: 14px; color: #7f8c8d; margin-bottom: 20px;'>"
-           "A Writer's IDE for book authors"
-           "</p>"
-           "<p style='font-size: 12px; color: #34495e; margin-bottom: 15px;'>"
-           "Create a new book or open an existing one to get started."
-           "</p>"
-           "<p style='font-size: 11px; color: #95a5a6; line-height: 1.6;'>"
-           "<b>Keyboard Shortcuts:</b><br>"
-           "&bull; New Book: <code>Ctrl+Shift+N</code><br>"
-           "&bull; Open Book: <code>Ctrl+O</code><br>"
-           "&bull; Toggle Navigator: <code>Ctrl+1</code><br>"
-           "&bull; Toggle Properties: <code>Ctrl+2</code><br>"
-           "</p>")
-    );
-    m_welcomeLabel->setAlignment(Qt::AlignCenter);
-    m_welcomeLabel->setWordWrap(true);
-    m_welcomeLabel->setTextFormat(Qt::RichText);
-    m_welcomeLabel->setMinimumWidth(400);
+    // Primary color for headings and accents
+    QString primaryColor = theme.colors.primary.name();
+    // Text color for body text
+    QString textColor = theme.colors.text.name();
+    // Secondary/muted color for less important text
+    QString mutedColor = theme.colors.secondary.name();
+    // Background color
+    QString bgColor = theme.colors.background.name();
+    // Accent for highlights
+    QString accentColor = theme.colors.accent.name();
 
-    headerLayout->addWidget(m_welcomeLabel);
+    // Card background with transparency (works with both light and dark themes)
+    QColor cardBg = theme.colors.primary;
+    cardBg.setAlpha(25);  // ~10% opacity
+    QString cardBgColor = QString("rgba(%1, %2, %3, 0.1)")
+        .arg(cardBg.red()).arg(cardBg.green()).arg(cardBg.blue());
 
-    return headerWidget;
+    QColor cardHoverBg = theme.colors.primary;
+    cardHoverBg.setAlpha(51);  // ~20% opacity
+    QString cardHoverBgColor = QString("rgba(%1, %2, %3, 0.2)")
+        .arg(cardHoverBg.red()).arg(cardHoverBg.green()).arg(cardHoverBg.blue());
+
+    // Code background for keyboard shortcuts
+    QColor codeBg = theme.palette.base;
+    QString codeBgColor = codeBg.name();
+
+    return QString(
+        "body {"
+        "  font-family: 'Segoe UI', 'Arial', sans-serif;"
+        "  padding: 40px;"
+        "  background-color: %1;"
+        "  color: %2;"
+        "  max-width: 600px;"
+        "  margin: 0 auto;"
+        "}"
+        ".welcome {"
+        "  text-align: center;"
+        "  margin-bottom: 30px;"
+        "}"
+        ".welcome h1 {"
+        "  color: %3;"
+        "  font-size: 28px;"
+        "  margin-bottom: 10px;"
+        "  font-weight: 600;"
+        "}"
+        ".welcome .subtitle {"
+        "  color: %4;"
+        "  font-size: 14px;"
+        "  margin-bottom: 20px;"
+        "}"
+        ".welcome .description {"
+        "  color: %2;"
+        "  font-size: 12px;"
+        "  margin-bottom: 15px;"
+        "}"
+        ".shortcuts {"
+        "  text-align: center;"
+        "  margin-bottom: 30px;"
+        "}"
+        ".shortcuts-title {"
+        "  font-weight: bold;"
+        "  margin-bottom: 10px;"
+        "  color: %4;"
+        "}"
+        ".shortcut {"
+        "  color: %4;"
+        "  margin: 5px 0;"
+        "  font-size: 11px;"
+        "}"
+        ".shortcut code {"
+        "  background: %5;"
+        "  padding: 2px 6px;"
+        "  border-radius: 3px;"
+        "  font-family: 'Consolas', 'Courier New', monospace;"
+        "}"
+        ".recent-section {"
+        "  margin-top: 20px;"
+        "}"
+        ".recent-title {"
+        "  color: %3;"
+        "  font-size: 16px;"
+        "  font-weight: bold;"
+        "  margin-bottom: 15px;"
+        "}"
+        ".book-card {"
+        "  background: %6;"
+        "  border-radius: 8px;"
+        "  padding: 12px 15px;"
+        "  margin-bottom: 10px;"
+        "  border-left: 3px solid %3;"
+        "}"
+        ".book-title {"
+        "  font-weight: bold;"
+        "  font-size: 14px;"
+        "  margin-bottom: 4px;"
+        "  color: %2;"
+        "}"
+        ".book-info {"
+        "  color: %4;"
+        "  font-size: 12px;"
+        "}"
+        "a {"
+        "  text-decoration: none;"
+        "  color: inherit;"
+        "}"
+        ".no-recent {"
+        "  color: %4;"
+        "  padding: 15px 0;"
+        "  font-style: italic;"
+        "}"
+    ).arg(bgColor, textColor, primaryColor, mutedColor, codeBgColor, cardBgColor);
 }
 
-QWidget* DashboardPanel::createRecentBooksSection()
+QString DashboardPanel::generateBookCardHtml(const QString& filePath)
 {
-    // Create widget for recent books section (no group box for cleaner look)
-    QWidget* recentWidget = new QWidget(this);
-    QVBoxLayout* sectionLayout = new QVBoxLayout(recentWidget);
-    sectionLayout->setContentsMargins(0, 10, 0, 0);
-    sectionLayout->setSpacing(10);
+    QFileInfo fileInfo(filePath);
 
-    // Section title
-    QLabel* titleLabel = new QLabel(tr("<b style='font-size: 14px; color: #2c3e50;'>Recent Books</b>"), this);
-    titleLabel->setTextFormat(Qt::RichText);
-    sectionLayout->addWidget(titleLabel);
-
-    // Container for book cards
-    m_recentBooksContainer = new QWidget(this);
-    m_recentBooksLayout = new QVBoxLayout(m_recentBooksContainer);
-    m_recentBooksLayout->setContentsMargins(0, 0, 0, 0);
-    m_recentBooksLayout->setSpacing(6);
-
-    // "No recent books" message (hidden by default)
-    m_noRecentBooksLabel = new QLabel(tr("No recent books. Create a new project or open an existing one."), this);
-    m_noRecentBooksLabel->setStyleSheet("color: #7f8c8d; padding: 15px 0px;");
-    m_noRecentBooksLabel->setAlignment(Qt::AlignLeft);
-    m_noRecentBooksLabel->hide();
-
-    sectionLayout->addWidget(m_recentBooksContainer);
-    sectionLayout->addWidget(m_noRecentBooksLabel);
-
-    return recentWidget;
-}
-
-void DashboardPanel::clearRecentBookCards()
-{
-    // Remove all existing cards
-    for (RecentBookCard* card : m_bookCards) {
-        m_recentBooksLayout->removeWidget(card);
-        card->deleteLater();
+    // Extract title (filename without extension)
+    QString title = fileInfo.completeBaseName();
+    if (title.endsWith(".klh", Qt::CaseInsensitive)) {
+        title = title.left(title.length() - 4);
     }
-    m_bookCards.clear();
+
+    // Format date
+    QString dateStr;
+    if (fileInfo.exists()) {
+        QDateTime lastModified = fileInfo.lastModified();
+        dateStr = tr("Last modified: %1").arg(lastModified.toString("MMM d, yyyy"));
+    } else {
+        dateStr = tr("File not found");
+    }
+
+    // Create URL for the file (use file:// scheme)
+    QUrl fileUrl = QUrl::fromLocalFile(filePath);
+
+    return QString(
+        "<a href=\"%1\">"
+        "<div class=\"book-card\">"
+        "<div class=\"book-title\">%2</div>"
+        "<div class=\"book-info\">%3</div>"
+        "</div>"
+        "</a>"
+    ).arg(fileUrl.toString().toHtmlEscaped(), title.toHtmlEscaped(), dateStr.toHtmlEscaped());
 }
 
-void DashboardPanel::refreshRecentBooks()
+QString DashboardPanel::generateHtml()
 {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("DashboardPanel::refreshRecentBooks called");
+    QString css = generateCss();
 
-    // Clear existing cards
-    clearRecentBookCards();
-
-    // Get recent files from manager
+    // Build recent books section
+    QString recentBooksHtml;
     const QStringList recentFiles = core::RecentBooksManager::getInstance().getRecentFiles();
 
     if (recentFiles.isEmpty()) {
-        m_noRecentBooksLabel->show();
-        m_recentBooksContainer->hide();
-        return;
-    }
-
-    m_noRecentBooksLabel->hide();
-    m_recentBooksContainer->show();
-
-    // Create cards for recent files (max MAX_RECENT_BOOKS)
-    int count = 0;
-    for (const QString& filePath : recentFiles) {
-        if (count >= MAX_RECENT_BOOKS) {
-            break;
+        recentBooksHtml = QString(
+            "<div class=\"no-recent\">%1</div>"
+        ).arg(tr("No recent books. Create a new project or open an existing one."));
+    } else {
+        int count = 0;
+        for (const QString& filePath : recentFiles) {
+            if (count >= MAX_RECENT_BOOKS) {
+                break;
+            }
+            recentBooksHtml += generateBookCardHtml(filePath);
+            ++count;
         }
-
-        RecentBookCard* card = new RecentBookCard(filePath, this);
-        connect(card, &RecentBookCard::clicked,
-                this, &DashboardPanel::onRecentBookClicked);
-
-        m_recentBooksLayout->addWidget(card);
-        m_bookCards.append(card);
-        ++count;
     }
 
-    logger.debug("DashboardPanel: Displayed {} recent books", count);
+    // Build complete HTML document
+    return QString(
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<meta charset=\"UTF-8\">"
+        "<style>%1</style>"
+        "</head>"
+        "<body>"
+        "<div class=\"welcome\">"
+        "<h1>%2</h1>"
+        "<p class=\"subtitle\">%3</p>"
+        "<p class=\"description\">%4</p>"
+        "</div>"
+        "<div class=\"shortcuts\">"
+        "<div class=\"shortcuts-title\">%5</div>"
+        "<div class=\"shortcut\">%6 <code>Ctrl+Shift+N</code></div>"
+        "<div class=\"shortcut\">%7 <code>Ctrl+O</code></div>"
+        "<div class=\"shortcut\">%8 <code>Ctrl+1</code></div>"
+        "<div class=\"shortcut\">%9 <code>Ctrl+2</code></div>"
+        "</div>"
+        "<div class=\"recent-section\">"
+        "<div class=\"recent-title\">%10</div>"
+        "%11"
+        "</div>"
+        "</body>"
+        "</html>"
+    ).arg(
+        css,
+        tr("Welcome to Kalahari"),
+        tr("A Writer's IDE for book authors"),
+        tr("Create a new book or open an existing one to get started."),
+        tr("Keyboard Shortcuts"),
+        tr("New Book:"),
+        tr("Open Book:"),
+        tr("Toggle Navigator:"),
+        tr("Toggle Properties:"),
+        tr("Recent Books"),
+        recentBooksHtml
+    );
 }
 
-void DashboardPanel::onRecentBookClicked(const QString& filePath)
+void DashboardPanel::onAnchorClicked(const QUrl& url)
 {
     auto& logger = core::Logger::getInstance();
-    logger.info("DashboardPanel: Recent book clicked: {}", filePath.toStdString());
 
-    emit openRecentBookRequested(filePath);
+    if (url.scheme() == "file") {
+        QString filePath = url.toLocalFile();
+        logger.info("DashboardPanel: Recent book clicked: {}", filePath.toStdString());
+        emit openRecentBookRequested(filePath);
+    } else {
+        logger.debug("DashboardPanel: Ignoring non-file URL: {}", url.toString().toStdString());
+    }
+}
+
+void DashboardPanel::refreshContent()
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("DashboardPanel::refreshContent called");
+
+    m_browser->setHtml(generateHtml());
+}
+
+void DashboardPanel::onThemeChanged()
+{
+    auto& logger = core::Logger::getInstance();
+    logger.debug("DashboardPanel::onThemeChanged - regenerating HTML with new theme colors");
+
+    // Regenerate HTML with updated theme colors
+    m_browser->setHtml(generateHtml());
 }
 
 } // namespace gui
