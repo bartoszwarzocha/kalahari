@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QList>
+#include <QCheckBox>
 
 namespace kalahari {
 namespace gui {
@@ -83,6 +84,7 @@ private:
     QWidget* m_recentBooksContainer;      ///< Container for recent books section
     QLabel* m_noRecentBooksLabel;         ///< "No recent books" message
     QList<RecentBookCard*> m_bookCards;   ///< List of recent book card widgets
+    QCheckBox* m_autoLoadCheckbox;        ///< Auto-load last project on startup checkbox
 
     static constexpr int MAX_RECENT_BOOKS = 5;  ///< Maximum recent books to display
 };

@@ -8,6 +8,7 @@
 #include "kalahari/gui/widgets/recent_book_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/recent_books_manager.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QGroupBox>
@@ -24,6 +25,7 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     , m_recentBooksLayout(nullptr)
     , m_recentBooksContainer(nullptr)
     , m_noRecentBooksLabel(nullptr)
+    , m_autoLoadCheckbox(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel constructor called");
@@ -111,8 +113,23 @@ QWidget* DashboardPanel::createRecentBooksSection()
     m_noRecentBooksLabel->setAlignment(Qt::AlignCenter);
     m_noRecentBooksLabel->hide();
 
+    // Auto-load last project checkbox
+    m_autoLoadCheckbox = new QCheckBox(tr("Open last project on startup"), this);
+    m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+
+    // Load current setting
+    auto& settings = core::SettingsManager::getInstance();
+    m_autoLoadCheckbox->setChecked(settings.get<bool>("startup.autoLoadLastProject", false));
+
+    // Connect to save setting when changed
+    connect(m_autoLoadCheckbox, &QCheckBox::toggled, this, [](bool checked) {
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set("startup.autoLoadLastProject", checked);
+    });
+
     groupLayout->addWidget(m_recentBooksContainer);
     groupLayout->addWidget(m_noRecentBooksLabel);
+    groupLayout->addWidget(m_autoLoadCheckbox);
 
     return recentGroup;
 }

@@ -51,6 +51,7 @@
 #include <QStyle>
 #include <QProgressDialog>
 #include <QInputDialog>
+#include <QTimer>
 #include <map>
 
 namespace kalahari {
@@ -2602,6 +2603,22 @@ void MainWindow::showEvent(QShowEvent* event) {
         }
 
         logger.debug("Window perspective restored");
+
+        // OpenSpec #00036: Auto-load last project if enabled
+        auto& settingsManager = core::SettingsManager::getInstance();
+        bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
+        if (autoLoad) {
+            auto& recentManager = core::RecentBooksManager::getInstance();
+            QStringList recentFiles = recentManager.getRecentFiles();
+            if (!recentFiles.isEmpty()) {
+                QString lastFile = recentFiles.first();
+                logger.info("Auto-loading last project: {}", lastFile.toStdString());
+                // Use QTimer::singleShot to defer opening after window is fully shown
+                QTimer::singleShot(100, this, [this, lastFile]() {
+                    onOpenRecentFile(lastFile);
+                });
+            }
+        }
 
         m_firstShow = false;
     }
