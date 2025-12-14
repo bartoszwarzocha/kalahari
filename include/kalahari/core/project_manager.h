@@ -357,6 +357,24 @@ public:
     /// Saves manifest after successful reorder.
     bool reorderPart(int fromIndex, int toIndex);
 
+    // =========================================================================
+    // Chapter Metadata Operations
+    // =========================================================================
+
+    /// @brief Save only metadata (status, notes) to .kchapter file
+    /// @param elementId Element ID
+    /// @return true if save succeeded
+    ///
+    /// Used when status or notes change in PropertiesPanel.
+    /// Creates .kchapter file if it doesn't exist.
+    bool saveChapterMetadata(const QString& elementId);
+
+    /// @brief Load metadata from all .kchapter files
+    ///
+    /// Called after loading structure from manifest.
+    /// Loads status, notes, and wordCount from each .kchapter file.
+    void loadAllChapterMetadata();
+
 signals:
     /// @brief Emitted when a project is successfully opened
     /// @param projectPath Absolute path to the project folder

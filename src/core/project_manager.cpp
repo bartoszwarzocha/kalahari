@@ -466,7 +466,6 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
             QString title = elemObj["title"].toString();
             QString file = elemObj["file"].toString();
             QString type = elemObj["type"].toString(TYPE_PREFACE);
-            int wordCount = elemObj["wordCount"].toInt(0);
 
             auto element = std::make_shared<BookElement>(
                 type.toStdString(),
@@ -474,19 +473,9 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                 title.toStdString(),
                 std::filesystem::path(file.toStdWString())
             );
-            element->setWordCount(wordCount);
 
-            // Load status from manifest (OpenSpec #00034)
-            if (elemObj.contains("status")) {
-                QString status = elemObj["status"].toString();
-                element->setMetadata("status", status.toStdString());
-            }
-
-            // Load notes from manifest (OpenSpec #00034)
-            if (elemObj.contains("notes")) {
-                QString notes = elemObj["notes"].toString();
-                element->setMetadata("notes", notes.toStdString());
-            }
+            // Note: status, notes, wordCount are loaded from .kchapter files
+            // via loadAllChapterMetadata() called at the end of this function
 
             book.addFrontMatter(element);
 
@@ -516,7 +505,6 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                     QString chapId = chapObj["id"].toString();
                     QString chapTitle = chapObj["title"].toString();
                     QString chapFile = chapObj["file"].toString();
-                    int wordCount = chapObj["wordCount"].toInt(0);
 
                     auto chapter = std::make_shared<BookElement>(
                         TYPE_CHAPTER,
@@ -524,19 +512,9 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                         chapTitle.toStdString(),
                         std::filesystem::path(chapFile.toStdWString())
                     );
-                    chapter->setWordCount(wordCount);
 
-                    // Load status from manifest (OpenSpec #00034)
-                    if (chapObj.contains("status")) {
-                        QString status = chapObj["status"].toString();
-                        chapter->setMetadata("status", status.toStdString());
-                    }
-
-                    // Load notes from manifest (OpenSpec #00034)
-                    if (chapObj.contains("notes")) {
-                        QString notes = chapObj["notes"].toString();
-                        chapter->setMetadata("notes", notes.toStdString());
-                    }
+                    // Note: status, notes, wordCount are loaded from .kchapter files
+                    // via loadAllChapterMetadata() called at the end of this function
 
                     part->addChapter(chapter);
 
@@ -560,7 +538,6 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
             QString title = elemObj["title"].toString();
             QString file = elemObj["file"].toString();
             QString type = elemObj["type"].toString(TYPE_EPILOGUE);
-            int wordCount = elemObj["wordCount"].toInt(0);
 
             auto element = std::make_shared<BookElement>(
                 type.toStdString(),
@@ -568,19 +545,9 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                 title.toStdString(),
                 std::filesystem::path(file.toStdWString())
             );
-            element->setWordCount(wordCount);
 
-            // Load status from manifest (OpenSpec #00034)
-            if (elemObj.contains("status")) {
-                QString status = elemObj["status"].toString();
-                element->setMetadata("status", status.toStdString());
-            }
-
-            // Load notes from manifest (OpenSpec #00034)
-            if (elemObj.contains("notes")) {
-                QString notes = elemObj["notes"].toString();
-                element->setMetadata("notes", notes.toStdString());
-            }
+            // Note: status, notes, wordCount are loaded from .kchapter files
+            // via loadAllChapterMetadata() called at the end of this function
 
             book.addBackMatter(element);
 
@@ -593,6 +560,10 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                                book.getFrontMatter().size(),
                                book.getPartCount(),
                                book.getBackMatter().size());
+
+    // Load metadata (status, notes, wordCount) from .kchapter files
+    loadAllChapterMetadata();
+
     return true;
 }
 
@@ -610,6 +581,7 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
     const Book& book = m_document->getBook();
 
     // Serialize frontmatter
+    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
     QJsonArray frontmatterArray;
     for (const auto& element : book.getFrontMatter()) {
         QJsonObject elemObj;
@@ -617,25 +589,12 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
         elemObj["title"] = QString::fromStdString(element->getTitle());
         elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
         elemObj["type"] = QString::fromStdString(element->getType());
-        elemObj["wordCount"] = element->getWordCount();
-
-        // Save status to manifest (OpenSpec #00034)
-        auto status = element->getMetadata("status");
-        if (status.has_value()) {
-            elemObj["status"] = QString::fromStdString(status.value());
-        }
-
-        // Save notes to manifest (OpenSpec #00034)
-        auto notes = element->getMetadata("notes");
-        if (notes.has_value() && !notes.value().empty()) {
-            elemObj["notes"] = QString::fromStdString(notes.value());
-        }
-
         frontmatterArray.append(elemObj);
     }
     structureObj["frontmatter"] = frontmatterArray;
 
     // Serialize body (parts with chapters)
+    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
     QJsonArray bodyArray;
     for (const auto& part : book.getBody()) {
         QJsonObject partObj;
@@ -648,20 +607,6 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
             chapObj["id"] = QString::fromStdString(chapter->getId());
             chapObj["title"] = QString::fromStdString(chapter->getTitle());
             chapObj["file"] = QString::fromStdWString(chapter->getFile().wstring());
-            chapObj["wordCount"] = chapter->getWordCount();
-
-            // Save status to manifest (OpenSpec #00034)
-            auto status = chapter->getMetadata("status");
-            if (status.has_value()) {
-                chapObj["status"] = QString::fromStdString(status.value());
-            }
-
-            // Save notes to manifest (OpenSpec #00034)
-            auto notes = chapter->getMetadata("notes");
-            if (notes.has_value() && !notes.value().empty()) {
-                chapObj["notes"] = QString::fromStdString(notes.value());
-            }
-
             chaptersArray.append(chapObj);
         }
         partObj["chapters"] = chaptersArray;
@@ -670,6 +615,7 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
     structureObj["body"] = bodyArray;
 
     // Serialize backmatter
+    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
     QJsonArray backmatterArray;
     for (const auto& element : book.getBackMatter()) {
         QJsonObject elemObj;
@@ -677,20 +623,6 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
         elemObj["title"] = QString::fromStdString(element->getTitle());
         elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
         elemObj["type"] = QString::fromStdString(element->getType());
-        elemObj["wordCount"] = element->getWordCount();
-
-        // Save status to manifest (OpenSpec #00034)
-        auto status = element->getMetadata("status");
-        if (status.has_value()) {
-            elemObj["status"] = QString::fromStdString(status.value());
-        }
-
-        // Save notes to manifest (OpenSpec #00034)
-        auto notes = element->getMetadata("notes");
-        if (notes.has_value() && !notes.value().empty()) {
-            elemObj["notes"] = QString::fromStdString(notes.value());
-        }
-
         backmatterArray.append(elemObj);
     }
     structureObj["backmatter"] = backmatterArray;
@@ -1209,6 +1141,141 @@ bool ProjectManager::reorderPart(int fromIndex, int toIndex) {
     }
 
     return success;
+}
+
+// =============================================================================
+// Chapter Metadata (status, notes, wordCount stored in .kchapter files)
+// =============================================================================
+
+bool ProjectManager::saveChapterMetadata(const QString& elementId) {
+    auto& logger = Logger::getInstance();
+
+    BookElement* element = findElement(elementId);
+    if (!element) {
+        logger.warn("saveChapterMetadata: Element not found: {}", elementId.toStdString());
+        return false;
+    }
+
+    if (element->getFile().empty()) {
+        logger.warn("saveChapterMetadata: Element has no file: {}", elementId.toStdString());
+        return false;
+    }
+
+    // Resolve path - ensure .kchapter extension
+    std::filesystem::path filePath = m_projectPath / element->getFile();
+    if (filePath.extension() != ".kchapter") {
+        filePath.replace_extension(".kchapter");
+    }
+    QString filePathStr = QString::fromStdWString(filePath.wstring());
+
+    // Try to load existing .kchapter
+    auto doc = ChapterDocument::load(filePathStr);
+
+    if (!doc.has_value()) {
+        // File doesn't exist yet - create minimal document
+        logger.debug("saveChapterMetadata: Creating new .kchapter for: {}", elementId.toStdString());
+
+        // Create parent directories if needed
+        std::filesystem::path parentDir = filePath.parent_path();
+        if (!std::filesystem::exists(parentDir)) {
+            std::error_code ec;
+            if (!std::filesystem::create_directories(parentDir, ec)) {
+                logger.error("saveChapterMetadata: Failed to create directory: {} ({})",
+                            parentDir.string(), ec.message());
+                return false;
+            }
+        }
+
+        ChapterDocument newDoc;
+        auto status = element->getMetadata("status");
+        auto notes = element->getMetadata("notes");
+        newDoc.setStatus(QString::fromStdString(status.value_or("draft")));
+        newDoc.setNotes(QString::fromStdString(notes.value_or("")));
+
+        if (!newDoc.save(filePathStr)) {
+            logger.error("saveChapterMetadata: Failed to save new .kchapter: {}", filePath.string());
+            return false;
+        }
+
+        logger.debug("saveChapterMetadata: Created new .kchapter: {}", filePath.string());
+        return true;
+    }
+
+    // Update metadata section only
+    auto status = element->getMetadata("status");
+    auto notes = element->getMetadata("notes");
+    doc->setStatus(QString::fromStdString(status.value_or("draft")));
+    doc->setNotes(QString::fromStdString(notes.value_or("")));
+
+    if (!doc->save(filePathStr)) {
+        logger.error("saveChapterMetadata: Failed to save .kchapter: {}", filePath.string());
+        return false;
+    }
+
+    logger.debug("saveChapterMetadata: Updated metadata for: {}", elementId.toStdString());
+    return true;
+}
+
+void ProjectManager::loadAllChapterMetadata() {
+    auto& logger = Logger::getInstance();
+
+    if (!m_document) {
+        logger.warn("loadAllChapterMetadata: No document loaded");
+        return;
+    }
+
+    Book& book = m_document->getBook();
+
+    auto loadMetadataForElement = [this, &logger](BookElement* element) {
+        if (!element || element->getFile().empty()) return;
+
+        // Resolve path - check for .kchapter file
+        std::filesystem::path filePath = m_projectPath / element->getFile();
+        if (filePath.extension() != ".kchapter") {
+            filePath.replace_extension(".kchapter");
+        }
+
+        if (!std::filesystem::exists(filePath)) {
+            // No .kchapter file yet - use defaults
+            logger.debug("loadAllChapterMetadata: No .kchapter for element {}, using defaults",
+                        element->getId());
+            element->setMetadata("status", "draft");
+            return;
+        }
+
+        QString filePathStr = QString::fromStdWString(filePath.wstring());
+        auto doc = ChapterDocument::load(filePathStr);
+        if (doc.has_value()) {
+            element->setMetadata("status", doc->status().toStdString());
+            element->setMetadata("notes", doc->notes().toStdString());
+            element->setWordCount(doc->wordCount());
+
+            logger.debug("loadAllChapterMetadata: Loaded metadata for {} (status={}, wordCount={})",
+                        element->getId(), doc->status().toStdString(), doc->wordCount());
+        } else {
+            logger.warn("loadAllChapterMetadata: Failed to load .kchapter: {}", filePath.string());
+            element->setMetadata("status", "draft");
+        }
+    };
+
+    // Load for frontmatter
+    for (auto& elem : book.getFrontMatter()) {
+        loadMetadataForElement(elem.get());
+    }
+
+    // Load for body (parts and chapters)
+    for (auto& part : book.getBody()) {
+        for (auto& chapter : part->getChapters()) {
+            loadMetadataForElement(chapter.get());
+        }
+    }
+
+    // Load for backmatter
+    for (auto& elem : book.getBackMatter()) {
+        loadMetadataForElement(elem.get());
+    }
+
+    logger.info("loadAllChapterMetadata: Finished loading metadata from .kchapter files");
 }
 
 // =============================================================================

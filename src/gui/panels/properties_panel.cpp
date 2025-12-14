@@ -19,6 +19,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QEvent>
 #include <iomanip>
 #include <sstream>
 #include <ctime>
@@ -466,8 +467,9 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onChapterTitleChanged);
     connect(m_chapterStatusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterStatusChanged);
-    connect(m_chapterNotesEdit, &QTextEdit::textChanged,
-            this, &PropertiesPanel::onChapterNotesChanged);
+
+    // Notes are saved on focus lost via eventFilter (not on every keystroke)
+    m_chapterNotesEdit->installEventFilter(this);
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -678,10 +680,9 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     QString statusCode = m_chapterStatusCombo->itemData(index).toString();
     logger.info("PropertiesPanel: Chapter status changed to: {}", statusCode.toStdString());
     element->setMetadata("status", statusCode.toStdString());
-    pm.setDirty(true);
 
-    // Auto-save manifest to persist status immediately (OpenSpec #00034)
-    pm.saveManifest();
+    // Save to .kchapter file immediately (NOT manifest)
+    pm.saveChapterMetadata(m_currentChapterId);
 
     // Notify Navigator to refresh the item's display title (status suffix)
     emit chapterStatusChanged(m_currentChapterId);
@@ -700,10 +701,16 @@ void PropertiesPanel::onChapterNotesChanged() {
 
     QString notes = m_chapterNotesEdit->toPlainText();
     element->setMetadata("notes", notes.toStdString());
-    pm.setDirty(true);
 
-    // Auto-save manifest to persist notes immediately (OpenSpec #00034)
-    pm.saveManifest();
+    // Save to .kchapter file (called on focus lost via eventFilter)
+    pm.saveChapterMetadata(m_currentChapterId);
+}
+
+bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == m_chapterNotesEdit && event->type() == QEvent::FocusOut) {
+        onChapterNotesChanged();  // Save notes on focus lost
+    }
+    return QWidget::eventFilter(obj, event);
 }
 
 void PropertiesPanel::populateProjectFields() {

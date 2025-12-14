@@ -108,8 +108,15 @@ private slots:
     /// @brief Handle chapter status changed
     void onChapterStatusChanged(int index);
 
-    /// @brief Handle chapter notes changed
+    /// @brief Handle chapter notes changed (called on focus lost)
     void onChapterNotesChanged();
+
+protected:
+    /// @brief Event filter for handling focus events
+    /// @param obj Object that received the event
+    /// @param event The event
+    /// @return true if event was handled
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 signals:
     /// @brief Emitted when chapter status is changed via combo box
