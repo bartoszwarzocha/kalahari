@@ -1,7 +1,7 @@
 # 00035: KChapter Document Format
 
 ## Status
-IN_PROGRESS
+DEPLOYED
 
 ## Goal
 Replace RTF chapter storage with a new .kchapter format (JSON + HTML) that supports rich metadata, future extensibility for document templates, and disaster recovery via plaintext backup.
