@@ -1,48 +1,49 @@
 {
   "mode": "quick",
-  "saved_at": "2025-12-14T12:45:00",
-  "git_commit": "e285460",
+  "saved_at": "2025-12-14T18:05:00",
+  "git_branch": "main",
+  "git_commit": "f6f232d",
   "git_pushed": false,
-  "openspec": "00034",
+  "openspec": "00035",
   "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00034 Navigator Panel - COMPLETE",
+  "working_on": "OpenSpec #00035 KChapter Format - DEPLOYED with Status Feature",
   "next_steps": [
-    "Start next task from ROADMAP (1.5 Custom Editor or 1.6 Search)",
-    "Push changes to GitHub"
+    "User testing: verify status changes are now saved",
+    "User testing: verify single-click shows Properties panel",
+    "User testing: verify Section/Part hierarchical statistics",
+    "Phase 2: unit tests for ChapterDocument",
+    "Phase 2: create new chapters directly as .kchapter"
   ],
   "blocker": null,
-  "implementation_status": "COMPLETE",
+  "implementation_status": "DEPLOYED",
   "completed_tasks": [
-    "OpenSpec #00033 Project File System - DEPLOYED",
-    "OpenSpec #00034 Navigator Panel - DEPLOYED",
-    "Phase B: Search/Filter with debounce",
-    "Phase A: Context Menu (Rename, Delete, Move, Properties)",
-    "Phase C: Editor Sync (highlight current chapter)",
-    "Phase E: Section-specific icons",
-    "Phase F: Expansion state persistence",
-    "Phase D: Drag & Drop reordering",
-    "Bug fixes: Icon scaling, context menu handlers",
-    "Feature: Document type filter (All, Text, Mind Maps, Timelines, Other)",
-    "Feature: Expand/Collapse All buttons",
-    "Reset layout fixes (Log visibility, column proportions)"
+    "ChapterDocument class with JSON serialization",
+    "Statistics calculation (wordCount, characterCount, paragraphCount)",
+    "ProjectManager .kchapter I/O",
+    "RTF->KChapter migration on first load",
+    "Navigator: Status suffix display [Draft]/[Revision]",
+    "Export: Warning dialog for non-final files",
+    "PropertiesPanel: Status statistics (Draft/Revision/Final count)",
+    "Status persistence in manifest.json",
+    "Navigator: Single-click shows Properties",
+    "PropertiesPanel: Section page with aggregate stats",
+    "PropertiesPanel: Part page with aggregate stats"
   ],
   "pending_tasks": [
-    "1.5 Custom Text Editor",
-    "1.6 Search & Replace",
-    "1.7 Statistics Architecture"
+    "Unit tests for ChapterDocument",
+    "PropertiesPanel word count from ChapterDocument",
+    "Create new chapters directly as .kchapter"
   ],
   "task_progress": {
-    "completed": 12,
-    "total": 12,
-    "percentage": 100
+    "completed": 11,
+    "total": 14,
+    "percentage": 79
   },
   "notes": [
-    "Navigator Panel fully functional with all features",
-    "User rating improved from 6/10 to 10/10 after fixes",
-    "Key commits this session:",
-    "  - e285460: fix(gui): Navigator Panel bug fixes",
-    "  - 509b6e0: feat(gui): OpenSpec #00034 Navigator Panel",
-    "  - 918449c: fix(gui): Reset layout improvements",
-    "Build: PASS, Tests: 73/73 PASS (571 assertions)"
+    "Format: JSON with kalahari header, content, statistics, metadata, annotations",
+    "Status persistence: saved in manifest.json, loaded on project open",
+    "Navigator UX: single-click shows Properties, hierarchical navigation",
+    "Build: PASS, Tests: 73/73 PASS (571 assertions)",
+    "Key commits: 409e676 (status persistence), f6f232d (docs)"
   ]
 }
