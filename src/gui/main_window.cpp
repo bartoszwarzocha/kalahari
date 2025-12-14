@@ -1470,6 +1470,10 @@ void MainWindow::createDocks() {
     int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, tr("Dashboard"));
     m_centralTabs->setCurrentIndex(dashboardIndex);
 
+    // Connect Dashboard recent book signal (OpenSpec #00036)
+    connect(m_dashboardPanel, &DashboardPanel::openRecentBookRequested,
+            this, &MainWindow::onOpenRecentFile);
+
     // Connect tab close signal (Task #00015)
     connect(m_centralTabs, &QTabWidget::tabCloseRequested, this, [this](int index) {
         auto& logger = core::Logger::getInstance();

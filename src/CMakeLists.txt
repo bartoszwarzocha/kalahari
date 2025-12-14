@@ -121,6 +121,7 @@ set(KALAHARI_SOURCES
     gui/settings_dialog.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
+    gui/widgets/recent_book_card.cpp  # RecentBookCard widget (OpenSpec #00036)
     gui/toolbar_builder.cpp
     gui/toolbar_manager.cpp
     gui/panels/assistant_panel.cpp
@@ -150,6 +151,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/recent_book_card.h  # RecentBookCard with Q_OBJECT (OpenSpec #00036)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
