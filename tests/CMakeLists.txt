@@ -14,6 +14,7 @@ set(TEST_SOURCES
     core/test_book.cpp
     core/test_document.cpp
     core/test_document_archive.cpp
+    core/test_chapter_document.cpp
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -44,6 +45,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
