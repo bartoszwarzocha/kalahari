@@ -22,6 +22,7 @@
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QToolButton>
+#include <QComboBox>
 #include <QTimer>
 #include <QMenu>
 #include <QPalette>
@@ -35,12 +36,17 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     : QWidget(parent)
     , m_treeWidget(nullptr)
     , m_otherFilesItem(nullptr)
+    , m_typeFilter(nullptr)
+    , m_currentFilterType(FilterType::All)
     , m_searchEdit(nullptr)
     , m_clearButton(nullptr)
+    , m_expandAllButton(nullptr)
+    , m_collapseAllButton(nullptr)
     , m_filterDebounceTimer(nullptr)
     , m_contextMenuItem(nullptr)
     , m_highlightedItem(nullptr)
     , m_highlightColor()
+    , m_currentIconSize(0)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
@@ -57,6 +63,19 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     searchLayout->setContentsMargins(4, 4, 4, 0);
     searchLayout->setSpacing(2);
 
+    // Create type filter combo box
+    m_typeFilter = new QComboBox(this);
+    m_typeFilter->addItem(tr("All"), static_cast<int>(FilterType::All));
+    m_typeFilter->addItem(tr("Text"), static_cast<int>(FilterType::TextFiles));
+    m_typeFilter->addItem(tr("Mind Maps"), static_cast<int>(FilterType::MindMaps));
+    m_typeFilter->addItem(tr("Timelines"), static_cast<int>(FilterType::Timelines));
+    m_typeFilter->addItem(tr("Other"), static_cast<int>(FilterType::OtherFiles));
+    m_typeFilter->setToolTip(tr("Filter by document type"));
+    m_typeFilter->setMinimumWidth(80);
+
+    connect(m_typeFilter, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &NavigatorPanel::onTypeFilterChanged);
+
     m_searchEdit = new QLineEdit(this);
     m_searchEdit->setPlaceholderText(tr("Filter tree..."));
     m_searchEdit->setClearButtonEnabled(false);  // We use our own clear button
@@ -67,8 +86,22 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_clearButton->setAutoRaise(true);
     m_clearButton->setVisible(false);  // Hidden until text is entered
 
+    // Create expand/collapse all buttons
+    m_expandAllButton = new QToolButton(this);
+    m_expandAllButton->setIcon(artProvider.getIcon("common.expandMore", core::IconContext::Menu));
+    m_expandAllButton->setToolTip(tr("Expand All"));
+    m_expandAllButton->setAutoRaise(true);
+
+    m_collapseAllButton = new QToolButton(this);
+    m_collapseAllButton->setIcon(artProvider.getIcon("common.expandLess", core::IconContext::Menu));
+    m_collapseAllButton->setToolTip(tr("Collapse All"));
+    m_collapseAllButton->setAutoRaise(true);
+
+    searchLayout->addWidget(m_typeFilter);
     searchLayout->addWidget(m_searchEdit);
     searchLayout->addWidget(m_clearButton);
+    searchLayout->addWidget(m_expandAllButton);
+    searchLayout->addWidget(m_collapseAllButton);
     layout->addLayout(searchLayout);
 
     // Create debounce timer for filter (300ms delay)
@@ -92,6 +125,16 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
 
     // Create tree widget
     m_treeWidget = new QTreeWidget(this);
+
+    // Connect expand/collapse all buttons (after tree widget creation)
+    connect(m_expandAllButton, &QToolButton::clicked, m_treeWidget, &QTreeWidget::expandAll);
+    connect(m_collapseAllButton, &QToolButton::clicked, m_treeWidget, &QTreeWidget::collapseAll);
+
+    // Initialize icon size from ArtProvider (reads from settings)
+    // This must be done BEFORE any icons are added to prevent pixelation
+    m_currentIconSize = artProvider.getIconSize(core::IconContext::TreeView);
+    m_treeWidget->setIconSize(QSize(m_currentIconSize, m_currentIconSize));
+    logger.debug("NavigatorPanel: Initial icon size set to {}px", m_currentIconSize);
 
     // No document loaded yet - tree will be populated via loadDocument()
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
@@ -353,8 +396,18 @@ void NavigatorPanel::refreshIcons() {
 
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Refresh clear button icon
+    // Check if icon size changed and update tree widget if needed
+    int newIconSize = artProvider.getIconSize(core::IconContext::TreeView);
+    if (newIconSize != m_currentIconSize) {
+        m_currentIconSize = newIconSize;
+        m_treeWidget->setIconSize(QSize(m_currentIconSize, m_currentIconSize));
+        logger.info("NavigatorPanel: Icon size updated to {}px", m_currentIconSize);
+    }
+
+    // Refresh toolbar button icons
     m_clearButton->setIcon(artProvider.getIcon("common.cancel", core::IconContext::Menu));
+    m_expandAllButton->setIcon(artProvider.getIcon("common.expandMore", core::IconContext::Menu));
+    m_collapseAllButton->setIcon(artProvider.getIcon("common.expandLess", core::IconContext::Menu));
 
     // Refresh all items in the tree
     for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
@@ -570,10 +623,11 @@ bool NavigatorPanel::hasStandaloneFiles() const {
 
 void NavigatorPanel::filterTree(const QString& text) {
     auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::filterTree() - Text: '{}'", text.toStdString());
+    logger.debug("NavigatorPanel::filterTree() - Text: '{}', TypeFilter: {}",
+                 text.toStdString(), static_cast<int>(m_currentFilterType));
 
-    if (text.isEmpty()) {
-        // Show all items when filter is empty
+    if (text.isEmpty() && m_currentFilterType == FilterType::All) {
+        // Show all items when both filters are empty/all
         for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
             setItemVisibleRecursive(m_treeWidget->topLevelItem(i), true);
         }
@@ -597,13 +651,97 @@ void NavigatorPanel::clearFilter() {
     // The textChanged signal will trigger filterTree with empty text
 }
 
+void NavigatorPanel::onTypeFilterChanged(int index) {
+    auto& logger = core::Logger::getInstance();
+
+    m_currentFilterType = static_cast<FilterType>(m_typeFilter->itemData(index).toInt());
+    logger.debug("NavigatorPanel::onTypeFilterChanged() - Type: {}",
+                 static_cast<int>(m_currentFilterType));
+
+    // Re-apply filter with new type
+    filterTree(m_searchEdit->text());
+}
+
+bool NavigatorPanel::matchesTypeFilter(QTreeWidgetItem* item) const {
+    if (m_currentFilterType == FilterType::All) {
+        return true;
+    }
+
+    QString elementType = item->data(0, Qt::UserRole + 1).toString();
+    QString elementId = item->data(0, Qt::UserRole).toString();
+
+    // Section headers always match (to show their children)
+    if (elementType == "document" || elementType == "root" ||
+        elementType == "section" || elementType == "section_frontmatter" ||
+        elementType == "section_body" || elementType == "section_backmatter" ||
+        elementType == "part" || elementType == "other_files") {
+        return true;
+    }
+
+    switch (m_currentFilterType) {
+    case FilterType::TextFiles:
+        // Text files: chapters and all frontmatter/backmatter item types
+        return (elementType == "chapter" ||
+                elementType == "title_page" ||
+                elementType == "copyright" ||
+                elementType == "dedication" ||
+                elementType == "epigraph" ||
+                elementType == "foreword" ||
+                elementType == "preface" ||
+                elementType == "introduction" ||
+                elementType == "prologue" ||
+                elementType == "epilogue" ||
+                elementType == "afterword" ||
+                elementType == "acknowledgments" ||
+                elementType == "appendix" ||
+                elementType == "glossary" ||
+                elementType == "bibliography" ||
+                elementType == "index" ||
+                elementType == "colophon" ||
+                elementType == "about_author");
+
+    case FilterType::MindMaps:
+        // Mind maps: standalone files with .kmap extension or mindmap type
+        if (elementType == "standalone_file") {
+            QString path = elementId;  // For standalone files, ID is the path
+            return path.toLower().endsWith(".kmap");
+        }
+        return elementType.toLower().contains("mindmap");
+
+    case FilterType::Timelines:
+        // Timelines: standalone files with .ktl extension or timeline type
+        if (elementType == "standalone_file") {
+            QString path = elementId;  // For standalone files, ID is the path
+            return path.toLower().endsWith(".ktl");
+        }
+        return elementType.toLower().contains("timeline");
+
+    case FilterType::OtherFiles:
+        // Other files: only items in "Other Files" section (standalone files)
+        return (elementType == "standalone_file");
+
+    case FilterType::All:
+    default:
+        return true;
+    }
+}
+
 bool NavigatorPanel::processFilterItem(QTreeWidgetItem* item, const QString& filterText) {
     if (!item) {
         return false;
     }
 
-    // Check if this item's text matches
-    bool textMatches = item->text(0).toLower().contains(filterText);
+    QString elementType = item->data(0, Qt::UserRole + 1).toString();
+
+    // Check if this item matches both text filter and type filter
+    bool textMatches = filterText.isEmpty() || item->text(0).toLower().contains(filterText);
+    bool typeMatches = matchesTypeFilter(item);
+
+    // For container types (sections, parts), we need to check children too
+    bool isContainer = (elementType == "document" || elementType == "root" ||
+                        elementType == "section" || elementType == "section_frontmatter" ||
+                        elementType == "section_body" || elementType == "section_backmatter" ||
+                        elementType == "part" || elementType == "other_files");
 
     // Process all children recursively
     bool hasMatchingChild = false;
@@ -613,12 +751,22 @@ bool NavigatorPanel::processFilterItem(QTreeWidgetItem* item, const QString& fil
         }
     }
 
-    // Item should be visible if it matches OR has matching children
-    bool shouldBeVisible = textMatches || hasMatchingChild;
+    // Determine visibility:
+    // - Leaf items: must match both text and type filters
+    // - Container items: visible if has matching children OR (matches text AND has content)
+    bool shouldBeVisible;
+    if (isContainer) {
+        // Container is visible if it has matching children
+        shouldBeVisible = hasMatchingChild;
+    } else {
+        // Leaf item must match both filters
+        shouldBeVisible = textMatches && typeMatches;
+    }
+
     item->setHidden(!shouldBeVisible);
 
     // Auto-expand parent items that have matching children
-    if (hasMatchingChild && !filterText.isEmpty()) {
+    if (hasMatchingChild && (!filterText.isEmpty() || m_currentFilterType != FilterType::All)) {
         item->setExpanded(true);
     }
 

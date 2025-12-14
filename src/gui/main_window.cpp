@@ -50,6 +50,7 @@
 #include <QToolButton>
 #include <QStyle>
 #include <QProgressDialog>
+#include <QInputDialog>
 
 namespace kalahari {
 namespace gui {
@@ -1518,6 +1519,16 @@ void MainWindow::createDocks() {
         }
     });
 
+    // Connect Navigator context menu signals
+    connect(m_navigatorPanel, &NavigatorPanel::requestRename,
+            this, &MainWindow::onNavigatorRequestRename);
+    connect(m_navigatorPanel, &NavigatorPanel::requestDelete,
+            this, &MainWindow::onNavigatorRequestDelete);
+    connect(m_navigatorPanel, &NavigatorPanel::requestMoveElement,
+            this, &MainWindow::onNavigatorRequestMove);
+    connect(m_navigatorPanel, &NavigatorPanel::requestProperties,
+            this, &MainWindow::onNavigatorRequestProperties);
+
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     connect(m_centralTabs, &QTabWidget::currentChanged, this, [this](int index) {
         if (index < 0) {
@@ -1927,6 +1938,8 @@ void MainWindow::onProjectClosed() {
             .replace(":", "_")
             .replace(" ", "_");
         m_navigatorPanel->saveExpansionState(projectId);
+        // Persist to disk immediately (fix: was only saved in closeEvent)
+        core::SettingsManager::getInstance().save();
         logger.debug("Saved expansion state for project: {}", projectId.toStdString());
     }
 
@@ -3090,6 +3103,272 @@ void MainWindow::onImportArchive() {
         QMessageBox::warning(this, tr("Import Failed"),
             tr("Failed to import project archive."));
         logger.error("Failed to import project archive");
+    }
+}
+
+// =============================================================================
+// Navigator Context Menu Handlers
+// =============================================================================
+
+void MainWindow::onNavigatorRequestRename(const QString& elementId, const QString& currentTitle) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Rename requested but no project open");
+        return;
+    }
+
+    // Show input dialog for new name
+    bool ok;
+    QString newTitle = QInputDialog::getText(this, tr("Rename"),
+        tr("New name:"), QLineEdit::Normal, currentTitle, &ok);
+
+    if (!ok || newTitle.isEmpty() || newTitle == currentTitle) {
+        return;  // Cancelled or no change
+    }
+
+    // Find and rename the element
+    core::BookElement* element = pm.findElement(elementId);
+    if (element) {
+        element->setTitle(newTitle.toStdString());
+        element->touch();  // Update modified timestamp
+        pm.setDirty(true);
+
+        // Save manifest to persist the change
+        if (pm.saveManifest()) {
+            logger.info("MainWindow: Renamed element '{}' to '{}'",
+                        elementId.toStdString(), newTitle.toStdString());
+
+            // Refresh navigator to show new name
+            if (pm.getDocument()) {
+                m_navigatorPanel->loadDocument(*pm.getDocument());
+            }
+
+            // Update tab title if this element is open
+            for (int i = 0; i < m_centralTabs->count(); ++i) {
+                QWidget* widget = m_centralTabs->widget(i);
+                if (widget->property("elementId").toString() == elementId) {
+                    m_centralTabs->setTabText(i, newTitle);
+                    break;
+                }
+            }
+
+            statusBar()->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
+        } else {
+            logger.error("MainWindow: Failed to save manifest after rename");
+            QMessageBox::warning(this, tr("Rename Failed"),
+                tr("Failed to save changes."));
+        }
+        return;
+    }
+
+    // Check if it's a Part
+    core::Part* part = pm.findPart(elementId);
+    if (part) {
+        part->setTitle(newTitle.toStdString());
+        pm.setDirty(true);
+
+        if (pm.saveManifest()) {
+            logger.info("MainWindow: Renamed part '{}' to '{}'",
+                        elementId.toStdString(), newTitle.toStdString());
+
+            if (pm.getDocument()) {
+                m_navigatorPanel->loadDocument(*pm.getDocument());
+            }
+
+            statusBar()->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
+        } else {
+            logger.error("MainWindow: Failed to save manifest after part rename");
+            QMessageBox::warning(this, tr("Rename Failed"),
+                tr("Failed to save changes."));
+        }
+        return;
+    }
+
+    logger.warn("MainWindow: Element not found for rename: {}", elementId.toStdString());
+}
+
+void MainWindow::onNavigatorRequestDelete(const QString& elementId, const QString& elementType) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Delete requested but no project open");
+        return;
+    }
+
+    core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.error("MainWindow: No document available for delete");
+        return;
+    }
+
+    // Confirm deletion
+    QString typeDisplayName = elementType;
+    if (elementType == "chapter") typeDisplayName = tr("chapter");
+    else if (elementType == "part") typeDisplayName = tr("part");
+    else if (elementType == "title_page") typeDisplayName = tr("title page");
+    else if (elementType == "dedication") typeDisplayName = tr("dedication");
+    else if (elementType == "preface") typeDisplayName = tr("preface");
+    else if (elementType == "epilogue") typeDisplayName = tr("epilogue");
+    else if (elementType == "glossary") typeDisplayName = tr("glossary");
+    else if (elementType == "bibliography") typeDisplayName = tr("bibliography");
+    else if (elementType == "about_author") typeDisplayName = tr("about author");
+
+    auto reply = QMessageBox::question(this, tr("Confirm Delete"),
+        tr("Are you sure you want to delete this %1?\n\nThis action cannot be undone.")
+            .arg(typeDisplayName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
+    bool deleted = false;
+    core::Book& book = doc->getBook();
+
+    // Close tab if element is open
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        QWidget* widget = m_centralTabs->widget(i);
+        if (widget->property("elementId").toString() == elementId) {
+            m_centralTabs->removeTab(i);
+            widget->deleteLater();
+            break;
+        }
+    }
+
+    // Try to delete from different sections
+    if (book.removeFrontMatter(elementId.toStdString())) {
+        deleted = true;
+        logger.info("MainWindow: Deleted front matter element: {}", elementId.toStdString());
+    } else if (book.removeBackMatter(elementId.toStdString())) {
+        deleted = true;
+        logger.info("MainWindow: Deleted back matter element: {}", elementId.toStdString());
+    } else if (elementType == "part" && book.removePart(elementId.toStdString())) {
+        deleted = true;
+        logger.info("MainWindow: Deleted part: {}", elementId.toStdString());
+    } else {
+        // Try to find chapter in any part
+        for (auto& part : book.getBody()) {
+            if (part->removeChapter(elementId.toStdString())) {
+                deleted = true;
+                logger.info("MainWindow: Deleted chapter: {} from part: {}",
+                            elementId.toStdString(), part->getId());
+                break;
+            }
+        }
+    }
+
+    if (deleted) {
+        pm.setDirty(true);
+        if (pm.saveManifest()) {
+            // Refresh navigator
+            m_navigatorPanel->loadDocument(*doc);
+            statusBar()->showMessage(tr("Deleted successfully"), 2000);
+        } else {
+            logger.error("MainWindow: Failed to save manifest after delete");
+            QMessageBox::warning(this, tr("Delete Error"),
+                tr("Element was deleted but failed to save manifest."));
+        }
+    } else {
+        logger.warn("MainWindow: Element not found for delete: {}", elementId.toStdString());
+        QMessageBox::warning(this, tr("Delete Failed"),
+            tr("Could not find the element to delete."));
+    }
+}
+
+void MainWindow::onNavigatorRequestMove(const QString& elementId, int direction) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Move requested but no project open");
+        return;
+    }
+
+    core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.error("MainWindow: No document available for move");
+        return;
+    }
+
+    core::Book& book = doc->getBook();
+    bool moved = false;
+
+    // Try to find and move the element
+    // Check if it's a Part
+    auto& body = book.getBody();
+    for (size_t i = 0; i < body.size(); ++i) {
+        if (body[i]->getId() == elementId.toStdString()) {
+            // It's a part - move it
+            int newIndex = static_cast<int>(i) + direction;
+            if (newIndex >= 0 && newIndex < static_cast<int>(body.size())) {
+                if (book.movePart(i, static_cast<size_t>(newIndex))) {
+                    moved = true;
+                    logger.info("MainWindow: Moved part from {} to {}", i, newIndex);
+                }
+            }
+            break;
+        }
+
+        // Check chapters within this part
+        auto& chapters = body[i]->getChapters();
+        for (size_t j = 0; j < chapters.size(); ++j) {
+            if (chapters[j]->getId() == elementId.toStdString()) {
+                int newIndex = static_cast<int>(j) + direction;
+                if (newIndex >= 0 && newIndex < static_cast<int>(chapters.size())) {
+                    if (body[i]->moveChapter(j, static_cast<size_t>(newIndex))) {
+                        moved = true;
+                        logger.info("MainWindow: Moved chapter from {} to {} in part {}",
+                                    j, newIndex, body[i]->getId());
+                    }
+                }
+                break;
+            }
+        }
+        if (moved) break;
+    }
+
+    // TODO: Add support for moving front matter and back matter elements
+
+    if (moved) {
+        pm.setDirty(true);
+        if (pm.saveManifest()) {
+            m_navigatorPanel->loadDocument(*doc);
+            statusBar()->showMessage(direction < 0 ? tr("Moved up") : tr("Moved down"), 2000);
+        } else {
+            logger.error("MainWindow: Failed to save manifest after move");
+        }
+    } else {
+        logger.debug("MainWindow: Could not move element: {} (at boundary or not found)",
+                     elementId.toStdString());
+    }
+}
+
+void MainWindow::onNavigatorRequestProperties(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Properties requested but no project open");
+        return;
+    }
+
+    // Make sure Properties dock is visible
+    if (m_propertiesDock) {
+        m_propertiesDock->show();
+        m_propertiesDock->raise();
+    }
+
+    if (elementId.isEmpty() || elementId == "document") {
+        // Show project properties
+        logger.debug("MainWindow: Showing project properties");
+        m_propertiesPanel->showProjectProperties();
+    } else {
+        // Show element properties
+        logger.debug("MainWindow: Showing properties for element: {}", elementId.toStdString());
+        m_propertiesPanel->showChapterProperties(elementId);
     }
 }
 

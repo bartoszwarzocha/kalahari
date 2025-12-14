@@ -19,6 +19,7 @@ class QTreeWidgetItem;
 class QLineEdit;
 class QToolButton;
 class QTimer;
+class QComboBox;
 
 namespace kalahari {
 namespace core {
@@ -158,6 +159,10 @@ private slots:
     /// @brief Clear filter and show all items
     void clearFilter();
 
+    /// @brief Handle type filter change
+    /// @param index New combo box index
+    void onTypeFilterChanged(int index);
+
     /// @brief Show context menu at position
     /// @param pos Position in widget coordinates
     void showContextMenu(const QPoint& pos);
@@ -200,6 +205,11 @@ private:
     /// @param filterText Filter text (lowercase)
     /// @return True if item or any children match the filter
     bool processFilterItem(QTreeWidgetItem* item, const QString& filterText);
+
+    /// @brief Check if item matches the current type filter
+    /// @param item Item to check
+    /// @return True if item matches type filter or type filter is "All"
+    bool matchesTypeFilter(QTreeWidgetItem* item) const;
 
     /// @brief Set item and all children visible/hidden recursively
     /// @param item Item to modify
@@ -262,13 +272,26 @@ private:
     /// @return Index within parent, or -1 if no parent
     int getItemIndex(QTreeWidgetItem* item) const;
 
+    /// @brief Document type filter options
+    enum class FilterType {
+        All,          ///< Show all items
+        TextFiles,    ///< Show chapters, frontmatter, backmatter items
+        MindMaps,     ///< Show mind map files (.kmap)
+        Timelines,    ///< Show timeline files (.ktl)
+        OtherFiles    ///< Show items in "Other Files" section
+    };
+
     QTreeWidget* m_treeWidget;
     QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
 
     // Search/filter components
+    QComboBox* m_typeFilter;             ///< Type filter combo box
+    FilterType m_currentFilterType;      ///< Current type filter
     QLineEdit* m_searchEdit;             ///< Filter input field
     QToolButton* m_clearButton;          ///< Clear filter button
+    QToolButton* m_expandAllButton;      ///< Expand all tree items button
+    QToolButton* m_collapseAllButton;    ///< Collapse all tree items button
     QTimer* m_filterDebounceTimer;       ///< Debounce timer for filter (300ms)
 
     // Context menu
@@ -277,6 +300,9 @@ private:
     // Editor synchronization (OpenSpec #00034 Phase C)
     QTreeWidgetItem* m_highlightedItem;  ///< Currently highlighted item (nullptr if none)
     QColor m_highlightColor;             ///< Theme-aware highlight color (with alpha)
+
+    // Icon size tracking for dynamic updates
+    int m_currentIconSize;               ///< Current icon size (to detect changes)
 };
 
 } // namespace gui

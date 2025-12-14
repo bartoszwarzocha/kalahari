@@ -260,6 +260,26 @@ private slots:
     /// Imports project from .klh.zip archive
     void onImportArchive();
 
+    // Navigator context menu handlers
+    /// @brief Slot for Navigator panel rename request
+    /// @param elementId Element ID to rename
+    /// @param currentTitle Current title for edit dialog
+    void onNavigatorRequestRename(const QString& elementId, const QString& currentTitle);
+
+    /// @brief Slot for Navigator panel delete request
+    /// @param elementId Element ID to delete
+    /// @param elementType Type of element (for confirmation message)
+    void onNavigatorRequestDelete(const QString& elementId, const QString& elementType);
+
+    /// @brief Slot for Navigator panel move request
+    /// @param elementId Element ID to move
+    /// @param direction -1 for up, +1 for down
+    void onNavigatorRequestMove(const QString& elementId, int direction);
+
+    /// @brief Slot for Navigator panel properties request
+    /// @param elementId Element ID (empty for document properties)
+    void onNavigatorRequestProperties(const QString& elementId);
+
     /// @brief Open a standalone file by path (OpenSpec #00033 Phase F)
     /// @param path Absolute path to the file
     void openStandaloneFile(const QString& path);
