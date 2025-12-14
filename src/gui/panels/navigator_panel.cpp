@@ -26,6 +26,7 @@
 #include <QComboBox>
 #include <QTimer>
 #include <QMenu>
+#include <QActionGroup>
 #include <QPalette>
 #include <QBrush>
 #include <functional>
@@ -917,6 +918,46 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         menu.addSeparator();
 
+        // Add "Set Status" submenu for chapter-type elements
+        QMenu* statusMenu = menu.addMenu(tr("Set Status"));
+
+        QActionGroup* statusGroup = new QActionGroup(statusMenu);
+        statusGroup->setExclusive(true);
+
+        // Get current status
+        QString currentStatus = "draft";
+        auto& pm = core::ProjectManager::getInstance();
+        if (auto* element = pm.findElement(elementId)) {
+            auto status = element->getMetadata("status");
+            if (status.has_value()) {
+                currentStatus = QString::fromStdString(status.value()).toLower();
+            }
+        }
+
+        // Create radio actions
+        QAction* draftAction = statusMenu->addAction(tr("Draft"));
+        draftAction->setCheckable(true);
+        draftAction->setChecked(currentStatus == "draft");
+        draftAction->setData("draft");
+        statusGroup->addAction(draftAction);
+
+        QAction* revisionAction = statusMenu->addAction(tr("Revision"));
+        revisionAction->setCheckable(true);
+        revisionAction->setChecked(currentStatus == "revision");
+        revisionAction->setData("revision");
+        statusGroup->addAction(revisionAction);
+
+        QAction* finalAction = statusMenu->addAction(tr("Final"));
+        finalAction->setCheckable(true);
+        finalAction->setChecked(currentStatus == "final");
+        finalAction->setData("final");
+        statusGroup->addAction(finalAction);
+
+        connect(statusGroup, &QActionGroup::triggered,
+                this, &NavigatorPanel::onContextMenuSetStatus);
+
+        menu.addSeparator();
+
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
             tr("Properties..."));
@@ -1584,6 +1625,27 @@ QTreeWidgetItem* NavigatorPanel::findItemByTypeAndTextRecursive(QTreeWidgetItem*
     }
 
     return nullptr;
+}
+
+void NavigatorPanel::onContextMenuSetStatus(QAction* action) {
+    if (!m_contextMenuItem) return;
+
+    QString elementId = m_contextMenuItem->data(0, Qt::UserRole).toString();
+    QString newStatus = action->data().toString();
+
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::onContextMenuSetStatus() - ID: {}, Status: {}",
+                 elementId.toStdString(), newStatus.toStdString());
+
+    auto& pm = core::ProjectManager::getInstance();
+    if (auto* element = pm.findElement(elementId)) {
+        element->setMetadata("status", newStatus.toStdString());
+        pm.saveChapterMetadata(QString::fromStdString(element->getId()));
+        refreshItem(elementId);
+
+        // Also emit requestProperties to update Properties panel if visible
+        emit requestProperties(elementId);
+    }
 }
 
 } // namespace gui

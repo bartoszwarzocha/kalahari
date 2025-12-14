@@ -14,6 +14,7 @@
 #include <QMap>
 #include <QString>
 
+class QAction;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QLineEdit;
@@ -195,6 +196,7 @@ private slots:
     void onContextMenuProperties();
     void onContextMenuAddToProject();
     void onContextMenuRemoveFromList();
+    void onContextMenuSetStatus(QAction* action);
 
     /// @brief Handle keyboard navigation - update Properties panel
     /// @param current Current item (newly selected via arrow keys)
