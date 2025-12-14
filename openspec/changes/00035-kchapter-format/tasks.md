@@ -60,19 +60,20 @@
 - [ ] Create new chapters directly in .kchapter format
 - [x] Update example project to use .kchapter
 
-## Future Work (Status Feature)
+## Status Feature (COMPLETE)
 
 ### Navigator Status Display
-- [ ] Show chapter status in Navigator: `Chapter One [Draft]`
-- [ ] Final status = no suffix (clean display)
-- [ ] Predefined statuses: Draft, Revision, Final, NeedsReview
+- [x] Show chapter status in Navigator: `Chapter One [Draft]`
+- [x] Final status = no suffix (clean display)
+- [x] Helper function `getDisplayTitle()` in navigator_panel.cpp
 
 ### Statistics by Status
-- [ ] Project statistics panel: count files by status
-- [ ] Example: "5 Draft, 3 Revision, 10 Final"
-- [ ] PropertiesPanel project view integration
+- [x] Project statistics panel: count files by status
+- [x] PropertiesPanel: Draft: X, Revision: Y, Final: Z
+- [x] `ProjectManager::getStatusStatistics()` method
 
 ### Export Warnings
-- [ ] Warn on export if project contains Draft/Revision files
-- [ ] Option to export anyway or cancel
-- [ ] List incomplete files in warning dialog
+- [x] Warn on export if project contains Draft/Revision files
+- [x] Groups files by status in warning dialog
+- [x] Option to export anyway or cancel
+- [x] `ProjectManager::getIncompleteElements()` method
