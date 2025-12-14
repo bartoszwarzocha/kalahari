@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export/Import project archive (.klh.zip) with progress dialog (Phase H)
 - Deleted obsolete test.klh artifact
 
+- **OpenSpec #00036:** Dashboard & Navigator Enhancements - 2025-12-14
+  - **Phase A: Navigator Status Submenu**
+    - "Set Status" submenu in NavigatorPanel context menu for chapter files
+    - QActionGroup with radio actions: Draft, Revision, Final
+    - Current chapter status auto-checked based on .kchapter file
+    - Status changes persist immediately to .kchapter file
+  - **Phase B: Dashboard Recent Books**
+    - RecentBookCard widget with horizontal layout (icon 48x48, title, stats, date)
+    - "Recent Books" section in DashboardPanel with up to 5 items
+    - Card click opens the project via openRecentBookRequested signal
+    - Empty state message when no recent books exist
+    - Keyboard shortcuts section updated
+  - **Phase C: Auto-load Last Project**
+    - Setting key "general.autoLoadLastProject" (bool) in SettingsManager
+    - Checkbox on Dashboard below recent books section
+    - Checkbox in Settings dialog (General section)
+    - MainWindow::showEvent() implements auto-load logic
+    - "Clear Recent" action clears both Recent Files menu and Dashboard list
+    - Recent Files menu and Dashboard list stay synchronized
+  - Files added: `recent_book_card.h`, `recent_book_card.cpp`
+  - Files modified: `navigator_panel.cpp`, `navigator_panel.h`, `dashboard_panel.cpp`, `dashboard_panel.h`, `settings_dialog.cpp`, `settings_dialog.h`, `main_window.cpp`, `main_window.h`, `settings_manager.cpp`, `settings_manager.h`
+  - Commits: `b1f1227` (Phase A), `85249c4` (Phase B), `c9634e0` (Phase C)
+
 - **OpenSpec #00035:** KChapter Document Format - 2025-12-14
   - **New .kchapter file format** replacing RTF for chapter storage (JSON + HTML)
   - **ChapterDocument class:** Core data structure for chapter content and metadata
