@@ -475,6 +475,13 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                 std::filesystem::path(file.toStdWString())
             );
             element->setWordCount(wordCount);
+
+            // Load status from manifest (OpenSpec #00034)
+            if (elemObj.contains("status")) {
+                QString status = elemObj["status"].toString();
+                element->setMetadata("status", status.toStdString());
+            }
+
             book.addFrontMatter(element);
 
             Logger::getInstance().debug("Loaded frontmatter: {} ({})",
@@ -512,6 +519,13 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                         std::filesystem::path(chapFile.toStdWString())
                     );
                     chapter->setWordCount(wordCount);
+
+                    // Load status from manifest (OpenSpec #00034)
+                    if (chapObj.contains("status")) {
+                        QString status = chapObj["status"].toString();
+                        chapter->setMetadata("status", status.toStdString());
+                    }
+
                     part->addChapter(chapter);
 
                     Logger::getInstance().debug("Loaded chapter: {} ({})",
@@ -543,6 +557,13 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                 std::filesystem::path(file.toStdWString())
             );
             element->setWordCount(wordCount);
+
+            // Load status from manifest (OpenSpec #00034)
+            if (elemObj.contains("status")) {
+                QString status = elemObj["status"].toString();
+                element->setMetadata("status", status.toStdString());
+            }
+
             book.addBackMatter(element);
 
             Logger::getInstance().debug("Loaded backmatter: {} ({})",
@@ -579,6 +600,13 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
         elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
         elemObj["type"] = QString::fromStdString(element->getType());
         elemObj["wordCount"] = element->getWordCount();
+
+        // Save status to manifest (OpenSpec #00034)
+        auto status = element->getMetadata("status");
+        if (status.has_value()) {
+            elemObj["status"] = QString::fromStdString(status.value());
+        }
+
         frontmatterArray.append(elemObj);
     }
     structureObj["frontmatter"] = frontmatterArray;
@@ -597,6 +625,13 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
             chapObj["title"] = QString::fromStdString(chapter->getTitle());
             chapObj["file"] = QString::fromStdWString(chapter->getFile().wstring());
             chapObj["wordCount"] = chapter->getWordCount();
+
+            // Save status to manifest (OpenSpec #00034)
+            auto status = chapter->getMetadata("status");
+            if (status.has_value()) {
+                chapObj["status"] = QString::fromStdString(status.value());
+            }
+
             chaptersArray.append(chapObj);
         }
         partObj["chapters"] = chaptersArray;
@@ -613,6 +648,13 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
         elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
         elemObj["type"] = QString::fromStdString(element->getType());
         elemObj["wordCount"] = element->getWordCount();
+
+        // Save status to manifest (OpenSpec #00034)
+        auto status = element->getMetadata("status");
+        if (status.has_value()) {
+            elemObj["status"] = QString::fromStdString(status.value());
+        }
+
         backmatterArray.append(elemObj);
     }
     structureObj["backmatter"] = backmatterArray;

@@ -233,6 +233,37 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     connect(m_treeWidget, &QTreeWidget::customContextMenuRequested,
             this, &NavigatorPanel::showContextMenu);
 
+    // Connect single-click signal - emit requestProperties for any element
+    connect(m_treeWidget, &QTreeWidget::itemClicked,
+            this, [this](QTreeWidgetItem* item, int column) {
+                Q_UNUSED(column);
+                auto& logger = core::Logger::getInstance();
+
+                QString elementId = item->data(0, Qt::UserRole).toString();
+                QString elementType = item->data(0, Qt::UserRole + 1).toString();
+                QString elementTitle = item->text(0);
+
+                logger.debug("NavigatorPanel: Item single-clicked: {} (type={}, id={})",
+                           elementTitle.toStdString(),
+                           elementType.toStdString(),
+                           elementId.toStdString());
+
+                // Emit requestProperties for all elements
+                // Document root uses empty ID to show project properties
+                // Sections and parts emit with their type for aggregate statistics
+                if (elementType == "document") {
+                    emit requestProperties("");  // Project properties
+                } else if (elementType == "section_frontmatter" ||
+                           elementType == "section_body" ||
+                           elementType == "section_backmatter") {
+                    emit requestSectionProperties(elementType);
+                } else if (elementType == "part") {
+                    emit requestPartProperties(elementId);
+                } else if (!elementId.isEmpty()) {
+                    emit requestProperties(elementId);
+                }
+            });
+
     // Connect double-click signal - emit elementSelected for leaf elements only
     connect(m_treeWidget, &QTreeWidget::itemDoubleClicked,
             this, [this](QTreeWidgetItem* item, int column) {

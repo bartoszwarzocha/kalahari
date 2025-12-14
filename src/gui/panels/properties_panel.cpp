@@ -9,6 +9,7 @@
 #include "kalahari/core/document.h"
 #include "kalahari/core/book.h"
 #include "kalahari/core/book_element.h"
+#include "kalahari/core/part.h"
 #include <QLabel>
 #include <QLineEdit>
 #include <QComboBox>
@@ -44,6 +45,18 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
     , m_chapterNotesEdit(nullptr)
+    , m_sectionTitleLabel(nullptr)
+    , m_sectionChapterCountLabel(nullptr)
+    , m_sectionWordCountLabel(nullptr)
+    , m_sectionDraftCountLabel(nullptr)
+    , m_sectionRevisionCountLabel(nullptr)
+    , m_sectionFinalCountLabel(nullptr)
+    , m_partTitleLabel(nullptr)
+    , m_partChapterCountLabel(nullptr)
+    , m_partWordCountLabel(nullptr)
+    , m_partDraftCountLabel(nullptr)
+    , m_partRevisionCountLabel(nullptr)
+    , m_partFinalCountLabel(nullptr)
     , m_isUpdating(false)
 {
     auto& logger = core::Logger::getInstance();
@@ -79,6 +92,8 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createNoProjectPage());   // Page::NoProject = 0
     m_stackedWidget->addWidget(createProjectPage());     // Page::Project = 1
     m_stackedWidget->addWidget(createChapterPage());     // Page::Chapter = 2
+    m_stackedWidget->addWidget(createSectionPage());     // Page::Section = 3
+    m_stackedWidget->addWidget(createPartPage());        // Page::Part = 4
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -287,6 +302,144 @@ QWidget* PropertiesPanel::createChapterPage() {
     return page;
 }
 
+QWidget* PropertiesPanel::createSectionPage() {
+    QWidget* page = new QWidget();
+
+    // Use scroll area for long content
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+
+    // Section header
+    m_sectionTitleLabel = new QLabel(scrollContent);
+    m_sectionTitleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
+    layout->addWidget(m_sectionTitleLabel);
+
+    // Statistics group
+    QGroupBox* statsGroup = new QGroupBox(tr("Statistics"), scrollContent);
+    QFormLayout* statsLayout = new QFormLayout(statsGroup);
+    statsLayout->setSpacing(6);
+    statsLayout->setContentsMargins(11, 11, 11, 11);
+
+    // Chapter count
+    m_sectionChapterCountLabel = new QLabel("0", statsGroup);
+    m_sectionChapterCountLabel->setToolTip(tr("Number of chapters in this section"));
+    statsLayout->addRow(tr("Chapters:"), m_sectionChapterCountLabel);
+
+    // Word count
+    m_sectionWordCountLabel = new QLabel("0", statsGroup);
+    m_sectionWordCountLabel->setToolTip(tr("Total word count in this section"));
+    statsLayout->addRow(tr("Total Words:"), m_sectionWordCountLabel);
+
+    layout->addWidget(statsGroup);
+
+    // Status group
+    QGroupBox* statusGroup = new QGroupBox(tr("Status Breakdown"), scrollContent);
+    QFormLayout* statusLayout = new QFormLayout(statusGroup);
+    statusLayout->setSpacing(6);
+    statusLayout->setContentsMargins(11, 11, 11, 11);
+
+    m_sectionDraftCountLabel = new QLabel("0", statusGroup);
+    m_sectionDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    statusLayout->addRow(tr("Draft:"), m_sectionDraftCountLabel);
+
+    m_sectionRevisionCountLabel = new QLabel("0", statusGroup);
+    m_sectionRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    statusLayout->addRow(tr("Revision:"), m_sectionRevisionCountLabel);
+
+    m_sectionFinalCountLabel = new QLabel("0", statusGroup);
+    m_sectionFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    statusLayout->addRow(tr("Final:"), m_sectionFinalCountLabel);
+
+    layout->addWidget(statusGroup);
+
+    // Add stretch at the bottom
+    layout->addStretch(1);
+
+    scrollArea->setWidget(scrollContent);
+
+    // Set page layout
+    QVBoxLayout* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+
+    return page;
+}
+
+QWidget* PropertiesPanel::createPartPage() {
+    QWidget* page = new QWidget();
+
+    // Use scroll area for long content
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+
+    // Part header
+    m_partTitleLabel = new QLabel(scrollContent);
+    m_partTitleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
+    layout->addWidget(m_partTitleLabel);
+
+    // Statistics group
+    QGroupBox* statsGroup = new QGroupBox(tr("Statistics"), scrollContent);
+    QFormLayout* statsLayout = new QFormLayout(statsGroup);
+    statsLayout->setSpacing(6);
+    statsLayout->setContentsMargins(11, 11, 11, 11);
+
+    // Chapter count
+    m_partChapterCountLabel = new QLabel("0", statsGroup);
+    m_partChapterCountLabel->setToolTip(tr("Number of chapters in this part"));
+    statsLayout->addRow(tr("Chapters:"), m_partChapterCountLabel);
+
+    // Word count
+    m_partWordCountLabel = new QLabel("0", statsGroup);
+    m_partWordCountLabel->setToolTip(tr("Total word count in this part"));
+    statsLayout->addRow(tr("Total Words:"), m_partWordCountLabel);
+
+    layout->addWidget(statsGroup);
+
+    // Status group
+    QGroupBox* statusGroup = new QGroupBox(tr("Status Breakdown"), scrollContent);
+    QFormLayout* statusLayout = new QFormLayout(statusGroup);
+    statusLayout->setSpacing(6);
+    statusLayout->setContentsMargins(11, 11, 11, 11);
+
+    m_partDraftCountLabel = new QLabel("0", statusGroup);
+    m_partDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    statusLayout->addRow(tr("Draft:"), m_partDraftCountLabel);
+
+    m_partRevisionCountLabel = new QLabel("0", statusGroup);
+    m_partRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    statusLayout->addRow(tr("Revision:"), m_partRevisionCountLabel);
+
+    m_partFinalCountLabel = new QLabel("0", statusGroup);
+    m_partFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    statusLayout->addRow(tr("Final:"), m_partFinalCountLabel);
+
+    layout->addWidget(statusGroup);
+
+    // Add stretch at the bottom
+    layout->addStretch(1);
+
+    scrollArea->setWidget(scrollContent);
+
+    // Set page layout
+    QVBoxLayout* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+
+    return page;
+}
+
 void PropertiesPanel::connectSignals() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::connectSignals()");
@@ -341,7 +494,31 @@ void PropertiesPanel::showNoProject() {
     logger.debug("PropertiesPanel::showNoProject()");
 
     m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::NoProject));
+}
+
+void PropertiesPanel::showSectionProperties(const QString& sectionType) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::showSectionProperties() - Section: {}", sectionType.toStdString());
+
+    m_currentChapterId.clear();
+    m_currentPartId.clear();
+    m_currentSectionType = sectionType;
+    populateSectionFields(sectionType);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Section));
+}
+
+void PropertiesPanel::showPartProperties(const QString& partId) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::showPartProperties() - Part: {}", partId.toStdString());
+
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId = partId;
+    populatePartFields(partId);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Part));
 }
 
 void PropertiesPanel::refresh() {
@@ -360,6 +537,16 @@ void PropertiesPanel::refresh() {
         case Page::Chapter:
             if (!m_currentChapterId.isEmpty()) {
                 populateChapterFields(m_currentChapterId);
+            }
+            break;
+        case Page::Section:
+            if (!m_currentSectionType.isEmpty()) {
+                populateSectionFields(m_currentSectionType);
+            }
+            break;
+        case Page::Part:
+            if (!m_currentPartId.isEmpty()) {
+                populatePartFields(m_currentPartId);
             }
             break;
     }
@@ -645,6 +832,155 @@ void PropertiesPanel::updateProjectStatistics() {
     logger.debug("PropertiesPanel: Statistics - {} chapters, {} words, draft={}, revision={}, final={}",
                  chapterCount, wordCount,
                  statusStats["draft"], statusStats["revision"], statusStats["final"]);
+}
+
+void PropertiesPanel::populateSectionFields(const QString& sectionType) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::populateSectionFields() - Section: {}", sectionType.toStdString());
+
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("PropertiesPanel: No project open, cannot populate section fields");
+        return;
+    }
+
+    const core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.warn("PropertiesPanel: Document is null");
+        return;
+    }
+
+    const core::Book& book = doc->getBook();
+
+    // Determine section name and get elements
+    QString sectionName;
+    const std::vector<std::shared_ptr<core::BookElement>>* elements = nullptr;
+
+    if (sectionType == "section_frontmatter") {
+        sectionName = tr("Front Matter");
+        elements = &book.getFrontMatter();
+    } else if (sectionType == "section_body") {
+        sectionName = tr("Body");
+        // For body, we need to iterate all parts - handled below
+    } else if (sectionType == "section_backmatter") {
+        sectionName = tr("Back Matter");
+        elements = &book.getBackMatter();
+    } else {
+        logger.warn("PropertiesPanel: Unknown section type: {}", sectionType.toStdString());
+        return;
+    }
+
+    m_sectionTitleLabel->setText(sectionName);
+
+    // Calculate statistics
+    int chapterCount = 0;
+    int wordCount = 0;
+    int draftCount = 0;
+    int revisionCount = 0;
+    int finalCount = 0;
+
+    auto countElement = [&](const core::BookElement* element) {
+        chapterCount++;
+        wordCount += element->getWordCount();
+
+        auto status = element->getMetadata("status");
+        QString statusStr = status.has_value()
+            ? QString::fromStdString(status.value()).toLower()
+            : "draft";
+
+        if (statusStr == "draft") {
+            draftCount++;
+        } else if (statusStr == "revision" || statusStr == "in_progress" || statusStr == "complete") {
+            revisionCount++;
+        } else if (statusStr == "final") {
+            finalCount++;
+        } else {
+            draftCount++;  // Unknown status counts as draft
+        }
+    };
+
+    if (sectionType == "section_body") {
+        // Body: iterate all parts
+        for (const auto& part : book.getBody()) {
+            for (const auto& chapter : part->getChapters()) {
+                countElement(chapter.get());
+            }
+        }
+    } else if (elements) {
+        // Front matter or back matter
+        for (const auto& element : *elements) {
+            countElement(element.get());
+        }
+    }
+
+    // Update labels
+    m_sectionChapterCountLabel->setText(QString::number(chapterCount));
+    m_sectionWordCountLabel->setText(QString::number(wordCount));
+    m_sectionDraftCountLabel->setText(QString::number(draftCount));
+    m_sectionRevisionCountLabel->setText(QString::number(revisionCount));
+    m_sectionFinalCountLabel->setText(QString::number(finalCount));
+
+    logger.debug("PropertiesPanel: Section fields populated - {} chapters, {} words",
+                 chapterCount, wordCount);
+}
+
+void PropertiesPanel::populatePartFields(const QString& partId) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::populatePartFields() - Part: {}", partId.toStdString());
+
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("PropertiesPanel: No project open, cannot populate part fields");
+        return;
+    }
+
+    core::Part* part = pm.findPart(partId);
+    if (!part) {
+        logger.warn("PropertiesPanel: Part not found: {}", partId.toStdString());
+        return;
+    }
+
+    // Set part title
+    m_partTitleLabel->setText(QString::fromStdString(part->getTitle()));
+
+    // Calculate statistics
+    int chapterCount = 0;
+    int wordCount = 0;
+    int draftCount = 0;
+    int revisionCount = 0;
+    int finalCount = 0;
+
+    for (const auto& chapter : part->getChapters()) {
+        chapterCount++;
+        wordCount += chapter->getWordCount();
+
+        auto status = chapter->getMetadata("status");
+        QString statusStr = status.has_value()
+            ? QString::fromStdString(status.value()).toLower()
+            : "draft";
+
+        if (statusStr == "draft") {
+            draftCount++;
+        } else if (statusStr == "revision" || statusStr == "in_progress" || statusStr == "complete") {
+            revisionCount++;
+        } else if (statusStr == "final") {
+            finalCount++;
+        } else {
+            draftCount++;  // Unknown status counts as draft
+        }
+    }
+
+    // Update labels
+    m_partChapterCountLabel->setText(QString::number(chapterCount));
+    m_partWordCountLabel->setText(QString::number(wordCount));
+    m_partDraftCountLabel->setText(QString::number(draftCount));
+    m_partRevisionCountLabel->setText(QString::number(revisionCount));
+    m_partFinalCountLabel->setText(QString::number(finalCount));
+
+    logger.debug("PropertiesPanel: Part fields populated - {} chapters, {} words",
+                 chapterCount, wordCount);
 }
 
 QString PropertiesPanel::formatDate(const std::chrono::system_clock::time_point& timePoint) const {

@@ -38,7 +38,9 @@ public:
     enum class Page {
         NoProject = 0,  ///< Placeholder when no project open
         Project = 1,    ///< Project properties view
-        Chapter = 2     ///< Chapter properties view
+        Chapter = 2,    ///< Chapter properties view
+        Section = 3,    ///< Section aggregate statistics view
+        Part = 4        ///< Part aggregate statistics view
     };
 
     /// @brief Constructor
@@ -66,6 +68,14 @@ public slots:
     ///
     /// Switches to placeholder page when no project is open.
     void showNoProject();
+
+    /// @brief Show section properties view (aggregate statistics)
+    /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
+    void showSectionProperties(const QString& sectionType);
+
+    /// @brief Show part properties view (aggregate statistics)
+    /// @param partId Part ID
+    void showPartProperties(const QString& partId);
 
     /// @brief Refresh current view with latest data
     ///
@@ -117,6 +127,14 @@ private:
     /// @return Created widget
     QWidget* createChapterPage();
 
+    /// @brief Setup "Section Properties" page (aggregate statistics)
+    /// @return Created widget
+    QWidget* createSectionPage();
+
+    /// @brief Setup "Part Properties" page (aggregate statistics)
+    /// @return Created widget
+    QWidget* createPartPage();
+
     /// @brief Connect signals to ProjectManager
     void connectSignals();
 
@@ -126,6 +144,14 @@ private:
     /// @brief Populate chapter fields from specified element
     /// @param elementId Element ID of the chapter
     void populateChapterFields(const QString& elementId);
+
+    /// @brief Populate section fields (aggregate statistics)
+    /// @param sectionType Section type
+    void populateSectionFields(const QString& sectionType);
+
+    /// @brief Populate part fields (aggregate statistics)
+    /// @param partId Part ID
+    void populatePartFields(const QString& partId);
 
     /// @brief Update project statistics
     void updateProjectStatistics();
@@ -160,9 +186,27 @@ private:
     QComboBox* m_chapterStatusCombo;
     QTextEdit* m_chapterNotesEdit;
 
+    // Section Page widgets
+    QLabel* m_sectionTitleLabel;
+    QLabel* m_sectionChapterCountLabel;
+    QLabel* m_sectionWordCountLabel;
+    QLabel* m_sectionDraftCountLabel;
+    QLabel* m_sectionRevisionCountLabel;
+    QLabel* m_sectionFinalCountLabel;
+
+    // Part Page widgets
+    QLabel* m_partTitleLabel;
+    QLabel* m_partChapterCountLabel;
+    QLabel* m_partWordCountLabel;
+    QLabel* m_partDraftCountLabel;
+    QLabel* m_partRevisionCountLabel;
+    QLabel* m_partFinalCountLabel;
+
     // State tracking
-    QString m_currentChapterId;  ///< Currently displayed chapter ID
-    bool m_isUpdating;           ///< Flag to prevent recursive updates
+    QString m_currentChapterId;    ///< Currently displayed chapter ID
+    QString m_currentSectionType;  ///< Currently displayed section type
+    QString m_currentPartId;       ///< Currently displayed part ID
+    bool m_isUpdating;             ///< Flag to prevent recursive updates
 };
 
 } // namespace gui

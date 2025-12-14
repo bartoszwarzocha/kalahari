@@ -137,6 +137,14 @@ signals:
     /// @param elementId Element ID (empty for document properties)
     void requestProperties(const QString& elementId);
 
+    /// @brief Request to show section properties (aggregate statistics)
+    /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
+    void requestSectionProperties(const QString& sectionType);
+
+    /// @brief Request to show part properties (aggregate statistics)
+    /// @param partId Part ID
+    void requestPartProperties(const QString& partId);
+
     /// @brief Request to add a standalone file to the project
     /// @param filePath Absolute file path
     void requestAddToProject(const QString& filePath);

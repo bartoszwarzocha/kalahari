@@ -1529,6 +1529,10 @@ void MainWindow::createDocks() {
             this, &MainWindow::onNavigatorRequestMove);
     connect(m_navigatorPanel, &NavigatorPanel::requestProperties,
             this, &MainWindow::onNavigatorRequestProperties);
+    connect(m_navigatorPanel, &NavigatorPanel::requestSectionProperties,
+            this, &MainWindow::onNavigatorRequestSectionProperties);
+    connect(m_navigatorPanel, &NavigatorPanel::requestPartProperties,
+            this, &MainWindow::onNavigatorRequestPartProperties);
 
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     connect(m_centralTabs, &QTabWidget::currentChanged, this, [this](int index) {
@@ -3400,6 +3404,44 @@ void MainWindow::onNavigatorRequestProperties(const QString& elementId) {
         logger.debug("MainWindow: Showing properties for element: {}", elementId.toStdString());
         m_propertiesPanel->showChapterProperties(elementId);
     }
+}
+
+void MainWindow::onNavigatorRequestSectionProperties(const QString& sectionType) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Section properties requested but no project open");
+        return;
+    }
+
+    // Make sure Properties dock is visible
+    if (m_propertiesDock) {
+        m_propertiesDock->show();
+        m_propertiesDock->raise();
+    }
+
+    logger.debug("MainWindow: Showing section properties: {}", sectionType.toStdString());
+    m_propertiesPanel->showSectionProperties(sectionType);
+}
+
+void MainWindow::onNavigatorRequestPartProperties(const QString& partId) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("MainWindow: Part properties requested but no project open");
+        return;
+    }
+
+    // Make sure Properties dock is visible
+    if (m_propertiesDock) {
+        m_propertiesDock->show();
+        m_propertiesDock->raise();
+    }
+
+    logger.debug("MainWindow: Showing part properties: {}", partId.toStdString());
+    m_propertiesPanel->showPartProperties(partId);
 }
 
 } // namespace gui

@@ -280,6 +280,14 @@ private slots:
     /// @param elementId Element ID (empty for document properties)
     void onNavigatorRequestProperties(const QString& elementId);
 
+    /// @brief Slot for Navigator panel section properties request
+    /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
+    void onNavigatorRequestSectionProperties(const QString& sectionType);
+
+    /// @brief Slot for Navigator panel part properties request
+    /// @param partId Part ID
+    void onNavigatorRequestPartProperties(const QString& partId);
+
     /// @brief Open a standalone file by path (OpenSpec #00033 Phase F)
     /// @param path Absolute path to the file
     void openStandaloneFile(const QString& path);
