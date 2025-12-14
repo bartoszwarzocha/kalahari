@@ -14,6 +14,7 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QFont>
+#include <QFrame>
 
 namespace kalahari {
 namespace gui {
@@ -21,7 +22,6 @@ namespace gui {
 DashboardPanel::DashboardPanel(QWidget* parent)
     : QWidget(parent)
     , m_welcomeLabel(nullptr)
-    , m_subtitleLabel(nullptr)
     , m_recentBooksLayout(nullptr)
     , m_recentBooksContainer(nullptr)
     , m_noRecentBooksLabel(nullptr)
@@ -51,69 +51,30 @@ void DashboardPanel::setupUI()
 
     QWidget* scrollContent = new QWidget();
     QVBoxLayout* mainLayout = new QVBoxLayout(scrollContent);
-    mainLayout->setContentsMargins(40, 30, 40, 30);
-    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(40, 40, 40, 40);
+    mainLayout->setSpacing(0);
 
-    // Add sections
-    mainLayout->addWidget(createWelcomeHeader());
-    mainLayout->addWidget(createRecentBooksSection());
-    mainLayout->addWidget(createQuickStartSection());
+    // Top stretch to center welcome content
     mainLayout->addStretch(1);
 
-    scrollArea->setWidget(scrollContent);
-    outerLayout->addWidget(scrollArea);
+    // Welcome section (centered, professional HTML styling)
+    mainLayout->addWidget(createWelcomeHeader(), 0, Qt::AlignCenter);
 
-    // Initial population of recent books
-    refreshRecentBooks();
-}
+    // Bottom stretch before recent books
+    mainLayout->addStretch(1);
 
-QWidget* DashboardPanel::createWelcomeHeader()
-{
-    QWidget* headerWidget = new QWidget(this);
-    QVBoxLayout* headerLayout = new QVBoxLayout(headerWidget);
-    headerLayout->setContentsMargins(0, 0, 0, 10);
-    headerLayout->setSpacing(8);
+    // Separator line
+    QFrame* separator = new QFrame(this);
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    separator->setStyleSheet("QFrame { color: #bdc3c7; margin: 20px 0px; }");
+    mainLayout->addWidget(separator);
 
-    // Welcome title
-    m_welcomeLabel = new QLabel(tr("Welcome to Kalahari"), this);
-    QFont titleFont = m_welcomeLabel->font();
-    titleFont.setPointSize(24);
-    titleFont.setBold(true);
-    m_welcomeLabel->setFont(titleFont);
-    headerLayout->addWidget(m_welcomeLabel);
+    // Recent Books section (below, left-aligned)
+    mainLayout->addWidget(createRecentBooksSection());
 
-    // Subtitle
-    m_subtitleLabel = new QLabel(tr("Your creative writing environment"), this);
-    QFont subtitleFont = m_subtitleLabel->font();
-    subtitleFont.setPointSize(12);
-    m_subtitleLabel->setFont(subtitleFont);
-    m_subtitleLabel->setStyleSheet("color: gray;");
-    headerLayout->addWidget(m_subtitleLabel);
-
-    return headerWidget;
-}
-
-QWidget* DashboardPanel::createRecentBooksSection()
-{
-    // Create group box for recent books
-    QGroupBox* recentGroup = new QGroupBox(tr("Recent Books"), this);
-    QVBoxLayout* groupLayout = new QVBoxLayout(recentGroup);
-    groupLayout->setContentsMargins(11, 11, 11, 11);
-    groupLayout->setSpacing(6);
-
-    // Container for book cards
-    m_recentBooksContainer = new QWidget(this);
-    m_recentBooksLayout = new QVBoxLayout(m_recentBooksContainer);
-    m_recentBooksLayout->setContentsMargins(0, 0, 0, 0);
-    m_recentBooksLayout->setSpacing(6);
-
-    // "No recent books" message (hidden by default)
-    m_noRecentBooksLabel = new QLabel(tr("No recent books. Create a new project or open an existing one."), this);
-    m_noRecentBooksLabel->setStyleSheet("color: gray; padding: 20px;");
-    m_noRecentBooksLabel->setAlignment(Qt::AlignCenter);
-    m_noRecentBooksLabel->hide();
-
-    // Auto-load last project checkbox
+    // Checkbox at the very bottom
+    mainLayout->addSpacing(15);
     m_autoLoadCheckbox = new QCheckBox(tr("Open last project on startup"), this);
     m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
 
@@ -127,42 +88,81 @@ QWidget* DashboardPanel::createRecentBooksSection()
         settings.set("startup.autoLoadLastProject", checked);
     });
 
-    groupLayout->addWidget(m_recentBooksContainer);
-    groupLayout->addWidget(m_noRecentBooksLabel);
-    groupLayout->addWidget(m_autoLoadCheckbox);
+    mainLayout->addWidget(m_autoLoadCheckbox);
 
-    return recentGroup;
+    // Small bottom margin
+    mainLayout->addSpacing(20);
+
+    scrollArea->setWidget(scrollContent);
+    outerLayout->addWidget(scrollArea);
+
+    // Initial population of recent books
+    refreshRecentBooks();
 }
 
-QWidget* DashboardPanel::createQuickStartSection()
+QWidget* DashboardPanel::createWelcomeHeader()
 {
-    QGroupBox* quickStartGroup = new QGroupBox(tr("Quick Start"), this);
-    QVBoxLayout* groupLayout = new QVBoxLayout(quickStartGroup);
-    groupLayout->setContentsMargins(11, 11, 11, 11);
-    groupLayout->setSpacing(4);
+    QWidget* headerWidget = new QWidget(this);
+    QVBoxLayout* headerLayout = new QVBoxLayout(headerWidget);
+    headerLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Quick start items
-    struct QuickStartItem {
-        const char* text;
-        const char* shortcut;
-    };
+    // Create welcome label with professional HTML styling (restored original design)
+    m_welcomeLabel = new QLabel(this);
+    m_welcomeLabel->setText(
+        tr("<h1 style='color: #2c3e50; font-size: 28px; margin-bottom: 10px;'>Welcome to Kalahari</h1>"
+           "<p style='font-size: 14px; color: #7f8c8d; margin-bottom: 20px;'>"
+           "A Writer's IDE for book authors"
+           "</p>"
+           "<p style='font-size: 12px; color: #34495e; margin-bottom: 15px;'>"
+           "Create a new book or open an existing one to get started."
+           "</p>"
+           "<p style='font-size: 11px; color: #95a5a6; line-height: 1.6;'>"
+           "<b>Keyboard Shortcuts:</b><br>"
+           "&bull; New Book: <code>Ctrl+Shift+N</code><br>"
+           "&bull; Open Book: <code>Ctrl+O</code><br>"
+           "&bull; Toggle Navigator: <code>Ctrl+1</code><br>"
+           "&bull; Toggle Properties: <code>Ctrl+2</code><br>"
+           "</p>")
+    );
+    m_welcomeLabel->setAlignment(Qt::AlignCenter);
+    m_welcomeLabel->setWordWrap(true);
+    m_welcomeLabel->setTextFormat(Qt::RichText);
+    m_welcomeLabel->setMinimumWidth(400);
 
-    QuickStartItem items[] = {
-        {QT_TR_NOOP("New Book"), "Ctrl+Shift+N"},
-        {QT_TR_NOOP("Open Book"), "Ctrl+O"},
-        {QT_TR_NOOP("Toggle Navigator"), "Ctrl+1"},
-        {QT_TR_NOOP("Toggle Properties"), "Ctrl+2"}
-    };
+    headerLayout->addWidget(m_welcomeLabel);
 
-    for (const auto& item : items) {
-        QLabel* label = new QLabel(QString("%1 (%2)")
-                                   .arg(tr(item.text))
-                                   .arg(item.shortcut), this);
-        label->setStyleSheet("padding: 4px 0px;");
-        groupLayout->addWidget(label);
-    }
+    return headerWidget;
+}
 
-    return quickStartGroup;
+QWidget* DashboardPanel::createRecentBooksSection()
+{
+    // Create widget for recent books section (no group box for cleaner look)
+    QWidget* recentWidget = new QWidget(this);
+    QVBoxLayout* sectionLayout = new QVBoxLayout(recentWidget);
+    sectionLayout->setContentsMargins(0, 10, 0, 0);
+    sectionLayout->setSpacing(10);
+
+    // Section title
+    QLabel* titleLabel = new QLabel(tr("<b style='font-size: 14px; color: #2c3e50;'>Recent Books</b>"), this);
+    titleLabel->setTextFormat(Qt::RichText);
+    sectionLayout->addWidget(titleLabel);
+
+    // Container for book cards
+    m_recentBooksContainer = new QWidget(this);
+    m_recentBooksLayout = new QVBoxLayout(m_recentBooksContainer);
+    m_recentBooksLayout->setContentsMargins(0, 0, 0, 0);
+    m_recentBooksLayout->setSpacing(6);
+
+    // "No recent books" message (hidden by default)
+    m_noRecentBooksLabel = new QLabel(tr("No recent books. Create a new project or open an existing one."), this);
+    m_noRecentBooksLabel->setStyleSheet("color: #7f8c8d; padding: 15px 0px;");
+    m_noRecentBooksLabel->setAlignment(Qt::AlignLeft);
+    m_noRecentBooksLabel->hide();
+
+    sectionLayout->addWidget(m_recentBooksContainer);
+    sectionLayout->addWidget(m_noRecentBooksLabel);
+
+    return recentWidget;
 }
 
 void DashboardPanel::clearRecentBookCards()

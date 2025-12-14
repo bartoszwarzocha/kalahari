@@ -71,15 +71,10 @@ private:
     /// @return Widget containing recent books group
     QWidget* createRecentBooksSection();
 
-    /// @brief Create quick start section
-    /// @return Widget containing quick start info
-    QWidget* createQuickStartSection();
-
     /// @brief Clear all recent book cards
     void clearRecentBookCards();
 
-    QLabel* m_welcomeLabel;               ///< Welcome message label
-    QLabel* m_subtitleLabel;              ///< Subtitle label
+    QLabel* m_welcomeLabel;               ///< Welcome message label (HTML-styled)
     QVBoxLayout* m_recentBooksLayout;     ///< Layout for recent book cards
     QWidget* m_recentBooksContainer;      ///< Container for recent books section
     QLabel* m_noRecentBooksLabel;         ///< "No recent books" message
