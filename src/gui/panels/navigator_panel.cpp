@@ -233,6 +233,14 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     connect(m_treeWidget, &QTreeWidget::customContextMenuRequested,
             this, &NavigatorPanel::showContextMenu);
 
+    // Connect keyboard navigation - update Properties panel when arrow keys change selection
+    connect(m_treeWidget, &QTreeWidget::currentItemChanged,
+            this, &NavigatorPanel::onCurrentItemChanged);
+
+    // Connect Enter key / double-click activation - open element
+    connect(m_treeWidget, &QTreeWidget::itemActivated,
+            this, &NavigatorPanel::onItemActivated);
+
     // Connect single-click signal - emit requestProperties for any element
     connect(m_treeWidget, &QTreeWidget::itemClicked,
             this, [this](QTreeWidgetItem* item, int column) {
@@ -1212,6 +1220,76 @@ void NavigatorPanel::onContextMenuRemoveFromList() {
     logger.debug("NavigatorPanel::onContextMenuRemoveFromList() - Path: {}", filePath.toStdString());
 
     emit requestRemoveStandaloneFile(filePath);
+}
+
+// =============================================================================
+// Keyboard Navigation Support
+// =============================================================================
+
+void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* previous) {
+    Q_UNUSED(previous);
+
+    if (!current) {
+        return;
+    }
+
+    auto& logger = core::Logger::getInstance();
+
+    QString elementId = current->data(0, Qt::UserRole).toString();
+    QString elementType = current->data(0, Qt::UserRole + 1).toString();
+    QString elementTitle = current->text(0);
+
+    logger.debug("NavigatorPanel: Current item changed (keyboard nav): {} (type={}, id={})",
+                 elementTitle.toStdString(),
+                 elementType.toStdString(),
+                 elementId.toStdString());
+
+    // Emit requestProperties for all elements (same logic as itemClicked)
+    // Document root uses empty ID to show project properties
+    // Sections and parts emit with their type for aggregate statistics
+    if (elementType == "document") {
+        emit requestProperties("");  // Project properties
+    } else if (elementType == "section_frontmatter" ||
+               elementType == "section_body" ||
+               elementType == "section_backmatter") {
+        emit requestSectionProperties(elementType);
+    } else if (elementType == "part") {
+        emit requestPartProperties(elementId);
+    } else if (!elementId.isEmpty()) {
+        emit requestProperties(elementId);
+    }
+}
+
+void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
+    Q_UNUSED(column);
+
+    if (!item) {
+        return;
+    }
+
+    auto& logger = core::Logger::getInstance();
+
+    QString elementId = item->data(0, Qt::UserRole).toString();
+    QString elementType = item->data(0, Qt::UserRole + 1).toString();
+    QString elementTitle = item->text(0);
+
+    logger.debug("NavigatorPanel: Item activated (Enter/double-click): {} (type={}, id={})",
+                 elementTitle.toStdString(),
+                 elementType.toStdString(),
+                 elementId.toStdString());
+
+    // Only emit for leaf elements (chapters, frontmatter items, backmatter items, standalone files)
+    // Skip section headers and part containers - same logic as itemDoubleClicked
+    if (!elementId.isEmpty() &&
+        elementType != "section" &&
+        elementType != "section_frontmatter" &&
+        elementType != "section_body" &&
+        elementType != "section_backmatter" &&
+        elementType != "part" &&
+        elementType != "document" &&
+        elementType != "other_files") {
+        emit elementSelected(elementId, elementTitle);
+    }
 }
 
 // =============================================================================

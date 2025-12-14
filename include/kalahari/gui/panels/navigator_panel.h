@@ -190,6 +190,16 @@ private slots:
     void onContextMenuAddToProject();
     void onContextMenuRemoveFromList();
 
+    /// @brief Handle keyboard navigation - update Properties panel
+    /// @param current Current item (newly selected via arrow keys)
+    /// @param previous Previous item (before navigation)
+    void onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* previous);
+
+    /// @brief Handle Enter key or double-click on item - open element
+    /// @param item Activated item
+    /// @param column Column index
+    void onItemActivated(QTreeWidgetItem* item, int column);
+
 private:
     /// @brief Recursively refresh icons on all tree items
     /// @param item Starting item (nullptr for root)
