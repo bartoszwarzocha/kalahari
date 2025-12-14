@@ -29,6 +29,25 @@
 #include <QBrush>
 #include <functional>
 
+
+namespace {
+// Helper: Get display title with status suffix
+// Final status = no suffix, others show [STATUS]
+QString getDisplayTitle(const kalahari::core::BookElement* element) {
+    QString title = QString::fromStdString(element->getTitle());
+    auto status = element->getMetadata("status");
+    if (status.has_value()) {
+        QString statusStr = QString::fromStdString(status.value()).toLower();
+        if (statusStr != "final" && !statusStr.isEmpty()) {
+            // Capitalize first letter
+            statusStr[0] = statusStr[0].toUpper();
+            title += QString(" [%1]").arg(statusStr);
+        }
+    }
+    return title;
+}
+} // anonymous namespace
+
 namespace kalahari {
 namespace gui {
 
@@ -310,7 +329,7 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
 
         for (const auto& element : frontMatter) {
             QTreeWidgetItem* item = new QTreeWidgetItem(frontMatterItem);
-            item->setText(0, QString::fromStdString(element->getTitle()));
+            item->setText(0, getDisplayTitle(element.get()));
             item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
             item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
             item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
@@ -344,7 +363,7 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
             const auto& chapters = part->getChapters();
             for (const auto& chapter : chapters) {
                 QTreeWidgetItem* chapterItem = new QTreeWidgetItem(partItem);
-                chapterItem->setText(0, QString::fromStdString(chapter->getTitle()));
+                chapterItem->setText(0, getDisplayTitle(chapter.get()));
                 chapterItem->setData(0, Qt::UserRole, QString::fromStdString(chapter->getId()));
                 chapterItem->setData(0, Qt::UserRole + 1, QString::fromStdString(chapter->getType()));
                 chapterItem->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
@@ -371,7 +390,7 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
 
         for (const auto& element : backMatter) {
             QTreeWidgetItem* item = new QTreeWidgetItem(backMatterItem);
-            item->setText(0, QString::fromStdString(element->getTitle()));
+            item->setText(0, getDisplayTitle(element.get()));
             item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
             item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
             item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));

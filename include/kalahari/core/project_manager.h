@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <vector>
 #include <functional>
+#include <map>
 
 namespace kalahari {
 namespace core {
@@ -277,6 +278,19 @@ public:
     ///
     /// Iterates all dirty elements and calls saveChapterContent().
     bool saveAllDirty();
+
+    /// @brief Get elements with incomplete status (not "final")
+    /// @return Vector of pairs (element ID, status string)
+    ///
+    /// Used for export warnings - returns all elements where status != "final".
+    /// Returns empty vector if all elements are final or have no status.
+    std::vector<std::pair<QString, QString>> getIncompleteElements() const;
+
+    /// @brief Get statistics by status
+    /// @return Map of status -> count
+    ///
+    /// Returns count of elements for each status (draft, revision, final, etc.)
+    std::map<QString, int> getStatusStatistics() const;
 
     // =========================================================================
     // Archive Operations

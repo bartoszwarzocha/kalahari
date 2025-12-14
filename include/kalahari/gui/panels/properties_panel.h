@@ -150,6 +150,9 @@ private:
     QLabel* m_projectWordsLabel;
     QLabel* m_projectCreatedLabel;
     QLabel* m_projectModifiedLabel;
+    QLabel* m_projectDraftCountLabel;
+    QLabel* m_projectRevisionCountLabel;
+    QLabel* m_projectFinalCountLabel;
 
     // Chapter Page widgets
     QLineEdit* m_chapterTitleEdit;

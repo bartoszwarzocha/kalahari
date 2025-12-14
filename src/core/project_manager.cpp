@@ -886,6 +886,87 @@ bool ProjectManager::saveAllDirty() {
     return allSaved;
 }
 
+std::vector<std::pair<QString, QString>> ProjectManager::getIncompleteElements() const {
+    std::vector<std::pair<QString, QString>> result;
+    
+    if (!m_document) {
+        return result;
+    }
+    
+    const Book& book = m_document->getBook();
+    
+    auto checkElement = [&result](const BookElement* element) {
+        auto status = element->getMetadata("status");
+        QString statusStr = status.has_value() 
+            ? QString::fromStdString(status.value()).toLower()
+            : "draft";  // Default to draft if no status
+        
+        if (statusStr != "final") {
+            result.emplace_back(
+                QString::fromStdString(element->getId()),
+                statusStr
+            );
+        }
+    };
+    
+    // Check frontmatter
+    for (const auto& element : book.getFrontMatter()) {
+        checkElement(element.get());
+    }
+    
+    // Check body chapters
+    for (const auto& part : book.getBody()) {
+        for (const auto& chapter : part->getChapters()) {
+            checkElement(chapter.get());
+        }
+    }
+    
+    // Check backmatter
+    for (const auto& element : book.getBackMatter()) {
+        checkElement(element.get());
+    }
+    
+    return result;
+}
+
+std::map<QString, int> ProjectManager::getStatusStatistics() const {
+    std::map<QString, int> stats;
+    
+    if (!m_document) {
+        return stats;
+    }
+    
+    const Book& book = m_document->getBook();
+    
+    auto countElement = [&stats](const BookElement* element) {
+        auto status = element->getMetadata("status");
+        QString statusStr = status.has_value() 
+            ? QString::fromStdString(status.value()).toLower()
+            : "draft";  // Default to draft if no status
+        
+        stats[statusStr]++;
+    };
+    
+    // Count frontmatter
+    for (const auto& element : book.getFrontMatter()) {
+        countElement(element.get());
+    }
+    
+    // Count body chapters
+    for (const auto& part : book.getBody()) {
+        for (const auto& chapter : part->getChapters()) {
+            countElement(chapter.get());
+        }
+    }
+    
+    // Count backmatter
+    for (const auto& element : book.getBackMatter()) {
+        countElement(element.get());
+    }
+    
+    return stats;
+}
+
 QString ProjectManager::addChapterToSection(const QString& sectionType,
                                            const QString& partId,
                                            const QString& title,

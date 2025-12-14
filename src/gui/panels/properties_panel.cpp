@@ -37,6 +37,9 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_projectWordsLabel(nullptr)
     , m_projectCreatedLabel(nullptr)
     , m_projectModifiedLabel(nullptr)
+    , m_projectDraftCountLabel(nullptr)
+    , m_projectRevisionCountLabel(nullptr)
+    , m_projectFinalCountLabel(nullptr)
     , m_chapterTitleEdit(nullptr)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
@@ -178,6 +181,29 @@ QWidget* PropertiesPanel::createProjectPage() {
     statsLayout->addRow(tr("Modified:"), m_projectModifiedLabel);
 
     layout->addWidget(statsGroup);
+
+    // Status group (element status statistics)
+    QGroupBox* statusGroup = new QGroupBox(tr("Status"), scrollContent);
+    QFormLayout* statusLayout = new QFormLayout(statusGroup);
+    statusLayout->setSpacing(6);
+    statusLayout->setContentsMargins(11, 11, 11, 11);
+
+    // Draft count
+    m_projectDraftCountLabel = new QLabel("0", statusGroup);
+    m_projectDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    statusLayout->addRow(tr("Draft:"), m_projectDraftCountLabel);
+
+    // Revision count
+    m_projectRevisionCountLabel = new QLabel("0", statusGroup);
+    m_projectRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    statusLayout->addRow(tr("Revision:"), m_projectRevisionCountLabel);
+
+    // Final count
+    m_projectFinalCountLabel = new QLabel("0", statusGroup);
+    m_projectFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    statusLayout->addRow(tr("Final:"), m_projectFinalCountLabel);
+
+    layout->addWidget(statusGroup);
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -585,6 +611,9 @@ void PropertiesPanel::updateProjectStatistics() {
     if (!pm.isProjectOpen()) {
         m_projectChaptersLabel->setText("0");
         m_projectWordsLabel->setText("0");
+        m_projectDraftCountLabel->setText("0");
+        m_projectRevisionCountLabel->setText("0");
+        m_projectFinalCountLabel->setText("0");
         return;
     }
 
@@ -592,6 +621,9 @@ void PropertiesPanel::updateProjectStatistics() {
     if (!doc) {
         m_projectChaptersLabel->setText("0");
         m_projectWordsLabel->setText("0");
+        m_projectDraftCountLabel->setText("0");
+        m_projectRevisionCountLabel->setText("0");
+        m_projectFinalCountLabel->setText("0");
         return;
     }
 
@@ -604,8 +636,15 @@ void PropertiesPanel::updateProjectStatistics() {
     m_projectChaptersLabel->setText(QString::number(chapterCount));
     m_projectWordsLabel->setText(QString::number(wordCount));
 
-    logger.debug("PropertiesPanel: Statistics - {} chapters, {} words",
-                 chapterCount, wordCount);
+    // Get status statistics
+    auto statusStats = pm.getStatusStatistics();
+    m_projectDraftCountLabel->setText(QString::number(statusStats["draft"]));
+    m_projectRevisionCountLabel->setText(QString::number(statusStats["revision"]));
+    m_projectFinalCountLabel->setText(QString::number(statusStats["final"]));
+
+    logger.debug("PropertiesPanel: Statistics - {} chapters, {} words, draft={}, revision={}, final={}",
+                 chapterCount, wordCount,
+                 statusStats["draft"], statusStats["revision"], statusStats["final"]);
 }
 
 QString PropertiesPanel::formatDate(const std::chrono::system_clock::time_point& timePoint) const {

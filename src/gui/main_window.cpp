@@ -51,6 +51,7 @@
 #include <QStyle>
 #include <QProgressDialog>
 #include <QInputDialog>
+#include <map>
 
 namespace kalahari {
 namespace gui {
@@ -3021,6 +3022,35 @@ void MainWindow::onExportArchive() {
     );
 
     if (outputPath.isEmpty()) return;
+
+    // Check for incomplete elements (not final status)
+    auto incompleteElements = pm.getIncompleteElements();
+    if (!incompleteElements.empty()) {
+        QString warningText = tr("The project contains %1 file(s) that are not marked as final:").arg(incompleteElements.size());
+        warningText += QStringLiteral("\n\n");
+
+        // Group by status
+        std::map<QString, QStringList> byStatus;
+        for (const auto& [id, status] : incompleteElements) {
+            auto* element = pm.findElement(id);
+            QString title = element ? QString::fromStdString(element->getTitle()) : id;
+            byStatus[status].append(title);
+        }
+
+        for (const auto& [status, titles] : byStatus) {
+            warningText += QStringLiteral("[") + status.toUpper() + QStringLiteral("]: ") + titles.join(QStringLiteral(", ")) + QStringLiteral("\n");
+        }
+
+        warningText += QStringLiteral("\n") + tr("Do you want to export anyway?");
+
+        auto reply = QMessageBox::warning(this, tr("Incomplete Files"), warningText,
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+        if (reply != QMessageBox::Yes) {
+            logger.info("Export cancelled due to incomplete files");
+            return;
+        }
+    }
 
     // Create progress dialog
     QProgressDialog progress(tr("Exporting project archive..."), tr("Cancel"), 0, 100, this);
