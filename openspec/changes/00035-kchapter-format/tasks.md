@@ -77,3 +77,18 @@
 - [x] Groups files by status in warning dialog
 - [x] Option to export anyway or cancel
 - [x] `ProjectManager::getIncompleteElements()` method
+
+### Status Persistence (COMPLETE)
+- [x] Status saved in manifest.json (`loadStructureFromManifest`)
+- [x] Status loaded from manifest on project open
+- [x] Status changes remembered after restart
+
+### Navigator UX (COMPLETE)
+- [x] Single-click → shows Properties panel
+- [x] Root/Section click → shows Section/Project properties (not collapse)
+- [x] New signals: `requestSectionProperties`, `requestPartProperties`
+
+### Hierarchical Statistics (COMPLETE)
+- [x] PropertiesPanel: Section page with aggregate stats
+- [x] PropertiesPanel: Part page with aggregate stats
+- [x] Shows chapter count, word count, status breakdown per container
