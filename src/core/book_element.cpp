@@ -73,6 +73,7 @@ void BookElement::touch() {
 
 void BookElement::setMetadata(const std::string& key, const std::string& value) {
     m_metadata[key] = value;
+    m_isDirty = true;
     m_modified = std::chrono::system_clock::now();
 }
 

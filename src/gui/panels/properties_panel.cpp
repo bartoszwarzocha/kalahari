@@ -267,8 +267,7 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_chapterStatusCombo = new QComboBox(infoGroup);
     m_chapterStatusCombo->setToolTip(tr("Chapter completion status"));
     m_chapterStatusCombo->addItem(tr("Draft"), "draft");
-    m_chapterStatusCombo->addItem(tr("In Progress"), "in_progress");
-    m_chapterStatusCombo->addItem(tr("Complete"), "complete");
+    m_chapterStatusCombo->addItem(tr("Revision"), "revision");
     m_chapterStatusCombo->addItem(tr("Final"), "final");
     infoLayout->addRow(tr("Status:"), m_chapterStatusCombo);
 
@@ -891,7 +890,7 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
 
         if (statusStr == "draft") {
             draftCount++;
-        } else if (statusStr == "revision" || statusStr == "in_progress" || statusStr == "complete") {
+        } else if (statusStr == "revision") {
             revisionCount++;
         } else if (statusStr == "final") {
             finalCount++;
@@ -963,7 +962,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
 
         if (statusStr == "draft") {
             draftCount++;
-        } else if (statusStr == "revision" || statusStr == "in_progress" || statusStr == "complete") {
+        } else if (statusStr == "revision") {
             revisionCount++;
         } else if (statusStr == "final") {
             finalCount++;
