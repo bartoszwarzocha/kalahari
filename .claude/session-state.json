@@ -39,6 +39,7 @@
     "OpenSpec #00036 Phase B (Dashboard) - WIP, needs styling work",
     "Dashboard converted to QTextBrowser + HTML, removed RecentBookCard class",
     "User feedback: Dashboard looks bad, needs visual improvements tomorrow",
+    "Cleaned up duplicate openspec/changes/archive/ directory (was empty)",
     "Key commits: b1f1227, 85249c4, c9634e0, c6658e7 (WIP)"
   ]
 }
