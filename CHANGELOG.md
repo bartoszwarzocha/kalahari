@@ -28,6 +28,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export/Import project archive (.klh.zip) with progress dialog (Phase H)
 - Deleted obsolete test.klh artifact
 
+- **OpenSpec #00035:** KChapter Document Format - 2025-12-14
+  - **New .kchapter file format** replacing RTF for chapter storage (JSON + HTML)
+  - **ChapterDocument class:** Core data structure for chapter content and metadata
+    - JSON serialization with kalahari header, content, statistics, metadata, annotations
+    - UTF-8 encoding, auto-calculated statistics (wordCount, characterCount, paragraphCount)
+    - HTML to plainText conversion using QTextDocument
+    - Plaintext backup included for disaster recovery
+  - **ProjectManager integration:**
+    - `loadChapterContent()` loads .kchapter (fallback to RTF)
+    - `saveChapterContent()` always saves to .kchapter format
+    - Automatic RTF-to-KChapter migration on first load
+    - Original RTF backed up as .rtf.bak
+  - **Status Feature (extended scope):**
+    - Navigator displays chapter status: `Chapter One [Draft]`
+    - Final status = no suffix (clean display)
+    - Export warning dialog for incomplete (Draft/Revision) files
+    - PropertiesPanel shows status statistics per section/part/project
+    - `getStatusStatistics()` and `getIncompleteElements()` API
+  - **Navigator UX Improvements:**
+    - Keyboard navigation (arrow keys to navigate, Enter to open chapter)
+    - Single-click shows Properties panel
+    - Section/Part click shows container properties (not collapse)
+    - New signals: `requestSectionProperties`, `requestPartProperties`
+  - **Hierarchical Statistics:**
+    - PropertiesPanel shows aggregate stats for Section and Part containers
+    - Chapter count, word count, status breakdown per container
+  - **Bug Fixes:**
+    - Status persistence to .kchapter (was lost on restart)
+    - Notes persistence to .kchapter (was lost on restart)
+    - Navigator refresh when status changes in Properties panel
+    - Status ComboBox options fixed (Draft/Revision/Final proper display)
+    - Notes save on focus lost (prevents lag from keystroke saves)
+    - Clean data architecture (manifest = structure, .kchapter = chapter data)
+  - Files added: `chapter_document.h`, `chapter_document.cpp`
+  - Files modified: `project_manager.h`, `project_manager.cpp`, `navigator_panel.cpp`, `properties_panel.cpp`, `CMakeLists.txt`
+
 - **OpenSpec #00033:** Project File System - Solution-like Architecture - 2025-12-12
   - ProjectManager class for solution-like project architecture
   - WorkMode enum (NoDocument, ProjectMode, StandaloneMode)
@@ -483,7 +519,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Emits `logMessage(int level, QString message)` signal
     - Registered in main.cpp before MainWindow creation
   - **LogPanel enhancements:**
-    - QPlainTextEdit → QTextEdit for rich text (colored output)
+    - QPlainTextEdit -> QTextEdit for rich text (colored output)
     - Ring buffer: `std::deque<LogEntry>` with configurable size (default 500, range 1-1000)
     - Theme-aware colors: 6 log levels + background from Theme struct
     - Vertical toolbar: Options, Open Folder, Copy, Clear buttons

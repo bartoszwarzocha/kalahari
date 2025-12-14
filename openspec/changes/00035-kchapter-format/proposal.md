@@ -156,12 +156,12 @@ void migrateAllChapters();  // Batch migration
 
 ## Scope
 
-### Phase 1 (This OpenSpec)
+### Phase 1 (This OpenSpec) - COMPLETE
 - [x] ChapterDocument class with JSON serialization
-- [ ] ProjectManager .kchapter I/O
-- [ ] Automatic RTF→KChapter migration
-- [ ] EditorPanel integration
-- [ ] Statistics auto-calculation
+- [x] ProjectManager .kchapter I/O
+- [x] Automatic RTF->KChapter migration
+- [x] EditorPanel integration
+- [x] Statistics auto-calculation
 
 ### Phase 2 (Future - Document Templates)
 - [ ] Template system for different book types
@@ -180,14 +180,14 @@ void migrateAllChapters();  // Batch migration
 
 ## Acceptance Criteria
 
-- [ ] New chapters created as .kchapter files
-- [ ] Existing RTF chapters migrated automatically on open
-- [ ] Content preserved during migration (HTML roundtrip)
-- [ ] Statistics (word count, etc.) calculated and stored
-- [ ] Metadata (status, notes) saved per-chapter
-- [ ] Plaintext backup included in .kchapter
-- [ ] Build passes, tests pass
-- [ ] Manual test: edit chapter, save, reopen - content preserved
+- [x] New chapters created as .kchapter files
+- [x] Existing RTF chapters migrated automatically on open
+- [x] Content preserved during migration (HTML roundtrip)
+- [x] Statistics (word count, etc.) calculated and stored
+- [x] Metadata (status, notes) saved per-chapter
+- [x] Plaintext backup included in .kchapter
+- [x] Build passes, tests pass
+- [x] Manual test: edit chapter, save, reopen - content preserved
 
 ## Technical Notes
 
@@ -231,9 +231,30 @@ int calculateWordCount(const QString& plainText) {
 
 1. Create ChapterDocument class with JSON I/O
 2. Update ProjectManager to use .kchapter
-3. Add migration logic (RTF → KChapter)
+3. Add migration logic (RTF -> KChapter)
 4. Update EditorPanel to use ChapterDocument
 5. Test with example project
+
+## Extended Scope Delivered (2025-12-14)
+
+Beyond the original acceptance criteria, this OpenSpec also delivered:
+
+### Status Feature
+- Navigator displays chapter status: `Chapter One [Draft]`
+- Export warning dialog for incomplete (Draft/Revision) files
+- PropertiesPanel shows status statistics per container
+
+### Navigator UX Improvements
+- Keyboard navigation (arrow keys + Enter)
+- Single-click shows Properties panel
+- Section/Part properties with hierarchical statistics
+
+### Bug Fixes
+- Status persistence to .kchapter
+- Notes persistence to .kchapter
+- Navigator refresh on status change
+- Status ComboBox display options
+- Notes save on focus lost (performance)
 
 ## References
 
