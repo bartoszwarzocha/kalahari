@@ -1648,12 +1648,22 @@ void MainWindow::resetLayout() {
     // Raise Properties tab
     m_propertiesDock->raise();
 
-    // Show all docks
+    // Show docks (LogDock only in diagnostic/dev mode)
     m_navigatorDock->show();
     m_propertiesDock->show();
-    m_logDock->show();
+    m_logDock->setVisible(m_diagnosticMode || m_devMode);
     m_searchDock->show();
     m_assistantDock->show();
+
+    // Set default column proportions: 20% | 60% | 20%
+    int totalWidth = width();
+    int sideWidth = totalWidth * 20 / 100;  // 20% for each side
+
+    resizeDocks({m_navigatorDock}, {sideWidth}, Qt::Horizontal);
+    resizeDocks({m_propertiesDock}, {sideWidth}, Qt::Horizontal);
+
+    logger.info("Layout reset: side columns {}px each (diag={}, dev={})",
+                sideWidth, m_diagnosticMode, m_devMode);
 
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
