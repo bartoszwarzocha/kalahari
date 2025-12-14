@@ -9,6 +9,7 @@
 #include <kalahari/core/part.h>
 #include <kalahari/core/book_element.h>
 #include <kalahari/core/book_constants.h>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 
 #include <QFile>
@@ -628,27 +629,81 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     }
 
     // Resolve relative path against project path
-    std::filesystem::path absolutePath = m_projectPath / element->getFile();
+    std::filesystem::path rtfPath = m_projectPath / element->getFile();
+    
+    // Check for .kchapter file (new format)
+    std::filesystem::path kchapterPath = rtfPath;
+    kchapterPath.replace_extension(".kchapter");
 
-    QFile file(QString::fromStdWString(absolutePath.wstring()));
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        Logger::getInstance().warn("loadChapterContent: Failed to open file: {}",
-                                   absolutePath.string());
+    QString htmlContent;
+
+    if (std::filesystem::exists(kchapterPath)) {
+        // Load from .kchapter format (preferred)
+        QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
+        auto doc = ChapterDocument::load(kchapterPathStr);
+        if (doc.has_value()) {
+            htmlContent = doc->html();
+            Logger::getInstance().debug("Loaded .kchapter for element: {} ({} chars)",
+                                        elementId.toStdString(), htmlContent.length());
+        } else {
+            Logger::getInstance().error("loadChapterContent: Failed to load .kchapter: {}",
+                                       kchapterPath.string());
+            return QString();
+        }
+    } else if (std::filesystem::exists(rtfPath)) {
+        // Legacy RTF file - migrate to .kchapter
+        Logger::getInstance().info("Migrating RTF to .kchapter: {}", rtfPath.string());
+
+        QFile rtfFile(QString::fromStdWString(rtfPath.wstring()));
+        if (!rtfFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            Logger::getInstance().warn("loadChapterContent: Failed to open RTF: {}",
+                                       rtfPath.string());
+            return QString();
+        }
+
+        QTextStream in(&rtfFile);
+        in.setEncoding(QStringConverter::Utf8);
+        htmlContent = in.readAll();
+        rtfFile.close();
+
+        // Create .kchapter from RTF content
+        ChapterDocument doc = ChapterDocument::fromHtmlContent(
+            htmlContent, QString::fromStdString(element->getTitle()));
+        
+        QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
+        if (doc.save(kchapterPathStr)) {
+            // Backup RTF file
+            std::filesystem::path backupPath = rtfPath;
+            backupPath += ".bak";
+            std::error_code ec;
+            std::filesystem::rename(rtfPath, backupPath, ec);
+            if (ec) {
+                Logger::getInstance().warn("Failed to backup RTF: {} ({})",
+                                          rtfPath.string(), ec.message());
+            }
+            
+            // Update element file path to .kchapter
+            std::filesystem::path relPath = element->getFile();
+            relPath.replace_extension(".kchapter");
+            element->setFile(relPath);
+            
+            Logger::getInstance().info("Migration complete: {} -> {}",
+                                      rtfPath.string(), kchapterPath.string());
+        } else {
+            Logger::getInstance().error("Failed to save migrated .kchapter: {}",
+                                       kchapterPath.string());
+        }
+    } else {
+        Logger::getInstance().warn("loadChapterContent: No file found: {}",
+                                   rtfPath.string());
         return QString();
     }
 
-    QTextStream in(&file);
-    in.setEncoding(QStringConverter::Utf8);
-    QString content = in.readAll();
-    file.close();
-
     // Cache content in element
-    element->setContent(content);
+    element->setContent(htmlContent);
     element->setDirty(false);  // Just loaded, not dirty
 
-    Logger::getInstance().debug("Loaded content for element: {} ({} chars)",
-                                elementId.toStdString(), content.length());
-    return content;
+    return htmlContent;
 }
 
 bool ProjectManager::saveChapterContent(const QString& elementId) {
@@ -665,11 +720,21 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         return true;  // Nothing to save
     }
 
-    // Resolve relative path against project path
-    std::filesystem::path absolutePath = m_projectPath / element->getFile();
+    // Resolve path - always use .kchapter extension
+    std::filesystem::path filePath = m_projectPath / element->getFile();
+    
+    // Ensure .kchapter extension
+    if (filePath.extension() != ".kchapter") {
+        filePath.replace_extension(".kchapter");
+        
+        // Update element file path
+        std::filesystem::path relPath = element->getFile();
+        relPath.replace_extension(".kchapter");
+        element->setFile(relPath);
+    }
 
     // Create parent directories if needed
-    std::filesystem::path parentDir = absolutePath.parent_path();
+    std::filesystem::path parentDir = filePath.parent_path();
     if (!std::filesystem::exists(parentDir)) {
         std::error_code ec;
         if (!std::filesystem::create_directories(parentDir, ec)) {
@@ -679,23 +744,38 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         }
     }
 
-    QFile file(QString::fromStdWString(absolutePath.wstring()));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        Logger::getInstance().error("saveChapterContent: Failed to open file for writing: {}",
-                                    absolutePath.string());
+    // Create ChapterDocument from HTML content
+    ChapterDocument doc = ChapterDocument::fromHtmlContent(
+        element->getContent(),
+        QString::fromStdString(element->getTitle()));
+    
+    // Copy metadata from element if available
+    auto status = element->getMetadata("status");
+    if (status.has_value()) {
+        doc.setStatus(QString::fromStdString(status.value()));
+    }
+    
+    auto notes = element->getMetadata("notes");
+    if (notes.has_value()) {
+        doc.setNotes(QString::fromStdString(notes.value()));
+    }
+    
+    // Update word count in element
+    element->setWordCount(doc.wordCount());
+
+    // Save to .kchapter file
+    QString filePathStr = QString::fromStdWString(filePath.wstring());
+    if (!doc.save(filePathStr)) {
+        Logger::getInstance().error("saveChapterContent: Failed to save .kchapter: {}",
+                                    filePath.string());
         return false;
     }
-
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << element->getContent();
-    file.close();
 
     element->setDirty(false);
     element->touch();  // Update modified timestamp
 
-    Logger::getInstance().debug("Saved content for element: {} ({} chars)",
-                                elementId.toStdString(), element->getContent().length());
+    Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
+                                elementId.toStdString(), doc.wordCount());
     return true;
 }
 

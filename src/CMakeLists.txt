@@ -17,6 +17,7 @@ set(KALAHARI_CORE_SOURCES
     core/book.cpp
     core/document.cpp
     core/document_archive.cpp
+    core/chapter_document.cpp
     core/utils/svg_converter.cpp
     core/theme.cpp
     core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
