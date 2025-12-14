@@ -1,49 +1,44 @@
 {
   "mode": "quick",
-  "saved_at": "2025-12-14T18:05:00",
+  "saved_at": "2025-12-14T20:15:00",
   "git_branch": "main",
-  "git_commit": "f6f232d",
+  "git_commit": "c6658e7",
   "git_pushed": false,
-  "openspec": "00035",
-  "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00035 KChapter Format - DEPLOYED with Status Feature",
+  "openspec": "00036",
+  "openspec_status": "IN_PROGRESS",
+  "working_on": "OpenSpec #00036 Dashboard & Navigator Enhancements - Phase B WIP",
   "next_steps": [
-    "User testing: verify status changes are now saved",
-    "User testing: verify single-click shows Properties panel",
-    "User testing: verify Section/Part hierarchical statistics",
-    "Phase 2: unit tests for ChapterDocument",
-    "Phase 2: create new chapters directly as .kchapter"
+    "FIX: Dashboard HTML styling - currently looks bad",
+    "Improve Recent Books card visual appearance",
+    "Test auto-load last project functionality",
+    "Commit final Dashboard implementation"
   ],
   "blocker": null,
-  "implementation_status": "DEPLOYED",
+  "implementation_status": "Phase A+C DONE, Phase B needs styling",
   "completed_tasks": [
-    "ChapterDocument class with JSON serialization",
-    "Statistics calculation (wordCount, characterCount, paragraphCount)",
-    "ProjectManager .kchapter I/O",
-    "RTF->KChapter migration on first load",
-    "Navigator: Status suffix display [Draft]/[Revision]",
-    "Export: Warning dialog for non-final files",
-    "PropertiesPanel: Status statistics (Draft/Revision/Final count)",
-    "Status persistence in manifest.json",
-    "Navigator: Single-click shows Properties",
-    "PropertiesPanel: Section page with aggregate stats",
-    "PropertiesPanel: Part page with aggregate stats"
+    "OpenSpec #00035: KChapter Format - DEPLOYED",
+    "OpenSpec #00035: ChapterDocument unit tests (159 assertions)",
+    "OpenSpec #00035: Clean data architecture (manifest vs .kchapter)",
+    "OpenSpec #00036 Phase A: Navigator Status Submenu",
+    "OpenSpec #00036 Phase C: Auto-load Last Project checkbox",
+    "OpenSpec #00036 Phase B: Dashboard converted to HTML (WIP - needs styling)"
   ],
   "pending_tasks": [
-    "Unit tests for ChapterDocument",
-    "PropertiesPanel word count from ChapterDocument",
-    "Create new chapters directly as .kchapter"
+    "Dashboard HTML styling improvements",
+    "Recent Books visual appearance fix"
   ],
   "task_progress": {
-    "completed": 11,
-    "total": 14,
-    "percentage": 79
+    "completed": 2,
+    "total": 3,
+    "percentage": 66
   },
   "notes": [
-    "Format: JSON with kalahari header, content, statistics, metadata, annotations",
-    "Status persistence: saved in manifest.json, loaded on project open",
-    "Navigator UX: single-click shows Properties, hierarchical navigation",
-    "Build: PASS, Tests: 73/73 PASS (571 assertions)",
-    "Key commits: 409e676 (status persistence), f6f232d (docs)"
+    "OpenSpec #00035 DEPLOYED - all features working",
+    "OpenSpec #00036 Phase A (Navigator Status Submenu) - DONE, commit b1f1227",
+    "OpenSpec #00036 Phase C (Auto-load checkbox) - DONE, commit c9634e0",
+    "OpenSpec #00036 Phase B (Dashboard) - WIP, needs styling work",
+    "Dashboard converted to QTextBrowser + HTML, removed RecentBookCard class",
+    "User feedback: Dashboard looks bad, needs visual improvements tomorrow",
+    "Key commits: b1f1227, 85249c4, c9634e0, c6658e7 (WIP)"
   ]
 }
