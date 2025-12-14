@@ -1047,6 +1047,16 @@ void MainWindow::onSaveDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save Document");
 
+    // Check if we're in project mode - delegate to Save All for project saves
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        // In project mode, Ctrl+S saves the manifest (including metadata like notes)
+        // and any dirty chapter content
+        onSaveAll();
+        return;
+    }
+
+    // Phase 0: Single file document mode
     // Task #00015: Get current editor (returns nullptr if Dashboard is active)
     EditorPanel* editor = getCurrentEditor();
     if (!editor) {
@@ -1184,7 +1194,10 @@ void MainWindow::onSaveAll() {
     // Save all dirty elements via ProjectManager
     bool success = pm.saveAllDirty();
 
-    if (success) {
+    // Also save the manifest to persist metadata changes (notes, status, etc.)
+    bool manifestSaved = pm.saveManifest();
+
+    if (success && manifestSaved) {
         // Clear dirty flags and update tab titles
         for (int i = 0; i < m_centralTabs->count(); ++i) {
             EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
@@ -1204,7 +1217,7 @@ void MainWindow::onSaveAll() {
         }
 
         pm.setDirty(false);
-        logger.info("All chapters saved successfully");
+        logger.info("All chapters and manifest saved successfully");
         statusBar()->showMessage(tr("All changes saved"), 2000);
     } else {
         logger.error("Failed to save some chapters");
