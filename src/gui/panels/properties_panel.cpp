@@ -679,6 +679,9 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     logger.info("PropertiesPanel: Chapter status changed to: {}", statusCode.toStdString());
     element->setMetadata("status", statusCode.toStdString());
     pm.setDirty(true);
+
+    // Notify Navigator to refresh the item's display title (status suffix)
+    emit chapterStatusChanged(m_currentChapterId);
 }
 
 void PropertiesPanel::onChapterNotesChanged() {

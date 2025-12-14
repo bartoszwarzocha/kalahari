@@ -111,6 +111,12 @@ private slots:
     /// @brief Handle chapter notes changed
     void onChapterNotesChanged();
 
+signals:
+    /// @brief Emitted when chapter status is changed via combo box
+    /// @param elementId Element ID of the chapter
+    /// @note Used to notify Navigator to refresh the item's display title (status suffix)
+    void chapterStatusChanged(const QString& elementId);
+
 private:
     /// @brief Setup UI components
     void setupUI();

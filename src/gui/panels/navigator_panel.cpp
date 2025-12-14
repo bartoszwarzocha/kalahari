@@ -12,6 +12,7 @@
 #include "kalahari/core/document.h"
 #include "kalahari/core/book.h"
 #include "kalahari/core/part.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -1290,6 +1291,39 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         elementType != "other_files") {
         emit elementSelected(elementId, elementTitle);
     }
+}
+
+// =============================================================================
+// Item Refresh (Status change notification)
+// =============================================================================
+
+void NavigatorPanel::refreshItem(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::refreshItem() - ID: {}", elementId.toStdString());
+
+    if (elementId.isEmpty()) {
+        return;
+    }
+
+    // Find item by elementId
+    QTreeWidgetItem* item = findItemByElementId(elementId);
+    if (!item) {
+        logger.debug("NavigatorPanel: Item not found for elementId: {}", elementId.toStdString());
+        return;
+    }
+
+    // Get element from ProjectManager and update display text
+    auto& pm = core::ProjectManager::getInstance();
+    core::BookElement* element = pm.findElement(elementId);
+    if (!element) {
+        logger.warn("NavigatorPanel: Element not found in ProjectManager: {}", elementId.toStdString());
+        return;
+    }
+
+    // Update display title using the same helper function used in loadDocument()
+    item->setText(0, getDisplayTitle(element));
+
+    logger.debug("NavigatorPanel: Refreshed item text to: {}", item->text(0).toStdString());
 }
 
 // =============================================================================

@@ -85,6 +85,12 @@ public:
     /// @note Call after loadDocument() to restore tree expansion state
     void restoreExpansionState(const QString& projectId);
 
+    /// @brief Refresh a single item's display text by element ID
+    /// @param elementId Element ID of the item to refresh
+    /// @note Updates the display title (including status suffix) from ProjectManager
+    /// @note Does nothing if element not found in tree
+    void refreshItem(const QString& elementId);
+
     /// @brief Destructor
     ~NavigatorPanel() override = default;
 

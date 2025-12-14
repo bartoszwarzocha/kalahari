@@ -1565,6 +1565,11 @@ void MainWindow::createDocks() {
     setupDockTitleBar(m_propertiesDock, "view.properties", tr("Properties"));
     addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
 
+    // Connect PropertiesPanel status change to Navigator refresh
+    // When user changes chapter status, Navigator updates the display title (status suffix)
+    connect(m_propertiesPanel, &PropertiesPanel::chapterStatusChanged,
+            m_navigatorPanel, &NavigatorPanel::refreshItem);
+
     // Log dock (bottom)
     // Pass diagnosticMode to control log level filtering (INFO+ vs ALL)
     m_logPanel = new LogPanel(this, m_diagnosticMode);
