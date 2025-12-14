@@ -1,11 +1,11 @@
 {
     "document": {
         "author": "Test Author",
-        "created": "2025-12-14T14:31:12Z",
+        "created": "2025-12-14T17:45:41Z",
         "genre": "fiction",
-        "id": "1765722672435-3357",
+        "id": "1765734341508-0faa",
         "language": "en",
-        "modified": "2025-12-14T14:59:54Z",
+        "modified": "2025-12-14T17:45:46Z",
         "title": "Example Novel"
     },
     "kalahari": {
@@ -27,8 +27,7 @@
                 "file": "content/backmatter/epilogue.kchapter",
                 "id": "bm-epilogue",
                 "title": "Epilogue",
-                "type": "epilogue",
-                "wordCount": 38
+                "type": "epilogue"
             }
         ],
         "body": [
@@ -37,14 +36,12 @@
                     {
                         "file": "content/body/part_001/chapter_001.kchapter",
                         "id": "ch-001",
-                        "title": "Chapter One: The Beginning",
-                        "wordCount": 89
+                        "title": "Chapter One: The Beginning"
                     },
                     {
                         "file": "content/body/part_001/chapter_002.kchapter",
                         "id": "ch-002",
-                        "title": "Chapter Two: The Discovery",
-                        "wordCount": 85
+                        "title": "Chapter Two: The Discovery"
                     }
                 ],
                 "id": "part-001",
@@ -56,8 +53,7 @@
                 "file": "content/frontmatter/title_page.kchapter",
                 "id": "fm-title",
                 "title": "Title Page",
-                "type": "title_page",
-                "wordCount": 4
+                "type": "title_page"
             }
         ]
     }
