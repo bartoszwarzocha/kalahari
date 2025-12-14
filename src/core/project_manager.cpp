@@ -915,6 +915,64 @@ QString ProjectManager::addChapterToSection(const QString& sectionType,
 }
 
 // =============================================================================
+// Reordering Operations (OpenSpec #00034 Phase D)
+// =============================================================================
+
+bool ProjectManager::reorderChapter(const QString& partId, int fromIndex, int toIndex) {
+    auto& logger = Logger::getInstance();
+
+    if (!isProjectOpen() || !m_document) {
+        logger.error("reorderChapter: No project open");
+        return false;
+    }
+
+    Part* part = findPart(partId);
+    if (!part) {
+        logger.error("reorderChapter: Part not found: {}", partId.toStdString());
+        return false;
+    }
+
+    if (fromIndex < 0 || toIndex < 0) {
+        logger.error("reorderChapter: Invalid indices: from={}, to={}", fromIndex, toIndex);
+        return false;
+    }
+
+    bool success = part->moveChapter(static_cast<size_t>(fromIndex), static_cast<size_t>(toIndex));
+
+    if (success) {
+        logger.info("reorderChapter: Moved chapter in part '{}' from index {} to {}",
+                   partId.toStdString(), fromIndex, toIndex);
+        saveManifest();
+    }
+
+    return success;
+}
+
+bool ProjectManager::reorderPart(int fromIndex, int toIndex) {
+    auto& logger = Logger::getInstance();
+
+    if (!isProjectOpen() || !m_document) {
+        logger.error("reorderPart: No project open");
+        return false;
+    }
+
+    if (fromIndex < 0 || toIndex < 0) {
+        logger.error("reorderPart: Invalid indices: from={}, to={}", fromIndex, toIndex);
+        return false;
+    }
+
+    Book& book = m_document->getBook();
+    bool success = book.movePart(static_cast<size_t>(fromIndex), static_cast<size_t>(toIndex));
+
+    if (success) {
+        logger.info("reorderPart: Moved part from index {} to {}", fromIndex, toIndex);
+        saveManifest();
+    }
+
+    return success;
+}
+
+// =============================================================================
 // Private Helpers
 // =============================================================================
 

@@ -320,6 +320,29 @@ public:
                                const QString& sourceFilePath,
                                bool copyFile = true);
 
+    // =========================================================================
+    // Reordering Operations (OpenSpec #00034 Phase D)
+    // =========================================================================
+
+    /// @brief Reorder a chapter within a part
+    /// @param partId Part ID containing the chapter
+    /// @param fromIndex Current index of the chapter
+    /// @param toIndex New index for the chapter
+    /// @return true if reorder succeeded
+    ///
+    /// Used for drag-and-drop reordering in NavigatorPanel.
+    /// Saves manifest after successful reorder.
+    bool reorderChapter(const QString& partId, int fromIndex, int toIndex);
+
+    /// @brief Reorder a part within the body section
+    /// @param fromIndex Current index of the part
+    /// @param toIndex New index for the part
+    /// @return true if reorder succeeded
+    ///
+    /// Used for drag-and-drop reordering in NavigatorPanel.
+    /// Saves manifest after successful reorder.
+    bool reorderPart(int fromIndex, int toIndex);
+
 signals:
     /// @brief Emitted when a project is successfully opened
     /// @param projectPath Absolute path to the project folder

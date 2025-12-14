@@ -79,6 +79,25 @@ bool Book::removeBackMatter(const std::string& elementId) {
     return false;
 }
 
+bool Book::movePart(size_t fromIndex, size_t toIndex) {
+    if (fromIndex >= m_body.size() || toIndex >= m_body.size()) {
+        Logger::getInstance().warn("Invalid move indices for parts: from={}, to={}, size={}",
+                                   fromIndex, toIndex, m_body.size());
+        return false;
+    }
+
+    if (fromIndex == toIndex) {
+        return true;  // No-op
+    }
+
+    // Move element
+    auto part = m_body[fromIndex];
+    m_body.erase(m_body.begin() + fromIndex);
+    m_body.insert(m_body.begin() + toIndex, part);
+
+    return true;
+}
+
 // ===========================================================================
 // Statistics
 // ===========================================================================

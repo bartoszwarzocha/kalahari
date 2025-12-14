@@ -385,7 +385,17 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
     iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
 
-    logger.debug("Registered {} icons with IconRegistry", 177);
+    // STRUCTURE ICONS (OpenSpec #00034)
+    // Navigator panel section differentiation
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("structure.frontmatter", "resources/icons/twotone/first_page.svg", "Front Matter");
+    iconRegistry.registerIcon("structure.body", "resources/icons/twotone/menu_book.svg", "Body");
+    iconRegistry.registerIcon("structure.backmatter", "resources/icons/twotone/last_page.svg", "Back Matter");
+    iconRegistry.registerIcon("structure.part", "resources/icons/twotone/folder_open.svg", "Part");
+    iconRegistry.registerIcon("structure.otherfiles", "resources/icons/twotone/folder_open.svg", "Other Files");
+    iconRegistry.registerIcon("project.book", "resources/icons/twotone/auto_stories.svg", "Book Project");
+
+    logger.debug("Registered {} icons with IconRegistry", 183);
 
     // =========================================================================
     // FILE MENU
@@ -1479,6 +1489,58 @@ void MainWindow::createDocks() {
     connect(m_navigatorPanel, &NavigatorPanel::elementSelected,
             this, &MainWindow::onNavigatorElementSelected);
 
+    // Connect Navigator drag & drop reorder signals (OpenSpec #00034 Phase D)
+    connect(m_navigatorPanel, &NavigatorPanel::chapterReordered,
+            this, [this](const QString& partId, int fromIndex, int toIndex) {
+        auto& pm = core::ProjectManager::getInstance();
+        if (pm.reorderChapter(partId, fromIndex, toIndex)) {
+            core::Logger::getInstance().info("MainWindow: Chapter reordered successfully");
+        } else {
+            core::Logger::getInstance().error("MainWindow: Failed to reorder chapter");
+            // Reload navigator to revert visual state
+            if (pm.getDocument()) {
+                m_navigatorPanel->loadDocument(*pm.getDocument());
+            }
+        }
+    });
+
+    connect(m_navigatorPanel, &NavigatorPanel::partReordered,
+            this, [this](int fromIndex, int toIndex) {
+        auto& pm = core::ProjectManager::getInstance();
+        if (pm.reorderPart(fromIndex, toIndex)) {
+            core::Logger::getInstance().info("MainWindow: Part reordered successfully");
+        } else {
+            core::Logger::getInstance().error("MainWindow: Failed to reorder part");
+            // Reload navigator to revert visual state
+            if (pm.getDocument()) {
+                m_navigatorPanel->loadDocument(*pm.getDocument());
+            }
+        }
+    });
+
+    // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
+    connect(m_centralTabs, &QTabWidget::currentChanged, this, [this](int index) {
+        if (index < 0) {
+            m_navigatorPanel->clearHighlight();
+            return;
+        }
+
+        QWidget* currentWidget = m_centralTabs->widget(index);
+        EditorPanel* editor = qobject_cast<EditorPanel*>(currentWidget);
+        if (editor) {
+            QString elementId = editor->property("elementId").toString();
+            if (!elementId.isEmpty()) {
+                m_navigatorPanel->highlightElement(elementId);
+            } else {
+                // Standalone file or document without elementId
+                m_navigatorPanel->clearHighlight();
+            }
+        } else {
+            // Non-editor tab (Dashboard, etc.)
+            m_navigatorPanel->clearHighlight();
+        }
+    });
+
     // Properties dock (right)
     m_propertiesPanel = new PropertiesPanel(this);
     m_propertiesDock = new QDockWidget(tr("Properties"), this);
@@ -1701,6 +1763,22 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         // Discard → continue with close
     }
 
+    // Phase F: Save Navigator expansion state before closing
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        QString projectPath = pm.getProjectPath();
+        if (!projectPath.isEmpty()) {
+            QFileInfo pathInfo(projectPath);
+            QString projectId = pathInfo.absoluteFilePath()
+                .replace("/", "_")
+                .replace("\\", "_")
+                .replace(":", "_")
+                .replace(" ", "_");
+            m_navigatorPanel->saveExpansionState(projectId);
+            logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+        }
+    }
+
     // Save perspective (existing code)
     logger.debug("Saving window perspective");
 
@@ -1712,6 +1790,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     if (m_toolbarManager) {
         m_toolbarManager->saveState();
     }
+
+    // Save settings to disk (including Navigator expansion state)
+    core::SettingsManager::getInstance().save();
 
     logger.debug("Window perspective saved");
 
@@ -1813,6 +1894,17 @@ void MainWindow::onProjectOpened(const QString& projectPath) {
     // Update Navigator panel with document structure
     m_navigatorPanel->loadDocument(*doc);
 
+    // Phase F: Restore Navigator expansion state
+    // Generate projectId from path - sanitize for use as settings key
+    QFileInfo pathInfo(projectPath);
+    QString projectId = pathInfo.absoluteFilePath()
+        .replace("/", "_")
+        .replace("\\", "_")
+        .replace(":", "_")
+        .replace(" ", "_");
+    m_navigatorPanel->restoreExpansionState(projectId);
+    logger.debug("Restored expansion state for project: {}", projectId.toStdString());
+
     // Update window title with book title
     setWindowTitle(QString::fromStdString(doc->getTitle()) + " - Kalahari");
 
@@ -1823,6 +1915,20 @@ void MainWindow::onProjectOpened(const QString& projectPath) {
 
 void MainWindow::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    // Phase F: Save Navigator expansion state before clearing
+    QString projectPath = pm.getProjectPath();
+    if (!projectPath.isEmpty()) {
+        QFileInfo pathInfo(projectPath);
+        QString projectId = pathInfo.absoluteFilePath()
+            .replace("/", "_")
+            .replace("\\", "_")
+            .replace(":", "_")
+            .replace(" ", "_");
+        m_navigatorPanel->saveExpansionState(projectId);
+        logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+    }
 
     // Clear Navigator panel
     m_navigatorPanel->clearDocument();

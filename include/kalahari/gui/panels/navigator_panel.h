@@ -6,6 +6,7 @@
 ///
 /// OpenSpec #00033 Phase D: Enhanced with icons, element IDs, and theme refresh.
 /// OpenSpec #00033 Phase F: Added "Other Files" section for standalone files.
+/// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #pragma once
 
@@ -15,6 +16,9 @@
 
 class QTreeWidget;
 class QTreeWidgetItem;
+class QLineEdit;
+class QToolButton;
+class QTimer;
 
 namespace kalahari {
 namespace core {
@@ -27,6 +31,7 @@ namespace gui {
 ///
 /// Displays a QTreeWidget for project structure (chapters/scenes).
 /// Supports icons, element selection, and automatic theme refresh.
+/// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -34,6 +39,15 @@ public:
     /// @brief Constructor
     /// @param parent Parent widget
     explicit NavigatorPanel(QWidget* parent = nullptr);
+
+    /// @brief Highlight element in tree by ID (OpenSpec #00034 Phase C)
+    /// @param elementId Element ID to highlight (from BookElement::getId())
+    /// @note Scrolls to the item and expands parent nodes
+    /// @note Uses theme-aware highlight color (QPalette::Highlight with alpha)
+    void highlightElement(const QString& elementId);
+
+    /// @brief Clear current highlight (OpenSpec #00034 Phase C)
+    void clearHighlight();
 
     /// @brief Load document structure into tree
     /// @param document Document to display
@@ -59,6 +73,17 @@ public:
     /// @return True if there are standalone files
     bool hasStandaloneFiles() const;
 
+    /// @brief Save expansion state for a project (OpenSpec #00034 Phase F)
+    /// @param projectId Unique identifier for the project (e.g., manifest path hash)
+    /// @note Stores expanded item IDs in SettingsManager under navigator.expansion.<projectId>
+    /// @note For sections without IDs, uses format "type:<elementType>:<text>"
+    void saveExpansionState(const QString& projectId);
+
+    /// @brief Restore expansion state for a project (OpenSpec #00034 Phase F)
+    /// @param projectId Unique identifier for the project
+    /// @note Call after loadDocument() to restore tree expansion state
+    void restoreExpansionState(const QString& projectId);
+
     /// @brief Destructor
     ~NavigatorPanel() override = default;
 
@@ -70,9 +95,87 @@ signals:
     /// @note Section headers (Front Matter, Body, Back Matter) and Parts do not emit this signal
     void elementSelected(const QString& elementId, const QString& elementTitle);
 
+    /// @brief Request to rename an element
+    /// @param elementId Element ID
+    /// @param currentTitle Current title for edit dialog
+    void requestRename(const QString& elementId, const QString& currentTitle);
+
+    /// @brief Request to delete an element
+    /// @param elementId Element ID
+    /// @param elementType Type of element (for confirmation message)
+    void requestDelete(const QString& elementId, const QString& elementType);
+
+    /// @brief Request to add a chapter to a part
+    /// @param partId Part ID to add chapter to
+    void requestAddChapter(const QString& partId);
+
+    /// @brief Request to add a new part to the body
+    void requestAddPart();
+
+    /// @brief Request to add an item to front/back matter
+    /// @param sectionType "front_matter" or "back_matter"
+    void requestAddItem(const QString& sectionType);
+
+    /// @brief Request to move an element up or down
+    /// @param elementId Element ID
+    /// @param direction -1 for up, +1 for down
+    void requestMoveElement(const QString& elementId, int direction);
+
+    /// @brief Emitted when chapter is reordered via drag & drop (OpenSpec #00034 Phase D)
+    /// @param partId Part ID containing the chapter
+    /// @param fromIndex Original index of the chapter
+    /// @param toIndex New index of the chapter
+    void chapterReordered(const QString& partId, int fromIndex, int toIndex);
+
+    /// @brief Emitted when part is reordered via drag & drop (OpenSpec #00034 Phase D)
+    /// @param fromIndex Original index of the part
+    /// @param toIndex New index of the part
+    void partReordered(int fromIndex, int toIndex);
+
+    /// @brief Request to show properties dialog
+    /// @param elementId Element ID (empty for document properties)
+    void requestProperties(const QString& elementId);
+
+    /// @brief Request to add a standalone file to the project
+    /// @param filePath Absolute file path
+    void requestAddToProject(const QString& filePath);
+
+    /// @brief Request to remove a standalone file from the list
+    /// @param filePath Absolute file path
+    void requestRemoveStandaloneFile(const QString& filePath);
+
 private slots:
     /// @brief Refresh icons when theme/colors change
     void refreshIcons();
+
+    /// @brief Update highlight color when theme changes (OpenSpec #00034 Phase C)
+    void updateHighlightColor();
+
+    /// @brief Filter tree based on search text
+    /// @param text Filter text (case-insensitive match)
+    void filterTree(const QString& text);
+
+    /// @brief Clear filter and show all items
+    void clearFilter();
+
+    /// @brief Show context menu at position
+    /// @param pos Position in widget coordinates
+    void showContextMenu(const QPoint& pos);
+
+    // Context menu action handlers
+    void onContextMenuOpen();
+    void onContextMenuRename();
+    void onContextMenuDelete();
+    void onContextMenuMoveUp();
+    void onContextMenuMoveDown();
+    void onContextMenuAddChapter();
+    void onContextMenuAddPart();
+    void onContextMenuAddItem();
+    void onContextMenuExpandAll();
+    void onContextMenuCollapseAll();
+    void onContextMenuProperties();
+    void onContextMenuAddToProject();
+    void onContextMenuRemoveFromList();
 
 private:
     /// @brief Recursively refresh icons on all tree items
@@ -92,9 +195,88 @@ private:
     /// @brief Ensure "Other Files" section exists and is visible
     void ensureOtherFilesSection();
 
+    /// @brief Process filter for a single item and its children
+    /// @param item Item to process
+    /// @param filterText Filter text (lowercase)
+    /// @return True if item or any children match the filter
+    bool processFilterItem(QTreeWidgetItem* item, const QString& filterText);
+
+    /// @brief Set item and all children visible/hidden recursively
+    /// @param item Item to modify
+    /// @param visible Visibility state
+    void setItemVisibleRecursive(QTreeWidgetItem* item, bool visible);
+
+    /// @brief Find tree item by element ID (OpenSpec #00034 Phase C)
+    /// @param elementId Element ID to find
+    /// @return Tree item or nullptr if not found
+    QTreeWidgetItem* findItemByElementId(const QString& elementId) const;
+
+    /// @brief Recursive helper for findItemByElementId (OpenSpec #00034 Phase C)
+    /// @param parent Parent item to search
+    /// @param elementId Element ID to find
+    /// @return Tree item or nullptr if not found
+    QTreeWidgetItem* findItemByElementIdRecursive(QTreeWidgetItem* parent,
+                                                   const QString& elementId) const;
+
+    /// @brief Collect expanded item IDs recursively (OpenSpec #00034 Phase F)
+    /// @param item Starting item
+    /// @param expandedIds Output list of IDs for expanded items
+    /// @note For sections without IDs, stores "type:<elementType>:<text>"
+    void collectExpandedIds(QTreeWidgetItem* item, QStringList& expandedIds) const;
+
+    /// @brief Expand items by their IDs (OpenSpec #00034 Phase F)
+    /// @param ids List of item IDs to expand
+    /// @note Handles both regular IDs and "type:<elementType>:<text>" format
+    void expandItemsById(const QStringList& ids);
+
+    /// @brief Find item by type-text identifier (OpenSpec #00034 Phase F)
+    /// @param elementType Element type stored in Qt::UserRole + 1
+    /// @param text Item text
+    /// @return Tree item or nullptr if not found
+    QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
+
+    /// @brief Recursive helper for findItemByTypeAndText (OpenSpec #00034 Phase F)
+    QTreeWidgetItem* findItemByTypeAndTextRecursive(QTreeWidgetItem* parent,
+                                                     const QString& elementType,
+                                                     const QString& text) const;
+
+    /// @brief Handle drop event for drag & drop reordering (OpenSpec #00034 Phase D)
+    /// @param item The item being dropped
+    /// @param dropTarget The target item/position
+    /// @param dropIndicator Position indicator (above/below/on)
+    void handleDropEvent(QTreeWidgetItem* item, QTreeWidgetItem* dropTarget, int dropIndicator);
+
+    /// @brief Check if drag operation is valid (OpenSpec #00034 Phase D)
+    /// @param sourceItem Item being dragged
+    /// @param targetItem Target drop location
+    /// @return true if drop is allowed
+    bool isDragDropValid(QTreeWidgetItem* sourceItem, QTreeWidgetItem* targetItem) const;
+
+    /// @brief Get part ID for a chapter item (OpenSpec #00034 Phase D)
+    /// @param chapterItem Tree item of type "chapter"
+    /// @return Part ID or empty string if not found
+    QString getPartIdForChapter(QTreeWidgetItem* chapterItem) const;
+
+    /// @brief Get index of item within its parent (OpenSpec #00034 Phase D)
+    /// @param item Tree item
+    /// @return Index within parent, or -1 if no parent
+    int getItemIndex(QTreeWidgetItem* item) const;
+
     QTreeWidget* m_treeWidget;
     QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
+
+    // Search/filter components
+    QLineEdit* m_searchEdit;             ///< Filter input field
+    QToolButton* m_clearButton;          ///< Clear filter button
+    QTimer* m_filterDebounceTimer;       ///< Debounce timer for filter (300ms)
+
+    // Context menu
+    QTreeWidgetItem* m_contextMenuItem;  ///< Item for current context menu (temporary)
+
+    // Editor synchronization (OpenSpec #00034 Phase C)
+    QTreeWidgetItem* m_highlightedItem;  ///< Currently highlighted item (nullptr if none)
+    QColor m_highlightColor;             ///< Theme-aware highlight color (with alpha)
 };
 
 } // namespace gui

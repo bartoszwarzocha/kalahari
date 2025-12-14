@@ -119,6 +119,14 @@ public:
     /// @return true if found and removed
     bool removeBackMatter(const std::string& elementId);
 
+    /// @brief Move a part from one position to another within body
+    /// @param fromIndex Source index
+    /// @param toIndex Destination index
+    /// @return true if move succeeded, false if indices invalid
+    ///
+    /// Used for drag-and-drop reordering in GUI.
+    bool movePart(size_t fromIndex, size_t toIndex);
+
     /// @brief Get total word count (body only)
     /// @return Sum of all chapter word counts across all parts
     ///
