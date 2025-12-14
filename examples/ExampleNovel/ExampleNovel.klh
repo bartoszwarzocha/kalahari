@@ -1,64 +1,64 @@
 {
-  "kalahari": {
-    "version": "1.0",
-    "minVersion": "0.3.0"
-  },
-  "document": {
-    "id": "example-novel-001",
-    "title": "Example Novel",
-    "author": "Test Author",
-    "language": "en",
-    "genre": "fiction",
-    "created": "2025-12-14T15:30:00Z",
-    "modified": "2025-12-14T15:30:00Z"
-  },
-  "structure": {
-    "frontmatter": [
-      {
-        "id": "fm-title",
-        "type": "title_page",
-        "title": "Title Page",
-        "file": "content/frontmatter/title_page.kchapter",
-        "wordCount": 4
-      }
-    ],
-    "body": [
-      {
-        "id": "part-001",
-        "title": "Part One: Beginnings",
-        "chapters": [
-          {
-            "id": "ch-001",
-            "title": "Chapter One: The Beginning",
-            "file": "content/body/part_001/chapter_001.kchapter",
-            "wordCount": 89
-          },
-          {
-            "id": "ch-002",
-            "title": "Chapter Two: The Discovery",
-            "file": "content/body/part_001/chapter_002.kchapter",
-            "wordCount": 85
-          }
+    "document": {
+        "author": "Test Author",
+        "created": "2025-12-14T14:31:12Z",
+        "genre": "fiction",
+        "id": "1765722672435-3357",
+        "language": "en",
+        "modified": "2025-12-14T14:59:54Z",
+        "title": "Example Novel"
+    },
+    "kalahari": {
+        "minVersion": "0.4.0",
+        "version": "1.0"
+    },
+    "settings": {
+        "autoSaveInterval": 300,
+        "defaultPerspective": "writer"
+    },
+    "statistics": {
+        "lastEdited": "",
+        "totalChapters": 0,
+        "totalWords": 0
+    },
+    "structure": {
+        "backmatter": [
+            {
+                "file": "content/backmatter/epilogue.kchapter",
+                "id": "bm-epilogue",
+                "title": "Epilogue",
+                "type": "epilogue",
+                "wordCount": 38
+            }
+        ],
+        "body": [
+            {
+                "chapters": [
+                    {
+                        "file": "content/body/part_001/chapter_001.kchapter",
+                        "id": "ch-001",
+                        "title": "Chapter One: The Beginning",
+                        "wordCount": 89
+                    },
+                    {
+                        "file": "content/body/part_001/chapter_002.kchapter",
+                        "id": "ch-002",
+                        "title": "Chapter Two: The Discovery",
+                        "wordCount": 85
+                    }
+                ],
+                "id": "part-001",
+                "title": "Part One: Beginnings"
+            }
+        ],
+        "frontmatter": [
+            {
+                "file": "content/frontmatter/title_page.kchapter",
+                "id": "fm-title",
+                "title": "Title Page",
+                "type": "title_page",
+                "wordCount": 4
+            }
         ]
-      }
-    ],
-    "backmatter": [
-      {
-        "id": "bm-epilogue",
-        "type": "epilogue",
-        "title": "Epilogue",
-        "file": "content/backmatter/epilogue.kchapter",
-        "wordCount": 38
-      }
-    ]
-  },
-  "statistics": {
-    "totalWords": 216,
-    "totalChapters": 4,
-    "lastEdited": "2025-12-14T15:30:00Z"
-  },
-  "settings": {
-    "defaultPerspective": "writer",
-    "autoSaveInterval": 300
-  }
+    }
 }
