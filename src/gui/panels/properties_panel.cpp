@@ -680,6 +680,9 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     element->setMetadata("status", statusCode.toStdString());
     pm.setDirty(true);
 
+    // Auto-save manifest to persist status immediately (OpenSpec #00034)
+    pm.saveManifest();
+
     // Notify Navigator to refresh the item's display title (status suffix)
     emit chapterStatusChanged(m_currentChapterId);
 }
@@ -698,6 +701,9 @@ void PropertiesPanel::onChapterNotesChanged() {
     QString notes = m_chapterNotesEdit->toPlainText();
     element->setMetadata("notes", notes.toStdString());
     pm.setDirty(true);
+
+    // Auto-save manifest to persist notes immediately (OpenSpec #00034)
+    pm.saveManifest();
 }
 
 void PropertiesPanel::populateProjectFields() {

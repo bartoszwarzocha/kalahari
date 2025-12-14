@@ -482,6 +482,12 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                 element->setMetadata("status", status.toStdString());
             }
 
+            // Load notes from manifest (OpenSpec #00034)
+            if (elemObj.contains("notes")) {
+                QString notes = elemObj["notes"].toString();
+                element->setMetadata("notes", notes.toStdString());
+            }
+
             book.addFrontMatter(element);
 
             Logger::getInstance().debug("Loaded frontmatter: {} ({})",
@@ -526,6 +532,12 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
                         chapter->setMetadata("status", status.toStdString());
                     }
 
+                    // Load notes from manifest (OpenSpec #00034)
+                    if (chapObj.contains("notes")) {
+                        QString notes = chapObj["notes"].toString();
+                        chapter->setMetadata("notes", notes.toStdString());
+                    }
+
                     part->addChapter(chapter);
 
                     Logger::getInstance().debug("Loaded chapter: {} ({})",
@@ -562,6 +574,12 @@ bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) 
             if (elemObj.contains("status")) {
                 QString status = elemObj["status"].toString();
                 element->setMetadata("status", status.toStdString());
+            }
+
+            // Load notes from manifest (OpenSpec #00034)
+            if (elemObj.contains("notes")) {
+                QString notes = elemObj["notes"].toString();
+                element->setMetadata("notes", notes.toStdString());
             }
 
             book.addBackMatter(element);
@@ -607,6 +625,12 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
             elemObj["status"] = QString::fromStdString(status.value());
         }
 
+        // Save notes to manifest (OpenSpec #00034)
+        auto notes = element->getMetadata("notes");
+        if (notes.has_value() && !notes.value().empty()) {
+            elemObj["notes"] = QString::fromStdString(notes.value());
+        }
+
         frontmatterArray.append(elemObj);
     }
     structureObj["frontmatter"] = frontmatterArray;
@@ -632,6 +656,12 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
                 chapObj["status"] = QString::fromStdString(status.value());
             }
 
+            // Save notes to manifest (OpenSpec #00034)
+            auto notes = chapter->getMetadata("notes");
+            if (notes.has_value() && !notes.value().empty()) {
+                chapObj["notes"] = QString::fromStdString(notes.value());
+            }
+
             chaptersArray.append(chapObj);
         }
         partObj["chapters"] = chaptersArray;
@@ -653,6 +683,12 @@ QJsonObject ProjectManager::saveStructureToManifest() const {
         auto status = element->getMetadata("status");
         if (status.has_value()) {
             elemObj["status"] = QString::fromStdString(status.value());
+        }
+
+        // Save notes to manifest (OpenSpec #00034)
+        auto notes = element->getMetadata("notes");
+        if (notes.has_value() && !notes.value().empty()) {
+            elemObj["notes"] = QString::fromStdString(notes.value());
         }
 
         backmatterArray.append(elemObj);
