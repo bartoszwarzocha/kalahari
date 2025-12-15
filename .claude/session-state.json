@@ -1,20 +1,19 @@
 {
   "mode": "full",
-  "saved_at": "2025-12-15T01:30:00",
+  "saved_at": "2025-12-15T01:45:00",
   "git_branch": "main",
-  "git_commit": "c11cceb",
+  "git_commit": "82ff858",
   "git_pushed": true,
   "openspec": "00036",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00036 Dashboard & Navigator Enhancements - Phase B native Qt rewrite COMPLETE",
+  "working_on": "OpenSpec #00036 Dashboard & Navigator Enhancements - Phase B native Qt rewrite COMPLETE, polish needed",
   "next_steps": [
-    "User mentioned 'kilka innych rzeczy do naprawy' - ask what needs fixing",
-    "Consider updating ROADMAP.md if applicable",
-    "Final testing of Dashboard theme switching",
-    "Check CI/CD results"
+    "Fix 11 issues listed in pending_tasks",
+    "ASK USER about colors for dashboardPrimary/dashboardSecondary",
+    "ASK USER about colors for infoPrimary/infoSecondary"
   ],
   "blocker": null,
-  "implementation_status": "Phase A+C DONE, Phase B REWRITTEN (native Qt)",
+  "implementation_status": "Phase A+C DONE, Phase B needs polish (11 items)",
   "completed_tasks": [
     "OpenSpec #00036 Phase A: Navigator Status Submenu",
     "OpenSpec #00036 Phase C: Auto-load Last Project checkbox",
@@ -34,13 +33,22 @@
     "Settings: setColorOverride for info colors"
   ],
   "pending_tasks": [
-    "User mentioned other issues to fix (TBD tomorrow)",
-    "Final Dashboard polish (if needed)"
+    "1) Dashboard tab has no icon - add icon to tab",
+    "2) No way to re-show Dashboard - add option to View menu and toolbar",
+    "3) Navigator treeview icons - set default size to 20px",
+    "4) INVESTIGATE: Program very slow on first startup - why? (icon pre-rendering?)",
+    "5) Add settings for Dashboard icon size (default 48px)",
+    "6) Add dashboardPrimary/dashboardSecondary colors (use script!) - ASK USER FOR COLORS!",
+    "7) Change infoPrimary/infoSecondary colors (remember defaults) - ASK USER FOR COLORS!",
+    "8) Dashboard center divider still WHITE - should be darkened (try different palette color?)",
+    "9) Add subtle borders to clickable areas in News and Recent Files sections",
+    "10) Add Dashboard setting: number of items (news + recent files) - min 3, max 9, default 5",
+    "11) Dashboard settings not working - toggling sections doesn't update Dashboard (hide divider when single column)"
   ],
   "task_progress": {
     "completed": 16,
-    "total": 18,
-    "percentage": 89
+    "total": 27,
+    "percentage": 59
   },
   "notes": [
     "OpenSpec #00036 Phase B: Complete rewrite from litehtml to native Qt",
@@ -50,9 +58,11 @@
     "Hover effects work with transparent child widgets",
     "Responsive layout: single column below 750px",
     "Settings preview icons: 24px (simplified DPI handling fixed clipping)",
-    "Dashboard icons: 32px consistent",
+    "Dashboard icons: 32px consistent (user wants 48px default with settings)",
     "User verified: 'Kolorowanie jest OK', 'Teraz jest OK' (icon preview)",
-    "CI/CD triggered: https://github.com/bartoszwarzocha/kalahari/actions/runs/20245327875",
-    "Key commit: c11cceb (feat: Dashboard native Qt rewrite + icon system overhaul)"
+    "CI/CD triggered but not waited for (user request)",
+    "Key commits: c11cceb, 82ff858",
+    "IMPORTANT: Ask user about color values for Light and Dark themes!",
+    "IMPORTANT: Use add_theme_color.py script for adding new theme colors!"
   ]
 }
