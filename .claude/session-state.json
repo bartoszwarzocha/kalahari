@@ -1,45 +1,58 @@
 {
-  "mode": "quick",
-  "saved_at": "2025-12-14T20:15:00",
+  "mode": "full",
+  "saved_at": "2025-12-15T01:30:00",
   "git_branch": "main",
-  "git_commit": "c6658e7",
-  "git_pushed": false,
+  "git_commit": "c11cceb",
+  "git_pushed": true,
   "openspec": "00036",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00036 Dashboard & Navigator Enhancements - Phase B WIP",
+  "working_on": "OpenSpec #00036 Dashboard & Navigator Enhancements - Phase B native Qt rewrite COMPLETE",
   "next_steps": [
-    "FIX: Dashboard HTML styling - currently looks bad",
-    "Improve Recent Books card visual appearance",
-    "Test auto-load last project functionality",
-    "Commit final Dashboard implementation"
+    "User mentioned 'kilka innych rzeczy do naprawy' - ask what needs fixing",
+    "Consider updating ROADMAP.md if applicable",
+    "Final testing of Dashboard theme switching",
+    "Check CI/CD results"
   ],
   "blocker": null,
-  "implementation_status": "Phase A+C DONE, Phase B needs styling",
+  "implementation_status": "Phase A+C DONE, Phase B REWRITTEN (native Qt)",
   "completed_tasks": [
-    "OpenSpec #00035: KChapter Format - DEPLOYED",
-    "OpenSpec #00035: ChapterDocument unit tests (159 assertions)",
-    "OpenSpec #00035: Clean data architecture (manifest vs .kchapter)",
     "OpenSpec #00036 Phase A: Navigator Status Submenu",
     "OpenSpec #00036 Phase C: Auto-load Last Project checkbox",
-    "OpenSpec #00036 Phase B: Dashboard converted to HTML (WIP - needs styling)"
+    "OpenSpec #00036 Phase B: Dashboard HTML → Native Qt rewrite",
+    "Dashboard: ClickableCard with hover effects",
+    "Dashboard: QGridLayout 50/50 columns, responsive <750px",
+    "Dashboard: Word wrap with zero-width space for paths",
+    "Dashboard: News icons use infoPrimary/infoSecondary",
+    "Dashboard: Recent Files icons use primary/secondary",
+    "Dashboard: 32px icons with getThemedIcon() API",
+    "IconRegistry: Cache QIcon (not QPixmap), pre-render multiple sizes",
+    "ArtProvider: New getThemedIcon(cmdId, primary?, secondary?) API",
+    "Auto-refresh icons on theme/icon changes (resourcesChanged signal)",
+    "Settings: Fixed infoPrimary/infoSecondary order in Palette Colors",
+    "Settings: Fixed icon preview clipping (simplified DPI handling)",
+    "Settings: Theme-aware text colors for section labels",
+    "Settings: setColorOverride for info colors"
   ],
   "pending_tasks": [
-    "Dashboard HTML styling improvements",
-    "Recent Books visual appearance fix"
+    "User mentioned other issues to fix (TBD tomorrow)",
+    "Final Dashboard polish (if needed)"
   ],
   "task_progress": {
-    "completed": 2,
-    "total": 3,
-    "percentage": 66
+    "completed": 16,
+    "total": 18,
+    "percentage": 89
   },
   "notes": [
-    "OpenSpec #00035 DEPLOYED - all features working",
-    "OpenSpec #00036 Phase A (Navigator Status Submenu) - DONE, commit b1f1227",
-    "OpenSpec #00036 Phase C (Auto-load checkbox) - DONE, commit c9634e0",
-    "OpenSpec #00036 Phase B (Dashboard) - WIP, needs styling work",
-    "Dashboard converted to QTextBrowser + HTML, removed RecentBookCard class",
-    "User feedback: Dashboard looks bad, needs visual improvements tomorrow",
-    "Cleaned up duplicate openspec/changes/archive/ directory (was empty)",
-    "Key commits: b1f1227, 85249c4, c9634e0, c6658e7 (WIP)"
+    "OpenSpec #00036 Phase B: Complete rewrite from litehtml to native Qt",
+    "Icon system overhaul: QIcon cache instead of QPixmap, pre-rendered sizes",
+    "getThemedIcon() API returns QIcon with optional color parameters",
+    "Different icon colors: News=infoPrimary/infoSecondary, Files=primary/secondary",
+    "Hover effects work with transparent child widgets",
+    "Responsive layout: single column below 750px",
+    "Settings preview icons: 24px (simplified DPI handling fixed clipping)",
+    "Dashboard icons: 32px consistent",
+    "User verified: 'Kolorowanie jest OK', 'Teraz jest OK' (icon preview)",
+    "CI/CD triggered: https://github.com/bartoszwarzocha/kalahari/actions/runs/20245327875",
+    "Key commit: c11cceb (feat: Dashboard native Qt rewrite + icon system overhaul)"
   ]
 }
