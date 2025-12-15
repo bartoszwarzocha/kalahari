@@ -109,9 +109,11 @@ private:
     void createUI();
     void createNavigationTree();
     void createSettingsPages();
+    QWidget* createGeneralPage();
     QWidget* createAppearanceGeneralPage();
     QWidget* createAppearanceThemePage();
     QWidget* createAppearanceIconsPage();
+    QWidget* createAppearanceDashboardPage();
     QWidget* createEditorGeneralPage();
     QWidget* createAdvancedGeneralPage();
     QWidget* createAdvancedLogPage();
@@ -155,6 +157,9 @@ private:
     QComboBox* m_themeComboBox;
     ColorConfigWidget* m_primaryColorWidget;
     ColorConfigWidget* m_secondaryColorWidget;
+    ColorConfigWidget* m_infoHeaderColorWidget;
+    ColorConfigWidget* m_infoSecondaryColorWidget;
+    ColorConfigWidget* m_infoPrimaryColorWidget;
 
     // UI Colors (QPalette roles)
     ColorConfigWidget* m_tooltipBackgroundColorWidget;
@@ -211,6 +216,14 @@ private:
     QHBoxLayout* m_iconPreviewLayout;
 
     // ========================================================================
+    // Member Variables - Appearance/Dashboard
+    // ========================================================================
+
+    QCheckBox* m_showKalahariNewsCheckBox;
+    QCheckBox* m_showRecentFilesCheckBox;
+    QCheckBox* m_autoLoadLastProjectCheckBox;
+
+    // ========================================================================
     // Member Variables - Editor/General
     // ========================================================================
 
@@ -243,21 +256,23 @@ private:
     // ========================================================================
 
     enum PageIndex {
-        PAGE_APPEARANCE_GENERAL = 0,
-        PAGE_APPEARANCE_THEME = 1,
-        PAGE_APPEARANCE_ICONS = 2,
-        PAGE_EDITOR_GENERAL = 3,
-        PAGE_EDITOR_SPELLING = 4,
-        PAGE_EDITOR_AUTOCORRECT = 5,
-        PAGE_EDITOR_COMPLETION = 6,
-        PAGE_FILES_BACKUP = 7,
-        PAGE_FILES_AUTOSAVE = 8,
-        PAGE_FILES_IMPORT_EXPORT = 9,
-        PAGE_NETWORK_CLOUD_SYNC = 10,
-        PAGE_NETWORK_UPDATES = 11,
-        PAGE_ADVANCED_GENERAL = 12,
-        PAGE_ADVANCED_PERFORMANCE = 13,
-        PAGE_ADVANCED_LOG = 14
+        PAGE_GENERAL = 0,
+        PAGE_APPEARANCE_GENERAL = 1,
+        PAGE_APPEARANCE_THEME = 2,
+        PAGE_APPEARANCE_ICONS = 3,
+        PAGE_APPEARANCE_DASHBOARD = 4,
+        PAGE_EDITOR_GENERAL = 5,
+        PAGE_EDITOR_SPELLING = 6,
+        PAGE_EDITOR_AUTOCORRECT = 7,
+        PAGE_EDITOR_COMPLETION = 8,
+        PAGE_FILES_BACKUP = 9,
+        PAGE_FILES_AUTOSAVE = 10,
+        PAGE_FILES_IMPORT_EXPORT = 11,
+        PAGE_NETWORK_CLOUD_SYNC = 12,
+        PAGE_NETWORK_UPDATES = 13,
+        PAGE_ADVANCED_GENERAL = 14,
+        PAGE_ADVANCED_PERFORMANCE = 15,
+        PAGE_ADVANCED_LOG = 16
     };
 };
 

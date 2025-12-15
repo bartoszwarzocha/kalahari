@@ -103,7 +103,7 @@ QWidget* AboutDialog::createAboutTab() {
            "Project Vision & Architecture:\n"
            "  Bartosz Warzocha (bartosz.warzocha@gmail.com)\n"
            "Technology Stack:\n"
-           "  C++20, Qt6 6.5.0+, CMake, vcpkg\n\n"
+           "  C++20, Qt6 6.9+, CMake, vcpkg\n\n"
            "Special Thanks:\n"
            "  - Anthropic for Claude AI assistance\n"
            "  - Qt team for excellent cross-platform GUI framework\n"

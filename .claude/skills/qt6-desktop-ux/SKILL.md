@@ -187,3 +187,10 @@ void MyWidget::onThemeChanged() {
     update();
 }
 ```
+
+### Adding new theme colors
+When a component needs a new custom color, use the automated script:
+```bash
+python scripts/add_theme_color.py colorName "#darkHex" "#lightHex" -d "description" -s
+```
+See `kalahari-coding` skill for full documentation.

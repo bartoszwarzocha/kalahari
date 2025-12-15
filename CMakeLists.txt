@@ -118,7 +118,6 @@ if(USE_SYSTEM_PACKAGES)
     find_package(Catch2 3 REQUIRED)
     find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 REQUIRED)
-
 else()
     # vcpkg integration
     # Note: vcpkg toolchain file should be specified via:

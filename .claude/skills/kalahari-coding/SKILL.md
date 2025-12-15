@@ -78,6 +78,43 @@ theme.palette.toQPalette()
 theme.log.info  // log panel colors
 ```
 
+### Adding New Theme Colors
+
+Use the automated script `scripts/add_theme_color.py` for adding colors to the theme system.
+
+**Basic usage (5 files modified):**
+```bash
+python scripts/add_theme_color.py <color_name> <dark_value> <light_value> -d "description"
+```
+
+**With Settings UI integration (9 files modified):**
+```bash
+python scripts/add_theme_color.py <color_name> <dark_value> <light_value> -d "description" -l "Label" -s
+```
+
+**Parameters:**
+- `color_name`: camelCase name (e.g., `infoPrimary`)
+- `dark_value`: hex color for Dark theme (e.g., `#6B9BD2`)
+- `light_value`: hex color for Light theme (e.g., `#3D6A99`)
+- `-d/--description`: description for C++ comments
+- `-l/--label`: display label in Settings UI
+- `-s/--add-to-settings`: add to Settings dialog UI
+
+**Files modified by script:**
+- `resources/themes/Dark.json` - dark theme color value
+- `resources/themes/Light.json` - light theme color value
+- `include/kalahari/core/theme.h` - QColor member in Theme struct
+- `src/core/theme.cpp` - fromJson/toJson serialization
+- `src/core/theme_manager.cpp` - fallback, applyColorOverrides, setColorOverride
+- (with `-s`): `settings_data.h`, `settings_dialog.h`, `settings_dialog.cpp`, `main_window.cpp`
+
+**Example:**
+```bash
+python scripts/add_theme_color.py htmlHeading "#4A90D9" "#2E5C8A" -d "HTML heading color" -l "Heading" -s
+```
+
+**NEVER add theme colors manually** - always use the script to ensure consistency across all 5-9 files.
+
 ## 6. Logging
 
 ### ALWAYS

@@ -109,6 +109,15 @@ public:
     /// @return QPixmap with current theme colors applied
     QPixmap getPixmap(const QString& cmdId, int size);
 
+    /// @brief Get icon with custom colors (or theme defaults if not specified)
+    /// @param cmdId Action ID for the icon
+    /// @param primary Primary color (optional, uses theme primary if invalid/not set)
+    /// @param secondary Secondary color (optional, uses theme secondary if invalid/not set)
+    /// @return QIcon that renders at any size from SVG
+    QIcon getThemedIcon(const QString& cmdId,
+                        const QColor& primary = QColor(),
+                        const QColor& secondary = QColor());
+
     /// @brief Get HiDPI-aware pixmap for preview (Settings Dialog)
     /// @param cmdId Command ID
     /// @param logicalSize Logical size (display size)

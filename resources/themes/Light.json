@@ -8,7 +8,10 @@
     "secondary": "#999999",
     "accent": "#0078D4",
     "background": "#FFFFFF",
-    "text": "#000000"
+    "text": "#000000",
+    "infoHeader": "#2B4763",
+    "infoPrimary": "#3D6A99",
+    "infoSecondary": "#5B8AC0"
   },
   "palette": {
     "window": "#f0f0f0",

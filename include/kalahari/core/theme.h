@@ -30,6 +30,9 @@ struct Theme {
         QColor accent;      ///< Accent color (buttons, links)
         QColor background;  ///< Background color (windows, panels)
         QColor text;        ///< Text color (labels, content)
+        QColor infoHeader; ///< Color for information panel headers
+        QColor infoPrimary; ///< Primary info color for panels
+        QColor infoSecondary; ///< Secondary info color for panels
     } colors;
 
     /// @brief Qt Palette colors (for native widget styling)

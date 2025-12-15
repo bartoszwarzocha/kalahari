@@ -3819,3 +3819,371 @@ task-manager:
 ---
 
 *Ten dokument jest TYLKO do planowania i NIE powinien być commitowany do git.*
+
+---
+
+## 17. Analiza Claude Code 2.0.56-2.0.64 (2025-12-10)
+
+### 17.1 Przegląd Aktualizacji
+
+| Wersja | Data | Kluczowe Zmiany |
+|--------|------|-----------------|
+| **2.0.64** | grudzień 2025 | Named Sessions, `.claude/rules/`, Async Agents, TaskOutputTool |
+| **2.0.63** | grudzień 2025 | `attribution` setting, bugfixy |
+| **2.0.62** | grudzień 2025 | "(Recommended)" indicator |
+| **2.0.61** | grudzień 2025 | Revert multiple terminal clients |
+| **2.0.60** | grudzień 2025 | Background Agents, `/mcp enable/disable` |
+| **2.0.59** | grudzień 2025 | `--agent` CLI flag, `agent` setting |
+| **2.0.58** | grudzień 2025 | Opus 4.5 dla Pro |
+| **2.0.57** | grudzień 2025 | Feedback przy odrzuceniu planu |
+| **2.0.56** | grudzień 2025 | Terminal progress bar, VSCode secondary sidebar |
+
+**Nasza wersja:** 2.0.64 (aktualna)
+
+---
+
+### 17.2 Game-Changery dla Kalahari Workflow
+
+#### 17.2.1 Named Sessions (`/rename`, `/resume`)
+
+**Co to jest:**
+```bash
+/rename openspec-00030      # Nazwij bieżącą sesję
+/resume openspec-00030      # Wznów sesję (z REPL lub terminala)
+claude --resume openspec-00030  # Wznów z linii poleceń
+```
+
+**Wpływ na workflow:**
+- **Natywne wsparcie** dla workflow per-task
+- Każdy OpenSpec może mieć własną nazwaną sesję
+- Screen `/resume` z podglądem (P) i rename (R)
+- **Potencjalnie zastępuje** `session-state.json`
+
+**Proponowana konwencja:**
+```
+openspec-NNNNN     # Dla aktywnych tasków
+feature-nazwa      # Dla długich feature'ów
+debug-NNNNN        # Dla sesji debugowania
+```
+
+**Status:** DO WDROŻENIA - wymaga decyzji o migracji z session-state.json
+
+---
+
+#### 17.2.2 `.claude/rules/` Directory
+
+**Co to jest:**
+Modularny system reguł projektu - alternatywa/rozszerzenie dla monolitycznego CLAUDE.md.
+
+**Jak działa:**
+```
+.claude/rules/
+├── general.md              # Globalne reguły (bez paths)
+├── code-style.md           # Konwencje kodu
+├── security.md             # Reguły bezpieczeństwa
+├── frontend/
+│   ├── qt6-widgets.md      # Reguły dla Qt6 (paths: src/gui/**/*.cpp)
+│   └── styles.md           # Style UI
+└── backend/
+    ├── core.md             # Reguły core (paths: src/core/**/*.cpp)
+    └── api.md              # API design
+```
+
+**Path scoping (frontmatter YAML):**
+```markdown
+---
+paths: src/gui/**/*.{cpp,h}
+---
+
+# Qt6 Widget Rules
+- Use QVBoxLayout/QHBoxLayout for layouts
+- All widgets must have tooltips
+- Use tr() for all UI strings
+```
+
+**Hierarchia ładowania:**
+```
+Enterprise policy (highest)
+    ↓
+.claude/CLAUDE.md lub ./CLAUDE.md
+    ↓
+.claude/rules/*.md (ten sam priorytet co CLAUDE.md)
+    ↓
+~/.claude/rules/*.md (user-level)
+    ↓
+~/.claude/CLAUDE.md (lowest)
+```
+
+**Korzyści dla Kalahari:**
+1. **Modularyzacja** - rozbicie CLAUDE.md (obecnie ~80 linii) na tematyczne pliki
+2. **Path scoping** - różne reguły dla `src/core/` vs `src/gui/`
+3. **Łatwiejsze utrzymanie** - każdy plik odpowiada za jeden aspekt
+4. **Możliwość per-agent rules** - teoretycznie różne reguły dla różnych kontekstów
+
+**Proponowana struktura dla Kalahari:**
+```
+.claude/rules/
+├── workflow.md              # Reguły workflow (agent dispatch)
+├── patterns.md              # Mandatory patterns (ArtProvider, tr(), etc.)
+├── naming.md                # Konwencje nazewnictwa
+├── gui/
+│   └── qt6.md              # paths: src/gui/**/* - Qt6 patterns
+└── core/
+    └── singletons.md       # paths: src/core/**/* - Singleton usage
+```
+
+**Status:** DO WDROŻENIA - wymaga refaktoru CLAUDE.md
+
+---
+
+#### 17.2.3 Async Agents & Background Execution
+
+**Co to jest (v2.0.60, v2.0.64):**
+```
+- Background agent support: agenci mogą działać w tle
+- Async bash: komendy mogą "budzić" main agenta
+- TaskOutputTool: ujednolicone API dla wyników (deprecuje AgentOutputTool)
+```
+
+**Wpływ na workflow:**
+```
+OBECNY FLOW (sekwencyjny):
+implementation → review → tests → close
+
+MOŻLIWY FLOW (równoległy):
+implementation → [review | tests] → close
+                   ↓        ↓
+                 oba muszą być READY
+```
+
+**Propozycja rozszerzenia workflow.json:**
+```json
+{
+  "id": "parallel_validation",
+  "trigger": {
+    "agent": ["code-writer", "code-editor", "ui-designer"],
+    "status": "READY"
+  },
+  "action": {
+    "parallel": true,
+    "agents": [
+      {"agent": "code-reviewer", "background": true},
+      {"agent": "tester", "background": true}
+    ],
+    "await_all": true,
+    "on_all_ready": "tests_to_close"
+  }
+}
+```
+
+**Korzyści:**
+- Szybsze zamykanie tasków (review + testy równolegle)
+- Lepsze wykorzystanie czasu
+- Event-driven zamiast polling
+
+**Status:** DO ROZWAŻENIA - wymaga testów i modyfikacji orchestratora
+
+---
+
+#### 17.2.4 `agent` Setting & `--agent` CLI Flag
+
+**Co to jest (v2.0.59):**
+
+**W `settings.json`:**
+```json
+{
+  "agent": "task-manager"
+}
+```
+Ustawia domyślnego agenta dla sesji (system prompt, tool restrictions, model).
+
+**Z CLI:**
+```bash
+claude --agent architect    # Start sesji jako architect
+claude --agent code-writer  # Start sesji w trybie pisania
+claude --agent devops       # Start sesji w trybie CI/CD
+```
+
+**Wpływ na workflow:**
+- Możliwość **wymuszenia perspektywy** bez hooków
+- Różne tryby pracy z różnymi zestawami narzędzi
+- Skróty w skryptach `.bat`/`.ps1`
+
+**Przykładowe skrypty:**
+```batch
+@echo off
+:: kalahari-dev.bat - Tryb developmentu
+claude --agent code-editor
+
+:: kalahari-review.bat - Tryb review
+claude --agent code-reviewer
+
+:: kalahari-ci.bat - Tryb CI/CD
+claude --agent devops
+```
+
+**Status:** DO ROZWAŻENIA - przydatne dla różnych trybów pracy
+
+---
+
+#### 17.2.5 Inne Przydatne Zmiany
+
+| Funkcja | Wersja | Opis | Akcja |
+|---------|--------|------|-------|
+| `/mcp enable/disable` | 2.0.60 | Szybkie włączanie/wyłączanie MCP | Dokumentacja |
+| `attribution` setting | 2.0.63 | Customizacja bylines commitów | settings.json |
+| "(Recommended)" indicator | 2.0.62 | Sugestia preferowanej opcji | Automatyczne |
+| Plan feedback | 2.0.57 | Feedback przy odrzuceniu planu | Automatyczne |
+| `/stats` | 2.0.64 | Statystyki sesji | Dokumentacja |
+
+---
+
+### 17.3 Macierz Decyzji
+
+| Funkcja | Priorytet | Ryzyko | Effort | ROI | Decyzja |
+|---------|-----------|--------|--------|-----|---------|
+| Named Sessions | HIGH | Niskie | Średni | Wysoki | **WDROŻYĆ** |
+| `.claude/rules/` | HIGH | Niskie | Niski | Wysoki | **WDROŻYĆ** |
+| Async Agents | MEDIUM | Średnie | Wysoki | Średni | **ZBADAĆ** |
+| `agent` setting | MEDIUM | Niskie | Niski | Średni | **WDROŻYĆ** |
+| `--agent` flag | LOW | Niskie | Niski | Niski | **DOKUMENTACJA** |
+
+---
+
+### 17.4 Plan Migracji Session Management
+
+#### Opcja A: Pełna Migracja (REKOMENDOWANA)
+
+```
+STARY FLOW:
+  Praca → /save-session → session-state.json
+  Nowa sesja → /load-session → przywrócenie
+
+NOWY FLOW (natywny):
+  Praca → /rename openspec-00030
+  Nowa sesja → /resume openspec-00030 (lub claude --resume)
+```
+
+**Kroki:**
+1. Testuj `/rename` i `/resume` przez 1-2 tygodnie
+2. Jeśli stabilne → usuń `session-state.json` workflow
+3. Zaktualizuj `/save-session` i `/load-session` jako aliasy
+4. Zaktualizuj dokumentację
+
+#### Opcja B: Hybryd (zachowawcza)
+
+```
+- Named sessions dla tasków (openspec-NNNNN)
+- session-state.json jako backup/audit
+```
+
+**Decyzja:** Opcja A po pozytywnych testach
+
+---
+
+### 17.5 Plan Refaktoru CLAUDE.md → .claude/rules/
+
+#### Obecny stan CLAUDE.md
+- ~80 linii
+- Wszystko w jednym pliku
+- Sekcje: Agenci, Flow, MCP, Build, Patterns
+
+#### Proponowany podział
+
+```
+.claude/
+├── CLAUDE.md               # Skrócony (20 linii) - tylko overview
+└── rules/
+    ├── agents.md           # Tabela agentów + triggery
+    ├── patterns.md         # Mandatory patterns (ArtProvider, tr(), etc.)
+    │                       # paths: src/**/*.{cpp,h}
+    ├── naming.md           # Konwencje nazewnictwa
+    ├── build.md            # Build commands
+    └── mcp.md              # MCP servers usage
+```
+
+#### Nowy CLAUDE.md (20 linii)
+```markdown
+# KALAHARI - Writer's IDE
+
+C++20 + Qt6 | Desktop Application
+Full context: `.claude/context/project-brief.txt`
+
+## Quick Reference
+
+- **Agents:** See `.claude/rules/agents.md`
+- **Patterns:** See `.claude/rules/patterns.md`
+- **Build:** `scripts/build_windows.bat Debug`
+
+## MANDATORY
+
+1. Check `.claude/rules/` for detailed rules
+2. Use `/workflow` for full task orchestration
+3. Agent dispatch via triggers in `workflow.json`
+```
+
+**Status:** DO ZAPLANOWANIA - osobny task
+
+---
+
+### 17.6 Plan Implementacji
+
+#### Faza 1: Immediate (bez ryzyka) - 1-2 dni
+- [ ] **17.6.1** Przetestować `/rename`, `/resume` z obecnym workflow
+- [ ] **17.6.2** Przetestować `/stats` - monitoring kosztów
+- [ ] **17.6.3** Dodać `attribution` setting do settings.json
+- [ ] **17.6.4** Utworzyć `.claude/rules/` z jednym plikiem testowym
+- [ ] **17.6.5** Dokumentacja `--agent` flag w README
+
+#### Faza 2: Session Migration - 3-5 dni
+- [ ] **17.6.6** 1 tydzień testów Named Sessions w codziennej pracy
+- [ ] **17.6.7** Decyzja: migracja czy hybryd
+- [ ] **17.6.8** Aktualizacja `/save-session`, `/load-session`
+- [ ] **17.6.9** Aktualizacja SessionStart/SessionEnd hooks
+
+#### Faza 3: Rules Refactor - 3-5 dni
+- [ ] **17.6.10** Podział CLAUDE.md na `.claude/rules/`
+- [ ] **17.6.11** Path scoping dla gui/ i core/
+- [ ] **17.6.12** Testy czy reguły się ładują poprawnie
+- [ ] **17.6.13** Aktualizacja dokumentacji
+
+#### Faza 4: Async Agents (opcjonalna) - 5-7 dni
+- [ ] **17.6.14** Zbadać background agents w praktyce
+- [ ] **17.6.15** Prototyp równoległego review+testy
+- [ ] **17.6.16** Rozszerzyć workflow.json o `parallel` execution
+- [ ] **17.6.17** Testy wydajności
+
+---
+
+### 17.7 Metryki Sukcesu
+
+| Metryka | Obecny Stan | Cel | Jak Mierzyć |
+|---------|-------------|-----|-------------|
+| Czas wznowienia sesji | ~2 min (manual) | <10s (natywne) | Stopwatch |
+| Rozmiar CLAUDE.md | ~80 linii | <30 linii | wc -l |
+| Modularność reguł | 1 plik | 5+ plików | ls .claude/rules/ |
+| Czas review+testy | Sekwencyjny | Równoległy | /stats |
+
+---
+
+### 17.8 Ryzyka i Mitygacja
+
+| Ryzyko | Prawdopodobieństwo | Wpływ | Mitygacja |
+|--------|-------------------|-------|-----------|
+| Named sessions niestabilne | Niskie | Średni | Zachować session-state.json jako backup |
+| Rules nie ładują się | Niskie | Wysoki | Testować przed migracją CLAUDE.md |
+| Async agents timeout | Średnie | Niski | Limity w workflow.json |
+| Konflikty path scoping | Niskie | Niski | Jasna dokumentacja priorytetów |
+
+---
+
+### 17.9 Referencje
+
+- [Claude Code Changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
+- [Claude Code Memory Management](https://code.claude.com/docs/en/memory.md)
+- [Claude Code Settings Reference](https://code.claude.com/docs/en/settings.md)
+
+---
+
+*Sekcja dodana: 2025-12-10*
+*Wersja Claude Code: 2.0.64*

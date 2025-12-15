@@ -1,25 +1,27 @@
 {
-  "kalahari": {
-    "version": "1.0",
-    "type": "chapter"
-  },
-  "content": {
-    "html": "<h1 style=\"text-align: center;\">Example Novel</h1><p style=\"text-align: center;\"><br></p><p style=\"text-align: center;\">by Test Author</p>",
-    "plainText": "Example Novel\n\nby Test Author"
-  },
-  "statistics": {
-    "wordCount": 4,
-    "characterCount": 26,
-    "paragraphCount": 2,
-    "lastModified": "2025-12-14T15:30:00Z"
-  },
-  "metadata": {
-    "title": "Title Page",
-    "status": "final",
-    "notes": ""
-  },
-  "annotations": {
-    "comments": [],
-    "highlights": []
-  }
+    "annotations": {
+        "comments": [
+        ],
+        "highlights": [
+        ]
+    },
+    "content": {
+        "html": "<h1 style=\"text-align: center;\">Example Novel</h1><p style=\"text-align: center;\"><br></p><p style=\"text-align: center;\">by Test Author</p>",
+        "plainText": "Example Novel\n\nby Test Author"
+    },
+    "kalahari": {
+        "type": "chapter",
+        "version": "1.0"
+    },
+    "metadata": {
+        "notes": "",
+        "status": "final",
+        "title": "Title Page"
+    },
+    "statistics": {
+        "characterCount": 26,
+        "lastModified": "2025-12-14T15:30:00Z",
+        "paragraphCount": 2,
+        "wordCount": 4
+    }
 }

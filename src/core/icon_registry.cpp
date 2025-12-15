@@ -14,6 +14,8 @@
 #include <QTextStream>
 #include <QDir>
 #include <QCoreApplication>
+#include <QRandomGenerator>
+#include <QTemporaryFile>
 
 using namespace kalahari::core;
 
@@ -72,6 +74,14 @@ void IconRegistry::initialize() {
     // MainWindow calls: connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
     //                          &IconRegistry::getInstance(), &IconRegistry::onThemeChanged);
 
+    // DIAGNOSTIC: Warn if colors are black (likely indicates theme not loaded)
+    if (m_theme.primaryColor == QColor("#000000") || m_theme.primaryColor == QColor(0, 0, 0)) {
+        Logger::getInstance().warn("IconRegistry: PRIMARY color is BLACK - icons will be invisible on dark backgrounds!");
+    }
+    if (m_theme.secondaryColor == QColor("#000000") || m_theme.secondaryColor == QColor(0, 0, 0)) {
+        Logger::getInstance().warn("IconRegistry: SECONDARY color is BLACK - icons may have invisible fills!");
+    }
+
     Logger::getInstance().info("IconRegistry: Icon system initialized ({} icons registered, theme: '{}', primary={}, secondary={})",
         m_icons.size(),
         m_theme.name.toStdString(),
@@ -118,6 +128,8 @@ QStringList IconRegistry::getAllIconIds() const {
 // ============================================================================
 
 QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int size) {
+    Q_UNUSED(size);  // Size parameter kept for API compatibility, but QIcon works at any size
+
     // Check if icon is registered
     if (!hasIcon(actionId)) {
         Logger::getInstance().warn("IconRegistry: Icon '{}' not registered", actionId.toStdString());
@@ -131,14 +143,30 @@ QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int s
     QColor primary = getEffectivePrimaryColor(actionId);
     QColor secondary = getEffectiveSecondaryColor(actionId);
 
-    // Construct cache key
-    QString cacheKey = constructCacheKey(actionId, theme, size, primary, secondary);
+    // Debug log colors for first few icon requests (helps diagnose color issues)
+    static int debugCount = 0;
+    if (debugCount < 10) {
+        Logger::getInstance().info("IconRegistry::getIcon '{}' - theme='{}', primary={}, secondary={} | m_theme.primary={}, m_theme.secondary={}",
+            actionId.toStdString(), theme.toStdString(),
+            primary.name().toStdString(), secondary.name().toStdString(),
+            m_theme.primaryColor.name().toStdString(), m_theme.secondaryColor.name().toStdString());
+        ++debugCount;
+    }
+
+    // DIAGNOSTIC: Warn if colors are inverted or black
+    if (primary.lightness() < 50 && debugCount <= 10) {
+        Logger::getInstance().warn("IconRegistry: Icon '{}' has DARK primary color {} (lightness={}) - may be invisible on dark backgrounds!",
+            actionId.toStdString(), primary.name().toStdString(), primary.lightness());
+    }
+
+    // Construct cache key (no size - QIcon is resolution-independent)
+    QString cacheKey = constructCacheKey(actionId, theme, primary, secondary);
 
     // Check cache
-    auto cacheIt = m_pixmapCache.find(cacheKey);
-    if (cacheIt != m_pixmapCache.end()) {
+    auto cacheIt = m_iconCache.find(cacheKey);
+    if (cacheIt != m_iconCache.end()) {
         // Cache hit!
-        return QIcon(cacheIt->second);
+        return cacheIt->second;
     }
 
     // Cache miss - load and render
@@ -168,21 +196,23 @@ QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int s
     // Replace color placeholders
     QString processedSVG = replaceColorPlaceholders(svgContent, primary, secondary);
 
-    // Render to QPixmap
-    QPixmap pixmap = renderSVGToPixmap(processedSVG, size);
+    // Create QIcon from SVG content (pre-renders at multiple common sizes)
+    QIcon icon = createIconFromSVG(processedSVG);
 
-    if (pixmap.isNull()) {
-        Logger::getInstance().error("IconRegistry: Failed to render SVG for '{}'", actionId.toStdString());
+    if (icon.isNull()) {
+        Logger::getInstance().error("IconRegistry: Failed to create icon for '{}'", actionId.toStdString());
         return QIcon();
     }
 
-    // Cache the pixmap
-    m_pixmapCache[cacheKey] = pixmap;
+    // Cache the QIcon
+    m_iconCache[cacheKey] = icon;
 
-    return QIcon(pixmap);
+    return icon;
 }
 QIcon IconRegistry::getIconWithColors(const QString& actionId, const QString& theme, int size,
                                       const QColor& primary, const QColor& secondary) {
+    Q_UNUSED(size);  // Size parameter kept for API compatibility, but QIcon works at any size
+
     // Check if icon is registered
     if (!hasIcon(actionId)) {
         Logger::getInstance().warn("IconRegistry: Icon '{}' not registered", actionId.toStdString());
@@ -216,16 +246,16 @@ QIcon IconRegistry::getIconWithColors(const QString& actionId, const QString& th
     // Replace color placeholders with PROVIDED colors (not theme colors!)
     QString processedSVG = replaceColorPlaceholders(svgContent, primary, secondary);
 
-    // Render to QPixmap
-    QPixmap pixmap = renderSVGToPixmap(processedSVG, size);
+    // Create QIcon from SVG content (pre-renders at multiple common sizes)
+    QIcon icon = createIconFromSVG(processedSVG);
 
-    if (pixmap.isNull()) {
-        Logger::getInstance().error("IconRegistry: Failed to render SVG for '{}'", actionId.toStdString());
+    if (icon.isNull()) {
+        Logger::getInstance().error("IconRegistry: Failed to create icon for '{}'", actionId.toStdString());
         return QIcon();
     }
 
     // Don't cache - this is for preview only
-    return QIcon(pixmap);
+    return icon;
 }
 
 
@@ -478,8 +508,24 @@ QString IconRegistry::replaceColorPlaceholders(const QString& svgContent,
                                                 const QColor& primary,
                                                 const QColor& secondary) const {
     QString result = svgContent;
+
+    // Count placeholders before replacement for diagnostic
+    int primaryCount = result.count("{COLOR_PRIMARY}");
+    int secondaryCount = result.count("{COLOR_SECONDARY}");
+
     result.replace("{COLOR_PRIMARY}", primary.name());
     result.replace("{COLOR_SECONDARY}", secondary.name());
+
+    // Log replacement details for first 5 icons
+    static int logCount = 0;
+    if (logCount < 5 && (primaryCount > 0 || secondaryCount > 0)) {
+        Logger::getInstance().info("IconRegistry: SVG color replacement - {} PRIMARY -> {}, {} SECONDARY -> {} (lightness: primary={}, secondary={})",
+            primaryCount, primary.name().toStdString(),
+            secondaryCount, secondary.name().toStdString(),
+            primary.lightness(), secondary.lightness());
+        ++logCount;
+    }
+
     return result;
 }
 
@@ -498,6 +544,37 @@ QPixmap IconRegistry::renderSVGToPixmap(const QString& svgContent, int size) con
     renderer.render(&painter);
 
     return pixmap;
+}
+
+QIcon IconRegistry::createIconFromSVG(const QString& svgContent) const {
+    // Create QIcon by pre-rendering SVG at multiple common sizes
+    // This provides crisp icons at any size Qt might request
+    // Common icon sizes: 16 (menu/tree), 20 (button/panel), 24 (toolbar), 32 (dialog), 48/64/128 (hi-dpi)
+    static const int sizes[] = {16, 20, 24, 32, 48, 64, 128};
+
+    QIcon icon;
+    QSvgRenderer renderer(svgContent.toUtf8());
+
+    if (!renderer.isValid()) {
+        Logger::getInstance().error("IconRegistry: Failed to parse SVG for QIcon creation (invalid XML)");
+        return QIcon();
+    }
+
+    // Pre-render at all common sizes
+    for (int size : sizes) {
+        QPixmap pixmap(size, size);
+        pixmap.fill(Qt::transparent);
+
+        QPainter painter(&pixmap);
+        renderer.render(&painter);
+        painter.end();
+
+        if (!pixmap.isNull()) {
+            icon.addPixmap(pixmap, QIcon::Normal, QIcon::Off);
+        }
+    }
+
+    return icon;
 }
 
 // ============================================================================
@@ -532,23 +609,22 @@ QColor IconRegistry::getEffectiveSecondaryColor(const QString& actionId) const {
 
 QString IconRegistry::constructCacheKey(const QString& actionId,
                                         const QString& theme,
-                                        int size,
                                         const QColor& primary,
                                         const QColor& secondary) const {
-    return QString("%1_%2_%3_%4_%5")
+    // Cache key without size - QIcon is resolution-independent and works at any size
+    return QString("%1_%2_%3_%4")
         .arg(actionId)
         .arg(theme)
-        .arg(size)
         .arg(primary.name())
         .arg(secondary.name());
 }
 
 void IconRegistry::clearCachePattern(const QString& pattern) {
     // Remove all cache entries matching pattern (e.g., "file.save_*")
-    auto it = m_pixmapCache.begin();
-    while (it != m_pixmapCache.end()) {
+    auto it = m_iconCache.begin();
+    while (it != m_iconCache.end()) {
         if (it->first.startsWith(pattern)) {
-            it = m_pixmapCache.erase(it);
+            it = m_iconCache.erase(it);
         } else {
             ++it;
         }
@@ -558,8 +634,8 @@ void IconRegistry::clearCachePattern(const QString& pattern) {
 }
 
 void IconRegistry::clearCache() {
-    size_t count = m_pixmapCache.size();
-    m_pixmapCache.clear();
+    size_t count = m_iconCache.size();
+    m_iconCache.clear();
     Logger::getInstance().debug("IconRegistry: Cleared entire cache ({} entries)", count);
 }
 
@@ -673,8 +749,12 @@ void IconRegistry::loadFromSettings() {
 // ============================================================================
 
 void IconRegistry::onThemeChanged(const Theme& theme) {
-    Logger::getInstance().info("IconRegistry: Theme changed to '{}' (via ThemeManager signal)",
+    Logger::getInstance().info("IconRegistry::onThemeChanged - Received theme '{}' from ThemeManager",
         theme.name);
+    Logger::getInstance().info("IconRegistry::onThemeChanged - BEFORE: m_theme.primaryColor={}, m_theme.secondaryColor={}",
+        m_theme.primaryColor.name().toStdString(), m_theme.secondaryColor.name().toStdString());
+    Logger::getInstance().info("IconRegistry::onThemeChanged - FROM THEME: colors.primary={}, colors.secondary={}",
+        theme.colors.primary.name().toStdString(), theme.colors.secondary.name().toStdString());
 
     // Update icon colors from new theme
     m_theme.primaryColor = theme.colors.primary;
@@ -684,7 +764,12 @@ void IconRegistry::onThemeChanged(const Theme& theme) {
     // Clear cache (all icons need re-render with new colors)
     clearCache();
 
-    Logger::getInstance().info("IconRegistry: Colors updated (primary={}, secondary={})",
-        m_theme.primaryColor.name().toStdString(),
-        m_theme.secondaryColor.name().toStdString());
+    Logger::getInstance().info("IconRegistry::onThemeChanged - AFTER: m_theme.primaryColor={}, m_theme.secondaryColor={}",
+        m_theme.primaryColor.name().toStdString(), m_theme.secondaryColor.name().toStdString());
+
+    // DIAGNOSTIC: Check if Dark theme has correct colors
+    if (theme.name == "Dark" && m_theme.primaryColor.lightness() < 100) {
+        Logger::getInstance().warn("IconRegistry: Dark theme has LOW LIGHTNESS primary ({}) - icons may be invisible!",
+            m_theme.primaryColor.name().toStdString());
+    }
 }

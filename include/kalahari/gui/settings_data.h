@@ -34,6 +34,9 @@ struct SettingsData {
     QString theme;              ///< Theme name (e.g., "Light", "Dark")
     QColor primaryColor;        ///< Icon primary color
     QColor secondaryColor;      ///< Icon secondary color
+    QColor infoHeaderColor;        ///< Color for information panel headers
+    QColor infoSecondaryColor;        ///< Secondary info color for panels
+    QColor infoPrimaryColor;        ///< Primary info color for panels
 
     // ========================================================================
     // Appearance / Icons
@@ -116,6 +119,14 @@ struct SettingsData {
     int logBufferSize = 500;    ///< Log panel buffer size (1-1000 lines)
 
     // ========================================================================
+    // Appearance / Dashboard
+    // ========================================================================
+
+    bool showKalahariNews = true;       ///< Show news section on Dashboard
+    bool showRecentFiles = true;        ///< Show recent files on Dashboard
+    bool autoLoadLastProject = false;   ///< Auto-load last project on startup
+
+    // ========================================================================
     // Helper Methods
     // ========================================================================
 
@@ -127,6 +138,11 @@ struct SettingsData {
                iconTheme != other.iconTheme ||
                primaryColor != other.primaryColor ||
                secondaryColor != other.secondaryColor ||
+               infoHeaderColor != other.infoHeaderColor ||
+               infoSecondaryColor != other.infoSecondaryColor ||
+               infoSecondaryColor != other.infoSecondaryColor ||
+               infoPrimaryColor != other.infoPrimaryColor ||
+               infoPrimaryColor != other.infoPrimaryColor ||
                iconSizes != other.iconSizes ||
                uiFontSize != other.uiFontSize ||
                tooltipBackgroundColor != other.tooltipBackgroundColor ||
@@ -157,7 +173,11 @@ struct SettingsData {
                logWarningColor != other.logWarningColor ||
                logErrorColor != other.logErrorColor ||
                logCriticalColor != other.logCriticalColor ||
-               logBackgroundColor != other.logBackgroundColor;
+               logBackgroundColor != other.logBackgroundColor ||
+               // Dashboard settings
+               showKalahariNews != other.showKalahariNews ||
+               showRecentFiles != other.showRecentFiles ||
+               autoLoadLastProject != other.autoLoadLastProject;
     }
 
     /// @brief Check if any setting changed
@@ -169,6 +189,11 @@ struct SettingsData {
                theme != other.theme ||
                primaryColor != other.primaryColor ||
                secondaryColor != other.secondaryColor ||
+               infoHeaderColor != other.infoHeaderColor ||
+               infoSecondaryColor != other.infoSecondaryColor ||
+               infoSecondaryColor != other.infoSecondaryColor ||
+               infoPrimaryColor != other.infoPrimaryColor ||
+               infoPrimaryColor != other.infoPrimaryColor ||
                iconTheme != other.iconTheme ||
                iconSizes != other.iconSizes ||
                editorFontFamily != other.editorFontFamily ||
@@ -206,7 +231,11 @@ struct SettingsData {
                logWarningColor != other.logWarningColor ||
                logErrorColor != other.logErrorColor ||
                logCriticalColor != other.logCriticalColor ||
-               logBackgroundColor != other.logBackgroundColor;
+               logBackgroundColor != other.logBackgroundColor ||
+               // Dashboard settings
+               showKalahariNews != other.showKalahariNews ||
+               showRecentFiles != other.showRecentFiles ||
+               autoLoadLastProject != other.autoLoadLastProject;
     }
 
     bool operator==(const SettingsData& other) const {

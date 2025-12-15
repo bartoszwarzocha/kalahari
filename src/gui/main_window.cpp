@@ -2649,6 +2649,12 @@ SettingsData MainWindow::collectCurrentSettings() const {
     settingsData.primaryColor = artProvider.getPrimaryColor();
     settingsData.secondaryColor = artProvider.getSecondaryColor();
 
+    // Info header color from theme
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    settingsData.infoHeaderColor = theme.colors.infoHeader;
+    settingsData.infoSecondaryColor = theme.colors.infoSecondary;
+    settingsData.infoPrimaryColor = theme.colors.infoPrimary;
+
     // Appearance/Icons
     settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));
     const auto& sizes = iconRegistry.getSizes();
@@ -2852,6 +2858,12 @@ void MainWindow::onApplySettings(const SettingsData& settings, bool /*fromOkButt
     if (m_logPanel) {
         m_logPanel->applyThemeColors();
         logger.info("MainWindow: Log panel colors updated");
+    }
+
+    // Refresh dashboard to reflect new settings (e.g., show/hide recent files)
+    if (m_dashboardPanel) {
+        m_dashboardPanel->onSettingsChanged();
+        logger.info("MainWindow: Dashboard refreshed after settings change");
     }
 
     logger.info("MainWindow: Settings reaction complete");

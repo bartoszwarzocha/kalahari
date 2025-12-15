@@ -347,11 +347,11 @@ void NewItemDialog::updateDescription(const QString& templateId) {
         return;
     }
 
-    // Update icon (64x64)
+    // Update icon (64x64) using getThemedIcon for auto-refresh support
     auto& art = kalahari::core::ArtProvider::getInstance();
-    QPixmap pixmap = art.getPixmap(info.iconId, 64);
-    if (!pixmap.isNull()) {
-        m_iconLabel->setPixmap(pixmap);
+    QIcon icon = art.getThemedIcon(info.iconId);
+    if (!icon.isNull()) {
+        m_iconLabel->setPixmap(icon.pixmap(64, 64));
     } else {
         m_iconLabel->clear();
     }

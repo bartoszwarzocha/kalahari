@@ -7,7 +7,7 @@
 /// - Context-aware sizing (toolbar, menu, panel, dialog)
 /// - User customization (change icons, colors, sizes)
 /// - Settings persistence (JSON via SettingsManager)
-/// - QPixmap caching for performance
+/// - QIcon caching for performance (renders at any size without quality loss)
 /// - Automatic theme synchronization via ThemeManager signals
 ///
 /// Ported from wxWidgets IconRegistry and extended for Qt6 + TwoTone support.
@@ -95,7 +95,7 @@ struct IconSizeConfig {
 /// @brief Central icon registry with runtime theming and customization
 ///
 /// Singleton managing all icon mappings, sizes, colors, and user customizations.
-/// Integrates with SettingsManager for persistence and QPixmap caching for performance.
+/// Integrates with SettingsManager for persistence and QIcon caching for performance.
 /// Automatically synchronizes with ThemeManager for live theme updates.
 ///
 /// Example usage:
@@ -279,18 +279,21 @@ private:
     /// @brief Get effective SECONDARY color for icon (per-icon override or theme)
     QColor getEffectiveSecondaryColor(const QString& actionId) const;
 
-    /// @brief Construct cache key for QPixmap cache
+    /// @brief Construct cache key for QIcon cache (without size - QIcon works at any size)
     /// @param actionId Action ID
     /// @param theme Theme name
-    /// @param size Icon size
     /// @param primary PRIMARY color
     /// @param secondary SECONDARY color
-    /// @return Cache key (e.g., "file.save_twotone_24_#424242_#757575")
+    /// @return Cache key (e.g., "file.save_twotone_#424242_#757575")
     QString constructCacheKey(const QString& actionId,
                               const QString& theme,
-                              int size,
                               const QColor& primary,
                               const QColor& secondary) const;
+
+    /// @brief Create QIcon from SVG content with multiple pre-rendered sizes
+    /// @param svgContent SVG content (with colors already replaced)
+    /// @return QIcon with pixmaps at common sizes (16, 24, 32, 48, 64, 128)
+    QIcon createIconFromSVG(const QString& svgContent) const;
 
     /// @brief Clear cache entries matching pattern (e.g., "file.save_*")
     void clearCachePattern(const QString& pattern);
@@ -311,9 +314,9 @@ private:
     /// @brief Current size configuration
     IconSizeConfig m_sizes = IconSizeConfig::DEFAULT_SIZES;
 
-    /// @brief QPixmap cache (cacheKey → QPixmap)
-    /// Cache key format: "{actionId}_{theme}_{size}_{primaryColor}_{secondaryColor}"
-    std::map<QString, QPixmap> m_pixmapCache;
+    /// @brief QIcon cache (cacheKey → QIcon)
+    /// Cache key format: "{actionId}_{theme}_{primaryColor}_{secondaryColor}" (no size - QIcon works at any size)
+    mutable std::map<QString, QIcon> m_iconCache;
 };
 
 } // namespace core

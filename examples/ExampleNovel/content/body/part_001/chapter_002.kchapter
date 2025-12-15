@@ -1,25 +1,27 @@
 {
-  "kalahari": {
-    "version": "1.0",
-    "type": "chapter"
-  },
-  "content": {
-    "html": "<h2>Chapter Two: The Discovery</h2><p>The old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.</p><p>She pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.</p><p>\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding.</p>",
-    "plainText": "Chapter Two: The Discovery\n\nThe old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.\n\nShe pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.\n\n\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding."
-  },
-  "statistics": {
-    "wordCount": 85,
-    "characterCount": 478,
-    "paragraphCount": 4,
-    "lastModified": "2025-12-14T15:30:00Z"
-  },
-  "metadata": {
-    "title": "Chapter Two: The Discovery",
-    "status": "draft",
-    "notes": ""
-  },
-  "annotations": {
-    "comments": [],
-    "highlights": []
-  }
+    "annotations": {
+        "comments": [
+        ],
+        "highlights": [
+        ]
+    },
+    "content": {
+        "html": "<h2>Chapter Two: The Discovery</h2><p>The old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.</p><p>She pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.</p><p>\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding.</p>",
+        "plainText": "Chapter Two: The Discovery\n\nThe old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.\n\nShe pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.\n\n\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding."
+    },
+    "kalahari": {
+        "type": "chapter",
+        "version": "1.0"
+    },
+    "metadata": {
+        "notes": "",
+        "status": "draft",
+        "title": "Chapter Two: The Discovery"
+    },
+    "statistics": {
+        "characterCount": 478,
+        "lastModified": "2025-12-14T15:30:00Z",
+        "paragraphCount": 4,
+        "wordCount": 85
+    }
 }

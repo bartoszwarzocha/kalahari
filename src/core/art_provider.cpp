@@ -58,6 +58,11 @@ void ArtProvider::initialize() {
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
             this, &ArtProvider::onThemeChanged);
 
+    // CRITICAL: Also connect ThemeManager to IconRegistry for color updates
+    // This ensures icons get updated colors when theme changes
+    connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
+            &IconRegistry::getInstance(), &IconRegistry::onThemeChanged);
+
     Logger::getInstance().info("ArtProvider: Initialized (iconTheme={})",
         m_iconTheme.toStdString());
 }
@@ -111,8 +116,42 @@ QIcon ArtProvider::getIcon(const QString& cmdId, IconContext context) {
 }
 
 QPixmap ArtProvider::getPixmap(const QString& cmdId, int size) {
+    // DIAGNOSTIC: Log theme colors for debugging icon color issues
+    const Theme& theme = ThemeManager::getInstance().getCurrentTheme();
+    static int logCount = 0;
+    if (logCount < 5) {
+        Logger::getInstance().info("ArtProvider::getPixmap '{}' size={} | ThemeManager: primary={}, secondary={} | IconRegistry: primary={}, secondary={}",
+            cmdId.toStdString(), size,
+            theme.colors.primary.name().toStdString(),
+            theme.colors.secondary.name().toStdString(),
+            IconRegistry::getInstance().getThemeConfig().primaryColor.name().toStdString(),
+            IconRegistry::getInstance().getThemeConfig().secondaryColor.name().toStdString());
+        ++logCount;
+    }
+
     QIcon icon = IconRegistry::getInstance().getIcon(cmdId, m_iconTheme, size);
-    return icon.pixmap(size, size);
+    QPixmap pixmap = icon.pixmap(size, size);
+
+    if (pixmap.isNull()) {
+        Logger::getInstance().warn("ArtProvider::getPixmap - null pixmap for '{}' at size {}",
+            cmdId.toStdString(), size);
+    }
+
+    return pixmap;
+}
+
+QIcon ArtProvider::getThemedIcon(const QString& cmdId,
+                                  const QColor& primary,
+                                  const QColor& secondary) {
+    const Theme& theme = ThemeManager::getInstance().getCurrentTheme();
+
+    // Use provided colors or fall back to theme defaults
+    QColor effectivePrimary = primary.isValid() ? primary : theme.colors.primary;
+    QColor effectiveSecondary = secondary.isValid() ? secondary : theme.colors.secondary;
+
+    // Use IconRegistry's getIconWithColors method
+    return IconRegistry::getInstance().getIconWithColors(
+        cmdId, m_iconTheme, 32, effectivePrimary, effectiveSecondary);
 }
 
 QPixmap ArtProvider::getPreviewPixmap(const QString& cmdId,

@@ -76,6 +76,10 @@ void StandaloneInfoBar::createConnections() {
     // Theme changes
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
             this, &StandaloneInfoBar::onThemeChanged);
+
+    // Icon theme/color changes
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            this, &StandaloneInfoBar::updateIcons);
 }
 
 void StandaloneInfoBar::setFilePath(const QString& path) {
@@ -166,9 +170,9 @@ void StandaloneInfoBar::updateStyling() {
 void StandaloneInfoBar::updateIcons() {
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Info icon (using help.about which uses info.svg)
-    QPixmap infoPixmap = artProvider.getPixmap("help.about", 20);
-    m_iconLabel->setPixmap(infoPixmap);
+    // Info icon (using help.about which uses info.svg) - use getThemedIcon for auto-refresh
+    QIcon infoIcon = artProvider.getThemedIcon("help.about");
+    m_iconLabel->setPixmap(infoIcon.pixmap(20, 20));
 
     // Close button icon
     m_closeButton->setIcon(artProvider.getIcon("dock.close", core::IconContext::Button));

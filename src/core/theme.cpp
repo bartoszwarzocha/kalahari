@@ -96,6 +96,9 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.colors.accent = parseColor(colors.value("accent", "#0078D4"));
         theme.colors.background = parseColor(colors.value("background", "#FFFFFF"));
         theme.colors.text = parseColor(colors.value("text", "#000000"));
+        theme.colors.infoPrimary = parseColor(colors.value("infoPrimary", "#6B9BD2"));
+        theme.colors.infoHeader = parseColor(colors.value("infoHeader", "#4A7A9E"));
+        theme.colors.infoSecondary = parseColor(colors.value("infoSecondary", "#8FAED4"));
     } else {
         throw std::runtime_error("Theme JSON missing 'colors' object");
     }
@@ -222,7 +225,10 @@ nlohmann::json Theme::toJson() const {
         {"secondary", colorToHex(colors.secondary)},
         {"accent", colorToHex(colors.accent)},
         {"background", colorToHex(colors.background)},
-        {"text", colorToHex(colors.text)}
+        {"text", colorToHex(colors.text)},
+        {"infoPrimary", colorToHex(colors.infoPrimary)},
+        {"infoHeader", colorToHex(colors.infoHeader)},
+        {"infoSecondary", colorToHex(colors.infoSecondary)}
     };
 
     // Qt Palette colors

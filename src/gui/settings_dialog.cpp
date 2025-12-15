@@ -50,6 +50,9 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_themeComboBox(nullptr)
     , m_primaryColorWidget(nullptr)
     , m_secondaryColorWidget(nullptr)
+    , m_infoHeaderColorWidget(nullptr)
+    , m_infoSecondaryColorWidget(nullptr)
+    , m_infoPrimaryColorWidget(nullptr)
     , m_tooltipBackgroundColorWidget(nullptr)
     , m_tooltipTextColorWidget(nullptr)
     , m_placeholderTextColorWidget(nullptr)
@@ -90,6 +93,9 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_comboBoxIconSizeSpinBox(nullptr)
     , m_iconPreviewLabel(nullptr)
     , m_iconPreviewLayout(nullptr)
+    , m_showKalahariNewsCheckBox(nullptr)
+    , m_showRecentFilesCheckBox(nullptr)
+    , m_autoLoadLastProjectCheckBox(nullptr)
     , m_fontFamilyComboBox(nullptr)
     , m_editorFontSizeSpinBox(nullptr)
     , m_tabSizeSpinBox(nullptr)
@@ -187,7 +193,14 @@ void SettingsDialog::createNavigationTree() {
     };
 
     // ========================================================================
-    // Appearance category (3 sub-items)
+    // General (top-level, not a category)
+    // ========================================================================
+    QTreeWidgetItem* generalItem = new QTreeWidgetItem(m_navTree);
+    generalItem->setText(0, tr("General"));
+    m_itemToPage[generalItem] = PAGE_GENERAL;
+
+    // ========================================================================
+    // Appearance category (4 sub-items)
     // ========================================================================
     QTreeWidgetItem* appearanceItem = new QTreeWidgetItem(m_navTree);
     appearanceItem->setText(0, tr("Appearance"));
@@ -204,6 +217,10 @@ void SettingsDialog::createNavigationTree() {
     QTreeWidgetItem* appearanceIcons = new QTreeWidgetItem(appearanceItem);
     appearanceIcons->setText(0, tr("Icons"));
     m_itemToPage[appearanceIcons] = PAGE_APPEARANCE_ICONS;
+
+    QTreeWidgetItem* appearanceDashboard = new QTreeWidgetItem(appearanceItem);
+    appearanceDashboard->setText(0, tr("Dashboard"));
+    m_itemToPage[appearanceDashboard] = PAGE_APPEARANCE_DASHBOARD;
 
     // ========================================================================
     // Editor category (4 sub-items)
@@ -272,26 +289,34 @@ void SettingsDialog::createNavigationTree() {
     advancedLog->setText(0, tr("Log"));
     m_itemToPage[advancedLog] = PAGE_ADVANCED_LOG;
 
-    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 15 pages");
+    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 16 pages");
 }
 
 void SettingsDialog::createSettingsPages() {
     // ========================================================================
-    // Appearance pages (0-2)
+    // General page (top-level)
     // ========================================================================
-    // Page 0: Appearance/General
-    m_pageStack->addWidget(createAppearanceGeneralPage());
-    // Page 1: Appearance/Theme
-    m_pageStack->addWidget(createAppearanceThemePage());
-    // Page 2: Appearance/Icons
-    m_pageStack->addWidget(createAppearanceIconsPage());
+    // Page 0: General
+    m_pageStack->addWidget(createGeneralPage());
 
     // ========================================================================
-    // Editor pages (3-6)
+    // Appearance pages (1-4)
     // ========================================================================
-    // Page 3: Editor/General
+    // Page 1: Appearance/General
+    m_pageStack->addWidget(createAppearanceGeneralPage());
+    // Page 2: Appearance/Theme
+    m_pageStack->addWidget(createAppearanceThemePage());
+    // Page 3: Appearance/Icons
+    m_pageStack->addWidget(createAppearanceIconsPage());
+    // Page 4: Appearance/Dashboard
+    m_pageStack->addWidget(createAppearanceDashboardPage());
+
+    // ========================================================================
+    // Editor pages (5-8)
+    // ========================================================================
+    // Page 5: Editor/General
     m_pageStack->addWidget(createEditorGeneralPage());
-    // Page 4: Editor/Spelling
+    // Page 6: Editor/Spelling
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Spelling"),
         tr("Spelling settings will be available in a future version.\n\n"
@@ -300,7 +325,7 @@ void SettingsDialog::createSettingsPages() {
            "- Custom dictionary management\n"
            "- Ignore rules for technical terms")
     ));
-    // Page 5: Editor/Auto-correct
+    // Page 7: Editor/Auto-correct
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Auto-correct"),
         tr("Auto-correct settings will be available in a future version.\n\n"
@@ -309,7 +334,7 @@ void SettingsDialog::createSettingsPages() {
            "- Common typo corrections\n"
            "- Custom replacement rules")
     ));
-    // Page 6: Editor/Completion
+    // Page 8: Editor/Completion
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Completion"),
         tr("Completion settings will be available in a future version.\n\n"
@@ -320,9 +345,9 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Files pages (7-9)
+    // Files pages (9-11)
     // ========================================================================
-    // Page 7: Files/Backup
+    // Page 9: Files/Backup
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Backup"),
         tr("Backup settings will be available in a future version.\n\n"
@@ -332,7 +357,7 @@ void SettingsDialog::createSettingsPages() {
            "- Number of backup copies to keep\n"
            "- Restore from backup")
     ));
-    // Page 8: Files/Auto-save
+    // Page 10: Files/Auto-save
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Auto-save"),
         tr("Auto-save settings will be available in a future version.\n\n"
@@ -341,7 +366,7 @@ void SettingsDialog::createSettingsPages() {
            "- Auto-save on focus loss\n"
            "- Session recovery options")
     ));
-    // Page 9: Files/Import/Export
+    // Page 11: Files/Import/Export
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Import/Export"),
         tr("Import/Export settings will be available in a future version.\n\n"
@@ -352,9 +377,9 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Network pages (10-11)
+    // Network pages (12-13)
     // ========================================================================
-    // Page 10: Network/Cloud Sync
+    // Page 12: Network/Cloud Sync
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Cloud Sync"),
         tr("Cloud Sync settings will be available in a future version.\n\n"
@@ -364,7 +389,7 @@ void SettingsDialog::createSettingsPages() {
            "- Conflict resolution\n"
            "- Sync status and history")
     ));
-    // Page 11: Network/Updates
+    // Page 13: Network/Updates
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Updates"),
         tr("Update settings will be available in a future version.\n\n"
@@ -375,11 +400,11 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Advanced pages (12-14)
+    // Advanced pages (14-16)
     // ========================================================================
-    // Page 12: Advanced/General
+    // Page 14: Advanced/General
     m_pageStack->addWidget(createAdvancedGeneralPage());
-    // Page 13: Advanced/Performance
+    // Page 15: Advanced/Performance
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Performance"),
         tr("Performance settings will be available in a future version.\n\n"
@@ -389,8 +414,25 @@ void SettingsDialog::createSettingsPages() {
            "- Cache settings\n"
            "- Hardware acceleration")
     ));
-    // Page 14: Advanced/Log
+    // Page 16: Advanced/Log
     m_pageStack->addWidget(createAdvancedLogPage());
+}
+
+QWidget* SettingsDialog::createGeneralPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Startup group
+    QGroupBox* startupGroup = new QGroupBox(tr("Startup"));
+    QVBoxLayout* startupLayout = new QVBoxLayout(startupGroup);
+
+    m_autoLoadLastProjectCheckBox = new QCheckBox(tr("Open last project on startup"));
+    m_autoLoadLastProjectCheckBox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+    startupLayout->addWidget(m_autoLoadLastProjectCheckBox);
+
+    layout->addWidget(startupGroup);
+    layout->addStretch();
+    return page;
 }
 
 QWidget* SettingsDialog::createAppearanceGeneralPage() {
@@ -487,6 +529,18 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     m_brightTextColorWidget->setToolTip(tr("High contrast text color for dark backgrounds"));
     uiColorsLayout->addWidget(m_brightTextColorWidget);
 
+    m_infoHeaderColorWidget = new ColorConfigWidget(tr("Info Header"), uiColorsGroup);
+    m_infoHeaderColorWidget->setToolTip(tr("Color for information panel headers"));
+    uiColorsLayout->addWidget(m_infoHeaderColorWidget);
+
+    m_infoPrimaryColorWidget = new ColorConfigWidget(tr("Info Primary"), uiColorsGroup);
+    m_infoPrimaryColorWidget->setToolTip(tr("Primary color for info panels"));
+    uiColorsLayout->addWidget(m_infoPrimaryColorWidget);
+
+    m_infoSecondaryColorWidget = new ColorConfigWidget(tr("Info Secondary"), uiColorsGroup);
+    m_infoSecondaryColorWidget->setToolTip(tr("Secondary color for info panels"));
+    uiColorsLayout->addWidget(m_infoSecondaryColorWidget);
+
     layout->addWidget(uiColorsGroup);
 
     // ========================================================================
@@ -495,9 +549,14 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     QGroupBox* paletteColorsGroup = new QGroupBox(tr("Palette Colors"));
     QVBoxLayout* paletteColorsLayout = new QVBoxLayout(paletteColorsGroup);
 
+    // Get theme text color for section labels (must be readable on current theme)
+    const auto& themePageTheme = core::ThemeManager::getInstance().getCurrentTheme();
+    QString sectionLabelStyle = QString("font-weight: bold; margin-top: 8px; color: %1;")
+        .arg(themePageTheme.palette.windowText.name());
+
     // --- Basic Colors section ---
     QLabel* basicColorsLabel = new QLabel(tr("Basic Colors"));
-    basicColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    basicColorsLabel->setStyleSheet(sectionLabelStyle);
     paletteColorsLayout->addWidget(basicColorsLabel);
 
     m_paletteWindowColorWidget = new ColorConfigWidget(tr("Window"), paletteColorsGroup);
@@ -522,7 +581,7 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
 
     // --- Button Colors section ---
     QLabel* buttonColorsLabel = new QLabel(tr("Button Colors"));
-    buttonColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    buttonColorsLabel->setStyleSheet(sectionLabelStyle);
     paletteColorsLayout->addWidget(buttonColorsLabel);
 
     m_paletteButtonColorWidget = new ColorConfigWidget(tr("Button"), paletteColorsGroup);
@@ -535,7 +594,7 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
 
     // --- Selection Colors section ---
     QLabel* selectionColorsLabel = new QLabel(tr("Selection Colors"));
-    selectionColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    selectionColorsLabel->setStyleSheet(sectionLabelStyle);
     paletteColorsLayout->addWidget(selectionColorsLabel);
 
     m_paletteHighlightColorWidget = new ColorConfigWidget(tr("Highlight"), paletteColorsGroup);
@@ -548,7 +607,7 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
 
     // --- 3D Effect Colors section ---
     QLabel* effectColorsLabel = new QLabel(tr("3D Effect Colors"));
-    effectColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    effectColorsLabel->setStyleSheet(sectionLabelStyle);
     paletteColorsLayout->addWidget(effectColorsLabel);
 
     m_paletteLightColorWidget = new ColorConfigWidget(tr("Light"), paletteColorsGroup);
@@ -573,7 +632,7 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
 
     // --- Link Colors section ---
     QLabel* linkColorsLabel = new QLabel(tr("Link Colors"));
-    linkColorsLabel->setStyleSheet("font-weight: bold; margin-top: 8px;");
+    linkColorsLabel->setStyleSheet(sectionLabelStyle);
     paletteColorsLayout->addWidget(linkColorsLabel);
 
     m_paletteLinkColorWidget = new ColorConfigWidget(tr("Link"), paletteColorsGroup);
@@ -833,6 +892,27 @@ QWidget* SettingsDialog::createAppearanceIconsPage() {
     return page;
 }
 
+QWidget* SettingsDialog::createAppearanceDashboardPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Dashboard Content group
+    QGroupBox* contentGroup = new QGroupBox(tr("Dashboard Content"));
+    QVBoxLayout* contentLayout = new QVBoxLayout(contentGroup);
+
+    m_showKalahariNewsCheckBox = new QCheckBox(tr("Show Kalahari News"));
+    m_showKalahariNewsCheckBox->setToolTip(tr("Display news and updates section on Dashboard"));
+    contentLayout->addWidget(m_showKalahariNewsCheckBox);
+
+    m_showRecentFilesCheckBox = new QCheckBox(tr("Show Recent Files"));
+    m_showRecentFilesCheckBox->setToolTip(tr("Display recently opened projects on Dashboard"));
+    contentLayout->addWidget(m_showRecentFilesCheckBox);
+
+    layout->addWidget(contentGroup);
+    layout->addStretch();
+    return page;
+}
+
 QWidget* SettingsDialog::createEditorGeneralPage() {
     QWidget* page = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(page);
@@ -991,15 +1071,17 @@ QWidget* SettingsDialog::createPlaceholderPage(const QString& title, const QStri
 
     const auto& placeholderTheme = core::ThemeManager::getInstance().getCurrentTheme();
 
+    // Use windowText for readable text on window background
     QLabel* titleLabel = new QLabel(title);
     titleLabel->setStyleSheet(QString("font-size: 18px; font-weight: bold; color: %1;")
-        .arg(placeholderTheme.palette.mid.name()));
+        .arg(placeholderTheme.palette.windowText.name()));
     layout->addWidget(titleLabel);
 
+    // Use placeholderText for muted description text (still readable, but subtle)
     QLabel* descLabel = new QLabel(description);
     descLabel->setWordWrap(true);
     descLabel->setStyleSheet(QString("color: %1; margin-top: 20px;")
-        .arg(placeholderTheme.palette.mid.name()));
+        .arg(placeholderTheme.palette.placeholderText.name()));
     layout->addWidget(descLabel);
 
     layout->addStretch();
@@ -1099,6 +1181,12 @@ void SettingsDialog::onThemeComboChanged(int index) {
     // Dark: primary=#999999 (light gray for icons), secondary=#333333 (dark gray)
     std::string defaultPrimary = isDark ? "#999999" : "#333333";
     std::string defaultSecondary = isDark ? "#333333" : "#999999";
+    // Info header color (elegant navy blue)
+    std::string defaultInfoHeader = isDark ? "#4A7A9E" : "#2B4763";
+    // Secondary info color for panels
+    std::string defaultInfoSecondary = isDark ? "#8FAED4" : "#5B8AC0";
+    // Primary info color for panels
+    std::string defaultInfoPrimary = isDark ? "#6B9BD2" : "#3D6A99";
 
     // UI color defaults per theme (QPalette roles)
     std::string defToolTipBase = isDark ? "#3c3c3c" : "#ffffdc";
@@ -1132,6 +1220,11 @@ void SettingsDialog::onThemeComboChanged(int index) {
         logger.debug("SettingsDialog: Using default icon colors for theme '{}': primary={}, secondary={}",
                      themeName, defaultPrimary, defaultSecondary);
     }
+
+    // Info header color - use theme default (custom per-theme storage not yet implemented)
+    m_infoHeaderColorWidget->setColor(QColor(QString::fromStdString(defaultInfoHeader)));
+    m_infoSecondaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoSecondary)));
+    m_infoPrimaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoPrimary)));
 
     // Check if user has custom UI colors for this theme (Task #00028)
     if (settings.hasCustomUiColorsForTheme(themeName)) {
@@ -1290,9 +1383,7 @@ void SettingsDialog::updateIconPreview() {
     }
 
     QString iconTheme = m_iconThemeComboBox->currentData().toString();
-    int logicalSize = 32;  // Logical size for preview
-    qreal dpr = devicePixelRatioF();
-    int physicalSize = static_cast<int>(logicalSize * dpr);
+    int iconSize = 24;  // Simple 24px icons - Qt handles DPI scaling automatically
 
     // Get colors from ColorConfigWidgets
     QColor primaryColor = m_primaryColorWidget ? m_primaryColorWidget->color() : QColor("#424242");
@@ -1307,15 +1398,11 @@ void SettingsDialog::updateIconPreview() {
     for (const QString& cmdId : sampleIcons) {
         // Get icon with UI colors (not cached theme colors!)
         QIcon icon = core::IconRegistry::getInstance().getIconWithColors(
-            cmdId, iconTheme, physicalSize, primaryColor, secondaryColor);
+            cmdId, iconTheme, iconSize, primaryColor, secondaryColor);
         if (!icon.isNull()) {
-            QPixmap pixmap = icon.pixmap(physicalSize, physicalSize);
-            // Set device pixel ratio for crisp rendering
-            pixmap.setDevicePixelRatio(dpr);
-
             QLabel* iconLabel = new QLabel();
-            iconLabel->setPixmap(pixmap);
-            iconLabel->setFixedSize(logicalSize, logicalSize);
+            iconLabel->setPixmap(icon.pixmap(iconSize, iconSize));
+            iconLabel->setFixedSize(iconSize, iconSize);
             iconLabel->setAlignment(Qt::AlignCenter);
             iconLabel->setToolTip(cmdId);
             m_iconPreviewLayout->addWidget(iconLabel);
@@ -1343,6 +1430,9 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     // Icon colors
     m_primaryColorWidget->setColor(settings.primaryColor);
     m_secondaryColorWidget->setColor(settings.secondaryColor);
+    m_infoHeaderColorWidget->setColor(settings.infoHeaderColor);
+    m_infoSecondaryColorWidget->setColor(settings.infoSecondaryColor);
+    m_infoPrimaryColorWidget->setColor(settings.infoPrimaryColor);
 
     // UI colors (QPalette roles)
     m_tooltipBackgroundColorWidget->setColor(settings.tooltipBackgroundColor);
@@ -1408,6 +1498,13 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     // Advanced/Log
     m_logBufferSizeSpinBox->setValue(settings.logBufferSize);
 
+    // General
+    m_autoLoadLastProjectCheckBox->setChecked(settings.autoLoadLastProject);
+
+    // Appearance/Dashboard
+    m_showKalahariNewsCheckBox->setChecked(settings.showKalahariNews);
+    m_showRecentFilesCheckBox->setChecked(settings.showRecentFiles);
+
     logger.debug("SettingsDialog: UI populated");
 }
 
@@ -1425,6 +1522,9 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.theme = m_themeComboBox->currentData().toString();
     settingsData.primaryColor = m_primaryColorWidget->color();
     settingsData.secondaryColor = m_secondaryColorWidget->color();
+    settingsData.infoHeaderColor = m_infoHeaderColorWidget->color();
+    settingsData.infoSecondaryColor = m_infoSecondaryColorWidget->color();
+    settingsData.infoPrimaryColor = m_infoPrimaryColorWidget->color();
 
     // UI colors (QPalette roles)
     settingsData.tooltipBackgroundColor = m_tooltipBackgroundColorWidget->color();
@@ -1481,6 +1581,13 @@ SettingsData SettingsDialog::collectSettings() const {
 
     // Advanced/Log
     settingsData.logBufferSize = m_logBufferSizeSpinBox->value();
+
+    // General
+    settingsData.autoLoadLastProject = m_autoLoadLastProjectCheckBox->isChecked();
+
+    // Appearance/Dashboard
+    settingsData.showKalahariNews = m_showKalahariNewsCheckBox->isChecked();
+    settingsData.showRecentFiles = m_showRecentFilesCheckBox->isChecked();
 
     logger.debug("SettingsDialog: Settings collected");
     return settingsData;
@@ -1582,6 +1689,11 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         themeManager.setColorOverride("palette.placeholderText", settings.placeholderTextColor);
         themeManager.setColorOverride("palette.brightText", settings.brightTextColor);
 
+        // Apply info panel color overrides (Dashboard News icons use these)
+        themeManager.setColorOverride("colors.infoHeader", settings.infoHeaderColor);
+        themeManager.setColorOverride("colors.infoPrimary", settings.infoPrimaryColor);
+        themeManager.setColorOverride("colors.infoSecondary", settings.infoSecondaryColor);
+
         // Apply log color overrides (Task #00027)
         themeManager.setColorOverride("log.trace", settings.logTraceColor);
         themeManager.setColorOverride("log.debug", settings.logDebugColor);
@@ -1635,7 +1747,16 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         BusyIndicator::tick();  // Animate
 
         // =====================================================================
-        // Step 6: Save to disk
+        // Step 6: Appearance/Dashboard
+        // =====================================================================
+        settingsManager.set("dashboard.showKalahariNews", settings.showKalahariNews);
+        settingsManager.set("dashboard.showRecentFiles", settings.showRecentFiles);
+        settingsManager.set("startup.autoLoadLastProject", settings.autoLoadLastProject);
+
+        BusyIndicator::tick();  // Animate
+
+        // =====================================================================
+        // Step 7: Save to disk
         // =====================================================================
         settingsManager.save();
 
