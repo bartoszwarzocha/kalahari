@@ -118,6 +118,35 @@ public:
                         const QColor& primary = QColor(),
                         const QColor& secondary = QColor());
 
+    /// @brief Get template icon ID for a book genre
+    /// @param genre Genre string from .klh file (e.g., "fiction", "poetry", "nonfiction")
+    /// @return Icon action ID (e.g., "template.novel", "template.poetry")
+    /// @note This mapping is extensible - plugins can register custom genres
+    ///
+    /// Built-in mappings:
+    /// - fiction, novel → template.novel
+    /// - shortstories, short_stories, stories → template.shortStories
+    /// - nonfiction, non-fiction, essay → template.nonfiction
+    /// - screenplay, script, play → template.screenplay
+    /// - poetry, poems, verse → template.poetry
+    /// - (unknown) → template.novel (default fallback)
+    QString getGenreIconId(const QString& genre) const;
+
+    /// @brief Register a custom genre-to-icon mapping (for plugins)
+    /// @param genre Genre string (will be normalized to lowercase)
+    /// @param iconId Icon action ID (must be already registered in IconRegistry)
+    /// @note Plugins should call this during initialization
+    /// @example registerGenreIcon("gamebook", "template.gamebook");
+    void registerGenreIcon(const QString& genre, const QString& iconId);
+
+    /// @brief Unregister a custom genre mapping (for plugin unload)
+    /// @param genre Genre string to unregister
+    void unregisterGenreIcon(const QString& genre);
+
+    /// @brief Get all registered genre mappings (for debugging/UI)
+    /// @return Map of genre → iconId (includes both built-in and custom)
+    QMap<QString, QString> getGenreMappings() const;
+
     /// @brief Get HiDPI-aware pixmap for preview (Settings Dialog)
     /// @param cmdId Command ID
     /// @param logicalSize Logical size (display size)
@@ -222,6 +251,10 @@ private:
 
     /// @brief Flag indicating changes occurred during batch mode
     bool m_pendingChanges = false;
+
+    /// @brief Custom genre-to-icon mappings (from plugins)
+    /// Key: normalized genre (lowercase), Value: icon action ID
+    QMap<QString, QString> m_customGenreMappings;
 
     /// @brief Emit resourcesChanged() unless in batch mode
     void emitResourcesChanged();

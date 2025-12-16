@@ -329,6 +329,106 @@ void ArtProvider::emitResourcesChanged() {
 }
 
 // ============================================================================
+// Genre to Icon Mapping
+// ============================================================================
+
+QString ArtProvider::getGenreIconId(const QString& genre) const {
+    // Normalize genre to lowercase for comparison
+    QString g = genre.toLower().trimmed();
+
+    // 1. Check custom mappings first (from plugins)
+    if (m_customGenreMappings.contains(g)) {
+        return m_customGenreMappings.value(g);
+    }
+
+    // 2. Built-in mappings
+
+    // Fiction / Novel (default)
+    if (g == "fiction" || g == "novel" || g.isEmpty()) {
+        return QStringLiteral("template.novel");
+    }
+
+    // Short Stories
+    if (g == "shortstories" || g == "short_stories" || g == "stories" ||
+        g == "short stories" || g == "anthology") {
+        return QStringLiteral("template.shortStories");
+    }
+
+    // Non-fiction
+    if (g == "nonfiction" || g == "non-fiction" || g == "non_fiction" ||
+        g == "essay" || g == "memoir" || g == "biography" || g == "reference") {
+        return QStringLiteral("template.nonfiction");
+    }
+
+    // Screenplay
+    if (g == "screenplay" || g == "script" || g == "play" ||
+        g == "theater" || g == "theatre" || g == "drama") {
+        return QStringLiteral("template.screenplay");
+    }
+
+    // Poetry
+    if (g == "poetry" || g == "poems" || g == "verse" || g == "haiku") {
+        return QStringLiteral("template.poetry");
+    }
+
+    // Default fallback - novel/fiction icon
+    Logger::getInstance().debug("ArtProvider: Unknown genre '{}', using default icon",
+                                genre.toStdString());
+    return QStringLiteral("template.novel");
+}
+
+void ArtProvider::registerGenreIcon(const QString& genre, const QString& iconId) {
+    QString g = genre.toLower().trimmed();
+    if (g.isEmpty()) {
+        Logger::getInstance().warn("ArtProvider: Cannot register empty genre");
+        return;
+    }
+
+    m_customGenreMappings[g] = iconId;
+    Logger::getInstance().info("ArtProvider: Registered genre '{}' -> icon '{}'",
+                               g.toStdString(), iconId.toStdString());
+}
+
+void ArtProvider::unregisterGenreIcon(const QString& genre) {
+    QString g = genre.toLower().trimmed();
+    if (m_customGenreMappings.remove(g) > 0) {
+        Logger::getInstance().info("ArtProvider: Unregistered genre '{}'", g.toStdString());
+    }
+}
+
+QMap<QString, QString> ArtProvider::getGenreMappings() const {
+    // Start with built-in mappings
+    QMap<QString, QString> result;
+
+    // Built-in (hardcoded for documentation purposes)
+    result["fiction"] = "template.novel";
+    result["novel"] = "template.novel";
+    result["shortstories"] = "template.shortStories";
+    result["stories"] = "template.shortStories";
+    result["anthology"] = "template.shortStories";
+    result["nonfiction"] = "template.nonfiction";
+    result["non-fiction"] = "template.nonfiction";
+    result["essay"] = "template.nonfiction";
+    result["memoir"] = "template.nonfiction";
+    result["biography"] = "template.nonfiction";
+    result["screenplay"] = "template.screenplay";
+    result["script"] = "template.screenplay";
+    result["play"] = "template.screenplay";
+    result["drama"] = "template.screenplay";
+    result["poetry"] = "template.poetry";
+    result["poems"] = "template.poetry";
+    result["verse"] = "template.poetry";
+    result["haiku"] = "template.poetry";
+
+    // Override with custom mappings (plugins take priority)
+    for (auto it = m_customGenreMappings.constBegin(); it != m_customGenreMappings.constEnd(); ++it) {
+        result[it.key()] = it.value();
+    }
+
+    return result;
+}
+
+// ============================================================================
 // Internal Helpers
 // ============================================================================
 

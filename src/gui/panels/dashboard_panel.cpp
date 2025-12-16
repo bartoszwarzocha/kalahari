@@ -76,7 +76,7 @@ protected:
             QString borderStyle = m_borderColor.isValid()
                 ? QString("border: 1px solid %1;").arg(m_borderColor.name())
                 : QString();
-            setStyleSheet(QString("QFrame#recentFileCard { background: %1; border-radius: 6px; %2 }")
+            setStyleSheet(QString("QFrame#recentFileCard { background: %1; border-radius: 0px; %2 }")
                 .arg(m_hoverColor.name(), borderStyle));
         }
         QFrame::enterEvent(event);
@@ -93,7 +93,7 @@ private:
         QString borderStyle = m_borderColor.isValid()
             ? QString("border: 1px solid %1;").arg(m_borderColor.name())
             : QString();
-        setStyleSheet(QString("QFrame#recentFileCard { background: transparent; border-radius: 6px; %1 }")
+        setStyleSheet(QString("QFrame#recentFileCard { background: transparent; border-radius: 0px; %1 }")
             .arg(borderStyle));
     }
 
@@ -510,6 +510,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     QString title = fileInfo.completeBaseName();
     QString author = tr("Unknown Author");
     QString bookType = tr("Novel");
+    QString genre = "fiction";  // Default genre for icon selection
     QString dateStr;
 
     // Try to read metadata from .klh file
@@ -522,16 +523,19 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
             QJsonDocument doc = QJsonDocument::fromJson(fileData);
             if (!doc.isNull() && doc.isObject()) {
                 QJsonObject obj = doc.object();
-                if (obj.contains("metadata")) {
-                    QJsonObject meta = obj["metadata"].toObject();
-                    if (meta.contains("author") && !meta["author"].toString().isEmpty()) {
-                        author = meta["author"].toString();
+                // Read from "document" object (correct .klh format)
+                if (obj.contains("document")) {
+                    QJsonObject docObj = obj["document"].toObject();
+                    if (docObj.contains("author") && !docObj["author"].toString().isEmpty()) {
+                        author = docObj["author"].toString();
                     }
-                    if (meta.contains("title") && !meta["title"].toString().isEmpty()) {
-                        title = meta["title"].toString();
+                    if (docObj.contains("title") && !docObj["title"].toString().isEmpty()) {
+                        title = docObj["title"].toString();
                     }
-                    if (meta.contains("type") && !meta["type"].toString().isEmpty()) {
-                        bookType = meta["type"].toString();
+                    if (docObj.contains("genre") && !docObj["genre"].toString().isEmpty()) {
+                        genre = docObj["genre"].toString().toLower();
+                        // Capitalize first letter for display
+                        bookType = genre.at(0).toUpper() + genre.mid(1);
                     }
                 }
             }
@@ -556,11 +560,12 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     card->setHoverColor(theme.palette.alternateBase);
     // Card border needs good contrast but not overwhelming
     // Blend mid with text color (30% text) for better visibility in all themes
-    QColor borderColor = theme.palette.mid;
-    int r = borderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
-    int g = borderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
-    int b = borderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
-    card->setBorderColor(QColor(r, g, b));
+    QColor borderColor = theme.palette.button;
+    //int r = borderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
+    //int g = borderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
+    //int b = borderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
+    //card->setBorderColor(QColor(r, g, b));
+    card->setBorderColor(borderColor);
 
     QHBoxLayout* cardLayout = new QHBoxLayout(card);
     cardLayout->setContentsMargins(12, 12, 12, 12);
@@ -579,10 +584,15 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     iconLabel->setObjectName("cardBookIcon");  // Named for theme refresh
     iconLabel->setFixedSize(iconSize, iconSize);
     iconLabel->setScaledContents(false);  // NO SCALING - pixmap size = label size
+
+    // Select icon based on genre using centralized ArtProvider mapping
+    QString iconActionId = core::ArtProvider::getGenreIconId(genre);
+    // Store genre for theme refresh
+    iconLabel->setProperty("genre", genre);
+
     // Recent Files book icons use dashboardPrimary/dashboardSecondary colors for distinct appearance
-    // (theme already in scope from line 522)
     QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
-        "project.book",
+        iconActionId,
         theme.colors.dashboardPrimary,
         theme.colors.dashboardSecondary);
     iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));
@@ -736,7 +746,7 @@ void DashboardPanel::applyThemeColors()
     // Shortcuts frame styling - uniform background for entire frame
     if (m_shortcutsFrame) {
         m_shortcutsFrame->setStyleSheet(QString(
-            "QFrame#shortcutsFrame { background: %1; border: 1px solid %2; border-radius: 12px; }"
+            "QFrame#shortcutsFrame { background: %1; border: 0px solid %2; border-radius: 0px; }"
             "QFrame#shortcutsFrame QLabel { background: transparent; }"
             "QFrame#shortcutsFrame QWidget { background: transparent; }"
         ).arg(bgCard, borderColor));
@@ -792,15 +802,15 @@ void DashboardPanel::applyThemeColors()
     // because ClickableCard is defined in this .cpp file without Q_OBJECT macro,
     // and findChildren requires MOC-generated metadata.
     // Card border: blend mid with text color (30% text) for better visibility
-    QColor cardBorderColor = theme.palette.mid;
-    int br = cardBorderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
-    int bg = cardBorderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
-    int bb = cardBorderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
-    QColor blendedBorderColor(br, bg, bb);
+    QColor cardBorderColor = theme.palette.midlight;
+    //int br = cardBorderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
+    //int bg = cardBorderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
+    //int bb = cardBorderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
+    //QColor blendedBorderColor(br, bg, bb);
     for (const auto& cardPair : m_fileCards) {
         if (ClickableCard* card = static_cast<ClickableCard*>(cardPair.first)) {
             card->setHoverColor(theme.palette.alternateBase);
-            card->setBorderColor(blendedBorderColor);
+            card->setBorderColor(cardBorderColor);
         }
     }
 
@@ -864,10 +874,13 @@ void DashboardPanel::applyThemeColors()
     }
 
     // Refresh book icons in file cards - uses dashboardPrimary/dashboardSecondary colors
+    // Icons are selected based on genre property stored on each label
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
+        QString genre = iconLabel->property("genre").toString();
+        QString iconActionId = core::ArtProvider::getGenreIconId(genre);
         QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
-            "project.book",
+            iconActionId,
             theme.colors.dashboardPrimary,
             theme.colors.dashboardSecondary);
         iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));

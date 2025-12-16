@@ -15,6 +15,10 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 _deps/
+compile_commands.json
+
+# Language Server cache (clangd)
+.cache/
 
 # vcpkg
 vcpkg_installed/
@@ -168,4 +172,8 @@ Schowek_*.png
 
 # Test projects (for development testing, not committed)
 examples/TestBook/
+examples/Test001_*/
+examples/Test002_*/
+examples/Test003_*/
+examples/Test004_*/
 /docs/api/html
