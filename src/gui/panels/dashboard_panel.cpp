@@ -586,7 +586,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     iconLabel->setScaledContents(false);  // NO SCALING - pixmap size = label size
 
     // Select icon based on genre using centralized ArtProvider mapping
-    QString iconActionId = core::ArtProvider::getGenreIconId(genre);
+    QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(genre);
     // Store genre for theme refresh
     iconLabel->setProperty("genre", genre);
 
@@ -878,7 +878,7 @@ void DashboardPanel::applyThemeColors()
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
         QString genre = iconLabel->property("genre").toString();
-        QString iconActionId = core::ArtProvider::getGenreIconId(genre);
+        QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(genre);
         QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
             iconActionId,
             theme.colors.dashboardPrimary,
