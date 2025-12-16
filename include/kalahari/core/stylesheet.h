@@ -42,6 +42,9 @@ public:
 private:
     /// @brief Generate QSS for tooltip styling (the only essential QSS)
     static QString generateTooltipStyle(const Theme& theme);
+    
+    /// @brief Generate QSS for checkbox indicator styling
+    static QString generateCheckboxStyle(const Theme& theme);
 
     /// @brief Get border color from theme
     static QColor getBorderColor(const Theme& theme);
