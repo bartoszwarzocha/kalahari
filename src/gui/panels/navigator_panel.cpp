@@ -274,33 +274,9 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                 }
             });
 
-    // Connect double-click signal - emit elementSelected for leaf elements only
-    connect(m_treeWidget, &QTreeWidget::itemDoubleClicked,
-            this, [this](QTreeWidgetItem* item, int column) {
-                Q_UNUSED(column);
-                auto& logger = core::Logger::getInstance();
-
-                QString elementId = item->data(0, Qt::UserRole).toString();
-                QString elementType = item->data(0, Qt::UserRole + 1).toString();
-                QString elementTitle = item->text(0);
-
-                logger.info("NavigatorPanel: Item double-clicked: {} (type={}, id={})",
-                           elementTitle.toStdString(),
-                           elementType.toStdString(),
-                           elementId.toStdString());
-
-                // Only emit for leaf elements (chapters, frontmatter items, backmatter items)
-                // Skip section headers and part containers
-                if (!elementId.isEmpty() &&
-                    elementType != "section" &&
-                    elementType != "section_frontmatter" &&
-                    elementType != "section_body" &&
-                    elementType != "section_backmatter" &&
-                    elementType != "part" &&
-                    elementType != "document") {
-                    emit elementSelected(elementId, elementTitle);
-                }
-            });
+    // NOTE: Double-click is handled by itemActivated signal (onItemActivated slot)
+    // which fires on BOTH Enter key AND double-click.
+    // DO NOT connect itemDoubleClicked separately - it causes duplicate document opens!
 
     // Connect to ArtProvider for theme refresh
     connect(&artProvider, &core::ArtProvider::resourcesChanged,

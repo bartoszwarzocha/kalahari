@@ -33,7 +33,7 @@ namespace core {
 enum class IconContext {
     Toolbar,    ///< 24px default - toolbar buttons
     Menu,       ///< 16px default - menu items
-    TreeView,   ///< 16px default - Navigator, file trees, outlines
+    TreeView,   ///< 20px default - Navigator, file trees, outlines
     TabBar,     ///< 16px default - notebook tabs, central tab bar
     StatusBar,  ///< 16px default - status bar indicators
     Button,     ///< 20px default - QPushButton with icon

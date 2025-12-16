@@ -78,7 +78,7 @@ struct IconSizeConfig {
     int dialog = 32;    ///< Dialog icon size (px)
 
     // Extended contexts (OpenSpec #00026)
-    int treeView = 16;  ///< TreeView/Navigator icon size (px)
+    int treeView = 20;  ///< TreeView/Navigator icon size (px)
     int tabBar = 16;    ///< TabBar icon size (px)
     int statusBar = 16; ///< StatusBar icon size (px)
     int button = 20;    ///< Button icon size (px)

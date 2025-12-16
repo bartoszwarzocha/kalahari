@@ -35,6 +35,8 @@ struct SettingsData {
     QColor primaryColor;        ///< Icon primary color
     QColor secondaryColor;      ///< Icon secondary color
     QColor infoHeaderColor;        ///< Color for information panel headers
+    QColor dashboardSecondaryColor;        ///< Secondary dashboard accent color
+    QColor dashboardPrimaryColor;        ///< Primary dashboard accent color
     QColor infoSecondaryColor;        ///< Secondary info color for panels
     QColor infoPrimaryColor;        ///< Primary info color for panels
 
@@ -125,6 +127,8 @@ struct SettingsData {
     bool showKalahariNews = true;       ///< Show news section on Dashboard
     bool showRecentFiles = true;        ///< Show recent files on Dashboard
     bool autoLoadLastProject = false;   ///< Auto-load last project on startup
+    int dashboardMaxItems = 5;          ///< Max items in Dashboard sections (3-9)
+    int dashboardIconSize = 48;         ///< Icon size in Dashboard panels (24-64)
 
     // ========================================================================
     // Helper Methods
@@ -139,9 +143,9 @@ struct SettingsData {
                primaryColor != other.primaryColor ||
                secondaryColor != other.secondaryColor ||
                infoHeaderColor != other.infoHeaderColor ||
+               dashboardSecondaryColor != other.dashboardSecondaryColor ||
+               dashboardPrimaryColor != other.dashboardPrimaryColor ||
                infoSecondaryColor != other.infoSecondaryColor ||
-               infoSecondaryColor != other.infoSecondaryColor ||
-               infoPrimaryColor != other.infoPrimaryColor ||
                infoPrimaryColor != other.infoPrimaryColor ||
                iconSizes != other.iconSizes ||
                uiFontSize != other.uiFontSize ||
@@ -177,7 +181,9 @@ struct SettingsData {
                // Dashboard settings
                showKalahariNews != other.showKalahariNews ||
                showRecentFiles != other.showRecentFiles ||
-               autoLoadLastProject != other.autoLoadLastProject;
+               autoLoadLastProject != other.autoLoadLastProject ||
+               dashboardMaxItems != other.dashboardMaxItems ||
+               dashboardIconSize != other.dashboardIconSize;
     }
 
     /// @brief Check if any setting changed
@@ -190,9 +196,9 @@ struct SettingsData {
                primaryColor != other.primaryColor ||
                secondaryColor != other.secondaryColor ||
                infoHeaderColor != other.infoHeaderColor ||
+               dashboardSecondaryColor != other.dashboardSecondaryColor ||
+               dashboardPrimaryColor != other.dashboardPrimaryColor ||
                infoSecondaryColor != other.infoSecondaryColor ||
-               infoSecondaryColor != other.infoSecondaryColor ||
-               infoPrimaryColor != other.infoPrimaryColor ||
                infoPrimaryColor != other.infoPrimaryColor ||
                iconTheme != other.iconTheme ||
                iconSizes != other.iconSizes ||
@@ -235,7 +241,9 @@ struct SettingsData {
                // Dashboard settings
                showKalahariNews != other.showKalahariNews ||
                showRecentFiles != other.showRecentFiles ||
-               autoLoadLastProject != other.autoLoadLastProject;
+               autoLoadLastProject != other.autoLoadLastProject ||
+               dashboardMaxItems != other.dashboardMaxItems ||
+               dashboardIconSize != other.dashboardIconSize;
     }
 
     bool operator==(const SettingsData& other) const {

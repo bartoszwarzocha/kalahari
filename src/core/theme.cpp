@@ -96,9 +96,11 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.colors.accent = parseColor(colors.value("accent", "#0078D4"));
         theme.colors.background = parseColor(colors.value("background", "#FFFFFF"));
         theme.colors.text = parseColor(colors.value("text", "#000000"));
-        theme.colors.infoPrimary = parseColor(colors.value("infoPrimary", "#6B9BD2"));
+        theme.colors.infoPrimary = parseColor(colors.value("infoPrimary", "#34A6F4"));
         theme.colors.infoHeader = parseColor(colors.value("infoHeader", "#4A7A9E"));
-        theme.colors.infoSecondary = parseColor(colors.value("infoSecondary", "#8FAED4"));
+        theme.colors.dashboardSecondary = parseColor(colors.value("dashboardSecondary", "#075F5A"));
+        theme.colors.dashboardPrimary = parseColor(colors.value("dashboardPrimary", "#36BBA7"));
+        theme.colors.infoSecondary = parseColor(colors.value("infoSecondary", "#10598A"));
     } else {
         throw std::runtime_error("Theme JSON missing 'colors' object");
     }
@@ -228,6 +230,8 @@ nlohmann::json Theme::toJson() const {
         {"text", colorToHex(colors.text)},
         {"infoPrimary", colorToHex(colors.infoPrimary)},
         {"infoHeader", colorToHex(colors.infoHeader)},
+        {"dashboardSecondary", colorToHex(colors.dashboardSecondary)},
+        {"dashboardPrimary", colorToHex(colors.dashboardPrimary)},
         {"infoSecondary", colorToHex(colors.infoSecondary)}
     };
 

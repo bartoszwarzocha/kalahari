@@ -511,7 +511,16 @@ void SettingsManager::createDefaults() {
             {"auto_save_interval", 300},
             {"backup_enabled", true}
         }},
-        {"recent_files", nlohmann::json::array()}
+        {"recent_files", nlohmann::json::array()},
+        {"dashboard", {
+            {"maxItems", 5},
+            {"iconSize", 48},
+            {"showKalahariNews", true},
+            {"showRecentFiles", true}
+        }},
+        {"startup", {
+            {"autoLoadLastProject", false}
+        }}
     };
 
     Logger::getInstance().info("Default settings created");

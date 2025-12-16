@@ -85,7 +85,7 @@ void ToolbarManager::initializeConfigs() {
         "View Toolbar",
         Qt::TopToolBarArea,
         true,  // visible by default
-        {"view.navigator", "view.properties", "view.search", "view.assistant", "view.log"}
+        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.log"}
     };
 
     // Tools Toolbar

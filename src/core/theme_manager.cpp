@@ -40,9 +40,11 @@ ThemeManager::ThemeManager() {
     m_currentTheme.colors.accent = QColor("#0078D4");
     m_currentTheme.colors.background = QColor("#FFFFFF");
     m_currentTheme.colors.text = QColor("#000000");
-    m_currentTheme.colors.infoPrimary = QColor("#3D6A99");
+    m_currentTheme.colors.infoPrimary = QColor("#1C69A8");
     m_currentTheme.colors.infoHeader = QColor("#2B4763");
-    m_currentTheme.colors.infoSecondary = QColor("#5B8AC0");
+    m_currentTheme.colors.dashboardSecondary = QColor("#36BBA7");
+    m_currentTheme.colors.dashboardPrimary = QColor("#18786F");
+    m_currentTheme.colors.infoSecondary = QColor("#34A6F4");
     m_currentTheme.log.info = QColor("#000000");
     m_currentTheme.log.debug = QColor("#666666");
     m_currentTheme.log.background = QColor("#F5F5F5");
@@ -364,6 +366,10 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
             m_currentTheme.colors.infoPrimary = color;
         } else if (key == "infoHeader") {
             m_currentTheme.colors.infoHeader = color;
+        } else if (key == "dashboardSecondary") {
+            m_currentTheme.colors.dashboardSecondary = color;
+        } else if (key == "dashboardPrimary") {
+            m_currentTheme.colors.dashboardPrimary = color;
         } else if (key == "infoSecondary") {
             m_currentTheme.colors.infoSecondary = color;
         } else if (key == "log.info") {
@@ -413,6 +419,14 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
         m_currentTheme.colors.background = color;
     } else if (key == "text" || key == "colors.text") {
         m_currentTheme.colors.text = color;
+    }
+    // Custom color: dashboardSecondary
+    else if (key == "dashboardSecondary" || key == "colors.dashboardSecondary") {
+        m_currentTheme.colors.dashboardSecondary = color;
+    }
+    // Custom color: dashboardPrimary
+    else if (key == "dashboardPrimary" || key == "colors.dashboardPrimary") {
+        m_currentTheme.colors.dashboardPrimary = color;
     }
     // Custom color: infoSecondary
     else if (key == "infoSecondary" || key == "colors.infoSecondary") {

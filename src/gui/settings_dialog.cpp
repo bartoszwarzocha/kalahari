@@ -51,6 +51,8 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_primaryColorWidget(nullptr)
     , m_secondaryColorWidget(nullptr)
     , m_infoHeaderColorWidget(nullptr)
+    , m_dashboardSecondaryColorWidget(nullptr)
+    , m_dashboardPrimaryColorWidget(nullptr)
     , m_infoSecondaryColorWidget(nullptr)
     , m_infoPrimaryColorWidget(nullptr)
     , m_tooltipBackgroundColorWidget(nullptr)
@@ -96,6 +98,8 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_showKalahariNewsCheckBox(nullptr)
     , m_showRecentFilesCheckBox(nullptr)
     , m_autoLoadLastProjectCheckBox(nullptr)
+    , m_dashboardMaxItemsSpinBox(nullptr)
+    , m_dashboardIconSizeSpinBox(nullptr)
     , m_fontFamilyComboBox(nullptr)
     , m_editorFontSizeSpinBox(nullptr)
     , m_tabSizeSpinBox(nullptr)
@@ -533,6 +537,14 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
     m_infoHeaderColorWidget->setToolTip(tr("Color for information panel headers"));
     uiColorsLayout->addWidget(m_infoHeaderColorWidget);
 
+    m_dashboardSecondaryColorWidget = new ColorConfigWidget(tr("Dashboard Secondary"), uiColorsGroup);
+    m_dashboardSecondaryColorWidget->setToolTip(tr("Secondary dashboard accent color"));
+    uiColorsLayout->addWidget(m_dashboardSecondaryColorWidget);
+
+    m_dashboardPrimaryColorWidget = new ColorConfigWidget(tr("Dashboard Primary"), uiColorsGroup);
+    m_dashboardPrimaryColorWidget->setToolTip(tr("Primary dashboard accent color"));
+    uiColorsLayout->addWidget(m_dashboardPrimaryColorWidget);
+
     m_infoPrimaryColorWidget = new ColorConfigWidget(tr("Info Primary"), uiColorsGroup);
     m_infoPrimaryColorWidget->setToolTip(tr("Primary color for info panels"));
     uiColorsLayout->addWidget(m_infoPrimaryColorWidget);
@@ -908,6 +920,33 @@ QWidget* SettingsDialog::createAppearanceDashboardPage() {
     m_showRecentFilesCheckBox->setToolTip(tr("Display recently opened projects on Dashboard"));
     contentLayout->addWidget(m_showRecentFilesCheckBox);
 
+    // Settings grid (for stretched spinboxes like Icons tab)
+    QGridLayout* settingsGrid = new QGridLayout();
+    int row = 0;
+
+    // Number of items setting
+    QLabel* maxItemsLabel = new QLabel(tr("Maximum items per section:"));
+    m_dashboardMaxItemsSpinBox = new QSpinBox();
+    m_dashboardMaxItemsSpinBox->setRange(3, 9);
+    m_dashboardMaxItemsSpinBox->setValue(5);
+    m_dashboardMaxItemsSpinBox->setToolTip(tr("Number of items to show in News and Recent Files sections (3-9)"));
+    settingsGrid->addWidget(maxItemsLabel, row, 0);
+    settingsGrid->addWidget(m_dashboardMaxItemsSpinBox, row, 1);
+    row++;
+
+    // Icon size setting
+    QLabel* iconSizeLabel = new QLabel(tr("Icon size:"));
+    m_dashboardIconSizeSpinBox = new QSpinBox();
+    m_dashboardIconSizeSpinBox->setRange(24, 64);
+    m_dashboardIconSizeSpinBox->setValue(48);
+    m_dashboardIconSizeSpinBox->setSuffix(" px");
+    m_dashboardIconSizeSpinBox->setToolTip(tr("Size of icons in Dashboard panels (24-64 pixels)"));
+    settingsGrid->addWidget(iconSizeLabel, row, 0);
+    settingsGrid->addWidget(m_dashboardIconSizeSpinBox, row, 1);
+
+    settingsGrid->setColumnStretch(1, 1);
+    contentLayout->addLayout(settingsGrid);
+
     layout->addWidget(contentGroup);
     layout->addStretch();
     return page;
@@ -998,7 +1037,7 @@ QWidget* SettingsDialog::createAdvancedGeneralPage() {
            "- Component status")
     );
     diagNote->setStyleSheet(QString("color: %1; margin-left: 20px;")
-        .arg(advTheme.palette.mid.name()));
+        .arg(advTheme.palette.placeholderText.name()));
     diagLayout->addWidget(diagNote);
 
     layout->addWidget(diagGroup);
@@ -1027,7 +1066,7 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
     logGrid->addWidget(bufferLabel, 0, 0);
     logGrid->addWidget(m_logBufferSizeSpinBox, 0, 1);
 
-    // Help text - use mid color from theme for muted text
+    // Help text - use placeholderText for muted but readable description text
     const auto& logTheme = core::ThemeManager::getInstance().getCurrentTheme();
     QLabel* helpLabel = new QLabel(
         tr("The log panel displays application messages in real-time.\n\n"
@@ -1037,7 +1076,7 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
     );
     helpLabel->setWordWrap(true);
     helpLabel->setStyleSheet(QString("color: %1; margin-top: 10px;")
-        .arg(logTheme.palette.mid.name()));
+        .arg(logTheme.palette.placeholderText.name()));
 
     logGrid->addWidget(helpLabel, 1, 0, 1, 2);
     logGrid->setColumnStretch(1, 1);
@@ -1056,7 +1095,7 @@ QWidget* SettingsDialog::createAdvancedLogPage() {
            "• Clear the log panel display")
     );
     fileInfo->setWordWrap(true);
-    fileInfo->setStyleSheet(QString("color: %1;").arg(logTheme.palette.mid.name()));
+    fileInfo->setStyleSheet(QString("color: %1;").arg(logTheme.palette.placeholderText.name()));
     fileLayout->addWidget(fileInfo);
 
     layout->addWidget(fileGroup);
@@ -1183,10 +1222,14 @@ void SettingsDialog::onThemeComboChanged(int index) {
     std::string defaultSecondary = isDark ? "#333333" : "#999999";
     // Info header color (elegant navy blue)
     std::string defaultInfoHeader = isDark ? "#4A7A9E" : "#2B4763";
+    // Secondary dashboard accent color
+    std::string defaultDashboardSecondary = isDark ? "#075F5A" : "#36BBA7";
+    // Primary dashboard accent color
+    std::string defaultDashboardPrimary = isDark ? "#36BBA7" : "#18786F";
     // Secondary info color for panels
-    std::string defaultInfoSecondary = isDark ? "#8FAED4" : "#5B8AC0";
+    std::string defaultInfoSecondary = isDark ? "#10598A" : "#34A6F4";
     // Primary info color for panels
-    std::string defaultInfoPrimary = isDark ? "#6B9BD2" : "#3D6A99";
+    std::string defaultInfoPrimary = isDark ? "#34A6F4" : "#1C69A8";
 
     // UI color defaults per theme (QPalette roles)
     std::string defToolTipBase = isDark ? "#3c3c3c" : "#ffffdc";
@@ -1223,6 +1266,8 @@ void SettingsDialog::onThemeComboChanged(int index) {
 
     // Info header color - use theme default (custom per-theme storage not yet implemented)
     m_infoHeaderColorWidget->setColor(QColor(QString::fromStdString(defaultInfoHeader)));
+    m_dashboardSecondaryColorWidget->setColor(QColor(QString::fromStdString(defaultDashboardSecondary)));
+    m_dashboardPrimaryColorWidget->setColor(QColor(QString::fromStdString(defaultDashboardPrimary)));
     m_infoSecondaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoSecondary)));
     m_infoPrimaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoPrimary)));
 
@@ -1431,6 +1476,8 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_primaryColorWidget->setColor(settings.primaryColor);
     m_secondaryColorWidget->setColor(settings.secondaryColor);
     m_infoHeaderColorWidget->setColor(settings.infoHeaderColor);
+    m_dashboardSecondaryColorWidget->setColor(settings.dashboardSecondaryColor);
+    m_dashboardPrimaryColorWidget->setColor(settings.dashboardPrimaryColor);
     m_infoSecondaryColorWidget->setColor(settings.infoSecondaryColor);
     m_infoPrimaryColorWidget->setColor(settings.infoPrimaryColor);
 
@@ -1504,6 +1551,8 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     // Appearance/Dashboard
     m_showKalahariNewsCheckBox->setChecked(settings.showKalahariNews);
     m_showRecentFilesCheckBox->setChecked(settings.showRecentFiles);
+    m_dashboardMaxItemsSpinBox->setValue(settings.dashboardMaxItems);
+    m_dashboardIconSizeSpinBox->setValue(settings.dashboardIconSize);
 
     logger.debug("SettingsDialog: UI populated");
 }
@@ -1523,6 +1572,8 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.primaryColor = m_primaryColorWidget->color();
     settingsData.secondaryColor = m_secondaryColorWidget->color();
     settingsData.infoHeaderColor = m_infoHeaderColorWidget->color();
+    settingsData.dashboardSecondaryColor = m_dashboardSecondaryColorWidget->color();
+    settingsData.dashboardPrimaryColor = m_dashboardPrimaryColorWidget->color();
     settingsData.infoSecondaryColor = m_infoSecondaryColorWidget->color();
     settingsData.infoPrimaryColor = m_infoPrimaryColorWidget->color();
 
@@ -1588,6 +1639,8 @@ SettingsData SettingsDialog::collectSettings() const {
     // Appearance/Dashboard
     settingsData.showKalahariNews = m_showKalahariNewsCheckBox->isChecked();
     settingsData.showRecentFiles = m_showRecentFilesCheckBox->isChecked();
+    settingsData.dashboardMaxItems = m_dashboardMaxItemsSpinBox->value();
+    settingsData.dashboardIconSize = m_dashboardIconSizeSpinBox->value();
 
     logger.debug("SettingsDialog: Settings collected");
     return settingsData;
@@ -1597,9 +1650,68 @@ SettingsData SettingsDialog::collectSettings() const {
 void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
     auto& logger = core::Logger::getInstance();
 
+    // =========================================================================
+    // PERFORMANCE OPTIMIZATION: Pre-compute what changed BEFORE entering lambda
+    // This avoids expensive operations when nothing actually changed
+    // =========================================================================
+    const SettingsData& original = m_originalSettings;
+
+    // Theme changes
+    const bool themeChanged = settings.theme != original.theme;
+
+    // Visual changes that require theme refresh (but NOT theme switch)
+    // Note: if theme changed, switchTheme() already refreshes, so skip refreshTheme()
+    const bool colorsChanged =
+        settings.primaryColor != original.primaryColor ||
+        settings.secondaryColor != original.secondaryColor ||
+        settings.infoHeaderColor != original.infoHeaderColor ||
+        settings.dashboardPrimaryColor != original.dashboardPrimaryColor ||
+        settings.dashboardSecondaryColor != original.dashboardSecondaryColor ||
+        settings.infoPrimaryColor != original.infoPrimaryColor ||
+        settings.infoSecondaryColor != original.infoSecondaryColor ||
+        settings.tooltipBackgroundColor != original.tooltipBackgroundColor ||
+        settings.tooltipTextColor != original.tooltipTextColor ||
+        settings.placeholderTextColor != original.placeholderTextColor ||
+        settings.brightTextColor != original.brightTextColor ||
+        settings.paletteWindowColor != original.paletteWindowColor ||
+        settings.paletteWindowTextColor != original.paletteWindowTextColor ||
+        settings.paletteBaseColor != original.paletteBaseColor ||
+        settings.paletteAlternateBaseColor != original.paletteAlternateBaseColor ||
+        settings.paletteTextColor != original.paletteTextColor ||
+        settings.paletteButtonColor != original.paletteButtonColor ||
+        settings.paletteButtonTextColor != original.paletteButtonTextColor ||
+        settings.paletteHighlightColor != original.paletteHighlightColor ||
+        settings.paletteHighlightedTextColor != original.paletteHighlightedTextColor ||
+        settings.paletteLightColor != original.paletteLightColor ||
+        settings.paletteMidlightColor != original.paletteMidlightColor ||
+        settings.paletteMidColor != original.paletteMidColor ||
+        settings.paletteDarkColor != original.paletteDarkColor ||
+        settings.paletteShadowColor != original.paletteShadowColor ||
+        settings.paletteLinkColor != original.paletteLinkColor ||
+        settings.paletteLinkVisitedColor != original.paletteLinkVisitedColor ||
+        settings.logTraceColor != original.logTraceColor ||
+        settings.logDebugColor != original.logDebugColor ||
+        settings.logInfoColor != original.logInfoColor ||
+        settings.logWarningColor != original.logWarningColor ||
+        settings.logErrorColor != original.logErrorColor ||
+        settings.logCriticalColor != original.logCriticalColor ||
+        settings.logBackgroundColor != original.logBackgroundColor;
+
+    // Icon-specific changes (trigger ArtProvider updates)
+    const bool iconThemeChanged = settings.iconTheme != original.iconTheme;
+    const bool iconColorsChanged = settings.primaryColor != original.primaryColor ||
+                                   settings.secondaryColor != original.secondaryColor;
+    const bool iconSizesChanged = settings.iconSizes != original.iconSizes;
+    const bool iconSettingsChanged = iconThemeChanged || iconColorsChanged || iconSizesChanged;
+
+    logger.debug("SettingsDialog: themeChanged={}, colorsChanged={}, iconSettingsChanged={}",
+                 themeChanged, colorsChanged, iconSettingsChanged);
+
     // Show BusyIndicator on THIS DIALOG (modal overlay)
     // Use BusyIndicator::tick() between steps to keep animation alive
-    BusyIndicator::run(this, tr("Applying settings..."), [&settings, &logger]() {
+    BusyIndicator::run(this, tr("Applying settings..."),
+        [&settings, &logger, themeChanged, colorsChanged, iconSettingsChanged,
+         iconThemeChanged, iconColorsChanged, iconSizesChanged]() {
         auto& settingsManager = core::SettingsManager::getInstance();
         auto& themeManager = core::ThemeManager::getInstance();
         auto& artProvider = core::ArtProvider::getInstance();
@@ -1607,13 +1719,15 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         // =====================================================================
         // CRITICAL: Enable batch mode to prevent multiple resourcesChanged emissions
         // Without this, each setIconTheme/setPrimaryColor/setSecondaryColor/setIconSize
-        // emits resourcesChanged, causing ~600-700 icon re-renders (134 actions × ~5 signals)
+        // emits resourcesChanged, causing ~600-700 icon re-renders (134 actions x ~5 signals)
         // Batch mode coalesces all changes into a single resourcesChanged at the end
         // =====================================================================
-        artProvider.beginBatchUpdate();
+        if (iconSettingsChanged) {
+            artProvider.beginBatchUpdate();
+        }
 
         // =====================================================================
-        // Step 1: Appearance/General
+        // Step 1: Appearance/General (always save, cheap operation)
         // =====================================================================
         settingsManager.setLanguage(settings.language.toStdString());
         settingsManager.set("appearance.uiFontSize", settings.uiFontSize);
@@ -1624,7 +1738,13 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         // Step 2: Appearance/Theme
         // =====================================================================
         settingsManager.setTheme(settings.theme.toStdString());
-        themeManager.switchTheme(settings.theme);
+
+        // Only switch theme if it actually changed
+        // switchTheme() is expensive - it reloads theme JSON and refreshes all styles
+        if (themeChanged) {
+            logger.debug("SettingsDialog: Theme changed, calling switchTheme()");
+            themeManager.switchTheme(settings.theme);
+        }
 
         // Save per-theme icon colors
         std::string themeName = settings.theme.toStdString();
@@ -1664,66 +1784,84 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.setPaletteColorForTheme(themeName, "link", settings.paletteLinkColor.name().toStdString());
         settingsManager.setPaletteColorForTheme(themeName, "linkVisited", settings.paletteLinkVisitedColor.name().toStdString());
 
-        // Apply palette color overrides to ThemeManager (Task #00028)
-        // These override the theme's default palette and are applied to QApplication
-        themeManager.setColorOverride("palette.window", settings.paletteWindowColor);
-        themeManager.setColorOverride("palette.windowText", settings.paletteWindowTextColor);
-        themeManager.setColorOverride("palette.base", settings.paletteBaseColor);
-        themeManager.setColorOverride("palette.alternateBase", settings.paletteAlternateBaseColor);
-        themeManager.setColorOverride("palette.text", settings.paletteTextColor);
-        themeManager.setColorOverride("palette.button", settings.paletteButtonColor);
-        themeManager.setColorOverride("palette.buttonText", settings.paletteButtonTextColor);
-        themeManager.setColorOverride("palette.highlight", settings.paletteHighlightColor);
-        themeManager.setColorOverride("palette.highlightedText", settings.paletteHighlightedTextColor);
-        themeManager.setColorOverride("palette.light", settings.paletteLightColor);
-        themeManager.setColorOverride("palette.midlight", settings.paletteMidlightColor);
-        themeManager.setColorOverride("palette.mid", settings.paletteMidColor);
-        themeManager.setColorOverride("palette.dark", settings.paletteDarkColor);
-        themeManager.setColorOverride("palette.shadow", settings.paletteShadowColor);
-        themeManager.setColorOverride("palette.link", settings.paletteLinkColor);
-        themeManager.setColorOverride("palette.linkVisited", settings.paletteLinkVisitedColor);
+        // Apply color overrides only if colors changed (or theme changed, which resets overrides)
+        if (colorsChanged || themeChanged) {
+            // Apply palette color overrides to ThemeManager (Task #00028)
+            // These override the theme's default palette and are applied to QApplication
+            themeManager.setColorOverride("palette.window", settings.paletteWindowColor);
+            themeManager.setColorOverride("palette.windowText", settings.paletteWindowTextColor);
+            themeManager.setColorOverride("palette.base", settings.paletteBaseColor);
+            themeManager.setColorOverride("palette.alternateBase", settings.paletteAlternateBaseColor);
+            themeManager.setColorOverride("palette.text", settings.paletteTextColor);
+            themeManager.setColorOverride("palette.button", settings.paletteButtonColor);
+            themeManager.setColorOverride("palette.buttonText", settings.paletteButtonTextColor);
+            themeManager.setColorOverride("palette.highlight", settings.paletteHighlightColor);
+            themeManager.setColorOverride("palette.highlightedText", settings.paletteHighlightedTextColor);
+            themeManager.setColorOverride("palette.light", settings.paletteLightColor);
+            themeManager.setColorOverride("palette.midlight", settings.paletteMidlightColor);
+            themeManager.setColorOverride("palette.mid", settings.paletteMidColor);
+            themeManager.setColorOverride("palette.dark", settings.paletteDarkColor);
+            themeManager.setColorOverride("palette.shadow", settings.paletteShadowColor);
+            themeManager.setColorOverride("palette.link", settings.paletteLinkColor);
+            themeManager.setColorOverride("palette.linkVisited", settings.paletteLinkVisitedColor);
 
-        // Apply UI color overrides (tooltip, placeholder, brightText)
-        themeManager.setColorOverride("palette.toolTipBase", settings.tooltipBackgroundColor);
-        themeManager.setColorOverride("palette.toolTipText", settings.tooltipTextColor);
-        themeManager.setColorOverride("palette.placeholderText", settings.placeholderTextColor);
-        themeManager.setColorOverride("palette.brightText", settings.brightTextColor);
+            // Apply UI color overrides (tooltip, placeholder, brightText)
+            themeManager.setColorOverride("palette.toolTipBase", settings.tooltipBackgroundColor);
+            themeManager.setColorOverride("palette.toolTipText", settings.tooltipTextColor);
+            themeManager.setColorOverride("palette.placeholderText", settings.placeholderTextColor);
+            themeManager.setColorOverride("palette.brightText", settings.brightTextColor);
 
-        // Apply info panel color overrides (Dashboard News icons use these)
-        themeManager.setColorOverride("colors.infoHeader", settings.infoHeaderColor);
-        themeManager.setColorOverride("colors.infoPrimary", settings.infoPrimaryColor);
-        themeManager.setColorOverride("colors.infoSecondary", settings.infoSecondaryColor);
+            // Apply info panel color overrides (Dashboard News icons use these)
+            themeManager.setColorOverride("colors.infoHeader", settings.infoHeaderColor);
+            themeManager.setColorOverride("colors.infoPrimary", settings.infoPrimaryColor);
+            themeManager.setColorOverride("colors.infoSecondary", settings.infoSecondaryColor);
 
-        // Apply log color overrides (Task #00027)
-        themeManager.setColorOverride("log.trace", settings.logTraceColor);
-        themeManager.setColorOverride("log.debug", settings.logDebugColor);
-        themeManager.setColorOverride("log.info", settings.logInfoColor);
-        themeManager.setColorOverride("log.warning", settings.logWarningColor);
-        themeManager.setColorOverride("log.error", settings.logErrorColor);
-        themeManager.setColorOverride("log.critical", settings.logCriticalColor);
-        themeManager.setColorOverride("log.background", settings.logBackgroundColor);
+            // Apply log color overrides (Task #00027)
+            themeManager.setColorOverride("log.trace", settings.logTraceColor);
+            themeManager.setColorOverride("log.debug", settings.logDebugColor);
+            themeManager.setColorOverride("log.info", settings.logInfoColor);
+            themeManager.setColorOverride("log.warning", settings.logWarningColor);
+            themeManager.setColorOverride("log.error", settings.logErrorColor);
+            themeManager.setColorOverride("log.critical", settings.logCriticalColor);
+            themeManager.setColorOverride("log.background", settings.logBackgroundColor);
 
-        // Refresh the theme to apply all color overrides (palette + stylesheet)
-        themeManager.refreshTheme();
+            // Only call refreshTheme() if colors changed but theme did NOT change
+            // (switchTheme() already applies all overrides and refreshes the theme)
+            if (!themeChanged) {
+                logger.debug("SettingsDialog: Colors changed without theme change, calling refreshTheme()");
+                themeManager.refreshTheme();
+            }
+        }
 
         BusyIndicator::tick();  // Animate
 
         // =====================================================================
         // Step 3: Appearance/Icons (slowest - triggers icon regeneration)
+        // Only update if icon settings actually changed
         // =====================================================================
         settingsManager.set("appearance.iconTheme", settings.iconTheme.toStdString());
-        artProvider.setIconTheme(settings.iconTheme);
+
+        if (iconThemeChanged) {
+            logger.debug("SettingsDialog: Icon theme changed, calling setIconTheme()");
+            artProvider.setIconTheme(settings.iconTheme);
+        }
 
         BusyIndicator::tick();  // Animate
 
-        artProvider.setPrimaryColor(settings.primaryColor);
-        artProvider.setSecondaryColor(settings.secondaryColor);
+        if (iconColorsChanged) {
+            logger.debug("SettingsDialog: Icon colors changed, updating ArtProvider colors");
+            artProvider.setPrimaryColor(settings.primaryColor);
+            artProvider.setSecondaryColor(settings.secondaryColor);
+        }
 
         BusyIndicator::tick();  // Animate
 
-        // Apply icon sizes
-        for (auto it = settings.iconSizes.constBegin(); it != settings.iconSizes.constEnd(); ++it) {
-            artProvider.setIconSize(it.key(), it.value());
+        // Apply icon sizes only if they changed
+        if (iconSizesChanged) {
+            logger.debug("SettingsDialog: Icon sizes changed, updating ArtProvider sizes");
+            for (auto it = settings.iconSizes.constBegin(); it != settings.iconSizes.constEnd(); ++it) {
+                artProvider.setIconSize(it.key(), it.value());
+            }
         }
 
         BusyIndicator::tick();  // Animate
@@ -1751,6 +1889,8 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         // =====================================================================
         settingsManager.set("dashboard.showKalahariNews", settings.showKalahariNews);
         settingsManager.set("dashboard.showRecentFiles", settings.showRecentFiles);
+        settingsManager.set("dashboard.maxItems", settings.dashboardMaxItems);
+        settingsManager.set("dashboard.iconSize", settings.dashboardIconSize);
         settingsManager.set("startup.autoLoadLastProject", settings.autoLoadLastProject);
 
         BusyIndicator::tick();  // Animate
@@ -1764,7 +1904,9 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         // CRITICAL: End batch mode - emit single resourcesChanged signal
         // This triggers ONE refresh of all 134 actions instead of ~11 refreshes
         // =====================================================================
-        artProvider.endBatchUpdate();
+        if (iconSettingsChanged) {
+            artProvider.endBatchUpdate();
+        }
 
         logger.info("SettingsDialog: All settings persisted to disk");
     });

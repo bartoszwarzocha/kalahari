@@ -119,6 +119,11 @@ private:
     /// @param singleColumn True for single column (narrow), false for dual column (wide)
     void reorganizeLayout(bool singleColumn);
 
+    /// @brief Update column visibility based on settings
+    /// Reads dashboard.showKalahariNews and dashboard.showRecentFiles from SettingsManager
+    /// and shows/hides columns accordingly. Also handles divider visibility.
+    void updateColumnVisibility();
+
     /// @brief Make path string breakable by inserting zero-width spaces after separators
     /// @param path Original path string
     /// @return Path with zero-width spaces for wrapping
@@ -135,6 +140,7 @@ private:
     QVBoxLayout* m_mainLayout;         ///< Main vertical layout
 
     // Header components
+    QLabel* m_logoLabel;               ///< Application logo (256x256)
     QLabel* m_titleLabel;              ///< "Welcome to Kalahari"
     QLabel* m_taglineLabel;            ///< Tagline text
 
@@ -147,7 +153,7 @@ private:
     QWidget* m_columnsWidget;          ///< Container for columns
     QFrame* m_newsColumn;              ///< News column
     QFrame* m_recentFilesColumn;       ///< Recent files column
-    QFrame* m_columnDivider;           ///< Divider between columns
+    QWidget* m_columnDivider;           ///< Divider between columns (QWidget for reliable styling)
     QLabel* m_newsIcon;                ///< News column icon
     QLabel* m_newsTitle;               ///< News column title
     QLabel* m_filesIcon;               ///< Files column icon
@@ -167,7 +173,18 @@ private:
     bool m_singleColumnMode;               ///< True if in single column layout
     QGridLayout* m_columnsGridLayout;      ///< Grid layout for columns (stored for reorganization)
 
-    static constexpr int MAX_RECENT_BOOKS = 5;    ///< Maximum recent books to display
+    // Section visibility state (from settings)
+    bool m_showNews;                       ///< Show news column (from settings)
+    bool m_showRecentFiles;                ///< Show recent files column (from settings)
+
+    /// @brief Get max items to display from settings
+    /// @return Number of items (3-9, default 5)
+    int getMaxItems() const;
+
+    /// @brief Get icon size from settings
+    /// @return Icon size in pixels (24-64, default 48)
+    int getIconSize() const;
+
     static constexpr int SINGLE_COLUMN_THRESHOLD = 750;  ///< Width threshold for single column mode
 };
 

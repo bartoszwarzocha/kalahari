@@ -53,6 +53,58 @@
 - [x] Test auto-load does nothing when disabled
 - [x] Test "Clear Recent" clears both lists
 
+## Phase D: Polish & Fixes
+
+### Critical Issues
+- [x] #4: INVESTIGATE: Program very slow on first startup (root cause: 183 icons × 7 sizes = 1281 SVG renders; fix deferred to splashscreen implementation)
+- [x] #11: Dashboard settings not working - fixed toggle + divider visibility
+
+### Missing Features
+- [x] #2: No way to re-show Dashboard - added View menu item and toolbar button
+- [x] #1: Dashboard tab has no icon - added home icon
+- [x] #10: Add Dashboard setting: number of items (3-9, default 5)
+
+### Visual Polish
+- [x] #3: Navigator treeview icons - default size changed to 20px
+- [x] #5: Add settings for Dashboard icon size (24-64px, default 48px)
+- [x] #8: Dashboard center divider - now uses themed palette.mid color
+- [x] #9: Add subtle borders to clickable areas (1px, themed, border-radius 6px)
+- [x] #6: Add dashboardPrimary/dashboardSecondary colors (Dark: #36BBA7/#075F5A, Light: #18786F/#36BBA7)
+- [x] #7: Change infoPrimary/infoSecondary colors (Dark: #34A6F4/#10598A, Light: #1C69A8/#34A6F4)
+
+## Phase E: Manual Testing Fixes
+
+### Settings Synchronization
+- [x] #E1: Dashboard checkbox "Open last project" not synced with Settings dialog checkbox after Apply
+
+### UI Layout Consistency
+- [x] #E2: DECISION: Icon size stays in Dashboard tab (user choice)
+- [x] #E3: Dashboard spinboxes stretched (QGridLayout with column stretch)
+
+### Dashboard Colors
+- [x] #E4: Recent Files icons use dashboardPrimary/dashboardSecondary
+
+### Visual Polish
+- [x] #E5: Card borders more contrast (blend 70% mid + 30% text)
+- [x] #E6: Center divider 50% opacity (alpha=127)
+
+### Critical Bugs
+- [x] #E7: Navigator double-click fixed (removed duplicate signal connection)
+
+### Settings Dialog Styling
+- [x] #E8: Settings text readable (palette.placeholderText instead of palette.mid)
+
+## Phase F: Final Testing Fixes
+
+### Dashboard Sync
+- [x] #F1: Dashboard checkbox synced on startup (added sync in applyThemeColors() via QTimer)
+
+### Visual Polish
+- [x] #F2: Center divider reduced to 15% opacity (alpha=40)
+
+### Performance
+- [x] #F3: Settings dialog now only updates what changed (conditional theme/icon refresh)
+
 ## Documentation
 - [x] Update CHANGELOG.md with new features
 - [x] Update ROADMAP.md if applicable

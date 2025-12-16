@@ -282,6 +282,7 @@ void MainWindow::registerCommands() {
     // -------------------------------------------------------------------------
     // VIEW MENU ICONS
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");
@@ -689,6 +690,35 @@ void MainWindow::registerCommands() {
     // =========================================================================
     // VIEW MENU
     // =========================================================================
+
+    // Dashboard command - shows/activates Dashboard tab (OpenSpec #00036 Phase D)
+    REG_CMD_CB("view.dashboard", "Dashboard", "VIEW/Dashboard", 5, true, 0,
+               [this]() {
+                   auto& logger = core::Logger::getInstance();
+
+                   // Check if Dashboard tab already exists
+                   for (int i = 0; i < m_centralTabs->count(); ++i) {
+                       if (qobject_cast<DashboardPanel*>(m_centralTabs->widget(i))) {
+                           // Dashboard exists - activate it
+                           m_centralTabs->setCurrentIndex(i);
+                           logger.debug("Dashboard tab activated at index {}", i);
+                           return;
+                       }
+                   }
+
+                   // Dashboard doesn't exist - create new one
+                   m_dashboardPanel = new DashboardPanel(this);
+                   auto& artProvider = core::ArtProvider::getInstance();
+                   QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
+                   int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, dashboardIcon, tr("Dashboard"));
+                   m_centralTabs->setCurrentIndex(dashboardIndex);
+
+                   // Reconnect Dashboard signals
+                   connect(m_dashboardPanel, &DashboardPanel::openRecentBookRequested,
+                           this, &MainWindow::onOpenRecentFile);
+
+                   logger.info("Dashboard tab created at index {}", dashboardIndex);
+               });
 
     // Panel toggle commands - registered here for CommandRegistry/Toolbar system
     // Execute callbacks are set later in createDocks() after dock widgets exist
@@ -1468,7 +1498,9 @@ void MainWindow::createDocks() {
 
     // Add Dashboard as first tab (default at startup, closable)
     m_dashboardPanel = new DashboardPanel(this);
-    int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, tr("Dashboard"));
+    auto& artProvider = core::ArtProvider::getInstance();
+    QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
+    int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, dashboardIcon, tr("Dashboard"));
     m_centralTabs->setCurrentIndex(dashboardIndex);
 
     // Connect Dashboard recent book signal (OpenSpec #00036)
@@ -1485,6 +1517,12 @@ void MainWindow::createDocks() {
         if (editor && m_isDirty) {
             // TODO (Phase 1): Prompt user to save changes
             // For now: just close
+        }
+
+        // Check if this is the Dashboard panel being closed
+        if (widget == m_dashboardPanel) {
+            m_dashboardPanel = nullptr;
+            logger.debug("Dashboard panel closed, pointer cleared");
         }
 
         // Remove tab and delete widget
@@ -1645,7 +1683,7 @@ void MainWindow::createDocks() {
 
     // Connect panel toggle commands to dock widgets (commands registered in registerCommands)
     auto& registry = CommandRegistry::getInstance();
-    auto& artProvider = core::ArtProvider::getInstance();
+    // artProvider already declared earlier in this function for Dashboard tab icon
 
     // Helper lambda to setup two-way binding between command and dock widget
     auto connectPanelCommand = [&registry](const std::string& cmdId, QDockWidget* dock) {
@@ -2652,6 +2690,8 @@ SettingsData MainWindow::collectCurrentSettings() const {
     // Info header color from theme
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     settingsData.infoHeaderColor = theme.colors.infoHeader;
+    settingsData.dashboardSecondaryColor = theme.colors.dashboardSecondary;
+    settingsData.dashboardPrimaryColor = theme.colors.dashboardPrimary;
     settingsData.infoSecondaryColor = theme.colors.infoSecondary;
     settingsData.infoPrimaryColor = theme.colors.infoPrimary;
 
@@ -2830,6 +2870,13 @@ SettingsData MainWindow::collectCurrentSettings() const {
         settingsData.paletteLinkColor = QColor(QString::fromStdString(defLink));
         settingsData.paletteLinkVisitedColor = QColor(QString::fromStdString(defLinkVisited));
     }
+
+    // Dashboard settings (OpenSpec #00036)
+    settingsData.showKalahariNews = settings.get<bool>("dashboard.showKalahariNews", true);
+    settingsData.showRecentFiles = settings.get<bool>("dashboard.showRecentFiles", true);
+    settingsData.autoLoadLastProject = settings.get<bool>("startup.autoLoadLastProject", false);
+    settingsData.dashboardMaxItems = settings.get<int>("dashboard.maxItems", 5);
+    settingsData.dashboardIconSize = settings.get<int>("dashboard.iconSize", 48);
 
     logger.debug("MainWindow: Settings collected");
     return settingsData;

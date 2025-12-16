@@ -9,6 +9,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/recent_books_manager.h"
+#include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -28,9 +29,10 @@
 #include <QApplication>
 #include <QStyle>
 #include <QTimer>
+#include <algorithm>
 
 namespace {
-    constexpr int DASHBOARD_ICON_SIZE = 32;  // Single source of truth for icon size
+    constexpr int DEFAULT_DASHBOARD_ICON_SIZE = 48;  // Default icon size (configurable via settings)
 }
 
 namespace kalahari {
@@ -53,11 +55,11 @@ public:
         m_hoverColor = color;
     }
 
-    /// @brief Set the normal background color
-    void setNormalColor(const QColor& color) {
-        m_normalColor = color;
-        // Apply normal style initially
-        setStyleSheet(QString("QFrame#recentFileCard { background: transparent; border-radius: 10px; }"));
+    /// @brief Set the border color for the card
+    void setBorderColor(const QColor& color) {
+        m_borderColor = color;
+        // Apply normal style with border initially
+        applyNormalStyle();
     }
 
 protected:
@@ -69,22 +71,34 @@ protected:
     }
 
     void enterEvent(QEnterEvent* event) override {
-        // Highlight on hover
+        // Highlight on hover - keep border visible
         if (m_hoverColor.isValid()) {
-            setStyleSheet(QString("QFrame#recentFileCard { background: %1; border-radius: 10px; }").arg(m_hoverColor.name()));
+            QString borderStyle = m_borderColor.isValid()
+                ? QString("border: 1px solid %1;").arg(m_borderColor.name())
+                : QString();
+            setStyleSheet(QString("QFrame#recentFileCard { background: %1; border-radius: 6px; %2 }")
+                .arg(m_hoverColor.name(), borderStyle));
         }
         QFrame::enterEvent(event);
     }
 
     void leaveEvent(QEvent* event) override {
-        // Return to normal
-        setStyleSheet(QString("QFrame#recentFileCard { background: transparent; border-radius: 10px; }"));
+        // Return to normal with subtle border
+        applyNormalStyle();
         QFrame::leaveEvent(event);
     }
 
 private:
+    void applyNormalStyle() {
+        QString borderStyle = m_borderColor.isValid()
+            ? QString("border: 1px solid %1;").arg(m_borderColor.name())
+            : QString();
+        setStyleSheet(QString("QFrame#recentFileCard { background: transparent; border-radius: 6px; %1 }")
+            .arg(borderStyle));
+    }
+
     QColor m_hoverColor;
-    QColor m_normalColor;
+    QColor m_borderColor;
 };
 
 DashboardPanel::DashboardPanel(QWidget* parent)
@@ -92,6 +106,7 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     , m_scrollArea(nullptr)
     , m_contentWidget(nullptr)
     , m_mainLayout(nullptr)
+    , m_logoLabel(nullptr)
     , m_titleLabel(nullptr)
     , m_taglineLabel(nullptr)
     , m_shortcutsFrame(nullptr)
@@ -111,6 +126,8 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     , m_autoLoadCheckbox(nullptr)
     , m_singleColumnMode(false)
     , m_columnsGridLayout(nullptr)
+    , m_showNews(true)
+    , m_showRecentFiles(true)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel constructor called");
@@ -129,11 +146,6 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     // This ensures dashboard refreshes when user changes icon style or colors in Settings
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
             this, &DashboardPanel::onThemeChanged);
-
-    // Defer icon refresh to after constructor completes and ArtProvider is fully initialized
-    // This ensures icons get proper theme colors even if DashboardPanel is created
-    // before ArtProvider::initialize() sets the theme colors in IconRegistry
-    QTimer::singleShot(0, this, &DashboardPanel::applyThemeColors);
 
     logger.debug("DashboardPanel initialized with native Qt widgets");
 }
@@ -203,8 +215,13 @@ void DashboardPanel::setupUI()
     outerLayout->addWidget(m_scrollArea);
 
     // Load current setting for auto-load checkbox
-    auto& settings = core::SettingsManager::getInstance();
-    m_autoLoadCheckbox->setChecked(settings.get<bool>("startup.autoLoadLastProject", false));
+    // Note: SettingsManager::load() must be called before DashboardPanel is created (done in main.cpp)
+    auto& settingsMgr = core::SettingsManager::getInstance();
+    bool autoLoadSetting = settingsMgr.get<bool>("startup.autoLoadLastProject", false);
+    core::Logger::getInstance().info("Dashboard: startup.autoLoadLastProject from settings = {}", autoLoadSetting);
+    m_autoLoadCheckbox->setChecked(autoLoadSetting);
+    core::Logger::getInstance().info("Dashboard: checkbox setChecked({}) done, isChecked() = {}",
+                                     autoLoadSetting, m_autoLoadCheckbox->isChecked());
 
     // Connect checkbox to save setting
     connect(m_autoLoadCheckbox, &QCheckBox::toggled, this, [](bool checked) {
@@ -215,6 +232,9 @@ void DashboardPanel::setupUI()
     // Apply initial theme colors
     applyThemeColors();
 
+    // Apply column visibility from settings (News/Recent Files show/hide)
+    updateColumnVisibility();
+
     // Populate content
     populateNewsColumn();
     updateRecentFilesList();
@@ -223,29 +243,64 @@ void DashboardPanel::setupUI()
 QWidget* DashboardPanel::createHeaderSection(QWidget* parent)
 {
     QWidget* headerWidget = new QWidget(parent);
-    QVBoxLayout* layout = new QVBoxLayout(headerWidget);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(8);
-    layout->setAlignment(Qt::AlignCenter);
+    QHBoxLayout* mainLayout = new QHBoxLayout(headerWidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(24);
+    mainLayout->setAlignment(Qt::AlignCenter);
+
+    // Logo (256x256 logical pixels, scaled for HiDPI)
+    m_logoLabel = new QLabel(headerWidget);
+    m_logoLabel->setFixedSize(256, 256);
+    m_logoLabel->setScaledContents(false);
+
+    // Load logo from resources with HiDPI support
+    QString logoPath = core::ResourcePaths::getInstance().getResourcesDir() + "/images/app_logo.png";
+    QPixmap logoPixmap(logoPath);
+    if (!logoPixmap.isNull()) {
+        // Get device pixel ratio for HiDPI scaling
+        qreal dpr = m_logoLabel->devicePixelRatioF();
+        int targetSize = static_cast<int>(256 * dpr);
+
+        // Scale to target size with smooth transformation
+        QPixmap scaledLogo = logoPixmap.scaled(targetSize, targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        scaledLogo.setDevicePixelRatio(dpr);
+        m_logoLabel->setPixmap(scaledLogo);
+        m_logoLabel->setAlignment(Qt::AlignCenter);
+    } else {
+        core::Logger::getInstance().warn("DashboardPanel: Could not load logo from {}", logoPath.toStdString());
+        m_logoLabel->setText(tr("Logo"));
+        m_logoLabel->setAlignment(Qt::AlignCenter);
+    }
+
+    // Text container (title + tagline)
+    QWidget* textWidget = new QWidget(headerWidget);
+    QVBoxLayout* textLayout = new QVBoxLayout(textWidget);
+    textLayout->setContentsMargins(0, 0, 0, 0);
+    textLayout->setSpacing(8);
+    textLayout->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
     // Title
-    m_titleLabel = new QLabel(tr("Welcome to Kalahari"), headerWidget);
+    m_titleLabel = new QLabel(tr("Welcome to Kalahari"), textWidget);
     QFont titleFont = m_titleLabel->font();
-    titleFont.setPointSize(20);
-    titleFont.setWeight(QFont::DemiBold);
+    titleFont.setPointSize(24);
+    titleFont.setWeight(QFont::Light);
     m_titleLabel->setFont(titleFont);
-    m_titleLabel->setAlignment(Qt::AlignCenter);
+    m_titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     // Tagline
-    m_taglineLabel = new QLabel(tr("A Writer's IDE for book authors"), headerWidget);
+    m_taglineLabel = new QLabel(tr("A Writer's IDE for book authors"), textWidget);
     QFont taglineFont = m_taglineLabel->font();
     taglineFont.setPointSize(12);
     taglineFont.setWeight(QFont::Light);
     m_taglineLabel->setFont(taglineFont);
-    m_taglineLabel->setAlignment(Qt::AlignCenter);
+    m_taglineLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    layout->addWidget(m_titleLabel);
-    layout->addWidget(m_taglineLabel);
+    textLayout->addWidget(m_titleLabel);
+    textLayout->addWidget(m_taglineLabel);
+
+    // Add to main layout: [Logo] | [Text]
+    mainLayout->addWidget(m_logoLabel);
+    mainLayout->addWidget(textWidget);
 
     return headerWidget;
 }
@@ -335,23 +390,25 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     newsHeaderLayout->setSpacing(12);
 
     // News icon with background
+    int headerIconSize = 24;
+    int iconSize = getIconSize();
     QFrame* newsIconFrame = new QFrame(newsHeader);
     newsIconFrame->setObjectName("newsIconFrame");
-    newsIconFrame->setFixedSize(DASHBOARD_ICON_SIZE + 8, DASHBOARD_ICON_SIZE + 8);  // padding
+    newsIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
     QHBoxLayout* newsIconLayout = new QHBoxLayout(newsIconFrame);
     newsIconLayout->setContentsMargins(0, 0, 0, 0);
     newsIconLayout->setAlignment(Qt::AlignCenter);
 
     m_newsIcon = new QLabel(newsIconFrame);
-    m_newsIcon->setFixedSize(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE);
-    m_newsIcon->setScaledContents(false);  // NO SCALING - pixmap size = label size
+    m_newsIcon->setFixedSize(headerIconSize, headerIconSize);
+    m_newsIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
     // News icon uses infoPrimary/infoSecondary colors for distinct appearance
     const auto& currentTheme = core::ThemeManager::getInstance().getCurrentTheme();
     QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
         "book.newChapter",
         currentTheme.colors.infoPrimary,
         currentTheme.colors.infoSecondary);
-    m_newsIcon->setPixmap(newsIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+    m_newsIcon->setPixmap(newsIcon.pixmap(headerIconSize, headerIconSize));
     newsIconLayout->addWidget(m_newsIcon);
 
     m_newsTitle = new QLabel(tr("Kalahari News"), newsHeader);
@@ -376,10 +433,11 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     newsLayout->addWidget(m_newsListWidget);
     newsLayout->addStretch();
 
-    // Vertical divider
-    m_columnDivider = new QFrame(m_columnsWidget);
-    m_columnDivider->setFrameShape(QFrame::VLine);
-    m_columnDivider->setFixedWidth(2);
+    // Vertical divider - QWidget with background color from theme palette
+    m_columnDivider = new QWidget(m_columnsWidget);
+    m_columnDivider->setFixedWidth(1);
+    m_columnDivider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    m_columnDivider->setStyleSheet(QString("background-color: %1;").arg(currentTheme.palette.placeholderText.name()));
     m_columnDivider->setObjectName("columnDivider");
 
     // Recent files column (right)
@@ -400,17 +458,20 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     // Files icon with background
     QFrame* filesIconFrame = new QFrame(filesHeader);
     filesIconFrame->setObjectName("filesIconFrame");
-    filesIconFrame->setFixedSize(DASHBOARD_ICON_SIZE + 8, DASHBOARD_ICON_SIZE + 8);  // padding
+    filesIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
     QHBoxLayout* filesIconLayout = new QHBoxLayout(filesIconFrame);
     filesIconLayout->setContentsMargins(0, 0, 0, 0);
     filesIconLayout->setAlignment(Qt::AlignCenter);
 
     m_filesIcon = new QLabel(filesIconFrame);
-    m_filesIcon->setFixedSize(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE);
-    m_filesIcon->setScaledContents(false);  // NO SCALING - pixmap size = label size
-    // Use registered actionId "file.open" - uses default theme primary/secondary colors
-    QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon("file.open");
-    m_filesIcon->setPixmap(filesIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+    m_filesIcon->setFixedSize(headerIconSize, headerIconSize);
+    m_filesIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
+    // Recent Files icon uses dashboardPrimary/dashboardSecondary colors for distinct appearance
+    QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
+        "file.open",
+        currentTheme.colors.dashboardPrimary,
+        currentTheme.colors.dashboardSecondary);
+    m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
     filesIconLayout->addWidget(m_filesIcon);
 
     m_filesTitle = new QLabel(tr("Recent Files"), filesHeader);
@@ -490,30 +551,41 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     card->setObjectName("recentFileCard");
     card->setProperty("filePath", filePath);
 
-    // Set hover color from current theme
+    // Set colors from current theme
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     card->setHoverColor(theme.palette.alternateBase);
-    card->setNormalColor(Qt::transparent);
+    // Card border needs good contrast but not overwhelming
+    // Blend mid with text color (30% text) for better visibility in all themes
+    QColor borderColor = theme.palette.mid;
+    int r = borderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
+    int g = borderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
+    int b = borderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
+    card->setBorderColor(QColor(r, g, b));
 
     QHBoxLayout* cardLayout = new QHBoxLayout(card);
     cardLayout->setContentsMargins(12, 12, 12, 12);
     cardLayout->setSpacing(12);
 
     // Book icon - use auto_stories from twotone style
+    int iconSize = getIconSize();
     QFrame* iconFrame = new QFrame(card);
     iconFrame->setObjectName("fileIconFrame");
-    iconFrame->setFixedSize(DASHBOARD_ICON_SIZE + 8, DASHBOARD_ICON_SIZE + 8);  // padding
+    iconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
     QHBoxLayout* iconLayout = new QHBoxLayout(iconFrame);
     iconLayout->setContentsMargins(0, 0, 0, 0);
     iconLayout->setAlignment(Qt::AlignCenter);
 
     QLabel* iconLabel = new QLabel(iconFrame);
     iconLabel->setObjectName("cardBookIcon");  // Named for theme refresh
-    iconLabel->setFixedSize(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE);
+    iconLabel->setFixedSize(iconSize, iconSize);
     iconLabel->setScaledContents(false);  // NO SCALING - pixmap size = label size
-    // Use registered actionId "project.book" - uses default theme primary/secondary colors
-    QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon("project.book");
-    iconLabel->setPixmap(bookIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+    // Recent Files book icons use dashboardPrimary/dashboardSecondary colors for distinct appearance
+    // (theme already in scope from line 522)
+    QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
+        "project.book",
+        theme.colors.dashboardPrimary,
+        theme.colors.dashboardSecondary);
+    iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));
     iconLayout->addWidget(iconLabel);
 
     cardLayout->addWidget(iconFrame);
@@ -602,8 +674,9 @@ void DashboardPanel::updateRecentFilesList()
         m_filesListLayout->addWidget(noFilesLabel);
     } else {
         int count = 0;
+        int maxItems = getMaxItems();
         for (const QString& filePath : recentFiles) {
-            if (count >= MAX_RECENT_BOOKS) break;
+            if (count >= maxItems) break;
             QWidget* card = createRecentFileCard(filePath, m_filesListWidget);
             m_filesListLayout->addWidget(card);
             ++count;
@@ -645,8 +718,6 @@ void DashboardPanel::applyThemeColors()
     QString primaryColor = theme.colors.infoHeader.name();
     QString textColor = theme.palette.windowText.name();
     QString mutedColor = theme.palette.placeholderText.name();
-    QString filesAccent = "#6b8f71";
-    QString newsAccent = "#4a7a9e";
 
     // Apply to scroll area
     m_scrollArea->setStyleSheet(QString("QScrollArea { background: %1; border: none; }").arg(bgColor));
@@ -681,10 +752,11 @@ void DashboardPanel::applyThemeColors()
         label->setStyleSheet(QString("color: %1; background: transparent;").arg(textColor));
     }
 
-    // Column divider - use semi-transparent gray for subtle visibility on both dark and light themes
+    // Column divider - simple vertical line with explicit background color
     if (m_columnDivider) {
-        // Use a neutral gray with transparency - works well on both dark and light backgrounds
-        m_columnDivider->setStyleSheet(QString("background: rgba(128, 128, 128, 100);"));
+        // Use palette.placeholderText - visible in both light and dark themes
+        QString dividerColor = theme.palette.placeholderText.name();
+        m_columnDivider->setStyleSheet(QString("background-color: %1;").arg(dividerColor));
     }
 
     // Column titles
@@ -713,6 +785,23 @@ void DashboardPanel::applyThemeColors()
     QList<QFrame*> fileIconFrames = m_filesListWidget->findChildren<QFrame*>("fileIconFrame");
     for (auto* frame : fileIconFrames) {
         frame->setStyleSheet(transparentFrameStyle);
+    }
+
+    // Update card border colors on theme change
+    // Note: We iterate over m_fileCards instead of using findChildren<ClickableCard*>()
+    // because ClickableCard is defined in this .cpp file without Q_OBJECT macro,
+    // and findChildren requires MOC-generated metadata.
+    // Card border: blend mid with text color (30% text) for better visibility
+    QColor cardBorderColor = theme.palette.mid;
+    int br = cardBorderColor.red() * 0.7 + theme.palette.text.red() * 0.3;
+    int bg = cardBorderColor.green() * 0.7 + theme.palette.text.green() * 0.3;
+    int bb = cardBorderColor.blue() * 0.7 + theme.palette.text.blue() * 0.3;
+    QColor blendedBorderColor(br, bg, bb);
+    for (const auto& cardPair : m_fileCards) {
+        if (ClickableCard* card = static_cast<ClickableCard*>(cardPair.first)) {
+            card->setHoverColor(theme.palette.alternateBase);
+            card->setBorderColor(blendedBorderColor);
+        }
     }
 
     // Card text styling - ALL must have transparent background for hover to work!
@@ -748,32 +837,40 @@ void DashboardPanel::applyThemeColors()
         label->setStyleSheet(noItemsStyle);
     }
 
-    // Checkbox styling - MUST be visible on dark background!
+    // Checkbox styling - only text color, let Qt handle the indicator
     if (m_autoLoadCheckbox) {
-        m_autoLoadCheckbox->setStyleSheet(QString("QCheckBox { color: %1; } QCheckBox::indicator { border: 1px solid %2; }").arg(textColor, mutedColor));
+        m_autoLoadCheckbox->setStyleSheet(QString("QCheckBox { color: %1; }").arg(textColor));
     }
 
     // Refresh icons with current theme colors using getThemedIcon API
+    int iconSize = getIconSize();
+
     // News icon uses infoPrimary/infoSecondary for distinct appearance
     if (m_newsIcon) {
         QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
             "book.newChapter",
             theme.colors.infoPrimary,
             theme.colors.infoSecondary);
-        m_newsIcon->setPixmap(newsIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+        m_newsIcon->setPixmap(newsIcon.pixmap(iconSize, iconSize));
     }
 
-    // Files icon uses default theme primary/secondary colors
+    // Files icon uses dashboardPrimary/dashboardSecondary colors for distinct appearance
     if (m_filesIcon) {
-        QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon("file.open");
-        m_filesIcon->setPixmap(filesIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+        QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
+            "file.open",
+            theme.colors.dashboardPrimary,
+            theme.colors.dashboardSecondary);
+        m_filesIcon->setPixmap(filesIcon.pixmap(iconSize, iconSize));
     }
 
-    // Refresh book icons in file cards - uses default theme primary/secondary colors
+    // Refresh book icons in file cards - uses dashboardPrimary/dashboardSecondary colors
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
-        QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon("project.book");
-        iconLabel->setPixmap(bookIcon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE));
+        QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
+            "project.book",
+            theme.colors.dashboardPrimary,
+            theme.colors.dashboardSecondary);
+        iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));
     }
 }
 
@@ -798,17 +895,24 @@ void DashboardPanel::onSettingsChanged()
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel::onSettingsChanged - refreshing content with updated settings");
 
-    // Refresh recent files list
-    updateRecentFilesList();
+    // Sync auto-load checkbox with settings (in case changed from Settings dialog)
+    if (m_autoLoadCheckbox) {
+        auto& settings = core::SettingsManager::getInstance();
+        bool autoLoad = settings.get<bool>("startup.autoLoadLastProject", false);
+        if (m_autoLoadCheckbox->isChecked() != autoLoad) {
+            m_autoLoadCheckbox->blockSignals(true);
+            m_autoLoadCheckbox->setChecked(autoLoad);
+            m_autoLoadCheckbox->blockSignals(false);
+            logger.debug("DashboardPanel: Auto-load checkbox synced to {}", autoLoad);
+        }
+    }
 
-    // Sync checkbox with settings (in case changed from Settings dialog)
-    auto& settings = core::SettingsManager::getInstance();
-    bool autoLoad = settings.get<bool>("startup.autoLoadLastProject", false);
-    if (m_autoLoadCheckbox->isChecked() != autoLoad) {
-        // Block signals to avoid saving back to settings
-        m_autoLoadCheckbox->blockSignals(true);
-        m_autoLoadCheckbox->setChecked(autoLoad);
-        m_autoLoadCheckbox->blockSignals(false);
+    // Update column visibility based on settings (News/Recent Files show/hide)
+    updateColumnVisibility();
+
+    // Refresh recent files list (if visible)
+    if (m_showRecentFiles) {
+        updateRecentFilesList();
     }
 }
 
@@ -848,6 +952,7 @@ void DashboardPanel::reorganizeLayout(bool singleColumn)
 
     if (singleColumn) {
         // Single column: News on row 0, Files on row 1, hide divider
+        // (divider is always hidden in single column mode)
         m_columnDivider->hide();
 
         // Reset column stretch - single column uses full width
@@ -879,12 +984,16 @@ void DashboardPanel::reorganizeLayout(bool singleColumn)
         m_columnsGridLayout->addWidget(m_recentFilesColumn, 1, 0);
     } else {
         // Dual column: News left, Divider center, Files right
-        m_columnDivider->show();
+        // Show divider ONLY if both columns are visible
+        bool showDivider = m_showNews && m_showRecentFiles;
+        m_columnDivider->setVisible(showDivider);
 
-        // Reset column stretch for 50/50 split
-        m_columnsGridLayout->setColumnStretch(0, 1);
+        // Reset column stretch based on visibility
+        int newsStretch = m_showNews ? 1 : 0;
+        int filesStretch = m_showRecentFiles ? 1 : 0;
+        m_columnsGridLayout->setColumnStretch(0, newsStretch);
         m_columnsGridLayout->setColumnStretch(1, 0);
-        m_columnsGridLayout->setColumnStretch(2, 1);
+        m_columnsGridLayout->setColumnStretch(2, filesStretch);
 
         // Reset row stretch
         m_columnsGridLayout->setRowStretch(0, 0);
@@ -912,6 +1021,62 @@ void DashboardPanel::reorganizeLayout(bool singleColumn)
     }
 }
 
+void DashboardPanel::updateColumnVisibility()
+{
+    auto& logger = core::Logger::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+
+    // Read visibility settings from SettingsManager
+    bool showNews = settings.get<bool>("dashboard.showKalahariNews", true);
+    bool showRecentFiles = settings.get<bool>("dashboard.showRecentFiles", true);
+
+    // Check if visibility changed
+    bool visibilityChanged = (showNews != m_showNews) || (showRecentFiles != m_showRecentFiles);
+
+    if (!visibilityChanged) {
+        logger.debug("DashboardPanel::updateColumnVisibility - no visibility change");
+        return;
+    }
+
+    // Update stored state
+    m_showNews = showNews;
+    m_showRecentFiles = showRecentFiles;
+
+    logger.info("DashboardPanel::updateColumnVisibility - showNews={}, showRecentFiles={}",
+                m_showNews, m_showRecentFiles);
+
+    // Update column visibility
+    if (m_newsColumn) {
+        m_newsColumn->setVisible(m_showNews);
+    }
+    if (m_recentFilesColumn) {
+        m_recentFilesColumn->setVisible(m_showRecentFiles);
+    }
+
+    // Update divider visibility:
+    // - Show divider only when BOTH columns are visible AND we're in dual column mode
+    // - Hide divider when only one column visible, or in single column mode
+    if (m_columnDivider) {
+        bool showDivider = m_showNews && m_showRecentFiles && !m_singleColumnMode;
+        m_columnDivider->setVisible(showDivider);
+        logger.debug("DashboardPanel: Divider visibility set to {}", showDivider);
+    }
+
+    // Adjust grid layout column stretch based on visibility
+    if (m_columnsGridLayout) {
+        // When both visible: equal stretch (1:0:1)
+        // When only news visible: news gets all stretch (1:0:0)
+        // When only recent files visible: files gets all stretch (0:0:1)
+        // When neither visible: no stretch needed (0:0:0)
+        int newsStretch = m_showNews ? 1 : 0;
+        int filesStretch = m_showRecentFiles ? 1 : 0;
+
+        m_columnsGridLayout->setColumnStretch(0, newsStretch);
+        m_columnsGridLayout->setColumnStretch(1, 0);  // Divider always fixed
+        m_columnsGridLayout->setColumnStretch(2, filesStretch);
+    }
+}
+
 QString DashboardPanel::makeBreakablePath(const QString& path) const
 {
     // Insert zero-width space (U+200B) after each path separator
@@ -931,7 +1096,22 @@ QPixmap DashboardPanel::loadThemedIcon(const QString& actionId) const
 {
     // Load icon using getThemedIcon API with default theme colors
     QIcon icon = core::ArtProvider::getInstance().getThemedIcon(actionId);
-    return icon.pixmap(DASHBOARD_ICON_SIZE, DASHBOARD_ICON_SIZE);
+    int iconSize = getIconSize();
+    return icon.pixmap(iconSize, iconSize);
+}
+
+int DashboardPanel::getMaxItems() const
+{
+    // Get max items from settings, with bounds checking (3-9, default 5)
+    int maxItems = core::SettingsManager::getInstance().get<int>("dashboard.maxItems", 5);
+    return std::clamp(maxItems, 3, 9);
+}
+
+int DashboardPanel::getIconSize() const
+{
+    // Get icon size from settings, with bounds checking (24-64, default 48)
+    int iconSize = core::SettingsManager::getInstance().get<int>("dashboard.iconSize", DEFAULT_DASHBOARD_ICON_SIZE);
+    return std::clamp(iconSize, 24, 64);
 }
 
 } // namespace gui

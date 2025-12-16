@@ -158,6 +158,8 @@ private:
     ColorConfigWidget* m_primaryColorWidget;
     ColorConfigWidget* m_secondaryColorWidget;
     ColorConfigWidget* m_infoHeaderColorWidget;
+    ColorConfigWidget* m_dashboardSecondaryColorWidget;
+    ColorConfigWidget* m_dashboardPrimaryColorWidget;
     ColorConfigWidget* m_infoSecondaryColorWidget;
     ColorConfigWidget* m_infoPrimaryColorWidget;
 
@@ -222,6 +224,8 @@ private:
     QCheckBox* m_showKalahariNewsCheckBox;
     QCheckBox* m_showRecentFilesCheckBox;
     QCheckBox* m_autoLoadLastProjectCheckBox;
+    QSpinBox* m_dashboardMaxItemsSpinBox;
+    QSpinBox* m_dashboardIconSizeSpinBox;
 
     // ========================================================================
     // Member Variables - Editor/General
