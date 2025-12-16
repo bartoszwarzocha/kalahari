@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export/Import project archive (.klh.zip) with progress dialog (Phase H)
 - Deleted obsolete test.klh artifact
 
+- **OpenSpec #00037:** Quick Actions & Help Toolbar - 2025-12-16
+  - **Quick Actions Toolbar:** Consolidated toolbar with frequently used actions
+    - Commands: New File, New Project, Open, Save, Save All, Find, Backup Now, Settings, Customize Toolbars
+    - Default visible, positioned in Row 1
+  - **Help Toolbar:** Quick access to help resources
+    - Commands: Help, Keyboard Shortcuts, Check for Updates, About
+    - Default visible, positioned in Row 2
+  - **Multi-Row Toolbar Layout:** 2-row default configuration
+    - Row 1: Quick Actions, Edit, Format, Insert
+    - Row 2: Book, Styles, Tools, Help
+    - Uses Qt's addToolBarBreak() for row separation
+  - **Updated Default Visibility:**
+    - Visible: Quick Actions, Edit, Format, Help (4 toolbars)
+    - Hidden: File, Book, View, Tools, Insert, Styles (6 toolbars)
+  - **Configuration Versioning (v5):** Forces QSettings reset on version mismatch
+    - needsConfigReset() static method checks version
+    - clearSavedWindowState() clears old settings
+  - **New Commands Registered:**
+    - `file.new` - Create new standalone file
+    - `edit.settings` - Open Settings dialog
+    - `tools.toolbarManager` - Open Toolbar Manager dialog
+  - Files modified: `toolbar_manager.h`, `toolbar_manager.cpp`, `main_window.cpp`
+
 - **OpenSpec #00036:** Dashboard & Navigator Enhancements - 2025-12-14
   - **Phase A: Navigator Status Submenu**
     - "Set Status" submenu in NavigatorPanel context menu for chapter files

@@ -26,6 +26,16 @@
 namespace kalahari {
 namespace gui {
 
+// OpenSpec #00037: Toolbar config version for reset detection
+// Increment this when changing default toolbar visibility or layout
+// Version history:
+//   1: Initial version (all toolbars visible by default)
+//   2: OpenSpec #00037 - File, Edit, Quick Actions, Help visible; others hidden
+//   3: Fix toolbar visibility reset - force re-apply of default visibility
+//   4: Final toolbar fix - quickActions/edit/format/help visible, no addToolBarBreak
+//   5: Final layout - Row 1: Quick Actions, Edit, Format, Insert; Row 2: Book, Styles, Tools, Help; Hidden: File, View
+static constexpr int TOOLBAR_CONFIG_VERSION = 5;
+
 ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
     : m_mainWindow(mainWindow)
 {
@@ -56,8 +66,8 @@ void ToolbarManager::initializeConfigs() {
         "file",
         "File Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
-        {"file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
+        false,  // hidden by default (accessible via Quick Actions)
+        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
     };
 
     // Edit Toolbar
@@ -65,7 +75,7 @@ void ToolbarManager::initializeConfigs() {
         "edit",
         "Edit Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
+        true,  // visible by default (Row 1)
         {"edit.undo", "edit.redo", SEPARATOR_ID,
          "edit.cut", "edit.copy", "edit.paste", "edit.selectAll"}
     };
@@ -75,7 +85,7 @@ void ToolbarManager::initializeConfigs() {
         "book",
         "Book Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
+        true,  // visible by default (Row 2)
         {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
     };
 
@@ -84,7 +94,7 @@ void ToolbarManager::initializeConfigs() {
         "view",
         "View Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
+        false,  // hidden by default (accessible via menu)
         {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.log"}
     };
 
@@ -93,7 +103,7 @@ void ToolbarManager::initializeConfigs() {
         "tools",
         "Tools Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
+        true,  // visible by default (Row 2)
         {"tools.spellcheck", "tools.stats.wordCount", "tools.focus.normal"}
     };
 
@@ -103,7 +113,7 @@ void ToolbarManager::initializeConfigs() {
         "format",
         "Format Toolbar",
         Qt::TopToolBarArea,
-        true,  // visible by default
+        true,  // visible by default (Row 1)
         {WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID, SEPARATOR_ID,
          "format.bold", "format.italic", "format.underline", "format.strikethrough", SEPARATOR_ID,
          "format.alignLeft", "format.alignCenter", "format.alignRight", "format.justify", SEPARATOR_ID,
@@ -116,7 +126,7 @@ void ToolbarManager::initializeConfigs() {
         "insert",
         "Insert Toolbar",
         Qt::TopToolBarArea,
-        false,  // hidden by default (optional toolbar)
+        true,  // visible by default (Row 1)
         {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
          "insert.footnote", "insert.comment"}
     };
@@ -126,9 +136,33 @@ void ToolbarManager::initializeConfigs() {
         "styles",
         "Styles Toolbar",
         Qt::TopToolBarArea,
-        false,  // hidden by default (optional toolbar)
+        true,  // visible by default (Row 2)
         {"format.style.heading1", "format.style.heading2", "format.style.heading3",
          "format.style.body", "format.style.quote", "format.style.code"}
+    };
+
+    // Quick Actions Toolbar (OpenSpec #00037 - Phase C)
+    // Consolidated toolbar with most frequently used actions for rapid access
+    // Note: Undo/Redo are in Edit toolbar, not duplicated here
+    m_configs["quickActions"] = {
+        "quickActions",
+        "Quick Actions",
+        Qt::TopToolBarArea,
+        true,  // visible by default (Row 1)
+        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", SEPARATOR_ID,
+         "edit.find", SEPARATOR_ID,
+         "tools.backupNow", SEPARATOR_ID,
+         "edit.settings", "tools.toolbarManager"}
+    };
+
+    // Help Toolbar (OpenSpec #00037 - Phase D)
+    // Quick access to help resources, keyboard shortcuts, updates, and about info
+    m_configs["help"] = {
+        "help",
+        "Help Toolbar",
+        Qt::TopToolBarArea,
+        true,  // visible by default (Row 2)
+        {"help.manual", "help.shortcuts", "help.checkUpdates", "help.about"}
     };
 }
 
@@ -136,15 +170,44 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Creating toolbars from configurations");
 
-    // Create toolbars in order: File, Edit, Format, Insert, Styles, Book, View, Tools
-    std::vector<std::string> order = {"file", "edit", "format", "insert", "styles", "book", "view", "tools"};
+    // OpenSpec #00037 Phase E: Multi-row toolbar layout
+    // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
+    // Row 2: Book, Styles, Tools, Help (visible by default)
+    // Hidden: File, View
 
-    for (const std::string& id : order) {
+    // Row 1 toolbars: Quick Actions, Edit, Format, Insert
+    std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
+    for (const std::string& id : row1) {
         auto it = m_configs.find(id);
         if (it != m_configs.end()) {
             QToolBar* toolbar = createToolbar(it->second, registry);
             m_toolbars[id] = toolbar;
-            logger.debug("ToolbarManager: Created toolbar '{}'", id);
+            logger.debug("ToolbarManager: Created toolbar '{}' (Row 1)", id);
+        }
+    }
+
+    // Add toolbar break between rows
+    m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
+
+    // Row 2 toolbars: Book, Styles, Tools, Help
+    std::vector<std::string> row2 = {"book", "styles", "tools", "help"};
+    for (const std::string& id : row2) {
+        auto it = m_configs.find(id);
+        if (it != m_configs.end()) {
+            QToolBar* toolbar = createToolbar(it->second, registry);
+            m_toolbars[id] = toolbar;
+            logger.debug("ToolbarManager: Created toolbar '{}' (Row 2)", id);
+        }
+    }
+
+    // Hidden toolbars: File, View (create but don't show)
+    std::vector<std::string> hidden = {"file", "view"};
+    for (const std::string& id : hidden) {
+        auto it = m_configs.find(id);
+        if (it != m_configs.end()) {
+            QToolBar* toolbar = createToolbar(it->second, registry);
+            m_toolbars[id] = toolbar;
+            logger.debug("ToolbarManager: Created toolbar '{}' (hidden)", id);
         }
     }
 
@@ -254,10 +317,29 @@ void ToolbarManager::restoreState() {
     QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
     settings.beginGroup("Toolbars");
 
+    // OpenSpec #00037: Check if we have any saved toolbar visibility settings
+    // If not (first run or after clearSavedWindowState), use defaults and apply layout
+    bool hasSavedSettings = false;
+    for (const auto& [id, config] : m_configs) {
+        if (settings.contains(QString::fromStdString(id + "/visible"))) {
+            hasSavedSettings = true;
+            break;
+        }
+    }
+
     // Restore visibility for each toolbar
     for (const auto& [id, toolbar] : m_toolbars) {
         QString key = QString::fromStdString(id + "/visible");
-        bool visible = settings.value(key, true).toBool();  // Default to true
+
+        // Get default visibility from config
+        bool defaultVisible = true;
+        auto configIt = m_configs.find(id);
+        if (configIt != m_configs.end()) {
+            defaultVisible = configIt->second.defaultVisible;
+        }
+
+        // If no saved settings, use defaults directly
+        bool visible = hasSavedSettings ? settings.value(key, defaultVisible).toBool() : defaultVisible;
         toolbar->setVisible(visible);
 
         // Update View menu action if exists
@@ -266,10 +348,18 @@ void ToolbarManager::restoreState() {
             actionIt->second->setChecked(visible);
         }
 
-        logger.debug("ToolbarManager: Toolbar '{}' visibility restored to {}", id, visible);
+        logger.debug("ToolbarManager: Toolbar '{}' visibility set to {} (default: {}, hasSaved: {})",
+                     id, visible, defaultVisible, hasSavedSettings);
     }
 
     settings.endGroup();
+
+    // OpenSpec #00037: Apply default layout if no saved settings
+    // This ensures proper 2-row layout on first run or after config reset
+    if (!hasSavedSettings) {
+        logger.info("ToolbarManager: No saved toolbar settings, applying default 2-row layout");
+        applyDefaultLayout();
+    }
 
     // Note: Toolbar positions are automatically restored by Qt via
     // QMainWindow::restoreState() in MainWindow::showEvent()
@@ -289,7 +379,8 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     QMenu* toolbarsMenu = viewMenu->addMenu(QObject::tr("Toolbars"));
 
     // Create checkable action for each toolbar
-    std::vector<std::string> order = {"file", "edit", "format", "insert", "styles", "book", "view", "tools"};
+    // OpenSpec #00037: Order matches layout - Row 1 visible, Row 2 visible, then hidden
+    std::vector<std::string> order = {"quickActions", "edit", "format", "insert", "book", "styles", "tools", "help", "file", "view"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -638,7 +729,79 @@ void ToolbarManager::resetToDefaults() {
     }
 
     saveConfigurations();
+
+    // OpenSpec #00037: Apply default 2-row layout after reset
+    applyDefaultLayout();
+
     logger.info("ToolbarManager: Reset complete");
+}
+
+void ToolbarManager::applyDefaultLayout() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("ToolbarManager: Applying default 2-row layout");
+
+    // OpenSpec #00037: Rearrange toolbars into 2 rows
+    // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
+    // Row 2: Book, Styles, Tools, Help (visible by default)
+    // Hidden by default: File, View
+
+    // First, remove all toolbars from main window (but don't delete them)
+    // NOTE: removeToolBar() also HIDES the toolbar, so we must restore visibility after adding
+    for (auto& [id, toolbar] : m_toolbars) {
+        if (toolbar) {
+            m_mainWindow->removeToolBar(toolbar);
+        }
+    }
+
+    // Remove any existing toolbar breaks
+    // Note: Qt doesn't have a direct way to remove breaks, but removing and re-adding
+    // toolbars effectively clears the layout
+
+    // Row 1 toolbars: Quick Actions, Edit, Format, Insert
+    std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
+    for (const std::string& id : row1) {
+        auto it = m_toolbars.find(id);
+        if (it != m_toolbars.end() && it->second) {
+            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
+        }
+    }
+
+    // Add toolbar break between Row 1 and Row 2
+    m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
+
+    // Row 2 toolbars: Book, Styles, Tools, Help
+    std::vector<std::string> row2 = {"book", "styles", "tools", "help"};
+    for (const std::string& id : row2) {
+        auto it = m_toolbars.find(id);
+        if (it != m_toolbars.end() && it->second) {
+            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
+        }
+    }
+
+    // Hidden toolbars: File, View
+    std::vector<std::string> hidden = {"file", "view"};
+    for (const std::string& id : hidden) {
+        auto it = m_toolbars.find(id);
+        if (it != m_toolbars.end() && it->second) {
+            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
+        }
+    }
+
+    // CRITICAL: Restore visibility after addToolBar() because removeToolBar() hides toolbars
+    // Use defaultVisible from m_configs to determine which toolbars should be visible
+    for (auto& [id, toolbar] : m_toolbars) {
+        if (toolbar) {
+            bool defaultVisible = false;
+            auto configIt = m_configs.find(id);
+            if (configIt != m_configs.end()) {
+                defaultVisible = configIt->second.defaultVisible;
+            }
+            toolbar->setVisible(defaultVisible);
+            logger.debug("ToolbarManager: Toolbar '{}' visibility set to {} (default)", id, defaultVisible);
+        }
+    }
+
+    logger.info("ToolbarManager: Applied default 2-row toolbar layout");
 }
 
 void ToolbarManager::loadConfigurations() {
@@ -821,6 +984,46 @@ void ToolbarManager::setToolbarsLocked(bool locked) {
 
 bool ToolbarManager::isToolbarsLocked() const {
     return m_toolbarsLocked;
+}
+
+void ToolbarManager::openToolbarManagerDialog() {
+    dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
+    if (dialog.exec() == QDialog::Accepted) {
+        // Configurations already applied via dialog
+        if (m_mainWindow->statusBar()) {
+            m_mainWindow->statusBar()->showMessage(QObject::tr("Toolbar configuration saved"), 3000);
+        }
+    }
+}
+
+bool ToolbarManager::needsConfigReset() {
+    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
+    settings.beginGroup("Toolbars");
+    int savedVersion = settings.value("configVersion", 0).toInt();
+    settings.endGroup();
+
+    return savedVersion < TOOLBAR_CONFIG_VERSION;
+}
+
+void ToolbarManager::clearSavedWindowState() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("ToolbarManager: Clearing saved window state for toolbar reset");
+
+    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
+
+    // Clear windowState which contains toolbar positions/visibility
+    // This forces QMainWindow to use default toolbar layout
+    settings.remove("windowState");
+
+    // Also clear individual toolbar visibility settings
+    settings.beginGroup("Toolbars");
+    settings.remove("");  // Remove all keys in group
+    settings.setValue("configVersion", TOOLBAR_CONFIG_VERSION);
+    settings.endGroup();
+
+    settings.sync();
+
+    logger.info("ToolbarManager: Window state cleared, will use default toolbar layout");
 }
 
 } // namespace gui

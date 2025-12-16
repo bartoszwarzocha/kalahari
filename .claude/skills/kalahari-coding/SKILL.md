@@ -178,3 +178,39 @@ scripts/build_linux.sh
 | IconRegistry | `getInstance()` | `kalahari::core` |
 | Logger | `getInstance()` | `kalahari::core` |
 | CommandRegistry | `getInstance()` | `kalahari::gui` |
+
+## 11. MCP Tools for Code Intelligence
+
+### Serena (Code Navigation)
+Use for understanding and navigating Kalahari codebase:
+```
+mcp__serena__get_symbols_overview("path/to/file.cpp")     # file structure
+mcp__serena__find_symbol("ClassName", include_body=true)  # get code
+mcp__serena__find_referencing_symbols("ClassName")        # find usages
+```
+
+**When to use:**
+- Before modifying any file → understand structure
+- Before creating new class → find similar patterns
+- Before refactoring → find all usages
+
+### Context7 (External Docs)
+Use for Qt6 and other library documentation:
+```
+mcp__context7__resolve-library-id("Qt6")           # get library ID (once)
+mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
+```
+
+**When to use:**
+- Unsure about Qt6 API parameters
+- Need to know available signals/slots
+- Checking Qt6 best practices
+
+### Tool Selection Guide
+| Need | Tool |
+|------|------|
+| Kalahari code structure | Serena |
+| Kalahari patterns | Serena |
+| Qt6 API reference | Context7 |
+| Qt6 signals/slots | Context7 |
+| External library docs | Context7 |

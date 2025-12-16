@@ -241,6 +241,12 @@ if errorlevel 1 (
 
 echo [OK] CMake configuration completed
 
+REM Copy compile_commands.json to project root for LSP support (clangd, Serena)
+if exist "build-windows\compile_commands.json" (
+    copy /Y "build-windows\compile_commands.json" "compile_commands.json" >nul 2>&1
+    echo [OK] compile_commands.json copied to project root
+)
+
 REM =============================================================================
 REM Build project
 REM =============================================================================

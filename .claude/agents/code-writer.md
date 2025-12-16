@@ -1,7 +1,7 @@
 ---
 name: code-writer
 description: "Writes NEW code - new classes, new files, new functions. Triggers: 'napisz', 'utwórz klasę', 'dodaj nową funkcję', 'nowy plik', 'create', 'new class'. Does NOT modify existing code!"
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
 model: inherit
 permissionMode: bypassPermissions
 skills: kalahari-coding
@@ -27,17 +27,43 @@ You do NOT modify existing code (that's code-editor).
 
 ---
 
+## MCP TOOLS USAGE
+
+### Serena (Code Analysis)
+Before writing new code, use Serena to understand existing patterns:
+```
+mcp__serena__get_symbols_overview("src/gui/panels/existing_panel.cpp")
+mcp__serena__find_symbol("ExistingClass", include_body=true)
+```
+
+### Context7 (Qt6 Documentation)
+When unsure about Qt6 API:
+```
+mcp__context7__resolve-library-id("Qt6")  # once per session
+mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
+```
+
+---
+
 ## WORKFLOW
 
 Trigger: "napisz", "utwórz klasę", "nowy plik", "create", "new class"
 
 ### Procedure
 
-1. Read design from OpenSpec:
+1. **Analyze similar existing code** (Serena):
+   - `get_symbols_overview` on similar existing file
+   - `find_symbol` for patterns to follow
+
+2. **Check Qt6 API if needed** (Context7):
+   - Look up class you're extending
+   - Check method signatures
+
+3. Read design from OpenSpec:
    - Which new files to create?
    - What class structure?
 
-2. For each new file:
+4. For each new file:
 
    a. Create header (.h):
    ```cpp

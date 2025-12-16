@@ -199,6 +199,16 @@ public:
     /// @brief Reset all toolbars to default configuration
     void resetToDefaults();
 
+    /// @brief Apply default 2-row toolbar layout
+    ///
+    /// Rearranges all built-in toolbars into 2 rows:
+    /// - Row 1: File, Edit, Book
+    /// - Row 2: Quick Actions, Format, Insert, Styles, View, Tools, Help
+    ///
+    /// OpenSpec #00037: Call this after resetToDefaults() or when detecting
+    /// that saved layout doesn't match expected multi-row layout.
+    void applyDefaultLayout();
+
     /// @brief Load toolbar configurations from SettingsManager
     void loadConfigurations();
 
@@ -220,6 +230,27 @@ public:
 
     /// @brief Save toolbar configurations to SettingsManager
     void saveConfigurations();
+
+    /// @brief Open Toolbar Manager dialog
+    ///
+    /// Opens the ToolbarManagerDialog for customizing toolbars.
+    /// Used by tools.toolbarManager command callback.
+    void openToolbarManagerDialog();
+
+    /// @brief Check if toolbar configuration needs reset
+    ///
+    /// Checks if the saved toolbar config version is older than current.
+    /// Call this BEFORE QMainWindow::restoreState() to determine if
+    /// the old window state should be skipped for toolbars.
+    ///
+    /// @return true if config version changed and reset is needed
+    static bool needsConfigReset();
+
+    /// @brief Clear saved window state for toolbars
+    ///
+    /// Clears the windowState from QSettings so that QMainWindow::restoreState()
+    /// won't restore old toolbar positions. Call this when needsConfigReset() returns true.
+    static void clearSavedWindowState();
 
     // ========================================================================
     // Constants for special toolbar items

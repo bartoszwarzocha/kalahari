@@ -168,3 +168,4 @@ Schowek_*.png
 
 # Test projects (for development testing, not committed)
 examples/TestBook/
+/docs/api/html

@@ -1,7 +1,7 @@
 # 00037: Quick Actions & Help Toolbar
 
 ## Status
-PENDING
+DEPLOYED
 
 ## Goal
 Add two new specialized toolbars:
@@ -132,18 +132,18 @@ Row 2: [Format] [View] [Tools] [Help]
 - Toolbar overflow menu (chevron) - deferred per ROADMAP
 
 ## Acceptance Criteria
-- [ ] `file.new` command registered and functional
-- [ ] `edit.settings` command opens Settings dialog
-- [ ] `tools.toolbarManager` command opens Toolbar Manager dialog
-- [ ] File Toolbar updated with New File button
-- [ ] Quick Actions toolbar created with 13 commands (11 buttons + 4 separators)
-- [ ] Help toolbar created with 4 commands
-- [ ] Both new toolbars appear in VIEW/Toolbars submenu
-- [ ] Both new toolbars support customization via Toolbar Manager dialog
-- [ ] Multi-row layout implemented (default 2 rows)
-- [ ] Default visibility applied (Book, View, Tools hidden)
-- [ ] Toolbar positions persist across sessions
-- [ ] Context menu works on new toolbars (visibility, lock, customize)
+- [x] `file.new` command registered and functional
+- [x] `edit.settings` command opens Settings dialog
+- [x] `tools.toolbarManager` command opens Toolbar Manager dialog
+- [x] File Toolbar updated with New File button
+- [x] Quick Actions toolbar created with 13 commands (11 buttons + 4 separators)
+- [x] Help toolbar created with 4 commands
+- [x] Both new toolbars appear in VIEW/Toolbars submenu
+- [x] Both new toolbars support customization via Toolbar Manager dialog
+- [x] Multi-row layout implemented (default 2 rows)
+- [x] Default visibility applied (Book, View, Tools hidden)
+- [x] Toolbar positions persist across sessions
+- [x] Context menu works on new toolbars (visibility, lock, customize)
 
 ## Design
 
@@ -256,3 +256,10 @@ for (const auto& id : row2) {
 - Toolbar customization already supported via ToolbarManager::setToolbarCommands()
 - User-created toolbars (via Toolbar Manager) will also respect multi-row layout
 - Qt handles additional row wrapping automatically when window is narrow
+
+## Deployment Notes
+- Deployed: 2025-12-16
+- Implementation includes configuration versioning (v5) to handle QSettings migration
+- Quick Actions toolbar does NOT include undo/redo (removed per final specification)
+- Final layout: Row 1 (Quick Actions, Edit, Format, Insert), Row 2 (Book, Styles, Tools, Help)
+- Hidden by default: File, View toolbars

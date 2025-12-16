@@ -265,6 +265,7 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("tools.cloudSync", "resources/icons/twotone/cloud_sync.svg", "Cloud Sync");
     iconRegistry.registerIcon("tools.collaboration", "resources/icons/twotone/groups.svg", "Collaboration");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
+    iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
     // ASSISTANT MENU ICONS
@@ -319,6 +320,7 @@ void MainWindow::registerCommands() {
     // HELP MENU ICONS
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("help.help", "resources/icons/twotone/help.svg", "Help");
+    iconRegistry.registerIcon("help.manual", "resources/icons/twotone/help.svg", "Kalahari Help");  // OpenSpec #00037: help toolbar icon
     iconRegistry.registerIcon("help.about", "resources/icons/twotone/info.svg", "About");
     iconRegistry.registerIcon("help.tutorial", "resources/icons/twotone/school.svg", "Tutorial");
     iconRegistry.registerIcon("help.shortcuts", "resources/icons/twotone/keyboard.svg", "Keyboard Shortcuts");
@@ -399,7 +401,7 @@ void MainWindow::registerCommands() {
     iconRegistry.registerIcon("structure.otherfiles", "resources/icons/twotone/folder_open.svg", "Other Files");
     iconRegistry.registerIcon("project.book", "resources/icons/twotone/auto_stories.svg", "Book Project");
 
-    logger.debug("Registered {} icons with IconRegistry", 183);
+    logger.debug("Registered {} icons with IconRegistry", 184);
 
     // =========================================================================
     // FILE MENU
@@ -533,6 +535,12 @@ void MainWindow::registerCommands() {
 
     REG_CMD_CB("edit.preferences", "Preferences...", "EDIT/Preferences...", 160, false, 0,
                [this]() { onSettings(); });
+
+    // OpenSpec #00037: edit.settings command (alias for Settings dialog, used in Quick Actions toolbar)
+    REG_CMD_TOOL_ICON("edit.settings", "Settings...", "EDIT/Settings...", 165, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      [this]() { onSettings(); });
 
     // =========================================================================
     // BOOK MENU
@@ -668,7 +676,13 @@ void MainWindow::registerCommands() {
     REG_CMD("tools.writingGoals", "Writing Goals & Deadlines...", "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
 
     REG_CMD("tools.cloudSync", "Cloud Sync...", "TOOLS/Cloud Sync...", 190, false, 3);
-    REG_CMD("tools.collaboration", "Collaboration...", "TOOLS/Collaboration...", 200, false, 3);
+    REG_CMD("tools.collaboration", "Collaboration...", "TOOLS/Collaboration...", 200, true, 3);
+
+    // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
+    REG_CMD_TOOL_ICON("tools.toolbarManager", "Customize Toolbars...", "TOOLS/Customize Toolbars...", 210, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      [this]() { m_toolbarManager->openToolbarManagerDialog(); });
 
     // =========================================================================
     // ASSISTANT MENU
@@ -2621,11 +2635,28 @@ void MainWindow::showEvent(QShowEvent* event) {
         auto& logger = core::Logger::getInstance();
         logger.debug("Restoring window perspective");
 
+        // OpenSpec #00037: Check if toolbar config needs reset BEFORE restoring state
+        // If reset needed, clear saved window state to prevent old toolbar layout from being restored
+        bool toolbarResetNeeded = ToolbarManager::needsConfigReset();
+        if (toolbarResetNeeded) {
+            logger.info("Toolbar config reset needed, clearing saved window state");
+            ToolbarManager::clearSavedWindowState();
+        }
+
         QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
         restoreGeometry(settings.value("geometry").toByteArray());
-        restoreState(settings.value("windowState").toByteArray());
+
+        // Only restore window state if we haven't cleared it for toolbar reset
+        // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
+        QByteArray windowState = settings.value("windowState").toByteArray();
+        if (!windowState.isEmpty() && !toolbarResetNeeded) {
+            // Normal case: restore saved window state (includes toolbar positions)
+            restoreState(windowState);
+        }
 
         // Task #00019: Restore toolbar state (visibility)
+        // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings
+        // take precedence over Qt's saved state
         if (m_toolbarManager) {
             m_toolbarManager->restoreState();
         }

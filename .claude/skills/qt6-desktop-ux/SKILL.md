@@ -194,3 +194,40 @@ When a component needs a new custom color, use the automated script:
 python scripts/add_theme_color.py colorName "#darkHex" "#lightHex" -d "description" -s
 ```
 See `kalahari-coding` skill for full documentation.
+
+## 11. Qt6 Documentation (Context7 MCP)
+
+When unsure about Qt6 API, signals, slots, or properties - **ALWAYS check Context7 first**:
+
+### Step 1: Resolve Qt6 library ID (once per session)
+```
+mcp__context7__resolve-library-id("Qt6")
+```
+Returns: `/qt/qtdoc` or similar
+
+### Step 2: Get documentation for specific topic
+```
+mcp__context7__get-library-docs(
+    context7CompatibleLibraryID="/qt/qtdoc",
+    topic="QDockWidget"
+)
+```
+
+### Common Qt6 topics to look up:
+| Topic | When to use |
+|-------|-------------|
+| `QDockWidget` | Creating dockable panels |
+| `QDialog` | Modal dialogs |
+| `QLayout` | Layout management |
+| `QSizePolicy` | Widget sizing behavior |
+| `signals slots` | Signal/slot connections |
+| `QToolBar` | Toolbar creation |
+| `QAction` | Action/command patterns |
+| `QStyle` | Styling and theming |
+
+### When to use Context7:
+- ✅ Unsure about method parameters
+- ✅ Need to know available signals/slots
+- ✅ Looking for Qt6-specific patterns
+- ✅ Checking deprecation status
+- ❌ Don't use for Kalahari-specific patterns (use Serena instead)
