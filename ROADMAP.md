@@ -191,19 +191,20 @@
 - [ ] Default perspective on first run
 - [ ] Perspective switching via VIEW menu and keyboard shortcuts
 
-### 1.4 Navigator Panel
+### 1.4 Navigator Panel COMPLETE
 
 **Philosophy:** Tree view of project structure with full editing capabilities.
 
-**Current State:** Basic QTreeWidget showing book structure
+**Current State:** ~~Basic QTreeWidget showing book structure~~ Full-featured navigator (OpenSpec #00034, #00036)
 
 **Tasks:**
-- [ ] Context menu (right-click) for all operations
-- [ ] Drag & drop reordering of chapters/parts
-- [ ] Icons for element types (Part, Chapter, Scene, Note)
-- [ ] Double-click opens chapter in editor
-- [ ] Synchronization with editor (highlight current chapter)
-- [ ] Search/filter within navigator
+- [x] Context menu (right-click) for all operations (OpenSpec #00034)
+- [x] Drag & drop reordering of chapters/parts (OpenSpec #00034)
+- [x] Icons for element types (Part, Chapter, Scene, Note) (OpenSpec #00034)
+- [x] Double-click opens chapter in editor (OpenSpec #00034)
+- [x] Synchronization with editor (highlight current chapter) (OpenSpec #00034)
+- [x] Search/filter within navigator (OpenSpec #00034)
+- [x] Status submenu for chapters (OpenSpec #00036)
 
 ### 1.5 Custom Text Editor
 
@@ -429,6 +430,9 @@
 - [x] **2025-12-07:** Theme Color Configuration Complete (OpenSpec #00027)
 - [x] **2025-12-10:** Menu System Review & Cleanup Complete (OpenSpec #00030)
 - [x] **2025-12-11:** Theme & Icons Optimization Complete (OpenSpec #00032)
+- [x] **2025-12-15:** Navigator Panel Enhancements Complete (OpenSpec #00034)
+- [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
+- [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -492,6 +496,6 @@
 
 ---
 
-**Document Version:** 2.4
-**Last Update:** 2025-12-11
-**Updated By:** Claude (OpenSpec #00032 Theme & Icons Optimization Complete)
+**Document Version:** 2.5
+**Last Update:** 2025-12-17
+**Updated By:** Claude (Navigator Panel 1.4 COMPLETE, milestones updated for #00034, #00036, #00037)

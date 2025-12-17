@@ -1,7 +1,7 @@
 # 00038: External Code Review Analysis
 
 ## Status
-PENDING
+DEPLOYED
 
 ## Goal
 Profesjonalna analiza i weryfikacja zewnetrznego code review projektu Kalahari.
@@ -23,10 +23,10 @@ zweryfikowany i sklasyfikowany jako: naprawiony, do naprawy, lub nieaktualny.
 - Nowe funkcjonalnosci
 
 ## Acceptance Criteria
-- [ ] Wszystkie punkty code review przeanalizowane
-- [ ] Kazdy punkt sklasyfikowany (FIXED/TODO/NOT_APPLICABLE/FALSE_POSITIVE)
-- [ ] Lista priorytetowych napraw utworzona
-- [ ] Raport koncowy z podsumowaniem
+- [x] Wszystkie punkty code review przeanalizowane
+- [x] Kazdy punkt sklasyfikowany (FIXED/TODO/NOT_APPLICABLE/FALSE_POSITIVE)
+- [x] Lista priorytetowych napraw utworzona
+- [x] Raport koncowy z podsumowaniem
 
 ## Categories to Analyze
 
