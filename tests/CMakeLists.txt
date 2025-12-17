@@ -39,6 +39,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/plugin_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_manifest.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_archive.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_signature.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/trusted_keys.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_element.cpp
     ${CMAKE_SOURCE_DIR}/src/core/part.cpp
@@ -82,6 +84,8 @@ target_link_libraries(kalahari-tests PRIVATE
     libzip::zip
     Python3::Python
     pybind11::embed
+    OpenSSL::SSL      # OpenSpec #00038: Ed25519 signature verification
+    OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
     # bwx_gui removed - wxWidgets library no longer used (Qt6 migration)
 )
 

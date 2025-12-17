@@ -30,6 +30,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <mutex>
 
 namespace kalahari {
 namespace gui {
@@ -68,7 +69,7 @@ using CommandErrorHandler = std::function<void(const std::string& commandId, con
 ///
 /// Thread-safety:
 /// - Singleton initialization is thread-safe (C++11 guarantee)
-/// - Command registration should happen in main thread at startup
+/// - All methods are protected by mutex for thread-safe access
 /// - Command execution can happen from any thread (callbacks handle threading)
 class CommandRegistry {
 public:
@@ -189,6 +190,9 @@ private:
 
     /// @brief Custom error handler (nullptr if not set)
     CommandErrorHandler m_errorHandler = nullptr;
+
+    /// @brief Mutex for thread-safe access to m_commands and m_errorHandler
+    mutable std::mutex m_mutex;
 };
 
 } // namespace gui

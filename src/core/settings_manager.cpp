@@ -82,7 +82,7 @@ bool SettingsManager::load() {
                                       std::filesystem::copy_options::overwrite_existing);
             Logger::getInstance().info("Corrupted settings backed up to: {}", backupPath.string());
         } catch (...) {
-            // Ignore backup errors
+            Logger::getInstance().warn("SettingsManager: Failed to backup corrupted settings file");
         }
 
         createDefaults();

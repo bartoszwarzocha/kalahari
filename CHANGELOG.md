@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **OpenSpec #00038:** External Code Review Analysis - Major refactoring - 2025-12-17
+  - **MainWindow Refactoring:** Reduced from 3577 to 805 lines (-77%)
+    - Extracted `IconRegistrar` - icon registration (281 lines)
+    - Extracted `CommandRegistrar` - command registration (499 lines)
+    - Extracted `DiagnosticController` - diagnostic/dev mode (480 lines)
+    - Extracted `DockCoordinator` - panel management (420 lines)
+    - Extracted `SettingsCoordinator` - settings dialog (300 lines)
+    - Extracted `NavigatorCoordinator` - navigator handlers (500 lines)
+    - Extracted `DocumentCoordinator` - document lifecycle (580 lines)
+  - **Plugin Security:** Ed25519 signature verification
+    - `PluginSignature` class for verification
+    - `TrustedKeys` singleton for key management
+    - `plugins.allowUnsigned` setting for development mode
+  - **Thread Safety:**
+    - Fixed mutex+GIL deadlock in PluginManager (3-phase pattern)
+    - Added mutex to CommandRegistry
+  - **Code Quality:**
+    - Added `clearLayout()` utility in `gui::utils`
+    - Added path traversal validation in DocumentArchive
+    - Added logging to swallowed exceptions
+
 - EditorPanel upgraded from QPlainTextEdit to QTextEdit (Phase E)
 - Added per-chapter dirty tracking with asterisk indicator in tab title
 - Added Save All functionality for dirty chapters

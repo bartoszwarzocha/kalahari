@@ -10,6 +10,8 @@ set(KALAHARI_CORE_SOURCES
     core/plugin_manager.cpp
     core/plugin_manifest.cpp
     core/plugin_archive.cpp
+    core/plugin_signature.cpp   # OpenSpec #00038: Plugin signature verification (Ed25519)
+    core/trusted_keys.cpp       # OpenSpec #00038: Trusted publisher key management
     core/extension_points.cpp
     core/event_bus.cpp
     core/book_element.cpp
@@ -86,6 +88,8 @@ target_link_libraries(kalahari_core PUBLIC
     libzip::zip
     Python3::Python
     pybind11::embed
+    OpenSSL::SSL      # OpenSpec #00038: Ed25519 signature verification
+    OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
 )
 
 # Static library - no post-build copy needed
@@ -115,6 +119,13 @@ set(KALAHARI_SOURCES
     gui/dialogs/add_to_project_dialog.cpp  # AddToProjectDialog - Add standalone file to project (OpenSpec #00033)
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/kalahari_syntax_highlighter.cpp
+    gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
+    gui/command_registrar.cpp  # CommandRegistrar - Command registration extracted from MainWindow (OpenSpec #00038)
+    gui/diagnostic_controller.cpp  # DiagnosticController - Diagnostic/dev mode extracted from MainWindow (OpenSpec #00038)
+    gui/dock_coordinator.cpp  # DockCoordinator - Dock/panel management extracted from MainWindow (OpenSpec #00038 Phase 4)
+    gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
+    gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
+    gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/busy_indicator.cpp
@@ -130,6 +141,7 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
+    gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -139,6 +151,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h  # ProjectManager with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h # LogPanelSink with Q_OBJECT (OpenSpec #00024)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h  # BusyIndicator with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
@@ -147,6 +160,10 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_project_dialog.h  # AddToProjectDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/diagnostic_controller.h  # DiagnosticController with Q_OBJECT (OpenSpec #00038)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_coordinator.h  # SettingsCoordinator with Q_OBJECT (OpenSpec #00038 Phase 5)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT (OpenSpec #00038 Phase 6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)

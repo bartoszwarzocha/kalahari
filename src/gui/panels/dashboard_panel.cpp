@@ -288,7 +288,7 @@ QWidget* DashboardPanel::createHeaderSection(QWidget* parent)
     m_titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     // Tagline
-    m_taglineLabel = new QLabel(tr("A Writer's IDE for book authors"), textWidget);
+    m_taglineLabel = new QLabel(tr("A Comprehensive Writer's IDE"), textWidget);
     QFont taglineFont = m_taglineLabel->font();
     taglineFont.setPointSize(12);
     taglineFont.setWeight(QFont::Light);
@@ -319,8 +319,8 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
     m_shortcutsTitleLabel = new QLabel(tr("KEYBOARD SHORTCUTS"), m_shortcutsFrame);
     QFont titleFont = m_shortcutsTitleLabel->font();
     titleFont.setPointSize(9);
-    titleFont.setWeight(QFont::DemiBold);
-    titleFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.5);
+    titleFont.setWeight(QFont::Light);
+    titleFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.5);
     m_shortcutsTitleLabel->setFont(titleFont);
     m_shortcutsTitleLabel->setAlignment(Qt::AlignCenter);
 
@@ -347,7 +347,7 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
 
     for (const auto& shortcut : shortcuts) {
         QLabel* label = new QLabel(shortcutsRow);
-        label->setText(QString("<span style='font-family: Consolas, monospace; font-weight: bold;'>%1</span>  %2")
+        label->setText(QString("<span style='font-weight: bold;'>%1</span>&nbsp;&nbsp;&nbsp;%2")
                        .arg(shortcut.key, shortcut.action));
         label->setTextFormat(Qt::RichText);
         // Ensure transparent background for individual labels
@@ -390,26 +390,26 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     newsHeaderLayout->setSpacing(12);
 
     // News icon with background
-    int headerIconSize = 24;
-    int iconSize = getIconSize();
-    QFrame* newsIconFrame = new QFrame(newsHeader);
-    newsIconFrame->setObjectName("newsIconFrame");
-    newsIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
-    QHBoxLayout* newsIconLayout = new QHBoxLayout(newsIconFrame);
-    newsIconLayout->setContentsMargins(0, 0, 0, 0);
-    newsIconLayout->setAlignment(Qt::AlignCenter);
+    //int headerIconSize = 24;
+    //int iconSize = getIconSize();
+    //QFrame* newsIconFrame = new QFrame(newsHeader);
+    //newsIconFrame->setObjectName("newsIconFrame");
+    //newsIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
+    //QHBoxLayout* newsIconLayout = new QHBoxLayout(newsIconFrame);
+    //newsIconLayout->setContentsMargins(0, 0, 0, 0);
+    //newsIconLayout->setAlignment(Qt::AlignCenter);
 
-    m_newsIcon = new QLabel(newsIconFrame);
-    m_newsIcon->setFixedSize(headerIconSize, headerIconSize);
-    m_newsIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
+    //m_newsIcon = new QLabel(newsIconFrame);
+    //m_newsIcon->setFixedSize(headerIconSize, headerIconSize);
+    //m_newsIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
     // News icon uses infoPrimary/infoSecondary colors for distinct appearance
     const auto& currentTheme = core::ThemeManager::getInstance().getCurrentTheme();
-    QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
-        "book.newChapter",
-        currentTheme.colors.infoPrimary,
-        currentTheme.colors.infoSecondary);
-    m_newsIcon->setPixmap(newsIcon.pixmap(headerIconSize, headerIconSize));
-    newsIconLayout->addWidget(m_newsIcon);
+    //QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
+    //    "book.newChapter",
+    //    currentTheme.colors.infoPrimary,
+    //    currentTheme.colors.infoSecondary);
+    //m_newsIcon->setPixmap(newsIcon.pixmap(headerIconSize, headerIconSize));
+    //newsIconLayout->addWidget(m_newsIcon);
 
     m_newsTitle = new QLabel(tr("Kalahari News"), newsHeader);
     QFont newsTitleFont = m_newsTitle->font();
@@ -417,7 +417,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     newsTitleFont.setWeight(QFont::Medium);
     m_newsTitle->setFont(newsTitleFont);
 
-    newsHeaderLayout->addWidget(newsIconFrame);
+    //newsHeaderLayout->addWidget(newsIconFrame);
     newsHeaderLayout->addWidget(m_newsTitle);
     newsHeaderLayout->addStretch();
 
@@ -456,23 +456,23 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     filesHeaderLayout->setSpacing(12);
 
     // Files icon with background
-    QFrame* filesIconFrame = new QFrame(filesHeader);
-    filesIconFrame->setObjectName("filesIconFrame");
-    filesIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
-    QHBoxLayout* filesIconLayout = new QHBoxLayout(filesIconFrame);
-    filesIconLayout->setContentsMargins(0, 0, 0, 0);
-    filesIconLayout->setAlignment(Qt::AlignCenter);
+    //QFrame* filesIconFrame = new QFrame(filesHeader);
+    //filesIconFrame->setObjectName("filesIconFrame");
+    //filesIconFrame->setFixedSize(iconSize + 8, iconSize + 8);  // padding
+    //QHBoxLayout* filesIconLayout = new QHBoxLayout(filesIconFrame);
+    //filesIconLayout->setContentsMargins(0, 0, 0, 0);
+    //filesIconLayout->setAlignment(Qt::AlignCenter);
 
-    m_filesIcon = new QLabel(filesIconFrame);
-    m_filesIcon->setFixedSize(headerIconSize, headerIconSize);
-    m_filesIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
+    //m_filesIcon = new QLabel(filesIconFrame);
+    //m_filesIcon->setFixedSize(headerIconSize, headerIconSize);
+    //m_filesIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
     // Recent Files icon uses dashboardPrimary/dashboardSecondary colors for distinct appearance
-    QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
-        "file.open",
-        currentTheme.colors.dashboardPrimary,
-        currentTheme.colors.dashboardSecondary);
-    m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
-    filesIconLayout->addWidget(m_filesIcon);
+    //QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
+    //    "file.open",
+    //    currentTheme.colors.dashboardPrimary,
+    //    currentTheme.colors.dashboardSecondary);
+    //m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
+    //filesIconLayout->addWidget(m_filesIcon);
 
     m_filesTitle = new QLabel(tr("Recent Files"), filesHeader);
     QFont filesTitleFont = m_filesTitle->font();
@@ -480,7 +480,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     filesTitleFont.setWeight(QFont::Medium);
     m_filesTitle->setFont(filesTitleFont);
 
-    filesHeaderLayout->addWidget(filesIconFrame);
+    //filesHeaderLayout->addWidget(filesIconFrame);
     filesHeaderLayout->addWidget(m_filesTitle);
     filesHeaderLayout->addStretch();
 
@@ -613,15 +613,15 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     QLabel* titleLabel = new QLabel(title, contentWidget);
     titleLabel->setObjectName("cardTitle");
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(11);
-    titleFont.setWeight(QFont::Medium);
+    titleFont.setPointSize(12);
+    titleFont.setWeight(QFont::DemiBold);
     titleLabel->setFont(titleFont);
 
     // Description (author | type)
     QLabel* descLabel = new QLabel(QString("%1 | %2").arg(author, bookType), contentWidget);
     descLabel->setObjectName("cardDescription");
     QFont descFont = descLabel->font();
-    descFont.setPointSize(10);
+    descFont.setPointSize(11);
     descLabel->setFont(descFont);
 
     // Path - with breakable characters for proper wrapping at any point
@@ -631,15 +631,15 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     pathLabel->setObjectName("cardPath");
     pathLabel->setWordWrap(true);
     pathLabel->setTextFormat(Qt::PlainText);
-    QFont pathFont("Consolas");
-    pathFont.setPointSize(9);
+    QFont pathFont = pathLabel->font();
+    pathFont.setPointSize(8);
     pathLabel->setFont(pathFont);
 
     // Date
     QLabel* dateLabel = new QLabel(dateStr, contentWidget);
     dateLabel->setObjectName("cardDate");
-    QFont dateFont("Consolas");
-    dateFont.setPointSize(9);
+    QFont dateFont = dateLabel->font();
+    dateFont.setPointSize(8);
     dateLabel->setFont(dateFont);
 
     contentLayout->addWidget(titleLabel);

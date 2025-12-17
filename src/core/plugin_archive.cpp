@@ -83,7 +83,7 @@ PluginArchive& PluginArchive::operator=(PluginArchive&& other) noexcept {
             try {
                 std::filesystem::remove_all(m_extracted_dir);
             } catch (...) {
-                // Ignore cleanup errors during move
+                Logger::getInstance().warn("PluginArchive: Unknown exception during move cleanup (ignored)");
             }
         }
 

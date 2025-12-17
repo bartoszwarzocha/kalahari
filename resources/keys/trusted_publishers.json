@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "publishers": {
+        "kalahari-dev": {
+            "name": "Kalahari Development",
+            "public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "trust_level": "full",
+            "comment": "Placeholder key - replace with real Ed25519 key for production"
+        }
+    }
+}

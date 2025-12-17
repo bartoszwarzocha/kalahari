@@ -5,6 +5,7 @@
 #include <kalahari/core/plugin_manager.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/python_interpreter.h>
+#include <kalahari/core/settings_manager.h>
 
 using namespace kalahari::core;
 
@@ -14,6 +15,9 @@ public:
     PluginLoadingTestFixture() {
         // Initialize logger
         Logger::getInstance().init("/tmp/kalahari_test_plugin_loading.log");
+
+        // Allow unsigned plugins for testing (test plugins are not signed)
+        SettingsManager::getInstance().set("plugins.allowUnsigned", true);
 
         // Initialize Python interpreter
         PythonInterpreter::getInstance().initialize();

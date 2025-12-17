@@ -121,7 +121,10 @@
       "Bash(openspec/changes/00037-quick-actions-help-toolbar/tasks.md )",
       "Bash(src/gui/dialogs/toolbar_manager_dialog.cpp )",
       "Bash(src/gui/main_window.cpp )",
-      "Bash(src/gui/toolbar_manager.cpp)"
+      "Bash(src/gui/toolbar_manager.cpp)",
+      "Bash(scriptsbuild_windows.bat Debug)",
+      "Bash(Select-Object -Last 50)",
+      "Bash(./bin/kalahari-tests.exe:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,6 +2,9 @@
 /// @brief Plugin manager implementation
 
 #include <kalahari/core/plugin_manager.h>
+#include <kalahari/core/plugin_signature.h>
+#include <kalahari/core/trusted_keys.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
 #include <zip.h>
 #include <fstream>
@@ -119,6 +122,42 @@ size_t PluginManager::discoverPlugins() {
                 continue;
             }
 
+            // Verify plugin signature
+            std::string signedBy, sigError;
+            auto sigResult = PluginSignature::verify(entry.path(), signedBy, sigError);
+
+            switch (sigResult) {
+                case PluginSignature::VerifyResult::Valid:
+                    Logger::getInstance().info(
+                        "PluginManager: Plugin '{}' verified, signed by: {}",
+                        manifest.id, signedBy
+                    );
+                    break;
+
+                case PluginSignature::VerifyResult::NotFound:
+                    if (!allowUnsignedPlugins()) {
+                        Logger::getInstance().warn(
+                            "PluginManager: Skipping UNSIGNED plugin '{}' - set plugins.allowUnsigned=true to load",
+                            manifest.id
+                        );
+                        continue;
+                    }
+                    Logger::getInstance().warn(
+                        "PluginManager: Loading UNSIGNED plugin '{}' (development mode)",
+                        manifest.id
+                    );
+                    break;
+
+                case PluginSignature::VerifyResult::Invalid:
+                case PluginSignature::VerifyResult::KeyNotTrusted:
+                case PluginSignature::VerifyResult::FormatError:
+                    Logger::getInstance().error(
+                        "PluginManager: Signature verification FAILED for '{}': {}",
+                        manifest.id, sigError
+                    );
+                    continue;  // Do not load plugin with bad signature
+            }
+
             // Store plugin metadata
             PluginMetadata metadata{
                 .id = manifest.id,
@@ -213,39 +252,59 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
 }
 
 bool PluginManager::loadPlugin(const std::string& pluginId) {
-    std::lock_guard<std::mutex> lock(m_mutex);
     Logger::getInstance().info("PluginManager: Loading plugin '{}'", pluginId);
 
-    // Check if plugin was discovered
-    auto plugin_it = m_plugins.find(pluginId);
-    if (plugin_it == m_plugins.end()) {
-        Logger::getInstance().error("PluginManager: Plugin '{}' not found (not discovered)", pluginId);
-        return false;
+    // =========================================================================
+    // PHASE 1: Preparation (mutex only) - copy data, release mutex
+    // =========================================================================
+    std::filesystem::path plugin_path;
+    PluginManifest plugin_manifest;
+    std::string entry_point;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Check if plugin was discovered
+        auto plugin_it = m_plugins.find(pluginId);
+        if (plugin_it == m_plugins.end()) {
+            Logger::getInstance().error("PluginManager: Plugin '{}' not found (not discovered)", pluginId);
+            return false;
+        }
+
+        // Check if already loaded
+        if (m_loaded_plugins.find(pluginId) != m_loaded_plugins.end()) {
+            Logger::getInstance().warn("PluginManager: Plugin '{}' is already loaded", pluginId);
+            return true; // Already loaded is success
+        }
+
+        // Copy data needed for Python operations
+        const PluginMetadata& metadata = plugin_it->second;
+        plugin_path = metadata.path;
+        plugin_manifest = metadata.manifest;
+        entry_point = metadata.manifest.entry_point;
     }
+    // Mutex released here
 
-    // Check if already loaded
-    if (m_loaded_plugins.find(pluginId) != m_loaded_plugins.end()) {
-        Logger::getInstance().warn("PluginManager: Plugin '{}' is already loaded", pluginId);
-        return true; // Already loaded is success
-    }
-
-    const PluginMetadata& metadata = plugin_it->second;
-
-    // Create plugin instance
+    // =========================================================================
+    // PHASE 2: Python operations (GIL only) - all Python work in one block
+    // =========================================================================
     PluginInstance instance;
     instance.id = pluginId;
     instance.state = PluginState::Loading;
-    instance.manifest = metadata.manifest;
+    instance.manifest = plugin_manifest;
 
     try {
-        // Step 1: Extract .kplugin archive
-        Logger::getInstance().debug("PluginManager: Extracting plugin archive: {}", metadata.path.string());
-        instance.archive = std::make_unique<PluginArchive>(metadata.path);
+        // Step 1: Extract .kplugin archive (no GIL needed)
+        Logger::getInstance().debug("PluginManager: Extracting plugin archive: {}", plugin_path.string());
+        instance.archive = std::make_unique<PluginArchive>(plugin_path);
 
         if (!instance.archive->isValid()) {
             instance.state = PluginState::Error;
             instance.error_message = "Failed to extract plugin archive";
             Logger::getInstance().error("PluginManager: {}", instance.error_message);
+
+            // Store error state with mutex
+            std::lock_guard<std::mutex> lock(m_mutex);
             m_loaded_plugins[pluginId] = std::move(instance);
             return false;
         }
@@ -253,29 +312,25 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         auto extracted_path = instance.archive->getExtractedPath();
         Logger::getInstance().info("PluginManager: Plugin extracted to: {}", extracted_path.string());
 
-        // Step 2: Add extracted directory to Python sys.path
+        // Step 2: Parse entry_point (no GIL needed)
+        auto [module_name, class_name] = parseEntryPoint(entry_point);
+        Logger::getInstance().debug("PluginManager: Entry point: {}:{}", module_name, class_name);
+
+        // Step 3: All Python operations in single GIL block
         {
             py::gil_scoped_acquire gil;
+
+            // Add extracted directory to Python sys.path
             py::module_ sys = py::module_::import("sys");
             py::list path = sys.attr("path");
             path.append(extracted_path.string());
             Logger::getInstance().debug("PluginManager: Added to sys.path: {}", extracted_path.string());
-        }
 
-        // Step 3: Parse entry_point (module:class)
-        auto [module_name, class_name] = parseEntryPoint(metadata.manifest.entry_point);
-        Logger::getInstance().debug("PluginManager: Entry point: {}:{}", module_name, class_name);
-
-        // Step 4: Import Python module
-        {
-            py::gil_scoped_acquire gil;
+            // Import Python module
             Logger::getInstance().debug("PluginManager: Importing module: {}", module_name);
             instance.module = std::make_shared<py::object>(py::module_::import(module_name.c_str()));
-        }
 
-        // Step 5: Get plugin class and create instance
-        {
-            py::gil_scoped_acquire gil;
+            // Get plugin class and create instance
             Logger::getInstance().debug("PluginManager: Creating plugin instance: {}", class_name);
 
             if (!py::hasattr(*instance.module, class_name.c_str())) {
@@ -284,45 +339,36 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
 
             py::object plugin_class = instance.module->attr(class_name.c_str());
             instance.instance = std::make_shared<py::object>(plugin_class());
-        }
 
-        instance.state = PluginState::Loaded;
-        Logger::getInstance().info("PluginManager: Plugin '{}' loaded successfully", pluginId);
+            instance.state = PluginState::Loaded;
+            Logger::getInstance().info("PluginManager: Plugin '{}' loaded successfully", pluginId);
 
-        // Step 6: Call on_init() if exists
-        {
-            py::gil_scoped_acquire gil;
-
+            // Call on_init() if exists
             if (py::hasattr(*instance.instance, "on_init")) {
                 Logger::getInstance().debug("PluginManager: Calling on_init()");
                 instance.instance->attr("on_init")();
                 Logger::getInstance().debug("PluginManager: on_init() completed");
             }
-        }
 
-        // Step 7: Call on_activate() if exists
-        {
-            py::gil_scoped_acquire gil;
-
+            // Call on_activate() if exists
             if (py::hasattr(*instance.instance, "on_activate")) {
                 Logger::getInstance().debug("PluginManager: Calling on_activate()");
                 instance.instance->attr("on_activate")();
                 Logger::getInstance().debug("PluginManager: on_activate() completed");
             }
         }
+        // GIL released here
 
         instance.state = PluginState::Activated;
         Logger::getInstance().info("PluginManager: Plugin '{}' activated successfully", pluginId);
-
-        // Store loaded plugin
-        m_loaded_plugins[pluginId] = std::move(instance);
-
-        return true;
 
     } catch (const py::error_already_set& e) {
         instance.state = PluginState::Error;
         instance.error_message = std::string("Python error: ") + e.what();
         Logger::getInstance().error("PluginManager: Failed to load plugin '{}': {}", pluginId, instance.error_message);
+
+        // Store error state with mutex
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_loaded_plugins[pluginId] = std::move(instance);
         return false;
 
@@ -330,74 +376,124 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         instance.state = PluginState::Error;
         instance.error_message = std::string("C++ error: ") + e.what();
         Logger::getInstance().error("PluginManager: Failed to load plugin '{}': {}", pluginId, instance.error_message);
+
+        // Store error state with mutex
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_loaded_plugins[pluginId] = std::move(instance);
         return false;
     }
+
+    // =========================================================================
+    // PHASE 3: Store result (mutex only) - double-check and save
+    // =========================================================================
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Double-check: another thread might have loaded this plugin while we were working
+        if (m_loaded_plugins.find(pluginId) != m_loaded_plugins.end()) {
+            Logger::getInstance().warn("PluginManager: Plugin '{}' was loaded by another thread, discarding our instance", pluginId);
+            // Our instance will be destroyed, but the other thread's instance remains
+            return true;
+        }
+
+        // Store loaded plugin
+        m_loaded_plugins[pluginId] = std::move(instance);
+    }
+
+    return true;
 }
 
 void PluginManager::unloadPlugin(const std::string& pluginId) {
-    std::lock_guard<std::mutex> lock(m_mutex);
     Logger::getInstance().info("PluginManager: Unloading plugin '{}'", pluginId);
 
-    // Check if plugin is loaded
-    auto plugin_it = m_loaded_plugins.find(pluginId);
-    if (plugin_it == m_loaded_plugins.end()) {
-        Logger::getInstance().warn("PluginManager: Plugin '{}' is not loaded", pluginId);
-        return;
+    // =========================================================================
+    // PHASE 1: Preparation (mutex only) - extract instance, release mutex
+    // =========================================================================
+    PluginInstance instance;
+    std::filesystem::path extracted_path;
+    bool has_valid_archive = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Check if plugin is loaded
+        auto plugin_it = m_loaded_plugins.find(pluginId);
+        if (plugin_it == m_loaded_plugins.end()) {
+            Logger::getInstance().warn("PluginManager: Plugin '{}' is not loaded", pluginId);
+            return;
+        }
+
+        // Move instance out of map (we will either destroy it or put it back on error)
+        instance = std::move(plugin_it->second);
+        m_loaded_plugins.erase(plugin_it);
+
+        // Copy path info before releasing mutex
+        if (instance.archive && instance.archive->isValid()) {
+            has_valid_archive = true;
+            extracted_path = instance.archive->getExtractedPath();
+        }
     }
+    // Mutex released here
 
-    PluginInstance& instance = plugin_it->second;
-
+    // =========================================================================
+    // PHASE 2: Python operations (GIL only) - all Python work in one block
+    // =========================================================================
     try {
         instance.state = PluginState::Unloading;
 
-        // Step 1: Call on_deactivate() if exists
-        if (instance.instance && instance.instance->ptr() != nullptr) {
+        // All Python operations in single GIL block
+        {
             py::gil_scoped_acquire gil;
 
-            if (py::hasattr(*instance.instance, "on_deactivate")) {
-                Logger::getInstance().debug("PluginManager: Calling on_deactivate()");
-                instance.instance->attr("on_deactivate")();
-                Logger::getInstance().debug("PluginManager: on_deactivate() completed");
-            }
-        }
-
-        // Step 2: Remove from sys.path (if archive is valid)
-        if (instance.archive && instance.archive->isValid()) {
-            auto extracted_path = instance.archive->getExtractedPath();
-
-            py::gil_scoped_acquire gil;
-            py::module_ sys = py::module_::import("sys");
-            py::list path = sys.attr("path");
-
-            // Find and remove the path
-            std::string path_str = extracted_path.string();
-            for (size_t i = 0; i < py::len(path); ++i) {
-                std::string item = py::str(path[i]);
-                if (item == path_str) {
-                    path.attr("pop")(i);
-                    Logger::getInstance().debug("PluginManager: Removed from sys.path: {}", path_str);
-                    break;
+            // Step 1: Call on_deactivate() if exists
+            if (instance.instance && instance.instance->ptr() != nullptr) {
+                if (py::hasattr(*instance.instance, "on_deactivate")) {
+                    Logger::getInstance().debug("PluginManager: Calling on_deactivate()");
+                    instance.instance->attr("on_deactivate")();
+                    Logger::getInstance().debug("PluginManager: on_deactivate() completed");
                 }
             }
+
+            // Step 2: Remove from sys.path (if archive is valid)
+            if (has_valid_archive) {
+                py::module_ sys = py::module_::import("sys");
+                py::list path = sys.attr("path");
+
+                // Find and remove the path
+                std::string path_str = extracted_path.string();
+                for (size_t i = 0; i < py::len(path); ++i) {
+                    std::string item = py::str(path[i]);
+                    if (item == path_str) {
+                        path.attr("pop")(i);
+                        Logger::getInstance().debug("PluginManager: Removed from sys.path: {}", path_str);
+                        break;
+                    }
+                }
+            }
+
+            // Step 3: Clear Python objects (will decrement refcount)
+            // Must be done inside GIL block for safe reference counting
+            instance.instance.reset();
+            instance.module.reset();
         }
+        // GIL released here
 
-        // Step 3: Clear Python objects (will decrement refcount)
-        instance.instance.reset();
-        instance.module.reset();
-
-        // Step 4: Archive destructor will clean up temp files automatically
+        // Step 4: Archive destructor will clean up temp files automatically (no GIL needed)
 
         Logger::getInstance().info("PluginManager: Plugin '{}' unloaded successfully", pluginId);
 
     } catch (const py::error_already_set& e) {
         Logger::getInstance().error("PluginManager: Python error during unload of '{}': {}", pluginId, e.what());
+        // Instance will be destroyed when it goes out of scope
     } catch (const std::exception& e) {
         Logger::getInstance().error("PluginManager: Error during unload of '{}': {}", pluginId, e.what());
+        // Instance will be destroyed when it goes out of scope
     }
 
-    // Step 5: Remove from loaded plugins map
-    m_loaded_plugins.erase(plugin_it);
+    // =========================================================================
+    // PHASE 3: No need to store result - instance already removed from map
+    // =========================================================================
+    // The instance goes out of scope here and will be fully destroyed
 }
 
 std::vector<PluginMetadata> PluginManager::getDiscoveredPlugins() const {
@@ -458,6 +554,10 @@ std::pair<std::string, std::string> PluginManager::parseEntryPoint(const std::st
     }
 
     return {module_name, class_name};
+}
+
+bool PluginManager::allowUnsignedPlugins() const {
+    return SettingsManager::getInstance().get<bool>("plugins.allowUnsigned", false);
 }
 
 } // namespace core

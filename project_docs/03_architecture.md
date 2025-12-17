@@ -314,6 +314,52 @@ public:
 
 **See:** [project_docs/18_command_registry_architecture.md](18_command_registry_architecture.md) for complete documentation.
 
+### MainWindow Coordinator Architecture
+
+**Purpose:** Split MainWindow (originally 3577 lines) into focused coordinator classes following Single Responsibility Principle.
+
+**Architecture (as of OpenSpec #00038):**
+
+```
+MainWindow (805 lines - thin orchestrator)
+    │
+    ├── IconRegistrar          (281 lines) - Icon registration with IconRegistry
+    ├── CommandRegistrar       (499 lines) - Command registration with callbacks
+    ├── DockCoordinator        (420 lines) - Panel and dock widget management
+    ├── DocumentCoordinator    (580 lines) - Document lifecycle, open/save/close
+    ├── NavigatorCoordinator   (500 lines) - Navigator panel interaction handlers
+    ├── DiagnosticController   (480 lines) - Diagnostic and dev mode management
+    └── SettingsCoordinator    (300 lines) - Settings dialog integration
+```
+
+**Key Design Decisions:**
+
+| Decision | Rationale |
+|----------|-----------|
+| Coordinators own no business logic | MainWindow connects signals for business operations |
+| Callback pattern for cross-coordinator calls | Avoids tight coupling between coordinators |
+| Signals for state changes | Qt-native, thread-safe communication |
+| MainWindow remains orchestrator | Single entry point, manages coordinator lifecycle |
+
+**Example - DockCoordinator:**
+```cpp
+class DockCoordinator : public QObject {
+    Q_OBJECT
+public:
+    explicit DockCoordinator(QMainWindow* parent);
+
+    void createDocks();
+    void resetLayout();
+
+    NavigatorPanel* navigatorPanel() const;
+    PropertiesPanel* propertiesPanel() const;
+
+signals:
+    void navigatorElementSelected(const QString& id, const QString& title);
+    void openRecentBookRequested(const QString& path);
+};
+```
+
 ---
 
 ## Error Handling Strategy

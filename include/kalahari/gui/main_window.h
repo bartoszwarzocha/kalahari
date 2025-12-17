@@ -4,6 +4,9 @@
 /// This file defines the MainWindow class, which is the primary GUI window
 /// for Kalahari Writer's IDE. It manages menus, toolbars, status bar, and
 /// dockable panels.
+///
+/// OpenSpec #00038 Phase 4: Dock/panel management delegated to DockCoordinator.
+/// OpenSpec #00038 Phase 7: Document operations delegated to DocumentCoordinator.
 
 #pragma once
 
@@ -19,13 +22,10 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/settings_data.h"
-#include "kalahari/gui/widgets/standalone_info_bar.h"
 
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
-class QLabel;
-class QToolButton;
 
 namespace kalahari {
 
@@ -40,11 +40,14 @@ class DashboardPanel;
 class EditorPanel;
 class NavigatorPanel;
 class PropertiesPanel;
-class SearchPanel;
-class AssistantPanel;
 class LogPanel;
 class MenuBuilder;      // Task #00025
 class BusyIndicator;    // Reusable spinner overlay
+class DiagnosticController;  // OpenSpec #00038 - Diagnostic/dev mode controller
+class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
+class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
+class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
+class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 
 /// @brief Main application window
 ///
@@ -74,24 +77,30 @@ public:
     ~MainWindow() override = default;
 
     /// @brief Enable diagnostic mode (show Diagnostics menu)
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
     void enableDiagnosticMode();
 
     /// @brief Disable diagnostic mode (hide Diagnostics menu)
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
     void disableDiagnosticMode();
 
     /// @brief Check if diagnostic mode is enabled
     /// @return true if diagnostic mode is active, false otherwise
-    bool isDiagnosticMode() const { return m_diagnosticMode; }
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
+    [[nodiscard]] bool isDiagnosticMode() const;
 
     /// @brief Enable dev mode (show Dev Tools menu) - Task #00020
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
     void enableDevMode();
 
     /// @brief Disable dev mode (hide Dev Tools menu) - Task #00020
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
     void disableDevMode();
 
     /// @brief Check if dev mode is enabled - Task #00020
     /// @return true if dev mode is active, false otherwise
-    bool isDevMode() const { return m_devMode; }
+    /// @note Delegates to DiagnosticController (OpenSpec #00038)
+    [[nodiscard]] bool isDevMode() const;
 
 private:
     /// @brief Register all commands in CommandRegistry
@@ -122,37 +131,17 @@ private:
 
     /// @brief Create dockable panels
     ///
-    /// Creates 6 dock widgets and sets up default layout.
+    /// Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void createDocks();
 
     /// @brief Reset dock layout to default
+    /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
 
-    /// @brief Create diagnostic menu (Task #00018)
-    /// @note Only called when diagnostic mode is enabled
-    void createDiagnosticMenu();
+    // NOTE: createDiagnosticMenu, removeDiagnosticMenu, createDevToolsMenu, removeDevToolsMenu
+    // moved to DiagnosticController (OpenSpec #00038)
 
-    /// @brief Remove diagnostic menu (Task #00018)
-    void removeDiagnosticMenu();
-
-    /// @brief Create dev tools menu (Task #00020)
-    /// @note Only called when dev mode is enabled
-    void createDevToolsMenu();
-
-    /// @brief Remove dev tools menu (Task #00020)
-    void removeDevToolsMenu();
-
-    /// @brief Setup custom title bar for dock widget (Task #00028)
-    /// @param dock The dock widget to customize
-    /// @param iconId Icon command ID (e.g., "view.navigator")
-    /// @param title Translated title text
-    /// @note Creates horizontal layout with icon label + title label + float/close buttons
-    /// @note Stores icon label in m_dockIconLabels for theme refresh
-    void setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title);
-
-    /// @brief Refresh all dock title bar icons (Task #00028)
-    /// @note Called when theme changes to update icon colors
-    void refreshDockIcons();
+    // NOTE: setupDockTitleBar, refreshDockIcons moved to DockCoordinator (OpenSpec #00038 Phase 4)
 
 protected:
     /// @brief Save perspective on close
@@ -164,20 +153,10 @@ protected:
     void showEvent(QShowEvent* event) override;
 
 private slots:
-    /// @brief Slot for File > New action
-    void onNewDocument();
-
-    /// @brief Slot for File > New Project action (OpenSpec #00033)
-    void onNewProject();
-
-    /// @brief Slot for File > Open action
-    void onOpenDocument();
-
-    /// @brief Slot for File > Save action
-    void onSaveDocument();
-
-    /// @brief Slot for File > Save As action
-    void onSaveAsDocument();
+    // NOTE: Document operations (onNewDocument, onNewProject, onOpenDocument, onSaveDocument,
+    // onSaveAsDocument, onSaveAll, onOpenRecentFile, onOpenStandaloneFile, openStandaloneFile,
+    // onAddToProject, onExportArchive, onImportArchive, onProjectOpened, onProjectClosed)
+    // moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 
     /// @brief Slot for File > Exit action
     void onExit();
@@ -212,111 +191,20 @@ private slots:
     /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
     /// @param elementId Unique ID of the selected element (BookElement::getId())
     /// @param elementTitle Display title of the element
-    /// @note Phase 0: Opens whole document in new editor tab
-    /// @note Phase 1+: Opens specific element content based on elementId
+    /// @note Delegates to NavigatorCoordinator (OpenSpec #00038 Phase 6)
     void onNavigatorElementSelected(const QString& elementId, const QString& elementTitle);
 
-    /// @brief Slot for opening recent file (OpenSpec #00030)
-    /// @param filePath Path to the file to open
-    void onOpenRecentFile(const QString& filePath);
-
-    /// @brief Slot for diagnostic mode changed from SettingsDialog (Task #00018)
-    /// @param enabled true if diagnostic mode enabled, false otherwise
-    void onDiagModeChanged(bool enabled);
+    // NOTE: onDiagModeChanged moved to DiagnosticController (OpenSpec #00038)
+    // MainWindow forwards to controller
 
     /// @brief Slot for theme changed (Task #00023)
     /// @param theme New theme to apply to IconRegistry
     void onThemeChanged(const kalahari::core::Theme& theme);
 
-    /// @brief Slot for project opened (OpenSpec #00033 Phase D)
-    /// @param projectPath Path to the opened project
-    void onProjectOpened(const QString& projectPath);
-
-    /// @brief Slot for project closed (OpenSpec #00033 Phase D)
-    void onProjectClosed();
-
-    /// @brief Slot for Save All action (OpenSpec #00033 Phase E)
-    /// Saves all dirty chapters to their respective files.
-    void onSaveAll();
-
-    /// @brief Slot for settings apply requested from SettingsDialog
-    /// @param settings Settings data to apply
-    /// @param fromOkButton true if triggered by OK (dialog closed), false if Apply
-    void onApplySettings(const SettingsData& settings, bool fromOkButton);
-
-    /// @brief Slot for File > Open > File... action (OpenSpec #00033 Phase F)
-    /// Shows file dialog and opens standalone file
-    void onOpenStandaloneFile();
-
-    /// @brief Slot for "Add to Project" button in info bar (OpenSpec #00033 Phase F)
-    /// Shows dialog to add standalone file to current project
-    void onAddToProject();
-
-    /// @brief Slot for File > Export > Project Archive... action (OpenSpec #00033 Phase H)
-    /// Exports current project as .klh.zip archive
-    void onExportArchive();
-
-    /// @brief Slot for File > Import > Project Archive... action (OpenSpec #00033 Phase H)
-    /// Imports project from .klh.zip archive
-    void onImportArchive();
-
-    // Navigator context menu handlers
-    /// @brief Slot for Navigator panel rename request
-    /// @param elementId Element ID to rename
-    /// @param currentTitle Current title for edit dialog
-    void onNavigatorRequestRename(const QString& elementId, const QString& currentTitle);
-
-    /// @brief Slot for Navigator panel delete request
-    /// @param elementId Element ID to delete
-    /// @param elementType Type of element (for confirmation message)
-    void onNavigatorRequestDelete(const QString& elementId, const QString& elementType);
-
-    /// @brief Slot for Navigator panel move request
-    /// @param elementId Element ID to move
-    /// @param direction -1 for up, +1 for down
-    void onNavigatorRequestMove(const QString& elementId, int direction);
-
-    /// @brief Slot for Navigator panel properties request
-    /// @param elementId Element ID (empty for document properties)
-    void onNavigatorRequestProperties(const QString& elementId);
-
-    /// @brief Slot for Navigator panel section properties request
-    /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
-    void onNavigatorRequestSectionProperties(const QString& sectionType);
-
-    /// @brief Slot for Navigator panel part properties request
-    /// @param partId Part ID
-    void onNavigatorRequestPartProperties(const QString& partId);
-
-    /// @brief Open a standalone file by path (OpenSpec #00033 Phase F)
-    /// @param path Absolute path to the file
-    void openStandaloneFile(const QString& path);
-
-    // Diagnostic tool slots (Task #00018) - only visible in diagnostic mode
-    void onDiagSystemInfo();
-    void onDiagQtEnvironment();
-    void onDiagFileSystemCheck();
-    void onDiagSettingsDump();
-    void onDiagMemoryStats();
-    void onDiagOpenDocsStats();
-    void onDiagLoggerTest();
-    void onDiagEventBusTest();
-    void onDiagPluginCheck();
-    void onDiagCommandRegistryDump();
-    void onDiagPythonEnvironment();
-    void onDiagPythonImportTest();
-    void onDiagPythonMemoryTest();
-    void onDiagEmbeddedInterpreterStatus();
-    void onDiagPerformanceBenchmark();
-    void onDiagRenderStats();
-    void onDiagClearLog();
-#ifdef _DEBUG
-    void onDiagForceCrash();
-    void onDiagMemoryLeakTest();
-#endif
-
-    // Dev Tools slots (Task #00020) - only visible in dev mode
-    void onDevToolsIconDownloader();
+    // NOTE: onApplySettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
+    // NOTE: Navigator context menu handlers moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
+    // NOTE: All diagnostic tool slots (onDiag*) moved to DiagnosticController (OpenSpec #00038)
+    // NOTE: All dev tools slots (onDevTools*) moved to DiagnosticController (OpenSpec #00038)
 
 private:
     // Actions removed - now managed by CommandRegistry
@@ -334,60 +222,29 @@ private:
     // Menu builder (Task #00025 - centralized icon refresh)
     MenuBuilder* m_menuBuilder;
 
-    // View actions (panel toggles)
-    QAction* m_viewNavigatorAction;
-    QAction* m_viewPropertiesAction;
-    QAction* m_viewLogAction;
-    QAction* m_viewSearchAction;
-    QAction* m_viewAssistantAction;
-
-    // Dock widgets
-    QDockWidget* m_navigatorDock;
-    QDockWidget* m_propertiesDock;
-    QDockWidget* m_logDock;
-    QDockWidget* m_searchDock;
-    QDockWidget* m_assistantDock;
-
-    // Central tabbed workspace (Task #00015)
-    QTabWidget* m_centralTabs;        ///< Central tabbed workspace container
-    DashboardPanel* m_dashboardPanel; ///< Welcome/Dashboard panel (default first tab)
-
-    // Panels (widgets inside docks or tabs)
-    EditorPanel* m_editorPanel;       ///< DEPRECATED: Use getCurrentEditor() instead (Task #00015)
-    NavigatorPanel* m_navigatorPanel;
-    PropertiesPanel* m_propertiesPanel;
-    SearchPanel* m_searchPanel;
-    AssistantPanel* m_assistantPanel;
-    LogPanel* m_logPanel;
+    // Dock/panel coordinator (OpenSpec #00038 Phase 4)
+    DockCoordinator* m_dockCoordinator;  ///< Manages dock widgets and panels
 
     // First show flag (for geometry restore)
     bool m_firstShow;
 
-    // Diagnostic mode (Task #00018)
-    bool m_diagnosticMode;      ///< Diagnostic mode enabled flag
-    QMenu* m_diagnosticMenu;    ///< Diagnostics menu (only visible when m_diagnosticMode=true)
+    // Diagnostic/Dev mode controller (OpenSpec #00038)
+    DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus
 
-    // Dev mode (Task #00020)
-    bool m_devMode;             ///< Dev mode enabled flag
-    QMenu* m_devToolsMenu;      ///< Dev Tools menu (only visible when m_devMode=true)
+    // Settings coordinator (OpenSpec #00038 Phase 5)
+    SettingsCoordinator* m_settingsCoordinator;  ///< Manages settings dialog and application
 
-    // Dock title bar icons (Task #00028, OpenSpec #00032)
-    QList<QLabel*> m_dockIconLabels;  ///< Icon labels in dock title bars (for theme refresh)
-    QList<QToolButton*> m_dockToolButtons;  ///< Tool buttons in dock title bars (for theme refresh)
+    // Navigator coordinator (OpenSpec #00038 Phase 6)
+    NavigatorCoordinator* m_navigatorCoordinator;  ///< Manages navigator panel interactions
 
-    // Document management (Task #00008 - Phase 0)
-    std::optional<core::Document> m_currentDocument;  ///< Current loaded document
-    std::filesystem::path m_currentFilePath;          ///< Current .klh file path
+    // Document coordinator (OpenSpec #00038 Phase 7)
+    DocumentCoordinator* m_documentCoordinator;  ///< Manages document lifecycle and file operations
+
+    // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
     bool m_isDirty;                                   ///< Unsaved changes flag
 
-    // Chapter editing (OpenSpec #00033 Phase E)
-    QMap<QString, bool> m_dirtyChapters;  ///< Tracks dirty state per elementId
-    QString m_currentElementId;           ///< Currently active element in editor
-
-    // Standalone file support (OpenSpec #00033 Phase F)
-    StandaloneInfoBar* m_standaloneInfoBar;   ///< Info bar for standalone files
-    QList<QString> m_standaloneFilePaths;     ///< List of open standalone file paths
-    QWidget* m_centralWrapper;                ///< Wrapper widget for info bar + tabs
+    // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
+    // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
 
     /// @brief Mark document as modified (add "*" to title)
     void setDirty(bool dirty);
@@ -400,19 +257,8 @@ private:
     /// @note Returns nullptr if current tab is Dashboard or other panel type
     EditorPanel* getCurrentEditor();
 
-    /// @brief Collect current application settings into SettingsData
-    /// @return Current settings from SettingsManager and runtime state
-    SettingsData collectCurrentSettings() const;
-
-    /// @brief Get text from first chapter metadata (Phase 0 temporary hack)
-    /// @param doc Document to extract text from
-    /// @return Editor text content, or empty string if no content
-    QString getPhase0Content(const core::Document& doc) const;
-
-    /// @brief Set text in first chapter metadata (Phase 0 temporary hack)
-    /// @param doc Document to update
-    /// @param text Editor text content
-    void setPhase0Content(core::Document& doc, const QString& text);
+    // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
+    // NOTE: getPhase0Content, setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 };
 
 } // namespace gui

@@ -120,6 +120,10 @@ private:
     /// @return Path to plugins directory if found, empty path otherwise
     std::filesystem::path getPluginsDirectory() const;
 
+    /// @brief Check if unsigned plugins are allowed via settings
+    /// @return true if plugins.allowUnsigned setting is "true"
+    [[nodiscard]] bool allowUnsignedPlugins() const;
+
     std::map<std::string, PluginMetadata> m_plugins;          ///< Discovered plugins (id -> metadata)
     std::map<std::string, PluginInstance> m_loaded_plugins;   ///< Loaded plugins (id -> instance)
     mutable std::mutex m_mutex;                               ///< Thread safety

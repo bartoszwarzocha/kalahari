@@ -4,6 +4,7 @@
 #include <kalahari/core/document_archive.h>
 #include <kalahari/core/logger.h>
 #include <zip.h>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -81,10 +82,8 @@ std::optional<Document> DocumentArchive::load(const std::filesystem::path& archi
     Logger::getInstance().info("DocumentArchive: Loading document from {}",
                               archive_path.string());
 
-    // Check if file exists
-    if (!std::filesystem::exists(archive_path)) {
-        Logger::getInstance().error("DocumentArchive: File not found: {}",
-                                   archive_path.string());
+    // Validate path before loading
+    if (!validateArchivePath(archive_path)) {
         return std::nullopt;
     }
 
@@ -274,6 +273,44 @@ bool DocumentArchive::extractRTFFile([[maybe_unused]] zip_t* archive,
     // 4. Return success/failure
 
     return false;
+}
+
+// ===========================================================================
+// Private Helpers - Path Validation
+// ===========================================================================
+
+bool DocumentArchive::validateArchivePath(const std::filesystem::path& path) {
+    auto& logger = Logger::getInstance();
+
+    // Check file exists
+    if (!std::filesystem::exists(path)) {
+        logger.error("DocumentArchive: File does not exist: {}", path.string());
+        return false;
+    }
+
+    // Check is regular file (not directory, symlink, etc.)
+    if (!std::filesystem::is_regular_file(path)) {
+        logger.error("DocumentArchive: Not a regular file: {}", path.string());
+        return false;
+    }
+
+    // Validate extension (.klh is the main format, .kbackup for backups)
+    auto ext = path.extension().string();
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    if (ext != ".klh" && ext != ".kbackup") {
+        logger.error("DocumentArchive: Invalid extension '{}' - expected .klh or .kbackup", ext);
+        return false;
+    }
+
+    // Canonicalize path to prevent path traversal
+    std::error_code ec;
+    auto canonical = std::filesystem::canonical(path, ec);
+    if (ec) {
+        logger.error("DocumentArchive: Failed to canonicalize path: {}", ec.message());
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace core

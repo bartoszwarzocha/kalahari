@@ -770,6 +770,76 @@ examples/plugin_templates/
 
 ---
 
+## Plugin Security (OpenSpec #00038)
+
+### Signature Verification
+
+Plugins are verified using **Ed25519 digital signatures** before loading.
+
+**Components:**
+- `PluginSignature` - Verifies .kplugin.sig files
+- `TrustedKeys` - Manages trusted publisher keys
+- `plugins.allowUnsigned` - Development mode setting
+
+**Signature File Format (.kplugin.sig):**
+```json
+{
+  "version": 1,
+  "algorithm": "ed25519",
+  "archive_hash": "sha256:<hex-hash>",
+  "signature": "<base64-signature>",
+  "signed_by": "kalahari-official",
+  "signed_at": "2025-01-15T10:30:00Z"
+}
+```
+
+**Verification Flow:**
+1. `discoverPlugins()` finds .kplugin file
+2. Check for corresponding .kplugin.sig file
+3. If no .sig: check `allowUnsigned` setting
+4. If .sig exists: verify against trusted keys
+5. Only load plugins with valid signatures (or unsigned in dev mode)
+
+**Trusted Publishers:**
+- Built-in keys in `resources/keys/trusted_publishers.json`
+- User keys configurable via settings
+
+**Development Mode:**
+```cpp
+// In settings.json
+"plugins.allowUnsigned": true  // WARNING: Disables signature checks
+```
+
+### Thread Safety
+
+**mutex+GIL Deadlock Prevention (OpenSpec #00038):**
+
+Plugin operations use a 3-phase pattern to prevent deadlock:
+
+```cpp
+// Phase 1: Mutex only - copy data
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    localCopy = m_data;
+}
+
+// Phase 2: GIL only - Python operations (no mutex!)
+{
+    py::gil_scoped_acquire gil;
+    pythonResult = callPython(localCopy);
+}
+
+// Phase 3: Mutex only - save results with double-check
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (stillValid()) {
+        m_result = pythonResult;
+    }
+}
+```
+
+---
+
 ## Summary (Updated)
 
 This plugin system provides:
@@ -795,6 +865,6 @@ This plugin system provides:
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** 2025-10-30 (Added Developer Tools section)
+**Document Version:** 1.2
+**Last Updated:** 2025-12-17 (Added Security section - OpenSpec #00038)
 **Next Review:** Start of Phase 2 (Plugin System MVP)

@@ -118,6 +118,7 @@ if(USE_SYSTEM_PACKAGES)
     find_package(Catch2 3 REQUIRED)
     find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 REQUIRED)
+    find_package(OpenSSL REQUIRED)  # OpenSpec #00038: Plugin signature verification
 else()
     # vcpkg integration
     # Note: vcpkg toolchain file should be specified via:
@@ -204,6 +205,7 @@ else()
     find_package(Catch2 3 CONFIG REQUIRED)
     find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
+    find_package(OpenSSL REQUIRED)  # OpenSpec #00038: Plugin signature verification
 endif()
 
 # Project version accessible in code

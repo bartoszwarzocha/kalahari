@@ -130,6 +130,17 @@ private:
     static bool extractRTFFile(zip_t* archive,
                               const std::string& zip_path,
                               const std::filesystem::path& target_path);
+
+    /// @brief Validate archive path before loading
+    /// @param path Path to validate
+    /// @return true if path is valid for loading
+    ///
+    /// Validates:
+    /// - File exists
+    /// - Is a regular file (not directory, symlink, etc.)
+    /// - Has valid extension (.kdoc or .kbackup)
+    /// - Path can be canonicalized (no path traversal)
+    static bool validateArchivePath(const std::filesystem::path& path);
 };
 
 } // namespace core
