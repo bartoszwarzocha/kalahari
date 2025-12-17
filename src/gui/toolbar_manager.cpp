@@ -22,6 +22,7 @@
 #include <QFontComboBox>
 #include <QSpinBox>
 #include <QLabel>
+#include <QMenuBar>
 
 namespace kalahari {
 namespace gui {
@@ -209,6 +210,38 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
             m_toolbars[id] = toolbar;
             logger.debug("ToolbarManager: Created toolbar '{}' (hidden)", id);
         }
+    }
+
+    // OpenSpec #00039: Create user toolbars from loaded configurations
+    auto& artProvider = core::ArtProvider::getInstance();
+    for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
+        const QString& toolbarId = it.key();
+        const QString& displayName = it.value();
+
+        QToolBar* toolbar = new QToolBar(displayName, m_mainWindow);
+        toolbar->setObjectName(toolbarId);
+        toolbar->setMovable(!m_toolbarsLocked);
+        toolbar->setFloatable(true);
+
+        int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
+        toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
+        toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+        // Context menu
+        toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
+        QObject::connect(toolbar, &QWidget::customContextMenuRequested,
+            [this, toolbar](const QPoint& pos) {
+                showContextMenu(toolbar->mapToGlobal(pos));
+            });
+
+        m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
+        m_toolbars[toolbarId.toStdString()] = toolbar;
+
+        // Populate with commands
+        rebuildToolbar(toolbarId);
+
+        logger.debug("ToolbarManager: Created user toolbar '{}' ({})",
+                     toolbarId.toStdString(), displayName.toStdString());
     }
 
     logger.info("ToolbarManager: Created {} toolbars", m_toolbars.size());
@@ -421,6 +454,40 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
         logger.debug("ToolbarManager: Created View menu action for toolbar '{}'", id);
     }
 
+    // OpenSpec #00039: Add user toolbars section
+    if (!m_userToolbarNames.isEmpty()) {
+        toolbarsMenu->addSeparator();
+
+        for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
+            const QString& toolbarId = it.key();
+            const QString& displayName = it.value();
+            std::string id = toolbarId.toStdString();
+
+            QToolBar* toolbar = getToolbar(id);
+            if (!toolbar) continue;
+
+            QAction* action = new QAction(displayName, toolbarsMenu);
+            action->setCheckable(true);
+            action->setChecked(toolbar->isVisible());
+            action->setData(toolbarId);
+
+            QObject::connect(action, &QAction::toggled, [this, id](bool checked) {
+                showToolbar(id, checked);
+            });
+
+            QObject::connect(toolbar, &QToolBar::visibilityChanged, [action](bool visible) {
+                action->blockSignals(true);
+                action->setChecked(visible);
+                action->blockSignals(false);
+            });
+
+            toolbarsMenu->addAction(action);
+            m_viewActions[id] = action;
+
+            logger.debug("ToolbarManager: Created View menu action for user toolbar '{}'", id);
+        }
+    }
+
     // Add separator and Toolbar Manager... action
     toolbarsMenu->addSeparator();
     QAction* managerAction = new QAction(QObject::tr("Toolbar Manager..."), toolbarsMenu);
@@ -544,6 +611,10 @@ QString ToolbarManager::createUserToolbar(const QString& name, const QStringList
 
     // Build toolbar content
     rebuildToolbar(toolbarId);
+
+    // OpenSpec #00039: Add to View menu
+    addViewMenuAction(toolbarId, name);
+
     saveConfigurations();
 
     logger.info("ToolbarManager: Created user toolbar '{}' with ID '{}'",
@@ -564,6 +635,9 @@ bool ToolbarManager::deleteUserToolbar(const QString& toolbarId) {
         logger.warn("ToolbarManager: User toolbar '{}' not found", toolbarId.toStdString());
         return false;
     }
+
+    // OpenSpec #00039: Remove from View menu
+    removeViewMenuAction(toolbarId);
 
     // Remove from configurations
     m_toolbarCommands.remove(toolbarId);
@@ -1024,6 +1098,96 @@ void ToolbarManager::clearSavedWindowState() {
     settings.sync();
 
     logger.info("ToolbarManager: Window state cleared, will use default toolbar layout");
+}
+
+// ============================================================================
+// OpenSpec #00039: View Menu Action Management for User Toolbars
+// ============================================================================
+
+void ToolbarManager::addViewMenuAction(const QString& toolbarId, const QString& name) {
+    auto& logger = core::Logger::getInstance();
+    std::string id = toolbarId.toStdString();
+    QToolBar* toolbar = getToolbar(id);
+    if (!toolbar || !m_mainWindow) return;
+
+    QMenuBar* menuBar = m_mainWindow->menuBar();
+    if (!menuBar) return;
+
+    // Find View menu, then Toolbars submenu
+    QMenu* toolbarsMenu = nullptr;
+    for (QAction* menuAction : menuBar->actions()) {
+        QMenu* menu = menuAction->menu();
+        if (menu && (menu->title().contains(QObject::tr("View")) || menu->title().contains("View"))) {
+            for (QAction* subAction : menu->actions()) {
+                QMenu* subMenu = subAction->menu();
+                if (subMenu && (subMenu->title().contains(QObject::tr("Toolbars")) || subMenu->title().contains("Toolbar"))) {
+                    toolbarsMenu = subMenu;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    if (!toolbarsMenu) {
+        logger.warn("ToolbarManager: Could not find Toolbars submenu for adding '{}'", id);
+        return;
+    }
+
+    // Find position before "Toolbar Manager..." action
+    QList<QAction*> actions = toolbarsMenu->actions();
+    QAction* insertBefore = nullptr;
+    for (int i = actions.size() - 1; i >= 0; --i) {
+        if (actions[i]->text().contains(QObject::tr("Toolbar Manager")) || actions[i]->text().contains("Toolbar Manager")) {
+            if (i > 0 && actions[i-1]->isSeparator()) {
+                insertBefore = actions[i-1];
+            } else {
+                insertBefore = actions[i];
+            }
+            break;
+        }
+    }
+
+    // Create action for the toolbar
+    QAction* action = new QAction(name, toolbarsMenu);
+    action->setCheckable(true);
+    action->setChecked(toolbar->isVisible());
+    action->setData(toolbarId);
+
+    QObject::connect(action, &QAction::toggled, [this, id](bool checked) {
+        showToolbar(id, checked);
+    });
+
+    QObject::connect(toolbar, &QToolBar::visibilityChanged, [action](bool visible) {
+        action->blockSignals(true);
+        action->setChecked(visible);
+        action->blockSignals(false);
+    });
+
+    if (insertBefore) {
+        toolbarsMenu->insertAction(insertBefore, action);
+    } else {
+        toolbarsMenu->addAction(action);
+    }
+
+    m_viewActions[id] = action;
+
+    logger.debug("ToolbarManager: Added View menu action for '{}'", id);
+}
+
+void ToolbarManager::removeViewMenuAction(const QString& toolbarId) {
+    auto& logger = core::Logger::getInstance();
+    std::string id = toolbarId.toStdString();
+    auto actionIt = m_viewActions.find(id);
+    if (actionIt != m_viewActions.end()) {
+        QAction* action = actionIt->second;
+        if (action) {
+            action->deleteLater();
+        }
+        m_viewActions.erase(actionIt);
+
+        logger.debug("ToolbarManager: Removed View menu action for '{}'", id);
+    }
 }
 
 } // namespace gui

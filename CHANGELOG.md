@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **OpenSpec #00039:** Custom Toolbar Persistence & Visibility - 2025-12-17
+  - **Issue:** Custom toolbars missing from View menu (no visibility toggle)
+  - **Issue:** Custom toolbar visibility not restored after application restart
+  - **Fix:** Modified `createToolbars()` to create user toolbars at startup
+  - **Fix:** Modified `createViewMenuActions()` to include user toolbars in View menu
+  - **Fix:** Added `addViewMenuAction()` helper for dynamic menu updates on toolbar creation
+  - **Fix:** Added `removeViewMenuAction()` helper for dynamic menu updates on toolbar deletion
+  - Files modified: `toolbar_manager.h`, `toolbar_manager.cpp`
+
 ### Changed
 
 - **OpenSpec #00038:** External Code Review Analysis - Major refactoring - 2025-12-17

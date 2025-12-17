@@ -301,6 +301,15 @@ private:
     // OpenSpec #00031 - Phase E: Toolbar locking
     bool m_toolbarsLocked = false;                   ///< Whether toolbar positions are locked
 
+    /// @brief Add View menu action for a user toolbar
+    /// @param toolbarId Toolbar ID
+    /// @param name Display name for toolbar
+    void addViewMenuAction(const QString& toolbarId, const QString& name);
+
+    /// @brief Remove View menu action for a user toolbar
+    /// @param toolbarId Toolbar ID
+    void removeViewMenuAction(const QString& toolbarId);
+
     // Format toolbar widgets (for future editor integration)
     QFontComboBox* m_fontComboBox = nullptr;         ///< Font family dropdown
     QSpinBox* m_fontSizeSpinner = nullptr;           ///< Font size spinner
