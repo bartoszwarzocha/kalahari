@@ -42,7 +42,6 @@ next_hint: architect should design solution
         "architect": """
 # Architect Analysis
 
-Analyzed codebase structure using Serena.
 
 ## Design
 

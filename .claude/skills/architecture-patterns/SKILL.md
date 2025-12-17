@@ -133,7 +133,6 @@ set(KALAHARI_GUI_HEADERS
 
 ## 8. Analyzing Existing Code
 
-### Using Serena MCP
 1. `get_symbols_overview("path/to/file.cpp")` - see class structure
 2. `find_symbol("ClassName")` - find class definition
 3. `find_referencing_symbols("ClassName")` - find usages

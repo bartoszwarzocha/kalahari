@@ -1,7 +1,7 @@
 ---
 name: code-editor
 description: "Modifies EXISTING code - changes, refactoring, bug fixes. Triggers: 'zmień', 'popraw', 'napraw', 'refaktoruj', 'fix', 'modify', 'change'. Does NOT create new files!"
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
 model: inherit
 permissionMode: bypassPermissions
 skills: kalahari-coding
@@ -28,13 +28,15 @@ You do NOT create new files from scratch (that's code-writer).
 
 ---
 
-## MCP TOOLS USAGE
+## TOOLS USAGE
 
-### Serena (Code Analysis) - PRIMARY TOOL
-Before modifying code, **ALWAYS** use Serena:
+### Code Analysis - Grep, Glob, Read
+Before modifying code, **ALWAYS** analyze first:
 ```
-mcp__serena__get_symbols_overview("path/to/file.cpp")  # see structure
-mcp__serena__find_symbol("ClassName", include_body=true)  # get full code
+Glob("**/file_to_modify.cpp")                 # find file
+Read("src/gui/file.cpp")                      # read full file
+Grep("class ClassName", path="include")       # find definition
+Grep("methodName", output_mode="content")     # find usages
 ```
 
 ### Context7 (Qt6 Documentation)
@@ -52,9 +54,9 @@ Trigger: "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
 
 ### Procedure
 
-1. **Analyze target code** (Serena):
-   - `get_symbols_overview` to see file structure
-   - `find_symbol` to get exact code to modify
+1. **Analyze target code**:
+   - Read the file to understand structure
+   - Grep for related code patterns
 
 2. Read design from OpenSpec:
    - Which files to modify?
@@ -64,8 +66,7 @@ Trigger: "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
 
    a. Read current code:
    ```
-   - Use Serena: get_symbols_overview("path/to/file.cpp")
-   - Or Read tool for specific sections
+   Read("path/to/file.cpp")
    ```
 
    b. Identify exact location for change
@@ -92,13 +93,13 @@ Trigger: "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
 
 6. Report:
    ```
-   ✅ Modified files:
+   Modified files:
    - src/gui/main_window.cpp (added panel registration)
    - include/kalahari/gui/main_window.h (added member)
 
-   🔨 Build: PASS
+   Build: PASS
 
-   📋 Changes:
+   Changes:
    - Added m_statsPanel member
    - Added createStatsPanel() call in createDockWidgets()
    ```
@@ -109,8 +110,8 @@ Trigger: "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
 
 ### Use Edit tool, not Write
 ```
-✅ Edit: specific old_string → new_string
-❌ Write: entire file content
+Edit: specific old_string → new_string
+Write: entire file content
 ```
 
 ### Preserve context
@@ -186,28 +187,28 @@ set(KALAHARI_GUI_SOURCES
 ### After Changes Made (Build PASS):
 ```
 ═══════════════════════════════════════════════════════════════
-📋 NEXT STEPS - Choose one:
+NEXT STEPS - Choose one:
 ───────────────────────────────────────────────────────────────
-▶ "review" / "sprawdź kod"      → Code review before commit
-▶ "testy" / "run tests"         → Run tests
-▶ "status"                      → Check task progress
+"review" / "sprawdź kod"      → Code review before commit
+"testy" / "run tests"         → Run tests
+"status"                      → Check task progress
 ═══════════════════════════════════════════════════════════════
 ```
 
 ### After Changes Made (Build FAIL):
 ```
 ═══════════════════════════════════════════════════════════════
-📋 NEXT STEPS:
+NEXT STEPS:
 ───────────────────────────────────────────────────────────────
-▶ "napraw" / "fix"              → Fix build errors
+"napraw" / "fix"              → Fix build errors
 ═══════════════════════════════════════════════════════════════
 ```
 
 ### After Fixing Review Issues:
 ```
 ═══════════════════════════════════════════════════════════════
-📋 NEXT STEPS:
+NEXT STEPS:
 ───────────────────────────────────────────────────────────────
-▶ "review ponownie"             → Re-run code review
+"review ponownie"             → Re-run code review
 ═══════════════════════════════════════════════════════════════
 ```

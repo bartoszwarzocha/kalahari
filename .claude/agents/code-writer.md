@@ -1,7 +1,7 @@
 ---
 name: code-writer
 description: "Writes NEW code - new classes, new files, new functions. Triggers: 'napisz', 'utwórz klasę', 'dodaj nową funkcję', 'nowy plik', 'create', 'new class'. Does NOT modify existing code!"
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
 model: inherit
 permissionMode: bypassPermissions
 skills: kalahari-coding
@@ -27,13 +27,14 @@ You do NOT modify existing code (that's code-editor).
 
 ---
 
-## MCP TOOLS USAGE
+## TOOLS USAGE
 
-### Serena (Code Analysis)
-Before writing new code, use Serena to understand existing patterns:
+### Code Analysis - Grep, Glob, Read
+Before writing new code, analyze existing patterns:
 ```
-mcp__serena__get_symbols_overview("src/gui/panels/existing_panel.cpp")
-mcp__serena__find_symbol("ExistingClass", include_body=true)
+Glob("**/existing_panel.cpp")                 # find similar files
+Read("src/gui/panels/existing_panel.cpp")     # read as template
+Grep("class ExistingClass", path="include")   # find patterns
 ```
 
 ### Context7 (Qt6 Documentation)
@@ -51,9 +52,9 @@ Trigger: "napisz", "utwórz klasę", "nowy plik", "create", "new class"
 
 ### Procedure
 
-1. **Analyze similar existing code** (Serena):
-   - `get_symbols_overview` on similar existing file
-   - `find_symbol` for patterns to follow
+1. **Analyze similar existing code**:
+   - Read similar existing files
+   - Find patterns to follow
 
 2. **Check Qt6 API if needed** (Context7):
    - Look up class you're extending
@@ -156,13 +157,13 @@ Trigger: "napisz", "utwórz klasę", "nowy plik", "create", "new class"
 
 6. Report:
    ```
-   ✅ Created new files:
+   Created new files:
    - include/kalahari/gui/new_class.h
    - src/gui/new_class.cpp
 
-   🔨 Build: PASS
+   Build: PASS
 
-   📋 Next: add to CMakeLists.txt (if not done)
+   Next: add to CMakeLists.txt (if not done)
    ```
 
 ---
@@ -200,20 +201,20 @@ Location: `include/kalahari/core/`, `src/core/`
 ### After Files Created (Build PASS):
 ```
 ═══════════════════════════════════════════════════════════════
-📋 NEXT STEPS - Choose one:
+NEXT STEPS - Choose one:
 ───────────────────────────────────────────────────────────────
-▶ "zmień kod" / "modify"        → Integrate with existing code (code-editor)
-▶ "review" / "sprawdź kod"      → Code review before commit
-▶ "testy" / "run tests"         → Run tests
-▶ "status"                      → Check task progress
+"zmień kod" / "modify"        → Integrate with existing code (code-editor)
+"review" / "sprawdź kod"      → Code review before commit
+"testy" / "run tests"         → Run tests
+"status"                      → Check task progress
 ═══════════════════════════════════════════════════════════════
 ```
 
 ### After Files Created (Build FAIL):
 ```
 ═══════════════════════════════════════════════════════════════
-📋 NEXT STEPS:
+NEXT STEPS:
 ───────────────────────────────────────────────────────────────
-▶ "napraw build" / "fix"        → Fix build errors (code-editor)
+"napraw build" / "fix"        → Fix build errors (code-editor)
 ═══════════════════════════════════════════════════════════════
 ```

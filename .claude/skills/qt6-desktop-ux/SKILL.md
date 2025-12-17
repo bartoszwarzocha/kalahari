@@ -230,4 +230,3 @@ mcp__context7__get-library-docs(
 - ✅ Need to know available signals/slots
 - ✅ Looking for Qt6-specific patterns
 - ✅ Checking deprecation status
-- ❌ Don't use for Kalahari-specific patterns (use Serena instead)

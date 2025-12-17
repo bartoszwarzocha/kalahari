@@ -92,7 +92,6 @@ When closing task (`zamknij task`):
 
 ## 6. Key Rules
 
-1. **Session state ≠ Serena memories** - Use session-state.json, not MCP memories
 2. **OpenSpec = truth for tasks** - Session state only tracks "where we are"
 3. **Always suggest save** - Before ending work, remind about `/save-session`
 4. **Gap detection** - On load, check for commits made outside sessions

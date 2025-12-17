@@ -34,7 +34,7 @@ Full context: `.claude/context/project-brief.txt`
 | Agent | Role |
 |-------|------|
 | task-manager | Creates/tracks/closes OpenSpec, manages workflow, SESSION RESTORE |
-| architect | Analyzes code (Serena), designs solutions |
+| architect | Analyzes code, designs solutions |
 | code-writer | Writes NEW code (new files, new classes) |
 | code-editor | Modifies EXISTING code |
 | ui-designer | Creates UI components (Qt6 widgets) |
@@ -74,7 +74,6 @@ CONTINUE TASK:
 
 ## MCP Servers
 
-- **Serena:** Code navigation ONLY (get_symbols_overview, find_symbol, find_referencing_symbols)
 - **Context7:** External library docs (resolve-library-id → get-library-docs)
 
 ## Build Commands

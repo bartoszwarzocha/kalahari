@@ -76,5 +76,4 @@ core::Logger::getInstance().info("Message: {}", value)
 - Lifecycle: PENDING → IN_PROGRESS → DEPLOYED
 
 ## MCP Servers
-- Serena: code navigation (get_symbols_overview, find_symbol)
 - Context7: external library documentation
