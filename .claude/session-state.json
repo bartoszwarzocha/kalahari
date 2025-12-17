@@ -1,37 +1,31 @@
 {
   "mode": "full",
-  "saved_at": "2025-12-17T12:15:00",
+  "saved_at": "2025-12-17T13:00:00",
   "git_branch": "main",
-  "git_commit": "8778964",
+  "git_commit": "0198671",
   "git_pushed": true,
-  "openspec": "00038",
+  "openspec": "00039",
   "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00038 - External Code Review Analysis - COMPLETE",
+  "working_on": "Session complete - OpenSpec #00038 and #00039 deployed",
   "next_steps": [
-    "Continue with LOW priority items from code review",
-    "Start new OpenSpec task if needed",
+    "Continue with LOW priority items from code review (OpenSpec #00038)",
+    "Start new feature development",
     "Monitor CI/CD results"
   ],
   "blocker": null,
   "implementation_status": "COMPLETE",
   "completed_tasks": [
-    "[HIGH] [2] mutex+GIL deadlock fix in PluginManager",
-    "[HIGH] [8] MainWindow God Object refactoring (3577→805 lines)",
-    "[HIGH] [17] Plugin signature verification (Ed25519)",
-    "[MEDIUM] [6] CommandRegistry mutex thread safety",
-    "[MEDIUM] [14] Swallowed exceptions - added logging",
-    "[MEDIUM] [19] Path traversal validation in DocumentArchive",
-    "[MEDIUM] [1] clearLayout utility created"
+    "OpenSpec #00038 - External Code Review Analysis (MainWindow refactoring, plugin security, thread safety)",
+    "OpenSpec #00039 - Custom Toolbar Persistence & Visibility (View menu fix, startup restore)"
   ],
   "pending_tasks": [
     "[LOW] noexcept specifications",
     "[LOW] Integer overflow in getWordCount()",
-    "[LOW] QPointer for dynamic panels",
-    "[LOW] MVP/MVVM pattern consideration"
+    "[LOW] QPointer for dynamic panels"
   ],
   "task_progress": {
-    "completed": 7,
-    "total": 7,
+    "completed": 2,
+    "total": 2,
     "percentage": 100
   },
   "session_summary": {
@@ -42,20 +36,23 @@
         "MainWindow refactored from 3577 to 805 lines (-77%)",
         "7 new coordinator classes extracted",
         "Plugin signature verification with Ed25519",
-        "Thread safety improvements",
-        "Code quality fixes"
+        "Thread safety improvements"
       ]
     },
-    "files_created": 18,
-    "files_modified": 24,
-    "lines_added": 7013,
-    "lines_removed": 7759
+    "openspec_39": {
+      "status": "DEPLOYED",
+      "title": "Custom Toolbar Persistence & Visibility",
+      "key_changes": [
+        "Fixed user toolbars missing from View menu",
+        "Fixed visibility not restored after restart",
+        "Added addViewMenuAction/removeViewMenuAction helpers"
+      ]
+    }
   },
   "notes": [
-    "All HIGH priority issues from external code review fixed",
-    "All MEDIUM priority issues fixed",
-    "LOW priority items deferred (theoretical issues)",
-    "Documentation updated: CHANGELOG.md, architecture.md, plugin_system.md",
-    "All tests passing (83/83)"
+    "Two OpenSpec tasks completed in this session",
+    "All tests passing (83/83)",
+    "Documentation and skills updated",
+    "Ready for new tasks"
   ]
 }
