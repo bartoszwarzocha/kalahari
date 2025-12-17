@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/busy_indicator.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -1421,11 +1422,7 @@ void SettingsDialog::updateIconPreview() {
     if (!m_iconPreviewLayout || !m_iconThemeComboBox) return;
 
     // Clear existing preview icons
-    QLayoutItem* item;
-    while ((item = m_iconPreviewLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    utils::clearLayout(m_iconPreviewLayout);
 
     QString iconTheme = m_iconThemeComboBox->currentData().toString();
     int iconSize = 24;  // Simple 24px icons - Qt handles DPI scaling automatically

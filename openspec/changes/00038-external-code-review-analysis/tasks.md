@@ -53,8 +53,8 @@ Problem: jesli `QLayoutItem` zawiera nested layout zamiast widget, `item->widget
 **Moja ocena:** ZGADZAM SIE. Problem istnieje, ale w praktyce w DashboardPanel wszystkie items to QWidget, wiec memory leak jest minimalny. Jednak to jest code smell.
 
 **Akcja:**
-- [x] Stworzyc `gui::utils::clearLayout()` helper
-- [ ] Uzyc we wszystkich miejscach w kodzie
+- [x] Stworzyc `gui::utils::clearLayout()` helper (DONE)
+- [x] Uzyc we wszystkich miejscach w kodzie (DONE)
 
 ---
 
@@ -74,7 +74,7 @@ Scenariusz deadlock:
 **Moja ocena:** ZGADZAM SIE. Jednak w praktyce pluginy ladowane sa tylko z main thread przy starcie, wiec ryzyko jest niskie.
 
 **Akcja:**
-- [ ] Refaktoryzacja loadPlugin() - zwolnic mutex przed operacjami Python
+- [x] Refaktoryzacja loadPlugin() - 3-phase pattern (DONE)
 
 ---
 
@@ -96,7 +96,7 @@ widget->deleteLater();
 **Moja ocena:** CZESCIOWO NIE ZGADZAM SIE. Aktualny kod jest poprawny - pointer jest nullowany PRZED `deleteLater()`. Jednak QPointer byloby bezpieczniejsze.
 
 **Akcja:**
-- [ ] Zamienic `DashboardPanel*` na `QPointer<DashboardPanel>` dla dodatkowego bezpieczenstwa
+- [x] Zamienic `DashboardPanel*` na `QPointer<DashboardPanel>` dla dodatkowego bezpieczenstwa (DONE - DockCoordinator)
 
 ---
 
@@ -159,7 +159,7 @@ Jednak w praktyce uzywany tylko przy starcie z main thread.
 **Moja ocena:** ZGADZAM SIE. Po rejestracji komendy sa tylko odczytywane.
 
 **Akcja:**
-- [ ] Dodac `mutable std::mutex m_mutex` i `std::lock_guard` do metod modyfikujacych
+- [x] Dodac `mutable std::mutex m_mutex` i `std::lock_guard` do metod modyfikujacych (OpenSpec #00040 DONE)
 
 ---
 
@@ -202,11 +202,11 @@ void debug(...) {
 **Moja ocena:** ZGADZAM SIE W 100%.
 
 **Akcja:**
-- [ ] Wydzielic MenuCoordinator
-- [ ] Wydzielic ToolbarCoordinator
-- [ ] Wydzielic DocumentCoordinator
-- [ ] Wydzielic DiagnosticController
-- [ ] Cel: MainWindow < 1000 linii
+- [x] Wydzielic MenuCoordinator (DONE)
+- [x] Wydzielic ToolbarCoordinator (DONE)
+- [x] Wydzielic DocumentCoordinator (DONE)
+- [x] Wydzielic DiagnosticController (DONE)
+- [x] Cel: MainWindow 805 linii (DONE - 7 coordinators total)
 
 ---
 
@@ -252,7 +252,7 @@ Identyczny kod w dashboard_panel.cpp linie 659-663 i 694-698.
 **Moja ocena:** ZGADZAM SIE. DRY violation.
 
 **Akcja:**
-- [ ] Stworzyc i uzyc `gui::utils::clearLayout()`
+- [x] Stworzyc i uzyc `gui::utils::clearLayout()` (DONE)
 
 ---
 
@@ -296,8 +296,8 @@ Dwa miejsca ukrywaja bledy bez logowania:
 **Moja ocena:** CZESCIOWO ZGADZAM SIE.
 
 **Akcja:**
-- [ ] Dodac logowanie w plugin_archive.cpp
-- [ ] Dodac logowanie w settings_manager.cpp
+- [x] Dodac logowanie w plugin_archive.cpp (DONE)
+- [x] Dodac logowanie w settings_manager.cpp (DONE)
 
 ---
 
@@ -344,7 +344,7 @@ Brak jakiejkolwiek weryfikacji podpisow pluginow.
 **Moja ocena:** ZGADZAM SIE. Powazny problem dla wersji produkcyjnej.
 
 **Akcja:**
-- [ ] Implementacja plugin signing przed public release
+- [x] Implementacja plugin signing (Ed25519, TrustedKeys) (DONE)
 
 ---
 
@@ -369,8 +369,8 @@ Pluginy Python maja pelny dostep do systemu.
 Ryzyko niskie - uzytkownik sam wybiera pliki przez QFileDialog.
 
 **Akcja:**
-- [ ] Dodac walidacje rozszerzenia
-- [ ] Dodac canonicalize()
+- [x] Dodac walidacje rozszerzenia (DONE)
+- [x] Dodac canonicalize() (DONE)
 
 ---
 
@@ -382,7 +382,7 @@ Ryzyko niskie - uzytkownik sam wybiera pliki przez QFileDialog.
 Manifest JSON parsowany bez walidacji ID/entry_point.
 
 **Akcja:**
-- [ ] Dodac PluginManifest::validate() z regex checks
+- [x] Dodac PluginManifest::validate() z regex checks (DONE)
 
 ---
 
@@ -415,14 +415,14 @@ Qt parent-child uzywane poprawnie. Problem tylko w specyficznych miejscach.
 ---
 
 ## [23] RAII dla libzip brakuje
-**Status:** POTWIERDZONY
+**Status:** NAPRAWIONY
 **Priorytet:** LOW
 
 **Analiza:**
-`document_archive.cpp` uzywa recznego `malloc()/free()`.
+`document_archive.cpp` uzywal recznego `malloc()/free()`.
 
 **Akcja:**
-- [ ] Stworzyc ZipSource RAII wrapper
+- [x] Stworzyc ZipSource RAII wrapper (ZipSourceBuffer class in document_archive.cpp)
 
 ---
 
@@ -434,7 +434,7 @@ Qt parent-child uzywane poprawnie. Problem tylko w specyficznych miejscach.
 `DashboardPanel* m_dashboardPanel` - raw pointer.
 
 **Akcja:**
-- [ ] Zamienic na QPointer dla paneli dynamicznie zamykanych
+- [x] Zamienic na QPointer dla paneli dynamicznie zamykanych (DONE - DockCoordinator::m_dashboardPanel)
 
 ---
 
@@ -591,32 +591,32 @@ Znaleziono `.clang-format` z 133 liniami konfiguracji!
 ## PRIORYTETY NAPRAW
 
 ### HIGH (pilne)
-- [ ] [2] Race condition mutex+GIL w plugin_manager.cpp
-- [ ] [8] MainWindow God Object refactoring
-- [ ] [17] Plugin signature verification (przed release)
+- [x] [2] Race condition mutex+GIL w plugin_manager.cpp (3-phase pattern)
+- [x] [8] MainWindow God Object refactoring (805 linii, 7 coordinators)
+- [x] [17] Plugin signature verification (Ed25519, TrustedKeys)
 
 ### MEDIUM (nastepny sprint)
-- [ ] [1] Memory leak - clearLayout utility
-- [ ] [6] CommandRegistry mutex
-- [ ] [14] Swallowed exceptions - logowanie
-- [ ] [19] Path validation
-- [ ] [20] Plugin manifest validation
-- [ ] [24] QPointer dla paneli
+- [x] [1] Memory leak - clearLayout utility (gui::utils::clearLayout)
+- [x] [6] CommandRegistry mutex (OpenSpec #00040)
+- [x] [14] Swallowed exceptions - logowanie (logging added)
+- [x] [19] Path validation (done)
+- [x] [20] Plugin manifest validation (done)
+- [x] [24] QPointer dla paneli (DashboardPanel in DockCoordinator)
 - [ ] [30] QPointer dla widgets
 - [ ] [32] Test coverage tool
 - [ ] [33] Integration tests
 
 ### LOW (backlog)
-- [ ] [3] QPointer dla m_dashboardPanel
-- [ ] [4] getWordCount() typ
+- [x] [3] QPointer dla m_dashboardPanel (done - DockCoordinator::m_dashboardPanel)
+- [x] [4] getWordCount() typ (changed to size_t)
 - [ ] [9] registerCommands refactor
-- [ ] [11] clearLayout utility usage
+- [x] [11] clearLayout utility usage (DONE)
 - [ ] [12] Magic numbers extraction
 - [ ] [13] Boolean parameters -> enum
 - [ ] [15] noexcept specifications
 - [ ] [21] JSON size limit
 - [ ] [22] Mixed ownership review
-- [ ] [23] ZipSource RAII wrapper
+- [x] [23] ZipSource RAII wrapper (ZipSourceBuffer class)
 - [ ] [28] Command&& overload
 - [ ] [29] Logger level check
 - [ ] [31] Explicit connection type

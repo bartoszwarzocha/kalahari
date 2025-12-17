@@ -69,7 +69,7 @@ struct IconSet {
     static IconSet fromRegistry(const QString& actionId, const QString& theme = QString());
 
     /// @brief Check if icon set is empty (all pixmaps invalid)
-    bool isEmpty() const {
+    bool isEmpty() const noexcept {
         return icon16.isNull() && icon24.isNull() && icon32.isNull();
     }
 
@@ -120,21 +120,21 @@ struct KeyboardShortcut {
     static KeyboardShortcut fromString(const QString& str);
 
     /// @brief Check if shortcut is empty (no key defined)
-    bool isEmpty() const { return keyCode == 0; }
+    bool isEmpty() const noexcept { return keyCode == 0; }
 
     /// @brief Equality comparison
-    bool operator==(const KeyboardShortcut& other) const {
+    bool operator==(const KeyboardShortcut& other) const noexcept {
         return keyCode == other.keyCode && modifiers == other.modifiers;
     }
 
     /// @brief Inequality comparison
-    bool operator!=(const KeyboardShortcut& other) const {
+    bool operator!=(const KeyboardShortcut& other) const noexcept {
         return !(*this == other);
     }
 
     /// @brief Less-than comparison (for std::map ordering)
     /// @note Needed for using KeyboardShortcut as map key
-    bool operator<(const KeyboardShortcut& other) const {
+    bool operator<(const KeyboardShortcut& other) const noexcept {
         if (keyCode != other.keyCode) return keyCode < other.keyCode;
         return modifiers < other.modifiers;
     }
@@ -210,7 +210,7 @@ struct Command {
     // ========================================================================
 
     /// @brief Check if command has valid execution callback
-    bool canExecute() const { return execute != nullptr; }
+    bool canExecute() const noexcept { return execute != nullptr; }
 
     /// @brief Check if command should be enabled
     /// @return true if enabled callback returns true or if no callback set

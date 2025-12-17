@@ -6,6 +6,7 @@
 /// Redesign: Native Qt widgets (QGridLayout, QLabel, QFrame)
 
 #include "kalahari/gui/panels/dashboard_panel.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/recent_books_manager.h"
@@ -665,11 +666,7 @@ void DashboardPanel::updateRecentFilesList()
 {
     // Clear existing cards
     m_fileCards.clear();
-    QLayoutItem* item;
-    while ((item = m_filesListLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    gui::utils::clearLayout(m_filesListLayout);
 
     // Get recent files
     const QStringList recentFiles = core::RecentBooksManager::getInstance().getRecentFiles();
@@ -700,11 +697,7 @@ void DashboardPanel::updateRecentFilesList()
 void DashboardPanel::populateNewsColumn()
 {
     // Clear existing items
-    QLayoutItem* item;
-    while ((item = m_newsListLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    gui::utils::clearLayout(m_newsListLayout);
 
     // Placeholder for news
     QLabel* noNewsLabel = new QLabel(tr("No news yet."), m_newsListWidget);

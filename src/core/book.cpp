@@ -102,12 +102,17 @@ bool Book::movePart(size_t fromIndex, size_t toIndex) {
 // Statistics
 // ===========================================================================
 
-int Book::getWordCount() const {
+size_t Book::getWordCount() const {
     // Body only (not front/back matter) - industry standard for novel word counts
-    int total = 0;
+    size_t total = 0;
     for (const auto& part : m_body) {
         if (part) {
-            total += part->getWordCount();
+            // Part::getWordCount() returns int, cast to size_t
+            // Negative word counts from individual elements are clamped to 0
+            int partWords = part->getWordCount();
+            if (partWords > 0) {
+                total += static_cast<size_t>(partWords);
+            }
         }
     }
     return total;

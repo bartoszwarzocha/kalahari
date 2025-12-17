@@ -77,13 +77,13 @@ public:
     BookElement() = default;
 
     // Getters
-    const std::string& getType() const { return m_type; }
-    const std::string& getId() const { return m_id; }
-    const std::string& getTitle() const { return m_title; }
-    const std::filesystem::path& getFile() const { return m_file; }
-    int getWordCount() const { return m_wordCount; }
-    const std::chrono::system_clock::time_point& getCreated() const { return m_created; }
-    const std::chrono::system_clock::time_point& getModified() const { return m_modified; }
+    const std::string& getType() const noexcept { return m_type; }
+    const std::string& getId() const noexcept { return m_id; }
+    const std::string& getTitle() const noexcept { return m_title; }
+    const std::filesystem::path& getFile() const noexcept { return m_file; }
+    int getWordCount() const noexcept { return m_wordCount; }
+    const std::chrono::system_clock::time_point& getCreated() const noexcept { return m_created; }
+    const std::chrono::system_clock::time_point& getModified() const noexcept { return m_modified; }
 
     /// @brief Check if this is a known type
     /// @return true if type is one of the predefined BookElementTypes constants
@@ -114,7 +114,7 @@ public:
 
     /// @brief Get all metadata
     /// @return Const reference to metadata map
-    const std::map<std::string, std::string>& getAllMetadata() const { return m_metadata; }
+    const std::map<std::string, std::string>& getAllMetadata() const noexcept { return m_metadata; }
 
     /// @brief Remove metadata field
     /// @param key Metadata key to remove
@@ -129,7 +129,7 @@ public:
 
     /// @brief Check if content is dirty (modified since last save)
     /// @return true if content has been modified
-    bool isDirty() const;
+    bool isDirty() const noexcept;
 
     /// @brief Set dirty state
     /// @param dirty New dirty state
@@ -137,7 +137,7 @@ public:
 
     /// @brief Check if content is loaded in memory
     /// @return true if content cache is not empty
-    bool isContentLoaded() const;
+    bool isContentLoaded() const noexcept;
 
     /// @brief Get cached content
     /// @return Reference to cached RTF content (may be empty if not loaded)

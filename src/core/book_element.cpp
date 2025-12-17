@@ -99,7 +99,7 @@ void BookElement::clearMetadata() {
 // Dirty Tracking and Content Cache
 // ===========================================================================
 
-bool BookElement::isDirty() const {
+bool BookElement::isDirty() const noexcept {
     return m_isDirty;
 }
 
@@ -107,7 +107,7 @@ void BookElement::setDirty(bool dirty) {
     m_isDirty = dirty;
 }
 
-bool BookElement::isContentLoaded() const {
+bool BookElement::isContentLoaded() const noexcept {
     return !m_content.isEmpty();
 }
 

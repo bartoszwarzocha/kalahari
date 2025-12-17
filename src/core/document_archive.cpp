@@ -5,11 +5,92 @@
 #include <kalahari/core/logger.h>
 #include <zip.h>
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 
 namespace kalahari {
 namespace core {
+
+// ===========================================================================
+// RAII wrapper for libzip buffer management
+// ===========================================================================
+
+/// @brief RAII wrapper for malloc-allocated buffers used with libzip
+///
+/// libzip's zip_source_buffer() requires a malloc-allocated buffer when the
+/// library should take ownership (freep=1). This wrapper ensures the buffer
+/// is freed if an error occurs before ownership is transferred to libzip.
+///
+/// Usage:
+/// @code
+/// ZipSourceBuffer buffer(size);
+/// if (!buffer.data()) return false;  // allocation failed
+/// memcpy(buffer.data(), source, size);
+/// zip_source_t* src = zip_source_buffer(archive, buffer.data(), size, 1);
+/// if (src) buffer.release();  // libzip owns it now
+/// @endcode
+class ZipSourceBuffer {
+public:
+    /// @brief Allocate a buffer of the given size
+    /// @param size Number of bytes to allocate
+    explicit ZipSourceBuffer(size_t size)
+        : m_data(static_cast<char*>(malloc(size))), m_size(size) {}
+
+    /// @brief Free the buffer if still owned
+    ~ZipSourceBuffer() {
+        if (m_data) {
+            free(m_data);
+        }
+    }
+
+    // Non-copyable
+    ZipSourceBuffer(const ZipSourceBuffer&) = delete;
+    ZipSourceBuffer& operator=(const ZipSourceBuffer&) = delete;
+
+    // Moveable
+    ZipSourceBuffer(ZipSourceBuffer&& other) noexcept
+        : m_data(other.m_data), m_size(other.m_size) {
+        other.m_data = nullptr;
+        other.m_size = 0;
+    }
+
+    ZipSourceBuffer& operator=(ZipSourceBuffer&& other) noexcept {
+        if (this != &other) {
+            if (m_data) {
+                free(m_data);
+            }
+            m_data = other.m_data;
+            m_size = other.m_size;
+            other.m_data = nullptr;
+            other.m_size = 0;
+        }
+        return *this;
+    }
+
+    /// @brief Get pointer to buffer data
+    /// @return Pointer to buffer, or nullptr if allocation failed
+    char* data() noexcept { return m_data; }
+
+    /// @brief Get buffer size
+    size_t size() const noexcept { return m_size; }
+
+    /// @brief Release ownership of the buffer
+    /// @return Pointer to buffer (caller is responsible for freeing)
+    ///
+    /// Call this after successfully passing the buffer to libzip
+    /// (i.e., after zip_source_buffer() succeeds with freep=1)
+    char* release() noexcept {
+        char* p = m_data;
+        m_data = nullptr;
+        m_size = 0;
+        return p;
+    }
+
+private:
+    char* m_data;
+    size_t m_size;
+};
 
 // ===========================================================================
 // Public API - Save
@@ -150,31 +231,33 @@ bool DocumentArchive::writeManifest(zip_t* archive, const json& manifest) {
         return false;
     }
 
-    // Allocate memory that libzip will own and free
+    // Use RAII wrapper for buffer management
     // CRITICAL: zip_source_buffer with freep=0 does NOT copy data!
     // Data must remain valid until zip_close() is called.
-    // Solution: allocate with malloc() and let libzip free it.
-    size_t size = manifest_str.size();
-    char* buffer = static_cast<char*>(malloc(size));
-    if (!buffer) {
+    // Solution: allocate with malloc() via ZipSourceBuffer, let libzip free it.
+    ZipSourceBuffer buffer(manifest_str.size());
+    if (!buffer.data()) {
         Logger::getInstance().error("DocumentArchive: Failed to allocate buffer for manifest");
         return false;
     }
-    memcpy(buffer, manifest_str.data(), size);
+    std::memcpy(buffer.data(), manifest_str.data(), manifest_str.size());
 
     // Create ZIP source from buffer
-    // Pass 'free' as freep so libzip will free the buffer when done
+    // Pass 1 as freep so libzip will free the buffer when done
     zip_source_t* source = zip_source_buffer(archive,
-                                             buffer,
-                                             size,
+                                             buffer.data(),
+                                             buffer.size(),
                                              1);  // 1 = libzip will call free()
 
     if (!source) {
         Logger::getInstance().error("DocumentArchive: Failed to create ZIP source for manifest: {}",
                                    zip_strerror(archive));
-        free(buffer);  // Free manually if source creation failed
+        // RAII: buffer is automatically freed by ~ZipSourceBuffer()
         return false;
     }
+
+    // Transfer ownership to libzip - buffer will NOT be freed by ~ZipSourceBuffer()
+    buffer.release();
 
     // Add manifest.json to ZIP at root
     zip_int64_t index = zip_file_add(archive, "manifest.json", source, ZIP_FL_OVERWRITE);
@@ -182,11 +265,11 @@ bool DocumentArchive::writeManifest(zip_t* archive, const json& manifest) {
     if (index < 0) {
         Logger::getInstance().error("DocumentArchive: Failed to add manifest.json to ZIP: {}",
                                    zip_strerror(archive));
-        zip_source_free(source);  // This will also free the buffer
+        zip_source_free(source);  // This will also free the buffer (owned by libzip now)
         return false;
     }
 
-    Logger::getInstance().debug("DocumentArchive: Wrote manifest.json ({} bytes)", size);
+    Logger::getInstance().debug("DocumentArchive: Wrote manifest.json ({} bytes)", manifest_str.size());
     return true;
 }
 

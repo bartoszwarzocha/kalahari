@@ -41,6 +41,14 @@ void CommandRegistry::registerCommand(const Command& command) {
     m_commands[command.id] = command;
 }
 
+void CommandRegistry::registerCommand(Command&& command) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    // Override if exists (allows updating commands)
+    // Move command to avoid unnecessary copy
+    std::string cmdId = command.id;  // Copy ID before moving
+    m_commands[cmdId] = std::move(command);
+}
+
 void CommandRegistry::unregisterCommand(const std::string& commandId) {
     std::lock_guard<std::mutex> lock(m_mutex);
     // Safe to call even if command doesn't exist

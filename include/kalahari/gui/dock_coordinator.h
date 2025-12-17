@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include <QList>
+#include <QPointer>
 
 class QMainWindow;
 class QDockWidget;
@@ -106,7 +107,8 @@ public:
     [[nodiscard]] DashboardPanel* dashboardPanel() const { return m_dashboardPanel; }
 
     /// @brief Set Dashboard panel (when recreated from View > Dashboard)
-    void setDashboardPanel(DashboardPanel* panel) { m_dashboardPanel = panel; }
+    /// @note Uses QPointer for safe tracking of dynamically-deleted panel
+    void setDashboardPanel(DashboardPanel* panel) { m_dashboardPanel = panel; }  // QPointer accepts raw ptr
 
     /// @brief Get Search panel
     [[nodiscard]] SearchPanel* searchPanel() const { return m_searchPanel; }
@@ -276,7 +278,7 @@ private:
     NavigatorPanel* m_navigatorPanel{nullptr};
     PropertiesPanel* m_propertiesPanel{nullptr};
     LogPanel* m_logPanel{nullptr};
-    DashboardPanel* m_dashboardPanel{nullptr};
+    QPointer<DashboardPanel> m_dashboardPanel;  ///< QPointer: auto-nulls when panel is deleted by user
     SearchPanel* m_searchPanel{nullptr};
     AssistantPanel* m_assistantPanel{nullptr};
 

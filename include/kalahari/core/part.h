@@ -78,9 +78,9 @@ public:
     Part() = default;
 
     // Getters
-    const std::string& getId() const { return m_id; }
-    const std::string& getTitle() const { return m_title; }
-    const std::vector<std::shared_ptr<BookElement>>& getChapters() const { return m_chapters; }
+    const std::string& getId() const noexcept { return m_id; }
+    const std::string& getTitle() const noexcept { return m_title; }
+    const std::vector<std::shared_ptr<BookElement>>& getChapters() const noexcept { return m_chapters; }
 
     // Setters
     void setTitle(const std::string& title);
@@ -116,11 +116,11 @@ public:
 
     /// @brief Get number of chapters
     /// @return Chapter count
-    size_t getChapterCount() const { return m_chapters.size(); }
+    size_t getChapterCount() const noexcept { return m_chapters.size(); }
 
     /// @brief Check if part is empty
     /// @return true if part has no chapters
-    bool isEmpty() const { return m_chapters.empty(); }
+    bool isEmpty() const noexcept { return m_chapters.empty(); }
 
     /// @brief Clear all chapters
     ///

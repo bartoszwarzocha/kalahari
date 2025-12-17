@@ -94,11 +94,18 @@ public:
     // Registration (called at startup or plugin load)
     // ========================================================================
 
-    /// @brief Register command in registry
+    /// @brief Register command in registry (copy version)
     /// @param command Command to register
     /// @note If command with same ID exists, it will be replaced (override)
     /// @note Thread-safety: Should be called from main thread only
     void registerCommand(const Command& command);
+
+    /// @brief Register command in registry (move version)
+    /// @param command Command to register (will be moved)
+    /// @note If command with same ID exists, it will be replaced (override)
+    /// @note Thread-safety: Should be called from main thread only
+    /// @note Use this overload to avoid unnecessary copies
+    void registerCommand(Command&& command);
 
     /// @brief Unregister command from registry
     /// @param commandId Command ID to unregister

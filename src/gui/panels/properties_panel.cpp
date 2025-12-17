@@ -833,7 +833,7 @@ void PropertiesPanel::updateProjectStatistics() {
 
     // Get chapter count and word count
     size_t chapterCount = book.getChapterCount();
-    int wordCount = book.getWordCount();
+    size_t wordCount = book.getWordCount();
 
     m_projectChaptersLabel->setText(QString::number(chapterCount));
     m_projectWordsLabel->setText(QString::number(wordCount));

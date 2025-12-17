@@ -72,7 +72,7 @@ using json = nlohmann::json;
 /// book.addBackMatter(epilogue);
 ///
 /// // Get total word count (body only)
-/// int totalWords = book.getWordCount();
+/// size_t totalWords = book.getWordCount();
 ///
 /// // Serialize
 /// json j = book.toJson();
@@ -83,14 +83,14 @@ public:
     Book() = default;
 
     // Getters (non-const for modification)
-    std::vector<std::shared_ptr<BookElement>>& getFrontMatter() { return m_frontMatter; }
-    std::vector<std::shared_ptr<Part>>& getBody() { return m_body; }
-    std::vector<std::shared_ptr<BookElement>>& getBackMatter() { return m_backMatter; }
+    std::vector<std::shared_ptr<BookElement>>& getFrontMatter() noexcept { return m_frontMatter; }
+    std::vector<std::shared_ptr<Part>>& getBody() noexcept { return m_body; }
+    std::vector<std::shared_ptr<BookElement>>& getBackMatter() noexcept { return m_backMatter; }
 
     // Const getters
-    const std::vector<std::shared_ptr<BookElement>>& getFrontMatter() const { return m_frontMatter; }
-    const std::vector<std::shared_ptr<Part>>& getBody() const { return m_body; }
-    const std::vector<std::shared_ptr<BookElement>>& getBackMatter() const { return m_backMatter; }
+    const std::vector<std::shared_ptr<BookElement>>& getFrontMatter() const noexcept { return m_frontMatter; }
+    const std::vector<std::shared_ptr<Part>>& getBody() const noexcept { return m_body; }
+    const std::vector<std::shared_ptr<BookElement>>& getBackMatter() const noexcept { return m_backMatter; }
 
     /// @brief Add element to front matter
     /// @param element BookElement (typically title_page, copyright, dedication, preface)
@@ -132,7 +132,7 @@ public:
     ///
     /// Note: Front matter and back matter are excluded from the count.
     /// This follows industry standard (novel word counts don't include prelims).
-    int getWordCount() const;
+    size_t getWordCount() const;
 
     /// @brief Get total chapter count across all parts
     /// @return Number of chapters in body
@@ -140,7 +140,7 @@ public:
 
     /// @brief Get number of parts in body
     /// @return Part count
-    size_t getPartCount() const { return m_body.size(); }
+    size_t getPartCount() const noexcept { return m_body.size(); }
 
     /// @brief Check if book is empty (no content)
     /// @return true if all three sections are empty

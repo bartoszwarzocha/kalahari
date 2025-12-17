@@ -115,10 +115,10 @@ void DockCoordinator::createCentralWidget() {
         QWidget* widget = m_centralTabs->widget(index);
 
         // Check if this is the Dashboard panel being closed
+        // Note: m_dashboardPanel is QPointer - auto-nulls when widget is deleted
         if (widget == m_dashboardPanel) {
-            m_dashboardPanel = nullptr;
             emit dashboardClosed();
-            logger.debug("DockCoordinator: Dashboard panel closed");
+            logger.debug("DockCoordinator: Dashboard panel closed (QPointer will auto-null)");
         }
 
         // Emit signal for MainWindow to handle (unsaved changes check, etc.)
