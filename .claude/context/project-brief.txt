@@ -15,13 +15,21 @@
 ## Source Structure
 include/kalahari/
 ├── core/       # business logic, singletons
-├── gui/        # UI components
-└── utils/      # utilities
+├── gui/        # UI components, coordinators
+│   └── utils/  # GUI utilities (clearLayout, etc.)
+└── utils/      # general utilities
 
 src/
 ├── core/
 ├── gui/
+│   └── utils/
 └── utils/
+
+## MainWindow Architecture (OpenSpec #00038)
+MainWindow is a thin orchestrator (~805 lines) with 7 coordinators:
+- IconRegistrar, CommandRegistrar, DockCoordinator
+- DocumentCoordinator, NavigatorCoordinator
+- DiagnosticController, SettingsCoordinator
 
 ## Singletons (CORRECT API)
 - core::ArtProvider::getInstance()      # icons, colors, actions
@@ -29,7 +37,8 @@ src/
 - core::ThemeManager::getInstance()     # themes, palettes
 - core::IconRegistry::getInstance()     # icon registry (internal)
 - core::Logger::getInstance()           # logging
-- gui::CommandRegistry::getInstance()   # command registry
+- core::TrustedKeys::getInstance()      # plugin publisher keys
+- gui::CommandRegistry::getInstance()   # command registry (thread-safe)
 
 ## MANDATORY Patterns (CORRECT API)
 

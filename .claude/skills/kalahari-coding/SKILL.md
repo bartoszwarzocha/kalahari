@@ -20,7 +20,7 @@ QIcon("path/to/icon.svg")  // hardcoded path
 
 ### Available icons
 - Location: `resources/icons/`
-- Registered in: `main_window.cpp` (IconRegistry::registerIcon)
+- Registered in: `icon_registrar.cpp` (gui::registerAllIcons())
 
 ## 2. Icon Colors
 
@@ -140,6 +140,20 @@ QGroupBox* group = new QGroupBox(tr("Title"));
 ### Stretch factors
 - 0 = fixed size
 - 1+ = flexible, fills available space
+
+### Clearing layouts (ALWAYS use utility)
+```cpp
+#include "kalahari/gui/utils/layout_utils.h"
+
+// ALWAYS - properly handles nested layouts
+kalahari::gui::utils::clearLayout(m_contentLayout);
+
+// NEVER - leaks nested layouts
+while (QLayoutItem* item = layout->takeAt(0)) {
+    delete item->widget();
+    delete item;
+}
+```
 
 ## 8. Build
 

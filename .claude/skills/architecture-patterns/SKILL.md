@@ -7,15 +7,34 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 
 ## 1. Key Classes
 
+### Core Singletons
 | Class | Location | Role |
 |-------|----------|------|
-| MainWindow | gui/main_window.h | Main window, manages panels, menus, toolbars |
 | SettingsManager | core/settings_manager.h | Singleton, JSON config persistence |
 | ArtProvider | core/art_provider.h | Singleton, icons, colors, QAction creation |
 | IconRegistry | core/icon_registry.h | Singleton, icon registration and caching |
 | ThemeManager | core/theme_manager.h | Singleton, theme loading, palette management |
-| CommandRegistry | gui/command_registry.h | Singleton, action/command registration |
+| CommandRegistry | gui/command_registry.h | Singleton, action/command registration (thread-safe) |
 | Logger | core/logger.h | Singleton, spdlog wrapper |
+| TrustedKeys | core/trusted_keys.h | Singleton, plugin publisher key management |
+
+### MainWindow Coordinators (OpenSpec #00038)
+| Class | Location | Role |
+|-------|----------|------|
+| MainWindow | gui/main_window.h | Thin orchestrator (~805 lines) |
+| IconRegistrar | gui/icon_registrar.h | Icon registration with IconRegistry |
+| CommandRegistrar | gui/command_registrar.h | Command registration with callbacks |
+| DockCoordinator | gui/dock_coordinator.h | Panel and dock widget management |
+| DocumentCoordinator | gui/document_coordinator.h | Document lifecycle, open/save/close |
+| NavigatorCoordinator | gui/navigator_coordinator.h | Navigator panel interaction handlers |
+| DiagnosticController | gui/diagnostic_controller.h | Diagnostic and dev mode management |
+| SettingsCoordinator | gui/settings_coordinator.h | Settings dialog integration |
+
+### Plugin Security
+| Class | Location | Role |
+|-------|----------|------|
+| PluginSignature | core/plugin_signature.h | Ed25519 signature verification |
+| TrustedKeys | core/trusted_keys.h | Trusted publisher key management |
 
 ## 2. Design Patterns Used
 
@@ -47,15 +66,26 @@ include/kalahari/
 │   ├── icon_registry.h
 │   ├── logger.h
 │   ├── book.h
-│   └── document.h
+│   ├── document.h
+│   ├── plugin_signature.h    # Ed25519 verification
+│   └── trusted_keys.h        # Publisher key management
 ├── gui/            # UI components
-│   ├── main_window.h
+│   ├── main_window.h         # Thin orchestrator
+│   ├── icon_registrar.h      # Icon registration
+│   ├── command_registrar.h   # Command registration
+│   ├── dock_coordinator.h    # Panel management
+│   ├── document_coordinator.h
+│   ├── navigator_coordinator.h
+│   ├── diagnostic_controller.h
+│   ├── settings_coordinator.h
 │   ├── command_registry.h
 │   ├── settings_dialog.h
-│   └── panels/
-│       ├── editor_panel.h
-│       ├── navigator_panel.h
-│       └── log_panel.h
+│   ├── panels/
+│   │   ├── editor_panel.h
+│   │   ├── navigator_panel.h
+│   │   └── log_panel.h
+│   └── utils/
+│       └── layout_utils.h    # clearLayout() helper
 └── utils/          # utilities
     └── ...
 
@@ -138,6 +168,9 @@ set(KALAHARI_GUI_HEADERS
 3. `find_referencing_symbols("ClassName")` - find usages
 
 ### Key files to check
-- `main_window.cpp` - see how panels/menus created
-- `settings_dialog.cpp` - see dialog patterns
-- `art_provider.cpp` - see icon/color handling
+- `main_window.cpp` - thin orchestrator, coordinator creation
+- `dock_coordinator.cpp` - panel/dock widget patterns
+- `document_coordinator.cpp` - document lifecycle patterns
+- `settings_dialog.cpp` - dialog patterns
+- `art_provider.cpp` - icon/color handling
+- `plugin_signature.cpp` - Ed25519 verification patterns
