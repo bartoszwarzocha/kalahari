@@ -382,29 +382,22 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
 QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock, QMenu* menu) {
     auto& logger = core::Logger::getInstance();
     auto& registry = CommandRegistry::getInstance();
-    auto& artProvider = core::ArtProvider::getInstance();
 
-    Command* cmd = registry.getCommand(cmdId);
-    if (!cmd) {
-        logger.warn("DockCoordinator: Command not found: {}", cmdId);
+    // Get action from CommandRegistry (single source of truth)
+    // Action is already configured with icon, shortcut, checkable state from command
+    QAction* action = registry.getAction(cmdId);
+    if (!action) {
+        logger.warn("DockCoordinator: Action not found for command: {}", cmdId);
         return nullptr;
     }
 
-    QAction* action = artProvider.createAction(
-        QString::fromStdString(cmdId),
-        QString::fromStdString(cmd->label),
-        menu,
-        core::IconContext::Menu
-    );
+    // Set checkable state (Command's isChecked callback is already set in connectPanelCommand)
     action->setCheckable(true);
     action->setChecked(dock->isVisible());
-    action->setShortcut(cmd->shortcut.toQKeySequence());
 
-    // Two-way binding: action -> dock
-    QObject::connect(action, &QAction::triggered, [dock](bool) {
-        dock->setVisible(!dock->isVisible());
-    });
-    // Two-way binding: dock -> action
+    // Two-way binding: dock -> action (sync visual state)
+    // Note: action->triggered is already connected to executeCommand in CommandRegistry,
+    // which calls cmd->execute (set in connectPanelCommand) to toggle dock visibility
     QObject::connect(dock, &QDockWidget::visibilityChanged, [action](bool visible) {
         action->blockSignals(true);
         action->setChecked(visible);

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **OpenSpec #00040:** Central Action Management (Command Registry Refactoring) - 2025-12-17
+  - **Architecture:** CommandRegistry now owns single QAction per command (central source of truth)
+  - **New API:**
+    - `getAction(commandId)` - Returns shared QAction pointer
+    - `updateActionState(commandId)` - Synchronizes checked/enabled state
+    - `getAllActions()` - Returns all registered actions for ToolbarManagerDialog
+  - **MenuBuilder:** Uses `registry.getAction()` instead of creating duplicate QActions
+  - **ToolbarManager:** Uses `registry.getAction()` for toolbar buttons
+  - **ToolbarManagerDialog:** Uses `registry.getAction()` for action list
+  - **DockCoordinator:** Uses `registry.getAction()` for panel toggle actions
+  - **Fullscreen Toggle:** F11 and View > Full Screen work with synchronized state
+  - **Benefit:** Checkable actions (fullscreen) auto-sync across menu, toolbar, and shortcuts
+  - Files modified: `command_registry.h`, `command_registry.cpp`, `menu_builder.cpp`, `toolbar_manager.cpp`, `toolbar_manager_dialog.cpp`, `dock_coordinator.cpp`, `main_window.cpp`
+  - Documentation updated: `03_architecture.md`, `SKILL.md`
+  - Deleted: `menu_builder_backup.cpp`
+  - Tests: 83/83 PASS
+
 ### Fixed
 
 - **OpenSpec #00039:** Custom Toolbar Persistence & Visibility - 2025-12-17

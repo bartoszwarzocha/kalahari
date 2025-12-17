@@ -2,6 +2,9 @@
 /// @brief CommandRegistry implementation
 
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/core/art_provider.h"
+#include <QAction>
+#include <QString>
 #include <algorithm>
 #include <set>
 
@@ -11,6 +14,16 @@ namespace gui {
 // ============================================================================
 // Singleton
 // ============================================================================
+
+CommandRegistry::CommandRegistry() : QObject(nullptr) {
+    // Parent is nullptr - singleton lifetime managed by static storage
+}
+
+CommandRegistry::~CommandRegistry() {
+    // Clean up all owned QAction instances
+    qDeleteAll(m_actions);
+    m_actions.clear();
+}
 
 CommandRegistry& CommandRegistry::getInstance() {
     // Meyers singleton - thread-safe in C++11+
@@ -204,7 +217,156 @@ size_t CommandRegistry::getCommandCount() const {
 
 void CommandRegistry::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
+    // Clean up actions first
+    qDeleteAll(m_actions);
+    m_actions.clear();
     m_commands.clear();
+}
+
+// ============================================================================
+// QAction Management (OpenSpec #00040 - Phase 1)
+// ============================================================================
+
+QAction* CommandRegistry::getAction(const QString& commandId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Check if action already exists in cache
+    auto actionIt = m_actions.find(commandId);
+    if (actionIt != m_actions.end()) {
+        return actionIt.value();
+    }
+
+    // Find the command
+    std::string cmdIdStd = commandId.toStdString();
+    auto cmdIt = m_commands.find(cmdIdStd);
+    if (cmdIt == m_commands.end()) {
+        return nullptr;  // Command not registered
+    }
+
+    // Create new action for this command
+    QAction* action = createActionForCommand(commandId, cmdIt->second);
+    m_actions.insert(commandId, action);
+    return action;
+}
+
+QAction* CommandRegistry::getAction(const std::string& commandId) {
+    return getAction(QString::fromStdString(commandId));
+}
+
+QAction* CommandRegistry::createActionForCommand(const QString& commandId, const Command& cmd) {
+    // Use ArtProvider to create self-updating action with icon
+    auto& artProvider = core::ArtProvider::getInstance();
+    QAction* action = artProvider.createAction(
+        commandId,
+        QString::fromStdString(cmd.label),
+        this,  // CommandRegistry owns the action
+        core::IconContext::Toolbar  // Default context, menu/toolbar will use appropriate size
+    );
+
+    // Configure shortcut
+    if (!cmd.shortcut.isEmpty()) {
+        action->setShortcut(cmd.shortcut.toQKeySequence());
+    }
+
+    // Configure tooltip
+    if (!cmd.tooltip.empty()) {
+        action->setToolTip(QString::fromStdString(cmd.tooltip));
+    } else if (!cmd.label.empty()) {
+        // Fallback: use label as tooltip
+        action->setToolTip(QString::fromStdString(cmd.label));
+    }
+
+    // Configure checkable state
+    if (cmd.isChecked) {
+        action->setCheckable(true);
+        action->setChecked(cmd.checkChecked());
+    }
+
+    // Configure enabled state
+    action->setEnabled(cmd.checkEnabled());
+
+    // Store command ID in action's data for later retrieval
+    action->setData(commandId);
+
+    // Connect triggered signal to executeCommand
+    // Capture commandId by value (QString copy)
+    connect(action, &QAction::triggered, this, [this, cmdId = commandId.toStdString()](bool /*checked*/) {
+        executeCommand(cmdId);
+    });
+
+    return action;
+}
+
+QList<QAction*> CommandRegistry::getAllActions() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_actions.values();
+}
+
+QList<QAction*> CommandRegistry::getActionsByCategory(const std::string& category) {
+    QList<QAction*> result;
+
+    // Get commands in category (need to release lock before calling getAction)
+    std::vector<std::string> commandIds;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const auto& pair : m_commands) {
+            if (pair.second.category == category) {
+                commandIds.push_back(pair.first);
+            }
+        }
+    }
+
+    // Get/create actions for each command
+    for (const auto& cmdId : commandIds) {
+        QAction* action = getAction(cmdId);
+        if (action) {
+            result.append(action);
+        }
+    }
+
+    return result;
+}
+
+void CommandRegistry::updateActionState(const std::string& commandId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    QString qCmdId = QString::fromStdString(commandId);
+    auto actionIt = m_actions.find(qCmdId);
+    if (actionIt == m_actions.end()) {
+        return;  // Action not yet created
+    }
+
+    auto cmdIt = m_commands.find(commandId);
+    if (cmdIt == m_commands.end()) {
+        return;  // Command not registered
+    }
+
+    QAction* action = actionIt.value();
+    const Command& cmd = cmdIt->second;
+
+    // Update enabled state
+    action->setEnabled(cmd.checkEnabled());
+
+    // Update checked state (only if checkable)
+    if (action->isCheckable()) {
+        action->setChecked(cmd.checkChecked());
+    }
+}
+
+void CommandRegistry::updateAllActionStates() {
+    // Get list of action keys (need to release lock before calling updateActionState)
+    std::vector<std::string> commandIds;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (auto it = m_actions.constBegin(); it != m_actions.constEnd(); ++it) {
+            commandIds.push_back(it.key().toStdString());
+        }
+    }
+
+    // Update each action
+    for (const auto& cmdId : commandIds) {
+        updateActionState(cmdId);
+    }
 }
 
 } // namespace gui

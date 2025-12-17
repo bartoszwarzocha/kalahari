@@ -252,6 +252,10 @@ void LogPanel::createToolbar() {
 
     auto& artProvider = core::ArtProvider::getInstance();
 
+    // NOTE: These actions are panel-local toolbar buttons, not registered in CommandRegistry.
+    // They are specific to LogPanel's internal functionality and not exposed in menus/shortcuts.
+    // Using ArtProvider::createAction() directly for icon auto-refresh on theme change.
+
     // Options button (uses log.options icon registered in MainWindow)
     QAction* optionsAction = artProvider.createAction("log.options", tr("Options"), m_toolBar);
     optionsAction->setToolTip(tr("Open Log Settings"));

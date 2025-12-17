@@ -9,6 +9,7 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
@@ -271,6 +272,13 @@ void MainWindow::registerCommands() {
 
     // Register all commands with the callbacks
     int count = registerAllCommands(callbacks);
+
+    // OpenSpec #00040: Setup fullscreen command callbacks (post-registration modification)
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    if (auto* fsCmd = registry.getCommand("view.fullScreen")) {
+        fsCmd->execute = [this]() { toggleFullScreen(); };
+        fsCmd->isChecked = [this]() { return isFullScreen(); };
+    }
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -640,6 +648,28 @@ void MainWindow::updateWindowTitle() {
     }
 
     setWindowTitle(title);
+}
+
+void MainWindow::toggleFullScreen() {
+    auto& logger = core::Logger::getInstance();
+
+    if (isFullScreen()) {
+        // Exit fullscreen
+        logger.debug("MainWindow: Exiting fullscreen mode");
+        showNormal();
+        if (!m_savedGeometryBeforeFullscreen.isEmpty()) {
+            restoreGeometry(m_savedGeometryBeforeFullscreen);
+        }
+    } else {
+        // Enter fullscreen
+        logger.debug("MainWindow: Entering fullscreen mode");
+        m_savedGeometryBeforeFullscreen = saveGeometry();
+        showFullScreen();
+    }
+
+    // OpenSpec #00040: Update action checked state after fullscreen toggle
+    // This synchronizes the QAction's checked state with actual window state
+    CommandRegistry::getInstance().updateActionState("view.fullScreen");
 }
 
 // NOTE: getPhase0Content and setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)

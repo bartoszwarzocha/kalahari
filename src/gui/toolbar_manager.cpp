@@ -3,6 +3,9 @@
 ///
 /// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
 /// self-updating icons. Removed refreshIcons() method entirely.
+///
+/// OpenSpec #00040 Phase 3: Migrated addToolbarItem() to use CommandRegistry::getAction()
+/// instead of creating new QAction instances. CommandRegistry now owns all command actions.
 
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
@@ -714,7 +717,6 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
 
 void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, CommandRegistry& registry) {
     auto& logger = core::Logger::getInstance();
-    auto& artProvider = core::ArtProvider::getInstance();
 
     if (cmdId == SEPARATOR_ID) {
         toolbar->addSeparator();
@@ -742,41 +744,14 @@ void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, Com
         toolbar->addWidget(sizeSpinner);
         m_fontSizeSpinner = sizeSpinner;
     } else {
-        std::string cmdIdStd = cmdId.toStdString();
-        Command* cmd = registry.getCommand(cmdIdStd);
-        if (cmd && cmd->canExecute()) {
-            // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
-            // This creates an action that automatically refreshes on theme/color changes
-            QAction* action = artProvider.createAction(
-                cmdId,
-                QString::fromStdString(cmd->label),
-                toolbar,
-                core::IconContext::Toolbar
-            );
-
-            // Set tooltip and shortcut from command
-            if (!cmd->tooltip.empty()) {
-                action->setToolTip(QString::fromStdString(cmd->tooltip));
-                action->setStatusTip(QString::fromStdString(cmd->tooltip));
-            }
-            if (!cmd->shortcut.isEmpty()) {
-                action->setShortcut(cmd->shortcut.toQKeySequence());
-            }
-
-            // Set checkable state if command has isChecked callback
-            if (cmd->isChecked) {
-                action->setCheckable(true);
-                action->setChecked(cmd->isChecked());
-            }
-
+        // OpenSpec #00040 Phase 3: Use CommandRegistry::getAction() for centralized action management
+        // CommandRegistry owns QAction instances - they are configured with icon, shortcut, tooltip
+        // and connected to executeCommand(). No need to duplicate configuration here.
+        QAction* action = registry.getAction(cmdId);
+        if (action) {
             toolbar->addAction(action);
-
-            // Connect action to command execution
-            QObject::connect(action, &QAction::triggered, [cmdIdStd, &registry]() {
-                registry.executeCommand(cmdIdStd);
-            });
         } else {
-            logger.warn("ToolbarManager: Command '{}' not found or not executable", cmdIdStd);
+            logger.warn("ToolbarManager: Command '{}' not found or not executable", cmdId.toStdString());
         }
     }
 }

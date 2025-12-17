@@ -276,41 +276,33 @@ public:
 };
 ```
 
-### Command Registry System
+### Command Registry System (OpenSpec #00040)
 
-**Purpose:** Unified command execution system for menu items, toolbar buttons, and keyboard shortcuts.
+CommandRegistry is the central owner of all application actions.
 
-**Implementation:**
-```cpp
-// Command descriptor
-struct Command {
-    std::string id;                    // "file.save", "edit.undo"
-    std::string label;                 // "Save", "Undo"
-    std::string category;              // "File", "Edit"
-    std::function<void()> execute;     // Execution callback
-    std::function<bool()> isEnabled;   // Dynamic enable/disable
-    KeyboardShortcut shortcut;         // Ctrl+S, etc.
-    bool showInMenu = true;
-    bool showInToolbar = false;
-};
+**Architecture:**
+- `m_commands` - stores command definitions (Command struct)
+- `m_actions` - stores shared QAction (one per command)
+- Menu/Toolbar/Dialog use `getAction()` instead of creating their own QAction
 
-// Central registry (Singleton)
-class CommandRegistry {
-    std::unordered_map<std::string, Command> m_commands;
-public:
-    static CommandRegistry& getInstance();
-    void registerCommand(const Command& command);
-    CommandExecutionResult executeCommand(const std::string& commandId);
-    std::vector<Command> getCommandsByCategory(const std::string& category) const;
-};
-```
+**Key methods:**
+- `registerCommand(Command)` - registers command definition
+- `getAction(commandId)` - returns shared QAction (creates if not exists)
+- `updateActionState(commandId)` - synchronizes checked/enabled state
+- `getAllActions()` - returns all QAction (for ToolbarManagerDialog)
+
+**Flow:**
+1. CommandRegistrar registers commands at startup
+2. MenuBuilder/ToolbarManager get QAction via getAction()
+3. One QAction is shared - state change visible everywhere
+4. updateActionState() refreshes state after change (e.g., toggle fullscreen)
 
 **Benefits:**
-- Single source of truth for all commands
-- Automatic UI generation (MenuBuilder, ToolbarBuilder)
+- Single source of truth for all commands and QActions
+- No duplicate QAction instances
+- Automatic state synchronization (checkable actions)
 - Plugin-friendly (plugins register commands like core)
-- Dynamic state management (enable/disable based on app state)
-- Unified execution path (menu/toolbar/keyboard all route through registry)
+- ToolbarManagerDialog integration via getAllActions()
 
 **See:** [project_docs/18_command_registry_architecture.md](18_command_registry_architecture.md) for complete documentation.
 

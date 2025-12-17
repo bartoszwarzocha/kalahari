@@ -424,17 +424,19 @@ void ToolbarManagerDialog::populateToolbarList() {
 void ToolbarManagerDialog::populateAvailableCommands() {
     m_availableCommands->clear();
 
+    auto& registry = CommandRegistry::getInstance();
+
     // Populate category combo if not done yet
     if (m_categoryCombo->count() <= 1) {
-        auto categories = CommandRegistry::getInstance().getCategories();
+        auto categories = registry.getCategories();
         for (const auto& category : categories) {
             m_categoryCombo->addItem(QString::fromStdString(category),
                                       QString::fromStdString(category));
         }
     }
 
-    // Get all commands
-    auto commands = CommandRegistry::getInstance().getAllCommands();
+    // Get all commands for structure (category grouping)
+    auto commands = registry.getAllCommands();
 
     // Group by category
     QMap<QString, QTreeWidgetItem*> categoryItems;
@@ -463,11 +465,11 @@ void ToolbarManagerDialog::populateAvailableCommands() {
         cmdItem->setText(1, shortcut);
         cmdItem->setData(0, Qt::UserRole, cmdId);
 
-        // Set icon if available
-        auto& art = kalahari::core::ArtProvider::getInstance();
-        QIcon icon = art.getIcon(cmdId, kalahari::core::IconContext::Menu);
-        if (!icon.isNull()) {
-            cmdItem->setIcon(0, icon);
+        // Get icon from shared QAction (OpenSpec #00040 - Phase 3)
+        // QAction icons auto-refresh on theme change via ArtProvider
+        QAction* action = registry.getAction(cmdId);
+        if (action && !action->icon().isNull()) {
+            cmdItem->setIcon(0, action->icon());
         }
     }
 
@@ -483,6 +485,7 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
     }
 
     const QStringList& commands = m_pendingChanges[toolbarId];
+    auto& registry = CommandRegistry::getInstance();
     auto& art = kalahari::core::ArtProvider::getInstance();
 
     for (const QString& cmdId : commands) {
@@ -495,21 +498,22 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
         } else if (cmdId == "_WIDGET_FONT_COMBO_") {
             item->setText(tr("Font Family (dropdown)"));
             item->setData(Qt::UserRole, cmdId);
+            // Special widgets - use ArtProvider directly (no Command exists)
             item->setIcon(art.getIcon("format.font", kalahari::core::IconContext::Menu));
         } else if (cmdId == "_WIDGET_FONT_SIZE_") {
             item->setText(tr("Font Size (spinner)"));
             item->setData(Qt::UserRole, cmdId);
+            // Special widgets - use ArtProvider directly (no Command exists)
             item->setIcon(art.getIcon("format.font", kalahari::core::IconContext::Menu));
         } else {
-            // Get command info
-            const Command* cmd = CommandRegistry::getInstance().getCommand(cmdId.toStdString());
-            if (cmd) {
-                item->setText(QString::fromStdString(cmd->label));
+            // Get shared QAction from CommandRegistry (OpenSpec #00040 - Phase 3)
+            QAction* action = registry.getAction(cmdId);
+            if (action) {
+                item->setText(action->text());
                 item->setData(Qt::UserRole, cmdId);
 
-                QIcon icon = art.getIcon(cmdId, kalahari::core::IconContext::Menu);
-                if (!icon.isNull()) {
-                    item->setIcon(icon);
+                if (!action->icon().isNull()) {
+                    item->setIcon(action->icon());
                 }
             } else {
                 // Command not found - show ID

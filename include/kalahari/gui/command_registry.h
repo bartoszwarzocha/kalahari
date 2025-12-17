@@ -27,10 +27,15 @@
 #pragma once
 
 #include "kalahari/gui/command.h"
+#include <QObject>
+#include <QHash>
+#include <QList>
 #include <unordered_map>
 #include <vector>
 #include <string>
 #include <mutex>
+
+class QAction;
 
 namespace kalahari {
 namespace gui {
@@ -71,7 +76,15 @@ using CommandErrorHandler = std::function<void(const std::string& commandId, con
 /// - Singleton initialization is thread-safe (C++11 guarantee)
 /// - All methods are protected by mutex for thread-safe access
 /// - Command execution can happen from any thread (callbacks handle threading)
-class CommandRegistry {
+///
+/// QAction Management (Phase 1 - OpenSpec #00040):
+/// - CommandRegistry owns QAction instances (created on-demand via getAction())
+/// - Actions are auto-configured with icon, shortcut, tooltip from Command
+/// - Actions auto-refresh on theme change via ArtProvider::createAction()
+/// - Menu/Toolbar/Dialog = renderers that GET actions, not create them
+class CommandRegistry : public QObject {
+    Q_OBJECT
+
 public:
     /// @brief Get singleton instance (thread-safe, C++11+)
     /// @return Reference to the single CommandRegistry instance
@@ -178,20 +191,69 @@ public:
     /// @note Primarily for testing, not for production use
     void clear();
 
+    // ========================================================================
+    // QAction Management (OpenSpec #00040 - Phase 1)
+    // ========================================================================
+
+    /// @brief Get QAction for command ID (creates on first call)
+    /// @param commandId Command ID (e.g., "file.save")
+    /// @return QAction pointer or nullptr if command not registered
+    /// @note Action is owned by CommandRegistry (do NOT delete)
+    /// @note Action is configured with icon (via ArtProvider), shortcut, tooltip
+    /// @note Action's triggered() signal is connected to executeCommand()
+    /// @note Action auto-refreshes icon on theme change
+    QAction* getAction(const QString& commandId);
+
+    /// @brief Get QAction for command ID (std::string overload)
+    /// @param commandId Command ID
+    /// @return QAction pointer or nullptr if command not registered
+    QAction* getAction(const std::string& commandId);
+
+    /// @brief Get all created QAction instances
+    /// @return List of all QAction pointers (owned by CommandRegistry)
+    /// @note Only returns actions that have been created via getAction()
+    QList<QAction*> getAllActions() const;
+
+    /// @brief Get QActions for commands in specific category
+    /// @param category Category name ("File", "Edit", "View", etc.)
+    /// @return List of QAction pointers for that category
+    /// @note Creates actions on-demand if not already created
+    QList<QAction*> getActionsByCategory(const std::string& category);
+
+    /// @brief Refresh action state (enabled/checked) from command callbacks
+    /// @param commandId Command ID to refresh
+    /// @note Call when application state changes that might affect command state
+    /// @note Updates QAction::setEnabled() and QAction::setChecked()
+    void updateActionState(const std::string& commandId);
+
+    /// @brief Refresh all action states
+    /// @note Convenience method to update all actions after major state change
+    void updateAllActionStates();
+
 private:
     // Singleton pattern (Meyers)
-    CommandRegistry() = default;
-    ~CommandRegistry() = default;
+    CommandRegistry();
+    ~CommandRegistry() override;
     CommandRegistry(const CommandRegistry&) = delete;
     CommandRegistry& operator=(const CommandRegistry&) = delete;
+
+    /// @brief Create QAction for command (internal helper)
+    /// @param commandId Command ID
+    /// @param cmd Command reference
+    /// @return Created QAction
+    QAction* createActionForCommand(const QString& commandId, const Command& cmd);
 
     /// @brief Command storage (key = command ID)
     std::unordered_map<std::string, Command> m_commands;
 
+    /// @brief QAction cache (key = command ID, value = owned QAction)
+    /// Actions are created on-demand via getAction() and owned by CommandRegistry
+    QHash<QString, QAction*> m_actions;
+
     /// @brief Custom error handler (nullptr if not set)
     CommandErrorHandler m_errorHandler = nullptr;
 
-    /// @brief Mutex for thread-safe access to m_commands and m_errorHandler
+    /// @brief Mutex for thread-safe access to m_commands, m_actions, and m_errorHandler
     mutable std::mutex m_mutex;
 };
 

@@ -455,7 +455,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.resetZoom", "Reset Zoom", "VIEW/Reset Zoom", 240, true, 1);
 
     // OpenSpec #00030: F11 for Full Screen (standard)
-    REG_CMD_KEY("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 1,
+    REG_CMD_KEY("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 0,
                 KeyboardShortcut::fromQKeySequence(QKeySequence::FullScreen));
 
     REG_CMD_CB("view.resetLayout", "Reset Layout", "VIEW/Reset Layout", 260, false, 0,

@@ -243,6 +243,9 @@ private:
     // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
     bool m_isDirty;                                   ///< Unsaved changes flag
 
+    // Fullscreen mode (OpenSpec #00040)
+    QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
+
     // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
     // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
 
@@ -251,6 +254,9 @@ private:
 
     /// @brief Update window title with filename and dirty state
     void updateWindowTitle();
+
+    /// @brief Toggle fullscreen mode (OpenSpec #00040)
+    void toggleFullScreen();
 
     /// @brief Get currently active EditorPanel tab (Task #00015)
     /// @return Active EditorPanel if current tab is an editor, nullptr otherwise

@@ -1,14 +1,12 @@
 /// @file menu_builder.cpp
 /// @brief MenuBuilder implementation with hierarchical menu support (Task #00016)
 ///
-/// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
-/// self-updating icons. Removed refreshIcons() method entirely.
+/// OpenSpec #00040: Refactored to use CommandRegistry::getAction() for shared
+/// QAction instances. Menu and toolbar now share the same action objects.
 
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/art_provider.h"
 #include <QAction>
-#include <QMessageBox>
 #include <QApplication>
 #include <QMenuBar>
 #include <algorithm>
@@ -177,53 +175,15 @@ void MenuBuilder::createMenuAction(QMenu* menu,
         return;
     }
 
-    auto& artProvider = core::ArtProvider::getInstance();
-
-    // OpenSpec #00026: Use ArtProvider::createAction() for self-updating icons
-    // This creates an action that automatically refreshes on theme/color changes
-    QAction* action = artProvider.createAction(
-        QString::fromStdString(command.id),
-        QString::fromStdString(command.label),
-        menu,
-        core::IconContext::Menu
-    );
-
-    // Set tooltip and shortcut from command
-    if (!command.tooltip.empty()) {
-        action->setToolTip(QString::fromStdString(command.tooltip));
-        action->setStatusTip(QString::fromStdString(command.tooltip));
+    // OpenSpec #00040: Use shared QAction from CommandRegistry
+    // CommandRegistry owns the action and handles all configuration:
+    // - Icon (via ArtProvider with auto-refresh)
+    // - Tooltip, shortcut, checkable state
+    // - triggered signal connection to executeCommand()
+    QAction* action = registry.getAction(command.id);
+    if (action) {
+        menu->addAction(action);
     }
-    if (!command.shortcut.isEmpty()) {
-        action->setShortcut(command.shortcut.toQKeySequence());
-    }
-
-    // Set checkable state if command has isChecked callback
-    if (command.isChecked) {
-        action->setCheckable(true);
-        action->setChecked(command.isChecked());
-    }
-
-    // Handle phase marker: if phase > 0, override execute with QMessageBox
-    if (command.phase > 0) {
-        QObject::connect(action, &QAction::triggered, [phase = command.phase, label = command.label]() {
-            QMessageBox::information(
-                qApp->activeWindow(),
-                QObject::tr("Feature Not Implemented"),
-                QObject::tr("'%1' will be available in Phase %2.\n\n"
-                            "This feature is planned but not yet implemented.")
-                    .arg(QString::fromStdString(label))
-                    .arg(phase)
-            );
-        });
-    } else {
-        // Normal command execution via CommandRegistry
-        QObject::connect(action, &QAction::triggered, [&registry, id = command.id]() {
-            registry.executeCommand(id);
-        });
-    }
-
-    // Add to menu
-    menu->addAction(action);
 }
 
 void MenuBuilder::registerDynamicMenu(const std::string& menuPath, DynamicMenuProvider provider) {
@@ -271,11 +231,10 @@ QMenu* MenuBuilder::getMenu(const std::string& technicalName) const {
     return nullptr;
 }
 
-// OpenSpec #00026: refreshIcons() method REMOVED
-// Icon refresh is now automatic via ArtProvider::createAction() which
-// connects each action to ArtProvider::resourcesChanged() signal.
-// When theme/colors/sizes change, ArtProvider emits resourcesChanged()
-// and all managed actions update their icons automatically.
+// OpenSpec #00040: refreshIcons() method REMOVED
+// Icon refresh is now automatic via CommandRegistry's shared actions.
+// CommandRegistry uses ArtProvider::createAction() which connects each
+// action to ArtProvider::resourcesChanged() signal for auto-refresh.
 
 } // namespace gui
 } // namespace kalahari

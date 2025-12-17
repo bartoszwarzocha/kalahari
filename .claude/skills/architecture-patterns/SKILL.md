@@ -14,7 +14,7 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 | ArtProvider | core/art_provider.h | Singleton, icons, colors, QAction creation |
 | IconRegistry | core/icon_registry.h | Singleton, icon registration and caching |
 | ThemeManager | core/theme_manager.h | Singleton, theme loading, palette management |
-| CommandRegistry | gui/command_registry.h | Singleton, action/command registration (thread-safe) |
+| CommandRegistry | gui/command_registry.h | Singleton, central QAction owner, getAction(), updateActionState() |
 | Logger | core/logger.h | Singleton, spdlog wrapper |
 | TrustedKeys | core/trusted_keys.h | Singleton, plugin publisher key management |
 
