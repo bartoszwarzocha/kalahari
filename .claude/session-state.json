@@ -1,58 +1,77 @@
 {
-  "mode": "full",
-  "saved_at": "2025-12-17T17:00:00",
+  "mode": "quick",
+  "saved_at": "2025-12-19T22:00:00",
   "git_branch": "main",
-  "git_commit": "bd81e93",
-  "git_pushed": true,
-  "openspec": "00038",
+  "git_commit": "01fd76e",
+  "git_pushed": false,
+  "openspec": "00041",
   "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00038 complete - all code review items fixed",
+  "working_on": "OpenSpec #00041 COMPLETE - SQLite Project Database deployed",
   "next_steps": [
-    "1.3 Perspective System",
-    "1.5 Custom Text Editor",
-    "1.6 Search & Replace"
+    "Implement OpenSpec #00042 (Custom Text Editor) - 7 phases"
   ],
   "blocker": null,
-  "implementation_status": "COMPLETE",
+  "implementation_status": "DEPLOYED",
   "completed_tasks": [
-    "OpenSpec #00040 - Central Action Management",
-    "OpenSpec #00038 - External Code Review (ALL items)",
-    "ROADMAP.md updated",
-    "LOW priority: QPointer for DashboardPanel",
-    "LOW priority: getWordCount() -> size_t",
-    "LOW priority: noexcept specifications",
-    "LOW priority: clearLayout usage",
-    "LOW priority: Command&& move overload",
-    "LOW priority: ZipSourceBuffer RAII"
+    "OpenSpec #00041: DatabaseSchemaManager (10 tables)",
+    "OpenSpec #00041: ProjectLock (PID-based, stale detection)",
+    "OpenSpec #00041: BackupManager (backup/restore/rotation)",
+    "OpenSpec #00041: ProjectDatabase (full CRUD)",
+    "OpenSpec #00041: ProjectManager integration",
+    "OpenSpec #00041: Examples updated with project.db",
+    "OpenSpec #00041: Qt sqldrivers plugin deployment",
+    "OpenSpec #00041: Unit tests (107 assertions, 5 test cases)",
+    "OpenSpec #00041: All tests passing (837 assertions, 88 cases)",
+    "OpenSpec #00042 design complete (Custom Text Editor)"
   ],
   "pending_tasks": [
-    "1.3 Perspective System",
-    "1.5 Custom Text Editor",
-    "1.6 Search & Replace"
+    "OpenSpec #00042 implementation (Editor) - 7 phases"
   ],
   "task_progress": {
-    "completed": 2,
+    "completed": 1,
     "total": 2,
-    "percentage": 100
+    "percentage": 50
   },
   "session_summary": {
-    "openspec_40": {
+    "openspec_41": {
       "status": "DEPLOYED",
-      "title": "Central Action Management"
+      "title": "SQLite Project Database",
+      "phase": "COMPLETE",
+      "commit": "01fd76e",
+      "files_changed": 23,
+      "insertions": 2879,
+      "classes": ["ProjectDatabase", "DatabaseSchemaManager", "ProjectLock", "BackupManager"],
+      "tables": ["book_metadata", "chapters", "chapter_history", "characters", "locations", "items", "session_stats", "paragraph_styles", "character_styles", "settings"]
     },
-    "openspec_38": {
-      "status": "DEPLOYED",
-      "title": "External Code Review - ALL items complete",
-      "items_fixed": {
-        "HIGH": ["mutex+GIL", "MainWindow refactor", "plugin signatures"],
-        "MEDIUM": ["clearLayout", "CommandRegistry mutex", "exceptions logging", "path validation", "manifest validation"],
-        "LOW": ["QPointer", "size_t", "noexcept", "clearLayout usage", "Command&&", "ZipSource RAII"]
-      }
+    "openspec_42": {
+      "status": "PENDING",
+      "title": "Custom Text Editor",
+      "phase": "DESIGN COMPLETE v5.0",
+      "classes": ["BookEditor", "KmlDocument", "KmlParagraph", "KmlTable", "ParagraphLayout", "TableLayout", "VirtualScrollManager", "KmlCommands", "SpellCheckService", "GrammarCheckService", "WordFrequencyAnalyzer", "TextToSpeechService", "ClipboardHandler", "StyleResolver", "StatisticsCollector"],
+      "view_modes": ["Continuous", "Page", "Typewriter", "Distraction-Free", "Split View"],
+      "depends_on": "#00041 (COMPLETE)"
     }
   },
+  "technical_context": {
+    "project_storage": "SQLite (project.db) for metadata, config, statistics - DEPLOYED",
+    "content_files": ".kchapter (JSON + KML) for chapter content",
+    "markup": "KML (Kalahari Markup Language) - XML subset with tables",
+    "current_editor": "QTextEdit (interim)",
+    "target_editor": "Custom BookEditor",
+    "architecture": "Hybrid (own rendering + Qt components)",
+    "qt_components": ["QTextLayout", "QXmlStreamReader", "QUndoStack", "Hunspell", "LanguageTool", "QTextToSpeech", "QSqlDatabase"]
+  },
+  "specification": {
+    "functional_spec": "project_docs/19_text_editor_functional_spec_pl.md v5.0",
+    "openspec_41": "openspec/changes/00041-sqlite-project-database/ - DEPLOYED",
+    "openspec_42": "openspec/changes/00042-custom-text-editor/proposal.md"
+  },
+  "philosophy": "Pisarz, szklanka whisky, zanurzenie w procesie twórczym. Zero dystraktorów. Zero wersji mobilnych. Tylko słowa.",
   "notes": [
-    "OpenSpec #00038 fully complete - all 34 code review items addressed",
-    "All tests passing (83/83)",
-    "Ready for new features"
+    "OpenSpec #00041 DEPLOYED - all tests passing",
+    "Atomic workflow enforced: small task → build → user test → next task",
+    "User explicitly rejected MVP approach - full-functional control from start",
+    "User explicitly rejected mobile version - desktop focus for immersive writing",
+    "#00042 can now begin (dependency on #00041 satisfied)"
   ]
 }
