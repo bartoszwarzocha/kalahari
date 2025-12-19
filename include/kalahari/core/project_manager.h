@@ -36,6 +36,11 @@
 #include <functional>
 #include <map>
 
+// OpenSpec #00041: SQLite Project Database
+#include "kalahari/core/project_database.h"
+#include "kalahari/core/project_lock.h"
+#include "kalahari/core/backup_manager.h"
+
 namespace kalahari {
 namespace core {
 
@@ -429,6 +434,17 @@ private:
     std::filesystem::path m_projectPath;      ///< Project root folder path
     std::filesystem::path m_manifestPath;     ///< Path to .klh manifest file
     bool m_isDirty;                           ///< Has unsaved changes
+
+    // OpenSpec #00041: SQLite Project Database
+    std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)
+    std::unique_ptr<ProjectDatabase> m_database;     ///< SQLite database for metadata
+    std::unique_ptr<BackupManager> m_backupManager;  ///< Database backup manager
+
+public:
+    /// @brief Get project database (OpenSpec #00041)
+    /// @return Pointer to database, nullptr if no project open
+    ProjectDatabase* getDatabase() { return m_database.get(); }
+    const ProjectDatabase* getDatabase() const { return m_database.get(); }
 };
 
 } // namespace core

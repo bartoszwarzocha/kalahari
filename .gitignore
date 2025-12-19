@@ -134,6 +134,16 @@ tasks/.archive/
 *.backup
 *_backup
 
+# SQLite temporary files (WAL mode)
+*.db-wal
+*.db-shm
+
+# Kalahari project lock files
+.kalahari.lock
+
+# Kalahari project backups (local only)
+.backups/
+
 # Core dumps (only at root, not src/core/)
 /core
 core.*

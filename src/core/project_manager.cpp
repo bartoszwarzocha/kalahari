@@ -158,6 +158,15 @@ bool ProjectManager::openProject(const QString& manifestPath) {
         }
     }
 
+    // OpenSpec #00041: Acquire project lock
+    QString projectDir = QString::fromStdWString(path.parent_path().wstring());
+    m_projectLock = std::make_unique<ProjectLock>(projectDir);
+    if (!m_projectLock->tryAcquire()) {
+        Logger::getInstance().error("Project is already open in another instance");
+        m_projectLock.reset();
+        return false;
+    }
+
     Logger::getInstance().info("Opening project: {}", path.string());
 
     // Read manifest JSON
@@ -220,6 +229,17 @@ bool ProjectManager::openProject(const QString& manifestPath) {
     m_manifestPath = path;
     m_projectPath = path.parent_path();
 
+    // OpenSpec #00041: Open project database
+    m_database = std::make_unique<ProjectDatabase>();
+    if (!m_database->open(projectDir)) {
+        Logger::getInstance().error("Failed to open project database");
+        m_document.reset();
+        m_projectLock.reset();
+        m_database.reset();
+        return false;
+    }
+    m_backupManager = std::make_unique<BackupManager>(projectDir);
+
     // Load book structure from manifest
     if (root.contains("structure")) {
         QJsonObject structureSection = root["structure"].toObject();
@@ -256,6 +276,23 @@ bool ProjectManager::closeProject(bool promptSave) {
     }
 
     Logger::getInstance().info("Closing project: {}", m_manifestPath.string());
+
+    // OpenSpec #00041: Backup and close database
+    if (m_backupManager && m_database && m_database->isOpen()) {
+        m_backupManager->createBackup();
+        m_backupManager->rotateBackups(5);
+    }
+    if (m_database) {
+        m_database->close();
+        m_database.reset();
+    }
+    m_backupManager.reset();
+
+    // OpenSpec #00041: Release project lock
+    if (m_projectLock) {
+        m_projectLock->release();
+        m_projectLock.reset();
+    }
 
     // Clear state
     m_document.reset();

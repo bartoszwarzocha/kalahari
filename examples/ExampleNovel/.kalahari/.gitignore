@@ -1,0 +1,16 @@
+# Kalahari project local files
+# OpenSpec #00041: SQLite Project Database
+
+# SQLite WAL mode temporary files
+*.db-wal
+*.db-shm
+../*.db-wal
+../*.db-shm
+
+# Project lock file
+../.kalahari.lock
+
+# Backup folder
+backup/
+cache/
+recovery/

@@ -15,6 +15,7 @@ set(TEST_SOURCES
     core/test_document.cpp
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
+    core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -49,6 +50,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
+    # OpenSpec #00041: SQLite Project Database
+    ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/database_schema_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_lock.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/backup_manager.cpp
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
@@ -79,6 +85,7 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Gui
     Qt6::Network
     Qt6::Xml
+    Qt6::Sql        # OpenSpec #00041: SQLite Project Database
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
@@ -105,6 +112,16 @@ add_custom_command(TARGET kalahari-tests POST_BUILD
         ${CMAKE_BINARY_DIR}/plugins
     COMMENT "Copying plugins/ to build directory for tests"
 )
+
+# OpenSpec #00041: Copy Qt SQL drivers for database tests
+if(WIN32)
+    add_custom_command(TARGET kalahari-tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/sqldrivers"
+            "$<TARGET_FILE_DIR:kalahari-tests>/sqldrivers"
+        COMMENT "Copying Qt SQL drivers for tests"
+    )
+endif()
 
 # Register tests with CTest (commented out until Day 4 - when we have real tests)
 # include(CTest)

@@ -13,6 +13,8 @@
 #include <kalahari/version.h>
 #include <kalahari/core/settings_manager.h>
 
+#include <QCoreApplication>
+
 // =============================================================================
 // Test Environment Setup
 // =============================================================================
@@ -60,6 +62,10 @@ CATCH_REGISTER_LISTENER(SettingsResetListener);
 
 /// @brief Custom main for test initialization
 int main(int argc, char* argv[]) {
+    // Initialize Qt (required for QSqlDatabase and other Qt components)
+    QCoreApplication app(argc, argv);
+    app.setApplicationName("kalahari-tests");
+
     // Initialize Catch2
     Catch::Session session;
 

@@ -15,7 +15,7 @@
           "name": "qtbase",
           "version>=": "6.5.0",
           "default-features": false,
-          "features": ["widgets", "gui", "network", "openssl"]
+          "features": ["widgets", "gui", "network", "openssl", "sql"]
         },
         {
           "name": "qtbase",

@@ -4,6 +4,10 @@
 set(KALAHARI_CORE_SOURCES
     core/logger.cpp
     core/settings_manager.cpp
+    core/database_schema_manager.cpp
+    core/project_lock.cpp
+    core/backup_manager.cpp
+    core/project_database.cpp
     core/python_interpreter.cpp
     core/cmd_line_parser.cpp
     core/diagnostic_manager.cpp
@@ -77,12 +81,14 @@ target_include_directories(kalahari_core PUBLIC
 # Core library dependencies (includes Qt6::Core for QSize/QPoint in SettingsManager)
 # Task #00020: Qt6::Network for IconDownloader, Qt6::Xml for SvgConverter
 # Task #00021: Qt6::Svg for IconRegistry (QSvgRenderer), Qt6::Gui for QPixmap/QIcon
+# OpenSpec #00041: Qt6::Sql for ProjectDatabase (SQLite)
 target_link_libraries(kalahari_core PUBLIC
     Qt6::Core
     Qt6::Gui
     Qt6::Svg
     Qt6::Network
     Qt6::Xml
+    Qt6::Sql
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip
@@ -255,6 +261,10 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/tls"
             "$<TARGET_FILE_DIR:kalahari>/tls"
+        # OpenSpec #00041: SQLite database support
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/Qt6/plugins/sqldrivers"
+            "$<TARGET_FILE_DIR:kalahari>/sqldrivers"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/bin/libcrypto-3-x64.dll"
             "$<TARGET_FILE_DIR:kalahari>/"
