@@ -29,6 +29,7 @@ set(TEST_SOURCES
     editor/test_table_layout.cpp  # Phase 2.6: Table layout
     editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
+    editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -82,6 +83,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
     ${CMAKE_SOURCE_DIR}/src/editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     ${CMAKE_SOURCE_DIR}/src/editor/layout_manager.cpp          # Phase 2.11: Layout manager
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h # BookEditor header for MOC
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features

@@ -1,0 +1,504 @@
+/// @file book_editor.h
+/// @brief BookEditor - Custom text editor widget (OpenSpec #00042 Phase 3.1-3.5)
+///
+/// BookEditor is the main text editing widget for Kalahari. It renders KML
+/// documents using virtual scrolling for efficient handling of large texts.
+/// This is the foundation for the writer-focused editing experience.
+///
+/// Key responsibilities:
+/// - Render KML documents with efficient virtual scrolling
+/// - Manage layout and scroll state
+/// - Provide basic widget infrastructure for text editing
+/// - Handle scrollbar and mouse wheel scrolling with smooth animation
+/// - Cursor position tracking and blinking cursor rendering
+
+#pragma once
+
+#include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/kml_document.h>
+#include <kalahari/editor/layout_manager.h>
+#include <kalahari/editor/virtual_scroll_manager.h>
+#include <QWidget>
+#include <memory>
+
+class QKeyEvent;
+class QMouseEvent;
+class QScrollBar;
+class QPropertyAnimation;
+class QTimer;
+
+namespace kalahari::editor {
+
+/// @brief Custom text editor widget for KML documents
+///
+/// BookEditor is a QWidget-based text editor designed for rendering and
+/// editing KML (Kalahari Markup Language) documents. It uses virtual
+/// scrolling to efficiently handle documents of any size.
+///
+/// The editor coordinates three main components:
+/// - KmlDocument: The document model
+/// - LayoutManager: Handles paragraph layout and text wrapping
+/// - VirtualScrollManager: Manages efficient scrolling
+///
+/// Usage:
+/// @code
+/// auto editor = new BookEditor(parentWidget);
+/// editor->setDocument(&document);
+/// // Document is now rendered in the widget
+/// @endcode
+///
+/// Thread safety: Not thread-safe. Use from GUI thread only.
+class BookEditor : public QWidget {
+    Q_OBJECT
+
+public:
+    /// @brief Construct a BookEditor widget
+    /// @param parent Parent widget (optional)
+    explicit BookEditor(QWidget* parent = nullptr);
+
+    /// @brief Destructor
+    ~BookEditor() override;
+
+    /// @brief Copy constructor (deleted - QWidget cannot be copied)
+    BookEditor(const BookEditor&) = delete;
+
+    /// @brief Copy assignment (deleted - QWidget cannot be copied)
+    BookEditor& operator=(const BookEditor&) = delete;
+
+    // =========================================================================
+    // Document Management
+    // =========================================================================
+
+    /// @brief Set the document to edit
+    /// @param document Pointer to the document (not owned, must outlive editor)
+    ///
+    /// When a document is set, the editor:
+    /// 1. Registers as an observer on the document
+    /// 2. Initializes the scroll manager and layout manager
+    /// 3. Triggers a repaint
+    ///
+    /// Pass nullptr to clear the current document.
+    void setDocument(KmlDocument* document);
+
+    /// @brief Get the current document
+    /// @return Pointer to the document, or nullptr if not set
+    KmlDocument* document() const;
+
+    // =========================================================================
+    // Layout Configuration
+    // =========================================================================
+
+    /// @brief Get the layout manager
+    /// @return Reference to the layout manager
+    LayoutManager& layoutManager();
+
+    /// @brief Get the layout manager (const)
+    /// @return Const reference to the layout manager
+    const LayoutManager& layoutManager() const;
+
+    /// @brief Get the scroll manager
+    /// @return Reference to the virtual scroll manager
+    VirtualScrollManager& scrollManager();
+
+    /// @brief Get the scroll manager (const)
+    /// @return Const reference to the virtual scroll manager
+    const VirtualScrollManager& scrollManager() const;
+
+    // =========================================================================
+    // Scrolling
+    // =========================================================================
+
+    /// @brief Get the vertical scrollbar
+    /// @return Pointer to the vertical scrollbar
+    QScrollBar* verticalScrollBar() const;
+
+    /// @brief Get the current scroll offset
+    /// @return Current scroll position in pixels
+    qreal scrollOffset() const;
+
+    /// @brief Set the scroll offset
+    /// @param offset New scroll position in pixels
+    ///
+    /// The offset is clamped to valid range [0, maxScrollOffset].
+    void setScrollOffset(qreal offset);
+
+    /// @brief Scroll by a delta amount with optional smooth animation
+    /// @param delta Amount to scroll (positive = down, negative = up)
+    /// @param animated If true, use smooth scrolling animation
+    void scrollBy(qreal delta, bool animated = false);
+
+    /// @brief Scroll to a specific offset with optional smooth animation
+    /// @param offset Target scroll offset
+    /// @param animated If true, use smooth scrolling animation
+    void scrollTo(qreal offset, bool animated = false);
+
+    /// @brief Check if smooth scrolling is enabled
+    /// @return true if smooth scrolling is enabled
+    /// @note Smooth scrolling is disabled by default for stability
+    bool isSmoothScrollingEnabled() const;
+
+    /// @brief Enable or disable smooth scrolling
+    /// @param enabled true to enable smooth scrolling
+    void setSmoothScrollingEnabled(bool enabled);
+
+    /// @brief Get smooth scrolling animation duration
+    /// @return Animation duration in milliseconds
+    int smoothScrollDuration() const;
+
+    /// @brief Set smooth scrolling animation duration
+    /// @param duration Animation duration in milliseconds
+    void setSmoothScrollDuration(int duration);
+
+    // =========================================================================
+    // Cursor Position (Phase 3.4)
+    // =========================================================================
+
+    /// @brief Get the current cursor position
+    /// @return The cursor position in the document
+    CursorPosition cursorPosition() const;
+
+    /// @brief Set the cursor position
+    /// @param position The new cursor position
+    ///
+    /// The position is validated against the document:
+    /// - Paragraph index is clamped to valid range
+    /// - Character offset is clamped to paragraph length
+    /// Emits cursorPositionChanged if position changes.
+    void setCursorPosition(const CursorPosition& position);
+
+    /// @brief Check if the cursor is currently visible (blink state)
+    /// @return true if cursor should be drawn
+    bool isCursorVisible() const;
+
+    /// @brief Enable or disable cursor blinking
+    /// @param enabled true to enable blinking
+    void setCursorBlinkingEnabled(bool enabled);
+
+    /// @brief Check if cursor blinking is enabled
+    /// @return true if cursor blinking is enabled
+    bool isCursorBlinkingEnabled() const;
+
+    /// @brief Get the cursor blink interval
+    /// @return Blink interval in milliseconds
+    int cursorBlinkInterval() const;
+
+    /// @brief Set the cursor blink interval
+    /// @param interval Blink interval in milliseconds
+    void setCursorBlinkInterval(int interval);
+
+    /// @brief Force cursor to visible state and restart blink timer
+    ///
+    /// Call this after any cursor movement to ensure the cursor
+    /// is visible immediately after the user action.
+    void ensureCursorVisible();
+
+    // =========================================================================
+    // Cursor Navigation (Phase 3.6/3.7/3.8)
+    // =========================================================================
+
+    /// @brief Move cursor one character to the left
+    ///
+    /// If at the start of a paragraph (offset=0) and not the first paragraph,
+    /// moves to the end of the previous paragraph.
+    void moveCursorLeft();
+
+    /// @brief Move cursor one character to the right
+    ///
+    /// If at the end of a paragraph and not the last paragraph,
+    /// moves to the start of the next paragraph.
+    void moveCursorRight();
+
+    /// @brief Move cursor one line up
+    ///
+    /// Attempts to maintain the same visual X position (column).
+    /// If at the first line, moves to paragraph start.
+    void moveCursorUp();
+
+    /// @brief Move cursor one line down
+    ///
+    /// Attempts to maintain the same visual X position (column).
+    /// If at the last line, moves to paragraph end.
+    void moveCursorDown();
+
+    /// @brief Move cursor to previous word boundary (Ctrl+Left)
+    ///
+    /// Word boundaries are defined by whitespace and punctuation.
+    /// If at paragraph start, moves to end of previous paragraph.
+    void moveCursorWordLeft();
+
+    /// @brief Move cursor to next word boundary (Ctrl+Right)
+    ///
+    /// Word boundaries are defined by whitespace and punctuation.
+    /// If at paragraph end, moves to start of next paragraph.
+    void moveCursorWordRight();
+
+    /// @brief Move cursor to start of current line (Home)
+    void moveCursorToLineStart();
+
+    /// @brief Move cursor to end of current line (End)
+    void moveCursorToLineEnd();
+
+    /// @brief Move cursor to document start (Ctrl+Home)
+    void moveCursorToDocStart();
+
+    /// @brief Move cursor to document end (Ctrl+End)
+    void moveCursorToDocEnd();
+
+    /// @brief Move cursor one page up (Page Up)
+    ///
+    /// Moves approximately one viewport height up.
+    void moveCursorPageUp();
+
+    /// @brief Move cursor one page down (Page Down)
+    ///
+    /// Moves approximately one viewport height down.
+    void moveCursorPageDown();
+
+    // =========================================================================
+    // Selection (Phase 3.10/3.12)
+    // =========================================================================
+
+    /// @brief Get the current selection
+    /// @return The selection range (may be empty)
+    SelectionRange selection() const;
+
+    /// @brief Set the selection range
+    /// @param range The new selection range
+    void setSelection(const SelectionRange& range);
+
+    /// @brief Clear the current selection
+    void clearSelection();
+
+    /// @brief Check if there is an active selection
+    /// @return true if selection is not empty
+    bool hasSelection() const;
+
+    /// @brief Get the selected text
+    /// @return The selected text, or empty string if no selection
+    QString selectedText() const;
+
+    /// @brief Select all text in the document (Ctrl+A)
+    void selectAll();
+
+    // =========================================================================
+    // Size Hints
+    // =========================================================================
+
+    /// @brief Get minimum size hint
+    /// @return Minimum recommended size for the widget
+    ///
+    /// Returns a reasonable minimum size that allows basic text display
+    /// (approximately 200x100 pixels).
+    QSize minimumSizeHint() const override;
+
+    /// @brief Get preferred size hint
+    /// @return Preferred size for the widget
+    ///
+    /// Returns a comfortable editing size (approximately 600x400 pixels).
+    QSize sizeHint() const override;
+
+signals:
+    /// @brief Emitted when the document changes
+    ///
+    /// This signal is emitted whenever the document reference changes
+    /// (not when document content changes).
+    void documentChanged();
+
+    /// @brief Emitted when scroll offset changes
+    /// @param offset New scroll offset in pixels
+    void scrollOffsetChanged(qreal offset);
+
+    /// @brief Emitted when cursor position changes
+    /// @param position The new cursor position
+    void cursorPositionChanged(const CursorPosition& position);
+
+    /// @brief Emitted when selection changes
+    void selectionChanged();
+
+protected:
+    // =========================================================================
+    // Event Handlers
+    // =========================================================================
+
+    /// @brief Paint event handler
+    /// @param event The paint event
+    ///
+    /// Renders the document content:
+    /// - Fills background with palette window color
+    /// - Layouts visible paragraphs using LayoutManager
+    /// - Draws each paragraph using ParagraphLayout::draw()
+    /// - Applies scroll offset for virtual scrolling
+    void paintEvent(QPaintEvent* event) override;
+
+    /// @brief Resize event handler
+    /// @param event The resize event
+    ///
+    /// Updates the layout width and viewport height when the widget resizes.
+    void resizeEvent(QResizeEvent* event) override;
+
+    /// @brief Mouse wheel event handler
+    /// @param event The wheel event
+    ///
+    /// Handles mouse wheel scrolling. Uses smooth scrolling if enabled.
+    void wheelEvent(QWheelEvent* event) override;
+
+    /// @brief Key press event handler
+    /// @param event The key event
+    ///
+    /// Handles keyboard navigation (arrow keys, Home, End, Page Up/Down).
+    void keyPressEvent(QKeyEvent* event) override;
+
+    /// @brief Mouse press event handler (Phase 3.9/3.11)
+    /// @param event The mouse event
+    ///
+    /// Handles click to position cursor, double-click to select word,
+    /// triple-click to select paragraph.
+    void mousePressEvent(QMouseEvent* event) override;
+
+    /// @brief Mouse move event handler (Phase 3.10)
+    /// @param event The mouse event
+    ///
+    /// Handles drag selection when mouse button is pressed.
+    void mouseMoveEvent(QMouseEvent* event) override;
+
+    /// @brief Mouse release event handler (Phase 3.10)
+    /// @param event The mouse event
+    void mouseReleaseEvent(QMouseEvent* event) override;
+
+    /// @brief Mouse double-click event handler (Phase 3.11)
+    /// @param event The mouse event
+    ///
+    /// Handles double-click to select word.
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
+
+private slots:
+    /// @brief Handle scrollbar value change
+    /// @param value New scrollbar value
+    void onScrollBarValueChanged(int value);
+
+    /// @brief Handle scroll animation value change
+    /// @param value Current animation value
+    void onScrollAnimationValueChanged(const QVariant& value);
+
+    /// @brief Handle cursor blink timer timeout
+    void onCursorBlinkTimeout();
+
+private:
+    /// @brief Setup internal components
+    void setupComponents();
+
+    /// @brief Update layout manager width from widget width
+    void updateLayoutWidth();
+
+    /// @brief Update scroll manager viewport from widget size
+    void updateViewport();
+
+    /// @brief Setup the vertical scrollbar
+    void setupScrollBar();
+
+    /// @brief Update scrollbar range based on content height
+    void updateScrollBarRange();
+
+    /// @brief Sync scrollbar value with scroll manager (without triggering signals)
+    void syncScrollBarValue();
+
+    /// @brief Start smooth scroll animation to target offset
+    /// @param targetOffset Target scroll offset
+    void startScrollAnimation(qreal targetOffset);
+
+    /// @brief Stop any running scroll animation
+    void stopScrollAnimation();
+
+    /// @brief Validate and clamp cursor position to valid range
+    /// @param position The position to validate
+    /// @return Validated position within document bounds
+    CursorPosition validateCursorPosition(const CursorPosition& position) const;
+
+    /// @brief Calculate cursor rectangle in widget coordinates
+    /// @return Cursor rectangle, or empty rect if cursor not in visible area
+    QRectF calculateCursorRect() const;
+
+    /// @brief Draw the cursor at current position
+    /// @param painter The painter to draw with
+    void drawCursor(QPainter* painter);
+
+    /// @brief Setup cursor blink timer
+    void setupCursorBlinkTimer();
+
+    /// @brief Convert widget point to cursor position (Phase 3.9)
+    /// @param widgetPos Point in widget coordinates
+    /// @return Cursor position in document, or invalid if outside document
+    CursorPosition positionFromPoint(const QPointF& widgetPos) const;
+
+    /// @brief Draw selection highlighting (Phase 3.10)
+    /// @param painter The painter to draw with
+    void drawSelection(QPainter* painter);
+
+    /// @brief Update paragraph layouts with current selection state
+    void updateSelectionInLayouts();
+
+    /// @brief Select word at cursor position (Phase 3.11)
+    void selectWordAtCursor();
+
+    /// @brief Select paragraph at cursor position (Phase 3.11)
+    void selectParagraphAtCursor();
+
+    /// @brief Find word boundaries at given position
+    /// @param paraIndex Paragraph index
+    /// @param offset Character offset within paragraph
+    /// @return Pair of (start, end) offsets for the word
+    std::pair<int, int> findWordBoundaries(int paraIndex, int offset) const;
+
+    /// @brief Extend selection with shift key (Phase 3.12)
+    /// @param newCursor The new cursor position
+    void extendSelection(const CursorPosition& newCursor);
+
+    /// @brief Move cursor with optional selection extension
+    /// @param extend If true, extend selection rather than clear it
+    void moveCursorLeftWithSelection(bool extend);
+    void moveCursorRightWithSelection(bool extend);
+    void moveCursorUpWithSelection(bool extend);
+    void moveCursorDownWithSelection(bool extend);
+    void moveCursorWordLeftWithSelection(bool extend);
+    void moveCursorWordRightWithSelection(bool extend);
+    void moveCursorToLineStartWithSelection(bool extend);
+    void moveCursorToLineEndWithSelection(bool extend);
+    void moveCursorToDocStartWithSelection(bool extend);
+    void moveCursorToDocEndWithSelection(bool extend);
+
+    KmlDocument* m_document;                                ///< Document being edited (not owned)
+    std::unique_ptr<LayoutManager> m_layoutManager;         ///< Paragraph layout management
+    std::unique_ptr<VirtualScrollManager> m_scrollManager;  ///< Virtual scrolling
+
+    QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
+    QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
+
+    bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
+    int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
+    bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
+
+    // Cursor state (Phase 3.4 + 3.5)
+    CursorPosition m_cursorPosition;                        ///< Current cursor position
+    QTimer* m_cursorBlinkTimer;                             ///< Timer for cursor blinking
+    bool m_cursorVisible;                                   ///< Current blink state (visible/hidden)
+    bool m_cursorBlinkingEnabled;                           ///< Enable cursor blinking
+    int m_cursorBlinkInterval;                              ///< Blink interval in milliseconds
+
+    // Cursor navigation state (Phase 3.6/3.7/3.8)
+    qreal m_preferredCursorX;                               ///< Preferred X position for vertical movement
+    bool m_preferredCursorXValid;                           ///< Is m_preferredCursorX valid?
+
+    // Selection state (Phase 3.10)
+    SelectionRange m_selection;                             ///< Current selection range
+    CursorPosition m_selectionAnchor;                       ///< Anchor point for selection
+    bool m_isDragging;                                      ///< Is mouse drag selection in progress?
+
+    // Click tracking for double/triple click (Phase 3.11)
+    QTimer* m_clickTimer;                                   ///< Timer for click counting
+    int m_clickCount;                                       ///< Number of consecutive clicks
+    QPointF m_lastClickPos;                                 ///< Position of last click
+    static constexpr int MULTI_CLICK_INTERVAL = 400;        ///< Max interval between clicks (ms)
+    static constexpr qreal MULTI_CLICK_DISTANCE = 5.0;      ///< Max distance for multi-click
+};
+
+}  // namespace kalahari::editor

@@ -13,7 +13,7 @@
 #include <kalahari/version.h>
 #include <kalahari/core/settings_manager.h>
 
-#include <QGuiApplication>
+#include <QApplication>
 
 // =============================================================================
 // Test Environment Setup
@@ -62,9 +62,9 @@ CATCH_REGISTER_LISTENER(SettingsResetListener);
 
 /// @brief Custom main for test initialization
 int main(int argc, char* argv[]) {
-    // Initialize Qt (required for QSqlDatabase, QTextLayout, and other Qt components)
-    // Note: QGuiApplication is needed for font metrics in QTextLayout
-    QGuiApplication app(argc, argv);
+    // Initialize Qt (required for QSqlDatabase, QTextLayout, QWidget, and other Qt components)
+    // Note: QApplication is needed for QWidget-based tests (BookEditor, etc.)
+    QApplication app(argc, argv);
     app.setApplicationName("kalahari-tests");
 
     // Initialize Catch2

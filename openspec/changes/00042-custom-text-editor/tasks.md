@@ -230,66 +230,71 @@
 
 ## Phase 3: BookEditor Widget (Basic)
 
-### 3.1 BookEditor Shell
-- [ ] Create `book_editor.h` - BookEditor : public QWidget
-- [ ] Create `book_editor.cpp`
-- [ ] Implement constructor/destructor
-- [ ] Implement setDocument(KmlDocument*)
-- [ ] Implement minimumSizeHint(), sizeHint()
-- [ ] Basic paintEvent() - just fill background
-- [ ] Unit tests for widget creation
-- [ ] **BUILD + TEST**
+### 3.1 BookEditor Shell [COMPLETE]
+- [x] Create `book_editor.h` - BookEditor : public QWidget
+- [x] Create `book_editor.cpp`
+- [x] Implement constructor/destructor
+- [x] Implement setDocument(KmlDocument*)
+- [x] Implement minimumSizeHint(), sizeHint()
+- [x] Basic paintEvent() - just fill background
+- [x] Unit tests for widget creation (44 assertions, 12 test cases)
+- [x] **BUILD + TEST** (3374 assertions, 479 test cases - all pass)
 
-### 3.2 BookEditor Scrolling
-- [ ] Add QScrollBar member (vertical)
-- [ ] Connect scrollbar to VirtualScrollManager
-- [ ] Implement wheelEvent() for mouse wheel
-- [ ] Implement smooth scrolling animation
-- [ ] Update scrollbar range on content change
-- [ ] **BUILD + TEST**
+### 3.2 BookEditor Scrolling [COMPLETE]
+- [x] Add QScrollBar member (vertical)
+- [x] Connect scrollbar to VirtualScrollManager
+- [x] Implement wheelEvent() for mouse wheel
+- [x] Implement smooth scrolling animation (QPropertyAnimation with OutCubic easing)
+- [x] Update scrollbar range on content change
+- [x] **BUILD + TEST** (all scrolling tests pass)
 
-### 3.3 BookEditor Rendering (Basic)
-- [ ] Implement paintEvent() with paragraph rendering
-- [ ] Use LayoutManager for visible paragraphs
-- [ ] Render paragraph backgrounds
-- [ ] Render text using ParagraphLayout::draw()
-- [ ] **BUILD + TEST**
+### 3.3 BookEditor Rendering (Basic) [COMPLETE]
+- [x] Implement paintEvent() with paragraph rendering
+- [x] Use LayoutManager for visible paragraphs
+- [x] Render paragraph backgrounds (optional, commented for future use)
+- [x] Render text using ParagraphLayout::draw()
+- [x] **BUILD + TEST** (all 487 tests pass)
 
-### 3.4 BookEditor Cursor (Position)
-- [ ] Add CursorPosition m_cursor member
-- [ ] Implement cursorPosition() getter
-- [ ] Implement setCursorPosition(CursorPosition)
-- [ ] Emit cursorPositionChanged signal
-- [ ] **BUILD + TEST**
+### 3.4 BookEditor Cursor (Position) [COMPLETE]
+- [x] Add CursorPosition m_cursor member
+- [x] Implement cursorPosition() getter
+- [x] Implement setCursorPosition(CursorPosition)
+- [x] Emit cursorPositionChanged signal
+- [x] **BUILD + TEST** (105 assertions in 27 test cases)
 
-### 3.5 BookEditor Cursor (Rendering)
-- [ ] Implement cursor blinking timer (500ms)
-- [ ] Render cursor line in paintEvent()
-- [ ] Calculate cursor rect from layout
-- [ ] Handle cursor at end of paragraph
-- [ ] **BUILD + TEST**
+### 3.5 BookEditor Cursor (Rendering) [COMPLETE]
+- [x] Implement cursor blinking timer (500ms)
+- [x] Render cursor line in paintEvent()
+- [x] Calculate cursor rect from layout
+- [x] Handle cursor at end of paragraph
+- [x] **BUILD + TEST** (all 2598 editor assertions pass)
 
-### 3.6 BookEditor Cursor (Navigation - Arrows)
-- [ ] Implement moveCursorLeft()
-- [ ] Implement moveCursorRight()
-- [ ] Implement moveCursorUp()
-- [ ] Implement moveCursorDown()
-- [ ] Handle paragraph boundaries
-- [ ] **BUILD + TEST**
+### 3.6 BookEditor Cursor (Navigation - Arrows) [COMPLETE]
+- [x] Implement moveCursorLeft()
+- [x] Implement moveCursorRight()
+- [x] Implement moveCursorUp()
+- [x] Implement moveCursorDown()
+- [x] Handle paragraph boundaries
+- [x] Handle keyPressEvent for arrow keys
+- [x] Unit tests for arrow navigation (66 assertions, 15 test cases)
+- [x] **BUILD + TEST** (2664 assertions, 421 editor test cases)
 
-### 3.7 BookEditor Cursor (Navigation - Word)
-- [ ] Implement moveCursorWordLeft() (Ctrl+Left)
-- [ ] Implement moveCursorWordRight() (Ctrl+Right)
-- [ ] Implement moveCursorToLineStart() (Home)
-- [ ] Implement moveCursorToLineEnd() (End)
-- [ ] **BUILD + TEST**
+### 3.7 BookEditor Cursor (Navigation - Word) [COMPLETE]
+- [x] Implement moveCursorWordLeft() (Ctrl+Left)
+- [x] Implement moveCursorWordRight() (Ctrl+Right)
+- [x] Implement moveCursorToLineStart() (Home)
+- [x] Implement moveCursorToLineEnd() (End)
+- [x] Handle keyPressEvent for Ctrl+Arrow and Home/End
+- [x] **BUILD + TEST** (all tests pass)
 
-### 3.8 BookEditor Cursor (Navigation - Document)
-- [ ] Implement moveCursorToDocStart() (Ctrl+Home)
-- [ ] Implement moveCursorToDocEnd() (Ctrl+End)
-- [ ] Implement moveCursorPageUp() (Page Up)
-- [ ] Implement moveCursorPageDown() (Page Down)
-- [ ] **BUILD + TEST**
+### 3.8 BookEditor Cursor (Navigation - Document) [COMPLETE]
+- [x] Implement moveCursorToDocStart() (Ctrl+Home)
+- [x] Implement moveCursorToDocEnd() (Ctrl+End)
+- [x] Implement moveCursorPageUp() (Page Up)
+- [x] Implement moveCursorPageDown() (Page Down)
+- [x] Handle keyPressEvent for Ctrl+Home/End and Page Up/Down
+- [x] Preferred X position maintained during vertical navigation
+- [x] **BUILD + TEST** (171 assertions, 42 book_editor test cases)
 
 ### 3.9 BookEditor Mouse (Click)
 - [ ] Implement mousePressEvent()
