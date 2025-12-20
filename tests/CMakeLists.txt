@@ -16,6 +16,15 @@ set(TEST_SOURCES
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
+    # OpenSpec #00042: Custom Text Editor
+    editor/test_editor_types.cpp
+    editor/test_kml_element.cpp
+    editor/test_kml_text_run.cpp
+    editor/test_kml_inline_elements.cpp
+    editor/test_kml_paragraph.cpp
+    editor/test_kml_document.cpp
+    editor/test_kml_parser.cpp
+    editor/test_kml_table.cpp  # Phase 1.12: Table elements
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -55,6 +64,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/database_schema_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_lock.cpp
     ${CMAKE_SOURCE_DIR}/src/core/backup_manager.cpp
+    # OpenSpec #00042: Custom Text Editor
+    ${CMAKE_SOURCE_DIR}/src/editor/editor_types.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_element.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_text_run.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_inline_elements.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_paragraph.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp  # Phase 1.12: Table elements
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features

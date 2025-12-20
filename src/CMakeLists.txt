@@ -4,6 +4,15 @@
 set(KALAHARI_CORE_SOURCES
     core/logger.cpp
     core/settings_manager.cpp
+    # OpenSpec #00042: Custom Text Editor
+    editor/editor_types.cpp
+    editor/kml_element.cpp
+    editor/kml_text_run.cpp
+    editor/kml_inline_elements.cpp
+    editor/kml_paragraph.cpp
+    editor/kml_document.cpp
+    editor/kml_parser.cpp
+    editor/kml_table.cpp  # Phase 1.12: Table elements
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
