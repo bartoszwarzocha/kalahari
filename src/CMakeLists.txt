@@ -13,6 +13,11 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_document.cpp
     editor/kml_parser.cpp
     editor/kml_table.cpp  # Phase 1.12: Table elements
+    editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
+    editor/format_converter.cpp  # Phase 2.2: Format conversion
+    editor/table_layout.cpp      # Phase 2.6: Table layout
+    editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
+    editor/layout_manager.cpp          # Phase 2.11: Layout manager
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp

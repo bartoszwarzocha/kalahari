@@ -129,99 +129,102 @@
 
 ## Phase 2: Layout Engine
 
-### 2.1 Paragraph Layout (Basic)
-- [ ] Create `paragraph_layout.h` - ParagraphLayout class
-- [ ] Create `paragraph_layout.cpp` - implementation
-- [ ] Wrap QTextLayout
-- [ ] Implement setText(), setFont()
-- [ ] Implement doLayout(width) -> returns height
-- [ ] Implement isDirty(), invalidate()
-- [ ] Unit tests for basic layout
-- [ ] **BUILD + TEST**
+### 2.1 Paragraph Layout (Basic) [COMPLETE]
+- [x] Create `paragraph_layout.h` - ParagraphLayout class
+- [x] Create `paragraph_layout.cpp` - implementation
+- [x] Wrap QTextLayout
+- [x] Implement setText(), setFont()
+- [x] Implement doLayout(width) -> returns height
+- [x] Implement isDirty(), invalidate()
+- [x] Unit tests for basic layout (119 assertions, 26 test cases)
+- [x] **BUILD + TEST** (2243 assertions, 296 test cases)
 
-### 2.2 Paragraph Layout (Formatting)
-- [ ] Implement setFormats(QVector<FormatRange>)
-- [ ] Map KmlElement styles to QTextCharFormat
-- [ ] Handle bold, italic, underline, strikethrough
-- [ ] Handle font size variations
-- [ ] Unit tests for formatted layout
-- [ ] **BUILD + TEST**
+### 2.2 Paragraph Layout (Formatting) [COMPLETE]
+- [x] Implement setFormats(QList<FormatRange>)
+- [x] Map KmlElement styles to QTextCharFormat (FormatConverter class)
+- [x] Handle bold, italic, underline, strikethrough
+- [x] Handle subscript/superscript (with size scaling)
+- [x] Unit tests for formatted layout (71 assertions, 10 test cases)
+- [x] **BUILD + TEST** (2433 assertions, 332 test cases)
 
-### 2.3 Paragraph Layout (Geometry)
-- [ ] Implement height() getter
-- [ ] Implement lineCount()
-- [ ] Implement lineRect(lineIndex)
-- [ ] Implement boundingRect()
-- [ ] Unit tests for geometry
-- [ ] **BUILD + TEST**
+### 2.3 Paragraph Layout (Geometry) [COMPLETE - already in 2.1]
+- [x] Implement height() getter
+- [x] Implement lineCount()
+- [x] Implement lineRect(lineIndex)
+- [x] Implement boundingRect()
+- [x] Unit tests for geometry (included in 2.1 tests)
+- [x] **BUILD + TEST**
 
-### 2.4 Paragraph Layout (Hit Testing)
-- [ ] Implement positionAt(QPointF) -> character offset
-- [ ] Implement cursorRect(position) -> QRectF
-- [ ] Handle click between characters
-- [ ] Unit tests for hit testing
-- [ ] **BUILD + TEST**
+### 2.4 Paragraph Layout (Hit Testing) [COMPLETE]
+- [x] Implement positionAt(QPointF) -> character offset
+- [x] Implement cursorRect(position) -> QRectF
+- [x] Handle click between characters
+- [x] Unit tests for hit testing (100 assertions, 10 test cases)
+- [x] **BUILD + TEST** (2533 assertions, 342 test cases)
 
-### 2.5 Paragraph Layout (Drawing)
-- [ ] Implement draw(QPainter*, QPointF)
-- [ ] Handle selection highlighting
-- [ ] Handle spell error underlines (wavy red)
-- [ ] Unit tests for draw (visual inspection)
-- [ ] **BUILD + TEST**
+### 2.5 Paragraph Layout (Drawing) [COMPLETE]
+- [x] Implement draw(QPainter*, QPointF)
+- [x] Handle selection highlighting
+- [x] Handle spell error underlines (wavy red)
+- [x] Unit tests for draw (visual inspection)
+- [x] **BUILD + TEST** (all tests passed)
 
-### 2.6 Table Layout (Basic)
-- [ ] Create `table_layout.h` - TableLayout class
-- [ ] Create `table_layout.cpp` - implementation
-- [ ] Implement cell size calculation
-- [ ] Implement column width distribution
-- [ ] Implement row height calculation
-- [ ] Unit tests for table layout
-- [ ] **BUILD + TEST**
+### 2.6 Table Layout (Basic) [COMPLETE]
+- [x] Create `table_layout.h` - TableLayout class
+- [x] Create `table_layout.cpp` - implementation
+- [x] Implement cell size calculation
+- [x] Implement column width distribution
+- [x] Implement row height calculation
+- [x] Unit tests for table layout
+- [x] **BUILD + TEST** (206 assertions, 34 test cases)
 
-### 2.7 Table Layout (Drawing)
-- [ ] Implement draw(QPainter*, QPointF)
-- [ ] Draw cell borders
-- [ ] Draw cell backgrounds
-- [ ] Handle cell padding
-- [ ] Unit tests for table drawing
-- [ ] **BUILD + TEST**
+### 2.7 Table Layout (Drawing) [COMPLETE]
+- [x] Implement draw(QPainter*, QPointF)
+- [x] Draw cell borders
+- [x] Draw cell backgrounds
+- [x] Handle cell padding
+- [x] Unit tests for table drawing (45 assertions, 11 test cases)
+- [x] **BUILD + TEST** (all 251 table_layout assertions passed)
 
-### 2.8 Virtual Scroll Manager (Basic)
-- [ ] Create `virtual_scroll_manager.h`
-- [ ] Create `virtual_scroll_manager.cpp`
-- [ ] Implement setDocument(KmlDocument*)
-- [ ] Implement setViewport(top, height)
-- [ ] Implement visibleRange() -> QPair<int,int>
-- [ ] Define BUFFER_PARAGRAPHS constant (10)
-- [ ] Unit tests for visible range calculation
-- [ ] **BUILD + TEST**
+### 2.8 Virtual Scroll Manager (Basic) [COMPLETE]
+- [x] Create `virtual_scroll_manager.h`
+- [x] Create `virtual_scroll_manager.cpp`
+- [x] Implement setDocument(KmlDocument*)
+- [x] Implement setViewport(top, height)
+- [x] Implement visibleRange() -> QPair<int,int>
+- [x] Define BUFFER_PARAGRAPHS constant (10)
+- [x] Unit tests for visible range calculation (181 assertions, 23 test cases)
+- [x] **BUILD + TEST** (3036 assertions, 424 test cases)
 
-### 2.9 Virtual Scroll Manager (Heights)
-- [ ] Implement ParagraphInfo struct (y, height, heightKnown)
-- [ ] Implement updateParagraphHeight(index, height)
-- [ ] Implement totalHeight()
-- [ ] Implement paragraphY(index)
-- [ ] Use ESTIMATED_LINE_HEIGHT for unknown paragraphs
-- [ ] Unit tests for height estimation
-- [ ] **BUILD + TEST**
+### 2.9 Virtual Scroll Manager (Heights) [COMPLETE]
+- [x] Implement ParagraphInfo struct (y, height, heightKnown)
+- [x] Implement updateParagraphHeight(index, height)
+- [x] Implement totalHeight()
+- [x] Implement paragraphY(index)
+- [x] Use ESTIMATED_LINE_HEIGHT for unknown paragraphs
+- [x] Unit tests for height estimation (91 new assertions, 13 new test cases)
+- [x] **BUILD + TEST** (3127 assertions, 437 test cases)
 
-### 2.10 Virtual Scroll Manager (Scrolling)
-- [ ] Implement scrollOffset getter/setter
-- [ ] Implement paragraphAtY(y) -> index
-- [ ] Implement ensureParagraphVisible(index)
-- [ ] Handle scroll offset changes
-- [ ] Unit tests for scrolling
-- [ ] **BUILD + TEST**
+### 2.10 Virtual Scroll Manager (Scrolling) [COMPLETE]
+- [x] Implement scrollOffset getter/setter
+- [x] Implement paragraphAtY(y) -> index
+- [x] Implement ensureParagraphVisible(index)
+- [x] Implement ensurePositionVisible(CursorPosition)
+- [x] Implement maxScrollOffset()
+- [x] Handle scroll offset changes (with clamping)
+- [x] Unit tests for scrolling (48 new assertions, 6 new test cases)
+- [x] **BUILD + TEST** (3175 assertions, 443 test cases)
 
-### 2.11 Layout Manager
-- [ ] Create `layout_manager.h` - LayoutManager class
-- [ ] Create `layout_manager.cpp`
-- [ ] Manage ParagraphLayout instances (lazy creation)
-- [ ] Connect to VirtualScrollManager
-- [ ] Implement layoutVisibleParagraphs()
-- [ ] Invalidate layouts on content change
-- [ ] Unit tests for layout manager
-- [ ] **BUILD + TEST**
+### 2.11 Layout Manager [COMPLETE]
+- [x] Create `layout_manager.h` - LayoutManager class
+- [x] Create `layout_manager.cpp`
+- [x] Manage ParagraphLayout instances (lazy creation)
+- [x] Connect to VirtualScrollManager
+- [x] Implement layoutVisibleParagraphs()
+- [x] Invalidate layouts on content change
+- [x] Implements IDocumentObserver for document change notifications
+- [x] Unit tests for layout manager (155 assertions, 24 test cases)
+- [x] **BUILD + TEST** (3330 assertions, 467 test cases)
 
 ---
 

@@ -25,6 +25,10 @@ set(TEST_SOURCES
     editor/test_kml_document.cpp
     editor/test_kml_parser.cpp
     editor/test_kml_table.cpp  # Phase 1.12: Table elements
+    editor/test_paragraph_layout.cpp  # Phase 2.1: Paragraph layout
+    editor/test_table_layout.cpp  # Phase 2.6: Table layout
+    editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
+    editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -73,6 +77,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp  # Phase 1.12: Table elements
+    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
+    ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp  # Phase 2.2: Format conversion
+    ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
+    ${CMAKE_SOURCE_DIR}/src/editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
+    ${CMAKE_SOURCE_DIR}/src/editor/layout_manager.cpp          # Phase 2.11: Layout manager
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
