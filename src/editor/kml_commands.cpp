@@ -98,7 +98,11 @@ bool InsertTextCommand::mergeWith(const QUndoCommand* other)
         return false;
     }
 
-    // Merge: append the new text
+    // IMPORTANT: When merging, the other command's redo() was already called by QUndoStack
+    // before mergeWith() is invoked. So the text is already in the document.
+    // We just need to update our tracking variables.
+
+    // Merge: append the new text to our tracking
     m_text += otherInsert->m_text;
     m_cursorAfter = otherInsert->m_cursorAfter;
     m_timestamp = now;

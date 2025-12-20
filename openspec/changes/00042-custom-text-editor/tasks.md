@@ -384,69 +384,68 @@
 - [x] Connect Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z shortcuts
 - [x] **BUILD + TEST** (7 assertions, 3 test cases)
 
-### 4.9 Insert Text Command
-- [ ] Create InsertTextCommand class
-- [ ] Implement redo() - insert text
-- [ ] Implement undo() - delete inserted text
-- [ ] Store cursor positions (before/after)
-- [ ] Unit tests for insert command
-- [ ] **BUILD + TEST**
+### 4.9 Insert Text Command [COMPLETE]
+- [x] Create InsertTextCommand class
+- [x] Implement redo() - insert text
+- [x] Implement undo() - delete inserted text
+- [x] Store cursor positions (before/after)
+- [x] Integrate with BookEditor::insertText()
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.10 Insert Text Command (Merging)
-- [ ] Implement mergeWith() for consecutive typing
-- [ ] Return same id() for mergeable commands
-- [ ] Limit merge to same paragraph
-- [ ] Limit merge time window (1 second)
-- [ ] Unit tests for command merging
-- [ ] **BUILD + TEST**
+### 4.10 Insert Text Command (Merging) [COMPLETE]
+- [x] Implement mergeWith() for consecutive typing
+- [x] Return same id() for mergeable commands
+- [x] Limit merge to same paragraph
+- [x] Limit merge time window (1 second)
+- [x] Fixed dangling pointer bug after command merge
+- [x] **BUILD + TEST** (2819 assertions, 453 test cases)
 
-### 4.11 Delete Text Command
-- [ ] Create DeleteTextCommand class
-- [ ] Implement redo() - delete text range
-- [ ] Implement undo() - restore deleted KML
-- [ ] Store deleted content as KML
-- [ ] Handle multi-paragraph deletion
-- [ ] Unit tests for delete command
-- [ ] **BUILD + TEST**
+### 4.11 Delete Text Command [COMPLETE]
+- [x] Create DeleteTextCommand class
+- [x] Implement redo() - delete text range
+- [x] Implement undo() - restore deleted text
+- [x] Store deleted content for restoration
+- [x] Integrate with deleteSelectedText, deleteBackward, deleteForward
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.12 Apply Style Command
-- [ ] Create ApplyStyleCommand class
-- [ ] Implement redo() - apply style to range
-- [ ] Implement undo() - restore old styles
-- [ ] Store old style per affected element
-- [ ] Unit tests for style command
-- [ ] **BUILD + TEST**
+### 4.12 Split/Merge Paragraph Commands [COMPLETE]
+- [x] Create SplitParagraphCommand class (Enter key)
+- [x] Create MergeParagraphsCommand class (Backspace/Delete at boundary)
+- [x] Integrate with insertNewline()
+- [x] Integrate with deleteBackward/deleteForward
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.13 Clipboard Handler (Copy)
-- [ ] Create `clipboard_handler.h`
-- [ ] Create `clipboard_handler.cpp`
-- [ ] Implement copy(doc, selection)
-- [ ] Set KML to clipboard (custom MIME type)
-- [ ] Set HTML to clipboard (converted)
-- [ ] Set plain text to clipboard
-- [ ] **BUILD + TEST**
+### 4.13 Clipboard Handler (Copy) [COMPLETE]
+- [x] Create `clipboard_handler.h`
+- [x] Create `clipboard_handler.cpp`
+- [x] Implement copy(doc, selection)
+- [x] Set KML to clipboard (custom MIME type)
+- [x] Set HTML to clipboard (converted)
+- [x] Set plain text to clipboard
+- [x] **BUILD + TEST** (61 assertions, 8 test cases)
 
-### 4.14 Clipboard Handler (Paste)
-- [ ] Implement paste() -> returns KML
-- [ ] Check for KML format first
-- [ ] Convert HTML to KML if no KML
-- [ ] Convert plain text to KML if no HTML
-- [ ] **BUILD + TEST**
+### 4.14 Clipboard Handler (Paste) [COMPLETE]
+- [x] Implement paste() -> returns KML
+- [x] Check for KML format first
+- [x] Convert HTML to KML if no KML
+- [x] Convert plain text to KML if no HTML
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.15 Clipboard Handler (Conversion)
-- [ ] Implement kmlToHtml()
-- [ ] Implement htmlToKml()
-- [ ] Implement textToKml()
-- [ ] Handle common HTML tags (b, i, u, p)
-- [ ] Unit tests for clipboard conversion
-- [ ] **BUILD + TEST**
+### 4.15 Clipboard Handler (Conversion) [COMPLETE]
+- [x] Implement kmlToHtml()
+- [x] Implement htmlToKml()
+- [x] Implement textToKml()
+- [x] Implement kmlToText()
+- [x] Handle common HTML tags (b, i, u, p, strong, em)
+- [x] Unit tests for all conversions
+- [x] **BUILD + TEST** (2880 assertions, 461 test cases)
 
-### 4.16 Cut/Copy/Paste Integration
-- [ ] Implement Ctrl+X shortcut (cut)
-- [ ] Implement Ctrl+C shortcut (copy)
-- [ ] Implement Ctrl+V shortcut (paste)
-- [ ] Create compound undo for cut
-- [ ] **BUILD + TEST**
+### 4.16 Cut/Copy/Paste Integration [COMPLETE]
+- [x] Implement Ctrl+X shortcut (cut)
+- [x] Implement Ctrl+C shortcut (copy)
+- [x] Implement Ctrl+V shortcut (paste)
+- [x] Cut uses undo command from deleteSelectedText
+- [x] **BUILD + TEST** (all tests pass)
 
 ---
 

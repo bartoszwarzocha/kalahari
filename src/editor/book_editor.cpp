@@ -2,6 +2,7 @@
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
@@ -945,21 +946,18 @@ void BookEditor::insertText(const QString& text)
         deleteSelectedText();
     }
 
-    // Insert text at cursor position
-    if (m_document->insertText(m_cursorPosition, text)) {
-        // Move cursor to end of inserted text
-        CursorPosition newPos = m_cursorPosition;
-        newPos.offset += text.length();
+    // Calculate cursor position before pushing command
+    // NOTE: After push(), cmd may be deleted if merged with previous command
+    CursorPosition insertPos = m_cursorPosition;
+    CursorPosition newPos = insertPos;
+    newPos.offset += text.length();
 
-        // Validate against paragraph length
-        const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
-        if (para != nullptr) {
-            newPos.offset = qMin(newPos.offset, para->characterCount());
-        }
+    // Create and push insert command (command executes on push)
+    m_undoStack->push(new InsertTextCommand(m_document, insertPos, text));
 
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-    }
+    // Move cursor to position after insertion
+    setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 bool BookEditor::deleteSelectedText()
@@ -971,18 +969,21 @@ bool BookEditor::deleteSelectedText()
     // Normalize selection range
     SelectionRange range = m_selection.normalized();
 
-    // Delete the selected text
-    if (m_document->deleteText(range.start, range.end)) {
-        // Position cursor at start of former selection
-        setCursorPosition(range.start);
+    // Get the text being deleted (for command description)
+    QString deletedText = selectedText();
 
-        // Clear selection
-        clearSelection();
-        ensureCursorVisible();
-        return true;
-    }
+    // Create and push delete command
+    auto* cmd = new DeleteTextCommand(m_document, range.start, range.end,
+                                       deletedText, QString());  // KML not stored for now
+    m_undoStack->push(cmd);
 
-    return false;
+    // Position cursor at start of former selection
+    setCursorPosition(range.start);
+
+    // Clear selection
+    clearSelection();
+    ensureCursorVisible();
+    return true;
 }
 
 void BookEditor::insertNewline()
@@ -996,16 +997,13 @@ void BookEditor::insertNewline()
         deleteSelectedText();
     }
 
-    // Split paragraph at cursor position
-    if (m_document->splitParagraph(m_cursorPosition)) {
-        // Move cursor to start of new paragraph
-        CursorPosition newPos;
-        newPos.paragraph = m_cursorPosition.paragraph + 1;
-        newPos.offset = 0;
+    // Create and push split paragraph command
+    auto* cmd = new SplitParagraphCommand(m_document, m_cursorPosition);
+    m_undoStack->push(cmd);
 
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-    }
+    // Move cursor to start of new paragraph
+    setCursorPosition(cmd->cursorAfter());
+    ensureCursorVisible();
 }
 
 void BookEditor::deleteBackward()
@@ -1027,32 +1025,36 @@ void BookEditor::deleteBackward()
 
     // If at start of paragraph, merge with previous paragraph
     if (m_cursorPosition.offset == 0) {
-        // Get length of previous paragraph to know where cursor should go
-        const KmlParagraph* prevPara = m_document->paragraph(m_cursorPosition.paragraph - 1);
-        if (prevPara == nullptr) {
-            return;
-        }
-        int prevLength = prevPara->characterCount();
+        // Create and push merge command
+        auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
+                                                m_cursorPosition.paragraph);
+        m_undoStack->push(cmd);
 
-        // Merge with previous paragraph
-        if (m_document->mergeParagraphWithPrevious(m_cursorPosition.paragraph)) {
-            // Cursor moves to end of previous paragraph (now merged)
-            CursorPosition newPos;
-            newPos.paragraph = m_cursorPosition.paragraph - 1;
-            newPos.offset = prevLength;
-
-            setCursorPosition(newPos);
-            ensureCursorVisible();
-        }
+        // Cursor moves to merge point
+        setCursorPosition(cmd->cursorAfter());
+        ensureCursorVisible();
     } else {
         // Delete character before cursor
         CursorPosition deleteStart = m_cursorPosition;
         deleteStart.offset -= 1;
 
-        if (m_document->deleteText(deleteStart, m_cursorPosition)) {
-            setCursorPosition(deleteStart);
-            ensureCursorVisible();
+        // Get the character being deleted
+        const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+        QString deletedChar;
+        if (para != nullptr) {
+            QString text = para->plainText();
+            if (deleteStart.offset < text.length()) {
+                deletedChar = text.mid(deleteStart.offset, 1);
+            }
         }
+
+        // Create and push delete command
+        auto* cmd = new DeleteTextCommand(m_document, deleteStart, m_cursorPosition,
+                                           deletedChar, QString());
+        m_undoStack->push(cmd);
+
+        setCursorPosition(deleteStart);
+        ensureCursorVisible();
     }
 }
 
@@ -1089,21 +1091,30 @@ void BookEditor::deleteForward()
 
     // If at end of paragraph, merge with next paragraph
     if (atEndOfPara) {
-        // Merge next paragraph into this one
-        // This effectively deletes the paragraph break
-        if (m_document->mergeParagraphWithPrevious(m_cursorPosition.paragraph + 1)) {
-            // Cursor position stays the same
-            ensureCursorVisible();
-        }
+        // Create and push merge command (merge next paragraph into this one)
+        auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
+                                                m_cursorPosition.paragraph + 1);
+        m_undoStack->push(cmd);
+        // Cursor position stays the same
+        ensureCursorVisible();
     } else {
         // Delete character after cursor
         CursorPosition deleteEnd = m_cursorPosition;
         deleteEnd.offset += 1;
 
-        if (m_document->deleteText(m_cursorPosition, deleteEnd)) {
-            // Cursor position stays the same
-            ensureCursorVisible();
+        // Get the character being deleted
+        QString deletedChar;
+        QString text = para->plainText();
+        if (m_cursorPosition.offset < text.length()) {
+            deletedChar = text.mid(m_cursorPosition.offset, 1);
         }
+
+        // Create and push delete command
+        auto* cmd = new DeleteTextCommand(m_document, m_cursorPosition, deleteEnd,
+                                           deletedChar, QString());
+        m_undoStack->push(cmd);
+        // Cursor position stays the same
+        ensureCursorVisible();
     }
 }
 
@@ -1174,6 +1185,51 @@ void BookEditor::clearUndoStack()
     if (m_undoStack != nullptr) {
         m_undoStack->clear();
     }
+}
+
+// =============================================================================
+// Clipboard (Phase 4.13-4.16)
+// =============================================================================
+
+void BookEditor::copy()
+{
+    if (m_document == nullptr || !hasSelection()) {
+        return;
+    }
+
+    ClipboardHandler::copy(m_document, m_selection);
+}
+
+void BookEditor::cut()
+{
+    if (m_document == nullptr || !hasSelection()) {
+        return;
+    }
+
+    // Copy first, then delete
+    ClipboardHandler::copy(m_document, m_selection);
+    deleteSelectedText();
+}
+
+void BookEditor::paste()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // Get text from clipboard
+    QString text = ClipboardHandler::pasteAsText();
+    if (text.isEmpty()) {
+        return;
+    }
+
+    // Insert at cursor (insertText handles selection deletion)
+    insertText(text);
+}
+
+bool BookEditor::canPaste() const
+{
+    return ClipboardHandler::canPaste();
 }
 
 // =============================================================================
@@ -1409,6 +1465,27 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         case Qt::Key_Y:
             if (ctrl) {
                 redo();
+                handled = true;
+            }
+            break;
+
+        case Qt::Key_C:
+            if (ctrl) {
+                copy();
+                handled = true;
+            }
+            break;
+
+        case Qt::Key_X:
+            if (ctrl) {
+                cut();
+                handled = true;
+            }
+            break;
+
+        case Qt::Key_V:
+            if (ctrl) {
+                paste();
                 handled = true;
             }
             break;

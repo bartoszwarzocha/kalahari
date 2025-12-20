@@ -345,6 +345,33 @@ public:
     void clearUndoStack();
 
     // =========================================================================
+    // Clipboard (Phase 4.13-4.16)
+    // =========================================================================
+
+    /// @brief Copy selected content to clipboard (Ctrl+C)
+    ///
+    /// Copies selection as KML (native), HTML, and plain text formats.
+    /// Does nothing if no selection.
+    void copy();
+
+    /// @brief Cut selected content to clipboard (Ctrl+X)
+    ///
+    /// Copies selection to clipboard and deletes it.
+    /// Does nothing if no selection.
+    void cut();
+
+    /// @brief Paste content from clipboard (Ctrl+V)
+    ///
+    /// Inserts clipboard content at cursor position.
+    /// If there is a selection, it is deleted first.
+    /// Supports KML, HTML, and plain text formats.
+    void paste();
+
+    /// @brief Check if paste is available
+    /// @return true if clipboard has compatible content
+    bool canPaste() const;
+
+    // =========================================================================
     // Size Hints
     // =========================================================================
 

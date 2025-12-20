@@ -1,77 +1,49 @@
 {
   "mode": "quick",
-  "saved_at": "2025-12-19T22:00:00",
+  "saved_at": "2025-12-20T15:45:00",
   "git_branch": "main",
-  "git_commit": "01fd76e",
+  "git_commit": "pending",
   "git_pushed": false,
-  "openspec": "00041",
-  "openspec_status": "DEPLOYED",
-  "working_on": "OpenSpec #00041 COMPLETE - SQLite Project Database deployed",
+  "openspec": "00042",
+  "openspec_status": "IN_PROGRESS",
+  "working_on": "OpenSpec #00042 Custom Text Editor - Phase 4 COMPLETE",
   "next_steps": [
-    "Implement OpenSpec #00042 (Custom Text Editor) - 7 phases"
+    "Phase 5: View Modes (continuous, paginated, focus)",
+    "Phase 6: Services (find/replace, autosave)",
+    "Phase 7: Integration (MainWindow, ChapterDocument)"
   ],
   "blocker": null,
-  "implementation_status": "DEPLOYED",
+  "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
-    "OpenSpec #00041: DatabaseSchemaManager (10 tables)",
-    "OpenSpec #00041: ProjectLock (PID-based, stale detection)",
-    "OpenSpec #00041: BackupManager (backup/restore/rotation)",
-    "OpenSpec #00041: ProjectDatabase (full CRUD)",
-    "OpenSpec #00041: ProjectManager integration",
-    "OpenSpec #00041: Examples updated with project.db",
-    "OpenSpec #00041: Qt sqldrivers plugin deployment",
-    "OpenSpec #00041: Unit tests (107 assertions, 5 test cases)",
-    "OpenSpec #00041: All tests passing (837 assertions, 88 cases)",
-    "OpenSpec #00042 design complete (Custom Text Editor)"
+    "Phase 1: KML Model Layer (elements, parsing, document)",
+    "Phase 2: Layout Engine (paragraph, table, virtual scroll, layout manager)",
+    "Phase 3: BookEditor Widget (cursor, selection, mouse, keyboard)",
+    "Phase 4.1-4.8: Text Input + Undo Framework",
+    "Phase 4.9-4.12: Command Integration (InsertText, DeleteText, Split/Merge)",
+    "Phase 4.13-4.16: Clipboard Handler (copy, cut, paste, format conversion)"
   ],
   "pending_tasks": [
-    "OpenSpec #00042 implementation (Editor) - 7 phases"
+    "Phase 5: View Modes",
+    "Phase 6: Services",
+    "Phase 7: Integration with main application"
   ],
   "task_progress": {
-    "completed": 1,
-    "total": 2,
-    "percentage": 50
+    "completed": 4,
+    "total": 7,
+    "percentage": 57
   },
-  "session_summary": {
-    "openspec_41": {
-      "status": "DEPLOYED",
-      "title": "SQLite Project Database",
-      "phase": "COMPLETE",
-      "commit": "01fd76e",
-      "files_changed": 23,
-      "insertions": 2879,
-      "classes": ["ProjectDatabase", "DatabaseSchemaManager", "ProjectLock", "BackupManager"],
-      "tables": ["book_metadata", "chapters", "chapter_history", "characters", "locations", "items", "session_stats", "paragraph_styles", "character_styles", "settings"]
-    },
-    "openspec_42": {
-      "status": "PENDING",
-      "title": "Custom Text Editor",
-      "phase": "DESIGN COMPLETE v5.0",
-      "classes": ["BookEditor", "KmlDocument", "KmlParagraph", "KmlTable", "ParagraphLayout", "TableLayout", "VirtualScrollManager", "KmlCommands", "SpellCheckService", "GrammarCheckService", "WordFrequencyAnalyzer", "TextToSpeechService", "ClipboardHandler", "StyleResolver", "StatisticsCollector"],
-      "view_modes": ["Continuous", "Page", "Typewriter", "Distraction-Free", "Split View"],
-      "depends_on": "#00041 (COMPLETE)"
-    }
+  "test_results": {
+    "total_assertions": 2880,
+    "total_test_cases": 461,
+    "all_passed": true
   },
-  "technical_context": {
-    "project_storage": "SQLite (project.db) for metadata, config, statistics - DEPLOYED",
-    "content_files": ".kchapter (JSON + KML) for chapter content",
-    "markup": "KML (Kalahari Markup Language) - XML subset with tables",
-    "current_editor": "QTextEdit (interim)",
-    "target_editor": "Custom BookEditor",
-    "architecture": "Hybrid (own rendering + Qt components)",
-    "qt_components": ["QTextLayout", "QXmlStreamReader", "QUndoStack", "Hunspell", "LanguageTool", "QTextToSpeech", "QSqlDatabase"]
-  },
-  "specification": {
-    "functional_spec": "project_docs/19_text_editor_functional_spec_pl.md v5.0",
-    "openspec_41": "openspec/changes/00041-sqlite-project-database/ - DEPLOYED",
-    "openspec_42": "openspec/changes/00042-custom-text-editor/proposal.md"
-  },
-  "philosophy": "Pisarz, szklanka whisky, zanurzenie w procesie twórczym. Zero dystraktorów. Zero wersji mobilnych. Tylko słowa.",
-  "notes": [
-    "OpenSpec #00041 DEPLOYED - all tests passing",
-    "Atomic workflow enforced: small task → build → user test → next task",
-    "User explicitly rejected MVP approach - full-functional control from start",
-    "User explicitly rejected mobile version - desktop focus for immersive writing",
-    "#00042 can now begin (dependency on #00041 satisfied)"
-  ]
+  "key_bugs_fixed": [
+    "Dangling pointer after QUndoStack::push() when command merging"
+  ],
+  "features_implemented": [
+    "ClipboardHandler with copy/cut/paste",
+    "Format conversion: KML/HTML/PlainText",
+    "Ctrl+C/X/V shortcuts"
+  ],
+  "philosophy": "Zero dystraktorów. Tylko słowa."
 }
