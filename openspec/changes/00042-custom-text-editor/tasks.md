@@ -296,93 +296,93 @@
 - [x] Preferred X position maintained during vertical navigation
 - [x] **BUILD + TEST** (171 assertions, 42 book_editor test cases)
 
-### 3.9 BookEditor Mouse (Click)
-- [ ] Implement mousePressEvent()
-- [ ] Convert click position to CursorPosition
-- [ ] Use ParagraphLayout::positionAt()
-- [ ] Set cursor on click
-- [ ] **BUILD + TEST**
+### 3.9 BookEditor Mouse (Click) [COMPLETE]
+- [x] Implement mousePressEvent()
+- [x] Convert click position to CursorPosition
+- [x] Use ParagraphLayout::positionAt()
+- [x] Set cursor on click
+- [x] **BUILD + TEST** (all tests pass)
 
-### 3.10 BookEditor Mouse (Selection)
-- [ ] Add SelectionRange m_selection member
-- [ ] Implement mouseMoveEvent() for drag selection
-- [ ] Update selection during drag
-- [ ] Render selection highlight in paintEvent()
-- [ ] **BUILD + TEST**
+### 3.10 BookEditor Mouse (Selection) [COMPLETE]
+- [x] Add SelectionRange m_selection member
+- [x] Implement mouseMoveEvent() for drag selection
+- [x] Update selection during drag
+- [x] Render selection highlight in paintEvent()
+- [x] **BUILD + TEST** (all tests pass)
 
-### 3.11 BookEditor Mouse (Double/Triple Click)
-- [ ] Implement double-click to select word
-- [ ] Implement triple-click to select paragraph
-- [ ] Track click count with timer
-- [ ] **BUILD + TEST**
+### 3.11 BookEditor Mouse (Double/Triple Click) [COMPLETE]
+- [x] Implement double-click to select word
+- [x] Implement triple-click to select paragraph
+- [x] Track click count with timer
+- [x] **BUILD + TEST** (all tests pass)
 
-### 3.12 BookEditor Selection (Keyboard)
-- [ ] Implement Shift+Arrow for selection extension
-- [ ] Implement Ctrl+Shift+Arrow for word selection
-- [ ] Implement Shift+Home/End for line selection
-- [ ] Implement Ctrl+A for select all
-- [ ] **BUILD + TEST**
+### 3.12 BookEditor Selection (Keyboard) [COMPLETE]
+- [x] Implement Shift+Arrow for selection extension
+- [x] Implement Ctrl+Shift+Arrow for word selection
+- [x] Implement Shift+Home/End for line selection
+- [x] Implement Ctrl+A for select all
+- [x] **BUILD + TEST** (232 assertions, 57 test cases)
 
 ---
 
 ## Phase 4: Text Input & Editing
 
-### 4.1 Basic Text Input
-- [ ] Implement keyPressEvent() for printable characters
-- [ ] Insert character at cursor position
-- [ ] Move cursor after insertion
-- [ ] Clear selection before insert (replace)
-- [ ] **BUILD + TEST**
+### 4.1 Basic Text Input [COMPLETE]
+- [x] Implement keyPressEvent() for printable characters
+- [x] Insert character at cursor position
+- [x] Move cursor after insertion
+- [x] Clear selection before insert (replace)
+- [x] **BUILD + TEST** (73 assertions, 11 test cases)
 
-### 4.2 Enter Key
-- [ ] Handle Enter key in keyPressEvent()
-- [ ] Split paragraph at cursor
-- [ ] Create new paragraph
-- [ ] Move cursor to start of new paragraph
-- [ ] **BUILD + TEST**
+### 4.2 Enter Key [COMPLETE]
+- [x] Handle Enter key in keyPressEvent()
+- [x] Split paragraph at cursor
+- [x] Create new paragraph
+- [x] Move cursor to start of new paragraph
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.3 Backspace
-- [ ] Handle Backspace in keyPressEvent()
-- [ ] Delete character before cursor
-- [ ] Handle Backspace at paragraph start (merge)
-- [ ] Handle Backspace with selection (delete selection)
-- [ ] **BUILD + TEST**
+### 4.3 Backspace [COMPLETE]
+- [x] Handle Backspace in keyPressEvent()
+- [x] Delete character before cursor
+- [x] Handle Backspace at paragraph start (merge)
+- [x] Handle Backspace with selection (delete selection)
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.4 Delete Key
-- [ ] Handle Delete in keyPressEvent()
-- [ ] Delete character after cursor
-- [ ] Handle Delete at paragraph end (merge)
-- [ ] Handle Delete with selection
-- [ ] **BUILD + TEST**
+### 4.4 Delete Key [COMPLETE]
+- [x] Handle Delete in keyPressEvent()
+- [x] Delete character after cursor
+- [x] Handle Delete at paragraph end (merge)
+- [x] Handle Delete with selection
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.5 IME Support (Basic)
-- [ ] Implement inputMethodEvent()
-- [ ] Handle preedit string (composition)
-- [ ] Store composition state
-- [ ] Render composition underline
-- [ ] **BUILD + TEST**
+### 4.5 IME Support (Basic) [COMPLETE]
+- [x] Implement inputMethodEvent()
+- [x] Handle preedit string (composition)
+- [x] Store composition state
+- [x] Render composition underline (via preedit insertion)
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.6 IME Support (Commit)
-- [ ] Handle commit string in inputMethodEvent()
-- [ ] Clear composition on commit
-- [ ] Insert committed text
-- [ ] **BUILD + TEST**
+### 4.6 IME Support (Commit) [COMPLETE]
+- [x] Handle commit string in inputMethodEvent()
+- [x] Clear composition on commit
+- [x] Insert committed text
+- [x] **BUILD + TEST** (all tests pass)
 
-### 4.7 IME Support (Query)
-- [ ] Implement inputMethodQuery()
-- [ ] Return ImEnabled, ImCursorRectangle
-- [ ] Return ImFont, ImCursorPosition
-- [ ] Return ImSurroundingText, ImCurrentSelection
-- [ ] Test with CJK input (Chinese/Japanese/Korean)
-- [ ] **BUILD + TEST**
+### 4.7 IME Support (Query) [COMPLETE]
+- [x] Implement inputMethodQuery()
+- [x] Return ImEnabled, ImCursorRectangle
+- [x] Return ImFont, ImCursorPosition
+- [x] Return ImSurroundingText, ImCurrentSelection
+- [x] Test with CJK input (Chinese/Japanese/Korean)
+- [x] **BUILD + TEST** (14 assertions, 3 test cases)
 
-### 4.8 Undo/Redo Framework
-- [ ] Create `kml_commands.h` - KmlCommand base class
-- [ ] Create `kml_commands.cpp`
-- [ ] Add QUndoStack to BookEditor
-- [ ] Define CommandId enum
-- [ ] Connect Ctrl+Z, Ctrl+Y shortcuts
-- [ ] **BUILD + TEST**
+### 4.8 Undo/Redo Framework [COMPLETE]
+- [x] Create `kml_commands.h` - KmlCommand base class
+- [x] Create `kml_commands.cpp` - InsertText, DeleteText, ApplyStyle, SplitParagraph, MergeParagraphs commands
+- [x] Add QUndoStack to BookEditor
+- [x] Define CommandId enum
+- [x] Connect Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z shortcuts
+- [x] **BUILD + TEST** (7 assertions, 3 test cases)
 
 ### 4.9 Insert Text Command
 - [ ] Create InsertTextCommand class

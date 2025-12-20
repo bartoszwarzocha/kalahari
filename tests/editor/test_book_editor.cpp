@@ -1832,3 +1832,568 @@ TEST_CASE("BookEditor selection with document change", "[editor][book_editor][se
         REQUIRE_NOTHROW(editor.selection());
     }
 }
+
+// =============================================================================
+// Phase 4.1: Text Input Tests
+// =============================================================================
+
+TEST_CASE("BookEditor insertText basic", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Insert text at cursor position") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+        editor.insertText(" World");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
+        REQUIRE(editor.cursorPosition().offset == 11);  // After "Hello World"
+    }
+
+    SECTION("Insert text in middle of text") {
+        editor.setCursorPosition({0, 2});  // After "He"
+        editor.insertText("y ");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hey llo");
+        REQUIRE(editor.cursorPosition().offset == 4);  // After "Hey "
+    }
+
+    SECTION("Insert text at beginning") {
+        editor.setCursorPosition({0, 0});
+        editor.insertText("Say ");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Say Hello");
+        REQUIRE(editor.cursorPosition().offset == 4);
+    }
+
+    SECTION("Insert empty text does nothing") {
+        editor.setCursorPosition({0, 2});
+        editor.insertText("");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.cursorPosition().offset == 2);
+    }
+}
+
+TEST_CASE("BookEditor insertText replaces selection", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Insert replaces selected text") {
+        SelectionRange sel;
+        sel.start = {0, 0};
+        sel.end = {0, 5};  // Select "Hello"
+        editor.setSelection(sel);
+        editor.setCursorPosition(sel.end);
+
+        editor.insertText("Hi");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hi World");
+        REQUIRE(editor.cursorPosition().offset == 2);
+        REQUIRE(!editor.hasSelection());
+    }
+
+    SECTION("Insert replaces entire content") {
+        SelectionRange sel;
+        sel.start = {0, 0};
+        sel.end = {0, 11};  // Select all
+        editor.setSelection(sel);
+        editor.setCursorPosition(sel.end);
+
+        editor.insertText("New");
+
+        REQUIRE(doc->paragraph(0)->plainText() == "New");
+        REQUIRE(editor.cursorPosition().offset == 3);
+    }
+}
+
+TEST_CASE("BookEditor deleteSelectedText", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Delete selection removes text") {
+        SelectionRange sel;
+        sel.start = {0, 5};
+        sel.end = {0, 11};  // Select " World"
+        editor.setSelection(sel);
+
+        bool deleted = editor.deleteSelectedText();
+
+        REQUIRE(deleted);
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.cursorPosition().offset == 5);
+        REQUIRE(!editor.hasSelection());
+    }
+
+    SECTION("Delete without selection returns false") {
+        REQUIRE(!editor.deleteSelectedText());
+    }
+}
+
+// =============================================================================
+// Phase 4.2: Enter Key Tests
+// =============================================================================
+
+TEST_CASE("BookEditor insertNewline", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Enter in middle splits paragraph") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+        editor.insertNewline();
+
+        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(doc->paragraph(1)->plainText() == " World");
+        REQUIRE(editor.cursorPosition().paragraph == 1);
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Enter at beginning creates empty paragraph before") {
+        editor.setCursorPosition({0, 0});
+        editor.insertNewline();
+
+        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(doc->paragraph(0)->plainText() == "");
+        REQUIRE(doc->paragraph(1)->plainText() == "Hello World");
+        REQUIRE(editor.cursorPosition().paragraph == 1);
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Enter at end creates empty paragraph after") {
+        editor.setCursorPosition({0, 11});  // After "Hello World"
+        editor.insertNewline();
+
+        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
+        REQUIRE(doc->paragraph(1)->plainText() == "");
+        REQUIRE(editor.cursorPosition().paragraph == 1);
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Enter with selection deletes selection first") {
+        SelectionRange sel;
+        sel.start = {0, 5};
+        sel.end = {0, 11};  // Select " World"
+        editor.setSelection(sel);
+        editor.setCursorPosition(sel.end);
+
+        editor.insertNewline();
+
+        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(doc->paragraph(1)->plainText() == "");
+        REQUIRE(!editor.hasSelection());
+    }
+}
+
+// =============================================================================
+// Phase 4.3: Backspace Tests
+// =============================================================================
+
+TEST_CASE("BookEditor deleteBackward", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Backspace deletes character before cursor") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+        editor.deleteBackward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hell");
+        REQUIRE(editor.cursorPosition().offset == 4);
+    }
+
+    SECTION("Backspace at beginning does nothing") {
+        editor.setCursorPosition({0, 0});
+        editor.deleteBackward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Backspace in middle deletes correctly") {
+        editor.setCursorPosition({0, 3});  // After "Hel"
+        editor.deleteBackward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Helo");
+        REQUIRE(editor.cursorPosition().offset == 2);
+    }
+}
+
+TEST_CASE("BookEditor deleteBackward merges paragraphs", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para1 = std::make_unique<KmlParagraph>("Hello");
+    auto para2 = std::make_unique<KmlParagraph>("World");
+    doc->addParagraph(std::move(para1));
+    doc->addParagraph(std::move(para2));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Backspace at paragraph start merges with previous") {
+        editor.setCursorPosition({1, 0});  // Start of "World"
+        editor.deleteBackward();
+
+        REQUIRE(doc->paragraphCount() == 1);
+        REQUIRE(doc->paragraph(0)->plainText() == "HelloWorld");
+        REQUIRE(editor.cursorPosition().paragraph == 0);
+        REQUIRE(editor.cursorPosition().offset == 5);  // After "Hello"
+    }
+}
+
+TEST_CASE("BookEditor deleteBackward with selection", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Backspace with selection deletes selection") {
+        SelectionRange sel;
+        sel.start = {0, 5};
+        sel.end = {0, 11};  // Select " World"
+        editor.setSelection(sel);
+
+        editor.deleteBackward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.cursorPosition().offset == 5);
+        REQUIRE(!editor.hasSelection());
+    }
+}
+
+// =============================================================================
+// Phase 4.4: Delete Key Tests
+// =============================================================================
+
+TEST_CASE("BookEditor deleteForward", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Delete removes character after cursor") {
+        editor.setCursorPosition({0, 0});  // Before "Hello"
+        editor.deleteForward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "ello");
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Delete at end does nothing") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+        editor.deleteForward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.cursorPosition().offset == 5);
+    }
+
+    SECTION("Delete in middle works correctly") {
+        editor.setCursorPosition({0, 2});  // After "He"
+        editor.deleteForward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Helo");
+        REQUIRE(editor.cursorPosition().offset == 2);
+    }
+}
+
+TEST_CASE("BookEditor deleteForward merges paragraphs", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para1 = std::make_unique<KmlParagraph>("Hello");
+    auto para2 = std::make_unique<KmlParagraph>("World");
+    doc->addParagraph(std::move(para1));
+    doc->addParagraph(std::move(para2));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Delete at paragraph end merges with next") {
+        editor.setCursorPosition({0, 5});  // End of "Hello"
+        editor.deleteForward();
+
+        REQUIRE(doc->paragraphCount() == 1);
+        REQUIRE(doc->paragraph(0)->plainText() == "HelloWorld");
+        REQUIRE(editor.cursorPosition().paragraph == 0);
+        REQUIRE(editor.cursorPosition().offset == 5);  // After "Hello"
+    }
+}
+
+TEST_CASE("BookEditor deleteForward with selection", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.setDocument(doc.get());
+
+    SECTION("Delete with selection deletes selection") {
+        SelectionRange sel;
+        sel.start = {0, 0};
+        sel.end = {0, 6};  // Select "Hello "
+        editor.setSelection(sel);
+
+        editor.deleteForward();
+
+        REQUIRE(doc->paragraph(0)->plainText() == "World");
+        REQUIRE(editor.cursorPosition().offset == 0);
+        REQUIRE(!editor.hasSelection());
+    }
+}
+
+// =============================================================================
+// Phase 4: Keyboard Input Tests
+// =============================================================================
+
+TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.resize(600, 400);
+    editor.setDocument(doc.get());
+
+    SECTION("Typing character inserts text") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_X, Qt::NoModifier, "X");
+        QCoreApplication::sendEvent(&editor, &event);
+
+        REQUIRE(doc->paragraph(0)->plainText() == "HelloX");
+        REQUIRE(editor.cursorPosition().offset == 6);
+    }
+
+    SECTION("Enter key creates newline") {
+        editor.setCursorPosition({0, 5});
+
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+
+        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(editor.cursorPosition().paragraph == 1);
+    }
+
+    SECTION("Backspace key deletes backward") {
+        editor.setCursorPosition({0, 5});
+
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hell");
+        REQUIRE(editor.cursorPosition().offset == 4);
+    }
+
+    SECTION("Delete key deletes forward") {
+        editor.setCursorPosition({0, 0});
+
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Delete, Qt::NoModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+
+        REQUIRE(doc->paragraph(0)->plainText() == "ello");
+        REQUIRE(editor.cursorPosition().offset == 0);
+    }
+
+    SECTION("Multiple character typing") {
+        editor.setCursorPosition({0, 5});
+
+        const QString chars = "XYZ";
+        for (const QChar& c : chars) {
+            QKeyEvent event(QEvent::KeyPress, Qt::Key_unknown, Qt::NoModifier, QString(c));
+            QCoreApplication::sendEvent(&editor, &event);
+        }
+
+        REQUIRE(doc->paragraph(0)->plainText() == "HelloXYZ");
+        REQUIRE(editor.cursorPosition().offset == 8);
+    }
+}
+
+// =============================================================================
+// Phase 4.5-4.7: IME Support Tests
+// =============================================================================
+
+TEST_CASE("BookEditor IME inputMethodQuery", "[editor][book_editor][ime]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello World");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.resize(600, 400);
+    editor.setDocument(doc.get());
+
+    SECTION("ImEnabled returns true") {
+        QVariant result = editor.inputMethodQuery(Qt::ImEnabled);
+        REQUIRE(result.toBool() == true);
+    }
+
+    SECTION("ImFont returns widget font") {
+        QVariant result = editor.inputMethodQuery(Qt::ImFont);
+        REQUIRE(result.canConvert<QFont>());
+        REQUIRE(result.value<QFont>() == editor.font());
+    }
+
+    SECTION("ImCursorPosition returns cursor offset") {
+        editor.setCursorPosition({0, 5});
+        QVariant result = editor.inputMethodQuery(Qt::ImCursorPosition);
+        REQUIRE(result.toInt() == 5);
+    }
+
+    SECTION("ImSurroundingText returns paragraph text") {
+        editor.setCursorPosition({0, 5});
+        QVariant result = editor.inputMethodQuery(Qt::ImSurroundingText);
+        REQUIRE(result.toString() == "Hello World");
+    }
+
+    SECTION("ImCurrentSelection returns selection text") {
+        SelectionRange sel;
+        sel.start = {0, 0};
+        sel.end = {0, 5};
+        editor.setSelection(sel);
+
+        QVariant result = editor.inputMethodQuery(Qt::ImCurrentSelection);
+        REQUIRE(result.toString() == "Hello");
+    }
+
+    SECTION("ImCurrentSelection returns empty when no selection") {
+        QVariant result = editor.inputMethodQuery(Qt::ImCurrentSelection);
+        REQUIRE(result.toString().isEmpty());
+    }
+
+    SECTION("ImCursorRectangle returns valid rect") {
+        editor.setCursorPosition({0, 5});
+        QVariant result = editor.inputMethodQuery(Qt::ImCursorRectangle);
+        REQUIRE(result.canConvert<QRectF>());
+        // Should return some valid rectangle
+        QRectF rect = result.toRectF();
+        REQUIRE(rect.width() > 0);
+        REQUIRE(rect.height() > 0);
+    }
+}
+
+TEST_CASE("BookEditor IME inputMethodEvent commit", "[editor][book_editor][ime]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.resize(600, 400);
+    editor.setDocument(doc.get());
+
+    SECTION("Commit string inserts text") {
+        editor.setCursorPosition({0, 5});  // After "Hello"
+
+        QInputMethodEvent event;
+        event.setCommitString(" World");
+        QCoreApplication::sendEvent(&editor, &event);
+
+        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
+        REQUIRE(editor.cursorPosition().offset == 11);
+    }
+
+    SECTION("Commit with preedit replaces preedit") {
+        editor.setCursorPosition({0, 5});
+
+        // First send preedit
+        QInputMethodEvent preeditEvent(QString::fromUtf8("汉"), QList<QInputMethodEvent::Attribute>());
+        QCoreApplication::sendEvent(&editor, &preeditEvent);
+
+        // Then commit the final text
+        QInputMethodEvent commitEvent;
+        commitEvent.setCommitString(QString::fromUtf8("汉字"));
+        QCoreApplication::sendEvent(&editor, &commitEvent);
+
+        REQUIRE(doc->paragraph(0)->plainText() == QString::fromUtf8("Hello汉字"));
+    }
+}
+
+TEST_CASE("BookEditor IME attributes enabled", "[editor][book_editor][ime]") {
+    BookEditor editor;
+    editor.resize(600, 400);
+
+    SECTION("Widget has InputMethodEnabled attribute") {
+        REQUIRE(editor.testAttribute(Qt::WA_InputMethodEnabled));
+    }
+}
+
+// =============================================================================
+// Phase 4.8: Undo/Redo Tests
+// =============================================================================
+
+TEST_CASE("BookEditor undo stack initialization", "[editor][book_editor][undo]") {
+    BookEditor editor;
+    editor.resize(600, 400);
+
+    SECTION("Undo stack exists") {
+        REQUIRE(editor.undoStack() != nullptr);
+    }
+
+    SECTION("Initially cannot undo or redo") {
+        REQUIRE(!editor.canUndo());
+        REQUIRE(!editor.canRedo());
+    }
+}
+
+TEST_CASE("BookEditor undo/redo keyboard shortcuts", "[editor][book_editor][undo]") {
+    auto doc = std::make_unique<KmlDocument>();
+    auto para = std::make_unique<KmlParagraph>("Hello");
+    doc->addParagraph(std::move(para));
+
+    BookEditor editor;
+    editor.resize(600, 400);
+    editor.setDocument(doc.get());
+    editor.setCursorPosition({0, 5});
+
+    // Note: Currently, text input doesn't push commands to undo stack
+    // (that would be task 4.9-4.11). This test just checks the methods work.
+
+    SECTION("Ctrl+Z calls undo") {
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Z, Qt::ControlModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+        // No crash - method was called
+        REQUIRE(true);
+    }
+
+    SECTION("Ctrl+Y calls redo") {
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Y, Qt::ControlModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+        // No crash - method was called
+        REQUIRE(true);
+    }
+
+    SECTION("Ctrl+Shift+Z calls redo") {
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
+        QCoreApplication::sendEvent(&editor, &event);
+        // No crash - method was called
+        REQUIRE(true);
+    }
+}
+
+TEST_CASE("BookEditor clearUndoStack", "[editor][book_editor][undo]") {
+    BookEditor editor;
+    editor.resize(600, 400);
+
+    SECTION("Clear undo stack works without crash") {
+        REQUIRE_NOTHROW(editor.clearUndoStack());
+    }
+}

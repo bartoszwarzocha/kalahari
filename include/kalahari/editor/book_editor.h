@@ -21,11 +21,13 @@
 #include <QWidget>
 #include <memory>
 
+class QInputMethodEvent;
 class QKeyEvent;
 class QMouseEvent;
-class QScrollBar;
 class QPropertyAnimation;
+class QScrollBar;
 class QTimer;
+class QUndoStack;
 
 namespace kalahari::editor {
 
@@ -281,6 +283,68 @@ public:
     void selectAll();
 
     // =========================================================================
+    // Text Input (Phase 4.1 - 4.4)
+    // =========================================================================
+
+    /// @brief Insert text at the current cursor position
+    /// @param text The text to insert
+    ///
+    /// If there is an active selection, it is deleted first (replace behavior).
+    /// The cursor moves to the end of the inserted text.
+    void insertText(const QString& text);
+
+    /// @brief Delete the currently selected text
+    /// @return true if text was deleted, false if no selection
+    ///
+    /// After deletion, the cursor is positioned at the start of the former selection.
+    bool deleteSelectedText();
+
+    /// @brief Insert a newline, splitting the paragraph at cursor position
+    ///
+    /// If there is an active selection, it is deleted first.
+    /// The cursor moves to the start of the new paragraph.
+    void insertNewline();
+
+    /// @brief Delete character before cursor (Backspace)
+    ///
+    /// If there is a selection, deletes the selection.
+    /// If at paragraph start, merges with previous paragraph.
+    /// Otherwise, deletes the character before cursor.
+    void deleteBackward();
+
+    /// @brief Delete character after cursor (Delete key)
+    ///
+    /// If there is a selection, deletes the selection.
+    /// If at paragraph end, merges with next paragraph.
+    /// Otherwise, deletes the character after cursor.
+    void deleteForward();
+
+    // =========================================================================
+    // Undo/Redo (Phase 4.8)
+    // =========================================================================
+
+    /// @brief Get the undo stack for this editor
+    /// @return Pointer to the undo stack
+    QUndoStack* undoStack() const;
+
+    /// @brief Check if undo is available
+    /// @return true if there are commands to undo
+    bool canUndo() const;
+
+    /// @brief Check if redo is available
+    /// @return true if there are commands to redo
+    bool canRedo() const;
+
+    /// @brief Undo the last command
+    void undo();
+
+    /// @brief Redo the last undone command
+    void redo();
+
+    /// @brief Clear the undo stack
+    void clearUndoStack();
+
+    // =========================================================================
     // Size Hints
     // =========================================================================
 
@@ -370,6 +434,20 @@ protected:
     ///
     /// Handles double-click to select word.
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+
+    /// @brief Input method event handler (Phase 4.5/4.6)
+    /// @param event The input method event
+    ///
+    /// Handles IME composition and commit for CJK input.
+    void inputMethodEvent(QInputMethodEvent* event) override;
+
+public:
+    /// @brief Input method query handler (Phase 4.7)
+    /// @param query The query type
+    /// @return Value for the queried property
+    ///
+    /// Provides information to IME about cursor position, selection, etc.
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 private slots:
     /// @brief Handle scrollbar value change
@@ -499,6 +577,14 @@ private:
     QPointF m_lastClickPos;                                 ///< Position of last click
     static constexpr int MULTI_CLICK_INTERVAL = 400;        ///< Max interval between clicks (ms)
     static constexpr qreal MULTI_CLICK_DISTANCE = 5.0;      ///< Max distance for multi-click
+
+    // IME composition state (Phase 4.5/4.6/4.7)
+    QString m_preeditString;                                ///< Current IME preedit/composition string
+    CursorPosition m_preeditStart;                          ///< Start position of preedit text
+    bool m_hasComposition;                                  ///< Is composition in progress?
+
+    // Undo/Redo state (Phase 4.8)
+    QUndoStack* m_undoStack;                                ///< Undo stack for editing commands
 };
 
 }  // namespace kalahari::editor

@@ -2,11 +2,13 @@
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
 #include <QEasingCurve>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
@@ -17,6 +19,7 @@
 #include <QScrollBar>
 #include <QStyleHints>
 #include <QTimer>
+#include <QUndoStack>
 #include <QWheelEvent>
 
 namespace kalahari::editor {
@@ -64,7 +67,17 @@ BookEditor::BookEditor(QWidget* parent)
     , m_clickTimer(nullptr)
     , m_clickCount(0)
     , m_lastClickPos(0.0, 0.0)
+    , m_preeditString()
+    , m_preeditStart{0, 0}
+    , m_hasComposition(false)
+    , m_undoStack(nullptr)
 {
+    // Enable input method support
+    setAttribute(Qt::WA_InputMethodEnabled, true);
+
+    // Create undo stack
+    m_undoStack = new QUndoStack(this);
+
     setupComponents();
 }
 
@@ -918,6 +931,183 @@ void BookEditor::selectAll()
 }
 
 // =============================================================================
+// Text Input (Phase 4.1 - 4.4)
+// =============================================================================
+
+void BookEditor::insertText(const QString& text)
+{
+    if (m_document == nullptr || text.isEmpty()) {
+        return;
+    }
+
+    // If there's a selection, delete it first (replace behavior)
+    if (hasSelection()) {
+        deleteSelectedText();
+    }
+
+    // Insert text at cursor position
+    if (m_document->insertText(m_cursorPosition, text)) {
+        // Move cursor to end of inserted text
+        CursorPosition newPos = m_cursorPosition;
+        newPos.offset += text.length();
+
+        // Validate against paragraph length
+        const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
+        if (para != nullptr) {
+            newPos.offset = qMin(newPos.offset, para->characterCount());
+        }
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+    }
+}
+
+bool BookEditor::deleteSelectedText()
+{
+    if (m_document == nullptr || !hasSelection()) {
+        return false;
+    }
+
+    // Normalize selection range
+    SelectionRange range = m_selection.normalized();
+
+    // Delete the selected text
+    if (m_document->deleteText(range.start, range.end)) {
+        // Position cursor at start of former selection
+        setCursorPosition(range.start);
+
+        // Clear selection
+        clearSelection();
+        ensureCursorVisible();
+        return true;
+    }
+
+    return false;
+}
+
+void BookEditor::insertNewline()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // If there's a selection, delete it first
+    if (hasSelection()) {
+        deleteSelectedText();
+    }
+
+    // Split paragraph at cursor position
+    if (m_document->splitParagraph(m_cursorPosition)) {
+        // Move cursor to start of new paragraph
+        CursorPosition newPos;
+        newPos.paragraph = m_cursorPosition.paragraph + 1;
+        newPos.offset = 0;
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+    }
+}
+
+void BookEditor::deleteBackward()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // If there's a selection, delete it
+    if (hasSelection()) {
+        deleteSelectedText();
+        return;
+    }
+
+    // If at start of document, nothing to delete
+    if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
+        return;
+    }
+
+    // If at start of paragraph, merge with previous paragraph
+    if (m_cursorPosition.offset == 0) {
+        // Get length of previous paragraph to know where cursor should go
+        const KmlParagraph* prevPara = m_document->paragraph(m_cursorPosition.paragraph - 1);
+        if (prevPara == nullptr) {
+            return;
+        }
+        int prevLength = prevPara->characterCount();
+
+        // Merge with previous paragraph
+        if (m_document->mergeParagraphWithPrevious(m_cursorPosition.paragraph)) {
+            // Cursor moves to end of previous paragraph (now merged)
+            CursorPosition newPos;
+            newPos.paragraph = m_cursorPosition.paragraph - 1;
+            newPos.offset = prevLength;
+
+            setCursorPosition(newPos);
+            ensureCursorVisible();
+        }
+    } else {
+        // Delete character before cursor
+        CursorPosition deleteStart = m_cursorPosition;
+        deleteStart.offset -= 1;
+
+        if (m_document->deleteText(deleteStart, m_cursorPosition)) {
+            setCursorPosition(deleteStart);
+            ensureCursorVisible();
+        }
+    }
+}
+
+void BookEditor::deleteForward()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // If there's a selection, delete it
+    if (hasSelection()) {
+        deleteSelectedText();
+        return;
+    }
+
+    // Check if at end of document
+    int lastPara = m_document->paragraphCount() - 1;
+    if (lastPara < 0) {
+        return;
+    }
+
+    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+    if (para == nullptr) {
+        return;
+    }
+
+    bool atEndOfPara = m_cursorPosition.offset >= para->characterCount();
+    bool atLastPara = m_cursorPosition.paragraph == lastPara;
+
+    // If at end of document, nothing to delete
+    if (atEndOfPara && atLastPara) {
+        return;
+    }
+
+    // If at end of paragraph, merge with next paragraph
+    if (atEndOfPara) {
+        // Merge next paragraph into this one
+        // This effectively deletes the paragraph break
+        if (m_document->mergeParagraphWithPrevious(m_cursorPosition.paragraph + 1)) {
+            // Cursor position stays the same
+            ensureCursorVisible();
+        }
+    } else {
+        // Delete character after cursor
+        CursorPosition deleteEnd = m_cursorPosition;
+        deleteEnd.offset += 1;
+
+        if (m_document->deleteText(m_cursorPosition, deleteEnd)) {
+            // Cursor position stays the same
+            ensureCursorVisible();
+        }
+    }
+}
+
+// =============================================================================
 // Size Hints
 // =============================================================================
 
@@ -933,6 +1123,57 @@ QSize BookEditor::sizeHint() const
     // Comfortable editing size
     // Approximately 80 characters wide at typical font sizes
     return QSize(600, 400);
+}
+
+// =============================================================================
+// Undo/Redo (Phase 4.8)
+// =============================================================================
+
+QUndoStack* BookEditor::undoStack() const
+{
+    return m_undoStack;
+}
+
+bool BookEditor::canUndo() const
+{
+    return m_undoStack != nullptr && m_undoStack->canUndo();
+}
+
+bool BookEditor::canRedo() const
+{
+    return m_undoStack != nullptr && m_undoStack->canRedo();
+}
+
+void BookEditor::undo()
+{
+    if (m_undoStack == nullptr) {
+        return;
+    }
+
+    m_undoStack->undo();
+
+    // Update cursor position from the undone command
+    // (The command stores cursor positions, so editor needs to update)
+    ensureCursorVisible();
+    update();
+}
+
+void BookEditor::redo()
+{
+    if (m_undoStack == nullptr) {
+        return;
+    }
+
+    m_undoStack->redo();
+    ensureCursorVisible();
+    update();
+}
+
+void BookEditor::clearUndoStack()
+{
+    if (m_undoStack != nullptr) {
+        m_undoStack->clear();
+    }
 }
 
 // =============================================================================
@@ -1155,8 +1396,51 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
             }
             break;
 
+        case Qt::Key_Z:
+            if (ctrl && !shift) {
+                undo();
+                handled = true;
+            } else if (ctrl && shift) {
+                redo();  // Ctrl+Shift+Z is redo on some platforms
+                handled = true;
+            }
+            break;
+
+        case Qt::Key_Y:
+            if (ctrl) {
+                redo();
+                handled = true;
+            }
+            break;
+
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+            insertNewline();
+            handled = true;
+            break;
+
+        case Qt::Key_Backspace:
+            deleteBackward();
+            handled = true;
+            break;
+
+        case Qt::Key_Delete:
+            deleteForward();
+            handled = true;
+            break;
+
         default:
             break;
+    }
+
+    // Handle printable characters (if not already handled)
+    if (!handled && !ctrl && !event->text().isEmpty()) {
+        QString text = event->text();
+        // Only handle printable characters
+        if (!text.isEmpty() && text.at(0).isPrint()) {
+            insertText(text);
+            handled = true;
+        }
     }
 
     if (handled) {
@@ -1164,6 +1448,121 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
     } else {
         QWidget::keyPressEvent(event);
     }
+}
+
+void BookEditor::inputMethodEvent(QInputMethodEvent* event)
+{
+    if (m_document == nullptr) {
+        event->ignore();
+        return;
+    }
+
+    // Handle committed text (final input)
+    const QString& commitString = event->commitString();
+    if (!commitString.isEmpty()) {
+        // If we had composition, it's been replaced by commit
+        if (m_hasComposition) {
+            // The preedit text is already in the document, delete it first
+            if (!m_preeditString.isEmpty()) {
+                CursorPosition deleteEnd = m_preeditStart;
+                deleteEnd.offset += m_preeditString.length();
+                m_document->deleteText(m_preeditStart, deleteEnd);
+                setCursorPosition(m_preeditStart);
+            }
+            m_preeditString.clear();
+            m_hasComposition = false;
+        }
+
+        // Insert committed text (this handles selection deletion too)
+        insertText(commitString);
+    }
+
+    // Handle preedit text (composition in progress)
+    const QString& preeditString = event->preeditString();
+    if (m_hasComposition) {
+        // Remove old preedit text
+        if (!m_preeditString.isEmpty()) {
+            CursorPosition deleteEnd = m_preeditStart;
+            deleteEnd.offset += m_preeditString.length();
+            m_document->deleteText(m_preeditStart, deleteEnd);
+            setCursorPosition(m_preeditStart);
+        }
+    }
+
+    if (!preeditString.isEmpty()) {
+        // Store composition state
+        m_preeditStart = m_cursorPosition;
+        m_preeditString = preeditString;
+        m_hasComposition = true;
+
+        // Insert preedit text
+        m_document->insertText(m_cursorPosition, preeditString);
+
+        // Move cursor to end of preedit
+        CursorPosition newPos = m_cursorPosition;
+        newPos.offset += preeditString.length();
+        setCursorPosition(newPos);
+    } else {
+        // No preedit, clear composition state
+        m_preeditString.clear();
+        m_hasComposition = false;
+    }
+
+    event->accept();
+    update();
+}
+
+QVariant BookEditor::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    switch (query) {
+        case Qt::ImEnabled:
+            return true;
+
+        case Qt::ImCursorRectangle: {
+            // Return cursor rectangle for IME positioning
+            QRectF rect = calculateCursorRect();
+            if (rect.isEmpty()) {
+                // Default position at top-left with some offset
+                return QRectF(10, 10, 2, 20);
+            }
+            return rect;
+        }
+
+        case Qt::ImFont:
+            return font();
+
+        case Qt::ImCursorPosition:
+            return m_cursorPosition.offset;
+
+        case Qt::ImSurroundingText: {
+            // Return text of current paragraph
+            if (m_document != nullptr) {
+                const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+                if (para != nullptr) {
+                    return para->plainText();
+                }
+            }
+            return QString();
+        }
+
+        case Qt::ImCurrentSelection: {
+            if (hasSelection()) {
+                return selectedText();
+            }
+            return QString();
+        }
+
+        case Qt::ImAnchorPosition:
+            return m_selectionAnchor.offset;
+
+        case Qt::ImHints:
+            return static_cast<int>(Qt::ImhMultiLine);
+
+        default:
+            break;
+    }
+
+    return QWidget::inputMethodQuery(query);
 }
 
 // =============================================================================

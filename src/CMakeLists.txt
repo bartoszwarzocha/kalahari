@@ -164,6 +164,7 @@ set(KALAHARI_SOURCES
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/kml_commands.cpp     # Phase 4.8: Undo/Redo commands
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
