@@ -61,6 +61,13 @@ struct CommandCallbacks {
     std::function<void()> onDashboard;          ///< View > Dashboard
     std::function<void()> onResetLayout;        ///< View > Reset Layout
 
+    // View Mode Commands (OpenSpec #00042 Phase 7.3)
+    std::function<void()> onViewModeContinuous; ///< View > View Mode > Continuous
+    std::function<void()> onViewModePage;       ///< View > View Mode > Page Layout
+    std::function<void()> onViewModeTypewriter; ///< View > View Mode > Typewriter
+    std::function<void()> onViewModeFocus;      ///< View > View Mode > Focus
+    std::function<void()> onViewModeDistFree;   ///< View > View Mode > Distraction-Free
+
     // =========================================================================
     // TOOLS COMMANDS
     // =========================================================================

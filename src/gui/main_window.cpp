@@ -21,6 +21,8 @@
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/view_modes.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
@@ -241,6 +243,13 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+
+    // View Mode commands (OpenSpec #00042 Phase 7.3)
+    callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
+    callbacks.onViewModePage = [this]() { onViewModePage(); };
+    callbacks.onViewModeTypewriter = [this]() { onViewModeTypewriter(); };
+    callbacks.onViewModeFocus = [this]() { onViewModeFocus(); };
+    callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
 
     // View commands
     callbacks.onDashboard = [this]() {
@@ -480,6 +489,152 @@ void MainWindow::onFormatStrikethrough() {
     }
 }
 
+// =============================================================================
+// View Mode Actions (OpenSpec #00042 Phase 7.3)
+// =============================================================================
+
+void MainWindow::onViewModeContinuous() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: View Mode Continuous");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setViewMode(editor::ViewMode::Continuous);
+        statusBar()->showMessage(tr("View mode: Continuous"), 2000);
+    }
+}
+
+void MainWindow::onViewModePage() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: View Mode Page Layout");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setViewMode(editor::ViewMode::Page);
+        statusBar()->showMessage(tr("View mode: Page Layout"), 2000);
+    }
+}
+
+void MainWindow::onViewModeTypewriter() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: View Mode Typewriter");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setViewMode(editor::ViewMode::Typewriter);
+        statusBar()->showMessage(tr("View mode: Typewriter"), 2000);
+    }
+}
+
+void MainWindow::onViewModeFocus() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: View Mode Focus");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setViewMode(editor::ViewMode::Focus);
+        statusBar()->showMessage(tr("View mode: Focus"), 2000);
+    }
+}
+
+void MainWindow::onViewModeDistFree() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: View Mode Distraction-Free");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setViewMode(editor::ViewMode::DistractionFree);
+        statusBar()->showMessage(tr("View mode: Distraction-Free"), 2000);
+    }
+}
+
+void MainWindow::updateEditorActionStates() {
+    // Update action states based on current editor state
+    EditorPanel* editor = getCurrentEditor();
+    if (!editor || !editor->getBookEditor()) {
+        return;
+    }
+
+    editor::BookEditor* bookEditor = editor->getBookEditor();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    // Update Cut/Copy enabled state based on selection
+    bool hasSelection = bookEditor->hasSelection();
+    if (auto* cutCmd = registry.getCommand("edit.cut")) {
+        cutCmd->isEnabled = [hasSelection]() { return hasSelection; };
+        registry.updateActionState("edit.cut");
+    }
+    if (auto* copyCmd = registry.getCommand("edit.copy")) {
+        copyCmd->isEnabled = [hasSelection]() { return hasSelection; };
+        registry.updateActionState("edit.copy");
+    }
+
+    // Update Undo/Redo enabled state
+    bool canUndo = bookEditor->canUndo();
+    bool canRedo = bookEditor->canRedo();
+    if (auto* undoCmd = registry.getCommand("edit.undo")) {
+        undoCmd->isEnabled = [canUndo]() { return canUndo; };
+        registry.updateActionState("edit.undo");
+    }
+    if (auto* redoCmd = registry.getCommand("edit.redo")) {
+        redoCmd->isEnabled = [canRedo]() { return canRedo; };
+        registry.updateActionState("edit.redo");
+    }
+
+    // Update Paste enabled state
+    bool canPaste = bookEditor->canPaste();
+    if (auto* pasteCmd = registry.getCommand("edit.paste")) {
+        pasteCmd->isEnabled = [canPaste]() { return canPaste; };
+        registry.updateActionState("edit.paste");
+    }
+
+    // Update format action checked states
+    bool isBold = bookEditor->isBold();
+    bool isItalic = bookEditor->isItalic();
+    bool isUnderline = bookEditor->isUnderline();
+    bool isStrikethrough = bookEditor->isStrikethrough();
+
+    if (auto* boldCmd = registry.getCommand("format.bold")) {
+        boldCmd->isChecked = [isBold]() { return isBold; };
+        registry.updateActionState("format.bold");
+    }
+    if (auto* italicCmd = registry.getCommand("format.italic")) {
+        italicCmd->isChecked = [isItalic]() { return isItalic; };
+        registry.updateActionState("format.italic");
+    }
+    if (auto* underlineCmd = registry.getCommand("format.underline")) {
+        underlineCmd->isChecked = [isUnderline]() { return isUnderline; };
+        registry.updateActionState("format.underline");
+    }
+    if (auto* strikeCmd = registry.getCommand("format.strikethrough")) {
+        strikeCmd->isChecked = [isStrikethrough]() { return isStrikethrough; };
+        registry.updateActionState("format.strikethrough");
+    }
+
+    // Update view mode checked states
+    editor::ViewMode currentMode = bookEditor->viewMode();
+    if (auto* contCmd = registry.getCommand("view.mode.continuous")) {
+        contCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Continuous; };
+        registry.updateActionState("view.mode.continuous");
+    }
+    if (auto* pageCmd = registry.getCommand("view.mode.page")) {
+        pageCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Page; };
+        registry.updateActionState("view.mode.page");
+    }
+    if (auto* typeCmd = registry.getCommand("view.mode.typewriter")) {
+        typeCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Typewriter; };
+        registry.updateActionState("view.mode.typewriter");
+    }
+    if (auto* focusCmd = registry.getCommand("view.mode.focus")) {
+        focusCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Focus; };
+        registry.updateActionState("view.mode.focus");
+    }
+    if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
+        dfCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::DistractionFree; };
+        registry.updateActionState("view.mode.distraction-free");
+    }
+}
+
 void MainWindow::onSettings() {
     // OpenSpec #00038 Phase 5: Delegate to SettingsCoordinator
     m_settingsCoordinator->openSettingsDialog();
@@ -559,6 +714,7 @@ void MainWindow::createDocks() {
     });
 
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
+    // Also update action states when switching tabs (OpenSpec #00042 Phase 7.3)
     connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         if (index < 0) {
@@ -575,6 +731,25 @@ void MainWindow::createDocks() {
             } else {
                 navigatorPanel->clearHighlight();
             }
+
+            // OpenSpec #00042 Phase 7.3: Connect BookEditor signals for action state updates
+            if (editor::BookEditor* bookEditor = editor->getBookEditor()) {
+                // Disconnect any previous connections to avoid duplicates
+                disconnect(bookEditor, &editor::BookEditor::selectionChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::cursorPositionChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::viewModeChanged, this, nullptr);
+
+                // Connect to update action states when selection/cursor/viewMode changes
+                connect(bookEditor, &editor::BookEditor::selectionChanged,
+                        this, &MainWindow::updateEditorActionStates);
+                connect(bookEditor, &editor::BookEditor::cursorPositionChanged,
+                        this, [this](const editor::CursorPosition&) { updateEditorActionStates(); });
+                connect(bookEditor, &editor::BookEditor::viewModeChanged,
+                        this, [this](editor::ViewMode) { updateEditorActionStates(); });
+            }
+
+            // Update action states immediately for the new tab
+            updateEditorActionStates();
         } else {
             navigatorPanel->clearHighlight();
         }

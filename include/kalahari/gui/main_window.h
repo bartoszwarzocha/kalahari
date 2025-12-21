@@ -198,6 +198,31 @@ private slots:
     /// @brief Slot for Format > Strikethrough action
     void onFormatStrikethrough();
 
+    // =========================================================================
+    // View Mode Actions (OpenSpec #00042 Phase 7.3)
+    // =========================================================================
+
+    /// @brief Set editor view mode to Continuous
+    void onViewModeContinuous();
+
+    /// @brief Set editor view mode to Page Layout
+    void onViewModePage();
+
+    /// @brief Set editor view mode to Typewriter
+    void onViewModeTypewriter();
+
+    /// @brief Set editor view mode to Focus
+    void onViewModeFocus();
+
+    /// @brief Set editor view mode to Distraction-Free
+    void onViewModeDistFree();
+
+    /// @brief Update action states based on editor state
+    ///
+    /// Called when cursor position or selection changes in BookEditor.
+    /// Updates enabled/checked state for Edit and Format menu actions.
+    void updateEditorActionStates();
+
     /// @brief Slot for Help > About action
     void onAbout();
 

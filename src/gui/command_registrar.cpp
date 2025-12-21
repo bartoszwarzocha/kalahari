@@ -444,6 +444,29 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("view.assistant", "Assistant", "VIEW/Panels/Assistant", 50, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
+    // View Mode submenu (OpenSpec #00042 Phase 7.3)
+    // View modes for BookEditor - radio group (only one can be active)
+    REG_CMD_TOOL_ICON("view.mode.continuous", "Continuous", "VIEW/View Mode/Continuous", 55, false, 0,
+                      KeyboardShortcut(Qt::Key_1, Qt::ControlModifier),
+                      IconSet(),
+                      callbacks.onViewModeContinuous ? callbacks.onViewModeContinuous : []() {});
+    REG_CMD_TOOL_ICON("view.mode.page", "Page Layout", "VIEW/View Mode/Page Layout", 56, false, 0,
+                      KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
+                      IconSet(),
+                      callbacks.onViewModePage ? callbacks.onViewModePage : []() {});
+    REG_CMD_TOOL_ICON("view.mode.typewriter", "Typewriter", "VIEW/View Mode/Typewriter", 57, false, 0,
+                      KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
+                      IconSet(),
+                      callbacks.onViewModeTypewriter ? callbacks.onViewModeTypewriter : []() {});
+    REG_CMD_TOOL_ICON("view.mode.focus", "Focus", "VIEW/View Mode/Focus", 58, false, 0,
+                      KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
+                      IconSet(),
+                      callbacks.onViewModeFocus ? callbacks.onViewModeFocus : []() {});
+    REG_CMD_TOOL_ICON("view.mode.distraction-free", "Distraction-Free", "VIEW/View Mode/Distraction-Free", 59, true, 0,
+                      KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onViewModeDistFree ? callbacks.onViewModeDistFree : []() {});
+
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
     REG_CMD("view.perspectives.editor", "Editor", "VIEW/Perspectives/Editor", 80, false, 1);
