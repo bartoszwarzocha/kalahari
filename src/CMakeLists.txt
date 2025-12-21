@@ -175,6 +175,7 @@ set(KALAHARI_SOURCES
     editor/spell_check_service.cpp   # Phase 6.4-6.9: Spell check service with Hunspell
     editor/grammar_check_service.cpp # Phase 6.14-6.17: Grammar check service with LanguageTool
     editor/word_frequency_analyzer.cpp  # Phase 6.18-6.20: Word frequency analyzer
+    editor/text_to_speech_service.cpp   # Phase 6.21-6.24: Text-to-speech service (optional Qt Speech)
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -215,6 +216,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.4-6.9)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.14-6.17)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h  # WordFrequencyAnalyzer with Q_OBJECT (OpenSpec #00042 Phase 6.18-6.20)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/text_to_speech_service.h  # TextToSpeechService with Q_OBJECT (OpenSpec #00042 Phase 6.21-6.24)
 )
 
 # Create executable
@@ -252,6 +254,15 @@ target_link_libraries(kalahari PRIVATE
 )
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# OpenSpec #00042: Text-to-Speech (optional Qt Speech module)
+if(QT_TEXTTOSPEECH_AVAILABLE)
+    target_link_libraries(kalahari PRIVATE Qt6::TextToSpeech)
+    target_compile_definitions(kalahari PRIVATE QT_TEXTTOSPEECH_LIB)
+    message(STATUS "Text-to-Speech: Enabled (linked Qt6::TextToSpeech)")
+else()
+    message(STATUS "Text-to-Speech: Disabled (graceful degradation)")
+endif()
 
 # Copy resources to output directory after each build (OpenSpec #00029)
 # This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time

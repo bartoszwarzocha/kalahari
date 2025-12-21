@@ -121,6 +121,16 @@ if(USE_SYSTEM_PACKAGES)
     find_package(OpenSSL REQUIRED)  # OpenSpec #00038: Plugin signature verification
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(HUNSPELL REQUIRED hunspell)  # OpenSpec #00042: Spell checking
+
+    # OpenSpec #00042: Text-to-Speech (optional)
+    find_package(Qt6 COMPONENTS TextToSpeech QUIET)
+    if(Qt6TextToSpeech_FOUND)
+        message(STATUS "Qt6 TextToSpeech: Found (TTS features enabled)")
+        set(QT_TEXTTOSPEECH_AVAILABLE TRUE)
+    else()
+        message(STATUS "Qt6 TextToSpeech: Not found (TTS features disabled)")
+        set(QT_TEXTTOSPEECH_AVAILABLE FALSE)
+    endif()
 else()
     # vcpkg integration
     # Note: vcpkg toolchain file should be specified via:
@@ -211,6 +221,16 @@ else()
     # OpenSpec #00042: Spell checking with Hunspell
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(HUNSPELL REQUIRED hunspell)
+
+    # OpenSpec #00042: Text-to-Speech (optional)
+    find_package(Qt6 COMPONENTS TextToSpeech QUIET)
+    if(Qt6TextToSpeech_FOUND)
+        message(STATUS "Qt6 TextToSpeech: Found (TTS features enabled)")
+        set(QT_TEXTTOSPEECH_AVAILABLE TRUE)
+    else()
+        message(STATUS "Qt6 TextToSpeech: Not found (TTS features disabled)")
+        set(QT_TEXTTOSPEECH_AVAILABLE FALSE)
+    endif()
 endif()
 
 # Project version accessible in code
