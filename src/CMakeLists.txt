@@ -173,6 +173,7 @@ set(KALAHARI_SOURCES
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
     editor/spell_check_service.cpp   # Phase 6.4-6.9: Spell check service with Hunspell
+    editor/grammar_check_service.cpp # Phase 6.14-6.17: Grammar check service with LanguageTool
     editor/word_frequency_analyzer.cpp  # Phase 6.18-6.20: Word frequency analyzer
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
@@ -212,6 +213,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h  # StatisticsCollector with Q_OBJECT (OpenSpec #00042 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # StyleResolver with Q_OBJECT (OpenSpec #00042 Phase 6.1-6.3)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.4-6.9)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.14-6.17)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h  # WordFrequencyAnalyzer with Q_OBJECT (OpenSpec #00042 Phase 6.18-6.20)
 )
 
