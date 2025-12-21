@@ -236,6 +236,12 @@ void MainWindow::registerCommands() {
     callbacks.onSelectAll = [this]() { onSelectAll(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
+    // Format commands (OpenSpec #00042 Phase 7.2)
+    callbacks.onFormatBold = [this]() { onFormatBold(); };
+    callbacks.onFormatItalic = [this]() { onFormatItalic(); };
+    callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
+    callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+
     // View commands
     callbacks.onDashboard = [this]() {
         // Check if Dashboard tab already exists
@@ -427,6 +433,50 @@ void MainWindow::onSelectAll() {
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->selectAll();
         statusBar()->showMessage(tr("All text selected"), 2000);
+    }
+}
+
+// =============================================================================
+// Format Actions (OpenSpec #00042 Phase 7.2)
+// =============================================================================
+
+void MainWindow::onFormatBold() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Format Bold");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->toggleBold();
+    }
+}
+
+void MainWindow::onFormatItalic() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Format Italic");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->toggleItalic();
+    }
+}
+
+void MainWindow::onFormatUnderline() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Format Underline");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->toggleUnderline();
+    }
+}
+
+void MainWindow::onFormatStrikethrough() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Format Strikethrough");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->toggleStrikethrough();
     }
 }
 

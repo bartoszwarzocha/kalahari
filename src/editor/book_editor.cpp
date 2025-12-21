@@ -2,6 +2,7 @@
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/core/logger.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_paragraph.h>
@@ -1255,6 +1256,128 @@ void BookEditor::paste()
 bool BookEditor::canPaste() const
 {
     return ClipboardHandler::canPaste();
+}
+
+// =============================================================================
+// Formatting (Phase 7.2)
+// =============================================================================
+
+void BookEditor::toggleBold()
+{
+    // Stub implementation - logs action
+    // Full implementation requires extending KmlParagraph with format runs
+    // to track formatting at character level and apply/remove KmlBold elements
+
+    core::Logger::getInstance().debug("BookEditor::toggleBold() called - "
+        "hasSelection={}, cursor=({}, {})",
+        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
+
+    if (hasSelection()) {
+        // TODO: Toggle bold formatting on selected range
+        // 1. Get all paragraphs in selection range
+        // 2. For each paragraph, wrap selected text in KmlBold or remove existing
+        // 3. Rebuild paragraph element structure
+        // 4. Invalidate layouts for affected paragraphs
+    } else {
+        // TODO: Toggle bold mode for next typed characters
+        // This requires tracking a "pending format" state
+    }
+
+    // Emit documentChanged and trigger repaint when implemented
+    // emit documentChanged();
+    // update();
+}
+
+void BookEditor::toggleItalic()
+{
+    // Stub implementation - logs action
+    // Full implementation requires extending KmlParagraph with format runs
+
+    core::Logger::getInstance().debug("BookEditor::toggleItalic() called - "
+        "hasSelection={}, cursor=({}, {})",
+        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
+
+    if (hasSelection()) {
+        // TODO: Toggle italic formatting on selected range
+    } else {
+        // TODO: Toggle italic mode for next typed characters
+    }
+}
+
+void BookEditor::toggleUnderline()
+{
+    // Stub implementation - logs action
+    // Full implementation requires extending KmlParagraph with format runs
+
+    core::Logger::getInstance().debug("BookEditor::toggleUnderline() called - "
+        "hasSelection={}, cursor=({}, {})",
+        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
+
+    if (hasSelection()) {
+        // TODO: Toggle underline formatting on selected range
+    } else {
+        // TODO: Toggle underline mode for next typed characters
+    }
+}
+
+void BookEditor::toggleStrikethrough()
+{
+    // Stub implementation - logs action
+    // Full implementation requires extending KmlParagraph with format runs
+
+    core::Logger::getInstance().debug("BookEditor::toggleStrikethrough() called - "
+        "hasSelection={}, cursor=({}, {})",
+        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
+
+    if (hasSelection()) {
+        // TODO: Toggle strikethrough formatting on selected range
+    } else {
+        // TODO: Toggle strikethrough mode for next typed characters
+    }
+}
+
+bool BookEditor::isBold() const
+{
+    // Stub implementation - returns false
+    // Full implementation requires querying format at cursor position
+    // by examining KmlParagraph element structure
+
+    // TODO: Check if text at cursor/selection has bold formatting
+    // 1. Get element at cursor position
+    // 2. Walk up parent chain to check for KmlBold ancestor
+    // 3. If selection: return true only if ALL selected text is bold
+
+    return false;
+}
+
+bool BookEditor::isItalic() const
+{
+    // Stub implementation - returns false
+    // Full implementation requires querying format at cursor position
+
+    // TODO: Check if text at cursor/selection has italic formatting
+
+    return false;
+}
+
+bool BookEditor::isUnderline() const
+{
+    // Stub implementation - returns false
+    // Full implementation requires querying format at cursor position
+
+    // TODO: Check if text at cursor/selection has underline formatting
+
+    return false;
+}
+
+bool BookEditor::isStrikethrough() const
+{
+    // Stub implementation - returns false
+    // Full implementation requires querying format at cursor position
+
+    // TODO: Check if text at cursor/selection has strikethrough formatting
+
+    return false;
 }
 
 // =============================================================================

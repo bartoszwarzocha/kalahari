@@ -182,6 +182,22 @@ private slots:
     /// @brief Slot for Edit > Settings action
     void onSettings();
 
+    // =========================================================================
+    // Format Actions (OpenSpec #00042 Phase 7.2)
+    // =========================================================================
+
+    /// @brief Slot for Format > Bold action
+    void onFormatBold();
+
+    /// @brief Slot for Format > Italic action
+    void onFormatItalic();
+
+    /// @brief Slot for Format > Underline action
+    void onFormatUnderline();
+
+    /// @brief Slot for Format > Strikethrough action
+    void onFormatStrikethrough();
+
     /// @brief Slot for Help > About action
     void onAbout();
 

@@ -318,13 +318,23 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("format.style.manage", "Manage Styles...", "FORMAT/Text Style/Manage Styles...", 90, false, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
-    REG_CMD_KEY("format.bold", "Bold", "FORMAT/Bold", 100, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::Bold));
-    REG_CMD_KEY("format.italic", "Italic", "FORMAT/Italic", 110, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::Italic));
-    REG_CMD_KEY("format.underline", "Underline", "FORMAT/Underline", 120, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::Underline));
-    REG_CMD("format.strikethrough", "Strikethrough", "FORMAT/Strikethrough", 130, true, 1);
+    // OpenSpec #00042 Phase 7.2: Connected to toolbar and editor
+    REG_CMD_TOOL_ICON("format.bold", "Bold", "FORMAT/Bold", 100, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Bold),
+                      IconSet(),
+                      callbacks.onFormatBold ? callbacks.onFormatBold : []() {});
+    REG_CMD_TOOL_ICON("format.italic", "Italic", "FORMAT/Italic", 110, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Italic),
+                      IconSet(),
+                      callbacks.onFormatItalic ? callbacks.onFormatItalic : []() {});
+    REG_CMD_TOOL_ICON("format.underline", "Underline", "FORMAT/Underline", 120, false, 0,
+                      KeyboardShortcut::fromQKeySequence(QKeySequence::Underline),
+                      IconSet(),
+                      callbacks.onFormatUnderline ? callbacks.onFormatUnderline : []() {});
+    REG_CMD_TOOL_ICON("format.strikethrough", "Strikethrough", "FORMAT/Strikethrough", 130, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onFormatStrikethrough ? callbacks.onFormatStrikethrough : []() {});
 
     REG_CMD("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 1);
     REG_CMD("format.alignCenter", "Align Center", "FORMAT/Align Center", 150, false, 1);

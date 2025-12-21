@@ -375,6 +375,58 @@ public:
     bool canPaste() const;
 
     // =========================================================================
+    // Formatting (Phase 7.2)
+    // =========================================================================
+
+    /// @brief Toggle bold formatting on selection or at cursor
+    ///
+    /// If text is selected, toggles bold on the selection.
+    /// If no selection, toggles bold mode for next typed characters.
+    /// @note Currently a stub - full implementation requires KmlParagraph format runs
+    void toggleBold();
+
+    /// @brief Toggle italic formatting on selection or at cursor
+    ///
+    /// If text is selected, toggles italic on the selection.
+    /// If no selection, toggles italic mode for next typed characters.
+    /// @note Currently a stub - full implementation requires KmlParagraph format runs
+    void toggleItalic();
+
+    /// @brief Toggle underline formatting on selection or at cursor
+    ///
+    /// If text is selected, toggles underline on the selection.
+    /// If no selection, toggles underline mode for next typed characters.
+    /// @note Currently a stub - full implementation requires KmlParagraph format runs
+    void toggleUnderline();
+
+    /// @brief Toggle strikethrough formatting on selection or at cursor
+    ///
+    /// If text is selected, toggles strikethrough on the selection.
+    /// If no selection, toggles strikethrough mode for next typed characters.
+    /// @note Currently a stub - full implementation requires KmlParagraph format runs
+    void toggleStrikethrough();
+
+    /// @brief Check if current selection/cursor position has bold formatting
+    /// @return true if text at cursor/selection is bold
+    /// @note Currently returns false - full implementation requires KmlParagraph format runs
+    bool isBold() const;
+
+    /// @brief Check if current selection/cursor position has italic formatting
+    /// @return true if text at cursor/selection is italic
+    /// @note Currently returns false - full implementation requires KmlParagraph format runs
+    bool isItalic() const;
+
+    /// @brief Check if current selection/cursor position has underline formatting
+    /// @return true if text at cursor/selection is underlined
+    /// @note Currently returns false - full implementation requires KmlParagraph format runs
+    bool isUnderline() const;
+
+    /// @brief Check if current selection/cursor position has strikethrough formatting
+    /// @return true if text at cursor/selection has strikethrough
+    /// @note Currently returns false - full implementation requires KmlParagraph format runs
+    bool isStrikethrough() const;
+
+    // =========================================================================
     // View Mode (Phase 5.1)
     // =========================================================================
 

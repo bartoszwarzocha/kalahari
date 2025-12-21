@@ -48,6 +48,14 @@ struct CommandCallbacks {
     std::function<void()> onSettings;           ///< Edit > Preferences/Settings
 
     // =========================================================================
+    // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
+    // =========================================================================
+    std::function<void()> onFormatBold;         ///< Format > Bold
+    std::function<void()> onFormatItalic;       ///< Format > Italic
+    std::function<void()> onFormatUnderline;    ///< Format > Underline
+    std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
+
+    // =========================================================================
     // VIEW COMMANDS
     // =========================================================================
     std::function<void()> onDashboard;          ///< View > Dashboard
