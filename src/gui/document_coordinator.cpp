@@ -182,8 +182,8 @@ void DocumentCoordinator::onNewDocument() {
     int tabIndex = m_centralTabs->addTab(newEditor, tr("Untitled"));
     m_centralTabs->setCurrentIndex(tabIndex);
 
-    // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+    // Connect contentChanged signal for dirty tracking
+    connect(newEditor, &EditorPanel::contentChanged,
             this, [this]() {
                 if (!m_currentDocument.has_value()) return;
                 m_setDirty(true);
@@ -348,8 +348,8 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
     int tabIndex = m_centralTabs->addTab(newEditor, docTitle);
     m_centralTabs->setCurrentIndex(tabIndex);
 
-    // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+    // Connect contentChanged signal for dirty tracking
+    connect(newEditor, &EditorPanel::contentChanged,
             this, [this]() {
                 if (!m_currentDocument.has_value()) return;
                 m_setDirty(true);
@@ -685,8 +685,8 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
     m_standaloneInfoBar->show();
 
-    // Connect textChanged signal for dirty tracking
-    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+    // Connect contentChanged signal for dirty tracking
+    connect(newEditor, &EditorPanel::contentChanged,
             this, [this, path, newEditor]() {
                 // Mark tab as dirty
                 int currentIdx = m_centralTabs->indexOf(newEditor);

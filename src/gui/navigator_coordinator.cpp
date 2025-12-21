@@ -113,8 +113,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     newEditor->setProperty("elementId", elementId);
     m_currentElementId = elementId;
 
-    // Connect textChanged signal for per-chapter dirty tracking
-    connect(newEditor->getTextEdit(), &QTextEdit::textChanged,
+    // Connect contentChanged signal for per-chapter dirty tracking
+    connect(newEditor, &EditorPanel::contentChanged,
             this, [this, elementId, elementTitle, newEditor]() {
                 auto& pm = core::ProjectManager::getInstance();
                 if (pm.isProjectOpen()) {

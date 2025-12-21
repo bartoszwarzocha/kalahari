@@ -20,6 +20,7 @@
 #include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
@@ -368,8 +369,8 @@ void MainWindow::onUndo() {
     logger.info("Action triggered: Undo");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->undo();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->undo();
         statusBar()->showMessage(tr("Undo performed"), 2000);
     }
 }
@@ -379,8 +380,8 @@ void MainWindow::onRedo() {
     logger.info("Action triggered: Redo");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->redo();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->redo();
         statusBar()->showMessage(tr("Redo performed"), 2000);
     }
 }
@@ -390,8 +391,8 @@ void MainWindow::onCut() {
     logger.info("Action triggered: Cut");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->cut();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->cut();
         statusBar()->showMessage(tr("Cut to clipboard"), 2000);
     }
 }
@@ -401,8 +402,8 @@ void MainWindow::onCopy() {
     logger.info("Action triggered: Copy");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->copy();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->copy();
         statusBar()->showMessage(tr("Copied to clipboard"), 2000);
     }
 }
@@ -412,8 +413,8 @@ void MainWindow::onPaste() {
     logger.info("Action triggered: Paste");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->paste();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->paste();
         statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
     }
 }
@@ -423,8 +424,8 @@ void MainWindow::onSelectAll() {
     logger.info("Action triggered: Select All");
 
     EditorPanel* editor = getCurrentEditor();
-    if (editor) {
-        editor->getTextEdit()->selectAll();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->selectAll();
         statusBar()->showMessage(tr("All text selected"), 2000);
     }
 }

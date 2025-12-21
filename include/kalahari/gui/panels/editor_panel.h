@@ -1,29 +1,31 @@
 /// @file editor_panel.h
-/// @brief Editor panel with settings integration (Task #00007)
+/// @brief Editor panel with BookEditor integration (OpenSpec #00042 Phase 7.1)
 ///
-/// This file defines the EditorPanel class - a text editor widget
-/// with settings integration (font, tabs, word wrap).
-/// Full syntax highlighting and line numbers come in Phase 1.
+/// This file defines the EditorPanel class - a rich text editor panel
+/// using the custom BookEditor widget for KML document editing.
 
 #pragma once
 
 #include <QWidget>
 #include <QString>
+#include <memory>
 
-class QTextEdit;
+namespace kalahari::editor {
+class BookEditor;
+class KmlDocument;
+}
 
 namespace kalahari {
 namespace gui {
 
-/// @brief Editor panel with settings integration
+/// @brief Editor panel with BookEditor integration
 ///
-/// Displays QTextEdit for text editing with:
-/// - Font settings (family, size)
-/// - Tab size configuration
-/// - Word wrap mode
-/// - Public setText/getText API for Document integration (Task #00008)
+/// Wraps the BookEditor widget for KML document editing with:
+/// - Document loading/saving via KML format
+/// - Settings integration (font, colors, etc.)
+/// - Signal forwarding for content changes
 ///
-/// Phase 1 will add: syntax highlighting, line numbers, custom features
+/// The panel owns the KmlDocument and passes a pointer to BookEditor.
 class EditorPanel : public QWidget {
     Q_OBJECT
 
@@ -33,55 +35,76 @@ public:
     explicit EditorPanel(QWidget* parent = nullptr);
 
     /// @brief Destructor
-    ~EditorPanel() override = default;
+    ~EditorPanel() override;
 
-    /// @brief Set editor text
+    /// @brief Set editor text (plain text mode)
     /// @param text Text to display in editor
     ///
-    /// Used by Document load operations (Task #00008)
+    /// Converts plain text to KML paragraphs.
+    /// Used by Document load operations.
     void setText(const QString& text);
 
-    /// @brief Get editor text
-    /// @return Current editor content
-    ///
-    /// Used by Document save operations (Task #00008)
-    QString getText() const;
-
-    /// @brief Set editor content (OpenSpec #00033 Phase E)
-    /// @param content Text content to display
-    ///
-    /// Sets editor content using plain text mode.
-    /// RTF conversion will be added in later phase.
-    void setContent(const QString& content);
-
-    /// @brief Get editor content (OpenSpec #00033 Phase E)
+    /// @brief Get editor text (plain text mode)
     /// @return Current editor content as plain text
     ///
-    /// Returns editor content using plain text mode.
-    /// RTF conversion will be added in later phase.
+    /// Extracts plain text from KML document.
+    QString getText() const;
+
+    /// @brief Set editor content (HTML/KML mode)
+    /// @param content HTML content to display
+    ///
+    /// Converts HTML to KML and loads into editor.
+    void setContent(const QString& content);
+
+    /// @brief Get editor content (HTML mode)
+    /// @return Current editor content as HTML
+    ///
+    /// Converts KML to HTML for export.
     QString getContent() const;
 
-    /// @brief Get underlying QTextEdit widget (for signal connections)
-    /// @return Pointer to text edit widget
+    /// @brief Get the underlying BookEditor widget
+    /// @return Pointer to BookEditor widget
     ///
-    /// WARNING: Use only for signal connections, not for direct manipulation.
-    /// Use setText()/getText() or setContent()/getContent() for content access.
-    QTextEdit* getTextEdit() { return m_textEdit; }
+    /// Use for direct access to BookEditor features (view modes, cursor, etc.)
+    editor::BookEditor* getBookEditor() { return m_bookEditor; }
+
+    /// @brief Get the underlying BookEditor widget (const)
+    /// @return Const pointer to BookEditor widget
+    const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
+
+    /// @brief Get the KML document
+    /// @return Pointer to the document, or nullptr if none
+    editor::KmlDocument* document() { return m_document.get(); }
+
+    /// @brief Get the KML document (const)
+    /// @return Const pointer to the document, or nullptr if none
+    const editor::KmlDocument* document() const { return m_document.get(); }
+
+signals:
+    /// @brief Emitted when editor content changes
+    ///
+    /// Forwarded from BookEditor/KmlDocument content changes.
+    void contentChanged();
 
 private:
     /// @brief Apply settings from SettingsManager
     ///
-    /// Reads and applies:
-    /// - editor.fontFamily (default: "Consolas")
-    /// - editor.fontSize (default: 12)
-    /// - editor.tabSize (default: 4)
-    /// - editor.wordWrap (default: false)
-    /// - editor.lineNumbers (default: true) - logged only, display not implemented
-    ///
+    /// Reads and applies editor appearance settings.
     /// Called on construction and when settings change.
     void applySettings();
 
-    QTextEdit* m_textEdit;
+    /// @brief Create an empty KML document
+    /// @return New KmlDocument with one empty paragraph
+    std::unique_ptr<editor::KmlDocument> createEmptyDocument();
+
+    /// @brief Setup document observer
+    void setupDocumentObserver();
+
+    editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
+    std::unique_ptr<editor::KmlDocument> m_document;      ///< Owned KML document
+
+    class Observer;
+    std::unique_ptr<Observer> m_observer;                 ///< Document observer
 };
 
 } // namespace gui
