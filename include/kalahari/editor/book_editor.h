@@ -18,6 +18,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/layout_manager.h>
+#include <kalahari/editor/page_layout_manager.h>
 #include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
 #include <QWidget>
@@ -388,6 +389,28 @@ public:
     void setViewMode(ViewMode mode);
 
     // =========================================================================
+    // Page Navigation (Phase 5.3-5.5)
+    // =========================================================================
+
+    /// @brief Get the current page number (1-based)
+    /// @return Current page number, or 0 if no document
+    int currentPage() const;
+
+    /// @brief Get the total number of pages
+    /// @return Total page count, or 0 if no document
+    int totalPages() const;
+
+    /// @brief Navigate to a specific page
+    /// @param page The page number (1-based)
+    void goToPage(int page);
+
+    /// @brief Navigate to the next page
+    void nextPage();
+
+    /// @brief Navigate to the previous page
+    void previousPage();
+
+    // =========================================================================
     // Appearance (Phase 5.1)
     // =========================================================================
 
@@ -442,6 +465,18 @@ signals:
 
     /// @brief Emitted when appearance settings change
     void appearanceChanged();
+
+    /// @brief Emitted when the current page changes (Page Mode)
+    /// @param page The new current page number (1-based)
+    void currentPageChanged(int page);
+
+    /// @brief Emitted when the total page count changes (Page Mode)
+    /// @param pages The new total page count
+    void totalPagesChanged(int pages);
+
+    /// @brief Emitted when distraction-free mode is toggled
+    /// @param enabled true if distraction-free mode is now active
+    void distractionFreeModeChanged(bool enabled);
 
 protected:
     // =========================================================================
@@ -551,6 +586,16 @@ private:
     /// @brief Stop any running scroll animation
     void stopScrollAnimation();
 
+    /// @brief Update scroll position for typewriter mode
+    ///
+    /// In typewriter mode, keeps the cursor at a fixed vertical position
+    /// (m_appearance.typewriter.focusPosition). Uses smooth scrolling if enabled.
+    void updateTypewriterScroll();
+
+    /// @brief Get the Y coordinate of the cursor in document coordinates
+    /// @return The Y position of the cursor line in the document
+    qreal getCursorDocumentY() const;
+
     /// @brief Validate and clamp cursor position to valid range
     /// @param position The position to validate
     /// @return Validated position within document bounds
@@ -608,12 +653,74 @@ private:
     void moveCursorToDocStartWithSelection(bool extend);
     void moveCursorToDocEndWithSelection(bool extend);
 
+    /// @brief Paint the Page Mode view
+    /// @param painter The painter to draw with
+    ///
+    /// Draws page frames with shadows, backgrounds, and borders.
+    /// Content painting is delegated to paragraph layouts.
+    void paintPageMode(QPainter& painter);
+
+    // =========================================================================
+    // Focus Mode (Phase 5.6)
+    // =========================================================================
+
+    /// @brief Range of content that is currently focused
+    ///
+    /// In Focus Mode, content outside this range is dimmed to help
+    /// the user concentrate on the focused area.
+    struct FocusedRange {
+        int startParagraph{0};    ///< First paragraph in focused range
+        int endParagraph{0};      ///< Last paragraph in focused range (inclusive)
+        int startLine{0};         ///< First line within start paragraph (for Line scope)
+        int endLine{0};           ///< Last line within end paragraph (for Line scope)
+    };
+
+    /// @brief Calculate the currently focused range based on cursor position
+    /// @return Range of paragraphs/lines that should be focused
+    ///
+    /// The range is determined by m_appearance.focusMode.scope:
+    /// - Paragraph: The paragraph containing the cursor
+    /// - Line: The specific line containing the cursor
+    /// - Sentence: Currently treated same as Paragraph
+    FocusedRange getFocusedRange() const;
+
+    /// @brief Paint the focus mode overlay (dimming effect)
+    /// @param painter The painter to draw with
+    ///
+    /// Draws semi-transparent overlays over non-focused content to
+    /// create the focus effect. Also draws optional highlight behind
+    /// the focused area.
+    void paintFocusOverlay(QPainter& painter);
+
+    // =========================================================================
+    // Distraction-Free Mode (Phase 5.7)
+    // =========================================================================
+
+    /// @brief Paint the distraction-free mode overlay
+    /// @param painter The painter to draw with
+    ///
+    /// Draws word count at bottom center and optional clock at top right.
+    /// UI elements fade based on m_uiOpacity.
+    void paintDistractionFreeOverlay(QPainter& painter);
+
+    /// @brief Get total word count in the document
+    /// @return Word count, or 0 if no document
+    int getWordCount() const;
+
+    /// @brief Start UI fade animation
+    ///
+    /// Sets m_uiOpacity to 1.0 and starts the fade timer.
+    /// When timer fires, opacity gradually fades to 0.
+    void startUiFade();
+
     KmlDocument* m_document;                                ///< Document being edited (not owned)
     std::unique_ptr<LayoutManager> m_layoutManager;         ///< Paragraph layout management
     std::unique_ptr<VirtualScrollManager> m_scrollManager;  ///< Virtual scrolling
+    std::unique_ptr<PageLayoutManager> m_pageLayoutManager; ///< Page layout for Page Mode
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
+    QPropertyAnimation* m_typewriterScrollAnimation;        ///< Typewriter mode scroll animation
 
     bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
@@ -653,6 +760,10 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+
+    // Distraction-Free Mode (Phase 5.7)
+    qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
+    QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 };
 
 }  // namespace kalahari::editor

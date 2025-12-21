@@ -21,6 +21,7 @@ set(KALAHARI_CORE_SOURCES
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     editor/view_modes.cpp              # Phase 5: View mode registry
+    editor/page_layout_manager.cpp     # Phase 5.3-5.5: Page layout manager
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
@@ -168,6 +169,7 @@ set(KALAHARI_SOURCES
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/kml_commands.cpp     # Phase 4.8: Undo/Redo commands
+    editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -202,6 +204,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/split_editor_panel.h  # SplitEditorPanel with Q_OBJECT (OpenSpec #00042 Phase 5.8)
 )
 
 # Create executable

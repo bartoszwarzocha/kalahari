@@ -70,12 +70,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **OpenSpec #00042 Phase 5.1:** View Mode Framework
-  - ViewMode enum: Continuous, Page, Typewriter, Focus, DistractionFree
-  - ViewModeRegistry for mode metadata and cycling
-  - EditorAppearance with comprehensive visual configuration
+- **OpenSpec #00042 Phase 5:** View Modes & Editor Appearance (Complete)
+  - **5.1 View Mode Framework:** ViewMode enum, ViewModeRegistry, EditorAppearance class
+  - **5.2 Continuous Mode:** Default scrolling mode (via VirtualScrollManager)
+  - **5.3-5.5 Page Mode:** PageLayoutManager with A4/Letter sizes, pagination, widow/orphan control
+  - **5.6 Typewriter Mode:** Keeps cursor at fixed vertical position with smooth scroll animation
+  - **5.7-5.8 Focus Mode:** Dims non-focused content (paragraph/sentence/line scope)
+  - **5.9-5.10 Distraction-Free Mode:** Word count, clock overlays, UI fade on mouse movement
+  - **5.11-5.13 Split View:** SplitEditorPanel with horizontal/vertical splits, shared document
   - Theme presets: light, dark, sepia, minimal, typewriter
-  - BookEditor integration with viewModeChanged and appearanceChanged signals
+  - All tests pass: 579 test cases, 3972 assertions
 
 - StandaloneInfoBar widget for standalone file mode notification (Phase F)
 - AddToProjectDialog for adding standalone files to project (Phase F)

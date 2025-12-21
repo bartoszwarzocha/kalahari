@@ -90,6 +90,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
+    ${CMAKE_SOURCE_DIR}/src/editor/page_layout_manager.cpp  # Phase 5.3-5.5: Page layout manager
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h # BookEditor header for MOC
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)

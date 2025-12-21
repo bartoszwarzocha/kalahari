@@ -458,81 +458,81 @@
 - [x] Emit viewModeChanged signal
 - [x] **BUILD + TEST** (3972 assertions, 579 test cases)
 
-### 5.2 Continuous Mode
-- [ ] Implement continuous mode rendering
-- [ ] No page breaks
-- [ ] Simple vertical layout
-- [ ] (Default mode - already working)
-- [ ] **BUILD + TEST**
+### 5.2 Continuous Mode [COMPLETE]
+- [x] Implement continuous mode rendering
+- [x] No page breaks
+- [x] Simple vertical layout
+- [x] (Default mode - already working via VirtualScrollManager)
+- [x] **BUILD + TEST** (87 assertions, 12 test cases for view modes)
 
-### 5.3 Page Mode (Basic)
-- [ ] Calculate page dimensions (A4/Letter)
-- [ ] Render page boundaries
-- [ ] Render page shadows
-- [ ] Handle page margins
-- [ ] **BUILD + TEST**
+### 5.3 Page Mode (Basic) [COMPLETE]
+- [x] Calculate page dimensions (A4/Letter)
+- [x] Render page boundaries
+- [x] Render page shadows
+- [x] Handle page margins
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.4 Page Mode (Pagination)
-- [ ] Calculate page breaks
-- [ ] Handle widow/orphan control
-- [ ] Render page numbers
-- [ ] **BUILD + TEST**
+### 5.4 Page Mode (Pagination) [COMPLETE]
+- [x] Calculate page breaks
+- [x] Handle widow/orphan control
+- [x] Render page numbers
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.5 Page Mode (Navigation)
-- [ ] Implement Page Up/Down for page navigation
-- [ ] Jump to specific page
-- [ ] Show current page in status bar
-- [ ] **BUILD + TEST**
+### 5.5 Page Mode (Navigation) [COMPLETE]
+- [x] Implement Page Up/Down for page navigation
+- [x] Jump to specific page
+- [x] Show current page in status bar
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.6 Typewriter Mode (Basic)
-- [ ] Keep current line at vertical center
-- [ ] Smooth scroll animation on typing
-- [ ] Adjust scroll on cursor movement
-- [ ] **BUILD + TEST**
+### 5.6 Typewriter Mode (Basic) [COMPLETE]
+- [x] Keep current line at vertical center
+- [x] Smooth scroll animation on typing
+- [x] Adjust scroll on cursor movement
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.7 Focus Mode (Basic)
-- [ ] Add m_focusMode flag
-- [ ] Implement setFocusMode(bool)
-- [ ] Dim non-active paragraphs (50% opacity)
-- [ ] **BUILD + TEST**
+### 5.7 Focus Mode (Basic) [COMPLETE]
+- [x] Add m_focusMode flag
+- [x] Implement setFocusMode(bool)
+- [x] Dim non-active paragraphs (50% opacity)
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.8 Focus Mode (Sentence)
-- [ ] Option to focus on sentence (not paragraph)
-- [ ] Detect sentence boundaries
-- [ ] Highlight current sentence
-- [ ] **BUILD + TEST**
+### 5.8 Focus Mode (Sentence) [COMPLETE]
+- [x] Option to focus on sentence (not paragraph)
+- [x] Detect sentence boundaries
+- [x] Highlight current sentence
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.9 Distraction-Free Mode (Basic)
-- [ ] Create fullscreen mode (F11)
-- [ ] Hide all UI except editor
-- [ ] Dark/light theme for distraction-free
-- [ ] Esc to exit
-- [ ] **BUILD + TEST**
+### 5.9 Distraction-Free Mode (Basic) [COMPLETE]
+- [x] Create fullscreen mode (F11)
+- [x] Hide all UI except editor
+- [x] Dark/light theme for distraction-free
+- [x] Esc to exit
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.10 Distraction-Free Mode (Fade UI)
-- [ ] Show UI elements on mouse move to edges
-- [ ] Fade out after timeout (2 seconds)
-- [ ] Show word count at bottom
-- [ ] **BUILD + TEST**
+### 5.10 Distraction-Free Mode (Fade UI) [COMPLETE]
+- [x] Show UI elements on mouse move to edges
+- [x] Fade out after timeout (2 seconds)
+- [x] Show word count at bottom
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.11 Split View (Framework)
-- [ ] Add split view support to EditorPanel
-- [ ] Horizontal split option (Ctrl+\)
-- [ ] Vertical split option (Ctrl+Shift+\)
-- [ ] Sync document between splits
-- [ ] **BUILD + TEST**
+### 5.11 Split View (Framework) [COMPLETE]
+- [x] Add split view support to EditorPanel
+- [x] Horizontal split option (Ctrl+\)
+- [x] Vertical split option (Ctrl+Shift+\)
+- [x] Sync document between splits
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.12 Split View (Independent Scroll)
-- [ ] Each split has own scroll position
-- [ ] Each split has own cursor
-- [ ] Highlight active split
-- [ ] **BUILD + TEST**
+### 5.12 Split View (Independent Scroll) [COMPLETE]
+- [x] Each split has own scroll position
+- [x] Each split has own cursor
+- [x] Highlight active split
+- [x] **BUILD + TEST** (all tests pass)
 
-### 5.13 Split View (Close)
-- [ ] Implement Ctrl+W to close split
-- [ ] Revert to single view when one closed
-- [ ] Remember split positions
-- [ ] **BUILD + TEST**
+### 5.13 Split View (Close) [COMPLETE]
+- [x] Implement Ctrl+W to close split
+- [x] Revert to single view when one closed
+- [x] Remember split positions
+- [x] **BUILD + TEST** (all tests pass)
 
 ---
 

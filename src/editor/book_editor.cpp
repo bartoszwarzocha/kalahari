@@ -6,6 +6,7 @@
 #include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
+#include <QDateTime>
 #include <QEasingCurve>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -15,7 +16,9 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPalette>
+#include <QPen>
 #include <QPropertyAnimation>
+#include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QStyleHints>
@@ -50,8 +53,10 @@ BookEditor::BookEditor(QWidget* parent)
     , m_document(nullptr)
     , m_layoutManager(std::make_unique<LayoutManager>())
     , m_scrollManager(std::make_unique<VirtualScrollManager>())
+    , m_pageLayoutManager(std::make_unique<PageLayoutManager>())
     , m_verticalScrollBar(nullptr)
     , m_scrollAnimation(nullptr)
+    , m_typewriterScrollAnimation(nullptr)
     , m_smoothScrollingEnabled(false)  // Disabled by default for stability in tests
     , m_smoothScrollDuration(DEFAULT_SMOOTH_SCROLL_DURATION)
     , m_updatingScrollBar(false)
@@ -79,6 +84,15 @@ BookEditor::BookEditor(QWidget* parent)
     // Create undo stack
     m_undoStack = new QUndoStack(this);
 
+    // Create UI fade timer for distraction-free mode
+    m_uiFadeTimer = new QTimer(this);
+    m_uiFadeTimer->setSingleShot(true);
+    connect(m_uiFadeTimer, &QTimer::timeout, this, [this]() {
+        // Fade out UI opacity
+        m_uiOpacity = 0.0;
+        update();
+    });
+
     setupComponents();
 }
 
@@ -93,6 +107,12 @@ BookEditor::~BookEditor()
     }
     if (m_scrollAnimation != nullptr) {
         m_scrollAnimation->stop();
+    }
+    if (m_typewriterScrollAnimation != nullptr) {
+        m_typewriterScrollAnimation->stop();
+    }
+    if (m_uiFadeTimer != nullptr) {
+        m_uiFadeTimer->stop();
     }
 }
 
@@ -299,6 +319,11 @@ void BookEditor::ensureCursorVisible()
     // Restart blink timer if blinking is enabled
     if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
         m_cursorBlinkTimer->start(m_cursorBlinkInterval);
+    }
+
+    // In Typewriter mode, update scroll to keep cursor at focus position
+    if (m_viewMode == ViewMode::Typewriter) {
+        updateTypewriterScroll();
     }
 }
 
@@ -1244,9 +1269,91 @@ ViewMode BookEditor::viewMode() const
 void BookEditor::setViewMode(ViewMode mode)
 {
     if (m_viewMode != mode) {
+        ViewMode oldMode = m_viewMode;
         m_viewMode = mode;
+
+        // When entering Typewriter mode, update scroll to focus position
+        if (mode == ViewMode::Typewriter) {
+            updateTypewriterScroll();
+        }
+
+        // When entering Distraction-Free mode, show UI initially
+        if (mode == ViewMode::DistractionFree) {
+            m_uiOpacity = 1.0;
+            startUiFade();
+            emit distractionFreeModeChanged(true);
+        } else if (oldMode == ViewMode::DistractionFree) {
+            // Leaving distraction-free mode
+            if (m_uiFadeTimer != nullptr) {
+                m_uiFadeTimer->stop();
+            }
+            emit distractionFreeModeChanged(false);
+        }
+
         emit viewModeChanged(mode);
         update();
+    }
+}
+
+// =============================================================================
+// Page Navigation (Phase 5.3-5.5)
+// =============================================================================
+
+int BookEditor::currentPage() const
+{
+    if (m_document == nullptr || m_viewMode != ViewMode::Page) {
+        return 0;
+    }
+    return m_pageLayoutManager->pageForPosition(m_cursorPosition);
+}
+
+int BookEditor::totalPages() const
+{
+    if (m_document == nullptr) {
+        return 0;
+    }
+    return m_pageLayoutManager->totalPages();
+}
+
+void BookEditor::goToPage(int page)
+{
+    if (m_document == nullptr || m_viewMode != ViewMode::Page) {
+        return;
+    }
+
+    int total = m_pageLayoutManager->totalPages();
+    if (page < 1 || page > total) {
+        return;
+    }
+
+    int oldPage = currentPage();
+
+    // Scroll to the page
+    qreal pageY = m_pageLayoutManager->pageY(page);
+    setScrollOffset(pageY);
+
+    // Emit signal if page changed
+    if (page != oldPage) {
+        emit currentPageChanged(page);
+    }
+
+    update();
+}
+
+void BookEditor::nextPage()
+{
+    int current = currentPage();
+    int total = totalPages();
+    if (current < total) {
+        goToPage(current + 1);
+    }
+}
+
+void BookEditor::previousPage()
+{
+    int current = currentPage();
+    if (current > 1) {
+        goToPage(current - 1);
     }
 }
 
@@ -1262,6 +1369,10 @@ const EditorAppearance& BookEditor::appearance() const
 void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
+
+    // Update PageLayoutManager with new page layout settings
+    m_pageLayoutManager->setPageLayout(m_appearance.pageLayout);
+
     emit appearanceChanged();
     update();
 }
@@ -1283,6 +1394,13 @@ void BookEditor::paintEvent(QPaintEvent* event)
         return;
     }
 
+    // Use Page Mode rendering if in Page view mode
+    if (m_viewMode == ViewMode::Page) {
+        paintPageMode(painter);
+        return;
+    }
+
+    // Continuous mode rendering (default)
     // Layout visible paragraphs before rendering
     m_layoutManager->layoutVisibleParagraphs();
 
@@ -1331,6 +1449,14 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Note: ParagraphLayout also draws selection when draw() is called
     // but we draw additional highlighting for visual feedback
     drawSelection(&painter);
+
+    // Draw focus mode overlay (Phase 5.6)
+    // The overlay dims non-focused content to help concentration
+    paintFocusOverlay(painter);
+
+    // Draw distraction-free mode overlay (Phase 5.7)
+    // Shows word count and optional clock
+    paintDistractionFreeOverlay(painter);
 
     // Draw cursor (Phase 3.5)
     if (m_cursorVisible && hasFocus()) {
@@ -1464,17 +1590,27 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
             break;
 
         case Qt::Key_PageUp:
-            moveCursorPageUp();
-            if (!shift) {
-                clearSelection();
+            // In Page Mode, navigate between pages
+            if (m_viewMode == ViewMode::Page) {
+                previousPage();
+            } else {
+                moveCursorPageUp();
+                if (!shift) {
+                    clearSelection();
+                }
             }
             handled = true;
             break;
 
         case Qt::Key_PageDown:
-            moveCursorPageDown();
-            if (!shift) {
-                clearSelection();
+            // In Page Mode, navigate between pages
+            if (m_viewMode == ViewMode::Page) {
+                nextPage();
+            } else {
+                moveCursorPageDown();
+                if (!shift) {
+                    clearSelection();
+                }
             }
             handled = true;
             break;
@@ -2016,6 +2152,23 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
 
 void BookEditor::mouseMoveEvent(QMouseEvent* event)
 {
+    // In Distraction-Free mode, show UI on mouse movement
+    if (m_viewMode == ViewMode::DistractionFree) {
+        // Check if mouse is near edges for fade trigger
+        QPointF pos = event->position();
+        qreal edgeThreshold = 50.0;  // Pixels from edge
+        bool nearEdge = (pos.y() < edgeThreshold ||
+                         pos.y() > height() - edgeThreshold ||
+                         pos.x() < edgeThreshold ||
+                         pos.x() > width() - edgeThreshold);
+
+        if (nearEdge && m_appearance.distractionFree.fadeOnMouseMove) {
+            m_uiOpacity = 1.0;
+            startUiFade();
+            update();
+        }
+    }
+
     if (!m_isDragging || !(event->buttons() & Qt::LeftButton)) {
         QWidget::mouseMoveEvent(event);
         return;
@@ -2553,6 +2706,473 @@ void BookEditor::moveCursorToDocEndWithSelection(bool extend)
     } else {
         clearSelection();
         moveCursorToDocEnd();
+    }
+}
+
+// =============================================================================
+// Typewriter Mode (Phase 5.2)
+// =============================================================================
+
+qreal BookEditor::getCursorDocumentY() const
+{
+    if (m_document == nullptr) {
+        return 0.0;
+    }
+
+    // Get paragraph Y position
+    qreal paraY = m_layoutManager->paragraphY(m_cursorPosition.paragraph);
+
+    // Get layout for the paragraph to find line offset within paragraph
+    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
+    if (layout != nullptr) {
+        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
+        paraY += cursorRect.y();
+    }
+
+    return paraY;
+}
+
+void BookEditor::updateTypewriterScroll()
+{
+    if (m_viewMode != ViewMode::Typewriter) {
+        return;
+    }
+
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // Get cursor Y position in document coordinates
+    qreal cursorY = getCursorDocumentY();
+
+    // Calculate target scroll position to keep cursor at focus position
+    // Use widget height as viewport height (BookEditor is a QWidget, not QAbstractScrollArea)
+    qreal viewportHeight = static_cast<qreal>(height());
+    qreal focusY = viewportHeight * m_appearance.typewriter.focusPosition;
+    qreal targetScrollY = cursorY - focusY;
+
+    // Clamp to valid range
+    qreal maxScroll = m_scrollManager->maxScrollOffset();
+    int targetValue = qBound(0, static_cast<int>(targetScrollY), static_cast<int>(maxScroll));
+
+    QScrollBar* vbar = verticalScrollBar();
+    if (vbar == nullptr) {
+        // Fallback if no scrollbar - use setScrollOffset directly
+        setScrollOffset(static_cast<qreal>(targetValue));
+        return;
+    }
+
+    if (m_appearance.typewriter.smoothScroll) {
+        // Use smooth scrolling animation
+        if (m_typewriterScrollAnimation == nullptr) {
+            m_typewriterScrollAnimation = new QPropertyAnimation(vbar, "value", this);
+            m_typewriterScrollAnimation->setEasingCurve(QEasingCurve::OutCubic);
+        }
+
+        // Stop any running animation
+        m_typewriterScrollAnimation->stop();
+
+        // Only animate if there's a significant difference
+        int currentValue = vbar->value();
+        if (qAbs(currentValue - targetValue) > 1) {
+            m_typewriterScrollAnimation->setDuration(m_appearance.typewriter.scrollDuration);
+            m_typewriterScrollAnimation->setStartValue(currentValue);
+            m_typewriterScrollAnimation->setEndValue(targetValue);
+            m_typewriterScrollAnimation->start();
+        }
+    } else {
+        // Immediate scroll
+        vbar->setValue(targetValue);
+    }
+}
+
+// =============================================================================
+// Page Mode Rendering (Phase 5.3-5.5)
+// =============================================================================
+
+void BookEditor::paintPageMode(QPainter& painter)
+{
+    // Ensure page layout manager is configured
+    m_pageLayoutManager->setDocument(m_document);
+    m_pageLayoutManager->setLayoutManager(m_layoutManager.get());
+    m_pageLayoutManager->setViewportWidth(static_cast<qreal>(width()));
+
+    // Calculate pages if not already done
+    int total = m_pageLayoutManager->totalPages();
+    if (total == 0) {
+        return;
+    }
+
+    // Get scroll offset
+    qreal scrollY = m_scrollManager->scrollOffset();
+
+    // Calculate page centering offset
+    qreal centerOffset = m_pageLayoutManager->pageCenterOffset();
+
+    // Page border color (text color with alpha)
+    QColor borderColor = m_appearance.colors.text;
+    borderColor.setAlpha(30);
+
+    // Shadow settings
+    constexpr qreal shadowOffsetX = 4.0;
+    constexpr qreal shadowOffsetY = 4.0;
+    constexpr qreal shadowBlur = 8.0;
+
+    // Render visible pages
+    for (int pageNum = 1; pageNum <= total; ++pageNum) {
+        const PageInfo* info = m_pageLayoutManager->pageInfo(pageNum);
+        if (info == nullptr) {
+            continue;
+        }
+
+        // Get page rectangle
+        QRectF pageRect = info->pageRect;
+
+        // Apply horizontal centering
+        pageRect.moveLeft(pageRect.left() + centerOffset);
+
+        // Convert to widget coordinates
+        qreal widgetY = pageRect.top() - scrollY;
+        pageRect.moveTop(widgetY);
+
+        // Skip pages that are not visible
+        if (pageRect.bottom() < 0 || pageRect.top() > height()) {
+            continue;
+        }
+
+        // Draw page shadow
+        if (m_appearance.elements.showPageShadows) {
+            QRectF shadowRect = pageRect.translated(shadowOffsetX, shadowOffsetY);
+
+            // Draw multiple semi-transparent layers for blur effect
+            for (int i = 0; i < 4; ++i) {
+                QColor shadow = m_appearance.colors.pageShadow;
+                shadow.setAlpha(shadow.alpha() / (i + 1));
+                qreal expand = shadowBlur * (i + 1) / 4.0;
+                QRectF blurRect = shadowRect.adjusted(-expand, -expand, expand, expand);
+                painter.fillRect(blurRect, shadow);
+            }
+        }
+
+        // Draw page background
+        painter.fillRect(pageRect, m_appearance.colors.pageBackground);
+
+        // Draw page border
+        if (m_appearance.elements.showPageBorders) {
+            QPen borderPen(borderColor);
+            borderPen.setWidthF(1.0);
+            painter.setPen(borderPen);
+            painter.drawRect(pageRect);
+        }
+
+        // Note: Content rendering will be added in a later phase
+        // For now, we just draw the page frames
+    }
+
+    // Draw selection highlighting (if in page mode)
+    drawSelection(&painter);
+
+    // Draw cursor
+    if (m_cursorVisible && hasFocus()) {
+        drawCursor(&painter);
+    }
+}
+
+// =============================================================================
+// Focus Mode (Phase 5.6)
+// =============================================================================
+
+BookEditor::FocusedRange BookEditor::getFocusedRange() const
+{
+    FocusedRange range;
+
+    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+        return range;
+    }
+
+    // Get cursor's paragraph index
+    int paraIndex = m_cursorPosition.paragraph;
+    if (paraIndex < 0 || paraIndex >= m_document->paragraphCount()) {
+        paraIndex = 0;
+    }
+
+    // Determine range based on focus scope
+    switch (m_appearance.focusMode.scope) {
+        case FocusModeSettings::FocusScope::Line: {
+            // Focus on the specific line containing the cursor
+            range.startParagraph = paraIndex;
+            range.endParagraph = paraIndex;
+
+            // Get the layout to find line information
+            ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
+            if (layout != nullptr) {
+                int lineIndex = layout->lineForPosition(m_cursorPosition.offset);
+                if (lineIndex < 0) {
+                    lineIndex = 0;
+                }
+                range.startLine = lineIndex;
+                range.endLine = lineIndex;
+            } else {
+                range.startLine = 0;
+                range.endLine = 0;
+            }
+            break;
+        }
+
+        case FocusModeSettings::FocusScope::Sentence:
+            // Sentence detection is complex - treat as paragraph for now
+            // (Future: implement sentence boundary detection)
+            [[fallthrough]];
+
+        case FocusModeSettings::FocusScope::Paragraph:
+        default:
+            // Focus on the entire paragraph
+            range.startParagraph = paraIndex;
+            range.endParagraph = paraIndex;
+            range.startLine = 0;
+
+            // Get line count for the paragraph
+            ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
+            if (layout != nullptr) {
+                range.endLine = qMax(0, layout->lineCount() - 1);
+            } else {
+                range.endLine = 0;
+            }
+            break;
+    }
+
+    return range;
+}
+
+void BookEditor::paintFocusOverlay(QPainter& painter)
+{
+    // Only draw overlay in Focus view mode
+    if (m_viewMode != ViewMode::Focus) {
+        return;
+    }
+
+    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+        return;
+    }
+
+    // Get the focused range
+    FocusedRange focusedRange = getFocusedRange();
+
+    // Get scroll offset and visible range
+    qreal scrollY = m_scrollManager->scrollOffset();
+    auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
+    if (firstVisible < 0 || lastVisible < 0) {
+        return;
+    }
+
+    // Calculate the Y coordinates of the focused area
+    qreal focusTop = 0.0;
+    qreal focusBottom = 0.0;
+    bool focusRangeValid = false;
+
+    if (focusedRange.startParagraph >= 0 &&
+        focusedRange.startParagraph < m_document->paragraphCount()) {
+
+        // Get paragraph Y position
+        qreal paraY = m_layoutManager->paragraphY(focusedRange.startParagraph);
+        ParagraphLayout* layout = m_layoutManager->paragraphLayout(focusedRange.startParagraph);
+
+        if (layout != nullptr) {
+            if (m_appearance.focusMode.scope == FocusModeSettings::FocusScope::Line) {
+                // For line scope, calculate line bounds
+                int lineCount = layout->lineCount();
+                if (focusedRange.startLine >= 0 && focusedRange.startLine < lineCount) {
+                    QRectF lineRect = layout->lineRect(focusedRange.startLine);
+                    focusTop = paraY + lineRect.top();
+                    focusBottom = paraY + lineRect.bottom();
+                    focusRangeValid = true;
+                }
+            } else {
+                // For paragraph scope, use entire paragraph bounds
+                focusTop = paraY;
+                focusBottom = paraY + layout->height();
+                focusRangeValid = true;
+            }
+        }
+    }
+
+    if (!focusRangeValid) {
+        return;
+    }
+
+    // Convert to widget coordinates
+    qreal widgetFocusTop = TOP_MARGIN + focusTop - scrollY;
+    qreal widgetFocusBottom = TOP_MARGIN + focusBottom - scrollY;
+
+    // Calculate overlay opacity (inverted: high dimOpacity = more dimming)
+    // dimOpacity of 0.3 means non-focused content should be at 30% opacity
+    // So overlay alpha should be (1 - 0.3) * 255 = 178
+    int overlayAlpha = static_cast<int>((1.0 - m_appearance.focusMode.dimOpacity) * 255.0);
+    overlayAlpha = qBound(0, overlayAlpha, 255);
+
+    // Create overlay color based on editor background
+    QColor overlayColor = m_appearance.colors.editorBackground;
+    overlayColor.setAlpha(overlayAlpha);
+
+    // Draw overlay above focused area (if visible)
+    if (widgetFocusTop > 0) {
+        QRectF topOverlay(0, 0, width(), widgetFocusTop);
+        painter.fillRect(topOverlay, overlayColor);
+    }
+
+    // Draw overlay below focused area (if visible)
+    if (widgetFocusBottom < height()) {
+        QRectF bottomOverlay(0, widgetFocusBottom, width(), height() - widgetFocusBottom);
+        painter.fillRect(bottomOverlay, overlayColor);
+    }
+
+    // Draw highlight behind focused area (optional)
+    if (m_appearance.focusMode.highlightBackground) {
+        // Use accent color with low alpha for subtle highlight
+        QColor highlightColor = m_appearance.colors.accent;
+        highlightColor.setAlpha(25);  // Very subtle
+
+        QRectF focusRect(LEFT_MARGIN, widgetFocusTop,
+                         width() - LEFT_MARGIN, widgetFocusBottom - widgetFocusTop);
+        painter.fillRect(focusRect, highlightColor);
+    }
+}
+
+// =============================================================================
+// Distraction-Free Mode (Phase 5.7)
+// =============================================================================
+
+int BookEditor::getWordCount() const
+{
+    if (m_document == nullptr) {
+        return 0;
+    }
+
+    int count = 0;
+    static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
+
+    for (int i = 0; i < m_document->paragraphCount(); ++i) {
+        const KmlParagraph* para = m_document->paragraph(i);
+        if (para == nullptr) {
+            continue;
+        }
+        QString text = para->plainText();
+        if (!text.isEmpty()) {
+            count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
+        }
+    }
+
+    return count;
+}
+
+void BookEditor::startUiFade()
+{
+    if (m_uiFadeTimer == nullptr) {
+        return;
+    }
+
+    // Stop any existing timer
+    m_uiFadeTimer->stop();
+
+    // Start fade timer with configured timeout
+    int timeout = m_appearance.distractionFree.uiFadeTimeout;
+    if (timeout > 0) {
+        m_uiFadeTimer->start(timeout);
+    }
+}
+
+void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
+{
+    // Only draw overlay in Distraction-Free view mode
+    if (m_viewMode != ViewMode::DistractionFree) {
+        return;
+    }
+
+    // Calculate content area based on textWidth setting
+    // (This is preparation for Phase 7 - actual text centering will be done there)
+    qreal viewportWidth = static_cast<qreal>(width());
+    qreal textWidth = viewportWidth * m_appearance.distractionFree.textWidth;
+    qreal sideMargin = (viewportWidth - textWidth) / 2.0;
+
+    // Draw subtle gradient/vignette on sides (optional visual touch)
+    if (sideMargin > 0) {
+        // Create a subtle vignette effect on the sides
+        QColor vignetteColor = m_appearance.colors.editorBackground;
+        vignetteColor.setAlpha(30);  // Very subtle
+
+        // Left vignette
+        QLinearGradient leftGradient(0, 0, sideMargin, 0);
+        leftGradient.setColorAt(0.0, vignetteColor);
+        leftGradient.setColorAt(1.0, Qt::transparent);
+        painter.fillRect(QRectF(0, 0, sideMargin, height()), leftGradient);
+
+        // Right vignette
+        QLinearGradient rightGradient(width() - sideMargin, 0, width(), 0);
+        rightGradient.setColorAt(0.0, Qt::transparent);
+        rightGradient.setColorAt(1.0, vignetteColor);
+        painter.fillRect(QRectF(width() - sideMargin, 0, sideMargin, height()), rightGradient);
+    }
+
+    // Only draw overlays if UI is visible (opacity > 0)
+    if (m_uiOpacity <= 0.0) {
+        return;
+    }
+
+    // Set up text color with opacity
+    QColor textColor = m_appearance.colors.textSecondary;
+    textColor.setAlphaF(m_uiOpacity);
+
+    // Draw word count at bottom center
+    if (m_appearance.distractionFree.showWordCount) {
+        int wordCount = getWordCount();
+        QString countText = tr("%1 words").arg(wordCount);
+
+        // Use UI font, slightly smaller
+        QFont countFont = m_appearance.typography.uiFont;
+        countFont.setPointSize(10);
+        painter.setFont(countFont);
+        painter.setPen(textColor);
+
+        // Calculate position - bottom center with some padding
+        QFontMetrics countFm(countFont);
+        int countTextWidth = countFm.horizontalAdvance(countText);
+        int countTextHeight = countFm.height();
+        int countPadding = 20;
+
+        QRectF countRect(
+            (width() - countTextWidth) / 2.0,
+            height() - countTextHeight - countPadding,
+            countTextWidth,
+            countTextHeight
+        );
+
+        painter.drawText(countRect, Qt::AlignCenter, countText);
+    }
+
+    // Draw clock at top right
+    if (m_appearance.distractionFree.showClock) {
+        QString timeText = QDateTime::currentDateTime().toString(QStringLiteral("HH:mm"));
+
+        // Use UI font
+        QFont clockFont = m_appearance.typography.uiFont;
+        clockFont.setPointSize(10);
+        painter.setFont(clockFont);
+        painter.setPen(textColor);
+
+        // Calculate position - top right with some padding
+        QFontMetrics clockFm(clockFont);
+        int clockTextWidth = clockFm.horizontalAdvance(timeText);
+        int clockTextHeight = clockFm.height();
+        int clockPadding = 20;
+
+        QRectF clockRect(
+            width() - clockTextWidth - clockPadding,
+            clockPadding,
+            clockTextWidth,
+            clockTextHeight
+        );
+
+        painter.drawText(clockRect, Qt::AlignCenter, timeText);
     }
 }
 
