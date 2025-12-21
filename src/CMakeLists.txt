@@ -19,6 +19,8 @@ set(KALAHARI_CORE_SOURCES
     editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/layout_manager.cpp          # Phase 2.11: Layout manager
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
+    editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
+    editor/view_modes.cpp              # Phase 5: View mode registry
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp

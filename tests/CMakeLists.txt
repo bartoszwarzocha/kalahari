@@ -31,6 +31,7 @@ set(TEST_SOURCES
     editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
+    editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -87,6 +88,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
+    ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
+    ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h # BookEditor header for MOC
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)

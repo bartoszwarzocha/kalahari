@@ -1233,6 +1233,40 @@ bool BookEditor::canPaste() const
 }
 
 // =============================================================================
+// View Mode (Phase 5.1)
+// =============================================================================
+
+ViewMode BookEditor::viewMode() const
+{
+    return m_viewMode;
+}
+
+void BookEditor::setViewMode(ViewMode mode)
+{
+    if (m_viewMode != mode) {
+        m_viewMode = mode;
+        emit viewModeChanged(mode);
+        update();
+    }
+}
+
+// =============================================================================
+// Appearance (Phase 5.1)
+// =============================================================================
+
+const EditorAppearance& BookEditor::appearance() const
+{
+    return m_appearance;
+}
+
+void BookEditor::setAppearance(const EditorAppearance& appearance)
+{
+    m_appearance = appearance;
+    emit appearanceChanged();
+    update();
+}
+
+// =============================================================================
 // Event Handlers
 // =============================================================================
 
@@ -1241,8 +1275,8 @@ void BookEditor::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-    // Fill background with palette background color
-    painter.fillRect(event->rect(), palette().window());
+    // Fill background with appearance editor background color
+    painter.fillRect(event->rect(), m_appearance.colors.editorBackground);
 
     // If no document, nothing more to render
     if (m_document == nullptr) {

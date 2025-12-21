@@ -14,9 +14,11 @@
 
 #pragma once
 
+#include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/layout_manager.h>
+#include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
 #include <QWidget>
 #include <memory>
@@ -372,6 +374,34 @@ public:
     bool canPaste() const;
 
     // =========================================================================
+    // View Mode (Phase 5.1)
+    // =========================================================================
+
+    /// @brief Get the current view mode
+    /// @return Current view mode
+    ViewMode viewMode() const;
+
+    /// @brief Set the view mode
+    /// @param mode The new view mode
+    ///
+    /// Emits viewModeChanged if mode changes. Triggers repaint.
+    void setViewMode(ViewMode mode);
+
+    // =========================================================================
+    // Appearance (Phase 5.1)
+    // =========================================================================
+
+    /// @brief Get the current appearance settings
+    /// @return Current editor appearance configuration
+    const EditorAppearance& appearance() const;
+
+    /// @brief Set the appearance settings
+    /// @param appearance The new appearance configuration
+    ///
+    /// Emits appearanceChanged if appearance changes. Triggers repaint.
+    void setAppearance(const EditorAppearance& appearance);
+
+    // =========================================================================
     // Size Hints
     // =========================================================================
 
@@ -405,6 +435,13 @@ signals:
 
     /// @brief Emitted when selection changes
     void selectionChanged();
+
+    /// @brief Emitted when view mode changes
+    /// @param mode The new view mode
+    void viewModeChanged(ViewMode mode);
+
+    /// @brief Emitted when appearance settings change
+    void appearanceChanged();
 
 protected:
     // =========================================================================
@@ -612,6 +649,10 @@ private:
 
     // Undo/Redo state (Phase 4.8)
     QUndoStack* m_undoStack;                                ///< Undo stack for editing commands
+
+    // View Mode and Appearance (Phase 5.1)
+    ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
+    EditorAppearance m_appearance;                          ///< Visual appearance configuration
 };
 
 }  // namespace kalahari::editor

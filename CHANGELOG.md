@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00042 Phase 5.1:** View Mode Framework
+  - ViewMode enum: Continuous, Page, Typewriter, Focus, DistractionFree
+  - ViewModeRegistry for mode metadata and cycling
+  - EditorAppearance with comprehensive visual configuration
+  - Theme presets: light, dark, sepia, minimal, typewriter
+  - BookEditor integration with viewModeChanged and appearanceChanged signals
+
 - StandaloneInfoBar widget for standalone file mode notification (Phase F)
 - AddToProjectDialog for adding standalone files to project (Phase F)
 - Menu item "File > Open > File..." (Ctrl+Shift+O) for opening standalone files (Phase F)
