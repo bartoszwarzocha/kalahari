@@ -82,16 +82,18 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         return;
     }
 
-    // Save current chapter if dirty before switching
+    // Don't re-open the same chapter
+    if (elementId == m_currentElementId) {
+        logger.debug("Element already open - ignoring");
+        return;
+    }
+
+    // Check if current chapter has unsaved changes and prompt user (OpenSpec #00042 Phase 7.5)
     if (!m_currentElementId.isEmpty() && m_dirtyChapters.value(m_currentElementId, false)) {
-        EditorPanel* currentEditor = getCurrentEditor();
-        if (currentEditor) {
-            // Update element content cache
-            core::BookElement* element = pm.findElement(m_currentElementId);
-            if (element) {
-                element->setContent(currentEditor->getContent());
-                logger.debug("Cached content for element: {}", m_currentElementId.toStdString());
-            }
+        if (!confirmSaveOrDiscard()) {
+            // User cancelled - don't switch
+            logger.debug("User cancelled chapter switch");
+            return;
         }
     }
 
@@ -131,6 +133,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                                 m_centralTabs->setTabText(currentIdx, "*" + tabText);
                             }
                         }
+
+                        // Notify NavigatorPanel about dirty state (OpenSpec #00042 Phase 7.5)
+                        emit chapterDirtyStateChanged(elementId, true);
 
                         emit documentModified();
                     }
@@ -494,6 +499,107 @@ void NavigatorCoordinator::onPartReordered(int fromIndex, int toIndex) {
         logger.error("NavigatorCoordinator: Failed to reorder part");
         // Refresh navigator to restore correct order
         refreshNavigator();
+    }
+}
+
+// =============================================================================
+// Save and Confirmation (OpenSpec #00042 Phase 7.5)
+// =============================================================================
+
+bool NavigatorCoordinator::saveCurrentChapter() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (m_currentElementId.isEmpty()) {
+        return true;  // Nothing to save
+    }
+
+    if (!m_dirtyChapters.value(m_currentElementId, false)) {
+        return true;  // Not dirty, nothing to save
+    }
+
+    EditorPanel* currentEditor = getCurrentEditor();
+    if (!currentEditor) {
+        logger.warn("NavigatorCoordinator: No current editor to save from");
+        return false;
+    }
+
+    // Get content from editor and update element's content cache
+    QString content = currentEditor->getContent();
+    core::BookElement* element = pm.findElement(m_currentElementId);
+    if (element) {
+        element->setContent(content);
+    }
+
+    // Save to file via ProjectManager
+    if (pm.saveChapterContent(m_currentElementId)) {
+        // Clear dirty state
+        m_dirtyChapters[m_currentElementId] = false;
+
+        // Update tab title (remove asterisk)
+        int currentIdx = m_centralTabs->indexOf(currentEditor);
+        if (currentIdx >= 0) {
+            QString tabText = m_centralTabs->tabText(currentIdx);
+            if (tabText.startsWith("*")) {
+                m_centralTabs->setTabText(currentIdx, tabText.mid(1));
+            }
+        }
+
+        // Notify NavigatorPanel to clear modified indicator
+        emit chapterDirtyStateChanged(m_currentElementId, false);
+
+        logger.info("NavigatorCoordinator: Saved chapter: {}", m_currentElementId.toStdString());
+        m_statusBar->showMessage(tr("Saved"), 2000);
+        return true;
+    } else {
+        logger.error("NavigatorCoordinator: Failed to save chapter: {}", m_currentElementId.toStdString());
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Save Failed"),
+            tr("Failed to save chapter. Please try again.")
+        );
+        return false;
+    }
+}
+
+bool NavigatorCoordinator::confirmSaveOrDiscard() {
+    auto& logger = core::Logger::getInstance();
+
+    if (m_currentElementId.isEmpty()) {
+        return true;  // Nothing to confirm
+    }
+
+    if (!m_dirtyChapters.value(m_currentElementId, false)) {
+        return true;  // Not dirty, no confirmation needed
+    }
+
+    logger.debug("NavigatorCoordinator: Showing save confirmation for: {}", m_currentElementId.toStdString());
+
+    // Show confirmation dialog
+    auto reply = QMessageBox::question(
+        qobject_cast<QWidget*>(parent()),
+        tr("Unsaved Changes"),
+        tr("The current chapter has unsaved changes.\n\nDo you want to save before switching?"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+        QMessageBox::Save
+    );
+
+    switch (reply) {
+    case QMessageBox::Save:
+        // Try to save
+        return saveCurrentChapter();
+
+    case QMessageBox::Discard:
+        // Discard changes - clear dirty state without saving
+        m_dirtyChapters[m_currentElementId] = false;
+        emit chapterDirtyStateChanged(m_currentElementId, false);
+        logger.debug("NavigatorCoordinator: Discarded changes for: {}", m_currentElementId.toStdString());
+        return true;
+
+    case QMessageBox::Cancel:
+    default:
+        // User cancelled
+        return false;
     }
 }
 

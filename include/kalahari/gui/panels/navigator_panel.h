@@ -12,6 +12,7 @@
 
 #include <QWidget>
 #include <QMap>
+#include <QSet>
 #include <QString>
 
 class QAction;
@@ -91,6 +92,16 @@ public:
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
     void refreshItem(const QString& elementId);
+
+    /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
+    /// @param elementId Element ID of the chapter
+    /// @param isModified True to show modified indicator, false to hide
+    /// @note Shows asterisk (*) prefix when modified
+    void setElementModified(const QString& elementId, bool isModified);
+
+    /// @brief Clear all modified indicators (OpenSpec #00042 Phase 7.5)
+    /// @note Call after project save or close
+    void clearAllModifiedIndicators();
 
     /// @brief Destructor
     ~NavigatorPanel() override = default;
@@ -329,6 +340,9 @@ private:
 
     // Icon size tracking for dynamic updates
     int m_currentIconSize;               ///< Current icon size (to detect changes)
+
+    // Modified state tracking (OpenSpec #00042 Phase 7.5)
+    QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes
 };
 
 } // namespace gui

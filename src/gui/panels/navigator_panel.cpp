@@ -1624,5 +1624,72 @@ void NavigatorPanel::onContextMenuSetStatus(QAction* action) {
     }
 }
 
+// =============================================================================
+// Modified State Tracking (OpenSpec #00042 Phase 7.5)
+// =============================================================================
+
+void NavigatorPanel::setElementModified(const QString& elementId, bool isModified) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::setElementModified() - ID: {}, modified: {}",
+                 elementId.toStdString(), isModified);
+
+    if (elementId.isEmpty()) {
+        return;
+    }
+
+    // Track modified state
+    bool wasModified = m_modifiedElements.contains(elementId);
+    if (isModified) {
+        m_modifiedElements.insert(elementId);
+    } else {
+        m_modifiedElements.remove(elementId);
+    }
+
+    // Only update if state changed
+    if (wasModified == isModified) {
+        return;
+    }
+
+    // Find item by elementId
+    QTreeWidgetItem* item = findItemByElementId(elementId);
+    if (!item) {
+        logger.debug("NavigatorPanel: Item not found for elementId: {}", elementId.toStdString());
+        return;
+    }
+
+    // Update display text with asterisk indicator
+    QString currentText = item->text(0);
+    bool hasAsterisk = currentText.startsWith("*");
+
+    if (isModified && !hasAsterisk) {
+        // Add asterisk prefix
+        item->setText(0, "*" + currentText);
+        logger.debug("NavigatorPanel: Added modified indicator to: {}", currentText.toStdString());
+    } else if (!isModified && hasAsterisk) {
+        // Remove asterisk prefix
+        item->setText(0, currentText.mid(1));
+        logger.debug("NavigatorPanel: Removed modified indicator from: {}", currentText.toStdString());
+    }
+}
+
+void NavigatorPanel::clearAllModifiedIndicators() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("NavigatorPanel::clearAllModifiedIndicators()");
+
+    // Clear all modified elements
+    for (const QString& elementId : m_modifiedElements) {
+        QTreeWidgetItem* item = findItemByElementId(elementId);
+        if (item) {
+            QString currentText = item->text(0);
+            if (currentText.startsWith("*")) {
+                item->setText(0, currentText.mid(1));
+            }
+        }
+    }
+
+    m_modifiedElements.clear();
+    logger.debug("NavigatorPanel: Cleared all modified indicators");
+}
+
 } // namespace gui
 } // namespace kalahari

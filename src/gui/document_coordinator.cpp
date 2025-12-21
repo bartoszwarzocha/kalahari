@@ -548,6 +548,9 @@ void DocumentCoordinator::onSaveAll() {
             }
         }
 
+        // Clear all modified indicators in NavigatorPanel (OpenSpec #00042 Phase 7.5)
+        m_navigatorPanel->clearAllModifiedIndicators();
+
         pm.setDirty(false);
         logger.info("All chapters and manifest saved successfully");
         m_statusBar->showMessage(tr("All changes saved"), 2000);
@@ -969,6 +972,7 @@ void DocumentCoordinator::onProjectClosed() {
     }
 
     // Clear Navigator panel
+    m_navigatorPanel->clearAllModifiedIndicators();  // Clear modified indicators first (OpenSpec #00042 Phase 7.5)
     m_navigatorPanel->clearDocument();
 
     // Reset window title

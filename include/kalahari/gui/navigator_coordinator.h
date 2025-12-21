@@ -142,6 +142,11 @@ signals:
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 
+    /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
+    /// @param elementId Element ID of the chapter
+    /// @param isDirty True if chapter has unsaved changes
+    void chapterDirtyStateChanged(const QString& elementId, bool isDirty);
+
 private:
     /// @brief Get currently active EditorPanel tab
     /// @return Active EditorPanel or nullptr if not an editor tab
@@ -149,6 +154,14 @@ private:
 
     /// @brief Refresh navigator with current document
     void refreshNavigator();
+
+    /// @brief Save current chapter content to disk (OpenSpec #00042 Phase 7.5)
+    /// @return true if saved successfully, false on error
+    bool saveCurrentChapter();
+
+    /// @brief Show save confirmation dialog for unsaved changes (OpenSpec #00042 Phase 7.5)
+    /// @return true if user wants to proceed (saved or discarded), false if cancelled
+    bool confirmSaveOrDiscard();
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;

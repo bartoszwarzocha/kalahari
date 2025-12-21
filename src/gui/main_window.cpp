@@ -154,6 +154,9 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onChapterReordered);
     connect(m_dockCoordinator, &DockCoordinator::partReordered,
             m_navigatorCoordinator, &NavigatorCoordinator::onPartReordered);
+    // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
+            m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
     logger.debug("MainWindow: Connected DockCoordinator navigator signals to NavigatorCoordinator");
 
     // Create DocumentCoordinator after NavigatorCoordinator (needs it for dirty chapter tracking)
