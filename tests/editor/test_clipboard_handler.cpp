@@ -6,6 +6,7 @@
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <QGuiApplication>
+#include <QCoreApplication>
 #include <QClipboard>
 #include <QMimeData>
 #include <memory>
@@ -264,6 +265,28 @@ TEST_CASE("ClipboardHandler createMimeData", "[editor][clipboard]") {
 // Clipboard Operations Tests (require QApplication)
 // =============================================================================
 
+/// @brief Helper to check if clipboard is functional in current environment
+/// @return true if clipboard operations work, false otherwise (e.g., headless)
+static bool isClipboardFunctional() {
+    if (QGuiApplication::instance() == nullptr) {
+        return false;
+    }
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    if (!clipboard) {
+        return false;
+    }
+    // Try a roundtrip test to verify clipboard actually works
+    const QString testMarker = "__kalahari_clipboard_test__";
+    clipboard->setText(testMarker);
+    QCoreApplication::processEvents();
+    bool works = (clipboard->text() == testMarker);
+    if (works) {
+        clipboard->clear();
+        QCoreApplication::processEvents();
+    }
+    return works;
+}
+
 TEST_CASE("ClipboardHandler copy and paste roundtrip", "[editor][clipboard]") {
     // These tests require a QApplication instance
     if (QGuiApplication::instance() == nullptr) {
@@ -274,6 +297,9 @@ TEST_CASE("ClipboardHandler copy and paste roundtrip", "[editor][clipboard]") {
     doc->addParagraph(std::make_unique<KmlParagraph>("Copy this text"));
 
     SECTION("Copy sets clipboard text") {
+        if (!isClipboardFunctional()) {
+            SKIP("Clipboard not functional in headless environment");
+        }
         SelectionRange range{{0, 0}, {0, 4}};  // "Copy"
         bool result = ClipboardHandler::copy(doc.get(), range);
         REQUIRE(result == true);
@@ -283,6 +309,9 @@ TEST_CASE("ClipboardHandler copy and paste roundtrip", "[editor][clipboard]") {
     }
 
     SECTION("canPaste returns true after copy") {
+        if (!isClipboardFunctional()) {
+            SKIP("Clipboard not functional in headless environment");
+        }
         SelectionRange range{{0, 0}, {0, 4}};
         ClipboardHandler::copy(doc.get(), range);
 

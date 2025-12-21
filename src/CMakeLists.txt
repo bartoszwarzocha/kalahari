@@ -172,6 +172,7 @@ set(KALAHARI_SOURCES
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
+    editor/spell_check_service.cpp   # Phase 6.4-6.9: Spell check service with Hunspell
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -209,6 +210,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/split_editor_panel.h  # SplitEditorPanel with Q_OBJECT (OpenSpec #00042 Phase 5.8)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h  # StatisticsCollector with Q_OBJECT (OpenSpec #00042 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # StyleResolver with Q_OBJECT (OpenSpec #00042 Phase 6.1-6.3)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.4-6.9)
 )
 
 # Create executable
@@ -235,13 +237,17 @@ target_compile_definitions(kalahari PRIVATE
 
 # Link libraries (Qt6 Hello World - Task #00001)
 # Task #00020: Added SvgWidgets for IconDownloaderDialog preview
+# OpenSpec #00042: Added Hunspell for spell checking (via pkg-config)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
     Qt6::SvgWidgets
+    ${HUNSPELL_LIBRARIES}
 )
+target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
+target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
 # Copy resources to output directory after each build (OpenSpec #00029)
 # This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time

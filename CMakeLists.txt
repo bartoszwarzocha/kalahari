@@ -119,6 +119,8 @@ if(USE_SYSTEM_PACKAGES)
     find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 REQUIRED)
     find_package(OpenSSL REQUIRED)  # OpenSpec #00038: Plugin signature verification
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(HUNSPELL REQUIRED hunspell)  # OpenSpec #00042: Spell checking
 else()
     # vcpkg integration
     # Note: vcpkg toolchain file should be specified via:
@@ -206,6 +208,9 @@ else()
     find_package(Python3 3.11 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     find_package(OpenSSL REQUIRED)  # OpenSpec #00038: Plugin signature verification
+    # OpenSpec #00042: Spell checking with Hunspell
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(HUNSPELL REQUIRED hunspell)
 endif()
 
 # Project version accessible in code

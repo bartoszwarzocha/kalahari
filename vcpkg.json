@@ -43,6 +43,7 @@
     },
     "spdlog",
     "nlohmann-json",
+    "hunspell",
     {
       "name": "libzip",
       "default-features": false,
