@@ -3,9 +3,11 @@
 ///
 /// This file defines the PropertiesPanel class, displaying different content
 /// based on context: project properties (default), chapter properties (when
-/// chapter selected), or placeholder (when no project open).
+/// chapter selected), editor statistics (when editing), or placeholder
+/// (when no project open).
 ///
 /// OpenSpec #00033 Phase G: Full implementation with QStackedWidget.
+/// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #pragma once
 
@@ -19,8 +21,14 @@ class QComboBox;
 class QTextEdit;
 class QFormLayout;
 
+namespace kalahari::editor {
+class BookEditor;
+}
+
 namespace kalahari {
 namespace gui {
+
+class EditorPanel;
 
 /// @brief Contextual properties panel with three views
 ///
@@ -28,8 +36,10 @@ namespace gui {
 /// - NoProject: Placeholder message when no project is open
 /// - Project: Project metadata (title, author, language, genre, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes)
+/// - Editor: Text selection statistics (word/char count, paragraph style)
 ///
 /// Connects to ProjectManager signals for automatic updates.
+/// Connects to BookEditor for real-time selection statistics.
 class PropertiesPanel : public QWidget {
     Q_OBJECT
 
@@ -40,7 +50,8 @@ public:
         Project = 1,    ///< Project properties view
         Chapter = 2,    ///< Chapter properties view
         Section = 3,    ///< Section aggregate statistics view
-        Part = 4        ///< Part aggregate statistics view
+        Part = 4,       ///< Part aggregate statistics view
+        Editor = 5      ///< Editor statistics view (selection/document stats)
     };
 
     /// @brief Constructor
@@ -77,6 +88,19 @@ public slots:
     /// @param partId Part ID
     void showPartProperties(const QString& partId);
 
+    /// @brief Show editor statistics view
+    ///
+    /// Switches to editor page showing text statistics.
+    /// Called when user starts editing in BookEditor.
+    void showEditorProperties();
+
+    /// @brief Connect to an EditorPanel for statistics updates
+    /// @param editorPanel EditorPanel to track (nullptr to disconnect)
+    ///
+    /// Connects to BookEditor's selectionChanged signal for real-time
+    /// updates of selection statistics.
+    void setActiveEditor(EditorPanel* editorPanel);
+
     /// @brief Refresh current view with latest data
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
@@ -110,6 +134,15 @@ private slots:
 
     /// @brief Handle chapter notes changed (called on focus lost)
     void onChapterNotesChanged();
+
+    /// @brief Handle selection changed in BookEditor
+    void onEditorSelectionChanged();
+
+    /// @brief Handle cursor position changed in BookEditor
+    void onEditorCursorChanged();
+
+    /// @brief Handle paragraph style changed from combo box
+    void onEditorStyleChanged(int index);
 
 protected:
     /// @brief Event filter for handling focus events
@@ -148,8 +181,18 @@ private:
     /// @return Created widget
     QWidget* createPartPage();
 
+    /// @brief Setup "Editor Properties" page (selection/document statistics)
+    /// @return Created widget
+    QWidget* createEditorPage();
+
     /// @brief Connect signals to ProjectManager
     void connectSignals();
+
+    /// @brief Disconnect from current editor
+    void disconnectFromEditor();
+
+    /// @brief Update editor statistics from current BookEditor
+    void updateEditorStatistics();
 
     /// @brief Populate project fields from current project
     void populateProjectFields();
@@ -215,11 +258,24 @@ private:
     QLabel* m_partRevisionCountLabel;
     QLabel* m_partFinalCountLabel;
 
+    // Editor Page widgets (OpenSpec #00042 Task 7.4)
+    QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"
+    QLabel* m_editorWordCountLabel;       ///< Word count
+    QLabel* m_editorCharCountLabel;       ///< Character count (with spaces)
+    QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
+    QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
+    QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
+    QComboBox* m_editorStyleCombo;        ///< Paragraph style selector
+    QLabel* m_editorStyleLabel;           ///< Current style display
+
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
     QString m_currentSectionType;  ///< Currently displayed section type
     QString m_currentPartId;       ///< Currently displayed part ID
     bool m_isUpdating;             ///< Flag to prevent recursive updates
+
+    // Active editor tracking (OpenSpec #00042 Task 7.4)
+    EditorPanel* m_activeEditorPanel{nullptr};  ///< Currently tracked editor panel
 };
 
 } // namespace gui

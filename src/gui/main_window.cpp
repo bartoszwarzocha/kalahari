@@ -715,10 +715,17 @@ void MainWindow::createDocks() {
 
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     // Also update action states when switching tabs (OpenSpec #00042 Phase 7.3)
+    // Also connect properties panel to active editor (OpenSpec #00042 Task 7.4)
     connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
+        PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
+
         if (index < 0) {
             navigatorPanel->clearHighlight();
+            // OpenSpec #00042 Task 7.4: Disconnect from editor when no tab
+            if (propertiesPanel) {
+                propertiesPanel->setActiveEditor(nullptr);
+            }
             return;
         }
 
@@ -748,10 +755,19 @@ void MainWindow::createDocks() {
                         this, [this](editor::ViewMode) { updateEditorActionStates(); });
             }
 
+            // OpenSpec #00042 Task 7.4: Connect properties panel to active editor
+            if (propertiesPanel) {
+                propertiesPanel->setActiveEditor(editor);
+            }
+
             // Update action states immediately for the new tab
             updateEditorActionStates();
         } else {
             navigatorPanel->clearHighlight();
+            // OpenSpec #00042 Task 7.4: Disconnect from editor when switching to non-editor tab
+            if (propertiesPanel) {
+                propertiesPanel->setActiveEditor(nullptr);
+            }
         }
     });
 

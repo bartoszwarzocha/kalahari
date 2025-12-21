@@ -2,8 +2,13 @@
 /// @brief Contextual properties panel implementation
 ///
 /// OpenSpec #00033 Phase G: Full implementation with QStackedWidget.
+/// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/kml_document.h"
+#include "kalahari/editor/kml_paragraph.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/document.h"
@@ -23,6 +28,7 @@
 #include <iomanip>
 #include <sstream>
 #include <ctime>
+#include <QRegularExpression>
 
 namespace kalahari {
 namespace gui {
@@ -58,7 +64,16 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_partDraftCountLabel(nullptr)
     , m_partRevisionCountLabel(nullptr)
     , m_partFinalCountLabel(nullptr)
+    , m_editorTitleLabel(nullptr)
+    , m_editorWordCountLabel(nullptr)
+    , m_editorCharCountLabel(nullptr)
+    , m_editorCharNoSpaceLabel(nullptr)
+    , m_editorParagraphCountLabel(nullptr)
+    , m_editorReadingTimeLabel(nullptr)
+    , m_editorStyleCombo(nullptr)
+    , m_editorStyleLabel(nullptr)
     , m_isUpdating(false)
+    , m_activeEditorPanel(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel constructor called");
@@ -95,6 +110,7 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createChapterPage());     // Page::Chapter = 2
     m_stackedWidget->addWidget(createSectionPage());     // Page::Section = 3
     m_stackedWidget->addWidget(createPartPage());        // Page::Part = 4
+    m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -440,6 +456,100 @@ QWidget* PropertiesPanel::createPartPage() {
     return page;
 }
 
+QWidget* PropertiesPanel::createEditorPage() {
+    QWidget* page = new QWidget();
+
+    // Use scroll area for long content
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+
+    // Editor header showing "Selection" or "Document"
+    m_editorTitleLabel = new QLabel(scrollContent);
+    m_editorTitleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
+    m_editorTitleLabel->setText(tr("Document Statistics"));
+    layout->addWidget(m_editorTitleLabel);
+
+    // Statistics group
+    QGroupBox* statsGroup = new QGroupBox(tr("Statistics"), scrollContent);
+    QFormLayout* statsLayout = new QFormLayout(statsGroup);
+    statsLayout->setSpacing(6);
+    statsLayout->setContentsMargins(11, 11, 11, 11);
+
+    // Word count
+    m_editorWordCountLabel = new QLabel("0", statsGroup);
+    m_editorWordCountLabel->setToolTip(tr("Number of words"));
+    statsLayout->addRow(tr("Words:"), m_editorWordCountLabel);
+
+    // Character count (with spaces)
+    m_editorCharCountLabel = new QLabel("0", statsGroup);
+    m_editorCharCountLabel->setToolTip(tr("Number of characters including spaces"));
+    statsLayout->addRow(tr("Characters:"), m_editorCharCountLabel);
+
+    // Character count (without spaces)
+    m_editorCharNoSpaceLabel = new QLabel("0", statsGroup);
+    m_editorCharNoSpaceLabel->setToolTip(tr("Number of characters excluding spaces"));
+    statsLayout->addRow(tr("Characters (no spaces):"), m_editorCharNoSpaceLabel);
+
+    // Paragraph count
+    m_editorParagraphCountLabel = new QLabel("0", statsGroup);
+    m_editorParagraphCountLabel->setToolTip(tr("Number of paragraphs"));
+    statsLayout->addRow(tr("Paragraphs:"), m_editorParagraphCountLabel);
+
+    // Reading time
+    m_editorReadingTimeLabel = new QLabel("0 min", statsGroup);
+    m_editorReadingTimeLabel->setToolTip(tr("Estimated reading time at 200 words per minute"));
+    statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
+
+    layout->addWidget(statsGroup);
+
+    // Style group
+    QGroupBox* styleGroup = new QGroupBox(tr("Paragraph Style"), scrollContent);
+    QFormLayout* styleLayout = new QFormLayout(styleGroup);
+    styleLayout->setSpacing(6);
+    styleLayout->setContentsMargins(11, 11, 11, 11);
+
+    // Current style display
+    m_editorStyleLabel = new QLabel("-", styleGroup);
+    m_editorStyleLabel->setToolTip(tr("Current paragraph style at cursor position"));
+    styleLayout->addRow(tr("Current:"), m_editorStyleLabel);
+
+    // Style combo for changing
+    m_editorStyleCombo = new QComboBox(styleGroup);
+    m_editorStyleCombo->setToolTip(tr("Change paragraph style"));
+    // Add common paragraph styles
+    m_editorStyleCombo->addItem(tr("Normal"), "p");
+    m_editorStyleCombo->addItem(tr("Heading 1"), "h1");
+    m_editorStyleCombo->addItem(tr("Heading 2"), "h2");
+    m_editorStyleCombo->addItem(tr("Heading 3"), "h3");
+    m_editorStyleCombo->addItem(tr("Block Quote"), "blockquote");
+    m_editorStyleCombo->addItem(tr("Preformatted"), "pre");
+    styleLayout->addRow(tr("Apply:"), m_editorStyleCombo);
+
+    // Connect style combo
+    connect(m_editorStyleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &PropertiesPanel::onEditorStyleChanged);
+
+    layout->addWidget(styleGroup);
+
+    // Add stretch at the bottom
+    layout->addStretch(1);
+
+    scrollArea->setWidget(scrollContent);
+
+    // Set page layout
+    QVBoxLayout* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+
+    return page;
+}
+
 void PropertiesPanel::connectSignals() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::connectSignals()");
@@ -522,6 +632,65 @@ void PropertiesPanel::showPartProperties(const QString& partId) {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Part));
 }
 
+void PropertiesPanel::showEditorProperties() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::showEditorProperties()");
+
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    updateEditorStatistics();
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
+}
+
+void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
+    auto& logger = core::Logger::getInstance();
+
+    // Disconnect from previous editor
+    disconnectFromEditor();
+
+    m_activeEditorPanel = editorPanel;
+
+    if (!editorPanel) {
+        logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
+        return;
+    }
+
+    logger.debug("PropertiesPanel::setActiveEditor() - Connected to editor panel");
+
+    // Get the BookEditor from EditorPanel
+    editor::BookEditor* bookEditor = editorPanel->getBookEditor();
+    if (!bookEditor) {
+        logger.warn("PropertiesPanel::setActiveEditor() - EditorPanel has no BookEditor");
+        return;
+    }
+
+    // Connect to BookEditor signals
+    connect(bookEditor, &editor::BookEditor::selectionChanged,
+            this, &PropertiesPanel::onEditorSelectionChanged);
+    connect(bookEditor, &editor::BookEditor::cursorPositionChanged,
+            this, &PropertiesPanel::onEditorCursorChanged);
+
+    // Show editor properties and update stats
+    showEditorProperties();
+}
+
+void PropertiesPanel::disconnectFromEditor() {
+    if (!m_activeEditorPanel) {
+        return;
+    }
+
+    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
+    if (bookEditor) {
+        disconnect(bookEditor, &editor::BookEditor::selectionChanged,
+                   this, &PropertiesPanel::onEditorSelectionChanged);
+        disconnect(bookEditor, &editor::BookEditor::cursorPositionChanged,
+                   this, &PropertiesPanel::onEditorCursorChanged);
+    }
+
+    m_activeEditorPanel = nullptr;
+}
+
 void PropertiesPanel::refresh() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::refresh()");
@@ -549,6 +718,9 @@ void PropertiesPanel::refresh() {
             if (!m_currentPartId.isEmpty()) {
                 populatePartFields(m_currentPartId);
             }
+            break;
+        case Page::Editor:
+            updateEditorStatistics();
             break;
     }
 }
@@ -1016,6 +1188,191 @@ QString PropertiesPanel::formatDate(const std::chrono::system_clock::time_point&
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y-%m-%d %H:%M");
     return QString::fromStdString(oss.str());
+}
+
+// =============================================================================
+// Editor Integration (OpenSpec #00042 Task 7.4)
+// =============================================================================
+
+void PropertiesPanel::onEditorSelectionChanged() {
+    // Only update if we're on the Editor page
+    if (m_stackedWidget->currentIndex() == static_cast<int>(Page::Editor)) {
+        updateEditorStatistics();
+    }
+}
+
+void PropertiesPanel::onEditorCursorChanged() {
+    // Only update if we're on the Editor page
+    if (m_stackedWidget->currentIndex() == static_cast<int>(Page::Editor)) {
+        updateEditorStatistics();
+    }
+}
+
+void PropertiesPanel::onEditorStyleChanged(int index) {
+    if (m_isUpdating) return;
+    if (!m_activeEditorPanel) return;
+
+    auto& logger = core::Logger::getInstance();
+
+    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
+    if (!bookEditor) return;
+
+    editor::KmlDocument* doc = bookEditor->document();
+    if (!doc) return;
+
+    QString styleId = m_editorStyleCombo->itemData(index).toString();
+    logger.debug("PropertiesPanel::onEditorStyleChanged() - Style: {}", styleId.toStdString());
+
+    // Get cursor position to determine which paragraph to modify
+    auto cursorPos = bookEditor->cursorPosition();
+    if (cursorPos.paragraph < 0 ||
+        cursorPos.paragraph >= static_cast<int>(doc->paragraphCount())) {
+        return;
+    }
+
+    // Get the paragraph and set its style
+    editor::KmlParagraph* para = doc->paragraph(cursorPos.paragraph);
+    if (para) {
+        para->setStyleId(styleId);
+        // Trigger repaint
+        bookEditor->update();
+
+        logger.info("PropertiesPanel: Changed paragraph {} style to: {}",
+                    cursorPos.paragraph, styleId.toStdString());
+    }
+}
+
+void PropertiesPanel::updateEditorStatistics() {
+    auto& logger = core::Logger::getInstance();
+
+    // Reset to default values if no editor
+    if (!m_activeEditorPanel) {
+        m_editorTitleLabel->setText(tr("No Editor"));
+        m_editorWordCountLabel->setText("0");
+        m_editorCharCountLabel->setText("0");
+        m_editorCharNoSpaceLabel->setText("0");
+        m_editorParagraphCountLabel->setText("0");
+        m_editorReadingTimeLabel->setText("0 min");
+        m_editorStyleLabel->setText("-");
+        return;
+    }
+
+    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
+    if (!bookEditor) {
+        logger.warn("PropertiesPanel::updateEditorStatistics() - No BookEditor");
+        return;
+    }
+
+    editor::KmlDocument* doc = bookEditor->document();
+    if (!doc) {
+        m_editorTitleLabel->setText(tr("No Document"));
+        m_editorWordCountLabel->setText("0");
+        m_editorCharCountLabel->setText("0");
+        m_editorCharNoSpaceLabel->setText("0");
+        m_editorParagraphCountLabel->setText("0");
+        m_editorReadingTimeLabel->setText("0 min");
+        m_editorStyleLabel->setText("-");
+        return;
+    }
+
+    m_isUpdating = true;
+
+    QString text;
+    int paragraphCount = 0;
+    bool hasSelection = bookEditor->hasSelection();
+
+    if (hasSelection) {
+        // Get selected text
+        text = bookEditor->selectedText();
+        m_editorTitleLabel->setText(tr("Selection Statistics"));
+
+        // Count paragraphs in selection
+        auto selection = bookEditor->selection();
+        paragraphCount = selection.end.paragraph - selection.start.paragraph + 1;
+    } else {
+        // Get entire document text
+        text = doc->plainText();
+        m_editorTitleLabel->setText(tr("Document Statistics"));
+        paragraphCount = static_cast<int>(doc->paragraphCount());
+    }
+
+    // Calculate word count
+    // Use simple word splitting by whitespace
+    int wordCount = 0;
+    if (!text.isEmpty()) {
+        // Split by whitespace and count non-empty parts
+        static QRegularExpression wordRegex("\\S+");
+        QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
+        while (it.hasNext()) {
+            it.next();
+            wordCount++;
+        }
+    }
+
+    // Calculate character counts
+    int charCount = text.length();
+    int charNoSpaceCount = 0;
+    for (const QChar& ch : text) {
+        if (!ch.isSpace()) {
+            charNoSpaceCount++;
+        }
+    }
+
+    // Calculate reading time (200 wpm)
+    int readingMinutes = wordCount / 200;
+    if (wordCount % 200 > 0 && wordCount > 0) {
+        readingMinutes++;  // Round up
+    }
+
+    // Update labels
+    m_editorWordCountLabel->setText(QString::number(wordCount));
+    m_editorCharCountLabel->setText(QString::number(charCount));
+    m_editorCharNoSpaceLabel->setText(QString::number(charNoSpaceCount));
+    m_editorParagraphCountLabel->setText(QString::number(paragraphCount));
+    m_editorReadingTimeLabel->setText(tr("%1 min").arg(readingMinutes));
+
+    // Get current paragraph style
+    auto cursorPos = bookEditor->cursorPosition();
+    QString styleId = "p";  // Default
+    QString styleName = tr("Normal");
+
+    if (cursorPos.paragraph >= 0 &&
+        cursorPos.paragraph < static_cast<int>(doc->paragraphCount())) {
+        const editor::KmlParagraph* para = doc->paragraph(cursorPos.paragraph);
+        if (para) {
+            styleId = para->styleId();
+
+            // Map style ID to display name
+            if (styleId == "p" || styleId.isEmpty()) {
+                styleName = tr("Normal");
+            } else if (styleId == "h1") {
+                styleName = tr("Heading 1");
+            } else if (styleId == "h2") {
+                styleName = tr("Heading 2");
+            } else if (styleId == "h3") {
+                styleName = tr("Heading 3");
+            } else if (styleId == "blockquote") {
+                styleName = tr("Block Quote");
+            } else if (styleId == "pre") {
+                styleName = tr("Preformatted");
+            } else {
+                styleName = styleId;  // Show raw ID for unknown styles
+            }
+        }
+    }
+
+    m_editorStyleLabel->setText(styleName);
+
+    // Update combo box to match current style
+    int styleIndex = m_editorStyleCombo->findData(styleId);
+    if (styleIndex >= 0 && m_editorStyleCombo->currentIndex() != styleIndex) {
+        m_editorStyleCombo->setCurrentIndex(styleIndex);
+    }
+
+    m_isUpdating = false;
+
+    logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs, style={}",
+                 wordCount, charCount, paragraphCount, styleId.toStdString());
 }
 
 } // namespace gui
