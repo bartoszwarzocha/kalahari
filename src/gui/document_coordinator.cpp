@@ -13,6 +13,7 @@
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/project_database.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/document_archive.h"
 #include "kalahari/core/book.h"
@@ -22,6 +23,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/editor/style_resolver.h"
 #include <QMainWindow>
 #include <QTabWidget>
 #include <QStatusBar>
@@ -930,6 +932,31 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
         return;
     }
 
+    // =========================================================================
+    // OpenSpec #00042 Task 7.6: Connect StyleResolver to database
+    // =========================================================================
+    core::ProjectDatabase* database = pm.getDatabase();
+    if (database && database->isOpen()) {
+        // Create or reset StyleResolver
+        if (!m_styleResolver) {
+            m_styleResolver = std::make_unique<editor::StyleResolver>(this);
+            logger.debug("StyleResolver created for project");
+        }
+
+        // Connect to database and load styles
+        m_styleResolver->setDatabase(database);
+        m_styleResolver->reloadFromDatabase();
+
+        // Connect PropertiesPanel to StyleResolver for style operations
+        if (m_propertiesPanel) {
+            m_propertiesPanel->setStyleResolver(m_styleResolver.get());
+        }
+
+        logger.info("StyleResolver connected to project database, loaded styles");
+    } else {
+        logger.warn("Project database not available for StyleResolver");
+    }
+
     // Update Navigator panel with document structure
     m_navigatorPanel->loadDocument(*doc);
 
@@ -955,6 +982,20 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
 void DocumentCoordinator::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
+
+    // =========================================================================
+    // OpenSpec #00042 Task 7.6: Disconnect StyleResolver from database
+    // =========================================================================
+    if (m_styleResolver) {
+        // Disconnect PropertiesPanel from StyleResolver first
+        if (m_propertiesPanel) {
+            m_propertiesPanel->setStyleResolver(nullptr);
+        }
+
+        m_styleResolver->setDatabase(nullptr);
+        m_styleResolver->invalidateCache();
+        logger.debug("StyleResolver disconnected from project database");
+    }
 
     // Save Navigator expansion state before clearing
     QString projectPath = pm.getProjectPath();

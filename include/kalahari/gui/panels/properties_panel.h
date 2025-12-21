@@ -23,6 +23,7 @@ class QFormLayout;
 
 namespace kalahari::editor {
 class BookEditor;
+class StyleResolver;
 }
 
 namespace kalahari {
@@ -100,6 +101,13 @@ public slots:
     /// Connects to BookEditor's selectionChanged signal for real-time
     /// updates of selection statistics.
     void setActiveEditor(EditorPanel* editorPanel);
+
+    /// @brief Set the style resolver for style operations
+    /// @param resolver StyleResolver to use for style resolution (nullptr to disconnect)
+    ///
+    /// When set, the properties panel can resolve style IDs to display names
+    /// and update styles via the database. Connected to project's StyleResolver.
+    void setStyleResolver(editor::StyleResolver* resolver);
 
     /// @brief Refresh current view with latest data
     ///
@@ -276,6 +284,18 @@ private:
 
     // Active editor tracking (OpenSpec #00042 Task 7.4)
     EditorPanel* m_activeEditorPanel{nullptr};  ///< Currently tracked editor panel
+
+    // Style resolver (OpenSpec #00042 Task 7.6)
+    editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project
+
+    /// @brief Populate style combo with styles from StyleResolver
+    void populateStyleComboFromResolver();
+
+    /// @brief Add default built-in styles to combo (fallback when no database)
+    void addDefaultStylesToCombo();
+
+    /// @brief Handle style combo selection to update style from resolver
+    void applyStyleFromCombo();
 };
 
 } // namespace gui

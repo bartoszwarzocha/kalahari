@@ -12,7 +12,12 @@
 #include <functional>
 #include <optional>
 #include <filesystem>
+#include <memory>
 #include "kalahari/core/document.h"
+
+namespace kalahari::editor {
+class StyleResolver;
+}
 
 class QMainWindow;
 class QTabWidget;
@@ -174,6 +179,19 @@ public slots:
     /// @brief Handle project closed event
     void onProjectClosed();
 
+    // =========================================================================
+    // Style Resolver Access (OpenSpec #00042 Task 7.6)
+    // =========================================================================
+
+    /// @brief Get the project's style resolver
+    /// @return Pointer to StyleResolver (nullptr if no project open)
+    ///
+    /// The StyleResolver is connected to the project's database when a project
+    /// is opened. It provides paragraph and character style resolution with
+    /// inheritance support. When styles change in the database, the resolver
+    /// emits stylesChanged() which can be connected to refresh editors.
+    editor::StyleResolver* styleResolver() const { return m_styleResolver.get(); }
+
 signals:
     /// @brief Emitted when a document is opened
     void documentOpened();
@@ -231,6 +249,9 @@ private:
 
     /// @brief List of open standalone file paths
     QStringList m_standaloneFilePaths;
+
+    /// @brief Style resolver for the current project (OpenSpec #00042 Task 7.6)
+    std::unique_ptr<editor::StyleResolver> m_styleResolver;
 };
 
 } // namespace gui

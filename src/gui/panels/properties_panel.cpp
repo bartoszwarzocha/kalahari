@@ -9,8 +9,11 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kml_document.h"
 #include "kalahari/editor/kml_paragraph.h"
+#include "kalahari/editor/style_resolver.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/project_database.h"
+#include "kalahari/core/database_types.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/book.h"
 #include "kalahari/core/book_element.h"
@@ -1373,6 +1376,100 @@ void PropertiesPanel::updateEditorStatistics() {
 
     logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs, style={}",
                  wordCount, charCount, paragraphCount, styleId.toStdString());
+}
+
+// =============================================================================
+// Style Resolver Integration (OpenSpec #00042 Task 7.6)
+// =============================================================================
+
+void PropertiesPanel::setStyleResolver(editor::StyleResolver* resolver) {
+    auto& logger = core::Logger::getInstance();
+
+    // Disconnect from previous resolver
+    if (m_styleResolver) {
+        disconnect(m_styleResolver, &editor::StyleResolver::stylesChanged,
+                   this, &PropertiesPanel::populateStyleComboFromResolver);
+    }
+
+    m_styleResolver = resolver;
+
+    if (m_styleResolver) {
+        // Connect to stylesChanged to refresh combo when styles change
+        connect(m_styleResolver, &editor::StyleResolver::stylesChanged,
+                this, &PropertiesPanel::populateStyleComboFromResolver);
+
+        // Populate combo with styles from resolver
+        populateStyleComboFromResolver();
+
+        logger.debug("PropertiesPanel: Connected to StyleResolver");
+    } else {
+        // No resolver - use default built-in styles
+        logger.debug("PropertiesPanel: StyleResolver disconnected, using default styles");
+    }
+}
+
+void PropertiesPanel::populateStyleComboFromResolver() {
+    if (!m_editorStyleCombo) return;
+
+    auto& logger = core::Logger::getInstance();
+    m_isUpdating = true;
+
+    // Remember current selection
+    QString currentData = m_editorStyleCombo->currentData().toString();
+
+    // Clear and repopulate
+    m_editorStyleCombo->clear();
+
+    if (m_styleResolver && m_styleResolver->database()) {
+        // Get styles from database via ProjectManager
+        auto& pm = core::ProjectManager::getInstance();
+        core::ProjectDatabase* db = pm.getDatabase();
+
+        if (db && db->isOpen()) {
+            // Add paragraph styles from database
+            QList<core::ParagraphStyle> styles = db->getParagraphStyles();
+
+            if (!styles.isEmpty()) {
+                for (const auto& style : styles) {
+                    m_editorStyleCombo->addItem(style.name, style.id);
+                }
+                logger.debug("PropertiesPanel: Loaded {} paragraph styles from database",
+                             styles.size());
+            } else {
+                // No styles in database - add defaults
+                addDefaultStylesToCombo();
+            }
+        } else {
+            addDefaultStylesToCombo();
+        }
+    } else {
+        // No style resolver - use built-in defaults
+        addDefaultStylesToCombo();
+    }
+
+    // Restore selection if possible
+    int idx = m_editorStyleCombo->findData(currentData);
+    if (idx >= 0) {
+        m_editorStyleCombo->setCurrentIndex(idx);
+    }
+
+    m_isUpdating = false;
+}
+
+void PropertiesPanel::addDefaultStylesToCombo() {
+    // Add common paragraph styles (fallback when no database)
+    m_editorStyleCombo->addItem(tr("Normal"), "p");
+    m_editorStyleCombo->addItem(tr("Heading 1"), "h1");
+    m_editorStyleCombo->addItem(tr("Heading 2"), "h2");
+    m_editorStyleCombo->addItem(tr("Heading 3"), "h3");
+    m_editorStyleCombo->addItem(tr("Block Quote"), "blockquote");
+    m_editorStyleCombo->addItem(tr("Preformatted"), "pre");
+}
+
+void PropertiesPanel::applyStyleFromCombo() {
+    // This is called when user selects a style from the combo
+    // The actual application is already handled in onEditorStyleChanged()
+    // This method can be used for additional style-related operations
 }
 
 } // namespace gui
