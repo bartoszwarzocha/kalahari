@@ -21,6 +21,10 @@ namespace core {
     class Document;
 }
 
+namespace editor {
+    class StatisticsCollector;
+}
+
 namespace gui {
 
 class NavigatorPanel;
@@ -86,6 +90,21 @@ public:
 
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
+
+    // =========================================================================
+    // Statistics Integration (OpenSpec #00042 Task 7.7)
+    // =========================================================================
+
+    /// @brief Set the statistics collector for new editor panels
+    /// @param collector Pointer to shared StatisticsCollector (nullptr to disable)
+    ///
+    /// When set, new EditorPanel instances created for chapters will be connected
+    /// to this collector for statistics tracking.
+    void setStatisticsCollector(editor::StatisticsCollector* collector) { m_statisticsCollector = collector; }
+
+    /// @brief Get the current statistics collector
+    /// @return Pointer to StatisticsCollector, or nullptr if not set
+    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
 
 public slots:
     /// @brief Handle element selection in navigator
@@ -174,6 +193,9 @@ private:
 
     /// @brief Currently active element in editor
     QString m_currentElementId;
+
+    /// @brief Statistics collector for editor panels (OpenSpec #00042 Task 7.7)
+    editor::StatisticsCollector* m_statisticsCollector{nullptr};
 };
 
 } // namespace gui

@@ -17,6 +17,7 @@
 
 namespace kalahari::editor {
 class StyleResolver;
+class StatisticsCollector;
 }
 
 class QMainWindow;
@@ -192,6 +193,18 @@ public slots:
     /// emits stylesChanged() which can be connected to refresh editors.
     editor::StyleResolver* styleResolver() const { return m_styleResolver.get(); }
 
+    // =========================================================================
+    // Statistics Collector Access (OpenSpec #00042 Task 7.7)
+    // =========================================================================
+
+    /// @brief Get the project's statistics collector
+    /// @return Pointer to StatisticsCollector (nullptr if no project open)
+    ///
+    /// The StatisticsCollector tracks writing statistics (words written/deleted,
+    /// active time) and saves them to the project database. It automatically
+    /// starts a session when a project is opened and ends it when closed.
+    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector.get(); }
+
 signals:
     /// @brief Emitted when a document is opened
     void documentOpened();
@@ -252,6 +265,9 @@ private:
 
     /// @brief Style resolver for the current project (OpenSpec #00042 Task 7.6)
     std::unique_ptr<editor::StyleResolver> m_styleResolver;
+
+    /// @brief Statistics collector for session tracking (OpenSpec #00042 Task 7.7)
+    std::unique_ptr<editor::StatisticsCollector> m_statisticsCollector;
 };
 
 } // namespace gui

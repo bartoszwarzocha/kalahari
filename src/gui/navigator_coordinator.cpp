@@ -14,6 +14,7 @@
 #include "kalahari/core/part.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QDockWidget>
@@ -144,6 +145,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 
     // Set content using setContent method
     newEditor->setContent(content);
+
+    // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
+    if (m_statisticsCollector) {
+        newEditor->setStatisticsCollector(m_statisticsCollector);
+        logger.debug("NavigatorCoordinator: EditorPanel connected to StatisticsCollector");
+    }
 
     // Update PropertiesPanel to show chapter properties
     m_propertiesPanel->showChapterProperties(elementId);

@@ -24,6 +24,7 @@
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/style_resolver.h"
+#include "kalahari/editor/statistics_collector.h"
 #include <QMainWindow>
 #include <QTabWidget>
 #include <QStatusBar>
@@ -953,8 +954,29 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
         }
 
         logger.info("StyleResolver connected to project database, loaded styles");
+
+        // =========================================================================
+        // OpenSpec #00042 Task 7.7: Connect StatisticsCollector to database
+        // =========================================================================
+        if (!m_statisticsCollector) {
+            m_statisticsCollector = std::make_unique<editor::StatisticsCollector>(this);
+            logger.debug("StatisticsCollector created for project");
+        }
+
+        // Connect to database
+        m_statisticsCollector->setDatabase(database);
+
+        // Start writing session
+        m_statisticsCollector->startSession();
+        logger.info("StatisticsCollector connected to project database, session started");
+
+        // Connect NavigatorCoordinator to statistics collector for new editor panels
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->setStatisticsCollector(m_statisticsCollector.get());
+            logger.debug("NavigatorCoordinator connected to StatisticsCollector");
+        }
     } else {
-        logger.warn("Project database not available for StyleResolver");
+        logger.warn("Project database not available for StyleResolver/StatisticsCollector");
     }
 
     // Update Navigator panel with document structure
@@ -982,6 +1004,24 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
 void DocumentCoordinator::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
+
+    // =========================================================================
+    // OpenSpec #00042 Task 7.7: End statistics session and disconnect
+    // =========================================================================
+    if (m_statisticsCollector) {
+        // Disconnect NavigatorCoordinator from statistics collector first
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->setStatisticsCollector(nullptr);
+            logger.debug("NavigatorCoordinator disconnected from StatisticsCollector");
+        }
+
+        // End session (flushes stats to database)
+        m_statisticsCollector->endSession();
+
+        // Disconnect from database
+        m_statisticsCollector->setDatabase(nullptr);
+        logger.debug("StatisticsCollector session ended, disconnected from database");
+    }
 
     // =========================================================================
     // OpenSpec #00042 Task 7.6: Disconnect StyleResolver from database

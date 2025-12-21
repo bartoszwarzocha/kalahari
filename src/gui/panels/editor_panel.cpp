@@ -10,6 +10,7 @@
 #include "kalahari/editor/kml_parser.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/statistics_collector.h"
 #include <QVBoxLayout>
 
 namespace kalahari {
@@ -111,6 +112,11 @@ void EditorPanel::setText(const QString& text) {
     // Setup observer and update editor
     setupDocumentObserver();
     m_bookEditor->setDocument(m_document.get());
+
+    // Reconnect statistics collector to new document (OpenSpec #00042 Task 7.7)
+    if (m_statisticsCollector && m_document) {
+        m_statisticsCollector->setDocument(m_document.get());
+    }
 }
 
 QString EditorPanel::getText() const {
@@ -147,6 +153,11 @@ void EditorPanel::setContent(const QString& content) {
         // Setup observer and update editor
         setupDocumentObserver();
         m_bookEditor->setDocument(m_document.get());
+
+        // Reconnect statistics collector to new document (OpenSpec #00042 Task 7.7)
+        if (m_statisticsCollector && m_document) {
+            m_statisticsCollector->setDocument(m_document.get());
+        }
     } else {
         logger.warn("Failed to parse HTML->KML: {}", result.errorMessage.toStdString());
         // Fallback: treat as plain text
@@ -215,6 +226,23 @@ std::unique_ptr<editor::KmlDocument> EditorPanel::createEmptyDocument() {
 void EditorPanel::setupDocumentObserver() {
     if (m_document && m_observer) {
         m_document->addObserver(m_observer.get());
+    }
+}
+
+void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector) {
+    auto& logger = core::Logger::getInstance();
+
+    // Disconnect from previous collector
+    if (m_statisticsCollector && m_document) {
+        m_statisticsCollector->setDocument(nullptr);
+    }
+
+    m_statisticsCollector = collector;
+
+    // Connect to new collector
+    if (m_statisticsCollector && m_document) {
+        m_statisticsCollector->setDocument(m_document.get());
+        logger.debug("EditorPanel: StatisticsCollector connected to document");
     }
 }
 

@@ -13,6 +13,7 @@
 namespace kalahari::editor {
 class BookEditor;
 class KmlDocument;
+class StatisticsCollector;
 }
 
 namespace kalahari {
@@ -80,6 +81,22 @@ public:
     /// @return Const pointer to the document, or nullptr if none
     const editor::KmlDocument* document() const { return m_document.get(); }
 
+    // =========================================================================
+    // Statistics Integration (OpenSpec #00042 Task 7.7)
+    // =========================================================================
+
+    /// @brief Set the statistics collector for this editor
+    /// @param collector Pointer to shared StatisticsCollector (nullptr to disconnect)
+    ///
+    /// When set, the collector will track document changes from this editor.
+    /// The collector is typically owned by DocumentCoordinator and shared
+    /// across all editor panels in a project.
+    void setStatisticsCollector(editor::StatisticsCollector* collector);
+
+    /// @brief Get the current statistics collector
+    /// @return Pointer to StatisticsCollector, or nullptr if not set
+    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
+
 signals:
     /// @brief Emitted when editor content changes
     ///
@@ -105,6 +122,9 @@ private:
 
     class Observer;
     std::unique_ptr<Observer> m_observer;                 ///< Document observer
+
+    /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
+    editor::StatisticsCollector* m_statisticsCollector{nullptr};
 };
 
 } // namespace gui
