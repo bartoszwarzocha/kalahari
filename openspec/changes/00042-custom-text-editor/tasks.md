@@ -605,30 +605,35 @@
 - [ ] Ignore option
 - [ ] **BUILD + TEST**
 
-### 6.10 Statistics Collector (Basic)
-- [ ] Create `statistics_collector.h`
-- [ ] Create `statistics_collector.cpp`
-- [ ] Implement wordCount(), characterCount()
-- [ ] Implement paragraphCount()
-- [ ] Connect to document changes
-- [ ] **BUILD + TEST**
+### 6.10 Statistics Collector (Basic) [COMPLETE]
+- [x] Create `statistics_collector.h`
+- [x] Create `statistics_collector.cpp`
+- [x] Implement wordCount(), characterCount(), characterCountNoSpaces()
+- [x] Implement paragraphCount()
+- [x] Implement estimatedReadingTime() (200 wpm)
+- [x] Connect to document changes via IDocumentObserver
+- [x] **BUILD + TEST** (build passed)
 
-### 6.11 Statistics Collector (Session)
-- [ ] Track words written/deleted per session
-- [ ] Track active time
-- [ ] Implement startSession(), endSession()
-- [ ] Store SessionStats
-- [ ] **BUILD + TEST**
+### 6.11 Statistics Collector (Session) [COMPLETE]
+- [x] Track words written/deleted per session
+- [x] Track active time (with idle detection - 2 min threshold)
+- [x] Implement startSession(), endSession()
+- [x] Implement isSessionActive()
+- [x] Store SessionStats with hourly tracking
+- [x] **BUILD + TEST** (build passed)
 
-### 6.12 Statistics Collector (Database)
-- [ ] Connect to ProjectDatabase
-- [ ] Implement flush() - save to database
-- [ ] Auto-flush every 5 minutes
-- [ ] Flush on session end
-- [ ] **BUILD + TEST**
+### 6.12 Statistics Collector (Database) [COMPLETE]
+- [x] Connect to ProjectDatabase via setDatabase()
+- [x] Implement flush() - save to database
+- [x] Auto-flush every 5 minutes (QTimer)
+- [x] Flush on session end
+- [x] Implement hour rollover logic
+- [x] **BUILD + TEST** (build passed)
 
-### 6.13 Statistics UI
-- [ ] Show word count in status bar
+### 6.13 Statistics UI [PARTIAL]
+- [x] Emit statisticsChanged signal (words, chars, paragraphs)
+- [x] Emit sessionStatsUpdated signal (written, deleted, active minutes)
+- [ ] Show word count in status bar (requires UI integration in BookEditor/EditorPanel)
 - [ ] Show character count
 - [ ] Show estimated reading time
 - [ ] Update in real-time
