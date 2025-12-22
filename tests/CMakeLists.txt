@@ -33,6 +33,8 @@ set(TEST_SOURCES
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
     editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
+    editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
+    editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -94,7 +96,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
     ${CMAKE_SOURCE_DIR}/src/editor/page_layout_manager.cpp  # Phase 5.3-5.5: Page layout manager
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h # BookEditor header for MOC
+    ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
+    ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
+    # MOC headers for Q_OBJECT classes
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
