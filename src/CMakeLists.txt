@@ -171,6 +171,7 @@ set(KALAHARI_SOURCES
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/kml_commands.cpp     # Phase 4.8: Undo/Redo commands
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector

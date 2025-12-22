@@ -287,6 +287,15 @@ public:
     /// @brief Create typewriter appearance (classic feel)
     static EditorAppearance typewriterAppearance();
 
+    /// @brief Create high contrast appearance (accessibility)
+    static EditorAppearance highContrastAppearance();
+
+    /// @brief Check if system high-contrast mode is enabled
+    static bool isSystemHighContrastEnabled();
+
+    /// @brief Get appearance adjusted for system settings
+    static EditorAppearance systemAwareAppearance();
+
     // =========================================================================
     // Serialization
     // =========================================================================

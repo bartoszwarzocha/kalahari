@@ -433,6 +433,48 @@ EditorAppearance EditorAppearance::typewriterAppearance()
     return appearance;
 }
 
+EditorAppearance EditorAppearance::highContrastAppearance()
+{
+    EditorAppearance appearance;
+    EditorColors& colors = appearance.colors;
+    colors.editorBackground = QColor(0, 0, 0);
+    colors.pageBackground = QColor(255, 255, 255);
+    colors.pageShadow = QColor(0, 0, 0, 0);
+    colors.marginArea = QColor(255, 255, 255);
+    colors.text = QColor(0, 0, 0);
+    colors.textSecondary = QColor(0, 0, 0);
+    colors.textDimmed = QColor(100, 100, 100);
+    colors.selection = QColor(0, 0, 255, 100);
+    colors.selectionBorder = QColor(0, 0, 255);
+    colors.cursor = QColor(0, 0, 0);
+    colors.cursorLine = QColor(255, 255, 0, 50);
+    colors.ruler = QColor(0, 0, 0);
+    colors.scrollbar = QColor(0, 0, 0);
+    colors.accent = QColor(0, 0, 255);
+    colors.warning = QColor(255, 255, 0);
+    colors.error = QColor(255, 0, 0);
+    appearance.elements.showPageShadows = false;
+    appearance.elements.showPageBorders = true;
+    appearance.typography.textFont = QFont("Arial", 16);
+    appearance.typography.lineHeight = 2.0;
+    return appearance;
+}
+
+bool EditorAppearance::isSystemHighContrastEnabled()
+{
+    // Check GTK_THEME for Linux high contrast
+    QString gtkTheme = qEnvironmentVariable("GTK_THEME");
+    if (!gtkTheme.isEmpty()) {
+        return gtkTheme.toLower().contains("highcontrast");
+    }
+    return false;
+}
+
+EditorAppearance EditorAppearance::systemAwareAppearance()
+{
+    return isSystemHighContrastEnabled() ? highContrastAppearance() : defaultAppearance();
+}
+
 EditorAppearance EditorAppearance::fromJson(const QJsonObject& json)
 {
     EditorAppearance appearance;
