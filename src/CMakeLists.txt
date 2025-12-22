@@ -12,7 +12,8 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_paragraph.cpp
     editor/kml_document.cpp
     editor/kml_parser.cpp
-    editor/kml_table.cpp  # Phase 1.12: Table elements
+    editor/kml_table.cpp    # Phase 1.12: Table elements
+    editor/kml_comment.cpp  # Phase 7.8: Comments feature
     editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     editor/format_converter.cpp  # Phase 2.2: Format conversion
     editor/table_layout.cpp      # Phase 2.6: Table layout

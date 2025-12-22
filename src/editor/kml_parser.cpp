@@ -1,11 +1,13 @@
 /// @file kml_parser.cpp
-/// @brief Implementation of KML Parser (OpenSpec #00042 Phase 1.10/1.12)
+/// @brief Implementation of KML Parser (OpenSpec #00042 Phase 1.10/1.12/7.8)
 
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/kml_text_run.h>
 #include <kalahari/editor/kml_inline_elements.h>
 #include <kalahari/editor/kml_table.h>
+#include <kalahari/editor/kml_comment.h>
 #include <QXmlStreamReader>
+#include <QDomDocument>
 
 namespace kalahari::editor {
 
@@ -285,11 +287,17 @@ std::unique_ptr<KmlParagraph> KmlParser::parseParagraphElement(QXmlStreamReader&
             }
             reader.readNext();
         } else if (reader.isStartElement()) {
-            auto element = parseInlineElement(reader);
-            if (element) {
-                para->addElement(std::move(element));
+            // Check for comments element (Phase 7.8)
+            if (reader.name() == QStringLiteral("comments")) {
+                parseCommentsElement(reader, para.get());
+                // parseCommentsElement moves past </comments>
+            } else {
+                auto element = parseInlineElement(reader);
+                if (element) {
+                    para->addElement(std::move(element));
+                }
+                // Note: parseInlineElement moves the reader past the element
             }
-            // Note: parseInlineElement moves the reader past the element
         } else {
             reader.readNext();
         }
@@ -633,6 +641,116 @@ bool KmlParser::parseCellContent(QXmlStreamReader& reader,
     // Reached end without finding closing tag
     setError(QString("Missing closing tag </%1>").arg(endTagName), -1, -1);
     return false;
+}
+
+// =============================================================================
+// Comment Parsing Methods (Phase 7.8)
+// =============================================================================
+
+bool KmlParser::parseCommentsElement(QXmlStreamReader& reader, KmlParagraph* paragraph)
+{
+    // Reader should be at <comments> start element
+    if (!reader.isStartElement() || reader.name() != QStringLiteral("comments")) {
+        return false;
+    }
+
+    // Move past <comments> start element
+    reader.readNext();
+
+    // Parse comment elements until </comments>
+    while (!reader.atEnd()) {
+        if (reader.isEndElement() && reader.name() == QStringLiteral("comments")) {
+            reader.readNext();  // Move past </comments>
+            return true;
+        }
+
+        if (reader.isStartElement()) {
+            if (reader.name() == QStringLiteral("comment")) {
+                KmlComment comment = parseCommentElement(reader);
+                paragraph->addComment(comment);
+                // parseCommentElement moves past </comment>
+            } else {
+                // Unknown element inside comments - skip it
+                reader.skipCurrentElement();
+            }
+        } else {
+            reader.readNext();
+        }
+    }
+
+    return !reader.hasError();
+}
+
+KmlComment KmlParser::parseCommentElement(QXmlStreamReader& reader)
+{
+    KmlComment comment;
+
+    // Reader should be at <comment> start element
+    if (!reader.isStartElement() || reader.name() != QStringLiteral("comment")) {
+        return comment;
+    }
+
+    // Read attributes
+    QXmlStreamAttributes attrs = reader.attributes();
+
+    if (attrs.hasAttribute(QStringLiteral("id"))) {
+        comment.setId(attrs.value(QStringLiteral("id")).toString());
+    }
+
+    if (attrs.hasAttribute(QStringLiteral("start"))) {
+        bool ok = false;
+        int start = attrs.value(QStringLiteral("start")).toInt(&ok);
+        if (ok) {
+            comment.setStartPos(start);
+        }
+    }
+
+    if (attrs.hasAttribute(QStringLiteral("end"))) {
+        bool ok = false;
+        int end = attrs.value(QStringLiteral("end")).toInt(&ok);
+        if (ok) {
+            comment.setEndPos(end);
+        }
+    }
+
+    if (attrs.hasAttribute(QStringLiteral("author"))) {
+        comment.setAuthor(attrs.value(QStringLiteral("author")).toString());
+    }
+
+    if (attrs.hasAttribute(QStringLiteral("created"))) {
+        QString dateStr = attrs.value(QStringLiteral("created")).toString();
+        QDateTime dt = QDateTime::fromString(dateStr, Qt::ISODate);
+        if (dt.isValid()) {
+            comment.setCreatedAt(dt);
+        }
+    }
+
+    if (attrs.hasAttribute(QStringLiteral("resolved"))) {
+        QString resolvedStr = attrs.value(QStringLiteral("resolved")).toString().toLower();
+        comment.setResolved(resolvedStr == QStringLiteral("true") ||
+                           resolvedStr == QStringLiteral("1"));
+    }
+
+    // Read text content
+    QString text;
+    reader.readNext();
+
+    while (!reader.atEnd()) {
+        if (reader.isEndElement() && reader.name() == QStringLiteral("comment")) {
+            reader.readNext();  // Move past </comment>
+            break;
+        }
+
+        if (reader.isCharacters()) {
+            text += reader.text().toString();
+        }
+
+        reader.readNext();
+    }
+
+    comment.setText(text);
+
+    return comment;
 }
 
 // =============================================================================

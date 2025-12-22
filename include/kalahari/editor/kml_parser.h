@@ -20,6 +20,7 @@
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/kml_element.h>
 #include <kalahari/editor/kml_table.h>
+#include <kalahari/editor/kml_comment.h>
 #include <QString>
 #include <memory>
 
@@ -161,6 +162,19 @@ private:
     bool parseCellContent(QXmlStreamReader& reader,
                           KmlParagraph* paragraph,
                           const QString& endTagName);
+
+    // Comment parsing methods (Phase 7.8)
+
+    /// @brief Parse comments element containing multiple comment children
+    /// @param reader The XML reader positioned at <comments> start element
+    /// @param paragraph The paragraph to add comments to
+    /// @return true if parsing succeeded
+    bool parseCommentsElement(QXmlStreamReader& reader, KmlParagraph* paragraph);
+
+    /// @brief Parse a single comment element
+    /// @param reader The XML reader positioned at <comment> start element
+    /// @return Parsed comment
+    KmlComment parseCommentElement(QXmlStreamReader& reader);
 
     /// @brief Create inline element by tag name
     /// @param tagName The XML tag name (b, i, u, s, sub, sup)

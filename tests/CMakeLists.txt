@@ -25,6 +25,7 @@ set(TEST_SOURCES
     editor/test_kml_document.cpp
     editor/test_kml_parser.cpp
     editor/test_kml_table.cpp  # Phase 1.12: Table elements
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     editor/test_paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     editor/test_table_layout.cpp  # Phase 2.6: Table layout
     editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
@@ -80,6 +81,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp  # Phase 1.12: Table elements
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp  # Phase 2.2: Format conversion
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout

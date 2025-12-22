@@ -14,12 +14,14 @@ namespace kalahari::editor {
 KmlParagraph::KmlParagraph()
     : m_elements()
     , m_styleId()
+    , m_comments()
 {
 }
 
 KmlParagraph::KmlParagraph(const QString& text)
     : m_elements()
     , m_styleId()
+    , m_comments()
 {
     if (!text.isEmpty()) {
         m_elements.push_back(std::make_unique<KmlTextRun>(text));
@@ -29,6 +31,7 @@ KmlParagraph::KmlParagraph(const QString& text)
 KmlParagraph::KmlParagraph(const QString& text, const QString& styleId)
     : m_elements()
     , m_styleId(styleId)
+    , m_comments()
 {
     if (!text.isEmpty()) {
         m_elements.push_back(std::make_unique<KmlTextRun>(text));
@@ -40,6 +43,7 @@ KmlParagraph::~KmlParagraph() = default;
 KmlParagraph::KmlParagraph(const KmlParagraph& other)
     : m_elements()
     , m_styleId(other.m_styleId)
+    , m_comments(other.m_comments)
 {
     // Deep copy all elements
     m_elements.reserve(other.m_elements.size());
@@ -53,6 +57,7 @@ KmlParagraph::KmlParagraph(const KmlParagraph& other)
 KmlParagraph::KmlParagraph(KmlParagraph&& other) noexcept
     : m_elements(std::move(other.m_elements))
     , m_styleId(std::move(other.m_styleId))
+    , m_comments(std::move(other.m_comments))
 {
 }
 
@@ -60,6 +65,7 @@ KmlParagraph& KmlParagraph::operator=(const KmlParagraph& other)
 {
     if (this != &other) {
         m_styleId = other.m_styleId;
+        m_comments = other.m_comments;
 
         // Deep copy all elements
         m_elements.clear();
@@ -78,6 +84,7 @@ KmlParagraph& KmlParagraph::operator=(KmlParagraph&& other) noexcept
     if (this != &other) {
         m_elements = std::move(other.m_elements);
         m_styleId = std::move(other.m_styleId);
+        m_comments = std::move(other.m_comments);
     }
     return *this;
 }
@@ -457,6 +464,76 @@ bool KmlParagraph::hasStyle() const
 }
 
 // =============================================================================
+// Comments (Phase 7.8)
+// =============================================================================
+
+const QList<KmlComment>& KmlParagraph::comments() const
+{
+    return m_comments;
+}
+
+int KmlParagraph::commentCount() const
+{
+    return m_comments.size();
+}
+
+void KmlParagraph::addComment(const KmlComment& comment)
+{
+    m_comments.append(comment);
+}
+
+bool KmlParagraph::removeComment(const QString& commentId)
+{
+    for (int i = 0; i < m_comments.size(); ++i) {
+        if (m_comments[i].id() == commentId) {
+            m_comments.removeAt(i);
+            return true;
+        }
+    }
+    return false;
+}
+
+KmlComment* KmlParagraph::commentById(const QString& id)
+{
+    for (auto& comment : m_comments) {
+        if (comment.id() == id) {
+            return &comment;
+        }
+    }
+    return nullptr;
+}
+
+const KmlComment* KmlParagraph::commentById(const QString& id) const
+{
+    for (const auto& comment : m_comments) {
+        if (comment.id() == id) {
+            return &comment;
+        }
+    }
+    return nullptr;
+}
+
+bool KmlParagraph::hasComments() const
+{
+    return !m_comments.isEmpty();
+}
+
+QList<KmlComment> KmlParagraph::commentsInRange(int start, int end) const
+{
+    QList<KmlComment> result;
+
+    for (const auto& comment : m_comments) {
+        // Check if comment range overlaps with query range
+        // Overlap: comment.startPos < end && comment.endPos > start
+        if (comment.startPos() < end && comment.endPos() > start) {
+            result.append(comment);
+        }
+    }
+
+    return result;
+}
+
+// =============================================================================
 // Serialization
 // =============================================================================
 
@@ -511,6 +588,15 @@ QString KmlParagraph::toKml() const
         if (element) {
             result += element->toKml();
         }
+    }
+
+    // Serialize comments if any (Phase 7.8)
+    if (!m_comments.isEmpty()) {
+        result += QStringLiteral("<comments>");
+        for (const auto& comment : m_comments) {
+            result += comment.toKml();
+        }
+        result += QStringLiteral("</comments>");
     }
 
     // Closing tag

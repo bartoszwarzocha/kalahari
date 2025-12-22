@@ -12,9 +12,11 @@
 #pragma once
 
 #include <kalahari/editor/kml_element.h>
+#include <kalahari/editor/kml_comment.h>
 #include <vector>
 #include <memory>
 #include <QString>
+#include <QList>
 
 namespace kalahari::editor {
 
@@ -172,6 +174,47 @@ public:
     bool hasStyle() const;
 
     // =========================================================================
+    // Comments (Phase 7.8)
+    // =========================================================================
+
+    /// @brief Get all comments attached to this paragraph
+    /// @return List of comments
+    const QList<KmlComment>& comments() const;
+
+    /// @brief Get the number of comments
+    /// @return Number of comments
+    int commentCount() const;
+
+    /// @brief Add a comment to this paragraph
+    /// @param comment The comment to add
+    void addComment(const KmlComment& comment);
+
+    /// @brief Remove a comment by ID
+    /// @param commentId The ID of the comment to remove
+    /// @return true if comment was found and removed
+    bool removeComment(const QString& commentId);
+
+    /// @brief Find a comment by ID
+    /// @param id The comment ID
+    /// @return Pointer to comment, or nullptr if not found
+    KmlComment* commentById(const QString& id);
+
+    /// @brief Find a comment by ID (const version)
+    /// @param id The comment ID
+    /// @return Const pointer to comment, or nullptr if not found
+    const KmlComment* commentById(const QString& id) const;
+
+    /// @brief Check if paragraph has any comments
+    /// @return true if there are comments
+    bool hasComments() const;
+
+    /// @brief Get comments overlapping a text range
+    /// @param start Start position (inclusive)
+    /// @param end End position (exclusive)
+    /// @return List of comments overlapping the range
+    QList<KmlComment> commentsInRange(int start, int end) const;
+
+    // =========================================================================
     // Serialization
     // =========================================================================
 
@@ -186,6 +229,7 @@ public:
 private:
     std::vector<std::unique_ptr<KmlElement>> m_elements;  ///< Child elements
     QString m_styleId;  ///< Paragraph style ID (empty for default)
+    QList<KmlComment> m_comments;  ///< Comments attached to this paragraph
 };
 
 }  // namespace kalahari::editor
