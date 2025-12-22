@@ -2,7 +2,9 @@
 /// @brief Layout manager implementation (OpenSpec #00042 Phase 2.11)
 
 #include <kalahari/editor/layout_manager.h>
+#include <QtGlobal>  // For qMax
 #include <algorithm>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -15,6 +17,7 @@ LayoutManager::LayoutManager()
     , m_scrollManager(nullptr)
     , m_width(0.0)
     , m_font()
+    , m_accessCounter(0)
 {
 }
 
@@ -31,6 +34,9 @@ LayoutManager::LayoutManager(LayoutManager&& other) noexcept
     , m_width(other.m_width)
     , m_font(std::move(other.m_font))
     , m_layouts(std::move(other.m_layouts))
+    , m_dirtyParagraphs(std::move(other.m_dirtyParagraphs))
+    , m_accessCounter(other.m_accessCounter)
+    , m_lastAccess(std::move(other.m_lastAccess))
 {
     // Re-register observer on the document
     if (m_document) {
@@ -42,6 +48,7 @@ LayoutManager::LayoutManager(LayoutManager&& other) noexcept
     other.m_document = nullptr;
     other.m_scrollManager = nullptr;
     other.m_width = 0.0;
+    other.m_accessCounter = 0;
 }
 
 LayoutManager& LayoutManager::operator=(LayoutManager&& other) noexcept {
@@ -57,6 +64,9 @@ LayoutManager& LayoutManager::operator=(LayoutManager&& other) noexcept {
         m_width = other.m_width;
         m_font = std::move(other.m_font);
         m_layouts = std::move(other.m_layouts);
+        m_dirtyParagraphs = std::move(other.m_dirtyParagraphs);
+        m_accessCounter = other.m_accessCounter;
+        m_lastAccess = std::move(other.m_lastAccess);
 
         // Re-register observer
         if (m_document) {
@@ -68,6 +78,7 @@ LayoutManager& LayoutManager::operator=(LayoutManager&& other) noexcept {
         other.m_document = nullptr;
         other.m_scrollManager = nullptr;
         other.m_width = 0.0;
+        other.m_accessCounter = 0;
     }
     return *this;
 }
@@ -84,9 +95,11 @@ void LayoutManager::setDocument(KmlDocument* document) {
 
     m_document = document;
 
-    // Clear all layouts and dirty tracking when document changes
+    // Clear all layouts and tracking when document changes
     m_layouts.clear();
     m_dirtyParagraphs.clear();
+    m_lastAccess.clear();
+    m_accessCounter = 0;
 
     // Register with new document
     if (m_document) {
@@ -206,6 +219,7 @@ qreal LayoutManager::layoutParagraph(int index) {
 ParagraphLayout* LayoutManager::paragraphLayout(int index) {
     auto it = m_layouts.find(index);
     if (it != m_layouts.end()) {
+        touchLayout(index);  // Update access time for LRU tracking
         return it->second.get();
     }
     return nullptr;
@@ -250,12 +264,15 @@ void LayoutManager::invalidateAllLayouts() {
 void LayoutManager::clearLayouts() {
     m_layouts.clear();
     m_dirtyParagraphs.clear();
+    m_lastAccess.clear();
+    m_accessCounter = 0;
 }
 
 void LayoutManager::releaseInvisibleLayouts() {
     if (!m_scrollManager) {
         // Without scroll manager, we can't determine visibility - clear all
         m_layouts.clear();
+        m_lastAccess.clear();
         return;
     }
 
@@ -263,6 +280,7 @@ void LayoutManager::releaseInvisibleLayouts() {
     if (first < 0 || last < 0) {
         // No valid visible range - clear all
         m_layouts.clear();
+        m_lastAccess.clear();
         return;
     }
 
@@ -270,11 +288,72 @@ void LayoutManager::releaseInvisibleLayouts() {
     auto it = m_layouts.begin();
     while (it != m_layouts.end()) {
         if (it->first < first || it->first > last) {
+            m_lastAccess.erase(it->first);
             it = m_layouts.erase(it);
         } else {
             ++it;
         }
     }
+}
+
+void LayoutManager::releaseDistantLayouts(int firstVisible, int lastVisible) {
+    if (firstVisible < 0 || lastVisible < 0) {
+        return;
+    }
+
+    // Calculate the range we want to keep (visible +/- buffer)
+    int keepStart = qMax(0, firstVisible - LAYOUT_KEEP_BUFFER);
+    int keepEnd = lastVisible + LAYOUT_KEEP_BUFFER;
+
+    // First pass: remove layouts outside the keep range
+    auto it = m_layouts.begin();
+    while (it != m_layouts.end()) {
+        if (it->first < keepStart || it->first > keepEnd) {
+            m_lastAccess.erase(it->first);
+            it = m_layouts.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Second pass: if still over MAX_CACHED_LAYOUTS, evict oldest
+    if (static_cast<int>(m_layouts.size()) > MAX_CACHED_LAYOUTS) {
+        evictOldestLayouts(MAX_CACHED_LAYOUTS);
+    }
+}
+
+void LayoutManager::evictOldestLayouts(int keepCount) {
+    if (static_cast<int>(m_layouts.size()) <= keepCount) {
+        return;
+    }
+
+    // Collect all indices with their access times
+    std::vector<std::pair<int, uint64_t>> accessTimes;
+    accessTimes.reserve(m_layouts.size());
+
+    for (const auto& [index, layout] : m_layouts) {
+        auto accessIt = m_lastAccess.find(index);
+        uint64_t accessTime = (accessIt != m_lastAccess.end()) ? accessIt->second : 0;
+        accessTimes.emplace_back(index, accessTime);
+    }
+
+    // Sort by access time (oldest first)
+    std::sort(accessTimes.begin(), accessTimes.end(),
+              [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    // Calculate how many to remove
+    int toRemove = static_cast<int>(m_layouts.size()) - keepCount;
+
+    // Remove the oldest layouts
+    for (int i = 0; i < toRemove && i < static_cast<int>(accessTimes.size()); ++i) {
+        int indexToRemove = accessTimes[i].first;
+        m_layouts.erase(indexToRemove);
+        m_lastAccess.erase(indexToRemove);
+    }
+}
+
+void LayoutManager::touchLayout(int index) {
+    m_lastAccess[index] = ++m_accessCounter;
 }
 
 // =============================================================================
@@ -336,8 +415,9 @@ void LayoutManager::onParagraphInserted(int index) {
 }
 
 void LayoutManager::onParagraphRemoved(int index) {
-    // Remove the layout for the deleted paragraph
+    // Remove the layout and access tracking for the deleted paragraph
     m_layouts.erase(index);
+    m_lastAccess.erase(index);
 
     // Shift remaining layout indices down
     shiftLayoutIndices(index, -1);
@@ -366,12 +446,14 @@ ParagraphLayout* LayoutManager::createLayout(int index) {
 
     ParagraphLayout* ptr = layout.get();
     m_layouts[index] = std::move(layout);
+    touchLayout(index);  // Track creation time for LRU
     return ptr;
 }
 
 ParagraphLayout* LayoutManager::getOrCreateLayout(int index) {
     auto it = m_layouts.find(index);
     if (it != m_layouts.end()) {
+        touchLayout(index);  // Update access time for LRU tracking
         return it->second.get();
     }
     return createLayout(index);
@@ -398,9 +480,10 @@ void LayoutManager::shiftLayoutIndices(int fromIndex, int delta) {
         return;
     }
 
-    // We need to rebuild the map with shifted indices
+    // We need to rebuild the maps with shifted indices
     // This is necessary because unordered_map doesn't allow key modification
     std::unordered_map<int, std::unique_ptr<ParagraphLayout>> newLayouts;
+    std::unordered_map<int, uint64_t> newLastAccess;
 
     for (auto& [index, layout] : m_layouts) {
         if (index >= fromIndex) {
@@ -408,14 +491,24 @@ void LayoutManager::shiftLayoutIndices(int fromIndex, int delta) {
             int newIndex = index + delta;
             if (newIndex >= 0) {
                 newLayouts[newIndex] = std::move(layout);
+                // Also shift access tracking
+                auto accessIt = m_lastAccess.find(index);
+                if (accessIt != m_lastAccess.end()) {
+                    newLastAccess[newIndex] = accessIt->second;
+                }
             }
         } else {
             // Keep as is
             newLayouts[index] = std::move(layout);
+            auto accessIt = m_lastAccess.find(index);
+            if (accessIt != m_lastAccess.end()) {
+                newLastAccess[index] = accessIt->second;
+            }
         }
     }
 
     m_layouts = std::move(newLayouts);
+    m_lastAccess = std::move(newLastAccess);
 }
 
 }  // namespace kalahari::editor

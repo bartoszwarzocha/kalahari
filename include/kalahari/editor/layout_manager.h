@@ -26,6 +26,19 @@
 
 namespace kalahari::editor {
 
+/// @brief Maximum number of paragraph layouts to keep in memory
+///
+/// This constant limits memory usage for large documents.
+/// Layouts outside this limit are evicted (oldest first).
+/// Value chosen to accommodate visible paragraphs + generous buffer.
+constexpr int MAX_CACHED_LAYOUTS = 150;
+
+/// @brief Buffer around visible range to keep in memory
+///
+/// Paragraphs within this distance from visible range are kept.
+/// Paragraphs beyond this buffer are released to save memory.
+constexpr int LAYOUT_KEEP_BUFFER = 50;
+
 /// @brief Manages paragraph layouts for efficient document rendering
 ///
 /// LayoutManager provides efficient layout management for large documents
@@ -190,6 +203,23 @@ public:
     /// This should be called periodically to prevent memory growth.
     void releaseInvisibleLayouts();
 
+    /// @brief Release layouts for paragraphs far from visible range
+    /// @param firstVisible First visible paragraph index
+    /// @param lastVisible Last visible paragraph index
+    ///
+    /// Releases layouts outside the visible range +/- LAYOUT_KEEP_BUFFER.
+    /// Also enforces MAX_CACHED_LAYOUTS by evicting oldest layouts.
+    /// Call this after scrolling to bound memory usage.
+    void releaseDistantLayouts(int firstVisible, int lastVisible);
+
+    /// @brief Get maximum number of cached layouts
+    /// @return The MAX_CACHED_LAYOUTS constant
+    static constexpr int maxCachedLayouts() { return MAX_CACHED_LAYOUTS; }
+
+    /// @brief Get layout keep buffer size
+    /// @return The LAYOUT_KEEP_BUFFER constant
+    static constexpr int layoutKeepBuffer() { return LAYOUT_KEEP_BUFFER; }
+
     // =========================================================================
     // Geometry Queries
     // =========================================================================
@@ -255,6 +285,14 @@ private:
     /// @param delta Amount to shift (+1 for insert, -1 for remove)
     void shiftLayoutIndices(int fromIndex, int delta);
 
+    /// @brief Evict oldest layouts to stay under MAX_CACHED_LAYOUTS
+    /// @param keepCount Maximum number of layouts to keep
+    void evictOldestLayouts(int keepCount);
+
+    /// @brief Update last access time for a layout
+    /// @param index The paragraph index
+    void touchLayout(int index);
+
     KmlDocument* m_document;                        ///< Document being managed (not owned)
     VirtualScrollManager* m_scrollManager;          ///< Scroll manager (not owned)
     qreal m_width;                                  ///< Layout width
@@ -272,6 +310,18 @@ private:
     /// their layout recalculated. More efficient than marking
     /// all layouts dirty when only one paragraph changes.
     std::unordered_set<int> m_dirtyParagraphs;
+
+    /// @brief Access counter for LRU eviction
+    ///
+    /// Incremented on each layout access. Used to track which
+    /// layouts were accessed most recently for eviction decisions.
+    mutable uint64_t m_accessCounter;
+
+    /// @brief Last access time for each layout (paragraph index -> access counter)
+    ///
+    /// Used to implement LRU eviction. Layouts with lower access
+    /// times are evicted first when memory limit is reached.
+    std::unordered_map<int, uint64_t> m_lastAccess;
 };
 
 }  // namespace kalahari::editor

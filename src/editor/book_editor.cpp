@@ -198,6 +198,11 @@ void BookEditor::setScrollOffset(qreal offset)
     if (oldOffset != newOffset) {
         syncScrollBarValue();
         emit scrollOffsetChanged(newOffset);
+
+        // Release distant layouts to bound memory usage
+        auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
+        m_layoutManager->releaseDistantLayouts(firstVisible, lastVisible);
+
         update();  // Request repaint
     }
 }
