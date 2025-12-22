@@ -16,12 +16,14 @@
 
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/layout_manager.h>
 #include <kalahari/editor/page_layout_manager.h>
 #include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
 #include <QWidget>
+#include <QList>
 #include <memory>
 
 class QInputMethodEvent;
@@ -427,6 +429,40 @@ public:
     bool isStrikethrough() const;
 
     // =========================================================================
+    // Comments (Phase 7.9)
+    // =========================================================================
+
+    /// @brief Insert a comment at the current selection
+    ///
+    /// Opens a dialog to enter comment text, then creates a KmlComment
+    /// attached to the selected text range. Does nothing if no selection.
+    void insertComment();
+
+    /// @brief Delete a comment by ID
+    /// @param commentId The ID of the comment to delete
+    ///
+    /// Searches all paragraphs for the comment and removes it.
+    void deleteComment(const QString& commentId);
+
+    /// @brief Edit an existing comment's text
+    /// @param commentId The ID of the comment to edit
+    ///
+    /// Opens a dialog to edit the comment text.
+    void editComment(const QString& commentId);
+
+    /// @brief Get all comments in the current paragraph
+    /// @return List of comments in the paragraph containing the cursor
+    QList<KmlComment> commentsInCurrentParagraph() const;
+
+    /// @brief Navigate to a specific comment
+    /// @param paragraphIndex Paragraph containing the comment
+    /// @param commentId ID of the comment to navigate to
+    ///
+    /// Moves cursor to the start of the commented text and scrolls
+    /// to make it visible.
+    void navigateToComment(int paragraphIndex, const QString& commentId);
+
+    // =========================================================================
     // View Mode (Phase 5.1)
     // =========================================================================
 
@@ -529,6 +565,20 @@ signals:
     /// @brief Emitted when distraction-free mode is toggled
     /// @param enabled true if distraction-free mode is now active
     void distractionFreeModeChanged(bool enabled);
+
+    /// @brief Emitted when a comment is added to the document
+    /// @param paragraphIndex Index of the paragraph containing the new comment
+    void commentAdded(int paragraphIndex);
+
+    /// @brief Emitted when a comment is removed from the document
+    /// @param paragraphIndex Index of the paragraph from which comment was removed
+    /// @param commentId ID of the removed comment
+    void commentRemoved(int paragraphIndex, const QString& commentId);
+
+    /// @brief Emitted when a comment is selected (e.g., by clicking in margin)
+    /// @param paragraphIndex Index of the paragraph containing the comment
+    /// @param commentId ID of the selected comment
+    void commentSelected(int paragraphIndex, const QString& commentId);
 
 protected:
     // =========================================================================

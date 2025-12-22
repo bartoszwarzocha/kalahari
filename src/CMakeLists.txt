@@ -166,6 +166,7 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
+    gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
@@ -209,6 +210,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/comments_panel.h  # CommentsPanel with Q_OBJECT (OpenSpec #00042 Phase 7.9)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/split_editor_panel.h  # SplitEditorPanel with Q_OBJECT (OpenSpec #00042 Phase 5.8)

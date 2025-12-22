@@ -5,12 +5,14 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_commands.h>
+#include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
 #include <QDateTime>
 #include <QEasingCurve>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -3297,6 +3299,177 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
 
         painter.drawText(clockRect, Qt::AlignCenter, timeText);
     }
+}
+
+// =============================================================================
+// Comments (Phase 7.9)
+// =============================================================================
+
+void BookEditor::insertComment()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // Must have a selection to add a comment
+    if (!hasSelection()) {
+        core::Logger::getInstance().debug("BookEditor::insertComment() - no selection, cannot add comment");
+        return;
+    }
+
+    // Get the normalized selection range
+    SelectionRange sel = m_selection.normalized();
+
+    // Comments within a single paragraph are simpler
+    if (sel.start.paragraph != sel.end.paragraph) {
+        core::Logger::getInstance().debug("BookEditor::insertComment() - multi-paragraph selection not supported");
+        return;
+    }
+
+    // Show input dialog for comment text
+    bool ok = false;
+    QString commentText = QInputDialog::getMultiLineText(
+        this,
+        tr("Insert Comment"),
+        tr("Enter comment:"),
+        QString(),
+        &ok
+    );
+
+    if (!ok || commentText.isEmpty()) {
+        return;
+    }
+
+    // Get the paragraph
+    KmlParagraph* para = m_document->paragraph(sel.start.paragraph);
+    if (para == nullptr) {
+        return;
+    }
+
+    // Create and add the comment
+    KmlComment comment(sel.start.offset, sel.end.offset, commentText);
+    para->addComment(comment);
+
+    core::Logger::getInstance().info("BookEditor: Added comment '{}' to paragraph {} at ({}, {})",
+        comment.id().toStdString(), sel.start.paragraph, sel.start.offset, sel.end.offset);
+
+    // Emit signal
+    emit commentAdded(sel.start.paragraph);
+
+    // Repaint to show comment highlight
+    update();
+}
+
+void BookEditor::deleteComment(const QString& commentId)
+{
+    if (m_document == nullptr || commentId.isEmpty()) {
+        return;
+    }
+
+    // Search all paragraphs for the comment
+    for (int i = 0; i < m_document->paragraphCount(); ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para != nullptr && para->removeComment(commentId)) {
+            core::Logger::getInstance().info("BookEditor: Deleted comment '{}' from paragraph {}",
+                commentId.toStdString(), i);
+
+            // Emit signal
+            emit commentRemoved(i, commentId);
+
+            // Repaint
+            update();
+            return;
+        }
+    }
+
+    core::Logger::getInstance().debug("BookEditor::deleteComment() - comment '{}' not found",
+        commentId.toStdString());
+}
+
+void BookEditor::editComment(const QString& commentId)
+{
+    if (m_document == nullptr || commentId.isEmpty()) {
+        return;
+    }
+
+    // Find the comment
+    for (int i = 0; i < m_document->paragraphCount(); ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para == nullptr) {
+            continue;
+        }
+
+        KmlComment* comment = para->commentById(commentId);
+        if (comment != nullptr) {
+            // Show input dialog with current text
+            bool ok = false;
+            QString newText = QInputDialog::getMultiLineText(
+                this,
+                tr("Edit Comment"),
+                tr("Edit comment:"),
+                comment->text(),
+                &ok
+            );
+
+            if (ok && !newText.isEmpty()) {
+                comment->setText(newText);
+                core::Logger::getInstance().info("BookEditor: Edited comment '{}'",
+                    commentId.toStdString());
+                update();
+            }
+            return;
+        }
+    }
+
+    core::Logger::getInstance().debug("BookEditor::editComment() - comment '{}' not found",
+        commentId.toStdString());
+}
+
+QList<KmlComment> BookEditor::commentsInCurrentParagraph() const
+{
+    if (m_document == nullptr) {
+        return {};
+    }
+
+    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+    if (para == nullptr) {
+        return {};
+    }
+
+    return para->comments();
+}
+
+void BookEditor::navigateToComment(int paragraphIndex, const QString& commentId)
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // Validate paragraph index
+    if (paragraphIndex < 0 || paragraphIndex >= m_document->paragraphCount()) {
+        return;
+    }
+
+    const KmlParagraph* para = m_document->paragraph(paragraphIndex);
+    if (para == nullptr) {
+        return;
+    }
+
+    // Find the comment
+    const KmlComment* comment = para->commentById(commentId);
+    if (comment == nullptr) {
+        return;
+    }
+
+    // Move cursor to start of commented text
+    CursorPosition newPos{paragraphIndex, comment->startPos()};
+    setCursorPosition(newPos);
+
+    // Ensure cursor is visible
+    ensureCursorVisible();
+
+    // Emit signal
+    emit commentSelected(paragraphIndex, commentId);
 }
 
 }  // namespace kalahari::editor

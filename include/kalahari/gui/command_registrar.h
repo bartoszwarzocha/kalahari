@@ -56,6 +56,11 @@ struct CommandCallbacks {
     std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
 
     // =========================================================================
+    // INSERT COMMANDS (OpenSpec #00042 Phase 7.9)
+    // =========================================================================
+    std::function<void()> onInsertComment;      ///< Insert > Comment
+
+    // =========================================================================
     // VIEW COMMANDS
     // =========================================================================
     std::function<void()> onDashboard;          ///< View > Dashboard
