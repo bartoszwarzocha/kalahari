@@ -6,8 +6,8 @@
         ]
     },
     "content": {
-        "html": "<h2>Chapter Two: The Discovery</h2><p>The old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.</p><p>She pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.</p><p>\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding.</p>",
-        "plainText": "Chapter Two: The Discovery\n\nThe old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.\n\nShe pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.\n\n\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding."
+        "kml": "<document>\n<p></p>\n<p><t>The old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.</t></p>\n<p><t>She pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.</t></p>\n<p><t>&quot;You came,&quot; said a voice from the shadows. Sarah spun around, her heart pounding.</t></p>\n<p><t>klkjlkjlkjlkjlkjlkjlkjlkj</t></p>\n</document>",
+        "plainText": "The old bookshop was exactly where the letter had described. Its windows were dark, but Sarah could see a faint glow coming from somewhere deep inside.\nShe pushed open the creaky door and stepped into a world of dust and forgotten stories. Shelves towered to the ceiling, filled with books that seemed older than time itself.\n\"You came,\" said a voice from the shadows. Sarah spun around, her heart pounding.\nklkjlkjlkjlkjlkjlkjlkjlkj"
     },
     "kalahari": {
         "type": "chapter",
@@ -19,9 +19,9 @@
         "title": "Chapter Two: The Discovery"
     },
     "statistics": {
-        "characterCount": 478,
-        "lastModified": "2025-12-14T15:30:00Z",
-        "paragraphCount": 4,
-        "wordCount": 85
+        "characterCount": 363,
+        "lastModified": "2025-12-22T16:28:12Z",
+        "paragraphCount": 1,
+        "wordCount": 71
     }
 }

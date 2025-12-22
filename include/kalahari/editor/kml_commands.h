@@ -8,6 +8,7 @@
 #pragma once
 
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/kml_element.h>
 #include <QUndoCommand>
 #include <QString>
 #include <chrono>
@@ -26,6 +27,7 @@ enum class CommandId {
     InsertText = 1000,  ///< Character/text insertion
     DeleteText = 1001,  ///< Text deletion
     ApplyStyle = 1002,  ///< Style application
+    ToggleFormat = 1003, ///< Inline formatting toggle
 };
 
 // =============================================================================
@@ -189,6 +191,39 @@ private:
     int m_mergeFromIndex;              ///< Index of paragraph that was merged
     QString m_mergedParagraphKml;      ///< KML of merged paragraph for undo
     int m_splitOffset;                 ///< Offset where paragraphs were joined
+};
+
+// =============================================================================
+// Toggle Format Command (Phase 7.2)
+// =============================================================================
+
+/// @brief Command for toggling inline formatting (bold, italic, etc.)
+///
+/// This command applies or removes inline formatting from a selection range.
+/// It stores the KML before the operation for undo.
+class ToggleFormatCommand : public KmlCommand {
+public:
+    /// @brief Constructor
+    /// @param document The document being edited
+    /// @param range Selection range to apply/remove format
+    /// @param formatType The element type (Bold, Italic, Underline, Strikethrough)
+    /// @param apply true to apply format, false to remove
+    /// @param oldKml KML of affected paragraphs before the operation
+    ToggleFormatCommand(KmlDocument* document,
+                        const SelectionRange& range,
+                        ElementType formatType,
+                        bool apply,
+                        const QString& oldKml);
+
+    void undo() override;
+    void redo() override;
+    int id() const override;
+
+private:
+    SelectionRange m_range;            ///< Range where format was toggled
+    ElementType m_formatType;          ///< Type of formatting
+    bool m_apply;                      ///< true = apply, false = remove
+    QString m_oldKml;                  ///< KML before operation for undo
 };
 
 }  // namespace kalahari::editor

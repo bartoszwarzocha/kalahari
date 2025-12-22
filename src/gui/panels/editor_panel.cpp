@@ -88,13 +88,16 @@ void EditorPanel::setText(const QString& text) {
         m_document->removeObserver(m_observer.get());
     }
 
+    // CRITICAL: Disconnect BookEditor BEFORE destroying old document
+    m_bookEditor->setDocument(nullptr);
+
     // Convert plain text to KML and parse
     QString kml = editor::ClipboardHandler::textToKml(text);
     editor::KmlParser parser;
     auto result = parser.parseDocument(kml);
 
     if (result.success && result.result) {
-        // Replace document
+        // Replace document (old document destroyed here)
         m_document = std::move(result.result);
     } else {
         logger.warn("Failed to parse text as KML: {}", result.errorMessage.toStdString());
@@ -134,32 +137,44 @@ void EditorPanel::setContent(const QString& content) {
 
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel::setContent called with {} chars", content.length());
+    logger.debug("EditorPanel::setContent content preview: {}", content.left(200).toStdString());
 
     // Remove observer from old document
     if (m_document) {
         m_document->removeObserver(m_observer.get());
     }
 
-    // Convert HTML to KML
-    QString kml = editor::ClipboardHandler::htmlToKml(content);
-
-    // Parse KML
+    // Content is now KML directly (no HTML->KML conversion needed)
+    // Just parse it directly
+    logger.debug("EditorPanel::setContent - parsing KML...");
     editor::KmlParser parser;
-    auto result = parser.parseDocument(kml);
+    auto result = parser.parseDocument(content);
+    logger.debug("EditorPanel::setContent - parse result: success={}, errorMsg={}",
+                 result.success, result.errorMessage.toStdString());
 
     if (result.success && result.result) {
-        // Replace document
+        logger.debug("EditorPanel::setContent - disconnecting BookEditor from old document...");
+        // CRITICAL: Disconnect BookEditor BEFORE destroying old document
+        // Otherwise LayoutManager tries to removeObserver on destroyed document
+        m_bookEditor->setDocument(nullptr);
+
+        logger.debug("EditorPanel::setContent - moving document...");
+        // Replace document (old document is destroyed here)
         m_document = std::move(result.result);
+        logger.debug("EditorPanel::setContent - setting up observer...");
         // Setup observer and update editor
         setupDocumentObserver();
+        logger.debug("EditorPanel::setContent - calling BookEditor::setDocument...");
         m_bookEditor->setDocument(m_document.get());
+        logger.debug("EditorPanel::setContent - BookEditor::setDocument done");
 
         // Reconnect statistics collector to new document (OpenSpec #00042 Task 7.7)
         if (m_statisticsCollector && m_document) {
             m_statisticsCollector->setDocument(m_document.get());
         }
+        logger.debug("EditorPanel::setContent - complete");
     } else {
-        logger.warn("Failed to parse HTML->KML: {}", result.errorMessage.toStdString());
+        logger.warn("Failed to parse KML: {}", result.errorMessage.toStdString());
         // Fallback: treat as plain text
         setText(content);
     }
@@ -170,9 +185,8 @@ QString EditorPanel::getContent() const {
         return QString();
     }
 
-    // Convert KML to HTML
-    QString kml = m_document->toKml();
-    return editor::ClipboardHandler::kmlToHtml(kml);
+    // Return KML directly (no conversion to HTML needed)
+    return m_document->toKml();
 }
 
 void EditorPanel::applySettings() {

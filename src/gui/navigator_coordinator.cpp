@@ -83,10 +83,15 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         return;
     }
 
-    // Don't re-open the same chapter
-    if (elementId == m_currentElementId) {
-        logger.debug("Element already open - ignoring");
-        return;
+    // Check if this chapter is already open in a tab - if so, switch to it
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        QWidget* widget = m_centralTabs->widget(i);
+        if (widget && widget->property("elementId").toString() == elementId) {
+            logger.debug("Chapter already open in tab {} - switching to it", i);
+            m_centralTabs->setCurrentIndex(i);
+            m_currentElementId = elementId;
+            return;
+        }
     }
 
     // Check if current chapter has unsaved changes and prompt user (OpenSpec #00042 Phase 7.5)

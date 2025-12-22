@@ -241,6 +241,12 @@ private:
     /// @param text Editor text content
     void setPhase0Content(core::Document& doc, const QString& text);
 
+    /// @brief Prepare services for project close (before database is destroyed)
+    ///
+    /// This must be called BEFORE ProjectManager::closeProject() to ensure
+    /// StatisticsCollector and other services flush data before database closes.
+    void prepareForProjectClose();
+
     QMainWindow* m_mainWindow;
     QTabWidget* m_centralTabs;
     NavigatorPanel* m_navigatorPanel;

@@ -6,6 +6,7 @@
 #include <kalahari/editor/kml_inline_elements.h>
 #include <kalahari/editor/kml_table.h>
 #include <kalahari/editor/kml_comment.h>
+#include <kalahari/core/logger.h>
 #include <QXmlStreamReader>
 #include <QDomDocument>
 
@@ -36,9 +37,11 @@ ParseResult<KmlDocument> KmlParser::parseDocument(const QString& kml)
         return ParseResult<KmlDocument>::ok(std::make_unique<KmlDocument>());
     }
 
-    // Check if input starts with <doc> or <document> wrapper
+    // Check if input starts with <kml>, <doc> or <document> wrapper
     QString trimmed = kml.trimmed();
-    bool needsWrapper = !trimmed.startsWith(QStringLiteral("<doc>")) &&
+    bool needsWrapper = !trimmed.startsWith(QStringLiteral("<kml>")) &&
+                        !trimmed.startsWith(QStringLiteral("<kml ")) &&
+                        !trimmed.startsWith(QStringLiteral("<doc>")) &&
                         !trimmed.startsWith(QStringLiteral("<doc ")) &&
                         !trimmed.startsWith(QStringLiteral("<document>")) &&
                         !trimmed.startsWith(QStringLiteral("<document "));
@@ -184,6 +187,7 @@ int KmlParser::lastErrorColumn() const
 
 std::unique_ptr<KmlDocument> KmlParser::parseDocumentContent(QXmlStreamReader& reader)
 {
+    auto& logger = core::Logger::getInstance();
     auto doc = std::make_unique<KmlDocument>();
 
     // Skip to first element
@@ -193,6 +197,7 @@ std::unique_ptr<KmlDocument> KmlParser::parseDocumentContent(QXmlStreamReader& r
 
     if (reader.atEnd()) {
         // Empty document is valid
+        logger.debug("KmlParser: Empty document (atEnd after skip)");
         return doc;
     }
 
@@ -201,21 +206,38 @@ std::unique_ptr<KmlDocument> KmlParser::parseDocumentContent(QXmlStreamReader& r
         return nullptr;
     }
 
-    // Accept <doc>, <document>, and <_root> (internal wrapper) as valid document wrappers
-    bool hasDocWrapper = (reader.name() == QStringLiteral("doc") ||
+    logger.debug("KmlParser: First element is '{}'", reader.name().toString().toStdString());
+
+    // Accept <kml>, <doc>, <document>, and <_root> (internal wrapper) as valid document wrappers
+    bool hasDocWrapper = (reader.name() == QStringLiteral("kml") ||
+                          reader.name() == QStringLiteral("doc") ||
                           reader.name() == QStringLiteral("document") ||
                           reader.name() == QStringLiteral("_root"));
     QString docEndTag = hasDocWrapper ? reader.name().toString() : QString();
 
+    logger.debug("KmlParser: hasDocWrapper={}, docEndTag='{}'", hasDocWrapper, docEndTag.toStdString());
+
     if (hasDocWrapper) {
         // Move past <doc> or <document> start element
         reader.readNext();
+        logger.debug("KmlParser: After readNext, tokenType={}, name='{}'",
+                     (int)reader.tokenType(), reader.name().toString().toStdString());
     }
 
     // Parse paragraphs
+    int iterations = 0;
     while (!reader.atEnd()) {
+        iterations++;
+        if (iterations > 1000) {
+            logger.error("KmlParser: Too many iterations, breaking");
+            break;
+        }
+
         if (reader.isEndElement()) {
+            logger.debug("KmlParser: EndElement '{}', docEndTag='{}'",
+                        reader.name().toString().toStdString(), docEndTag.toStdString());
             if (hasDocWrapper && reader.name() == docEndTag) {
+                logger.debug("KmlParser: Breaking on end of doc wrapper");
                 break;  // End of document wrapper
             }
             reader.readNext();
@@ -223,25 +245,31 @@ std::unique_ptr<KmlDocument> KmlParser::parseDocumentContent(QXmlStreamReader& r
         }
 
         if (reader.isStartElement()) {
+            logger.debug("KmlParser: StartElement '{}'", reader.name().toString().toStdString());
             if (reader.name() == QStringLiteral("p")) {
                 auto para = parseParagraphElement(reader);
                 if (!para) {
                     return nullptr;  // Error already set
                 }
                 doc->addParagraph(std::move(para));
-            } else if (reader.name() == QStringLiteral("doc") ||
+                logger.debug("KmlParser: Added paragraph, count now {}", doc->paragraphCount());
+            } else if (reader.name() == QStringLiteral("kml") ||
+                       reader.name() == QStringLiteral("doc") ||
                        reader.name() == QStringLiteral("document") ||
                        reader.name() == QStringLiteral("_root")) {
-                // Nested doc/document/_root - skip it
+                // Nested kml/doc/document/_root - skip it
                 reader.skipCurrentElement();
             } else {
                 // Unknown top-level element - skip it
+                logger.debug("KmlParser: Skipping unknown element '{}'", reader.name().toString().toStdString());
                 reader.skipCurrentElement();
             }
         } else {
             reader.readNext();
         }
     }
+
+    logger.debug("KmlParser: Finished parsing, paragraphCount={}", doc->paragraphCount());
 
     if (reader.hasError() && reader.error() != QXmlStreamReader::PrematureEndOfDocumentError) {
         setError(reader);

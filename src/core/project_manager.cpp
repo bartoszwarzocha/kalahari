@@ -682,16 +682,16 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     std::filesystem::path kchapterPath = rtfPath;
     kchapterPath.replace_extension(".kchapter");
 
-    QString htmlContent;
+    QString kmlContent;
 
     if (std::filesystem::exists(kchapterPath)) {
         // Load from .kchapter format (preferred)
         QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
         auto doc = ChapterDocument::load(kchapterPathStr);
         if (doc.has_value()) {
-            htmlContent = doc->html();
+            kmlContent = doc->kml();
             Logger::getInstance().debug("Loaded .kchapter for element: {} ({} chars)",
-                                        elementId.toStdString(), htmlContent.length());
+                                        elementId.toStdString(), kmlContent.length());
         } else {
             Logger::getInstance().error("loadChapterContent: Failed to load .kchapter: {}",
                                        kchapterPath.string());
@@ -710,12 +710,12 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
 
         QTextStream in(&rtfFile);
         in.setEncoding(QStringConverter::Utf8);
-        htmlContent = in.readAll();
+        kmlContent = in.readAll();
         rtfFile.close();
 
-        // Create .kchapter from RTF content
-        ChapterDocument doc = ChapterDocument::fromHtmlContent(
-            htmlContent, QString::fromStdString(element->getTitle()));
+        // Create .kchapter from content (treating legacy content as KML)
+        ChapterDocument doc = ChapterDocument::fromKmlContent(
+            kmlContent, QString::fromStdString(element->getTitle()));
         
         QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
         if (doc.save(kchapterPathStr)) {
@@ -747,10 +747,10 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     }
 
     // Cache content in element
-    element->setContent(htmlContent);
+    element->setContent(kmlContent);
     element->setDirty(false);  // Just loaded, not dirty
 
-    return htmlContent;
+    return kmlContent;
 }
 
 bool ProjectManager::saveChapterContent(const QString& elementId) {
@@ -791,8 +791,8 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         }
     }
 
-    // Create ChapterDocument from HTML content
-    ChapterDocument doc = ChapterDocument::fromHtmlContent(
+    // Create ChapterDocument from KML content
+    ChapterDocument doc = ChapterDocument::fromKmlContent(
         element->getContent(),
         QString::fromStdString(element->getTitle()));
     

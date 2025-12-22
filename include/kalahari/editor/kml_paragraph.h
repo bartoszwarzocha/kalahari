@@ -158,6 +158,46 @@ public:
     void mergeWith(KmlParagraph& other);
 
     // =========================================================================
+    // Inline Formatting (Phase 7.2)
+    // =========================================================================
+
+    /// @brief Apply inline formatting to a range of text
+    /// @param start Start character offset (inclusive)
+    /// @param end End character offset (exclusive)
+    /// @param formatType The type of formatting to apply (Bold, Italic, etc.)
+    /// @return true if formatting was applied, false if range invalid
+    ///
+    /// This method wraps the specified range of text in the appropriate
+    /// inline formatting element (KmlBold, KmlItalic, etc.).
+    /// Handles splitting of text runs and existing formatting elements.
+    bool applyInlineFormat(int start, int end, ElementType formatType);
+
+    /// @brief Remove inline formatting from a range of text
+    /// @param start Start character offset (inclusive)
+    /// @param end End character offset (exclusive)
+    /// @param formatType The type of formatting to remove
+    /// @return true if formatting was removed, false if range invalid
+    ///
+    /// Unwraps text from the specified formatting element type.
+    bool removeInlineFormat(int start, int end, ElementType formatType);
+
+    /// @brief Check if text at a position has specific formatting
+    /// @param offset Character offset to check
+    /// @param formatType The type of formatting to check for
+    /// @return true if the character at offset has the specified formatting
+    ///
+    /// Traverses the element tree to find if the character at offset
+    /// is wrapped in the specified formatting element.
+    bool hasFormatAt(int offset, ElementType formatType) const;
+
+    /// @brief Check if entire range has specific formatting
+    /// @param start Start character offset (inclusive)
+    /// @param end End character offset (exclusive)
+    /// @param formatType The type of formatting to check for
+    /// @return true if ALL characters in range have the specified formatting
+    bool hasFormatInRange(int start, int end, ElementType formatType) const;
+
+    // =========================================================================
     // Style methods
     // =========================================================================
 

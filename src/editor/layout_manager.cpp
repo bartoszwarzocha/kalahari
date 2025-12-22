@@ -2,6 +2,8 @@
 /// @brief Layout manager implementation (OpenSpec #00042 Phase 2.11)
 
 #include <kalahari/editor/layout_manager.h>
+#include <kalahari/editor/format_converter.h>
+#include <kalahari/core/logger.h>
 #include <QtGlobal>  // For qMax
 #include <algorithm>
 #include <vector>
@@ -88,23 +90,34 @@ LayoutManager& LayoutManager::operator=(LayoutManager&& other) noexcept {
 // =============================================================================
 
 void LayoutManager::setDocument(KmlDocument* document) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("LayoutManager::setDocument - start, doc={}", (void*)document);
+
     // Unregister from old document
     if (m_document) {
+        logger.debug("LayoutManager::setDocument - removing old observer");
         m_document->removeObserver(this);
     }
 
     m_document = document;
+    logger.debug("LayoutManager::setDocument - doc assigned");
 
     // Clear all layouts and tracking when document changes
+    logger.debug("LayoutManager::setDocument - clearing layouts");
     m_layouts.clear();
     m_dirtyParagraphs.clear();
     m_lastAccess.clear();
     m_accessCounter = 0;
+    logger.debug("LayoutManager::setDocument - layouts cleared");
 
     // Register with new document
     if (m_document) {
+        logger.debug("LayoutManager::setDocument - adding observer, paraCount={}",
+                     m_document->paragraphCount());
         m_document->addObserver(this);
+        logger.debug("LayoutManager::setDocument - observer added");
     }
+    logger.debug("LayoutManager::setDocument - complete");
 }
 
 KmlDocument* LayoutManager::document() const {
@@ -436,11 +449,14 @@ ParagraphLayout* LayoutManager::createLayout(int index) {
     auto layout = std::make_unique<ParagraphLayout>();
     layout->setFont(m_font);
 
-    // Get text from document
+    // Get text and formatting from document
     if (m_document) {
         const KmlParagraph* para = m_document->paragraph(index);
         if (para) {
             layout->setText(para->plainText());
+            // Apply formatting from KML elements (bold, italic, etc.)
+            auto formats = FormatConverter::buildFormatRanges(*para, m_font);
+            layout->setFormats(formats);
         }
     }
 
@@ -473,6 +489,10 @@ void LayoutManager::updateLayoutText(int index, ParagraphLayout* layout) {
     if (layout->text() != text) {
         layout->setText(text);
     }
+
+    // Always update formatting (may have changed even if text is the same)
+    auto formats = FormatConverter::buildFormatRanges(*para, m_font);
+    layout->setFormats(formats);
 }
 
 void LayoutManager::shiftLayoutIndices(int fromIndex, int delta) {

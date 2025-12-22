@@ -3,7 +3,7 @@
 ///
 /// Tests cover:
 /// - Construction and default values
-/// - Content management (HTML, plainText)
+/// - Content management (KML, plainText)
 /// - Statistics calculation (words, characters, paragraphs)
 /// - Metadata (title, status, notes, color)
 /// - Annotations (comments, highlights)
@@ -30,7 +30,7 @@ TEST_CASE("ChapterDocument construction", "[core][chapter_document]") {
     SECTION("Default constructor creates empty document") {
         ChapterDocument doc;
 
-        CHECK(doc.html().isEmpty());
+        CHECK(doc.kml().isEmpty());
         CHECK(doc.plainText().isEmpty());
         CHECK_FALSE(doc.hasContent());
     }
@@ -67,10 +67,10 @@ TEST_CASE("ChapterDocument construction", "[core][chapter_document]") {
         CHECK(doc.paragraphCount() == 0);
     }
 
-    SECTION("Constructor with HTML content") {
-        ChapterDocument doc("<p>Hello World</p>");
+    SECTION("Constructor with KML content") {
+        ChapterDocument doc("<kml><p>Hello World</p></kml>");
 
-        CHECK_FALSE(doc.html().isEmpty());
+        CHECK_FALSE(doc.kml().isEmpty());
         CHECK(doc.hasContent());
         CHECK(doc.wordCount() > 0);
     }
@@ -89,26 +89,26 @@ TEST_CASE("ChapterDocument construction", "[core][chapter_document]") {
 TEST_CASE("ChapterDocument content management", "[core][chapter_document]") {
     ChapterDocument doc;
 
-    SECTION("setHtml stores HTML content") {
-        doc.setHtml("<p>Test content</p>");
+    SECTION("setKml stores KML content") {
+        doc.setKml("<kml><p>Test content</p></kml>");
 
-        CHECK(doc.html() == "<p>Test content</p>");
+        CHECK(doc.kml() == "<kml><p>Test content</p></kml>");
     }
 
-    SECTION("setHtml auto-generates plainText") {
-        doc.setHtml("<p>Hello <b>World</b></p>");
+    SECTION("setKml auto-generates plainText") {
+        doc.setKml("<kml><p>Hello <bold>World</bold></p></kml>");
 
         CHECK_FALSE(doc.plainText().isEmpty());
         CHECK(doc.plainText().contains("Hello"));
         CHECK(doc.plainText().contains("World"));
     }
 
-    SECTION("setHtml strips HTML tags from plainText") {
-        doc.setHtml("<p><b>Bold</b> and <i>italic</i></p>");
+    SECTION("setKml strips KML tags from plainText") {
+        doc.setKml("<kml><p><bold>Bold</bold> and <italic>italic</italic></p></kml>");
         QString plain = doc.plainText();
 
-        CHECK_FALSE(plain.contains("<b>"));
-        CHECK_FALSE(plain.contains("<i>"));
+        CHECK_FALSE(plain.contains("<bold>"));
+        CHECK_FALSE(plain.contains("<italic>"));
         CHECK(plain.contains("Bold"));
         CHECK(plain.contains("italic"));
     }
@@ -119,19 +119,19 @@ TEST_CASE("ChapterDocument content management", "[core][chapter_document]") {
         CHECK(doc.plainText() == "Direct plain text");
     }
 
-    SECTION("hasContent returns true when HTML is set") {
+    SECTION("hasContent returns true when KML is set") {
         CHECK_FALSE(doc.hasContent());
 
-        doc.setHtml("<p>Content</p>");
+        doc.setKml("<kml><p>Content</p></kml>");
 
         CHECK(doc.hasContent());
     }
 
-    SECTION("Empty HTML clears content") {
-        doc.setHtml("<p>Initial</p>");
+    SECTION("Empty KML clears content") {
+        doc.setKml("<kml><p>Initial</p></kml>");
         CHECK(doc.hasContent());
 
-        doc.setHtml("");
+        doc.setKml("");
         CHECK_FALSE(doc.hasContent());
     }
 }
@@ -144,54 +144,54 @@ TEST_CASE("ChapterDocument statistics calculation", "[core][chapter_document]") 
     ChapterDocument doc;
 
     SECTION("Word count for simple text") {
-        doc.setHtml("<p>One two three</p>");
+        doc.setKml("<kml><p>One two three</p></kml>");
 
         CHECK(doc.wordCount() == 3);
     }
 
     SECTION("Word count with multiple paragraphs") {
-        doc.setHtml("<p>One two</p><p>Three four five</p>");
+        doc.setKml("<kml><p>One two</p><p>Three four five</p></kml>");
 
         CHECK(doc.wordCount() == 5);
     }
 
     SECTION("Word count with formatting") {
-        doc.setHtml("<p>Word <b>bold</b> <i>italic</i> text</p>");
+        doc.setKml("<kml><p>Word <bold>bold</bold> <italic>italic</italic> text</p></kml>");
 
         CHECK(doc.wordCount() == 4);
     }
 
     SECTION("Character count excludes whitespace") {
-        doc.setHtml("<p>abc def</p>");
+        doc.setKml("<kml><p>abc def</p></kml>");
         // "abc def" = 6 characters (excluding space)
         CHECK(doc.characterCount() == 6);
     }
 
     SECTION("Paragraph count for single paragraph") {
-        doc.setHtml("<p>Single paragraph text.</p>");
+        doc.setKml("<kml><p>Single paragraph text.</p></kml>");
 
         CHECK(doc.paragraphCount() >= 1);
     }
 
     SECTION("Paragraph count for multiple paragraphs") {
-        doc.setHtml("<p>First paragraph.</p><p>Second paragraph.</p>");
+        doc.setKml("<kml><p>First paragraph.</p><p>Second paragraph.</p></kml>");
 
         // Note: paragraphCount is based on double newlines in plainText
-        // HTML paragraphs may result in different counts depending on conversion
+        // KML paragraphs may result in different counts depending on conversion
         CHECK(doc.paragraphCount() >= 1);
     }
 
     SECTION("Statistics update when content changes") {
-        doc.setHtml("<p>One</p>");
+        doc.setKml("<kml><p>One</p></kml>");
         int initialCount = doc.wordCount();
 
-        doc.setHtml("<p>One two three four five</p>");
+        doc.setKml("<kml><p>One two three four five</p></kml>");
 
         CHECK(doc.wordCount() > initialCount);
     }
 
     SECTION("Empty content has zero statistics") {
-        doc.setHtml("");
+        doc.setKml("");
 
         CHECK(doc.wordCount() == 0);
         CHECK(doc.characterCount() == 0);
@@ -309,7 +309,7 @@ TEST_CASE("ChapterDocument annotations", "[core][chapter_document]") {
 TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]") {
     SECTION("toJson produces valid JSON with all sections") {
         ChapterDocument doc;
-        doc.setHtml("<p>Test content</p>");
+        doc.setKml("<kml><p>Test content</p></kml>");
         doc.setTitle("Test Chapter");
         doc.setStatus("draft");
         doc.setNotes("Some notes");
@@ -323,7 +323,7 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
 
         // Content
         REQUIRE(json.contains("content"));
-        CHECK(json["content"].toObject().contains("html"));
+        CHECK(json["content"].toObject().contains("kml"));
         CHECK(json["content"].toObject().contains("plainText"));
 
         // Statistics
@@ -374,7 +374,7 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
 
         // Content
         QJsonObject content;
-        content["html"] = "<p>Restored content</p>";
+        content["kml"] = "<kml><p>Restored content</p></kml>";
         content["plainText"] = "Restored content";
         json["content"] = content;
 
@@ -402,7 +402,7 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
 
         ChapterDocument doc = ChapterDocument::fromJson(json);
 
-        CHECK(doc.html() == "<p>Restored content</p>");
+        CHECK(doc.kml() == "<kml><p>Restored content</p></kml>");
         CHECK(doc.plainText() == "Restored content");
         CHECK(doc.title() == "Restored Title");
         CHECK(doc.status() == "final");
@@ -416,7 +416,7 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
 
     SECTION("Round-trip: toJson -> fromJson preserves data") {
         ChapterDocument original;
-        original.setHtml("<p>Test content for round-trip</p>");
+        original.setKml("<kml><p>Test content for round-trip</p></kml>");
         original.setTitle("Round Trip Chapter");
         original.setStatus("revision");
         original.setNotes("Important notes here");
@@ -432,7 +432,7 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
         QJsonObject json = original.toJson();
         ChapterDocument restored = ChapterDocument::fromJson(json);
 
-        CHECK(restored.html() == original.html());
+        CHECK(restored.kml() == original.kml());
         CHECK(restored.plainText() == original.plainText());
         CHECK(restored.title() == original.title());
         CHECK(restored.status() == original.status());
@@ -448,14 +448,14 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
     SECTION("fromJson regenerates plainText if missing") {
         QJsonObject json;
         QJsonObject content;
-        content["html"] = "<p>HTML only</p>";
+        content["kml"] = "<kml><p>KML only</p></kml>";
         // plainText intentionally missing
         json["content"] = content;
 
         ChapterDocument doc = ChapterDocument::fromJson(json);
 
         CHECK_FALSE(doc.plainText().isEmpty());
-        CHECK(doc.plainText().contains("HTML only"));
+        CHECK(doc.plainText().contains("KML only"));
     }
 
     SECTION("fromJson defaults status to 'draft'") {
@@ -480,7 +480,7 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
 
     SECTION("save creates file") {
         ChapterDocument doc;
-        doc.setHtml("<p>File content</p>");
+        doc.setKml("<kml><p>File content</p></kml>");
         doc.setTitle("Saved Chapter");
 
         QString filePath = tempDir.path() + "/test_save.kchapter";
@@ -491,7 +491,7 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
 
     SECTION("save creates valid JSON file") {
         ChapterDocument doc;
-        doc.setHtml("<p>JSON test</p>");
+        doc.setKml("<kml><p>JSON test</p></kml>");
 
         QString filePath = tempDir.path() + "/test_json.kchapter";
         REQUIRE(doc.save(filePath));
@@ -510,7 +510,7 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
 
     SECTION("load reads file successfully") {
         ChapterDocument original;
-        original.setHtml("<p>Load test content</p>");
+        original.setKml("<kml><p>Load test content</p></kml>");
         original.setTitle("Load Test");
         original.setStatus("final");
 
@@ -520,14 +520,14 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
         auto loaded = ChapterDocument::load(filePath);
 
         REQUIRE(loaded.has_value());
-        CHECK(loaded->html() == original.html());
+        CHECK(loaded->kml() == original.kml());
         CHECK(loaded->title() == original.title());
         CHECK(loaded->status() == original.status());
     }
 
     SECTION("Round-trip: save -> load preserves data") {
         ChapterDocument original;
-        original.setHtml("<p>Round-trip file test</p>");
+        original.setKml("<kml><p>Round-trip file test</p></kml>");
         original.setTitle("File Round Trip");
         original.setStatus("revision");
         original.setNotes("Test notes for file");
@@ -539,7 +539,7 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
         auto loaded = ChapterDocument::load(filePath);
 
         REQUIRE(loaded.has_value());
-        CHECK(loaded->html() == original.html());
+        CHECK(loaded->kml() == original.kml());
         CHECK(loaded->title() == original.title());
         CHECK(loaded->status() == original.status());
         CHECK(loaded->notes() == original.notes());
@@ -592,39 +592,39 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
 // =============================================================================
 
 TEST_CASE("ChapterDocument migration helpers", "[core][chapter_document]") {
-    SECTION("fromHtmlContent creates document with content") {
-        ChapterDocument doc = ChapterDocument::fromHtmlContent(
-            "<p>Migrated content</p>",
+    SECTION("fromKmlContent creates document with content") {
+        ChapterDocument doc = ChapterDocument::fromKmlContent(
+            "<kml><p>Migrated content</p></kml>",
             "Migrated Chapter"
         );
 
-        CHECK(doc.html() == "<p>Migrated content</p>");
+        CHECK(doc.kml() == "<kml><p>Migrated content</p></kml>");
         CHECK(doc.title() == "Migrated Chapter");
         CHECK(doc.wordCount() > 0);
     }
 
-    SECTION("fromHtmlContent with empty title") {
-        ChapterDocument doc = ChapterDocument::fromHtmlContent("<p>Content only</p>");
+    SECTION("fromKmlContent with empty title") {
+        ChapterDocument doc = ChapterDocument::fromKmlContent("<kml><p>Content only</p></kml>");
 
-        CHECK(doc.html() == "<p>Content only</p>");
+        CHECK(doc.kml() == "<kml><p>Content only</p></kml>");
         CHECK(doc.title().isEmpty());
     }
 
-    SECTION("htmlToPlainText strips tags") {
-        QString plain = ChapterDocument::htmlToPlainText(
-            "<p><b>Bold</b> and <i>italic</i> text</p>"
+    SECTION("kmlToPlainText strips tags") {
+        QString plain = ChapterDocument::kmlToPlainText(
+            "<kml><p><bold>Bold</bold> and <italic>italic</italic> text</p></kml>"
         );
 
-        CHECK_FALSE(plain.contains("<b>"));
-        CHECK_FALSE(plain.contains("<i>"));
+        CHECK_FALSE(plain.contains("<bold>"));
+        CHECK_FALSE(plain.contains("<italic>"));
         CHECK_FALSE(plain.contains("<p>"));
         CHECK(plain.contains("Bold"));
         CHECK(plain.contains("italic"));
         CHECK(plain.contains("text"));
     }
 
-    SECTION("htmlToPlainText handles empty input") {
-        QString plain = ChapterDocument::htmlToPlainText("");
+    SECTION("kmlToPlainText handles empty input") {
+        QString plain = ChapterDocument::kmlToPlainText("");
 
         CHECK(plain.isEmpty());
     }
@@ -636,14 +636,14 @@ TEST_CASE("ChapterDocument migration helpers", "[core][chapter_document]") {
 
 TEST_CASE("ChapterDocument edge cases", "[core][chapter_document][edge]") {
     SECTION("Very long content") {
-        QString longContent = "<p>";
+        QString longContent = "<kml><p>";
         for (int i = 0; i < 1000; ++i) {
             longContent += "Word" + QString::number(i) + " ";
         }
-        longContent += "</p>";
+        longContent += "</p></kml>";
 
         ChapterDocument doc;
-        doc.setHtml(longContent);
+        doc.setKml(longContent);
 
         CHECK(doc.wordCount() == 1000);
         CHECK(doc.hasContent());
@@ -651,16 +651,16 @@ TEST_CASE("ChapterDocument edge cases", "[core][chapter_document][edge]") {
 
     SECTION("Unicode content") {
         ChapterDocument doc;
-        doc.setHtml("<p>Polish: zolty, Cyrillic: privet, Chinese: nihao</p>");
+        doc.setKml("<kml><p>Polish: zolty, Cyrillic: privet, Chinese: nihao</p></kml>");
 
         CHECK(doc.hasContent());
         CHECK(doc.wordCount() > 0);
         CHECK(doc.plainText().contains("zolty"));
     }
 
-    SECTION("HTML entities") {
+    SECTION("XML entities") {
         ChapterDocument doc;
-        doc.setHtml("<p>&lt;script&gt; &amp; &quot;quotes&quot;</p>");
+        doc.setKml("<kml><p>&lt;script&gt; &amp; &quot;quotes&quot;</p></kml>");
 
         // QTextDocument should decode entities
         QString plain = doc.plainText();
@@ -668,17 +668,17 @@ TEST_CASE("ChapterDocument edge cases", "[core][chapter_document][edge]") {
         CHECK(hasScript);
     }
 
-    SECTION("Nested HTML tags") {
+    SECTION("Nested KML tags") {
         ChapterDocument doc;
-        doc.setHtml("<p><b><i><u>Nested</u></i></b> text</p>");
+        doc.setKml("<kml><p><bold><italic>Nested</italic></bold> text</p></kml>");
 
         CHECK(doc.plainText().contains("Nested"));
         CHECK(doc.plainText().contains("text"));
     }
 
-    SECTION("Empty HTML tags") {
+    SECTION("Empty KML tags") {
         ChapterDocument doc;
-        doc.setHtml("<p></p><p>Content</p><p></p>");
+        doc.setKml("<kml><p></p><p>Content</p><p></p></kml>");
 
         CHECK(doc.hasContent());
         CHECK(doc.plainText().contains("Content"));
@@ -694,16 +694,16 @@ TEST_CASE("ChapterDocument edge cases", "[core][chapter_document][edge]") {
         CHECK(restored.notes() == doc.notes());
     }
 
-    SECTION("Multiple setHtml calls") {
+    SECTION("Multiple setKml calls") {
         ChapterDocument doc;
 
-        doc.setHtml("<p>First</p>");
+        doc.setKml("<kml><p>First</p></kml>");
         CHECK(doc.wordCount() == 1);
 
-        doc.setHtml("<p>Second content here</p>");
+        doc.setKml("<kml><p>Second content here</p></kml>");
         CHECK(doc.wordCount() == 3);
 
-        doc.setHtml("<p>Third</p>");
+        doc.setKml("<kml><p>Third</p></kml>");
         CHECK(doc.wordCount() == 1);
     }
 

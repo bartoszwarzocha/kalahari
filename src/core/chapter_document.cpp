@@ -23,19 +23,19 @@ ChapterDocument::ChapterDocument()
 {
 }
 
-ChapterDocument::ChapterDocument(const QString& html)
+ChapterDocument::ChapterDocument(const QString& kml)
     : m_lastModified(QDateTime::currentDateTimeUtc())
 {
-    setHtml(html);
+    setKml(kml);
 }
 
 // =============================================================================
 // Content Access
 // =============================================================================
 
-QString ChapterDocument::html() const
+QString ChapterDocument::kml() const
 {
-    return m_html;
+    return m_kml;
 }
 
 QString ChapterDocument::plainText() const
@@ -43,10 +43,10 @@ QString ChapterDocument::plainText() const
     return m_plainText;
 }
 
-void ChapterDocument::setHtml(const QString& html)
+void ChapterDocument::setKml(const QString& kml)
 {
-    m_html = html;
-    m_plainText = htmlToPlainText(html);
+    m_kml = kml;
+    m_plainText = kmlToPlainText(kml);
     recalculateStatistics();
     touch();
 }
@@ -59,7 +59,7 @@ void ChapterDocument::setPlainText(const QString& text)
 
 bool ChapterDocument::hasContent() const
 {
-    return !m_html.isEmpty();
+    return !m_kml.isEmpty();
 }
 
 // =============================================================================
@@ -229,7 +229,7 @@ QJsonObject ChapterDocument::toJson() const
 
     // Content
     QJsonObject content;
-    content["html"] = m_html;
+    content["kml"] = m_kml;
     content["plainText"] = m_plainText;
     root["content"] = content;
 
@@ -267,12 +267,12 @@ ChapterDocument ChapterDocument::fromJson(const QJsonObject& json)
     // Content
     if (json.contains("content")) {
         const QJsonObject content = json["content"].toObject();
-        doc.m_html = content["html"].toString();
+        doc.m_kml = content["kml"].toString();
         doc.m_plainText = content["plainText"].toString();
 
         // Regenerate plainText if missing
-        if (doc.m_plainText.isEmpty() && !doc.m_html.isEmpty()) {
-            doc.m_plainText = htmlToPlainText(doc.m_html);
+        if (doc.m_plainText.isEmpty() && !doc.m_kml.isEmpty()) {
+            doc.m_plainText = kmlToPlainText(doc.m_kml);
         }
     }
 
@@ -397,26 +397,27 @@ bool ChapterDocument::save(const QString& path) const
 // Migration Helpers
 // =============================================================================
 
-ChapterDocument ChapterDocument::fromHtmlContent(const QString& content,
-                                                  const QString& title)
+ChapterDocument ChapterDocument::fromKmlContent(const QString& content,
+                                                 const QString& title)
 {
     ChapterDocument doc;
-    doc.setHtml(content);
+    doc.setKml(content);
     if (!title.isEmpty()) {
         doc.setTitle(title);
     }
     return doc;
 }
 
-QString ChapterDocument::htmlToPlainText(const QString& html)
+QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
-    if (html.isEmpty()) {
+    if (kml.isEmpty()) {
         return QString();
     }
 
-    // Use QTextDocument for proper HTML-to-text conversion
+    // Use QTextDocument to strip XML tags and extract plain text
+    // Qt's setHtml() can parse XML-like markup including KML
     QTextDocument textDoc;
-    textDoc.setHtml(html);
+    textDoc.setHtml(kml);
     return textDoc.toPlainText();
 }
 

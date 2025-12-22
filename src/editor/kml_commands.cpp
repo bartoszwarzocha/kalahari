@@ -282,4 +282,82 @@ void MergeParagraphsCommand::redo()
     m_document->mergeParagraphWithPrevious(m_mergeFromIndex);
 }
 
+// =============================================================================
+// Toggle Format Command (Phase 7.2)
+// =============================================================================
+
+ToggleFormatCommand::ToggleFormatCommand(KmlDocument* document,
+                                         const SelectionRange& range,
+                                         ElementType formatType,
+                                         bool apply,
+                                         const QString& oldKml)
+    : KmlCommand(document, range.start,
+                 apply ? QObject::tr("Apply %1").arg(elementTypeToString(formatType))
+                       : QObject::tr("Remove %1").arg(elementTypeToString(formatType)))
+    , m_range(range)
+    , m_formatType(formatType)
+    , m_apply(apply)
+    , m_oldKml(oldKml)
+{
+    m_cursorAfter = range.end;
+}
+
+void ToggleFormatCommand::undo()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    // Reverse the operation
+    SelectionRange normRange = m_range.normalized();
+
+    for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (!para) {
+            continue;
+        }
+
+        int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
+        int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+
+        if (m_apply) {
+            // We applied format, so remove it for undo
+            para->removeInlineFormat(start, end, m_formatType);
+        } else {
+            // We removed format, so apply it for undo
+            para->applyInlineFormat(start, end, m_formatType);
+        }
+    }
+}
+
+void ToggleFormatCommand::redo()
+{
+    if (m_document == nullptr) {
+        return;
+    }
+
+    SelectionRange normRange = m_range.normalized();
+
+    for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (!para) {
+            continue;
+        }
+
+        int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
+        int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+
+        if (m_apply) {
+            para->applyInlineFormat(start, end, m_formatType);
+        } else {
+            para->removeInlineFormat(start, end, m_formatType);
+        }
+    }
+}
+
+int ToggleFormatCommand::id() const
+{
+    return static_cast<int>(CommandId::ToggleFormat);
+}
+
 }  // namespace kalahari::editor

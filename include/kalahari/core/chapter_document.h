@@ -2,7 +2,7 @@
 /// @brief KChapter document format for rich chapter storage
 ///
 /// ChapterDocument represents a single chapter stored in .kchapter format.
-/// This JSON-based format stores HTML content, plaintext backup, statistics,
+/// This JSON-based format stores KML content, plaintext backup, statistics,
 /// and extensible metadata.
 ///
 /// Example .kchapter file:
@@ -10,7 +10,7 @@
 /// {
 ///   "kalahari": { "version": "1.0", "type": "chapter" },
 ///   "content": {
-///     "html": "<p>Chapter content...</p>",
+///     "kml": "<kml><p>Chapter content...</p></kml>",
 ///     "plainText": "Chapter content..."
 ///   },
 ///   "statistics": {
@@ -45,7 +45,7 @@
 namespace kalahari {
 namespace core {
 
-/// @brief Chapter document with JSON+HTML storage
+/// @brief Chapter document with JSON+KML storage
 ///
 /// Provides rich metadata, statistics auto-calculation, and disaster
 /// recovery via plaintext backup. Designed for extensibility with
@@ -65,36 +65,36 @@ public:
     /// @brief Default constructor (empty document)
     ChapterDocument();
 
-    /// @brief Construct with initial HTML content
-    /// @param html HTML content string
-    explicit ChapterDocument(const QString& html);
+    /// @brief Construct with initial KML content
+    /// @param kml KML content string
+    explicit ChapterDocument(const QString& kml);
 
     // =========================================================================
     // Content Access
     // =========================================================================
 
-    /// @brief Get HTML content
-    /// @return HTML string
-    QString html() const;
+    /// @brief Get KML content
+    /// @return KML string
+    QString kml() const;
 
     /// @brief Get plain text content (disaster recovery backup)
     /// @return Plain text string
     QString plainText() const;
 
-    /// @brief Set HTML content
-    /// @param html HTML content string
+    /// @brief Set KML content
+    /// @param kml KML content string
     ///
     /// Automatically updates plainText and recalculates statistics.
-    void setHtml(const QString& html);
+    void setKml(const QString& kml);
 
     /// @brief Set plain text content directly
     /// @param text Plain text string
     ///
-    /// Normally auto-generated from HTML, but can be set manually.
+    /// Normally auto-generated from KML, but can be set manually.
     void setPlainText(const QString& text);
 
     /// @brief Check if document has content
-    /// @return true if HTML is not empty
+    /// @return true if KML is not empty
     bool hasContent() const;
 
     // =========================================================================
@@ -210,19 +210,17 @@ public:
     // Migration Helpers
     // =========================================================================
 
-    /// @brief Create ChapterDocument from RTF/HTML content
-    /// @param content HTML or RTF content string
+    /// @brief Create ChapterDocument from KML content
+    /// @param content KML content string
     /// @param title Optional title
     /// @return New ChapterDocument
-    ///
-    /// Used for migrating existing RTF chapters to .kchapter format.
-    static ChapterDocument fromHtmlContent(const QString& content,
-                                            const QString& title = QString());
+    static ChapterDocument fromKmlContent(const QString& content,
+                                          const QString& title = QString());
 
-    /// @brief Extract plain text from HTML
-    /// @param html HTML string
+    /// @brief Extract plain text from KML
+    /// @param kml KML string
     /// @return Plain text with tags stripped
-    static QString htmlToPlainText(const QString& html);
+    static QString kmlToPlainText(const QString& kml);
 
 private:
     /// @brief Recalculate statistics from current content
@@ -248,7 +246,7 @@ private:
     // =========================================================================
 
     // Content
-    QString m_html;
+    QString m_kml;
     QString m_plainText;
 
     // Statistics

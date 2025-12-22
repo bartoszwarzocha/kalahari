@@ -815,6 +815,22 @@ private:
     /// When timer fires, opacity gradually fades to 0.
     void startUiFade();
 
+    // =========================================================================
+    // Formatting Helpers (Phase 7.2)
+    // =========================================================================
+
+    /// @brief Toggle inline formatting on selection or set pending format
+    /// @param formatType The type of formatting (Bold, Italic, Underline, Strikethrough)
+    ///
+    /// If text is selected, toggles the format on the selection.
+    /// If no selection, toggles the pending format state for next typed text.
+    void toggleFormat(ElementType formatType);
+
+    /// @brief Check if text at cursor/selection has specific formatting
+    /// @param formatType The type of formatting to check
+    /// @return true if current position has the specified formatting
+    bool hasFormat(ElementType formatType) const;
+
     KmlDocument* m_document;                                ///< Document being edited (not owned)
     std::unique_ptr<LayoutManager> m_layoutManager;         ///< Paragraph layout management
     std::unique_ptr<VirtualScrollManager> m_scrollManager;  ///< Virtual scrolling
@@ -858,6 +874,12 @@ private:
 
     // Undo/Redo state (Phase 4.8)
     QUndoStack* m_undoStack;                                ///< Undo stack for editing commands
+
+    // Pending format state (Phase 7.2)
+    bool m_pendingBold{false};                              ///< Apply bold to next typed text
+    bool m_pendingItalic{false};                            ///< Apply italic to next typed text
+    bool m_pendingUnderline{false};                         ///< Apply underline to next typed text
+    bool m_pendingStrikethrough{false};                     ///< Apply strikethrough to next typed text
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

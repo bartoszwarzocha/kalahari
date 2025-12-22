@@ -1,25 +1,25 @@
 {
-  "kalahari": {
-    "version": "1.0",
-    "type": "chapter"
-  },
-  "content": {
-    "html": "<h2>Epilogue</h2><p>Years later, Sarah would often return to that old bookshop. The secrets she had discovered that night had changed everything.</p><p>But some stories, she had learned, were meant to remain untold.</p>",
-    "plainText": "Epilogue\n\nYears later, Sarah would often return to that old bookshop. The secrets she had discovered that night had changed everything.\n\nBut some stories, she had learned, were meant to remain untold."
-  },
-  "statistics": {
-    "wordCount": 38,
-    "characterCount": 208,
-    "paragraphCount": 3,
-    "lastModified": "2025-12-14T15:30:00Z"
-  },
-  "metadata": {
-    "title": "Epilogue",
-    "status": "draft",
-    "notes": ""
-  },
-  "annotations": {
-    "comments": [],
-    "highlights": []
-  }
+    "kalahari": {
+        "version": "1.0",
+        "type": "chapter"
+    },
+    "content": {
+        "kml": "<kml><p><bold>Epilogue</bold></p><p>Years later, Sarah would often return to that old bookshop. The secrets she had discovered that night had changed everything.</p><p>But some stories, she had learned, were meant to remain untold.</p></kml>",
+        "plainText": "Epilogue\n\nYears later, Sarah would often return to that old bookshop. The secrets she had discovered that night had changed everything.\n\nBut some stories, she had learned, were meant to remain untold."
+    },
+    "statistics": {
+        "wordCount": 38,
+        "characterCount": 208,
+        "paragraphCount": 3,
+        "lastModified": "2025-12-22T10:00:00Z"
+    },
+    "metadata": {
+        "title": "Epilogue",
+        "status": "draft",
+        "notes": ""
+    },
+    "annotations": {
+        "comments": [],
+        "highlights": []
+    }
 }

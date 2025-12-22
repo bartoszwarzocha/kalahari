@@ -266,6 +266,30 @@ void DocumentCoordinator::onOpenDocument() {
 
     // Use ProjectManager to open the project
     auto& pm = core::ProjectManager::getInstance();
+
+    // If a project is already open, ask user for confirmation before closing it
+    if (pm.isProjectOpen()) {
+        QString projectPath = pm.getProjectPath();
+        QString currentProjectName = QFileInfo(projectPath).fileName();
+        if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
+
+        auto reply = QMessageBox::question(
+            m_mainWindow,
+            tr("Close Current Project?"),
+            tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No
+        );
+
+        if (reply != QMessageBox::Yes) {
+            logger.debug("User cancelled opening new project");
+            return;
+        }
+
+        // Prepare services for close BEFORE database is destroyed by openProject->closeProject
+        prepareForProjectClose();
+    }
+
     if (!pm.openProject(filename)) {
         QMessageBox::critical(
             m_mainWindow,
@@ -319,9 +343,35 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
     // Check if file is a .klh manifest - try ProjectManager first
     if (filePath.endsWith(".klh", Qt::CaseInsensitive)) {
         auto& pm = core::ProjectManager::getInstance();
+
+        // If a project is already open, ask user for confirmation before closing it
+        if (pm.isProjectOpen()) {
+            QString projectPath = pm.getProjectPath();
+            QString currentProjectName = QFileInfo(projectPath).fileName();
+            if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
+
+            auto reply = QMessageBox::question(
+                m_mainWindow,
+                tr("Close Current Project?"),
+                tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No
+            );
+
+            if (reply != QMessageBox::Yes) {
+                logger.debug("User cancelled opening new project");
+                return;
+            }
+
+            // Prepare services for close BEFORE database is destroyed by openProject->closeProject
+            prepareForProjectClose();
+        }
+
         if (pm.openProject(filePath)) {
             // Successfully opened as project
             logger.info("Opened .klh file as project: {}", filePath.toStdString());
+            // Add to recent files so it's remembered as last opened
+            core::RecentBooksManager::getInstance().addRecentFile(filePath);
             return;
         }
         // If failed, fall through to try old archive format
@@ -576,6 +626,8 @@ void DocumentCoordinator::onCloseDocument() {
     // Close current project if open
     auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen()) {
+        // Prepare services for close BEFORE database is destroyed
+        prepareForProjectClose();
         pm.closeProject();
     }
 
@@ -1007,24 +1059,25 @@ void DocumentCoordinator::onProjectClosed() {
 
     // =========================================================================
     // OpenSpec #00042 Task 7.7: End statistics session and disconnect
+    // NOTE: This may already be done by prepareForProjectClose() if opening
+    // a new project. These calls are idempotent and safe to call twice.
     // =========================================================================
     if (m_statisticsCollector) {
         // Disconnect NavigatorCoordinator from statistics collector first
         if (m_navigatorCoordinator) {
             m_navigatorCoordinator->setStatisticsCollector(nullptr);
-            logger.debug("NavigatorCoordinator disconnected from StatisticsCollector");
         }
 
-        // End session (flushes stats to database)
+        // End session (flushes stats to database) - no-op if already ended
         m_statisticsCollector->endSession();
 
         // Disconnect from database
         m_statisticsCollector->setDatabase(nullptr);
-        logger.debug("StatisticsCollector session ended, disconnected from database");
     }
 
     // =========================================================================
     // OpenSpec #00042 Task 7.6: Disconnect StyleResolver from database
+    // NOTE: May already be done by prepareForProjectClose() - idempotent
     // =========================================================================
     if (m_styleResolver) {
         // Disconnect PropertiesPanel from StyleResolver first
@@ -1034,7 +1087,6 @@ void DocumentCoordinator::onProjectClosed() {
 
         m_styleResolver->setDatabase(nullptr);
         m_styleResolver->invalidateCache();
-        logger.debug("StyleResolver disconnected from project database");
     }
 
     // Save Navigator expansion state before clearing
@@ -1069,6 +1121,44 @@ void DocumentCoordinator::onProjectClosed() {
     logger.info("Project closed");
     m_statusBar->showMessage(tr("Book closed"), 2000);
     emit documentClosed();
+}
+
+void DocumentCoordinator::prepareForProjectClose() {
+    auto& logger = core::Logger::getInstance();
+
+    // =========================================================================
+    // End statistics session BEFORE database is closed
+    // This prevents crash from dangling pointer when ProjectManager destroys
+    // the database and StatisticsCollector tries to flush
+    // =========================================================================
+    if (m_statisticsCollector) {
+        // Disconnect NavigatorCoordinator from statistics collector first
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->setStatisticsCollector(nullptr);
+            logger.debug("prepareForProjectClose: NavigatorCoordinator disconnected from StatisticsCollector");
+        }
+
+        // End session (flushes stats to database while it's still open)
+        m_statisticsCollector->endSession();
+
+        // Disconnect from database
+        m_statisticsCollector->setDatabase(nullptr);
+        logger.debug("prepareForProjectClose: StatisticsCollector session ended, disconnected from database");
+    }
+
+    // =========================================================================
+    // Disconnect StyleResolver from database
+    // =========================================================================
+    if (m_styleResolver) {
+        // Disconnect PropertiesPanel from StyleResolver first
+        if (m_propertiesPanel) {
+            m_propertiesPanel->setStyleResolver(nullptr);
+        }
+
+        m_styleResolver->setDatabase(nullptr);
+        m_styleResolver->invalidateCache();
+        logger.debug("prepareForProjectClose: StyleResolver disconnected from project database");
+    }
 }
 
 } // namespace gui

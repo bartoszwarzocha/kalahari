@@ -6,6 +6,7 @@
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_comment.h>
+#include <kalahari/editor/kml_element.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
 #include <QDateTime>
@@ -125,25 +126,39 @@ BookEditor::~BookEditor()
 
 void BookEditor::setDocument(KmlDocument* document)
 {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("BookEditor::setDocument - start, document={}", (void*)document);
+
     if (m_document == document) {
+        logger.debug("BookEditor::setDocument - same document, returning");
         return;
     }
 
     m_document = document;
+    logger.debug("BookEditor::setDocument - document assigned");
 
     // Update managers with new document
+    logger.debug("BookEditor::setDocument - calling scrollManager->setDocument...");
     m_scrollManager->setDocument(document);
+    logger.debug("BookEditor::setDocument - calling layoutManager->setDocument...");
     m_layoutManager->setDocument(document);
+    logger.debug("BookEditor::setDocument - managers updated");
 
     // Update viewport and layout width
+    logger.debug("BookEditor::setDocument - calling updateViewport...");
     updateViewport();
+    logger.debug("BookEditor::setDocument - calling updateLayoutWidth...");
     updateLayoutWidth();
+    logger.debug("BookEditor::setDocument - viewport/layout updated");
 
     // Update scrollbar range for new document
+    logger.debug("BookEditor::setDocument - calling updateScrollBarRange...");
     updateScrollBarRange();
+    logger.debug("BookEditor::setDocument - scrollbar updated");
 
     emit documentChanged();
     update();  // Request repaint
+    logger.debug("BookEditor::setDocument - complete");
 }
 
 KmlDocument* BookEditor::document() const
@@ -1271,120 +1286,195 @@ bool BookEditor::canPaste() const
 
 void BookEditor::toggleBold()
 {
-    // Stub implementation - logs action
-    // Full implementation requires extending KmlParagraph with format runs
-    // to track formatting at character level and apply/remove KmlBold elements
-
-    core::Logger::getInstance().debug("BookEditor::toggleBold() called - "
-        "hasSelection={}, cursor=({}, {})",
-        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
-
-    if (hasSelection()) {
-        // TODO: Toggle bold formatting on selected range
-        // 1. Get all paragraphs in selection range
-        // 2. For each paragraph, wrap selected text in KmlBold or remove existing
-        // 3. Rebuild paragraph element structure
-        // 4. Invalidate layouts for affected paragraphs
-    } else {
-        // TODO: Toggle bold mode for next typed characters
-        // This requires tracking a "pending format" state
-    }
-
-    // Emit documentChanged and trigger repaint when implemented
-    // emit documentChanged();
-    // update();
+    toggleFormat(ElementType::Bold);
 }
 
 void BookEditor::toggleItalic()
 {
-    // Stub implementation - logs action
-    // Full implementation requires extending KmlParagraph with format runs
-
-    core::Logger::getInstance().debug("BookEditor::toggleItalic() called - "
-        "hasSelection={}, cursor=({}, {})",
-        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
-
-    if (hasSelection()) {
-        // TODO: Toggle italic formatting on selected range
-    } else {
-        // TODO: Toggle italic mode for next typed characters
-    }
+    toggleFormat(ElementType::Italic);
 }
 
 void BookEditor::toggleUnderline()
 {
-    // Stub implementation - logs action
-    // Full implementation requires extending KmlParagraph with format runs
-
-    core::Logger::getInstance().debug("BookEditor::toggleUnderline() called - "
-        "hasSelection={}, cursor=({}, {})",
-        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
-
-    if (hasSelection()) {
-        // TODO: Toggle underline formatting on selected range
-    } else {
-        // TODO: Toggle underline mode for next typed characters
-    }
+    toggleFormat(ElementType::Underline);
 }
 
 void BookEditor::toggleStrikethrough()
 {
-    // Stub implementation - logs action
-    // Full implementation requires extending KmlParagraph with format runs
-
-    core::Logger::getInstance().debug("BookEditor::toggleStrikethrough() called - "
-        "hasSelection={}, cursor=({}, {})",
-        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
-
-    if (hasSelection()) {
-        // TODO: Toggle strikethrough formatting on selected range
-    } else {
-        // TODO: Toggle strikethrough mode for next typed characters
-    }
+    toggleFormat(ElementType::Strikethrough);
 }
 
 bool BookEditor::isBold() const
 {
-    // Stub implementation - returns false
-    // Full implementation requires querying format at cursor position
-    // by examining KmlParagraph element structure
-
-    // TODO: Check if text at cursor/selection has bold formatting
-    // 1. Get element at cursor position
-    // 2. Walk up parent chain to check for KmlBold ancestor
-    // 3. If selection: return true only if ALL selected text is bold
-
-    return false;
+    // If no selection, check pending state or cursor position
+    if (!hasSelection()) {
+        if (m_pendingBold) {
+            return true;
+        }
+    }
+    return hasFormat(ElementType::Bold);
 }
 
 bool BookEditor::isItalic() const
 {
-    // Stub implementation - returns false
-    // Full implementation requires querying format at cursor position
-
-    // TODO: Check if text at cursor/selection has italic formatting
-
-    return false;
+    if (!hasSelection()) {
+        if (m_pendingItalic) {
+            return true;
+        }
+    }
+    return hasFormat(ElementType::Italic);
 }
 
 bool BookEditor::isUnderline() const
 {
-    // Stub implementation - returns false
-    // Full implementation requires querying format at cursor position
-
-    // TODO: Check if text at cursor/selection has underline formatting
-
-    return false;
+    if (!hasSelection()) {
+        if (m_pendingUnderline) {
+            return true;
+        }
+    }
+    return hasFormat(ElementType::Underline);
 }
 
 bool BookEditor::isStrikethrough() const
 {
-    // Stub implementation - returns false
-    // Full implementation requires querying format at cursor position
+    if (!hasSelection()) {
+        if (m_pendingStrikethrough) {
+            return true;
+        }
+    }
+    return hasFormat(ElementType::Strikethrough);
+}
 
-    // TODO: Check if text at cursor/selection has strikethrough formatting
+void BookEditor::toggleFormat(ElementType formatType)
+{
+    core::Logger::getInstance().debug("BookEditor::toggleFormat() called - "
+        "type={}, hasSelection={}, cursor=({}, {})",
+        elementTypeToString(formatType).toStdString(),
+        hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
 
-    return false;
+    if (!m_document) {
+        return;
+    }
+
+    if (hasSelection()) {
+        // Apply/remove formatting to selection
+        SelectionRange normRange = m_selection.normalized();
+
+        // Check if selection already has this format
+        bool alreadyHasFormat = true;
+        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+            const KmlParagraph* para = m_document->paragraph(i);
+            if (!para) {
+                continue;
+            }
+
+            int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
+            int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+
+            if (!para->hasFormatInRange(start, end, formatType)) {
+                alreadyHasFormat = false;
+                break;
+            }
+        }
+
+        // Store old KML for undo
+        QString oldKml;
+        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+            const KmlParagraph* para = m_document->paragraph(i);
+            if (para) {
+                oldKml += para->toKml();
+            }
+        }
+
+        // Create and execute the command
+        auto* cmd = new ToggleFormatCommand(
+            m_document,
+            m_selection,
+            formatType,
+            !alreadyHasFormat,  // Apply if not already formatted, remove if formatted
+            oldKml
+        );
+        m_undoStack->push(cmd);
+
+        // Invalidate layouts for affected paragraphs
+        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+            m_layoutManager->invalidateLayout(i);
+        }
+
+        // Trigger repaint
+        update();
+
+        core::Logger::getInstance().debug("BookEditor::toggleFormat() - formatting {} {}",
+            alreadyHasFormat ? "removed" : "applied",
+            elementTypeToString(formatType).toStdString());
+    } else {
+        // Toggle pending format for next typed characters
+        switch (formatType) {
+            case ElementType::Bold:
+                m_pendingBold = !m_pendingBold;
+                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
+                    "pending bold={}", m_pendingBold);
+                break;
+            case ElementType::Italic:
+                m_pendingItalic = !m_pendingItalic;
+                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
+                    "pending italic={}", m_pendingItalic);
+                break;
+            case ElementType::Underline:
+                m_pendingUnderline = !m_pendingUnderline;
+                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
+                    "pending underline={}", m_pendingUnderline);
+                break;
+            case ElementType::Strikethrough:
+                m_pendingStrikethrough = !m_pendingStrikethrough;
+                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
+                    "pending strikethrough={}", m_pendingStrikethrough);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+bool BookEditor::hasFormat(ElementType formatType) const
+{
+    if (!m_document) {
+        return false;
+    }
+
+    if (hasSelection()) {
+        // Check if ALL text in selection has this format
+        SelectionRange normRange = m_selection.normalized();
+
+        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
+            const KmlParagraph* para = m_document->paragraph(i);
+            if (!para) {
+                continue;
+            }
+
+            int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
+            int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+
+            if (!para->hasFormatInRange(start, end, formatType)) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        // Check format at cursor position
+        const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+        if (!para) {
+            return false;
+        }
+
+        // If cursor is at end of paragraph, check previous character
+        int checkOffset = m_cursorPosition.offset;
+        if (checkOffset > 0) {
+            checkOffset--;  // Check character before cursor
+        }
+
+        return para->hasFormatAt(checkOffset, formatType);
+    }
 }
 
 // =============================================================================
