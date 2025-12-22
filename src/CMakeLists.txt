@@ -167,6 +167,7 @@ set(KALAHARI_SOURCES
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
+    gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
@@ -178,6 +179,7 @@ set(KALAHARI_SOURCES
     editor/grammar_check_service.cpp # Phase 6.14-6.17: Grammar check service with LanguageTool
     editor/word_frequency_analyzer.cpp  # Phase 6.18-6.20: Word frequency analyzer
     editor/text_to_speech_service.cpp   # Phase 6.21-6.24: Text-to-speech service (optional Qt Speech)
+    editor/tag_detector.cpp              # Task 7.10: Tag detector service
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -211,6 +213,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/comments_panel.h  # CommentsPanel with Q_OBJECT (OpenSpec #00042 Phase 7.9)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/split_editor_panel.h  # SplitEditorPanel with Q_OBJECT (OpenSpec #00042 Phase 5.8)
@@ -220,6 +223,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.14-6.17)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h  # WordFrequencyAnalyzer with Q_OBJECT (OpenSpec #00042 Phase 6.18-6.20)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/text_to_speech_service.h  # TextToSpeechService with Q_OBJECT (OpenSpec #00042 Phase 6.21-6.24)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT (OpenSpec #00042 Task 7.10)
 )
 
 # Create executable
