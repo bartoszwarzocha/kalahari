@@ -84,8 +84,9 @@ void LayoutManager::setDocument(KmlDocument* document) {
 
     m_document = document;
 
-    // Clear all layouts when document changes
+    // Clear all layouts and dirty tracking when document changes
     m_layouts.clear();
+    m_dirtyParagraphs.clear();
 
     // Register with new document
     if (m_document) {
@@ -153,10 +154,20 @@ qreal LayoutManager::layoutVisibleParagraphs() {
 
     qreal totalHeight = 0.0;
 
-    // Layout each visible paragraph
+    // Layout each visible paragraph - only if dirty or not yet laid out
     for (int i = first; i <= last; ++i) {
-        qreal height = layoutParagraph(i);
-        totalHeight += height;
+        auto it = m_layouts.find(i);
+        bool needsLayout = (it == m_layouts.end()) ||
+                           (it->second->isDirty()) ||
+                           (m_dirtyParagraphs.count(i) > 0);
+
+        if (needsLayout) {
+            qreal height = layoutParagraph(i);
+            totalHeight += height;
+        } else {
+            // Use cached height
+            totalHeight += it->second->height();
+        }
     }
 
     return totalHeight;
@@ -173,11 +184,16 @@ qreal LayoutManager::layoutParagraph(int index) {
         return 0.0;
     }
 
-    // Update text from document if needed
-    updateLayoutText(index, layout);
+    // Update text from document if needed (only if dirty or text changed)
+    if (m_dirtyParagraphs.count(index) > 0) {
+        updateLayoutText(index, layout);
+    }
 
     // Perform layout
     qreal height = layout->doLayout(m_width);
+
+    // Clear dirty flag after successful layout
+    m_dirtyParagraphs.erase(index);
 
     // Update scroll manager with measured height
     if (m_scrollManager) {
@@ -220,16 +236,20 @@ void LayoutManager::invalidateLayout(int index) {
     if (it != m_layouts.end()) {
         it->second->invalidate();
     }
+    // Track which paragraphs need re-layout
+    m_dirtyParagraphs.insert(index);
 }
 
 void LayoutManager::invalidateAllLayouts() {
     for (auto& [index, layout] : m_layouts) {
         layout->invalidate();
+        m_dirtyParagraphs.insert(index);
     }
 }
 
 void LayoutManager::clearLayouts() {
     m_layouts.clear();
+    m_dirtyParagraphs.clear();
 }
 
 void LayoutManager::releaseInvisibleLayouts() {

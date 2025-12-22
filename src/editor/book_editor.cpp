@@ -1511,8 +1511,11 @@ void BookEditor::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
+    // Get the clip rect from the paint event for optimized painting
+    const QRect clipRect = event->rect();
+
     // Fill background with appearance editor background color
-    painter.fillRect(event->rect(), m_appearance.colors.editorBackground);
+    painter.fillRect(clipRect, m_appearance.colors.editorBackground);
 
     // If no document, nothing more to render
     if (m_document == nullptr) {
@@ -1538,7 +1541,11 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Get current scroll offset
     qreal scrollY = m_scrollManager->scrollOffset();
 
-    // Render each visible paragraph
+    // Calculate the clip region bounds for paragraph culling
+    qreal clipTop = static_cast<qreal>(clipRect.top());
+    qreal clipBottom = static_cast<qreal>(clipRect.bottom());
+
+    // Render each visible paragraph - only those intersecting the clip rect
     for (int paraIndex = firstVisible; paraIndex <= lastVisible; ++paraIndex) {
         // Get the layout for this paragraph
         ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
@@ -1555,8 +1562,9 @@ void BookEditor::paintEvent(QPaintEvent* event)
         // Convert to widget coordinates (apply scroll offset)
         qreal widgetY = TOP_MARGIN + paraY - scrollY;
 
-        // Skip if paragraph is entirely above or below visible area
-        if (widgetY + paraHeight < 0 || widgetY > height()) {
+        // Skip if paragraph is entirely outside the clip rect
+        // This is more precise than checking against full widget height
+        if (widgetY + paraHeight < clipTop || widgetY > clipBottom) {
             continue;
         }
 

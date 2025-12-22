@@ -344,6 +344,13 @@ private:
     /// Called after height updates to ensure Y positions are consistent.
     void recalculateYPositions();
 
+    /// @brief Recalculate Y positions starting from a specific index
+    /// @param fromIndex Starting index for recalculation
+    ///
+    /// More efficient than full recalculation when only one paragraph changed.
+    /// Used internally for incremental updates.
+    void recalculateYPositionsFrom(int fromIndex);
+
     KmlDocument* m_document;        ///< Document being scrolled (not owned)
     qreal m_viewportTop;            ///< Y position of viewport top
     qreal m_viewportHeight;         ///< Height of the viewport
@@ -354,6 +361,14 @@ private:
     /// Mutable because it's lazily updated during const operations
     /// when the document paragraph count changes.
     mutable std::vector<ParagraphInfo> m_paragraphInfo;
+
+    /// @brief Cached total document height for O(1) access
+    ///
+    /// Updated when paragraph heights change. Avoids summing all heights.
+    mutable qreal m_cachedTotalHeight;
+
+    /// @brief Flag indicating if cached total height is valid
+    mutable bool m_totalHeightValid;
 };
 
 }  // namespace kalahari::editor

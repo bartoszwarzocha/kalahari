@@ -22,6 +22,7 @@
 #include <QRectF>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace kalahari::editor {
 
@@ -264,6 +265,13 @@ private:
     /// Uses unordered_map for O(1) access. Key is paragraph index.
     /// Only visible paragraphs (and buffer) have layouts.
     std::unordered_map<int, std::unique_ptr<ParagraphLayout>> m_layouts;
+
+    /// @brief Set of paragraph indices that need re-layout
+    ///
+    /// Tracks which paragraphs have been invalidated and need
+    /// their layout recalculated. More efficient than marking
+    /// all layouts dirty when only one paragraph changes.
+    std::unordered_set<int> m_dirtyParagraphs;
 };
 
 }  // namespace kalahari::editor

@@ -15,6 +15,8 @@ VirtualScrollManager::VirtualScrollManager()
     , m_viewportTop(0.0)
     , m_viewportHeight(0.0)
     , m_bufferParagraphs(BUFFER_PARAGRAPHS)
+    , m_cachedTotalHeight(0.0)
+    , m_totalHeightValid(false)
 {
 }
 
@@ -26,6 +28,8 @@ VirtualScrollManager::VirtualScrollManager(const VirtualScrollManager& other)
     , m_viewportHeight(other.m_viewportHeight)
     , m_bufferParagraphs(other.m_bufferParagraphs)
     , m_paragraphInfo(other.m_paragraphInfo)
+    , m_cachedTotalHeight(other.m_cachedTotalHeight)
+    , m_totalHeightValid(other.m_totalHeightValid)
 {
 }
 
@@ -35,11 +39,15 @@ VirtualScrollManager::VirtualScrollManager(VirtualScrollManager&& other) noexcep
     , m_viewportHeight(other.m_viewportHeight)
     , m_bufferParagraphs(other.m_bufferParagraphs)
     , m_paragraphInfo(std::move(other.m_paragraphInfo))
+    , m_cachedTotalHeight(other.m_cachedTotalHeight)
+    , m_totalHeightValid(other.m_totalHeightValid)
 {
     other.m_document = nullptr;
     other.m_viewportTop = 0.0;
     other.m_viewportHeight = 0.0;
     other.m_bufferParagraphs = BUFFER_PARAGRAPHS;
+    other.m_cachedTotalHeight = 0.0;
+    other.m_totalHeightValid = false;
 }
 
 VirtualScrollManager& VirtualScrollManager::operator=(const VirtualScrollManager& other) {
@@ -49,6 +57,8 @@ VirtualScrollManager& VirtualScrollManager::operator=(const VirtualScrollManager
         m_viewportHeight = other.m_viewportHeight;
         m_bufferParagraphs = other.m_bufferParagraphs;
         m_paragraphInfo = other.m_paragraphInfo;
+        m_cachedTotalHeight = other.m_cachedTotalHeight;
+        m_totalHeightValid = other.m_totalHeightValid;
     }
     return *this;
 }
@@ -60,11 +70,15 @@ VirtualScrollManager& VirtualScrollManager::operator=(VirtualScrollManager&& oth
         m_viewportHeight = other.m_viewportHeight;
         m_bufferParagraphs = other.m_bufferParagraphs;
         m_paragraphInfo = std::move(other.m_paragraphInfo);
+        m_cachedTotalHeight = other.m_cachedTotalHeight;
+        m_totalHeightValid = other.m_totalHeightValid;
 
         other.m_document = nullptr;
         other.m_viewportTop = 0.0;
         other.m_viewportHeight = 0.0;
         other.m_bufferParagraphs = BUFFER_PARAGRAPHS;
+        other.m_cachedTotalHeight = 0.0;
+        other.m_totalHeightValid = false;
     }
     return *this;
 }
@@ -75,8 +89,10 @@ VirtualScrollManager& VirtualScrollManager::operator=(VirtualScrollManager&& oth
 
 void VirtualScrollManager::setDocument(KmlDocument* document) {
     m_document = document;
-    // Reset paragraph info when document changes
+    // Reset paragraph info and cache when document changes
     m_paragraphInfo.clear();
+    m_cachedTotalHeight = 0.0;
+    m_totalHeightValid = false;
     syncParagraphInfo();
 }
 
@@ -198,12 +214,23 @@ void VirtualScrollManager::updateParagraphHeight(int index, qreal height) {
     // Clamp height to reasonable minimum
     height = std::max(1.0, height);
 
+    // Check if height actually changed
+    qreal oldHeight = m_paragraphInfo[index].height;
+    if (qFuzzyCompare(oldHeight, height) && m_paragraphInfo[index].heightKnown) {
+        return;  // No change needed
+    }
+
     // Update the height and mark as known
     m_paragraphInfo[index].height = height;
     m_paragraphInfo[index].heightKnown = true;
 
-    // Recalculate Y positions for this and subsequent paragraphs
-    recalculateYPositions();
+    // Update cached total height incrementally
+    if (m_totalHeightValid) {
+        m_cachedTotalHeight += (height - oldHeight);
+    }
+
+    // Recalculate Y positions only for this and subsequent paragraphs (incremental update)
+    recalculateYPositionsFrom(index + 1);
 }
 
 qreal VirtualScrollManager::totalHeight() const {
@@ -213,9 +240,16 @@ qreal VirtualScrollManager::totalHeight() const {
         return 0.0;
     }
 
-    // Total height is Y of last paragraph + its height
+    // Use cached total height if valid
+    if (m_totalHeightValid) {
+        return m_cachedTotalHeight;
+    }
+
+    // Calculate and cache total height
     const auto& last = m_paragraphInfo.back();
-    return last.y + last.height;
+    m_cachedTotalHeight = last.y + last.height;
+    m_totalHeightValid = true;
+    return m_cachedTotalHeight;
 }
 
 qreal VirtualScrollManager::paragraphY(int index) const {
@@ -265,6 +299,7 @@ void VirtualScrollManager::resetHeights() {
         info.height = ESTIMATED_LINE_HEIGHT;
         info.heightKnown = false;
     }
+    m_totalHeightValid = false;
     recalculateYPositions();
 }
 
@@ -337,6 +372,7 @@ int VirtualScrollManager::calculateLastVisibleParagraph() const {
 void VirtualScrollManager::syncParagraphInfo() const {
     if (!m_document) {
         m_paragraphInfo.clear();
+        m_totalHeightValid = false;
         return;
     }
 
@@ -346,6 +382,9 @@ void VirtualScrollManager::syncParagraphInfo() const {
     if (currentSize == docCount) {
         return;  // Already synced
     }
+
+    // Invalidate cached total height when paragraph count changes
+    m_totalHeightValid = false;
 
     if (currentSize < docCount) {
         // Need to add paragraphs
@@ -369,6 +408,31 @@ void VirtualScrollManager::recalculateYPositions() {
         info.y = y;
         y += info.height;
     }
+    // Invalidate cached total height - will be recalculated on next access
+    m_totalHeightValid = false;
+}
+
+void VirtualScrollManager::recalculateYPositionsFrom(int fromIndex) {
+    if (m_paragraphInfo.empty() || fromIndex <= 0) {
+        // If starting from beginning, just do full recalculation
+        if (fromIndex <= 0) {
+            recalculateYPositions();
+        }
+        return;
+    }
+
+    // Clamp to valid range
+    fromIndex = std::min(fromIndex, static_cast<int>(m_paragraphInfo.size()));
+
+    // Start from the previous paragraph's end position
+    qreal y = m_paragraphInfo[fromIndex - 1].y + m_paragraphInfo[fromIndex - 1].height;
+
+    // Update only from fromIndex onward
+    for (int i = fromIndex; i < static_cast<int>(m_paragraphInfo.size()); ++i) {
+        m_paragraphInfo[i].y = y;
+        y += m_paragraphInfo[i].height;
+    }
+    // Note: total height cache is updated incrementally in updateParagraphHeight
 }
 
 // =============================================================================
