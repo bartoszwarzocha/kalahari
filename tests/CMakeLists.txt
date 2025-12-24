@@ -35,6 +35,9 @@ set(TEST_SOURCES
     editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
     editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
+    editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
+    editor/test_grammar_check_service.cpp   # Phase 6.14-6.17: GrammarCheckService tests
+    editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -98,10 +101,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/page_layout_manager.cpp  # Phase 5.3-5.5: Page layout manager
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
+    ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
+    ${CMAKE_SOURCE_DIR}/src/editor/grammar_check_service.cpp  # Phase 6.14-6.17: Grammar check service
     # MOC headers for Q_OBJECT classes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
@@ -140,8 +147,13 @@ target_link_libraries(kalahari-tests PRIVATE
     pybind11::embed
     OpenSSL::SSL      # OpenSpec #00038: Ed25519 signature verification
     OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
+    ${HUNSPELL_LIBRARIES}  # OpenSpec #00042: Spell check service with Hunspell
     # bwx_gui removed - wxWidgets library no longer used (Qt6 migration)
 )
+
+# OpenSpec #00042: Hunspell include/library paths for spell check service
+target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
+target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026
 # Root cause: vcpkg Catch2 built with incompatible CRT, missing __std_find_* symbols

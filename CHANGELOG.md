@@ -70,6 +70,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenSpec #00042 Phase 7:** Testing & Documentation (Complete)
+  - **7.17 Unit Tests:** Comprehensive test coverage for SpellCheckService and GrammarCheckService
+    - SpellCheckService: Construction, enable/disable, user dictionary, ignore words, document integration
+    - GrammarCheckService: Configuration, categories, rule ignore, document integration, cancel operations
+    - Fixed object destruction order issues (document before service, setDocument(nullptr) before scope exit)
+  - **7.18 Integration Tests:** Full editor workflow tests in test_book_editor_integration.cpp
+    - Document workflow: create, edit, serialize, parse round-trip
+    - Undo/Redo chain: multiple operations, delete, paragraph split
+    - View mode switching: all modes, focus mode, cursor preservation
+    - Complex editing: multi-paragraph operations, selection spanning paragraphs
+  - All tests pass: 623 test cases, 4216 assertions
+
+- **OpenSpec #00042 Phase 6:** Analytics & Language Services (Complete)
+  - **6.1-6.3 StatisticsCollector:** Real-time statistics with debounced updates
+    - Word count, character count (with/without spaces), paragraph count, sentence count
+    - Estimated reading/speaking time, average word length, longest paragraph tracking
+    - Session tracking: words written, time elapsed, WPM calculation
+  - **6.4-6.9 SpellCheckService:** Hunspell integration for spell checking
+    - Dictionary loading (supports multiple languages)
+    - User dictionary with persistence
+    - Session ignore list
+    - Background checking with debounce
+    - Spell error overlay rendering
+  - **6.10-6.13 WordFrequencyAnalyzer:** Overused words detection
+    - Word frequency analysis with configurable thresholds
+    - Stop word filtering (common words excluded)
+    - Document-wide and selection-based analysis
+  - **6.14-6.17 GrammarCheckService:** LanguageTool API integration
+    - REST API client for LanguageTool (local or remote)
+    - Rate limiting and request debouncing
+    - Category and rule configuration
+    - Grammar error overlay with suggestions
+
 - **OpenSpec #00042 Phase 5:** View Modes & Editor Appearance (Complete)
   - **5.1 View Mode Framework:** ViewMode enum, ViewModeRegistry, EditorAppearance class
   - **5.2 Continuous Mode:** Default scrolling mode (via VirtualScrollManager)

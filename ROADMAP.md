@@ -206,23 +206,63 @@
 - [x] Search/filter within navigator (OpenSpec #00034)
 - [x] Status submenu for chapters (OpenSpec #00036)
 
-### 1.5 Custom Text Editor
+### 1.5 Custom Text Editor (OpenSpec #00042) IN PROGRESS
 
 **Philosophy:** Rich text editor optimized for long-form writing (novels, books).
 
-**Current State:** QPlainTextEdit (plain text only)
+**Current State:** Phases 1-7 largely complete, testing in progress
 
-**Tasks:**
-- [ ] Custom QTextEdit subclass (BookEditor)
-- [ ] Rich text formatting (bold, italic, underline, strikethrough)
-- [ ] Paragraph styles (Heading 1-3, Body, Quote, Code)
-- [ ] Font selection toolbar (QFontComboBox)
-- [ ] Text alignment (left, center, right, justify)
-- [ ] Line/paragraph spacing
-- [ ] Line numbers (optional)
-- [ ] Word count in status bar (live update)
-- [ ] Spell checking integration (Phase 2)
-- [ ] Focus mode (dim everything except current paragraph)
+**Phase 1: KML Model Layer** COMPLETE
+- [x] KML Element base class with ElementType enum
+- [x] KML Text Run with styling support
+- [x] KML Inline Elements (Bold, Italic, Underline, Strike)
+- [x] KML Paragraph with text manipulation
+- [x] KML Document with observer pattern
+- [x] KML Parser (read/write)
+- [x] KML Table support (`<table>`, `<tr>`, `<td>`, `<th>`)
+
+**Phase 2: Layout Engine** COMPLETE
+- [x] Paragraph layout with text measurement
+- [x] Table layout with cell sizing
+- [x] Virtual scroll manager for performance
+- [x] Layout manager integration
+
+**Phase 3: BookEditor Widget** COMPLETE
+- [x] Custom QWidget-based editor
+- [x] Rendering pipeline (QPainter)
+- [x] Cursor and selection handling
+- [x] Keyboard navigation
+- [x] Mouse interaction
+- [x] Accessibility support
+
+**Phase 4: Text Input & Editing** COMPLETE
+- [x] Unicode input with IME support
+- [x] Rich text formatting commands
+- [x] Undo/Redo with QUndoStack
+- [x] Clipboard (KML, HTML, plain text)
+
+**Phase 5: View Modes** COMPLETE
+- [x] Continuous Mode (default)
+- [x] Page Mode with A4/Letter sizes
+- [x] Typewriter Mode with scroll animation
+- [x] Focus Mode (paragraph/sentence/line dimming)
+- [x] Distraction-Free Mode with overlays
+- [x] Split View (horizontal/vertical)
+
+**Phase 6: Analytics & Language Services** COMPLETE
+- [x] StatisticsCollector (word count, reading time)
+- [x] WordFrequencyAnalyzer (overused words)
+- [x] SpellCheckService (Hunspell integration)
+- [x] GrammarCheckService (LanguageTool API)
+
+**Phase 7: Testing & Documentation** IN PROGRESS
+- [x] 7.17 Unit Tests (SpellCheck, Grammar)
+- [x] 7.18 Integration Tests (full workflow)
+- [ ] 7.19 Manual Testing
+- [ ] 7.20 Documentation
+- [ ] 7.21 Final Review
+
+**Test Status:** 623 test cases, 4216 assertions passing
 
 ### 1.6 Search & Replace
 
@@ -433,6 +473,8 @@
 - [x] **2025-12-15:** Navigator Panel Enhancements Complete (OpenSpec #00034)
 - [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
 - [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
+- [x] **2025-12-23:** Custom Text Editor Phase 6 Analytics Complete (OpenSpec #00042)
+- [ ] **2025-12:** Custom Text Editor Phase 7 Testing Complete (OpenSpec #00042)
 - [ ] **2026-05:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -496,6 +538,6 @@
 
 ---
 
-**Document Version:** 2.5
-**Last Update:** 2025-12-17
-**Updated By:** Claude (Navigator Panel 1.4 COMPLETE, milestones updated for #00034, #00036, #00037)
+**Document Version:** 2.6
+**Last Update:** 2025-12-23
+**Updated By:** Claude (Custom Text Editor 1.5 Phase 6 COMPLETE, Phase 7 testing in progress)
