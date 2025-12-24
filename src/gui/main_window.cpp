@@ -40,6 +40,7 @@
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/part.h"
 #include "kalahari/core/recent_books_manager.h"
+#include "kalahari/editor/statistics_collector.h"
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -154,6 +155,13 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onChapterReordered);
     connect(m_dockCoordinator, &DockCoordinator::partReordered,
             m_navigatorCoordinator, &NavigatorCoordinator::onPartReordered);
+    // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
+    connect(m_dockCoordinator, &DockCoordinator::requestAddChapter,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddChapter);
+    connect(m_dockCoordinator, &DockCoordinator::requestAddPart,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddPart);
+    connect(m_dockCoordinator, &DockCoordinator::requestAddItem,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddItem);
     // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
     connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
@@ -178,6 +186,22 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
+
+    // Connect StatisticsCollector for status bar updates (OpenSpec #00042 Task 6.13)
+    connect(m_documentCoordinator, &DocumentCoordinator::documentOpened,
+            this, [this]() {
+        if (auto* collector = m_documentCoordinator->statisticsCollector()) {
+            connect(collector, &editor::StatisticsCollector::statisticsChanged,
+                    this, &MainWindow::updateStatusBarStatistics);
+            core::Logger::getInstance().debug("MainWindow: Connected StatisticsCollector to status bar");
+        }
+    });
+    connect(m_documentCoordinator, &DocumentCoordinator::documentClosed,
+            this, [this]() {
+        // Reset statistics display when document closes
+        updateStatusBarStatistics(0, 0, 0);
+        core::Logger::getInstance().debug("MainWindow: Reset status bar statistics on document close");
+    });
     logger.debug("MainWindow: DocumentCoordinator created");
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
@@ -246,6 +270,12 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+
+    // Alignment commands
+    callbacks.onAlignLeft = [this]() { onAlignLeft(); };
+    callbacks.onAlignCenter = [this]() { onAlignCenter(); };
+    callbacks.onAlignRight = [this]() { onAlignRight(); };
+    callbacks.onAlignJustify = [this]() { onAlignJustify(); };
 
     // Insert commands (OpenSpec #00042 Phase 7.9)
     callbacks.onInsertComment = [this]() { onInsertComment(); };
@@ -370,7 +400,29 @@ void MainWindow::createStatusBar() {
 
     statusBar()->showMessage(tr("Ready"), 3000);  // Show for 3 seconds
 
-    logger.debug("Status bar created successfully");
+    // =========================================================================
+    // OpenSpec #00042 Task 6.13: Status bar statistics display
+    // =========================================================================
+
+    // Create permanent labels for statistics (right-aligned)
+    m_wordCountLabel = new QLabel(tr("Words: 0"), this);
+    m_wordCountLabel->setFrameStyle(QFrame::NoFrame);
+    m_wordCountLabel->setMinimumWidth(100);
+
+    m_charCountLabel = new QLabel(tr("Characters: 0"), this);
+    m_charCountLabel->setFrameStyle(QFrame::NoFrame);
+    m_charCountLabel->setMinimumWidth(120);
+
+    m_readingTimeLabel = new QLabel(tr("Reading: 0 min"), this);
+    m_readingTimeLabel->setFrameStyle(QFrame::NoFrame);
+    m_readingTimeLabel->setMinimumWidth(100);
+
+    // Add widgets to status bar (permanent = right side)
+    statusBar()->addPermanentWidget(m_wordCountLabel);
+    statusBar()->addPermanentWidget(m_charCountLabel);
+    statusBar()->addPermanentWidget(m_readingTimeLabel);
+
+    logger.debug("Status bar created successfully with statistics labels");
 }
 
 // =============================================================================
@@ -492,6 +544,46 @@ void MainWindow::onFormatStrikethrough() {
     EditorPanel* editor = getCurrentEditor();
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->toggleStrikethrough();
+    }
+}
+
+void MainWindow::onAlignLeft() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Align Left");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setAlignLeft();
+    }
+}
+
+void MainWindow::onAlignCenter() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Align Center");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setAlignCenter();
+    }
+}
+
+void MainWindow::onAlignRight() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Align Right");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setAlignRight();
+    }
+}
+
+void MainWindow::onAlignJustify() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Justify");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setAlignJustify();
     }
 }
 
@@ -736,6 +828,7 @@ void MainWindow::createDocks() {
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     // Also update action states when switching tabs (OpenSpec #00042 Phase 7.3)
     // Also connect properties panel to active editor (OpenSpec #00042 Task 7.4)
+    // Also sync font toolbar widgets (OpenSpec #00042 Phase 7.2)
     connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
@@ -745,6 +838,10 @@ void MainWindow::createDocks() {
             // OpenSpec #00042 Task 7.4: Disconnect from editor when no tab
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
+            }
+            // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
+            if (m_toolbarManager) {
+                m_toolbarManager->syncFontWidgetsToEditor(nullptr);
             }
             return;
         }
@@ -780,6 +877,11 @@ void MainWindow::createDocks() {
                 propertiesPanel->setActiveEditor(editor);
             }
 
+            // OpenSpec #00042 Phase 7.2: Sync font toolbar to current editor
+            if (m_toolbarManager) {
+                m_toolbarManager->syncFontWidgetsToEditor(editor);
+            }
+
             // Update action states immediately for the new tab
             updateEditorActionStates();
         } else {
@@ -787,6 +889,10 @@ void MainWindow::createDocks() {
             // OpenSpec #00042 Task 7.4: Disconnect from editor when switching to non-editor tab
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
+            }
+            // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
+            if (m_toolbarManager) {
+                m_toolbarManager->syncFontWidgetsToEditor(nullptr);
             }
         }
     });
@@ -807,6 +913,14 @@ void MainWindow::createDocks() {
     if (m_toolbarManager) {
         m_toolbarManager->createViewMenuActions(m_viewMenu);
         logger.debug("Toolbar toggle actions added to VIEW menu");
+
+        // OpenSpec #00042 Phase 7.2: Connect font toolbar widgets to active editor
+        m_toolbarManager->connectFontWidgets([this]() -> EditorPanel* {
+            return getCurrentEditor();
+        });
+        // Initially sync font widgets (disabled, no editor)
+        m_toolbarManager->syncFontWidgetsToEditor(nullptr);
+        logger.debug("Font toolbar widgets connected to editor callback");
     }
 
     logger.debug("Dock widgets created successfully via DockCoordinator");
@@ -822,12 +936,39 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow::closeEvent triggered");
 
-    // Check for unsaved changes (Task #00008)
-    // OpenSpec #00038 Phase 7: Use DocumentCoordinator for file path info
-    if (m_isDirty) {
+    // Check for unsaved changes at project/document level
+    // OpenSpec #00042 Task 7.19 Issue #7: Also check chapter-level dirty state
+    bool hasUnsavedChanges = m_isDirty;
+
+    // Check if any chapters have unsaved changes via NavigatorCoordinator
+    if (!hasUnsavedChanges && m_navigatorCoordinator) {
+        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
+        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
+            if (it.value()) {
+                hasUnsavedChanges = true;
+                logger.debug("MainWindow::closeEvent: Found dirty chapter: {}", it.key().toStdString());
+                break;
+            }
+        }
+    }
+
+    // Check if project is dirty via ProjectManager
+    auto& pm = core::ProjectManager::getInstance();
+    if (!hasUnsavedChanges && pm.isProjectOpen() && pm.isDirty()) {
+        hasUnsavedChanges = true;
+        logger.debug("MainWindow::closeEvent: Project is dirty");
+    }
+
+    if (hasUnsavedChanges) {
         QString filename = "Untitled";
         if (m_documentCoordinator && !m_documentCoordinator->currentFilePath().empty()) {
             filename = QString::fromStdString(m_documentCoordinator->currentFilePath().filename().string());
+        } else if (pm.isProjectOpen()) {
+            // Use project name if available
+            const core::Document* doc = pm.getDocument();
+            if (doc) {
+                filename = QString::fromStdString(doc->getTitle());
+            }
         }
 
         auto reply = QMessageBox::question(
@@ -840,7 +981,18 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
         if (reply == QMessageBox::Save) {
             if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
-            if (m_isDirty) {
+            // Re-check if still dirty after save attempt
+            bool stillDirty = m_isDirty;
+            if (!stillDirty && m_navigatorCoordinator) {
+                const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
+                for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
+                    if (it.value()) {
+                        stillDirty = true;
+                        break;
+                    }
+                }
+            }
+            if (stillDirty) {
                 // Save was cancelled or failed
                 event->ignore();
                 return;
@@ -853,7 +1005,6 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     }
 
     // Phase F: Save Navigator expansion state before closing
-    auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen()) {
         QString projectPath = pm.getProjectPath();
         if (!projectPath.isEmpty()) {
@@ -1092,6 +1243,27 @@ void MainWindow::showEvent(QShowEvent* event) {
 // =============================================================================
 // Navigator Context Menu Handlers - Moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
 // =============================================================================
+
+// =============================================================================
+// Status Bar Statistics (OpenSpec #00042 Task 6.13)
+// =============================================================================
+
+void MainWindow::updateStatusBarStatistics(int words, int chars, int paragraphs) {
+    Q_UNUSED(paragraphs);  // Reserved for future use (paragraph count display)
+
+    // Calculate reading time at 200 words per minute
+    int readingMinutes = (words + 199) / 200;  // Round up
+
+    if (m_wordCountLabel) {
+        m_wordCountLabel->setText(tr("Words: %1").arg(words));
+    }
+    if (m_charCountLabel) {
+        m_charCountLabel->setText(tr("Characters: %1").arg(chars));
+    }
+    if (m_readingTimeLabel) {
+        m_readingTimeLabel->setText(tr("Reading: %1 min").arg(readingMinutes));
+    }
+}
 
 } // namespace gui
 } // namespace kalahari

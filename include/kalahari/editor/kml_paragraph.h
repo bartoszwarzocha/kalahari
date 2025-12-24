@@ -17,6 +17,9 @@
 #include <memory>
 #include <QString>
 #include <QList>
+#include <QTextLayout>
+#include <QFont>
+#include <Qt>
 
 namespace kalahari::editor {
 
@@ -213,6 +216,18 @@ public:
     /// @return true if styleId is not empty
     bool hasStyle() const;
 
+    /// @brief Get the paragraph alignment
+    /// @return Text alignment (Qt::AlignLeft, Qt::AlignHCenter, Qt::AlignRight, Qt::AlignJustify)
+    Qt::Alignment alignment() const;
+
+    /// @brief Set the paragraph alignment
+    /// @param alignment The new alignment
+    void setAlignment(Qt::Alignment alignment);
+
+    /// @brief Check if this paragraph has explicit alignment set
+    /// @return true if alignment is not default (AlignLeft)
+    bool hasAlignment() const;
+
     // =========================================================================
     // Comments (Phase 7.8)
     // =========================================================================
@@ -255,6 +270,24 @@ public:
     QList<KmlComment> commentsInRange(int start, int end) const;
 
     // =========================================================================
+    // Format Caching (Performance Optimization)
+    // =========================================================================
+
+    /// @brief Get cached format ranges, building if necessary
+    /// @param font The base font to use for format conversion
+    /// @return Cached format ranges for use with QTextLayout
+    ///
+    /// The cache is automatically invalidated when paragraph content changes.
+    /// If the font differs from the cached font, the cache is rebuilt.
+    const QList<QTextLayout::FormatRange>& getCachedFormats(const QFont& font) const;
+
+    /// @brief Invalidate the format cache
+    ///
+    /// Call this when paragraph content changes. Normally this is done
+    /// automatically by content-modifying methods.
+    void invalidateFormatCache();
+
+    // =========================================================================
     // Serialization
     // =========================================================================
 
@@ -269,7 +302,13 @@ public:
 private:
     std::vector<std::unique_ptr<KmlElement>> m_elements;  ///< Child elements
     QString m_styleId;  ///< Paragraph style ID (empty for default)
+    Qt::Alignment m_alignment = Qt::AlignLeft;  ///< Paragraph alignment
     QList<KmlComment> m_comments;  ///< Comments attached to this paragraph
+
+    // Format caching for performance (mutable for const getCachedFormats)
+    mutable QList<QTextLayout::FormatRange> m_cachedFormats;  ///< Cached format ranges
+    mutable bool m_formatsCached = false;  ///< True if cache is valid
+    mutable QFont m_cachedFont;  ///< Font used when cache was built
 };
 
 }  // namespace kalahari::editor

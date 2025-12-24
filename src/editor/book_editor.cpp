@@ -9,6 +9,7 @@
 #include <kalahari/editor/kml_element.h>
 #include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/paragraph_layout.h>
+#include <QContextMenuEvent>
 #include <QDateTime>
 #include <QEasingCurve>
 #include <QGuiApplication>
@@ -16,6 +17,8 @@
 #include <QInputDialog>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
+#include <QMenu>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
@@ -1345,6 +1348,127 @@ bool BookEditor::isStrikethrough() const
     return hasFormat(ElementType::Strikethrough);
 }
 
+// =============================================================================
+// Paragraph Alignment
+// =============================================================================
+
+void BookEditor::setAlignLeft()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+
+    if (hasSelection()) {
+        SelectionRange normRange = m_selection.normalized();
+        startPara = normRange.start.paragraph;
+        endPara = normRange.end.paragraph;
+    }
+
+    for (int i = startPara; i <= endPara; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para) {
+            para->setAlignment(Qt::AlignLeft);
+            m_document->notifyParagraphModified(i);
+        }
+    }
+    update();
+}
+
+void BookEditor::setAlignCenter()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+
+    if (hasSelection()) {
+        SelectionRange normRange = m_selection.normalized();
+        startPara = normRange.start.paragraph;
+        endPara = normRange.end.paragraph;
+    }
+
+    for (int i = startPara; i <= endPara; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para) {
+            para->setAlignment(Qt::AlignHCenter);
+            m_document->notifyParagraphModified(i);
+        }
+    }
+    update();
+}
+
+void BookEditor::setAlignRight()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+
+    if (hasSelection()) {
+        SelectionRange normRange = m_selection.normalized();
+        startPara = normRange.start.paragraph;
+        endPara = normRange.end.paragraph;
+    }
+
+    for (int i = startPara; i <= endPara; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para) {
+            para->setAlignment(Qt::AlignRight);
+            m_document->notifyParagraphModified(i);
+        }
+    }
+    update();
+}
+
+void BookEditor::setAlignJustify()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+
+    if (hasSelection()) {
+        SelectionRange normRange = m_selection.normalized();
+        startPara = normRange.start.paragraph;
+        endPara = normRange.end.paragraph;
+    }
+
+    for (int i = startPara; i <= endPara; ++i) {
+        KmlParagraph* para = m_document->paragraph(i);
+        if (para) {
+            para->setAlignment(Qt::AlignJustify);
+            m_document->notifyParagraphModified(i);
+        }
+    }
+    update();
+}
+
+Qt::Alignment BookEditor::currentAlignment() const
+{
+    if (!m_document) {
+        return Qt::AlignLeft;
+    }
+
+    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
+    if (para) {
+        return para->alignment();
+    }
+    return Qt::AlignLeft;
+}
+
 void BookEditor::toggleFormat(ElementType formatType)
 {
     core::Logger::getInstance().debug("BookEditor::toggleFormat() called - "
@@ -1488,12 +1612,19 @@ ViewMode BookEditor::viewMode() const
 
 void BookEditor::setViewMode(ViewMode mode)
 {
+    auto& logger = core::Logger::getInstance();
+
     if (m_viewMode != mode) {
         ViewMode oldMode = m_viewMode;
         m_viewMode = mode;
 
+        // Log view mode transition (OpenSpec #00042 Task 7.19 Issue #6)
+        logger.info("BookEditor::setViewMode: {} -> {}",
+                    static_cast<int>(oldMode), static_cast<int>(mode));
+
         // When entering Typewriter mode, update scroll to focus position
         if (mode == ViewMode::Typewriter) {
+            logger.debug("BookEditor: Entering Typewriter mode, updating scroll");
             updateTypewriterScroll();
         }
 
@@ -1592,6 +1723,11 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
     // Update PageLayoutManager with new page layout settings
     m_pageLayoutManager->setPageLayout(m_appearance.pageLayout);
+
+    // Update LayoutManager font when typography changes (OpenSpec #00042 Phase 7.2)
+    if (m_layoutManager) {
+        m_layoutManager->setFont(m_appearance.typography.textFont);
+    }
 
     emit appearanceChanged();
     update();
@@ -2066,7 +2202,20 @@ void BookEditor::onScrollAnimationValueChanged(const QVariant& value)
 void BookEditor::onCursorBlinkTimeout()
 {
     m_cursorVisible = !m_cursorVisible;
-    update();  // Request repaint to show/hide cursor
+
+    // Only repaint the cursor area instead of the entire widget
+    // This significantly reduces CPU usage during cursor blink
+    if (m_document && m_document->paragraphCount() > 0) {
+        QRectF cursorRect = calculateCursorRect();
+        if (!cursorRect.isEmpty()) {
+            // Add small margin around cursor for antialiasing artifacts
+            update(cursorRect.toRect().adjusted(-2, -2, 2, 2));
+            return;
+        }
+    }
+
+    // Fallback to full update if cursor rect unavailable
+    update();
 }
 
 // =============================================================================
@@ -2078,8 +2227,8 @@ void BookEditor::setupComponents()
     // Connect layout manager to scroll manager
     m_layoutManager->setScrollManager(m_scrollManager.get());
 
-    // Set default font
-    m_layoutManager->setFont(font());
+    // Set font from appearance (OpenSpec #00042 Phase 7.2)
+    m_layoutManager->setFont(m_appearance.typography.textFont);
 
     // Enable focus for keyboard input
     setFocusPolicy(Qt::StrongFocus);
@@ -2962,11 +3111,14 @@ qreal BookEditor::getCursorDocumentY() const
 
 void BookEditor::updateTypewriterScroll()
 {
+    auto& logger = core::Logger::getInstance();
+
     if (m_viewMode != ViewMode::Typewriter) {
         return;
     }
 
     if (m_document == nullptr) {
+        logger.debug("BookEditor::updateTypewriterScroll: No document");
         return;
     }
 
@@ -2982,6 +3134,10 @@ void BookEditor::updateTypewriterScroll()
     // Clamp to valid range
     qreal maxScroll = m_scrollManager->maxScrollOffset();
     int targetValue = qBound(0, static_cast<int>(targetScrollY), static_cast<int>(maxScroll));
+
+    // Log typewriter scroll parameters (OpenSpec #00042 Task 7.19 Issue #6)
+    logger.debug("BookEditor::updateTypewriterScroll: cursorY={:.1f}, viewportH={:.1f}, focusPos={:.2f}, targetScroll={}",
+                 cursorY, viewportHeight, m_appearance.typewriter.focusPosition, targetValue);
 
     QScrollBar* vbar = verticalScrollBar();
     if (vbar == nullptr) {
@@ -3020,6 +3176,8 @@ void BookEditor::updateTypewriterScroll()
 
 void BookEditor::paintPageMode(QPainter& painter)
 {
+    auto& logger = core::Logger::getInstance();
+
     // Ensure page layout manager is configured
     m_pageLayoutManager->setDocument(m_document);
     m_pageLayoutManager->setLayoutManager(m_layoutManager.get());
@@ -3028,8 +3186,14 @@ void BookEditor::paintPageMode(QPainter& painter)
     // Calculate pages if not already done
     int total = m_pageLayoutManager->totalPages();
     if (total == 0) {
+        logger.debug("BookEditor::paintPageMode: No pages to render");
         return;
     }
+
+    // Log Page Mode rendering info (OpenSpec #00042 Task 7.19 Issue #6)
+    // Use debug level - trace is not available in Logger
+    logger.debug("BookEditor::paintPageMode: Rendering {} pages, viewport width={}",
+                 total, width());
 
     // Get scroll offset
     qreal scrollY = m_scrollManager->scrollOffset();
@@ -3573,6 +3737,372 @@ void BookEditor::navigateToComment(int paragraphIndex, const QString& commentId)
 
     // Emit signal
     emit commentSelected(paragraphIndex, commentId);
+}
+
+// =============================================================================
+// Spell Check Integration (Phase 6.9)
+// =============================================================================
+
+void BookEditor::setSpellCheckService(SpellCheckService* service)
+{
+    // Disconnect from previous service
+    if (m_spellCheckService) {
+        disconnect(m_spellCheckService, nullptr, this, nullptr);
+    }
+
+    m_spellCheckService = service;
+
+    // Connect to new service
+    if (m_spellCheckService) {
+        connect(m_spellCheckService, &SpellCheckService::paragraphChecked,
+                this, &BookEditor::onSpellCheckParagraph);
+
+        // Set the document on the spell checker
+        if (m_document) {
+            m_spellCheckService->setDocument(m_document);
+        }
+
+        core::Logger::getInstance().debug("BookEditor: Spell check service connected");
+    }
+}
+
+SpellCheckService* BookEditor::spellCheckService() const
+{
+    return m_spellCheckService;
+}
+
+void BookEditor::requestSpellCheck()
+{
+    if (m_spellCheckService && m_document) {
+        m_spellCheckService->checkDocumentAsync();
+    }
+}
+
+void BookEditor::onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors)
+{
+    if (!m_layoutManager) {
+        return;
+    }
+
+    // Get the paragraph layout
+    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paragraphIndex);
+    if (!layout) {
+        return;
+    }
+
+    // Convert SpellErrorInfo to SpellError and set on layout
+    layout->clearSpellErrors();
+    for (const SpellErrorInfo& error : errors) {
+        layout->addSpellError(error.startPos, error.length);
+    }
+
+    // Trigger repaint for the affected paragraph
+    update();
+}
+
+void BookEditor::contextMenuEvent(QContextMenuEvent* event)
+{
+    if (!m_document) {
+        QWidget::contextMenuEvent(event);
+        return;
+    }
+
+    // Convert mouse position to document position
+    CursorPosition pos = positionFromPoint(event->pos());
+    if (pos.paragraph < 0) {
+        QWidget::contextMenuEvent(event);
+        return;
+    }
+
+    // Check if position is in a misspelled word (spell check takes priority)
+    auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
+
+    if (!word.isEmpty()) {
+        // Create spell check context menu
+        QMenu* menu = createSpellCheckContextMenu(word, pos.paragraph, startOffset, endOffset);
+        menu->exec(event->globalPos());
+        delete menu;
+        return;
+    }
+
+    // Check if position is in a grammar error (Phase 6.17)
+    auto grammarError = getGrammarErrorAt(pos.paragraph, pos.offset);
+    if (grammarError.has_value()) {
+        // Create grammar check context menu
+        QMenu* menu = createGrammarContextMenu(*grammarError, pos.paragraph);
+        menu->exec(event->globalPos());
+        delete menu;
+        return;
+    }
+
+    // Default context menu
+    QMenu menu(this);
+
+    if (hasSelection()) {
+        menu.addAction(tr("Cut"), this, &BookEditor::cut);
+        menu.addAction(tr("Copy"), this, &BookEditor::copy);
+    }
+    menu.addAction(tr("Paste"), this, &BookEditor::paste);
+
+    if (hasSelection()) {
+        menu.addSeparator();
+        menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
+    }
+
+    menu.exec(event->globalPos());
+}
+
+std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
+{
+    if (!m_layoutManager) {
+        return {QString(), 0, 0};
+    }
+
+    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
+    if (!layout) {
+        return {QString(), 0, 0};
+    }
+
+    // Check if offset is within any spell error
+    const std::vector<SpellError>& errors = layout->spellErrors();
+    for (const SpellError& error : errors) {
+        if (offset >= error.start && offset < error.start + error.length) {
+            // Get the paragraph text
+            if (!m_document || paraIndex >= m_document->paragraphCount()) {
+                return {QString(), 0, 0};
+            }
+
+            const KmlParagraph* para = m_document->paragraph(paraIndex);
+            if (!para) {
+                return {QString(), 0, 0};
+            }
+
+            QString text = para->plainText();
+            if (error.start + error.length <= text.length()) {
+                QString word = text.mid(error.start, error.length);
+                return {word, error.start, error.start + error.length};
+            }
+        }
+    }
+
+    return {QString(), 0, 0};
+}
+
+QMenu* BookEditor::createSpellCheckContextMenu(const QString& word, int paraIndex,
+                                                int startOffset, int endOffset)
+{
+    QMenu* menu = new QMenu(this);
+
+    // Get suggestions from spell check service
+    QStringList suggestions;
+    if (m_spellCheckService) {
+        suggestions = m_spellCheckService->suggestions(word, 5);
+    }
+
+    // Add suggestion actions
+    if (suggestions.isEmpty()) {
+        QAction* noSuggestionsAction = menu->addAction(tr("(No suggestions)"));
+        noSuggestionsAction->setEnabled(false);
+    } else {
+        for (const QString& suggestion : suggestions) {
+            QAction* action = menu->addAction(suggestion);
+            connect(action, &QAction::triggered, this, [this, paraIndex, startOffset, endOffset, suggestion]() {
+                replaceWord(paraIndex, startOffset, endOffset, suggestion);
+            });
+        }
+    }
+
+    menu->addSeparator();
+
+    // Add to dictionary option
+    QAction* addToDictAction = menu->addAction(tr("Add to Dictionary"));
+    connect(addToDictAction, &QAction::triggered, this, [this, word]() {
+        if (m_spellCheckService) {
+            m_spellCheckService->addToUserDictionary(word);
+            // Re-check affected paragraph
+            requestSpellCheck();
+        }
+    });
+
+    // Ignore option
+    QAction* ignoreAction = menu->addAction(tr("Ignore"));
+    connect(ignoreAction, &QAction::triggered, this, [this, word]() {
+        if (m_spellCheckService) {
+            m_spellCheckService->ignoreWord(word);
+            // Re-check affected paragraph
+            requestSpellCheck();
+        }
+    });
+
+    return menu;
+}
+
+void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement)
+{
+    if (!m_document || paraIndex >= m_document->paragraphCount()) {
+        return;
+    }
+
+    // Select the word to replace
+    SelectionRange range;
+    range.start = CursorPosition{paraIndex, startOffset};
+    range.end = CursorPosition{paraIndex, endOffset};
+    m_selection = range;
+
+    // Delete selection and insert replacement
+    deleteSelectedText();
+    insertText(replacement);
+
+    core::Logger::getInstance().debug("BookEditor: Replaced '{}' at ({}, {}-{}) with '{}'",
+        m_document->paragraph(paraIndex)->plainText().mid(startOffset, endOffset - startOffset).toStdString(),
+        paraIndex, startOffset, endOffset, replacement.toStdString());
+}
+
+// =============================================================================
+// Grammar Check Integration (Phase 6.17)
+// =============================================================================
+
+void BookEditor::setGrammarCheckService(GrammarCheckService* service)
+{
+    // Disconnect from previous service
+    if (m_grammarCheckService) {
+        disconnect(m_grammarCheckService, nullptr, this, nullptr);
+    }
+
+    m_grammarCheckService = service;
+
+    // Connect to new service
+    if (m_grammarCheckService) {
+        connect(m_grammarCheckService, &GrammarCheckService::paragraphChecked,
+                this, &BookEditor::onGrammarCheckParagraph);
+
+        // Set the document on the grammar checker
+        if (m_document) {
+            m_grammarCheckService->setDocument(m_document);
+        }
+
+        core::Logger::getInstance().debug("BookEditor: Grammar check service connected");
+    }
+}
+
+GrammarCheckService* BookEditor::grammarCheckService() const
+{
+    return m_grammarCheckService;
+}
+
+void BookEditor::requestGrammarCheck()
+{
+    if (m_grammarCheckService && m_document) {
+        m_grammarCheckService->checkDocumentAsync();
+    }
+}
+
+void BookEditor::onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors)
+{
+    if (!m_layoutManager) {
+        return;
+    }
+
+    // Get the paragraph layout
+    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paragraphIndex);
+    if (!layout) {
+        return;
+    }
+
+    // Convert GrammarError to GrammarErrorRange and set on layout
+    layout->clearGrammarErrors();
+    for (const GrammarError& error : errors) {
+        // Convert GrammarIssueType to GrammarErrorType
+        GrammarErrorType errorType;
+        switch (error.type) {
+            case GrammarIssueType::Grammar:
+                errorType = GrammarErrorType::Grammar;
+                break;
+            case GrammarIssueType::Style:
+                errorType = GrammarErrorType::Style;
+                break;
+            case GrammarIssueType::Typography:
+                errorType = GrammarErrorType::Typography;
+                break;
+            default:
+                errorType = GrammarErrorType::Grammar;
+                break;
+        }
+        layout->addGrammarError(error.startPos, error.length, errorType);
+    }
+
+    // Trigger repaint for the affected paragraph
+    update();
+}
+
+std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int offset) const
+{
+    if (!m_grammarCheckService) {
+        return std::nullopt;
+    }
+
+    // Get cached errors for the paragraph
+    QList<GrammarError> errors = m_grammarCheckService->errorsForParagraph(paraIndex);
+
+    for (const GrammarError& error : errors) {
+        if (offset >= error.startPos && offset < error.startPos + error.length) {
+            return error;
+        }
+    }
+
+    return std::nullopt;
+}
+
+QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraIndex)
+{
+    QMenu* menu = new QMenu(this);
+
+    // Show the error message as a disabled item (header)
+    QAction* headerAction = menu->addAction(error.shortMessage.isEmpty() ? error.message : error.shortMessage);
+    headerAction->setEnabled(false);
+
+    // Show the problematic text
+    if (!error.text.isEmpty()) {
+        QAction* textAction = menu->addAction(tr("Error: \"%1\"").arg(error.text));
+        textAction->setEnabled(false);
+    }
+
+    menu->addSeparator();
+
+    // Add suggestions
+    if (!error.suggestions.isEmpty()) {
+        for (const QString& suggestion : error.suggestions) {
+            QAction* action = menu->addAction(suggestion);
+            connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
+                replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
+            });
+        }
+        menu->addSeparator();
+    }
+
+    // Show full explanation if different from short message
+    if (!error.message.isEmpty() && error.message != error.shortMessage) {
+        QAction* explainAction = menu->addAction(tr("Explanation..."));
+        connect(explainAction, &QAction::triggered, this, [error]() {
+            QMessageBox::information(nullptr, QObject::tr("Grammar Issue"),
+                QObject::tr("<b>%1</b><br><br>%2<br><br><i>Rule: %3 (%4)</i>")
+                    .arg(error.shortMessage.isEmpty() ? error.text : error.shortMessage)
+                    .arg(error.message)
+                    .arg(error.ruleId)
+                    .arg(error.category));
+        });
+    }
+
+    // Ignore rule option
+    QAction* ignoreAction = menu->addAction(tr("Ignore this rule"));
+    connect(ignoreAction, &QAction::triggered, this, [this, error]() {
+        if (m_grammarCheckService) {
+            m_grammarCheckService->ignoreRule(error.ruleId);
+            requestGrammarCheck();
+        }
+    });
+
+    return menu;
 }
 
 }  // namespace kalahari::editor

@@ -15,6 +15,7 @@ VirtualScrollManager::VirtualScrollManager()
     , m_viewportTop(0.0)
     , m_viewportHeight(0.0)
     , m_bufferParagraphs(BUFFER_PARAGRAPHS)
+    , m_fenwickDirty(true)
     , m_cachedTotalHeight(0.0)
     , m_totalHeightValid(false)
 {
@@ -28,6 +29,8 @@ VirtualScrollManager::VirtualScrollManager(const VirtualScrollManager& other)
     , m_viewportHeight(other.m_viewportHeight)
     , m_bufferParagraphs(other.m_bufferParagraphs)
     , m_paragraphInfo(other.m_paragraphInfo)
+    , m_fenwickTree(other.m_fenwickTree)
+    , m_fenwickDirty(other.m_fenwickDirty)
     , m_cachedTotalHeight(other.m_cachedTotalHeight)
     , m_totalHeightValid(other.m_totalHeightValid)
 {
@@ -39,6 +42,8 @@ VirtualScrollManager::VirtualScrollManager(VirtualScrollManager&& other) noexcep
     , m_viewportHeight(other.m_viewportHeight)
     , m_bufferParagraphs(other.m_bufferParagraphs)
     , m_paragraphInfo(std::move(other.m_paragraphInfo))
+    , m_fenwickTree(std::move(other.m_fenwickTree))
+    , m_fenwickDirty(other.m_fenwickDirty)
     , m_cachedTotalHeight(other.m_cachedTotalHeight)
     , m_totalHeightValid(other.m_totalHeightValid)
 {
@@ -46,6 +51,7 @@ VirtualScrollManager::VirtualScrollManager(VirtualScrollManager&& other) noexcep
     other.m_viewportTop = 0.0;
     other.m_viewportHeight = 0.0;
     other.m_bufferParagraphs = BUFFER_PARAGRAPHS;
+    other.m_fenwickDirty = true;
     other.m_cachedTotalHeight = 0.0;
     other.m_totalHeightValid = false;
 }
@@ -57,6 +63,8 @@ VirtualScrollManager& VirtualScrollManager::operator=(const VirtualScrollManager
         m_viewportHeight = other.m_viewportHeight;
         m_bufferParagraphs = other.m_bufferParagraphs;
         m_paragraphInfo = other.m_paragraphInfo;
+        m_fenwickTree = other.m_fenwickTree;
+        m_fenwickDirty = other.m_fenwickDirty;
         m_cachedTotalHeight = other.m_cachedTotalHeight;
         m_totalHeightValid = other.m_totalHeightValid;
     }
@@ -70,6 +78,8 @@ VirtualScrollManager& VirtualScrollManager::operator=(VirtualScrollManager&& oth
         m_viewportHeight = other.m_viewportHeight;
         m_bufferParagraphs = other.m_bufferParagraphs;
         m_paragraphInfo = std::move(other.m_paragraphInfo);
+        m_fenwickTree = std::move(other.m_fenwickTree);
+        m_fenwickDirty = other.m_fenwickDirty;
         m_cachedTotalHeight = other.m_cachedTotalHeight;
         m_totalHeightValid = other.m_totalHeightValid;
 
@@ -77,6 +87,7 @@ VirtualScrollManager& VirtualScrollManager::operator=(VirtualScrollManager&& oth
         other.m_viewportTop = 0.0;
         other.m_viewportHeight = 0.0;
         other.m_bufferParagraphs = BUFFER_PARAGRAPHS;
+        other.m_fenwickDirty = true;
         other.m_cachedTotalHeight = 0.0;
         other.m_totalHeightValid = false;
     }
@@ -91,6 +102,8 @@ void VirtualScrollManager::setDocument(KmlDocument* document) {
     m_document = document;
     // Reset paragraph info and cache when document changes
     m_paragraphInfo.clear();
+    m_fenwickTree.clear();
+    m_fenwickDirty = true;
     m_cachedTotalHeight = 0.0;
     m_totalHeightValid = false;
     syncParagraphInfo();
@@ -220,17 +233,25 @@ void VirtualScrollManager::updateParagraphHeight(int index, qreal height) {
         return;  // No change needed
     }
 
+    // Calculate the delta before updating
+    qreal delta = height - oldHeight;
+
+    // IMPORTANT: Ensure Fenwick tree is valid BEFORE updating the height
+    // This ensures the tree is built with the old heights, so we can then
+    // apply the delta correctly
+    ensureFenwickValid();
+
     // Update the height and mark as known
     m_paragraphInfo[index].height = height;
     m_paragraphInfo[index].heightKnown = true;
 
     // Update cached total height incrementally
     if (m_totalHeightValid) {
-        m_cachedTotalHeight += (height - oldHeight);
+        m_cachedTotalHeight += delta;
     }
 
-    // Recalculate Y positions only for this and subsequent paragraphs (incremental update)
-    recalculateYPositionsFrom(index + 1);
+    // O(log N) update to Fenwick tree with the delta
+    updateFenwick(static_cast<size_t>(index), delta);
 }
 
 qreal VirtualScrollManager::totalHeight() const {
@@ -245,9 +266,9 @@ qreal VirtualScrollManager::totalHeight() const {
         return m_cachedTotalHeight;
     }
 
-    // Calculate and cache total height
-    const auto& last = m_paragraphInfo.back();
-    m_cachedTotalHeight = last.y + last.height;
+    // Calculate and cache total height using Fenwick tree
+    ensureFenwickValid();
+    m_cachedTotalHeight = totalHeightFenwick();
     m_totalHeightValid = true;
     return m_cachedTotalHeight;
 }
@@ -259,7 +280,9 @@ qreal VirtualScrollManager::paragraphY(int index) const {
         return 0.0;
     }
 
-    return m_paragraphInfo[index].y;
+    // Use O(log N) Fenwick tree prefix sum instead of cached Y position
+    ensureFenwickValid();
+    return prefixSum(static_cast<size_t>(index));
 }
 
 ParagraphInfo VirtualScrollManager::paragraphInfo(int index) const {
@@ -269,7 +292,11 @@ ParagraphInfo VirtualScrollManager::paragraphInfo(int index) const {
         return ParagraphInfo();
     }
 
-    return m_paragraphInfo[index];
+    // Return info with Y position computed from Fenwick tree
+    ensureFenwickValid();
+    ParagraphInfo info = m_paragraphInfo[index];
+    info.y = prefixSum(static_cast<size_t>(index));
+    return info;
 }
 
 bool VirtualScrollManager::isHeightKnown(int index) const {
@@ -300,6 +327,7 @@ void VirtualScrollManager::resetHeights() {
         info.heightKnown = false;
     }
     m_totalHeightValid = false;
+    m_fenwickDirty = true;  // Fenwick tree needs rebuild
     recalculateYPositions();
 }
 
@@ -313,6 +341,7 @@ int VirtualScrollManager::calculateFirstVisibleParagraph() const {
     }
 
     syncParagraphInfo();
+    ensureFenwickValid();
 
     // Binary search for the first paragraph that ends after viewport top
     // A paragraph is visible if its bottom edge (y + height) is > viewportTop
@@ -322,7 +351,9 @@ int VirtualScrollManager::calculateFirstVisibleParagraph() const {
 
     while (left <= right) {
         int mid = left + (right - left) / 2;
-        qreal paragraphBottom = m_paragraphInfo[mid].y + m_paragraphInfo[mid].height;
+        // Use O(log N) prefix sum for Y position
+        qreal paragraphY = prefixSum(static_cast<size_t>(mid));
+        qreal paragraphBottom = paragraphY + m_paragraphInfo[mid].height;
 
         if (paragraphBottom <= m_viewportTop) {
             // This paragraph ends before viewport, look later
@@ -343,6 +374,7 @@ int VirtualScrollManager::calculateLastVisibleParagraph() const {
     }
 
     syncParagraphInfo();
+    ensureFenwickValid();
 
     qreal viewportBottom = m_viewportTop + m_viewportHeight;
 
@@ -354,7 +386,8 @@ int VirtualScrollManager::calculateLastVisibleParagraph() const {
 
     while (left <= right) {
         int mid = left + (right - left) / 2;
-        qreal paragraphTop = m_paragraphInfo[mid].y;
+        // Use O(log N) prefix sum for Y position
+        qreal paragraphTop = prefixSum(static_cast<size_t>(mid));
 
         if (paragraphTop >= viewportBottom) {
             // This paragraph starts after viewport, look earlier
@@ -372,6 +405,7 @@ int VirtualScrollManager::calculateLastVisibleParagraph() const {
 void VirtualScrollManager::syncParagraphInfo() const {
     if (!m_document) {
         m_paragraphInfo.clear();
+        m_fenwickDirty = true;
         m_totalHeightValid = false;
         return;
     }
@@ -383,18 +417,16 @@ void VirtualScrollManager::syncParagraphInfo() const {
         return;  // Already synced
     }
 
-    // Invalidate cached total height when paragraph count changes
+    // Invalidate cached total height and Fenwick tree when paragraph count changes
     m_totalHeightValid = false;
+    m_fenwickDirty = true;
 
     if (currentSize < docCount) {
         // Need to add paragraphs
         m_paragraphInfo.reserve(docCount);
         for (int i = currentSize; i < docCount; ++i) {
-            qreal y = 0.0;
-            if (i > 0) {
-                y = m_paragraphInfo[i - 1].y + m_paragraphInfo[i - 1].height;
-            }
-            m_paragraphInfo.emplace_back(y, ESTIMATED_LINE_HEIGHT, false);
+            // Y positions will be computed via Fenwick tree, but we need a placeholder
+            m_paragraphInfo.emplace_back(0.0, ESTIMATED_LINE_HEIGHT, false);
         }
     } else {
         // Need to remove paragraphs
@@ -457,6 +489,7 @@ int VirtualScrollManager::paragraphAtY(qreal y) const {
     }
 
     syncParagraphInfo();
+    ensureFenwickValid();
 
     // Handle negative Y - return first paragraph
     if (y < 0.0) {
@@ -469,29 +502,8 @@ int VirtualScrollManager::paragraphAtY(qreal y) const {
         return m_document->paragraphCount() - 1;
     }
 
-    // Binary search for paragraph containing Y
-    int left = 0;
-    int right = static_cast<int>(m_paragraphInfo.size()) - 1;
-
-    while (left <= right) {
-        int mid = left + (right - left) / 2;
-        qreal paragraphTop = m_paragraphInfo[mid].y;
-        qreal paragraphBottom = paragraphTop + m_paragraphInfo[mid].height;
-
-        if (y < paragraphTop) {
-            // Y is before this paragraph
-            right = mid - 1;
-        } else if (y >= paragraphBottom) {
-            // Y is after this paragraph
-            left = mid + 1;
-        } else {
-            // Y is within this paragraph
-            return mid;
-        }
-    }
-
-    // Fallback: return clamped left (should not normally reach here)
-    return std::clamp(left, 0, m_document->paragraphCount() - 1);
+    // Use O(log^2 N) binary search with Fenwick tree prefix sums
+    return findParagraphAtY(y);
 }
 
 qreal VirtualScrollManager::ensureParagraphVisible(int index) {
@@ -504,9 +516,10 @@ qreal VirtualScrollManager::ensureParagraphVisible(int index) {
     index = std::clamp(index, 0, m_document->paragraphCount() - 1);
 
     syncParagraphInfo();
+    ensureFenwickValid();
 
-    // Get paragraph position and size
-    qreal paragraphTop = m_paragraphInfo[index].y;
+    // Get paragraph position and size using O(log N) Fenwick tree
+    qreal paragraphTop = prefixSum(static_cast<size_t>(index));
     qreal paragraphHeight = m_paragraphInfo[index].height;
     qreal paragraphBottom = paragraphTop + paragraphHeight;
 
@@ -563,6 +576,129 @@ qreal VirtualScrollManager::maxScrollOffset() const {
     // Max scroll is total height minus viewport height
     // This ensures we can still see the last line at the bottom
     return total - m_viewportHeight;
+}
+
+// =============================================================================
+// Fenwick Tree (Binary Indexed Tree) Implementation
+// =============================================================================
+//
+// Fenwick Tree provides O(log N) prefix sum queries and point updates.
+// This replaces the O(N) recalculateYPositionsFrom() approach.
+//
+// The tree is 1-indexed internally: tree[i] stores partial sum for range
+// ending at index i-1 in the original array.
+//
+// Operations:
+// - initFenwick(n): Initialize tree for n elements - O(n)
+// - rebuildFenwick(): Build tree from current heights - O(n)
+// - updateFenwick(i, delta): Add delta to height at index i - O(log n)
+// - prefixSum(i): Get sum of heights [0, i) - O(log n)
+// - findParagraphAtY(y): Find paragraph index at Y position - O(log^2 n)
+
+void VirtualScrollManager::initFenwick(size_t size) {
+    // Tree is 1-indexed, so we need size + 1 elements
+    m_fenwickTree.assign(size + 1, 0.0);
+}
+
+void VirtualScrollManager::rebuildFenwick() const {
+    size_t n = m_paragraphInfo.size();
+    if (n == 0) {
+        m_fenwickTree.clear();
+        m_fenwickDirty = false;
+        return;
+    }
+
+    // Initialize tree with zeros
+    m_fenwickTree.assign(n + 1, 0.0);
+
+    // Build tree by adding each height - O(n log n) but simple
+    // Alternative: O(n) build, but this is simpler and still fast enough
+    // Note: Using int64_t for bit manipulation to avoid unsigned negation warnings
+    int64_t nn = static_cast<int64_t>(n);
+    for (int64_t i = 0; i < nn; ++i) {
+        // Add height to the Fenwick tree at position i
+        qreal height = m_paragraphInfo[static_cast<size_t>(i)].height;
+        for (int64_t j = i + 1; j <= nn; j += j & (-j)) {
+            m_fenwickTree[static_cast<size_t>(j)] += height;
+        }
+    }
+
+    m_fenwickDirty = false;
+}
+
+void VirtualScrollManager::updateFenwick(size_t index, qreal delta) const {
+    if (m_fenwickTree.empty()) {
+        return;
+    }
+
+    int64_t n = static_cast<int64_t>(m_fenwickTree.size()) - 1;  // Tree is 1-indexed
+    if (static_cast<int64_t>(index) >= n) {
+        return;
+    }
+
+    // Update tree from index+1 to end (Fenwick tree is 1-indexed)
+    // Using int64_t for bit manipulation to avoid unsigned negation warnings
+    for (int64_t i = static_cast<int64_t>(index) + 1; i <= n; i += i & (-i)) {
+        m_fenwickTree[static_cast<size_t>(i)] += delta;
+    }
+}
+
+qreal VirtualScrollManager::prefixSum(size_t index) const {
+    if (m_fenwickTree.empty() || index == 0) {
+        return 0.0;
+    }
+
+    // Sum heights [0, index) using Fenwick tree
+    // This gives the Y position of paragraph at 'index'
+    // Using int64_t for bit manipulation to avoid unsigned negation warnings
+    qreal sum = 0.0;
+    for (int64_t i = static_cast<int64_t>(index); i > 0; i -= i & (-i)) {
+        sum += m_fenwickTree[static_cast<size_t>(i)];
+    }
+    return sum;
+}
+
+qreal VirtualScrollManager::totalHeightFenwick() const {
+    // Total height is prefix sum of all paragraphs
+    return prefixSum(m_paragraphInfo.size());
+}
+
+int VirtualScrollManager::findParagraphAtY(qreal y) const {
+    // Binary search for paragraph containing Y position
+    // Uses prefix sums from Fenwick tree for O(log^2 N) complexity
+
+    if (m_paragraphInfo.empty()) {
+        return -1;
+    }
+
+    int left = 0;
+    int right = static_cast<int>(m_paragraphInfo.size()) - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        qreal paragraphTop = prefixSum(static_cast<size_t>(mid));
+        qreal paragraphBottom = paragraphTop + m_paragraphInfo[mid].height;
+
+        if (y < paragraphTop) {
+            // Y is before this paragraph
+            right = mid - 1;
+        } else if (y >= paragraphBottom) {
+            // Y is after this paragraph
+            left = mid + 1;
+        } else {
+            // Y is within this paragraph
+            return mid;
+        }
+    }
+
+    // Fallback: return clamped left
+    return std::clamp(left, 0, static_cast<int>(m_paragraphInfo.size()) - 1);
+}
+
+void VirtualScrollManager::ensureFenwickValid() const {
+    if (m_fenwickDirty) {
+        rebuildFenwick();
+    }
 }
 
 }  // namespace kalahari::editor

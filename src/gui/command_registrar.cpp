@@ -342,10 +342,22 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onFormatStrikethrough ? callbacks.onFormatStrikethrough : []() {});
 
-    REG_CMD("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 1);
-    REG_CMD("format.alignCenter", "Align Center", "FORMAT/Align Center", 150, false, 1);
-    REG_CMD("format.alignRight", "Align Right", "FORMAT/Align Right", 160, false, 1);
-    REG_CMD("format.justify", "Justify", "FORMAT/Justify", 170, true, 1);
+    REG_CMD_TOOL_ICON("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 0,
+                      KeyboardShortcut::fromString("Ctrl+L"),
+                      IconSet(),
+                      callbacks.onAlignLeft ? callbacks.onAlignLeft : []() {});
+    REG_CMD_TOOL_ICON("format.alignCenter", "Align Center", "FORMAT/Align Center", 150, false, 0,
+                      KeyboardShortcut::fromString("Ctrl+E"),
+                      IconSet(),
+                      callbacks.onAlignCenter ? callbacks.onAlignCenter : []() {});
+    REG_CMD_TOOL_ICON("format.alignRight", "Align Right", "FORMAT/Align Right", 160, false, 0,
+                      KeyboardShortcut::fromString("Ctrl+R"),
+                      IconSet(),
+                      callbacks.onAlignRight ? callbacks.onAlignRight : []() {});
+    REG_CMD_TOOL_ICON("format.justify", "Justify", "FORMAT/Justify", 170, true, 0,
+                      KeyboardShortcut::fromString("Ctrl+J"),
+                      IconSet(),
+                      callbacks.onAlignJustify ? callbacks.onAlignJustify : []() {});
 
     REG_CMD("format.increaseIndent", "Increase Indent", "FORMAT/Increase Indent", 180, false, 1);
     REG_CMD("format.decreaseIndent", "Decrease Indent", "FORMAT/Decrease Indent", 190, true, 1);

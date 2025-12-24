@@ -891,7 +891,14 @@
 - [x] **BUILD + TEST** (all tests pass)
 
 ### 7.19 Manual Testing
-- [ ] Test with long document (100k words)
+- [x] Test with long document (100k words)
+  - Issues #3, #4, #5 identified: Scrollbar/scrolling/editing slow with 13k+ words
+  - Root cause: O(N) operations in VirtualScrollManager
+  - **FIX COMPLETE:** Implemented Fenwick Tree (Binary Indexed Tree) for O(log N) operations:
+    - `prefixSum(index)` - O(log N) Y position calculation
+    - `updateFenwick(index, delta)` - O(log N) height updates
+    - `findParagraphAtY(y)` - O(log^2 N) paragraph lookup
+  - All 623 tests pass (4216 assertions)
 - [ ] Test with CJK input (Chinese, Japanese, Korean)
 - [ ] Test with RTL text (Arabic, Hebrew)
 - [ ] Test all keyboard shortcuts

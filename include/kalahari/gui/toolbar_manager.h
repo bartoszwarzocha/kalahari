@@ -17,6 +17,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 // Forward declarations for Qt widgets
 class QFontComboBox;
@@ -25,8 +26,9 @@ class QSpinBox;
 namespace kalahari {
 namespace gui {
 
-// Forward declaration
+// Forward declarations
 class CommandRegistry;
+class EditorPanel;
 
 /// @brief Centralized toolbar management system
 ///
@@ -313,6 +315,29 @@ private:
     // Format toolbar widgets (for future editor integration)
     QFontComboBox* m_fontComboBox = nullptr;         ///< Font family dropdown
     QSpinBox* m_fontSizeSpinner = nullptr;           ///< Font size spinner
+
+public:
+    // ========================================================================
+    // Font Toolbar Integration (OpenSpec #00042 Phase 7.2)
+    // ========================================================================
+
+    /// @brief Connect font widgets to active editor
+    /// @param getEditor Callback function returning current EditorPanel*
+    ///
+    /// Connects QFontComboBox and QSpinBox signals to update the active editor's
+    /// appearance when font family or size changes.
+    void connectFontWidgets(std::function<EditorPanel*()> getEditor);
+
+    /// @brief Sync font widgets to match editor's current appearance
+    /// @param editor EditorPanel to read font settings from (nullptr to reset)
+    ///
+    /// Updates font combo and size spinner to reflect the editor's current font.
+    /// Call this when the active tab changes.
+    void syncFontWidgetsToEditor(EditorPanel* editor);
+
+private:
+    std::function<EditorPanel*()> m_getEditorCallback;  ///< Callback to get current editor
+    bool m_fontWidgetsSyncing = false;                   ///< Prevent recursive updates
 };
 
 } // namespace gui

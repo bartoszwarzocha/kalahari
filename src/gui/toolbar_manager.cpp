@@ -11,6 +11,9 @@
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
+#include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
@@ -1163,6 +1166,113 @@ void ToolbarManager::removeViewMenuAction(const QString& toolbarId) {
 
         logger.debug("ToolbarManager: Removed View menu action for '{}'", id);
     }
+}
+
+// ============================================================================
+// Font Toolbar Integration (OpenSpec #00042 Phase 7.2)
+// ============================================================================
+
+void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor) {
+    auto& logger = core::Logger::getInstance();
+
+    m_getEditorCallback = getEditor;
+
+    // Connect font family combo
+    if (m_fontComboBox) {
+        QObject::connect(m_fontComboBox, &QFontComboBox::currentFontChanged,
+                         [this](const QFont& font) {
+            if (m_fontWidgetsSyncing || !m_getEditorCallback) {
+                return;
+            }
+
+            EditorPanel* editor = m_getEditorCallback();
+            if (!editor || !editor->getBookEditor()) {
+                return;
+            }
+
+            auto& logger = core::Logger::getInstance();
+            logger.debug("ToolbarManager: Font family changed to '{}'",
+                         font.family().toStdString());
+
+            // Get current appearance, modify font family, and apply
+            editor::BookEditor* bookEditor = editor->getBookEditor();
+            editor::EditorAppearance appearance = bookEditor->appearance();
+            QFont currentFont = appearance.typography.textFont;
+            currentFont.setFamily(font.family());
+            appearance.typography.textFont = currentFont;
+            bookEditor->setAppearance(appearance);
+        });
+
+        logger.debug("ToolbarManager: Font combo connected");
+    }
+
+    // Connect font size spinner
+    if (m_fontSizeSpinner) {
+        QObject::connect(m_fontSizeSpinner, QOverload<int>::of(&QSpinBox::valueChanged),
+                         [this](int size) {
+            if (m_fontWidgetsSyncing || !m_getEditorCallback) {
+                return;
+            }
+
+            EditorPanel* editor = m_getEditorCallback();
+            if (!editor || !editor->getBookEditor()) {
+                return;
+            }
+
+            auto& logger = core::Logger::getInstance();
+            logger.debug("ToolbarManager: Font size changed to {}", size);
+
+            // Get current appearance, modify font size, and apply
+            editor::BookEditor* bookEditor = editor->getBookEditor();
+            editor::EditorAppearance appearance = bookEditor->appearance();
+            QFont currentFont = appearance.typography.textFont;
+            currentFont.setPointSize(size);
+            appearance.typography.textFont = currentFont;
+            bookEditor->setAppearance(appearance);
+        });
+
+        logger.debug("ToolbarManager: Font size spinner connected");
+    }
+
+    logger.info("ToolbarManager: Font widgets connected to editor callback");
+}
+
+void ToolbarManager::syncFontWidgetsToEditor(EditorPanel* editor) {
+    auto& logger = core::Logger::getInstance();
+
+    // Prevent recursive updates
+    m_fontWidgetsSyncing = true;
+
+    if (!editor || !editor->getBookEditor()) {
+        // No editor - reset to defaults
+        if (m_fontComboBox) {
+            m_fontComboBox->setCurrentFont(QFont("Georgia", 14));
+            m_fontComboBox->setEnabled(false);
+        }
+        if (m_fontSizeSpinner) {
+            m_fontSizeSpinner->setValue(14);
+            m_fontSizeSpinner->setEnabled(false);
+        }
+        logger.debug("ToolbarManager: Font widgets disabled (no active editor)");
+    } else {
+        // Get current font from editor appearance
+        const editor::EditorAppearance& appearance = editor->getBookEditor()->appearance();
+        QFont currentFont = appearance.typography.textFont;
+
+        if (m_fontComboBox) {
+            m_fontComboBox->setCurrentFont(currentFont);
+            m_fontComboBox->setEnabled(true);
+        }
+        if (m_fontSizeSpinner) {
+            m_fontSizeSpinner->setValue(currentFont.pointSize());
+            m_fontSizeSpinner->setEnabled(true);
+        }
+
+        logger.debug("ToolbarManager: Font widgets synced to '{}' {}pt",
+                     currentFont.family().toStdString(), currentFont.pointSize());
+    }
+
+    m_fontWidgetsSyncing = false;
 }
 
 } // namespace gui

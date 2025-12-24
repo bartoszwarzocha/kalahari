@@ -55,6 +55,12 @@ struct CommandCallbacks {
     std::function<void()> onFormatUnderline;    ///< Format > Underline
     std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
 
+    // Paragraph Alignment
+    std::function<void()> onAlignLeft;          ///< Format > Align Left
+    std::function<void()> onAlignCenter;        ///< Format > Align Center
+    std::function<void()> onAlignRight;         ///< Format > Align Right
+    std::function<void()> onAlignJustify;       ///< Format > Justify
+
     // =========================================================================
     // INSERT COMMANDS (OpenSpec #00042 Phase 7.9)
     // =========================================================================

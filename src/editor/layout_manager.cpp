@@ -455,8 +455,11 @@ ParagraphLayout* LayoutManager::createLayout(int index) {
         if (para) {
             layout->setText(para->plainText());
             // Apply formatting from KML elements (bold, italic, etc.)
-            auto formats = FormatConverter::buildFormatRanges(*para, m_font);
+            // Use cached formats for performance (cache invalidated when content changes)
+            const auto& formats = para->getCachedFormats(m_font);
             layout->setFormats(formats);
+            // Apply paragraph alignment
+            layout->setAlignment(para->alignment());
         }
     }
 
@@ -491,8 +494,12 @@ void LayoutManager::updateLayoutText(int index, ParagraphLayout* layout) {
     }
 
     // Always update formatting (may have changed even if text is the same)
-    auto formats = FormatConverter::buildFormatRanges(*para, m_font);
+    // Use cached formats for performance (cache invalidated when content changes)
+    const auto& formats = para->getCachedFormats(m_font);
     layout->setFormats(formats);
+
+    // Update alignment
+    layout->setAlignment(para->alignment());
 }
 
 void LayoutManager::shiftLayoutIndices(int fromIndex, int delta) {

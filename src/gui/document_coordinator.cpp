@@ -192,10 +192,14 @@ void DocumentCoordinator::onNewDocument() {
                 m_setDirty(true);
             });
 
-    // Create new document
+    // Create new document with empty content structure
     m_currentDocument = core::Document("Untitled", "User", "en");
     m_currentFilePath = "";
+
+    // Initialize with empty content so editor has something to work with
+    // This ensures the editor panel has a valid document attached
     newEditor->setText("");
+    newEditor->setContent("");  // Ensure content is properly initialized
     m_setDirty(false);
 
     // Update navigator panel
@@ -344,10 +348,18 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
     if (filePath.endsWith(".klh", Qt::CaseInsensitive)) {
         auto& pm = core::ProjectManager::getInstance();
 
-        // If a project is already open, ask user for confirmation before closing it
+        // If a project is already open, check if it's the SAME project
         if (pm.isProjectOpen()) {
-            QString projectPath = pm.getProjectPath();
-            QString currentProjectName = QFileInfo(projectPath).fileName();
+            QString currentProjectPath = pm.getProjectPath();
+
+            // If trying to open the same project that's already open, just ignore
+            if (QFileInfo(currentProjectPath) == QFileInfo(filePath)) {
+                logger.debug("Project is already open, ignoring: {}", filePath.toStdString());
+                return;
+            }
+
+            // Different project - ask user for confirmation before closing
+            QString currentProjectName = QFileInfo(currentProjectPath).fileName();
             if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
 
             auto reply = QMessageBox::question(
@@ -374,8 +386,20 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
             core::RecentBooksManager::getInstance().addRecentFile(filePath);
             return;
         }
-        // If failed, fall through to try old archive format
-        logger.debug("Failed to open .klh as project, trying old archive format");
+
+        // For .klh files, if openProject fails, show error and return
+        // Do NOT fall through to try old archive format (which would always fail
+        // for JSON manifests and incorrectly remove the file from recent files)
+        logger.error("Failed to open .klh file as project: {}", filePath.toStdString());
+        QMessageBox::warning(
+            m_mainWindow,
+            tr("Open Error"),
+            tr("Failed to open project: %1\n\n"
+               "The project may be corrupted, locked by another instance, "
+               "or there may be a database error.").arg(QFileInfo(filePath).fileName())
+        );
+        // Do NOT remove from recent files - the project might be recoverable
+        return;
     }
 
     // Load document (old archive format)

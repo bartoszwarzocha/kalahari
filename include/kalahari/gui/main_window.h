@@ -15,6 +15,7 @@
 #include <QMenu>
 #include <QToolBar>
 #include <QTabWidget>
+#include <QLabel>
 #include <QMap>
 #include <optional>
 #include <filesystem>
@@ -198,6 +199,18 @@ private slots:
     /// @brief Slot for Format > Strikethrough action
     void onFormatStrikethrough();
 
+    /// @brief Slot for Format > Align Left action
+    void onAlignLeft();
+
+    /// @brief Slot for Format > Align Center action
+    void onAlignCenter();
+
+    /// @brief Slot for Format > Align Right action
+    void onAlignRight();
+
+    /// @brief Slot for Format > Justify action
+    void onAlignJustify();
+
     // =========================================================================
     // Insert Actions (OpenSpec #00042 Phase 7.9)
     // =========================================================================
@@ -229,6 +242,13 @@ private slots:
     /// Called when cursor position or selection changes in BookEditor.
     /// Updates enabled/checked state for Edit and Format menu actions.
     void updateEditorActionStates();
+
+    /// @brief Update status bar statistics display
+    /// @param words Word count
+    /// @param chars Character count
+    /// @param paragraphs Paragraph count
+    /// @note Connected to StatisticsCollector::statisticsChanged() signal (OpenSpec #00042 Task 6.13)
+    void updateStatusBarStatistics(int words, int chars, int paragraphs);
 
     /// @brief Slot for Help > About action
     void onAbout();
@@ -293,6 +313,11 @@ private:
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
+
+    // Status bar statistics labels (OpenSpec #00042 Task 6.13)
+    QLabel* m_wordCountLabel{nullptr};                ///< Word count display
+    QLabel* m_charCountLabel{nullptr};                ///< Character count display
+    QLabel* m_readingTimeLabel{nullptr};              ///< Reading time display
 
     // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
     // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)

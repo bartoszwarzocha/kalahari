@@ -150,6 +150,17 @@ public slots:
     /// @param toIndex New index
     void onPartReordered(int fromIndex, int toIndex);
 
+    /// @brief Handle add chapter request from navigator context menu
+    /// @param partId Part ID to add chapter to
+    void onRequestAddChapter(const QString& partId);
+
+    /// @brief Handle add part request from navigator context menu
+    void onRequestAddPart();
+
+    /// @brief Handle add item request from navigator context menu (front/back matter)
+    /// @param sectionType Section type ("front_matter" or "back_matter")
+    void onRequestAddItem(const QString& sectionType);
+
 signals:
     /// @brief Emitted when an element is selected/opened
     /// @param elementId Element ID that was opened

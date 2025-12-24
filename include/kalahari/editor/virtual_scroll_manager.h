@@ -349,7 +349,57 @@ private:
     ///
     /// More efficient than full recalculation when only one paragraph changed.
     /// Used internally for incremental updates.
+    /// @deprecated Use Fenwick tree operations instead for O(log N) performance
     void recalculateYPositionsFrom(int fromIndex);
+
+    // =========================================================================
+    // Fenwick Tree (Binary Indexed Tree) for O(log N) height operations
+    // =========================================================================
+
+    /// @brief Initialize Fenwick tree with given size
+    /// @param size Number of paragraphs
+    ///
+    /// Allocates the tree array and initializes all values to 0.
+    /// Call rebuildFenwick() after this to populate from paragraph heights.
+    void initFenwick(size_t size);
+
+    /// @brief Rebuild Fenwick tree from current paragraph heights
+    ///
+    /// Called after document changes that affect paragraph count.
+    /// O(N) operation but only needed when paragraphs are added/removed.
+    void rebuildFenwick() const;
+
+    /// @brief Update height at index by delta value
+    /// @param index Paragraph index (0-based)
+    /// @param delta Change in height (can be positive or negative)
+    ///
+    /// O(log N) operation - updates the tree to reflect height change.
+    void updateFenwick(size_t index, qreal delta) const;
+
+    /// @brief Get sum of heights for paragraphs [0, index)
+    /// @param index Upper bound (exclusive)
+    /// @return Sum of heights of paragraphs 0 through index-1
+    ///
+    /// O(log N) operation. This gives the Y position of paragraph at index.
+    qreal prefixSum(size_t index) const;
+
+    /// @brief Get total height using Fenwick tree
+    /// @return Total height of all paragraphs
+    ///
+    /// O(log N) operation - equivalent to prefixSum(paragraphCount).
+    qreal totalHeightFenwick() const;
+
+    /// @brief Find paragraph index at given Y position using binary search
+    /// @param y Y position in document coordinates
+    /// @return Paragraph index containing that Y position
+    ///
+    /// O(log^2 N) operation using binary search with prefix sum queries.
+    int findParagraphAtY(qreal y) const;
+
+    /// @brief Ensure Fenwick tree is valid and up-to-date
+    ///
+    /// Rebuilds the tree if it has been invalidated.
+    void ensureFenwickValid() const;
 
     KmlDocument* m_document;        ///< Document being scrolled (not owned)
     qreal m_viewportTop;            ///< Y position of viewport top
@@ -361,6 +411,17 @@ private:
     /// Mutable because it's lazily updated during const operations
     /// when the document paragraph count changes.
     mutable std::vector<ParagraphInfo> m_paragraphInfo;
+
+    /// @brief Fenwick tree for O(log N) prefix sum queries
+    ///
+    /// Tree is 1-indexed internally: index i in tree corresponds to
+    /// paragraph i-1 in the document. Size is m_paragraphInfo.size() + 1.
+    mutable std::vector<qreal> m_fenwickTree;
+
+    /// @brief Flag indicating if Fenwick tree needs rebuilding
+    ///
+    /// Set to true when paragraph count changes or heights are reset.
+    mutable bool m_fenwickDirty;
 
     /// @brief Cached total document height for O(1) access
     ///

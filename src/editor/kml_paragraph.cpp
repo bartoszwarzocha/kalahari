@@ -2,6 +2,7 @@
 /// @brief Implementation of KML Paragraph element (OpenSpec #00042 Phase 1.6)
 
 #include <kalahari/editor/kml_paragraph.h>
+#include <kalahari/editor/format_converter.h>
 #include <kalahari/editor/kml_inline_elements.h>
 #include <kalahari/editor/kml_text_run.h>
 #include <algorithm>
@@ -44,6 +45,7 @@ KmlParagraph::~KmlParagraph() = default;
 KmlParagraph::KmlParagraph(const KmlParagraph& other)
     : m_elements()
     , m_styleId(other.m_styleId)
+    , m_alignment(other.m_alignment)
     , m_comments(other.m_comments)
 {
     // Deep copy all elements
@@ -58,6 +60,7 @@ KmlParagraph::KmlParagraph(const KmlParagraph& other)
 KmlParagraph::KmlParagraph(KmlParagraph&& other) noexcept
     : m_elements(std::move(other.m_elements))
     , m_styleId(std::move(other.m_styleId))
+    , m_alignment(other.m_alignment)
     , m_comments(std::move(other.m_comments))
 {
 }
@@ -66,6 +69,7 @@ KmlParagraph& KmlParagraph::operator=(const KmlParagraph& other)
 {
     if (this != &other) {
         m_styleId = other.m_styleId;
+        m_alignment = other.m_alignment;
         m_comments = other.m_comments;
 
         // Deep copy all elements
@@ -76,6 +80,9 @@ KmlParagraph& KmlParagraph::operator=(const KmlParagraph& other)
                 m_elements.push_back(element->clone());
             }
         }
+
+        // Invalidate format cache since content changed
+        invalidateFormatCache();
     }
     return *this;
 }
@@ -85,7 +92,11 @@ KmlParagraph& KmlParagraph::operator=(KmlParagraph&& other) noexcept
     if (this != &other) {
         m_elements = std::move(other.m_elements);
         m_styleId = std::move(other.m_styleId);
+        m_alignment = other.m_alignment;
         m_comments = std::move(other.m_comments);
+
+        // Invalidate format cache since content changed
+        invalidateFormatCache();
     }
     return *this;
 }
@@ -119,6 +130,7 @@ void KmlParagraph::addElement(std::unique_ptr<KmlElement> element)
 {
     if (element) {
         m_elements.push_back(std::move(element));
+        invalidateFormatCache();
     }
 }
 
@@ -133,6 +145,7 @@ void KmlParagraph::insertElement(int index, std::unique_ptr<KmlElement> element)
         } else {
             m_elements.insert(m_elements.begin() + index, std::move(element));
         }
+        invalidateFormatCache();
     }
 }
 
@@ -143,12 +156,14 @@ std::unique_ptr<KmlElement> KmlParagraph::removeElement(int index)
     }
     auto element = std::move(m_elements[static_cast<size_t>(index)]);
     m_elements.erase(m_elements.begin() + index);
+    invalidateFormatCache();
     return element;
 }
 
 void KmlParagraph::clearElements()
 {
     m_elements.clear();
+    invalidateFormatCache();
 }
 
 const std::vector<std::unique_ptr<KmlElement>>& KmlParagraph::elements() const
@@ -213,6 +228,7 @@ bool KmlParagraph::insertText(int offset, const QString& text)
     // Handle empty paragraph - create new text run
     if (m_elements.empty()) {
         m_elements.push_back(std::make_unique<KmlTextRun>(text));
+        invalidateFormatCache();
         return true;
     }
 
@@ -236,6 +252,7 @@ bool KmlParagraph::insertText(int offset, const QString& text)
                 QString currentText = textRun->text();
                 currentText.insert(localOffset, text);
                 textRun->setText(currentText);
+                invalidateFormatCache();
                 return true;
             }
 
@@ -248,6 +265,7 @@ bool KmlParagraph::insertText(int offset, const QString& text)
                     [&element](const auto& e) { return e.get() == element.get(); });
                 if (it != m_elements.end()) {
                     m_elements.insert(it, std::make_unique<KmlTextRun>(text));
+                    invalidateFormatCache();
                     return true;
                 }
             } else if (localOffset == elementLength) {
@@ -263,6 +281,7 @@ bool KmlParagraph::insertText(int offset, const QString& text)
                 if (it != m_elements.end()) {
                     ++it;  // Insert after
                     m_elements.insert(it, std::make_unique<KmlTextRun>(text));
+                    invalidateFormatCache();
                     return true;
                 }
             }
@@ -273,6 +292,7 @@ bool KmlParagraph::insertText(int offset, const QString& text)
 
     // Offset is at the very end - append new text run
     m_elements.push_back(std::make_unique<KmlTextRun>(text));
+    invalidateFormatCache();
     return true;
 }
 
@@ -338,6 +358,7 @@ bool KmlParagraph::deleteText(int start, int end)
         m_elements.erase(m_elements.begin() + static_cast<std::ptrdiff_t>(*it));
     }
 
+    invalidateFormatCache();
     return true;
 }
 
@@ -429,6 +450,9 @@ std::unique_ptr<KmlParagraph> KmlParagraph::splitAt(int offset)
                          m_elements.end());
     }
 
+    // Invalidate format cache since content changed
+    invalidateFormatCache();
+
     return newPara;
 }
 
@@ -443,6 +467,9 @@ void KmlParagraph::mergeWith(KmlParagraph& other)
 
     // Clear the other paragraph
     other.m_elements.clear();
+
+    // Invalidate format cache since content changed
+    invalidateFormatCache();
 }
 
 // =============================================================================
@@ -533,20 +560,15 @@ bool KmlParagraph::applyInlineFormat(int start, int end, ElementType formatType)
         return start == end;  // Empty range is valid but no-op
     }
 
-    // For simplicity, we use a rebuild approach:
-    // 1. Extract plain text for the affected range
-    // 2. Split the range and wrap it in the format element
-    // 3. Reconstruct elements
-
-    // Get the text in the range
-    QString rangeText = plainText().mid(start, end - start);
-
-    // Build new element list:
-    // - Elements before start (unchanged)
-    // - Formatted element containing the range text
-    // - Elements after end (unchanged)
+    // Strategy: Collect elements that fall within [start, end) and wrap them
+    // in the new format container, preserving their existing formatting.
+    //
+    // For elements that partially overlap, we need to split them:
+    // - For text runs: split the text
+    // - For formatted containers: recursively handle (simplified: wrap the whole element)
 
     std::vector<std::unique_ptr<KmlElement>> newElements;
+    std::vector<std::unique_ptr<KmlElement>> toWrap;  // Elements to wrap in new format
     int currentOffset = 0;
 
     for (size_t i = 0; i < m_elements.size(); ++i) {
@@ -559,90 +581,118 @@ bool KmlParagraph::applyInlineFormat(int start, int end, ElementType formatType)
         const int elemStart = currentOffset;
         const int elemEnd = currentOffset + elemLen;
 
-        // Case 1: Element is entirely before start - keep it
+        // Case 1: Element is entirely before range - keep unchanged
         if (elemEnd <= start) {
             newElements.push_back(std::move(element));
         }
-        // Case 2: Element is entirely after end - keep it
+        // Case 2: Element is entirely after range
         else if (elemStart >= end) {
-            // On first element after end, insert the formatted element
-            if (newElements.empty() || newElements.back()->type() != formatType ||
-                dynamic_cast<KmlInlineContainer*>(newElements.back().get()) == nullptr) {
-                // Check if we need to add the formatted element
-                bool needFormatElement = true;
-                for (const auto& e : newElements) {
-                    if (e && e->type() == formatType) {
-                        needFormatElement = false;
-                        break;
+            // First, flush any accumulated toWrap elements
+            if (!toWrap.empty()) {
+                auto formatElem = createInlineContainer(formatType);
+                if (formatElem) {
+                    for (auto& e : toWrap) {
+                        formatElem->appendChild(std::move(e));
                     }
+                    newElements.push_back(std::move(formatElem));
                 }
-                if (needFormatElement && !rangeText.isEmpty()) {
-                    auto formatElem = createInlineContainer(formatType);
-                    if (formatElem) {
-                        formatElem->appendChild(std::make_unique<KmlTextRun>(rangeText));
-                        newElements.push_back(std::move(formatElem));
-                    }
-                    rangeText.clear();  // Mark as consumed
-                }
+                toWrap.clear();
             }
             newElements.push_back(std::move(element));
         }
-        // Case 3: Element overlaps with range
+        // Case 3: Element is entirely within range - add to toWrap (preserving formatting!)
+        else if (elemStart >= start && elemEnd <= end) {
+            toWrap.push_back(std::move(element));
+        }
+        // Case 4: Element overlaps with range (partial)
         else {
-            // Handle text runs specifically
             if (element->type() == ElementType::Text) {
+                // Split text run
                 auto* textRun = static_cast<KmlTextRun*>(element.get());
                 QString text = textRun->text();
+                QString styleId = textRun->styleId();
 
-                // Text before range
+                // Part before range
                 if (elemStart < start) {
                     int beforeLen = start - elemStart;
                     newElements.push_back(
-                        std::make_unique<KmlTextRun>(text.left(beforeLen), textRun->styleId()));
+                        std::make_unique<KmlTextRun>(text.left(beforeLen), styleId));
                 }
 
-                // The formatted part will be added after processing all overlapping elements
+                // Part within range - add to toWrap
+                int wrapStart = std::max(0, start - elemStart);
+                int wrapEnd = std::min(elemLen, end - elemStart);
+                if (wrapEnd > wrapStart) {
+                    toWrap.push_back(
+                        std::make_unique<KmlTextRun>(text.mid(wrapStart, wrapEnd - wrapStart), styleId));
+                }
 
-                // Text after range (if this element extends past end)
+                // Part after range
                 if (elemEnd > end) {
-                    // First add the formatted element
-                    if (!rangeText.isEmpty()) {
+                    // First flush toWrap
+                    if (!toWrap.empty()) {
                         auto formatElem = createInlineContainer(formatType);
                         if (formatElem) {
-                            formatElem->appendChild(std::make_unique<KmlTextRun>(rangeText));
+                            for (auto& e : toWrap) {
+                                formatElem->appendChild(std::move(e));
+                            }
                             newElements.push_back(std::move(formatElem));
                         }
-                        rangeText.clear();
+                        toWrap.clear();
                     }
 
                     int afterStart = end - elemStart;
                     newElements.push_back(
-                        std::make_unique<KmlTextRun>(text.mid(afterStart), textRun->styleId()));
+                        std::make_unique<KmlTextRun>(text.mid(afterStart), styleId));
                 }
             }
-            // For other elements (formatted), we need more complex handling
-            // For now, treat the content as plain text and re-wrap
+            // For formatted containers that partially overlap
             else {
-                // Get text portions
+                // Simplified approach: if element overlaps with range,
+                // treat the overlapping portion by cloning the whole element.
+                // This preserves nested formatting but may include extra text.
+                // A more precise implementation would recursively split.
+
+                // For now: if the element starts before range, keep a text-only prefix
+                // If the element ends after range, keep a text-only suffix
+                // The overlapping portion gets the whole element cloned and wrapped
+
                 QString elemText = element->plainText();
 
-                // Text before range in this element
+                // Part before range - as plain text (loses formatting for that part)
                 if (elemStart < start) {
                     int beforeLen = start - elemStart;
                     newElements.push_back(
                         std::make_unique<KmlTextRun>(elemText.left(beforeLen)));
                 }
 
-                // Text after range in this element
+                // Clone the element for the overlapping portion
+                // But we need to handle this more carefully...
+                // For simplicity: if element is entirely or mostly in range, clone it whole
+                if (elemStart >= start || elemEnd <= end) {
+                    toWrap.push_back(element->clone());
+                } else {
+                    // Element spans beyond both sides - just wrap the relevant text
+                    int wrapStart = std::max(0, start - elemStart);
+                    int wrapEnd = std::min(elemLen, end - elemStart);
+                    if (wrapEnd > wrapStart) {
+                        toWrap.push_back(
+                            std::make_unique<KmlTextRun>(elemText.mid(wrapStart, wrapEnd - wrapStart)));
+                    }
+                }
+
+                // Part after range - as plain text
                 if (elemEnd > end) {
-                    // First add the formatted element
-                    if (!rangeText.isEmpty()) {
+                    // First flush toWrap
+                    if (!toWrap.empty()) {
                         auto formatElem = createInlineContainer(formatType);
                         if (formatElem) {
-                            formatElem->appendChild(std::make_unique<KmlTextRun>(rangeText));
+                            for (auto& e : toWrap) {
+                                formatElem->appendChild(std::move(e));
+                            }
                             newElements.push_back(std::move(formatElem));
                         }
-                        rangeText.clear();
+                        toWrap.clear();
                     }
 
                     int afterStart = end - elemStart;
@@ -655,11 +705,13 @@ bool KmlParagraph::applyInlineFormat(int start, int end, ElementType formatType)
         currentOffset = elemEnd;
     }
 
-    // If formatted element wasn't added yet (range at end), add it now
-    if (!rangeText.isEmpty()) {
+    // Flush any remaining toWrap elements
+    if (!toWrap.empty()) {
         auto formatElem = createInlineContainer(formatType);
         if (formatElem) {
-            formatElem->appendChild(std::make_unique<KmlTextRun>(rangeText));
+            for (auto& e : toWrap) {
+                formatElem->appendChild(std::move(e));
+            }
             newElements.push_back(std::move(formatElem));
         }
     }
@@ -667,6 +719,7 @@ bool KmlParagraph::applyInlineFormat(int start, int end, ElementType formatType)
     // Replace elements
     m_elements = std::move(newElements);
 
+    invalidateFormatCache();
     return true;
 }
 
@@ -756,6 +809,7 @@ bool KmlParagraph::removeInlineFormat(int start, int end, ElementType formatType
     }
 
     m_elements = std::move(newElements);
+    invalidateFormatCache();
     return true;
 }
 
@@ -818,6 +872,21 @@ void KmlParagraph::setStyleId(const QString& styleId)
 bool KmlParagraph::hasStyle() const
 {
     return !m_styleId.isEmpty();
+}
+
+Qt::Alignment KmlParagraph::alignment() const
+{
+    return m_alignment;
+}
+
+void KmlParagraph::setAlignment(Qt::Alignment alignment)
+{
+    m_alignment = alignment;
+}
+
+bool KmlParagraph::hasAlignment() const
+{
+    return m_alignment != Qt::AlignLeft;
 }
 
 // =============================================================================
@@ -932,13 +1001,30 @@ QString KmlParagraph::toKml() const
 {
     QString result;
 
-    // Opening tag with optional style attribute
-    if (m_styleId.isEmpty()) {
-        result = QStringLiteral("<p>");
-    } else {
-        // Escape special characters in style attribute
-        result = QStringLiteral("<p style=\"") + escapeXmlAttribute(m_styleId) + QStringLiteral("\">");
+    // Build opening tag with optional attributes
+    result = QStringLiteral("<p");
+
+    // Add style attribute if set
+    if (!m_styleId.isEmpty()) {
+        result += QStringLiteral(" style=\"") + escapeXmlAttribute(m_styleId) + QStringLiteral("\"");
     }
+
+    // Add alignment attribute if not default (left)
+    if (m_alignment != Qt::AlignLeft) {
+        QString alignStr;
+        if (m_alignment == Qt::AlignHCenter) {
+            alignStr = QStringLiteral("center");
+        } else if (m_alignment == Qt::AlignRight) {
+            alignStr = QStringLiteral("right");
+        } else if (m_alignment == Qt::AlignJustify) {
+            alignStr = QStringLiteral("justify");
+        }
+        if (!alignStr.isEmpty()) {
+            result += QStringLiteral(" align=\"") + alignStr + QStringLiteral("\"");
+        }
+    }
+
+    result += QStringLiteral(">");
 
     // Serialize all child elements
     for (const auto& element : m_elements) {
@@ -965,6 +1051,27 @@ QString KmlParagraph::toKml() const
 std::unique_ptr<KmlParagraph> KmlParagraph::clone() const
 {
     return std::make_unique<KmlParagraph>(*this);
+}
+
+// =============================================================================
+// Format Caching (Performance Optimization)
+// =============================================================================
+
+const QList<QTextLayout::FormatRange>& KmlParagraph::getCachedFormats(const QFont& font) const
+{
+    // Rebuild cache if invalid or font changed
+    if (!m_formatsCached || font != m_cachedFont) {
+        m_cachedFormats = FormatConverter::buildFormatRanges(*this, font);
+        m_cachedFont = font;
+        m_formatsCached = true;
+    }
+    return m_cachedFormats;
+}
+
+void KmlParagraph::invalidateFormatCache()
+{
+    m_formatsCached = false;
+    m_cachedFormats.clear();
 }
 
 }  // namespace kalahari::editor

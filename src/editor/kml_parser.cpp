@@ -291,10 +291,26 @@ std::unique_ptr<KmlParagraph> KmlParser::parseParagraphElement(QXmlStreamReader&
 
     auto para = std::make_unique<KmlParagraph>();
 
-    // Read style attribute if present
+    // Read attributes
     QXmlStreamAttributes attrs = reader.attributes();
+
+    // Style attribute
     if (attrs.hasAttribute(QStringLiteral("style"))) {
         para->setStyleId(attrs.value(QStringLiteral("style")).toString());
+    }
+
+    // Alignment attribute
+    if (attrs.hasAttribute(QStringLiteral("align"))) {
+        QString alignStr = attrs.value(QStringLiteral("align")).toString().toLower();
+        if (alignStr == QStringLiteral("left")) {
+            para->setAlignment(Qt::AlignLeft);
+        } else if (alignStr == QStringLiteral("center")) {
+            para->setAlignment(Qt::AlignHCenter);
+        } else if (alignStr == QStringLiteral("right")) {
+            para->setAlignment(Qt::AlignRight);
+        } else if (alignStr == QStringLiteral("justify")) {
+            para->setAlignment(Qt::AlignJustify);
+        }
     }
 
     // Move past <p> start element
@@ -462,16 +478,21 @@ bool KmlParser::parseInlineChildren(QXmlStreamReader& reader,
 
 std::unique_ptr<KmlElement> KmlParser::createInlineElement(const QString& tagName)
 {
-    if (tagName == QStringLiteral("b")) {
+    // Bold - accept both <b> (canonical) and <bold> (legacy)
+    if (tagName == QStringLiteral("b") || tagName == QStringLiteral("bold")) {
         return std::make_unique<KmlBold>();
     }
-    if (tagName == QStringLiteral("i")) {
+    // Italic - accept both <i> (canonical) and <italic> (legacy)
+    if (tagName == QStringLiteral("i") || tagName == QStringLiteral("italic")) {
         return std::make_unique<KmlItalic>();
     }
-    if (tagName == QStringLiteral("u")) {
+    // Underline - accept both <u> (canonical) and <underline> (legacy)
+    if (tagName == QStringLiteral("u") || tagName == QStringLiteral("underline")) {
         return std::make_unique<KmlUnderline>();
     }
-    if (tagName == QStringLiteral("s")) {
+    // Strikethrough - accept both <s> (canonical) and <strikethrough>/<strike> (legacy)
+    if (tagName == QStringLiteral("s") || tagName == QStringLiteral("strikethrough") ||
+        tagName == QStringLiteral("strike")) {
         return std::make_unique<KmlStrikethrough>();
     }
     if (tagName == QStringLiteral("sub")) {

@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **OpenSpec #00042 Task 7.19:** Critical performance optimizations
+  - Format cache in KmlParagraph - O(1) repeated format access instead of O(N) rebuild
+  - Fenwick tree in VirtualScrollManager - O(log N) height operations instead of O(N)
+  - Partial widget update for cursor blink - reduces CPU usage
+  - Add Chapter/Part/Item context menu now works (signal connections fixed)
+  - New File creates proper empty document
+  - Close with unsaved changes checks chapter-level dirty state
+  - View mode transitions have diagnostic logging
+
 - **OpenSpec #00039:** Custom Toolbar Persistence & Visibility - 2025-12-17
   - **Issue:** Custom toolbars missing from View menu (no visibility toggle)
   - **Issue:** Custom toolbar visibility not restored after application restart

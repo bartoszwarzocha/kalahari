@@ -20,11 +20,14 @@
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/layout_manager.h>
 #include <kalahari/editor/page_layout_manager.h>
+#include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
+#include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
 #include <QWidget>
 #include <QList>
 #include <memory>
+#include <optional>
 
 class QInputMethodEvent;
 class QKeyEvent;
@@ -33,8 +36,13 @@ class QPropertyAnimation;
 class QScrollBar;
 class QTimer;
 class QUndoStack;
+class QMenu;
 
 namespace kalahari::editor {
+
+// Forward declarations
+class SpellCheckService;
+class GrammarCheckService;
 
 /// @brief Custom text editor widget for KML documents
 ///
@@ -429,6 +437,26 @@ public:
     bool isStrikethrough() const;
 
     // =========================================================================
+    // Paragraph Alignment
+    // =========================================================================
+
+    /// @brief Set left alignment on current paragraph
+    void setAlignLeft();
+
+    /// @brief Set center alignment on current paragraph
+    void setAlignCenter();
+
+    /// @brief Set right alignment on current paragraph
+    void setAlignRight();
+
+    /// @brief Set justify alignment on current paragraph
+    void setAlignJustify();
+
+    /// @brief Get alignment of current paragraph
+    /// @return Current paragraph alignment (Qt::AlignLeft, Qt::AlignHCenter, Qt::AlignRight, Qt::AlignJustify)
+    Qt::Alignment currentAlignment() const;
+
+    // =========================================================================
     // Comments (Phase 7.9)
     // =========================================================================
 
@@ -505,6 +533,48 @@ public:
     /// @brief Get the current appearance settings
     /// @return Current editor appearance configuration
     const EditorAppearance& appearance() const;
+
+    // =========================================================================
+    // Spell Check Integration (Phase 6.9)
+    // =========================================================================
+
+    /// @brief Set the spell check service to use
+    /// @param service Pointer to SpellCheckService (not owned, must outlive editor)
+    ///
+    /// Connects the service's paragraphChecked signal to update paragraph layouts
+    /// with spell error underlines. Pass nullptr to disable spell checking.
+    void setSpellCheckService(SpellCheckService* service);
+
+    /// @brief Get the current spell check service
+    /// @return Pointer to the service, or nullptr if not set
+    SpellCheckService* spellCheckService() const;
+
+    /// @brief Request spell check for entire document
+    ///
+    /// Triggers asynchronous spell checking of all paragraphs.
+    /// Results are received via paragraphChecked signal and rendered automatically.
+    void requestSpellCheck();
+
+    // =========================================================================
+    // Grammar Check Integration (Phase 6.17)
+    // =========================================================================
+
+    /// @brief Set the grammar check service to use
+    /// @param service Pointer to GrammarCheckService (not owned, must outlive editor)
+    ///
+    /// Connects the service's paragraphChecked signal to update paragraph layouts
+    /// with grammar error underlines. Pass nullptr to disable grammar checking.
+    void setGrammarCheckService(GrammarCheckService* service);
+
+    /// @brief Get the current grammar check service
+    /// @return Pointer to the service, or nullptr if not set
+    GrammarCheckService* grammarCheckService() const;
+
+    /// @brief Request grammar check for entire document
+    ///
+    /// Triggers asynchronous grammar checking of all paragraphs.
+    /// Results are received via paragraphChecked signal and rendered automatically.
+    void requestGrammarCheck();
 
     /// @brief Set the appearance settings
     /// @param appearance The new appearance configuration
@@ -636,6 +706,13 @@ protected:
     /// Handles double-click to select word.
     void mouseDoubleClickEvent(QMouseEvent* event) override;
 
+    /// @brief Context menu event handler (Phase 6.9)
+    /// @param event The context menu event
+    ///
+    /// Shows context menu with spell check suggestions if over a misspelled word,
+    /// otherwise shows default editing menu.
+    void contextMenuEvent(QContextMenuEvent* event) override;
+
     /// @brief Input method event handler (Phase 4.5/4.6)
     /// @param event The input method event
     ///
@@ -654,6 +731,16 @@ private slots:
     /// @brief Handle scrollbar value change
     /// @param value New scrollbar value
     void onScrollBarValueChanged(int value);
+
+    /// @brief Handle spell check results for a paragraph (Phase 6.9)
+    /// @param paragraphIndex The paragraph index
+    /// @param errors List of spelling errors found
+    void onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors);
+
+    /// @brief Handle grammar check results for a paragraph (Phase 6.17)
+    /// @param paragraphIndex The paragraph index
+    /// @param errors List of grammar errors found
+    void onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors);
 
     /// @brief Handle scroll animation value change
     /// @param value Current animation value
@@ -888,6 +975,45 @@ private:
     // Distraction-Free Mode (Phase 5.7)
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
+
+    // Spell Check (Phase 6.9)
+    SpellCheckService* m_spellCheckService{nullptr};        ///< Spell check service (not owned)
+
+    /// @brief Find misspelled word at given position
+    /// @param paraIndex Paragraph index
+    /// @param offset Character offset within paragraph
+    /// @return The misspelled word and its range, or empty if no error at position
+    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
+
+    /// @brief Create context menu for spell check
+    /// @param word The misspelled word
+    /// @param paraIndex Paragraph index
+    /// @param startOffset Start position of word
+    /// @param endOffset End position of word
+    /// @return Context menu with suggestions
+    QMenu* createSpellCheckContextMenu(const QString& word, int paraIndex, int startOffset, int endOffset);
+
+    /// @brief Replace word in document
+    /// @param paraIndex Paragraph index
+    /// @param startOffset Start position of word
+    /// @param endOffset End position of word
+    /// @param replacement Replacement text
+    void replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement);
+
+    // Grammar Check (Phase 6.17)
+    GrammarCheckService* m_grammarCheckService{nullptr};    ///< Grammar check service (not owned)
+
+    /// @brief Find grammar error at given position
+    /// @param paraIndex Paragraph index
+    /// @param offset Character offset within paragraph
+    /// @return The grammar error info if found, or nullopt if no error at position
+    std::optional<GrammarError> getGrammarErrorAt(int paraIndex, int offset) const;
+
+    /// @brief Create context menu for grammar check
+    /// @param error The grammar error
+    /// @param paraIndex Paragraph index
+    /// @return Context menu with suggestions and explanation
+    QMenu* createGrammarContextMenu(const GrammarError& error, int paraIndex);
 };
 
 }  // namespace kalahari::editor

@@ -168,6 +168,14 @@ void DockCoordinator::createNavigatorDock() {
     connect(m_navigatorPanel, &NavigatorPanel::requestPartProperties,
             this, &DockCoordinator::navigatorRequestPartProperties);
 
+    // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
+    connect(m_navigatorPanel, &NavigatorPanel::requestAddChapter,
+            this, &DockCoordinator::requestAddChapter);
+    connect(m_navigatorPanel, &NavigatorPanel::requestAddPart,
+            this, &DockCoordinator::requestAddPart);
+    connect(m_navigatorPanel, &NavigatorPanel::requestAddItem,
+            this, &DockCoordinator::requestAddItem);
+
     logger.debug("DockCoordinator: Navigator dock created");
 }
 

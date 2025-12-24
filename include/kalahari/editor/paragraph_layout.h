@@ -41,6 +41,28 @@ struct SpellError {
     }
 };
 
+/// @brief Type of grammar issue for color coding (OpenSpec #00042 Phase 6.17)
+enum class GrammarErrorType {
+    Grammar,        ///< Grammar error (blue underline)
+    Style,          ///< Style suggestion (green underline)
+    Typography      ///< Typography issue (gray underline)
+};
+
+/// @brief Represents a grammar error range in text (OpenSpec #00042 Phase 6.17)
+struct GrammarErrorRange {
+    int start;                              ///< Start character position
+    int length;                             ///< Length of the error in characters
+    GrammarErrorType type;                  ///< Error type for color coding
+
+    GrammarErrorRange() : start(0), length(0), type(GrammarErrorType::Grammar) {}
+    GrammarErrorRange(int s, int len, GrammarErrorType t = GrammarErrorType::Grammar)
+        : start(s), length(len), type(t) {}
+
+    bool operator==(const GrammarErrorRange& other) const {
+        return start == other.start && length == other.length && type == other.type;
+    }
+};
+
 /// @brief Wrapper around QTextLayout with dirty state tracking
 ///
 /// ParagraphLayout manages the layout of a single paragraph of text.
@@ -109,6 +131,15 @@ public:
     /// @param font The new font
     /// @note Marks the layout as dirty
     void setFont(const QFont& font);
+
+    /// @brief Get the current text alignment
+    /// @return The alignment (Qt::AlignLeft, Qt::AlignHCenter, Qt::AlignRight, Qt::AlignJustify)
+    Qt::Alignment alignment() const;
+
+    /// @brief Set the text alignment
+    /// @param alignment The new alignment
+    /// @note Marks the layout as dirty
+    void setAlignment(Qt::Alignment alignment);
 
     // =========================================================================
     // Formatting (Phase 2.2)
@@ -315,6 +346,31 @@ public:
     bool hasSpellErrors() const;
 
     // =========================================================================
+    // Grammar Errors (Phase 6.17)
+    // =========================================================================
+
+    /// @brief Add a grammar error marker
+    /// @param start Start character position
+    /// @param length Length of the error
+    /// @param type Type of grammar error for color coding
+    ///
+    /// Grammar errors are rendered as wavy underlines with type-specific colors:
+    /// - Grammar: blue
+    /// - Style: green
+    /// - Typography: gray
+    void addGrammarError(int start, int length, GrammarErrorType type = GrammarErrorType::Grammar);
+
+    /// @brief Clear all grammar error markers
+    void clearGrammarErrors();
+
+    /// @brief Get the list of grammar errors
+    /// @return Vector of grammar error ranges
+    std::vector<GrammarErrorRange> grammarErrors() const;
+
+    /// @brief Check if there are any grammar errors
+    bool hasGrammarErrors() const;
+
+    // =========================================================================
     // Advanced Access
     // =========================================================================
 
@@ -343,6 +399,11 @@ private:
     /// @param position Drawing offset
     void drawSpellErrors(QPainter* painter, const QPointF& position);
 
+    /// @brief Draw grammar error underlines
+    /// @param painter The painter
+    /// @param position Drawing offset
+    void drawGrammarErrors(QPainter* painter, const QPointF& position);
+
     /// @brief Draw a wavy underline for a text range
     /// @param painter The painter
     /// @param startPos Start character position
@@ -355,6 +416,7 @@ private:
     std::unique_ptr<QTextLayout> m_layout;       ///< The underlying Qt layout
     QString m_text;                              ///< Current text
     QFont m_font;                                ///< Current font
+    Qt::Alignment m_alignment = Qt::AlignLeft;   ///< Text alignment
     QList<QTextLayout::FormatRange> m_formats;   ///< Character format ranges
     qreal m_width;                               ///< Width used for last layout
     qreal m_height;                              ///< Cached height after layout
@@ -368,6 +430,9 @@ private:
 
     // Spell errors (Phase 2.5)
     std::vector<SpellError> m_spellErrors;       ///< List of spell error ranges
+
+    // Grammar errors (Phase 6.17)
+    std::vector<GrammarErrorRange> m_grammarErrors;  ///< List of grammar error ranges
 };
 
 }  // namespace kalahari::editor

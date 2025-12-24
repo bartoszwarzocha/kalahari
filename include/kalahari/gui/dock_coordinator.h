@@ -230,6 +230,17 @@ signals:
     /// @brief Emitted when Log panel requests settings dialog
     void openSettingsRequested();
 
+    /// @brief Emitted when add chapter is requested from navigator context menu
+    /// @param partId Part ID to add chapter to
+    void requestAddChapter(const QString& partId);
+
+    /// @brief Emitted when add part is requested from navigator context menu
+    void requestAddPart();
+
+    /// @brief Emitted when add item is requested from navigator context menu
+    /// @param sectionType Section type ("front_matter" or "back_matter")
+    void requestAddItem(const QString& sectionType);
+
 private:
     /// @brief Create Navigator dock widget
     void createNavigatorDock();

@@ -21,6 +21,7 @@
 #include <QTextEdit>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QDateTime>
 
 namespace kalahari {
 namespace gui {
@@ -612,6 +613,211 @@ bool NavigatorCoordinator::confirmSaveOrDiscard() {
     default:
         // User cancelled
         return false;
+    }
+}
+
+// =============================================================================
+// Add Chapter/Part/Item Handlers (OpenSpec #00042 Task 7.19 Issue #1)
+// =============================================================================
+
+void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("NavigatorCoordinator: Add chapter requested but no project open");
+        return;
+    }
+
+    core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.error("NavigatorCoordinator: No document available for add chapter");
+        return;
+    }
+
+    // Get new chapter title from user
+    bool ok;
+    QString title = QInputDialog::getText(
+        qobject_cast<QWidget*>(parent()),
+        tr("Add Chapter"),
+        tr("Chapter title:"),
+        QLineEdit::Normal,
+        tr("New Chapter"),
+        &ok
+    );
+
+    if (!ok || title.isEmpty()) {
+        return;  // User cancelled
+    }
+
+    // Find the part and add chapter to it
+    core::Part* part = pm.findPart(partId);
+    if (!part) {
+        logger.error("NavigatorCoordinator: Part not found: {}", partId.toStdString());
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Chapter Failed"),
+            tr("Part not found.")
+        );
+        return;
+    }
+
+    // Generate unique chapter ID
+    QString chapterId = QString("ch-%1").arg(
+        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
+
+    // Create new chapter element
+    auto chapter = std::make_shared<core::BookElement>(
+        "chapter",
+        chapterId.toStdString(),
+        title.toStdString(),
+        ""  // Content path will be set by ProjectManager when saving
+    );
+
+    // Add to part
+    part->addChapter(chapter);
+    pm.setDirty(true);
+
+    if (pm.saveManifest()) {
+        logger.info("NavigatorCoordinator: Added chapter '{}' to part '{}' (id={})",
+                    title.toStdString(), partId.toStdString(), chapterId.toStdString());
+        refreshNavigator();
+        m_statusBar->showMessage(tr("Chapter added: %1").arg(title), 2000);
+        emit documentModified();
+    } else {
+        logger.error("NavigatorCoordinator: Failed to save manifest after adding chapter");
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Chapter Failed"),
+            tr("Failed to save changes.")
+        );
+    }
+}
+
+void NavigatorCoordinator::onRequestAddPart() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("NavigatorCoordinator: Add part requested but no project open");
+        return;
+    }
+
+    core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.error("NavigatorCoordinator: No document available for add part");
+        return;
+    }
+
+    // Get new part title from user
+    bool ok;
+    QString title = QInputDialog::getText(
+        qobject_cast<QWidget*>(parent()),
+        tr("Add Part"),
+        tr("Part title:"),
+        QLineEdit::Normal,
+        tr("New Part"),
+        &ok
+    );
+
+    if (!ok || title.isEmpty()) {
+        return;  // User cancelled
+    }
+
+    // Generate unique part ID
+    QString partId = QString("part-%1").arg(
+        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
+
+    // Create new part
+    auto part = std::make_shared<core::Part>(partId.toStdString(), title.toStdString());
+
+    // Add to book body
+    doc->getBook().addPart(part);
+    pm.setDirty(true);
+
+    if (pm.saveManifest()) {
+        logger.info("NavigatorCoordinator: Added part '{}' (id={})",
+                    title.toStdString(), partId.toStdString());
+        refreshNavigator();
+        m_statusBar->showMessage(tr("Part added: %1").arg(title), 2000);
+        emit documentModified();
+    } else {
+        logger.error("NavigatorCoordinator: Failed to save manifest after adding part");
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Part Failed"),
+            tr("Failed to save changes.")
+        );
+    }
+}
+
+void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("NavigatorCoordinator: Add item requested but no project open");
+        return;
+    }
+
+    core::Document* doc = pm.getDocument();
+    if (!doc) {
+        logger.error("NavigatorCoordinator: No document available for add item");
+        return;
+    }
+
+    // Show dialog to select item type and title
+    bool ok;
+    QString title = QInputDialog::getText(
+        qobject_cast<QWidget*>(parent()),
+        sectionType == "front_matter" ? tr("Add Front Matter Item") : tr("Add Back Matter Item"),
+        tr("Item title:"),
+        QLineEdit::Normal,
+        tr("New Item"),
+        &ok
+    );
+
+    if (!ok || title.isEmpty()) {
+        return;  // User cancelled
+    }
+
+    // Generate unique item ID
+    QString itemId = QString("item-%1").arg(
+        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
+
+    // Determine element type based on section
+    QString elementType = sectionType == "front_matter" ? "preface" : "epilogue";
+
+    // Create new element
+    auto element = std::make_shared<core::BookElement>(
+        elementType.toStdString(),
+        itemId.toStdString(),
+        title.toStdString(),
+        ""  // Content path will be set by ProjectManager when saving
+    );
+
+    // Add to appropriate section
+    core::Book& book = doc->getBook();
+    if (sectionType == "front_matter") {
+        book.addFrontMatter(element);
+    } else {
+        book.addBackMatter(element);
+    }
+    pm.setDirty(true);
+
+    if (pm.saveManifest()) {
+        logger.info("NavigatorCoordinator: Added {} item '{}' (id={})",
+                    sectionType.toStdString(), title.toStdString(), itemId.toStdString());
+        refreshNavigator();
+        m_statusBar->showMessage(tr("Item added: %1").arg(title), 2000);
+        emit documentModified();
+    } else {
+        logger.error("NavigatorCoordinator: Failed to save manifest after adding item");
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Item Failed"),
+            tr("Failed to save changes.")
+        );
     }
 }
 

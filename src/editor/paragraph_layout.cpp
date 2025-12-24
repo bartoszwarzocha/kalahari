@@ -4,6 +4,7 @@
 #include <kalahari/editor/paragraph_layout.h>
 #include <QFontMetricsF>
 #include <QTextLine>
+#include <QTextOption>
 #include <QPainterPath>
 #include <cmath>
 
@@ -201,6 +202,19 @@ void ParagraphLayout::setFont(const QFont& font)
     if (m_font != font) {
         m_font = font;
         m_layout->setFont(font);
+        invalidate();
+    }
+}
+
+Qt::Alignment ParagraphLayout::alignment() const
+{
+    return m_alignment;
+}
+
+void ParagraphLayout::setAlignment(Qt::Alignment alignment)
+{
+    if (m_alignment != alignment) {
+        m_alignment = alignment;
         invalidate();
     }
 }
@@ -483,6 +497,11 @@ void ParagraphLayout::draw(QPainter* painter, const QPointF& position)
         drawSpellErrors(painter, position);
     }
 
+    // Draw grammar error underlines on top (Phase 6.17)
+    if (hasGrammarErrors()) {
+        drawGrammarErrors(painter, position);
+    }
+
     painter->restore();
 }
 
@@ -552,6 +571,32 @@ bool ParagraphLayout::hasSpellErrors() const
 }
 
 // =============================================================================
+// Grammar Errors (Phase 6.17)
+// =============================================================================
+
+void ParagraphLayout::addGrammarError(int start, int length, GrammarErrorType type)
+{
+    if (start >= 0 && length > 0) {
+        m_grammarErrors.emplace_back(start, length, type);
+    }
+}
+
+void ParagraphLayout::clearGrammarErrors()
+{
+    m_grammarErrors.clear();
+}
+
+std::vector<GrammarErrorRange> ParagraphLayout::grammarErrors() const
+{
+    return m_grammarErrors;
+}
+
+bool ParagraphLayout::hasGrammarErrors() const
+{
+    return !m_grammarErrors.empty();
+}
+
+// =============================================================================
 // Advanced Access
 // =============================================================================
 
@@ -571,6 +616,12 @@ QTextLayout& ParagraphLayout::textLayout()
 
 void ParagraphLayout::performLayout(qreal width)
 {
+    // Set text option with alignment
+    QTextOption textOption;
+    textOption.setAlignment(m_alignment);
+    textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    m_layout->setTextOption(textOption);
+
     // Get font metrics for leading calculation
     QFontMetricsF fontMetrics(m_font);
     qreal leading = fontMetrics.leading();
@@ -673,6 +724,34 @@ void ParagraphLayout::drawSpellErrors(QPainter* painter, const QPointF& position
     QColor errorColor(Qt::red);
 
     for (const auto& error : m_spellErrors) {
+        drawWavyUnderline(painter, error.start, error.length, position, errorColor);
+    }
+}
+
+void ParagraphLayout::drawGrammarErrors(QPainter* painter, const QPointF& position)
+{
+    if (m_grammarErrors.empty() || m_layout->lineCount() == 0) {
+        return;
+    }
+
+    for (const auto& error : m_grammarErrors) {
+        // Select color based on error type (Phase 6.17)
+        QColor errorColor;
+        switch (error.type) {
+            case GrammarErrorType::Grammar:
+                errorColor = QColor(0, 100, 200);  // Blue for grammar
+                break;
+            case GrammarErrorType::Style:
+                errorColor = QColor(0, 150, 0);    // Green for style
+                break;
+            case GrammarErrorType::Typography:
+                errorColor = QColor(128, 128, 128); // Gray for typography
+                break;
+            default:
+                errorColor = QColor(0, 100, 200);  // Default blue
+                break;
+        }
+
         drawWavyUnderline(painter, error.start, error.length, position, errorColor);
     }
 }
