@@ -24,6 +24,13 @@
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
+// Phase 8: New performance-optimized architecture (OpenSpec #00043)
+#include <kalahari/editor/text_buffer.h>
+#include <kalahari/editor/format_layer.h>
+#include <kalahari/editor/lazy_layout_manager.h>
+#include <kalahari/editor/viewport_manager.h>
+#include <kalahari/editor/render_engine.h>
+#include <kalahari/editor/kml_converter.h>
 #include <QWidget>
 #include <QList>
 #include <memory>
@@ -806,6 +813,14 @@ private:
     /// @return Cursor position in document, or invalid if outside document
     CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
+    /// @brief Convert widget point to cursor position using new architecture (Phase 8.7)
+    /// @param widgetPos Point in widget coordinates
+    /// @return Cursor position using TextBuffer's Fenwick tree for O(log N) lookup
+    ///
+    /// This method uses the new architecture components (TextBuffer, LazyLayoutManager)
+    /// for efficient position calculation. Used when m_useNewArchitecture is true.
+    CursorPosition positionFromPointNewArch(const QPointF& widgetPos) const;
+
     /// @brief Draw selection highlighting (Phase 3.10)
     /// @param painter The painter to draw with
     void drawSelection(QPainter* painter);
@@ -1014,6 +1029,50 @@ private:
     /// @param paraIndex Paragraph index
     /// @return Context menu with suggestions and explanation
     QMenu* createGrammarContextMenu(const GrammarError& error, int paraIndex);
+
+    // =========================================================================
+    // Phase 8: New Performance-Optimized Components (OpenSpec #00043)
+    // =========================================================================
+
+    /// @brief Text buffer with Fenwick tree for O(log N) height queries (Task 8.1)
+    std::unique_ptr<TextBuffer> m_textBuffer;
+
+    /// @brief Format layer with interval tree for O(log N) format queries (Task 8.2)
+    std::unique_ptr<FormatLayer> m_formatLayer;
+
+    /// @brief Lazy layout manager for viewport-only layout calculation (Task 8.3)
+    std::unique_ptr<LazyLayoutManager> m_lazyLayoutManager;
+
+    /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
+    std::unique_ptr<ViewportManager> m_viewportManager;
+
+    /// @brief Render engine for efficient viewport-only rendering (Task 8.5)
+    std::unique_ptr<RenderEngine> m_renderEngine;
+
+    /// @brief Metadata layer for comments, TODOs, bookmarks
+    std::unique_ptr<MetadataLayer> m_metadataLayer;
+
+    /// @brief Feature flag for gradual migration to new architecture
+    ///
+    /// When false (default), existing KmlDocument-based rendering is used.
+    /// When true, new TextBuffer + FormatLayer rendering is used.
+    /// This allows gradual migration and A/B testing.
+    bool m_useNewArchitecture = false;
+
+    /// @brief Sync KmlDocument content to new architecture components
+    ///
+    /// Called when m_document is set to populate TextBuffer and FormatLayer.
+    void syncDocumentToNewArchitecture();
+
+    /// @brief Calculate absolute character position from cursor position
+    /// @param pos Cursor position (paragraph + offset)
+    /// @return Absolute character offset in the document (0-based)
+    int calculateAbsolutePosition(const CursorPosition& pos) const;
+
+    /// @brief Calculate cursor position from absolute character position
+    /// @param absolutePos Absolute character offset in the document (0-based)
+    /// @return Cursor position (paragraph + offset)
+    CursorPosition calculateCursorPosition(int absolutePos) const;
 };
 
 }  // namespace kalahari::editor

@@ -30,6 +30,12 @@ set(TEST_SOURCES
     editor/test_table_layout.cpp  # Phase 2.6: Table layout
     editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
+    editor/test_text_buffer.cpp             # OpenSpec #00043: TextBuffer with Fenwick tree
+    editor/test_lazy_layout_manager.cpp    # OpenSpec #00043: LazyLayoutManager
+    editor/test_format_layer.cpp           # OpenSpec #00043: FormatLayer
+    editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
+    editor/test_render_engine.cpp          # OpenSpec #00043: RenderEngine
+    editor/test_kml_converter.cpp          # OpenSpec #00043: KmlConverter
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
     editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
@@ -92,6 +98,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
     ${CMAKE_SOURCE_DIR}/src/editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     ${CMAKE_SOURCE_DIR}/src/editor/layout_manager.cpp          # Phase 2.11: Layout manager
+    ${CMAKE_SOURCE_DIR}/src/editor/text_buffer.cpp            # OpenSpec #00043: TextBuffer
+    ${CMAKE_SOURCE_DIR}/src/editor/lazy_layout_manager.cpp   # OpenSpec #00043: LazyLayoutManager
+    ${CMAKE_SOURCE_DIR}/src/editor/format_layer.cpp          # OpenSpec #00043: FormatLayer
+    ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
+    ${CMAKE_SOURCE_DIR}/src/editor/render_engine.cpp        # OpenSpec #00043: RenderEngine
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_converter.cpp       # OpenSpec #00043: KmlConverter
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
@@ -109,6 +121,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h    # RenderEngine with Q_OBJECT (OpenSpec #00043)
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
@@ -194,3 +208,6 @@ add_test(NAME kalahari-basic-tests
 )
 
 message(STATUS "Configured test target: kalahari-tests")
+
+# OpenSpec #00043: Prototype benchmarks for editor performance rewrite
+add_subdirectory(prototypes)

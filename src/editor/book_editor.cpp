@@ -12,6 +12,7 @@
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QEasingCurve>
+#include <QClipboard>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -84,6 +85,11 @@ BookEditor::BookEditor(QWidget* parent)
     , m_preeditStart{0, 0}
     , m_hasComposition(false)
     , m_undoStack(nullptr)
+    // Phase 8: New performance-optimized components (OpenSpec #00043)
+    , m_textBuffer(std::make_unique<TextBuffer>())
+    , m_formatLayer(std::make_unique<FormatLayer>())
+    , m_metadataLayer(std::make_unique<MetadataLayer>())
+    , m_useNewArchitecture(false)
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);
@@ -98,6 +104,41 @@ BookEditor::BookEditor(QWidget* parent)
         // Fade out UI opacity
         m_uiOpacity = 0.0;
         update();
+    });
+
+    // Phase 8: Initialize and wire up new performance-optimized components
+    // Create LazyLayoutManager with TextBuffer
+    m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
+
+    // Create ViewportManager and connect to buffer and layout manager
+    m_viewportManager = std::make_unique<ViewportManager>(this);
+    m_viewportManager->setBuffer(m_textBuffer.get());
+    m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
+
+    // Create RenderEngine and connect all dependencies
+    m_renderEngine = std::make_unique<RenderEngine>(this);
+    m_renderEngine->setBuffer(m_textBuffer.get());
+    m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
+    m_renderEngine->setViewportManager(m_viewportManager.get());
+    m_renderEngine->setFormatLayer(m_formatLayer.get());
+
+    // Attach FormatLayer to TextBuffer for automatic range adjustment
+    m_formatLayer->attachToBuffer(m_textBuffer.get());
+
+    // Connect RenderEngine repaint signal
+    connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
+            this, [this](const QRegion& region) {
+        if (m_useNewArchitecture) {
+            update(region.boundingRect());
+        }
+    });
+
+    // Connect ViewportManager signals
+    connect(m_viewportManager.get(), &ViewportManager::viewportChanged,
+            this, [this]() {
+        if (m_useNewArchitecture) {
+            update();
+        }
     });
 
     setupComponents();
@@ -146,6 +187,11 @@ void BookEditor::setDocument(KmlDocument* document)
     logger.debug("BookEditor::setDocument - calling layoutManager->setDocument...");
     m_layoutManager->setDocument(document);
     logger.debug("BookEditor::setDocument - managers updated");
+
+    // Phase 8: Sync content to new architecture components (OpenSpec #00043)
+    logger.debug("BookEditor::setDocument - syncing to new architecture...");
+    syncDocumentToNewArchitecture();
+    logger.debug("BookEditor::setDocument - new architecture sync complete");
 
     // Update viewport and layout width
     logger.debug("BookEditor::setDocument - calling updateViewport...");
@@ -359,6 +405,31 @@ void BookEditor::ensureCursorVisible()
 
 void BookEditor::moveCursorLeft()
 {
+    // Phase 8.13: New architecture uses TextBuffer for O(1) paragraph length lookup
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        // Invalidate preferred X position (horizontal movement resets it)
+        m_preferredCursorXValid = false;
+
+        CursorPosition newPos = m_cursorPosition;
+
+        if (newPos.offset > 0) {
+            --newPos.offset;
+        } else if (newPos.paragraph > 0) {
+            --newPos.paragraph;
+            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        }
+        // else: already at document start, do nothing
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -384,6 +455,32 @@ void BookEditor::moveCursorLeft()
 
 void BookEditor::moveCursorRight()
 {
+    // Phase 8.13: New architecture uses TextBuffer for O(1) paragraph length lookup
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        // Invalidate preferred X position (horizontal movement resets it)
+        m_preferredCursorXValid = false;
+
+        CursorPosition newPos = m_cursorPosition;
+        int paraLen = m_textBuffer->paragraphLength(newPos.paragraph);
+
+        if (newPos.offset < paraLen) {
+            ++newPos.offset;
+        } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
+            ++newPos.paragraph;
+            newPos.offset = 0;
+        }
+        // else: already at document end, do nothing
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -410,6 +507,30 @@ void BookEditor::moveCursorRight()
 
 void BookEditor::moveCursorUp()
 {
+    // Phase 8.13: New architecture - paragraph-level navigation using TextBuffer
+    // Visual line navigation within paragraphs requires LazyLayoutManager integration
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        CursorPosition newPos = m_cursorPosition;
+
+        if (newPos.paragraph > 0) {
+            // Move to end of previous paragraph
+            --newPos.paragraph;
+            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        } else {
+            // At first paragraph: move to start
+            newPos.offset = 0;
+        }
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -477,6 +598,30 @@ void BookEditor::moveCursorUp()
 
 void BookEditor::moveCursorDown()
 {
+    // Phase 8.13: New architecture - paragraph-level navigation using TextBuffer
+    // Visual line navigation within paragraphs requires LazyLayoutManager integration
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        CursorPosition newPos = m_cursorPosition;
+
+        if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
+            // Move to start of next paragraph
+            ++newPos.paragraph;
+            newPos.offset = 0;
+        } else {
+            // At last paragraph: move to end
+            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        }
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -626,6 +771,24 @@ void BookEditor::moveCursorWordRight()
 
 void BookEditor::moveCursorToLineStart()
 {
+    // Phase 8.13: New architecture - move to paragraph start (visual line nav requires layout)
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        // Invalidate preferred X position
+        m_preferredCursorXValid = false;
+
+        CursorPosition newPos = m_cursorPosition;
+        newPos.offset = 0;  // Move to paragraph start
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -665,6 +828,24 @@ void BookEditor::moveCursorToLineStart()
 
 void BookEditor::moveCursorToLineEnd()
 {
+    // Phase 8.13: New architecture - move to paragraph end (visual line nav requires layout)
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        // Invalidate preferred X position
+        m_preferredCursorXValid = false;
+
+        CursorPosition newPos = m_cursorPosition;
+        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+
+        setCursorPosition(newPos);
+        ensureCursorVisible();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -919,6 +1100,11 @@ void BookEditor::clearSelection()
     if (!m_selection.isEmpty()) {
         m_selection = {};
 
+        // Phase 8.14: Clear render engine selection for new architecture
+        if (m_useNewArchitecture && m_renderEngine) {
+            m_renderEngine->clearSelection();
+        }
+
         // Clear selection in layouts
         updateSelectionInLayouts();
 
@@ -964,6 +1150,28 @@ QString BookEditor::selectedText() const
 
 void BookEditor::selectAll()
 {
+    // Phase 8.15: New architecture O(1) selectAll using TextBuffer
+    if (m_useNewArchitecture && m_textBuffer && m_textBuffer->paragraphCount() > 0) {
+        // O(1) operation - just set start and end positions
+        SelectionRange range;
+        range.start = {0, 0};
+
+        size_t lastPara = m_textBuffer->paragraphCount() - 1;
+        range.end = {static_cast<int>(lastPara), m_textBuffer->paragraphLength(lastPara)};
+
+        m_selectionAnchor = range.start;
+        m_cursorPosition = range.end;
+        setSelection(range);
+
+        if (m_renderEngine) {
+            m_renderEngine->setSelection(range);
+        }
+
+        update();
+        return;
+    }
+
+    // Legacy architecture
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return;
     }
@@ -992,6 +1200,55 @@ void BookEditor::insertText(const QString& text)
         return;
     }
 
+    // Phase 8: New architecture using TextBuffer (Task 8.6)
+    if (m_useNewArchitecture && m_textBuffer) {
+        // Delete selection if any
+        if (hasSelection()) {
+            deleteSelectedText();
+        }
+
+        // Handle newlines - split into paragraphs
+        if (text.contains('\n')) {
+            QStringList parts = text.split('\n');
+            for (int i = 0; i < parts.size(); ++i) {
+                if (i > 0) {
+                    // Insert paragraph break
+                    m_textBuffer->insertParagraph(
+                        static_cast<size_t>(m_cursorPosition.paragraph + 1), QString());
+                    m_cursorPosition.paragraph++;
+                    m_cursorPosition.offset = 0;
+                }
+                if (!parts[i].isEmpty()) {
+                    // Insert text into current paragraph
+                    QString paraText = m_textBuffer->paragraphText(
+                        static_cast<size_t>(m_cursorPosition.paragraph));
+                    paraText.insert(m_cursorPosition.offset, parts[i]);
+                    m_textBuffer->setParagraphText(
+                        static_cast<size_t>(m_cursorPosition.paragraph), paraText);
+                    m_cursorPosition.offset += parts[i].length();
+                }
+            }
+        } else {
+            // Simple insert within paragraph
+            QString paraText = m_textBuffer->paragraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+            paraText.insert(m_cursorPosition.offset, text);
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph), paraText);
+            m_cursorPosition.offset += text.length();
+        }
+
+        // Invalidate layout for modified paragraph
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+
+        ensureCursorVisible();
+        update();
+        return;
+    }
+
     // If there's a selection, delete it first (replace behavior)
     if (hasSelection()) {
         deleteSelectedText();
@@ -1013,7 +1270,58 @@ void BookEditor::insertText(const QString& text)
 
 bool BookEditor::deleteSelectedText()
 {
-    if (m_document == nullptr || !hasSelection()) {
+    if (!hasSelection()) {
+        return false;
+    }
+
+    // Phase 8: New architecture using TextBuffer (Task 8.17, 8.19)
+    if (m_useNewArchitecture && m_textBuffer) {
+        SelectionRange sel = m_selection.normalized();
+
+        if (sel.start.paragraph == sel.end.paragraph) {
+            // Selection within single paragraph
+            QString paraText = m_textBuffer->paragraphText(
+                static_cast<size_t>(sel.start.paragraph));
+            paraText.remove(sel.start.offset, sel.end.offset - sel.start.offset);
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(sel.start.paragraph), paraText);
+        } else {
+            // Selection spans multiple paragraphs
+            // Keep text before selection in first paragraph
+            QString firstPara = m_textBuffer->paragraphText(
+                static_cast<size_t>(sel.start.paragraph));
+            QString beforeSel = firstPara.left(sel.start.offset);
+
+            // Keep text after selection in last paragraph
+            QString lastPara = m_textBuffer->paragraphText(
+                static_cast<size_t>(sel.end.paragraph));
+            QString afterSel = lastPara.mid(sel.end.offset);
+
+            // Combine and set first paragraph
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(sel.start.paragraph), beforeSel + afterSel);
+
+            // Remove intermediate and last paragraphs (in reverse order)
+            for (int p = sel.end.paragraph; p > sel.start.paragraph; --p) {
+                m_textBuffer->removeParagraph(static_cast<size_t>(p));
+            }
+        }
+
+        // Move cursor to start of deleted range
+        m_cursorPosition = sel.start;
+        clearSelection();
+
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+
+        update();
+        // Note: Document modification is tracked via FormatLayer observer
+        return true;
+    }
+
+    if (m_document == nullptr) {
         return false;
     }
 
@@ -1043,6 +1351,40 @@ void BookEditor::insertNewline()
         return;
     }
 
+    // Phase 8: New architecture using TextBuffer (Task 8.6)
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (hasSelection()) {
+            deleteSelectedText();
+        }
+
+        // Split current paragraph at cursor
+        QString paraText = m_textBuffer->paragraphText(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+        QString beforeCursor = paraText.left(m_cursorPosition.offset);
+        QString afterCursor = paraText.mid(m_cursorPosition.offset);
+
+        m_textBuffer->setParagraphText(
+            static_cast<size_t>(m_cursorPosition.paragraph), beforeCursor);
+        m_textBuffer->insertParagraph(
+            static_cast<size_t>(m_cursorPosition.paragraph + 1), afterCursor);
+
+        // Invalidate layouts for both paragraphs
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph + 1));
+        }
+
+        // Move cursor to start of new paragraph
+        m_cursorPosition.paragraph++;
+        m_cursorPosition.offset = 0;
+
+        ensureCursorVisible();
+        update();
+        return;
+    }
+
     // If there's a selection, delete it first
     if (hasSelection()) {
         deleteSelectedText();
@@ -1060,6 +1402,52 @@ void BookEditor::insertNewline()
 void BookEditor::deleteBackward()
 {
     if (m_document == nullptr) {
+        return;
+    }
+
+    // Phase 8: New architecture using TextBuffer (Task 8.6)
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (hasSelection()) {
+            deleteSelectedText();
+            return;
+        }
+
+        // If at start of document, nothing to delete
+        if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
+            return;
+        }
+
+        if (m_cursorPosition.offset > 0) {
+            // Delete character before cursor
+            QString paraText = m_textBuffer->paragraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+            paraText.remove(m_cursorPosition.offset - 1, 1);
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph), paraText);
+            m_cursorPosition.offset--;
+        } else if (m_cursorPosition.paragraph > 0) {
+            // Merge with previous paragraph
+            QString currentText = m_textBuffer->paragraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+            int prevPara = m_cursorPosition.paragraph - 1;
+            QString prevText = m_textBuffer->paragraphText(static_cast<size_t>(prevPara));
+            int newOffset = prevText.length();
+
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(prevPara), prevText + currentText);
+            m_textBuffer->removeParagraph(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+
+            m_cursorPosition.paragraph = prevPara;
+            m_cursorPosition.offset = newOffset;
+        }
+
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+        ensureCursorVisible();
+        update();
         return;
     }
 
@@ -1112,6 +1500,46 @@ void BookEditor::deleteBackward()
 void BookEditor::deleteForward()
 {
     if (m_document == nullptr) {
+        return;
+    }
+
+    // Phase 8: New architecture using TextBuffer (Task 8.6)
+    if (m_useNewArchitecture && m_textBuffer) {
+        if (hasSelection()) {
+            deleteSelectedText();
+            return;
+        }
+
+        // Check if buffer is empty
+        if (m_textBuffer->paragraphCount() == 0) {
+            return;
+        }
+
+        QString paraText = m_textBuffer->paragraphText(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+        int paraLen = paraText.length();
+
+        if (m_cursorPosition.offset < paraLen) {
+            // Delete character at cursor
+            paraText.remove(m_cursorPosition.offset, 1);
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph), paraText);
+        } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
+                   m_textBuffer->paragraphCount() - 1) {
+            // Merge with next paragraph
+            QString nextText = m_textBuffer->paragraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph + 1));
+            m_textBuffer->setParagraphText(
+                static_cast<size_t>(m_cursorPosition.paragraph), paraText + nextText);
+            m_textBuffer->removeParagraph(
+                static_cast<size_t>(m_cursorPosition.paragraph + 1));
+        }
+
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+        update();
         return;
     }
 
@@ -1244,7 +1672,34 @@ void BookEditor::clearUndoStack()
 
 void BookEditor::copy()
 {
-    if (m_document == nullptr || !hasSelection()) {
+    if (!hasSelection()) {
+        return;
+    }
+
+    // Phase 8: New architecture using TextBuffer (Task 8.16)
+    if (m_useNewArchitecture && m_textBuffer) {
+        SelectionRange sel = m_selection.normalized();
+
+        // Build plain text from selection
+        QString plainText;
+        for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
+            QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(p));
+            int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
+            int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
+
+            if (p > sel.start.paragraph) {
+                plainText += '\n';  // Paragraph separator
+            }
+            plainText += paraText.mid(startOffset, endOffset - startOffset);
+        }
+
+        // Set clipboard
+        QClipboard* clipboard = QGuiApplication::clipboard();
+        clipboard->setText(plainText);
+        return;
+    }
+
+    if (m_document == nullptr) {
         return;
     }
 
@@ -1253,7 +1708,21 @@ void BookEditor::copy()
 
 void BookEditor::cut()
 {
-    if (m_document == nullptr || !hasSelection()) {
+    if (!hasSelection()) {
+        return;
+    }
+
+    // Phase 8: New architecture using TextBuffer (Task 8.17)
+    if (m_useNewArchitecture && m_textBuffer) {
+        // Copy first
+        copy();
+
+        // Then delete selection
+        deleteSelectedText();
+        return;
+    }
+
+    if (m_document == nullptr) {
         return;
     }
 
@@ -1264,6 +1733,25 @@ void BookEditor::cut()
 
 void BookEditor::paste()
 {
+    // Phase 8: New architecture using TextBuffer (Task 8.18-8.19)
+    if (m_useNewArchitecture && m_textBuffer) {
+        QClipboard* clipboard = QGuiApplication::clipboard();
+        QString text = clipboard->text();
+
+        if (text.isEmpty()) {
+            return;
+        }
+
+        // Delete selection if any
+        if (hasSelection()) {
+            deleteSelectedText();
+        }
+
+        // Insert the pasted text (insertText handles newlines)
+        insertText(text);
+        return;
+    }
+
     if (m_document == nullptr) {
         return;
     }
@@ -1739,6 +2227,31 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
+    // Phase 8: Use RenderEngine for new architecture (OpenSpec #00043 Task 8.10)
+    if (m_useNewArchitecture && m_renderEngine && m_textBuffer) {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+        // Background
+        painter.fillRect(rect(), m_appearance.colors.editorBackground);
+
+        // Configure render engine with current appearance settings
+        m_renderEngine->setBackgroundColor(m_appearance.colors.editorBackground);
+        m_renderEngine->setTextColor(m_appearance.colors.text);
+
+        // Delegate painting to RenderEngine
+        m_renderEngine->paint(&painter, event->rect(), size());
+
+        // Additional overlays for view modes
+        if (m_appearance.focusMode.enabled) {
+            paintFocusOverlay(painter);
+        }
+
+        event->accept();
+        return;
+    }
+
+    // Legacy architecture: Use KmlDocument + LayoutManager + VirtualScrollManager
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -1832,7 +2345,12 @@ void BookEditor::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
 
-    // Update layout and scroll managers with new size
+    // Phase 8: Notify ViewportManager of size changes (OpenSpec #00043 Task 8.11-8.12)
+    if (m_useNewArchitecture && m_viewportManager) {
+        m_viewportManager->setViewportSize(event->size());
+    }
+
+    // Legacy architecture: Update layout and scroll managers with new size
     updateLayoutWidth();
     updateViewport();
 
@@ -1847,6 +2365,20 @@ void BookEditor::resizeEvent(QResizeEvent* event)
 
 void BookEditor::wheelEvent(QWheelEvent* event)
 {
+    // Phase 8: Use ViewportManager for new architecture (OpenSpec #00043 Task 8.9)
+    if (m_useNewArchitecture && m_viewportManager) {
+        QPoint angleDelta = event->angleDelta();
+        if (!angleDelta.isNull()) {
+            // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
+            qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
+            double newPos = m_viewportManager->scrollPosition() + delta;
+            m_viewportManager->setScrollPosition(newPos);
+            event->accept();
+            return;
+        }
+    }
+
+    // Legacy architecture: Use VirtualScrollManager
     // Get the scroll delta in degrees (each step = 15 degrees typically)
     QPoint angleDelta = event->angleDelta();
 
@@ -2496,7 +3028,10 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
     m_clickTimer->start(MULTI_CLICK_INTERVAL);
 
     // Convert click to cursor position
-    CursorPosition clickPosition = positionFromPoint(clickPos);
+    // Phase 8.7: Use new architecture if enabled for O(log N) position lookup
+    CursorPosition clickPosition = m_useNewArchitecture
+        ? positionFromPointNewArch(clickPos)
+        : positionFromPoint(clickPos);
 
     if (m_clickCount == 3) {
         // Triple click - select paragraph
@@ -2513,11 +3048,22 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         if (event->modifiers() & Qt::ShiftModifier) {
             // Shift+click extends selection
             extendSelection(clickPosition);
+
+            // Phase 8.7: Update render engine selection for new architecture
+            if (m_useNewArchitecture && m_renderEngine && hasSelection()) {
+                m_renderEngine->setSelection(m_selection);
+                update();
+            }
         } else {
             // Normal click clears selection and positions cursor
             clearSelection();
             m_selectionAnchor = clickPosition;
             setCursorPosition(clickPosition);
+
+            // Phase 8.7: Clear render engine selection for new architecture
+            if (m_useNewArchitecture && m_renderEngine) {
+                m_renderEngine->clearSelection();
+            }
         }
 
         // Start drag selection
@@ -2552,7 +3098,10 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     }
 
     // Get position from mouse
-    CursorPosition dragPosition = positionFromPoint(event->position());
+    // Phase 8.8: Use new architecture if enabled for O(log N) position lookup
+    CursorPosition dragPosition = m_useNewArchitecture
+        ? positionFromPointNewArch(event->position())
+        : positionFromPoint(event->position());
 
     // Update selection from anchor to current position
     SelectionRange newSelection;
@@ -2562,6 +3111,13 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     // Move cursor to drag position
     m_cursorPosition = dragPosition;
     setSelection(newSelection);
+
+    // Phase 8.8: Update render engine selection for new architecture
+    if (m_useNewArchitecture && m_renderEngine) {
+        m_renderEngine->setSelection(newSelection);
+        update();  // Trigger repaint for selection rendering
+    }
+
     ensureCursorVisible();
 
     event->accept();
@@ -2645,6 +3201,56 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
     }
 
     return {paraIndex, offset};
+}
+
+CursorPosition BookEditor::positionFromPointNewArch(const QPointF& widgetPos) const
+{
+    // Phase 8.7: New architecture position calculation using Fenwick tree
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+        return {0, 0};
+    }
+
+    // Convert widget Y to document Y (accounting for scroll and margins)
+    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - TOP_MARGIN;
+    if (docY < 0) {
+        docY = 0;
+    }
+
+    // Find paragraph at Y using TextBuffer's Fenwick tree - O(log N)
+    size_t paraIndex = m_textBuffer->getParagraphAtY(docY);
+    if (paraIndex >= m_textBuffer->paragraphCount()) {
+        paraIndex = m_textBuffer->paragraphCount() - 1;
+    }
+
+    // Get layout for hit testing using LazyLayoutManager
+    QTextLayout* layout = m_lazyLayoutManager->getLayout(paraIndex);
+    if (!layout) {
+        return {static_cast<int>(paraIndex), 0};
+    }
+
+    // Convert to paragraph-relative coordinates
+    double paraY = m_textBuffer->getParagraphY(paraIndex);
+    double localY = docY - paraY;
+    double localX = widgetPos.x() - LEFT_MARGIN;
+    if (localX < 0) {
+        localX = 0;
+    }
+
+    // Hit test within layout to find character offset
+    int offset = 0;
+    for (int i = 0; i < layout->lineCount(); ++i) {
+        QTextLine line = layout->lineAt(i);
+        if (localY >= line.y() && localY < line.y() + line.height()) {
+            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
+            break;
+        }
+        // If below all lines, use last line
+        if (i == layout->lineCount() - 1) {
+            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
+        }
+    }
+
+    return {static_cast<int>(paraIndex), offset};
 }
 
 void BookEditor::drawSelection(QPainter* painter)
@@ -2803,6 +3409,11 @@ void BookEditor::extendSelection(const CursorPosition& newCursor)
 
     m_cursorPosition = newCursor;
     setSelection(range);
+
+    // Phase 8.14: Update render engine selection for new architecture
+    if (m_useNewArchitecture && m_renderEngine) {
+        m_renderEngine->setSelection(range);
+    }
 }
 
 void BookEditor::updateSelectionInLayouts()
@@ -4103,6 +4714,113 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
     });
 
     return menu;
+}
+
+// =============================================================================
+// Phase 8: New Performance-Optimized Architecture Helpers (OpenSpec #00043)
+// =============================================================================
+
+void BookEditor::syncDocumentToNewArchitecture()
+{
+    auto& logger = core::Logger::getInstance();
+
+    // Clear existing content in new architecture components
+    m_formatLayer->clearAll();
+    m_metadataLayer->clear();
+
+    if (m_document == nullptr) {
+        // No document - clear the text buffer
+        m_textBuffer->setPlainText(QString());
+        logger.debug("BookEditor::syncDocumentToNewArchitecture - cleared (no document)");
+        return;
+    }
+
+    // Use KmlConverter to convert KmlDocument content to TextBuffer + FormatLayer
+    // For now, we do a simple text extraction without full KML parsing
+    // This preserves existing functionality while allowing gradual migration
+
+    QString fullText;
+    const int paraCount = static_cast<int>(m_document->paragraphCount());
+
+    for (int i = 0; i < paraCount; ++i) {
+        const KmlParagraph* para = m_document->paragraph(static_cast<size_t>(i));
+        if (para != nullptr) {
+            if (i > 0) {
+                fullText += '\n';  // Paragraph separator
+            }
+            fullText += para->plainText();
+        }
+    }
+
+    m_textBuffer->setPlainText(fullText);
+
+    // Update viewport and lazy layout manager with new content
+    if (m_viewportManager) {
+        m_viewportManager->setViewportSize(size());
+    }
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+        m_lazyLayoutManager->invalidateAllLayouts();
+    }
+
+    logger.debug("BookEditor::syncDocumentToNewArchitecture - synced {} paragraphs, {} chars",
+                 paraCount, fullText.length());
+}
+
+int BookEditor::calculateAbsolutePosition(const CursorPosition& pos) const
+{
+    if (m_textBuffer == nullptr || m_textBuffer->paragraphCount() == 0) {
+        return 0;
+    }
+
+    int absolutePos = 0;
+    const int targetPara = std::max(0, pos.paragraph);
+    const int paraCount = static_cast<int>(m_textBuffer->paragraphCount());
+
+    // Sum lengths of all paragraphs before the target paragraph
+    for (int i = 0; i < targetPara && i < paraCount; ++i) {
+        absolutePos += m_textBuffer->paragraphLength(static_cast<size_t>(i));
+        absolutePos += 1;  // Account for newline character between paragraphs
+    }
+
+    // Add the character offset within the target paragraph
+    if (targetPara < paraCount) {
+        const int paraLen = m_textBuffer->paragraphLength(static_cast<size_t>(targetPara));
+        absolutePos += std::min(pos.offset, paraLen);
+    }
+
+    return absolutePos;
+}
+
+CursorPosition BookEditor::calculateCursorPosition(int absolutePos) const
+{
+    if (m_textBuffer == nullptr || m_textBuffer->paragraphCount() == 0 || absolutePos <= 0) {
+        return CursorPosition{0, 0};
+    }
+
+    int remaining = absolutePos;
+    const int paraCount = static_cast<int>(m_textBuffer->paragraphCount());
+
+    for (int i = 0; i < paraCount; ++i) {
+        const int paraLen = m_textBuffer->paragraphLength(static_cast<size_t>(i));
+
+        if (remaining <= paraLen) {
+            // Position is within this paragraph
+            return CursorPosition{i, remaining};
+        }
+
+        remaining -= paraLen;
+        remaining -= 1;  // Account for newline character
+
+        if (remaining < 0) {
+            // Position was at the newline between paragraphs
+            return CursorPosition{i, paraLen};
+        }
+    }
+
+    // Position is beyond document end - return end of last paragraph
+    const int lastPara = paraCount - 1;
+    return CursorPosition{lastPara, m_textBuffer->paragraphLength(static_cast<size_t>(lastPara))};
 }
 
 }  // namespace kalahari::editor

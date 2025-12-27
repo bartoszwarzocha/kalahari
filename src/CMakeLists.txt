@@ -19,6 +19,10 @@ set(KALAHARI_CORE_SOURCES
     editor/table_layout.cpp      # Phase 2.6: Table layout
     editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/layout_manager.cpp          # Phase 2.11: Layout manager
+    editor/text_buffer.cpp             # OpenSpec #00043: High-performance text buffer
+    editor/lazy_layout_manager.cpp     # OpenSpec #00043: Lazy layout manager
+    editor/format_layer.cpp            # OpenSpec #00043: Format layer with interval tree
+    editor/kml_converter.cpp           # OpenSpec #00043: KML to TextBuffer/FormatLayer converter
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     editor/view_modes.cpp              # Phase 5: View mode registry
@@ -184,6 +188,8 @@ set(KALAHARI_SOURCES
     editor/quick_insert_handler.cpp      # Tasks 7.11-7.12: Quick insert @ and # triggers
     editor/quick_insert_popup.cpp        # Tasks 7.11-7.12: Quick insert autocomplete popup
     editor/snapshot_manager.cpp          # Task 7.13: Snapshot (restore points) manager
+    editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
+    editor/render_engine.cpp             # OpenSpec #00043: Render engine for viewport-only rendering
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -231,6 +237,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_handler.h  # QuickInsertHandler with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_popup.h    # QuickInsertPopup with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/snapshot_manager.h      # SnapshotManager with Q_OBJECT (OpenSpec #00042 Task 7.13)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h        # RenderEngine with Q_OBJECT (OpenSpec #00043 Phase 6)
 )
 
 # Create executable
