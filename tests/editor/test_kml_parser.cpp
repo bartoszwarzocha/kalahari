@@ -274,6 +274,53 @@ TEST_CASE("KmlParser parseElement superscript", "[editor][kml_parser]") {
     }
 }
 
+TEST_CASE("KmlParser legacy tag names", "[editor][kml_parser]") {
+    KmlParser parser;
+
+    SECTION("Legacy <bold> tag parsed as bold") {
+        auto result = parser.parseElement("<bold>Bold text</bold>");
+        REQUIRE(result);
+        REQUIRE(result.result->type() == ElementType::Bold);
+        REQUIRE(result.result->plainText() == "Bold text");
+    }
+
+    SECTION("Legacy <italic> tag parsed as italic") {
+        auto result = parser.parseElement("<italic>Italic text</italic>");
+        REQUIRE(result);
+        REQUIRE(result.result->type() == ElementType::Italic);
+        REQUIRE(result.result->plainText() == "Italic text");
+    }
+
+    SECTION("Legacy <underline> tag parsed as underline") {
+        auto result = parser.parseElement("<underline>Underlined text</underline>");
+        REQUIRE(result);
+        REQUIRE(result.result->type() == ElementType::Underline);
+        REQUIRE(result.result->plainText() == "Underlined text");
+    }
+
+    SECTION("Legacy <strikethrough> tag parsed as strikethrough") {
+        auto result = parser.parseElement("<strikethrough>Struck text</strikethrough>");
+        REQUIRE(result);
+        REQUIRE(result.result->type() == ElementType::Strikethrough);
+        REQUIRE(result.result->plainText() == "Struck text");
+    }
+
+    SECTION("Legacy <strike> tag parsed as strikethrough") {
+        auto result = parser.parseElement("<strike>Struck text</strike>");
+        REQUIRE(result);
+        REQUIRE(result.result->type() == ElementType::Strikethrough);
+        REQUIRE(result.result->plainText() == "Struck text");
+    }
+
+    SECTION("Legacy tags in document with <kml> wrapper") {
+        auto result = parser.parseDocument("<kml><p><bold>Chapter Title</bold></p></kml>");
+        REQUIRE(result);
+        REQUIRE(result.result->paragraphCount() == 1);
+        auto* para = result.result->paragraph(0);
+        REQUIRE(para->plainText() == "Chapter Title");
+    }
+}
+
 // =============================================================================
 // Nested Element Tests
 // =============================================================================

@@ -4,7 +4,9 @@
 #include <kalahari/editor/kml_converter.h>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+#include <QUuid>
 #include <algorithm>
+#include <limits>
 #include <stack>
 
 namespace kalahari::editor {
@@ -54,6 +56,23 @@ void MetadataLayer::removeTodo(size_t index) {
     }
 }
 
+void MetadataLayer::removeTodo(const QString& id) {
+    m_todos.erase(
+        std::remove_if(m_todos.begin(), m_todos.end(),
+                       [&id](const TextTodo& t) { return t.id == id; }),
+        m_todos.end());
+}
+
+std::vector<TextTodo> MetadataLayer::getTodosAt(size_t position) const {
+    std::vector<TextTodo> result;
+    for (const auto& t : m_todos) {
+        if (t.position == position) {
+            result.push_back(t);
+        }
+    }
+    return result;
+}
+
 std::vector<TextTodo> MetadataLayer::getTodosInRange(size_t start, size_t end) const {
     std::vector<TextTodo> result;
     for (const auto& t : m_todos) {
@@ -62,6 +81,84 @@ std::vector<TextTodo> MetadataLayer::getTodosInRange(size_t start, size_t end) c
         }
     }
     return result;
+}
+
+std::vector<TextTodo> MetadataLayer::getMarkersByType(MarkerType type) const {
+    std::vector<TextTodo> result;
+    for (const auto& todo : m_todos) {
+        if (todo.type == type) {
+            result.push_back(todo);
+        }
+    }
+    return result;
+}
+
+std::optional<TextTodo> MetadataLayer::getMarkerById(const QString& id) const {
+    for (const auto& todo : m_todos) {
+        if (todo.id == id) {
+            return todo;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<TextTodo> MetadataLayer::findNextMarker(size_t fromPosition,
+    std::optional<MarkerType> typeFilter) const {
+    std::optional<TextTodo> result;
+    size_t minDist = std::numeric_limits<size_t>::max();
+
+    for (const auto& todo : m_todos) {
+        if (todo.position > fromPosition) {
+            if (!typeFilter || todo.type == *typeFilter) {
+                size_t dist = todo.position - fromPosition;
+                if (dist < minDist) {
+                    minDist = dist;
+                    result = todo;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+std::optional<TextTodo> MetadataLayer::findPreviousMarker(size_t fromPosition,
+    std::optional<MarkerType> typeFilter) const {
+    std::optional<TextTodo> result;
+    size_t maxPos = 0;
+
+    for (const auto& todo : m_todos) {
+        if (todo.position < fromPosition) {
+            if (!typeFilter || todo.type == *typeFilter) {
+                if (todo.position >= maxPos) {
+                    maxPos = todo.position;
+                    result = todo;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+void MetadataLayer::updateTodo(const QString& id, const TextTodo& updated) {
+    for (auto& todo : m_todos) {
+        if (todo.id == id) {
+            todo = updated;
+            return;
+        }
+    }
+}
+
+void MetadataLayer::toggleTodoCompleted(const QString& id) {
+    for (auto& todo : m_todos) {
+        if (todo.id == id) {
+            todo.completed = !todo.completed;
+            return;
+        }
+    }
+}
+
+QString MetadataLayer::generateMarkerId() {
+    return QUuid::createUuid().toString(QUuid::WithoutBraces);
 }
 
 void MetadataLayer::onTextInserted(size_t position, size_t length) {
@@ -210,6 +307,8 @@ bool KmlConverter::parseDocumentContent(QXmlStreamReader& reader,
                 offset = parseParagraph(reader, buffer, formatLayer, offset);
             } else if (tag == "comments" && metadataLayer) {
                 parseComments(reader, *metadataLayer);
+            } else if (tag == "markers" && metadataLayer) {
+                parseMarkers(reader, *metadataLayer);
             } else {
                 // Skip unknown elements
                 reader.skipCurrentElement();
@@ -347,6 +446,58 @@ bool KmlConverter::parseComments(QXmlStreamReader& reader, MetadataLayer& metada
     return true;
 }
 
+bool KmlConverter::parseMarkers(QXmlStreamReader& reader, MetadataLayer& metadata) {
+    reader.readNext();
+
+    while (!reader.atEnd()) {
+        if (reader.isEndElement() && reader.name().toString() == "markers") {
+            break;
+        }
+
+        if (reader.isStartElement()) {
+            QString tagName = reader.name().toString();
+            if (tagName == "todo" || tagName == "note") {
+                TextTodo marker;
+                marker.type = (tagName == "todo") ? MarkerType::Todo : MarkerType::Note;
+
+                // Read attributes
+                QXmlStreamAttributes attrs = reader.attributes();
+                if (attrs.hasAttribute("position")) {
+                    marker.position = attrs.value("position").toULongLong();
+                }
+                if (attrs.hasAttribute("id")) {
+                    marker.id = attrs.value("id").toString();
+                }
+                if (attrs.hasAttribute("completed")) {
+                    marker.completed = (attrs.value("completed").toString() == "true");
+                }
+                if (attrs.hasAttribute("priority")) {
+                    marker.priority = attrs.value("priority").toString();
+                }
+                if (attrs.hasAttribute("timestamp")) {
+                    marker.timestamp = attrs.value("timestamp").toString();
+                }
+
+                // Read marker text content
+                marker.text = reader.readElementText();
+
+                // Generate ID if missing
+                if (marker.id.isEmpty()) {
+                    marker.id = MetadataLayer::generateMarkerId();
+                }
+
+                metadata.addTodo(marker);
+            } else {
+                reader.readNext();
+            }
+        } else {
+            reader.readNext();
+        }
+    }
+
+    return true;
+}
+
 FormatType KmlConverter::tagToFormatType(const QString& tag) const {
     if (tag == "b" || tag == "bold") return FormatType::Bold;
     if (tag == "i" || tag == "italic") return FormatType::Italic;
@@ -421,6 +572,31 @@ QString KmlConverter::toKml(const TextBuffer& buffer,
             writer.writeEndElement();  // </comment>
         }
         writer.writeEndElement();  // </comments>
+    }
+
+    // Write TODO/Note markers if present (Task 9.13)
+    if (metadataLayer && !metadataLayer->allTodos().empty()) {
+        writer.writeStartElement("markers");
+        for (const auto& marker : metadataLayer->allTodos()) {
+            QString tagName = (marker.type == MarkerType::Todo) ? "todo" : "note";
+            writer.writeStartElement(tagName);
+            writer.writeAttribute("position", QString::number(marker.position));
+            writer.writeAttribute("id", marker.id);
+            if (marker.type == MarkerType::Todo) {
+                writer.writeAttribute("completed", marker.completed ? "true" : "false");
+            }
+            if (!marker.priority.isEmpty()) {
+                writer.writeAttribute("priority", marker.priority);
+            }
+            if (!marker.timestamp.isEmpty()) {
+                writer.writeAttribute("timestamp", marker.timestamp);
+            }
+            if (!marker.text.isEmpty()) {
+                writer.writeCharacters(marker.text);
+            }
+            writer.writeEndElement();  // </todo> or </note>
+        }
+        writer.writeEndElement();  // </markers>
     }
 
     writer.writeEndElement();  // </kml>

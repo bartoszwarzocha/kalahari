@@ -22,6 +22,8 @@ class TextBuffer;
 class LazyLayoutManager;
 class ViewportManager;
 class FormatLayer;
+class SearchEngine;
+class MetadataLayer;
 
 // Use SelectionRange from editor_types.h for selections
 // Use CursorPosition from editor_types.h for cursor
@@ -59,6 +61,42 @@ public:
     /// @brief Set the format layer for text formatting
     void setFormatLayer(FormatLayer* formatLayer);
     FormatLayer* formatLayer() const { return m_formatLayer; }
+
+    /// @brief Set the search engine for match highlighting
+    void setSearchEngine(SearchEngine* engine);
+    SearchEngine* searchEngine() const { return m_searchEngine; }
+
+    /// @brief Set search match highlight color
+    void setSearchHighlightColor(const QColor& color);
+    QColor searchHighlightColor() const { return m_searchHighlightColor; }
+
+    /// @brief Set current match highlight color
+    void setCurrentMatchColor(const QColor& color);
+    QColor currentMatchColor() const { return m_currentMatchColor; }
+
+    /// @brief Set the metadata layer for comment rendering
+    void setMetadataLayer(MetadataLayer* layer);
+    MetadataLayer* metadataLayer() const { return m_metadataLayer; }
+
+    /// @brief Set comment highlight background color
+    void setCommentHighlightColor(const QColor& color);
+    QColor commentHighlightColor() const { return m_commentHighlightColor; }
+
+    /// @brief Set comment border/underline color
+    void setCommentBorderColor(const QColor& color);
+    QColor commentBorderColor() const { return m_commentBorderColor; }
+
+    /// @brief Set TODO marker highlight color
+    void setTodoHighlightColor(const QColor& color);
+    QColor todoHighlightColor() const { return m_todoHighlightColor; }
+
+    /// @brief Set NOTE marker highlight color
+    void setNoteHighlightColor(const QColor& color);
+    QColor noteHighlightColor() const { return m_noteHighlightColor; }
+
+    /// @brief Set completed TODO color (dimmed)
+    void setCompletedTodoColor(const QColor& color);
+    QColor completedTodoColor() const { return m_completedTodoColor; }
 
     // =========================================================================
     // Appearance Configuration
@@ -232,6 +270,22 @@ private:
     /// @brief Paint the cursor
     void paintCursor(QPainter* painter);
 
+    /// @brief Paint search match highlights
+    void paintSearchHighlights(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Paint comment highlights
+    void paintCommentHighlights(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Paint TODO/NOTE marker highlights
+    void paintMarkerHighlights(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Get rectangle for text range in a paragraph
+    /// @param paraIndex Paragraph index
+    /// @param offset Character offset within paragraph
+    /// @param length Text length in characters
+    /// @return Rectangle in widget coordinates, or empty if not visible
+    QRectF getTextRect(size_t paraIndex, int offset, int length) const;
+
     /// @brief Calculate the rectangle for selection in a paragraph
     QRectF selectionRectForParagraph(size_t paraIndex, size_t startOffset,
                                       size_t endOffset, double paraY) const;
@@ -245,6 +299,8 @@ private:
     LazyLayoutManager* m_layoutManager = nullptr;
     ViewportManager* m_viewportManager = nullptr;
     FormatLayer* m_formatLayer = nullptr;
+    SearchEngine* m_searchEngine = nullptr;
+    MetadataLayer* m_metadataLayer = nullptr;
 
     // Appearance
     QFont m_font;
@@ -253,6 +309,13 @@ private:
     QColor m_selectionColor{51, 153, 255, 128};  // Semi-transparent blue
     QColor m_selectionTextColor{255, 255, 255};
     QColor m_cursorColor{0, 0, 0};
+    QColor m_searchHighlightColor{255, 255, 0, 128};   // Yellow semi-transparent
+    QColor m_currentMatchColor{255, 165, 0, 180};      // Orange more opaque
+    QColor m_commentHighlightColor{255, 255, 150, 100};  // Light yellow, semi-transparent
+    QColor m_commentBorderColor{255, 200, 0};            // Orange border
+    QColor m_todoHighlightColor{255, 200, 200, 100};     // Light red, semi-transparent
+    QColor m_noteHighlightColor{200, 220, 255, 100};     // Light blue, semi-transparent
+    QColor m_completedTodoColor{180, 180, 180, 80};      // Gray, dimmed
     double m_leftMargin = 10.0;
     double m_topMargin = 10.0;
     double m_rightMargin = 10.0;

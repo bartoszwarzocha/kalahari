@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_comment.h>
@@ -31,6 +32,7 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/render_engine.h>
 #include <kalahari/editor/kml_converter.h>
+#include <kalahari/editor/search_engine.h>
 #include <QWidget>
 #include <QList>
 #include <memory>
@@ -44,6 +46,10 @@ class QScrollBar;
 class QTimer;
 class QUndoStack;
 class QMenu;
+
+namespace kalahari::gui {
+class FindReplaceBar;
+}  // namespace kalahari::gui
 
 namespace kalahari::editor {
 
@@ -105,6 +111,22 @@ public:
     /// @brief Get the current document
     /// @return Pointer to the document, or nullptr if not set
     KmlDocument* document() const;
+
+    /// @brief Get document content as KML markup
+    /// @return KML string representing document state
+    ///
+    /// Uses new architecture (TextBuffer/FormatLayer) if enabled,
+    /// otherwise falls back to KmlDocument::toKml().
+    QString toKml() const;
+
+    /// @brief Load document content from KML markup
+    /// @param kml The KML string to load
+    ///
+    /// Parses the KML markup using KmlConverter and populates
+    /// the TextBuffer, FormatLayer, and MetadataLayer.
+    /// Also updates the KmlDocument for compatibility with old architecture.
+    /// Resets cursor position and clears undo stack.
+    void fromKml(const QString& kml);
 
     // =========================================================================
     // Layout Configuration
@@ -583,6 +605,99 @@ public:
     /// Results are received via paragraphChecked signal and rendered automatically.
     void requestGrammarCheck();
 
+    // =========================================================================
+    // Find/Replace (Phase 9.4-9.6)
+    // =========================================================================
+
+    /// @brief Get the search engine for find/replace operations
+    /// @return Pointer to the SearchEngine
+    SearchEngine* searchEngine() const;
+
+    /// @brief Show the find bar (find-only mode)
+    ///
+    /// If text is selected, uses selection as initial search text.
+    void showFind();
+
+    /// @brief Show the find/replace bar
+    ///
+    /// If text is selected, uses selection as initial search text.
+    void showFindReplace();
+
+    /// @brief Navigate to the next search match
+    void findNext();
+
+    /// @brief Navigate to the previous search match
+    void findPrevious();
+
+    /// @brief Hide the find/replace bar and clear search highlights
+    void hideFindReplace();
+
+    // =========================================================================
+    // TODO/Note Markers (Phase 9.12)
+    // =========================================================================
+
+    /// @brief Add a TODO marker at the current cursor position
+    /// @param text Optional text for the TODO marker
+    ///
+    /// Creates a TODO marker with the specified text (or default "TODO")
+    /// at the cursor position. The operation is undoable.
+    void addTodoAtCursor(const QString& text = QString());
+
+    /// @brief Add a Note marker at the current cursor position
+    /// @param text Optional text for the Note marker
+    ///
+    /// Creates a Note marker with the specified text (or default "Note")
+    /// at the cursor position. The operation is undoable.
+    void addNoteAtCursor(const QString& text = QString());
+
+    /// @brief Remove the marker at the current cursor position
+    ///
+    /// Removes the first marker found at the cursor position.
+    /// The operation is undoable.
+    void removeMarkerAtCursor();
+
+    /// @brief Toggle the completion state of a TODO at cursor position
+    ///
+    /// If a TODO marker is at the cursor position, toggles its
+    /// completed flag. Notes are ignored. The operation is undoable.
+    void toggleTodoAtCursor();
+
+    /// @brief Navigate to the next TODO marker
+    ///
+    /// Moves cursor to the next TODO marker after the current position.
+    /// Does nothing if no TODO markers exist after the cursor.
+    void goToNextTodo();
+
+    /// @brief Navigate to the previous TODO marker
+    ///
+    /// Moves cursor to the previous TODO marker before the current position.
+    /// Does nothing if no TODO markers exist before the cursor.
+    void goToPreviousTodo();
+
+    /// @brief Navigate to the next Note marker
+    ///
+    /// Moves cursor to the next Note marker after the current position.
+    /// Does nothing if no Note markers exist after the cursor.
+    void goToNextNote();
+
+    /// @brief Navigate to the previous Note marker
+    ///
+    /// Moves cursor to the previous Note marker before the current position.
+    /// Does nothing if no Note markers exist before the cursor.
+    void goToPreviousNote();
+
+    /// @brief Navigate to the next marker (TODO or Note)
+    ///
+    /// Moves cursor to the next marker of any type after the current position.
+    /// Does nothing if no markers exist after the cursor.
+    void goToNextMarker();
+
+    /// @brief Navigate to the previous marker (TODO or Note)
+    ///
+    /// Moves cursor to the previous marker of any type before the current position.
+    /// Does nothing if no markers exist before the cursor.
+    void goToPreviousMarker();
+
     /// @brief Set the appearance settings
     /// @param appearance The new appearance configuration
     ///
@@ -864,6 +979,13 @@ private:
     /// Content painting is delegated to paragraph layouts.
     void paintPageMode(QPainter& painter);
 
+    /// @brief Paint Page Mode using new architecture (Task 9.16)
+    /// @param painter The painter to draw with
+    ///
+    /// Uses TextBuffer, LazyLayoutManager, and RenderEngine for page mode
+    /// rendering with O(log N) performance characteristics.
+    void paintPageModeNewArch(QPainter& painter);
+
     // =========================================================================
     // Focus Mode (Phase 5.6)
     // =========================================================================
@@ -888,6 +1010,10 @@ private:
     /// - Sentence: Currently treated same as Paragraph
     FocusedRange getFocusedRange() const;
 
+    /// @brief Get focused range using new architecture (Task 9.19)
+    /// @return Focused range using TextBuffer and LazyLayoutManager
+    FocusedRange getFocusedRangeNewArch() const;
+
     /// @brief Paint the focus mode overlay (dimming effect)
     /// @param painter The painter to draw with
     ///
@@ -895,6 +1021,10 @@ private:
     /// create the focus effect. Also draws optional highlight behind
     /// the focused area.
     void paintFocusOverlay(QPainter& painter);
+
+    /// @brief Paint focus overlay using new architecture (Task 9.19)
+    /// @param painter The painter to draw with
+    void paintFocusOverlayNewArch(QPainter& painter);
 
     // =========================================================================
     // Distraction-Free Mode (Phase 5.7)
@@ -910,6 +1040,10 @@ private:
     /// @brief Get total word count in the document
     /// @return Word count, or 0 if no document
     int getWordCount() const;
+
+    /// @brief Get word count using new TextBuffer architecture (Task 9.18)
+    /// @return Word count using TextBuffer paragraphText()
+    int getWordCountNewArch() const;
 
     /// @brief Start UI fade animation
     ///
@@ -1073,6 +1207,23 @@ private:
     /// @param absolutePos Absolute character offset in the document (0-based)
     /// @return Cursor position (paragraph + offset)
     CursorPosition calculateCursorPosition(int absolutePos) const;
+
+    // =========================================================================
+    // Find/Replace (Phase 9.4-9.6)
+    // =========================================================================
+
+    /// @brief Search engine for find/replace operations
+    std::unique_ptr<SearchEngine> m_searchEngine;
+
+    /// @brief Find/replace bar widget
+    gui::FindReplaceBar* m_findReplaceBar = nullptr;
+
+    /// @brief Setup find/replace components
+    void setupFindReplace();
+
+    /// @brief Navigate cursor to a search match
+    /// @param match The search match to navigate to
+    void onNavigateToMatch(const SearchMatch& match);
 };
 
 }  // namespace kalahari::editor

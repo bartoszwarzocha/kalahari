@@ -69,6 +69,18 @@ EditorPanel::EditorPanel(QWidget* parent)
 }
 
 EditorPanel::~EditorPanel() {
+    // CRITICAL: Disconnect BookEditor from document BEFORE document is destroyed
+    // Otherwise LayoutManager::~LayoutManager() will try to access destroyed document
+    // when it calls m_document->removeObserver(this)
+    if (m_bookEditor) {
+        m_bookEditor->setDocument(nullptr);
+    }
+
+    // Disconnect StatisticsCollector from document
+    if (m_statisticsCollector) {
+        m_statisticsCollector->setDocument(nullptr);
+    }
+
     // Remove observer before document is destroyed
     if (m_document && m_observer) {
         m_document->removeObserver(m_observer.get());
@@ -139,14 +151,19 @@ void EditorPanel::setContent(const QString& content) {
     logger.debug("EditorPanel::setContent called with {} chars", content.length());
     logger.debug("EditorPanel::setContent content preview: {}", content.left(200).toStdString());
 
-    // Remove observer from old document
+    // Use BookEditor::fromKml() for new architecture (Task 9.14)
+    // This method handles both new and old architecture internally
+    m_bookEditor->fromKml(content);
+    logger.debug("EditorPanel::setContent - BookEditor::fromKml() called");
+
+    // Also update m_document for observer pattern and statistics collector
+    // Remove observer from old document first
     if (m_document) {
         m_document->removeObserver(m_observer.get());
     }
 
-    // Content is now KML directly (no HTML->KML conversion needed)
-    // Just parse it directly
-    logger.debug("EditorPanel::setContent - parsing KML...");
+    // Content is KML - parse for old architecture document
+    logger.debug("EditorPanel::setContent - parsing KML for document...");
     editor::KmlParser parser;
     auto result = parser.parseDocument(content);
     logger.debug("EditorPanel::setContent - parse result: success={}, errorMsg={}",
@@ -181,12 +198,15 @@ void EditorPanel::setContent(const QString& content) {
 }
 
 QString EditorPanel::getContent() const {
-    if (!m_document) {
-        return QString();
+    // Use BookEditor::toKml() which supports new architecture (Task 9.13)
+    if (m_bookEditor) {
+        return m_bookEditor->toKml();
     }
-
-    // Return KML directly (no conversion to HTML needed)
-    return m_document->toKml();
+    // Fallback to document if no editor
+    if (m_document) {
+        return m_document->toKml();
+    }
+    return QString();
 }
 
 void EditorPanel::applySettings() {

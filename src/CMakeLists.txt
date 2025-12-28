@@ -173,10 +173,12 @@ set(KALAHARI_SOURCES
     gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
+    gui/find_replace_bar.cpp    # OpenSpec #00044 Task 9.6: Find/Replace bar widget
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/kml_commands.cpp     # Phase 4.8: Undo/Redo commands
+    editor/buffer_commands.cpp  # OpenSpec #00043 Phase 9: Buffer/FormatLayer undo commands
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
@@ -190,6 +192,7 @@ set(KALAHARI_SOURCES
     editor/snapshot_manager.cpp          # Task 7.13: Snapshot (restore points) manager
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/render_engine.cpp             # OpenSpec #00043: Render engine for viewport-only rendering
+    editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -215,6 +218,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
@@ -239,6 +243,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/snapshot_manager.h      # SnapshotManager with Q_OBJECT (OpenSpec #00042 Task 7.13)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h        # RenderEngine with Q_OBJECT (OpenSpec #00043 Phase 6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
 )
 
 # Create executable

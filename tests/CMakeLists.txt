@@ -44,6 +44,9 @@ set(TEST_SOURCES
     editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
     editor/test_grammar_check_service.cpp   # Phase 6.14-6.17: GrammarCheckService tests
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
+    editor/test_buffer_commands.cpp        # OpenSpec #00043 Phase 9 Task 9.3: Buffer commands tests
+    editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
+    editor/test_snapshot_roundtrip.cpp     # OpenSpec #00044 Task 9.15: Snapshot round-trip tests
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -107,6 +110,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
+    ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # OpenSpec #00043 Phase 9: Buffer undo commands
+    ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
+    ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
+    # GUI dependencies for FindReplaceBar
+    ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
+    ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
+    ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
+    ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
+    ${CMAKE_SOURCE_DIR}/src/core/resource_paths.cpp        # ResourcePaths for ThemeManager/IconRegistry
+    ${CMAKE_SOURCE_DIR}/src/core/stylesheet.cpp            # StyleSheet for ThemeManager
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
@@ -123,6 +136,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h    # RenderEngine with Q_OBJECT (OpenSpec #00043)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    # GUI dependency headers for MOC
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h   # IconRegistry with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
@@ -154,6 +173,7 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Network
     Qt6::Xml
     Qt6::Sql        # OpenSpec #00041: SQLite Project Database
+    Qt6::Svg        # For IconRegistry (QSvgRenderer) used by ArtProvider
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip

@@ -20,6 +20,7 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace kalahari::editor {
@@ -38,12 +39,21 @@ struct TextComment {
     QString id;                  ///< Unique identifier
 };
 
-/// @brief TODO marker in text
+/// @brief Type of annotation marker
+enum class MarkerType {
+    Todo,   ///< Actionable item (checkbox-like)
+    Note    ///< Informational annotation
+};
+
+/// @brief TODO/Note marker in text
 struct TextTodo {
     size_t position = 0;         ///< Position in document
-    QString text;                ///< TODO content
-    bool completed = false;      ///< Whether TODO is done
+    QString text;                ///< Marker content/description
+    MarkerType type = MarkerType::Todo;  ///< TODO or NOTE
+    bool completed = false;      ///< Only meaningful for TODO
     QString priority;            ///< Priority level
+    QString id;                  ///< Unique identifier
+    QString timestamp;           ///< Creation timestamp
 };
 
 /// @brief Metadata layer for comments, TODOs, bookmarks
@@ -63,9 +73,28 @@ public:
     // TODOs
     void addTodo(const TextTodo& todo);
     void removeTodo(size_t index);
+    void removeTodo(const QString& id);
+    std::vector<TextTodo> getTodosAt(size_t position) const;
     std::vector<TextTodo> getTodosInRange(size_t start, size_t end) const;
     const std::vector<TextTodo>& allTodos() const { return m_todos; }
     void clearTodos() { m_todos.clear(); }
+
+    // Marker query methods
+    std::vector<TextTodo> getMarkersByType(MarkerType type) const;
+    std::optional<TextTodo> getMarkerById(const QString& id) const;
+
+    // Navigation methods
+    std::optional<TextTodo> findNextMarker(size_t fromPosition,
+        std::optional<MarkerType> typeFilter = std::nullopt) const;
+    std::optional<TextTodo> findPreviousMarker(size_t fromPosition,
+        std::optional<MarkerType> typeFilter = std::nullopt) const;
+
+    // Update methods
+    void updateTodo(const QString& id, const TextTodo& updated);
+    void toggleTodoCompleted(const QString& id);
+
+    // ID generation
+    static QString generateMarkerId();
 
     // Position adjustment
     void onTextInserted(size_t position, size_t length);
@@ -241,6 +270,9 @@ private:
 
     /// @brief Parse comments element
     bool parseComments(QXmlStreamReader& reader, MetadataLayer& metadata);
+
+    /// @brief Parse markers element (TODOs and Notes)
+    bool parseMarkers(QXmlStreamReader& reader, MetadataLayer& metadata);
 
     /// @brief Get format type from tag name
     FormatType tagToFormatType(const QString& tag) const;
