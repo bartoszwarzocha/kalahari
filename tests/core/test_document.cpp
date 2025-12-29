@@ -15,6 +15,7 @@
 #include <kalahari/core/document.h>
 #include <thread>
 #include <chrono>
+#include <filesystem>
 
 using namespace kalahari::core;
 
@@ -417,9 +418,15 @@ TEST_CASE("Document save/load operations", "[core][document][io]") {
     SECTION("save() stub implementation") {
         Document doc("Test Save", "Author", "en");
 
+        // Use temp file path to avoid polluting root directory
+        std::filesystem::path tempPath = std::filesystem::temp_directory_path() / "kalahari_test_save.klh";
+
         // Phase 0: Stub implementation (may return false or true)
         // We just verify it doesn't crash
-        REQUIRE_NOTHROW(doc.save("test.klh"));
+        REQUIRE_NOTHROW(doc.save(tempPath.string()));
+
+        // Clean up
+        std::filesystem::remove(tempPath);
     }
 
     SECTION("load() stub implementation") {
