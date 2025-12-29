@@ -231,3 +231,72 @@ message(STATUS "Configured test target: kalahari-tests")
 
 # OpenSpec #00043: Prototype benchmarks for editor performance rewrite
 add_subdirectory(prototypes)
+
+# =============================================================================
+# OpenSpec #00043 Phase 10: Performance Benchmarks for New Architecture
+# =============================================================================
+
+# Benchmark source files
+set(BENCHMARK_SOURCES
+    benchmarks/test_document_generator.cpp
+    benchmarks/performance_benchmark.cpp
+    benchmarks/benchmark_new_architecture.cpp
+    # Source files under test
+    ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/text_buffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/lazy_layout_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/editor_types.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_element.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_text_run.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_inline_elements.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_paragraph.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Required by kml_paragraph.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp
+)
+
+# Windows: Add compatibility shims for Catch2 missing CRT symbols
+if(WIN32)
+    list(APPEND BENCHMARK_SOURCES catch2_windows_compat.cpp)
+endif()
+
+# Create benchmark executable
+add_executable(benchmark-new-arch ${BENCHMARK_SOURCES})
+
+# Target properties
+set_target_properties(benchmark-new-arch PROPERTIES
+    OUTPUT_NAME "benchmark-new-arch"
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Include directories
+target_include_directories(benchmark-new-arch PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks
+)
+
+# Link libraries (use Catch2 without main - we provide custom main for QApplication)
+target_link_libraries(benchmark-new-arch PRIVATE
+    Catch2::Catch2
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Gui
+    Qt6::Xml  # Required for kml_parser.cpp (QDomDocument)
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
+)
+
+# Windows: Link psapi for memory profiling (GetProcessMemoryInfo)
+if(WIN32)
+    target_link_libraries(benchmark-new-arch PRIVATE psapi)
+endif()
+
+message(STATUS "Configured benchmark target: benchmark-new-arch")

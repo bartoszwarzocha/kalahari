@@ -338,6 +338,9 @@ void TextBuffer::insertParagraph(size_t index, const QString& text) {
     size_t count = paragraphCount();
     if (index > count) index = count;
 
+    // Prevent onDocumentContentsChanged() from reinitializing heights during modification
+    m_internalModification = true;
+
     QTextCursor cursor(m_document.get());
 
     if (index == 0) {
@@ -351,6 +354,8 @@ void TextBuffer::insertParagraph(size_t index, const QString& text) {
         cursor.setPosition(blk.position());
         cursor.insertText(text + "\n");
     }
+
+    m_internalModification = false;
 
     // Update height tracking
     double estimated = estimateHeight(text);
@@ -368,6 +373,9 @@ void TextBuffer::removeParagraph(size_t index) {
     QTextBlock blk = block(index);
     if (!blk.isValid()) return;
 
+    // Prevent onDocumentContentsChanged() from reinitializing heights during modification
+    m_internalModification = true;
+
     QTextCursor cursor(m_document.get());
     cursor.setPosition(blk.position());
 
@@ -382,6 +390,8 @@ void TextBuffer::removeParagraph(size_t index) {
         }
     }
     cursor.removeSelectedText();
+
+    m_internalModification = false;
 
     // Update height tracking
     if (index < m_heights.size()) {
@@ -402,10 +412,15 @@ void TextBuffer::setParagraphText(size_t index, const QString& text) {
     QTextBlock blk = block(index);
     if (!blk.isValid()) return;
 
+    // Prevent onDocumentContentsChanged() from reinitializing heights during modification
+    m_internalModification = true;
+
     QTextCursor cursor(m_document.get());
     cursor.setPosition(blk.position());
     cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
     cursor.insertText(text);
+
+    m_internalModification = false;
 
     // Invalidate height for this paragraph
     invalidateParagraphHeight(index);

@@ -79,13 +79,20 @@
 
 - [x] 5.1. Build without warnings
 - [x] 5.2. All 735 unit tests pass
-- [ ] 5.3. Manual: Open ExampleNovel Chapter 1
-- [ ] 5.4. Manual: Open ExampleNovel Chapter 2 (77KB single paragraph)
-- [ ] 5.5. Manual: Edit text, cursor navigation
-- [ ] 5.6. Manual: Spell check, grammar check
-- [ ] 5.7. Manual: Find/Replace
-- [ ] 5.8. Manual: Undo/Redo
-- [ ] 5.9. Performance: Typing latency < 1ms
+- [x] 5.3. Manual: Open ExampleNovel Chapter 1 - OK
+- [x] 5.4. Manual: Open ExampleNovel Chapter 2 (77KB single paragraph) - OK
+- [x] 5.5. Manual: Text selection - OK
+- [ ] ~~5.6. Manual: Edit text~~ - **REGRESJA: kursor niewidoczny, edycja nie działa, program się zawiesza**
+- [ ] ~~5.7. Manual: Cursor navigation~~ - **REGRESJA: nie działa**
+- [ ] 5.8. Manual: Spell check - blocked by 5.6
+- [ ] 5.9. Manual: Find/Replace - blocked by 5.6
+- [ ] 5.10. Manual: Undo/Redo - blocked by 5.6
+
+## REGRESJE DO NAPRAWY (osobny task)
+
+1. **Kursor niewidoczny** - nie można umieścić kursora w tekście
+2. **Edycja tekstu nie działa** - program się zawiesza przy próbie edycji
+3. **Nawigacja kursorem nie działa** - strzałki nie działają
 
 ## Summary
 

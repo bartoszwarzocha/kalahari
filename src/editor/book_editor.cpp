@@ -220,6 +220,17 @@ void BookEditor::setDocument(KmlDocument* document)
         }
     }
 
+    // Sync cursor to RenderEngine (Phase 8 fix)
+    // Note: We don't reset cursor position here - caller may want to preserve it
+    // The cursor position is validated lazily on next setCursorPosition call
+    if (m_renderEngine) {
+        m_renderEngine->setCursorPosition(m_cursorPosition);
+        m_renderEngine->setCursorVisible(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderEngine->startCursorBlink();
+        }
+    }
+
     emit documentChanged();
     update();  // Request repaint
     logger.debug("BookEditor::setDocument - complete");
@@ -343,6 +354,12 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
 
     if (m_cursorPosition != validatedPos) {
         m_cursorPosition = validatedPos;
+
+        // Sync cursor position to RenderEngine (Phase 8 fix)
+        if (m_renderEngine) {
+            m_renderEngine->setCursorPosition(validatedPos);
+        }
+
         ensureCursorVisible();
         emit cursorPositionChanged(m_cursorPosition);
         update();  // Request repaint
@@ -367,6 +384,10 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         if (m_cursorBlinkTimer != nullptr) {
             m_cursorBlinkTimer->start(m_cursorBlinkInterval);
         }
+        // Sync to RenderEngine (Phase 8 fix)
+        if (m_renderEngine) {
+            m_renderEngine->startCursorBlink();
+        }
     } else {
         // Stop blinking and keep cursor visible
         if (m_cursorBlinkTimer != nullptr) {
@@ -375,6 +396,10 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         if (!m_cursorVisible) {
             m_cursorVisible = true;
             update();
+        }
+        // Sync to RenderEngine (Phase 8 fix)
+        if (m_renderEngine) {
+            m_renderEngine->stopCursorBlink();
         }
     }
 }
@@ -396,6 +421,11 @@ void BookEditor::setCursorBlinkInterval(int interval)
     if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
         m_cursorBlinkTimer->setInterval(m_cursorBlinkInterval);
     }
+
+    // Sync to RenderEngine (Phase 8 fix)
+    if (m_renderEngine) {
+        m_renderEngine->setCursorBlinkInterval(m_cursorBlinkInterval);
+    }
 }
 
 void BookEditor::ensureCursorVisible()
@@ -406,6 +436,14 @@ void BookEditor::ensureCursorVisible()
     // Restart blink timer if blinking is enabled
     if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
         m_cursorBlinkTimer->start(m_cursorBlinkInterval);
+    }
+
+    // Sync visibility to RenderEngine (Phase 8 fix)
+    if (m_renderEngine) {
+        m_renderEngine->setCursorVisible(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderEngine->startCursorBlink();
+        }
     }
 
     // In Typewriter mode, update scroll to keep cursor at focus position
@@ -2213,6 +2251,17 @@ void BookEditor::setupComponents()
 
     // Setup cursor blink timer
     setupCursorBlinkTimer();
+
+    // Initialize RenderEngine cursor (Phase 8 fix: sync cursor with new architecture)
+    if (m_renderEngine) {
+        m_renderEngine->setCursorPosition(m_cursorPosition);
+        m_renderEngine->setCursorVisible(true);
+        m_renderEngine->setCursorBlinkInterval(m_cursorBlinkInterval);
+        m_renderEngine->setCursorWidth(CURSOR_WIDTH);
+        if (m_cursorBlinkingEnabled) {
+            m_renderEngine->startCursorBlink();
+        }
+    }
 
     // Set a reasonable initial width
     updateLayoutWidth();
@@ -4756,6 +4805,15 @@ void BookEditor::fromKml(const QString& kml)
     clearSelection();
     if (m_undoStack) {
         m_undoStack->clear();
+    }
+
+    // Sync cursor to RenderEngine (Phase 8 fix)
+    if (m_renderEngine) {
+        m_renderEngine->setCursorPosition(m_cursorPosition);
+        m_renderEngine->setCursorVisible(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderEngine->startCursorBlink();
+        }
     }
 
     // Invalidate layouts for old architecture

@@ -74,8 +74,8 @@ public:
     /// @param parent Parent widget (nullptr for top-level window)
     explicit MainWindow(QWidget* parent = nullptr);
 
-    /// @brief Destructor
-    ~MainWindow() override = default;
+    /// @brief Destructor - disconnects signals before children are destroyed
+    ~MainWindow() override;
 
     /// @brief Enable diagnostic mode (show Diagnostics menu)
     /// @note Delegates to DiagnosticController (OpenSpec #00038)
