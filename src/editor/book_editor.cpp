@@ -4863,6 +4863,15 @@ void BookEditor::fromKml(const QString& kml)
         return;
     }
 
+    // CRITICAL: Disconnect all observers from OLD buffer BEFORE destroying it
+    // Otherwise observers will have dangling pointers during destruction
+    if (m_viewportManager && m_textBuffer) {
+        m_viewportManager->setBuffer(nullptr);
+    }
+    if (m_formatLayer && m_textBuffer) {
+        m_formatLayer->detachFromBuffer();
+    }
+
     // Replace internal components with parsed content
     if (result.buffer) {
         m_textBuffer = std::move(result.buffer);
