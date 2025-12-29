@@ -91,8 +91,6 @@ BookEditor::BookEditor(QWidget* parent)
     , m_textBuffer(std::make_unique<TextBuffer>())
     , m_formatLayer(std::make_unique<FormatLayer>())
     , m_metadataLayer(std::make_unique<MetadataLayer>())
-    // Phase 11: Always use new architecture (no more feature flag)
-    , m_useNewArchitecture(true)
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);
@@ -134,17 +132,13 @@ BookEditor::BookEditor(QWidget* parent)
     // Connect RenderEngine repaint signal
     connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
             this, [this](const QRegion& region) {
-        if (m_useNewArchitecture) {
-            update(region.boundingRect());
-        }
+        update(region.boundingRect());
     });
 
     // Connect ViewportManager signals
     connect(m_viewportManager.get(), &ViewportManager::viewportChanged,
             this, [this]() {
-        if (m_useNewArchitecture) {
-            update();
-        }
+        update();
     });
 
     setupComponents();
@@ -411,32 +405,7 @@ void BookEditor::ensureCursorVisible()
 
 void BookEditor::moveCursorLeft()
 {
-    // Phase 8.13: New architecture uses TextBuffer for O(1) paragraph length lookup
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        // Invalidate preferred X position (horizontal movement resets it)
-        m_preferredCursorXValid = false;
-
-        CursorPosition newPos = m_cursorPosition;
-
-        if (newPos.offset > 0) {
-            --newPos.offset;
-        } else if (newPos.paragraph > 0) {
-            --newPos.paragraph;
-            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
-        }
-        // else: already at document start, do nothing
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-        return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
@@ -446,48 +415,20 @@ void BookEditor::moveCursorLeft()
     CursorPosition newPos = m_cursorPosition;
 
     if (newPos.offset > 0) {
-        // Move within current paragraph
         --newPos.offset;
     } else if (newPos.paragraph > 0) {
-        // Move to end of previous paragraph
         --newPos.paragraph;
-        const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
-        newPos.offset = para ? para->characterCount() : 0;
+        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
     }
     // else: already at document start, do nothing
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorRight()
 {
-    // Phase 8.13: New architecture uses TextBuffer for O(1) paragraph length lookup
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        // Invalidate preferred X position (horizontal movement resets it)
-        m_preferredCursorXValid = false;
-
-        CursorPosition newPos = m_cursorPosition;
-        int paraLen = m_textBuffer->paragraphLength(newPos.paragraph);
-
-        if (newPos.offset < paraLen) {
-            ++newPos.offset;
-        } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
-            ++newPos.paragraph;
-            newPos.offset = 0;
-        }
-        // else: already at document end, do nothing
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-        return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
@@ -495,201 +436,60 @@ void BookEditor::moveCursorRight()
     m_preferredCursorXValid = false;
 
     CursorPosition newPos = m_cursorPosition;
-    const KmlParagraph* currentPara = m_document->paragraph(newPos.paragraph);
-    int currentLength = currentPara ? currentPara->characterCount() : 0;
+    int paraLen = m_textBuffer->paragraphLength(newPos.paragraph);
 
-    if (newPos.offset < currentLength) {
-        // Move within current paragraph
+    if (newPos.offset < paraLen) {
         ++newPos.offset;
-    } else if (newPos.paragraph < m_document->paragraphCount() - 1) {
-        // Move to start of next paragraph
+    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
         ++newPos.paragraph;
         newPos.offset = 0;
     }
     // else: already at document end, do nothing
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorUp()
 {
-    // Phase 8.13: New architecture - paragraph-level navigation using TextBuffer
-    // Visual line navigation within paragraphs requires LazyLayoutManager integration
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        CursorPosition newPos = m_cursorPosition;
-
-        if (newPos.paragraph > 0) {
-            // Move to end of previous paragraph
-            --newPos.paragraph;
-            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
-        } else {
-            // At first paragraph: move to start
-            newPos.offset = 0;
-        }
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return;
-    }
-
-    // Get current layout for hit testing
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout == nullptr) {
-        m_layoutManager->layoutParagraph(m_cursorPosition.paragraph);
-        layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    }
-    if (layout == nullptr) {
-        return;
-    }
-
-    // Get current line index
-    int currentLine = layout->lineForPosition(m_cursorPosition.offset);
-    if (currentLine < 0) {
-        currentLine = 0;
-    }
-
-    // Get or calculate preferred X position
-    if (!m_preferredCursorXValid) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        m_preferredCursorX = cursorRect.x();
-        m_preferredCursorXValid = true;
     }
 
     CursorPosition newPos = m_cursorPosition;
 
-    if (currentLine > 0) {
-        // Move to previous line in same paragraph
-        QRectF lineRect = layout->lineRect(currentLine - 1);
-        QPointF hitPoint(m_preferredCursorX, lineRect.center().y());
-        int newOffset = layout->positionAt(hitPoint);
-        if (newOffset >= 0) {
-            newPos.offset = newOffset;
-        }
-    } else if (m_cursorPosition.paragraph > 0) {
-        // Move to previous paragraph
-        newPos.paragraph = m_cursorPosition.paragraph - 1;
-
-        // Layout previous paragraph if needed
-        ParagraphLayout* prevLayout = m_layoutManager->paragraphLayout(newPos.paragraph);
-        if (prevLayout == nullptr) {
-            m_layoutManager->layoutParagraph(newPos.paragraph);
-            prevLayout = m_layoutManager->paragraphLayout(newPos.paragraph);
-        }
-
-        if (prevLayout != nullptr && prevLayout->lineCount() > 0) {
-            // Go to last line of previous paragraph at preferred X
-            int lastLine = prevLayout->lineCount() - 1;
-            QRectF lineRect = prevLayout->lineRect(lastLine);
-            QPointF hitPoint(m_preferredCursorX, lineRect.center().y());
-            int newOffset = prevLayout->positionAt(hitPoint);
-            newPos.offset = (newOffset >= 0) ? newOffset : prevLayout->text().length();
-        } else {
-            const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
-            newPos.offset = para ? para->characterCount() : 0;
-        }
+    if (newPos.paragraph > 0) {
+        // Move to end of previous paragraph
+        --newPos.paragraph;
+        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+    } else {
+        // At first paragraph: move to start
+        newPos.offset = 0;
     }
-    // else: already at first line of first paragraph, do nothing
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorDown()
 {
-    // Phase 8.13: New architecture - paragraph-level navigation using TextBuffer
-    // Visual line navigation within paragraphs requires LazyLayoutManager integration
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        CursorPosition newPos = m_cursorPosition;
-
-        if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
-            // Move to start of next paragraph
-            ++newPos.paragraph;
-            newPos.offset = 0;
-        } else {
-            // At last paragraph: move to end
-            newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
-        }
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return;
-    }
-
-    // Get current layout for hit testing
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout == nullptr) {
-        m_layoutManager->layoutParagraph(m_cursorPosition.paragraph);
-        layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    }
-    if (layout == nullptr) {
-        return;
-    }
-
-    // Get current line index
-    int currentLine = layout->lineForPosition(m_cursorPosition.offset);
-    if (currentLine < 0) {
-        currentLine = 0;
-    }
-
-    // Get or calculate preferred X position
-    if (!m_preferredCursorXValid) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        m_preferredCursorX = cursorRect.x();
-        m_preferredCursorXValid = true;
     }
 
     CursorPosition newPos = m_cursorPosition;
-    int lineCount = layout->lineCount();
 
-    if (currentLine < lineCount - 1) {
-        // Move to next line in same paragraph
-        QRectF lineRect = layout->lineRect(currentLine + 1);
-        QPointF hitPoint(m_preferredCursorX, lineRect.center().y());
-        int newOffset = layout->positionAt(hitPoint);
-        if (newOffset >= 0) {
-            newPos.offset = newOffset;
-        }
-    } else if (m_cursorPosition.paragraph < m_document->paragraphCount() - 1) {
-        // Move to next paragraph
-        newPos.paragraph = m_cursorPosition.paragraph + 1;
-
-        // Layout next paragraph if needed
-        ParagraphLayout* nextLayout = m_layoutManager->paragraphLayout(newPos.paragraph);
-        if (nextLayout == nullptr) {
-            m_layoutManager->layoutParagraph(newPos.paragraph);
-            nextLayout = m_layoutManager->paragraphLayout(newPos.paragraph);
-        }
-
-        if (nextLayout != nullptr && nextLayout->lineCount() > 0) {
-            // Go to first line of next paragraph at preferred X
-            QRectF lineRect = nextLayout->lineRect(0);
-            QPointF hitPoint(m_preferredCursorX, lineRect.center().y());
-            int newOffset = nextLayout->positionAt(hitPoint);
-            newPos.offset = (newOffset >= 0) ? newOffset : 0;
-        } else {
-            newPos.offset = 0;
-        }
+    if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
+        // Move to start of next paragraph
+        ++newPos.paragraph;
+        newPos.offset = 0;
+    } else {
+        // At last paragraph: move to end
+        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
     }
-    // else: already at last line of last paragraph, do nothing
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorWordLeft()
@@ -777,126 +577,34 @@ void BookEditor::moveCursorWordRight()
 
 void BookEditor::moveCursorToLineStart()
 {
-    // Phase 8.13: New architecture - move to paragraph start (visual line nav requires layout)
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        // Invalidate preferred X position
-        m_preferredCursorXValid = false;
-
-        CursorPosition newPos = m_cursorPosition;
-        newPos.offset = 0;  // Move to paragraph start
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-        return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
     // Invalidate preferred X position
     m_preferredCursorXValid = false;
 
-    // Get current layout
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout == nullptr) {
-        m_layoutManager->layoutParagraph(m_cursorPosition.paragraph);
-        layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    }
-
     CursorPosition newPos = m_cursorPosition;
-
-    if (layout != nullptr) {
-        int currentLine = layout->lineForPosition(m_cursorPosition.offset);
-        if (currentLine >= 0 && currentLine < layout->lineCount()) {
-            // Get start of current line using QTextLine
-            const QTextLayout& textLayout = layout->textLayout();
-            if (currentLine < textLayout.lineCount()) {
-                QTextLine line = textLayout.lineAt(currentLine);
-                newPos.offset = line.textStart();
-            }
-        } else {
-            // Fallback: move to paragraph start
-            newPos.offset = 0;
-        }
-    } else {
-        // No layout: move to paragraph start
-        newPos.offset = 0;
-    }
+    newPos.offset = 0;  // Move to paragraph start
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorToLineEnd()
 {
-    // Phase 8.13: New architecture - move to paragraph end (visual line nav requires layout)
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        // Invalidate preferred X position
-        m_preferredCursorXValid = false;
-
-        CursorPosition newPos = m_cursorPosition;
-        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
-
-        setCursorPosition(newPos);
-        ensureCursorVisible();
-        return;
-    }
-
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
     // Invalidate preferred X position
     m_preferredCursorXValid = false;
 
-    // Get current layout
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout == nullptr) {
-        m_layoutManager->layoutParagraph(m_cursorPosition.paragraph);
-        layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    }
-
     CursorPosition newPos = m_cursorPosition;
-    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-    int paraLength = para ? para->characterCount() : 0;
-
-    if (layout != nullptr) {
-        int currentLine = layout->lineForPosition(m_cursorPosition.offset);
-        if (currentLine >= 0 && currentLine < layout->lineCount()) {
-            const QTextLayout& textLayout = layout->textLayout();
-            if (currentLine < textLayout.lineCount()) {
-                QTextLine line = textLayout.lineAt(currentLine);
-                // End of line is textStart + textLength, but clamp to paragraph length
-                int lineEnd = line.textStart() + line.textLength();
-                // Don't include trailing newline if present
-                if (currentLine < layout->lineCount() - 1) {
-                    // This is not the last line, line ends at text boundary
-                    newPos.offset = qMin(lineEnd, paraLength);
-                } else {
-                    // Last line: go to paragraph end
-                    newPos.offset = paraLength;
-                }
-            }
-        } else {
-            // Fallback: move to paragraph end
-            newPos.offset = paraLength;
-        }
-    } else {
-        // No layout: move to paragraph end
-        newPos.offset = paraLength;
-    }
+    newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
 
     setCursorPosition(newPos);
+    ensureCursorVisible();
 }
 
 void BookEditor::moveCursorToDocStart()
@@ -1106,8 +814,7 @@ void BookEditor::clearSelection()
     if (!m_selection.isEmpty()) {
         m_selection = {};
 
-        // Phase 8.14: Clear render engine selection for new architecture
-        if (m_useNewArchitecture && m_renderEngine) {
+        if (m_renderEngine) {
             m_renderEngine->clearSelection();
         }
 
@@ -1156,44 +863,26 @@ QString BookEditor::selectedText() const
 
 void BookEditor::selectAll()
 {
-    // Phase 8.15: New architecture O(1) selectAll using TextBuffer
-    if (m_useNewArchitecture && m_textBuffer && m_textBuffer->paragraphCount() > 0) {
-        // O(1) operation - just set start and end positions
-        SelectionRange range;
-        range.start = {0, 0};
-
-        size_t lastPara = m_textBuffer->paragraphCount() - 1;
-        range.end = {static_cast<int>(lastPara), m_textBuffer->paragraphLength(lastPara)};
-
-        m_selectionAnchor = range.start;
-        m_cursorPosition = range.end;
-        setSelection(range);
-
-        if (m_renderEngine) {
-            m_renderEngine->setSelection(range);
-        }
-
-        update();
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
-    // Legacy architecture
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return;
-    }
-
+    // O(1) operation - just set start and end positions
     SelectionRange range;
     range.start = {0, 0};
 
-    int lastPara = m_document->paragraphCount() - 1;
-    const KmlParagraph* para = m_document->paragraph(lastPara);
-    range.end = {lastPara, para ? para->characterCount() : 0};
+    size_t lastPara = m_textBuffer->paragraphCount() - 1;
+    range.end = {static_cast<int>(lastPara), m_textBuffer->paragraphLength(lastPara)};
 
-    // Set anchor and cursor position
     m_selectionAnchor = range.start;
     m_cursorPosition = range.end;
-
     setSelection(range);
+
+    if (m_renderEngine) {
+        m_renderEngine->setSelection(range);
+    }
+
+    update();
 }
 
 // =============================================================================
@@ -1202,103 +891,15 @@ void BookEditor::selectAll()
 
 void BookEditor::insertText(const QString& text)
 {
-    if (m_document == nullptr || text.isEmpty()) {
+    if (!m_textBuffer || text.isEmpty()) {
         return;
     }
 
-    // Phase 8/9: New architecture using TextBuffer with undo/redo commands
-    if (m_useNewArchitecture && m_textBuffer) {
-        CursorPosition cursorBefore = m_cursorPosition;
+    CursorPosition cursorBefore = m_cursorPosition;
 
-        // Handle selection replacement
-        if (hasSelection()) {
-            SelectionRange sel = m_selection.normalized();
-
-            // Get text being deleted for undo
-            QString deletedText;
-            for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-                QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(paraIdx));
-                int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
-                int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
-                deletedText += paraText.mid(startOff, endOff - startOff);
-                if (paraIdx < sel.end.paragraph) {
-                    deletedText += QChar::ParagraphSeparator;
-                }
-            }
-
-            // Create composite command for delete + insert
-            auto* composite = new CompositeBufferCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                cursorBefore, tr("Replace"));
-
-            // Delete selection first
-            composite->addCommand(std::make_unique<TextDeleteCommand>(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                sel.start, sel.end, deletedText, std::vector<FormatRange>{}));
-
-            // Then insert text at selection start
-            composite->addCommand(std::make_unique<TextInsertCommand>(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                sel.start, text));
-
-            m_undoStack->push(composite);  // push() calls redo() automatically
-
-            // Update cursor position (redo already executed)
-            m_cursorPosition = sel.start;
-            m_cursorPosition.offset += text.length();
-            clearSelection();
-        } else {
-            // Simple insert - push single command
-            m_undoStack->push(new TextInsertCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                m_cursorPosition, text));
-
-            // Update cursor position (redo already executed)
-            m_cursorPosition.offset += text.length();
-        }
-
-        // Invalidate layout for modified paragraph
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
-
-        ensureCursorVisible();
-        update();
-        emit contentChanged();
-        emit paragraphModified(m_cursorPosition.paragraph);
-        return;
-    }
-
-    // If there's a selection, delete it first (replace behavior)
+    // Handle selection replacement
     if (hasSelection()) {
-        deleteSelectedText();
-    }
-
-    // Calculate cursor position before pushing command
-    // NOTE: After push(), cmd may be deleted if merged with previous command
-    CursorPosition insertPos = m_cursorPosition;
-    CursorPosition newPos = insertPos;
-    newPos.offset += text.length();
-
-    // Create and push insert command (command executes on push)
-    m_undoStack->push(new InsertTextCommand(m_document, insertPos, text));
-
-    // Move cursor to position after insertion
-    setCursorPosition(newPos);
-    ensureCursorVisible();
-}
-
-bool BookEditor::deleteSelectedText()
-{
-    if (!hasSelection()) {
-        return false;
-    }
-
-    // Phase 8/9: New architecture using TextBuffer with undo/redo commands
-    if (m_useNewArchitecture && m_textBuffer) {
         SelectionRange sel = m_selection.normalized();
-        CursorPosition cursorBefore = m_cursorPosition;
 
         // Get text being deleted for undo
         QString deletedText;
@@ -1312,177 +913,130 @@ bool BookEditor::deleteSelectedText()
             }
         }
 
-        // Push delete command (push() calls redo() automatically)
-        m_undoStack->push(new TextDeleteCommand(
+        // Create composite command for delete + insert
+        auto* composite = new CompositeBufferCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            cursorBefore, tr("Replace"));
+
+        // Delete selection first
+        composite->addCommand(std::make_unique<TextDeleteCommand>(
             m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
             sel.start, sel.end, deletedText, std::vector<FormatRange>{}));
 
-        // Move cursor to start of deleted range (redo already executed)
+        // Then insert text at selection start
+        composite->addCommand(std::make_unique<TextInsertCommand>(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            sel.start, text));
+
+        m_undoStack->push(composite);  // push() calls redo() automatically
+
+        // Update cursor position (redo already executed)
         m_cursorPosition = sel.start;
+        m_cursorPosition.offset += text.length();
         clearSelection();
+    } else {
+        // Simple insert - push single command
+        m_undoStack->push(new TextInsertCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            m_cursorPosition, text));
 
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
-
-        update();
-        emit contentChanged();
-        return true;
+        // Update cursor position (redo already executed)
+        m_cursorPosition.offset += text.length();
     }
 
-    if (m_document == nullptr) {
+    // Invalidate layout for modified paragraph
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager->invalidateLayout(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+    }
+
+    ensureCursorVisible();
+    update();
+    emit contentChanged();
+    emit paragraphModified(m_cursorPosition.paragraph);
+}
+
+bool BookEditor::deleteSelectedText()
+{
+    if (!hasSelection() || !m_textBuffer) {
         return false;
     }
 
-    // Normalize selection range
-    SelectionRange range = m_selection.normalized();
+    SelectionRange sel = m_selection.normalized();
+    CursorPosition cursorBefore = m_cursorPosition;
 
-    // Get the text being deleted (for command description)
-    QString deletedText = selectedText();
+    // Get text being deleted for undo
+    QString deletedText;
+    for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
+        QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(paraIdx));
+        int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
+        int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
+        deletedText += paraText.mid(startOff, endOff - startOff);
+        if (paraIdx < sel.end.paragraph) {
+            deletedText += QChar::ParagraphSeparator;
+        }
+    }
 
-    // Create and push delete command
-    auto* cmd = new DeleteTextCommand(m_document, range.start, range.end,
-                                       deletedText, QString());  // KML not stored for now
-    m_undoStack->push(cmd);
+    // Push delete command (push() calls redo() automatically)
+    m_undoStack->push(new TextDeleteCommand(
+        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+        sel.start, sel.end, deletedText, std::vector<FormatRange>{}));
 
-    // Position cursor at start of former selection
-    setCursorPosition(range.start);
-
-    // Clear selection
+    // Move cursor to start of deleted range (redo already executed)
+    m_cursorPosition = sel.start;
     clearSelection();
-    ensureCursorVisible();
+
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager->invalidateLayout(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+    }
+
+    update();
+    emit contentChanged();
     return true;
 }
 
 void BookEditor::insertNewline()
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Phase 8/9: New architecture using TextBuffer with undo/redo commands
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (hasSelection()) {
-            deleteSelectedText();
-        }
-
-        CursorPosition cursorBefore = m_cursorPosition;
-
-        // Push paragraph split command (push() calls redo() automatically)
-        m_undoStack->push(new ParagraphSplitCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            m_cursorPosition, std::vector<FormatRange>{}));
-
-        // Invalidate layouts for both paragraphs
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph + 1));
-        }
-
-        // Move cursor to start of new paragraph (redo already executed)
-        m_cursorPosition.paragraph++;
-        m_cursorPosition.offset = 0;
-
-        ensureCursorVisible();
-        update();
-        emit contentChanged();
-        emit paragraphInserted(m_cursorPosition.paragraph);
-        return;
-    }
-
-    // If there's a selection, delete it first
     if (hasSelection()) {
         deleteSelectedText();
     }
 
-    // Create and push split paragraph command
-    auto* cmd = new SplitParagraphCommand(m_document, m_cursorPosition);
-    m_undoStack->push(cmd);
+    CursorPosition cursorBefore = m_cursorPosition;
 
-    // Move cursor to start of new paragraph
-    setCursorPosition(cmd->cursorAfter());
+    // Push paragraph split command (push() calls redo() automatically)
+    m_undoStack->push(new ParagraphSplitCommand(
+        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+        m_cursorPosition, std::vector<FormatRange>{}));
+
+    // Invalidate layouts for both paragraphs
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager->invalidateLayout(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+        m_lazyLayoutManager->invalidateLayout(
+            static_cast<size_t>(m_cursorPosition.paragraph + 1));
+    }
+
+    // Move cursor to start of new paragraph (redo already executed)
+    m_cursorPosition.paragraph++;
+    m_cursorPosition.offset = 0;
+
     ensureCursorVisible();
-    emit paragraphInserted(cmd->cursorAfter().paragraph);
+    update();
+    emit contentChanged();
+    emit paragraphInserted(m_cursorPosition.paragraph);
 }
 
 void BookEditor::deleteBackward()
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Phase 8/9: New architecture using TextBuffer with undo/redo commands
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (hasSelection()) {
-            deleteSelectedText();
-            return;
-        }
-
-        // If at start of document, nothing to delete
-        if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
-            return;
-        }
-
-        CursorPosition cursorBefore = m_cursorPosition;
-
-        if (m_cursorPosition.offset > 0) {
-            // Delete character before cursor using TextDeleteCommand
-            QString paraText = m_textBuffer->paragraphText(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-            QString deletedChar = paraText.mid(m_cursorPosition.offset - 1, 1);
-
-            CursorPosition deleteStart = m_cursorPosition;
-            deleteStart.offset = m_cursorPosition.offset - 1;
-
-            // Push delete command (push() calls redo() automatically)
-            m_undoStack->push(new TextDeleteCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                deleteStart, m_cursorPosition, deletedChar, std::vector<FormatRange>{}));
-
-            // Update cursor (redo already executed)
-            m_cursorPosition.offset--;
-
-            if (m_lazyLayoutManager) {
-                m_lazyLayoutManager->invalidateLayout(
-                    static_cast<size_t>(m_cursorPosition.paragraph));
-            }
-            ensureCursorVisible();
-            update();
-            emit contentChanged();
-            emit paragraphModified(m_cursorPosition.paragraph);
-        } else if (m_cursorPosition.paragraph > 0) {
-            // Merge with previous paragraph using ParagraphMergeCommand
-            int mergeFromIndex = m_cursorPosition.paragraph;
-            QString mergedContent = m_textBuffer->paragraphText(
-                static_cast<size_t>(mergeFromIndex));
-            int prevParaLen = m_textBuffer->paragraphLength(
-                static_cast<size_t>(m_cursorPosition.paragraph - 1));
-
-            // Push merge command (push() calls redo() automatically)
-            m_undoStack->push(new ParagraphMergeCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
-
-            // Update cursor (redo already executed)
-            m_cursorPosition.paragraph--;
-            m_cursorPosition.offset = prevParaLen;
-
-            if (m_lazyLayoutManager) {
-                m_lazyLayoutManager->invalidateLayout(
-                    static_cast<size_t>(m_cursorPosition.paragraph));
-            }
-            ensureCursorVisible();
-            update();
-            emit contentChanged();
-            emit paragraphRemoved(mergeFromIndex);
-        }
-        return;
-    }
-
-    // If there's a selection, delete it
     if (hasSelection()) {
         deleteSelectedText();
         return;
@@ -1493,166 +1047,118 @@ void BookEditor::deleteBackward()
         return;
     }
 
-    // If at start of paragraph, merge with previous paragraph
-    if (m_cursorPosition.offset == 0) {
-        int removedParagraphIndex = m_cursorPosition.paragraph;
-        // Create and push merge command
-        auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
-                                                m_cursorPosition.paragraph);
-        m_undoStack->push(cmd);
+    CursorPosition cursorBefore = m_cursorPosition;
 
-        // Cursor moves to merge point
-        setCursorPosition(cmd->cursorAfter());
-        ensureCursorVisible();
-        emit paragraphRemoved(removedParagraphIndex);
-    } else {
-        // Delete character before cursor
+    if (m_cursorPosition.offset > 0) {
+        // Delete character before cursor using TextDeleteCommand
+        QString paraText = m_textBuffer->paragraphText(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+        QString deletedChar = paraText.mid(m_cursorPosition.offset - 1, 1);
+
         CursorPosition deleteStart = m_cursorPosition;
-        deleteStart.offset -= 1;
+        deleteStart.offset = m_cursorPosition.offset - 1;
 
-        // Get the character being deleted
-        const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-        QString deletedChar;
-        if (para != nullptr) {
-            QString text = para->plainText();
-            if (deleteStart.offset < text.length()) {
-                deletedChar = text.mid(deleteStart.offset, 1);
-            }
+        // Push delete command (push() calls redo() automatically)
+        m_undoStack->push(new TextDeleteCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            deleteStart, m_cursorPosition, deletedChar, std::vector<FormatRange>{}));
+
+        // Update cursor (redo already executed)
+        m_cursorPosition.offset--;
+
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
         }
-
-        // Create and push delete command
-        auto* cmd = new DeleteTextCommand(m_document, deleteStart, m_cursorPosition,
-                                           deletedChar, QString());
-        m_undoStack->push(cmd);
-
-        setCursorPosition(deleteStart);
         ensureCursorVisible();
-        emit paragraphModified(deleteStart.paragraph);
+        update();
+        emit contentChanged();
+        emit paragraphModified(m_cursorPosition.paragraph);
+    } else if (m_cursorPosition.paragraph > 0) {
+        // Merge with previous paragraph using ParagraphMergeCommand
+        int mergeFromIndex = m_cursorPosition.paragraph;
+        QString mergedContent = m_textBuffer->paragraphText(
+            static_cast<size_t>(mergeFromIndex));
+        int prevParaLen = m_textBuffer->paragraphLength(
+            static_cast<size_t>(m_cursorPosition.paragraph - 1));
+
+        // Push merge command (push() calls redo() automatically)
+        m_undoStack->push(new ParagraphMergeCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
+
+        // Update cursor (redo already executed)
+        m_cursorPosition.paragraph--;
+        m_cursorPosition.offset = prevParaLen;
+
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+        ensureCursorVisible();
+        update();
+        emit contentChanged();
+        emit paragraphRemoved(mergeFromIndex);
     }
 }
 
 void BookEditor::deleteForward()
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return;
     }
 
-    // Phase 8/9: New architecture using TextBuffer with undo/redo commands
-    if (m_useNewArchitecture && m_textBuffer) {
-        if (hasSelection()) {
-            deleteSelectedText();
-            return;
-        }
-
-        // Check if buffer is empty
-        if (m_textBuffer->paragraphCount() == 0) {
-            return;
-        }
-
-        QString paraText = m_textBuffer->paragraphText(
-            static_cast<size_t>(m_cursorPosition.paragraph));
-        int paraLen = paraText.length();
-
-        CursorPosition cursorBefore = m_cursorPosition;
-
-        if (m_cursorPosition.offset < paraLen) {
-            // Delete character at cursor using TextDeleteCommand
-            QString deletedChar = paraText.mid(m_cursorPosition.offset, 1);
-
-            CursorPosition deleteEnd = m_cursorPosition;
-            deleteEnd.offset = m_cursorPosition.offset + 1;
-
-            // Push delete command (push() calls redo() automatically)
-            m_undoStack->push(new TextDeleteCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                m_cursorPosition, deleteEnd, deletedChar, std::vector<FormatRange>{}));
-
-            // Cursor position stays the same after forward delete
-            if (m_lazyLayoutManager) {
-                m_lazyLayoutManager->invalidateLayout(
-                    static_cast<size_t>(m_cursorPosition.paragraph));
-            }
-            update();
-            emit contentChanged();
-            emit paragraphModified(m_cursorPosition.paragraph);
-        } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
-                   m_textBuffer->paragraphCount() - 1) {
-            // Merge with next paragraph using ParagraphMergeCommand
-            int mergeFromIndex = m_cursorPosition.paragraph + 1;
-            QString mergedContent = m_textBuffer->paragraphText(
-                static_cast<size_t>(mergeFromIndex));
-
-            // Push merge command (push() calls redo() automatically)
-            m_undoStack->push(new ParagraphMergeCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
-
-            // Cursor position stays the same after merge
-            if (m_lazyLayoutManager) {
-                m_lazyLayoutManager->invalidateLayout(
-                    static_cast<size_t>(m_cursorPosition.paragraph));
-            }
-            update();
-            emit contentChanged();
-            emit paragraphRemoved(mergeFromIndex);
-        }
-        return;
-    }
-
-    // If there's a selection, delete it
     if (hasSelection()) {
         deleteSelectedText();
         return;
     }
 
-    // Check if at end of document
-    int lastPara = m_document->paragraphCount() - 1;
-    if (lastPara < 0) {
-        return;
-    }
+    QString paraText = m_textBuffer->paragraphText(
+        static_cast<size_t>(m_cursorPosition.paragraph));
+    int paraLen = paraText.length();
 
-    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-    if (para == nullptr) {
-        return;
-    }
+    CursorPosition cursorBefore = m_cursorPosition;
 
-    bool atEndOfPara = m_cursorPosition.offset >= para->characterCount();
-    bool atLastPara = m_cursorPosition.paragraph == lastPara;
+    if (m_cursorPosition.offset < paraLen) {
+        // Delete character at cursor using TextDeleteCommand
+        QString deletedChar = paraText.mid(m_cursorPosition.offset, 1);
 
-    // If at end of document, nothing to delete
-    if (atEndOfPara && atLastPara) {
-        return;
-    }
-
-    // If at end of paragraph, merge with next paragraph
-    if (atEndOfPara) {
-        int removedParagraphIndex = m_cursorPosition.paragraph + 1;
-        // Create and push merge command (merge next paragraph into this one)
-        auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
-                                                m_cursorPosition.paragraph + 1);
-        m_undoStack->push(cmd);
-        // Cursor position stays the same
-        ensureCursorVisible();
-        emit paragraphRemoved(removedParagraphIndex);
-    } else {
-        // Delete character after cursor
         CursorPosition deleteEnd = m_cursorPosition;
-        deleteEnd.offset += 1;
+        deleteEnd.offset = m_cursorPosition.offset + 1;
 
-        // Get the character being deleted
-        QString deletedChar;
-        QString text = para->plainText();
-        if (m_cursorPosition.offset < text.length()) {
-            deletedChar = text.mid(m_cursorPosition.offset, 1);
+        // Push delete command (push() calls redo() automatically)
+        m_undoStack->push(new TextDeleteCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            m_cursorPosition, deleteEnd, deletedChar, std::vector<FormatRange>{}));
+
+        // Cursor position stays the same after forward delete
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
         }
-
-        // Create and push delete command
-        auto* cmd = new DeleteTextCommand(m_document, m_cursorPosition, deleteEnd,
-                                           deletedChar, QString());
-        m_undoStack->push(cmd);
-        // Cursor position stays the same
-        ensureCursorVisible();
+        update();
+        emit contentChanged();
         emit paragraphModified(m_cursorPosition.paragraph);
+    } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
+               m_textBuffer->paragraphCount() - 1) {
+        // Merge with next paragraph using ParagraphMergeCommand
+        int mergeFromIndex = m_cursorPosition.paragraph + 1;
+        QString mergedContent = m_textBuffer->paragraphText(
+            static_cast<size_t>(mergeFromIndex));
+
+        // Push merge command (push() calls redo() automatically)
+        m_undoStack->push(new ParagraphMergeCommand(
+            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
+            cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
+
+        // Cursor position stays the same after merge
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateLayout(
+                static_cast<size_t>(m_cursorPosition.paragraph));
+        }
+        update();
+        emit contentChanged();
+        emit paragraphRemoved(mergeFromIndex);
     }
 }
 
@@ -1731,97 +1237,62 @@ void BookEditor::clearUndoStack()
 
 void BookEditor::copy()
 {
-    if (!hasSelection()) {
+    if (!hasSelection() || !m_textBuffer) {
         return;
     }
 
-    // Phase 8: New architecture using TextBuffer (Task 8.16)
-    if (m_useNewArchitecture && m_textBuffer) {
-        SelectionRange sel = m_selection.normalized();
+    SelectionRange sel = m_selection.normalized();
 
-        // Build plain text from selection
-        QString plainText;
-        for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
-            QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(p));
-            int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
-            int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
+    // Build plain text from selection
+    QString plainText;
+    for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
+        QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(p));
+        int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
+        int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
 
-            if (p > sel.start.paragraph) {
-                plainText += '\n';  // Paragraph separator
-            }
-            plainText += paraText.mid(startOffset, endOffset - startOffset);
+        if (p > sel.start.paragraph) {
+            plainText += '\n';  // Paragraph separator
         }
-
-        // Set clipboard
-        QClipboard* clipboard = QGuiApplication::clipboard();
-        clipboard->setText(plainText);
-        return;
+        plainText += paraText.mid(startOffset, endOffset - startOffset);
     }
 
-    if (m_document == nullptr) {
-        return;
-    }
-
-    ClipboardHandler::copy(m_document, m_selection);
+    // Set clipboard
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setText(plainText);
 }
 
 void BookEditor::cut()
 {
-    if (!hasSelection()) {
+    if (!hasSelection() || !m_textBuffer) {
         return;
     }
 
-    // Phase 8: New architecture using TextBuffer (Task 8.17)
-    if (m_useNewArchitecture && m_textBuffer) {
-        // Copy first
-        copy();
+    // Copy first
+    copy();
 
-        // Then delete selection
-        deleteSelectedText();
-        return;
-    }
-
-    if (m_document == nullptr) {
-        return;
-    }
-
-    // Copy first, then delete
-    ClipboardHandler::copy(m_document, m_selection);
+    // Then delete selection
     deleteSelectedText();
 }
 
 void BookEditor::paste()
 {
-    // Phase 8: New architecture using TextBuffer (Task 8.18-8.19)
-    if (m_useNewArchitecture && m_textBuffer) {
-        QClipboard* clipboard = QGuiApplication::clipboard();
-        QString text = clipboard->text();
-
-        if (text.isEmpty()) {
-            return;
-        }
-
-        // Delete selection if any
-        if (hasSelection()) {
-            deleteSelectedText();
-        }
-
-        // Insert the pasted text (insertText handles newlines)
-        insertText(text);
+    if (!m_textBuffer) {
         return;
     }
 
-    if (m_document == nullptr) {
-        return;
-    }
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    QString text = clipboard->text();
 
-    // Get text from clipboard
-    QString text = ClipboardHandler::pasteAsText();
     if (text.isEmpty()) {
         return;
     }
 
-    // Insert at cursor (insertText handles selection deletion)
+    // Delete selection if any
+    if (hasSelection()) {
+        deleteSelectedText();
+    }
+
+    // Insert the pasted text (insertText handles newlines)
     insertText(text);
 }
 
@@ -2286,152 +1757,59 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
-    // Phase 8: Use RenderEngine for new architecture (OpenSpec #00043 Task 8.10)
-    if (m_useNewArchitecture && m_renderEngine && m_textBuffer) {
+    if (!m_renderEngine || !m_textBuffer) {
+        // Fallback: just fill background
         QPainter painter(this);
-        painter.setRenderHint(QPainter::TextAntialiasing, true);
-
-        // Background
         painter.fillRect(rect(), m_appearance.colors.editorBackground);
+        return;
+    }
 
-        // Task 9.16: Page Mode uses separate rendering path
-        if (m_viewMode == ViewMode::Page) {
-            paintPageModeNewArch(painter);
-            event->accept();
-            return;
-        }
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-        // Configure render engine with current appearance settings
-        m_renderEngine->setBackgroundColor(m_appearance.colors.editorBackground);
-        m_renderEngine->setTextColor(m_appearance.colors.text);
+    // Background
+    painter.fillRect(rect(), m_appearance.colors.editorBackground);
 
-        // Delegate painting to RenderEngine
-        m_renderEngine->paint(&painter, event->rect(), size());
-
-        // Additional overlays for view modes (Task 9.17)
-        if (m_appearance.focusMode.enabled) {
-            paintFocusOverlay(painter);
-        }
-
-        // Distraction-free mode overlay (Task 9.17)
-        paintDistractionFreeOverlay(painter);
-
+    // Page Mode uses separate rendering path
+    if (m_viewMode == ViewMode::Page) {
+        paintPageModeNewArch(painter);
         event->accept();
         return;
     }
 
-    // Legacy architecture: Use KmlDocument + LayoutManager + VirtualScrollManager
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::TextAntialiasing, true);
+    // Configure render engine with current appearance settings
+    m_renderEngine->setBackgroundColor(m_appearance.colors.editorBackground);
+    m_renderEngine->setTextColor(m_appearance.colors.text);
 
-    // Get the clip rect from the paint event for optimized painting
-    const QRect clipRect = event->rect();
+    // Delegate painting to RenderEngine
+    m_renderEngine->paint(&painter, event->rect(), size());
 
-    // Fill background with appearance editor background color
-    painter.fillRect(clipRect, m_appearance.colors.editorBackground);
-
-    // If no document, nothing more to render
-    if (m_document == nullptr) {
-        return;
+    // Additional overlays for view modes
+    if (m_appearance.focusMode.enabled) {
+        paintFocusOverlay(painter);
     }
 
-    // Use Page Mode rendering if in Page view mode
-    if (m_viewMode == ViewMode::Page) {
-        paintPageMode(painter);
-        return;
-    }
-
-    // Continuous mode rendering (default)
-    // Layout visible paragraphs before rendering
-    m_layoutManager->layoutVisibleParagraphs();
-
-    // Get visible range from scroll manager
-    auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
-    if (firstVisible < 0 || lastVisible < 0) {
-        return;
-    }
-
-    // Get current scroll offset
-    qreal scrollY = m_scrollManager->scrollOffset();
-
-    // Calculate the clip region bounds for paragraph culling
-    qreal clipTop = static_cast<qreal>(clipRect.top());
-    qreal clipBottom = static_cast<qreal>(clipRect.bottom());
-
-    // Render each visible paragraph - only those intersecting the clip rect
-    for (int paraIndex = firstVisible; paraIndex <= lastVisible; ++paraIndex) {
-        // Get the layout for this paragraph
-        ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-        if (layout == nullptr) {
-            // Layout should have been created by layoutVisibleParagraphs()
-            // If not, skip this paragraph
-            continue;
-        }
-
-        // Calculate paragraph position in document coordinates
-        qreal paraY = m_layoutManager->paragraphY(paraIndex);
-        qreal paraHeight = layout->height();
-
-        // Convert to widget coordinates (apply scroll offset)
-        qreal widgetY = TOP_MARGIN + paraY - scrollY;
-
-        // Skip if paragraph is entirely outside the clip rect
-        // This is more precise than checking against full widget height
-        if (widgetY + paraHeight < clipTop || widgetY > clipBottom) {
-            continue;
-        }
-
-        // Draw paragraph background (subtle alternating for readability)
-        // This is optional - can be enabled for debugging or visual separation
-        // QRectF paragraphRect(0, widgetY, width(), paraHeight);
-        // painter.fillRect(paragraphRect, palette().alternateBase());
-
-        // Draw the paragraph text
-        QPointF drawPosition(LEFT_MARGIN, widgetY);
-        layout->draw(&painter, drawPosition);
-    }
-
-    // Draw selection highlighting (Phase 3.10)
-    // Note: ParagraphLayout also draws selection when draw() is called
-    // but we draw additional highlighting for visual feedback
-    drawSelection(&painter);
-
-    // Draw focus mode overlay (Phase 5.6)
-    // The overlay dims non-focused content to help concentration
-    paintFocusOverlay(painter);
-
-    // Draw distraction-free mode overlay (Phase 5.7)
-    // Shows word count and optional clock
+    // Distraction-free mode overlay
     paintDistractionFreeOverlay(painter);
 
-    // Draw cursor (Phase 3.5)
-    if (m_cursorVisible && hasFocus()) {
-        drawCursor(&painter);
-    }
+    event->accept();
 }
 
 void BookEditor::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
 
-    // Phase 8: Notify ViewportManager of size changes (OpenSpec #00043 Task 8.11-8.12)
-    if (m_useNewArchitecture && m_viewportManager) {
+    // Notify ViewportManager of size changes
+    if (m_viewportManager) {
         m_viewportManager->setViewportSize(event->size());
     }
 
-    // Legacy architecture: Update layout and scroll managers with new size
+    // Update legacy components for compatibility
     updateLayoutWidth();
     updateViewport();
-
-    // Relayout visible paragraphs with new width
-    if (m_document != nullptr) {
-        m_layoutManager->layoutVisibleParagraphs();
-    }
-
-    // Update scrollbar range as content layout may have changed
     updateScrollBarRange();
 
-    // Position FindReplaceBar at top if visible (Phase 9.6)
+    // Position FindReplaceBar at top if visible
     if (m_findReplaceBar && m_findReplaceBar->isVisible()) {
         int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
@@ -2440,42 +1818,17 @@ void BookEditor::resizeEvent(QResizeEvent* event)
 
 void BookEditor::wheelEvent(QWheelEvent* event)
 {
-    // Phase 8: Use ViewportManager for new architecture (OpenSpec #00043 Task 8.9)
-    if (m_useNewArchitecture && m_viewportManager) {
-        QPoint angleDelta = event->angleDelta();
-        if (!angleDelta.isNull()) {
-            // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
-            qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
-            double newPos = m_viewportManager->scrollPosition() + delta;
-            m_viewportManager->setScrollPosition(newPos);
-            event->accept();
-            return;
-        }
+    if (!m_viewportManager) {
+        QWidget::wheelEvent(event);
+        return;
     }
 
-    // Legacy architecture: Use VirtualScrollManager
-    // Get the scroll delta in degrees (each step = 15 degrees typically)
     QPoint angleDelta = event->angleDelta();
-
-    // Vertical scrolling
     if (!angleDelta.isNull()) {
-        // Calculate scroll delta - invert so scroll up moves content down
-        // Qt reports positive Y for scroll up, but we want to decrease offset
-        qreal delta = -angleDelta.y() / 8.0;  // Convert from 1/8 degree steps
-        delta = delta / 15.0 * WHEEL_SCROLL_STEP;  // Convert degrees to pixels
-
-        if (m_smoothScrollingEnabled) {
-            // For smooth scrolling, accumulate with current animation target
-            qreal currentTarget = scrollOffset();
-            if (m_scrollAnimation != nullptr &&
-                m_scrollAnimation->state() == QAbstractAnimation::Running) {
-                currentTarget = m_scrollAnimation->endValue().toReal();
-            }
-            scrollTo(currentTarget + delta, true);
-        } else {
-            scrollBy(delta, false);
-        }
-
+        // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
+        qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
+        double newPos = m_viewportManager->scrollPosition() + delta;
+        m_viewportManager->setScrollPosition(newPos);
         event->accept();
     } else {
         QWidget::wheelEvent(event);
@@ -2974,35 +2327,15 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
 {
     CursorPosition result = position;
 
-    // Phase 8: Use TextBuffer for validation when new architecture is active
-    // TextBuffer is the source of truth, not KmlDocument
-    if (m_useNewArchitecture && m_textBuffer && m_textBuffer->paragraphCount() > 0) {
-        int maxParagraph = static_cast<int>(m_textBuffer->paragraphCount()) - 1;
-        result.paragraph = qBound(0, result.paragraph, maxParagraph);
-
-        int maxOffset = m_textBuffer->paragraphLength(static_cast<size_t>(result.paragraph));
-        result.offset = qBound(0, result.offset, maxOffset);
-        return result;
-    }
-
-    // Fallback: If no document, return origin position
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return {0, 0};
     }
 
-    // Clamp paragraph index to valid range
-    int maxParagraph = m_document->paragraphCount() - 1;
+    int maxParagraph = static_cast<int>(m_textBuffer->paragraphCount()) - 1;
     result.paragraph = qBound(0, result.paragraph, maxParagraph);
 
-    // Clamp offset to paragraph length
-    const KmlParagraph* para = m_document->paragraph(result.paragraph);
-    if (para != nullptr) {
-        int maxOffset = para->characterCount();
-        result.offset = qBound(0, result.offset, maxOffset);
-    } else {
-        result.offset = 0;
-    }
-
+    int maxOffset = m_textBuffer->paragraphLength(static_cast<size_t>(result.paragraph));
+    result.offset = qBound(0, result.offset, maxOffset);
     return result;
 }
 
@@ -3114,10 +2447,7 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
     m_clickTimer->start(MULTI_CLICK_INTERVAL);
 
     // Convert click to cursor position
-    // Phase 8.7: Use new architecture if enabled for O(log N) position lookup
-    CursorPosition clickPosition = m_useNewArchitecture
-        ? positionFromPointNewArch(clickPos)
-        : positionFromPoint(clickPos);
+    CursorPosition clickPosition = positionFromPointNewArch(clickPos);
 
     if (m_clickCount == 3) {
         // Triple click - select paragraph
@@ -3135,8 +2465,7 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             // Shift+click extends selection
             extendSelection(clickPosition);
 
-            // Phase 8.7: Update render engine selection for new architecture
-            if (m_useNewArchitecture && m_renderEngine && hasSelection()) {
+            if (m_renderEngine && hasSelection()) {
                 m_renderEngine->setSelection(m_selection);
                 update();
             }
@@ -3146,8 +2475,7 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             m_selectionAnchor = clickPosition;
             setCursorPosition(clickPosition);
 
-            // Phase 8.7: Clear render engine selection for new architecture
-            if (m_useNewArchitecture && m_renderEngine) {
+            if (m_renderEngine) {
                 m_renderEngine->clearSelection();
             }
         }
@@ -3184,10 +2512,7 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     }
 
     // Get position from mouse
-    // Phase 8.8: Use new architecture if enabled for O(log N) position lookup
-    CursorPosition dragPosition = m_useNewArchitecture
-        ? positionFromPointNewArch(event->position())
-        : positionFromPoint(event->position());
+    CursorPosition dragPosition = positionFromPointNewArch(event->position());
 
     // Update selection from anchor to current position
     SelectionRange newSelection;
@@ -3198,8 +2523,7 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     m_cursorPosition = dragPosition;
     setSelection(newSelection);
 
-    // Phase 8.8: Update render engine selection for new architecture
-    if (m_useNewArchitecture && m_renderEngine) {
+    if (m_renderEngine) {
         m_renderEngine->setSelection(newSelection);
         update();  // Trigger repaint for selection rendering
     }
@@ -3496,8 +2820,8 @@ void BookEditor::extendSelection(const CursorPosition& newCursor)
     m_cursorPosition = newCursor;
     setSelection(range);
 
-    // Phase 8.14: Update render engine selection for new architecture
-    if (m_useNewArchitecture && m_renderEngine) {
+    // Phase 8.14: Update render engine selection
+    if (m_renderEngine) {
         m_renderEngine->setSelection(range);
     }
 }
@@ -4166,70 +3490,10 @@ void BookEditor::paintPageModeNewArch(QPainter& painter)
 
 BookEditor::FocusedRange BookEditor::getFocusedRange() const
 {
-    // Task 9.19: Use new architecture if enabled
-    if (m_useNewArchitecture && m_textBuffer && m_lazyLayoutManager) {
+    if (m_textBuffer && m_lazyLayoutManager) {
         return getFocusedRangeNewArch();
     }
-
-    // Legacy architecture: Use KmlDocument + LayoutManager
-    FocusedRange range;
-
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return range;
-    }
-
-    // Get cursor's paragraph index
-    int paraIndex = m_cursorPosition.paragraph;
-    if (paraIndex < 0 || paraIndex >= m_document->paragraphCount()) {
-        paraIndex = 0;
-    }
-
-    // Determine range based on focus scope
-    switch (m_appearance.focusMode.scope) {
-        case FocusModeSettings::FocusScope::Line: {
-            // Focus on the specific line containing the cursor
-            range.startParagraph = paraIndex;
-            range.endParagraph = paraIndex;
-
-            // Get the layout to find line information
-            ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-            if (layout != nullptr) {
-                int lineIndex = layout->lineForPosition(m_cursorPosition.offset);
-                if (lineIndex < 0) {
-                    lineIndex = 0;
-                }
-                range.startLine = lineIndex;
-                range.endLine = lineIndex;
-            } else {
-                range.startLine = 0;
-                range.endLine = 0;
-            }
-            break;
-        }
-
-        case FocusModeSettings::FocusScope::Sentence:
-            // Sentence detection is complex - treat as paragraph for now
-            // (Future: implement sentence boundary detection)
-            [[fallthrough]];
-
-        case FocusModeSettings::FocusScope::Paragraph:
-        default:
-            // Focus on the entire paragraph
-            range.startParagraph = paraIndex;
-            range.endParagraph = paraIndex;
-            range.startLine = 0;
-
-            // Get line count for the paragraph
-            ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-            if (layout != nullptr) {
-                range.endLine = qMax(0, layout->lineCount() - 1);
-            } else {
-                range.endLine = 0;
-            }
-            break;
-    }
-
-    return range;
+    return FocusedRange();
 }
 
 void BookEditor::paintFocusOverlay(QPainter& painter)
@@ -4239,97 +3503,8 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         return;
     }
 
-    // Task 9.19: Use new architecture if enabled
-    if (m_useNewArchitecture && m_textBuffer && m_viewportManager) {
+    if (m_textBuffer && m_viewportManager) {
         paintFocusOverlayNewArch(painter);
-        return;
-    }
-
-    // Legacy architecture: Use KmlDocument + LayoutManager + VirtualScrollManager
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return;
-    }
-
-    // Get the focused range
-    FocusedRange focusedRange = getFocusedRange();
-
-    // Get scroll offset and visible range
-    qreal scrollY = m_scrollManager->scrollOffset();
-    auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
-    if (firstVisible < 0 || lastVisible < 0) {
-        return;
-    }
-
-    // Calculate the Y coordinates of the focused area
-    qreal focusTop = 0.0;
-    qreal focusBottom = 0.0;
-    bool focusRangeValid = false;
-
-    if (focusedRange.startParagraph >= 0 &&
-        focusedRange.startParagraph < m_document->paragraphCount()) {
-
-        // Get paragraph Y position
-        qreal paraY = m_layoutManager->paragraphY(focusedRange.startParagraph);
-        ParagraphLayout* layout = m_layoutManager->paragraphLayout(focusedRange.startParagraph);
-
-        if (layout != nullptr) {
-            if (m_appearance.focusMode.scope == FocusModeSettings::FocusScope::Line) {
-                // For line scope, calculate line bounds
-                int lineCount = layout->lineCount();
-                if (focusedRange.startLine >= 0 && focusedRange.startLine < lineCount) {
-                    QRectF lineRect = layout->lineRect(focusedRange.startLine);
-                    focusTop = paraY + lineRect.top();
-                    focusBottom = paraY + lineRect.bottom();
-                    focusRangeValid = true;
-                }
-            } else {
-                // For paragraph scope, use entire paragraph bounds
-                focusTop = paraY;
-                focusBottom = paraY + layout->height();
-                focusRangeValid = true;
-            }
-        }
-    }
-
-    if (!focusRangeValid) {
-        return;
-    }
-
-    // Convert to widget coordinates
-    qreal widgetFocusTop = TOP_MARGIN + focusTop - scrollY;
-    qreal widgetFocusBottom = TOP_MARGIN + focusBottom - scrollY;
-
-    // Calculate overlay opacity (inverted: high dimOpacity = more dimming)
-    // dimOpacity of 0.3 means non-focused content should be at 30% opacity
-    // So overlay alpha should be (1 - 0.3) * 255 = 178
-    int overlayAlpha = static_cast<int>((1.0 - m_appearance.focusMode.dimOpacity) * 255.0);
-    overlayAlpha = qBound(0, overlayAlpha, 255);
-
-    // Create overlay color based on editor background
-    QColor overlayColor = m_appearance.colors.editorBackground;
-    overlayColor.setAlpha(overlayAlpha);
-
-    // Draw overlay above focused area (if visible)
-    if (widgetFocusTop > 0) {
-        QRectF topOverlay(0, 0, width(), widgetFocusTop);
-        painter.fillRect(topOverlay, overlayColor);
-    }
-
-    // Draw overlay below focused area (if visible)
-    if (widgetFocusBottom < height()) {
-        QRectF bottomOverlay(0, widgetFocusBottom, width(), height() - widgetFocusBottom);
-        painter.fillRect(bottomOverlay, overlayColor);
-    }
-
-    // Draw highlight behind focused area (optional)
-    if (m_appearance.focusMode.highlightBackground) {
-        // Use accent color with low alpha for subtle highlight
-        QColor highlightColor = m_appearance.colors.accent;
-        highlightColor.setAlpha(25);  // Very subtle
-
-        QRectF focusRect(LEFT_MARGIN, widgetFocusTop,
-                         width() - LEFT_MARGIN, widgetFocusBottom - widgetFocusTop);
-        painter.fillRect(focusRect, highlightColor);
     }
 }
 
@@ -4490,31 +3665,10 @@ void BookEditor::paintFocusOverlayNewArch(QPainter& painter)
 
 int BookEditor::getWordCount() const
 {
-    // Task 9.18: Use new architecture if enabled
-    if (m_useNewArchitecture && m_textBuffer) {
+    if (m_textBuffer) {
         return getWordCountNewArch();
     }
-
-    // Legacy architecture: Use KmlDocument
-    if (m_document == nullptr) {
-        return 0;
-    }
-
-    int count = 0;
-    static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
-
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        const KmlParagraph* para = m_document->paragraph(i);
-        if (para == nullptr) {
-            continue;
-        }
-        QString text = para->plainText();
-        if (!text.isEmpty()) {
-            count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
-        }
-    }
-
-    return count;
+    return 0;
 }
 
 int BookEditor::getWordCountNewArch() const
@@ -4699,8 +3853,8 @@ void BookEditor::insertComment()
     core::Logger::getInstance().info("BookEditor: Added comment '{}' to paragraph {} at ({}, {})",
         comment.id().toStdString(), sel.start.paragraph, sel.start.offset, sel.end.offset);
 
-    // Phase 8/9: Also add to MetadataLayer for new architecture (Task 9.9)
-    if (m_useNewArchitecture && m_metadataLayer && m_textBuffer) {
+    // Also add to MetadataLayer
+    if (m_metadataLayer && m_textBuffer) {
         // Calculate absolute positions using TextBuffer
         size_t startPos = calculateAbsolutePosition(sel.start);
         size_t endPos = calculateAbsolutePosition(sel.end);
@@ -4739,8 +3893,8 @@ void BookEditor::deleteComment(const QString& commentId)
             core::Logger::getInstance().info("BookEditor: Deleted comment '{}' from paragraph {}",
                 commentId.toStdString(), i);
 
-            // Phase 8/9: Also remove from MetadataLayer for new architecture (Task 9.9)
-            if (m_useNewArchitecture && m_metadataLayer) {
+            // Also remove from MetadataLayer
+            if (m_metadataLayer) {
                 m_metadataLayer->removeComment(commentId);
                 core::Logger::getInstance().debug("BookEditor: Removed comment '{}' from MetadataLayer",
                     commentId.toStdString());
@@ -5442,7 +4596,7 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
 
 void BookEditor::addTodoAtCursor(const QString& text)
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5466,7 +4620,7 @@ void BookEditor::addTodoAtCursor(const QString& text)
 
 void BookEditor::addNoteAtCursor(const QString& text)
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5490,7 +4644,7 @@ void BookEditor::addNoteAtCursor(const QString& text)
 
 void BookEditor::removeMarkerAtCursor()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5511,7 +4665,7 @@ void BookEditor::removeMarkerAtCursor()
 
 void BookEditor::toggleTodoAtCursor()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5531,7 +4685,7 @@ void BookEditor::toggleTodoAtCursor()
 
 void BookEditor::goToNextTodo()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5548,7 +4702,7 @@ void BookEditor::goToNextTodo()
 
 void BookEditor::goToPreviousTodo()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5565,7 +4719,7 @@ void BookEditor::goToPreviousTodo()
 
 void BookEditor::goToNextNote()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5582,7 +4736,7 @@ void BookEditor::goToNextNote()
 
 void BookEditor::goToPreviousNote()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5599,7 +4753,7 @@ void BookEditor::goToPreviousNote()
 
 void BookEditor::goToNextMarker()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5616,7 +4770,7 @@ void BookEditor::goToNextMarker()
 
 void BookEditor::goToPreviousMarker()
 {
-    if (!m_useNewArchitecture || !m_textBuffer || !m_metadataLayer) {
+    if (!m_textBuffer || !m_metadataLayer) {
         return;
     }
 
@@ -5633,15 +4787,9 @@ void BookEditor::goToPreviousMarker()
 
 QString BookEditor::toKml() const
 {
-    // Use new architecture if enabled (Task 9.13)
-    if (m_useNewArchitecture && m_textBuffer && m_formatLayer) {
+    if (m_textBuffer && m_formatLayer) {
         KmlConverter converter;
         return converter.toKml(*m_textBuffer, *m_formatLayer, m_metadataLayer.get());
-    }
-
-    // Fallback to old architecture
-    if (m_document) {
-        return m_document->toKml();
     }
     return QString();
 }
@@ -5705,58 +4853,48 @@ void BookEditor::fromKml(const QString& kml)
         return;
     }
 
-    // Use new architecture if enabled (Task 9.14)
-    if (m_useNewArchitecture) {
-        KmlConverter converter;
-        auto result = converter.parseKml(kml);
+    // Parse KML content
+    KmlConverter converter;
+    auto result = converter.parseKml(kml);
 
-        if (!result.success) {
-            logger.error("BookEditor::fromKml - parse error: {} (line {}, col {})",
-                result.errorMessage.toStdString(), result.errorLine, result.errorColumn);
-            return;
-        }
-
-        // Replace internal components with parsed content
-        if (result.buffer) {
-            m_textBuffer = std::move(result.buffer);
-        }
-        if (result.formatLayer) {
-            m_formatLayer = std::move(result.formatLayer);
-        }
-        if (result.metadataLayer) {
-            m_metadataLayer = std::move(result.metadataLayer);
-        } else {
-            m_metadataLayer = std::make_unique<MetadataLayer>();
-        }
-
-        // Re-create LazyLayoutManager with new buffer
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
-            m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
-            m_lazyLayoutManager->setFont(m_layoutManager ? m_layoutManager->font() : QFont());
-        }
-        if (m_renderEngine) {
-            m_renderEngine->setBuffer(m_textBuffer.get());
-            m_renderEngine->setFormatLayer(m_formatLayer.get());
-            m_renderEngine->setMetadataLayer(m_metadataLayer.get());
-        }
-        if (m_viewportManager) {
-            m_viewportManager->setBuffer(m_textBuffer.get());
-            m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
-            m_viewportManager->setScrollPosition(0.0);
-        }
-
-        logger.debug("BookEditor::fromKml - loaded {} paragraphs via new architecture",
-            m_textBuffer ? m_textBuffer->paragraphCount() : 0);
+    if (!result.success) {
+        logger.error("BookEditor::fromKml - parse error: {} (line {}, col {})",
+            result.errorMessage.toStdString(), result.errorLine, result.errorColumn);
+        return;
     }
 
-    // Note: For old architecture, KmlDocument doesn't have fromKml().
-    // The caller (EditorPanel::setContent) will parse and set the document separately.
-    // We just sync our TextBuffer from document content if document exists.
-    if (!m_useNewArchitecture && m_document) {
-        syncDocumentToNewArchitecture();
-        logger.debug("BookEditor::fromKml - synced from KmlDocument (old architecture)");
+    // Replace internal components with parsed content
+    if (result.buffer) {
+        m_textBuffer = std::move(result.buffer);
     }
+    if (result.formatLayer) {
+        m_formatLayer = std::move(result.formatLayer);
+    }
+    if (result.metadataLayer) {
+        m_metadataLayer = std::move(result.metadataLayer);
+    } else {
+        m_metadataLayer = std::make_unique<MetadataLayer>();
+    }
+
+    // Re-create LazyLayoutManager with new buffer
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
+        m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+        m_lazyLayoutManager->setFont(m_layoutManager ? m_layoutManager->font() : QFont());
+    }
+    if (m_renderEngine) {
+        m_renderEngine->setBuffer(m_textBuffer.get());
+        m_renderEngine->setFormatLayer(m_formatLayer.get());
+        m_renderEngine->setMetadataLayer(m_metadataLayer.get());
+    }
+    if (m_viewportManager) {
+        m_viewportManager->setBuffer(m_textBuffer.get());
+        m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
+        m_viewportManager->setScrollPosition(0.0);
+    }
+
+    logger.debug("BookEditor::fromKml - loaded {} paragraphs",
+        m_textBuffer ? m_textBuffer->paragraphCount() : 0);
 
     // Reset editor state
     m_cursorPosition = {0, 0};

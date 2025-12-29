@@ -967,12 +967,11 @@ private:
     /// @return Cursor position in document, or invalid if outside document
     CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
-    /// @brief Convert widget point to cursor position using new architecture (Phase 8.7)
+    /// @brief Convert widget point to cursor position (Phase 8.7)
     /// @param widgetPos Point in widget coordinates
     /// @return Cursor position using TextBuffer's Fenwick tree for O(log N) lookup
     ///
-    /// This method uses the new architecture components (TextBuffer, LazyLayoutManager)
-    /// for efficient position calculation. Used when m_useNewArchitecture is true.
+    /// This method uses TextBuffer and LazyLayoutManager for efficient position calculation.
     CursorPosition positionFromPointNewArch(const QPointF& widgetPos) const;
 
     /// @brief Draw selection highlighting (Phase 3.10)
@@ -1225,12 +1224,6 @@ private:
     /// @brief Metadata layer for comments, TODOs, bookmarks
     std::unique_ptr<MetadataLayer> m_metadataLayer;
 
-    /// @brief Feature flag for gradual migration to new architecture
-    ///
-    /// When false (default), existing KmlDocument-based rendering is used.
-    /// When true, new TextBuffer + FormatLayer rendering is used.
-    /// This allows gradual migration and A/B testing.
-    bool m_useNewArchitecture = false;
 
     /// @brief Sync KmlDocument content to new architecture components
     ///
