@@ -237,26 +237,101 @@ QTextBlock TextBuffer::block(size_t index) const {
 // Text Modification
 
 void TextBuffer::insert(int position, const QString& text) {
+    // Mark as internal to skip expensive initializeHeights() in signal handler
+    m_internalModification = true;
+
+    // Find affected paragraph before modification
+    QTextBlock block = m_document->findBlock(position);
+    int affectedParagraph = block.isValid() ? block.blockNumber() : 0;
+
+    // Check if we're inserting newlines (adds paragraphs)
+    bool hasNewlines = text.contains('\n') || text.contains(QChar::ParagraphSeparator);
+
     QTextCursor cursor(m_document.get());
     cursor.setPosition(position);
     cursor.insertText(text);
+
+    m_internalModification = false;
     invalidatePlainTextCache();
+
+    // Handle paragraph changes efficiently
+    if (hasNewlines) {
+        // Newlines inserted - need to reinitialize heights for structural change
+        initializeHeights();
+        notifyTextChanged();
+    } else {
+        // Single paragraph change - only invalidate affected paragraph
+        if (affectedParagraph >= 0 && static_cast<size_t>(affectedParagraph) < m_heights.size()) {
+            invalidateParagraphHeight(static_cast<size_t>(affectedParagraph));
+        }
+    }
 }
 
 void TextBuffer::remove(int position, int length) {
+    // Mark as internal to skip expensive initializeHeights() in signal handler
+    m_internalModification = true;
+
+    // Find affected paragraph and check if we're removing across paragraphs
+    QTextBlock startBlock = m_document->findBlock(position);
+    QTextBlock endBlock = m_document->findBlock(position + length);
+    int startPara = startBlock.isValid() ? startBlock.blockNumber() : 0;
+    int endPara = endBlock.isValid() ? endBlock.blockNumber() : startPara;
+    bool crossesParagraphs = (startPara != endPara);
+
     QTextCursor cursor(m_document.get());
     cursor.setPosition(position);
     cursor.setPosition(position + length, QTextCursor::KeepAnchor);
     cursor.removeSelectedText();
+
+    m_internalModification = false;
     invalidatePlainTextCache();
+
+    // Handle paragraph changes efficiently
+    if (crossesParagraphs) {
+        // Removed across paragraphs - structural change
+        initializeHeights();
+        notifyTextChanged();
+    } else {
+        // Single paragraph change - only invalidate affected paragraph
+        if (startPara >= 0 && static_cast<size_t>(startPara) < m_heights.size()) {
+            invalidateParagraphHeight(static_cast<size_t>(startPara));
+        }
+    }
 }
 
 void TextBuffer::replace(int position, int length, const QString& text) {
+    // Mark as internal to skip expensive initializeHeights() in signal handler
+    m_internalModification = true;
+
+    // Find affected paragraphs
+    QTextBlock startBlock = m_document->findBlock(position);
+    QTextBlock endBlock = m_document->findBlock(position + length);
+    int startPara = startBlock.isValid() ? startBlock.blockNumber() : 0;
+    int endPara = endBlock.isValid() ? endBlock.blockNumber() : startPara;
+
+    // Check if operation changes paragraph structure
+    bool crossesParagraphs = (startPara != endPara);
+    bool hasNewlines = text.contains('\n') || text.contains(QChar::ParagraphSeparator);
+
     QTextCursor cursor(m_document.get());
     cursor.setPosition(position);
     cursor.setPosition(position + length, QTextCursor::KeepAnchor);
     cursor.insertText(text);
+
+    m_internalModification = false;
     invalidatePlainTextCache();
+
+    // Handle paragraph changes efficiently
+    if (crossesParagraphs || hasNewlines) {
+        // Structural change - reinitialize
+        initializeHeights();
+        notifyTextChanged();
+    } else {
+        // Single paragraph change - only invalidate affected paragraph
+        if (startPara >= 0 && static_cast<size_t>(startPara) < m_heights.size()) {
+            invalidateParagraphHeight(static_cast<size_t>(startPara));
+        }
+    }
 }
 
 void TextBuffer::insertParagraph(size_t index, const QString& text) {
