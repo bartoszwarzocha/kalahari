@@ -1266,6 +1266,7 @@ void BookEditor::insertText(const QString& text)
         ensureCursorVisible();
         update();
         emit contentChanged();
+        emit paragraphModified(m_cursorPosition.paragraph);
         return;
     }
 
@@ -1388,6 +1389,7 @@ void BookEditor::insertNewline()
         ensureCursorVisible();
         update();
         emit contentChanged();
+        emit paragraphInserted(m_cursorPosition.paragraph);
         return;
     }
 
@@ -1403,6 +1405,7 @@ void BookEditor::insertNewline()
     // Move cursor to start of new paragraph
     setCursorPosition(cmd->cursorAfter());
     ensureCursorVisible();
+    emit paragraphInserted(cmd->cursorAfter().paragraph);
 }
 
 void BookEditor::deleteBackward()
@@ -1441,6 +1444,15 @@ void BookEditor::deleteBackward()
 
             // Update cursor (redo already executed)
             m_cursorPosition.offset--;
+
+            if (m_lazyLayoutManager) {
+                m_lazyLayoutManager->invalidateLayout(
+                    static_cast<size_t>(m_cursorPosition.paragraph));
+            }
+            ensureCursorVisible();
+            update();
+            emit contentChanged();
+            emit paragraphModified(m_cursorPosition.paragraph);
         } else if (m_cursorPosition.paragraph > 0) {
             // Merge with previous paragraph using ParagraphMergeCommand
             int mergeFromIndex = m_cursorPosition.paragraph;
@@ -1457,15 +1469,16 @@ void BookEditor::deleteBackward()
             // Update cursor (redo already executed)
             m_cursorPosition.paragraph--;
             m_cursorPosition.offset = prevParaLen;
-        }
 
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
+            if (m_lazyLayoutManager) {
+                m_lazyLayoutManager->invalidateLayout(
+                    static_cast<size_t>(m_cursorPosition.paragraph));
+            }
+            ensureCursorVisible();
+            update();
+            emit contentChanged();
+            emit paragraphRemoved(mergeFromIndex);
         }
-        ensureCursorVisible();
-        update();
-        emit contentChanged();
         return;
     }
 
@@ -1482,6 +1495,7 @@ void BookEditor::deleteBackward()
 
     // If at start of paragraph, merge with previous paragraph
     if (m_cursorPosition.offset == 0) {
+        int removedParagraphIndex = m_cursorPosition.paragraph;
         // Create and push merge command
         auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
                                                 m_cursorPosition.paragraph);
@@ -1490,6 +1504,7 @@ void BookEditor::deleteBackward()
         // Cursor moves to merge point
         setCursorPosition(cmd->cursorAfter());
         ensureCursorVisible();
+        emit paragraphRemoved(removedParagraphIndex);
     } else {
         // Delete character before cursor
         CursorPosition deleteStart = m_cursorPosition;
@@ -1512,6 +1527,7 @@ void BookEditor::deleteBackward()
 
         setCursorPosition(deleteStart);
         ensureCursorVisible();
+        emit paragraphModified(deleteStart.paragraph);
     }
 }
 
@@ -1552,6 +1568,13 @@ void BookEditor::deleteForward()
                 m_cursorPosition, deleteEnd, deletedChar, std::vector<FormatRange>{}));
 
             // Cursor position stays the same after forward delete
+            if (m_lazyLayoutManager) {
+                m_lazyLayoutManager->invalidateLayout(
+                    static_cast<size_t>(m_cursorPosition.paragraph));
+            }
+            update();
+            emit contentChanged();
+            emit paragraphModified(m_cursorPosition.paragraph);
         } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
                    m_textBuffer->paragraphCount() - 1) {
             // Merge with next paragraph using ParagraphMergeCommand
@@ -1565,14 +1588,14 @@ void BookEditor::deleteForward()
                 cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
 
             // Cursor position stays the same after merge
+            if (m_lazyLayoutManager) {
+                m_lazyLayoutManager->invalidateLayout(
+                    static_cast<size_t>(m_cursorPosition.paragraph));
+            }
+            update();
+            emit contentChanged();
+            emit paragraphRemoved(mergeFromIndex);
         }
-
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
-        update();
-        emit contentChanged();
         return;
     }
 
@@ -1603,12 +1626,14 @@ void BookEditor::deleteForward()
 
     // If at end of paragraph, merge with next paragraph
     if (atEndOfPara) {
+        int removedParagraphIndex = m_cursorPosition.paragraph + 1;
         // Create and push merge command (merge next paragraph into this one)
         auto* cmd = new MergeParagraphsCommand(m_document, m_cursorPosition,
                                                 m_cursorPosition.paragraph + 1);
         m_undoStack->push(cmd);
         // Cursor position stays the same
         ensureCursorVisible();
+        emit paragraphRemoved(removedParagraphIndex);
     } else {
         // Delete character after cursor
         CursorPosition deleteEnd = m_cursorPosition;
@@ -1627,6 +1652,7 @@ void BookEditor::deleteForward()
         m_undoStack->push(cmd);
         // Cursor position stays the same
         ensureCursorVisible();
+        emit paragraphModified(m_cursorPosition.paragraph);
     }
 }
 
@@ -4828,6 +4854,7 @@ void BookEditor::setSpellCheckService(SpellCheckService* service)
     // Disconnect from previous service
     if (m_spellCheckService) {
         disconnect(m_spellCheckService, nullptr, this, nullptr);
+        m_spellCheckService->setBookEditor(nullptr);
     }
 
     m_spellCheckService = service;
@@ -4837,10 +4864,8 @@ void BookEditor::setSpellCheckService(SpellCheckService* service)
         connect(m_spellCheckService, &SpellCheckService::paragraphChecked,
                 this, &BookEditor::onSpellCheckParagraph);
 
-        // Set the document on the spell checker
-        if (m_document) {
-            m_spellCheckService->setDocument(m_document);
-        }
+        // Connect service to this BookEditor for paragraph signals
+        m_spellCheckService->setBookEditor(this);
 
         core::Logger::getInstance().debug("BookEditor: Spell check service connected");
     }
@@ -5047,6 +5072,7 @@ void BookEditor::setGrammarCheckService(GrammarCheckService* service)
     // Disconnect from previous service
     if (m_grammarCheckService) {
         disconnect(m_grammarCheckService, nullptr, this, nullptr);
+        m_grammarCheckService->setBookEditor(nullptr);
     }
 
     m_grammarCheckService = service;
@@ -5056,10 +5082,8 @@ void BookEditor::setGrammarCheckService(GrammarCheckService* service)
         connect(m_grammarCheckService, &GrammarCheckService::paragraphChecked,
                 this, &BookEditor::onGrammarCheckParagraph);
 
-        // Set the document on the grammar checker
-        if (m_document) {
-            m_grammarCheckService->setDocument(m_document);
-        }
+        // Connect service to this BookEditor for paragraph signals
+        m_grammarCheckService->setBookEditor(this);
 
         core::Logger::getInstance().debug("BookEditor: Grammar check service connected");
     }

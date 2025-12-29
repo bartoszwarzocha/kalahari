@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 
 #include "kalahari/editor/grammar_check_service.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kml_document.h"
 
 using namespace kalahari::editor;
@@ -199,31 +200,31 @@ TEST_CASE("GrammarCheckService ignore rules", "[editor][grammar_check]") {
 // Document Integration
 // ============================================================================
 
-TEST_CASE("GrammarCheckService document integration", "[editor][grammar_check]") {
-    // Note: Service must be declared AFTER document to ensure correct destruction order
+TEST_CASE("GrammarCheckService BookEditor integration", "[editor][grammar_check]") {
+    // Note: Service must be declared AFTER editor to ensure correct destruction order
 
-    SECTION("set document") {
-        KmlDocument doc;
+    SECTION("set editor") {
+        BookEditor editor;
         GrammarCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(nullptr);  // Disconnect before doc is destroyed
+        service.setBookEditor(&editor);
+        service.setBookEditor(nullptr);  // Disconnect before editor is destroyed
     }
 
-    SECTION("set null document") {
-        KmlDocument doc;
+    SECTION("set null editor") {
+        BookEditor editor;
         GrammarCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(nullptr);
+        service.setBookEditor(&editor);
+        service.setBookEditor(nullptr);
         // Should not crash
     }
 
-    SECTION("change document") {
-        KmlDocument doc;
-        KmlDocument doc2;
+    SECTION("change editor") {
+        BookEditor editor1;
+        BookEditor editor2;
         GrammarCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(&doc2);
-        service.setDocument(nullptr);  // Disconnect before docs are destroyed
+        service.setBookEditor(&editor1);
+        service.setBookEditor(&editor2);
+        service.setBookEditor(nullptr);  // Disconnect before editors are destroyed
     }
 }
 

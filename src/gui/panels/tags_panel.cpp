@@ -128,10 +128,8 @@ void TagsPanel::setEditor(editor::BookEditor* editor)
         m_detector = new editor::TagDetector(this);
         m_ownsDetector = true;
 
-        // Set the document
-        if (m_editor->document()) {
-            m_detector->setDocument(m_editor->document());
-        }
+        // Connect detector to editor (uses BookEditor signals)
+        m_detector->setBookEditor(m_editor);
 
         // Connect to detector
         connectToDetector();
@@ -140,7 +138,8 @@ void TagsPanel::setEditor(editor::BookEditor* editor)
         connect(m_editor, &editor::BookEditor::documentChanged,
                 this, [this]() {
                     if (m_detector && m_editor) {
-                        m_detector->setDocument(m_editor->document());
+                        // Re-connect detector to editor when document changes
+                        m_detector->setBookEditor(m_editor);
                     }
                 });
     }

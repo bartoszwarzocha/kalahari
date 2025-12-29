@@ -2,7 +2,7 @@
 /// @brief Grammar checking service implementation (OpenSpec #00042 Phase 6.14-6.17)
 
 #include <kalahari/editor/grammar_check_service.h>
-#include <kalahari/editor/kml_document.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
 
 #include <QNetworkRequest>
@@ -15,57 +15,12 @@
 namespace kalahari::editor {
 
 // =============================================================================
-// DocumentObserver (Private Implementation)
-// =============================================================================
-
-/// @brief Private document observer for GrammarCheckService
-///
-/// Implements IDocumentObserver to receive document change notifications
-/// and forward them to the service for grammar checking.
-class GrammarCheckService::DocumentObserver : public IDocumentObserver {
-public:
-    explicit DocumentObserver(GrammarCheckService* service)
-        : m_service(service)
-    {}
-
-    void onContentChanged() override {
-        if (m_service) {
-            m_service->onDocumentChanged();
-        }
-    }
-
-    void onParagraphInserted(int index) override {
-        if (m_service) {
-            m_service->markParagraphForCheck(index);
-        }
-    }
-
-    void onParagraphRemoved(int index) override {
-        Q_UNUSED(index);
-        // Remove cached errors for removed paragraph
-        if (m_service) {
-            m_service->m_paragraphErrors.remove(index);
-        }
-    }
-
-    void onParagraphModified(int index) override {
-        if (m_service) {
-            m_service->markParagraphForCheck(index);
-        }
-    }
-
-private:
-    GrammarCheckService* m_service;
-};
-
-// =============================================================================
 // GrammarCheckService
 // =============================================================================
 
 GrammarCheckService::GrammarCheckService(QObject* parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
-    , m_observer(std::make_unique<DocumentObserver>(this))
     , m_debounceTimer(new QTimer(this))
     , m_rateLimitTimer(new QTimer(this))
 {
@@ -90,9 +45,9 @@ GrammarCheckService::GrammarCheckService(QObject* parent)
 
 GrammarCheckService::~GrammarCheckService()
 {
-    // Disconnect from document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from editor
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
     // Cancel pending requests
@@ -105,31 +60,36 @@ GrammarCheckService::~GrammarCheckService()
 // Setup
 // =============================================================================
 
-void GrammarCheckService::setDocument(KmlDocument* document)
+void GrammarCheckService::setBookEditor(BookEditor* editor)
 {
-    if (m_document == document) {
+    if (m_editor == editor) {
         return;
     }
 
-    // Disconnect from previous document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from previous editor
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
-    m_document = document;
+    m_editor = editor;
 
     // Clear caches
     m_pendingParagraphs.clear();
     m_paragraphErrors.clear();
 
-    // Connect to new document
-    if (m_document) {
-        m_document->addObserver(m_observer.get());
+    // Connect to new editor
+    if (m_editor) {
+        connect(m_editor, &BookEditor::paragraphModified,
+                this, &GrammarCheckService::onParagraphModified);
+        connect(m_editor, &BookEditor::paragraphInserted,
+                this, &GrammarCheckService::onParagraphInserted);
+        connect(m_editor, &BookEditor::paragraphRemoved,
+                this, &GrammarCheckService::onParagraphRemoved);
 
         // Mark all paragraphs for initial check
         if (m_enabled) {
-            for (int i = 0; i < m_document->paragraphCount(); ++i) {
-                m_pendingParagraphs.insert(i);
+            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+                m_pendingParagraphs.insert(static_cast<int>(i));
             }
             m_debounceTimer->start();
         }
@@ -147,7 +107,7 @@ void GrammarCheckService::setLanguage(const QString& language)
                                      language.toStdString());
 
     // Re-check document with new language
-    if (m_document && m_enabled) {
+    if (m_editor && m_enabled) {
         checkDocumentAsync();
     }
 }
@@ -181,7 +141,7 @@ void GrammarCheckService::setEnabled(bool enabled)
 
     m_enabled = enabled;
 
-    if (enabled && m_document) {
+    if (enabled && m_editor) {
         // Trigger full document check
         checkDocumentAsync();
     } else if (!enabled) {
@@ -190,9 +150,9 @@ void GrammarCheckService::setEnabled(bool enabled)
         m_paragraphErrors.clear();
 
         // Emit empty error lists for all paragraphs to clear UI
-        if (m_document) {
-            for (int i = 0; i < m_document->paragraphCount(); ++i) {
-                emit paragraphChecked(i, QList<GrammarError>());
+        if (m_editor) {
+            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+                emit paragraphChecked(static_cast<int>(i), QList<GrammarError>());
             }
         }
     }
@@ -226,15 +186,15 @@ void GrammarCheckService::checkTextAsync(const QString& text, int paragraphIndex
 
 void GrammarCheckService::checkDocumentAsync()
 {
-    if (!m_document || !m_enabled) {
+    if (!m_editor || !m_enabled) {
         emit documentCheckComplete();
         return;
     }
 
     // Mark all paragraphs for checking
     m_pendingParagraphs.clear();
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        m_pendingParagraphs.insert(i);
+    for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+        m_pendingParagraphs.insert(static_cast<int>(i));
     }
 
     // Start debounce timer
@@ -314,7 +274,7 @@ void GrammarCheckService::ignoreRule(const QString& ruleId)
                                       ruleId.toStdString());
 
     // Re-check document to update UI
-    if (m_document && m_enabled) {
+    if (m_editor && m_enabled) {
         checkDocumentAsync();
     }
 }
@@ -334,7 +294,7 @@ void GrammarCheckService::clearIgnoredRules()
     m_ignoredRules.clear();
 
     // Re-check document to update UI
-    if (m_document && m_enabled) {
+    if (m_editor && m_enabled) {
         checkDocumentAsync();
     }
 }
@@ -418,7 +378,7 @@ void GrammarCheckService::onNetworkReply(QNetworkReply* reply)
 
 void GrammarCheckService::onDebounceTimeout()
 {
-    if (!m_document || !m_enabled) {
+    if (!m_editor || !m_enabled) {
         m_pendingParagraphs.clear();
         return;
     }
@@ -427,16 +387,11 @@ void GrammarCheckService::onDebounceTimeout()
     emit checkingStarted();
 
     for (int idx : m_pendingParagraphs) {
-        if (idx < 0 || idx >= m_document->paragraphCount()) {
+        if (idx < 0 || static_cast<size_t>(idx) >= m_editor->paragraphCount()) {
             continue;
         }
 
-        const KmlParagraph* para = m_document->paragraph(idx);
-        if (!para) {
-            continue;
-        }
-
-        QString text = para->plainText();
+        QString text = m_editor->paragraphPlainText(static_cast<size_t>(idx));
         if (!text.trimmed().isEmpty()) {
             m_requestQueue.enqueue({text, idx});
         } else {
@@ -454,6 +409,33 @@ void GrammarCheckService::onDebounceTimeout()
     } else if (m_requestQueue.isEmpty()) {
         emit documentCheckComplete();
     }
+}
+
+// =============================================================================
+// BookEditor Signal Handlers
+// =============================================================================
+
+void GrammarCheckService::onParagraphModified(int paragraphIndex)
+{
+    if (m_enabled) {
+        m_pendingParagraphs.insert(paragraphIndex);
+        m_debounceTimer->start();
+    }
+}
+
+void GrammarCheckService::onParagraphInserted(int paragraphIndex)
+{
+    if (m_enabled) {
+        m_pendingParagraphs.insert(paragraphIndex);
+        m_debounceTimer->start();
+    }
+}
+
+void GrammarCheckService::onParagraphRemoved(int paragraphIndex)
+{
+    // Remove cached errors for removed paragraph
+    m_paragraphErrors.remove(paragraphIndex);
+    m_pendingParagraphs.remove(paragraphIndex);
 }
 
 void GrammarCheckService::processQueue()
@@ -619,29 +601,6 @@ GrammarIssueType GrammarCheckService::categoryToType(const QString& category) co
 
     // Default to Grammar for unknown categories
     return GrammarIssueType::Grammar;
-}
-
-// =============================================================================
-// Document Observer Methods
-// =============================================================================
-
-void GrammarCheckService::onDocumentChanged()
-{
-    // Full document might have changed - re-check all
-    if (m_document && m_enabled) {
-        for (int i = 0; i < m_document->paragraphCount(); ++i) {
-            m_pendingParagraphs.insert(i);
-        }
-        m_debounceTimer->start();
-    }
-}
-
-void GrammarCheckService::markParagraphForCheck(int index)
-{
-    if (m_enabled) {
-        m_pendingParagraphs.insert(index);
-        m_debounceTimer->start();
-    }
 }
 
 }  // namespace kalahari::editor

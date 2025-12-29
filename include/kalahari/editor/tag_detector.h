@@ -19,8 +19,7 @@
 
 // Forward declarations
 namespace kalahari::editor {
-class KmlDocument;
-class IDocumentObserver;
+class BookEditor;
 }
 
 namespace kalahari::editor {
@@ -107,14 +106,14 @@ public:
     // Setup
     // =========================================================================
 
-    /// @brief Set the document to scan
-    /// @param document KML document to monitor (nullptr to disconnect)
-    /// @note Previous document is automatically disconnected
-    void setDocument(KmlDocument* document);
+    /// @brief Set the BookEditor to scan
+    /// @param editor BookEditor to monitor (nullptr to disconnect)
+    /// @note Previous editor is automatically disconnected
+    void setBookEditor(BookEditor* editor);
 
-    /// @brief Get the currently set document
-    /// @return Current document, or nullptr if none set
-    KmlDocument* document() const { return m_document; }
+    /// @brief Get the currently set editor
+    /// @return Current editor, or nullptr if none set
+    BookEditor* bookEditor() const { return m_editor; }
 
     // =========================================================================
     // Scanning
@@ -192,10 +191,20 @@ signals:
     /// @param tag The detected tag
     void tagFound(const DetectedTag& tag);
 
+private slots:
+    /// @brief Handle paragraph modified signal from BookEditor
+    /// @param paragraphIndex Index of the modified paragraph
+    void onParagraphModified(int paragraphIndex);
+
+    /// @brief Handle paragraph inserted signal from BookEditor
+    /// @param paragraphIndex Index of the newly inserted paragraph
+    void onParagraphInserted(int paragraphIndex);
+
+    /// @brief Handle paragraph removed signal from BookEditor
+    /// @param paragraphIndex Index of the removed paragraph
+    void onParagraphRemoved(int paragraphIndex);
+
 private:
-    // Document observer implementation
-    class DocumentObserver;
-    friend class DocumentObserver;
 
     // =========================================================================
     // Internal Methods
@@ -216,22 +225,12 @@ private:
     /// @return 1-based line number
     int calculateLineNumber(int paragraphIndex) const;
 
-    /// @brief Called when document content changes
-    void onDocumentChanged();
-
-    /// @brief Called when a paragraph is modified
-    /// @param index The modified paragraph index
-    void onParagraphModified(int index);
-
     // =========================================================================
     // Members
     // =========================================================================
 
-    KmlDocument* m_document{nullptr};
+    BookEditor* m_editor{nullptr};
     QList<DetectedTag> m_tags;
-
-    // Document observer
-    std::unique_ptr<DocumentObserver> m_observer;
 
     /// @brief Regex pattern for matching tags
     ///

@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 
 #include "kalahari/editor/spell_check_service.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kml_document.h"
 
 using namespace kalahari::editor;
@@ -112,35 +113,35 @@ TEST_CASE("SpellCheckService ignore word", "[editor][spell_check]") {
 }
 
 // ============================================================================
-// Document Integration
+// BookEditor Integration
 // ============================================================================
 
-TEST_CASE("SpellCheckService document integration", "[editor][spell_check]") {
-    // Note: Service must be declared AFTER document to ensure correct destruction order
-    // (document destroyed after service disconnects from it)
+TEST_CASE("SpellCheckService BookEditor integration", "[editor][spell_check]") {
+    // Note: Service must be declared AFTER editor to ensure correct destruction order
+    // (editor destroyed after service disconnects from it)
 
-    SECTION("set document") {
-        KmlDocument doc;
+    SECTION("set editor") {
+        BookEditor editor;
         SpellCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(nullptr);  // Disconnect before doc is destroyed
+        service.setBookEditor(&editor);
+        service.setBookEditor(nullptr);  // Disconnect before editor is destroyed
     }
 
-    SECTION("set null document") {
-        KmlDocument doc;
+    SECTION("set null editor") {
+        BookEditor editor;
         SpellCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(nullptr);
+        service.setBookEditor(&editor);
+        service.setBookEditor(nullptr);
         // Should not crash
     }
 
-    SECTION("change document") {
-        KmlDocument doc;
-        KmlDocument doc2;
+    SECTION("change editor") {
+        BookEditor editor1;
+        BookEditor editor2;
         SpellCheckService service;
-        service.setDocument(&doc);
-        service.setDocument(&doc2);
-        service.setDocument(nullptr);  // Disconnect before docs are destroyed
+        service.setBookEditor(&editor1);
+        service.setBookEditor(&editor2);
+        service.setBookEditor(nullptr);  // Disconnect before editors are destroyed
     }
 }
 

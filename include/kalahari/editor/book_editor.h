@@ -799,6 +799,18 @@ signals:
     /// @param commentId ID of the selected comment
     void commentSelected(int paragraphIndex, const QString& commentId);
 
+    /// @brief Emitted when a paragraph is modified (text inserted/deleted)
+    /// @param paragraphIndex Index of the modified paragraph
+    void paragraphModified(int paragraphIndex);
+
+    /// @brief Emitted when a new paragraph is inserted (after newline)
+    /// @param paragraphIndex Index of the newly inserted paragraph
+    void paragraphInserted(int paragraphIndex);
+
+    /// @brief Emitted when a paragraph is removed (merged with adjacent)
+    /// @param paragraphIndex Index of the removed paragraph
+    void paragraphRemoved(int paragraphIndex);
+
 protected:
     // =========================================================================
     // Event Handlers

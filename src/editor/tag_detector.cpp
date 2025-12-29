@@ -2,8 +2,7 @@
 /// @brief Implementation of tag detection service (OpenSpec #00042 Task 7.10)
 
 #include "kalahari/editor/tag_detector.h"
-#include "kalahari/editor/kml_document.h"
-#include "kalahari/editor/kml_paragraph.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/core/logger.h"
 
 namespace kalahari::editor {
@@ -16,52 +15,9 @@ const QRegularExpression TagDetector::s_tagPattern(
     QRegularExpression::CaseInsensitiveOption
 );
 
-/// @brief Document observer implementation for TagDetector
-///
-/// Implements IDocumentObserver to receive notifications when the document
-/// changes, triggering automatic re-scanning of affected paragraphs.
-class TagDetector::DocumentObserver : public IDocumentObserver {
-public:
-    explicit DocumentObserver(TagDetector* detector)
-        : m_detector(detector)
-    {}
-
-    void onContentChanged() override {
-        if (m_detector) {
-            m_detector->onDocumentChanged();
-        }
-    }
-
-    void onParagraphModified(int index) override {
-        if (m_detector) {
-            m_detector->onParagraphModified(index);
-        }
-    }
-
-    void onParagraphInserted(int index) override {
-        Q_UNUSED(index);
-        if (m_detector) {
-            // Rescan from this paragraph onwards (line numbers shifted)
-            m_detector->scan();
-        }
-    }
-
-    void onParagraphRemoved(int index) override {
-        if (m_detector) {
-            // Remove tags for deleted paragraph and rescan (line numbers shifted)
-            m_detector->removeTagsForParagraph(index);
-            m_detector->scan();
-        }
-    }
-
-private:
-    TagDetector* m_detector;
-};
-
 TagDetector::TagDetector(QObject* parent)
     : QObject(parent)
-    , m_document(nullptr)
-    , m_observer(std::make_unique<DocumentObserver>(this))
+    , m_editor(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("TagDetector constructor called");
@@ -69,29 +25,34 @@ TagDetector::TagDetector(QObject* parent)
 
 TagDetector::~TagDetector()
 {
-    // Disconnect from document before destruction
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from editor before destruction
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 }
 
-void TagDetector::setDocument(KmlDocument* document)
+void TagDetector::setBookEditor(BookEditor* editor)
 {
     auto& logger = core::Logger::getInstance();
 
-    // Disconnect from old document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
-        logger.debug("TagDetector: Disconnected from previous document");
+    // Disconnect from old editor
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
+        logger.debug("TagDetector: Disconnected from previous editor");
     }
 
-    m_document = document;
+    m_editor = editor;
     m_tags.clear();
 
-    // Connect to new document
-    if (m_document) {
-        m_document->addObserver(m_observer.get());
-        logger.debug("TagDetector: Connected to new document");
+    // Connect to new editor
+    if (m_editor) {
+        connect(m_editor, &BookEditor::paragraphModified,
+                this, &TagDetector::onParagraphModified);
+        connect(m_editor, &BookEditor::paragraphInserted,
+                this, &TagDetector::onParagraphInserted);
+        connect(m_editor, &BookEditor::paragraphRemoved,
+                this, &TagDetector::onParagraphRemoved);
+        logger.debug("TagDetector: Connected to new editor");
         // Initial scan
         scan();
     } else {
@@ -105,18 +66,16 @@ void TagDetector::scan()
 
     m_tags.clear();
 
-    if (m_document == nullptr) {
+    if (m_editor == nullptr) {
         emit tagsChanged();
         return;
     }
 
-    logger.debug("TagDetector: Scanning {} paragraphs", m_document->paragraphCount());
+    logger.debug("TagDetector: Scanning {} paragraphs", m_editor->paragraphCount());
 
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        const KmlParagraph* para = m_document->paragraph(i);
-        if (para) {
-            detectTagsInText(para->plainText(), i);
-        }
+    for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+        QString text = m_editor->paragraphPlainText(i);
+        detectTagsInText(text, static_cast<int>(i));
     }
 
     logger.debug("TagDetector: Found {} tags", m_tags.size());
@@ -125,7 +84,7 @@ void TagDetector::scan()
 
 void TagDetector::scanParagraph(int index)
 {
-    if (m_document == nullptr || index < 0 || index >= m_document->paragraphCount()) {
+    if (m_editor == nullptr || index < 0 || static_cast<size_t>(index) >= m_editor->paragraphCount()) {
         return;
     }
 
@@ -133,10 +92,8 @@ void TagDetector::scanParagraph(int index)
     int removed = removeTagsForParagraph(index);
 
     // Scan the paragraph
-    const KmlParagraph* para = m_document->paragraph(index);
-    if (para) {
-        detectTagsInText(para->plainText(), index);
-    }
+    QString text = m_editor->paragraphPlainText(static_cast<size_t>(index));
+    detectTagsInText(text, index);
 
     // Only emit if something changed
     if (removed > 0 || !tagsInParagraph(index).isEmpty()) {
@@ -281,18 +238,28 @@ int TagDetector::calculateLineNumber(int paragraphIndex) const
     return paragraphIndex + 1;
 }
 
-void TagDetector::onDocumentChanged()
+// =============================================================================
+// BookEditor Signal Handlers
+// =============================================================================
+
+void TagDetector::onParagraphModified(int paragraphIndex)
 {
-    // Full rescan on document change
-    // This is called for general content changes
-    // For performance, we could debounce this
+    // Rescan just the modified paragraph
+    scanParagraph(paragraphIndex);
+}
+
+void TagDetector::onParagraphInserted(int paragraphIndex)
+{
+    Q_UNUSED(paragraphIndex);
+    // Rescan all (line numbers shifted)
     scan();
 }
 
-void TagDetector::onParagraphModified(int index)
+void TagDetector::onParagraphRemoved(int paragraphIndex)
 {
-    // Rescan just the modified paragraph
-    scanParagraph(index);
+    // Remove tags for deleted paragraph and rescan (line numbers shifted)
+    removeTagsForParagraph(paragraphIndex);
+    scan();
 }
 
 }  // namespace kalahari::editor

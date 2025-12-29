@@ -28,8 +28,7 @@
 
 // Forward declarations
 namespace kalahari::editor {
-class KmlDocument;
-class IDocumentObserver;
+class BookEditor;
 }
 
 namespace kalahari::editor {
@@ -113,10 +112,10 @@ public:
     // Setup
     // =========================================================================
 
-    /// @brief Set the document to check
-    /// @param document KML document to monitor (nullptr to disconnect)
-    /// @note Previous document is automatically disconnected
-    void setDocument(KmlDocument* document);
+    /// @brief Set the BookEditor to check
+    /// @param editor BookEditor to monitor (nullptr to disconnect)
+    /// @note Previous editor is automatically disconnected
+    void setBookEditor(BookEditor* editor);
 
     /// @brief Set language code (e.g., "en-US", "pl-PL")
     /// @param language Language code for LanguageTool
@@ -255,10 +254,19 @@ private slots:
     /// @brief Process next request in queue
     void processQueue();
 
+    /// @brief Handle paragraph modified signal from BookEditor
+    /// @param paragraphIndex Index of the modified paragraph
+    void onParagraphModified(int paragraphIndex);
+
+    /// @brief Handle paragraph inserted signal from BookEditor
+    /// @param paragraphIndex Index of the newly inserted paragraph
+    void onParagraphInserted(int paragraphIndex);
+
+    /// @brief Handle paragraph removed signal from BookEditor
+    /// @param paragraphIndex Index of the removed paragraph
+    void onParagraphRemoved(int paragraphIndex);
+
 private:
-    // Document observer implementation
-    class DocumentObserver;
-    friend class DocumentObserver;
 
     // =========================================================================
     // API Request Methods
@@ -280,29 +288,15 @@ private:
     GrammarIssueType categoryToType(const QString& category) const;
 
     // =========================================================================
-    // Document Observer Methods
-    // =========================================================================
-
-    /// @brief Called when document content changes
-    void onDocumentChanged();
-
-    /// @brief Mark paragraph for checking
-    /// @param index Paragraph index to mark
-    void markParagraphForCheck(int index);
-
-    // =========================================================================
     // Members
     // =========================================================================
 
-    KmlDocument* m_document{nullptr};
+    BookEditor* m_editor{nullptr};
     QNetworkAccessManager* m_networkManager{nullptr};
 
     QString m_language{"en-US"};
     QString m_apiEndpoint{"https://api.languagetool.org/v2/check"};
     bool m_enabled{true};
-
-    // Document observer
-    std::unique_ptr<DocumentObserver> m_observer;
 
     // Debounce timer for background checking
     QTimer* m_debounceTimer{nullptr};

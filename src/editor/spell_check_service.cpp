@@ -2,7 +2,7 @@
 /// @brief Spell checking service implementation (OpenSpec #00042 Phase 6.4-6.9)
 
 #include <kalahari/editor/spell_check_service.h>
-#include <kalahari/editor/kml_document.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
 
 #include <hunspell/hunspell.hxx>
@@ -18,53 +18,11 @@
 namespace kalahari::editor {
 
 // =============================================================================
-// DocumentObserver (Private Implementation)
-// =============================================================================
-
-/// @brief Private document observer for SpellCheckService
-///
-/// Implements IDocumentObserver to receive document change notifications
-/// and forward them to the service for spell checking.
-class SpellCheckService::DocumentObserver : public IDocumentObserver {
-public:
-    explicit DocumentObserver(SpellCheckService* service)
-        : m_service(service)
-    {}
-
-    void onContentChanged() override {
-        if (m_service) {
-            m_service->onDocumentChanged();
-        }
-    }
-
-    void onParagraphInserted(int index) override {
-        if (m_service) {
-            m_service->markParagraphForCheck(index);
-        }
-    }
-
-    void onParagraphRemoved(int index) override {
-        Q_UNUSED(index);
-        // No action needed - paragraph is gone
-    }
-
-    void onParagraphModified(int index) override {
-        if (m_service) {
-            m_service->markParagraphForCheck(index);
-        }
-    }
-
-private:
-    SpellCheckService* m_service;
-};
-
-// =============================================================================
 // SpellCheckService
 // =============================================================================
 
 SpellCheckService::SpellCheckService(QObject* parent)
     : QObject(parent)
-    , m_observer(std::make_unique<DocumentObserver>(this))
     , m_debounceTimer(new QTimer(this))
 {
     // Setup debounce timer
@@ -80,9 +38,9 @@ SpellCheckService::SpellCheckService(QObject* parent)
 
 SpellCheckService::~SpellCheckService()
 {
-    // Disconnect from document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from editor
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
     // Clean up Hunspell
@@ -95,30 +53,35 @@ SpellCheckService::~SpellCheckService()
 // Setup
 // =============================================================================
 
-void SpellCheckService::setDocument(KmlDocument* document)
+void SpellCheckService::setBookEditor(BookEditor* editor)
 {
-    if (m_document == document) {
+    if (m_editor == editor) {
         return;
     }
 
-    // Disconnect from previous document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from previous editor
+    if (m_editor) {
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
-    m_document = document;
+    m_editor = editor;
 
     // Clear pending checks
     m_pendingParagraphs.clear();
 
-    // Connect to new document
-    if (m_document) {
-        m_document->addObserver(m_observer.get());
+    // Connect to new editor
+    if (m_editor) {
+        connect(m_editor, &BookEditor::paragraphModified,
+                this, &SpellCheckService::onParagraphModified);
+        connect(m_editor, &BookEditor::paragraphInserted,
+                this, &SpellCheckService::onParagraphInserted);
+        connect(m_editor, &BookEditor::paragraphRemoved,
+                this, &SpellCheckService::onParagraphRemoved);
 
         // Mark all paragraphs for initial check
         if (m_enabled && isDictionaryLoaded()) {
-            for (int i = 0; i < m_document->paragraphCount(); ++i) {
-                m_pendingParagraphs.insert(i);
+            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+                m_pendingParagraphs.insert(static_cast<int>(i));
             }
             m_debounceTimer->start();
         }
@@ -166,10 +129,10 @@ bool SpellCheckService::loadDictionary(const QString& language)
     core::Logger::getInstance().info("SpellCheckService: Loaded dictionary for '{}'", language.toStdString());
     emit dictionaryLoaded(language);
 
-    // Trigger check of current document if any
-    if (m_document && m_enabled) {
-        for (int i = 0; i < m_document->paragraphCount(); ++i) {
-            m_pendingParagraphs.insert(i);
+    // Trigger check of current editor if any
+    if (m_editor && m_enabled) {
+        for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+            m_pendingParagraphs.insert(static_cast<int>(i));
         }
         m_debounceTimer->start();
     }
@@ -278,15 +241,15 @@ QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) con
 
 void SpellCheckService::checkDocumentAsync()
 {
-    if (!m_document || !m_hunspell || !m_enabled) {
+    if (!m_editor || !m_hunspell || !m_enabled) {
         emit documentCheckComplete();
         return;
     }
 
     // Mark all paragraphs for checking
     m_pendingParagraphs.clear();
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        m_pendingParagraphs.insert(i);
+    for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+        m_pendingParagraphs.insert(static_cast<int>(i));
     }
 
     // Start debounce timer (will process all paragraphs when it fires)
@@ -301,7 +264,7 @@ void SpellCheckService::setEnabled(bool enabled)
 
     m_enabled = enabled;
 
-    if (enabled && m_document && isDictionaryLoaded()) {
+    if (enabled && m_editor && isDictionaryLoaded()) {
         // Trigger full document check
         checkDocumentAsync();
     } else if (!enabled) {
@@ -310,9 +273,9 @@ void SpellCheckService::setEnabled(bool enabled)
         m_debounceTimer->stop();
 
         // Emit empty error lists for all paragraphs to clear UI
-        if (m_document) {
-            for (int i = 0; i < m_document->paragraphCount(); ++i) {
-                emit paragraphChecked(i, QList<SpellErrorInfo>());
+        if (m_editor) {
+            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+                emit paragraphChecked(static_cast<int>(i), QList<SpellErrorInfo>());
             }
         }
     }
@@ -354,7 +317,7 @@ void SpellCheckService::addToUserDictionary(const QString& word)
     core::Logger::getInstance().debug("SpellCheckService: Added '{}' to user dictionary", word.toStdString());
 
     // Re-check document to update UI
-    if (m_document && m_enabled) {
+    if (m_editor && m_enabled) {
         checkDocumentAsync();
     }
 }
@@ -372,7 +335,7 @@ void SpellCheckService::ignoreWord(const QString& word)
     core::Logger::getInstance().debug("SpellCheckService: Ignoring '{}' for this session", word.toStdString());
 
     // Re-check document to update UI
-    if (m_document && m_enabled) {
+    if (m_editor && m_enabled) {
         checkDocumentAsync();
     }
 }
@@ -414,23 +377,18 @@ QStringList SpellCheckService::userDictionaryWords() const
 
 void SpellCheckService::onDebounceTimeout()
 {
-    if (!m_document || !m_hunspell || !m_enabled) {
+    if (!m_editor || !m_hunspell || !m_enabled) {
         m_pendingParagraphs.clear();
         return;
     }
 
     // Check all pending paragraphs
     for (int idx : m_pendingParagraphs) {
-        if (idx < 0 || idx >= m_document->paragraphCount()) {
+        if (idx < 0 || static_cast<size_t>(idx) >= m_editor->paragraphCount()) {
             continue;
         }
 
-        const KmlParagraph* para = m_document->paragraph(idx);
-        if (!para) {
-            continue;
-        }
-
-        QString text = para->plainText();
+        QString text = m_editor->paragraphPlainText(static_cast<size_t>(idx));
         QList<SpellErrorInfo> errors = checkParagraph(text);
 
         emit paragraphChecked(idx, errors);
@@ -438,6 +396,32 @@ void SpellCheckService::onDebounceTimeout()
 
     m_pendingParagraphs.clear();
     emit documentCheckComplete();
+}
+
+// =============================================================================
+// BookEditor Signal Handlers
+// =============================================================================
+
+void SpellCheckService::onParagraphModified(int paragraphIndex)
+{
+    if (m_enabled && isDictionaryLoaded()) {
+        m_pendingParagraphs.insert(paragraphIndex);
+        m_debounceTimer->start();
+    }
+}
+
+void SpellCheckService::onParagraphInserted(int paragraphIndex)
+{
+    if (m_enabled && isDictionaryLoaded()) {
+        m_pendingParagraphs.insert(paragraphIndex);
+        m_debounceTimer->start();
+    }
+}
+
+void SpellCheckService::onParagraphRemoved(int paragraphIndex)
+{
+    // Remove any pending check for the removed paragraph
+    m_pendingParagraphs.remove(paragraphIndex);
 }
 
 // =============================================================================
@@ -637,29 +621,6 @@ QString SpellCheckService::userDictionaryPath() const
 {
     QString userDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     return userDataPath + "/user_dictionary.txt";
-}
-
-// =============================================================================
-// Document Observer
-// =============================================================================
-
-void SpellCheckService::onDocumentChanged()
-{
-    // Full document might have changed - re-check all
-    if (m_document && m_enabled && isDictionaryLoaded()) {
-        for (int i = 0; i < m_document->paragraphCount(); ++i) {
-            m_pendingParagraphs.insert(i);
-        }
-        m_debounceTimer->start();
-    }
-}
-
-void SpellCheckService::markParagraphForCheck(int index)
-{
-    if (m_enabled && isDictionaryLoaded()) {
-        m_pendingParagraphs.insert(index);
-        m_debounceTimer->start();
-    }
 }
 
 }  // namespace kalahari::editor
