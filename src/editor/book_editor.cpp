@@ -4876,6 +4876,11 @@ void BookEditor::fromKml(const QString& kml)
         m_metadataLayer = std::make_unique<MetadataLayer>();
     }
 
+    // Attach FormatLayer to new TextBuffer for automatic range adjustment
+    if (m_formatLayer && m_textBuffer) {
+        m_formatLayer->attachToBuffer(m_textBuffer.get());
+    }
+
     // Re-create LazyLayoutManager with new buffer
     if (m_lazyLayoutManager) {
         m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
@@ -4886,11 +4891,22 @@ void BookEditor::fromKml(const QString& kml)
         m_renderEngine->setBuffer(m_textBuffer.get());
         m_renderEngine->setFormatLayer(m_formatLayer.get());
         m_renderEngine->setMetadataLayer(m_metadataLayer.get());
+        m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
     }
     if (m_viewportManager) {
         m_viewportManager->setBuffer(m_textBuffer.get());
         m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
         m_viewportManager->setScrollPosition(0.0);
+    }
+
+    // Update SearchEngine with new buffer (if it exists)
+    if (m_searchEngine) {
+        m_searchEngine->setBuffer(m_textBuffer.get());
+    }
+
+    // Update FindReplaceBar with new format layer (if it exists)
+    if (m_findReplaceBar) {
+        m_findReplaceBar->setFormatLayer(m_formatLayer.get());
     }
 
     logger.debug("BookEditor::fromKml - loaded {} paragraphs",

@@ -147,57 +147,21 @@ QString EditorPanel::getText() const {
 }
 
 void EditorPanel::setContent(const QString& content) {
-    if (!m_bookEditor || !m_observer) {
+    if (!m_bookEditor) {
         return;
     }
 
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel::setContent called with {} chars", content.length());
-    logger.debug("EditorPanel::setContent content preview: {}", content.left(200).toStdString());
 
-    // Use BookEditor::fromKml() for new architecture (Task 9.14)
-    // This method handles both new and old architecture internally
+    // Use BookEditor::fromKml() for new architecture
+    // This method sets up TextBuffer, FormatLayer, LazyLayoutManager, RenderEngine, ViewportManager
     m_bookEditor->fromKml(content);
-    logger.debug("EditorPanel::setContent - BookEditor::fromKml() called");
+    logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
 
-    // Also update m_document for observer pattern and statistics collector
-    // Remove observer from old document first
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
-    }
-
-    // Content is KML - parse for old architecture document
-    logger.debug("EditorPanel::setContent - parsing KML for document...");
-    editor::KmlParser parser;
-    auto result = parser.parseDocument(content);
-    logger.debug("EditorPanel::setContent - parse result: success={}, errorMsg={}",
-                 result.success, result.errorMessage.toStdString());
-
-    if (result.success && result.result) {
-        logger.debug("EditorPanel::setContent - disconnecting BookEditor from old document...");
-        // CRITICAL: Disconnect BookEditor BEFORE destroying old document
-        // Otherwise LayoutManager tries to removeObserver on destroyed document
-        m_bookEditor->setDocument(nullptr);
-
-        logger.debug("EditorPanel::setContent - moving document...");
-        // Replace document (old document is destroyed here)
-        m_document = std::move(result.result);
-        logger.debug("EditorPanel::setContent - setting up observer...");
-        // Setup observer and update editor
-        setupDocumentObserver();
-        logger.debug("EditorPanel::setContent - calling BookEditor::setDocument...");
-        m_bookEditor->setDocument(m_document.get());
-        logger.debug("EditorPanel::setContent - BookEditor::setDocument done");
-
-        // Reconnect statistics collector to editor (OpenSpec #00042 Task 7.7)
-        if (m_statisticsCollector && m_bookEditor) {
-            m_statisticsCollector->setBookEditor(m_bookEditor);
-        }
-        logger.debug("EditorPanel::setContent - complete");
-    } else {
-        logger.warn("Failed to parse KML: {}", result.errorMessage.toStdString());
-        // Fallback: treat as plain text
-        setText(content);
+    // Reconnect statistics collector if needed
+    if (m_statisticsCollector && m_bookEditor) {
+        m_statisticsCollector->setBookEditor(m_bookEditor);
     }
 }
 
