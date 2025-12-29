@@ -19,8 +19,7 @@
 
 // Forward declarations
 namespace kalahari::editor {
-class KmlDocument;
-class IDocumentObserver;
+class BookEditor;
 }
 
 namespace kalahari::core {
@@ -65,10 +64,10 @@ public:
     // Setup
     // =========================================================================
 
-    /// @brief Set the document to track
-    /// @param document KML document to monitor (nullptr to disconnect)
-    /// @note Previous document is automatically disconnected
-    void setDocument(KmlDocument* document);
+    /// @brief Set the editor to track
+    /// @param editor BookEditor to monitor (nullptr to disconnect)
+    /// @note Previous editor is automatically disconnected
+    void setBookEditor(BookEditor* editor);
 
     /// @brief Set the database for statistics persistence
     /// @param database ProjectDatabase for storing session stats (nullptr to disable)
@@ -156,12 +155,8 @@ private slots:
     void onFlushTimer();
 
 private:
-    // Document observer implementation
-    class DocumentObserver;
-    friend class DocumentObserver;
-
-    /// @brief Called when document content changes
-    void onDocumentChanged();
+    /// @brief Called when editor content changes
+    void onContentChanged();
 
     /// @brief Recalculate all statistics from document
     void recalculateStats();
@@ -184,10 +179,9 @@ private:
     /// @brief Update active time tracking
     void updateActiveTime();
 
-    // Document and database
-    KmlDocument* m_document{nullptr};
+    // Editor and database
+    BookEditor* m_editor{nullptr};
     core::ProjectDatabase* m_database{nullptr};
-    std::unique_ptr<DocumentObserver> m_observer;
 
     // Cached statistics (real-time)
     int m_wordCount{0};

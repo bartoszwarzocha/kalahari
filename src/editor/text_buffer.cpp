@@ -223,7 +223,8 @@ QString TextBuffer::paragraphText(size_t index) const {
 
 int TextBuffer::paragraphLength(size_t index) const {
     QTextBlock blk = block(index);
-    return blk.isValid() ? blk.length() : 0;
+    // Use text().length() instead of length() to exclude trailing paragraph separator
+    return blk.isValid() ? blk.text().length() : 0;
 }
 
 QTextBlock TextBuffer::block(size_t index) const {

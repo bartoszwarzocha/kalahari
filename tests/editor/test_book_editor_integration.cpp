@@ -23,7 +23,8 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
     // Document MUST be declared before editor for correct destruction order
     KmlDocument doc;
     BookEditor editor;
-    editor.setDocument(&doc);
+    // Note: setDocument is called INSIDE each section AFTER adding content
+    // because TextBuffer syncs on setDocument and won't re-sync if same document
 
     SECTION("create, edit, serialize, parse round-trip") {
         // 1. Create document with initial content
@@ -34,6 +35,8 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
         auto para2 = std::make_unique<KmlParagraph>();
         para2->insertText(0, "Second paragraph here.");
         doc.addParagraph(std::move(para2));
+
+        editor.setDocument(&doc);  // Set AFTER adding content
 
         REQUIRE(doc.paragraphCount() == 2);
 
@@ -53,20 +56,22 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
     }
 
     SECTION("edit operations preserve content integrity") {
-        // Start with content
+        // Start with content - add paragraph BEFORE setDocument
         auto para = std::make_unique<KmlParagraph>();
         para->insertText(0, "Hello World");
         doc.addParagraph(std::move(para));
+
+        editor.setDocument(&doc);
 
         // Edit via editor
         editor.setCursorPosition({0, 5}); // After "Hello"
         editor.insertText(" Beautiful");
 
-        // Verify
-        REQUIRE(doc.paragraph(0)->plainText() == "Hello Beautiful World");
+        // Verify via BookEditor API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hello Beautiful World");
 
-        // Serialize and parse
-        QString kml = doc.toKml();
+        // Serialize via editor's toKml() and parse
+        QString kml = editor.toKml();
         KmlParser parser;
         auto result = parser.parseDocument(kml);
         REQUIRE(result.success);
@@ -81,11 +86,12 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
 TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
     KmlDocument doc;
     BookEditor editor;
-    editor.setDocument(&doc);
 
-    // Start with empty paragraph
+    // Add empty paragraph to doc BEFORE setDocument
     auto para = std::make_unique<KmlParagraph>();
     doc.addParagraph(std::move(para));
+
+    editor.setDocument(&doc);
 
     SECTION("multiple operations with undo/redo") {
         // Type some text
@@ -94,7 +100,8 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
         editor.insertText("B");
         editor.insertText("C");
 
-        REQUIRE(doc.paragraph(0)->plainText() == "ABC");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "ABC");
 
         // Undo all
         editor.undo();
@@ -103,14 +110,14 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
             editor.undo();
         }
 
-        REQUIRE(doc.paragraph(0)->plainText().isEmpty());
+        REQUIRE(editor.paragraphPlainText(0).isEmpty());
 
         // Redo all
         while (editor.canRedo()) {
             editor.redo();
         }
 
-        REQUIRE(doc.paragraph(0)->plainText() == "ABC");
+        REQUIRE(editor.paragraphPlainText(0) == "ABC");
     }
 
     SECTION("undo after delete") {
@@ -124,11 +131,11 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
         editor.setCursorPosition({0, 5});
         editor.deleteBackward();
 
-        REQUIRE(doc.paragraph(0)->plainText() == "Hell");
+        REQUIRE(editor.paragraphPlainText(0) == "Hell");
 
         // Undo delete
         editor.undo();
-        REQUIRE(doc.paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
     }
 
     SECTION("undo paragraph split") {
@@ -140,14 +147,14 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
         editor.setCursorPosition({0, 5});
         editor.insertNewline();
 
-        REQUIRE(doc.paragraphCount() == 2);
-        REQUIRE(doc.paragraph(0)->plainText() == "First");
-        REQUIRE(doc.paragraph(1)->plainText() == " line");
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "First");
+        REQUIRE(editor.paragraphPlainText(1) == " line");
 
         // Undo split
         editor.undo();
-        REQUIRE(doc.paragraphCount() == 1);
-        REQUIRE(doc.paragraph(0)->plainText() == "First line");
+        REQUIRE(editor.paragraphCount() == 1);
+        REQUIRE(editor.paragraphPlainText(0) == "First line");
     }
 }
 
@@ -166,14 +173,15 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
 TEST_CASE("Integration: View mode switching", "[integration][editor][view_modes]") {
     KmlDocument doc;
     BookEditor editor;
-    editor.setDocument(&doc);
 
-    // Add some content
+    // Add some content BEFORE setDocument (TextBuffer is source of truth)
     for (int i = 0; i < 5; i++) {
         auto para = std::make_unique<KmlParagraph>();
         para->insertText(0, QString("Paragraph %1").arg(i + 1));
         doc.addParagraph(std::move(para));
     }
+
+    editor.setDocument(&doc);
 
     SECTION("switch between all view modes") {
         // Start in continuous mode
@@ -230,10 +238,9 @@ TEST_CASE("Integration: View mode switching", "[integration][editor][view_modes]
 TEST_CASE("Integration: Complex editing scenarios", "[integration][editor]") {
     KmlDocument doc;
     BookEditor editor;
-    editor.setDocument(&doc);
 
     SECTION("multiple paragraph operations") {
-        // Create 3 paragraphs
+        // Create 3 paragraphs BEFORE setDocument
         auto p1 = std::make_unique<KmlParagraph>();
         p1->insertText(0, "Line 1");
         doc.addParagraph(std::move(p1));
@@ -246,14 +253,17 @@ TEST_CASE("Integration: Complex editing scenarios", "[integration][editor]") {
         p3->insertText(0, "Line 3");
         doc.addParagraph(std::move(p3));
 
-        REQUIRE(doc.paragraphCount() == 3);
+        editor.setDocument(&doc);
+
+        REQUIRE(editor.paragraphCount() == 3);
 
         // Delete at start of paragraph 2 (merge with paragraph 1)
         editor.setCursorPosition({1, 0});
         editor.deleteBackward();
 
-        REQUIRE(doc.paragraphCount() == 2);
-        REQUIRE(doc.paragraph(0)->plainText() == "Line 1Line 2");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "Line 1Line 2");
     }
 
     SECTION("selection spanning multiple paragraphs") {
@@ -269,13 +279,15 @@ TEST_CASE("Integration: Complex editing scenarios", "[integration][editor]") {
         p3->insertText(0, "Third");
         doc.addParagraph(std::move(p3));
 
+        editor.setDocument(&doc);
+
         // Select from middle of first to middle of third
         editor.setSelection({{0, 2}, {2, 3}});
 
         // Delete selection
         editor.deleteSelectedText();
 
-        REQUIRE(doc.paragraphCount() == 1);
-        REQUIRE(doc.paragraph(0)->plainText() == "Fird");
+        REQUIRE(editor.paragraphCount() == 1);
+        REQUIRE(editor.paragraphPlainText(0) == "Fird");
     }
 }

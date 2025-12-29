@@ -51,6 +51,10 @@ EditorPanel::EditorPanel(QWidget* parent)
     m_bookEditor = new editor::BookEditor(this);
     layout->addWidget(m_bookEditor);
 
+    // Connect BookEditor's contentChanged signal to our signal
+    connect(m_bookEditor, &editor::BookEditor::contentChanged,
+            this, &EditorPanel::contentChanged);
+
     setLayout(layout);
 
     // Create empty document
@@ -76,9 +80,9 @@ EditorPanel::~EditorPanel() {
         m_bookEditor->setDocument(nullptr);
     }
 
-    // Disconnect StatisticsCollector from document
+    // Disconnect StatisticsCollector from editor
     if (m_statisticsCollector) {
-        m_statisticsCollector->setDocument(nullptr);
+        m_statisticsCollector->setBookEditor(nullptr);
     }
 
     // Remove observer before document is destroyed
@@ -128,18 +132,18 @@ void EditorPanel::setText(const QString& text) {
     setupDocumentObserver();
     m_bookEditor->setDocument(m_document.get());
 
-    // Reconnect statistics collector to new document (OpenSpec #00042 Task 7.7)
-    if (m_statisticsCollector && m_document) {
-        m_statisticsCollector->setDocument(m_document.get());
+    // Reconnect statistics collector to editor (OpenSpec #00042 Task 7.7)
+    if (m_statisticsCollector && m_bookEditor) {
+        m_statisticsCollector->setBookEditor(m_bookEditor);
     }
 }
 
 QString EditorPanel::getText() const {
-    if (!m_document) {
-        return QString();
+    // Use BookEditor's new API which reads from TextBuffer
+    if (m_bookEditor) {
+        return m_bookEditor->plainText();
     }
-
-    return m_document->plainText();
+    return QString();
 }
 
 void EditorPanel::setContent(const QString& content) {
@@ -185,9 +189,9 @@ void EditorPanel::setContent(const QString& content) {
         m_bookEditor->setDocument(m_document.get());
         logger.debug("EditorPanel::setContent - BookEditor::setDocument done");
 
-        // Reconnect statistics collector to new document (OpenSpec #00042 Task 7.7)
-        if (m_statisticsCollector && m_document) {
-            m_statisticsCollector->setDocument(m_document.get());
+        // Reconnect statistics collector to editor (OpenSpec #00042 Task 7.7)
+        if (m_statisticsCollector && m_bookEditor) {
+            m_statisticsCollector->setBookEditor(m_bookEditor);
         }
         logger.debug("EditorPanel::setContent - complete");
     } else {
@@ -267,16 +271,16 @@ void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector)
     auto& logger = core::Logger::getInstance();
 
     // Disconnect from previous collector
-    if (m_statisticsCollector && m_document) {
-        m_statisticsCollector->setDocument(nullptr);
+    if (m_statisticsCollector) {
+        m_statisticsCollector->setBookEditor(nullptr);
     }
 
     m_statisticsCollector = collector;
 
     // Connect to new collector
-    if (m_statisticsCollector && m_document) {
-        m_statisticsCollector->setDocument(m_document.get());
-        logger.debug("EditorPanel: StatisticsCollector connected to document");
+    if (m_statisticsCollector && m_bookEditor) {
+        m_statisticsCollector->setBookEditor(m_bookEditor);
+        logger.debug("EditorPanel: StatisticsCollector connected to BookEditor");
     }
 }
 

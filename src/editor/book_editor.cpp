@@ -91,7 +91,8 @@ BookEditor::BookEditor(QWidget* parent)
     , m_textBuffer(std::make_unique<TextBuffer>())
     , m_formatLayer(std::make_unique<FormatLayer>())
     , m_metadataLayer(std::make_unique<MetadataLayer>())
-    , m_useNewArchitecture(false)
+    // Phase 11: Always use new architecture (no more feature flag)
+    , m_useNewArchitecture(true)
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);
@@ -1264,6 +1265,7 @@ void BookEditor::insertText(const QString& text)
 
         ensureCursorVisible();
         update();
+        emit contentChanged();
         return;
     }
 
@@ -1324,6 +1326,7 @@ bool BookEditor::deleteSelectedText()
         }
 
         update();
+        emit contentChanged();
         return true;
     }
 
@@ -1384,6 +1387,7 @@ void BookEditor::insertNewline()
 
         ensureCursorVisible();
         update();
+        emit contentChanged();
         return;
     }
 
@@ -1461,6 +1465,7 @@ void BookEditor::deleteBackward()
         }
         ensureCursorVisible();
         update();
+        emit contentChanged();
         return;
     }
 
@@ -1567,6 +1572,7 @@ void BookEditor::deleteForward()
                 static_cast<size_t>(m_cursorPosition.paragraph));
         }
         update();
+        emit contentChanged();
         return;
     }
 
@@ -2942,7 +2948,18 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
 {
     CursorPosition result = position;
 
-    // If no document, return origin position
+    // Phase 8: Use TextBuffer for validation when new architecture is active
+    // TextBuffer is the source of truth, not KmlDocument
+    if (m_useNewArchitecture && m_textBuffer && m_textBuffer->paragraphCount() > 0) {
+        int maxParagraph = static_cast<int>(m_textBuffer->paragraphCount()) - 1;
+        result.paragraph = qBound(0, result.paragraph, maxParagraph);
+
+        int maxOffset = m_textBuffer->paragraphLength(static_cast<size_t>(result.paragraph));
+        result.offset = qBound(0, result.offset, maxOffset);
+        return result;
+    }
+
+    // Fallback: If no document, return origin position
     if (m_document == nullptr || m_document->paragraphCount() == 0) {
         return {0, 0};
     }
@@ -5605,6 +5622,38 @@ QString BookEditor::toKml() const
     return QString();
 }
 
+size_t BookEditor::paragraphCount() const
+{
+    if (m_textBuffer) {
+        return m_textBuffer->paragraphCount();
+    }
+    return 0;
+}
+
+QString BookEditor::paragraphPlainText(size_t index) const
+{
+    if (m_textBuffer && index < m_textBuffer->paragraphCount()) {
+        return m_textBuffer->paragraphText(index);
+    }
+    return QString();
+}
+
+QString BookEditor::plainText() const
+{
+    if (m_textBuffer) {
+        return m_textBuffer->plainText();
+    }
+    return QString();
+}
+
+size_t BookEditor::characterCount() const
+{
+    if (m_textBuffer) {
+        return static_cast<size_t>(m_textBuffer->characterCount());
+    }
+    return 0;
+}
+
 void BookEditor::fromKml(const QString& kml)
 {
     auto& logger = core::Logger::getInstance();
@@ -5627,6 +5676,7 @@ void BookEditor::fromKml(const QString& kml)
             m_undoStack->clear();
         }
         update();
+        emit contentChanged();
         emit documentChanged();
         return;
     }
@@ -5697,6 +5747,7 @@ void BookEditor::fromKml(const QString& kml)
     }
 
     update();
+    emit contentChanged();
     emit documentChanged();
 }
 

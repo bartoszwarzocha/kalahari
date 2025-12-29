@@ -257,8 +257,9 @@ TEST_CASE("TextBuffer paragraph access", "[editor][text_buffer]") {
     }
 
     SECTION("Paragraph length") {
-        REQUIRE(buffer.paragraphLength(0) == 6);  // "First" + newline
-        REQUIRE(buffer.paragraphLength(2) == 6);  // "Third" + end marker
+        // paragraphLength returns text length without trailing separator
+        REQUIRE(buffer.paragraphLength(0) == 5);  // "First" without separator
+        REQUIRE(buffer.paragraphLength(2) == 5);  // "Third" without separator
     }
 
     SECTION("Block access") {

@@ -5,24 +5,35 @@
 #include <catch2/catch_approx.hpp>
 
 #include <kalahari/editor/statistics_collector.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/kml_paragraph.h>
-#include <kalahari/editor/kml_text_run.h>
 
+#include <QApplication>
 #include <memory>
 
 using namespace kalahari::editor;
 
 // =============================================================================
-// Helper: Create document with text
+// Helper: Create BookEditor with text using KmlDocument (avoids fromKml issues)
 // =============================================================================
 namespace {
 
-std::unique_ptr<KmlDocument> createDocumentWithText(const QString& text) {
+/// Create a KmlDocument with single paragraph containing text
+std::unique_ptr<KmlDocument> createDocWithText(const QString& text) {
     auto doc = std::make_unique<KmlDocument>();
-    auto para = std::make_unique<KmlParagraph>();
-    para->addElement(std::make_unique<KmlTextRun>(text));
+    auto para = std::make_unique<KmlParagraph>(text);
     doc->addParagraph(std::move(para));
+    return doc;
+}
+
+/// Create a KmlDocument with multiple paragraphs
+std::unique_ptr<KmlDocument> createDocWithParagraphs(const QStringList& paragraphs) {
+    auto doc = std::make_unique<KmlDocument>();
+    for (const QString& text : paragraphs) {
+        auto para = std::make_unique<KmlParagraph>(text);
+        doc->addParagraph(std::move(para));
+    }
     return doc;
 }
 
@@ -52,42 +63,44 @@ TEST_CASE("StatisticsCollector: Basic construction", "[editor][statistics]") {
 }
 
 // =============================================================================
-// Document Connection Tests
+// Editor Connection Tests
 // =============================================================================
 
-TEST_CASE("StatisticsCollector: Document connection", "[editor][statistics]") {
-    // CRITICAL: Document must be created BEFORE collector for proper destruction order
-    // When objects go out of scope, collector is destroyed first and calls removeObserver
-    // on still-valid document
-    auto doc = createDocumentWithText("Hello world");
+TEST_CASE("StatisticsCollector: Editor connection", "[editor][statistics]") {
+    auto doc = createDocWithText("Hello world");
+    BookEditor editor;
+    editor.setDocument(doc.get());
     StatisticsCollector collector;
 
-    SECTION("Connecting document updates stats") {
-        collector.setDocument(doc.get());
+    SECTION("Connecting editor updates stats") {
+        collector.setBookEditor(&editor);
 
         REQUIRE(collector.wordCount() == 2);
         REQUIRE(collector.characterCount() == 11);
         REQUIRE(collector.paragraphCount() == 1);
     }
 
-    SECTION("Disconnecting document resets stats") {
-        collector.setDocument(doc.get());
+    SECTION("Disconnecting editor resets stats") {
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 2);
 
-        collector.setDocument(nullptr);
+        collector.setBookEditor(nullptr);
         REQUIRE(collector.wordCount() == 0);
         REQUIRE(collector.characterCount() == 0);
     }
 
-    SECTION("Setting same document does nothing") {
-        collector.setDocument(doc.get());
+    SECTION("Setting same editor does nothing") {
+        collector.setBookEditor(&editor);
         int count1 = collector.wordCount();
 
-        collector.setDocument(doc.get());
+        collector.setBookEditor(&editor);
         int count2 = collector.wordCount();
 
         REQUIRE(count1 == count2);
     }
+
+    // Disconnect before destruction
+    collector.setBookEditor(nullptr);
 }
 
 // =============================================================================
@@ -95,57 +108,51 @@ TEST_CASE("StatisticsCollector: Document connection", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Word counting", "[editor][statistics]") {
-    auto doc = std::make_unique<KmlDocument>();
     StatisticsCollector collector;
 
-    SECTION("Empty document has zero words") {
-        collector.setDocument(doc.get());
+    SECTION("Empty editor has zero words") {
+        BookEditor editor;
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 0);
+        collector.setBookEditor(nullptr);
     }
 
     SECTION("Single word") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Hello"));
-        doc->addParagraph(std::move(para));
-
-        collector.setDocument(doc.get());
+        auto doc = createDocWithText("Hello");
+        BookEditor editor;
+        editor.setDocument(doc.get());
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 1);
+        collector.setBookEditor(nullptr);
     }
 
     SECTION("Multiple words with spaces") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("The quick brown fox"));
-        doc->addParagraph(std::move(para));
-
-        collector.setDocument(doc.get());
+        auto doc = createDocWithText("The quick brown fox");
+        BookEditor editor;
+        editor.setDocument(doc.get());
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 4);
+        collector.setBookEditor(nullptr);
     }
 
     SECTION("Words with punctuation") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Hello, world! How are you?"));
-        doc->addParagraph(std::move(para));
-
-        collector.setDocument(doc.get());
+        auto doc = createDocWithText("Hello, world! How are you?");
+        BookEditor editor;
+        editor.setDocument(doc.get());
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 5);
+        collector.setBookEditor(nullptr);
     }
 
     SECTION("Multiple paragraphs") {
-        auto para1 = std::make_unique<KmlParagraph>();
-        para1->addElement(std::make_unique<KmlTextRun>("First paragraph."));
-        doc->addParagraph(std::move(para1));
-
-        auto para2 = std::make_unique<KmlParagraph>();
-        para2->addElement(std::make_unique<KmlTextRun>("Second paragraph."));
-        doc->addParagraph(std::move(para2));
-
-        collector.setDocument(doc.get());
+        auto doc = createDocWithParagraphs({"First paragraph.", "Second paragraph."});
+        BookEditor editor;
+        editor.setDocument(doc.get());
+        collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 4);
         REQUIRE(collector.paragraphCount() == 2);
+        collector.setBookEditor(nullptr);
     }
-
-    // Disconnect before doc destruction
-    collector.setDocument(nullptr);
 }
 
 // =============================================================================
@@ -153,9 +160,11 @@ TEST_CASE("StatisticsCollector: Word counting", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Character counting", "[editor][statistics]") {
-    auto doc = createDocumentWithText("Hello World");
+    auto doc = createDocWithText("Hello World");
+    BookEditor editor;
+    editor.setDocument(doc.get());
     StatisticsCollector collector;
-    collector.setDocument(doc.get());
+    collector.setBookEditor(&editor);
 
     SECTION("Total character count includes spaces") {
         REQUIRE(collector.characterCount() == 11);
@@ -165,8 +174,8 @@ TEST_CASE("StatisticsCollector: Character counting", "[editor][statistics]") {
         REQUIRE(collector.characterCountNoSpaces() == 10);
     }
 
-    // Disconnect before doc destruction
-    collector.setDocument(nullptr);
+    // Disconnect before editor destruction
+    collector.setBookEditor(nullptr);
 }
 
 // =============================================================================
@@ -176,18 +185,19 @@ TEST_CASE("StatisticsCollector: Character counting", "[editor][statistics]") {
 TEST_CASE("StatisticsCollector: Reading time estimation", "[editor][statistics]") {
     StatisticsCollector collector;
 
-    SECTION("Empty document has zero reading time") {
+    SECTION("Empty editor has zero reading time") {
         REQUIRE(collector.estimatedReadingTime() == 0);
     }
 
     SECTION("Short text under 1 minute rounds up") {
-        auto doc = createDocumentWithText("Hello world test");
-        collector.setDocument(doc.get());
+        auto doc = createDocWithText("Hello world test");
+        BookEditor editor;
+        editor.setDocument(doc.get());
+        collector.setBookEditor(&editor);
 
         // 3 words at 200 wpm = ~0.015 minutes, rounds up to 1
         REQUIRE(collector.estimatedReadingTime() == 1);
-
-        collector.setDocument(nullptr);
+        collector.setBookEditor(nullptr);
     }
 }
 
@@ -234,7 +244,9 @@ TEST_CASE("StatisticsCollector: Session tracking", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Signals", "[editor][statistics]") {
-    auto doc = std::make_unique<KmlDocument>();
+    auto doc = createDocWithText("Test");
+    BookEditor editor;
+    editor.setDocument(doc.get());
     StatisticsCollector collector;
 
     // Manual signal tracking
@@ -249,18 +261,13 @@ TEST_CASE("StatisticsCollector: Signals", "[editor][statistics]") {
             lastCharCount = chars;
         });
 
-    SECTION("Setting document emits statisticsChanged") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Test"));
-        doc->addParagraph(std::move(para));
-
-        collector.setDocument(doc.get());
+    SECTION("Setting editor emits statisticsChanged") {
+        collector.setBookEditor(&editor);
 
         REQUIRE(signalCount >= 1);
         REQUIRE(lastWordCount == 1);
         REQUIRE(lastCharCount == 4);
-    }
 
-    // Disconnect before doc destruction
-    collector.setDocument(nullptr);
+        collector.setBookEditor(nullptr);
+    }
 }

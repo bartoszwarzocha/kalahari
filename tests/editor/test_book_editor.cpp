@@ -1019,11 +1019,19 @@ TEST_CASE("BookEditor moveCursorWordLeft", "[editor][book_editor][navigation]") 
     }
 
     SECTION("Handles paragraph boundary") {
-        auto para2 = std::make_unique<KmlParagraph>("Second paragraph");
-        doc->addParagraph(std::move(para2));
-        editor.setCursorPosition({1, 0});  // Start of second paragraph
-        editor.moveCursorWordLeft();
-        REQUIRE(editor.cursorPosition().paragraph == 0);
+        // Create fresh document with two paragraphs before setDocument
+        // (TextBuffer syncs only on setDocument, not on subsequent doc changes)
+        auto doc2 = std::make_unique<KmlDocument>();
+        doc2->addParagraph(std::make_unique<KmlParagraph>("Hello world test"));
+        doc2->addParagraph(std::make_unique<KmlParagraph>("Second paragraph"));
+
+        BookEditor editor2;
+        editor2.setDocument(doc2.get());
+        editor2.resize(800, 400);
+
+        editor2.setCursorPosition({1, 0});  // Start of second paragraph
+        editor2.moveCursorWordLeft();
+        REQUIRE(editor2.cursorPosition().paragraph == 0);
     }
 }
 
@@ -1050,13 +1058,21 @@ TEST_CASE("BookEditor moveCursorWordRight", "[editor][book_editor][navigation]")
     }
 
     SECTION("Handles paragraph boundary") {
-        auto para2 = std::make_unique<KmlParagraph>("Second paragraph");
-        doc->addParagraph(std::move(para2));
+        // Create fresh document with two paragraphs before setDocument
+        // (TextBuffer syncs only on setDocument, not on subsequent doc changes)
+        auto doc2 = std::make_unique<KmlDocument>();
+        doc2->addParagraph(std::make_unique<KmlParagraph>("Hello world test"));
+        doc2->addParagraph(std::make_unique<KmlParagraph>("Second paragraph"));
+
+        BookEditor editor2;
+        editor2.setDocument(doc2.get());
+        editor2.resize(800, 400);
+
         // Move to end of first paragraph
-        editor.setCursorPosition({0, 16});  // End of "Hello world test"
-        editor.moveCursorWordRight();
-        REQUIRE(editor.cursorPosition().paragraph == 1);
-        REQUIRE(editor.cursorPosition().offset == 0);
+        editor2.setCursorPosition({0, 16});  // End of "Hello world test"
+        editor2.moveCursorWordRight();
+        REQUIRE(editor2.cursorPosition().paragraph == 1);
+        REQUIRE(editor2.cursorPosition().offset == 0);
     }
 }
 
@@ -1849,7 +1865,8 @@ TEST_CASE("BookEditor insertText basic", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 5});  // After "Hello"
         editor.insertText(" World");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hello World");
         REQUIRE(editor.cursorPosition().offset == 11);  // After "Hello World"
     }
 
@@ -1857,7 +1874,7 @@ TEST_CASE("BookEditor insertText basic", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 2});  // After "He"
         editor.insertText("y ");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hey llo");
+        REQUIRE(editor.paragraphPlainText(0) == "Hey llo");
         REQUIRE(editor.cursorPosition().offset == 4);  // After "Hey "
     }
 
@@ -1865,7 +1882,7 @@ TEST_CASE("BookEditor insertText basic", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 0});
         editor.insertText("Say ");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Say Hello");
+        REQUIRE(editor.paragraphPlainText(0) == "Say Hello");
         REQUIRE(editor.cursorPosition().offset == 4);
     }
 
@@ -1873,7 +1890,7 @@ TEST_CASE("BookEditor insertText basic", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 2});
         editor.insertText("");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
         REQUIRE(editor.cursorPosition().offset == 2);
     }
 }
@@ -1895,7 +1912,8 @@ TEST_CASE("BookEditor insertText replaces selection", "[editor][book_editor][inp
 
         editor.insertText("Hi");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hi World");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hi World");
         REQUIRE(editor.cursorPosition().offset == 2);
         REQUIRE(!editor.hasSelection());
     }
@@ -1909,7 +1927,7 @@ TEST_CASE("BookEditor insertText replaces selection", "[editor][book_editor][inp
 
         editor.insertText("New");
 
-        REQUIRE(doc->paragraph(0)->plainText() == "New");
+        REQUIRE(editor.paragraphPlainText(0) == "New");
         REQUIRE(editor.cursorPosition().offset == 3);
     }
 }
@@ -1931,7 +1949,8 @@ TEST_CASE("BookEditor deleteSelectedText", "[editor][book_editor][input]") {
         bool deleted = editor.deleteSelectedText();
 
         REQUIRE(deleted);
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
         REQUIRE(editor.cursorPosition().offset == 5);
         REQUIRE(!editor.hasSelection());
     }
@@ -1957,9 +1976,10 @@ TEST_CASE("BookEditor insertNewline", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 5});  // After "Hello"
         editor.insertNewline();
 
-        REQUIRE(doc->paragraphCount() == 2);
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
-        REQUIRE(doc->paragraph(1)->plainText() == " World");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
+        REQUIRE(editor.paragraphPlainText(1) == " World");
         REQUIRE(editor.cursorPosition().paragraph == 1);
         REQUIRE(editor.cursorPosition().offset == 0);
     }
@@ -1968,9 +1988,9 @@ TEST_CASE("BookEditor insertNewline", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 0});
         editor.insertNewline();
 
-        REQUIRE(doc->paragraphCount() == 2);
-        REQUIRE(doc->paragraph(0)->plainText() == "");
-        REQUIRE(doc->paragraph(1)->plainText() == "Hello World");
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "");
+        REQUIRE(editor.paragraphPlainText(1) == "Hello World");
         REQUIRE(editor.cursorPosition().paragraph == 1);
         REQUIRE(editor.cursorPosition().offset == 0);
     }
@@ -1979,9 +1999,9 @@ TEST_CASE("BookEditor insertNewline", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 11});  // After "Hello World"
         editor.insertNewline();
 
-        REQUIRE(doc->paragraphCount() == 2);
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
-        REQUIRE(doc->paragraph(1)->plainText() == "");
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "Hello World");
+        REQUIRE(editor.paragraphPlainText(1) == "");
         REQUIRE(editor.cursorPosition().paragraph == 1);
         REQUIRE(editor.cursorPosition().offset == 0);
     }
@@ -1995,9 +2015,9 @@ TEST_CASE("BookEditor insertNewline", "[editor][book_editor][input]") {
 
         editor.insertNewline();
 
-        REQUIRE(doc->paragraphCount() == 2);
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
-        REQUIRE(doc->paragraph(1)->plainText() == "");
+        REQUIRE(editor.paragraphCount() == 2);
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
+        REQUIRE(editor.paragraphPlainText(1) == "");
         REQUIRE(!editor.hasSelection());
     }
 }
@@ -2018,7 +2038,8 @@ TEST_CASE("BookEditor deleteBackward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 5});  // After "Hello"
         editor.deleteBackward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hell");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hell");
         REQUIRE(editor.cursorPosition().offset == 4);
     }
 
@@ -2026,7 +2047,7 @@ TEST_CASE("BookEditor deleteBackward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 0});
         editor.deleteBackward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
         REQUIRE(editor.cursorPosition().offset == 0);
     }
 
@@ -2034,7 +2055,7 @@ TEST_CASE("BookEditor deleteBackward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 3});  // After "Hel"
         editor.deleteBackward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Helo");
+        REQUIRE(editor.paragraphPlainText(0) == "Helo");
         REQUIRE(editor.cursorPosition().offset == 2);
     }
 }
@@ -2053,8 +2074,9 @@ TEST_CASE("BookEditor deleteBackward merges paragraphs", "[editor][book_editor][
         editor.setCursorPosition({1, 0});  // Start of "World"
         editor.deleteBackward();
 
-        REQUIRE(doc->paragraphCount() == 1);
-        REQUIRE(doc->paragraph(0)->plainText() == "HelloWorld");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphCount() == 1);
+        REQUIRE(editor.paragraphPlainText(0) == "HelloWorld");
         REQUIRE(editor.cursorPosition().paragraph == 0);
         REQUIRE(editor.cursorPosition().offset == 5);  // After "Hello"
     }
@@ -2076,7 +2098,8 @@ TEST_CASE("BookEditor deleteBackward with selection", "[editor][book_editor][inp
 
         editor.deleteBackward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
         REQUIRE(editor.cursorPosition().offset == 5);
         REQUIRE(!editor.hasSelection());
     }
@@ -2098,7 +2121,8 @@ TEST_CASE("BookEditor deleteForward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 0});  // Before "Hello"
         editor.deleteForward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "ello");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "ello");
         REQUIRE(editor.cursorPosition().offset == 0);
     }
 
@@ -2106,7 +2130,7 @@ TEST_CASE("BookEditor deleteForward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 5});  // After "Hello"
         editor.deleteForward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello");
+        REQUIRE(editor.paragraphPlainText(0) == "Hello");
         REQUIRE(editor.cursorPosition().offset == 5);
     }
 
@@ -2114,7 +2138,7 @@ TEST_CASE("BookEditor deleteForward", "[editor][book_editor][input]") {
         editor.setCursorPosition({0, 2});  // After "He"
         editor.deleteForward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Helo");
+        REQUIRE(editor.paragraphPlainText(0) == "Helo");
         REQUIRE(editor.cursorPosition().offset == 2);
     }
 }
@@ -2133,8 +2157,9 @@ TEST_CASE("BookEditor deleteForward merges paragraphs", "[editor][book_editor][i
         editor.setCursorPosition({0, 5});  // End of "Hello"
         editor.deleteForward();
 
-        REQUIRE(doc->paragraphCount() == 1);
-        REQUIRE(doc->paragraph(0)->plainText() == "HelloWorld");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphCount() == 1);
+        REQUIRE(editor.paragraphPlainText(0) == "HelloWorld");
         REQUIRE(editor.cursorPosition().paragraph == 0);
         REQUIRE(editor.cursorPosition().offset == 5);  // After "Hello"
     }
@@ -2156,7 +2181,8 @@ TEST_CASE("BookEditor deleteForward with selection", "[editor][book_editor][inpu
 
         editor.deleteForward();
 
-        REQUIRE(doc->paragraph(0)->plainText() == "World");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "World");
         REQUIRE(editor.cursorPosition().offset == 0);
         REQUIRE(!editor.hasSelection());
     }
@@ -2181,7 +2207,8 @@ TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
         QKeyEvent event(QEvent::KeyPress, Qt::Key_X, Qt::NoModifier, "X");
         QCoreApplication::sendEvent(&editor, &event);
 
-        REQUIRE(doc->paragraph(0)->plainText() == "HelloX");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "HelloX");
         REQUIRE(editor.cursorPosition().offset == 6);
     }
 
@@ -2191,7 +2218,7 @@ TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
         QKeyEvent event(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
         QCoreApplication::sendEvent(&editor, &event);
 
-        REQUIRE(doc->paragraphCount() == 2);
+        REQUIRE(editor.paragraphCount() == 2);
         REQUIRE(editor.cursorPosition().paragraph == 1);
     }
 
@@ -2201,7 +2228,7 @@ TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
         QKeyEvent event(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
         QCoreApplication::sendEvent(&editor, &event);
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hell");
+        REQUIRE(editor.paragraphPlainText(0) == "Hell");
         REQUIRE(editor.cursorPosition().offset == 4);
     }
 
@@ -2211,7 +2238,7 @@ TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
         QKeyEvent event(QEvent::KeyPress, Qt::Key_Delete, Qt::NoModifier);
         QCoreApplication::sendEvent(&editor, &event);
 
-        REQUIRE(doc->paragraph(0)->plainText() == "ello");
+        REQUIRE(editor.paragraphPlainText(0) == "ello");
         REQUIRE(editor.cursorPosition().offset == 0);
     }
 
@@ -2224,7 +2251,7 @@ TEST_CASE("BookEditor keyboard text input", "[editor][book_editor][input]") {
             QCoreApplication::sendEvent(&editor, &event);
         }
 
-        REQUIRE(doc->paragraph(0)->plainText() == "HelloXYZ");
+        REQUIRE(editor.paragraphPlainText(0) == "HelloXYZ");
         REQUIRE(editor.cursorPosition().offset == 8);
     }
 }
@@ -2307,7 +2334,8 @@ TEST_CASE("BookEditor IME inputMethodEvent commit", "[editor][book_editor][ime]"
         event.setCommitString(" World");
         QCoreApplication::sendEvent(&editor, &event);
 
-        REQUIRE(doc->paragraph(0)->plainText() == "Hello World");
+        // Use BookEditor's new API (TextBuffer is source of truth)
+        REQUIRE(editor.paragraphPlainText(0) == "Hello World");
         REQUIRE(editor.cursorPosition().offset == 11);
     }
 
@@ -2323,7 +2351,7 @@ TEST_CASE("BookEditor IME inputMethodEvent commit", "[editor][book_editor][ime]"
         commitEvent.setCommitString(QString::fromUtf8("汉字"));
         QCoreApplication::sendEvent(&editor, &commitEvent);
 
-        REQUIRE(doc->paragraph(0)->plainText() == QString::fromUtf8("Hello汉字"));
+        REQUIRE(editor.paragraphPlainText(0) == QString::fromUtf8("Hello汉字"));
     }
 }
 

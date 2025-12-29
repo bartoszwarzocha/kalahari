@@ -129,6 +129,27 @@ public:
     void fromKml(const QString& kml);
 
     // =========================================================================
+    // Content Access (New Architecture API)
+    // =========================================================================
+
+    /// @brief Get the number of paragraphs in the document
+    /// @return Paragraph count from TextBuffer
+    size_t paragraphCount() const;
+
+    /// @brief Get the plain text of a specific paragraph
+    /// @param index Paragraph index (0-based)
+    /// @return Plain text of the paragraph, or empty if index out of range
+    QString paragraphPlainText(size_t index) const;
+
+    /// @brief Get the full plain text of the document
+    /// @return Concatenation of all paragraph texts with newlines
+    QString plainText() const;
+
+    /// @brief Get total character count in the document
+    /// @return Character count from TextBuffer
+    size_t characterCount() const;
+
+    // =========================================================================
     // Layout Configuration
     // =========================================================================
 
@@ -722,7 +743,13 @@ public:
     QSize sizeHint() const override;
 
 signals:
-    /// @brief Emitted when the document changes
+    /// @brief Emitted when the document content changes
+    ///
+    /// This signal is emitted whenever text is inserted, deleted, or modified.
+    /// Use this to track content changes (e.g., for statistics, auto-save).
+    void contentChanged();
+
+    /// @brief Emitted when the document reference changes
     ///
     /// This signal is emitted whenever the document reference changes
     /// (not when document content changes).

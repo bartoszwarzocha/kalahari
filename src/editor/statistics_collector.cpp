@@ -2,7 +2,7 @@
 /// @brief Real-time document statistics collection implementation (OpenSpec #00042 Phase 6)
 
 #include <kalahari/editor/statistics_collector.h>
-#include <kalahari/editor/kml_document.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/logger.h>
@@ -12,51 +12,11 @@
 namespace kalahari::editor {
 
 // =============================================================================
-// DocumentObserver (Private Implementation)
-// =============================================================================
-
-/// @brief Private document observer for StatisticsCollector
-///
-/// Implements IDocumentObserver to receive document change notifications
-/// and forward them to the collector.
-class StatisticsCollector::DocumentObserver : public IDocumentObserver {
-public:
-    explicit DocumentObserver(StatisticsCollector* collector)
-        : m_collector(collector)
-    {}
-
-    void onContentChanged() override {
-        if (m_collector) {
-            m_collector->onDocumentChanged();
-        }
-    }
-
-    void onParagraphInserted(int index) override {
-        Q_UNUSED(index);
-        // Handled by onContentChanged
-    }
-
-    void onParagraphRemoved(int index) override {
-        Q_UNUSED(index);
-        // Handled by onContentChanged
-    }
-
-    void onParagraphModified(int index) override {
-        Q_UNUSED(index);
-        // Handled by onContentChanged
-    }
-
-private:
-    StatisticsCollector* m_collector;
-};
-
-// =============================================================================
 // StatisticsCollector
 // =============================================================================
 
 StatisticsCollector::StatisticsCollector(QObject* parent)
     : QObject(parent)
-    , m_observer(std::make_unique<DocumentObserver>(this))
     , m_flushTimer(new QTimer(this))
 {
     // Setup auto-flush timer
@@ -73,9 +33,10 @@ StatisticsCollector::~StatisticsCollector()
         endSession();
     }
 
-    // Disconnect from document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from editor
+    if (m_editor) {
+        disconnect(m_editor, &BookEditor::contentChanged,
+                   this, &StatisticsCollector::onContentChanged);
     }
 
     core::Logger::getInstance().debug("StatisticsCollector destroyed");
@@ -85,33 +46,35 @@ StatisticsCollector::~StatisticsCollector()
 // Setup
 // =============================================================================
 
-void StatisticsCollector::setDocument(KmlDocument* document)
+void StatisticsCollector::setBookEditor(BookEditor* editor)
 {
-    if (m_document == document) {
+    if (m_editor == editor) {
         return;
     }
 
-    // Disconnect from previous document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
+    // Disconnect from previous editor
+    if (m_editor) {
+        disconnect(m_editor, &BookEditor::contentChanged,
+                   this, &StatisticsCollector::onContentChanged);
     }
 
-    m_document = document;
+    m_editor = editor;
 
-    // Connect to new document
-    if (m_document) {
-        m_document->addObserver(m_observer.get());
+    // Connect to new editor
+    if (m_editor) {
+        connect(m_editor, &BookEditor::contentChanged,
+                this, &StatisticsCollector::onContentChanged);
         recalculateStats();
         m_previousWordCount = m_wordCount;
     } else {
-        // Reset statistics when no document
+        // Reset statistics when no editor
         m_wordCount = 0;
         m_characterCount = 0;
         m_characterCountNoSpaces = 0;
     }
 
     emit statisticsChanged(m_wordCount, m_characterCount,
-                          m_document ? m_document->paragraphCount() : 0);
+                          m_editor ? static_cast<int>(m_editor->paragraphCount()) : 0);
 }
 
 void StatisticsCollector::setDatabase(core::ProjectDatabase* database)
@@ -144,7 +107,7 @@ int StatisticsCollector::characterCountNoSpaces() const
 
 int StatisticsCollector::paragraphCount() const
 {
-    return m_document ? m_document->paragraphCount() : 0;
+    return m_editor ? static_cast<int>(m_editor->paragraphCount()) : 0;
 }
 
 int StatisticsCollector::estimatedReadingTime() const
@@ -285,7 +248,7 @@ void StatisticsCollector::onFlushTimer()
 // Private Methods
 // =============================================================================
 
-void StatisticsCollector::onDocumentChanged()
+void StatisticsCollector::onContentChanged()
 {
     // Store previous counts
     int previousWords = m_wordCount;
@@ -308,15 +271,15 @@ void StatisticsCollector::onDocumentChanged()
 
 void StatisticsCollector::recalculateStats()
 {
-    if (!m_document) {
+    if (!m_editor) {
         m_wordCount = 0;
         m_characterCount = 0;
         m_characterCountNoSpaces = 0;
         return;
     }
 
-    // Get plain text from document
-    QString text = m_document->plainText();
+    // Get plain text from editor (uses new TextBuffer API)
+    QString text = m_editor->plainText();
 
     // Character counts
     m_characterCount = text.length();

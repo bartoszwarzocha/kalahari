@@ -1,18 +1,20 @@
 {
   "mode": "quick",
-  "saved_at": "2025-12-28T10:30:00",
+  "saved_at": "2025-12-29T09:30:00",
   "git_branch": "main",
   "git_commit": "ba4ce6f",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00043 - Editor Performance Rewrite - Phase 9 COMPLETE",
+  "working_on": "OpenSpec #00043 - Editor Performance Rewrite - Phase 11 Cleanup (in progress)",
   "next_steps": [
-    "Phase 10: Performance Validation (benchmarks with 150k words)",
-    "Phase 11: Cleanup & Migration"
+    "Continue Phase 11: Fix remaining 22 failing tests (update to use BookEditor API instead of KmlDocument)",
+    "Complete Phase 11: Remove deprecated code paths",
+    "Documentation (4 tasks)"
   ],
   "blocker": null,
   "implementation_status": "IN_PROGRESS",
+  "CRITICAL_NOTE": "This is a DEVELOPMENT version with NO USERS. No backward compatibility needed. Just DELETE old code.",
   "completed_tasks": [
     "Phase 1: Research & Spike (5/5) - Fenwick tree + lazy layout confirmed",
     "Phase 2: TextBuffer with Fenwick Tree (20/20)",
@@ -22,19 +24,56 @@
     "Phase 6: RenderEngine (23/23)",
     "Phase 7: KML Conversion Layer (20/20)",
     "Phase 8: BookEditor Integration (19/19)",
-    "Phase 9: Feature Parity (19/19) - Undo/Redo, Find/Replace, Comments, TODOs, Snapshots, View Modes"
+    "Phase 9: Feature Parity (19/19) - Undo/Redo, Find/Replace, Comments, TODOs, Snapshots, View Modes",
+    "Phase 10: Performance Validation (17/17) - All benchmarks pass, memory efficient, no leaks",
+    "Phase 11.1: Added new API methods to BookEditor (contentChanged signal, plainText, paragraphCount, characterCount)",
+    "Phase 11.2: Updated EditorPanel to use new BookEditor API",
+    "Phase 11.3: Updated StatisticsCollector to use BookEditor::contentChanged signal (removed KmlDocument observer)",
+    "Phase 11.4: Fixed StatisticsCollector tests (SIGSEGV crash - rewrote to use setDocument instead of fromKml)"
   ],
   "pending_tasks": [
-    "Phase 10: Performance Validation (17 tasks - benchmarks, stress testing, memory profiling)",
-    "Phase 11: Cleanup & Migration (9 tasks - deprecation, final validation)",
+    "Phase 11.5-11.9: Update remaining tests to use BookEditor API (22 tests fail due to checking KmlDocument state)",
+    "Phase 11: Remove deprecated feature flag m_useNewArchitecture (now always true)",
     "Documentation (4 tasks)"
   ],
   "task_progress": {
-    "completed_phases": 9,
+    "completed_phases": 10,
     "total_phases": 11,
-    "completed_tasks": 161,
-    "total_tasks": 166,
-    "percentage": 97
+    "completed_tasks": 182,
+    "total_tasks": 192,
+    "percentage": 95
+  },
+  "phase11_status": {
+    "api_migration": "COMPLETE - BookEditor has new content access API",
+    "editor_panel": "COMPLETE - Uses plainText() instead of document",
+    "statistics_collector": "COMPLETE - Uses contentChanged signal",
+    "test_status": {
+      "total": 741,
+      "passed": 719,
+      "failed": 22,
+      "pass_rate": "97%"
+    },
+    "failing_tests_reason": "Tests check KmlDocument state after BookEditor operations, but new architecture uses TextBuffer (not synced to KmlDocument)"
+  },
+  "phase10_results": {
+    "benchmarks": {
+      "scrolling_fps": "5555 FPS (target 60)",
+      "select_all": "1.00ms (target <50ms)",
+      "copy": "29ns cached (target <100ms)",
+      "typing_latency_p99": "6.78ms (target <16ms)",
+      "document_load": "6.86ms (target <2s)"
+    },
+    "stress_tests": {
+      "200k_document": "Load 6.86ms, Init 1.60ms, Scroll 81ms",
+      "rapid_scrolling": "5555 FPS continuous, 1.57ms random jump",
+      "rapid_typing": "P99 6.78ms, Burst P99 15.85ms",
+      "large_selection": "Select All 1ms, Delete 477k chars <1ms"
+    },
+    "memory": {
+      "bytes_per_word": 19.5,
+      "leak_detection": "1.08x growth after 10 cycles (no leaks)",
+      "long_session": "1.03x growth after 1000 ops"
+    }
   },
   "context": {
     "previous_openspec": "00042",
@@ -49,17 +88,12 @@
       "KmlConverter - KML <-> internal format conversion"
     ],
     "key_files": [
-      "include/kalahari/editor/book_editor.h",
-      "src/editor/book_editor.cpp",
-      "include/kalahari/editor/text_buffer.h",
-      "include/kalahari/editor/format_layer.h",
-      "include/kalahari/editor/lazy_layout_manager.h",
-      "include/kalahari/editor/viewport_manager.h",
-      "include/kalahari/editor/render_engine.h",
-      "include/kalahari/editor/kml_converter.h",
-      "include/kalahari/editor/buffer_commands.h",
-      "include/kalahari/editor/search_engine.h",
-      "openspec/changes/00043-editor-performance-rewrite/tasks.md"
+      "tests/editor/test_statistics_collector.cpp (rewritten)",
+      "src/gui/panels/editor_panel.cpp (updated)",
+      "src/editor/statistics_collector.cpp (updated)",
+      "include/kalahari/editor/statistics_collector.h (updated)",
+      "include/kalahari/editor/book_editor.h (contentChanged signal added)",
+      "src/editor/book_editor.cpp (emit contentChanged added)"
     ],
     "performance_targets": {
       "document_size": "150k words",
@@ -69,55 +103,7 @@
       "typing_latency": "<16ms",
       "load_time": "<2 seconds"
     },
-    "feature_flag": "m_useNewArchitecture in BookEditor for gradual migration"
-  },
-  "phase9_summary": {
-    "undo_redo": {
-      "files_created": [
-        "include/kalahari/editor/buffer_commands.h",
-        "src/editor/buffer_commands.cpp",
-        "tests/editor/test_buffer_commands.cpp"
-      ],
-      "command_classes": [
-        "TextInsertCommand", "TextDeleteCommand",
-        "ParagraphSplitCommand", "ParagraphMergeCommand",
-        "FormatApplyCommand", "FormatRemoveCommand",
-        "TextReplaceCommand", "ReplaceAllCommand",
-        "MarkerAddCommand", "MarkerRemoveCommand", "MarkerToggleCommand",
-        "CompositeBufferCommand"
-      ]
-    },
-    "find_replace": {
-      "files_created": [
-        "include/kalahari/editor/search_engine.h",
-        "src/editor/search_engine.cpp",
-        "include/kalahari/gui/find_replace_bar.h",
-        "src/gui/find_replace_bar.cpp",
-        "tests/editor/test_search_engine.cpp"
-      ],
-      "features": ["findNext/Previous", "replaceAll", "case/wholeWord/regex options"]
-    },
-    "comments_todos": {
-      "enhanced": [
-        "MetadataLayer - MarkerType enum, getMarkersByType(), findNextMarker()",
-        "RenderEngine - paintCommentHighlights(), paintMarkerHighlights()"
-      ]
-    },
-    "snapshots": {
-      "files_created": ["tests/editor/test_snapshot_roundtrip.cpp"],
-      "methods_added": ["BookEditor::toKml()", "BookEditor::fromKml()"]
-    },
-    "view_modes": {
-      "methods_added": [
-        "getWordCountNewArch()", "getFocusedRangeNewArch()",
-        "paintFocusOverlayNewArch()", "paintPageModeNewArch()"
-      ]
-    }
-  },
-  "openspec_reorganization": {
-    "00042": "Custom Text Editor - paused (performance issues)",
-    "00043": "Editor Performance Rewrite - IN_PROGRESS (97%)",
-    "00044": "Text Styling System - PENDING (depends on 00043)"
+    "feature_flag": "m_useNewArchitecture - always true now (Phase 11 removes old paths)"
   },
   "philosophy": "Zero dystraktorów. Tylko słowa."
 }

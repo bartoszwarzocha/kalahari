@@ -30,9 +30,9 @@ TEST_CASE("Buffer command helper functions", "[editor][buffer_commands][helpers]
     TextBuffer buffer;
     buffer.setPlainText("Hello\nWorld\nTest");
 
-    // NOTE: paragraphLength() includes the block separator (newline)
-    // For QTextDocument, "Hello" block has length 6 (5 chars + 1 separator)
-    // The calculateAbsolutePosition adds paragraphLength + 1 for each paragraph
+    // NOTE: paragraphLength() returns text length WITHOUT trailing separator
+    // "Hello" = 5 chars, "World" = 5 chars, "Test" = 4 chars
+    // calculateAbsolutePosition adds (paragraphLength + 1) for newline separator
 
     SECTION("calculateAbsolutePosition - first paragraph") {
         // "Hello" at paragraph 0 - no prior paragraphs, so just offset
@@ -42,25 +42,25 @@ TEST_CASE("Buffer command helper functions", "[editor][buffer_commands][helpers]
 
     SECTION("calculateAbsolutePosition - second paragraph") {
         // Paragraph 1 position = paragraphLength(0) + 1 + offset
-        // paragraphLength(0) = 6, so position (1, 0) = 6 + 1 + 0 = 7
+        // paragraphLength(0) = 5, so position (1, 0) = 5 + 1 + 0 = 6
         size_t pos10 = calculateAbsolutePosition(buffer, 1, 0);
         size_t pos15 = calculateAbsolutePosition(buffer, 1, 5);
-        REQUIRE(pos10 == 7);
-        REQUIRE(pos15 == 12);
+        REQUIRE(pos10 == 6);
+        REQUIRE(pos15 == 11);
     }
 
     SECTION("calculateAbsolutePosition - third paragraph") {
         // Paragraph 2 position = (paragraphLength(0) + 1) + (paragraphLength(1) + 1) + offset
-        // = (6 + 1) + (6 + 1) + offset = 14 + offset
+        // = (5 + 1) + (5 + 1) + offset = 12 + offset
         size_t pos20 = calculateAbsolutePosition(buffer, 2, 0);
         size_t pos24 = calculateAbsolutePosition(buffer, 2, 4);
-        REQUIRE(pos20 == 14);
-        REQUIRE(pos24 == 18);
+        REQUIRE(pos20 == 12);
+        REQUIRE(pos24 == 16);
     }
 
     SECTION("calculateAbsolutePosition from CursorPosition") {
         CursorPosition pos{1, 3};
-        REQUIRE(calculateAbsolutePosition(buffer, pos) == 10);  // 7 + 3
+        REQUIRE(calculateAbsolutePosition(buffer, pos) == 9);  // 6 + 3
     }
 
     SECTION("absoluteToCursorPosition - first paragraph") {
@@ -74,20 +74,20 @@ TEST_CASE("Buffer command helper functions", "[editor][buffer_commands][helpers]
     }
 
     SECTION("absoluteToCursorPosition - paragraph boundary") {
-        // Position 6 is still in paragraph 0 (at the block separator)
-        CursorPosition pos = absoluteToCursorPosition(buffer, 6);
+        // Position 5 is at end of paragraph 0 (at text boundary)
+        CursorPosition pos = absoluteToCursorPosition(buffer, 5);
         REQUIRE(pos.paragraph == 0);
-        REQUIRE(pos.offset == 6);
+        REQUIRE(pos.offset == 5);
 
-        // Position 7 is the start of paragraph 1
-        pos = absoluteToCursorPosition(buffer, 7);
+        // Position 6 is the start of paragraph 1 (after newline)
+        pos = absoluteToCursorPosition(buffer, 6);
         REQUIRE(pos.paragraph == 1);
         REQUIRE(pos.offset == 0);
     }
 
     SECTION("absoluteToCursorPosition - second paragraph middle") {
-        // Position 10 = 7 (start of para 1) + 3 = offset 3 in para 1
-        CursorPosition pos = absoluteToCursorPosition(buffer, 10);
+        // Position 9 = 6 (start of para 1) + 3 = offset 3 in para 1
+        CursorPosition pos = absoluteToCursorPosition(buffer, 9);
         REQUIRE(pos.paragraph == 1);
         REQUIRE(pos.offset == 3);
     }
@@ -585,7 +585,7 @@ TEST_CASE("ParagraphMergeCommand basic operations", "[editor][buffer_commands]")
 
     SECTION("Verify cursor position after merge") {
         // Note: m_splitOffset is set in constructor based on buffer state
-        // paragraphLength(0) = 6 (includes block separator)
+        // paragraphLength(0) = 5 (text length without separator for "Hello")
         CursorPosition cursorPos{1, 0};
         QString mergedContent = buffer.paragraphText(1);
 
@@ -594,8 +594,8 @@ TEST_CASE("ParagraphMergeCommand basic operations", "[editor][buffer_commands]")
         undoStack.push(cmd);
 
         REQUIRE(cmd->cursorAfter().paragraph == 0);
-        // m_splitOffset = paragraphLength(0) = 6 (includes separator)
-        REQUIRE(cmd->cursorAfter().offset == 6);
+        // m_splitOffset = paragraphLength(0) = 5 (text length without separator)
+        REQUIRE(cmd->cursorAfter().offset == 5);
     }
 }
 
