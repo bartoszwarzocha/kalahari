@@ -227,6 +227,47 @@ MainWindow::MainWindow(QWidget* parent)
     logger.info("MainWindow initialized successfully");
 }
 
+MainWindow::~MainWindow() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("MainWindow destructor - disconnecting all signals");
+
+    // CRITICAL: Disconnect from SINGLETON objects first.
+    // These are NOT children of MainWindow, so findChildren() won't find them.
+    // If we don't disconnect, signals from singletons may be delivered to
+    // partially-destroyed MainWindow, causing ASSERT failure.
+    disconnect(&core::ThemeManager::getInstance(), nullptr, this, nullptr);
+    disconnect(&core::ArtProvider::getInstance(), nullptr, this, nullptr);
+    disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
+
+    // Disconnect from coordinators (they may have timers or async operations)
+    if (m_documentCoordinator) {
+        disconnect(m_documentCoordinator, nullptr, this, nullptr);
+        // Also disconnect StatisticsCollector if it exists
+        if (auto* collector = m_documentCoordinator->statisticsCollector()) {
+            disconnect(collector, nullptr, this, nullptr);
+        }
+    }
+    if (m_settingsCoordinator) {
+        disconnect(m_settingsCoordinator, nullptr, this, nullptr);
+    }
+    if (m_dockCoordinator) {
+        disconnect(m_dockCoordinator, nullptr, this, nullptr);
+    }
+    if (m_navigatorCoordinator) {
+        disconnect(m_navigatorCoordinator, nullptr, this, nullptr);
+    }
+
+    // Block signals to prevent any delivery during child destruction
+    blockSignals(true);
+
+    // Disconnect all remaining children (BookEditors, panels, etc.)
+    for (QObject* child : findChildren<QObject*>()) {
+        disconnect(child, nullptr, this, nullptr);
+    }
+
+    logger.debug("MainWindow destructor complete");
+}
+
 void MainWindow::registerCommands() {
     auto& logger = core::Logger::getInstance();
     logger.debug("Registering commands with CommandRegistry (via CommandRegistrar)");

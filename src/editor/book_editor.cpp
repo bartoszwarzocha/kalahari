@@ -188,11 +188,6 @@ void BookEditor::setDocument(KmlDocument* document)
     m_layoutManager->setDocument(document);
     logger.debug("BookEditor::setDocument - managers updated");
 
-    // Phase 8: Sync content to new architecture components (OpenSpec #00043)
-    logger.debug("BookEditor::setDocument - syncing to new architecture...");
-    syncDocumentToNewArchitecture();
-    logger.debug("BookEditor::setDocument - new architecture sync complete");
-
     // Update viewport and layout width
     logger.debug("BookEditor::setDocument - calling updateViewport...");
     updateViewport();
@@ -204,6 +199,26 @@ void BookEditor::setDocument(KmlDocument* document)
     logger.debug("BookEditor::setDocument - calling updateScrollBarRange...");
     updateScrollBarRange();
     logger.debug("BookEditor::setDocument - scrollbar updated");
+
+    // Sync to TextBuffer for new architecture (backward compatibility with tests)
+    if (m_textBuffer && document) {
+        QStringList paragraphs;
+        int paraCount = static_cast<int>(document->paragraphCount());
+        for (int i = 0; i < paraCount; ++i) {
+            const KmlParagraph* para = document->paragraph(i);
+            if (para) {
+                paragraphs.append(para->plainText());
+            }
+        }
+        QString fullText = paragraphs.join(QChar::ParagraphSeparator);
+        m_textBuffer->setPlainText(fullText);
+        logger.debug("BookEditor::setDocument - TextBuffer synced ({} paragraphs)", paraCount);
+
+        // Trigger layout refresh
+        if (m_lazyLayoutManager) {
+            m_lazyLayoutManager->invalidateAllLayouts();
+        }
+    }
 
     emit documentChanged();
     update();  // Request repaint
@@ -1772,7 +1787,7 @@ void BookEditor::paintEvent(QPaintEvent* event)
 
     // Page Mode uses separate rendering path
     if (m_viewMode == ViewMode::Page) {
-        paintPageModeNewArch(painter);
+        paintPageMode(painter);
         event->accept();
         return;
     }
@@ -2447,7 +2462,7 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
     m_clickTimer->start(MULTI_CLICK_INTERVAL);
 
     // Convert click to cursor position
-    CursorPosition clickPosition = positionFromPointNewArch(clickPos);
+    CursorPosition clickPosition = positionFromPoint(clickPos);
 
     if (m_clickCount == 3) {
         // Triple click - select paragraph
@@ -2512,7 +2527,7 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     }
 
     // Get position from mouse
-    CursorPosition dragPosition = positionFromPointNewArch(event->position());
+    CursorPosition dragPosition = positionFromPoint(event->position());
 
     // Update selection from anchor to current position
     SelectionRange newSelection;
@@ -2573,49 +2588,7 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
 CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
-        return {0, 0};
-    }
-
-    // Convert from widget coordinates to document coordinates
-    qreal scrollY = m_scrollManager->scrollOffset();
-    qreal documentY = widgetPos.y() - TOP_MARGIN + scrollY;
-    qreal documentX = widgetPos.x() - LEFT_MARGIN;
-
-    // Find paragraph at this Y position
-    int paraIndex = m_scrollManager->paragraphAtY(documentY);
-    if (paraIndex < 0) {
-        paraIndex = 0;
-    } else if (paraIndex >= m_document->paragraphCount()) {
-        paraIndex = m_document->paragraphCount() - 1;
-    }
-
-    // Get layout for paragraph
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-    if (layout == nullptr) {
-        m_layoutManager->layoutParagraph(paraIndex);
-        layout = m_layoutManager->paragraphLayout(paraIndex);
-    }
-
-    int offset = 0;
-    if (layout != nullptr) {
-        // Calculate relative Y within paragraph
-        qreal paraY = m_layoutManager->paragraphY(paraIndex);
-        QPointF relativePoint(documentX, documentY - paraY);
-
-        // Use layout hit testing
-        offset = layout->positionAt(relativePoint);
-        if (offset < 0) {
-            offset = 0;
-        }
-    }
-
-    return {paraIndex, offset};
-}
-
-CursorPosition BookEditor::positionFromPointNewArch(const QPointF& widgetPos) const
-{
-    // Phase 8.7: New architecture position calculation using Fenwick tree
+    // New architecture position calculation using Fenwick tree (O(log N))
     if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
         return {0, 0};
     }
@@ -3192,109 +3165,12 @@ void BookEditor::updateTypewriterScroll()
 }
 
 // =============================================================================
-// Page Mode Rendering (Phase 5.3-5.5)
+// Page Mode Rendering
 // =============================================================================
 
 void BookEditor::paintPageMode(QPainter& painter)
 {
-    auto& logger = core::Logger::getInstance();
-
-    // Ensure page layout manager is configured
-    m_pageLayoutManager->setDocument(m_document);
-    m_pageLayoutManager->setLayoutManager(m_layoutManager.get());
-    m_pageLayoutManager->setViewportWidth(static_cast<qreal>(width()));
-
-    // Calculate pages if not already done
-    int total = m_pageLayoutManager->totalPages();
-    if (total == 0) {
-        logger.debug("BookEditor::paintPageMode: No pages to render");
-        return;
-    }
-
-    // Log Page Mode rendering info (OpenSpec #00042 Task 7.19 Issue #6)
-    // Use debug level - trace is not available in Logger
-    logger.debug("BookEditor::paintPageMode: Rendering {} pages, viewport width={}",
-                 total, width());
-
-    // Get scroll offset
-    qreal scrollY = m_scrollManager->scrollOffset();
-
-    // Calculate page centering offset
-    qreal centerOffset = m_pageLayoutManager->pageCenterOffset();
-
-    // Page border color (text color with alpha)
-    QColor borderColor = m_appearance.colors.text;
-    borderColor.setAlpha(30);
-
-    // Shadow settings
-    constexpr qreal shadowOffsetX = 4.0;
-    constexpr qreal shadowOffsetY = 4.0;
-    constexpr qreal shadowBlur = 8.0;
-
-    // Render visible pages
-    for (int pageNum = 1; pageNum <= total; ++pageNum) {
-        const PageInfo* info = m_pageLayoutManager->pageInfo(pageNum);
-        if (info == nullptr) {
-            continue;
-        }
-
-        // Get page rectangle
-        QRectF pageRect = info->pageRect;
-
-        // Apply horizontal centering
-        pageRect.moveLeft(pageRect.left() + centerOffset);
-
-        // Convert to widget coordinates
-        qreal widgetY = pageRect.top() - scrollY;
-        pageRect.moveTop(widgetY);
-
-        // Skip pages that are not visible
-        if (pageRect.bottom() < 0 || pageRect.top() > height()) {
-            continue;
-        }
-
-        // Draw page shadow
-        if (m_appearance.elements.showPageShadows) {
-            QRectF shadowRect = pageRect.translated(shadowOffsetX, shadowOffsetY);
-
-            // Draw multiple semi-transparent layers for blur effect
-            for (int i = 0; i < 4; ++i) {
-                QColor shadow = m_appearance.colors.pageShadow;
-                shadow.setAlpha(shadow.alpha() / (i + 1));
-                qreal expand = shadowBlur * (i + 1) / 4.0;
-                QRectF blurRect = shadowRect.adjusted(-expand, -expand, expand, expand);
-                painter.fillRect(blurRect, shadow);
-            }
-        }
-
-        // Draw page background
-        painter.fillRect(pageRect, m_appearance.colors.pageBackground);
-
-        // Draw page border
-        if (m_appearance.elements.showPageBorders) {
-            QPen borderPen(borderColor);
-            borderPen.setWidthF(1.0);
-            painter.setPen(borderPen);
-            painter.drawRect(pageRect);
-        }
-
-        // Note: Content rendering will be added in a later phase
-        // For now, we just draw the page frames
-    }
-
-    // Draw selection highlighting (if in page mode)
-    drawSelection(&painter);
-
-    // Draw cursor
-    if (m_cursorVisible && hasFocus()) {
-        drawCursor(&painter);
-    }
-}
-
-void BookEditor::paintPageModeNewArch(QPainter& painter)
-{
-    // Task 9.16: Page Mode rendering for new architecture
-    // Uses TextBuffer + LazyLayoutManager instead of KmlDocument + LayoutManager
+    // Page Mode rendering using TextBuffer + LazyLayoutManager (new architecture)
 
     if (!m_textBuffer || !m_lazyLayoutManager || !m_viewportManager) {
         return;
@@ -3397,7 +3273,7 @@ void BookEditor::paintPageModeNewArch(QPainter& painter)
         }
     }
 
-    logger.debug("BookEditor::paintPageModeNewArch: {} pages, viewport width={}",
+    logger.debug("BookEditor::paintPageMode: {} pages, viewport width={}",
                  pages.size(), width());
 
     // Page styling
@@ -3490,29 +3366,9 @@ void BookEditor::paintPageModeNewArch(QPainter& painter)
 
 BookEditor::FocusedRange BookEditor::getFocusedRange() const
 {
-    if (m_textBuffer && m_lazyLayoutManager) {
-        return getFocusedRangeNewArch();
-    }
-    return FocusedRange();
-}
-
-void BookEditor::paintFocusOverlay(QPainter& painter)
-{
-    // Only draw overlay in Focus view mode
-    if (m_viewMode != ViewMode::Focus) {
-        return;
-    }
-
-    if (m_textBuffer && m_viewportManager) {
-        paintFocusOverlayNewArch(painter);
-    }
-}
-
-BookEditor::FocusedRange BookEditor::getFocusedRangeNewArch() const
-{
     FocusedRange range;
 
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || !m_lazyLayoutManager || m_textBuffer->paragraphCount() == 0) {
         return range;
     }
 
@@ -3579,8 +3435,13 @@ BookEditor::FocusedRange BookEditor::getFocusedRangeNewArch() const
     return range;
 }
 
-void BookEditor::paintFocusOverlayNewArch(QPainter& painter)
+void BookEditor::paintFocusOverlay(QPainter& painter)
 {
+    // Only draw overlay in Focus view mode
+    if (m_viewMode != ViewMode::Focus) {
+        return;
+    }
+
     if (!m_textBuffer || !m_viewportManager || !m_lazyLayoutManager) {
         return;
     }
@@ -3665,28 +3526,35 @@ void BookEditor::paintFocusOverlayNewArch(QPainter& painter)
 
 int BookEditor::getWordCount() const
 {
-    if (m_textBuffer) {
-        return getWordCountNewArch();
-    }
-    return 0;
-}
-
-int BookEditor::getWordCountNewArch() const
-{
-    if (!m_textBuffer) {
-        return 0;
-    }
-
     int count = 0;
     static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
 
-    size_t paraCount = m_textBuffer->paragraphCount();
-    for (size_t i = 0; i < paraCount; ++i) {
-        QString text = m_textBuffer->paragraphText(i);
-        if (!text.isEmpty()) {
-            count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
+    // Prefer new architecture (TextBuffer)
+    if (m_textBuffer && m_textBuffer->paragraphCount() > 0) {
+        size_t paraCount = m_textBuffer->paragraphCount();
+        for (size_t i = 0; i < paraCount; ++i) {
+            QString text = m_textBuffer->paragraphText(i);
+            if (!text.isEmpty()) {
+                count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
+            }
+        }
+        return count;
+    }
+
+    // Fallback to legacy KmlDocument (for backwards compatibility during tests)
+    if (m_document && m_document->paragraphCount() > 0) {
+        int docParaCount = static_cast<int>(m_document->paragraphCount());
+        for (int i = 0; i < docParaCount; ++i) {
+            const KmlParagraph* para = m_document->paragraph(i);
+            if (para) {
+                QString text = para->plainText();
+                if (!text.isEmpty()) {
+                    count += static_cast<int>(text.split(wordSplitter, Qt::SkipEmptyParts).size());
+                }
+            }
         }
     }
+
     return count;
 }
 
@@ -4364,55 +4232,8 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
 }
 
 // =============================================================================
-// Phase 8: New Performance-Optimized Architecture Helpers (OpenSpec #00043)
+// Position Calculation Helpers (OpenSpec #00043)
 // =============================================================================
-
-void BookEditor::syncDocumentToNewArchitecture()
-{
-    auto& logger = core::Logger::getInstance();
-
-    // Clear existing content in new architecture components
-    m_formatLayer->clearAll();
-    m_metadataLayer->clear();
-
-    if (m_document == nullptr) {
-        // No document - clear the text buffer
-        m_textBuffer->setPlainText(QString());
-        logger.debug("BookEditor::syncDocumentToNewArchitecture - cleared (no document)");
-        return;
-    }
-
-    // Use KmlConverter to convert KmlDocument content to TextBuffer + FormatLayer
-    // For now, we do a simple text extraction without full KML parsing
-    // This preserves existing functionality while allowing gradual migration
-
-    QString fullText;
-    const int paraCount = static_cast<int>(m_document->paragraphCount());
-
-    for (int i = 0; i < paraCount; ++i) {
-        const KmlParagraph* para = m_document->paragraph(static_cast<size_t>(i));
-        if (para != nullptr) {
-            if (i > 0) {
-                fullText += '\n';  // Paragraph separator
-            }
-            fullText += para->plainText();
-        }
-    }
-
-    m_textBuffer->setPlainText(fullText);
-
-    // Update viewport and lazy layout manager with new content
-    if (m_viewportManager) {
-        m_viewportManager->setViewportSize(size());
-    }
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
-        m_lazyLayoutManager->invalidateAllLayouts();
-    }
-
-    logger.debug("BookEditor::syncDocumentToNewArchitecture - synced {} paragraphs, {} chars",
-                 paraCount, fullText.length());
-}
 
 int BookEditor::calculateAbsolutePosition(const CursorPosition& pos) const
 {
@@ -4865,11 +4686,17 @@ void BookEditor::fromKml(const QString& kml)
 
     // CRITICAL: Disconnect all observers from OLD buffer BEFORE destroying it
     // Otherwise observers will have dangling pointers during destruction
+    // Order matters: ViewportManager -> FormatLayer -> LazyLayoutManager -> then destroy buffer
     if (m_viewportManager && m_textBuffer) {
         m_viewportManager->setBuffer(nullptr);
     }
     if (m_formatLayer && m_textBuffer) {
         m_formatLayer->detachFromBuffer();
+    }
+    // LazyLayoutManager destructor calls m_buffer->removeObserver(this)
+    // Must destroy it BEFORE the old buffer is destroyed
+    if (m_lazyLayoutManager) {
+        m_lazyLayoutManager.reset();
     }
 
     // Replace internal components with parsed content
@@ -4890,12 +4717,10 @@ void BookEditor::fromKml(const QString& kml)
         m_formatLayer->attachToBuffer(m_textBuffer.get());
     }
 
-    // Re-create LazyLayoutManager with new buffer
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
-        m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
-        m_lazyLayoutManager->setFont(m_layoutManager ? m_layoutManager->font() : QFont());
-    }
+    // Re-create LazyLayoutManager with new buffer (always needed for new architecture)
+    m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
+    m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+    m_lazyLayoutManager->setFont(m_appearance.typography.textFont);
     if (m_renderEngine) {
         m_renderEngine->setBuffer(m_textBuffer.get());
         m_renderEngine->setFormatLayer(m_formatLayer.get());
@@ -4903,9 +4728,14 @@ void BookEditor::fromKml(const QString& kml)
         m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
     }
     if (m_viewportManager) {
+        // CRITICAL: Order matters! Set viewport size FIRST, then buffer and layout manager
+        // Otherwise syncLayoutManagerViewport() is called with height=0
+        m_viewportManager->setViewportSize(size());
         m_viewportManager->setBuffer(m_textBuffer.get());
         m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
         m_viewportManager->setScrollPosition(0.0);
+        // CRITICAL: Create layouts for visible paragraphs (otherwise nothing renders)
+        m_viewportManager->requestLayout();
     }
 
     // Update SearchEngine with new buffer (if it exists)

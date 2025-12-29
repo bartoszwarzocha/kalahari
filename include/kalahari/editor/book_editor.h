@@ -962,17 +962,12 @@ private:
     /// @brief Setup cursor blink timer
     void setupCursorBlinkTimer();
 
-    /// @brief Convert widget point to cursor position (Phase 3.9)
-    /// @param widgetPos Point in widget coordinates
-    /// @return Cursor position in document, or invalid if outside document
-    CursorPosition positionFromPoint(const QPointF& widgetPos) const;
-
-    /// @brief Convert widget point to cursor position (Phase 8.7)
+    /// @brief Convert widget point to cursor position
     /// @param widgetPos Point in widget coordinates
     /// @return Cursor position using TextBuffer's Fenwick tree for O(log N) lookup
     ///
-    /// This method uses TextBuffer and LazyLayoutManager for efficient position calculation.
-    CursorPosition positionFromPointNewArch(const QPointF& widgetPos) const;
+    /// Uses TextBuffer and LazyLayoutManager for efficient position calculation.
+    CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
     /// @brief Draw selection highlighting (Phase 3.10)
     /// @param painter The painter to draw with
@@ -1013,16 +1008,9 @@ private:
     /// @brief Paint the Page Mode view
     /// @param painter The painter to draw with
     ///
-    /// Draws page frames with shadows, backgrounds, and borders.
-    /// Content painting is delegated to paragraph layouts.
-    void paintPageMode(QPainter& painter);
-
-    /// @brief Paint Page Mode using new architecture (Task 9.16)
-    /// @param painter The painter to draw with
-    ///
     /// Uses TextBuffer, LazyLayoutManager, and RenderEngine for page mode
     /// rendering with O(log N) performance characteristics.
-    void paintPageModeNewArch(QPainter& painter);
+    void paintPageMode(QPainter& painter);
 
     // =========================================================================
     // Focus Mode (Phase 5.6)
@@ -1048,21 +1036,13 @@ private:
     /// - Sentence: Currently treated same as Paragraph
     FocusedRange getFocusedRange() const;
 
-    /// @brief Get focused range using new architecture (Task 9.19)
-    /// @return Focused range using TextBuffer and LazyLayoutManager
-    FocusedRange getFocusedRangeNewArch() const;
-
     /// @brief Paint the focus mode overlay (dimming effect)
     /// @param painter The painter to draw with
     ///
+    /// Uses TextBuffer and LazyLayoutManager for O(log N) performance.
     /// Draws semi-transparent overlays over non-focused content to
-    /// create the focus effect. Also draws optional highlight behind
-    /// the focused area.
+    /// create the focus effect.
     void paintFocusOverlay(QPainter& painter);
-
-    /// @brief Paint focus overlay using new architecture (Task 9.19)
-    /// @param painter The painter to draw with
-    void paintFocusOverlayNewArch(QPainter& painter);
 
     // =========================================================================
     // Distraction-Free Mode (Phase 5.7)
@@ -1076,12 +1056,8 @@ private:
     void paintDistractionFreeOverlay(QPainter& painter);
 
     /// @brief Get total word count in the document
-    /// @return Word count, or 0 if no document
+    /// @return Word count using TextBuffer
     int getWordCount() const;
-
-    /// @brief Get word count using new TextBuffer architecture (Task 9.18)
-    /// @return Word count using TextBuffer paragraphText()
-    int getWordCountNewArch() const;
 
     /// @brief Start UI fade animation
     ///
@@ -1223,12 +1199,6 @@ private:
 
     /// @brief Metadata layer for comments, TODOs, bookmarks
     std::unique_ptr<MetadataLayer> m_metadataLayer;
-
-
-    /// @brief Sync KmlDocument content to new architecture components
-    ///
-    /// Called when m_document is set to populate TextBuffer and FormatLayer.
-    void syncDocumentToNewArchitecture();
 
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)
