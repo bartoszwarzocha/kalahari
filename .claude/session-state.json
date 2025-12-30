@@ -1,68 +1,44 @@
 {
-  "mode": "sync",
-  "saved_at": "2025-12-29T19:55:00",
-  "git_branch": "main",
-  "git_commit": "cab1151",
-  "git_pushed": true,
-  "openspec": "00045",
+  "mode": "quick",
+  "saved_at": "2025-12-30T12:45:00",
+  "git_commit": "80806be",
+  "git_pushed": false,
+  "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Architecture Cleanup - REGRESJE wykryte w testach manualnych",
+  "working_on": "OpenSpec #00043 - Architecture correction planning",
   "next_steps": [
-    "Phase 2.1-2.4: Remove legacy managers (m_document, m_layoutManager, m_scrollManager, m_pageLayoutManager)",
-    "Phase 4: Create documentation for new editor architecture",
-    "Phase 5: Manual testing of ExampleNovel"
+    "Przeanalizować architekturę przed implementacją",
+    "Referencja: project_docs/19_text_editor_functional_spec_pl.md",
+    "Określić dokładnie jak BookEditor będzie działał po zmianach",
+    "Określić jak KML będzie parsowany do QTextDocument"
   ],
-  "blocker": {
-    "type": "regression",
-    "description": "Kursor niewidoczny, edycja tekstu nie działa, nawigacja kursorem nie działa",
-    "resolution": "Wymaga osobnego taska na naprawę regresji",
-    "appeared_after": "Phase 3 cleanup (usunięcie starych metod)"
-  },
-  "implementation_status": "IN_PROGRESS",
+  "blocker": null,
+  "implementation_status": "PLANNING",
   "completed_tasks": [
-    "Phase 1.1: Fix use-after-free crash in fromKml()",
-    "Phase 1.2: Test Chapter 2 opens without crash",
-    "Phase 1.3: Run full test suite (735 tests pass)",
-    "Phase 2.5: Remove syncDocumentToNewArchitecture()",
-    "Phase 3.1: Rename positionFromPointNewArch to positionFromPoint",
-    "Phase 3.2: Remove old paintPageMode(), rename NewArch version",
-    "Phase 3.3: Unify getFocusedRange, paintFocusOverlay, getWordCount",
-    "Fix ASSERT failure on close (singleton signal disconnection)",
-    "Add TextBuffer sync in setDocument() for test compatibility"
+    "Zaktualizowano OpenSpec #00043 - dodano sekcję korekty architektury",
+    "Zamknięto OpenSpec #00045 jako ABSORBED przez #00043",
+    "Zidentyfikowano komponenty do usunięcia (TextBuffer wrapper, HeightTree, ITextBufferObserver)",
+    "Wyjaśniono co zostaje (MetadataLayer, ViewportManager, RenderEngine z pełną funkcjonalnością)"
   ],
   "pending_tasks": [
-    "Phase 2.1: Remove m_document (KmlDocument) - 100 usages",
-    "Phase 2.2: Remove m_layoutManager (LayoutManager) - 38 usages",
-    "Phase 2.3: Remove m_scrollManager (VirtualScrollManager) - 24 usages",
-    "Phase 2.4: Remove m_pageLayoutManager (PageLayoutManager) - 6 usages",
-    "Phase 4: Create project_docs/20_new_editor_architecture.md",
-    "Phase 4: Update CHANGELOG.md and ROADMAP.md",
-    "Phase 5: Manual testing (Chapter 1, Chapter 2, editing, spell check)"
+    "Przeanalizować architekturę przed implementacją",
+    "Przetestować z dokumentem 150K słów"
   ],
   "task_progress": {
-    "completed": 19,
-    "total": 55,
-    "percentage": 35
+    "completed": 2,
+    "total": 4,
+    "percentage": 50
   },
-  "key_files_modified": [
-    "src/editor/book_editor.cpp (-159 lines net)",
-    "include/kalahari/editor/book_editor.h (removed NewArch declarations)",
-    "src/gui/main_window.cpp (added destructor with singleton disconnect)"
+  "critical_notes": [
+    "NIE implementować przed pełną analizą architektury",
+    "MetadataLayer jest POTRZEBNY (komentarze, TODO, footnotes)",
+    "ViewportManager i RenderEngine mają mieć PEŁNĄ funkcjonalność",
+    "Referencja do specyfikacji: project_docs/19_text_editor_functional_spec_pl.md"
   ],
-  "architecture_notes": {
-    "new_architecture": {
-      "TextBuffer": "Fenwick Tree for O(log N) height queries",
-      "FormatLayer": "Interval Tree for formatting ranges",
-      "LazyLayoutManager": "Creates QTextLayout only for visible paragraphs",
-      "ViewportManager": "Manages viewport size and visible paragraph range",
-      "RenderEngine": "Paints paragraphs using layouts from LazyLayoutManager"
-    },
-    "legacy_remaining": {
-      "m_document": "KmlDocument - 100 usages, still used for test compatibility",
-      "m_layoutManager": "LayoutManager - 38 usages, used for cursor movement",
-      "m_scrollManager": "VirtualScrollManager - 24 usages",
-      "m_pageLayoutManager": "PageLayoutManager - 6 usages"
-    }
-  },
-  "philosophy": "Zero dystraktorów. Tylko słowa."
+  "openspec_summary": {
+    "00042": "IN_PROGRESS - Custom Text Editor (master spec funkcji)",
+    "00043": "IN_PROGRESS - Performance Rewrite + Architecture Correction",
+    "00044": "PENDING - Text Styling System (czeka na #00043)",
+    "00045": "ABSORBED - Wchłonięty przez #00043"
+  }
 }

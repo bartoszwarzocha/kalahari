@@ -1,7 +1,7 @@
 # 00043: Editor Performance Rewrite
 
 ## Status
-PENDING
+IN_PROGRESS
 
 ## Summary
 
@@ -11,6 +11,74 @@ Complete rewrite of BookEditor using Word/Writer-like architecture. The current 
 - Shows noticeable lag during text editing
 
 Microsoft Word handles the same content instantly, indicating a 100-1000x performance gap. This OpenSpec implements the same architectural patterns used by Word and LibreOffice Writer.
+
+---
+
+## ⚠️ ARCHITECTURE CORRECTION (2025-12-30)
+
+**Absorbs:** OpenSpec #00045 (Architecture Cleanup)
+
+### Problem z dotychczasową implementacją
+
+Fazy 1-8 tego OpenSpec dodały NOWE warstwy złożoności zamiast uprościć architekturę:
+
+| Dodana warstwa | Problem |
+|----------------|---------|
+| `TextBuffer` wrapper | Niepotrzebna warstwa nad QTextDocument |
+| `HeightTree` (Fenwick) | QTextDocument ma wbudowane layouty |
+| `FormatLayer` + `IntervalTree` | QTextCharFormat w Qt robi to samo |
+| `ITextBufferObserver` (4 observery) | **ŹRÓDŁO O(n²)** - każdy observer = O(n) na insert |
+| `LazyLayoutManager` | QAbstractTextDocumentLayout robi to lepiej |
+
+**Wynik:** Program zawiesza się przy ładowaniu dokumentu 150K słów.
+
+### Nowa architektura: 2 kroki zamiast 8
+
+```
+KROK 1: KML → QTextDocument (wbudowany piece-table Qt)
+KROK 2: Renderuj widoczny fragment (lazy, na żądanie)
+```
+
+### Co USUNĄĆ (faza korekty):
+
+| Komponent | Plik | Akcja |
+|-----------|------|-------|
+| `TextBuffer` wrapper | `text_buffer.h/cpp` | USUNĄĆ - używać QTextDocument bezpośrednio |
+| `HeightTree` (Fenwick) | `text_buffer.h/cpp` | USUNĄĆ - QTextDocument ma wbudowane layouty |
+| `ITextBufferObserver` | `text_buffer.h` | USUNĄĆ - źródło O(n²) przy ładowaniu |
+| Stara architektura | `book_editor.cpp` | USUNĄĆ (`m_document`, `m_layoutManager`, `m_scrollManager`) |
+
+### Co ZOSTAJE (pełna funkcjonalność):
+
+| Komponent | Rola |
+|-----------|------|
+| `BookEditor` | Widget - bezpośrednio używa QTextDocument |
+| `KmlParser/Serializer` | KML ↔ QTextDocument (z QTextCharFormat) |
+| `MetadataLayer` | Komentarze, TODO, footnotes - POTRZEBNY (część KML) |
+| `FormatLayer` | Do analizy - może być potrzebny dla formatowania KML |
+| `ViewportManager` | Pełna funkcjonalność (scroll, visible range) |
+| `RenderEngine` | Pełna funkcjonalność (Page Mode, Focus Mode, itp.) |
+| `LazyLayoutManager` | Do analizy - może być potrzebny dla lazy layout |
+
+### UWAGA: Wymagana dalsza analiza
+
+Przed implementacją należy dokładnie przeanalizować:
+1. Jak BookEditor będzie działał po zmianach
+2. Jak KML będzie parsowany do QTextDocument z QTextCharFormat
+3. Które komponenty (FormatLayer, LazyLayoutManager) są faktycznie potrzebne
+4. Referencja: `project_docs/19_text_editor_functional_spec_pl.md`
+
+### Dlaczego QTextDocument wystarczy:
+
+| Funkcja | QTextDocument | Nasza implementacja |
+|---------|---------------|---------------------|
+| Piece-table | ✅ Wbudowany | ❌ Wrapper niepotrzebny |
+| Formatowanie | ✅ QTextCharFormat | ❌ IntervalTree zbędny |
+| Layout | ✅ QTextLayout | ❌ LazyLayoutManager zbędny |
+| Wysokości | ✅ QTextBlock::layout() | ❌ HeightTree zbędny |
+| 50K słów w akapicie | ✅ Obsługuje natywnie | ❌ Nasza arch. opiera się na paragraphIndex |
+
+---
 
 ## Root Cause Analysis
 

@@ -1,10 +1,24 @@
 # OpenSpec #00045: BookEditor Architecture Cleanup
 
-**Status:** PENDING
-**Priority:** CRITICAL (blocking crashes)
+**Status:** ABSORBED
+**Absorbed by:** OpenSpec #00043 (Editor Performance Rewrite)
+**Absorbed on:** 2025-12-30
+**Priority:** CRITICAL (blocking performance issues)
 **Created:** 2025-12-29
 
-## Problem Statement
+---
+
+## ⚠️ THIS OPENSPEC HAS BEEN ABSORBED
+
+Ten OpenSpec został wchłonięty przez **#00043 Editor Performance Rewrite**.
+
+Zakres cleanup jest teraz częścią korekty architektury w #00043, która idzie dalej - usuwa nie tylko starą architekturę, ale także zbędne warstwy nowej architektury (TextBuffer, HeightTree, FormatLayer, IntervalTree, observer pattern).
+
+**Kontynuuj pracę w:** `openspec/changes/00043-editor-performance-rewrite/`
+
+---
+
+## Problem Statement (archived)
 
 BookEditor currently has TWO architectures running simultaneously:
 
