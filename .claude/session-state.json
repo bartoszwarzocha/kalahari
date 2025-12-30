@@ -1,7 +1,7 @@
 {
   "mode": "quick",
-  "saved_at": "2025-12-30T12:45:00",
-  "git_commit": "80806be",
+  "saved_at": "2025-12-30T13:00:00",
+  "git_commit": "471b542",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
@@ -15,10 +15,11 @@
   "blocker": null,
   "implementation_status": "PLANNING",
   "completed_tasks": [
-    "Zaktualizowano OpenSpec #00043 - dodano sekcję korekty architektury",
+    "Zaktualizowano OpenSpec #00043 - sekcja korekty architektury",
     "Zamknięto OpenSpec #00045 jako ABSORBED przez #00043",
-    "Zidentyfikowano komponenty do usunięcia (TextBuffer wrapper, HeightTree, ITextBufferObserver)",
-    "Wyjaśniono co zostaje (MetadataLayer, ViewportManager, RenderEngine z pełną funkcjonalnością)"
+    "Zidentyfikowano komponenty do usunięcia",
+    "Ustalono: MetadataLayer niepotrzebny - komentarze/TODO/footnotes są tagami inline w KML",
+    "Ustalono: FormatLayer niepotrzebny - używać QTextCharFormat"
   ],
   "pending_tasks": [
     "Przeanalizować architekturę przed implementacją",
@@ -29,11 +30,28 @@
     "total": 4,
     "percentage": 50
   },
+  "architecture_decisions": {
+    "usunac": [
+      "TextBuffer wrapper - używać QTextDocument bezpośrednio",
+      "HeightTree (Fenwick) - QTextDocument ma wbudowane layouty",
+      "ITextBufferObserver - źródło O(n²) przy ładowaniu",
+      "MetadataLayer - komentarze/TODO/footnotes są tagami inline w KML",
+      "FormatLayer + IntervalTree - używać QTextCharFormat",
+      "Stara architektura (m_document, m_layoutManager, m_scrollManager)"
+    ],
+    "zostaje": [
+      "BookEditor - widget + QTextDocument bezpośrednio",
+      "KmlParser/Serializer - KML ↔ QTextDocument",
+      "ViewportManager - pełna funkcjonalność (scroll, visible range)",
+      "RenderEngine - pełna funkcjonalność (Page Mode, Focus Mode, itp.)",
+      "LazyLayoutManager - do analizy"
+    ]
+  },
   "critical_notes": [
     "NIE implementować przed pełną analizą architektury",
-    "MetadataLayer jest POTRZEBNY (komentarze, TODO, footnotes)",
+    "Komentarze/TODO/footnotes = inline tagi KML, nie osobna warstwa",
     "ViewportManager i RenderEngine mają mieć PEŁNĄ funkcjonalność",
-    "Referencja do specyfikacji: project_docs/19_text_editor_functional_spec_pl.md"
+    "Referencja: project_docs/19_text_editor_functional_spec_pl.md"
   ],
   "openspec_summary": {
     "00042": "IN_PROGRESS - Custom Text Editor (master spec funkcji)",

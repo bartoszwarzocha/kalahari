@@ -46,6 +46,8 @@ KROK 2: Renderuj widoczny fragment (lazy, na żądanie)
 | `TextBuffer` wrapper | `text_buffer.h/cpp` | USUNĄĆ - używać QTextDocument bezpośrednio |
 | `HeightTree` (Fenwick) | `text_buffer.h/cpp` | USUNĄĆ - QTextDocument ma wbudowane layouty |
 | `ITextBufferObserver` | `text_buffer.h` | USUNĄĆ - źródło O(n²) przy ładowaniu |
+| `MetadataLayer` | `kml_converter.h/cpp` | USUNĄĆ - komentarze/TODO/footnotes są tagami inline w KML |
+| `FormatLayer` + `IntervalTree` | `format_layer.h/cpp` | USUNĄĆ - używać QTextCharFormat |
 | Stara architektura | `book_editor.cpp` | USUNĄĆ (`m_document`, `m_layoutManager`, `m_scrollManager`) |
 
 ### Co ZOSTAJE (pełna funkcjonalność):
@@ -54,18 +56,34 @@ KROK 2: Renderuj widoczny fragment (lazy, na żądanie)
 |-----------|------|
 | `BookEditor` | Widget - bezpośrednio używa QTextDocument |
 | `KmlParser/Serializer` | KML ↔ QTextDocument (z QTextCharFormat) |
-| `MetadataLayer` | Komentarze, TODO, footnotes - POTRZEBNY (część KML) |
-| `FormatLayer` | Do analizy - może być potrzebny dla formatowania KML |
 | `ViewportManager` | Pełna funkcjonalność (scroll, visible range) |
 | `RenderEngine` | Pełna funkcjonalność (Page Mode, Focus Mode, itp.) |
 | `LazyLayoutManager` | Do analizy - może być potrzebny dla lazy layout |
+
+### Komentarze, TODO, Footnotes - inline tagi KML
+
+Zgodnie ze specyfikacją (`project_docs/19_text_editor_functional_spec_pl.md`), te elementy są **tagami inline w treści dokumentu**, nie osobną warstwą:
+
+```xml
+<comment author="Autor" date="2025-12-18" collapsed="true">
+  Sprawdzić czy to pasuje do timeline'u
+</comment>
+
+<todo type="CHECK">Zweryfikować fakty historyczne</todo>
+
+<footnote id="fn1">Przypis dolny.</footnote>
+```
+
+Przy parsowaniu KML → QTextDocument:
+- Tagi inline → QTextCharFormat z custom properties
+- Renderowanie przez RenderEngine (special rendering dla komentarzy itp.)
 
 ### UWAGA: Wymagana dalsza analiza
 
 Przed implementacją należy dokładnie przeanalizować:
 1. Jak BookEditor będzie działał po zmianach
 2. Jak KML będzie parsowany do QTextDocument z QTextCharFormat
-3. Które komponenty (FormatLayer, LazyLayoutManager) są faktycznie potrzebne
+3. Czy LazyLayoutManager jest potrzebny (QTextDocument ma wbudowany layout)
 4. Referencja: `project_docs/19_text_editor_functional_spec_pl.md`
 
 ### Dlaczego QTextDocument wystarczy:
