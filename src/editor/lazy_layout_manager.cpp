@@ -223,6 +223,10 @@ double LazyLayoutManager::layoutParagraph(size_t index) {
 QTextLayout* LazyLayoutManager::getLayout(size_t index) {
     auto it = m_layouts.find(index);
     if (it != m_layouts.end() && it->second.layout) {
+        // Return cached layout - caller should ensure layoutVisibleParagraphs()
+        // was called before rendering to refresh dirty layouts.
+        // Do NOT call layoutParagraph() here - it's expensive and getLayout()
+        // may be called multiple times per frame (cursorRect, paintParagraph, etc.)
         touchLayout(index);
         return it->second.layout.get();
     }

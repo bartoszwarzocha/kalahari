@@ -35,6 +35,7 @@
 #include <QTimer>
 #include <QUndoStack>
 #include <QWheelEvent>
+#include <chrono>
 
 namespace kalahari::editor {
 
@@ -2058,7 +2059,11 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
     }
 
     // Handle printable characters (if not already handled)
-    if (!handled && !ctrl && !event->text().isEmpty()) {
+    // Note: On Windows, AltGr sends Ctrl+Alt, so we must allow text when both are pressed
+    // Only block Ctrl-only combinations (real shortcuts like Ctrl+C)
+    bool alt = event->modifiers() & Qt::AltModifier;
+    bool ctrlOnly = ctrl && !alt;
+    if (!handled && !ctrlOnly && !event->text().isEmpty()) {
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
@@ -4699,6 +4704,14 @@ size_t BookEditor::characterCount() const
 void BookEditor::fromKml(const QString& kml)
 {
     auto& logger = core::Logger::getInstance();
+    auto startTime = std::chrono::high_resolution_clock::now();
+    auto logElapsed = [&](const char* step) {
+        auto now = std::chrono::high_resolution_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+        logger.info("BookEditor::fromKml [{}ms] {}", ms, step);
+    };
+
+    logElapsed("START");
 
     if (kml.isEmpty()) {
         logger.debug("BookEditor::fromKml - empty KML, clearing content");
@@ -4723,15 +4736,21 @@ void BookEditor::fromKml(const QString& kml)
         return;
     }
 
+    logElapsed("Before parseKml");
+
     // Parse KML content
     KmlConverter converter;
     auto result = converter.parseKml(kml);
+
+    logElapsed("After parseKml");
 
     if (!result.success) {
         logger.error("BookEditor::fromKml - parse error: {} (line {}, col {})",
             result.errorMessage.toStdString(), result.errorLine, result.errorColumn);
         return;
     }
+
+    logElapsed("Disconnecting observers");
 
     // CRITICAL: Disconnect all observers from OLD buffer BEFORE destroying it
     // Otherwise observers will have dangling pointers during destruction
@@ -4748,6 +4767,8 @@ void BookEditor::fromKml(const QString& kml)
         m_lazyLayoutManager.reset();
     }
 
+    logElapsed("Moving buffers");
+
     // Replace internal components with parsed content
     if (result.buffer) {
         m_textBuffer = std::move(result.buffer);
@@ -4761,21 +4782,31 @@ void BookEditor::fromKml(const QString& kml)
         m_metadataLayer = std::make_unique<MetadataLayer>();
     }
 
+    logElapsed("Attaching FormatLayer");
+
     // Attach FormatLayer to new TextBuffer for automatic range adjustment
     if (m_formatLayer && m_textBuffer) {
         m_formatLayer->attachToBuffer(m_textBuffer.get());
     }
 
+    logElapsed("Creating LazyLayoutManager");
+
     // Re-create LazyLayoutManager with new buffer (always needed for new architecture)
     m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
     m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
     m_lazyLayoutManager->setFont(m_appearance.typography.textFont);
+
+    logElapsed("Setting up RenderEngine");
+
     if (m_renderEngine) {
         m_renderEngine->setBuffer(m_textBuffer.get());
         m_renderEngine->setFormatLayer(m_formatLayer.get());
         m_renderEngine->setMetadataLayer(m_metadataLayer.get());
         m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
     }
+
+    logElapsed("Setting up ViewportManager");
+
     if (m_viewportManager) {
         // CRITICAL: Order matters! Set viewport size FIRST, then buffer and layout manager
         // Otherwise syncLayoutManagerViewport() is called with height=0
@@ -4783,8 +4814,13 @@ void BookEditor::fromKml(const QString& kml)
         m_viewportManager->setBuffer(m_textBuffer.get());
         m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
         m_viewportManager->setScrollPosition(0.0);
+
+        logElapsed("Before requestLayout");
+
         // CRITICAL: Create layouts for visible paragraphs (otherwise nothing renders)
         m_viewportManager->requestLayout();
+
+        logElapsed("After requestLayout");
     }
 
     // Update SearchEngine with new buffer (if it exists)
@@ -4797,6 +4833,7 @@ void BookEditor::fromKml(const QString& kml)
         m_findReplaceBar->setFormatLayer(m_formatLayer.get());
     }
 
+    logElapsed("Loaded paragraphs");
     logger.debug("BookEditor::fromKml - loaded {} paragraphs",
         m_textBuffer ? m_textBuffer->paragraphCount() : 0);
 
@@ -4821,9 +4858,13 @@ void BookEditor::fromKml(const QString& kml)
         m_layoutManager->invalidateAllLayouts();
     }
 
+    logElapsed("Before update/signals");
+
     update();
     emit contentChanged();
     emit documentChanged();
+
+    logElapsed("DONE");
 }
 
 }  // namespace kalahari::editor

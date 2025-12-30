@@ -102,7 +102,20 @@ void HeightTree::insert(size_t index, double height) {
     m_heights.insert(m_heights.begin() + static_cast<std::ptrdiff_t>(index), height);
     m_size++;
     m_tree.resize(m_size + 1);
-    rebuild();
+    if (!m_batchMode) {
+        rebuild();
+    }
+}
+
+void HeightTree::beginBatch() {
+    m_batchMode = true;
+}
+
+void HeightTree::endBatch() {
+    if (m_batchMode) {
+        m_batchMode = false;
+        rebuild();
+    }
 }
 
 void HeightTree::remove(size_t index) {
@@ -129,6 +142,10 @@ TextBuffer::TextBuffer()
     // Connect to document changes
     QObject::connect(m_document.get(), &QTextDocument::contentsChanged,
         [this]() { onDocumentContentsChanged(); });
+
+    // Initialize heights for the default empty paragraph
+    // QTextDocument always starts with one empty block
+    initializeHeights();
 }
 
 TextBuffer::~TextBuffer() = default;
@@ -426,6 +443,27 @@ void TextBuffer::setParagraphText(size_t index, const QString& text) {
     invalidateParagraphHeight(index);
     invalidatePlainTextCache();
     notifyParagraphChanged(index);
+}
+
+// Batch Operations
+
+void TextBuffer::beginBatchInsert() {
+    m_batchInsertMode = true;
+    m_heightTree.beginBatch();
+    // Use QTextDocument's edit block to batch all changes
+    // This prevents layout recalculations until endBatchInsert()
+    QTextCursor cursor(m_document.get());
+    cursor.beginEditBlock();
+}
+
+void TextBuffer::endBatchInsert() {
+    if (m_batchInsertMode) {
+        m_batchInsertMode = false;
+        // End QTextDocument edit block
+        QTextCursor cursor(m_document.get());
+        cursor.endEditBlock();
+        m_heightTree.endBatch();
+    }
 }
 
 // Height Management

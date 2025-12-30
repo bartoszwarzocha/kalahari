@@ -295,6 +295,10 @@ bool KmlConverter::parseDocumentContent(QXmlStreamReader& reader,
 
     reader.readNext();
 
+    // Begin batch insert mode to avoid O(n^2) Fenwick tree rebuilds
+    // This defers rebuilding until all paragraphs are inserted
+    buffer.beginBatchInsert();
+
     while (!reader.atEnd()) {
         if (reader.isEndElement() && reader.name().toString() == rootTag) {
             break;
@@ -317,6 +321,9 @@ bool KmlConverter::parseDocumentContent(QXmlStreamReader& reader,
             reader.readNext();
         }
     }
+
+    // End batch mode - rebuilds Fenwick tree once
+    buffer.endBatchInsert();
 
     if (reader.hasError()) {
         setError(reader);

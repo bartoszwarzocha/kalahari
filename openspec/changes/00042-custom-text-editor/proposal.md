@@ -1,7 +1,7 @@
 # 00042: Custom Text Editor
 
 ## Status
-PENDING
+IN_PROGRESS
 
 ## Summary
 

@@ -53,8 +53,16 @@ public:
     void remove(size_t index);
     void clear();
 
+    /// @brief Begin batch insertion mode (defer rebuild until endBatch)
+    void beginBatch();
+    /// @brief End batch insertion mode and rebuild tree
+    void endBatch();
+    /// @brief Check if in batch mode
+    bool isInBatch() const { return m_batchMode; }
+
 private:
     void rebuild();
+    bool m_batchMode = false;
     static size_t lowbit(size_t x) { return x & ((~x) + 1); }
     static size_t highestBit(size_t n);
 
@@ -159,6 +167,20 @@ public:
     void setParagraphText(size_t index, const QString& text);
 
     // =========================================================================
+    // Batch Operations (for efficient bulk loading)
+    // =========================================================================
+
+    /// @brief Begin batch insert mode - defers Fenwick tree rebuild until endBatchInsert()
+    /// Use this when inserting many paragraphs at once (e.g., loading a document)
+    void beginBatchInsert();
+
+    /// @brief End batch insert mode - rebuilds Fenwick tree once
+    void endBatchInsert();
+
+    /// @brief Check if in batch insert mode
+    bool isInBatchMode() const { return m_batchInsertMode; }
+
+    // =========================================================================
     // Height Management (Fenwick Tree)
     // =========================================================================
 
@@ -213,6 +235,7 @@ private:
     std::vector<ITextBufferObserver*> m_observers;
 
     bool m_internalModification = false;
+    bool m_batchInsertMode = false;
 };
 
 }  // namespace kalahari::editor

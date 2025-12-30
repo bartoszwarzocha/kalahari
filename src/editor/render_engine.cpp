@@ -382,6 +382,10 @@ void RenderEngine::paint(QPainter* painter, const QRect& clipRect,
 
     // Paint paragraphs
     if (m_buffer && m_viewportManager && m_layoutManager) {
+        // CRITICAL: Refresh dirty layouts ONCE per frame before any getLayout() calls
+        // This ensures layouts are up-to-date without expensive per-call relayout
+        m_layoutManager->layoutVisibleParagraphs();
+
         size_t firstVisible = m_viewportManager->firstVisibleParagraph();
         size_t lastVisible = m_viewportManager->lastVisibleParagraph();
 

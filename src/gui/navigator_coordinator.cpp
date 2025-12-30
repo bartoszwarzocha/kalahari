@@ -22,6 +22,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDateTime>
+#include <chrono>
 
 namespace kalahari {
 namespace gui {
@@ -73,6 +74,14 @@ void NavigatorCoordinator::refreshNavigator() {
 
 void NavigatorCoordinator::onElementSelected(const QString& elementId, const QString& elementTitle) {
     auto& logger = core::Logger::getInstance();
+    auto startTime = std::chrono::high_resolution_clock::now();
+    auto logElapsed = [&](const char* step) {
+        auto now = std::chrono::high_resolution_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+        logger.info("NavigatorCoordinator::onElementSelected [{}ms] {}", ms, step);
+    };
+
+    logElapsed("START");
     logger.info("Navigator element selected: {} (id={})",
                 elementTitle.toStdString(), elementId.toStdString());
 
@@ -105,7 +114,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     }
 
     // Load chapter content from file via ProjectManager
+    logElapsed("Before loadChapterContent");
     QString content = pm.loadChapterContent(elementId);
+    logElapsed("After loadChapterContent");
 
     if (content.isEmpty()) {
         logger.warn("Failed to load content for element: {}", elementId.toStdString());
@@ -113,7 +124,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     }
 
     // Create new editor tab with chapter icon
+    logElapsed("Before new EditorPanel");
     EditorPanel* newEditor = new EditorPanel(m_centralTabs);
+    logElapsed("After new EditorPanel");
     QIcon chapterIcon = core::ArtProvider::getInstance().getIcon("template.chapter");
     int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
     m_centralTabs->setCurrentIndex(tabIndex);
@@ -150,7 +163,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
             });
 
     // Set content using setContent method
+    logElapsed("Before setContent");
     newEditor->setContent(content);
+    logElapsed("After setContent");
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
