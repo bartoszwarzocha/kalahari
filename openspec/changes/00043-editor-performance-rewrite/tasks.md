@@ -318,23 +318,119 @@ NOTE: Background layout (4.23-4.28) deferred to Phase 8 integration
 
 ---
 
-## Phase 11: Cleanup (DELETE old code)
+## Phase 11: ARCHITECTURE CORRECTION (QTextDocument Direct)
 
-**NOTE:** This is a DEVELOPMENT version with NO USERS. No backward compatibility needed.
-Just DELETE old code - no deprecation, no migration.
+**DATA ANALIZY:** 2025-12-30
 
-### Remove Old Architecture
-- [ ] 11.1 Remove feature flag `m_useNewArchitecture` from BookEditor
-- [ ] 11.2 Delete old KmlDocument-based code paths from BookEditor
-- [ ] 11.3 Remove unused includes and forward declarations
-- [ ] 11.4 Clean up any remaining dead code
+### Problem z fazami 1-10
 
-### Final Validation
-- [ ] 11.5 All existing unit tests pass
-- [ ] 11.6 All integration tests pass
-- [ ] 11.7 Build succeeds (no dangling references)
-- [ ] 11.8 Manual testing of editor functionality
-- [ ] 11.9 Performance benchmarks still pass
+Fazy 1-10 dodały zbędne warstwy zamiast użyć QTextDocument bezpośrednio:
+
+| Warstwa | Problem | Akcja |
+|---------|---------|-------|
+| `TextBuffer` | Wrapper nad QTextDocument | USUNĄĆ |
+| `HeightTree` (Fenwick) | QTextBlock::layout() daje wysokości | USUNĄĆ |
+| `ITextBufferObserver` | 4 observery = O(n²) przy bulk load | USUNĄĆ |
+| `FormatLayer` + `IntervalTree` | QTextCharFormat robi to samo | USUNĄĆ |
+| `MetadataLayer` | Komentarze/TODO to inline tagi KML | USUNĄĆ |
+| `LazyLayoutManager` | QAbstractTextDocumentLayout wystarczy | USUNĄĆ |
+
+### Docelowa architektura: 2 kroki
+
+```
+KROK 1: KML → QTextDocument (z QTextCharFormat dla formatowania i metadanych)
+KROK 2: Renderuj widoczny fragment (ViewportManager + RenderEngine)
+```
+
+### Co ZOSTAJE (pełna funkcjonalność)
+
+| Komponent | Rola |
+|-----------|------|
+| `BookEditor` | Widget - bezpośrednio używa QTextDocument* |
+| `KmlParser` | KML → QTextDocument (NOWY) |
+| `KmlSerializer` | QTextDocument → KML (NOWY) |
+| `ViewportManager` | Scroll, visible range (zmodyfikowany na QTextDocument) |
+| `RenderEngine` | Page Mode, Focus Mode, komentarze (zmodyfikowany) |
+
+### Mapowanie KML → QTextCharFormat
+
+| KML Element | QTextCharFormat |
+|-------------|-----------------|
+| `<em>` | `setFontItalic(true)` |
+| `<strong>` | `setFontWeight(QFont::Bold)` |
+| `<u>` | `setFontUnderline(true)` |
+| `<s>` | `setFontStrikeOut(true)` |
+| `<comment>` | `setProperty(KmlComment, QVariant::fromValue(commentData))` |
+| `<todo>` | `setProperty(KmlTodo, QVariant::fromValue(todoData))` |
+| `<footnote>` | `setProperty(KmlFootnote, QVariant::fromValue(footnoteData))` |
+
+Custom property IDs:
+```cpp
+enum KmlProperty {
+    KmlComment = QTextFormat::UserProperty + 1,
+    KmlTodo = QTextFormat::UserProperty + 2,
+    KmlFootnote = QTextFormat::UserProperty + 3,
+    KmlCharRef = QTextFormat::UserProperty + 4,
+    KmlLocRef = QTextFormat::UserProperty + 5,
+};
+```
+
+---
+
+### 11.1: Nowy KmlParser (KML → QTextDocument)
+- [ ] 11.1.1 Utwórz `include/kalahari/editor/kml_parser.h`
+- [ ] 11.1.2 Utwórz `src/editor/kml_parser.cpp`
+- [ ] 11.1.3 Implementuj `parseKml(QString) -> QTextDocument*`
+- [ ] 11.1.4 Implementuj inline formatting (`<em>`, `<strong>`, `<u>`, `<s>`)
+- [ ] 11.1.5 Implementuj comment/TODO/footnote jako QTextCharFormat properties
+- [ ] 11.1.6 Testy jednostkowe parsera
+
+### 11.2: Nowy KmlSerializer (QTextDocument → KML)
+- [ ] 11.2.1 Utwórz `include/kalahari/editor/kml_serializer.h`
+- [ ] 11.2.2 Utwórz `src/editor/kml_serializer.cpp`
+- [ ] 11.2.3 Implementuj `toKml(QTextDocument*) -> QString`
+- [ ] 11.2.4 Implementuj format-to-tag conversion
+- [ ] 11.2.5 Testy round-trip (parse → serialize → parse)
+
+### 11.3: Zmodyfikuj ViewportManager
+- [ ] 11.3.1 Zmień `setBuffer(TextBuffer*)` na `setDocument(QTextDocument*)`
+- [ ] 11.3.2 Implementuj visible range używając QTextBlock
+- [ ] 11.3.3 Usuń ITextBufferObserver interface
+- [ ] 11.3.4 Zaktualizuj testy
+
+### 11.4: Zmodyfikuj RenderEngine
+- [ ] 11.4.1 Zmień zależności na QTextDocument
+- [ ] 11.4.2 Implementuj comment highlighting z QTextCharFormat
+- [ ] 11.4.3 Implementuj TODO highlighting z QTextCharFormat
+- [ ] 11.4.4 Usuń FormatLayer dependency
+- [ ] 11.4.5 Zaktualizuj testy
+
+### 11.5: Przepisz BookEditor core
+- [ ] 11.5.1 Usuń members: m_textBuffer, m_formatLayer, m_metadataLayer, m_lazyLayoutManager
+- [ ] 11.5.2 Dodaj `QTextDocument* m_doc` member
+- [ ] 11.5.3 Przepisz `fromKml()` używając nowego KmlParser
+- [ ] 11.5.4 Przepisz `toKml()` używając nowego KmlSerializer
+- [ ] 11.5.5 Zaktualizuj cursor/selection na QTextCursor
+- [ ] 11.5.6 Zaktualizuj operacje edycji (insert, delete, format)
+
+### 11.6: Usuń stare pliki
+- [ ] 11.6.1 Usuń `text_buffer.h/cpp`
+- [ ] 11.6.2 Usuń `format_layer.h/cpp`
+- [ ] 11.6.3 Usuń `lazy_layout_manager.h/cpp`
+- [ ] 11.6.4 Usuń `metadata_layer` z kml_converter
+- [ ] 11.6.5 Zaktualizuj CMakeLists.txt
+
+### 11.7: Cleanup starej architektury
+- [ ] 11.7.1 Usuń feature flag `m_useNewArchitecture`
+- [ ] 11.7.2 Usuń stare ścieżki kodu KmlDocument
+- [ ] 11.7.3 Usuń nieużywane includes
+- [ ] 11.7.4 Usuń martwy kod
+
+### 11.8: Testy i walidacja
+- [ ] 11.8.1 Wszystkie testy jednostkowe przechodzą
+- [ ] 11.8.2 Manual test z ExampleNovel (150K słów)
+- [ ] 11.8.3 Benchmark wydajności: load < 2s, scroll 60fps, edit < 16ms
+- [ ] 11.8.4 Napraw regresje: kursor, edycja, nawigacja
 
 ---
 
@@ -344,3 +440,11 @@ Just DELETE old code - no deprecation, no migration.
 - [ ] D.2 Document new architecture in code comments
 - [ ] D.3 Create architecture diagram for developers
 - [ ] D.4 Update API documentation for new classes
+
+---
+
+## Referencje
+
+- **Specyfikacja funkcjonalna:** `project_docs/19_text_editor_functional_spec_pl.md`
+- **Architektura Qt:** QTextDocument, QTextCharFormat, QTextBlock, QTextCursor
+- **Cel:** Architektura Word/Writer - 2 kroki zamiast 8

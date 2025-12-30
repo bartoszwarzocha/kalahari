@@ -1,61 +1,82 @@
 {
-  "mode": "quick",
-  "saved_at": "2025-12-30T13:00:00",
-  "git_commit": "471b542",
+  "mode": "sync",
+  "saved_at": "2025-12-30T19:30:00",
+  "git_commit": "pending",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00043 - Architecture correction planning",
+  "working_on": "OpenSpec #00043 - Phase 11: Architecture Correction (QTextDocument Direct)",
   "next_steps": [
-    "Przeanalizować architekturę przed implementacją",
-    "Referencja: project_docs/19_text_editor_functional_spec_pl.md",
-    "Określić dokładnie jak BookEditor będzie działał po zmianach",
-    "Określić jak KML będzie parsowany do QTextDocument"
+    "Rozpocznij Phase 11.1: Nowy KmlParser (KML -> QTextDocument)",
+    "Utwórz kml_parser.h/cpp",
+    "Implementuj parseKml() z QTextCharFormat dla formatowania i metadanych",
+    "Testy jednostkowe parsera"
   ],
   "blocker": null,
-  "implementation_status": "PLANNING",
+  "implementation_status": "PLANNING_COMPLETE",
   "completed_tasks": [
-    "Zaktualizowano OpenSpec #00043 - sekcja korekty architektury",
-    "Zamknięto OpenSpec #00045 jako ABSORBED przez #00043",
-    "Zidentyfikowano komponenty do usunięcia",
-    "Ustalono: MetadataLayer niepotrzebny - komentarze/TODO/footnotes są tagami inline w KML",
-    "Ustalono: FormatLayer niepotrzebny - używać QTextCharFormat"
+    "Fazy 1-10 COMPLETE (ale wymagają korekty)",
+    "Analiza architektury - zidentyfikowano zbędne warstwy",
+    "Zaprojektowano nową architekturę: 2 kroki zamiast 8",
+    "Mapowanie KML -> QTextCharFormat zaprojektowane",
+    "Plan Phase 11 zapisany w tasks.md (31 zadań)"
   ],
   "pending_tasks": [
-    "Przeanalizować architekturę przed implementacją",
-    "Przetestować z dokumentem 150K słów"
+    "Phase 11.1: Nowy KmlParser (6 zadań)",
+    "Phase 11.2: Nowy KmlSerializer (5 zadań)",
+    "Phase 11.3: Zmodyfikuj ViewportManager (4 zadania)",
+    "Phase 11.4: Zmodyfikuj RenderEngine (5 zadań)",
+    "Phase 11.5: Przepisz BookEditor core (6 zadań)",
+    "Phase 11.6: Usuń stare pliki (5 zadań)",
+    "Phase 11.7: Cleanup starej architektury (4 zadania)",
+    "Phase 11.8: Testy i walidacja (4 zadania)"
   ],
   "task_progress": {
-    "completed": 2,
-    "total": 4,
-    "percentage": 50
+    "completed": 0,
+    "total": 31,
+    "percentage": 0
   },
-  "architecture_decisions": {
-    "usunac": [
-      "TextBuffer wrapper - używać QTextDocument bezpośrednio",
-      "HeightTree (Fenwick) - QTextDocument ma wbudowane layouty",
-      "ITextBufferObserver - źródło O(n²) przy ładowaniu",
-      "MetadataLayer - komentarze/TODO/footnotes są tagami inline w KML",
-      "FormatLayer + IntervalTree - używać QTextCharFormat",
-      "Stara architektura (m_document, m_layoutManager, m_scrollManager)"
+  "architecture_correction": {
+    "target": "QTextDocument Direct - 2 steps instead of 8",
+    "remove": [
+      "TextBuffer wrapper",
+      "HeightTree (Fenwick)",
+      "ITextBufferObserver (source of O(n^2))",
+      "FormatLayer + IntervalTree",
+      "MetadataLayer",
+      "LazyLayoutManager"
     ],
-    "zostaje": [
-      "BookEditor - widget + QTextDocument bezpośrednio",
-      "KmlParser/Serializer - KML ↔ QTextDocument",
-      "ViewportManager - pełna funkcjonalność (scroll, visible range)",
-      "RenderEngine - pełna funkcjonalność (Page Mode, Focus Mode, itp.)",
-      "LazyLayoutManager - do analizy"
-    ]
+    "keep": [
+      "BookEditor (widget + QTextDocument directly)",
+      "KmlParser (NEW - KML -> QTextDocument)",
+      "KmlSerializer (NEW - QTextDocument -> KML)",
+      "ViewportManager (modified for QTextDocument)",
+      "RenderEngine (modified for QTextDocument)"
+    ],
+    "kml_to_qtextcharformat": {
+      "<em>": "setFontItalic(true)",
+      "<strong>": "setFontWeight(QFont::Bold)",
+      "<u>": "setFontUnderline(true)",
+      "<s>": "setFontStrikeOut(true)",
+      "<comment>": "setProperty(KmlComment, commentData)",
+      "<todo>": "setProperty(KmlTodo, todoData)",
+      "<footnote>": "setProperty(KmlFootnote, footnoteData)"
+    }
   },
   "critical_notes": [
-    "NIE implementować przed pełną analizą architektury",
     "Komentarze/TODO/footnotes = inline tagi KML, nie osobna warstwa",
+    "QTextCharFormat custom properties dla metadanych",
     "ViewportManager i RenderEngine mają mieć PEŁNĄ funkcjonalność",
-    "Referencja: project_docs/19_text_editor_functional_spec_pl.md"
+    "Cel: architektura Word/Writer - 2 kroki zamiast 8"
+  ],
+  "references": [
+    "project_docs/19_text_editor_functional_spec_pl.md",
+    "openspec/changes/00043-editor-performance-rewrite/tasks.md",
+    "openspec/changes/00043-editor-performance-rewrite/proposal.md"
   ],
   "openspec_summary": {
     "00042": "IN_PROGRESS - Custom Text Editor (master spec funkcji)",
-    "00043": "IN_PROGRESS - Performance Rewrite + Architecture Correction",
+    "00043": "IN_PROGRESS - Performance Rewrite + Architecture Correction Phase 11",
     "00044": "PENDING - Text Styling System (czeka na #00043)",
     "00045": "ABSORBED - Wchłonięty przez #00043"
   }
