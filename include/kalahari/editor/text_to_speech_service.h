@@ -20,11 +20,6 @@
 #include <QStringList>
 #include <QList>
 
-// Forward declarations
-namespace kalahari::editor {
-class KmlDocument;
-}
-
 namespace kalahari::editor {
 
 /// @brief Playback state for TTS
@@ -125,11 +120,6 @@ public:
     /// @param text Text to synthesize and speak
     void speak(const QString& text);
 
-    /// @brief Speak text from document starting at paragraph
-    /// @param document KML document to read
-    /// @param startParagraph Starting paragraph index (0-based)
-    void speakFromDocument(KmlDocument* document, int startParagraph = 0);
-
     /// @brief Pause playback
     void pause();
 
@@ -187,10 +177,6 @@ signals:
     /// @param length Length of word in characters
     void wordBoundary(int startPos, int length);
 
-    /// @brief Emitted when moving to next paragraph (during document reading)
-    /// @param paragraphIndex Index of paragraph now being read
-    void paragraphStarted(int paragraphIndex);
-
     /// @brief Emitted on error
     /// @param message Error description
     void error(const QString& message);
@@ -199,9 +185,6 @@ private slots:
     /// @brief Handle TTS engine state change
     /// @param state New state as int (platform-specific)
     void onEngineStateChanged(int state);
-
-    /// @brief Continue reading next paragraph
-    void continueDocumentReading();
 
 private:
     /// @brief Initialize TTS engine
@@ -248,19 +231,6 @@ private:
 
     /// @brief Speech volume (0.0 to 1.0)
     double m_volume{1.0};
-
-    // =========================================================================
-    // Document Reading State
-    // =========================================================================
-
-    /// @brief Document currently being read (not owned)
-    KmlDocument* m_document{nullptr};
-
-    /// @brief Current paragraph index during document reading
-    int m_currentParagraph{0};
-
-    /// @brief Flag indicating document reading mode
-    bool m_readingDocument{false};
 
     /// @brief Current text being spoken (for word boundary calculation)
     QString m_currentText;

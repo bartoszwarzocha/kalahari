@@ -2,8 +2,6 @@
 /// @brief Text-to-Speech service implementation (OpenSpec #00042 Phase 6.21-6.24)
 
 #include <kalahari/editor/text_to_speech_service.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/core/logger.h>
 
 // Qt TextToSpeech is optional - check at compile time
@@ -12,7 +10,6 @@
 #include <QVoice>
 #endif
 
-#include <QTimer>
 #include <QRegularExpression>
 
 namespace kalahari::editor {
@@ -140,9 +137,6 @@ void TextToSpeechService::speak(const QString& text)
         return;
     }
 
-    // Cancel document reading mode
-    m_readingDocument = false;
-    m_document = nullptr;
     m_currentText = text;
     m_textOffset = 0;
 
@@ -150,35 +144,6 @@ void TextToSpeechService::speak(const QString& text)
     auto* tts = static_cast<QTextToSpeech*>(m_tts);
     tts->say(text);
 #endif
-}
-
-void TextToSpeechService::speakFromDocument(KmlDocument* document, int startParagraph)
-{
-    if (!m_available) {
-        core::Logger::getInstance().warn("TextToSpeechService: speakFromDocument() called but TTS not available");
-        emit error(m_errorMessage);
-        return;
-    }
-
-    if (!document || document->paragraphCount() == 0) {
-        core::Logger::getInstance().warn("TextToSpeechService: No document or empty document");
-        return;
-    }
-
-    // Validate start paragraph
-    if (startParagraph < 0 || startParagraph >= document->paragraphCount()) {
-        startParagraph = 0;
-    }
-
-    m_document = document;
-    m_currentParagraph = startParagraph;
-    m_readingDocument = true;
-
-    core::Logger::getInstance().debug("TextToSpeechService: Starting document reading from paragraph {}",
-                                      startParagraph);
-
-    // Start reading first paragraph
-    continueDocumentReading();
 }
 
 void TextToSpeechService::pause()
@@ -210,10 +175,6 @@ void TextToSpeechService::stop()
     if (!m_available) {
         return;
     }
-
-    // Cancel document reading
-    m_readingDocument = false;
-    m_document = nullptr;
 
 #ifdef QT_TEXTTOSPEECH_LIB
     auto* tts = static_cast<QTextToSpeech*>(m_tts);
@@ -299,19 +260,6 @@ void TextToSpeechService::onEngineStateChanged(int state)
     case QTextToSpeech::Ready:
         // Check if we were speaking and now finished
         if (m_state == TtsState::Speaking) {
-            // If reading document, continue to next paragraph
-            if (m_readingDocument && m_document) {
-                m_currentParagraph++;
-                if (m_currentParagraph < m_document->paragraphCount()) {
-                    // Use timer to avoid recursion
-                    QTimer::singleShot(100, this, &TextToSpeechService::continueDocumentReading);
-                    return;
-                } else {
-                    // Document reading complete
-                    m_readingDocument = false;
-                    m_document = nullptr;
-                }
-            }
             setState(TtsState::Idle);
             emit finished();
         } else {
@@ -332,8 +280,6 @@ void TextToSpeechService::onEngineStateChanged(int state)
 
     case QTextToSpeech::Error:
         setState(TtsState::Error);
-        m_readingDocument = false;
-        m_document = nullptr;
         {
             auto* tts = static_cast<QTextToSpeech*>(m_tts);
             QString errorMsg = tr("TTS engine error");
@@ -345,49 +291,6 @@ void TextToSpeechService::onEngineStateChanged(int state)
     }
 #else
     Q_UNUSED(state);
-#endif
-}
-
-void TextToSpeechService::continueDocumentReading()
-{
-    if (!m_readingDocument || !m_document || !m_available) {
-        return;
-    }
-
-    if (m_currentParagraph >= m_document->paragraphCount()) {
-        m_readingDocument = false;
-        m_document = nullptr;
-        setState(TtsState::Idle);
-        emit finished();
-        return;
-    }
-
-    const KmlParagraph* para = m_document->paragraph(m_currentParagraph);
-    if (!para) {
-        m_currentParagraph++;
-        continueDocumentReading();
-        return;
-    }
-
-    QString text = para->plainText().trimmed();
-    if (text.isEmpty()) {
-        // Skip empty paragraphs
-        m_currentParagraph++;
-        continueDocumentReading();
-        return;
-    }
-
-    m_currentText = text;
-    m_textOffset = 0;
-
-    emit paragraphStarted(m_currentParagraph);
-
-    core::Logger::getInstance().debug("TextToSpeechService: Reading paragraph {} of {}",
-                                      m_currentParagraph + 1, m_document->paragraphCount());
-
-#ifdef QT_TEXTTOSPEECH_LIB
-    auto* tts = static_cast<QTextToSpeech*>(m_tts);
-    tts->say(text);
 #endif
 }
 

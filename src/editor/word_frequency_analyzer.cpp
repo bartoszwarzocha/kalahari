@@ -2,7 +2,6 @@
 /// @brief Word frequency analysis implementation (OpenSpec #00042 Tasks 6.18-6.20)
 
 #include <kalahari/editor/word_frequency_analyzer.h>
-#include <kalahari/editor/kml_document.h>
 #include <kalahari/core/logger.h>
 
 #include <QRegularExpression>
@@ -29,16 +28,6 @@ WordFrequencyAnalyzer::~WordFrequencyAnalyzer()
 // =============================================================================
 // Setup
 // =============================================================================
-
-void WordFrequencyAnalyzer::setDocument(KmlDocument* document)
-{
-    m_document = document;
-}
-
-KmlDocument* WordFrequencyAnalyzer::document() const
-{
-    return m_document;
-}
 
 void WordFrequencyAnalyzer::setOveruseThreshold(double percentage)
 {
@@ -83,29 +72,6 @@ QString WordFrequencyAnalyzer::language() const
 // =============================================================================
 // Analysis
 // =============================================================================
-
-void WordFrequencyAnalyzer::analyze()
-{
-    m_wordCounts.clear();
-    m_wordPositions.clear();
-    m_frequencies.clear();
-    m_repetitions.clear();
-    m_totalWords = 0;
-
-    if (!m_document) {
-        core::Logger::getInstance().warn("WordFrequencyAnalyzer::analyze - no document set");
-        emit analysisComplete();
-        return;
-    }
-
-    // Collect all text from document
-    QString fullText = m_document->plainText();
-
-    core::Logger::getInstance().debug("WordFrequencyAnalyzer::analyze - analyzing {} characters",
-                                      fullText.length());
-
-    analyzeText(fullText);
-}
 
 void WordFrequencyAnalyzer::analyzeText(const QString& text)
 {

@@ -6,7 +6,7 @@
 /// - SearchService: Concrete implementation
 /// - SearchSession: UI navigation state manager
 ///
-/// This is a separate API from SearchEngine (which works with TextBuffer).
+/// Phase 11.7: Unified with SearchEngine - both use QTextDocument directly.
 
 #pragma once
 

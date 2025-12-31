@@ -5,9 +5,6 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
-#include "kalahari/editor/kml_paragraph.h"
-#include "kalahari/editor/kml_parser.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
@@ -16,38 +13,18 @@
 namespace kalahari {
 namespace gui {
 
-/// @brief Document observer that forwards content changes to EditorPanel
-class EditorPanel::Observer : public editor::IDocumentObserver {
-public:
-    explicit Observer(EditorPanel* panel) : m_panel(panel) {}
-
-    void onContentChanged() override {
-        if (m_panel) {
-            emit m_panel->contentChanged();
-        }
-    }
-
-private:
-    EditorPanel* m_panel;
-};
-
 EditorPanel::EditorPanel(QWidget* parent)
     : QWidget(parent)
     , m_bookEditor(nullptr)
-    , m_document(nullptr)
-    , m_observer(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel constructor called");
-
-    // Create observer first
-    m_observer = std::make_unique<Observer>(this);
 
     // Create layout
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Create BookEditor widget
+    // Create BookEditor widget (Phase 11: uses QTextDocument internally)
     m_bookEditor = new editor::BookEditor(this);
     layout->addWidget(m_bookEditor);
 
@@ -57,37 +34,16 @@ EditorPanel::EditorPanel(QWidget* parent)
 
     setLayout(layout);
 
-    // Create empty document
-    m_document = createEmptyDocument();
-
-    // Set document on editor
-    m_bookEditor->setDocument(m_document.get());
-
     // Apply settings (font, appearance)
     applySettings();
 
-    // Setup document observer
-    setupDocumentObserver();
-
-    logger.debug("EditorPanel initialized with BookEditor");
+    logger.debug("EditorPanel initialized with BookEditor (new architecture)");
 }
 
 EditorPanel::~EditorPanel() {
-    // CRITICAL: Disconnect BookEditor from document BEFORE document is destroyed
-    // Otherwise LayoutManager::~LayoutManager() will try to access destroyed document
-    // when it calls m_document->removeObserver(this)
-    if (m_bookEditor) {
-        m_bookEditor->setDocument(nullptr);
-    }
-
     // Disconnect StatisticsCollector from editor
     if (m_statisticsCollector) {
         m_statisticsCollector->setBookEditor(nullptr);
-    }
-
-    // Remove observer before document is destroyed
-    if (m_document && m_observer) {
-        m_document->removeObserver(m_observer.get());
     }
 }
 
@@ -102,8 +58,8 @@ void EditorPanel::setText(const QString& text) {
     // Convert plain text to KML
     QString kml = editor::ClipboardHandler::textToKml(text);
 
-    // Use BookEditor::fromKml() for new Phase 11 architecture
-    // This method sets up TextBuffer, FormatLayer, LazyLayoutManager, etc.
+    // Use BookEditor::fromKml() for Phase 11 architecture
+    // This method populates QTextDocument, ViewportManager, RenderEngine
     m_bookEditor->fromKml(kml);
     logger.debug("EditorPanel::setText - BookEditor::fromKml() complete");
 
@@ -114,7 +70,7 @@ void EditorPanel::setText(const QString& text) {
 }
 
 QString EditorPanel::getText() const {
-    // Use BookEditor's new API which reads from TextBuffer
+    // Use BookEditor's new API which reads from QTextDocument
     if (m_bookEditor) {
         return m_bookEditor->plainText();
     }
@@ -129,8 +85,8 @@ void EditorPanel::setContent(const QString& content) {
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel::setContent called with {} chars", content.length());
 
-    // Use BookEditor::fromKml() for new architecture
-    // This method sets up TextBuffer, FormatLayer, LazyLayoutManager, RenderEngine, ViewportManager
+    // Use BookEditor::fromKml() for Phase 11 architecture
+    // This method populates QTextDocument, ViewportManager, RenderEngine
     m_bookEditor->fromKml(content);
     logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
 
@@ -141,13 +97,9 @@ void EditorPanel::setContent(const QString& content) {
 }
 
 QString EditorPanel::getContent() const {
-    // Use BookEditor::toKml() which supports new architecture (Task 9.13)
+    // Phase 11: Use BookEditor::toKml() - QTextDocument-based architecture
     if (m_bookEditor) {
         return m_bookEditor->toKml();
-    }
-    // Fallback to document if no editor
-    if (m_document) {
-        return m_document->toKml();
     }
     return QString();
 }
@@ -190,20 +142,6 @@ void EditorPanel::applySettings() {
     m_bookEditor->setAppearance(appearance);
 
     logger.debug("EditorPanel settings applied to BookEditor");
-}
-
-std::unique_ptr<editor::KmlDocument> EditorPanel::createEmptyDocument() {
-    auto doc = std::make_unique<editor::KmlDocument>();
-    // Add one empty paragraph
-    auto para = std::make_unique<editor::KmlParagraph>();
-    doc->addParagraph(std::move(para));
-    return doc;
-}
-
-void EditorPanel::setupDocumentObserver() {
-    if (m_document && m_observer) {
-        m_document->addObserver(m_observer.get());
-    }
 }
 
 void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector) {

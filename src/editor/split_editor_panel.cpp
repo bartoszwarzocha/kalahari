@@ -46,25 +46,29 @@ SplitEditorPanel::~SplitEditorPanel()
 }
 
 // =============================================================================
-// Document Management
+// Content Management (Phase 11: KML-based API)
 // =============================================================================
 
-void SplitEditorPanel::setDocument(KmlDocument* document)
+void SplitEditorPanel::loadKml(const QString& kml)
 {
-    m_document = document;
+    m_kmlContent = kml;
 
-    // Pass document to all editors
+    // Load content into all editors
     if (m_primaryEditor != nullptr) {
-        m_primaryEditor->setDocument(document);
+        m_primaryEditor->fromKml(kml);
     }
     if (m_secondaryEditor != nullptr) {
-        m_secondaryEditor->setDocument(document);
+        m_secondaryEditor->fromKml(kml);
     }
 }
 
-KmlDocument* SplitEditorPanel::document() const
+QString SplitEditorPanel::toKml() const
 {
-    return m_document;
+    // Return content from primary editor
+    if (m_primaryEditor != nullptr) {
+        return m_primaryEditor->toKml();
+    }
+    return QString();
 }
 
 // =============================================================================
@@ -371,9 +375,9 @@ BookEditor* SplitEditorPanel::createEditor()
 {
     auto* editor = new BookEditor(this);
 
-    // Apply current document
-    if (m_document != nullptr) {
-        editor->setDocument(m_document);
+    // Apply cached KML content (Phase 11: each editor has own QTextDocument)
+    if (!m_kmlContent.isEmpty()) {
+        editor->fromKml(m_kmlContent);
     }
 
     // Apply appearance and view mode

@@ -1,13 +1,12 @@
 /// @file test_statistics_collector.cpp
 /// @brief Unit tests for StatisticsCollector (OpenSpec #00042 Task 7.17)
+/// Phase 11: Rewritten for QTextDocument-based architecture
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
 #include <kalahari/editor/statistics_collector.h>
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
 
 #include <QApplication>
 #include <memory>
@@ -15,26 +14,22 @@
 using namespace kalahari::editor;
 
 // =============================================================================
-// Helper: Create BookEditor with text using KmlDocument (avoids fromKml issues)
+// Helper: Create KML for testing
 // =============================================================================
 namespace {
 
-/// Create a KmlDocument with single paragraph containing text
-std::unique_ptr<KmlDocument> createDocWithText(const QString& text) {
-    auto doc = std::make_unique<KmlDocument>();
-    auto para = std::make_unique<KmlParagraph>(text);
-    doc->addParagraph(std::move(para));
-    return doc;
+/// Create KML with single paragraph containing text
+QString createKml(const QString& text) {
+    return QString("<p>%1</p>").arg(text);
 }
 
-/// Create a KmlDocument with multiple paragraphs
-std::unique_ptr<KmlDocument> createDocWithParagraphs(const QStringList& paragraphs) {
-    auto doc = std::make_unique<KmlDocument>();
+/// Create KML with multiple paragraphs
+QString createKmlParagraphs(const QStringList& paragraphs) {
+    QString kml;
     for (const QString& text : paragraphs) {
-        auto para = std::make_unique<KmlParagraph>(text);
-        doc->addParagraph(std::move(para));
+        kml += QString("<p>%1</p>\n").arg(text);
     }
-    return doc;
+    return kml;
 }
 
 }  // namespace
@@ -67,9 +62,8 @@ TEST_CASE("StatisticsCollector: Basic construction", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Editor connection", "[editor][statistics]") {
-    auto doc = createDocWithText("Hello world");
     BookEditor editor;
-    editor.setDocument(doc.get());
+    editor.fromKml(createKml("Hello world"));
     StatisticsCollector collector;
 
     SECTION("Connecting editor updates stats") {
@@ -118,36 +112,32 @@ TEST_CASE("StatisticsCollector: Word counting", "[editor][statistics]") {
     }
 
     SECTION("Single word") {
-        auto doc = createDocWithText("Hello");
         BookEditor editor;
-        editor.setDocument(doc.get());
+        editor.fromKml(createKml("Hello"));
         collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 1);
         collector.setBookEditor(nullptr);
     }
 
     SECTION("Multiple words with spaces") {
-        auto doc = createDocWithText("The quick brown fox");
         BookEditor editor;
-        editor.setDocument(doc.get());
+        editor.fromKml(createKml("The quick brown fox"));
         collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 4);
         collector.setBookEditor(nullptr);
     }
 
     SECTION("Words with punctuation") {
-        auto doc = createDocWithText("Hello, world! How are you?");
         BookEditor editor;
-        editor.setDocument(doc.get());
+        editor.fromKml(createKml("Hello, world! How are you?"));
         collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 5);
         collector.setBookEditor(nullptr);
     }
 
     SECTION("Multiple paragraphs") {
-        auto doc = createDocWithParagraphs({"First paragraph.", "Second paragraph."});
         BookEditor editor;
-        editor.setDocument(doc.get());
+        editor.fromKml(createKmlParagraphs({"First paragraph.", "Second paragraph."}));
         collector.setBookEditor(&editor);
         REQUIRE(collector.wordCount() == 4);
         REQUIRE(collector.paragraphCount() == 2);
@@ -160,9 +150,8 @@ TEST_CASE("StatisticsCollector: Word counting", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Character counting", "[editor][statistics]") {
-    auto doc = createDocWithText("Hello World");
     BookEditor editor;
-    editor.setDocument(doc.get());
+    editor.fromKml(createKml("Hello World"));
     StatisticsCollector collector;
     collector.setBookEditor(&editor);
 
@@ -190,9 +179,8 @@ TEST_CASE("StatisticsCollector: Reading time estimation", "[editor][statistics]"
     }
 
     SECTION("Short text under 1 minute rounds up") {
-        auto doc = createDocWithText("Hello world test");
         BookEditor editor;
-        editor.setDocument(doc.get());
+        editor.fromKml(createKml("Hello world test"));
         collector.setBookEditor(&editor);
 
         // 3 words at 200 wpm = ~0.015 minutes, rounds up to 1
@@ -244,9 +232,8 @@ TEST_CASE("StatisticsCollector: Session tracking", "[editor][statistics]") {
 // =============================================================================
 
 TEST_CASE("StatisticsCollector: Signals", "[editor][statistics]") {
-    auto doc = createDocWithText("Test");
     BookEditor editor;
-    editor.setDocument(doc.get());
+    editor.fromKml(createKml("Test"));
     StatisticsCollector collector;
 
     // Manual signal tracking

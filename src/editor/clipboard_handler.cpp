@@ -1,9 +1,8 @@
 /// @file clipboard_handler.cpp
 /// @brief Clipboard operations implementation (OpenSpec #00042 Phase 4.13-4.16)
+/// Phase 11: Removed KmlDocument-dependent methods (use BookEditor API instead)
 
 #include <kalahari/editor/clipboard_handler.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QRegularExpression>
@@ -11,66 +10,6 @@
 #include <QXmlStreamWriter>
 
 namespace kalahari::editor {
-
-// =============================================================================
-// Copy Operations
-// =============================================================================
-
-bool ClipboardHandler::copy(const KmlDocument* document, const SelectionRange& selection)
-{
-    if (document == nullptr) {
-        return false;
-    }
-
-    // Normalize selection
-    SelectionRange range = selection.normalized();
-    if (range.isEmpty()) {
-        return false;
-    }
-
-    // Create mime data with all formats
-    auto mimeData = createMimeData(document, range);
-    if (mimeData == nullptr) {
-        return false;
-    }
-
-    // Set to system clipboard
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    if (clipboard != nullptr) {
-        clipboard->setMimeData(mimeData.release());
-        return true;
-    }
-
-    return false;
-}
-
-std::unique_ptr<QMimeData> ClipboardHandler::createMimeData(const KmlDocument* document,
-                                                             const SelectionRange& selection)
-{
-    if (document == nullptr) {
-        return nullptr;
-    }
-
-    SelectionRange range = selection.normalized();
-    if (range.isEmpty()) {
-        return nullptr;
-    }
-
-    // Extract content
-    QString kml = extractKml(document, range);
-    QString text = extractText(document, range);
-    QString html = kmlToHtml(kml);
-
-    // Create MIME data
-    auto mimeData = std::make_unique<QMimeData>();
-
-    // Set all formats
-    mimeData->setData(MIME_KML, kml.toUtf8());
-    mimeData->setHtml(html);
-    mimeData->setText(text);
-
-    return mimeData;
-}
 
 // =============================================================================
 // Paste Operations
@@ -361,116 +300,6 @@ QString ClipboardHandler::kmlToText(const QString& kml)
 
             default:
                 break;
-        }
-    }
-
-    return text;
-}
-
-// =============================================================================
-// Selection Extraction
-// =============================================================================
-
-QString ClipboardHandler::extractKml(const KmlDocument* document, const SelectionRange& selection)
-{
-    if (document == nullptr) {
-        return QString();
-    }
-
-    SelectionRange range = selection.normalized();
-    if (range.isEmpty()) {
-        return QString();
-    }
-
-    QString kml;
-    QXmlStreamWriter writer(&kml);
-
-    // Single paragraph selection
-    if (range.start.paragraph == range.end.paragraph) {
-        const KmlParagraph* para = document->paragraph(range.start.paragraph);
-        if (para != nullptr) {
-            // Extract substring KML (simplified - just wrap in paragraph)
-            QString text = para->plainText().mid(range.start.offset,
-                                                  range.end.offset - range.start.offset);
-            writer.writeStartElement("p");
-            writer.writeStartElement("text");
-            writer.writeCharacters(text);
-            writer.writeEndElement();  // text
-            writer.writeEndElement();  // p
-        }
-    } else {
-        // Multi-paragraph selection
-        for (int i = range.start.paragraph; i <= range.end.paragraph; ++i) {
-            const KmlParagraph* para = document->paragraph(i);
-            if (para == nullptr) {
-                continue;
-            }
-
-            QString text = para->plainText();
-            int startOffset = 0;
-            int endOffset = text.length();
-
-            if (i == range.start.paragraph) {
-                startOffset = range.start.offset;
-            }
-            if (i == range.end.paragraph) {
-                endOffset = range.end.offset;
-            }
-
-            writer.writeStartElement("p");
-            writer.writeStartElement("text");
-            writer.writeCharacters(text.mid(startOffset, endOffset - startOffset));
-            writer.writeEndElement();  // text
-            writer.writeEndElement();  // p
-        }
-    }
-
-    return kml;
-}
-
-QString ClipboardHandler::extractText(const KmlDocument* document, const SelectionRange& selection)
-{
-    if (document == nullptr) {
-        return QString();
-    }
-
-    SelectionRange range = selection.normalized();
-    if (range.isEmpty()) {
-        return QString();
-    }
-
-    QString text;
-
-    // Single paragraph selection
-    if (range.start.paragraph == range.end.paragraph) {
-        const KmlParagraph* para = document->paragraph(range.start.paragraph);
-        if (para != nullptr) {
-            text = para->plainText().mid(range.start.offset,
-                                          range.end.offset - range.start.offset);
-        }
-    } else {
-        // Multi-paragraph selection
-        for (int i = range.start.paragraph; i <= range.end.paragraph; ++i) {
-            const KmlParagraph* para = document->paragraph(i);
-            if (para == nullptr) {
-                continue;
-            }
-
-            QString paraText = para->plainText();
-            int startOffset = 0;
-            int endOffset = paraText.length();
-
-            if (i == range.start.paragraph) {
-                startOffset = range.start.offset;
-            }
-            if (i == range.end.paragraph) {
-                endOffset = range.end.offset;
-            }
-
-            if (!text.isEmpty()) {
-                text += '\n';
-            }
-            text += paraText.mid(startOffset, endOffset - startOffset);
         }
     }
 

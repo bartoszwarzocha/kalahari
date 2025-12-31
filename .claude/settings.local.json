@@ -119,7 +119,10 @@
       "Bash(openspec/changes/00043-editor-performance-rewrite/tasks.md )",
       "Bash(src/CMakeLists.txt )",
       "Bash(tests/CMakeLists.txt)",
-      "Skill(load-session)"
+      "Skill(load-session)",
+      "Bash(scriptsbuild_windows.bat Debug)",
+      "Bash(E:/Python/Projekty/Kalahari/scripts/build_windows.bat Debug)",
+      "Bash(bin/kalahari-tests.exe:*)"
     ],
     "deny": [],
     "ask": []

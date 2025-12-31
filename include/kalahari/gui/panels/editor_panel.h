@@ -12,7 +12,6 @@
 
 namespace kalahari::editor {
 class BookEditor;
-class KmlDocument;
 class StatisticsCollector;
 }
 
@@ -73,14 +72,6 @@ public:
     /// @return Const pointer to BookEditor widget
     const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
 
-    /// @brief Get the KML document
-    /// @return Pointer to the document, or nullptr if none
-    editor::KmlDocument* document() { return m_document.get(); }
-
-    /// @brief Get the KML document (const)
-    /// @return Const pointer to the document, or nullptr if none
-    const editor::KmlDocument* document() const { return m_document.get(); }
-
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
     // =========================================================================
@@ -110,18 +101,7 @@ private:
     /// Called on construction and when settings change.
     void applySettings();
 
-    /// @brief Create an empty KML document
-    /// @return New KmlDocument with one empty paragraph
-    std::unique_ptr<editor::KmlDocument> createEmptyDocument();
-
-    /// @brief Setup document observer
-    void setupDocumentObserver();
-
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
-    std::unique_ptr<editor::KmlDocument> m_document;      ///< Owned KML document
-
-    class Observer;
-    std::unique_ptr<Observer> m_observer;                 ///< Document observer
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};

@@ -166,49 +166,17 @@ void CommentsPanel::refresh()
         return;
     }
 
-    editor::KmlDocument* doc = m_editor->document();
-    if (doc == nullptr) {
-        clear();
-        return;
-    }
-
-    // Collect all comments from all paragraphs
+    // Phase 11: Comments feature requires QTextCharFormat::UserProperty-based storage
+    // TODO: Implement comments via QTextCharFormat properties
+    // For now, show empty state
     int totalComments = 0;
-    for (int paraIdx = 0; paraIdx < doc->paragraphCount(); ++paraIdx) {
-        const editor::KmlParagraph* para = doc->paragraph(paraIdx);
-        if (para == nullptr || !para->hasComments()) {
-            continue;
-        }
-
-        QString paraText = para->plainText();
-        const QList<editor::KmlComment>& comments = para->comments();
-
-        for (const editor::KmlComment& comment : comments) {
-            // Create list item
-            QString displayText = formatCommentDisplay(comment, paraText);
-            QListWidgetItem* item = new QListWidgetItem(displayText, m_commentsList);
-
-            // Store paragraph index and comment ID
-            item->setData(ParagraphIndexRole, paraIdx);
-            item->setData(CommentIdRole, comment.id());
-
-            // Set tooltip with full comment text
-            QString tooltip = tr("Comment: %1\n\nOn text: \"%2\"")
-                .arg(comment.text())
-                .arg(paraText.mid(comment.startPos(),
-                                  comment.endPos() - comment.startPos()));
-            item->setToolTip(tooltip);
-
-            ++totalComments;
-        }
-    }
 
     // Update visibility based on comment count
     bool hasComments = (totalComments > 0);
     m_emptyLabel->setVisible(!hasComments);
     m_commentsList->setVisible(hasComments);
 
-    logger.debug("CommentsPanel: Loaded {} comments", totalComments);
+    logger.debug("CommentsPanel: Phase 11 TODO - Comments via QTextCharFormat. {} comments", totalComments);
 }
 
 void CommentsPanel::clear()

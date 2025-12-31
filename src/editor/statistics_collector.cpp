@@ -278,7 +278,7 @@ void StatisticsCollector::recalculateStats()
         return;
     }
 
-    // Get plain text from editor (uses new TextBuffer API)
+    // Get plain text from editor (uses QTextDocument API)
     QString text = m_editor->plainText();
 
     // Character counts

@@ -1220,29 +1220,22 @@ void PropertiesPanel::onEditorStyleChanged(int index) {
     editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
     if (!bookEditor) return;
 
-    editor::KmlDocument* doc = bookEditor->document();
-    if (!doc) return;
-
     QString styleId = m_editorStyleCombo->itemData(index).toString();
     logger.debug("PropertiesPanel::onEditorStyleChanged() - Style: {}", styleId.toStdString());
 
-    // Get cursor position to determine which paragraph to modify
+    // Phase 11: Paragraph styles via QTextBlockFormat
+    // TODO: Implement paragraph style changes via QTextBlockFormat properties
     auto cursorPos = bookEditor->cursorPosition();
     if (cursorPos.paragraph < 0 ||
-        cursorPos.paragraph >= static_cast<int>(doc->paragraphCount())) {
+        cursorPos.paragraph >= static_cast<int>(bookEditor->paragraphCount())) {
         return;
     }
 
-    // Get the paragraph and set its style
-    editor::KmlParagraph* para = doc->paragraph(cursorPos.paragraph);
-    if (para) {
-        para->setStyleId(styleId);
-        // Trigger repaint
-        bookEditor->update();
+    // TODO: Set paragraph style via BookEditor API
+    bookEditor->update();
 
-        logger.info("PropertiesPanel: Changed paragraph {} style to: {}",
-                    cursorPos.paragraph, styleId.toStdString());
-    }
+    logger.info("PropertiesPanel: Phase 11 TODO - Paragraph {} style change to: {}",
+                cursorPos.paragraph, styleId.toStdString());
 }
 
 void PropertiesPanel::updateEditorStatistics() {
@@ -1266,18 +1259,7 @@ void PropertiesPanel::updateEditorStatistics() {
         return;
     }
 
-    editor::KmlDocument* doc = bookEditor->document();
-    if (!doc) {
-        m_editorTitleLabel->setText(tr("No Document"));
-        m_editorWordCountLabel->setText("0");
-        m_editorCharCountLabel->setText("0");
-        m_editorCharNoSpaceLabel->setText("0");
-        m_editorParagraphCountLabel->setText("0");
-        m_editorReadingTimeLabel->setText("0 min");
-        m_editorStyleLabel->setText("-");
-        return;
-    }
-
+    // Phase 11: Use BookEditor public API instead of KmlDocument
     m_isUpdating = true;
 
     QString text;
@@ -1293,10 +1275,10 @@ void PropertiesPanel::updateEditorStatistics() {
         auto selection = bookEditor->selection();
         paragraphCount = selection.end.paragraph - selection.start.paragraph + 1;
     } else {
-        // Get entire document text
-        text = doc->plainText();
+        // Get entire document text via public API
+        text = bookEditor->plainText();
         m_editorTitleLabel->setText(tr("Document Statistics"));
-        paragraphCount = static_cast<int>(doc->paragraphCount());
+        paragraphCount = static_cast<int>(bookEditor->paragraphCount());
     }
 
     // Calculate word count
@@ -1334,35 +1316,14 @@ void PropertiesPanel::updateEditorStatistics() {
     m_editorParagraphCountLabel->setText(QString::number(paragraphCount));
     m_editorReadingTimeLabel->setText(tr("%1 min").arg(readingMinutes));
 
-    // Get current paragraph style
+    // Phase 11: Get current paragraph style via QTextBlockFormat
+    // TODO: Implement paragraph style detection via QTextBlockFormat properties
     auto cursorPos = bookEditor->cursorPosition();
     QString styleId = "p";  // Default
     QString styleName = tr("Normal");
 
-    if (cursorPos.paragraph >= 0 &&
-        cursorPos.paragraph < static_cast<int>(doc->paragraphCount())) {
-        const editor::KmlParagraph* para = doc->paragraph(cursorPos.paragraph);
-        if (para) {
-            styleId = para->styleId();
-
-            // Map style ID to display name
-            if (styleId == "p" || styleId.isEmpty()) {
-                styleName = tr("Normal");
-            } else if (styleId == "h1") {
-                styleName = tr("Heading 1");
-            } else if (styleId == "h2") {
-                styleName = tr("Heading 2");
-            } else if (styleId == "h3") {
-                styleName = tr("Heading 3");
-            } else if (styleId == "blockquote") {
-                styleName = tr("Block Quote");
-            } else if (styleId == "pre") {
-                styleName = tr("Preformatted");
-            } else {
-                styleName = styleId;  // Show raw ID for unknown styles
-            }
-        }
-    }
+    // For now, show default style until QTextBlockFormat-based style API is implemented
+    Q_UNUSED(cursorPos);
 
     m_editorStyleLabel->setText(styleName);
 

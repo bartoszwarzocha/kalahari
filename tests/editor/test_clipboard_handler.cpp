@@ -1,15 +1,13 @@
 /// @file test_clipboard_handler.cpp
 /// @brief Unit tests for ClipboardHandler (OpenSpec #00042 Phase 4.13-4.16)
+/// Phase 11: Updated to test only format conversion utilities
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/clipboard_handler.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
 #include <QGuiApplication>
 #include <QCoreApplication>
 #include <QClipboard>
 #include <QMimeData>
-#include <memory>
 
 using namespace kalahari::editor;
 
@@ -163,106 +161,7 @@ TEST_CASE("ClipboardHandler kmlToHtml conversion", "[editor][clipboard]") {
 }
 
 // =============================================================================
-// Selection Extraction Tests
-// =============================================================================
-
-TEST_CASE("ClipboardHandler extractText", "[editor][clipboard]") {
-    auto doc = std::make_unique<KmlDocument>();
-    doc->addParagraph(std::make_unique<KmlParagraph>("First paragraph"));
-    doc->addParagraph(std::make_unique<KmlParagraph>("Second paragraph"));
-    doc->addParagraph(std::make_unique<KmlParagraph>("Third paragraph"));
-
-    SECTION("Single paragraph partial selection") {
-        SelectionRange range{{0, 0}, {0, 5}};  // "First"
-        QString text = ClipboardHandler::extractText(doc.get(), range);
-        REQUIRE(text == "First");
-    }
-
-    SECTION("Single paragraph full selection") {
-        SelectionRange range{{0, 0}, {0, 15}};  // "First paragraph"
-        QString text = ClipboardHandler::extractText(doc.get(), range);
-        REQUIRE(text == "First paragraph");
-    }
-
-    SECTION("Multi-paragraph selection") {
-        SelectionRange range{{0, 6}, {1, 6}};  // "paragraph" + newline + "Second"
-        QString text = ClipboardHandler::extractText(doc.get(), range);
-        REQUIRE(text == "paragraph\nSecond");
-    }
-
-    SECTION("Empty selection returns empty string") {
-        SelectionRange range{{0, 5}, {0, 5}};
-        QString text = ClipboardHandler::extractText(doc.get(), range);
-        REQUIRE(text.isEmpty());
-    }
-
-    SECTION("Null document returns empty string") {
-        SelectionRange range{{0, 0}, {0, 5}};
-        QString text = ClipboardHandler::extractText(nullptr, range);
-        REQUIRE(text.isEmpty());
-    }
-}
-
-TEST_CASE("ClipboardHandler extractKml", "[editor][clipboard]") {
-    auto doc = std::make_unique<KmlDocument>();
-    doc->addParagraph(std::make_unique<KmlParagraph>("Hello World"));
-
-    SECTION("Extracts content as KML") {
-        SelectionRange range{{0, 0}, {0, 5}};  // "Hello"
-        QString kml = ClipboardHandler::extractKml(doc.get(), range);
-        REQUIRE(kml.contains("<p>"));
-        REQUIRE(kml.contains("Hello"));
-    }
-
-    SECTION("Empty selection returns empty KML") {
-        SelectionRange range{{0, 3}, {0, 3}};
-        QString kml = ClipboardHandler::extractKml(doc.get(), range);
-        REQUIRE(kml.isEmpty());
-    }
-}
-
-// =============================================================================
-// MIME Data Creation Tests
-// =============================================================================
-
-TEST_CASE("ClipboardHandler createMimeData", "[editor][clipboard]") {
-    auto doc = std::make_unique<KmlDocument>();
-    doc->addParagraph(std::make_unique<KmlParagraph>("Test content"));
-
-    SECTION("Creates MIME data with all formats") {
-        SelectionRange range{{0, 0}, {0, 4}};  // "Test"
-        auto mimeData = ClipboardHandler::createMimeData(doc.get(), range);
-
-        REQUIRE(mimeData != nullptr);
-        REQUIRE(mimeData->hasFormat(MIME_KML));
-        REQUIRE(mimeData->hasHtml());
-        REQUIRE(mimeData->hasText());
-    }
-
-    SECTION("Plain text format contains selection") {
-        SelectionRange range{{0, 0}, {0, 4}};
-        auto mimeData = ClipboardHandler::createMimeData(doc.get(), range);
-
-        REQUIRE(mimeData->text() == "Test");
-    }
-
-    SECTION("Empty selection returns nullptr") {
-        SelectionRange range{{0, 5}, {0, 5}};
-        auto mimeData = ClipboardHandler::createMimeData(doc.get(), range);
-
-        REQUIRE(mimeData == nullptr);
-    }
-
-    SECTION("Null document returns nullptr") {
-        SelectionRange range{{0, 0}, {0, 5}};
-        auto mimeData = ClipboardHandler::createMimeData(nullptr, range);
-
-        REQUIRE(mimeData == nullptr);
-    }
-}
-
-// =============================================================================
-// Clipboard Operations Tests (require QApplication)
+// Clipboard Paste Tests (require QApplication)
 // =============================================================================
 
 /// @brief Helper to check if clipboard is functional in current environment
@@ -287,40 +186,48 @@ static bool isClipboardFunctional() {
     return works;
 }
 
-TEST_CASE("ClipboardHandler copy and paste roundtrip", "[editor][clipboard]") {
+TEST_CASE("ClipboardHandler paste operations", "[editor][clipboard]") {
     // These tests require a QApplication instance
     if (QGuiApplication::instance() == nullptr) {
         SKIP("QApplication not available");
     }
 
-    auto doc = std::make_unique<KmlDocument>();
-    doc->addParagraph(std::make_unique<KmlParagraph>("Copy this text"));
-
-    SECTION("Copy sets clipboard text") {
+    SECTION("canPaste returns true when clipboard has text") {
         if (!isClipboardFunctional()) {
             SKIP("Clipboard not functional in headless environment");
         }
-        SelectionRange range{{0, 0}, {0, 4}};  // "Copy"
-        bool result = ClipboardHandler::copy(doc.get(), range);
-        REQUIRE(result == true);
 
-        QString pasted = ClipboardHandler::pasteAsText();
-        REQUIRE(pasted == "Copy");
-    }
-
-    SECTION("canPaste returns true after copy") {
-        if (!isClipboardFunctional()) {
-            SKIP("Clipboard not functional in headless environment");
-        }
-        SelectionRange range{{0, 0}, {0, 4}};
-        ClipboardHandler::copy(doc.get(), range);
+        QClipboard* clipboard = QGuiApplication::clipboard();
+        clipboard->setText("Test text");
+        QCoreApplication::processEvents();
 
         REQUIRE(ClipboardHandler::canPaste() == true);
     }
 
-    SECTION("Copy with empty selection returns false") {
-        SelectionRange range{{0, 5}, {0, 5}};
-        bool result = ClipboardHandler::copy(doc.get(), range);
-        REQUIRE(result == false);
+    SECTION("pasteAsText returns clipboard text") {
+        if (!isClipboardFunctional()) {
+            SKIP("Clipboard not functional in headless environment");
+        }
+
+        QClipboard* clipboard = QGuiApplication::clipboard();
+        clipboard->setText("Hello World");
+        QCoreApplication::processEvents();
+
+        QString result = ClipboardHandler::pasteAsText();
+        REQUIRE(result == "Hello World");
+    }
+
+    SECTION("pasteAsKml converts text to KML") {
+        if (!isClipboardFunctional()) {
+            SKIP("Clipboard not functional in headless environment");
+        }
+
+        QClipboard* clipboard = QGuiApplication::clipboard();
+        clipboard->setText("Plain text");
+        QCoreApplication::processEvents();
+
+        QString result = ClipboardHandler::pasteAsKml();
+        REQUIRE(result.contains("<p>"));
+        REQUIRE(result.contains("Plain text"));
     }
 }

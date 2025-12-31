@@ -18,18 +18,14 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_comment.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/layout_manager.h>
-#include <kalahari/editor/page_layout_manager.h>
+#include <kalahari/editor/kml_element.h>  // For ElementType
 #include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
-#include <kalahari/editor/virtual_scroll_manager.h>
-// Phase 8: New performance-optimized architecture (OpenSpec #00043)
-// Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer, TextBuffer - use QTextDocument directly
+// Phase 11: New 2-step architecture (OpenSpec #00043)
+// KML → QTextDocument (with QTextCharFormat) → Render visible fragment
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/render_engine.h>
-// Phase 11.6: Removed kml_converter.h - MetadataLayer removed, markers use buffer_commands.h
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/search_engine.h>
@@ -62,18 +58,18 @@ class GrammarCheckService;
 /// @brief Custom text editor widget for KML documents
 ///
 /// BookEditor is a QWidget-based text editor designed for rendering and
-/// editing KML (Kalahari Markup Language) documents. It uses virtual
-/// scrolling to efficiently handle documents of any size.
+/// editing KML (Kalahari Markup Language) documents. Uses Qt's QTextDocument
+/// as the single source of truth (Phase 11 - 2-step architecture).
 ///
-/// The editor coordinates three main components:
-/// - KmlDocument: The document model
-/// - LayoutManager: Handles paragraph layout and text wrapping
-/// - VirtualScrollManager: Manages efficient scrolling
+/// Architecture (OpenSpec #00043 Phase 11):
+/// - QTextDocument: Document model with inline formatting (QTextCharFormat)
+/// - ViewportManager: Visible paragraph range calculation
+/// - RenderEngine: Efficient rendering of visible content
 ///
 /// Usage:
 /// @code
 /// auto editor = new BookEditor(parentWidget);
-/// editor->setDocument(&document);
+/// editor->fromKml(kmlContent);  // Load KML content
 /// // Document is now rendered in the widget
 /// @endcode
 ///
@@ -96,37 +92,18 @@ public:
     BookEditor& operator=(const BookEditor&) = delete;
 
     // =========================================================================
-    // Document Management
+    // Document Management (Phase 11: QTextDocument-based)
     // =========================================================================
-
-    /// @brief Set the document to edit
-    /// @param document Pointer to the document (not owned, must outlive editor)
-    ///
-    /// When a document is set, the editor:
-    /// 1. Registers as an observer on the document
-    /// 2. Initializes the scroll manager and layout manager
-    /// 3. Triggers a repaint
-    ///
-    /// Pass nullptr to clear the current document.
-    void setDocument(KmlDocument* document);
-
-    /// @brief Get the current document
-    /// @return Pointer to the document, or nullptr if not set
-    KmlDocument* document() const;
 
     /// @brief Get document content as KML markup
     /// @return KML string representing document state
-    ///
-    /// Uses new architecture (TextBuffer/FormatLayer) if enabled,
-    /// otherwise falls back to KmlDocument::toKml().
     QString toKml() const;
 
     /// @brief Load document content from KML markup
     /// @param kml The KML string to load
     ///
-    /// Parses the KML markup using KmlConverter and populates
-    /// the TextBuffer, FormatLayer, and MetadataLayer.
-    /// Also updates the KmlDocument for compatibility with old architecture.
+    /// Parses the KML markup using KmlParser and loads directly
+    /// into QTextDocument with QTextCharFormat for formatting.
     /// Resets cursor position and clears undo stack.
     void fromKml(const QString& kml);
 
@@ -135,7 +112,7 @@ public:
     // =========================================================================
 
     /// @brief Get the number of paragraphs in the document
-    /// @return Paragraph count from TextBuffer
+    /// @return Paragraph count from QTextDocument
     size_t paragraphCount() const;
 
     /// @brief Get the plain text of a specific paragraph
@@ -148,28 +125,13 @@ public:
     QString plainText() const;
 
     /// @brief Get total character count in the document
-    /// @return Character count from TextBuffer
+    /// @return Character count from QTextDocument
     size_t characterCount() const;
 
-    // =========================================================================
-    // Layout Configuration
-    // =========================================================================
-
-    /// @brief Get the layout manager
-    /// @return Reference to the layout manager
-    LayoutManager& layoutManager();
-
-    /// @brief Get the layout manager (const)
-    /// @return Const reference to the layout manager
-    const LayoutManager& layoutManager() const;
-
-    /// @brief Get the scroll manager
-    /// @return Reference to the virtual scroll manager
-    VirtualScrollManager& scrollManager();
-
-    /// @brief Get the scroll manager (const)
-    /// @return Const reference to the virtual scroll manager
-    const VirtualScrollManager& scrollManager() const;
+    /// @brief Get the underlying QTextDocument (read-only for accessibility)
+    /// @return Pointer to the QTextDocument, or nullptr if not initialized
+    /// @note This is primarily for accessibility interfaces (screen readers)
+    QTextDocument* textDocument() const;
 
     // =========================================================================
     // Scrolling
@@ -966,9 +928,9 @@ private:
 
     /// @brief Convert widget point to cursor position
     /// @param widgetPos Point in widget coordinates
-    /// @return Cursor position using TextBuffer's Fenwick tree for O(log N) lookup
+    /// @return Cursor position using QTextDocument block lookup
     ///
-    /// Uses TextBuffer and LazyLayoutManager for efficient position calculation.
+    /// Uses QTextDocument and ViewportManager for efficient position calculation.
     CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
     /// @brief Draw selection highlighting (Phase 3.10)
@@ -1010,7 +972,7 @@ private:
     /// @brief Paint the Page Mode view
     /// @param painter The painter to draw with
     ///
-    /// Uses TextBuffer, LazyLayoutManager, and RenderEngine for page mode
+    /// Uses QTextDocument, ViewportManager, and RenderEngine for page mode
     /// rendering with O(log N) performance characteristics.
     void paintPageMode(QPainter& painter);
 
@@ -1041,7 +1003,7 @@ private:
     /// @brief Paint the focus mode overlay (dimming effect)
     /// @param painter The painter to draw with
     ///
-    /// Uses TextBuffer and LazyLayoutManager for O(log N) performance.
+    /// Uses QTextDocument and ViewportManager for O(log N) performance.
     /// Draws semi-transparent overlays over non-focused content to
     /// create the focus effect.
     void paintFocusOverlay(QPainter& painter);
@@ -1058,7 +1020,7 @@ private:
     void paintDistractionFreeOverlay(QPainter& painter);
 
     /// @brief Get total word count in the document
-    /// @return Word count using TextBuffer
+    /// @return Word count using QTextDocument
     int getWordCount() const;
 
     /// @brief Start UI fade animation
@@ -1083,10 +1045,8 @@ private:
     /// @return true if current position has the specified formatting
     bool hasFormat(ElementType formatType) const;
 
-    KmlDocument* m_document;                                ///< Document being edited (not owned)
-    std::unique_ptr<LayoutManager> m_layoutManager;         ///< Paragraph layout management
-    std::unique_ptr<VirtualScrollManager> m_scrollManager;  ///< Virtual scrolling
-    std::unique_ptr<PageLayoutManager> m_pageLayoutManager; ///< Page layout for Page Mode
+    // Phase 11: Old architecture members removed (KmlDocument, LayoutManager, VirtualScrollManager, PageLayoutManager)
+    // Using QTextDocument (m_textBuffer), ViewportManager, RenderEngine instead
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation

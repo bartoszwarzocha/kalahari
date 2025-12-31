@@ -29,9 +29,8 @@ set(TEST_SOURCES
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     editor/test_paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     editor/test_table_layout.cpp  # Phase 2.6: Table layout
-    editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
-    editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
     # Phase 11.8: Removed test_text_buffer.cpp, test_lazy_layout_manager.cpp, test_format_layer.cpp, test_kml_converter.cpp
+    # Phase 11.9: Removed test_virtual_scroll_manager.cpp, test_layout_manager.cpp
     editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
     editor/test_render_engine.cpp          # OpenSpec #00043: RenderEngine
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
@@ -100,14 +99,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp  # Phase 2.2: Format conversion
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
-    ${CMAKE_SOURCE_DIR}/src/editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
-    ${CMAKE_SOURCE_DIR}/src/editor/layout_manager.cpp          # Phase 2.11: Layout manager
     # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
+    # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/render_engine.cpp        # OpenSpec #00043: RenderEngine
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # OpenSpec #00043 Phase 9: Buffer undo commands
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
     ${CMAKE_SOURCE_DIR}/src/editor/search_service.cpp      # OpenSpec #00043 Phase 11.7: SearchService
@@ -122,7 +119,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
-    ${CMAKE_SOURCE_DIR}/src/editor/page_layout_manager.cpp  # Phase 5.3-5.5: Page layout manager
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service

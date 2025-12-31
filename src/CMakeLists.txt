@@ -19,14 +19,12 @@ set(KALAHARI_CORE_SOURCES
     editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     editor/format_converter.cpp  # Phase 2.2: Format conversion
     editor/table_layout.cpp      # Phase 2.6: Table layout
-    editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
-    editor/layout_manager.cpp          # Phase 2.11: Layout manager
     # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
+    # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
     # Replaced with QTextDocument + KmlParser/KmlSerializer
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     editor/view_modes.cpp              # Phase 5: View mode registry
-    editor/page_layout_manager.cpp     # Phase 5.3-5.5: Page layout manager
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
@@ -177,7 +175,6 @@ set(KALAHARI_SOURCES
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
-    editor/kml_commands.cpp     # Phase 4.8: Undo/Redo commands
     editor/buffer_commands.cpp  # OpenSpec #00043 Phase 9: Buffer/FormatLayer undo commands
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector

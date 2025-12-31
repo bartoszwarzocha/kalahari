@@ -18,11 +18,6 @@
 #include <QHash>
 #include <QSet>
 
-// Forward declarations
-namespace kalahari::editor {
-class KmlDocument;
-}
-
 namespace kalahari::editor {
 
 /// @brief Information about word frequency
@@ -89,14 +84,6 @@ public:
     // Setup
     // =========================================================================
 
-    /// @brief Set the document to analyze
-    /// @param document KML document to analyze (nullptr to disconnect)
-    void setDocument(KmlDocument* document);
-
-    /// @brief Get the current document
-    /// @return Pointer to document or nullptr
-    KmlDocument* document() const;
-
     /// @brief Set overuse threshold (default: 1.5% of total words)
     /// @param percentage Threshold as percentage (e.g., 1.5 for 1.5%)
     void setOveruseThreshold(double percentage);
@@ -133,11 +120,7 @@ public:
     // Analysis
     // =========================================================================
 
-    /// @brief Analyze entire document
-    /// @note Emits analysisComplete() when done
-    void analyze();
-
-    /// @brief Analyze specific text (without document)
+    /// @brief Analyze specific text
     /// @param text Text to analyze
     /// @note Emits analysisComplete() when done
     void analyzeText(const QString& text);
@@ -205,9 +188,6 @@ private:
 
     /// @brief Detect close repetitions in analyzed text
     void detectCloseRepetitions();
-
-    // Document reference
-    KmlDocument* m_document{nullptr};
 
     // Settings
     double m_overuseThreshold{1.5};   ///< Percentage threshold for overuse

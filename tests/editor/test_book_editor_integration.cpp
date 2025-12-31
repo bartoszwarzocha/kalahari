@@ -1,5 +1,6 @@
 /// @file test_book_editor_integration.cpp
 /// @brief Integration tests for BookEditor (OpenSpec #00042 Task 7.18)
+/// Phase 11: Rewritten for QTextDocument-based architecture
 
 #include <catch2/catch_test_macros.hpp>
 #include <QApplication>
@@ -7,10 +8,7 @@
 #include <QTextDocument>
 
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
-#include "kalahari/editor/kml_paragraph.h"
 #include "kalahari/editor/kml_parser.h"
-#include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_appearance.h"
 
@@ -21,68 +19,49 @@ using namespace kalahari::editor;
 // ============================================================================
 
 TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
-    // Document MUST be declared before editor for correct destruction order
-    KmlDocument doc;
     BookEditor editor;
-    // Note: setDocument is called INSIDE each section AFTER adding content
-    // because TextBuffer syncs on setDocument and won't re-sync if same document
 
     SECTION("create, edit, serialize, parse round-trip") {
-        // 1. Create document with initial content
-        auto para1 = std::make_unique<KmlParagraph>();
-        para1->insertText(0, "First paragraph with some text.");
-        doc.addParagraph(std::move(para1));
+        // 1. Load content via fromKml
+        QString kml = "<p>First paragraph with some text.</p>\n<p>Second paragraph here.</p>\n";
+        editor.fromKml(kml);
 
-        auto para2 = std::make_unique<KmlParagraph>();
-        para2->insertText(0, "Second paragraph here.");
-        doc.addParagraph(std::move(para2));
-
-        editor.setDocument(&doc);  // Set AFTER adding content
-
-        REQUIRE(doc.paragraphCount() == 2);
+        REQUIRE(editor.paragraphCount() == 2);
 
         // 2. Serialize to KML
-        QString kml = doc.toKml();
-        REQUIRE_FALSE(kml.isEmpty());
-        REQUIRE(kml.contains("First paragraph"));
-        REQUIRE(kml.contains("Second paragraph"));
+        QString serialized = editor.toKml();
+        REQUIRE_FALSE(serialized.isEmpty());
+        REQUIRE(serialized.contains("First paragraph"));
+        REQUIRE(serialized.contains("Second paragraph"));
 
-        // 3. Parse KML back using new Phase 11.1 API
-        // TODO Phase 11: Full round-trip test needs QTextDocument API
-        // The new KmlParser returns QTextDocument* not KmlDocument*
-        // For now, verify KML serialization works correctly
+        // 3. Parse KML back using KmlParser
         KmlParser parser;
-        QTextDocument* parsedDoc = parser.parseKml(kml);
+        QTextDocument* parsedDoc = parser.parseKml(serialized);
         REQUIRE(parsedDoc != nullptr);
-        // QTextDocument uses block-based API, not paragraph-based
         REQUIRE(parsedDoc->blockCount() == 2);
         REQUIRE(parsedDoc->toPlainText().contains("First paragraph with some text."));
         REQUIRE(parsedDoc->toPlainText().contains("Second paragraph here."));
-        delete parsedDoc;  // Caller owns the document
+        delete parsedDoc;
     }
 
     SECTION("edit operations preserve content integrity") {
-        // Start with content - add paragraph BEFORE setDocument
-        auto para = std::make_unique<KmlParagraph>();
-        para->insertText(0, "Hello World");
-        doc.addParagraph(std::move(para));
-
-        editor.setDocument(&doc);
+        // Start with content
+        editor.fromKml("<p>Hello World</p>");
 
         // Edit via editor
         editor.setCursorPosition({0, 5}); // After "Hello"
         editor.insertText(" Beautiful");
 
-        // Verify via BookEditor API (TextBuffer is source of truth)
+        // Verify via BookEditor API
         REQUIRE(editor.paragraphPlainText(0) == "Hello Beautiful World");
 
-        // Serialize via editor's toKml() and parse using new Phase 11.1 API
+        // Serialize and parse back
         QString kml = editor.toKml();
         KmlParser parser;
         QTextDocument* parsedDoc = parser.parseKml(kml);
         REQUIRE(parsedDoc != nullptr);
         REQUIRE(parsedDoc->toPlainText().contains("Hello Beautiful World"));
-        delete parsedDoc;  // Caller owns the document
+        delete parsedDoc;
     }
 }
 
@@ -91,14 +70,10 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
 // ============================================================================
 
 TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
-    KmlDocument doc;
     BookEditor editor;
 
-    // Add empty paragraph to doc BEFORE setDocument
-    auto para = std::make_unique<KmlParagraph>();
-    doc.addParagraph(std::move(para));
-
-    editor.setDocument(&doc);
+    // Start with empty paragraph
+    editor.fromKml("<p></p>");
 
     SECTION("multiple operations with undo/redo") {
         // Type some text
@@ -107,12 +82,9 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
         editor.insertText("B");
         editor.insertText("C");
 
-        // Use BookEditor's new API (TextBuffer is source of truth)
         REQUIRE(editor.paragraphPlainText(0) == "ABC");
 
         // Undo all
-        editor.undo();
-        // Note: Commands may be merged, so we might need multiple undos
         while (editor.canUndo()) {
             editor.undo();
         }
@@ -178,17 +150,12 @@ TEST_CASE("Integration: Undo/Redo chain", "[integration][editor][undo]") {
 // ============================================================================
 
 TEST_CASE("Integration: View mode switching", "[integration][editor][view_modes]") {
-    KmlDocument doc;
     BookEditor editor;
 
-    // Add some content BEFORE setDocument (TextBuffer is source of truth)
-    for (int i = 0; i < 5; i++) {
-        auto para = std::make_unique<KmlParagraph>();
-        para->insertText(0, QString("Paragraph %1").arg(i + 1));
-        doc.addParagraph(std::move(para));
-    }
-
-    editor.setDocument(&doc);
+    // Load content via fromKml
+    QString kml = "<p>Paragraph 1</p>\n<p>Paragraph 2</p>\n<p>Paragraph 3</p>\n"
+                  "<p>Paragraph 4</p>\n<p>Paragraph 5</p>\n";
+    editor.fromKml(kml);
 
     SECTION("switch between all view modes") {
         // Start in continuous mode
@@ -243,24 +210,11 @@ TEST_CASE("Integration: View mode switching", "[integration][editor][view_modes]
 // ============================================================================
 
 TEST_CASE("Integration: Complex editing scenarios", "[integration][editor]") {
-    KmlDocument doc;
     BookEditor editor;
 
     SECTION("multiple paragraph operations") {
-        // Create 3 paragraphs BEFORE setDocument
-        auto p1 = std::make_unique<KmlParagraph>();
-        p1->insertText(0, "Line 1");
-        doc.addParagraph(std::move(p1));
-
-        auto p2 = std::make_unique<KmlParagraph>();
-        p2->insertText(0, "Line 2");
-        doc.addParagraph(std::move(p2));
-
-        auto p3 = std::make_unique<KmlParagraph>();
-        p3->insertText(0, "Line 3");
-        doc.addParagraph(std::move(p3));
-
-        editor.setDocument(&doc);
+        // Load 3 paragraphs via fromKml
+        editor.fromKml("<p>Line 1</p>\n<p>Line 2</p>\n<p>Line 3</p>\n");
 
         REQUIRE(editor.paragraphCount() == 3);
 
@@ -268,25 +222,12 @@ TEST_CASE("Integration: Complex editing scenarios", "[integration][editor]") {
         editor.setCursorPosition({1, 0});
         editor.deleteBackward();
 
-        // Use BookEditor's new API (TextBuffer is source of truth)
         REQUIRE(editor.paragraphCount() == 2);
         REQUIRE(editor.paragraphPlainText(0) == "Line 1Line 2");
     }
 
     SECTION("selection spanning multiple paragraphs") {
-        auto p1 = std::make_unique<KmlParagraph>();
-        p1->insertText(0, "First");
-        doc.addParagraph(std::move(p1));
-
-        auto p2 = std::make_unique<KmlParagraph>();
-        p2->insertText(0, "Second");
-        doc.addParagraph(std::move(p2));
-
-        auto p3 = std::make_unique<KmlParagraph>();
-        p3->insertText(0, "Third");
-        doc.addParagraph(std::move(p3));
-
-        editor.setDocument(&doc);
+        editor.fromKml("<p>First</p>\n<p>Second</p>\n<p>Third</p>\n");
 
         // Select from middle of first to middle of third
         editor.setSelection({{0, 2}, {2, 3}});

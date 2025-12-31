@@ -1,12 +1,14 @@
 /// @file book_editor_accessible.cpp
 /// @brief Accessibility interface implementation for BookEditor (OpenSpec #00042 Task 7.16)
+/// Phase 11: Migrated to QTextDocument-based architecture
 
 #include <kalahari/editor/book_editor_accessible.h>
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
-#include <kalahari/editor/layout_manager.h>
-#include <kalahari/editor/paragraph_layout.h>
+#include <QTextBlock>
+#include <QTextBlockFormat>
+#include <QTextDocument>
+#include <QTextLayout>
+#include <QTextLine>
 #include <QWidget>
 
 namespace kalahari::editor {
@@ -66,15 +68,12 @@ QString BookEditorAccessible::text(QAccessible::Text t) const
         return tr("Text editor for writing and editing book content");
 
     case QAccessible::Value:
-        // Return current line text for screen readers
-        if (editor->document()) {
+        // Return current line text for screen readers (Phase 11: QTextDocument)
+        if (auto* doc = editor->textDocument()) {
             const auto& pos = editor->cursorPosition();
-            if (pos.paragraph >= 0 &&
-                pos.paragraph < editor->document()->paragraphCount()) {
-                auto* para = editor->document()->paragraph(pos.paragraph);
-                if (para) {
-                    return para->plainText();
-                }
+            QTextBlock block = doc->findBlockByNumber(pos.paragraph);
+            if (block.isValid()) {
+                return block.text();
             }
         }
         return QString();
@@ -107,7 +106,7 @@ int BookEditorAccessible::selectionCount() const
 void BookEditorAccessible::addSelection(int startOffset, int endOffset)
 {
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    if (!editor || !editor->textDocument()) {
         return;
     }
 
@@ -179,30 +178,38 @@ int BookEditorAccessible::characterCount() const
 QRect BookEditorAccessible::characterRect(int offset) const
 {
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    auto* doc = editor ? editor->textDocument() : nullptr;
+    if (!doc) {
         return QRect();
     }
 
     int paraIndex = 0, charOffset = 0;
     fromAbsoluteOffset(offset, paraIndex, charOffset);
 
-    // Get layout for paragraph
-    auto& layoutManager = editor->layoutManager();
-    auto* layout = layoutManager.paragraphLayout(paraIndex);
+    // Get block and layout (Phase 11: QTextDocument)
+    QTextBlock block = doc->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
+        return QRect();
+    }
+
+    QTextLayout* layout = block.layout();
     if (!layout) {
         return QRect();
     }
 
-    // Get cursor rect from layout
-    QRectF cursorRect = layout->cursorRect(charOffset);
-    if (cursorRect.isEmpty()) {
+    // Get cursor rect from QTextLayout
+    QTextLine line = layout->lineForTextPosition(charOffset);
+    if (!line.isValid()) {
         return QRect();
     }
+
+    qreal x = line.cursorToX(charOffset);
+    QRectF cursorRect(x, line.y(), 2.0, line.height());
 
     // Convert to screen coordinates
     QPoint widgetPos = editor->mapToGlobal(QPoint(0, 0));
     qreal scrollOffset = editor->scrollOffset();
-    qreal paraY = editor->scrollManager().paragraphY(paraIndex);
+    qreal paraY = layout->position().y();
 
     QRect screenRect;
     screenRect.setX(widgetPos.x() + static_cast<int>(cursorRect.x()));
@@ -239,8 +246,9 @@ void BookEditorAccessible::scrollToSubstring(int startOffset, int /*endOffset*/)
     int paraIndex = 0, charOffset = 0;
     fromAbsoluteOffset(startOffset, paraIndex, charOffset);
 
-    // Scroll to make paragraph visible
-    editor->scrollManager().ensureParagraphVisible(paraIndex);
+    // Move cursor to position and ensure visible (Phase 11)
+    editor->setCursorPosition(CursorPosition{paraIndex, charOffset});
+    editor->ensureCursorVisible();
     editor->update();
 }
 
@@ -267,7 +275,8 @@ void BookEditorAccessible::selection(int selectionIndex, int* startOffset, int* 
 QString BookEditorAccessible::attributes(int offset, int* startOffset, int* endOffset) const
 {
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    auto* doc = editor ? editor->textDocument() : nullptr;
+    if (!doc) {
         if (startOffset) *startOffset = offset;
         if (endOffset) *endOffset = offset;
         return QString();
@@ -276,9 +285,9 @@ QString BookEditorAccessible::attributes(int offset, int* startOffset, int* endO
     int paraIndex = 0, charOffset = 0;
     fromAbsoluteOffset(offset, paraIndex, charOffset);
 
-    // Get paragraph for style info
-    auto* para = editor->document()->paragraph(paraIndex);
-    if (!para) {
+    // Get block for style info (Phase 11: QTextDocument)
+    QTextBlock block = doc->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
         if (startOffset) *startOffset = offset;
         if (endOffset) *endOffset = offset;
         return QString();
@@ -286,23 +295,18 @@ QString BookEditorAccessible::attributes(int offset, int* startOffset, int* endO
 
     // Calculate run boundaries (for now, whole paragraph)
     int paraStart = toAbsoluteOffset(paraIndex, 0);
-    int paraEnd = toAbsoluteOffset(paraIndex, para->plainText().length());
+    int paraEnd = toAbsoluteOffset(paraIndex, block.text().length());
 
     if (startOffset) *startOffset = paraStart;
     if (endOffset) *endOffset = paraEnd;
 
-    // Return basic style attributes
+    // Return basic style attributes from QTextBlockFormat
     // Format: "key1:value1;key2:value2"
     QString attrs;
 
-    // Style ID
-    QString styleId = para->styleId();
-    if (!styleId.isEmpty()) {
-        attrs += QString("style:%1;").arg(styleId);
-    }
-
-    // Text runs could add bold/italic info here
-    // For now, return basic attributes
+    QTextBlockFormat format = block.blockFormat();
+    // Could add alignment, indent, etc. from format
+    // For now, return minimal attributes
     return attrs;
 }
 
@@ -314,17 +318,18 @@ BookEditor* BookEditorAccessible::bookEditor() const
 int BookEditorAccessible::toAbsoluteOffset(int paragraphIndex, int charOffset) const
 {
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    auto* doc = editor ? editor->textDocument() : nullptr;
+    if (!doc) {
         return 0;
     }
 
     int offset = 0;
-    auto* doc = editor->document();
 
-    for (int i = 0; i < paragraphIndex && i < doc->paragraphCount(); ++i) {
-        auto* para = doc->paragraph(i);
-        if (para) {
-            offset += para->plainText().length();
+    // Phase 11: iterate QTextBlocks
+    for (int i = 0; i < paragraphIndex && i < doc->blockCount(); ++i) {
+        QTextBlock block = doc->findBlockByNumber(i);
+        if (block.isValid()) {
+            offset += block.text().length();
             offset += 1;  // Newline between paragraphs
         }
     }
@@ -335,44 +340,45 @@ int BookEditorAccessible::toAbsoluteOffset(int paragraphIndex, int charOffset) c
 void BookEditorAccessible::fromAbsoluteOffset(int absoluteOffset, int& paragraphIndex, int& charOffset) const
 {
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    auto* doc = editor ? editor->textDocument() : nullptr;
+    if (!doc) {
         paragraphIndex = 0;
         charOffset = 0;
         return;
     }
 
-    auto* doc = editor->document();
     int remaining = absoluteOffset;
 
-    for (int i = 0; i < doc->paragraphCount(); ++i) {
-        auto* para = doc->paragraph(i);
-        if (!para) continue;
+    // Phase 11: iterate QTextBlocks
+    for (int i = 0; i < doc->blockCount(); ++i) {
+        QTextBlock block = doc->findBlockByNumber(i);
+        if (!block.isValid()) continue;
 
-        int paraLen = para->plainText().length();
-        if (remaining <= paraLen) {
+        int blockLen = block.text().length();
+        if (remaining <= blockLen) {
             paragraphIndex = i;
             charOffset = remaining;
             return;
         }
 
-        remaining -= paraLen;
+        remaining -= blockLen;
         remaining -= 1;  // Newline
 
         if (remaining < 0) {
             // In the newline itself, go to end of this paragraph
             paragraphIndex = i;
-            charOffset = paraLen;
+            charOffset = blockLen;
             return;
         }
     }
 
     // Past end of document
-    paragraphIndex = doc->paragraphCount() - 1;
+    paragraphIndex = doc->blockCount() - 1;
     if (paragraphIndex < 0) paragraphIndex = 0;
 
-    if (doc->paragraphCount() > 0) {
-        auto* lastPara = doc->paragraph(paragraphIndex);
-        charOffset = lastPara ? lastPara->plainText().length() : 0;
+    if (doc->blockCount() > 0) {
+        QTextBlock lastBlock = doc->findBlockByNumber(paragraphIndex);
+        charOffset = lastBlock.isValid() ? lastBlock.text().length() : 0;
     } else {
         charOffset = 0;
     }
@@ -385,21 +391,13 @@ QString BookEditorAccessible::documentText() const
     }
 
     BookEditor* editor = bookEditor();
-    if (!editor || !editor->document()) {
+    auto* doc = editor ? editor->textDocument() : nullptr;
+    if (!doc) {
         return QString();
     }
 
-    QStringList parts;
-    auto* doc = editor->document();
-
-    for (int i = 0; i < doc->paragraphCount(); ++i) {
-        auto* para = doc->paragraph(i);
-        if (para) {
-            parts.append(para->plainText());
-        }
-    }
-
-    m_cachedText = parts.join('\n');
+    // Phase 11: use QTextDocument::toPlainText()
+    m_cachedText = doc->toPlainText();
     m_cacheValid = true;
 
     return m_cachedText;

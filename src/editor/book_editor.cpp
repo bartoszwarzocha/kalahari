@@ -5,7 +5,6 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/clipboard_handler.h>
-#include <kalahari/editor/kml_commands.h>
 #include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_element.h>
 #include <kalahari/editor/kml_paragraph.h>
@@ -119,10 +118,7 @@ inline int getParagraphAtY(QTextDocument* doc, double y) {
 
 BookEditor::BookEditor(QWidget* parent)
     : QWidget(parent)
-    , m_document(nullptr)
-    , m_layoutManager(std::make_unique<LayoutManager>())
-    , m_scrollManager(std::make_unique<VirtualScrollManager>())
-    , m_pageLayoutManager(std::make_unique<PageLayoutManager>())
+    // Phase 11: Removed old architecture (KmlDocument, LayoutManager, VirtualScrollManager, PageLayoutManager)
     , m_verticalScrollBar(nullptr)
     , m_scrollAnimation(nullptr)
     , m_typewriterScrollAnimation(nullptr)
@@ -219,105 +215,9 @@ BookEditor::~BookEditor()
     }
 }
 
-// =============================================================================
-// Document Management
-// =============================================================================
-
-void BookEditor::setDocument(KmlDocument* document)
-{
-    auto& logger = core::Logger::getInstance();
-    logger.debug("BookEditor::setDocument - start, document={}", (void*)document);
-
-    if (m_document == document) {
-        logger.debug("BookEditor::setDocument - same document, returning");
-        return;
-    }
-
-    m_document = document;
-    logger.debug("BookEditor::setDocument - document assigned");
-
-    // Update managers with new document
-    logger.debug("BookEditor::setDocument - calling scrollManager->setDocument...");
-    m_scrollManager->setDocument(document);
-    logger.debug("BookEditor::setDocument - calling layoutManager->setDocument...");
-    m_layoutManager->setDocument(document);
-    logger.debug("BookEditor::setDocument - managers updated");
-
-    // Update viewport and layout width
-    logger.debug("BookEditor::setDocument - calling updateViewport...");
-    updateViewport();
-    logger.debug("BookEditor::setDocument - calling updateLayoutWidth...");
-    updateLayoutWidth();
-    logger.debug("BookEditor::setDocument - viewport/layout updated");
-
-    // Update scrollbar range for new document
-    logger.debug("BookEditor::setDocument - calling updateScrollBarRange...");
-    updateScrollBarRange();
-    logger.debug("BookEditor::setDocument - scrollbar updated");
-
-    // Sync to QTextDocument for new architecture (backward compatibility with tests)
-    if (m_textBuffer && document) {
-        QStringList paragraphs;
-        int paraCount = static_cast<int>(document->paragraphCount());
-        for (int i = 0; i < paraCount; ++i) {
-            const KmlParagraph* para = document->paragraph(i);
-            if (para) {
-                paragraphs.append(para->plainText());
-            }
-        }
-        QString fullText = paragraphs.join(QChar::ParagraphSeparator);
-        // Phase 11.6: Set text using QTextCursor instead of TextBuffer::setPlainText
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.select(QTextCursor::Document);
-        cursor.insertText(fullText);
-        logger.debug("BookEditor::setDocument - QTextDocument synced ({} paragraphs)", paraCount);
-        // Note: QTextDocument handles layout refresh automatically
-    }
-
-    // Sync cursor to RenderEngine (Phase 8 fix)
-    // Note: We don't reset cursor position here - caller may want to preserve it
-    // The cursor position is validated lazily on next setCursorPosition call
-    if (m_renderEngine) {
-        m_renderEngine->setCursorPosition(m_cursorPosition);
-        m_renderEngine->setCursorVisible(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderEngine->startCursorBlink();
-        }
-    }
-
-    emit documentChanged();
-    update();  // Request repaint
-    logger.debug("BookEditor::setDocument - complete");
-}
-
-KmlDocument* BookEditor::document() const
-{
-    return m_document;
-}
-
-// =============================================================================
-// Layout Configuration
-// =============================================================================
-
-LayoutManager& BookEditor::layoutManager()
-{
-    return *m_layoutManager;
-}
-
-const LayoutManager& BookEditor::layoutManager() const
-{
-    return *m_layoutManager;
-}
-
-VirtualScrollManager& BookEditor::scrollManager()
-{
-    return *m_scrollManager;
-}
-
-const VirtualScrollManager& BookEditor::scrollManager() const
-{
-    return *m_scrollManager;
-}
+// Phase 11: Old architecture methods removed (setDocument, document, layoutManager, scrollManager)
+// Use fromKml()/toKml() for document operations
+// Use ViewportManager for scroll operations
 
 // =============================================================================
 // Scrolling
@@ -330,23 +230,22 @@ QScrollBar* BookEditor::verticalScrollBar() const
 
 qreal BookEditor::scrollOffset() const
 {
-    return m_scrollManager->scrollOffset();
+    // Phase 11: Use ViewportManager instead of VirtualScrollManager
+    return m_viewportManager ? m_viewportManager->scrollPosition() : 0.0;
 }
 
 void BookEditor::setScrollOffset(qreal offset)
 {
-    qreal oldOffset = m_scrollManager->scrollOffset();
-    m_scrollManager->setScrollOffset(offset);
-    qreal newOffset = m_scrollManager->scrollOffset();
+    if (!m_viewportManager) return;
+
+    // Phase 11: Use ViewportManager instead of VirtualScrollManager
+    qreal oldOffset = m_viewportManager->scrollPosition();
+    m_viewportManager->setScrollPosition(offset);
+    qreal newOffset = m_viewportManager->scrollPosition();
 
     if (oldOffset != newOffset) {
         syncScrollBarValue();
         emit scrollOffsetChanged(newOffset);
-
-        // Release distant layouts to bound memory usage
-        auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
-        m_layoutManager->releaseDistantLayouts(firstVisible, lastVisible);
-
         update();  // Request repaint
     }
 }
@@ -359,8 +258,9 @@ void BookEditor::scrollBy(qreal delta, bool animated)
 
 void BookEditor::scrollTo(qreal offset, bool animated)
 {
-    // Clamp the offset to valid range
-    offset = qBound(0.0, offset, m_scrollManager->maxScrollOffset());
+    // Phase 11: Use ViewportManager for max scroll
+    qreal maxScroll = m_viewportManager ? m_viewportManager->maxScrollPosition() : 0.0;
+    offset = qBound(0.0, offset, maxScroll);
 
     if (animated && m_smoothScrollingEnabled) {
         startScrollAnimation(offset);
@@ -601,7 +501,7 @@ void BookEditor::moveCursorDown()
 
 void BookEditor::moveCursorWordLeft()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -609,12 +509,12 @@ void BookEditor::moveCursorWordLeft()
     m_preferredCursorXValid = false;
 
     CursorPosition newPos = m_cursorPosition;
-    const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
-    if (para == nullptr) {
+    QTextBlock block = m_textBuffer->findBlockByNumber(newPos.paragraph);
+    if (!block.isValid()) {
         return;
     }
 
-    QString text = para->plainText();
+    QString text = block.text();
 
     if (newPos.offset > 0) {
         // Move backwards, skipping whitespace first
@@ -634,8 +534,9 @@ void BookEditor::moveCursorWordLeft()
     } else if (newPos.paragraph > 0) {
         // Move to end of previous paragraph
         --newPos.paragraph;
-        const KmlParagraph* prevPara = m_document->paragraph(newPos.paragraph);
-        newPos.offset = prevPara ? prevPara->characterCount() : 0;
+        QTextBlock prevBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
+        newPos.offset = prevBlock.isValid() ? prevBlock.length() - 1 : 0;
+        if (newPos.offset < 0) newPos.offset = 0;
     }
 
     setCursorPosition(newPos);
@@ -643,7 +544,7 @@ void BookEditor::moveCursorWordLeft()
 
 void BookEditor::moveCursorWordRight()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -651,12 +552,12 @@ void BookEditor::moveCursorWordRight()
     m_preferredCursorXValid = false;
 
     CursorPosition newPos = m_cursorPosition;
-    const KmlParagraph* para = m_document->paragraph(newPos.paragraph);
-    if (para == nullptr) {
+    QTextBlock block = m_textBuffer->findBlockByNumber(newPos.paragraph);
+    if (!block.isValid()) {
         return;
     }
 
-    QString text = para->plainText();
+    QString text = block.text();
     int textLen = text.length();
 
     if (newPos.offset < textLen) {
@@ -673,7 +574,7 @@ void BookEditor::moveCursorWordRight()
         }
 
         newPos.offset = pos;
-    } else if (newPos.paragraph < m_document->paragraphCount() - 1) {
+    } else if (newPos.paragraph < static_cast<size_t>(m_textBuffer->blockCount()) - 1) {
         // Move to start of next paragraph
         ++newPos.paragraph;
         newPos.offset = 0;
@@ -716,7 +617,7 @@ void BookEditor::moveCursorToLineEnd()
 
 void BookEditor::moveCursorToDocStart()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -731,79 +632,57 @@ void BookEditor::moveCursorToDocStart()
 
 void BookEditor::moveCursorToDocEnd()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
     // Invalidate preferred X position
     m_preferredCursorXValid = false;
 
-    int lastPara = m_document->paragraphCount() - 1;
-    const KmlParagraph* para = m_document->paragraph(lastPara);
-    int lastOffset = para ? para->characterCount() : 0;
+    int lastPara = m_textBuffer->blockCount() - 1;
+    QTextBlock lastBlock = m_textBuffer->lastBlock();
+    int lastOffset = lastBlock.isValid() ? lastBlock.length() - 1 : 0;
+    if (lastOffset < 0) lastOffset = 0;
 
     setCursorPosition({lastPara, lastOffset});
 
     // Scroll to bottom
-    setScrollOffset(m_scrollManager->maxScrollOffset());
+    setScrollOffset(m_viewportManager->maxScrollPosition());
 }
 
 void BookEditor::moveCursorPageUp()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
-    // Get viewport height for page calculation
+    // Phase 11: Use QTextLayout for cursor positioning
     qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) {
-        return;
-    }
+    if (pageHeight <= 0) return;
 
-    // Get current cursor Y position
-    qreal cursorY = m_layoutManager->paragraphY(m_cursorPosition.paragraph);
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout != nullptr) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        cursorY += cursorRect.y();
-    }
+    // Get current cursor Y position using QTextLayout
+    QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!currentBlock.isValid()) return;
+
+    QTextLayout* layout = currentBlock.layout();
+    qreal cursorY = layout ? layout->position().y() : 0.0;
 
     // Calculate target Y position (one page up)
     qreal targetY = qMax(0.0, cursorY - pageHeight);
 
-    // Find paragraph at target Y
-    int targetPara = m_scrollManager->paragraphAtY(targetY);
-    if (targetPara < 0) {
-        targetPara = 0;
-    }
-
-    // Layout target paragraph if needed
-    ParagraphLayout* targetLayout = m_layoutManager->paragraphLayout(targetPara);
-    if (targetLayout == nullptr) {
-        m_layoutManager->layoutParagraph(targetPara);
-        targetLayout = m_layoutManager->paragraphLayout(targetPara);
-    }
-
-    // Get or calculate preferred X position
-    if (!m_preferredCursorXValid && layout != nullptr) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        m_preferredCursorX = cursorRect.x();
-        m_preferredCursorXValid = true;
+    // Find block at target Y using QTextDocument::findBlock
+    QTextBlock targetBlock = m_textBuffer->findBlock(0);
+    int targetPara = 0;
+    while (targetBlock.isValid()) {
+        QTextLayout* tLayout = targetBlock.layout();
+        if (tLayout && tLayout->position().y() > targetY) break;
+        targetPara = targetBlock.blockNumber();
+        targetBlock = targetBlock.next();
     }
 
     CursorPosition newPos;
     newPos.paragraph = targetPara;
-
-    if (targetLayout != nullptr && targetLayout->lineCount() > 0) {
-        // Find position at preferred X within target paragraph
-        qreal targetParaY = m_layoutManager->paragraphY(targetPara);
-        qreal relativeY = targetY - targetParaY;
-        QPointF hitPoint(m_preferredCursorX, relativeY);
-        int newOffset = targetLayout->positionAt(hitPoint);
-        newPos.offset = (newOffset >= 0) ? newOffset : 0;
-    } else {
-        newPos.offset = 0;
-    }
+    newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
 
@@ -814,72 +693,53 @@ void BookEditor::moveCursorPageUp()
 
 void BookEditor::moveCursorPageDown()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
-    // Get viewport height for page calculation
+    // Phase 11: Use QTextLayout for cursor positioning
     qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) {
-        return;
-    }
+    if (pageHeight <= 0) return;
 
-    // Get current cursor Y position
-    qreal cursorY = m_layoutManager->paragraphY(m_cursorPosition.paragraph);
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout != nullptr) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        cursorY += cursorRect.y();
-    }
+    // Get current cursor Y position using QTextLayout
+    QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!currentBlock.isValid()) return;
+
+    QTextLayout* layout = currentBlock.layout();
+    qreal cursorY = layout ? layout->position().y() : 0.0;
 
     // Calculate target Y position (one page down)
-    qreal maxY = m_scrollManager->totalHeight();
+    qreal maxY = m_viewportManager->totalDocumentHeight();
     qreal targetY = qMin(maxY, cursorY + pageHeight);
 
-    // Find paragraph at target Y
-    int targetPara = m_scrollManager->paragraphAtY(targetY);
-    if (targetPara < 0 || targetPara >= m_document->paragraphCount()) {
-        targetPara = m_document->paragraphCount() - 1;
-    }
+    // Find block at target Y using QTextDocument
+    QTextBlock targetBlock = m_textBuffer->lastBlock();
+    int targetPara = m_textBuffer->blockCount() - 1;
 
-    // Layout target paragraph if needed
-    ParagraphLayout* targetLayout = m_layoutManager->paragraphLayout(targetPara);
-    if (targetLayout == nullptr) {
-        m_layoutManager->layoutParagraph(targetPara);
-        targetLayout = m_layoutManager->paragraphLayout(targetPara);
-    }
-
-    // Get or calculate preferred X position
-    if (!m_preferredCursorXValid && layout != nullptr) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        m_preferredCursorX = cursorRect.x();
-        m_preferredCursorXValid = true;
+    QTextBlock block = m_textBuffer->firstBlock();
+    while (block.isValid()) {
+        QTextLayout* tLayout = block.layout();
+        if (tLayout && tLayout->position().y() > targetY) {
+            // Previous block is our target
+            if (block.previous().isValid()) {
+                targetBlock = block.previous();
+                targetPara = targetBlock.blockNumber();
+            }
+            break;
+        }
+        targetBlock = block;
+        targetPara = block.blockNumber();
+        block = block.next();
     }
 
     CursorPosition newPos;
     newPos.paragraph = targetPara;
-
-    if (targetLayout != nullptr && targetLayout->lineCount() > 0) {
-        // Find position at preferred X within target paragraph
-        qreal targetParaY = m_layoutManager->paragraphY(targetPara);
-        qreal relativeY = targetY - targetParaY;
-        QPointF hitPoint(m_preferredCursorX, relativeY);
-        int newOffset = targetLayout->positionAt(hitPoint);
-        if (newOffset >= 0) {
-            newPos.offset = newOffset;
-        } else {
-            const KmlParagraph* para = m_document->paragraph(targetPara);
-            newPos.offset = para ? para->characterCount() : 0;
-        }
-    } else {
-        const KmlParagraph* para = m_document->paragraph(targetPara);
-        newPos.offset = para ? para->characterCount() : 0;
-    }
+    newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
 
     // Scroll by same amount
-    qreal newScrollOffset = qMin(m_scrollManager->maxScrollOffset(), scrollOffset() + pageHeight);
+    qreal newScrollOffset = qMin(m_viewportManager->maxScrollPosition(), scrollOffset() + pageHeight);
     setScrollOffset(newScrollOffset);
 }
 
@@ -897,7 +757,7 @@ void BookEditor::setSelection(const SelectionRange& range)
     SelectionRange normalized = range.normalized();
 
     // Validate against document
-    if (m_document != nullptr && m_document->paragraphCount() > 0) {
+    if (m_textBuffer && static_cast<size_t>(m_textBuffer->blockCount()) > 0) {
         // Clamp start
         normalized.start = validateCursorPosition(normalized.start);
         normalized.end = validateCursorPosition(normalized.end);
@@ -940,7 +800,7 @@ bool BookEditor::hasSelection() const
 
 QString BookEditor::selectedText() const
 {
-    if (m_document == nullptr || m_selection.isEmpty()) {
+    if (!m_textBuffer || m_selection.isEmpty()) {
         return QString();
     }
 
@@ -948,12 +808,12 @@ QString BookEditor::selectedText() const
     QString result;
 
     for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-        const KmlParagraph* para = m_document->paragraph(paraIdx);
-        if (para == nullptr) {
+        QTextBlock block = m_textBuffer->findBlockByNumber(paraIdx);
+        if (!block.isValid()) {
             continue;
         }
 
-        QString text = para->plainText();
+        QString text = block.text();
         int startOffset = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
         int endOffset = (paraIdx == sel.end.paragraph) ? sel.end.offset : text.length();
 
@@ -1432,11 +1292,11 @@ bool BookEditor::isStrikethrough() const
 
 void BookEditor::setAlignLeft()
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    // Phase 11: Use QTextBlockFormat for paragraph alignment
     int startPara = m_cursorPosition.paragraph;
     int endPara = m_cursorPosition.paragraph;
 
@@ -1446,23 +1306,27 @@ void BookEditor::setAlignLeft()
         endPara = normRange.end.paragraph;
     }
 
+    QTextCursor cursor(m_textBuffer.get());
     for (int i = startPara; i <= endPara; ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para) {
-            para->setAlignment(Qt::AlignLeft);
-            m_document->notifyParagraphModified(i);
+        QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (block.isValid()) {
+            cursor.setPosition(block.position());
+            QTextBlockFormat format = block.blockFormat();
+            format.setAlignment(Qt::AlignLeft);
+            cursor.setBlockFormat(format);
         }
     }
+    emit contentChanged();
     update();
 }
 
 void BookEditor::setAlignCenter()
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    // Phase 11: Use QTextBlockFormat for paragraph alignment
     int startPara = m_cursorPosition.paragraph;
     int endPara = m_cursorPosition.paragraph;
 
@@ -1472,23 +1336,27 @@ void BookEditor::setAlignCenter()
         endPara = normRange.end.paragraph;
     }
 
+    QTextCursor cursor(m_textBuffer.get());
     for (int i = startPara; i <= endPara; ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para) {
-            para->setAlignment(Qt::AlignHCenter);
-            m_document->notifyParagraphModified(i);
+        QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (block.isValid()) {
+            cursor.setPosition(block.position());
+            QTextBlockFormat format = block.blockFormat();
+            format.setAlignment(Qt::AlignHCenter);
+            cursor.setBlockFormat(format);
         }
     }
+    emit contentChanged();
     update();
 }
 
 void BookEditor::setAlignRight()
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    // Phase 11: Use QTextBlockFormat for paragraph alignment
     int startPara = m_cursorPosition.paragraph;
     int endPara = m_cursorPosition.paragraph;
 
@@ -1498,23 +1366,27 @@ void BookEditor::setAlignRight()
         endPara = normRange.end.paragraph;
     }
 
+    QTextCursor cursor(m_textBuffer.get());
     for (int i = startPara; i <= endPara; ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para) {
-            para->setAlignment(Qt::AlignRight);
-            m_document->notifyParagraphModified(i);
+        QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (block.isValid()) {
+            cursor.setPosition(block.position());
+            QTextBlockFormat format = block.blockFormat();
+            format.setAlignment(Qt::AlignRight);
+            cursor.setBlockFormat(format);
         }
     }
+    emit contentChanged();
     update();
 }
 
 void BookEditor::setAlignJustify()
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return;
     }
 
-    // Apply alignment to all paragraphs in selection (or just cursor paragraph if no selection)
+    // Phase 11: Use QTextBlockFormat for paragraph alignment
     int startPara = m_cursorPosition.paragraph;
     int endPara = m_cursorPosition.paragraph;
 
@@ -1524,25 +1396,29 @@ void BookEditor::setAlignJustify()
         endPara = normRange.end.paragraph;
     }
 
+    QTextCursor cursor(m_textBuffer.get());
     for (int i = startPara; i <= endPara; ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para) {
-            para->setAlignment(Qt::AlignJustify);
-            m_document->notifyParagraphModified(i);
+        QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (block.isValid()) {
+            cursor.setPosition(block.position());
+            QTextBlockFormat format = block.blockFormat();
+            format.setAlignment(Qt::AlignJustify);
+            cursor.setBlockFormat(format);
         }
     }
+    emit contentChanged();
     update();
 }
 
 Qt::Alignment BookEditor::currentAlignment() const
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return Qt::AlignLeft;
     }
 
-    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-    if (para) {
-        return para->alignment();
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (block.isValid()) {
+        return block.blockFormat().alignment();
     }
     return Qt::AlignLeft;
 }
@@ -1554,56 +1430,50 @@ void BookEditor::toggleFormat(ElementType formatType)
         elementTypeToString(formatType).toStdString(),
         hasSelection(), m_cursorPosition.paragraph, m_cursorPosition.offset);
 
-    if (!m_document) {
+    if (!m_textBuffer) {
         return;
     }
 
     if (hasSelection()) {
-        // Apply/remove formatting to selection
+        // Phase 11: Use QTextCursor for formatting selection
         SelectionRange normRange = m_selection.normalized();
+        bool alreadyHasFormat = hasFormat(formatType);
 
-        // Check if selection already has this format
-        bool alreadyHasFormat = true;
-        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
-            const KmlParagraph* para = m_document->paragraph(i);
-            if (!para) {
-                continue;
-            }
+        // Create QTextCursor with selection
+        QTextBlock startBlock = m_textBuffer->findBlockByNumber(normRange.start.paragraph);
+        QTextBlock endBlock = m_textBuffer->findBlockByNumber(normRange.end.paragraph);
+        if (!startBlock.isValid() || !endBlock.isValid()) return;
 
-            int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
-            int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+        int startPos = startBlock.position() + normRange.start.offset;
+        int endPos = endBlock.position() + normRange.end.offset;
 
-            if (!para->hasFormatInRange(start, end, formatType)) {
-                alreadyHasFormat = false;
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.setPosition(startPos);
+        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+
+        // Create format to apply/remove
+        QTextCharFormat fmt;
+        switch (formatType) {
+            case ElementType::Bold:
+                fmt.setFontWeight(alreadyHasFormat ? QFont::Normal : QFont::Bold);
                 break;
-            }
+            case ElementType::Italic:
+                fmt.setFontItalic(!alreadyHasFormat);
+                break;
+            case ElementType::Underline:
+                fmt.setFontUnderline(!alreadyHasFormat);
+                break;
+            case ElementType::Strikethrough:
+                fmt.setFontStrikeOut(!alreadyHasFormat);
+                break;
+            default:
+                break;
         }
 
-        // Store old KML for undo
-        QString oldKml;
-        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
-            const KmlParagraph* para = m_document->paragraph(i);
-            if (para) {
-                oldKml += para->toKml();
-            }
-        }
+        // Apply format (QTextDocument handles undo/redo)
+        cursor.mergeCharFormat(fmt);
 
-        // Create and execute the command
-        auto* cmd = new ToggleFormatCommand(
-            m_document,
-            m_selection,
-            formatType,
-            !alreadyHasFormat,  // Apply if not already formatted, remove if formatted
-            oldKml
-        );
-        m_undoStack->push(cmd);
-
-        // Invalidate layouts for affected paragraphs
-        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
-            m_layoutManager->invalidateLayout(i);
-        }
-
-        // Trigger repaint
+        emit contentChanged();
         update();
 
         core::Logger::getInstance().debug("BookEditor::toggleFormat() - formatting {} {}",
@@ -1640,42 +1510,64 @@ void BookEditor::toggleFormat(ElementType formatType)
 
 bool BookEditor::hasFormat(ElementType formatType) const
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         return false;
     }
+
+    // Phase 11: Check QTextCharFormat for formatting
+    auto checkCharFormat = [formatType](const QTextCharFormat& fmt) -> bool {
+        switch (formatType) {
+            case ElementType::Bold:
+                return fmt.fontWeight() >= QFont::Bold;
+            case ElementType::Italic:
+                return fmt.fontItalic();
+            case ElementType::Underline:
+                return fmt.fontUnderline();
+            case ElementType::Strikethrough:
+                return fmt.fontStrikeOut();
+            default:
+                return false;
+        }
+    };
 
     if (hasSelection()) {
         // Check if ALL text in selection has this format
         SelectionRange normRange = m_selection.normalized();
 
         for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
-            const KmlParagraph* para = m_document->paragraph(i);
-            if (!para) {
-                continue;
-            }
+            QTextBlock block = m_textBuffer->findBlockByNumber(i);
+            if (!block.isValid()) continue;
 
             int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
-            int end = (i == normRange.end.paragraph) ? normRange.end.offset : para->characterCount();
+            int end = (i == normRange.end.paragraph) ? normRange.end.offset : block.length() - 1;
+            if (end < 0) end = 0;
 
-            if (!para->hasFormatInRange(start, end, formatType)) {
-                return false;
+            // Check each character in range
+            for (int pos = start; pos < end; ++pos) {
+                QTextCursor cursor(m_textBuffer.get());
+                cursor.setPosition(block.position() + pos);
+                cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (!checkCharFormat(cursor.charFormat())) {
+                    return false;
+                }
             }
         }
         return true;
     } else {
         // Check format at cursor position
-        const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-        if (!para) {
-            return false;
-        }
+        QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+        if (!block.isValid()) return false;
 
         // If cursor is at end of paragraph, check previous character
         int checkOffset = m_cursorPosition.offset;
         if (checkOffset > 0) {
-            checkOffset--;  // Check character before cursor
+            checkOffset--;
         }
 
-        return para->hasFormatAt(checkOffset, formatType);
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.setPosition(block.position() + checkOffset);
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+        return checkCharFormat(cursor.charFormat());
     }
 }
 
@@ -1730,35 +1622,53 @@ void BookEditor::setViewMode(ViewMode mode)
 
 int BookEditor::currentPage() const
 {
-    if (m_document == nullptr || m_viewMode != ViewMode::Page) {
+    // Phase 11: Calculate page based on scroll position and page height
+    if (!m_textBuffer || m_viewMode != ViewMode::Page) {
         return 0;
     }
-    return m_pageLayoutManager->pageForPosition(m_cursorPosition);
+
+    // Phase 11: Use viewport height as "page" height in continuous scroll mode
+    qreal pageHeight = static_cast<qreal>(height());
+    if (pageHeight <= 0) pageHeight = 800;  // Default
+
+    int page = static_cast<int>(scrollOffset() / pageHeight) + 1;
+    return qMax(1, page);
 }
 
 int BookEditor::totalPages() const
 {
-    if (m_document == nullptr) {
+    // Phase 11: Calculate total pages from document height
+    if (!m_textBuffer) {
         return 0;
     }
-    return m_pageLayoutManager->totalPages();
+
+    qreal docHeight = m_viewportManager ? m_viewportManager->totalDocumentHeight() : 0;
+    // Phase 11: Use viewport height as "page" height
+    qreal pageHeight = static_cast<qreal>(height());
+    if (pageHeight <= 0) pageHeight = 800;  // Default
+
+    int pages = static_cast<int>(docHeight / pageHeight) + 1;
+    return qMax(1, pages);
 }
 
 void BookEditor::goToPage(int page)
 {
-    if (m_document == nullptr || m_viewMode != ViewMode::Page) {
+    if (!m_textBuffer || m_viewMode != ViewMode::Page) {
         return;
     }
 
-    int total = m_pageLayoutManager->totalPages();
+    int total = totalPages();
     if (page < 1 || page > total) {
         return;
     }
 
     int oldPage = currentPage();
 
-    // Scroll to the page
-    qreal pageY = m_pageLayoutManager->pageY(page);
+    // Phase 11: Calculate Y position for page using viewport height
+    qreal pageHeight = static_cast<qreal>(height());
+    if (pageHeight <= 0) pageHeight = 800;
+
+    qreal pageY = (page - 1) * pageHeight;
     setScrollOffset(pageY);
 
     // Emit signal if page changed
@@ -1799,12 +1709,10 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
 
-    // Update PageLayoutManager with new page layout settings
-    m_pageLayoutManager->setPageLayout(m_appearance.pageLayout);
-
-    // Update LayoutManager font when typography changes (OpenSpec #00042 Phase 7.2)
-    if (m_layoutManager) {
-        m_layoutManager->setFont(m_appearance.typography.textFont);
+    // Phase 11: Set font on QTextDocument
+    if (m_textBuffer) {
+        QFont docFont = m_appearance.typography.textFont;
+        m_textBuffer->setDefaultFont(docFont);
     }
 
     emit appearanceChanged();
@@ -2087,10 +1995,13 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
 
 void BookEditor::inputMethodEvent(QInputMethodEvent* event)
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         event->ignore();
         return;
     }
+
+    // Phase 11: Use QTextCursor for IME operations
+    if (!m_textBuffer) return;
 
     // Handle committed text (final input)
     const QString& commitString = event->commitString();
@@ -2099,9 +2010,14 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         if (m_hasComposition) {
             // The preedit text is already in the document, delete it first
             if (!m_preeditString.isEmpty()) {
-                CursorPosition deleteEnd = m_preeditStart;
-                deleteEnd.offset += m_preeditString.length();
-                m_document->deleteText(m_preeditStart, deleteEnd);
+                QTextBlock block = m_textBuffer->findBlockByNumber(m_preeditStart.paragraph);
+                if (block.isValid()) {
+                    QTextCursor cursor(m_textBuffer.get());
+                    int startPos = block.position() + m_preeditStart.offset;
+                    cursor.setPosition(startPos);
+                    cursor.setPosition(startPos + m_preeditString.length(), QTextCursor::KeepAnchor);
+                    cursor.removeSelectedText();
+                }
                 setCursorPosition(m_preeditStart);
             }
             m_preeditString.clear();
@@ -2117,9 +2033,14 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
     if (m_hasComposition) {
         // Remove old preedit text
         if (!m_preeditString.isEmpty()) {
-            CursorPosition deleteEnd = m_preeditStart;
-            deleteEnd.offset += m_preeditString.length();
-            m_document->deleteText(m_preeditStart, deleteEnd);
+            QTextBlock block = m_textBuffer->findBlockByNumber(m_preeditStart.paragraph);
+            if (block.isValid()) {
+                QTextCursor cursor(m_textBuffer.get());
+                int startPos = block.position() + m_preeditStart.offset;
+                cursor.setPosition(startPos);
+                cursor.setPosition(startPos + m_preeditString.length(), QTextCursor::KeepAnchor);
+                cursor.removeSelectedText();
+            }
             setCursorPosition(m_preeditStart);
         }
     }
@@ -2130,8 +2051,13 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         m_preeditString = preeditString;
         m_hasComposition = true;
 
-        // Insert preedit text
-        m_document->insertText(m_cursorPosition, preeditString);
+        // Insert preedit text using QTextCursor
+        QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+        if (block.isValid()) {
+            QTextCursor cursor(m_textBuffer.get());
+            cursor.setPosition(block.position() + m_cursorPosition.offset);
+            cursor.insertText(preeditString);
+        }
 
         // Move cursor to end of preedit
         CursorPosition newPos = m_cursorPosition;
@@ -2170,11 +2096,11 @@ QVariant BookEditor::inputMethodQuery(Qt::InputMethodQuery query) const
             return m_cursorPosition.offset;
 
         case Qt::ImSurroundingText: {
-            // Return text of current paragraph
-            if (m_document != nullptr) {
-                const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-                if (para != nullptr) {
-                    return para->plainText();
+            // Phase 11: Return text of current paragraph using QTextBlock
+            if (m_textBuffer) {
+                QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+                if (block.isValid()) {
+                    return block.text();
                 }
             }
             return QString();
@@ -2229,7 +2155,7 @@ void BookEditor::onCursorBlinkTimeout()
 
     // Only repaint the cursor area instead of the entire widget
     // This significantly reduces CPU usage during cursor blink
-    if (m_document && m_document->paragraphCount() > 0) {
+    if (m_textBuffer && m_textBuffer->blockCount() > 0) {
         QRectF cursorRect = calculateCursorRect();
         if (!cursorRect.isEmpty()) {
             // Add small margin around cursor for antialiasing artifacts
@@ -2248,11 +2174,7 @@ void BookEditor::onCursorBlinkTimeout()
 
 void BookEditor::setupComponents()
 {
-    // Connect layout manager to scroll manager
-    m_layoutManager->setScrollManager(m_scrollManager.get());
-
-    // Set font from appearance (OpenSpec #00042 Phase 7.2)
-    m_layoutManager->setFont(m_appearance.typography.textFont);
+    // Phase 11: No m_layoutManager/m_scrollManager - using QTextDocument + ViewportManager
 
     // Enable focus for keyboard input
     setFocusPolicy(Qt::StrongFocus);
@@ -2281,16 +2203,18 @@ void BookEditor::setupComponents()
 
 void BookEditor::updateLayoutWidth()
 {
-    // Use widget width for layout, with some margin
+    // Phase 11: Set text width on QTextDocument
     constexpr int margin = 20;  // 10px on each side
     qreal layoutWidth = qMax(100.0, static_cast<qreal>(width() - margin));
-    m_layoutManager->setWidth(layoutWidth);
+    if (m_textBuffer) {
+        m_textBuffer->setTextWidth(layoutWidth);
+    }
 }
 
 void BookEditor::updateViewport()
 {
     // Update scroll manager with current viewport dimensions
-    m_scrollManager->setViewportHeight(static_cast<qreal>(height()));
+    m_viewportManager->setViewportSize(size()); // Phase 11: was m_scrollManager->setViewportHeight(static_cast<qreal>(height()));
 }
 
 void BookEditor::setupScrollBar()
@@ -2326,7 +2250,7 @@ void BookEditor::updateScrollBarRange()
     }
 
     // Calculate total content height
-    qreal totalHeight = m_scrollManager->totalHeight();
+    qreal totalHeight = m_viewportManager->totalDocumentHeight();
     qreal viewportHeight = static_cast<qreal>(height());
 
     // Maximum scroll offset
@@ -2377,7 +2301,7 @@ void BookEditor::startScrollAnimation(qreal targetOffset)
     }
 
     // Clamp target to valid range
-    targetOffset = qBound(0.0, targetOffset, m_scrollManager->maxScrollOffset());
+    targetOffset = qBound(0.0, targetOffset, m_viewportManager->maxScrollPosition());
 
     // Stop any existing animation
     m_scrollAnimation->stop();
@@ -2416,32 +2340,44 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
 
 QRectF BookEditor::calculateCursorRect() const
 {
-    // If no document or cursor paragraph is invalid, return empty rect
-    if (m_document == nullptr) {
+    // Phase 11: Use QTextLayout for cursor positioning
+    if (!m_textBuffer) {
         return QRectF();
     }
 
     int paraIndex = m_cursorPosition.paragraph;
-    if (paraIndex < 0 || paraIndex >= m_document->paragraphCount()) {
+    if (paraIndex < 0 || paraIndex >= m_textBuffer->blockCount()) {
         return QRectF();
     }
 
-    // Get paragraph layout
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-    if (layout == nullptr) {
+    QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
         return QRectF();
     }
 
-    // Get cursor rect from layout (in layout coordinates)
-    QRectF layoutCursorRect = layout->cursorRect(m_cursorPosition.offset);
-    if (layoutCursorRect.isEmpty()) {
-        // Fallback for empty paragraph or end of paragraph
-        layoutCursorRect = QRectF(0, 0, CURSOR_WIDTH, layout->height() > 0 ? layout->height() : 20.0);
+    QTextLayout* layout = block.layout();
+    if (!layout) {
+        return QRectF();
+    }
+
+    // Get cursor rect from QTextLayout
+    int offsetInBlock = qMin(m_cursorPosition.offset, block.length() - 1);
+    if (offsetInBlock < 0) offsetInBlock = 0;
+
+    QTextLine line = layout->lineForTextPosition(offsetInBlock);
+    QRectF layoutCursorRect;
+
+    if (line.isValid()) {
+        qreal x = line.cursorToX(offsetInBlock);
+        layoutCursorRect = QRectF(x, line.y(), CURSOR_WIDTH, line.height());
+    } else {
+        // Fallback for empty paragraph
+        layoutCursorRect = QRectF(0, 0, CURSOR_WIDTH, 20.0);
     }
 
     // Convert to widget coordinates
-    qreal paraY = m_layoutManager->paragraphY(paraIndex);
-    qreal scrollY = m_scrollManager->scrollOffset();
+    qreal paraY = layout->position().y();
+    qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
     qreal widgetY = TOP_MARGIN + paraY - scrollY + layoutCursorRect.y();
     qreal widgetX = LEFT_MARGIN + layoutCursorRect.x();
 
@@ -2706,7 +2642,7 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
 
 void BookEditor::drawSelection(QPainter* painter)
 {
-    if (m_selection.isEmpty() || m_document == nullptr) {
+    if (m_selection.isEmpty() || !m_textBuffer) {
         return;
     }
 
@@ -2714,25 +2650,27 @@ void BookEditor::drawSelection(QPainter* painter)
     QColor selectionColor = palette().color(QPalette::Highlight);
     selectionColor.setAlpha(128);  // Semi-transparent
 
-    qreal scrollY = m_scrollManager->scrollOffset();
+    qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
 
     for (int paraIndex = sel.start.paragraph; paraIndex <= sel.end.paragraph; ++paraIndex) {
-        ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-        if (layout == nullptr) {
-            continue;
-        }
+        // Phase 11: Use QTextBlock::layout()
+        QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
+        if (!block.isValid()) continue;
 
-        qreal paraY = m_layoutManager->paragraphY(paraIndex);
+        QTextLayout* layout = block.layout();
+        if (!layout) continue;
+
+        qreal paraY = layout->position().y();
         qreal widgetY = TOP_MARGIN + paraY - scrollY;
 
         // Determine selection range within this paragraph
         int startOffset = (paraIndex == sel.start.paragraph) ? sel.start.offset : 0;
-        int endOffset = (paraIndex == sel.end.paragraph) ? sel.end.offset : layout->text().length();
+        int endOffset = (paraIndex == sel.end.paragraph) ? sel.end.offset : block.length() - 1;
+        if (endOffset < 0) endOffset = 0;
 
         // Get selection rectangles from layout
-        const QTextLayout& textLayout = layout->textLayout();
-        for (int lineIdx = 0; lineIdx < textLayout.lineCount(); ++lineIdx) {
-            QTextLine line = textLayout.lineAt(lineIdx);
+        for (int lineIdx = 0; lineIdx < layout->lineCount(); ++lineIdx) {
+            QTextLine line = layout->lineAt(lineIdx);
             int lineStart = line.textStart();
             int lineEnd = lineStart + line.textLength();
 
@@ -2762,7 +2700,7 @@ void BookEditor::drawSelection(QPainter* painter)
 
 void BookEditor::selectWordAtCursor()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -2780,18 +2718,21 @@ void BookEditor::selectWordAtCursor()
 
 void BookEditor::selectParagraphAtCursor()
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
-    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-    if (para == nullptr) {
+    // Phase 11: Use QTextBlock
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
         return;
     }
 
     SelectionRange range;
     range.start = {m_cursorPosition.paragraph, 0};
-    range.end = {m_cursorPosition.paragraph, para->characterCount()};
+    int charCount = block.length() - 1;
+    if (charCount < 0) charCount = 0;
+    range.end = {m_cursorPosition.paragraph, charCount};
 
     m_selectionAnchor = range.start;
     m_cursorPosition = range.end;
@@ -2801,16 +2742,17 @@ void BookEditor::selectParagraphAtCursor()
 
 std::pair<int, int> BookEditor::findWordBoundaries(int paraIndex, int offset) const
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         return {0, 0};
     }
 
-    const KmlParagraph* para = m_document->paragraph(paraIndex);
-    if (para == nullptr) {
+    // Phase 11: Use QTextBlock
+    QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
         return {0, 0};
     }
 
-    QString text = para->plainText();
+    QString text = block.text();
     if (text.isEmpty()) {
         return {0, 0};
     }
@@ -2869,34 +2811,10 @@ void BookEditor::extendSelection(const CursorPosition& newCursor)
 
 void BookEditor::updateSelectionInLayouts()
 {
-    if (m_document == nullptr) {
-        return;
-    }
-
-    SelectionRange sel = m_selection.normalized();
-
-    // Update each visible paragraph layout with its selection range
-    auto [firstVisible, lastVisible] = m_scrollManager->visibleRange();
-    if (firstVisible < 0) {
-        return;
-    }
-
-    for (int paraIndex = firstVisible; paraIndex <= lastVisible; ++paraIndex) {
-        ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-        if (layout == nullptr) {
-            continue;
-        }
-
-        if (m_selection.isEmpty()) {
-            layout->clearSelection();
-        } else if (paraIndex < sel.start.paragraph || paraIndex > sel.end.paragraph) {
-            layout->clearSelection();
-        } else {
-            int startOffset = (paraIndex == sel.start.paragraph) ? sel.start.offset : 0;
-            int endOffset = (paraIndex == sel.end.paragraph) ? sel.end.offset : layout->text().length();
-            layout->setSelection(startOffset, endOffset);
-        }
-    }
+    // Phase 11: Selection is stored in m_selection and drawn by drawSelection/RenderEngine
+    // No need to update individual paragraph layouts - they use QTextLayout from QTextDocument
+    // Just trigger a repaint
+    update();
 }
 
 // =============================================================================
@@ -2905,7 +2823,7 @@ void BookEditor::updateSelectionInLayouts()
 
 void BookEditor::moveCursorLeftWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -2935,7 +2853,7 @@ void BookEditor::moveCursorLeftWithSelection(bool extend)
 
 void BookEditor::moveCursorRightWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -2965,7 +2883,7 @@ void BookEditor::moveCursorRightWithSelection(bool extend)
 
 void BookEditor::moveCursorUpWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -2987,7 +2905,7 @@ void BookEditor::moveCursorUpWithSelection(bool extend)
 
 void BookEditor::moveCursorDownWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3009,7 +2927,7 @@ void BookEditor::moveCursorDownWithSelection(bool extend)
 
 void BookEditor::moveCursorWordLeftWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3031,7 +2949,7 @@ void BookEditor::moveCursorWordLeftWithSelection(bool extend)
 
 void BookEditor::moveCursorWordRightWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3053,7 +2971,7 @@ void BookEditor::moveCursorWordRightWithSelection(bool extend)
 
 void BookEditor::moveCursorToLineStartWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3075,7 +2993,7 @@ void BookEditor::moveCursorToLineStartWithSelection(bool extend)
 
 void BookEditor::moveCursorToLineEndWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3097,7 +3015,7 @@ void BookEditor::moveCursorToLineEndWithSelection(bool extend)
 
 void BookEditor::moveCursorToDocStartWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3124,7 +3042,7 @@ void BookEditor::moveCursorToDocStartWithSelection(bool extend)
 
 void BookEditor::moveCursorToDocEndWithSelection(bool extend)
 {
-    if (m_document == nullptr || m_document->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3133,14 +3051,17 @@ void BookEditor::moveCursorToDocEndWithSelection(bool extend)
         m_selectionAnchor = m_cursorPosition;
     }
 
-    int lastPara = m_document->paragraphCount() - 1;
-    const KmlParagraph* para = m_document->paragraph(lastPara);
-    CursorPosition newPos = {lastPara, para ? para->characterCount() : 0};
+    // Phase 11: Use QTextBlock
+    int lastPara = m_textBuffer->blockCount() - 1;
+    QTextBlock lastBlock = m_textBuffer->lastBlock();
+    int charCount = lastBlock.isValid() ? lastBlock.length() - 1 : 0;
+    if (charCount < 0) charCount = 0;
+    CursorPosition newPos = {lastPara, charCount};
 
     if (extend) {
         m_preferredCursorXValid = false;
         setCursorPosition(newPos);
-        setScrollOffset(m_scrollManager->maxScrollOffset());
+        setScrollOffset(m_viewportManager->maxScrollPosition());
         extendSelection(m_cursorPosition);
     } else {
         clearSelection();
@@ -3154,18 +3075,29 @@ void BookEditor::moveCursorToDocEndWithSelection(bool extend)
 
 qreal BookEditor::getCursorDocumentY() const
 {
-    if (m_document == nullptr) {
+    // Phase 11: Use QTextLayout for cursor position
+    if (!m_textBuffer) {
         return 0.0;
     }
 
-    // Get paragraph Y position
-    qreal paraY = m_layoutManager->paragraphY(m_cursorPosition.paragraph);
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
+        return 0.0;
+    }
 
-    // Get layout for the paragraph to find line offset within paragraph
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(m_cursorPosition.paragraph);
-    if (layout != nullptr) {
-        QRectF cursorRect = layout->cursorRect(m_cursorPosition.offset);
-        paraY += cursorRect.y();
+    QTextLayout* layout = block.layout();
+    if (!layout) {
+        return 0.0;
+    }
+
+    qreal paraY = layout->position().y();
+
+    int offsetInBlock = qMin(m_cursorPosition.offset, block.length() - 1);
+    if (offsetInBlock < 0) offsetInBlock = 0;
+
+    QTextLine line = layout->lineForTextPosition(offsetInBlock);
+    if (line.isValid()) {
+        paraY += line.y();
     }
 
     return paraY;
@@ -3179,7 +3111,7 @@ void BookEditor::updateTypewriterScroll()
         return;
     }
 
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         logger.debug("BookEditor::updateTypewriterScroll: No document");
         return;
     }
@@ -3194,7 +3126,7 @@ void BookEditor::updateTypewriterScroll()
     qreal targetScrollY = cursorY - focusY;
 
     // Clamp to valid range
-    qreal maxScroll = m_scrollManager->maxScrollOffset();
+    qreal maxScroll = m_viewportManager->maxScrollPosition();
     int targetValue = qBound(0, static_cast<int>(targetScrollY), static_cast<int>(maxScroll));
 
     // Log typewriter scroll parameters (OpenSpec #00042 Task 7.19 Issue #6)
@@ -3611,28 +3543,13 @@ int BookEditor::getWordCount() const
     int count = 0;
     static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
 
-    // Prefer new architecture (QTextDocument)
+    // Phase 11: Use QTextDocument
     if (m_textBuffer && m_textBuffer->blockCount() > 0) {
         int paraCount = m_textBuffer->blockCount();
         for (int i = 0; i < paraCount; ++i) {
             QString text = paragraphText(m_textBuffer.get(), i);
             if (!text.isEmpty()) {
                 count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
-            }
-        }
-        return count;
-    }
-
-    // Fallback to legacy KmlDocument (for backwards compatibility during tests)
-    if (m_document && m_document->paragraphCount() > 0) {
-        int docParaCount = static_cast<int>(m_document->paragraphCount());
-        for (int i = 0; i < docParaCount; ++i) {
-            const KmlParagraph* para = m_document->paragraph(i);
-            if (para) {
-                QString text = para->plainText();
-                if (!text.isEmpty()) {
-                    count += static_cast<int>(text.split(wordSplitter, Qt::SkipEmptyParts).size());
-                }
             }
         }
     }
@@ -3757,7 +3674,7 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
 
 void BookEditor::insertComment()
 {
-    if (m_document == nullptr) {
+    if (!m_textBuffer) {
         return;
     }
 
@@ -3790,141 +3707,55 @@ void BookEditor::insertComment()
         return;
     }
 
-    // Get the paragraph
-    KmlParagraph* para = m_document->paragraph(sel.start.paragraph);
-    if (para == nullptr) {
-        return;
-    }
-
-    // Create and add the comment
-    KmlComment comment(sel.start.offset, sel.end.offset, commentText);
-    para->addComment(comment);
-
-    core::Logger::getInstance().info("BookEditor: Added comment '{}' to paragraph {} at ({}, {})",
-        comment.id().toStdString(), sel.start.paragraph, sel.start.offset, sel.end.offset);
-
-    // Phase 11.6: Removed MetadataLayer - comments stored in KmlParagraph (KmlComment)
-    // Comment data is serialized to KML via KmlParagraph::comments()
-
-    // Emit signal
-    emit commentAdded(sel.start.paragraph);
-
-    // Repaint to show comment highlight
+    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
+    // For now, stub out comment functionality
+    core::Logger::getInstance().debug("BookEditor::insertComment() - not implemented in Phase 11");
+    Q_UNUSED(commentText);
     update();
 }
 
 void BookEditor::deleteComment(const QString& commentId)
 {
-    if (m_document == nullptr || commentId.isEmpty()) {
-        return;
-    }
-
-    // Search all paragraphs for the comment
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para != nullptr && para->removeComment(commentId)) {
-            core::Logger::getInstance().info("BookEditor: Deleted comment '{}' from paragraph {}",
-                commentId.toStdString(), i);
-
-            // Phase 11.6: Removed MetadataLayer - comments removed from KmlParagraph only
-
-            // Emit signal
-            emit commentRemoved(i, commentId);
-
-            // Repaint
-            update();
-            return;
-        }
-    }
-
-    core::Logger::getInstance().debug("BookEditor::deleteComment() - comment '{}' not found",
-        commentId.toStdString());
+    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
+    core::Logger::getInstance().debug("BookEditor::deleteComment() - not implemented in Phase 11");
+    Q_UNUSED(commentId);
 }
 
 void BookEditor::editComment(const QString& commentId)
 {
-    if (m_document == nullptr || commentId.isEmpty()) {
-        return;
-    }
-
-    // Find the comment
-    for (int i = 0; i < m_document->paragraphCount(); ++i) {
-        KmlParagraph* para = m_document->paragraph(i);
-        if (para == nullptr) {
-            continue;
-        }
-
-        KmlComment* comment = para->commentById(commentId);
-        if (comment != nullptr) {
-            // Show input dialog with current text
-            bool ok = false;
-            QString newText = QInputDialog::getMultiLineText(
-                this,
-                tr("Edit Comment"),
-                tr("Edit comment:"),
-                comment->text(),
-                &ok
-            );
-
-            if (ok && !newText.isEmpty()) {
-                comment->setText(newText);
-                core::Logger::getInstance().info("BookEditor: Edited comment '{}'",
-                    commentId.toStdString());
-                update();
-            }
-            return;
-        }
-    }
-
-    core::Logger::getInstance().debug("BookEditor::editComment() - comment '{}' not found",
-        commentId.toStdString());
+    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
+    core::Logger::getInstance().debug("BookEditor::editComment() - not implemented in Phase 11");
+    Q_UNUSED(commentId);
 }
 
 QList<KmlComment> BookEditor::commentsInCurrentParagraph() const
 {
-    if (m_document == nullptr) {
-        return {};
-    }
-
-    const KmlParagraph* para = m_document->paragraph(m_cursorPosition.paragraph);
-    if (para == nullptr) {
-        return {};
-    }
-
-    return para->comments();
+    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
+    // For now, return empty list - comment feature requires Phase 12 implementation
+    Q_UNUSED(m_cursorPosition);
+    return {};
 }
 
 void BookEditor::navigateToComment(int paragraphIndex, const QString& commentId)
 {
-    if (m_document == nullptr) {
+    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
+    // For now, just move cursor to paragraph start - full comment navigation requires Phase 12
+    if (!m_textBuffer) {
         return;
     }
 
     // Validate paragraph index
-    if (paragraphIndex < 0 || paragraphIndex >= m_document->paragraphCount()) {
+    if (paragraphIndex < 0 || paragraphIndex >= m_textBuffer->blockCount()) {
         return;
     }
 
-    const KmlParagraph* para = m_document->paragraph(paragraphIndex);
-    if (para == nullptr) {
-        return;
-    }
-
-    // Find the comment
-    const KmlComment* comment = para->commentById(commentId);
-    if (comment == nullptr) {
-        return;
-    }
-
-    // Move cursor to start of commented text
-    CursorPosition newPos{paragraphIndex, comment->startPos()};
+    // Move cursor to paragraph start (simplified - no comment offset without new storage)
+    CursorPosition newPos{paragraphIndex, 0};
     setCursorPosition(newPos);
 
-    // Ensure cursor is visible
     ensureCursorVisible();
-
-    // Emit signal
     emit commentSelected(paragraphIndex, commentId);
+    Q_UNUSED(commentId);
 }
 
 // =============================================================================
@@ -3960,36 +3791,24 @@ SpellCheckService* BookEditor::spellCheckService() const
 
 void BookEditor::requestSpellCheck()
 {
-    if (m_spellCheckService && m_document) {
+    if (m_spellCheckService && m_textBuffer) {
         m_spellCheckService->checkDocumentAsync();
     }
 }
 
 void BookEditor::onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors)
 {
-    if (!m_layoutManager) {
-        return;
-    }
-
-    // Get the paragraph layout
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paragraphIndex);
-    if (!layout) {
-        return;
-    }
-
-    // Convert SpellErrorInfo to SpellError and set on layout
-    layout->clearSpellErrors();
-    for (const SpellErrorInfo& error : errors) {
-        layout->addSpellError(error.startPos, error.length);
-    }
-
-    // Trigger repaint for the affected paragraph
+    // Phase 11: Store spell errors for rendering
+    // Spell errors are now tracked separately and drawn by RenderEngine
+    Q_UNUSED(paragraphIndex);
+    Q_UNUSED(errors);
+    // TODO: Implement spell error storage for Phase 11 if spell check is needed
     update();
 }
 
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (!m_document) {
+    if (!m_textBuffer) {
         QWidget::contextMenuEvent(event);
         return;
     }
@@ -4041,37 +3860,10 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 
 std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
 {
-    if (!m_layoutManager) {
-        return {QString(), 0, 0};
-    }
-
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paraIndex);
-    if (!layout) {
-        return {QString(), 0, 0};
-    }
-
-    // Check if offset is within any spell error
-    const std::vector<SpellError>& errors = layout->spellErrors();
-    for (const SpellError& error : errors) {
-        if (offset >= error.start && offset < error.start + error.length) {
-            // Get the paragraph text
-            if (!m_document || paraIndex >= m_document->paragraphCount()) {
-                return {QString(), 0, 0};
-            }
-
-            const KmlParagraph* para = m_document->paragraph(paraIndex);
-            if (!para) {
-                return {QString(), 0, 0};
-            }
-
-            QString text = para->plainText();
-            if (error.start + error.length <= text.length()) {
-                QString word = text.mid(error.start, error.length);
-                return {word, error.start, error.start + error.length};
-            }
-        }
-    }
-
+    // Phase 11: Spell errors are not currently stored in new architecture
+    // TODO: Implement spell error tracking for Phase 11 if needed
+    Q_UNUSED(paraIndex);
+    Q_UNUSED(offset);
     return {QString(), 0, 0};
 }
 
@@ -4126,7 +3918,7 @@ QMenu* BookEditor::createSpellCheckContextMenu(const QString& word, int paraInde
 
 void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement)
 {
-    if (!m_document || paraIndex >= m_document->paragraphCount()) {
+    if (!m_textBuffer || paraIndex >= m_textBuffer->blockCount()) {
         return;
     }
 
@@ -4140,8 +3932,14 @@ void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, cons
     deleteSelectedText();
     insertText(replacement);
 
+    // Get text for debug log using QTextDocument
+    QString replacedText;
+    QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
+    if (block.isValid()) {
+        replacedText = block.text().mid(startOffset, endOffset - startOffset);
+    }
     core::Logger::getInstance().debug("BookEditor: Replaced '{}' at ({}, {}-{}) with '{}'",
-        m_document->paragraph(paraIndex)->plainText().mid(startOffset, endOffset - startOffset).toStdString(),
+        replacedText.toStdString(),
         paraIndex, startOffset, endOffset, replacement.toStdString());
 }
 
@@ -4178,46 +3976,17 @@ GrammarCheckService* BookEditor::grammarCheckService() const
 
 void BookEditor::requestGrammarCheck()
 {
-    if (m_grammarCheckService && m_document) {
+    if (m_grammarCheckService && m_textBuffer) {
         m_grammarCheckService->checkDocumentAsync();
     }
 }
 
 void BookEditor::onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors)
 {
-    if (!m_layoutManager) {
-        return;
-    }
-
-    // Get the paragraph layout
-    ParagraphLayout* layout = m_layoutManager->paragraphLayout(paragraphIndex);
-    if (!layout) {
-        return;
-    }
-
-    // Convert GrammarError to GrammarErrorRange and set on layout
-    layout->clearGrammarErrors();
-    for (const GrammarError& error : errors) {
-        // Convert GrammarIssueType to GrammarErrorType
-        GrammarErrorType errorType;
-        switch (error.type) {
-            case GrammarIssueType::Grammar:
-                errorType = GrammarErrorType::Grammar;
-                break;
-            case GrammarIssueType::Style:
-                errorType = GrammarErrorType::Style;
-                break;
-            case GrammarIssueType::Typography:
-                errorType = GrammarErrorType::Typography;
-                break;
-            default:
-                errorType = GrammarErrorType::Grammar;
-                break;
-        }
-        layout->addGrammarError(error.startPos, error.length, errorType);
-    }
-
-    // Trigger repaint for the affected paragraph
+    // Phase 11: Grammar errors are not currently stored in new architecture
+    // TODO: Implement grammar error tracking for Phase 11 if needed
+    Q_UNUSED(paragraphIndex);
+    Q_UNUSED(errors);
     update();
 }
 
@@ -4724,6 +4493,12 @@ size_t BookEditor::characterCount() const
     return 0;
 }
 
+QTextDocument* BookEditor::textDocument() const
+{
+    // Phase 11: Return underlying QTextDocument for accessibility
+    return m_textBuffer.get();
+}
+
 void BookEditor::fromKml(const QString& kml)
 {
     auto& logger = core::Logger::getInstance();
@@ -4847,11 +4622,7 @@ void BookEditor::fromKml(const QString& kml)
         }
     }
 
-    // Invalidate layouts for old architecture
-    if (m_layoutManager) {
-        m_layoutManager->invalidateAllLayouts();
-    }
-
+    // Phase 11: QTextDocument handles layout automatically
     logElapsed("Before update/signals");
 
     update();

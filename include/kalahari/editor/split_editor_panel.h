@@ -16,7 +16,6 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
-#include <kalahari/editor/kml_document.h>
 #include <kalahari/editor/view_modes.h>
 #include <QWidget>
 
@@ -86,18 +85,19 @@ public:
     SplitEditorPanel& operator=(const SplitEditorPanel&) = delete;
 
     // =========================================================================
-    // Document Management
+    // Content Management (Phase 11: KML-based API)
     // =========================================================================
 
-    /// @brief Set the document to edit
-    /// @param document Pointer to the document (not owned, must outlive panel)
+    /// @brief Load KML content into all editors
+    /// @param kml The KML content to load
     ///
-    /// The document is shared with all editor instances in the split.
-    void setDocument(KmlDocument* document);
+    /// Content is loaded into all editor instances in the split.
+    /// Each editor maintains its own cursor/scroll position.
+    void loadKml(const QString& kml);
 
-    /// @brief Get the current document
-    /// @return Pointer to the document, or nullptr if not set
-    KmlDocument* document() const;
+    /// @brief Get the current content as KML
+    /// @return KML content from the primary editor
+    QString toKml() const;
 
     // =========================================================================
     // Split Operations
@@ -264,7 +264,7 @@ private:
     // Member Variables
     // =========================================================================
 
-    KmlDocument* m_document{nullptr};          ///< Shared document (not owned)
+    QString m_kmlContent;                       ///< Cached KML content for new editors
     QSplitter* m_splitter{nullptr};            ///< Split container (created on split)
     QVBoxLayout* m_layout{nullptr};            ///< Main layout
 
