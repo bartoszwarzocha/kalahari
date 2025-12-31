@@ -1,21 +1,33 @@
 /// @file test_render_engine.cpp
-/// @brief Unit tests for RenderEngine (OpenSpec #00043 Phase 6)
+/// @brief Unit tests for RenderEngine (OpenSpec #00043 Phase 11.8)
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <kalahari/editor/render_engine.h>
 #include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/lazy_layout_manager.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <QImage>
 #include <QPainter>
+#include <QTextDocument>
+#include <memory>
 
 using namespace kalahari::editor;
 
 // =============================================================================
-// Helper: Create buffer with test paragraphs
+// Helper: Create document with test paragraphs
 // =============================================================================
 
+static std::unique_ptr<QTextDocument> createTestDocument(size_t paragraphCount) {
+    auto doc = std::make_unique<QTextDocument>();
+    QStringList paragraphs;
+    for (size_t i = 0; i < paragraphCount; ++i) {
+        paragraphs << QString("Paragraph %1 with some text content").arg(i + 1);
+    }
+    doc->setPlainText(paragraphs.join("\n"));
+    return doc;
+}
+
+// Helper: Create TextBuffer for tests that need height management
 static TextBuffer createTestBuffer(size_t paragraphCount, double height = 20.0) {
     TextBuffer buffer;
     QString text;
@@ -40,10 +52,8 @@ TEST_CASE("RenderEngine - Construction", "[render_engine]") {
     SECTION("Default construction") {
         RenderEngine engine;
 
-        REQUIRE(engine.buffer() == nullptr);
-        REQUIRE(engine.layoutManager() == nullptr);
+        REQUIRE(engine.document() == nullptr);
         REQUIRE(engine.viewportManager() == nullptr);
-        REQUIRE(engine.formatLayer() == nullptr);
         REQUIRE(engine.backgroundColor() == QColor(255, 255, 255));
         REQUIRE(engine.textColor() == QColor(0, 0, 0));
         REQUIRE(engine.leftMargin() == 10.0);
@@ -64,22 +74,16 @@ TEST_CASE("RenderEngine - Construction", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Component Integration", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
-    LazyLayoutManager layoutManager(&buffer);
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
 
-    SECTION("Set buffer") {
-        engine.setBuffer(&buffer);
-        REQUIRE(engine.buffer() == &buffer);
-    }
-
-    SECTION("Set layout manager") {
-        engine.setLayoutManager(&layoutManager);
-        REQUIRE(engine.layoutManager() == &layoutManager);
+    SECTION("Set document") {
+        engine.setDocument(doc.get());
+        REQUIRE(engine.document() == doc.get());
     }
 
     SECTION("Set viewport manager") {
@@ -149,13 +153,13 @@ TEST_CASE("RenderEngine - Appearance", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Dirty Region Tracking", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setBuffer(&buffer);
+    engine.setDocument(doc.get());
     engine.setViewportManager(&viewport);
 
     SECTION("Initial state is clean") {
@@ -294,14 +298,12 @@ TEST_CASE("RenderEngine - Cursor", "[render_engine]") {
 
 TEST_CASE("RenderEngine - Cursor Rect", "[render_engine]") {
     TextBuffer buffer = createTestBuffer(10);
-    LazyLayoutManager layoutManager(&buffer);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(buffer.document());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setBuffer(&buffer);
-    engine.setLayoutManager(&layoutManager);
+    engine.setDocument(buffer.document());
     engine.setViewportManager(&viewport);
 
     SECTION("Cursor rect at start") {
@@ -329,14 +331,12 @@ TEST_CASE("RenderEngine - Cursor Rect", "[render_engine]") {
 
 TEST_CASE("RenderEngine - Paint", "[render_engine]") {
     TextBuffer buffer = createTestBuffer(10);
-    LazyLayoutManager layoutManager(&buffer);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(buffer.document());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setBuffer(&buffer);
-    engine.setLayoutManager(&layoutManager);
+    engine.setDocument(buffer.document());
     engine.setViewportManager(&viewport);
     engine.setBackgroundColor(Qt::white);
 
@@ -399,23 +399,26 @@ TEST_CASE("RenderEngine - Paint", "[render_engine]") {
 TEST_CASE("RenderEngine - Geometry Queries", "[render_engine]") {
     TextBuffer buffer = createTestBuffer(10);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(buffer.document());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setBuffer(&buffer);
+    engine.setDocument(buffer.document());
     engine.setViewportManager(&viewport);
     engine.setTopMargin(10.0);
 
     SECTION("Paragraph Y") {
-        // Paragraph 0 starts at Y=0 (document coords)
-        REQUIRE(engine.paragraphY(0) == 0.0);
+        // Paragraph Y positions should be monotonically increasing
+        double y0 = engine.paragraphY(0);
+        double y1 = engine.paragraphY(1);
+        double y5 = engine.paragraphY(5);
 
-        // Paragraph 1 starts at Y=20 (one paragraph of height 20)
-        REQUIRE(engine.paragraphY(1) == 20.0);
+        // First paragraph should have some Y position (may include document margin)
+        REQUIRE(y0 >= 0.0);
 
-        // Paragraph 5 starts at Y=100
-        REQUIRE(engine.paragraphY(5) == 100.0);
+        // Later paragraphs should be at higher Y positions
+        REQUIRE(y1 > y0);
+        REQUIRE(y5 > y1);
     }
 
     SECTION("Document to widget Y") {
@@ -434,11 +437,11 @@ TEST_CASE("RenderEngine - Geometry Queries", "[render_engine]") {
         // 50 paragraphs × 20px = 1000px content > 600px viewport
         TextBuffer scrollBuffer = createTestBuffer(50);
         ViewportManager scrollViewport;
-        scrollViewport.setBuffer(&scrollBuffer);
+        scrollViewport.setDocument(scrollBuffer.document());
         scrollViewport.setViewportSize(QSize(800, 600));
 
         RenderEngine scrollEngine;
-        scrollEngine.setBuffer(&scrollBuffer);
+        scrollEngine.setDocument(scrollBuffer.document());
         scrollEngine.setViewportManager(&scrollViewport);
         scrollEngine.setTopMargin(10.0);
 
@@ -455,13 +458,13 @@ TEST_CASE("RenderEngine - Geometry Queries", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Signals", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setBuffer(&buffer);
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setBuffer(&buffer);
+    engine.setDocument(doc.get());
     engine.setViewportManager(&viewport);
 
     SECTION("Repaint requested on mark dirty") {
@@ -501,9 +504,14 @@ TEST_CASE("RenderEngine - Edge Cases", "[render_engine]") {
     }
 
     SECTION("Cursor rect with invalid paragraph") {
-        TextBuffer buffer = createTestBuffer(5);
+        auto doc = createTestDocument(5);
+        ViewportManager viewport;
+        viewport.setDocument(doc.get());
+        viewport.setViewportSize(QSize(800, 600));
+
         RenderEngine engine;
-        engine.setBuffer(&buffer);
+        engine.setDocument(doc.get());
+        engine.setViewportManager(&viewport);
 
         engine.setCursorPosition({100, 0});  // Invalid paragraph
         QRectF rect = engine.cursorRect();

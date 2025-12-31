@@ -24,6 +24,7 @@ set(TEST_SOURCES
     editor/test_kml_paragraph.cpp
     editor/test_kml_document.cpp
     editor/test_kml_parser.cpp
+    editor/test_kml_serializer.cpp  # Phase 11.2.5: KmlSerializer tests
     editor/test_kml_table.cpp  # Phase 1.12: Table elements
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     editor/test_paragraph_layout.cpp  # Phase 2.1: Paragraph layout
@@ -46,6 +47,7 @@ set(TEST_SOURCES
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # OpenSpec #00043 Phase 9 Task 9.3: Buffer commands tests
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
+    editor/test_search_service.cpp         # OpenSpec #00043 Phase 11.7: SearchService tests
     editor/test_snapshot_roundtrip.cpp     # OpenSpec #00044 Task 9.15: Snapshot round-trip tests
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
@@ -94,6 +96,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_paragraph.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_serializer.cpp  # OpenSpec #00043 Phase 11.2: KmlSerializer
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp  # Phase 1.12: Table elements
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
@@ -112,6 +116,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # OpenSpec #00043 Phase 9: Buffer undo commands
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
+    ${CMAKE_SOURCE_DIR}/src/editor/search_service.cpp      # OpenSpec #00043 Phase 11.7: SearchService
     ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
     # GUI dependencies for FindReplaceBar
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -137,6 +142,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h    # RenderEngine with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
@@ -257,6 +263,7 @@ set(BENCHMARK_SOURCES
     ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Required by kml_paragraph.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp
 )
 

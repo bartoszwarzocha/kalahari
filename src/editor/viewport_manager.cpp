@@ -1,7 +1,9 @@
 /// @file viewport_manager.cpp
-/// @brief ViewportManager implementation (OpenSpec #00043 Phase 4)
+/// @brief ViewportManager implementation (OpenSpec #00043 Phase 11.8)
 
 #include <kalahari/editor/viewport_manager.h>
+#include <QTextLayout>
+#include <QAbstractTextDocumentLayout>
 #include <algorithm>
 #include <cmath>
 
@@ -16,8 +18,8 @@ ViewportManager::ViewportManager(QObject* parent)
 }
 
 ViewportManager::~ViewportManager() {
-    if (m_buffer) {
-        m_buffer->removeObserver(this);
+    if (m_document) {
+        disconnect(m_document, nullptr, this, nullptr);
     }
 }
 
@@ -25,23 +27,26 @@ ViewportManager::~ViewportManager() {
 // Component Integration
 // =============================================================================
 
-void ViewportManager::setBuffer(TextBuffer* buffer) {
-    if (m_buffer) {
-        m_buffer->removeObserver(this);
+void ViewportManager::setDocument(QTextDocument* doc) {
+    if (m_document) {
+        disconnect(m_document, nullptr, this, nullptr);
     }
 
-    m_buffer = buffer;
+    m_document = doc;
 
-    if (m_buffer) {
-        m_buffer->addObserver(this);
+    if (m_document) {
+        connect(m_document, &QTextDocument::contentsChanged,
+                this, &ViewportManager::onDocumentChanged);
         m_totalHeightDirty = true;
         updateVisibleRange();
     }
 }
 
-void ViewportManager::setLayoutManager(LazyLayoutManager* manager) {
-    m_layoutManager = manager;
-    syncLayoutManagerViewport();
+void ViewportManager::onDocumentChanged() {
+    m_totalHeightDirty = true;
+    updateVisibleRange();
+    emit documentHeightChanged(totalDocumentHeight());
+    emit viewportChanged();
 }
 
 // =============================================================================
@@ -52,7 +57,6 @@ void ViewportManager::setViewportSize(const QSize& size) {
     if (m_viewportSize != size) {
         m_viewportSize = size;
         updateVisibleRange();
-        syncLayoutManagerViewport();
         emit viewportChanged();
     }
 }
@@ -70,7 +74,6 @@ void ViewportManager::setScrollPosition(double y) {
     if (std::abs(m_scrollY - clamped) > 0.001) {
         m_scrollY = clamped;
         updateVisibleRange();
-        syncLayoutManagerViewport();
         emit scrollPositionChanged(m_scrollY);
         emit viewportChanged();
     }
@@ -81,7 +84,7 @@ void ViewportManager::scrollBy(double delta) {
 }
 
 double ViewportManager::scrollToMakeParagraphVisible(size_t index) {
-    if (!m_buffer || index >= m_buffer->paragraphCount()) {
+    if (!m_document || static_cast<int>(index) >= m_document->blockCount()) {
         return m_scrollY;
     }
 
@@ -140,9 +143,9 @@ size_t ViewportManager::bufferStart() const {
 }
 
 size_t ViewportManager::bufferEnd() const {
-    if (!m_buffer) return 0;
+    if (!m_document) return 0;
 
-    size_t count = m_buffer->paragraphCount();
+    size_t count = static_cast<size_t>(m_document->blockCount());
     size_t end = m_lastVisible + m_bufferSize;
 
     return std::min(end, count > 0 ? count - 1 : 0);
@@ -157,7 +160,7 @@ bool ViewportManager::isParagraphInBuffer(size_t index) const {
 }
 
 void ViewportManager::updateVisibleRange() {
-    if (!m_buffer || m_buffer->paragraphCount() == 0) {
+    if (!m_document || m_document->blockCount() == 0) {
         m_firstVisible = 0;
         m_lastVisible = 0;
         return;
@@ -166,17 +169,44 @@ void ViewportManager::updateVisibleRange() {
     size_t oldFirst = m_firstVisible;
     size_t oldLast = m_lastVisible;
 
-    // Find first visible paragraph using binary search
-    m_firstVisible = m_buffer->getParagraphAtY(m_scrollY);
-
-    // Find last visible paragraph
+    double viewTop = m_scrollY;
     double viewBottom = m_scrollY + static_cast<double>(m_viewportSize.height());
-    m_lastVisible = m_buffer->getParagraphAtY(viewBottom);
 
-    // Clamp to valid range
-    size_t count = m_buffer->paragraphCount();
-    if (m_lastVisible >= count) {
-        m_lastVisible = count > 0 ? count - 1 : 0;
+    // Iterate blocks to find visible range
+    m_firstVisible = 0;
+    m_lastVisible = 0;
+    bool foundFirst = false;
+
+    double cumulativeY = 0.0;
+    QTextBlock block = m_document->begin();
+    size_t blockIndex = 0;
+
+    while (block.isValid()) {
+        double height = blockHeight(block);
+
+        // Check if this block starts before viewport ends
+        if (cumulativeY + height > viewTop && !foundFirst) {
+            m_firstVisible = blockIndex;
+            foundFirst = true;
+        }
+
+        // Update last visible as long as block starts within viewport
+        if (cumulativeY <= viewBottom) {
+            m_lastVisible = blockIndex;
+        } else {
+            // We've passed the viewport, can stop early
+            break;
+        }
+
+        cumulativeY += height;
+        block = block.next();
+        ++blockIndex;
+    }
+
+    // If no blocks found visible, set to 0
+    if (!foundFirst) {
+        m_firstVisible = 0;
+        m_lastVisible = 0;
     }
 
     // Notify if range changed
@@ -231,10 +261,21 @@ QRectF ViewportManager::viewportRect() const {
 }
 
 double ViewportManager::totalDocumentHeight() const {
-    if (!m_buffer) return 0.0;
+    if (!m_document) return 0.0;
 
     if (m_totalHeightDirty) {
-        m_cachedTotalHeight = m_buffer->totalHeight();
+        // Try to get height from document layout
+        if (auto* layout = m_document->documentLayout()) {
+            m_cachedTotalHeight = layout->documentSize().height();
+        } else {
+            // Calculate from blocks if layout not available
+            m_cachedTotalHeight = 0.0;
+            QTextBlock block = m_document->begin();
+            while (block.isValid()) {
+                m_cachedTotalHeight += blockHeight(block);
+                block = block.next();
+            }
+        }
         m_totalHeightDirty = false;
     }
 
@@ -242,69 +283,79 @@ double ViewportManager::totalDocumentHeight() const {
 }
 
 size_t ViewportManager::paragraphAtY(double y) const {
-    if (!m_buffer) return 0;
-    return m_buffer->getParagraphAtY(y);
+    if (!m_document) return 0;
+
+    double cumulativeY = 0.0;
+    QTextBlock block = m_document->begin();
+    size_t blockIndex = 0;
+
+    while (block.isValid()) {
+        double height = blockHeight(block);
+        if (cumulativeY + height > y) {
+            return blockIndex;
+        }
+        cumulativeY += height;
+        block = block.next();
+        ++blockIndex;
+    }
+
+    // If y is beyond document, return last block
+    return blockIndex > 0 ? blockIndex - 1 : 0;
 }
 
 double ViewportManager::paragraphY(size_t index) const {
-    if (!m_buffer) return 0.0;
-    return m_buffer->getParagraphY(index);
+    if (!m_document) return 0.0;
+
+    // Try to use document layout for accurate position
+    QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
+    if (block.isValid()) {
+        if (auto* layout = m_document->documentLayout()) {
+            QRectF blockRect = layout->blockBoundingRect(block);
+            return blockRect.top();
+        }
+    }
+
+    // Fallback: calculate cumulative height
+    double cumulativeY = 0.0;
+    block = m_document->begin();
+    size_t blockIndex = 0;
+
+    while (block.isValid() && blockIndex < index) {
+        cumulativeY += blockHeight(block);
+        block = block.next();
+        ++blockIndex;
+    }
+
+    return cumulativeY;
 }
 
 double ViewportManager::paragraphHeight(size_t index) const {
-    if (!m_buffer) return 0.0;
-    return m_buffer->getParagraphHeight(index);
+    if (!m_document) return 0.0;
+
+    QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
+    return blockHeight(block);
 }
 
-// =============================================================================
-// Layout Coordination
-// =============================================================================
+double ViewportManager::blockHeight(const QTextBlock& block) const {
+    if (!block.isValid()) return 0.0;
 
-void ViewportManager::requestLayout() {
-    if (!m_layoutManager) return;
+    // Try to get height from block layout
+    if (block.layout() && block.layout()->lineCount() > 0) {
+        return block.layout()->boundingRect().height();
+    }
 
-    syncLayoutManagerViewport();
-    m_layoutManager->layoutVisibleParagraphs();
-}
+    // Try document layout
+    if (m_document) {
+        if (auto* docLayout = m_document->documentLayout()) {
+            QRectF rect = docLayout->blockBoundingRect(block);
+            if (rect.height() > 0) {
+                return rect.height();
+            }
+        }
+    }
 
-void ViewportManager::syncLayoutManagerViewport() {
-    if (!m_layoutManager) return;
-
-    m_layoutManager->setViewport(m_scrollY, static_cast<double>(m_viewportSize.height()));
-}
-
-// =============================================================================
-// ITextBufferObserver Implementation
-// =============================================================================
-
-void ViewportManager::onTextChanged() {
-    m_totalHeightDirty = true;
-    updateVisibleRange();
-    emit documentHeightChanged(totalDocumentHeight());
-    emit viewportChanged();
-}
-
-void ViewportManager::onParagraphInserted(size_t /*index*/) {
-    m_totalHeightDirty = true;
-    updateVisibleRange();
-    emit documentHeightChanged(totalDocumentHeight());
-}
-
-void ViewportManager::onParagraphRemoved(size_t /*index*/) {
-    m_totalHeightDirty = true;
-    updateVisibleRange();
-    emit documentHeightChanged(totalDocumentHeight());
-}
-
-void ViewportManager::onParagraphChanged(size_t /*index*/) {
-    m_totalHeightDirty = true;
-    updateVisibleRange();
-}
-
-void ViewportManager::onHeightChanged(size_t /*index*/, double /*oldHeight*/, double /*newHeight*/) {
-    m_totalHeightDirty = true;
-    updateVisibleRange();
-    emit documentHeightChanged(totalDocumentHeight());
+    // Fallback to estimated height
+    return m_estimatedLineHeight;
 }
 
 }  // namespace kalahari::editor

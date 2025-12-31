@@ -9,6 +9,8 @@
 #include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_element.h>
 #include <kalahari/editor/kml_paragraph.h>
+#include <kalahari/editor/kml_parser.h>
+#include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_layout.h>
 #include <kalahari/gui/find_replace_bar.h>
 #include <QContextMenuEvent>
@@ -32,6 +34,7 @@
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QStyleHints>
+#include <QTextDocumentFragment>
 #include <QTimer>
 #include <QUndoStack>
 #include <QWheelEvent>
@@ -112,20 +115,17 @@ BookEditor::BookEditor(QWidget* parent)
     // Create LazyLayoutManager with TextBuffer
     m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
 
-    // Create ViewportManager and connect to buffer and layout manager
+    // Phase 11.6: Initialize QTextCursor for direct cursor operations
+    m_textCursor = QTextCursor(m_textBuffer->document());
+
+    // Create ViewportManager and connect to document
     m_viewportManager = std::make_unique<ViewportManager>(this);
-    m_viewportManager->setBuffer(m_textBuffer.get());
-    m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
+    m_viewportManager->setDocument(m_textBuffer->document());
 
     // Create RenderEngine and connect all dependencies
     m_renderEngine = std::make_unique<RenderEngine>(this);
-    m_renderEngine->setBuffer(m_textBuffer.get());
-    m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
+    m_renderEngine->setDocument(m_textBuffer->document());
     m_renderEngine->setViewportManager(m_viewportManager.get());
-    m_renderEngine->setFormatLayer(m_formatLayer.get());
-
-    // Connect MetadataLayer to RenderEngine for comment highlighting (Task 9.9)
-    m_renderEngine->setMetadataLayer(m_metadataLayer.get());
 
     // Attach FormatLayer to TextBuffer for automatic range adjustment
     m_formatLayer->attachToBuffer(m_textBuffer.get());
@@ -4662,41 +4662,47 @@ void BookEditor::goToPreviousMarker()
 
 QString BookEditor::toKml() const
 {
-    if (m_textBuffer && m_formatLayer) {
-        KmlConverter converter;
-        return converter.toKml(*m_textBuffer, *m_formatLayer, m_metadataLayer.get());
+    // Phase 11.6: Use KmlSerializer directly with QTextDocument
+    if (m_textBuffer && m_textBuffer->document()) {
+        KmlSerializer serializer;
+        return serializer.toKml(m_textBuffer->document());
     }
     return QString();
 }
 
 size_t BookEditor::paragraphCount() const
 {
-    if (m_textBuffer) {
-        return m_textBuffer->paragraphCount();
+    // Phase 11.6: Use QTextDocument directly
+    if (m_textBuffer && m_textBuffer->document()) {
+        return static_cast<size_t>(m_textBuffer->document()->blockCount());
     }
     return 0;
 }
 
 QString BookEditor::paragraphPlainText(size_t index) const
 {
-    if (m_textBuffer && index < m_textBuffer->paragraphCount()) {
-        return m_textBuffer->paragraphText(index);
+    // Phase 11.6: Use QTextDocument directly
+    if (!m_textBuffer || !m_textBuffer->document()) {
+        return QString();
     }
-    return QString();
+    QTextBlock block = m_textBuffer->document()->findBlockByNumber(static_cast<int>(index));
+    return block.isValid() ? block.text() : QString();
 }
 
 QString BookEditor::plainText() const
 {
-    if (m_textBuffer) {
-        return m_textBuffer->plainText();
+    // Phase 11.6: Use QTextDocument directly
+    if (m_textBuffer && m_textBuffer->document()) {
+        return m_textBuffer->document()->toPlainText();
     }
     return QString();
 }
 
 size_t BookEditor::characterCount() const
 {
-    if (m_textBuffer) {
-        return static_cast<size_t>(m_textBuffer->characterCount());
+    // Phase 11.6: Use QTextDocument directly
+    if (m_textBuffer && m_textBuffer->document()) {
+        return static_cast<size_t>(m_textBuffer->document()->characterCount());
     }
     return 0;
 }
@@ -4713,11 +4719,18 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("START");
 
+    // Clear undo stack first
+    if (m_undoStack) {
+        m_undoStack->clear();
+    }
+
     if (kml.isEmpty()) {
         logger.debug("BookEditor::fromKml - empty KML, clearing content");
-        // Clear content
-        if (m_textBuffer) {
-            m_textBuffer->setPlainText(QString());
+        // Phase 11.6: Clear content using QTextDocument directly
+        if (m_textBuffer && m_textBuffer->document()) {
+            QTextCursor clearCursor(m_textBuffer->document());
+            clearCursor.select(QTextCursor::Document);
+            clearCursor.removeSelectedText();
         }
         if (m_formatLayer) {
             m_formatLayer->clearAll();
@@ -4726,10 +4739,8 @@ void BookEditor::fromKml(const QString& kml)
             m_metadataLayer->clear();
         }
         m_cursorPosition = {0, 0};
+        m_textCursor = QTextCursor(m_textBuffer->document());
         clearSelection();
-        if (m_undoStack) {
-            m_undoStack->clear();
-        }
         update();
         emit contentChanged();
         emit documentChanged();
@@ -4738,60 +4749,77 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("Before parseKml");
 
-    // Parse KML content
-    KmlConverter converter;
-    auto result = converter.parseKml(kml);
+    // Phase 11.6: Use KmlParser to parse KML directly into QTextDocument
+    KmlParser parser;
+    QTextDocument* newDoc = parser.parseKml(kml);
 
     logElapsed("After parseKml");
 
-    if (!result.success) {
+    if (!newDoc) {
         logger.error("BookEditor::fromKml - parse error: {} (line {}, col {})",
-            result.errorMessage.toStdString(), result.errorLine, result.errorColumn);
+            parser.lastError().toStdString(), parser.lastErrorLine(), parser.lastErrorColumn());
         return;
     }
 
     logElapsed("Disconnecting observers");
 
-    // CRITICAL: Disconnect all observers from OLD buffer BEFORE destroying it
-    // Otherwise observers will have dangling pointers during destruction
-    // Order matters: ViewportManager -> FormatLayer -> LazyLayoutManager -> then destroy buffer
+    // CRITICAL: Disconnect all observers from OLD buffer BEFORE modifying it
+    // Order matters: ViewportManager -> FormatLayer -> LazyLayoutManager
     if (m_viewportManager && m_textBuffer) {
-        m_viewportManager->setBuffer(nullptr);
+        m_viewportManager->setDocument(nullptr);
     }
     if (m_formatLayer && m_textBuffer) {
         m_formatLayer->detachFromBuffer();
     }
     // LazyLayoutManager destructor calls m_buffer->removeObserver(this)
-    // Must destroy it BEFORE the old buffer is destroyed
+    // Must destroy it BEFORE the buffer content is modified
     if (m_lazyLayoutManager) {
         m_lazyLayoutManager.reset();
     }
 
-    logElapsed("Moving buffers");
+    logElapsed("Copying document content");
 
-    // Replace internal components with parsed content
-    if (result.buffer) {
-        m_textBuffer = std::move(result.buffer);
+    // Phase 11.6: Copy content from parsed document to TextBuffer's document
+    // This preserves QTextCharFormat (inline formatting like bold, italic, etc.)
+    if (m_textBuffer && m_textBuffer->document()) {
+        QTextCursor destCursor(m_textBuffer->document());
+        destCursor.select(QTextCursor::Document);
+        destCursor.removeSelectedText();
+
+        // Copy blocks from parsed document preserving all formatting
+        QTextCursor srcCursor(newDoc);
+        srcCursor.select(QTextCursor::Document);
+        destCursor.insertFragment(srcCursor.selection());
     }
-    if (result.formatLayer) {
-        m_formatLayer = std::move(result.formatLayer);
+
+    // Clean up parsed document
+    delete newDoc;
+
+    logElapsed("Clearing FormatLayer");
+
+    // FormatLayer is now empty since formatting is in QTextCharFormat
+    // Keep it for buffer_commands compatibility (will remove in Phase 11.8)
+    if (m_formatLayer) {
+        m_formatLayer->clearAll();
     }
-    if (result.metadataLayer) {
-        m_metadataLayer = std::move(result.metadataLayer);
-    } else {
+
+    // Ensure MetadataLayer exists
+    if (!m_metadataLayer) {
         m_metadataLayer = std::make_unique<MetadataLayer>();
+    } else {
+        m_metadataLayer->clear();
     }
 
     logElapsed("Attaching FormatLayer");
 
-    // Attach FormatLayer to new TextBuffer for automatic range adjustment
+    // Attach FormatLayer to TextBuffer for automatic range adjustment
     if (m_formatLayer && m_textBuffer) {
         m_formatLayer->attachToBuffer(m_textBuffer.get());
     }
 
     logElapsed("Creating LazyLayoutManager");
 
-    // Re-create LazyLayoutManager with new buffer (always needed for new architecture)
+    // Re-create LazyLayoutManager with buffer (still needed for ViewportManager)
     m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
     m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
     m_lazyLayoutManager->setFont(m_appearance.typography.textFont);
@@ -4799,50 +4827,38 @@ void BookEditor::fromKml(const QString& kml)
     logElapsed("Setting up RenderEngine");
 
     if (m_renderEngine) {
-        m_renderEngine->setBuffer(m_textBuffer.get());
-        m_renderEngine->setFormatLayer(m_formatLayer.get());
-        m_renderEngine->setMetadataLayer(m_metadataLayer.get());
-        m_renderEngine->setLayoutManager(m_lazyLayoutManager.get());
+        m_renderEngine->setDocument(m_textBuffer->document());
     }
 
     logElapsed("Setting up ViewportManager");
 
     if (m_viewportManager) {
-        // CRITICAL: Order matters! Set viewport size FIRST, then buffer and layout manager
-        // Otherwise syncLayoutManagerViewport() is called with height=0
+        // Set viewport size and connect to document
         m_viewportManager->setViewportSize(size());
-        m_viewportManager->setBuffer(m_textBuffer.get());
-        m_viewportManager->setLayoutManager(m_lazyLayoutManager.get());
+        m_viewportManager->setDocument(m_textBuffer->document());
         m_viewportManager->setScrollPosition(0.0);
 
-        logElapsed("Before requestLayout");
-
-        // CRITICAL: Create layouts for visible paragraphs (otherwise nothing renders)
-        m_viewportManager->requestLayout();
-
-        logElapsed("After requestLayout");
+        logElapsed("ViewportManager initialized");
     }
 
-    // Update SearchEngine with new buffer (if it exists)
+    // Update SearchEngine with buffer (if it exists)
     if (m_searchEngine) {
         m_searchEngine->setBuffer(m_textBuffer.get());
     }
 
-    // Update FindReplaceBar with new format layer (if it exists)
+    // Update FindReplaceBar with format layer (if it exists)
     if (m_findReplaceBar) {
         m_findReplaceBar->setFormatLayer(m_formatLayer.get());
     }
 
     logElapsed("Loaded paragraphs");
     logger.debug("BookEditor::fromKml - loaded {} paragraphs",
-        m_textBuffer ? m_textBuffer->paragraphCount() : 0);
+        m_textBuffer ? m_textBuffer->document()->blockCount() : 0);
 
     // Reset editor state
     m_cursorPosition = {0, 0};
+    m_textCursor = QTextCursor(m_textBuffer->document());
     clearSelection();
-    if (m_undoStack) {
-        m_undoStack->clear();
-    }
 
     // Sync cursor to RenderEngine (Phase 8 fix)
     if (m_renderEngine) {

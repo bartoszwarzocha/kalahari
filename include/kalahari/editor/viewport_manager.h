@@ -1,24 +1,24 @@
 /// @file viewport_manager.h
-/// @brief Viewport manager for Word/Writer-style scrolling (OpenSpec #00043 Phase 4)
+/// @brief Viewport manager for Word/Writer-style scrolling (OpenSpec #00043 Phase 11.8)
 ///
-/// ViewportManager coordinates viewport state with TextBuffer and LazyLayoutManager.
-/// It determines which paragraphs are visible, manages scrolling, and calculates
-/// scrollbar position from mixed real/estimated heights.
+/// ViewportManager coordinates viewport state with QTextDocument.
+/// It determines which paragraphs (blocks) are visible, manages scrolling, and calculates
+/// scrollbar position from document layout heights.
 ///
 /// Key features:
 /// - Viewport size and scroll position management
-/// - Visible paragraph range calculation
+/// - Visible block range calculation
 /// - Buffer zone management for smooth scrolling
-/// - Scrollbar position from mixed heights
+/// - Scrollbar position from layout heights
 /// - Qt signals for viewport changes
 
 #pragma once
 
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/lazy_layout_manager.h>
 #include <QObject>
 #include <QSize>
 #include <QRectF>
+#include <QTextDocument>
+#include <QTextBlock>
 #include <memory>
 
 namespace kalahari::editor {
@@ -29,19 +29,16 @@ constexpr size_t DEFAULT_BUFFER_SIZE = 50;
 /// @brief Viewport manager for coordinated scrolling
 ///
 /// ViewportManager provides a high-level interface for viewport management
-/// in the Word/Writer architecture. It works with TextBuffer (for heights)
-/// and LazyLayoutManager (for layouts) to provide efficient scrolling.
+/// in the Word/Writer architecture. It works directly with QTextDocument
+/// and uses QAbstractTextDocumentLayout for efficient scrolling.
 ///
 /// Usage:
 /// @code
-/// TextBuffer buffer;
-/// buffer.setPlainText(largeDocument);
-///
-/// LazyLayoutManager layoutManager(&buffer);
+/// QTextDocument document;
+/// document.setPlainText(largeDocument);
 ///
 /// ViewportManager viewport;
-/// viewport.setBuffer(&buffer);
-/// viewport.setLayoutManager(&layoutManager);
+/// viewport.setDocument(&document);
 /// viewport.setViewportSize(QSize(800, 600));
 ///
 /// // Connect to signals
@@ -55,7 +52,7 @@ constexpr size_t DEFAULT_BUFFER_SIZE = 50;
 /// @endcode
 ///
 /// Thread safety: Not thread-safe. Use from GUI thread only.
-class ViewportManager : public QObject, public ITextBufferObserver {
+class ViewportManager : public QObject {
     Q_OBJECT
 
 public:
@@ -69,19 +66,12 @@ public:
     // Component Integration
     // =========================================================================
 
-    /// @brief Set the text buffer
-    /// @param buffer TextBuffer to track (must outlive manager)
-    void setBuffer(TextBuffer* buffer);
+    /// @brief Set the text document
+    /// @param document QTextDocument to track (must outlive manager)
+    void setDocument(QTextDocument* document);
 
-    /// @brief Get the text buffer
-    TextBuffer* buffer() const { return m_buffer; }
-
-    /// @brief Set the layout manager
-    /// @param manager LazyLayoutManager (must outlive viewport manager)
-    void setLayoutManager(LazyLayoutManager* manager);
-
-    /// @brief Get the layout manager
-    LazyLayoutManager* layoutManager() const { return m_layoutManager; }
+    /// @brief Get the text document
+    QTextDocument* document() const { return m_document; }
 
     // =========================================================================
     // Viewport Configuration
@@ -203,28 +193,6 @@ public:
     /// @brief Get height of paragraph
     double paragraphHeight(size_t index) const;
 
-    // =========================================================================
-    // Layout Coordination
-    // =========================================================================
-
-    /// @brief Request layout for visible + buffer paragraphs
-    ///
-    /// Calls layoutManager->layoutVisibleParagraphs() and updates state.
-    void requestLayout();
-
-    /// @brief Update layout manager viewport
-    void syncLayoutManagerViewport();
-
-    // =========================================================================
-    // ITextBufferObserver Implementation
-    // =========================================================================
-
-    void onTextChanged() override;
-    void onParagraphInserted(size_t index) override;
-    void onParagraphRemoved(size_t index) override;
-    void onParagraphChanged(size_t index) override;
-    void onHeightChanged(size_t index, double oldHeight, double newHeight) override;
-
 signals:
     /// @brief Emitted when viewport position or size changes
     void viewportChanged();
@@ -247,6 +215,10 @@ signals:
     /// @param newHeight New total height
     void documentHeightChanged(double newHeight);
 
+private slots:
+    /// @brief Handle document content changes
+    void onDocumentChanged();
+
 private:
     /// @brief Update visible range from current scroll position
     void updateVisibleRange();
@@ -254,8 +226,12 @@ private:
     /// @brief Emit signals for range change
     void notifyRangeChanged();
 
-    TextBuffer* m_buffer = nullptr;
-    LazyLayoutManager* m_layoutManager = nullptr;
+    /// @brief Get height of a text block
+    /// @param block The text block
+    /// @return Block height in pixels
+    double blockHeight(const QTextBlock& block) const;
+
+    QTextDocument* m_document = nullptr;
 
     QSize m_viewportSize{0, 0};
     double m_scrollY = 0.0;
@@ -263,6 +239,9 @@ private:
 
     size_t m_firstVisible = 0;
     size_t m_lastVisible = 0;
+
+    /// @brief Estimated line height for blocks without layout
+    double m_estimatedLineHeight = 20.0;
 
     // Cached values
     mutable double m_cachedTotalHeight = 0.0;

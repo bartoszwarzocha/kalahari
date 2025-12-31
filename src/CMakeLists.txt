@@ -12,6 +12,8 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_paragraph.cpp
     editor/kml_document.cpp
     editor/kml_parser.cpp
+    editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
+    editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/kml_table.cpp    # Phase 1.12: Table elements
     editor/kml_comment.cpp  # Phase 7.8: Comments feature
     editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
@@ -193,6 +195,7 @@ set(KALAHARI_SOURCES
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/render_engine.cpp             # OpenSpec #00043: Render engine for viewport-only rendering
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
+    editor/search_service.cpp            # OpenSpec #00043 Phase 11.7: QTextDocument-based search service
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -244,6 +247,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h        # RenderEngine with Q_OBJECT (OpenSpec #00043 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h     # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
 )
 
 # Create executable
