@@ -1,15 +1,15 @@
 /// @file render_engine.cpp
-/// @brief RenderEngine implementation (OpenSpec #00043 Phase 6)
+/// @brief RenderEngine implementation (OpenSpec #00043 Phase 11.4)
 
 #include <kalahari/editor/render_engine.h>
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/lazy_layout_manager.h>
 #include <kalahari/editor/viewport_manager.h>
-#include <kalahari/editor/format_layer.h>
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/editor/kml_converter.h>  // For MetadataLayer
+#include <kalahari/editor/kml_format_registry.h>
+#include <QTextDocument>
+#include <QTextBlock>
 #include <QTextLayout>
 #include <QTextLine>
+#include <QTextFragment>
 #include <algorithm>
 
 namespace kalahari::editor {
@@ -34,20 +34,13 @@ RenderEngine::~RenderEngine() {
 // Component Integration
 // =============================================================================
 
-void RenderEngine::setBuffer(TextBuffer* buffer) {
-    m_buffer = buffer;
-}
-
-void RenderEngine::setLayoutManager(LazyLayoutManager* manager) {
-    m_layoutManager = manager;
+void RenderEngine::setDocument(QTextDocument* doc) {
+    m_document = doc;
+    markAllDirty();
 }
 
 void RenderEngine::setViewportManager(ViewportManager* viewport) {
     m_viewportManager = viewport;
-}
-
-void RenderEngine::setFormatLayer(FormatLayer* formatLayer) {
-    m_formatLayer = formatLayer;
 }
 
 void RenderEngine::setSearchEngine(SearchEngine* engine) {
@@ -72,52 +65,38 @@ void RenderEngine::setCurrentMatchColor(const QColor& color) {
     }
 }
 
-void RenderEngine::setMetadataLayer(MetadataLayer* layer) {
-    m_metadataLayer = layer;
-}
-
 void RenderEngine::setCommentHighlightColor(const QColor& color) {
     if (m_commentHighlightColor != color) {
         m_commentHighlightColor = color;
-        if (m_metadataLayer && !m_metadataLayer->allComments().empty()) {
-            markAllDirty();
-        }
+        markAllDirty();
     }
 }
 
 void RenderEngine::setCommentBorderColor(const QColor& color) {
     if (m_commentBorderColor != color) {
         m_commentBorderColor = color;
-        if (m_metadataLayer && !m_metadataLayer->allComments().empty()) {
-            markAllDirty();
-        }
+        markAllDirty();
     }
 }
 
 void RenderEngine::setTodoHighlightColor(const QColor& color) {
     if (m_todoHighlightColor != color) {
         m_todoHighlightColor = color;
-        if (m_metadataLayer && !m_metadataLayer->allTodos().empty()) {
-            markAllDirty();
-        }
+        markAllDirty();
     }
 }
 
 void RenderEngine::setNoteHighlightColor(const QColor& color) {
     if (m_noteHighlightColor != color) {
         m_noteHighlightColor = color;
-        if (m_metadataLayer && !m_metadataLayer->allTodos().empty()) {
-            markAllDirty();
-        }
+        markAllDirty();
     }
 }
 
 void RenderEngine::setCompletedTodoColor(const QColor& color) {
     if (m_completedTodoColor != color) {
         m_completedTodoColor = color;
-        if (m_metadataLayer && !m_metadataLayer->allTodos().empty()) {
-            markAllDirty();
-        }
+        markAllDirty();
     }
 }
 
@@ -315,20 +294,25 @@ void RenderEngine::setCursorWidth(double width) {
 }
 
 QRectF RenderEngine::cursorRect() const {
-    if (!m_buffer || !m_viewportManager || !m_layoutManager) {
+    if (!m_document || !m_viewportManager) {
         return QRectF();
     }
 
     int paraIndex = m_cursorPosition.paragraph;
-    if (paraIndex < 0 || static_cast<size_t>(paraIndex) >= m_buffer->paragraphCount()) {
+    if (paraIndex < 0 || paraIndex >= m_document->blockCount()) {
         return QRectF();
     }
 
     // Get paragraph Y in document coordinates
     double paraY = paragraphY(static_cast<size_t>(paraIndex));
 
-    // Get the layout for this paragraph
-    QTextLayout* layout = m_layoutManager->getLayout(static_cast<size_t>(paraIndex));
+    // Get the block and its layout
+    QTextBlock block = m_document->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
+        return QRectF();
+    }
+
+    QTextLayout* layout = block.layout();
     if (!layout || layout->lineCount() == 0) {
         // Fallback: use font metrics for cursor height
         QFontMetricsF fm(m_font);
@@ -381,25 +365,28 @@ void RenderEngine::paint(QPainter* painter, const QRect& clipRect,
     paintBackground(painter, clipRect);
 
     // Paint paragraphs
-    if (m_buffer && m_viewportManager && m_layoutManager) {
-        // CRITICAL: Refresh dirty layouts ONCE per frame before any getLayout() calls
-        // This ensures layouts are up-to-date without expensive per-call relayout
-        m_layoutManager->layoutVisibleParagraphs();
-
+    if (m_document && m_viewportManager) {
         size_t firstVisible = m_viewportManager->firstVisibleParagraph();
         size_t lastVisible = m_viewportManager->lastVisibleParagraph();
 
-        for (size_t i = firstVisible; i <= lastVisible; ++i) {
-            double y = paragraphY(i);
+        for (size_t i = firstVisible; i <= lastVisible && i < static_cast<size_t>(m_document->blockCount()); ++i) {
+            QTextBlock block = m_document->findBlockByNumber(static_cast<int>(i));
+            if (!block.isValid()) continue;
+
+            QTextLayout* layout = block.layout();
+            if (!layout) continue;
+
+            // Get Y from ViewportManager
+            double y = m_viewportManager->paragraphY(i);
             double widgetY = documentToWidgetY(y);
 
-            // Get paragraph height
-            double height = m_buffer->getParagraphHeight(i);
+            // Get paragraph height from ViewportManager
+            double height = m_viewportManager->paragraphHeight(i);
 
             // Check if paragraph intersects clip rect
             QRectF paraRect(0, widgetY, viewportSize.width(), height);
             if (paraRect.intersects(clipRect)) {
-                paintParagraph(painter, i, widgetY);
+                paintParagraph(painter, block, widgetY);
             }
         }
     }
@@ -443,10 +430,8 @@ void RenderEngine::paintBackground(QPainter* painter, const QRect& clipRect) {
     painter->fillRect(clipRect, m_backgroundColor);
 }
 
-void RenderEngine::paintParagraph(QPainter* painter, size_t index, double y) {
-    if (!m_layoutManager) return;
-
-    QTextLayout* layout = m_layoutManager->getLayout(index);
+void RenderEngine::paintParagraph(QPainter* painter, const QTextBlock& block, double y) {
+    QTextLayout* layout = block.layout();
     if (!layout) return;
 
     // Draw position with margins
@@ -456,7 +441,7 @@ void RenderEngine::paintParagraph(QPainter* painter, size_t index, double y) {
     QList<QTextLayout::FormatRange> selections;
     if (hasSelection()) {
         SelectionRange sel = m_selection.normalized();
-        int paraIdx = static_cast<int>(index);
+        int paraIdx = block.blockNumber();
 
         if (paraIdx >= sel.start.paragraph && paraIdx <= sel.end.paragraph) {
             int paraStart = (paraIdx == sel.start.paragraph)
@@ -524,12 +509,7 @@ void RenderEngine::paintSearchHighlights(QPainter* painter, const QRect& clipRec
 }
 
 void RenderEngine::paintCommentHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_metadataLayer || !m_buffer || !m_viewportManager) {
-        return;
-    }
-
-    const auto& comments = m_metadataLayer->allComments();
-    if (comments.empty()) {
+    if (!m_document || !m_viewportManager) {
         return;
     }
 
@@ -537,72 +517,45 @@ void RenderEngine::paintCommentHighlights(QPainter* painter, const QRect& clipRe
     size_t firstPara = m_viewportManager->firstVisibleParagraph();
     size_t lastPara = m_viewportManager->lastVisibleParagraph();
 
-    // Calculate absolute position for first visible paragraph
-    size_t visibleStartPos = 0;
-    for (size_t i = 0; i < firstPara && i < m_buffer->paragraphCount(); ++i) {
-        visibleStartPos += m_buffer->paragraphText(i).length() + 1;  // +1 for newline
-    }
+    // Scan visible blocks for comment properties
+    for (size_t para = firstPara; para <= lastPara && para < static_cast<size_t>(m_document->blockCount()); ++para) {
+        QTextBlock block = m_document->findBlockByNumber(static_cast<int>(para));
+        if (!block.isValid()) continue;
 
-    // Calculate absolute position for end of last visible paragraph
-    size_t visibleEndPos = visibleStartPos;
-    for (size_t i = firstPara; i <= lastPara && i < m_buffer->paragraphCount(); ++i) {
-        visibleEndPos += m_buffer->paragraphText(i).length() + 1;
-    }
+        // Iterate through fragments in this block
+        for (auto it = block.begin(); !it.atEnd(); ++it) {
+            QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) continue;
 
-    // Paint each comment that intersects visible range
-    for (const auto& comment : comments) {
-        // Skip if comment is entirely outside visible range
-        if (comment.anchorEnd <= visibleStartPos || comment.anchorStart >= visibleEndPos) {
-            continue;
-        }
+            // Check for KmlPropComment property
+            QVariant prop = fragment.charFormat().property(KmlPropComment);
+            if (!prop.isValid()) continue;
 
-        // Paint comment across paragraphs it spans
-        size_t pos = 0;
-        for (size_t para = 0; para < m_buffer->paragraphCount(); ++para) {
-            QString paraText = m_buffer->paragraphText(para);
-            size_t paraEnd = pos + paraText.length();
+            // Get fragment position within block
+            int startOffset = fragment.position() - block.position();
+            int length = fragment.length();
 
-            // Check if comment intersects this paragraph
-            if (comment.anchorStart <= paraEnd && comment.anchorEnd > pos) {
-                // Calculate offsets within paragraph
-                int startOffset = static_cast<int>(
-                    comment.anchorStart > pos ? comment.anchorStart - pos : 0);
-                int endOffset = static_cast<int>(
-                    std::min(comment.anchorEnd, paraEnd) - pos);
-                int length = endOffset - startOffset;
+            // Get visual rectangle for this range
+            QRectF commentRect = getTextRect(para, startOffset, length);
 
-                if (length > 0 && para >= firstPara && para <= lastPara) {
-                    // Get visual rectangle for this range
-                    QRectF commentRect = getTextRect(para, startOffset, length);
+            if (!commentRect.isEmpty() && commentRect.toRect().intersects(clipRect)) {
+                // Fill background
+                painter->fillRect(commentRect, m_commentHighlightColor);
 
-                    if (!commentRect.isEmpty() && commentRect.toRect().intersects(clipRect)) {
-                        // Fill background
-                        painter->fillRect(commentRect, m_commentHighlightColor);
-
-                        // Draw underline
-                        QPen pen(m_commentBorderColor);
-                        pen.setWidth(2);
-                        painter->setPen(pen);
-                        painter->drawLine(
-                            QPointF(commentRect.left(), commentRect.bottom() - 1),
-                            QPointF(commentRect.right(), commentRect.bottom() - 1));
-                    }
-                }
+                // Draw underline
+                QPen pen(m_commentBorderColor);
+                pen.setWidth(2);
+                painter->setPen(pen);
+                painter->drawLine(
+                    QPointF(commentRect.left(), commentRect.bottom() - 1),
+                    QPointF(commentRect.right(), commentRect.bottom() - 1));
             }
-
-            pos = paraEnd + 1;  // +1 for newline
-            if (pos > comment.anchorEnd) break;  // Past this comment
         }
     }
 }
 
 void RenderEngine::paintMarkerHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_metadataLayer || !m_buffer || !m_viewportManager) {
-        return;
-    }
-
-    const auto& markers = m_metadataLayer->allTodos();
-    if (markers.empty()) {
+    if (!m_document || !m_viewportManager) {
         return;
     }
 
@@ -610,103 +563,116 @@ void RenderEngine::paintMarkerHighlights(QPainter* painter, const QRect& clipRec
     size_t firstPara = m_viewportManager->firstVisibleParagraph();
     size_t lastPara = m_viewportManager->lastVisibleParagraph();
 
-    for (const auto& marker : markers) {
-        // Find which paragraph contains this marker position
-        size_t pos = 0;
-        for (size_t para = 0; para < m_buffer->paragraphCount(); ++para) {
-            QString paraText = m_buffer->paragraphText(para);
-            size_t paraEnd = pos + static_cast<size_t>(paraText.length());
+    // Scan visible blocks for TODO properties
+    for (size_t para = firstPara; para <= lastPara && para < static_cast<size_t>(m_document->blockCount()); ++para) {
+        QTextBlock block = m_document->findBlockByNumber(static_cast<int>(para));
+        if (!block.isValid()) continue;
 
-            if (marker.position >= pos && marker.position <= paraEnd) {
-                // Marker is in this paragraph
-                if (para >= firstPara && para <= lastPara) {
-                    // Get line rect for this paragraph
-                    QRectF lineRect = paragraphRect(para);
+        // Check first fragment for TODO marker (markers are typically at line start)
+        bool hasTodo = false;
+        bool isCompleted = false;
+        bool isNote = false;
 
-                    if (!lineRect.isEmpty() && lineRect.toRect().intersects(clipRect)) {
-                        // Choose color based on type and completion state
-                        QColor highlightColor;
-                        if (marker.type == MarkerType::Todo) {
-                            highlightColor = marker.completed
-                                ? m_completedTodoColor
-                                : m_todoHighlightColor;
-                        } else {
-                            highlightColor = m_noteHighlightColor;
-                        }
+        for (auto it = block.begin(); !it.atEnd(); ++it) {
+            QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) continue;
 
-                        // Draw small indicator in left margin
-                        qreal iconSize = 8.0;
-                        qreal marginX = lineRect.left() + 2;  // Small offset from left
-                        qreal centerY = lineRect.center().y();
+            QVariant prop = fragment.charFormat().property(KmlPropTodo);
+            if (prop.isValid()) {
+                hasTodo = true;
+                QString todoValue = prop.toString();
+                isCompleted = todoValue.contains("completed", Qt::CaseInsensitive);
+                isNote = todoValue.contains("note", Qt::CaseInsensitive);
+                break;  // Found a TODO marker
+            }
+        }
 
-                        QRectF iconRect(marginX, centerY - iconSize / 2, iconSize, iconSize);
+        if (!hasTodo) continue;
 
-                        painter->save();
-                        painter->setRenderHint(QPainter::Antialiasing);
+        // Get line rect for this paragraph
+        QRectF lineRect = paragraphRect(para);
 
-                        if (marker.type == MarkerType::Todo) {
-                            // Draw checkbox
-                            QPen pen(highlightColor.darker(150));
-                            pen.setWidth(1);
-                            painter->setPen(pen);
-                            painter->setBrush(marker.completed ? highlightColor : Qt::NoBrush);
-                            painter->drawRect(iconRect);
-
-                            if (marker.completed) {
-                                // Draw checkmark
-                                painter->setPen(QPen(Qt::white, 1.5));
-                                painter->drawLine(
-                                    QPointF(iconRect.left() + 2, iconRect.center().y()),
-                                    QPointF(iconRect.center().x(), iconRect.bottom() - 2));
-                                painter->drawLine(
-                                    QPointF(iconRect.center().x(), iconRect.bottom() - 2),
-                                    QPointF(iconRect.right() - 1, iconRect.top() + 2));
-                            }
-                        } else {
-                            // Draw info circle for NOTE
-                            painter->setPen(Qt::NoPen);
-                            painter->setBrush(highlightColor);
-                            painter->drawEllipse(iconRect);
-
-                            // Draw 'i' in center
-                            painter->setPen(QPen(highlightColor.darker(200), 1));
-                            QFont font = painter->font();
-                            font.setPixelSize(static_cast<int>(iconSize - 2));
-                            font.setBold(true);
-                            painter->setFont(font);
-                            painter->drawText(iconRect, Qt::AlignCenter, "i");
-                        }
-
-                        painter->restore();
-
-                        // Draw subtle line highlight
-                        QColor lineHighlight = highlightColor;
-                        lineHighlight.setAlpha(30);
-                        painter->fillRect(lineRect, lineHighlight);
-                    }
-                }
-                break;  // Found the paragraph for this marker
+        if (!lineRect.isEmpty() && lineRect.toRect().intersects(clipRect)) {
+            // Choose color based on type and completion state
+            QColor highlightColor;
+            if (!isNote) {
+                highlightColor = isCompleted ? m_completedTodoColor : m_todoHighlightColor;
+            } else {
+                highlightColor = m_noteHighlightColor;
             }
 
-            pos = paraEnd + 1;  // +1 for newline
+            // Draw small indicator in left margin
+            qreal iconSize = 8.0;
+            qreal marginX = lineRect.left() + 2;  // Small offset from left
+            qreal centerY = lineRect.center().y();
+
+            QRectF iconRect(marginX, centerY - iconSize / 2, iconSize, iconSize);
+
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+
+            if (!isNote) {
+                // Draw checkbox for TODO
+                QPen pen(highlightColor.darker(150));
+                pen.setWidth(1);
+                painter->setPen(pen);
+                painter->setBrush(isCompleted ? highlightColor : Qt::NoBrush);
+                painter->drawRect(iconRect);
+
+                if (isCompleted) {
+                    // Draw checkmark
+                    painter->setPen(QPen(Qt::white, 1.5));
+                    painter->drawLine(
+                        QPointF(iconRect.left() + 2, iconRect.center().y()),
+                        QPointF(iconRect.center().x(), iconRect.bottom() - 2));
+                    painter->drawLine(
+                        QPointF(iconRect.center().x(), iconRect.bottom() - 2),
+                        QPointF(iconRect.right() - 1, iconRect.top() + 2));
+                }
+            } else {
+                // Draw info circle for NOTE
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(highlightColor);
+                painter->drawEllipse(iconRect);
+
+                // Draw 'i' in center
+                painter->setPen(QPen(highlightColor.darker(200), 1));
+                QFont font = painter->font();
+                font.setPixelSize(static_cast<int>(iconSize - 2));
+                font.setBold(true);
+                painter->setFont(font);
+                painter->drawText(iconRect, Qt::AlignCenter, "i");
+            }
+
+            painter->restore();
+
+            // Draw subtle line highlight
+            QColor lineHighlight = highlightColor;
+            lineHighlight.setAlpha(30);
+            painter->fillRect(lineRect, lineHighlight);
         }
     }
 }
 
 QRectF RenderEngine::getTextRect(size_t paraIndex, int offset, int length) const {
-    if (!m_buffer || !m_viewportManager || !m_layoutManager) {
+    if (!m_document || !m_viewportManager) {
         return QRectF();
     }
 
-    if (paraIndex >= m_buffer->paragraphCount()) {
+    if (paraIndex >= static_cast<size_t>(m_document->blockCount())) {
         return QRectF();
     }
 
     // Get paragraph Y in document coordinates
     double paraY = paragraphY(paraIndex);
 
-    // Get the layout for this paragraph
-    QTextLayout* layout = m_layoutManager->getLayout(paraIndex);
+    // Get the block and its layout
+    QTextBlock block = m_document->findBlockByNumber(static_cast<int>(paraIndex));
+    if (!block.isValid()) {
+        return QRectF();
+    }
+
+    QTextLayout* layout = block.layout();
     if (!layout || layout->lineCount() == 0) {
         return QRectF();
     }
@@ -766,16 +732,16 @@ QRectF RenderEngine::selectionRectForParagraph(size_t /*paraIndex*/,
 // =============================================================================
 
 double RenderEngine::paragraphY(size_t index) const {
-    if (!m_buffer) return 0.0;
-    return m_buffer->getParagraphY(index);
+    if (!m_viewportManager) return 0.0;
+    return m_viewportManager->paragraphY(index);
 }
 
 QRectF RenderEngine::paragraphRect(size_t index) const {
-    if (!m_buffer || !m_viewportManager) return QRectF();
+    if (!m_viewportManager) return QRectF();
 
     double docY = paragraphY(index);
     double widgetY = documentToWidgetY(docY);
-    double height = m_buffer->getParagraphHeight(index);
+    double height = m_viewportManager->paragraphHeight(index);
     double width = m_viewportManager->viewportSize().width();
 
     return QRectF(0, widgetY, width, height);

@@ -31,12 +31,9 @@ set(TEST_SOURCES
     editor/test_table_layout.cpp  # Phase 2.6: Table layout
     editor/test_virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/test_layout_manager.cpp          # Phase 2.11: Layout manager
-    editor/test_text_buffer.cpp             # OpenSpec #00043: TextBuffer with Fenwick tree
-    editor/test_lazy_layout_manager.cpp    # OpenSpec #00043: LazyLayoutManager
-    editor/test_format_layer.cpp           # OpenSpec #00043: FormatLayer
+    # Phase 11.8: Removed test_text_buffer.cpp, test_lazy_layout_manager.cpp, test_format_layer.cpp, test_kml_converter.cpp
     editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
     editor/test_render_engine.cpp          # OpenSpec #00043: RenderEngine
-    editor/test_kml_converter.cpp          # OpenSpec #00043: KmlConverter
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
     editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
@@ -48,7 +45,7 @@ set(TEST_SOURCES
     editor/test_buffer_commands.cpp        # OpenSpec #00043 Phase 9 Task 9.3: Buffer commands tests
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
     editor/test_search_service.cpp         # OpenSpec #00043 Phase 11.7: SearchService tests
-    editor/test_snapshot_roundtrip.cpp     # OpenSpec #00044 Task 9.15: Snapshot round-trip tests
+    # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
 
@@ -105,12 +102,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
     ${CMAKE_SOURCE_DIR}/src/editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     ${CMAKE_SOURCE_DIR}/src/editor/layout_manager.cpp          # Phase 2.11: Layout manager
-    ${CMAKE_SOURCE_DIR}/src/editor/text_buffer.cpp            # OpenSpec #00043: TextBuffer
-    ${CMAKE_SOURCE_DIR}/src/editor/lazy_layout_manager.cpp   # OpenSpec #00043: LazyLayoutManager
-    ${CMAKE_SOURCE_DIR}/src/editor/format_layer.cpp          # OpenSpec #00043: FormatLayer
+    # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/render_engine.cpp        # OpenSpec #00043: RenderEngine
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_converter.cpp       # OpenSpec #00043: KmlConverter
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/kml_commands.cpp          # Phase 4.8: Undo/Redo commands
@@ -238,72 +232,4 @@ message(STATUS "Configured test target: kalahari-tests")
 # OpenSpec #00043: Prototype benchmarks for editor performance rewrite
 add_subdirectory(prototypes)
 
-# =============================================================================
-# OpenSpec #00043 Phase 10: Performance Benchmarks for New Architecture
-# =============================================================================
-
-# Benchmark source files
-set(BENCHMARK_SOURCES
-    benchmarks/test_document_generator.cpp
-    benchmarks/performance_benchmark.cpp
-    benchmarks/benchmark_new_architecture.cpp
-    # Source files under test
-    ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/text_buffer.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/lazy_layout_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/editor_types.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_element.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_text_run.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_inline_elements.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_paragraph.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Required by kml_paragraph.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
-    ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp
-)
-
-# Windows: Add compatibility shims for Catch2 missing CRT symbols
-if(WIN32)
-    list(APPEND BENCHMARK_SOURCES catch2_windows_compat.cpp)
-endif()
-
-# Create benchmark executable
-add_executable(benchmark-new-arch ${BENCHMARK_SOURCES})
-
-# Target properties
-set_target_properties(benchmark-new-arch PROPERTIES
-    OUTPUT_NAME "benchmark-new-arch"
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-
-# Include directories
-target_include_directories(benchmark-new-arch PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks
-)
-
-# Link libraries (use Catch2 without main - we provide custom main for QApplication)
-target_link_libraries(benchmark-new-arch PRIVATE
-    Catch2::Catch2
-    Qt6::Core
-    Qt6::Widgets
-    Qt6::Gui
-    Qt6::Xml  # Required for kml_parser.cpp (QDomDocument)
-    spdlog::spdlog
-    nlohmann_json::nlohmann_json
-)
-
-# Windows: Link psapi for memory profiling (GetProcessMemoryInfo)
-if(WIN32)
-    target_link_libraries(benchmark-new-arch PRIVATE psapi)
-endif()
-
-message(STATUS "Configured benchmark target: benchmark-new-arch")
+# Phase 11.8: Removed benchmark-new-arch target (used old TextBuffer/LazyLayoutManager architecture)

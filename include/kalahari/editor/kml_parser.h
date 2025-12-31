@@ -1,86 +1,62 @@
 /// @file kml_parser.h
-/// @brief KML Parser - parses KML markup into document model (OpenSpec #00042 Phase 1.10/1.12)
+/// @brief KML Parser - parses KML directly into QTextDocument (OpenSpec #00043 Phase 11.1)
 ///
 /// KmlParser uses QXmlStreamReader to parse KML (Kalahari Markup Language) documents
-/// into KmlDocument/KmlParagraph/KmlElement objects. It handles:
-/// - Paragraph elements (<p>)
-/// - Inline formatting elements (<b>, <i>, <u>, <s>, <sub>, <sup>)
-/// - Text runs (<t>)
-/// - Table elements (<table>, <tr>, <td>, <th>) - Phase 1.12
-/// - Style attributes
-/// - Nested element structures
+/// directly into QTextDocument with QTextCharFormat for formatting and metadata.
 ///
-/// Error handling:
-/// - Returns nullptr or empty document for malformed input
-/// - Provides error message via lastError()
-
-#pragma once
-
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
-#include <kalahari/editor/kml_element.h>
-#include <kalahari/editor/kml_table.h>
-#include <kalahari/editor/kml_comment.h>
-#include <QString>
-#include <memory>
-
-class QXmlStreamReader;
-
-namespace kalahari::editor {
-
-/// @brief Result of a parse operation
-///
-/// Contains either a successfully parsed result or error information.
-template<typename T>
-struct ParseResult {
-    std::unique_ptr<T> result;  ///< Parsed object (nullptr on error)
-    bool success;               ///< True if parsing succeeded
-    QString errorMessage;       ///< Error message if parsing failed
-    int errorLine;              ///< Line number where error occurred (-1 if unknown)
-    int errorColumn;            ///< Column number where error occurred (-1 if unknown)
-
-    /// @brief Check if parsing was successful
-    explicit operator bool() const { return success; }
-
-    /// @brief Create a successful result
-    static ParseResult<T> ok(std::unique_ptr<T> value) {
-        return ParseResult<T>{std::move(value), true, QString(), -1, -1};
-    }
-
-    /// @brief Create an error result
-    static ParseResult<T> error(const QString& message, int line = -1, int col = -1) {
-        return ParseResult<T>{nullptr, false, message, line, col};
-    }
-};
-
-/// @brief KML document parser
-///
-/// Parses KML markup strings into KmlDocument objects. The parser is stateless
-/// and can be reused for multiple parse operations.
+/// Key design principles (Phase 11 Architecture Correction):
+/// - Direct KML -> QTextDocument parsing (no intermediate TextBuffer/FormatLayer)
+/// - Standard formatting via QTextCharFormat (bold, italic, underline, strikethrough)
+/// - Metadata (comments, todos, footnotes) via QTextFormat::UserProperty
 ///
 /// Supported KML structure:
 /// @code
-/// <doc>
-///   <p style="heading1">Heading</p>
-///   <p>Normal paragraph with <b>bold</b> and <i>italic</i> text.</p>
+/// <kml>
+///   <p>Paragraph with <b>bold</b> and <i>italic</i> text.</p>
 ///   <p>Formula: H<sub>2</sub>O and x<sup>2</sup></p>
-/// </doc>
+///   <p>Text with <comment id="c1">annotated</comment> word.</p>
+/// </kml>
 /// @endcode
+
+#pragma once
+
+#include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum
+#include <QString>
+#include <QTextDocument>
+#include <QTextCharFormat>
+#include <memory>
+
+class QXmlStreamReader;
+class QTextCursor;
+
+namespace kalahari {
+namespace editor {
+
+// KmlPropertyId enum is now defined in kml_format_registry.h
+
+/// @brief KML document parser producing QTextDocument output
 ///
-/// Simplified format (paragraphs without doc wrapper):
-/// @code
-/// <p>First paragraph</p>
-/// <p>Second paragraph</p>
-/// @endcode
+/// Parses KML markup strings directly into QTextDocument objects.
+/// Uses QTextCharFormat for both formatting (bold, italic, etc.)
+/// and metadata (comments, todos, footnotes).
 ///
 /// Example usage:
 /// @code
 /// KmlParser parser;
-/// auto result = parser.parseDocument("<doc><p>Hello world</p></doc>");
-/// if (result) {
-///     // Use result.result
+///
+/// // Parse to new document
+/// QTextDocument* doc = parser.parseKml("<kml><p>Hello <b>world</b></p></kml>");
+/// if (doc) {
+///     // Use document...
+///     delete doc;  // Caller owns the document
 /// } else {
-///     qWarning() << "Parse error:" << result.errorMessage;
+///     qWarning() << "Parse error:" << parser.lastError();
+/// }
+///
+/// // Or parse into existing document
+/// QTextDocument existingDoc;
+/// if (parser.parseInto("<p>Text</p>", &existingDoc)) {
+///     // Document updated
 /// }
 /// @endcode
 class KmlParser {
@@ -92,30 +68,20 @@ public:
     ~KmlParser();
 
     // =========================================================================
-    // Document Parsing
+    // Main Parsing Methods
     // =========================================================================
 
-    /// @brief Parse a complete KML document
+    /// @brief Parse KML markup into a new QTextDocument
     /// @param kml The KML markup string
-    /// @return ParseResult containing KmlDocument or error information
-    /// @note Accepts either <doc>...</doc> wrapper or bare paragraphs
-    ParseResult<KmlDocument> parseDocument(const QString& kml);
+    /// @return New QTextDocument (caller owns), or nullptr on error
+    /// @note Accepts <kml>, <doc>, <document> wrappers or bare paragraphs
+    QTextDocument* parseKml(const QString& kml);
 
-    /// @brief Parse a single paragraph from KML
-    /// @param kml The KML markup string (e.g., "<p>Hello</p>")
-    /// @return ParseResult containing KmlParagraph or error information
-    ParseResult<KmlParagraph> parseParagraph(const QString& kml);
-
-    /// @brief Parse inline elements from KML
-    /// @param kml The KML markup string (e.g., "<b>Bold</b>")
-    /// @return ParseResult containing KmlElement or error information
-    /// @note Can return any inline element type (text run, bold, italic, etc.)
-    ParseResult<KmlElement> parseElement(const QString& kml);
-
-    /// @brief Parse a table from KML
-    /// @param kml The KML markup string (e.g., "<table><tr><td>Cell</td></tr></table>")
-    /// @return ParseResult containing KmlTable or error information
-    ParseResult<KmlTable> parseTable(const QString& kml);
+    /// @brief Parse KML into an existing document (clears document first)
+    /// @param kml The KML markup string
+    /// @param document Target document (will be cleared before parsing)
+    /// @return true if parsing succeeded
+    bool parseInto(const QString& kml, QTextDocument* document);
 
     // =========================================================================
     // Error Information
@@ -123,7 +89,7 @@ public:
 
     /// @brief Get the last error message
     /// @return Error message from the last failed parse operation
-    const QString& lastError() const;
+    QString lastError() const;
 
     /// @brief Get the line number of the last error
     /// @return Line number (1-based), or -1 if unknown
@@ -134,52 +100,46 @@ public:
     int lastErrorColumn() const;
 
 private:
-    // Internal parsing methods
-    std::unique_ptr<KmlDocument> parseDocumentContent(QXmlStreamReader& reader);
-    std::unique_ptr<KmlParagraph> parseParagraphElement(QXmlStreamReader& reader);
-    std::unique_ptr<KmlElement> parseInlineElement(QXmlStreamReader& reader);
-    std::unique_ptr<KmlElement> parseTextRun(QXmlStreamReader& reader);
+    // =========================================================================
+    // Internal Parsing Methods
+    // =========================================================================
 
-    // Table parsing methods (Phase 1.12)
-    std::unique_ptr<KmlTable> parseTableElement(QXmlStreamReader& reader);
-    std::unique_ptr<KmlTableRow> parseTableRowElement(QXmlStreamReader& reader);
-    std::unique_ptr<KmlTableCell> parseTableCellElement(QXmlStreamReader& reader, bool isHeader);
-
-    /// @brief Parse children of an inline container element
-    /// @param reader The XML reader positioned after the start element
-    /// @param container The container to add children to
-    /// @param endTagName The expected end tag name
+    /// @brief Parse document content (paragraphs within root element)
+    /// @param reader XML reader positioned at document root
+    /// @param cursor Text cursor for inserting content
+    /// @param rootTag Name of the root element to match end tag
     /// @return true if parsing succeeded
-    bool parseInlineChildren(QXmlStreamReader& reader,
-                            class KmlInlineContainer* container,
-                            const QString& endTagName);
+    bool parseDocumentContent(QXmlStreamReader& reader,
+                              QTextCursor& cursor,
+                              const QString& rootTag);
 
-    /// @brief Parse cell content (inline elements) into a paragraph
-    /// @param reader The XML reader positioned after the cell start element
-    /// @param paragraph The paragraph to add elements to
-    /// @param endTagName The expected end tag name (td or th)
-    /// @return true if parsing succeeded
-    bool parseCellContent(QXmlStreamReader& reader,
-                          KmlParagraph* paragraph,
-                          const QString& endTagName);
+    /// @brief Parse a single paragraph element
+    /// @param reader XML reader positioned at <p> start
+    /// @param cursor Text cursor for inserting content
+    void parseParagraph(QXmlStreamReader& reader, QTextCursor& cursor);
 
-    // Comment parsing methods (Phase 7.8)
+    /// @brief Parse inline content (text and formatting elements)
+    /// @param reader XML reader
+    /// @param cursor Text cursor for inserting content
+    /// @param activeFormat Current active format (accumulated from parent elements)
+    /// @param endTag Tag name to stop at
+    /// @note Uses KmlFormatRegistry for tag classification and format application
+    void parseInlineContent(QXmlStreamReader& reader,
+                            QTextCursor& cursor,
+                            QTextCharFormat activeFormat,
+                            const QString& endTag);
 
-    /// @brief Parse comments element containing multiple comment children
-    /// @param reader The XML reader positioned at <comments> start element
-    /// @param paragraph The paragraph to add comments to
-    /// @return true if parsing succeeded
-    bool parseCommentsElement(QXmlStreamReader& reader, KmlParagraph* paragraph);
+    /// @brief Parse metadata element and apply to format
+    /// @param reader XML reader positioned at metadata element start
+    /// @param tag The metadata tag name
+    /// @param format Format to modify with metadata property
+    void parseMetadataElement(QXmlStreamReader& reader,
+                              const QString& tag,
+                              QTextCharFormat& format);
 
-    /// @brief Parse a single comment element
-    /// @param reader The XML reader positioned at <comment> start element
-    /// @return Parsed comment
-    KmlComment parseCommentElement(QXmlStreamReader& reader);
-
-    /// @brief Create inline element by tag name
-    /// @param tagName The XML tag name (b, i, u, s, sub, sup)
-    /// @return New element or nullptr if tag is unknown
-    std::unique_ptr<KmlElement> createInlineElement(const QString& tagName);
+    // =========================================================================
+    // Error Handling
+    // =========================================================================
 
     /// @brief Set error from XML reader
     void setError(QXmlStreamReader& reader);
@@ -190,9 +150,14 @@ private:
     /// @brief Clear error state
     void clearError();
 
-    QString m_lastError;     ///< Last error message
-    int m_lastErrorLine;     ///< Last error line number
-    int m_lastErrorColumn;   ///< Last error column number
+    // =========================================================================
+    // Members
+    // =========================================================================
+
+    QString m_lastError;      ///< Last error message
+    int m_lastErrorLine;      ///< Last error line number
+    int m_lastErrorColumn;    ///< Last error column number
 };
 
-}  // namespace kalahari::editor
+} // namespace editor
+} // namespace kalahari

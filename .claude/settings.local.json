@@ -104,7 +104,22 @@
       "SlashCommand(/save-session)",
       "SlashCommand(/workflow:*)",
       "SlashCommand(/workflow-mock:*)",
-      "Skill(save-session)"
+      "Skill(save-session)",
+      "Bash(scripts/build_windows.bat Debug)",
+      "Bash(./build-windows/bin/kalahari-tests.exe:*)",
+      "Bash(./bin/kalahari-tests.exe:*)",
+      "Bash(include/kalahari/editor/viewport_manager.h )",
+      "Bash(src/editor/viewport_manager.cpp )",
+      "Bash(src/editor/book_editor.cpp )",
+      "Bash(tests/editor/test_viewport_manager.cpp )",
+      "Bash(tests/editor/test_render_engine.cpp )",
+      "Bash(include/kalahari/editor/search_service.h )",
+      "Bash(src/editor/search_service.cpp )",
+      "Bash(tests/editor/test_search_service.cpp )",
+      "Bash(openspec/changes/00043-editor-performance-rewrite/tasks.md )",
+      "Bash(src/CMakeLists.txt )",
+      "Bash(tests/CMakeLists.txt)",
+      "Skill(load-session)"
     ],
     "deny": [],
     "ask": []

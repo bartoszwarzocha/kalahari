@@ -24,17 +24,17 @@ SearchEngine::SearchEngine(QObject* parent)
 // Configuration
 // =============================================================================
 
-void SearchEngine::setBuffer(TextBuffer* buffer) {
-    if (m_buffer != buffer) {
-        m_buffer = buffer;
+void SearchEngine::setDocument(QTextDocument* document) {
+    if (m_document != document) {
+        m_document = document;
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
         m_matches.clear();
     }
 }
 
-TextBuffer* SearchEngine::buffer() const {
-    return m_buffer;
+QTextDocument* SearchEngine::document() const {
+    return m_document;
 }
 
 void SearchEngine::setSearchText(const QString& text) {
@@ -192,8 +192,8 @@ bool SearchEngine::setCurrentMatchIndex(int index) {
 // Replace Operations (Task 9.5)
 // =============================================================================
 
-bool SearchEngine::replaceCurrent(QUndoStack* undoStack, FormatLayer* formatLayer) {
-    if (!m_buffer || m_currentMatchIndex < 0 ||
+bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
+    if (!m_document || m_currentMatchIndex < 0 ||
         m_currentMatchIndex >= static_cast<int>(m_matches.size())) {
         return false;
     }
@@ -201,33 +201,22 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack, FormatLayer* formatLaye
     const SearchMatch& match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
     if (undoStack) {
-        // Create cursor position from match position
-        CursorPosition cursor = absoluteToCursorPosition(*m_buffer, match.start);
+        // Create cursor positions from match
+        CursorPosition startPos = absoluteToCursorPosition(
+            m_document, static_cast<int>(match.start));
+        CursorPosition endPos = absoluteToCursorPosition(
+            m_document, static_cast<int>(match.end()));
 
         // Push replacement command to undo stack
-        // Note: MetadataLayer is nullptr here - caller should update metadata if needed
         undoStack->push(new TextReplaceCommand(
-            m_buffer, formatLayer, nullptr,
-            cursor, match.start, match.matchedText, m_replaceText));
+            m_document, startPos, endPos, match.matchedText, m_replaceText));
     } else {
         // Direct replacement without undo (fallback)
-        CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, match.start);
-
-        // Delete the original text
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-        QString newContent = currentContent;
-        newContent.remove(cursorPos.offset, match.matchedText.length());
-        newContent.insert(cursorPos.offset, m_replaceText);
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-
-        // Update format layer
-        if (formatLayer) {
-            formatLayer->onTextDeleted(match.start,
-                static_cast<size_t>(match.matchedText.length()));
-            formatLayer->onTextInserted(match.start,
-                static_cast<size_t>(m_replaceText.length()));
-        }
+        // Phase 11.6: Use QTextCursor for direct document modification
+        QTextCursor cursor(m_document);
+        cursor.setPosition(static_cast<int>(match.start));
+        cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+        cursor.insertText(m_replaceText);
     }
 
     // Rebuild matches after replacement
@@ -262,8 +251,8 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack, FormatLayer* formatLaye
     return true;
 }
 
-int SearchEngine::replaceAll(QUndoStack* undoStack, FormatLayer* formatLayer) {
-    if (!m_buffer || m_matches.empty()) {
+int SearchEngine::replaceAll(QUndoStack* undoStack) {
+    if (!m_document || m_matches.empty()) {
         return 0;
     }
 
@@ -281,46 +270,30 @@ int SearchEngine::replaceAll(QUndoStack* undoStack, FormatLayer* formatLayer) {
 
         for (const auto& match : m_matches) {
             ReplaceAllCommand::Replacement repl;
-            repl.position = match.start;
-            repl.originalText = match.matchedText;
-            repl.replacementText = m_replaceText;
-
-            // Capture formats at this position
-            if (formatLayer) {
-                repl.formats = formatLayer->getFormatsInRange(
-                    match.start, match.end());
-            }
-
+            repl.startPos = static_cast<int>(match.start);
+            repl.endPos = static_cast<int>(match.end());
+            repl.oldText = match.matchedText;
+            repl.newText = m_replaceText;
             replacements.push_back(repl);
         }
 
         // Create cursor position from first match
-        CursorPosition cursor = absoluteToCursorPosition(*m_buffer, m_matches[0].start);
+        CursorPosition cursor = absoluteToCursorPosition(
+            m_document, static_cast<int>(m_matches[0].start));
 
         // Push replace all command to undo stack
-        // Note: MetadataLayer is nullptr here - caller should update metadata if needed
         undoStack->push(new ReplaceAllCommand(
-            m_buffer, formatLayer, nullptr, cursor, replacements));
+            m_document, cursor, replacements));
     } else {
         // Direct replacement without undo (fallback)
+        // Phase 11.6: Use QTextCursor for direct document modification
         // Process in reverse order to maintain position validity
         for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
             const SearchMatch& match = *it;
-            CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, match.start);
-
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-            QString newContent = currentContent;
-            newContent.remove(cursorPos.offset, match.matchedText.length());
-            newContent.insert(cursorPos.offset, m_replaceText);
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-
-            if (formatLayer) {
-                formatLayer->onTextDeleted(match.start,
-                    static_cast<size_t>(match.matchedText.length()));
-                formatLayer->onTextInserted(match.start,
-                    static_cast<size_t>(m_replaceText.length()));
-            }
+            QTextCursor cursor(m_document);
+            cursor.setPosition(static_cast<int>(match.start));
+            cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+            cursor.insertText(m_replaceText);
         }
     }
 
@@ -365,12 +338,12 @@ void SearchEngine::rebuildMatches() {
     m_matches.clear();
     m_matchesDirty = false;
 
-    if (!m_buffer || m_searchText.isEmpty()) {
+    if (!m_document || m_searchText.isEmpty()) {
         emit matchesChanged();
         return;
     }
 
-    QTextDocument* doc = m_buffer->document();
+    QTextDocument* doc = m_document;
     if (!doc) {
         emit matchesChanged();
         return;
@@ -431,8 +404,8 @@ SearchMatch SearchEngine::buildMatch(size_t start, size_t length) const {
     match.start = start;
     match.length = length;
 
-    if (m_buffer) {
-        QTextDocument* doc = m_buffer->document();
+    if (m_document) {
+        QTextDocument* doc = m_document;
         if (doc) {
             QTextCursor cursor(doc);
             cursor.setPosition(static_cast<int>(start));
@@ -469,7 +442,7 @@ QTextDocument::FindFlags SearchEngine::buildFindFlags() const {
 }
 
 SearchMatch SearchEngine::findMatch(size_t fromPosition, bool forward) {
-    if (!m_buffer || m_searchText.isEmpty()) {
+    if (!m_document || m_searchText.isEmpty()) {
         return SearchMatch{};
     }
 

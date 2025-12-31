@@ -92,45 +92,20 @@ EditorPanel::~EditorPanel() {
 }
 
 void EditorPanel::setText(const QString& text) {
-    if (!m_bookEditor || !m_observer) {
+    if (!m_bookEditor) {
         return;
     }
 
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel::setText called with {} chars", text.length());
 
-    // Remove observer from old document
-    if (m_document) {
-        m_document->removeObserver(m_observer.get());
-    }
-
-    // CRITICAL: Disconnect BookEditor BEFORE destroying old document
-    m_bookEditor->setDocument(nullptr);
-
-    // Convert plain text to KML and parse
+    // Convert plain text to KML
     QString kml = editor::ClipboardHandler::textToKml(text);
-    editor::KmlParser parser;
-    auto result = parser.parseDocument(kml);
 
-    if (result.success && result.result) {
-        // Replace document (old document destroyed here)
-        m_document = std::move(result.result);
-    } else {
-        logger.warn("Failed to parse text as KML: {}", result.errorMessage.toStdString());
-        // Fallback: create document with plain text paragraph
-        m_document = createEmptyDocument();
-        if (!m_document->isEmpty()) {
-            auto* para = m_document->paragraph(0);
-            if (para) {
-                para->clearElements();
-                para->insertText(0, text);
-            }
-        }
-    }
-
-    // Setup observer and update editor
-    setupDocumentObserver();
-    m_bookEditor->setDocument(m_document.get());
+    // Use BookEditor::fromKml() for new Phase 11 architecture
+    // This method sets up TextBuffer, FormatLayer, LazyLayoutManager, etc.
+    m_bookEditor->fromKml(kml);
+    logger.debug("EditorPanel::setText - BookEditor::fromKml() complete");
 
     // Reconnect statistics collector to editor (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector && m_bookEditor) {

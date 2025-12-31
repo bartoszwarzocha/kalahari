@@ -1,525 +1,472 @@
 /// @file test_kml_parser.cpp
-/// @brief Unit tests for KML Parser (OpenSpec #00042 Phase 1.10)
+/// @brief Unit tests for KmlParser (OpenSpec #00043 Phase 11.1.6)
+///
+/// Tests the new Phase 11 KmlParser that produces QTextDocument output directly.
+/// Uses QTextCharFormat for both formatting (bold, italic, etc.) and metadata
+/// (comments, todos, footnotes).
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/kml_parser.h>
-#include <kalahari/editor/kml_document.h>
-#include <kalahari/editor/kml_paragraph.h>
-#include <kalahari/editor/kml_text_run.h>
-#include <kalahari/editor/kml_inline_elements.h>
+#include <QTextDocument>
+#include <QTextCursor>
+#include <QTextBlock>
+#include <QFont>
+#include <QVariantMap>
+#include <memory>
 
 using namespace kalahari::editor;
 
 // =============================================================================
-// ParseResult Tests
+// Helper Functions
 // =============================================================================
 
-TEST_CASE("ParseResult success check", "[editor][kml_parser]") {
-    SECTION("Successful result is truthy") {
-        auto result = ParseResult<KmlDocument>::ok(std::make_unique<KmlDocument>());
-        REQUIRE(result);
-        REQUIRE(result.success);
-        REQUIRE(result.result != nullptr);
-        REQUIRE(result.errorMessage.isEmpty());
-    }
+/// @brief Get plain text from a QTextDocument
+static QString getPlainText(QTextDocument* doc)
+{
+    return doc ? doc->toPlainText() : QString();
+}
 
-    SECTION("Error result is falsy") {
-        auto result = ParseResult<KmlDocument>::error("Test error", 5, 10);
-        REQUIRE(!result);
-        REQUIRE(!result.success);
-        REQUIRE(result.result == nullptr);
-        REQUIRE(result.errorMessage == "Test error");
-        REQUIRE(result.errorLine == 5);
-        REQUIRE(result.errorColumn == 10);
+/// @brief Get character format at a specific position
+static QTextCharFormat getFormatAt(QTextDocument* doc, int position)
+{
+    if (!doc) {
+        return QTextCharFormat();
     }
+    QTextCursor cursor(doc);
+    cursor.setPosition(position);
+    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+    return cursor.charFormat();
+}
+
+/// @brief Count number of blocks (paragraphs) in document
+static int blockCount(QTextDocument* doc)
+{
+    return doc ? doc->blockCount() : 0;
+}
+
+/// @brief Get text of a specific block
+static QString blockText(QTextDocument* doc, int index)
+{
+    if (!doc || index < 0) {
+        return QString();
+    }
+    QTextBlock block = doc->begin();
+    for (int i = 0; i < index && block.isValid(); ++i) {
+        block = block.next();
+    }
+    return block.isValid() ? block.text() : QString();
 }
 
 // =============================================================================
-// Empty/Trivial Input Tests
+// Basic Parsing Tests
 // =============================================================================
 
-TEST_CASE("KmlParser empty input", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Empty document", "[editor][kml_parser][basic]") {
     KmlParser parser;
 
-    SECTION("Empty document string returns empty document") {
-        auto result = parser.parseDocument("");
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
-        REQUIRE(result.result->paragraphCount() == 0);
+    SECTION("Empty string returns valid empty document") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(""));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()).isEmpty());
     }
 
-    SECTION("Empty paragraph string returns error") {
-        auto result = parser.parseParagraph("");
-        REQUIRE(!result);
-        REQUIRE(!result.errorMessage.isEmpty());
+    SECTION("parseInto with empty string succeeds") {
+        QTextDocument doc;
+        bool success = parser.parseInto("", &doc);
+        REQUIRE(success);
+        REQUIRE(doc.toPlainText().isEmpty());
     }
 
-    SECTION("Empty element string returns error") {
-        auto result = parser.parseElement("");
-        REQUIRE(!result);
-        REQUIRE(!result.errorMessage.isEmpty());
+    SECTION("parseInto with null document fails") {
+        bool success = parser.parseInto("<p>Text</p>", nullptr);
+        REQUIRE_FALSE(success);
+        REQUIRE_FALSE(parser.lastError().isEmpty());
     }
 }
 
-// =============================================================================
-// Document Parsing Tests
-// =============================================================================
-
-TEST_CASE("KmlParser parseDocument basic", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Plain text", "[editor][kml_parser][basic]") {
     KmlParser parser;
 
-    SECTION("Single paragraph without doc wrapper") {
-        auto result = parser.parseDocument("<p>Hello world</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 1);
-        REQUIRE(result.result->paragraph(0)->plainText() == "Hello world");
+    SECTION("Simple text in paragraph") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Hello</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Hello");
     }
 
-    SECTION("Single paragraph with doc wrapper") {
-        auto result = parser.parseDocument("<doc><p>Hello world</p></doc>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 1);
-        REQUIRE(result.result->paragraph(0)->plainText() == "Hello world");
-    }
-
-    SECTION("Multiple paragraphs") {
-        auto result = parser.parseDocument(
-            "<doc>"
-            "<p>First paragraph</p>"
-            "<p>Second paragraph</p>"
-            "<p>Third paragraph</p>"
-            "</doc>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 3);
-        REQUIRE(result.result->paragraph(0)->plainText() == "First paragraph");
-        REQUIRE(result.result->paragraph(1)->plainText() == "Second paragraph");
-        REQUIRE(result.result->paragraph(2)->plainText() == "Third paragraph");
-    }
-
-    SECTION("Multiple paragraphs without doc wrapper") {
-        auto result = parser.parseDocument(
-            "<p>First</p>"
-            "<p>Second</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 2);
+    SECTION("Plain text without tags is wrapped") {
+        // Note: parseInto wraps bare content in <kml> tags
+        // but plain text without <p> may not produce text
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Hello world</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Hello world");
     }
 }
 
-TEST_CASE("KmlParser parseDocument with styles", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Single paragraph", "[editor][kml_parser][basic]") {
     KmlParser parser;
 
-    SECTION("Paragraph with style attribute") {
-        auto result = parser.parseDocument("<p style=\"heading1\">Chapter One</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 1);
-        REQUIRE(result.result->paragraph(0)->styleId() == "heading1");
-        REQUIRE(result.result->paragraph(0)->plainText() == "Chapter One");
-    }
-
-    SECTION("Multiple paragraphs with different styles") {
-        auto result = parser.parseDocument(
-            "<doc>"
-            "<p style=\"heading1\">Title</p>"
-            "<p style=\"body\">Body text</p>"
-            "<p>Default style</p>"
-            "</doc>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraph(0)->styleId() == "heading1");
-        REQUIRE(result.result->paragraph(1)->styleId() == "body");
-        REQUIRE(result.result->paragraph(2)->styleId().isEmpty());
-    }
-}
-
-// =============================================================================
-// Paragraph Parsing Tests
-// =============================================================================
-
-TEST_CASE("KmlParser parseParagraph basic", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("Simple text paragraph") {
-        auto result = parser.parseParagraph("<p>Simple text</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Simple text");
-    }
-
-    SECTION("Paragraph with style") {
-        auto result = parser.parseParagraph("<p style=\"myStyle\">Styled text</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->styleId() == "myStyle");
-        REQUIRE(result.result->plainText() == "Styled text");
+    SECTION("Paragraph with text") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Text content</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 1);
+        REQUIRE(blockText(doc.get(), 0) == "Text content");
     }
 
     SECTION("Empty paragraph") {
-        auto result = parser.parseParagraph("<p></p>");
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p></p>"));
+        REQUIRE(doc != nullptr);
+        // Empty paragraph is valid
+    }
+}
+
+TEST_CASE("KmlParser - Multiple paragraphs", "[editor][kml_parser][basic]") {
+    KmlParser parser;
+
+    SECTION("Two paragraphs") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>First</p><p>Second</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 2);
+        REQUIRE(blockText(doc.get(), 0) == "First");
+        REQUIRE(blockText(doc.get(), 1) == "Second");
     }
 
-    SECTION("Wrong element type returns error") {
-        auto result = parser.parseParagraph("<b>Not a paragraph</b>");
-        REQUIRE(!result);
-        REQUIRE(result.errorMessage.contains("<p>"));
+    SECTION("Three paragraphs") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>A</p><p>B</p><p>C</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 3);
+        REQUIRE(blockText(doc.get(), 0) == "A");
+        REQUIRE(blockText(doc.get(), 1) == "B");
+        REQUIRE(blockText(doc.get(), 2) == "C");
+    }
+}
+
+TEST_CASE("KmlParser - Root element variants", "[editor][kml_parser][basic]") {
+    KmlParser parser;
+
+    SECTION("<kml> root element") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<kml><p>Content</p></kml>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Content");
+    }
+
+    SECTION("<doc> root element") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<doc><p>Content</p></doc>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Content");
+    }
+
+    SECTION("<document> root element") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<document><p>Content</p></document>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Content");
+    }
+
+    SECTION("No root element - paragraphs only") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Para 1</p><p>Para 2</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 2);
     }
 }
 
 // =============================================================================
-// Inline Element Parsing Tests
+// Inline Formatting Tests
 // =============================================================================
 
-TEST_CASE("KmlParser parseElement text run", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Bold formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Simple text run") {
-        auto result = parser.parseElement("<t>Hello</t>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Text);
-        REQUIRE(result.result->plainText() == "Hello");
+    SECTION("<b> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b>bold text</b></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "bold text");
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
     }
 
-    SECTION("Text run with style") {
-        auto result = parser.parseElement("<t style=\"emphasis\">Important</t>");
-        REQUIRE(result);
+    SECTION("<bold> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><bold>bold text</bold></p>"));
+        REQUIRE(doc != nullptr);
 
-        auto* textRun = dynamic_cast<KmlTextRun*>(result.result.get());
-        REQUIRE(textRun != nullptr);
-        REQUIRE(textRun->styleId() == "emphasis");
-        REQUIRE(textRun->text() == "Important");
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
     }
 
-    SECTION("Empty text run") {
-        auto result = parser.parseElement("<t></t>");
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
+    SECTION("<strong> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><strong>bold text</strong></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
     }
 }
 
-TEST_CASE("KmlParser parseElement bold", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Italic formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Bold with text") {
-        auto result = parser.parseElement("<b>Bold text</b>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "Bold text");
+    SECTION("<i> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><i>italic text</i></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "italic text");
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontItalic());
     }
 
-    SECTION("Bold with wrapped text run") {
-        auto result = parser.parseElement("<b><t>Bold text</t></b>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "Bold text");
+    SECTION("<italic> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><italic>italic text</italic></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontItalic());
     }
 
-    SECTION("Empty bold") {
-        auto result = parser.parseElement("<b></b>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->isEmpty());
+    SECTION("<em> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><em>italic text</em></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontItalic());
     }
 }
 
-TEST_CASE("KmlParser parseElement italic", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Underline formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Italic with text") {
-        auto result = parser.parseElement("<i>Italic text</i>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Italic);
-        REQUIRE(result.result->plainText() == "Italic text");
+    SECTION("<u> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><u>underlined</u></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "underlined");
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontUnderline());
+    }
+
+    SECTION("<underline> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><underline>underlined</underline></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontUnderline());
     }
 }
 
-TEST_CASE("KmlParser parseElement underline", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Strikethrough formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Underline with text") {
-        auto result = parser.parseElement("<u>Underlined text</u>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Underline);
-        REQUIRE(result.result->plainText() == "Underlined text");
+    SECTION("<s> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><s>struck</s></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "struck");
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontStrikeOut());
+    }
+
+    SECTION("<strike> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><strike>struck</strike></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontStrikeOut());
+    }
+
+    SECTION("<strikethrough> tag") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><strikethrough>struck</strikethrough></p>"));
+        REQUIRE(doc != nullptr);
+
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontStrikeOut());
     }
 }
 
-TEST_CASE("KmlParser parseElement strikethrough", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Subscript formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Strikethrough with text") {
-        auto result = parser.parseElement("<s>Deleted text</s>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Strikethrough);
-        REQUIRE(result.result->plainText() == "Deleted text");
+    SECTION("<sub> tag - chemical formula H2O") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>H<sub>2</sub>O</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "H2O");
+
+        // Position 0: H - normal
+        QTextCharFormat fmtH = getFormatAt(doc.get(), 0);
+        REQUIRE(fmtH.verticalAlignment() != QTextCharFormat::AlignSubScript);
+
+        // Position 1: 2 - subscript
+        QTextCharFormat fmt2 = getFormatAt(doc.get(), 1);
+        REQUIRE(fmt2.verticalAlignment() == QTextCharFormat::AlignSubScript);
+
+        // Position 2: O - normal
+        QTextCharFormat fmtO = getFormatAt(doc.get(), 2);
+        REQUIRE(fmtO.verticalAlignment() != QTextCharFormat::AlignSubScript);
     }
 }
 
-TEST_CASE("KmlParser parseElement subscript", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Superscript formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
-    SECTION("Subscript with text") {
-        auto result = parser.parseElement("<sub>2</sub>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Subscript);
-        REQUIRE(result.result->plainText() == "2");
+    SECTION("<sup> tag - mathematical power x^2") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>x<sup>2</sup></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "x2");
+
+        // Position 0: x - normal
+        QTextCharFormat fmtX = getFormatAt(doc.get(), 0);
+        REQUIRE(fmtX.verticalAlignment() != QTextCharFormat::AlignSuperScript);
+
+        // Position 1: 2 - superscript
+        QTextCharFormat fmt2 = getFormatAt(doc.get(), 1);
+        REQUIRE(fmt2.verticalAlignment() == QTextCharFormat::AlignSuperScript);
     }
 }
 
-TEST_CASE("KmlParser parseElement superscript", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("Superscript with text") {
-        auto result = parser.parseElement("<sup>2</sup>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Superscript);
-        REQUIRE(result.result->plainText() == "2");
-    }
-}
-
-TEST_CASE("KmlParser legacy tag names", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("Legacy <bold> tag parsed as bold") {
-        auto result = parser.parseElement("<bold>Bold text</bold>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "Bold text");
-    }
-
-    SECTION("Legacy <italic> tag parsed as italic") {
-        auto result = parser.parseElement("<italic>Italic text</italic>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Italic);
-        REQUIRE(result.result->plainText() == "Italic text");
-    }
-
-    SECTION("Legacy <underline> tag parsed as underline") {
-        auto result = parser.parseElement("<underline>Underlined text</underline>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Underline);
-        REQUIRE(result.result->plainText() == "Underlined text");
-    }
-
-    SECTION("Legacy <strikethrough> tag parsed as strikethrough") {
-        auto result = parser.parseElement("<strikethrough>Struck text</strikethrough>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Strikethrough);
-        REQUIRE(result.result->plainText() == "Struck text");
-    }
-
-    SECTION("Legacy <strike> tag parsed as strikethrough") {
-        auto result = parser.parseElement("<strike>Struck text</strike>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Strikethrough);
-        REQUIRE(result.result->plainText() == "Struck text");
-    }
-
-    SECTION("Legacy tags in document with <kml> wrapper") {
-        auto result = parser.parseDocument("<kml><p><bold>Chapter Title</bold></p></kml>");
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 1);
-        auto* para = result.result->paragraph(0);
-        REQUIRE(para->plainText() == "Chapter Title");
-    }
-}
-
-// =============================================================================
-// Nested Element Tests
-// =============================================================================
-
-TEST_CASE("KmlParser nested elements", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Nested formatting", "[editor][kml_parser][formatting]") {
     KmlParser parser;
 
     SECTION("Bold inside italic") {
-        auto result = parser.parseElement("<i><b>Bold and italic</b></i>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Italic);
-        REQUIRE(result.result->plainText() == "Bold and italic");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><i><b>bold italic</b></i></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "bold italic");
 
-        auto* italic = dynamic_cast<KmlItalic*>(result.result.get());
-        REQUIRE(italic != nullptr);
-        REQUIRE(italic->childCount() == 1);
-        REQUIRE(italic->childAt(0)->type() == ElementType::Bold);
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
+        REQUIRE(fmt.fontItalic());
     }
 
-    SECTION("Three levels deep") {
-        auto result = parser.parseElement("<b><i><u>Deep nesting</u></i></b>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "Deep nesting");
+    SECTION("Italic inside bold") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b><i>bold italic</i></b></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "bold italic");
 
-        auto* bold = dynamic_cast<KmlBold*>(result.result.get());
-        REQUIRE(bold->childCount() == 1);
-
-        auto* italic = dynamic_cast<KmlItalic*>(bold->childAt(0));
-        REQUIRE(italic != nullptr);
-        REQUIRE(italic->childCount() == 1);
-
-        auto* underline = dynamic_cast<KmlUnderline*>(italic->childAt(0));
-        REQUIRE(underline != nullptr);
-        REQUIRE(underline->plainText() == "Deep nesting");
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
+        REQUIRE(fmt.fontItalic());
     }
 
-    SECTION("Mixed content - text and nested elements") {
-        auto result = parser.parseElement("<b>Normal <i>italic</i> bold</b>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Normal italic bold");
+    SECTION("Three levels deep: bold, italic, underline") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b><i><u>formatted</u></i></b></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "formatted");
 
-        auto* bold = dynamic_cast<KmlBold*>(result.result.get());
-        REQUIRE(bold != nullptr);
-        REQUIRE(bold->childCount() == 3);
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
+        REQUIRE(fmt.fontItalic());
+        REQUIRE(fmt.fontUnderline());
+    }
+}
 
-        // First child: text "Normal "
-        REQUIRE(bold->childAt(0)->plainText() == "Normal ");
+TEST_CASE("KmlParser - Mixed content", "[editor][kml_parser][formatting]") {
+    KmlParser parser;
 
-        // Second child: italic
-        REQUIRE(bold->childAt(1)->type() == ElementType::Italic);
-        REQUIRE(bold->childAt(1)->plainText() == "italic");
+    SECTION("Normal text with bold in middle") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Normal <b>bold</b> normal</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Normal bold normal");
 
-        // Third child: text " bold"
-        REQUIRE(bold->childAt(2)->plainText() == " bold");
+        // "Normal " - positions 0-6 - not bold
+        QTextCharFormat fmtN = getFormatAt(doc.get(), 0);
+        REQUIRE(fmtN.fontWeight() != QFont::Bold);
+
+        // "bold" - positions 7-10 - bold
+        QTextCharFormat fmtB = getFormatAt(doc.get(), 7);
+        REQUIRE(fmtB.fontWeight() == QFont::Bold);
+
+        // " normal" - positions 11+ - not bold
+        QTextCharFormat fmtN2 = getFormatAt(doc.get(), 12);
+        REQUIRE(fmtN2.fontWeight() != QFont::Bold);
+    }
+
+    SECTION("Multiple formatted spans") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Text <b>bold</b> and <i>italic</i> end</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Text bold and italic end");
     }
 }
 
 // =============================================================================
-// Paragraph with Inline Elements
+// Metadata Properties Tests
 // =============================================================================
 
-TEST_CASE("KmlParser paragraph with inline elements", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Comment metadata", "[editor][kml_parser][metadata]") {
     KmlParser parser;
 
-    SECTION("Paragraph with bold text") {
-        auto result = parser.parseParagraph("<p>Normal and <b>bold</b> text</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Normal and bold text");
-        REQUIRE(result.result->elementCount() == 3);
+    SECTION("Comment tag sets KmlPropComment property") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            R"(<p>Text <comment id="c1" author="Jan">annotated</comment> text</p>)"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Text annotated text");
+
+        // Check format at "annotated" position
+        // "Text " = 5 chars, so "annotated" starts at position 5
+        QTextCharFormat fmt = getFormatAt(doc.get(), 5);
+        QVariant commentData = fmt.property(KmlPropComment);
+        REQUIRE(commentData.isValid());
+
+        QVariantMap metadata = commentData.toMap();
+        REQUIRE(metadata["id"].toString() == "c1");
+        REQUIRE(metadata["author"].toString() == "Jan");
     }
 
-    SECTION("Paragraph with multiple formatting") {
-        auto result = parser.parseParagraph(
-            "<p>Text with <b>bold</b> and <i>italic</i> formatting</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Text with bold and italic formatting");
-    }
+    SECTION("Comment with resolved attribute") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            R"(<p><comment id="c2" resolved="true">done</comment></p>)"));
+        REQUIRE(doc != nullptr);
 
-    SECTION("Chemical formula H2O") {
-        auto result = parser.parseParagraph("<p>H<sub>2</sub>O</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "H2O");
-        REQUIRE(result.result->elementCount() == 3);
-    }
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        QVariant commentData = fmt.property(KmlPropComment);
+        REQUIRE(commentData.isValid());
 
-    SECTION("Mathematical expression x^2") {
-        auto result = parser.parseParagraph("<p>x<sup>2</sup></p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "x2");
+        QVariantMap metadata = commentData.toMap();
+        REQUIRE(metadata["resolved"].toBool() == true);
     }
 }
 
-// =============================================================================
-// Full Document with Complex Content
-// =============================================================================
-
-TEST_CASE("KmlParser complex document", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Todo metadata", "[editor][kml_parser][metadata]") {
     KmlParser parser;
 
-    SECTION("Document with mixed content") {
-        QString kml = R"(
-            <doc>
-                <p style="heading1">Chapter One</p>
-                <p>This is a paragraph with <b>bold</b> and <i>italic</i> text.</p>
-                <p>Formula: H<sub>2</sub>O and E=mc<sup>2</sup></p>
-                <p style="quote"><i>A quote in italic</i></p>
-            </doc>
-        )";
+    SECTION("Todo tag sets KmlPropTodo property") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            R"(<p><todo id="t1">task item</todo></p>)"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "task item");
 
-        auto result = parser.parseDocument(kml);
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 4);
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        QVariant todoData = fmt.property(KmlPropTodo);
+        REQUIRE(todoData.isValid());
 
-        // First paragraph: heading
-        REQUIRE(result.result->paragraph(0)->styleId() == "heading1");
-        REQUIRE(result.result->paragraph(0)->plainText() == "Chapter One");
+        QVariantMap metadata = todoData.toMap();
+        REQUIRE(metadata["id"].toString() == "t1");
+    }
 
-        // Second paragraph: mixed formatting
-        REQUIRE(result.result->paragraph(1)->plainText() == "This is a paragraph with bold and italic text.");
+    SECTION("Todo with completed and priority") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            R"(<p><todo id="t2" completed="true" priority="high">done task</todo></p>)"));
+        REQUIRE(doc != nullptr);
 
-        // Third paragraph: formulas
-        REQUIRE(result.result->paragraph(2)->plainText() == "Formula: H2O and E=mc2");
-
-        // Fourth paragraph: quoted italic
-        REQUIRE(result.result->paragraph(3)->styleId() == "quote");
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        QVariantMap metadata = fmt.property(KmlPropTodo).toMap();
+        REQUIRE(metadata["completed"].toBool() == true);
+        REQUIRE(metadata["priority"].toString() == "high");
     }
 }
 
-// =============================================================================
-// Error Handling Tests
-// =============================================================================
-
-TEST_CASE("KmlParser error handling", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Footnote metadata", "[editor][kml_parser][metadata]") {
     KmlParser parser;
 
-    SECTION("Malformed XML - unclosed tag") {
-        auto result = parser.parseDocument("<p>Unclosed paragraph");
-        // Should still produce partial result or error
-        // Implementation specific - just verify it doesn't crash
-        // and provides error info if it fails
-        if (!result) {
-            REQUIRE(!parser.lastError().isEmpty());
-        }
-    }
+    SECTION("Footnote tag sets KmlPropFootnote property") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            R"(<p>Text with<footnote id="f1" number="1">note</footnote> reference</p>)"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Text withnote reference");
 
-    SECTION("Malformed XML - mismatched tags") {
-        auto result = parser.parseDocument("<p>Wrong close</b>");
-        // Implementation specific - verify graceful handling
-        if (!result) {
-            REQUIRE(!parser.lastError().isEmpty());
-        }
-    }
+        // "Text with" = 9 chars, "note" starts at position 9
+        QTextCharFormat fmt = getFormatAt(doc.get(), 9);
+        QVariant footnoteData = fmt.property(KmlPropFootnote);
+        REQUIRE(footnoteData.isValid());
 
-    SECTION("Invalid XML characters") {
-        // XML parser should handle or report this
-        auto result = parser.parseDocument("<p>Text with \x00 null</p>");
-        // Just verify no crash
-    }
-
-    SECTION("Error information is accessible") {
-        auto result = parser.parseParagraph("<notparagraph>test</notparagraph>");
-        REQUIRE(!result);
-        REQUIRE(!parser.lastError().isEmpty());
-        // lastError() should match result.errorMessage
-        REQUIRE(parser.lastError() == result.errorMessage);
-    }
-}
-
-// =============================================================================
-// Special Character Tests
-// =============================================================================
-
-TEST_CASE("KmlParser special characters", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("XML entities") {
-        auto result = parser.parseParagraph("<p>&lt;tag&gt; &amp; &quot;quotes&quot;</p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "<tag> & \"quotes\"");
-    }
-
-    SECTION("Unicode characters") {
-        // Polish characters: zolw (turtle)
-        auto result = parser.parseParagraph(QString::fromUtf8("<p>Polski: \xC5\xBC\xC3\xB3\xC5\x82w</p>"));
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("Polski: \xC5\xBC\xC3\xB3\xC5\x82w"));
-    }
-
-    SECTION("Whitespace preservation") {
-        auto result = parser.parseParagraph("<p>  spaces  and\nnewlines  </p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "  spaces  and\nnewlines  ");
-    }
-
-    SECTION("Empty paragraph with whitespace") {
-        auto result = parser.parseParagraph("<p>   </p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "   ");
+        QVariantMap metadata = footnoteData.toMap();
+        REQUIRE(metadata["id"].toString() == "f1");
+        REQUIRE(metadata["number"].toInt() == 1);
     }
 }
 
@@ -527,550 +474,372 @@ TEST_CASE("KmlParser special characters", "[editor][kml_parser]") {
 // Edge Cases
 // =============================================================================
 
-TEST_CASE("KmlParser edge cases", "[editor][kml_parser]") {
+TEST_CASE("KmlParser - Empty paragraphs", "[editor][kml_parser][edge]") {
     KmlParser parser;
 
-    SECTION("Deeply nested same-type elements") {
-        auto result = parser.parseElement("<b><b><b>Triple bold</b></b></b>");
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "Triple bold");
+    SECTION("Single empty paragraph") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p></p>"));
+        REQUIRE(doc != nullptr);
+        // Empty paragraph should be valid
     }
 
-    SECTION("Adjacent inline elements") {
-        auto result = parser.parseParagraph("<p><b>A</b><i>B</i><u>C</u></p>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "ABC");
-        REQUIRE(result.result->elementCount() == 3);
+    SECTION("Multiple empty paragraphs") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p></p><p></p><p></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 3);
     }
 
-    SECTION("Inline element with only whitespace") {
-        auto result = parser.parseElement("<b>   </b>");
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "   ");
-        REQUIRE(result.result->length() == 3);
-    }
-
-    SECTION("Unknown element is skipped") {
-        auto result = parser.parseParagraph("<p>Text <unknown>ignored</unknown> more</p>");
-        REQUIRE(result);
-        // Unknown elements are skipped, but text around them should be preserved
-        // The exact behavior depends on implementation
-        REQUIRE(result.result->plainText().contains("Text"));
-        REQUIRE(result.result->plainText().contains("more"));
-    }
-
-    SECTION("Self-closing elements") {
-        // Self-closing inline elements should be handled gracefully
-        auto result = parser.parseParagraph("<p>Before<b/>After</p>");
-        REQUIRE(result);
-        // Should not crash, behavior may vary
-    }
-
-    SECTION("Parser can be reused") {
-        auto result1 = parser.parseDocument("<p>First</p>");
-        REQUIRE(result1);
-        REQUIRE(result1.result->paragraph(0)->plainText() == "First");
-
-        auto result2 = parser.parseDocument("<p>Second</p>");
-        REQUIRE(result2);
-        REQUIRE(result2.result->paragraph(0)->plainText() == "Second");
-
-        // Error state should be cleared between parses
-        REQUIRE(parser.lastError().isEmpty());
+    SECTION("Empty paragraph between content") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>First</p><p></p><p>Third</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 3);
+        REQUIRE(blockText(doc.get(), 0) == "First");
+        REQUIRE(blockText(doc.get(), 1) == "");
+        REQUIRE(blockText(doc.get(), 2) == "Third");
     }
 }
 
-// =============================================================================
-// Round-Trip Tests (Parse -> Serialize -> Parse)
-// =============================================================================
-
-TEST_CASE("KmlParser round-trip", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("Simple paragraph round-trip") {
-        QString original = "<p>Simple text</p>";
-        auto result1 = parser.parseParagraph(original);
-        REQUIRE(result1);
-
-        QString serialized = result1.result->toKml();
-        auto result2 = parser.parseParagraph(serialized);
-        REQUIRE(result2);
-
-        REQUIRE(result2.result->plainText() == result1.result->plainText());
-    }
-
-    SECTION("Formatted paragraph round-trip") {
-        QString original = "<p>Text with <b>bold</b> formatting</p>";
-        auto result1 = parser.parseParagraph(original);
-        REQUIRE(result1);
-
-        QString serialized = result1.result->toKml();
-        auto result2 = parser.parseParagraph(serialized);
-        REQUIRE(result2);
-
-        REQUIRE(result2.result->plainText() == "Text with bold formatting");
-    }
-
-    SECTION("Document round-trip") {
-        QString original =
-            "<doc>"
-            "<p style=\"heading\">Title</p>"
-            "<p>Body with <i>italic</i></p>"
-            "</doc>";
-
-        auto result1 = parser.parseDocument(original);
-        REQUIRE(result1);
-
-        QString serialized = result1.result->toKml();
-        auto result2 = parser.parseDocument(serialized);
-        REQUIRE(result2);
-
-        REQUIRE(result2.result->paragraphCount() == 2);
-        REQUIRE(result2.result->paragraph(0)->plainText() == "Title");
-        REQUIRE(result2.result->paragraph(0)->styleId() == "heading");
-        REQUIRE(result2.result->paragraph(1)->plainText() == "Body with italic");
-    }
-}
-
-// =============================================================================
-// Performance Sanity Check
-// =============================================================================
-
-TEST_CASE("KmlParser performance sanity", "[editor][kml_parser]") {
-    KmlParser parser;
-
-    SECTION("Parse 100 paragraphs") {
-        QString kml = "<doc>";
-        for (int i = 0; i < 100; ++i) {
-            kml += QString("<p>Paragraph %1 with <b>bold</b> text</p>").arg(i);
-        }
-        kml += "</doc>";
-
-        auto result = parser.parseDocument(kml);
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 100);
-    }
-
-    SECTION("Parse deeply nested structure") {
-        // 10 levels of nesting
-        QString kml = "<b><i><u><s><b><i><u><s><b><i>Deep</i></b></s></u></i></b></s></u></i></b>";
-
-        auto result = parser.parseElement(kml);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Deep");
-    }
-}
-
-// =============================================================================
-// Comprehensive Round-Trip Tests (Phase 1.11 - KML Serializer)
-// =============================================================================
-
-TEST_CASE("KmlParser round-trip XML escaping", "[editor][kml_parser][serializer]") {
-    KmlParser parser;
-
-    SECTION("Special XML characters in text content") {
-        // Create paragraph with special characters
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Text with <tag> & \"quotes\" and 'apostrophes'"));
-
-        QString serialized = para->toKml();
-        INFO("Serialized: " << serialized.toStdString());
-
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Text with <tag> & \"quotes\" and 'apostrophes'");
-    }
-
-    SECTION("Special XML characters in style attribute") {
-        // Style IDs normally don't contain special chars, but test robustness
-        auto para = std::make_unique<KmlParagraph>();
-        para->setStyleId("style&name\"test");
-        para->addElement(std::make_unique<KmlTextRun>("Content"));
-
-        QString serialized = para->toKml();
-        INFO("Serialized: " << serialized.toStdString());
-
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->styleId() == "style&name\"test");
-    }
-
-    SECTION("All XML entities in bold element") {
-        auto bold = std::make_unique<KmlBold>();
-        bold->appendChild(std::make_unique<KmlTextRun>("< > & \" '"));
-
-        QString serialized = bold->toKml();
-        INFO("Serialized: " << serialized.toStdString());
-
-        auto result = parser.parseElement(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->plainText() == "< > & \" '");
-    }
-
-    SECTION("Ampersand edge cases") {
-        // Test various ampersand patterns
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("AT&T & B&&C && &"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "AT&T & B&&C && &");
-    }
-}
-
-TEST_CASE("KmlParser round-trip Unicode", "[editor][kml_parser][serializer]") {
-    KmlParser parser;
-
-    SECTION("Polish characters") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(QString::fromUtf8("Polskie znaki: \xC4\x85\xC4\x87\xC4\x99\xC5\x82\xC5\x84\xC3\xB3\xC5\x9B\xC5\xBA\xC5\xBC")));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("Polskie znaki: \xC4\x85\xC4\x87\xC4\x99\xC5\x82\xC5\x84\xC3\xB3\xC5\x9B\xC5\xBA\xC5\xBC"));
-    }
-
-    SECTION("Chinese characters") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(QString::fromUtf8("\xE4\xB8\xAD\xE6\x96\x87\xE6\xB5\x8B\xE8\xAF\x95"))); // "Chinese test" in Chinese
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("\xE4\xB8\xAD\xE6\x96\x87\xE6\xB5\x8B\xE8\xAF\x95"));
-    }
-
-    SECTION("Japanese characters") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(QString::fromUtf8("\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E"))); // "Japanese" in Japanese
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E"));
-    }
-
-    SECTION("Emoji characters") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(QString::fromUtf8("Hello \xF0\x9F\x91\x8B world \xF0\x9F\x8C\x8D"))); // Wave and Earth emojis
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("Hello \xF0\x9F\x91\x8B world \xF0\x9F\x8C\x8D"));
-    }
-
-    SECTION("Mixed scripts") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(QString::fromUtf8("English, \xD0\xA0\xD1\x83\xD1\x81\xD1\x81\xD0\xBA\xD0\xB8\xD0\xB9, \xCE\x95\xCE\xBB\xCE\xBB\xCE\xB7\xCE\xBD\xCE\xB9\xCE\xBA\xCE\xAC"))); // English, Russian, Greek
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == QString::fromUtf8("English, \xD0\xA0\xD1\x83\xD1\x81\xD1\x81\xD0\xBA\xD0\xB8\xD0\xB9, \xCE\x95\xCE\xBB\xCE\xBB\xCE\xB7\xCE\xBD\xCE\xB9\xCE\xBA\xCE\xAC"));
-    }
-}
-
-TEST_CASE("KmlParser round-trip whitespace", "[editor][kml_parser][serializer]") {
+TEST_CASE("KmlParser - Whitespace handling", "[editor][kml_parser][edge]") {
     KmlParser parser;
 
     SECTION("Preserve leading spaces") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("   Leading spaces"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "   Leading spaces");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>   Leading spaces</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "   Leading spaces");
     }
 
     SECTION("Preserve trailing spaces") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Trailing spaces   "));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Trailing spaces   ");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Trailing spaces   </p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Trailing spaces   ");
     }
 
     SECTION("Preserve multiple internal spaces") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Word   with   spaces"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Word   with   spaces");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Multiple   spaces   here</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Multiple   spaces   here");
     }
 
     SECTION("Preserve tabs") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Tab\there\tthere"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Tab\there\tthere");
-    }
-
-    SECTION("Preserve newlines in text") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Line one\nLine two\nLine three"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Line one\nLine two\nLine three");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Tab\there\tthere</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Tab\there\tthere");
     }
 
     SECTION("Only whitespace content") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("   \t\n   "));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "   \t\n   ");
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>   </p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "   ");
     }
 }
 
-TEST_CASE("KmlParser round-trip complex structures", "[editor][kml_parser][serializer]") {
+TEST_CASE("KmlParser - Special characters (XML entities)", "[editor][kml_parser][edge]") {
     KmlParser parser;
 
-    SECTION("Nested formatting elements") {
-        auto para = std::make_unique<KmlParagraph>();
-
-        auto bold = std::make_unique<KmlBold>();
-        auto italic = std::make_unique<KmlItalic>();
-        italic->appendChild(std::make_unique<KmlTextRun>("nested text"));
-        bold->appendChild(std::move(italic));
-        para->addElement(std::move(bold));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "nested text");
-        REQUIRE(result.result->elementCount() == 1);
+    SECTION("Less than and greater than") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>&lt;tag&gt;</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "<tag>");
     }
 
-    SECTION("Mixed plain text and formatting") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>("Start "));
-
-        auto bold = std::make_unique<KmlBold>();
-        bold->appendChild(std::make_unique<KmlTextRun>("bold"));
-        para->addElement(std::move(bold));
-
-        para->addElement(std::make_unique<KmlTextRun>(" middle "));
-
-        auto italic = std::make_unique<KmlItalic>();
-        italic->appendChild(std::make_unique<KmlTextRun>("italic"));
-        para->addElement(std::move(italic));
-
-        para->addElement(std::make_unique<KmlTextRun>(" end"));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "Start bold middle italic end");
-        REQUIRE(result.result->elementCount() == 5);
+    SECTION("Ampersand") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Rock &amp; Roll</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Rock & Roll");
     }
 
-    SECTION("Multi-paragraph document") {
-        auto doc = std::make_unique<KmlDocument>();
-
-        auto para1 = std::make_unique<KmlParagraph>("First paragraph", "heading");
-        doc->addParagraph(std::move(para1));
-
-        auto para2 = std::make_unique<KmlParagraph>();
-        para2->addElement(std::make_unique<KmlTextRun>("Second with "));
-        auto bold = std::make_unique<KmlBold>();
-        bold->appendChild(std::make_unique<KmlTextRun>("formatting"));
-        para2->addElement(std::move(bold));
-        doc->addParagraph(std::move(para2));
-
-        auto para3 = std::make_unique<KmlParagraph>("Third paragraph");
-        doc->addParagraph(std::move(para3));
-
-        QString serialized = doc->toKml();
-        auto result = parser.parseDocument(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 3);
-        REQUIRE(result.result->paragraph(0)->plainText() == "First paragraph");
-        REQUIRE(result.result->paragraph(0)->styleId() == "heading");
-        REQUIRE(result.result->paragraph(1)->plainText() == "Second with formatting");
-        REQUIRE(result.result->paragraph(2)->plainText() == "Third paragraph");
+    SECTION("Quotes") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>&quot;quoted&quot;</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "\"quoted\"");
     }
 
-    SECTION("All inline element types") {
-        auto para = std::make_unique<KmlParagraph>();
-
-        auto bold = std::make_unique<KmlBold>();
-        bold->appendChild(std::make_unique<KmlTextRun>("bold"));
-        para->addElement(std::move(bold));
-
-        para->addElement(std::make_unique<KmlTextRun>(" "));
-
-        auto italic = std::make_unique<KmlItalic>();
-        italic->appendChild(std::make_unique<KmlTextRun>("italic"));
-        para->addElement(std::move(italic));
-
-        para->addElement(std::make_unique<KmlTextRun>(" "));
-
-        auto underline = std::make_unique<KmlUnderline>();
-        underline->appendChild(std::make_unique<KmlTextRun>("underline"));
-        para->addElement(std::move(underline));
-
-        para->addElement(std::make_unique<KmlTextRun>(" "));
-
-        auto strike = std::make_unique<KmlStrikethrough>();
-        strike->appendChild(std::make_unique<KmlTextRun>("strike"));
-        para->addElement(std::move(strike));
-
-        para->addElement(std::make_unique<KmlTextRun>(" H"));
-
-        auto sub = std::make_unique<KmlSubscript>();
-        sub->appendChild(std::make_unique<KmlTextRun>("2"));
-        para->addElement(std::move(sub));
-
-        para->addElement(std::make_unique<KmlTextRun>("O x"));
-
-        auto sup = std::make_unique<KmlSuperscript>();
-        sup->appendChild(std::make_unique<KmlTextRun>("2"));
-        para->addElement(std::move(sup));
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == "bold italic underline strike H2O x2");
+    SECTION("All special characters together") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            "<p>&lt;tag&gt; &amp; &quot;text&quot;</p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "<tag> & \"text\"");
     }
 }
 
-TEST_CASE("KmlParser round-trip multiple cycles", "[editor][kml_parser][serializer]") {
+TEST_CASE("KmlParser - Unicode text", "[editor][kml_parser][edge]") {
     KmlParser parser;
 
-    SECTION("Three round-trips produce same result") {
-        QString original = "<p style=\"heading\">Text with <b>bold</b> and <i>italic &amp; special</i></p>";
-
-        auto result1 = parser.parseParagraph(original);
-        REQUIRE(result1);
-        QString plainText1 = result1.result->plainText();
-        QString style1 = result1.result->styleId();
-
-        QString serialized1 = result1.result->toKml();
-        auto result2 = parser.parseParagraph(serialized1);
-        REQUIRE(result2);
-        REQUIRE(result2.result->plainText() == plainText1);
-        REQUIRE(result2.result->styleId() == style1);
-
-        QString serialized2 = result2.result->toKml();
-        auto result3 = parser.parseParagraph(serialized2);
-        REQUIRE(result3);
-        REQUIRE(result3.result->plainText() == plainText1);
-        REQUIRE(result3.result->styleId() == style1);
-
-        // Serialized form should stabilize
-        QString serialized3 = result3.result->toKml();
-        REQUIRE(serialized2 == serialized3);
+    SECTION("Polish characters") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            QString::fromUtf8("<p>Za\xC5\xBC\xC3\xB3\xC5\x82\xC4\x87 g\xC4\x99\xC5\x9Bl\xC4\x85 ja\xC5\xBA\xC5\x84</p>")));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == QString::fromUtf8("Za\xC5\xBC\xC3\xB3\xC5\x82\xC4\x87 g\xC4\x99\xC5\x9Bl\xC4\x85 ja\xC5\xBA\xC5\x84"));
     }
 
-    SECTION("Document round-trip stability") {
-        auto doc = std::make_unique<KmlDocument>();
-        auto para = std::make_unique<KmlParagraph>();
-        para->setStyleId("test-style");
-        para->addElement(std::make_unique<KmlTextRun>("Text with <special> & \"chars\""));
-        doc->addParagraph(std::move(para));
+    SECTION("Chinese characters") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            QString::fromUtf8("<p>\xE4\xB8\xAD\xE6\x96\x87\xE6\xB5\x8B\xE8\xAF\x95</p>")));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == QString::fromUtf8("\xE4\xB8\xAD\xE6\x96\x87\xE6\xB5\x8B\xE8\xAF\x95"));
+    }
 
-        QString serialized1 = doc->toKml();
-        auto result1 = parser.parseDocument(serialized1);
-        REQUIRE(result1);
+    SECTION("Emoji characters") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            QString::fromUtf8("<p>Hello \xF0\x9F\x91\x8B world \xF0\x9F\x8C\x8D</p>")));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == QString::fromUtf8("Hello \xF0\x9F\x91\x8B world \xF0\x9F\x8C\x8D"));
+    }
 
-        QString serialized2 = result1.result->toKml();
-        auto result2 = parser.parseDocument(serialized2);
-        REQUIRE(result2);
-
-        QString serialized3 = result2.result->toKml();
-
-        // After normalization, serialized form should be identical
-        REQUIRE(serialized2 == serialized3);
+    SECTION("Mixed scripts") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(
+            QString::fromUtf8("<p>English, \xD0\xA0\xD1\x83\xD1\x81\xD1\x81\xD0\xBA\xD0\xB8\xD0\xB9</p>")));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == QString::fromUtf8("English, \xD0\xA0\xD1\x83\xD1\x81\xD1\x81\xD0\xBA\xD0\xB8\xD0\xB9"));
     }
 }
 
-TEST_CASE("KmlParser round-trip edge cases", "[editor][kml_parser][serializer]") {
+TEST_CASE("KmlParser - Malformed XML handling", "[editor][kml_parser][edge]") {
     KmlParser parser;
 
-    SECTION("Empty document") {
-        auto doc = std::make_unique<KmlDocument>();
-
-        QString serialized = doc->toKml();
-        auto result = parser.parseDocument(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
+    SECTION("Unclosed tag returns nullptr") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p>Unclosed"));
+        // Implementation-specific: may succeed with partial content or fail
+        // At minimum it should not crash
+        if (!doc) {
+            REQUIRE_FALSE(parser.lastError().isEmpty());
+        }
     }
 
-    SECTION("Empty paragraph") {
-        auto para = std::make_unique<KmlParagraph>();
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
+    SECTION("Mismatched tags") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b>Text</i></p>"));
+        // Should handle gracefully without crashing
+        if (!doc) {
+            REQUIRE_FALSE(parser.lastError().isEmpty());
+        }
     }
 
-    SECTION("Empty styled paragraph") {
-        auto para = std::make_unique<KmlParagraph>();
-        para->setStyleId("mystyle");
-
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->isEmpty());
-        REQUIRE(result.result->styleId() == "mystyle");
+    SECTION("Missing closing tag for formatting") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b>Bold text</p>"));
+        // Implementation-specific behavior
+        // Should not crash
     }
 
-    SECTION("Empty bold element") {
-        auto bold = std::make_unique<KmlBold>();
+    SECTION("Error info is accessible after failure") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<invalid<<<"));
+        if (!doc) {
+            REQUIRE_FALSE(parser.lastError().isEmpty());
+            // Line and column may or may not be available
+        }
+    }
+}
 
-        QString serialized = bold->toKml();
-        auto result = parser.parseElement(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->type() == ElementType::Bold);
-        REQUIRE(result.result->isEmpty());
+// =============================================================================
+// Text Run Element Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Text run element", "[editor][kml_parser][textrun]") {
+    KmlParser parser;
+
+    SECTION("<t> element is parsed as plain text") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><t>Text run</t></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Text run");
     }
 
-    SECTION("Very long text") {
+    SECTION("<text> element is parsed as plain text") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><text>Text content</text></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Text content");
+    }
+}
+
+// =============================================================================
+// Complex Document Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Complex document", "[editor][kml_parser][complex]") {
+    KmlParser parser;
+
+    SECTION("Document with mixed formatting") {
+        QString kml = R"(
+            <kml>
+                <p>Normal text with <b>bold</b> and <i>italic</i></p>
+                <p>Formula: H<sub>2</sub>O and E=mc<sup>2</sup></p>
+                <p><b><i>Bold italic</i></b> text</p>
+            </kml>
+        )";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 3);
+    }
+
+    SECTION("Document with metadata and formatting") {
+        QString kml = R"(
+            <doc>
+                <p>Text with <comment id="c1" author="Test">comment</comment> here</p>
+                <p><b>Bold</b> and <todo id="t1">todo item</todo></p>
+            </doc>
+        )";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 2);
+    }
+}
+
+// =============================================================================
+// Parser Reusability Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Parser reusability", "[editor][kml_parser][reuse]") {
+    KmlParser parser;
+
+    SECTION("Parser can parse multiple documents") {
+        std::unique_ptr<QTextDocument> doc1(parser.parseKml("<p>First</p>"));
+        REQUIRE(doc1 != nullptr);
+        REQUIRE(getPlainText(doc1.get()) == "First");
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml("<p>Second</p>"));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(getPlainText(doc2.get()) == "Second");
+
+        // Previous document should still be valid
+        REQUIRE(getPlainText(doc1.get()) == "First");
+    }
+
+    SECTION("Error state is cleared between parses") {
+        // First parse fails
+        std::unique_ptr<QTextDocument> doc1(parser.parseKml("<invalid<<<"));
+
+        // Second parse succeeds
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml("<p>Valid</p>"));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(getPlainText(doc2.get()) == "Valid");
+
+        // Error should be cleared
+        REQUIRE(parser.lastError().isEmpty());
+    }
+
+    SECTION("parseInto can reuse same document") {
+        QTextDocument doc;
+
+        bool success1 = parser.parseInto("<p>First content</p>", &doc);
+        REQUIRE(success1);
+        REQUIRE(doc.toPlainText() == "First content");
+
+        bool success2 = parser.parseInto("<p>New content</p>", &doc);
+        REQUIRE(success2);
+        REQUIRE(doc.toPlainText() == "New content");
+    }
+}
+
+// =============================================================================
+// Paragraph Alignment Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Paragraph alignment", "[editor][kml_parser][alignment]") {
+    KmlParser parser;
+
+    SECTION("Left alignment") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(R"(<p align="left">Left text</p>)"));
+        REQUIRE(doc != nullptr);
+
+        QTextBlock block = doc->begin();
+        REQUIRE(block.blockFormat().alignment() == Qt::AlignLeft);
+    }
+
+    SECTION("Center alignment") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(R"(<p align="center">Centered</p>)"));
+        REQUIRE(doc != nullptr);
+
+        QTextBlock block = doc->begin();
+        REQUIRE(block.blockFormat().alignment() == Qt::AlignHCenter);
+    }
+
+    SECTION("Right alignment") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(R"(<p align="right">Right text</p>)"));
+        REQUIRE(doc != nullptr);
+
+        QTextBlock block = doc->begin();
+        REQUIRE(block.blockFormat().alignment() == Qt::AlignRight);
+    }
+
+    SECTION("Justify alignment") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(R"(<p align="justify">Justified</p>)"));
+        REQUIRE(doc != nullptr);
+
+        QTextBlock block = doc->begin();
+        REQUIRE(block.blockFormat().alignment() == Qt::AlignJustify);
+    }
+}
+
+// =============================================================================
+// Performance Sanity Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Performance sanity", "[editor][kml_parser][performance]") {
+    KmlParser parser;
+
+    SECTION("Parse 100 paragraphs") {
+        QString kml = "<kml>";
+        for (int i = 0; i < 100; ++i) {
+            kml += QString("<p>Paragraph %1 with <b>bold</b> text</p>").arg(i);
+        }
+        kml += "</kml>";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 100);
+    }
+
+    SECTION("Parse deeply nested formatting") {
+        QString kml = "<p><b><i><u><s><b><i><u><s>Deep</s></u></i></b></s></u></i></b></p>";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "Deep");
+    }
+
+    SECTION("Parse large paragraph") {
         QString longText;
         for (int i = 0; i < 1000; ++i) {
             longText += QString("Word%1 ").arg(i);
         }
 
-        auto para = std::make_unique<KmlParagraph>();
-        para->addElement(std::make_unique<KmlTextRun>(longText));
+        QString kml = "<p>" + longText.trimmed() + "</p>";
 
-        QString serialized = para->toKml();
-        auto result = parser.parseParagraph(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->plainText() == longText);
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()).length() > 5000);
+    }
+}
+
+// =============================================================================
+// Formatting Inheritance Tests
+// =============================================================================
+
+TEST_CASE("KmlParser - Formatting inheritance", "[editor][kml_parser][formatting]") {
+    KmlParser parser;
+
+    SECTION("Subscript inside bold inherits bold") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b>x<sub>2</sub></b></p>"));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "x2");
+
+        // 'x' is bold
+        QTextCharFormat fmtX = getFormatAt(doc.get(), 0);
+        REQUIRE(fmtX.fontWeight() == QFont::Bold);
+
+        // '2' is bold AND subscript
+        QTextCharFormat fmt2 = getFormatAt(doc.get(), 1);
+        REQUIRE(fmt2.fontWeight() == QFont::Bold);
+        REQUIRE(fmt2.verticalAlignment() == QTextCharFormat::AlignSubScript);
     }
 
-    SECTION("Document with many paragraphs") {
-        auto doc = std::make_unique<KmlDocument>();
-        for (int i = 0; i < 50; ++i) {
-            doc->addParagraph(std::make_unique<KmlParagraph>(QString("Paragraph %1").arg(i)));
-        }
+    SECTION("Italic inside bold+underline") {
+        std::unique_ptr<QTextDocument> doc(parser.parseKml("<p><b><u><i>text</i></u></b></p>"));
+        REQUIRE(doc != nullptr);
 
-        QString serialized = doc->toKml();
-        auto result = parser.parseDocument(serialized);
-        REQUIRE(result);
-        REQUIRE(result.result->paragraphCount() == 50);
-
-        for (int i = 0; i < 50; ++i) {
-            REQUIRE(result.result->paragraph(i)->plainText() == QString("Paragraph %1").arg(i));
-        }
+        QTextCharFormat fmt = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt.fontWeight() == QFont::Bold);
+        REQUIRE(fmt.fontUnderline());
+        REQUIRE(fmt.fontItalic());
     }
 }

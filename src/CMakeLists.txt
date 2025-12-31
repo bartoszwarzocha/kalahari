@@ -21,10 +21,8 @@ set(KALAHARI_CORE_SOURCES
     editor/table_layout.cpp      # Phase 2.6: Table layout
     editor/virtual_scroll_manager.cpp  # Phase 2.8: Virtual scroll manager
     editor/layout_manager.cpp          # Phase 2.11: Layout manager
-    editor/text_buffer.cpp             # OpenSpec #00043: High-performance text buffer
-    editor/lazy_layout_manager.cpp     # OpenSpec #00043: Lazy layout manager
-    editor/format_layer.cpp            # OpenSpec #00043: Format layer with interval tree
-    editor/kml_converter.cpp           # OpenSpec #00043: KML to TextBuffer/FormatLayer converter
+    # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
+    # Replaced with QTextDocument + KmlParser/KmlSerializer
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     editor/view_modes.cpp              # Phase 5: View mode registry

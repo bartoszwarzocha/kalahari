@@ -26,14 +26,16 @@
 #include <kalahari/editor/view_modes.h>
 #include <kalahari/editor/virtual_scroll_manager.h>
 // Phase 8: New performance-optimized architecture (OpenSpec #00043)
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/format_layer.h>
-#include <kalahari/editor/lazy_layout_manager.h>
+// Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer, TextBuffer - use QTextDocument directly
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/render_engine.h>
-#include <kalahari/editor/kml_converter.h>
+// Phase 11.6: Removed kml_converter.h - MetadataLayer removed, markers use buffer_commands.h
+#include <kalahari/editor/kml_parser.h>
+#include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/search_engine.h>
 #include <QWidget>
+#include <QTextCursor>
+#include <QTextDocument>
 #include <QList>
 #include <memory>
 #include <optional>
@@ -1182,14 +1184,12 @@ private:
     // Phase 8: New Performance-Optimized Components (OpenSpec #00043)
     // =========================================================================
 
-    /// @brief Text buffer with Fenwick tree for O(log N) height queries (Task 8.1)
-    std::unique_ptr<TextBuffer> m_textBuffer;
+    /// @brief QTextDocument for text storage (Phase 11.6)
+    /// @note Replaced TextBuffer - using QTextDocument directly
+    std::unique_ptr<QTextDocument> m_textBuffer;
 
-    /// @brief Format layer with interval tree for O(log N) format queries (Task 8.2)
-    std::unique_ptr<FormatLayer> m_formatLayer;
-
-    /// @brief Lazy layout manager for viewport-only layout calculation (Task 8.3)
-    std::unique_ptr<LazyLayoutManager> m_lazyLayoutManager;
+    /// @brief QTextCursor for direct cursor operations (Phase 11.6)
+    QTextCursor m_textCursor;
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;
@@ -1197,8 +1197,8 @@ private:
     /// @brief Render engine for efficient viewport-only rendering (Task 8.5)
     std::unique_ptr<RenderEngine> m_renderEngine;
 
-    /// @brief Metadata layer for comments, TODOs, bookmarks
-    std::unique_ptr<MetadataLayer> m_metadataLayer;
+    // Phase 11.6: Removed MetadataLayer - markers stored in QTextCharFormat::UserProperty
+    // Use findAllMarkers/findNextMarker/findPreviousMarker from buffer_commands.h
 
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)

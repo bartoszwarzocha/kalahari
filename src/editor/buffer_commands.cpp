@@ -1,119 +1,507 @@
 /// @file buffer_commands.cpp
-/// @brief Implementation of undo/redo commands for TextBuffer/FormatLayer
+/// @brief Simplified undo/redo commands for QTextDocument (OpenSpec #00043 Phase 11.5)
 ///
-/// This file implements QUndoCommand-based classes for the new
-/// TextBuffer + FormatLayer architecture (OpenSpec #00043 Phase 9).
+/// This file implements simplified QUndoCommand-based classes that work with
+/// QTextDocument's native undo/redo system.
 
 #include <kalahari/editor/buffer_commands.h>
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/kml_converter.h>  // For MetadataLayer
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTextBlock>
+#include <QUuid>
+#include <QDateTime>
 #include <algorithm>
 
 namespace kalahari::editor {
 
 // =============================================================================
+// TextMarker Implementation
+// =============================================================================
+
+QString TextMarker::toJson() const
+{
+    QJsonObject obj;
+    obj[QStringLiteral("position")] = position;
+    obj[QStringLiteral("length")] = length;
+    obj[QStringLiteral("text")] = text;
+    obj[QStringLiteral("type")] = (type == MarkerType::Todo) ? QStringLiteral("todo") : QStringLiteral("note");
+    obj[QStringLiteral("completed")] = completed;
+    obj[QStringLiteral("priority")] = priority;
+    obj[QStringLiteral("id")] = id;
+    obj[QStringLiteral("timestamp")] = timestamp;
+
+    return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+}
+
+std::optional<TextMarker> TextMarker::fromJson(const QString& json)
+{
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        return std::nullopt;
+    }
+
+    QJsonObject obj = doc.object();
+    TextMarker marker;
+
+    marker.position = obj[QStringLiteral("position")].toInt(0);
+    marker.length = obj[QStringLiteral("length")].toInt(1);
+    marker.text = obj[QStringLiteral("text")].toString();
+
+    QString typeStr = obj[QStringLiteral("type")].toString(QStringLiteral("todo"));
+    marker.type = (typeStr == QStringLiteral("note")) ? MarkerType::Note : MarkerType::Todo;
+
+    marker.completed = obj[QStringLiteral("completed")].toBool(false);
+    marker.priority = obj[QStringLiteral("priority")].toString();
+    marker.id = obj[QStringLiteral("id")].toString();
+    marker.timestamp = obj[QStringLiteral("timestamp")].toString();
+
+    return marker;
+}
+
+QString TextMarker::generateId()
+{
+    return QUuid::createUuid().toString(QUuid::WithoutBraces);
+}
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
 
-size_t calculateAbsolutePosition(const TextBuffer& buffer, int paragraphIndex, int offset)
+int calculateAbsolutePosition(const QTextDocument* document, int blockNumber, int offset)
 {
-    size_t absolutePos = 0;
-
-    // Sum lengths of all paragraphs before this one
-    // Each paragraph is followed by a newline character (except the last)
-    for (int i = 0; i < paragraphIndex && i < static_cast<int>(buffer.paragraphCount()); ++i) {
-        absolutePos += static_cast<size_t>(buffer.paragraphLength(static_cast<size_t>(i)));
-        // Add 1 for the newline separator between paragraphs
-        absolutePos += 1;
+    if (!document) {
+        return 0;
     }
 
-    // Add the offset within the current paragraph
-    absolutePos += static_cast<size_t>(offset);
-
-    return absolutePos;
-}
-
-size_t calculateAbsolutePosition(const TextBuffer& buffer, const CursorPosition& pos)
-{
-    return calculateAbsolutePosition(buffer, pos.paragraph, pos.offset);
-}
-
-CursorPosition absoluteToCursorPosition(const TextBuffer& buffer, size_t absolutePos)
-{
-    size_t currentPos = 0;
-    const size_t paraCount = buffer.paragraphCount();
-
-    for (size_t i = 0; i < paraCount; ++i) {
-        const size_t paraLength = static_cast<size_t>(buffer.paragraphLength(i));
-        const size_t paraEnd = currentPos + paraLength;
-
-        // Check if position is within this paragraph
-        if (absolutePos <= paraEnd) {
-            return CursorPosition{
-                static_cast<int>(i),
-                static_cast<int>(absolutePos - currentPos)
-            };
-        }
-
-        // Move past this paragraph and its newline
-        currentPos = paraEnd + 1;
+    QTextBlock block = document->findBlockByNumber(blockNumber);
+    if (!block.isValid()) {
+        // Return end of document if block doesn't exist
+        return document->characterCount() - 1;
     }
 
-    // Position is past end of document - clamp to end
-    if (paraCount > 0) {
+    return block.position() + offset;
+}
+
+int calculateAbsolutePosition(const QTextDocument* document, const CursorPosition& pos)
+{
+    return calculateAbsolutePosition(document, pos.paragraph, pos.offset);
+}
+
+CursorPosition absoluteToCursorPosition(const QTextDocument* document, int absolutePos)
+{
+    if (!document) {
+        return CursorPosition{0, 0};
+    }
+
+    QTextBlock block = document->findBlock(absolutePos);
+    if (!block.isValid()) {
+        // Clamp to end of document
+        QTextBlock lastBlock = document->lastBlock();
         return CursorPosition{
-            static_cast<int>(paraCount - 1),
-            buffer.paragraphLength(paraCount - 1)
+            lastBlock.blockNumber(),
+            lastBlock.length() - 1  // -1 for block separator
         };
     }
 
-    return CursorPosition{0, 0};
+    return CursorPosition{
+        block.blockNumber(),
+        absolutePos - block.position()
+    };
+}
+
+QTextCursor createCursor(QTextDocument* document, const CursorPosition& pos)
+{
+    if (!document) {
+        return QTextCursor();
+    }
+
+    int absPos = calculateAbsolutePosition(document, pos);
+    QTextCursor cursor(document);
+    cursor.setPosition(absPos);
+    return cursor;
+}
+
+QTextCursor createCursor(QTextDocument* document, const CursorPosition& start, const CursorPosition& end)
+{
+    if (!document) {
+        return QTextCursor();
+    }
+
+    int startPos = calculateAbsolutePosition(document, start);
+    int endPos = calculateAbsolutePosition(document, end);
+
+    QTextCursor cursor(document);
+    cursor.setPosition(startPos);
+    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+    return cursor;
 }
 
 // =============================================================================
-// BufferCommand Base Class
+// DocumentCommand Base Class
 // =============================================================================
 
-BufferCommand::BufferCommand(TextBuffer* buffer,
-                             FormatLayer* formatLayer,
-                             MetadataLayer* metadataLayer,
-                             const CursorPosition& cursorBefore,
-                             const QString& text)
+DocumentCommand::DocumentCommand(QTextDocument* document,
+                                 const CursorPosition& cursorBefore,
+                                 const QString& text)
     : QUndoCommand(text)
-    , m_buffer(buffer)
-    , m_formatLayer(formatLayer)
-    , m_metadataLayer(metadataLayer)
+    , m_document(document)
     , m_cursorBefore(cursorBefore)
     , m_cursorAfter(cursorBefore)
 {
 }
 
 // =============================================================================
+// MarkerAddCommand
+// =============================================================================
+
+MarkerAddCommand::MarkerAddCommand(QTextDocument* document,
+                                   const CursorPosition& cursorBefore,
+                                   const TextMarker& marker)
+    : DocumentCommand(document, cursorBefore,
+                      marker.type == MarkerType::Todo ? QObject::tr("Add TODO") : QObject::tr("Add Note"))
+    , m_marker(marker)
+{
+    // Cursor stays at current position after adding marker
+    m_cursorAfter = cursorBefore;
+}
+
+void MarkerAddCommand::undo()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Remove the marker by clearing the property
+    removeMarkerFromDocument(m_document, m_marker.position);
+}
+
+void MarkerAddCommand::redo()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Add the marker by setting the property
+    setMarkerInDocument(m_document, m_marker);
+}
+
+int MarkerAddCommand::id() const
+{
+    return static_cast<int>(BufferCommandId::MarkerAdd);
+}
+
+// =============================================================================
+// MarkerRemoveCommand
+// =============================================================================
+
+MarkerRemoveCommand::MarkerRemoveCommand(QTextDocument* document,
+                                         const CursorPosition& cursorBefore,
+                                         const TextMarker& marker)
+    : DocumentCommand(document, cursorBefore,
+                      marker.type == MarkerType::Todo ? QObject::tr("Remove TODO") : QObject::tr("Remove Note"))
+    , m_marker(marker)
+{
+    // Cursor stays at current position after removing marker
+    m_cursorAfter = cursorBefore;
+}
+
+void MarkerRemoveCommand::undo()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Restore the marker
+    setMarkerInDocument(m_document, m_marker);
+}
+
+void MarkerRemoveCommand::redo()
+{
+    if (!m_document) {
+        return;
+    }
+
+    // Remove the marker
+    removeMarkerFromDocument(m_document, m_marker.position);
+}
+
+int MarkerRemoveCommand::id() const
+{
+    return static_cast<int>(BufferCommandId::MarkerRemove);
+}
+
+// =============================================================================
+// MarkerToggleCommand
+// =============================================================================
+
+MarkerToggleCommand::MarkerToggleCommand(QTextDocument* document,
+                                         const CursorPosition& cursorBefore,
+                                         const QString& markerId,
+                                         int position)
+    : DocumentCommand(document, cursorBefore, QObject::tr("Toggle TODO"))
+    , m_markerId(markerId)
+    , m_position(position)
+{
+    // Cursor stays at current position after toggling
+    m_cursorAfter = cursorBefore;
+}
+
+void MarkerToggleCommand::undo()
+{
+    // Toggle again to restore previous state
+    toggle();
+}
+
+void MarkerToggleCommand::redo()
+{
+    toggle();
+}
+
+void MarkerToggleCommand::toggle()
+{
+    if (!m_document) {
+        return;
+    }
+
+    QTextCursor cursor(m_document);
+    cursor.setPosition(m_position);
+    cursor.setPosition(m_position + 1, QTextCursor::KeepAnchor);
+
+    QTextCharFormat format = cursor.charFormat();
+    QString markerJson = format.property(KmlPropTodo).toString();
+
+    if (markerJson.isEmpty()) {
+        return;  // No marker at this position
+    }
+
+    auto markerOpt = TextMarker::fromJson(markerJson);
+    if (!markerOpt) {
+        return;  // Invalid JSON
+    }
+
+    // Toggle the completed state
+    TextMarker marker = *markerOpt;
+    marker.completed = !marker.completed;
+
+    // Update the marker in the document
+    QTextCharFormat newFormat;
+    newFormat.setProperty(KmlPropTodo, marker.toJson());
+    cursor.mergeCharFormat(newFormat);
+}
+
+int MarkerToggleCommand::id() const
+{
+    return static_cast<int>(BufferCommandId::MarkerToggle);
+}
+
+// =============================================================================
+// CompositeDocumentCommand
+// =============================================================================
+
+CompositeDocumentCommand::CompositeDocumentCommand(QTextDocument* document,
+                                                   const CursorPosition& cursorBefore,
+                                                   const QString& text)
+    : DocumentCommand(document, cursorBefore, text)
+{
+}
+
+CompositeDocumentCommand::~CompositeDocumentCommand() = default;
+
+void CompositeDocumentCommand::addCommand(std::unique_ptr<DocumentCommand> command)
+{
+    if (command) {
+        // Update cursor after to match the last command
+        m_cursorAfter = command->cursorAfter();
+        m_commands.push_back(std::move(command));
+    }
+}
+
+void CompositeDocumentCommand::undo()
+{
+    // Undo in reverse order
+    for (auto it = m_commands.rbegin(); it != m_commands.rend(); ++it) {
+        (*it)->undo();
+    }
+}
+
+void CompositeDocumentCommand::redo()
+{
+    // Redo in forward order
+    for (auto& cmd : m_commands) {
+        cmd->redo();
+    }
+}
+
+// =============================================================================
+// Marker Utility Functions
+// =============================================================================
+
+std::vector<TextMarker> findAllMarkers(const QTextDocument* document,
+                                       std::optional<MarkerType> typeFilter)
+{
+    std::vector<TextMarker> markers;
+
+    if (!document) {
+        return markers;
+    }
+
+    // Iterate through all characters in the document
+    QTextBlock block = document->begin();
+    while (block.isValid()) {
+        QTextBlock::iterator it;
+        for (it = block.begin(); !it.atEnd(); ++it) {
+            QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+
+            QTextCharFormat format = fragment.charFormat();
+            QString markerJson = format.property(KmlPropTodo).toString();
+
+            if (!markerJson.isEmpty()) {
+                auto markerOpt = TextMarker::fromJson(markerJson);
+                if (markerOpt) {
+                    TextMarker marker = *markerOpt;
+                    // Update position to fragment position
+                    marker.position = fragment.position();
+                    marker.length = fragment.length();
+
+                    // Apply type filter
+                    if (!typeFilter || marker.type == *typeFilter) {
+                        markers.push_back(marker);
+                    }
+                }
+            }
+        }
+        block = block.next();
+    }
+
+    // Sort by position
+    std::sort(markers.begin(), markers.end(),
+              [](const TextMarker& a, const TextMarker& b) {
+                  return a.position < b.position;
+              });
+
+    return markers;
+}
+
+std::optional<TextMarker> findMarkerById(const QTextDocument* document, const QString& markerId)
+{
+    auto markers = findAllMarkers(document);
+
+    for (const auto& marker : markers) {
+        if (marker.id == markerId) {
+            return marker;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<TextMarker> findNextMarker(const QTextDocument* document,
+                                         int fromPosition,
+                                         std::optional<MarkerType> typeFilter)
+{
+    auto markers = findAllMarkers(document, typeFilter);
+
+    for (const auto& marker : markers) {
+        if (marker.position > fromPosition) {
+            return marker;
+        }
+    }
+
+    // Wrap around to beginning
+    if (!markers.empty()) {
+        return markers.front();
+    }
+
+    return std::nullopt;
+}
+
+std::optional<TextMarker> findPreviousMarker(const QTextDocument* document,
+                                             int fromPosition,
+                                             std::optional<MarkerType> typeFilter)
+{
+    auto markers = findAllMarkers(document, typeFilter);
+
+    // Search in reverse order
+    for (auto it = markers.rbegin(); it != markers.rend(); ++it) {
+        if (it->position < fromPosition) {
+            return *it;
+        }
+    }
+
+    // Wrap around to end
+    if (!markers.empty()) {
+        return markers.back();
+    }
+
+    return std::nullopt;
+}
+
+void setMarkerInDocument(QTextDocument* document, const TextMarker& marker)
+{
+    if (!document) {
+        return;
+    }
+
+    QTextCursor cursor(document);
+    cursor.setPosition(marker.position);
+
+    // Select only ONE character at the marker position
+    // The marker's length field is stored as metadata but doesn't span multiple characters
+    // This ensures consistent add/remove behavior
+    int endPos = marker.position + 1;
+    if (endPos > document->characterCount()) {
+        endPos = document->characterCount();
+    }
+    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+
+    // Set the marker property
+    QTextCharFormat format;
+    format.setProperty(KmlPropTodo, marker.toJson());
+    cursor.mergeCharFormat(format);
+}
+
+void removeMarkerFromDocument(QTextDocument* document, int position)
+{
+    if (!document) {
+        return;
+    }
+
+    QTextCursor cursor(document);
+    cursor.setPosition(position);
+    cursor.setPosition(position + 1, QTextCursor::KeepAnchor);
+
+    // Clear the marker property by getting current format and clearing the property
+    QTextCharFormat format = cursor.charFormat();
+    format.clearProperty(KmlPropTodo);
+    cursor.setCharFormat(format);
+}
+
+// =============================================================================
 // TextInsertCommand
 // =============================================================================
 
-TextInsertCommand::TextInsertCommand(TextBuffer* buffer,
-                                     FormatLayer* formatLayer,
-                                     MetadataLayer* metadataLayer,
-                                     const CursorPosition& position,
+TextInsertCommand::TextInsertCommand(QTextDocument* document,
+                                     const CursorPosition& cursorPos,
                                      const QString& text)
-    : BufferCommand(buffer, formatLayer, metadataLayer, position, QObject::tr("Insert Text"))
-    , m_insertPosition(position)
+    : DocumentCommand(document, cursorPos, QObject::tr("Insert Text"))
     , m_text(text)
     , m_timestamp(std::chrono::steady_clock::now())
 {
-    // Calculate cursor position after insertion
-    // Count newlines in text to adjust paragraph
-    int newParagraph = position.paragraph;
-    int newOffset = position.offset;
+    // Calculate cursor position after insert
+    int newParagraph = cursorPos.paragraph;
+    int newOffset = cursorPos.offset + text.length();
 
-    for (const QChar& ch : text) {
-        if (ch == '\n') {
-            ++newParagraph;
-            newOffset = 0;
-        } else {
-            ++newOffset;
-        }
+    // Count newlines in inserted text to adjust paragraph
+    int newlines = text.count('\n');
+    if (newlines > 0) {
+        newParagraph += newlines;
+        int lastNewline = text.lastIndexOf('\n');
+        newOffset = text.length() - lastNewline - 1;
     }
 
     m_cursorAfter = CursorPosition{newParagraph, newOffset};
@@ -121,121 +509,27 @@ TextInsertCommand::TextInsertCommand(TextBuffer* buffer,
 
 void TextInsertCommand::undo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_text.isEmpty()) {
         return;
     }
 
-    // Calculate absolute position for format layer
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_insertPosition);
-
-    // Handle text with newlines - need to merge paragraphs
-    const int newlineCount = m_text.count('\n');
-
-    if (newlineCount > 0) {
-        // Remove the inserted paragraphs by merging them back
-        // Work from the last inserted paragraph back to the first
-        for (int i = newlineCount; i > 0; --i) {
-            const size_t paraToMerge = static_cast<size_t>(m_insertPosition.paragraph) + 1;
-            if (paraToMerge < m_buffer->paragraphCount()) {
-                // Get content of paragraph to merge
-                const QString nextContent = m_buffer->paragraphText(paraToMerge);
-
-                // Remove that paragraph
-                m_buffer->removeParagraph(paraToMerge);
-
-                // Append its content to the current paragraph
-                const size_t currentPara = static_cast<size_t>(m_insertPosition.paragraph);
-                const QString currentContent = m_buffer->paragraphText(currentPara);
-                m_buffer->setParagraphText(currentPara, currentContent + nextContent);
-            }
-        }
-
-        // Now remove the remaining inserted text from the first paragraph
-        const QStringList lines = m_text.split('\n');
-        const QString firstLineInserted = lines.first();
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_insertPosition.paragraph));
-
-        // Remove the first line portion
-        QString newContent = currentContent;
-        newContent.remove(m_insertPosition.offset, firstLineInserted.length());
-        m_buffer->setParagraphText(static_cast<size_t>(m_insertPosition.paragraph), newContent);
-    } else {
-        // Simple case: text within single paragraph
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_insertPosition.paragraph));
-        QString newContent = currentContent;
-        newContent.remove(m_insertPosition.offset, m_text.length());
-        m_buffer->setParagraphText(static_cast<size_t>(m_insertPosition.paragraph), newContent);
-    }
-
-    // Notify format layer about text deletion
-    if (m_formatLayer) {
-        m_formatLayer->onTextDeleted(absPos, static_cast<size_t>(m_text.length()));
-    }
-
-    // Notify metadata layer about text deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(absPos, static_cast<size_t>(m_text.length()));
-    }
+    // Delete the inserted text
+    int startPos = calculateAbsolutePosition(m_document, m_cursorBefore);
+    QTextCursor cursor(m_document);
+    cursor.setPosition(startPos);
+    cursor.setPosition(startPos + m_text.length(), QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
 }
 
 void TextInsertCommand::redo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_text.isEmpty()) {
         return;
     }
 
-    // Calculate absolute position for format layer
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_insertPosition);
-
-    // Handle text with newlines - need to split paragraphs
-    if (m_text.contains('\n')) {
-        const QStringList lines = m_text.split('\n');
-
-        // Get current paragraph content
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_insertPosition.paragraph));
-
-        // Split at insertion point
-        const QString before = currentContent.left(m_insertPosition.offset);
-        const QString after = currentContent.mid(m_insertPosition.offset);
-
-        // Update first paragraph with text before first newline
-        m_buffer->setParagraphText(
-            static_cast<size_t>(m_insertPosition.paragraph),
-            before + lines.first());
-
-        // Insert new paragraphs for each subsequent line
-        for (int i = 1; i < lines.size() - 1; ++i) {
-            m_buffer->insertParagraph(
-                static_cast<size_t>(m_insertPosition.paragraph) + static_cast<size_t>(i),
-                lines[i]);
-        }
-
-        // Last line gets the content after the insertion point
-        const size_t lastParaIndex = static_cast<size_t>(m_insertPosition.paragraph) +
-                                     static_cast<size_t>(lines.size()) - 1;
-        m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-    } else {
-        // Simple case: text within single paragraph
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_insertPosition.paragraph));
-        const QString newContent = currentContent.left(m_insertPosition.offset) +
-                                   m_text +
-                                   currentContent.mid(m_insertPosition.offset);
-        m_buffer->setParagraphText(static_cast<size_t>(m_insertPosition.paragraph), newContent);
-    }
-
-    // Notify format layer about text insertion
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(absPos, static_cast<size_t>(m_text.length()));
-    }
-
-    // Notify metadata layer about text insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(absPos, static_cast<size_t>(m_text.length()));
-    }
+    // Insert the text
+    QTextCursor cursor = createCursor(m_document, m_cursorBefore);
+    cursor.insertText(m_text);
 }
 
 int TextInsertCommand::id() const
@@ -256,28 +550,23 @@ bool TextInsertCommand::mergeWith(const QUndoCommand* other)
         return false;
     }
 
-    // Check time window
-    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        otherInsert->m_timestamp - m_timestamp);
-    if (elapsed.count() > MERGE_WINDOW_MS) {
+    // Don't merge if time gap is too large
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - m_timestamp).count();
+    if (elapsed > MERGE_WINDOW_MS) {
         return false;
     }
 
-    // Check if the new insertion is at the end of our inserted text
-    if (otherInsert->m_insertPosition.paragraph != m_cursorAfter.paragraph ||
-        otherInsert->m_insertPosition.offset != m_cursorAfter.offset) {
+    // Don't merge if not consecutive
+    if (otherInsert->m_cursorBefore != m_cursorAfter) {
         return false;
     }
 
-    // Check maximum merge length
-    if (m_text.length() + otherInsert->m_text.length() > MAX_MERGE_LENGTH) {
-        return false;
-    }
-
-    // Merge the text
+    // Merge: append the new text
     m_text += otherInsert->m_text;
     m_cursorAfter = otherInsert->m_cursorAfter;
-    m_timestamp = otherInsert->m_timestamp;
+    m_timestamp = now;
 
     return true;
 }
@@ -286,131 +575,38 @@ bool TextInsertCommand::mergeWith(const QUndoCommand* other)
 // TextDeleteCommand
 // =============================================================================
 
-TextDeleteCommand::TextDeleteCommand(TextBuffer* buffer,
-                                     FormatLayer* formatLayer,
-                                     MetadataLayer* metadataLayer,
+TextDeleteCommand::TextDeleteCommand(QTextDocument* document,
                                      const CursorPosition& start,
                                      const CursorPosition& end,
-                                     const QString& deletedText,
-                                     const std::vector<FormatRange>& deletedFormats)
-    : BufferCommand(buffer, formatLayer, metadataLayer, start, QObject::tr("Delete Text"))
-    , m_start(start)
-    , m_end(end)
+                                     const QString& deletedText)
+    : DocumentCommand(document, start, QObject::tr("Delete Text"))
+    , m_startPos(start)
+    , m_endPos(end)
     , m_deletedText(deletedText)
-    , m_deletedFormats(deletedFormats)
 {
     m_cursorAfter = start;  // Cursor moves to start of deletion
 }
 
 void TextDeleteCommand::undo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_deletedText.isEmpty()) {
         return;
     }
 
-    // Calculate absolute position
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_start);
-
     // Re-insert the deleted text
-    if (m_deletedText.contains('\n')) {
-        const QStringList lines = m_deletedText.split('\n');
-
-        // Get current paragraph content
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_start.paragraph));
-
-        // Split at insertion point
-        const QString before = currentContent.left(m_start.offset);
-        const QString after = currentContent.mid(m_start.offset);
-
-        // Update first paragraph
-        m_buffer->setParagraphText(
-            static_cast<size_t>(m_start.paragraph),
-            before + lines.first());
-
-        // Insert new paragraphs
-        for (int i = 1; i < lines.size() - 1; ++i) {
-            m_buffer->insertParagraph(
-                static_cast<size_t>(m_start.paragraph) + static_cast<size_t>(i),
-                lines[i]);
-        }
-
-        // Last line
-        const size_t lastParaIndex = static_cast<size_t>(m_start.paragraph) +
-                                     static_cast<size_t>(lines.size()) - 1;
-        m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-    } else {
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_start.paragraph));
-        const QString newContent = currentContent.left(m_start.offset) +
-                                   m_deletedText +
-                                   currentContent.mid(m_start.offset);
-        m_buffer->setParagraphText(static_cast<size_t>(m_start.paragraph), newContent);
-    }
-
-    // Notify format layer about text insertion
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(absPos, static_cast<size_t>(m_deletedText.length()));
-
-        // Restore deleted format ranges
-        for (const auto& range : m_deletedFormats) {
-            m_formatLayer->addFormat(range.start, range.end, range.format);
-        }
-    }
-
-    // Notify metadata layer about text insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(absPos, static_cast<size_t>(m_deletedText.length()));
-    }
+    QTextCursor cursor = createCursor(m_document, m_startPos);
+    cursor.insertText(m_deletedText);
 }
 
 void TextDeleteCommand::redo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_deletedText.isEmpty()) {
         return;
     }
 
-    // Calculate absolute position
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_start);
-
-    // Handle multi-paragraph deletion
-    if (m_start.paragraph != m_end.paragraph) {
-        // Get content to keep from first and last paragraphs
-        const QString firstContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_start.paragraph));
-        const QString lastContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_end.paragraph));
-
-        const QString keepBefore = firstContent.left(m_start.offset);
-        const QString keepAfter = lastContent.mid(m_end.offset);
-
-        // Remove paragraphs from end to start+1 (to preserve first)
-        for (int i = m_end.paragraph; i > m_start.paragraph; --i) {
-            m_buffer->removeParagraph(static_cast<size_t>(i));
-        }
-
-        // Update first paragraph with merged content
-        m_buffer->setParagraphText(
-            static_cast<size_t>(m_start.paragraph),
-            keepBefore + keepAfter);
-    } else {
-        // Single paragraph deletion
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(m_start.paragraph));
-        const QString newContent = currentContent.left(m_start.offset) +
-                                   currentContent.mid(m_end.offset);
-        m_buffer->setParagraphText(static_cast<size_t>(m_start.paragraph), newContent);
-    }
-
-    // Notify format layer about text deletion
-    if (m_formatLayer) {
-        m_formatLayer->onTextDeleted(absPos, static_cast<size_t>(m_deletedText.length()));
-    }
-
-    // Notify metadata layer about text deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(absPos, static_cast<size_t>(m_deletedText.length()));
-    }
+    // Delete the text
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    cursor.removeSelectedText();
 }
 
 int TextDeleteCommand::id() const
@@ -422,88 +618,38 @@ int TextDeleteCommand::id() const
 // ParagraphSplitCommand
 // =============================================================================
 
-ParagraphSplitCommand::ParagraphSplitCommand(TextBuffer* buffer,
-                                             FormatLayer* formatLayer,
-                                             MetadataLayer* metadataLayer,
-                                             const CursorPosition& position,
-                                             const std::vector<FormatRange>& movedFormats)
-    : BufferCommand(buffer, formatLayer, metadataLayer, position, QObject::tr("Split Paragraph"))
-    , m_splitPosition(position)
-    , m_movedFormats(movedFormats)
+ParagraphSplitCommand::ParagraphSplitCommand(QTextDocument* document,
+                                             const CursorPosition& position)
+    : DocumentCommand(document, position, QObject::tr("Split Paragraph"))
+    , m_splitPos(position)
 {
-    // After split, cursor is at start of new paragraph
     m_cursorAfter = CursorPosition{position.paragraph + 1, 0};
 }
 
 void ParagraphSplitCommand::undo()
 {
-    if (!m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Merge the two paragraphs back together
-    const size_t currentPara = static_cast<size_t>(m_splitPosition.paragraph);
-    const size_t nextPara = currentPara + 1;
-
-    if (nextPara >= m_buffer->paragraphCount()) {
-        return;
-    }
-
-    const QString firstContent = m_buffer->paragraphText(currentPara);
-    const QString secondContent = m_buffer->paragraphText(nextPara);
-
-    // Remove the second paragraph
-    m_buffer->removeParagraph(nextPara);
-
-    // Merge content
-    m_buffer->setParagraphText(currentPara, firstContent + secondContent);
-
-    // Calculate absolute position of the split point
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_splitPosition);
-
-    // Notify format layer about newline deletion
-    if (m_formatLayer) {
-        // A paragraph split is essentially inserting a newline character
-        m_formatLayer->onTextDeleted(absPos, 1);
-    }
-
-    // Notify metadata layer about newline deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(absPos, 1);
-    }
+    // Delete the newline to merge paragraphs back
+    // Position is at end of first paragraph (where newline was inserted)
+    int absPos = calculateAbsolutePosition(m_document, m_splitPos);
+    QTextCursor cursor(m_document);
+    cursor.setPosition(absPos);
+    cursor.setPosition(absPos + 1, QTextCursor::KeepAnchor);  // Select newline
+    cursor.removeSelectedText();
 }
 
 void ParagraphSplitCommand::redo()
 {
-    if (!m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    const size_t currentPara = static_cast<size_t>(m_splitPosition.paragraph);
-    const QString currentContent = m_buffer->paragraphText(currentPara);
-
-    // Split the content
-    const QString beforeSplit = currentContent.left(m_splitPosition.offset);
-    const QString afterSplit = currentContent.mid(m_splitPosition.offset);
-
-    // Update current paragraph
-    m_buffer->setParagraphText(currentPara, beforeSplit);
-
-    // Insert new paragraph with remaining content
-    m_buffer->insertParagraph(currentPara + 1, afterSplit);
-
-    // Calculate absolute position of the split point
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, m_splitPosition);
-
-    // Notify format layer about newline insertion
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(absPos, 1);
-    }
-
-    // Notify metadata layer about newline insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(absPos, 1);
-    }
+    // Insert newline to split paragraph
+    QTextCursor cursor = createCursor(m_document, m_splitPos);
+    cursor.insertText(QStringLiteral("\n"));
 }
 
 int ParagraphSplitCommand::id() const
@@ -515,106 +661,55 @@ int ParagraphSplitCommand::id() const
 // ParagraphMergeCommand
 // =============================================================================
 
-ParagraphMergeCommand::ParagraphMergeCommand(TextBuffer* buffer,
-                                             FormatLayer* formatLayer,
-                                             MetadataLayer* metadataLayer,
+ParagraphMergeCommand::ParagraphMergeCommand(QTextDocument* document,
                                              const CursorPosition& cursorPos,
-                                             int mergeFromIndex,
-                                             const QString& mergedContent,
-                                             const std::vector<FormatRange>& mergedFormats)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorPos, QObject::tr("Merge Paragraphs"))
-    , m_mergeFromIndex(mergeFromIndex)
+                                             int paragraphIndex,
+                                             const QString& mergedContent)
+    : DocumentCommand(document, cursorPos, QObject::tr("Merge Paragraphs"))
+    , m_paragraphIndex(paragraphIndex)
     , m_mergedContent(mergedContent)
-    , m_mergedFormats(mergedFormats)
     , m_splitOffset(0)
 {
-    // Calculate split offset (where paragraphs were joined)
-    if (buffer && m_mergeFromIndex > 0) {
-        const size_t targetPara = static_cast<size_t>(m_mergeFromIndex - 1);
-        m_splitOffset = buffer->paragraphLength(targetPara);
+    // Calculate split offset (length of previous paragraph)
+    if (document && paragraphIndex > 0) {
+        QTextBlock prevBlock = document->findBlockByNumber(paragraphIndex - 1);
+        if (prevBlock.isValid()) {
+            m_splitOffset = prevBlock.text().length();
+        }
     }
-
-    // After merge, cursor is at the join point
-    m_cursorAfter = CursorPosition{m_mergeFromIndex - 1, m_splitOffset};
+    m_cursorAfter = CursorPosition{paragraphIndex - 1, m_splitOffset};
 }
 
 void ParagraphMergeCommand::undo()
 {
-    if (!m_buffer || m_mergeFromIndex <= 0) {
+    if (!m_document || m_paragraphIndex <= 0) {
         return;
     }
 
-    const size_t targetPara = static_cast<size_t>(m_mergeFromIndex - 1);
-    const QString mergedParagraph = m_buffer->paragraphText(targetPara);
-
-    // Split back into two paragraphs
-    const QString firstPart = mergedParagraph.left(m_splitOffset);
-    const QString secondPart = mergedParagraph.mid(m_splitOffset);
-
-    // Update the first paragraph
-    m_buffer->setParagraphText(targetPara, firstPart);
-
-    // Re-insert the merged paragraph
-    m_buffer->insertParagraph(static_cast<size_t>(m_mergeFromIndex), secondPart);
-
-    // Calculate absolute position for format layer
-    const CursorPosition splitPos{m_mergeFromIndex - 1, m_splitOffset};
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, splitPos);
-
-    // Notify format layer about newline insertion
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(absPos, 1);
-
-        // Restore merged format ranges
-        for (const auto& range : m_mergedFormats) {
-            m_formatLayer->addFormat(range.start, range.end, range.format);
-        }
-    }
-
-    // Notify metadata layer about newline insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(absPos, 1);
-    }
+    // Re-insert newline to split paragraphs
+    CursorPosition splitPos{m_paragraphIndex - 1, m_splitOffset};
+    QTextCursor cursor = createCursor(m_document, splitPos);
+    cursor.insertText(QStringLiteral("\n"));
 }
 
 void ParagraphMergeCommand::redo()
 {
-    if (!m_buffer || m_mergeFromIndex <= 0) {
+    if (!m_document || m_paragraphIndex <= 0) {
         return;
     }
 
-    const size_t targetPara = static_cast<size_t>(m_mergeFromIndex - 1);
-    const size_t sourcePara = static_cast<size_t>(m_mergeFromIndex);
-
-    if (sourcePara >= m_buffer->paragraphCount()) {
+    // Delete the newline between paragraphs
+    QTextBlock prevBlock = m_document->findBlockByNumber(m_paragraphIndex - 1);
+    if (!prevBlock.isValid()) {
         return;
     }
 
-    const QString firstContent = m_buffer->paragraphText(targetPara);
-    const QString secondContent = m_buffer->paragraphText(sourcePara);
-
-    // Store the split offset for undo
-    m_splitOffset = firstContent.length();
-
-    // Calculate absolute position before merge
-    const CursorPosition splitPos{m_mergeFromIndex - 1, m_splitOffset};
-    const size_t absPos = calculateAbsolutePosition(*m_buffer, splitPos);
-
-    // Remove the source paragraph
-    m_buffer->removeParagraph(sourcePara);
-
-    // Merge content
-    m_buffer->setParagraphText(targetPara, firstContent + secondContent);
-
-    // Notify format layer about newline deletion
-    if (m_formatLayer) {
-        m_formatLayer->onTextDeleted(absPos, 1);
-    }
-
-    // Notify metadata layer about newline deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(absPos, 1);
-    }
+    // Position at end of previous block (where newline is)
+    int newlinePos = prevBlock.position() + prevBlock.length() - 1;
+    QTextCursor cursor(m_document);
+    cursor.setPosition(newlinePos);
+    cursor.setPosition(newlinePos + 1, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
 }
 
 int ParagraphMergeCommand::id() const
@@ -623,96 +718,47 @@ int ParagraphMergeCommand::id() const
 }
 
 // =============================================================================
-// CompositeBufferCommand
-// =============================================================================
-
-CompositeBufferCommand::CompositeBufferCommand(TextBuffer* buffer,
-                                               FormatLayer* formatLayer,
-                                               MetadataLayer* metadataLayer,
-                                               const CursorPosition& cursorBefore,
-                                               const QString& text)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore, text)
-{
-}
-
-CompositeBufferCommand::~CompositeBufferCommand() = default;
-
-void CompositeBufferCommand::addCommand(std::unique_ptr<BufferCommand> command)
-{
-    if (command) {
-        // Update cursor after to match the last command
-        m_cursorAfter = command->cursorAfter();
-        m_commands.push_back(std::move(command));
-    }
-}
-
-void CompositeBufferCommand::undo()
-{
-    // Undo in reverse order
-    for (auto it = m_commands.rbegin(); it != m_commands.rend(); ++it) {
-        (*it)->undo();
-    }
-}
-
-void CompositeBufferCommand::redo()
-{
-    // Redo in forward order
-    for (auto& cmd : m_commands) {
-        cmd->redo();
-    }
-}
-
-// =============================================================================
 // FormatApplyCommand
 // =============================================================================
 
-FormatApplyCommand::FormatApplyCommand(TextBuffer* buffer,
-                                       FormatLayer* formatLayer,
-                                       MetadataLayer* metadataLayer,
+FormatApplyCommand::FormatApplyCommand(QTextDocument* document,
                                        const CursorPosition& start,
                                        const CursorPosition& end,
-                                       const TextFormat& format,
-                                       const std::vector<FormatRange>& previousFormats)
-    : BufferCommand(buffer, formatLayer, metadataLayer, start, QObject::tr("Apply Formatting"))
-    , m_start(start)
-    , m_end(end)
+                                       const QTextCharFormat& format)
+    : DocumentCommand(document, start, QObject::tr("Apply Format"))
+    , m_startPos(start)
+    , m_endPos(end)
     , m_format(format)
-    , m_previousFormats(previousFormats)
 {
-    m_cursorAfter = end;  // Cursor stays at end of formatted range
+    m_cursorAfter = end;
+
+    // Save previous format for undo
+    if (document) {
+        QTextCursor cursor = createCursor(document, start, end);
+        m_previousFormat = cursor.charFormat();
+    }
 }
 
 void FormatApplyCommand::undo()
 {
-    if (!m_formatLayer || !m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Calculate absolute positions
-    const size_t absStart = calculateAbsolutePosition(*m_buffer, m_start);
-    const size_t absEnd = calculateAbsolutePosition(*m_buffer, m_end);
-
-    // Clear the formatting we applied
-    m_formatLayer->clearFormats(absStart, absEnd);
-
-    // Restore previous format ranges
-    for (const auto& range : m_previousFormats) {
-        m_formatLayer->addFormat(range.start, range.end, range.format);
-    }
+    // Restore previous format
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    cursor.setCharFormat(m_previousFormat);
 }
 
 void FormatApplyCommand::redo()
 {
-    if (!m_formatLayer || !m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Calculate absolute positions
-    const size_t absStart = calculateAbsolutePosition(*m_buffer, m_start);
-    const size_t absEnd = calculateAbsolutePosition(*m_buffer, m_end);
-
-    // Apply the format
-    m_formatLayer->addFormat(absStart, absEnd, m_format);
+    // Apply the new format
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    cursor.mergeCharFormat(m_format);
 }
 
 int FormatApplyCommand::id() const
@@ -724,50 +770,43 @@ int FormatApplyCommand::id() const
 // FormatRemoveCommand
 // =============================================================================
 
-FormatRemoveCommand::FormatRemoveCommand(TextBuffer* buffer,
-                                         FormatLayer* formatLayer,
-                                         MetadataLayer* metadataLayer,
+FormatRemoveCommand::FormatRemoveCommand(QTextDocument* document,
                                          const CursorPosition& start,
-                                         const CursorPosition& end,
-                                         FormatType formatType,
-                                         const std::vector<FormatRange>& removedFormats)
-    : BufferCommand(buffer, formatLayer, metadataLayer, start, QObject::tr("Remove Formatting"))
-    , m_start(start)
-    , m_end(end)
-    , m_formatType(formatType)
-    , m_removedFormats(removedFormats)
+                                         const CursorPosition& end)
+    : DocumentCommand(document, start, QObject::tr("Remove Format"))
+    , m_startPos(start)
+    , m_endPos(end)
 {
-    m_cursorAfter = end;  // Cursor stays at end of range
+    m_cursorAfter = end;
+
+    // Save previous format for undo
+    if (document) {
+        QTextCursor cursor = createCursor(document, start, end);
+        m_previousFormat = cursor.charFormat();
+    }
 }
 
 void FormatRemoveCommand::undo()
 {
-    if (!m_formatLayer) {
+    if (!m_document) {
         return;
     }
 
-    // Restore removed format ranges
-    for (const auto& range : m_removedFormats) {
-        m_formatLayer->addFormat(range.start, range.end, range.format);
-    }
+    // Restore previous format
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    cursor.setCharFormat(m_previousFormat);
 }
 
 void FormatRemoveCommand::redo()
 {
-    if (!m_formatLayer || !m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Calculate absolute positions
-    const size_t absStart = calculateAbsolutePosition(*m_buffer, m_start);
-    const size_t absEnd = calculateAbsolutePosition(*m_buffer, m_end);
-
-    // Remove the format(s)
-    if (m_formatType == FormatType::None) {
-        m_formatLayer->clearFormats(absStart, absEnd);
-    } else {
-        m_formatLayer->removeFormat(absStart, absEnd, m_formatType);
-    }
+    // Clear formatting
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    QTextCharFormat clearFormat;
+    cursor.setCharFormat(clearFormat);
 }
 
 int FormatRemoveCommand::id() const
@@ -779,226 +818,56 @@ int FormatRemoveCommand::id() const
 // TextReplaceCommand
 // =============================================================================
 
-TextReplaceCommand::TextReplaceCommand(TextBuffer* buffer,
-                                       FormatLayer* formatLayer,
-                                       MetadataLayer* metadataLayer,
-                                       const CursorPosition& cursorBefore,
-                                       size_t position,
-                                       const QString& originalText,
-                                       const QString& replacementText)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore, QObject::tr("Replace"))
-    , m_position(position)
-    , m_originalText(originalText)
-    , m_replacementText(replacementText)
+TextReplaceCommand::TextReplaceCommand(QTextDocument* document,
+                                       const CursorPosition& start,
+                                       const CursorPosition& end,
+                                       const QString& oldText,
+                                       const QString& newText)
+    : DocumentCommand(document, start, QObject::tr("Replace"))
+    , m_startPos(start)
+    , m_endPos(end)
+    , m_oldText(oldText)
+    , m_newText(newText)
 {
-    // Capture original formats at the replacement position
-    if (m_formatLayer) {
-        m_originalFormats = m_formatLayer->getFormatsInRange(
-            m_position, m_position + static_cast<size_t>(m_originalText.length()));
+    // Calculate cursor after: at end of replaced text
+    int newParagraph = start.paragraph;
+    int newOffset = start.offset + newText.length();
+
+    int newlines = newText.count('\n');
+    if (newlines > 0) {
+        newParagraph += newlines;
+        int lastNewline = newText.lastIndexOf('\n');
+        newOffset = newText.length() - lastNewline - 1;
     }
 
-    // Calculate cursor position after replacement
-    CursorPosition afterPos = absoluteToCursorPosition(*buffer,
-        m_position + static_cast<size_t>(m_replacementText.length()));
-    m_cursorAfter = afterPos;
+    m_cursorAfter = CursorPosition{newParagraph, newOffset};
 }
 
 void TextReplaceCommand::undo()
 {
-    if (!m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Convert absolute position to cursor position for buffer operations
-    CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, m_position);
-
-    // First, delete the replacement text
-    if (m_replacementText.contains('\n')) {
-        // Handle multi-paragraph replacement text
-        const int newlineCount = m_replacementText.count('\n');
-
-        // Remove the inserted paragraphs by merging them back
-        for (int i = newlineCount; i > 0; --i) {
-            const size_t paraToMerge = static_cast<size_t>(cursorPos.paragraph) + 1;
-            if (paraToMerge < m_buffer->paragraphCount()) {
-                const QString nextContent = m_buffer->paragraphText(paraToMerge);
-                m_buffer->removeParagraph(paraToMerge);
-
-                const size_t currentPara = static_cast<size_t>(cursorPos.paragraph);
-                const QString currentContent = m_buffer->paragraphText(currentPara);
-                m_buffer->setParagraphText(currentPara, currentContent + nextContent);
-            }
-        }
-
-        // Remove the remaining replacement text from the first paragraph
-        const QStringList lines = m_replacementText.split('\n');
-        const QString firstLineInserted = lines.first();
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-
-        QString newContent = currentContent;
-        newContent.remove(cursorPos.offset, firstLineInserted.length());
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    } else {
-        // Simple single-paragraph replacement text
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-        QString newContent = currentContent;
-        newContent.remove(cursorPos.offset, m_replacementText.length());
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    }
-
-    // Notify format layer about text deletion
-    if (m_formatLayer) {
-        m_formatLayer->onTextDeleted(m_position, static_cast<size_t>(m_replacementText.length()));
-    }
-
-    // Notify metadata layer about text deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(m_position, static_cast<size_t>(m_replacementText.length()));
-    }
-
-    // Now insert the original text back
-    if (m_originalText.contains('\n')) {
-        const QStringList lines = m_originalText.split('\n');
-
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-
-        const QString before = currentContent.left(cursorPos.offset);
-        const QString after = currentContent.mid(cursorPos.offset);
-
-        m_buffer->setParagraphText(
-            static_cast<size_t>(cursorPos.paragraph),
-            before + lines.first());
-
-        for (int i = 1; i < lines.size() - 1; ++i) {
-            m_buffer->insertParagraph(
-                static_cast<size_t>(cursorPos.paragraph) + static_cast<size_t>(i),
-                lines[i]);
-        }
-
-        const size_t lastParaIndex = static_cast<size_t>(cursorPos.paragraph) +
-                                     static_cast<size_t>(lines.size()) - 1;
-        m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-    } else {
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-        const QString newContent = currentContent.left(cursorPos.offset) +
-                                   m_originalText +
-                                   currentContent.mid(cursorPos.offset);
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    }
-
-    // Notify format layer about text insertion and restore formats
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(m_position, static_cast<size_t>(m_originalText.length()));
-
-        // Restore original format ranges
-        for (const auto& range : m_originalFormats) {
-            m_formatLayer->addFormat(range.start, range.end, range.format);
-        }
-    }
-
-    // Notify metadata layer about text insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(m_position, static_cast<size_t>(m_originalText.length()));
-    }
+    // Delete the new text and insert the old text
+    int startPos = calculateAbsolutePosition(m_document, m_startPos);
+    QTextCursor cursor(m_document);
+    cursor.setPosition(startPos);
+    cursor.setPosition(startPos + m_newText.length(), QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    cursor.insertText(m_oldText);
 }
 
 void TextReplaceCommand::redo()
 {
-    if (!m_buffer) {
+    if (!m_document) {
         return;
     }
 
-    // Convert absolute position to cursor position for buffer operations
-    CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, m_position);
-
-    // First, delete the original text
-    if (m_originalText.contains('\n')) {
-        // Handle multi-paragraph original text
-        const int newlineCount = m_originalText.count('\n');
-
-        for (int i = newlineCount; i > 0; --i) {
-            const size_t paraToMerge = static_cast<size_t>(cursorPos.paragraph) + 1;
-            if (paraToMerge < m_buffer->paragraphCount()) {
-                const QString nextContent = m_buffer->paragraphText(paraToMerge);
-                m_buffer->removeParagraph(paraToMerge);
-
-                const size_t currentPara = static_cast<size_t>(cursorPos.paragraph);
-                const QString currentContent = m_buffer->paragraphText(currentPara);
-                m_buffer->setParagraphText(currentPara, currentContent + nextContent);
-            }
-        }
-
-        const QStringList lines = m_originalText.split('\n');
-        const QString firstLineOriginal = lines.first();
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-
-        QString newContent = currentContent;
-        newContent.remove(cursorPos.offset, firstLineOriginal.length());
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    } else {
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-        QString newContent = currentContent;
-        newContent.remove(cursorPos.offset, m_originalText.length());
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    }
-
-    // Notify format layer about text deletion
-    if (m_formatLayer) {
-        m_formatLayer->onTextDeleted(m_position, static_cast<size_t>(m_originalText.length()));
-    }
-
-    // Notify metadata layer about text deletion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextDeleted(m_position, static_cast<size_t>(m_originalText.length()));
-    }
-
-    // Now insert the replacement text
-    if (m_replacementText.contains('\n')) {
-        const QStringList lines = m_replacementText.split('\n');
-
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-
-        const QString before = currentContent.left(cursorPos.offset);
-        const QString after = currentContent.mid(cursorPos.offset);
-
-        m_buffer->setParagraphText(
-            static_cast<size_t>(cursorPos.paragraph),
-            before + lines.first());
-
-        for (int i = 1; i < lines.size() - 1; ++i) {
-            m_buffer->insertParagraph(
-                static_cast<size_t>(cursorPos.paragraph) + static_cast<size_t>(i),
-                lines[i]);
-        }
-
-        const size_t lastParaIndex = static_cast<size_t>(cursorPos.paragraph) +
-                                     static_cast<size_t>(lines.size()) - 1;
-        m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-    } else {
-        const QString currentContent = m_buffer->paragraphText(
-            static_cast<size_t>(cursorPos.paragraph));
-        const QString newContent = currentContent.left(cursorPos.offset) +
-                                   m_replacementText +
-                                   currentContent.mid(cursorPos.offset);
-        m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-    }
-
-    // Notify format layer about text insertion
-    if (m_formatLayer) {
-        m_formatLayer->onTextInserted(m_position, static_cast<size_t>(m_replacementText.length()));
-    }
-
-    // Notify metadata layer about text insertion
-    if (m_metadataLayer) {
-        m_metadataLayer->onTextInserted(m_position, static_cast<size_t>(m_replacementText.length()));
-    }
+    // Delete the old text and insert the new text
+    QTextCursor cursor = createCursor(m_document, m_startPos, m_endPos);
+    cursor.removeSelectedText();
+    cursor.insertText(m_newText);
 }
 
 int TextReplaceCommand::id() const
@@ -1010,345 +879,54 @@ int TextReplaceCommand::id() const
 // ReplaceAllCommand
 // =============================================================================
 
-ReplaceAllCommand::ReplaceAllCommand(TextBuffer* buffer,
-                                     FormatLayer* formatLayer,
-                                     MetadataLayer* metadataLayer,
-                                     const CursorPosition& cursorBefore,
+ReplaceAllCommand::ReplaceAllCommand(QTextDocument* document,
+                                     const CursorPosition& cursorPos,
                                      const std::vector<Replacement>& replacements)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore, QObject::tr("Replace All"))
+    : DocumentCommand(document, cursorPos, QObject::tr("Replace All"))
     , m_replacements(replacements)
 {
-    // Sort replacements by position in descending order (highest first)
-    // This ensures positions remain valid during replacement
-    std::sort(m_replacements.begin(), m_replacements.end(),
-              [](const Replacement& a, const Replacement& b) {
-                  return a.position > b.position;
-              });
-
-    // Cursor stays at original position after replace all
-    m_cursorAfter = cursorBefore;
+    m_cursorAfter = cursorPos;  // Cursor stays in place
 }
 
 void ReplaceAllCommand::undo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_replacements.empty()) {
         return;
     }
 
-    // Process in forward order (lowest position first) for undo
-    // Since m_replacements is sorted descending, iterate in reverse
-    for (auto it = m_replacements.rbegin(); it != m_replacements.rend(); ++it) {
-        const Replacement& repl = *it;
-
-        // Convert absolute position to cursor position
-        CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, repl.position);
-
-        // Delete the replacement text
-        if (repl.replacementText.contains('\n')) {
-            const int newlineCount = repl.replacementText.count('\n');
-
-            for (int i = newlineCount; i > 0; --i) {
-                const size_t paraToMerge = static_cast<size_t>(cursorPos.paragraph) + 1;
-                if (paraToMerge < m_buffer->paragraphCount()) {
-                    const QString nextContent = m_buffer->paragraphText(paraToMerge);
-                    m_buffer->removeParagraph(paraToMerge);
-
-                    const size_t currentPara = static_cast<size_t>(cursorPos.paragraph);
-                    const QString currentContent = m_buffer->paragraphText(currentPara);
-                    m_buffer->setParagraphText(currentPara, currentContent + nextContent);
-                }
-            }
-
-            const QStringList lines = repl.replacementText.split('\n');
-            const QString firstLine = lines.first();
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-
-            QString newContent = currentContent;
-            newContent.remove(cursorPos.offset, firstLine.length());
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        } else {
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-            QString newContent = currentContent;
-            newContent.remove(cursorPos.offset, repl.replacementText.length());
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        }
-
-        // Notify format layer about deletion
-        if (m_formatLayer) {
-            m_formatLayer->onTextDeleted(repl.position,
-                static_cast<size_t>(repl.replacementText.length()));
-        }
-
-        // Notify metadata layer about deletion
-        if (m_metadataLayer) {
-            m_metadataLayer->onTextDeleted(repl.position,
-                static_cast<size_t>(repl.replacementText.length()));
-        }
-
-        // Insert the original text back
-        if (repl.originalText.contains('\n')) {
-            const QStringList lines = repl.originalText.split('\n');
-
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-
-            const QString before = currentContent.left(cursorPos.offset);
-            const QString after = currentContent.mid(cursorPos.offset);
-
-            m_buffer->setParagraphText(
-                static_cast<size_t>(cursorPos.paragraph),
-                before + lines.first());
-
-            for (int i = 1; i < lines.size() - 1; ++i) {
-                m_buffer->insertParagraph(
-                    static_cast<size_t>(cursorPos.paragraph) + static_cast<size_t>(i),
-                    lines[i]);
-            }
-
-            const size_t lastParaIndex = static_cast<size_t>(cursorPos.paragraph) +
-                                         static_cast<size_t>(lines.size()) - 1;
-            m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-        } else {
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-            const QString newContent = currentContent.left(cursorPos.offset) +
-                                       repl.originalText +
-                                       currentContent.mid(cursorPos.offset);
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        }
-
-        // Notify format layer and restore formats
-        if (m_formatLayer) {
-            m_formatLayer->onTextInserted(repl.position,
-                static_cast<size_t>(repl.originalText.length()));
-
-            for (const auto& range : repl.formats) {
-                m_formatLayer->addFormat(range.start, range.end, range.format);
-            }
-        }
-
-        // Notify metadata layer about insertion
-        if (m_metadataLayer) {
-            m_metadataLayer->onTextInserted(repl.position,
-                static_cast<size_t>(repl.originalText.length()));
-        }
+    // Undo in forward order (from start to end) because after redo, the document
+    // positions have changed. By undoing from start to end, each restoration
+    // shifts subsequent positions back to their original locations.
+    for (const auto& repl : m_replacements) {
+        QTextCursor cursor(m_document);
+        cursor.setPosition(repl.startPos);
+        cursor.setPosition(repl.startPos + repl.newText.length(), QTextCursor::KeepAnchor);
+        cursor.removeSelectedText();
+        cursor.insertText(repl.oldText);
     }
 }
 
 void ReplaceAllCommand::redo()
 {
-    if (!m_buffer) {
+    if (!m_document || m_replacements.empty()) {
         return;
     }
 
-    // Process in descending position order (already sorted)
-    for (const Replacement& repl : m_replacements) {
-        // Convert absolute position to cursor position
-        CursorPosition cursorPos = absoluteToCursorPosition(*m_buffer, repl.position);
+    // Apply in reverse order (from end to start) to maintain positions
+    for (auto it = m_replacements.rbegin(); it != m_replacements.rend(); ++it) {
+        const auto& repl = *it;
 
-        // Delete the original text
-        if (repl.originalText.contains('\n')) {
-            const int newlineCount = repl.originalText.count('\n');
-
-            for (int i = newlineCount; i > 0; --i) {
-                const size_t paraToMerge = static_cast<size_t>(cursorPos.paragraph) + 1;
-                if (paraToMerge < m_buffer->paragraphCount()) {
-                    const QString nextContent = m_buffer->paragraphText(paraToMerge);
-                    m_buffer->removeParagraph(paraToMerge);
-
-                    const size_t currentPara = static_cast<size_t>(cursorPos.paragraph);
-                    const QString currentContent = m_buffer->paragraphText(currentPara);
-                    m_buffer->setParagraphText(currentPara, currentContent + nextContent);
-                }
-            }
-
-            const QStringList lines = repl.originalText.split('\n');
-            const QString firstLine = lines.first();
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-
-            QString newContent = currentContent;
-            newContent.remove(cursorPos.offset, firstLine.length());
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        } else {
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-            QString newContent = currentContent;
-            newContent.remove(cursorPos.offset, repl.originalText.length());
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        }
-
-        // Notify format layer about deletion
-        if (m_formatLayer) {
-            m_formatLayer->onTextDeleted(repl.position,
-                static_cast<size_t>(repl.originalText.length()));
-        }
-
-        // Notify metadata layer about deletion
-        if (m_metadataLayer) {
-            m_metadataLayer->onTextDeleted(repl.position,
-                static_cast<size_t>(repl.originalText.length()));
-        }
-
-        // Insert the replacement text
-        if (repl.replacementText.contains('\n')) {
-            const QStringList lines = repl.replacementText.split('\n');
-
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-
-            const QString before = currentContent.left(cursorPos.offset);
-            const QString after = currentContent.mid(cursorPos.offset);
-
-            m_buffer->setParagraphText(
-                static_cast<size_t>(cursorPos.paragraph),
-                before + lines.first());
-
-            for (int i = 1; i < lines.size() - 1; ++i) {
-                m_buffer->insertParagraph(
-                    static_cast<size_t>(cursorPos.paragraph) + static_cast<size_t>(i),
-                    lines[i]);
-            }
-
-            const size_t lastParaIndex = static_cast<size_t>(cursorPos.paragraph) +
-                                         static_cast<size_t>(lines.size()) - 1;
-            m_buffer->insertParagraph(lastParaIndex, lines.last() + after);
-        } else {
-            const QString currentContent = m_buffer->paragraphText(
-                static_cast<size_t>(cursorPos.paragraph));
-            const QString newContent = currentContent.left(cursorPos.offset) +
-                                       repl.replacementText +
-                                       currentContent.mid(cursorPos.offset);
-            m_buffer->setParagraphText(static_cast<size_t>(cursorPos.paragraph), newContent);
-        }
-
-        // Notify format layer about insertion
-        if (m_formatLayer) {
-            m_formatLayer->onTextInserted(repl.position,
-                static_cast<size_t>(repl.replacementText.length()));
-        }
-
-        // Notify metadata layer about insertion
-        if (m_metadataLayer) {
-            m_metadataLayer->onTextInserted(repl.position,
-                static_cast<size_t>(repl.replacementText.length()));
-        }
+        QTextCursor cursor(m_document);
+        cursor.setPosition(repl.startPos);
+        cursor.setPosition(repl.endPos, QTextCursor::KeepAnchor);
+        cursor.removeSelectedText();
+        cursor.insertText(repl.newText);
     }
 }
 
 int ReplaceAllCommand::id() const
 {
     return static_cast<int>(BufferCommandId::ReplaceAll);
-}
-
-// =============================================================================
-// MarkerAddCommand
-// =============================================================================
-
-MarkerAddCommand::MarkerAddCommand(TextBuffer* buffer,
-                                   FormatLayer* formatLayer,
-                                   MetadataLayer* metadataLayer,
-                                   const CursorPosition& cursorBefore,
-                                   const TextTodo& marker)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore,
-                    marker.type == MarkerType::Todo ? QObject::tr("Add TODO") : QObject::tr("Add Note"))
-    , m_marker(marker)
-{
-    // Cursor stays at current position after adding marker
-    m_cursorAfter = cursorBefore;
-}
-
-void MarkerAddCommand::redo()
-{
-    if (m_metadataLayer) {
-        m_metadataLayer->addTodo(m_marker);
-    }
-}
-
-void MarkerAddCommand::undo()
-{
-    if (m_metadataLayer) {
-        m_metadataLayer->removeTodo(m_marker.id);
-    }
-}
-
-int MarkerAddCommand::id() const
-{
-    return static_cast<int>(BufferCommandId::MarkerAdd);
-}
-
-// =============================================================================
-// MarkerRemoveCommand
-// =============================================================================
-
-MarkerRemoveCommand::MarkerRemoveCommand(TextBuffer* buffer,
-                                         FormatLayer* formatLayer,
-                                         MetadataLayer* metadataLayer,
-                                         const CursorPosition& cursorBefore,
-                                         const TextTodo& marker)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore,
-                    marker.type == MarkerType::Todo ? QObject::tr("Remove TODO") : QObject::tr("Remove Note"))
-    , m_marker(marker)
-{
-    // Cursor stays at current position after removing marker
-    m_cursorAfter = cursorBefore;
-}
-
-void MarkerRemoveCommand::redo()
-{
-    if (m_metadataLayer) {
-        m_metadataLayer->removeTodo(m_marker.id);
-    }
-}
-
-void MarkerRemoveCommand::undo()
-{
-    if (m_metadataLayer) {
-        m_metadataLayer->addTodo(m_marker);
-    }
-}
-
-int MarkerRemoveCommand::id() const
-{
-    return static_cast<int>(BufferCommandId::MarkerRemove);
-}
-
-// =============================================================================
-// MarkerToggleCommand
-// =============================================================================
-
-MarkerToggleCommand::MarkerToggleCommand(TextBuffer* buffer,
-                                         FormatLayer* formatLayer,
-                                         MetadataLayer* metadataLayer,
-                                         const CursorPosition& cursorBefore,
-                                         const QString& markerId)
-    : BufferCommand(buffer, formatLayer, metadataLayer, cursorBefore, QObject::tr("Toggle TODO"))
-    , m_markerId(markerId)
-{
-    // Cursor stays at current position after toggling
-    m_cursorAfter = cursorBefore;
-}
-
-void MarkerToggleCommand::redo()
-{
-    if (m_metadataLayer) {
-        m_metadataLayer->toggleTodoCompleted(m_markerId);
-    }
-}
-
-void MarkerToggleCommand::undo()
-{
-    // Toggle again to restore previous state
-    if (m_metadataLayer) {
-        m_metadataLayer->toggleTodoCompleted(m_markerId);
-    }
-}
-
-int MarkerToggleCommand::id() const
-{
-    return static_cast<int>(BufferCommandId::MarkerToggle);
 }
 
 }  // namespace kalahari::editor

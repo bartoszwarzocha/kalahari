@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <kalahari/editor/render_engine.h>
-#include <kalahari/editor/text_buffer.h>
+// Phase 11.8: Removed text_buffer.h - using QTextDocument directly
 #include <kalahari/editor/viewport_manager.h>
 #include <QImage>
 #include <QPainter>
@@ -27,22 +27,8 @@ static std::unique_ptr<QTextDocument> createTestDocument(size_t paragraphCount) 
     return doc;
 }
 
-// Helper: Create TextBuffer for tests that need height management
-static TextBuffer createTestBuffer(size_t paragraphCount, double height = 20.0) {
-    TextBuffer buffer;
-    QString text;
-    for (size_t i = 0; i < paragraphCount; ++i) {
-        if (i > 0) text += "\n";
-        text += QString("Paragraph %1 with some text content").arg(i + 1);
-    }
-    buffer.setPlainText(text);
-
-    for (size_t i = 0; i < paragraphCount; ++i) {
-        buffer.setParagraphHeight(i, height);
-    }
-
-    return buffer;
-}
+// Phase 11.8: Removed TextBuffer helper - using QTextDocument directly
+// The createTestDocument() helper above is sufficient for all tests
 
 // =============================================================================
 // Constructor / Destructor Tests
@@ -297,13 +283,14 @@ TEST_CASE("RenderEngine - Cursor", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Cursor Rect", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
+    // Phase 11.8: Using QTextDocument directly
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setDocument(buffer.document());
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setDocument(buffer.document());
+    engine.setDocument(doc.get());
     engine.setViewportManager(&viewport);
 
     SECTION("Cursor rect at start") {
@@ -330,13 +317,14 @@ TEST_CASE("RenderEngine - Cursor Rect", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Paint", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
+    // Phase 11.8: Using QTextDocument directly
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setDocument(buffer.document());
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setDocument(buffer.document());
+    engine.setDocument(doc.get());
     engine.setViewportManager(&viewport);
     engine.setBackgroundColor(Qt::white);
 
@@ -397,13 +385,14 @@ TEST_CASE("RenderEngine - Paint", "[render_engine]") {
 // =============================================================================
 
 TEST_CASE("RenderEngine - Geometry Queries", "[render_engine]") {
-    TextBuffer buffer = createTestBuffer(10);
+    // Phase 11.8: Using QTextDocument directly
+    auto doc = createTestDocument(10);
     ViewportManager viewport;
-    viewport.setDocument(buffer.document());
+    viewport.setDocument(doc.get());
     viewport.setViewportSize(QSize(800, 600));
 
     RenderEngine engine;
-    engine.setDocument(buffer.document());
+    engine.setDocument(doc.get());
     engine.setViewportManager(&viewport);
     engine.setTopMargin(10.0);
 
@@ -433,15 +422,15 @@ TEST_CASE("RenderEngine - Geometry Queries", "[render_engine]") {
     }
 
     SECTION("Document to widget with scroll") {
-        // Create buffer where content > viewport so scrolling is possible
-        // 50 paragraphs × 20px = 1000px content > 600px viewport
-        TextBuffer scrollBuffer = createTestBuffer(50);
+        // Phase 11.8: Using QTextDocument directly
+        // Create document where content > viewport so scrolling is possible
+        auto scrollDoc = createTestDocument(50);
         ViewportManager scrollViewport;
-        scrollViewport.setDocument(scrollBuffer.document());
+        scrollViewport.setDocument(scrollDoc.get());
         scrollViewport.setViewportSize(QSize(800, 600));
 
         RenderEngine scrollEngine;
-        scrollEngine.setDocument(scrollBuffer.document());
+        scrollEngine.setDocument(scrollDoc.get());
         scrollEngine.setViewportManager(&scrollViewport);
         scrollEngine.setTopMargin(10.0);
 

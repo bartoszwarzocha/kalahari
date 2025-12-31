@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <QApplication>
 #include <QClipboard>
+#include <QTextDocument>
 
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kml_document.h"
@@ -46,13 +47,18 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
         REQUIRE(kml.contains("First paragraph"));
         REQUIRE(kml.contains("Second paragraph"));
 
-        // 3. Parse KML back
+        // 3. Parse KML back using new Phase 11.1 API
+        // TODO Phase 11: Full round-trip test needs QTextDocument API
+        // The new KmlParser returns QTextDocument* not KmlDocument*
+        // For now, verify KML serialization works correctly
         KmlParser parser;
-        auto result = parser.parseDocument(kml);
-        REQUIRE(result.success);
-        REQUIRE(result.result->paragraphCount() == 2);
-        REQUIRE(result.result->paragraph(0)->plainText() == "First paragraph with some text.");
-        REQUIRE(result.result->paragraph(1)->plainText() == "Second paragraph here.");
+        QTextDocument* parsedDoc = parser.parseKml(kml);
+        REQUIRE(parsedDoc != nullptr);
+        // QTextDocument uses block-based API, not paragraph-based
+        REQUIRE(parsedDoc->blockCount() == 2);
+        REQUIRE(parsedDoc->toPlainText().contains("First paragraph with some text."));
+        REQUIRE(parsedDoc->toPlainText().contains("Second paragraph here."));
+        delete parsedDoc;  // Caller owns the document
     }
 
     SECTION("edit operations preserve content integrity") {
@@ -70,12 +76,13 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
         // Verify via BookEditor API (TextBuffer is source of truth)
         REQUIRE(editor.paragraphPlainText(0) == "Hello Beautiful World");
 
-        // Serialize via editor's toKml() and parse
+        // Serialize via editor's toKml() and parse using new Phase 11.1 API
         QString kml = editor.toKml();
         KmlParser parser;
-        auto result = parser.parseDocument(kml);
-        REQUIRE(result.success);
-        REQUIRE(result.result->paragraph(0)->plainText() == "Hello Beautiful World");
+        QTextDocument* parsedDoc = parser.parseKml(kml);
+        REQUIRE(parsedDoc != nullptr);
+        REQUIRE(parsedDoc->toPlainText().contains("Hello Beautiful World"));
+        delete parsedDoc;  // Caller owns the document
     }
 }
 

@@ -1,9 +1,8 @@
 /// @file render_engine.h
-/// @brief RenderEngine for viewport-only paragraph rendering (OpenSpec #00043 Phase 6)
+/// @brief RenderEngine for viewport-only paragraph rendering (OpenSpec #00043 Phase 11.4)
 ///
 /// RenderEngine is responsible for rendering only visible paragraphs to the screen.
-/// It integrates with ViewportManager for visibility, LazyLayoutManager for layouts,
-/// and FormatLayer for text styling.
+/// It uses QTextDocument directly and integrates with ViewportManager for visibility.
 
 #pragma once
 
@@ -14,16 +13,14 @@
 #include <QColor>
 #include <QFont>
 #include <QTimer>
+#include <QTextDocument>
+#include <QTextBlock>
 #include <memory>
 
 namespace kalahari::editor {
 
-class TextBuffer;
-class LazyLayoutManager;
 class ViewportManager;
-class FormatLayer;
 class SearchEngine;
-class MetadataLayer;
 
 // Use SelectionRange from editor_types.h for selections
 // Use CursorPosition from editor_types.h for cursor
@@ -34,7 +31,7 @@ class MetadataLayer;
 /// - Dirty region tracking with QRegion for minimal repaints
 /// - Viewport-only paragraph rendering
 /// - Selection and cursor rendering
-/// - Integration with LazyLayoutManager for QTextLayout access
+/// - Uses QTextDocument directly with QTextBlock layouts
 class RenderEngine : public QObject {
     Q_OBJECT
 
@@ -46,21 +43,13 @@ public:
     // Component Integration
     // =========================================================================
 
-    /// @brief Set the text buffer for content access
-    void setBuffer(TextBuffer* buffer);
-    TextBuffer* buffer() const { return m_buffer; }
-
-    /// @brief Set the layout manager for paragraph layouts
-    void setLayoutManager(LazyLayoutManager* manager);
-    LazyLayoutManager* layoutManager() const { return m_layoutManager; }
+    /// @brief Set the text document for content access
+    void setDocument(QTextDocument* doc);
+    QTextDocument* document() const { return m_document; }
 
     /// @brief Set the viewport manager for visibility calculations
     void setViewportManager(ViewportManager* viewport);
     ViewportManager* viewportManager() const { return m_viewportManager; }
-
-    /// @brief Set the format layer for text formatting
-    void setFormatLayer(FormatLayer* formatLayer);
-    FormatLayer* formatLayer() const { return m_formatLayer; }
 
     /// @brief Set the search engine for match highlighting
     void setSearchEngine(SearchEngine* engine);
@@ -73,10 +62,6 @@ public:
     /// @brief Set current match highlight color
     void setCurrentMatchColor(const QColor& color);
     QColor currentMatchColor() const { return m_currentMatchColor; }
-
-    /// @brief Set the metadata layer for comment rendering
-    void setMetadataLayer(MetadataLayer* layer);
-    MetadataLayer* metadataLayer() const { return m_metadataLayer; }
 
     /// @brief Set comment highlight background color
     void setCommentHighlightColor(const QColor& color);
@@ -262,7 +247,7 @@ private:
     void paintBackground(QPainter* painter, const QRect& clipRect);
 
     /// @brief Paint a single paragraph
-    void paintParagraph(QPainter* painter, size_t index, double y);
+    void paintParagraph(QPainter* painter, const QTextBlock& block, double y);
 
     /// @brief Paint the selection highlight
     void paintSelection(QPainter* painter);
@@ -295,12 +280,9 @@ private:
     // =========================================================================
 
     // Component references
-    TextBuffer* m_buffer = nullptr;
-    LazyLayoutManager* m_layoutManager = nullptr;
+    QTextDocument* m_document = nullptr;
     ViewportManager* m_viewportManager = nullptr;
-    FormatLayer* m_formatLayer = nullptr;
     SearchEngine* m_searchEngine = nullptr;
-    MetadataLayer* m_metadataLayer = nullptr;
 
     // Appearance
     QFont m_font;

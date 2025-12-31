@@ -5,7 +5,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
-#include "kalahari/editor/format_layer.h"
+// Phase 11.8: Removed format_layer.h - no longer exists
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -259,11 +259,7 @@ void FindReplaceBar::setUndoStack(QUndoStack* stack)
     updateButtonStates();
 }
 
-void FindReplaceBar::setFormatLayer(editor::FormatLayer* layer)
-{
-    m_formatLayer = layer;
-    updateButtonStates();
-}
+// Phase 11.8: Removed setFormatLayer - no longer needed
 
 void FindReplaceBar::showFind()
 {
@@ -362,13 +358,14 @@ void FindReplaceBar::onFindPrevious()
 
 void FindReplaceBar::onReplaceCurrent()
 {
-    if (!m_searchEngine || !m_undoStack || !m_formatLayer) {
+    // Phase 11.8: Removed m_formatLayer check - no longer needed
+    if (!m_searchEngine || !m_undoStack) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
 
-    if (m_searchEngine->replaceCurrent(m_undoStack, m_formatLayer)) {
+    if (m_searchEngine->replaceCurrent(m_undoStack)) {
         // Move to next match after replacement
         onFindNext();
     }
@@ -376,12 +373,13 @@ void FindReplaceBar::onReplaceCurrent()
 
 void FindReplaceBar::onReplaceAll()
 {
-    if (!m_searchEngine || !m_undoStack || !m_formatLayer) {
+    // Phase 11.8: Removed m_formatLayer check - no longer needed
+    if (!m_searchEngine || !m_undoStack) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
-    int count = m_searchEngine->replaceAll(m_undoStack, m_formatLayer);
+    int count = m_searchEngine->replaceAll(m_undoStack);
 
     core::Logger::getInstance().info("Replaced {} occurrences", count);
     updateMatchCountLabel();
@@ -443,7 +441,8 @@ void FindReplaceBar::updateMatchCountLabel()
 void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
-    bool canReplace = hasMatches && m_undoStack && m_formatLayer;
+    // Phase 11.8: Removed m_formatLayer check
+    bool canReplace = hasMatches && m_undoStack;
 
     // Navigation buttons
     m_prevBtn->setEnabled(hasMatches);

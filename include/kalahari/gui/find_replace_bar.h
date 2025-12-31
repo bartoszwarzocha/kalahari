@@ -24,7 +24,6 @@ class QShortcut;
 
 namespace kalahari::editor {
 class SearchEngine;
-class FormatLayer;
 struct SearchMatch;
 }  // namespace kalahari::editor
 
@@ -70,9 +69,7 @@ public:
     /// @param stack Pointer to QUndoStack (not owned)
     void setUndoStack(QUndoStack* stack);
 
-    /// @brief Set the format layer for replace operations
-    /// @param layer Pointer to FormatLayer (not owned)
-    void setFormatLayer(editor::FormatLayer* layer);
+    // Phase 11.8: Removed setFormatLayer - no longer needed (formatting in QTextCharFormat)
 
     /// @brief Show find-only mode (hide replace section)
     void showFind();
@@ -187,7 +184,7 @@ private:
 
     editor::SearchEngine* m_searchEngine = nullptr;  ///< Search engine
     QUndoStack* m_undoStack = nullptr;               ///< Undo stack for replace
-    editor::FormatLayer* m_formatLayer = nullptr;    ///< Format layer for replace
+    // Phase 11.8: Removed m_formatLayer - no longer needed
 
     // =========================================================================
     // Keyboard shortcuts

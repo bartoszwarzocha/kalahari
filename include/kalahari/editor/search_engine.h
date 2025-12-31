@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include <kalahari/editor/text_buffer.h>
+// Phase 11.6: Removed text_buffer.h - using QTextDocument directly
 #include <QObject>
 #include <QString>
 #include <QTextDocument>
@@ -21,7 +21,7 @@ class QUndoStack;
 
 namespace kalahari::editor {
 
-class FormatLayer;
+// Phase 11.8: Removed FormatLayer forward declaration - no longer needed
 
 // =============================================================================
 // Search Options
@@ -74,7 +74,7 @@ struct SearchMatch {
 /// Usage:
 /// @code
 /// SearchEngine engine;
-/// engine.setBuffer(&buffer);
+/// engine.setDocument(document);
 /// engine.setSearchText("hello");
 /// engine.setOptions({.caseSensitive = false, .wholeWord = true});
 ///
@@ -101,13 +101,13 @@ public:
     // Configuration
     // =========================================================================
 
-    /// @brief Set the text buffer to search in
-    /// @param buffer Pointer to TextBuffer (not owned)
-    void setBuffer(TextBuffer* buffer);
+    /// @brief Set the document to search in (Phase 11.6)
+    /// @param document Pointer to QTextDocument (not owned)
+    void setDocument(QTextDocument* document);
 
-    /// @brief Get the current text buffer
-    /// @return Pointer to TextBuffer
-    TextBuffer* buffer() const;
+    /// @brief Get the current document
+    /// @return Pointer to QTextDocument
+    QTextDocument* document() const;
 
     /// @brief Set the search text
     /// @param text Text to search for
@@ -186,15 +186,15 @@ public:
 
     /// @brief Replace current match with replacement text
     /// @param undoStack Undo stack for operation (required)
-    /// @param formatLayer Format layer for the buffer (required)
     /// @return true if replacement was made
-    bool replaceCurrent(QUndoStack* undoStack, FormatLayer* formatLayer);
+    /// @note Phase 11.8: Removed formatLayer parameter - formatting in QTextCharFormat
+    bool replaceCurrent(QUndoStack* undoStack);
 
     /// @brief Replace all matches with replacement text
     /// @param undoStack Undo stack for operation (required)
-    /// @param formatLayer Format layer for the buffer (required)
     /// @return Number of replacements made
-    int replaceAll(QUndoStack* undoStack, FormatLayer* formatLayer);
+    /// @note Phase 11.8: Removed formatLayer parameter - formatting in QTextCharFormat
+    int replaceAll(QUndoStack* undoStack);
 
     // =========================================================================
     // Highlight Access
@@ -247,7 +247,7 @@ private:
     /// @param position Absolute character position
     void updateCurrentMatchForPosition(size_t position);
 
-    TextBuffer* m_buffer = nullptr;          ///< Text buffer (not owned)
+    QTextDocument* m_document = nullptr;     ///< QTextDocument (not owned) - Phase 11.6
     QString m_searchText;                    ///< Current search text
     QString m_replaceText;                   ///< Current replacement text
     SearchOptions m_options;                 ///< Current search options

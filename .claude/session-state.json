@@ -1,83 +1,71 @@
 {
-  "mode": "sync",
-  "saved_at": "2025-12-30T19:30:00",
-  "git_commit": "pending",
+  "mode": "quick",
+  "saved_at": "2025-12-31T18:05:00",
+  "git_commit": null,
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "OpenSpec #00043 - Phase 11: Architecture Correction (QTextDocument Direct)",
+  "working_on": "Phase 11.8-11.9 COMPLETE: Old files removed, cleanup validated",
   "next_steps": [
-    "Rozpocznij Phase 11.1: Nowy KmlParser (KML -> QTextDocument)",
-    "Utwórz kml_parser.h/cpp",
-    "Implementuj parseKml() z QTextCharFormat dla formatowania i metadanych",
-    "Testy jednostkowe parsera"
+    "Commit Phase 11 changes",
+    "Continue with remaining OpenSpec #00043 tasks"
   ],
   "blocker": null,
-  "implementation_status": "PLANNING_COMPLETE",
+  "implementation_status": "PHASE_11_COMPLETE",
   "completed_tasks": [
-    "Fazy 1-10 COMPLETE (ale wymagają korekty)",
-    "Analiza architektury - zidentyfikowano zbędne warstwy",
-    "Zaprojektowano nową architekturę: 2 kroki zamiast 8",
-    "Mapowanie KML -> QTextCharFormat zaprojektowane",
-    "Plan Phase 11 zapisany w tasks.md (31 zadań)"
+    "Phase 11.1-11.3: KmlParser, KmlSerializer, ViewportManager",
+    "Phase 11.4: RenderEngine refactored to use QTextDocument",
+    "Phase 11.5: buffer_commands rewritten to use QTextCursor",
+    "Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer from BookEditor",
+    "Phase 11.6: Replaced TextBuffer with QTextDocument",
+    "Phase 11.8: Deleted 12 old files (text_buffer, format_layer, lazy_layout_manager, kml_converter + tests)",
+    "Phase 11.8: Updated CMakeLists.txt to remove deleted file references",
+    "Phase 11.8: Removed FormatLayer parameter from SearchEngine.replaceCurrent/replaceAll",
+    "Phase 11.8: Updated find_replace_bar.h/cpp to remove FormatLayer dependency",
+    "Phase 11.8: Updated test_render_engine.cpp to use QTextDocument",
+    "Phase 11.8: Updated test_search_engine.cpp to match new signatures",
+    "Phase 11.9: Build passed (94 targets)",
+    "Phase 11.9: All tests passed (709 test cases, 4742 assertions)"
   ],
   "pending_tasks": [
-    "Phase 11.1: Nowy KmlParser (6 zadań)",
-    "Phase 11.2: Nowy KmlSerializer (5 zadań)",
-    "Phase 11.3: Zmodyfikuj ViewportManager (4 zadania)",
-    "Phase 11.4: Zmodyfikuj RenderEngine (5 zadań)",
-    "Phase 11.5: Przepisz BookEditor core (6 zadań)",
-    "Phase 11.6: Usuń stare pliki (5 zadań)",
-    "Phase 11.7: Cleanup starej architektury (4 zadania)",
-    "Phase 11.8: Testy i walidacja (4 zadania)"
+    "Commit all Phase 11 changes"
   ],
   "task_progress": {
-    "completed": 0,
-    "total": 31,
-    "percentage": 0
+    "completed": 13,
+    "total": 14,
+    "percentage": 93
   },
-  "architecture_correction": {
-    "target": "QTextDocument Direct - 2 steps instead of 8",
-    "remove": [
-      "TextBuffer wrapper",
-      "HeightTree (Fenwick)",
-      "ITextBufferObserver (source of O(n^2))",
-      "FormatLayer + IntervalTree",
-      "MetadataLayer",
-      "LazyLayoutManager"
+  "architecture_notes": {
+    "old_architecture": "KML -> TextBuffer -> FormatLayer -> MetadataLayer -> LazyLayoutManager -> HeightTree -> RenderEngine (8 steps)",
+    "new_architecture": "KML -> QTextDocument (with QTextCharFormat for formatting) -> Render visible fragment (2 steps)",
+    "files_deleted": [
+      "include/kalahari/editor/text_buffer.h",
+      "src/editor/text_buffer.cpp",
+      "tests/editor/test_text_buffer.cpp",
+      "include/kalahari/editor/format_layer.h",
+      "src/editor/format_layer.cpp",
+      "tests/editor/test_format_layer.cpp",
+      "include/kalahari/editor/lazy_layout_manager.h",
+      "src/editor/lazy_layout_manager.cpp",
+      "tests/editor/test_lazy_layout_manager.cpp",
+      "include/kalahari/editor/kml_converter.h",
+      "src/editor/kml_converter.cpp",
+      "tests/editor/test_kml_converter.cpp",
+      "tests/editor/test_snapshot_roundtrip.cpp",
+      "tests/benchmarks/benchmark_new_architecture.cpp"
     ],
-    "keep": [
-      "BookEditor (widget + QTextDocument directly)",
-      "KmlParser (NEW - KML -> QTextDocument)",
-      "KmlSerializer (NEW - QTextDocument -> KML)",
-      "ViewportManager (modified for QTextDocument)",
-      "RenderEngine (modified for QTextDocument)"
-    ],
-    "kml_to_qtextcharformat": {
-      "<em>": "setFontItalic(true)",
-      "<strong>": "setFontWeight(QFont::Bold)",
-      "<u>": "setFontUnderline(true)",
-      "<s>": "setFontStrikeOut(true)",
-      "<comment>": "setProperty(KmlComment, commentData)",
-      "<todo>": "setProperty(KmlTodo, todoData)",
-      "<footnote>": "setProperty(KmlFootnote, footnoteData)"
-    }
+    "key_changes": [
+      "QTextDocument is now the single source of truth",
+      "QTextCharFormat stores inline formatting (bold, italic, etc.)",
+      "QTextCharFormat::UserProperty stores metadata (KmlPropTodo, KmlPropComment)",
+      "QTextBlock::layout() provides paragraph layout",
+      "QTextCursor handles all text operations",
+      "KmlParser/KmlSerializer with shared registry replace KmlConverter"
+    ]
   },
-  "critical_notes": [
-    "Komentarze/TODO/footnotes = inline tagi KML, nie osobna warstwa",
-    "QTextCharFormat custom properties dla metadanych",
-    "ViewportManager i RenderEngine mają mieć PEŁNĄ funkcjonalność",
-    "Cel: architektura Word/Writer - 2 kroki zamiast 8"
-  ],
-  "references": [
-    "project_docs/19_text_editor_functional_spec_pl.md",
-    "openspec/changes/00043-editor-performance-rewrite/tasks.md",
-    "openspec/changes/00043-editor-performance-rewrite/proposal.md"
-  ],
   "openspec_summary": {
-    "00042": "IN_PROGRESS - Custom Text Editor (master spec funkcji)",
-    "00043": "IN_PROGRESS - Performance Rewrite + Architecture Correction Phase 11",
-    "00044": "PENDING - Text Styling System (czeka na #00043)",
-    "00045": "ABSORBED - Wchłonięty przez #00043"
+    "00042": "IN_PROGRESS - Custom Text Editor (master spec)",
+    "00043": "IN_PROGRESS - Performance Rewrite Phase 11 COMPLETE",
+    "00044": "PENDING - Text Styling System"
   }
 }

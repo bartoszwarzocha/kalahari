@@ -11,8 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/format_layer.h>
+#include <QTextDocument>
 #include <QUndoStack>
 
 using namespace kalahari::editor;
@@ -83,7 +82,7 @@ TEST_CASE("SearchOptions defaults", "[editor][search_engine][options]") {
 TEST_CASE("SearchEngine initialization", "[editor][search_engine]") {
     SearchEngine engine;
 
-    REQUIRE(engine.buffer() == nullptr);
+    REQUIRE(engine.document() == nullptr);
     REQUIRE(engine.searchText().isEmpty());
     REQUIRE(engine.replaceText().isEmpty());
     REQUIRE(engine.currentMatchIndex() == -1);
@@ -93,12 +92,12 @@ TEST_CASE("SearchEngine initialization", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine configuration", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Test content");
+    QTextDocument doc;
+    doc.setPlainText("Test content");
 
-    SECTION("Set buffer") {
-        engine.setBuffer(&buffer);
-        REQUIRE(engine.buffer() == &buffer);
+    SECTION("Set document") {
+        engine.setDocument(&doc);
+        REQUIRE(engine.document() == &doc);
     }
 
     SECTION("Set search text") {
@@ -130,10 +129,10 @@ TEST_CASE("SearchEngine configuration", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine basic find", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello World Hello");
+    QTextDocument doc;
+    doc.setPlainText("Hello World Hello");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
 
     SECTION("Find all returns correct matches") {
@@ -180,10 +179,10 @@ TEST_CASE("SearchEngine basic find", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine no matches", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello World");
+    QTextDocument doc;
+    doc.setPlainText("Hello World");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("xyz");
 
     SECTION("Find all returns empty") {
@@ -215,10 +214,10 @@ TEST_CASE("SearchEngine no matches", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine case sensitivity", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello HELLO hello");
+    QTextDocument doc;
+    doc.setPlainText("Hello HELLO hello");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
 
     SECTION("Case insensitive finds all variants") {
@@ -248,10 +247,10 @@ TEST_CASE("SearchEngine case sensitivity", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine whole word matching", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello HelloWorld WorldHello");
+    QTextDocument doc;
+    doc.setPlainText("Hello HelloWorld WorldHello");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
 
     SECTION("Without whole word matches partial words") {
@@ -280,10 +279,10 @@ TEST_CASE("SearchEngine whole word matching", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine navigation", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("A B A C A");
+    QTextDocument doc;
+    doc.setPlainText("A B A C A");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("A");
 
     SECTION("Navigate through matches with nextMatch") {
@@ -349,10 +348,10 @@ TEST_CASE("SearchEngine navigation", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine wrap around", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("A B A");
+    QTextDocument doc;
+    doc.setPlainText("A B A");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("A");
 
     SECTION("Wrap around enabled - next wraps to first") {
@@ -406,10 +405,10 @@ TEST_CASE("SearchEngine wrap around", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine findNext/findPrevious with wrap", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("A B A");
+    QTextDocument doc;
+    doc.setPlainText("A B A");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("A");
 
     SECTION("findNext wraps when no match after position") {
@@ -441,10 +440,10 @@ TEST_CASE("SearchEngine findNext/findPrevious with wrap", "[editor][search_engin
 
 TEST_CASE("SearchEngine regex search", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("cat bat rat hat");
+    QTextDocument doc;
+    doc.setPlainText("cat bat rat hat");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
 
     SECTION("Simple regex pattern") {
         engine.setSearchText("[cbr]at");
@@ -460,7 +459,7 @@ TEST_CASE("SearchEngine regex search", "[editor][search_engine]") {
     }
 
     SECTION("Regex with case insensitivity") {
-        buffer.setPlainText("Cat CAT cat");
+        doc.setPlainText("Cat CAT cat");
         engine.setSearchText("cat");
         SearchOptions opts;
         opts.useRegex = true;
@@ -488,10 +487,10 @@ TEST_CASE("SearchEngine regex search", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine multi-paragraph search", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello\nWorld\nHello Again");
+    QTextDocument doc;
+    doc.setPlainText("Hello\nWorld\nHello Again");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
 
     SECTION("Finds matches across paragraphs") {
@@ -514,10 +513,10 @@ TEST_CASE("SearchEngine multi-paragraph search", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine clear", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Hello World");
+    QTextDocument doc;
+    doc.setPlainText("Hello World");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
     engine.setReplaceText("Hi");
     engine.findAll();
@@ -542,12 +541,11 @@ TEST_CASE("SearchEngine clear", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    FormatLayer formatLayer;
+    QTextDocument doc;
     QUndoStack undoStack;
 
-    buffer.setPlainText("Hello World Hello");
-    engine.setBuffer(&buffer);
+    doc.setPlainText("Hello World Hello");
+    engine.setDocument(&doc);
     engine.setSearchText("Hello");
     engine.setReplaceText("Hi");
     engine.nextMatch();
@@ -555,56 +553,60 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
     SECTION("replaceCurrent replaces single match") {
         REQUIRE(engine.totalMatchCount() == 2);
 
-        bool result = engine.replaceCurrent(&undoStack, &formatLayer);
+        // Phase 11.8: Removed FormatLayer parameter
+        bool result = engine.replaceCurrent(&undoStack);
         REQUIRE(result);
-        REQUIRE(buffer.plainText() == "Hi World Hello");
+        REQUIRE(doc.toPlainText() == "Hi World Hello");
 
         // Undo should restore original
         undoStack.undo();
-        REQUIRE(buffer.plainText() == "Hello World Hello");
+        REQUIRE(doc.toPlainText() == "Hello World Hello");
 
         // Redo should re-apply
         undoStack.redo();
-        REQUIRE(buffer.plainText() == "Hi World Hello");
+        REQUIRE(doc.toPlainText() == "Hi World Hello");
     }
 
     SECTION("replaceAll replaces all matches") {
         REQUIRE(engine.totalMatchCount() == 2);
 
-        int count = engine.replaceAll(&undoStack, &formatLayer);
+        // Phase 11.8: Removed FormatLayer parameter
+        int count = engine.replaceAll(&undoStack);
         REQUIRE(count == 2);
-        REQUIRE(buffer.plainText() == "Hi World Hi");
+        REQUIRE(doc.toPlainText() == "Hi World Hi");
 
         // Undo should restore all
         undoStack.undo();
-        REQUIRE(buffer.plainText() == "Hello World Hello");
+        REQUIRE(doc.toPlainText() == "Hello World Hello");
 
         // Redo should re-apply all
         undoStack.redo();
-        REQUIRE(buffer.plainText() == "Hi World Hi");
+        REQUIRE(doc.toPlainText() == "Hi World Hi");
     }
 
     SECTION("replaceCurrent with no current match returns false") {
         SearchEngine emptyEngine;
-        TextBuffer emptyBuffer;
-        emptyBuffer.setPlainText("test");
-        emptyEngine.setBuffer(&emptyBuffer);
+        QTextDocument emptyDoc;
+        emptyDoc.setPlainText("test");
+        emptyEngine.setDocument(&emptyDoc);
         emptyEngine.setSearchText("notfound");
         emptyEngine.setReplaceText("x");
 
-        bool result = emptyEngine.replaceCurrent(&undoStack, &formatLayer);
+        // Phase 11.8: Removed FormatLayer parameter
+        bool result = emptyEngine.replaceCurrent(&undoStack);
         REQUIRE_FALSE(result);
     }
 
     SECTION("replaceAll with no matches returns 0") {
         SearchEngine emptyEngine;
-        TextBuffer emptyBuffer;
-        emptyBuffer.setPlainText("test");
-        emptyEngine.setBuffer(&emptyBuffer);
+        QTextDocument emptyDoc;
+        emptyDoc.setPlainText("test");
+        emptyEngine.setDocument(&emptyDoc);
         emptyEngine.setSearchText("notfound");
         emptyEngine.setReplaceText("x");
 
-        int count = emptyEngine.replaceAll(&undoStack, &formatLayer);
+        // Phase 11.8: Removed FormatLayer parameter
+        int count = emptyEngine.replaceAll(&undoStack);
         REQUIRE(count == 0);
     }
 }
@@ -616,16 +618,16 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
 TEST_CASE("SearchEngine edge cases", "[editor][search_engine][edge]") {
     SearchEngine engine;
 
-    SECTION("Search without buffer") {
+    SECTION("Search without document") {
         engine.setSearchText("test");
         auto matches = engine.findAll();
         REQUIRE(matches.empty());
     }
 
     SECTION("Search with empty search text") {
-        TextBuffer buffer;
-        buffer.setPlainText("Hello World");
-        engine.setBuffer(&buffer);
+        QTextDocument doc;
+        doc.setPlainText("Hello World");
+        engine.setDocument(&doc);
         engine.setSearchText("");
 
         auto matches = engine.findAll();
@@ -633,10 +635,10 @@ TEST_CASE("SearchEngine edge cases", "[editor][search_engine][edge]") {
         REQUIRE_FALSE(engine.isActive());
     }
 
-    SECTION("Search in empty buffer") {
-        TextBuffer buffer;
-        buffer.setPlainText("");
-        engine.setBuffer(&buffer);
+    SECTION("Search in empty document") {
+        QTextDocument doc;
+        doc.setPlainText("");
+        engine.setDocument(&doc);
         engine.setSearchText("test");
 
         auto matches = engine.findAll();
@@ -644,9 +646,9 @@ TEST_CASE("SearchEngine edge cases", "[editor][search_engine][edge]") {
     }
 
     SECTION("Single character search") {
-        TextBuffer buffer;
-        buffer.setPlainText("abcabc");
-        engine.setBuffer(&buffer);
+        QTextDocument doc;
+        doc.setPlainText("abcabc");
+        engine.setDocument(&doc);
         engine.setSearchText("a");
 
         auto matches = engine.findAll();
@@ -654,10 +656,10 @@ TEST_CASE("SearchEngine edge cases", "[editor][search_engine][edge]") {
         REQUIRE(matches[0].length == 1);
     }
 
-    SECTION("Search text equals entire buffer") {
-        TextBuffer buffer;
-        buffer.setPlainText("Hello");
-        engine.setBuffer(&buffer);
+    SECTION("Search text equals entire document") {
+        QTextDocument doc;
+        doc.setPlainText("Hello");
+        engine.setDocument(&doc);
         engine.setSearchText("Hello");
 
         auto matches = engine.findAll();
@@ -673,10 +675,10 @@ TEST_CASE("SearchEngine edge cases", "[editor][search_engine][edge]") {
 
 TEST_CASE("SearchEngine match positions", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("Line1\nLine2\nLine3");
+    QTextDocument doc;
+    doc.setPlainText("Line1\nLine2\nLine3");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
     engine.setSearchText("Line");
 
     auto matches = engine.findAll();
@@ -707,10 +709,10 @@ TEST_CASE("SearchEngine match positions", "[editor][search_engine]") {
 
 TEST_CASE("SearchEngine signals", "[editor][search_engine]") {
     SearchEngine engine;
-    TextBuffer buffer;
-    buffer.setPlainText("A B A");
+    QTextDocument doc;
+    doc.setPlainText("A B A");
 
-    engine.setBuffer(&buffer);
+    engine.setDocument(&doc);
 
     bool searchTextChangedEmitted = false;
     bool matchesChangedEmitted = false;

@@ -1,364 +1,237 @@
 /// @file test_buffer_commands.cpp
-/// @brief Unit tests for Buffer Commands (OpenSpec #00043 Phase 9 Task 9.3)
+/// @brief Unit tests for Buffer Commands (OpenSpec #00043 Phase 11.5)
 ///
-/// Comprehensive tests for undo/redo buffer commands:
-/// - TextInsertCommand
-/// - TextDeleteCommand
-/// - ParagraphSplitCommand
-/// - ParagraphMergeCommand
-/// - CompositeBufferCommand
-/// - FormatApplyCommand
-/// - FormatRemoveCommand
+/// Tests for the simplified QTextDocument-based undo/redo commands:
+/// - Helper functions (position calculations)
+/// - TextMarker serialization
+/// - MarkerAddCommand / MarkerRemoveCommand / MarkerToggleCommand
+/// - CompositeDocumentCommand
+/// - Marker utility functions
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <kalahari/editor/buffer_commands.h>
-#include <kalahari/editor/text_buffer.h>
-#include <kalahari/editor/format_layer.h>
+#include <QTextDocument>
+#include <QTextCursor>
 #include <QUndoStack>
-#include <thread>
-#include <chrono>
 
 using namespace kalahari::editor;
-using Catch::Matchers::WithinAbs;
 
 // =============================================================================
 // Helper Functions Tests
 // =============================================================================
 
 TEST_CASE("Buffer command helper functions", "[editor][buffer_commands][helpers]") {
-    TextBuffer buffer;
-    buffer.setPlainText("Hello\nWorld\nTest");
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Hello\nWorld\nTest"));
 
-    // NOTE: paragraphLength() returns text length WITHOUT trailing separator
-    // "Hello" = 5 chars, "World" = 5 chars, "Test" = 4 chars
-    // calculateAbsolutePosition adds (paragraphLength + 1) for newline separator
+    // Document structure:
+    // Block 0: "Hello" (positions 0-5, then \n at 5)
+    // Block 1: "World" (positions 6-11, then \n at 11)
+    // Block 2: "Test" (positions 12-15)
 
-    SECTION("calculateAbsolutePosition - first paragraph") {
-        // "Hello" at paragraph 0 - no prior paragraphs, so just offset
-        REQUIRE(calculateAbsolutePosition(buffer, 0, 0) == 0);
-        REQUIRE(calculateAbsolutePosition(buffer, 0, 5) == 5);
+    SECTION("calculateAbsolutePosition - first block") {
+        REQUIRE(calculateAbsolutePosition(&document, 0, 0) == 0);
+        REQUIRE(calculateAbsolutePosition(&document, 0, 5) == 5);
     }
 
-    SECTION("calculateAbsolutePosition - second paragraph") {
-        // Paragraph 1 position = paragraphLength(0) + 1 + offset
-        // paragraphLength(0) = 5, so position (1, 0) = 5 + 1 + 0 = 6
-        size_t pos10 = calculateAbsolutePosition(buffer, 1, 0);
-        size_t pos15 = calculateAbsolutePosition(buffer, 1, 5);
+    SECTION("calculateAbsolutePosition - second block") {
+        // Block 1 starts at position 6 (after "Hello\n")
+        int pos10 = calculateAbsolutePosition(&document, 1, 0);
+        int pos15 = calculateAbsolutePosition(&document, 1, 5);
         REQUIRE(pos10 == 6);
         REQUIRE(pos15 == 11);
     }
 
-    SECTION("calculateAbsolutePosition - third paragraph") {
-        // Paragraph 2 position = (paragraphLength(0) + 1) + (paragraphLength(1) + 1) + offset
-        // = (5 + 1) + (5 + 1) + offset = 12 + offset
-        size_t pos20 = calculateAbsolutePosition(buffer, 2, 0);
-        size_t pos24 = calculateAbsolutePosition(buffer, 2, 4);
+    SECTION("calculateAbsolutePosition - third block") {
+        // Block 2 starts at position 12 (after "Hello\nWorld\n")
+        int pos20 = calculateAbsolutePosition(&document, 2, 0);
+        int pos24 = calculateAbsolutePosition(&document, 2, 4);
         REQUIRE(pos20 == 12);
         REQUIRE(pos24 == 16);
     }
 
     SECTION("calculateAbsolutePosition from CursorPosition") {
         CursorPosition pos{1, 3};
-        REQUIRE(calculateAbsolutePosition(buffer, pos) == 9);  // 6 + 3
+        REQUIRE(calculateAbsolutePosition(&document, pos) == 9);  // 6 + 3
     }
 
-    SECTION("absoluteToCursorPosition - first paragraph") {
-        CursorPosition pos = absoluteToCursorPosition(buffer, 0);
+    SECTION("absoluteToCursorPosition - first block") {
+        CursorPosition pos = absoluteToCursorPosition(&document, 0);
         REQUIRE(pos.paragraph == 0);
         REQUIRE(pos.offset == 0);
 
-        pos = absoluteToCursorPosition(buffer, 3);
+        pos = absoluteToCursorPosition(&document, 3);
         REQUIRE(pos.paragraph == 0);
         REQUIRE(pos.offset == 3);
     }
 
-    SECTION("absoluteToCursorPosition - paragraph boundary") {
-        // Position 5 is at end of paragraph 0 (at text boundary)
-        CursorPosition pos = absoluteToCursorPosition(buffer, 5);
+    SECTION("absoluteToCursorPosition - block boundary") {
+        // Position 5 is at "o" in "Hello"
+        CursorPosition pos = absoluteToCursorPosition(&document, 5);
         REQUIRE(pos.paragraph == 0);
         REQUIRE(pos.offset == 5);
 
-        // Position 6 is the start of paragraph 1 (after newline)
-        pos = absoluteToCursorPosition(buffer, 6);
+        // Position 6 is at "W" in "World" (start of block 1)
+        pos = absoluteToCursorPosition(&document, 6);
         REQUIRE(pos.paragraph == 1);
         REQUIRE(pos.offset == 0);
     }
 
-    SECTION("absoluteToCursorPosition - second paragraph middle") {
-        // Position 9 = 6 (start of para 1) + 3 = offset 3 in para 1
-        CursorPosition pos = absoluteToCursorPosition(buffer, 9);
+    SECTION("absoluteToCursorPosition - second block middle") {
+        // Position 9 = 6 (start of block 1) + 3 = offset 3 in block 1
+        CursorPosition pos = absoluteToCursorPosition(&document, 9);
         REQUIRE(pos.paragraph == 1);
         REQUIRE(pos.offset == 3);
     }
 
-    SECTION("absoluteToCursorPosition - beyond document") {
-        CursorPosition pos = absoluteToCursorPosition(buffer, 1000);
-        // Should clamp to end of document
-        REQUIRE(pos.paragraph == 2);
-    }
-}
+    SECTION("createCursor - single position") {
+        CursorPosition pos{1, 2};
+        QTextCursor cursor = createCursor(&document, pos);
 
-// =============================================================================
-// TextInsertCommand Tests
-// =============================================================================
-
-TEST_CASE("TextInsertCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello");
-
-    SECTION("Insert single character") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, "!"));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-
-        undoStack.redo();
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
+        REQUIRE(cursor.position() == 8);  // 6 + 2
+        REQUIRE(!cursor.hasSelection());
     }
 
-    SECTION("Insert multiple characters") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, " World"));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-
-        undoStack.redo();
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-    }
-
-    SECTION("Insert at beginning") {
-        CursorPosition cursor{0, 0};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, "Say "));
-
-        REQUIRE(buffer.paragraphText(0) == "Say Hello");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Insert in middle") {
-        CursorPosition cursor{0, 2};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, "LL"));
-
-        REQUIRE(buffer.paragraphText(0) == "HeLLllo");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Verify cursor position after insert") {
-        CursorPosition cursor{0, 5};
-        auto* cmd = new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, " World");
-        undoStack.push(cmd);
-
-        REQUIRE(cmd->cursorBefore().paragraph == 0);
-        REQUIRE(cmd->cursorBefore().offset == 5);
-        REQUIRE(cmd->cursorAfter().paragraph == 0);
-        REQUIRE(cmd->cursorAfter().offset == 11);
-    }
-
-    SECTION("Insert newline at end creates new paragraph") {
-        // Insert " World" first, then split with newline in middle
-        // This avoids the edge case where text starts with newline
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, " World"));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-
-        // Now use ParagraphSplitCommand for proper paragraph splitting
-        CursorPosition splitPos{0, 5};
-        undoStack.push(new ParagraphSplitCommand(&buffer, &formatLayer, nullptr, splitPos, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-        REQUIRE(buffer.paragraphText(1) == " World");
-
-        undoStack.undo();  // Undo split
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-
-        undoStack.undo();  // Undo insert
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Insert text with embedded newline") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, "!\n"));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
-        REQUIRE(buffer.paragraphText(1) == "");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Cursor position after newline insert") {
-        CursorPosition cursor{0, 5};
-        auto* cmd = new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, "!\n");
-        undoStack.push(cmd);
-
-        REQUIRE(cmd->cursorAfter().paragraph == 1);
-        REQUIRE(cmd->cursorAfter().offset == 0);  // Empty line after newline
-    }
-}
-
-TEST_CASE("TextInsertCommand coalescing", "[editor][buffer_commands][coalescing]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello");
-
-    SECTION("Consecutive typing merges into single command") {
-        // Simulate rapid typing
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, "!"));
-
-        CursorPosition cursor2{0, 6};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor2, "!"));
-
-        CursorPosition cursor3{0, 7};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor3, "!"));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello!!!");
-
-        // Due to merging, a single undo should revert all characters
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Typing with delay does not merge (time-based boundary)") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, "!"));
-
-        // Wait longer than MERGE_WINDOW_MS (1000ms)
-        std::this_thread::sleep_for(std::chrono::milliseconds(1100));
-
-        CursorPosition cursor2{0, 6};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor2, "?"));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello!?");
-
-        // First undo should only remove "?"
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
-
-        // Second undo removes "!"
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Newline insertion does not merge (paragraph boundary)") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, "!"));
-
-        CursorPosition cursor2{0, 6};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor2, "\n"));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-
-        // First undo should only remove the newline
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
-    }
-
-    SECTION("Non-consecutive position does not merge") {
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor, "!"));
-
-        // Insert at a different position (not right after previous insert)
-        CursorPosition cursor2{0, 0};
-        undoStack.push(new TextInsertCommand(&buffer, &formatLayer, nullptr, cursor2, "X"));
-
-        REQUIRE(buffer.paragraphText(0) == "XHello!");
-
-        // First undo removes "X"
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello!");
-
-        // Second undo removes "!"
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-}
-
-// =============================================================================
-// TextDeleteCommand Tests
-// =============================================================================
-
-TEST_CASE("TextDeleteCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello World");
-
-    SECTION("Delete single character") {
-        CursorPosition start{0, 5};
-        CursorPosition end{0, 6};
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, " ", {}));
-
-        REQUIRE(buffer.paragraphText(0) == "HelloWorld");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-
-        undoStack.redo();
-        REQUIRE(buffer.paragraphText(0) == "HelloWorld");
-    }
-
-    SECTION("Delete range of text") {
+    SECTION("createCursor - selection") {
         CursorPosition start{0, 0};
-        CursorPosition end{0, 6};
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "Hello ", {}));
+        CursorPosition end{0, 5};
+        QTextCursor cursor = createCursor(&document, start, end);
 
-        REQUIRE(buffer.paragraphText(0) == "World");
+        REQUIRE(cursor.hasSelection());
+        REQUIRE(cursor.selectedText() == QStringLiteral("Hello"));
+    }
+}
 
+// =============================================================================
+// TextMarker Tests
+// =============================================================================
+
+TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
+    SECTION("toJson and fromJson roundtrip") {
+        TextMarker original;
+        original.position = 42;
+        original.length = 5;
+        original.text = QStringLiteral("Fix this bug");
+        original.type = MarkerType::Todo;
+        original.completed = false;
+        original.priority = QStringLiteral("high");
+        original.id = QStringLiteral("test-uuid-123");
+        original.timestamp = QStringLiteral("2024-01-15T10:30:00Z");
+
+        QString json = original.toJson();
+        REQUIRE(!json.isEmpty());
+
+        auto restored = TextMarker::fromJson(json);
+        REQUIRE(restored.has_value());
+        REQUIRE(restored->position == original.position);
+        REQUIRE(restored->length == original.length);
+        REQUIRE(restored->text == original.text);
+        REQUIRE(restored->type == original.type);
+        REQUIRE(restored->completed == original.completed);
+        REQUIRE(restored->priority == original.priority);
+        REQUIRE(restored->id == original.id);
+        REQUIRE(restored->timestamp == original.timestamp);
+    }
+
+    SECTION("fromJson with invalid JSON returns nullopt") {
+        auto result = TextMarker::fromJson(QStringLiteral("not valid json"));
+        REQUIRE(!result.has_value());
+    }
+
+    SECTION("fromJson with empty string returns nullopt") {
+        auto result = TextMarker::fromJson(QString());
+        REQUIRE(!result.has_value());
+    }
+
+    SECTION("generateId creates unique IDs") {
+        QString id1 = TextMarker::generateId();
+        QString id2 = TextMarker::generateId();
+        QString id3 = TextMarker::generateId();
+
+        REQUIRE(!id1.isEmpty());
+        REQUIRE(!id2.isEmpty());
+        REQUIRE(!id3.isEmpty());
+        REQUIRE(id1 != id2);
+        REQUIRE(id2 != id3);
+        REQUIRE(id1 != id3);
+    }
+
+    SECTION("Note type serialization") {
+        TextMarker note;
+        note.type = MarkerType::Note;
+        note.text = QStringLiteral("Just a note");
+        note.id = TextMarker::generateId();
+
+        QString json = note.toJson();
+        auto restored = TextMarker::fromJson(json);
+
+        REQUIRE(restored.has_value());
+        REQUIRE(restored->type == MarkerType::Note);
+    }
+}
+
+// =============================================================================
+// MarkerAddCommand Tests
+// =============================================================================
+
+TEST_CASE("MarkerAddCommand basic operations", "[editor][buffer_commands]") {
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Hello World"));
+    QUndoStack undoStack;
+
+    SECTION("Add TODO marker") {
+        TextMarker marker;
+        marker.position = 0;
+        marker.length = 5;
+        marker.text = QStringLiteral("Check this");
+        marker.type = MarkerType::Todo;
+        marker.id = TextMarker::generateId();
+
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerAddCommand(&document, cursor, marker));
+
+        // Verify marker was added
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
+        REQUIRE(markers[0].text == QStringLiteral("Check this"));
+        REQUIRE(markers[0].type == MarkerType::Todo);
+
+        // Undo
         undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.empty());
 
+        // Redo
         undoStack.redo();
-        REQUIRE(buffer.paragraphText(0) == "World");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
     }
 
-    SECTION("Delete at end of text") {
-        CursorPosition start{0, 6};
-        CursorPosition end{0, 11};
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "World", {}));
+    SECTION("Add Note marker") {
+        TextMarker marker;
+        marker.position = 6;
+        marker.length = 5;
+        marker.text = QStringLiteral("World is here");
+        marker.type = MarkerType::Note;
+        marker.id = TextMarker::generateId();
 
-        REQUIRE(buffer.paragraphText(0) == "Hello ");
+        CursorPosition cursor{0, 6};
+        undoStack.push(new MarkerAddCommand(&document, cursor, marker));
 
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
+        auto markers = findAllMarkers(&document, MarkerType::Note);
+        REQUIRE(markers.size() == 1);
+        REQUIRE(markers[0].type == MarkerType::Note);
     }
 
-    SECTION("Verify cursor position after delete") {
-        CursorPosition start{0, 5};
-        CursorPosition end{0, 11};
-        auto* cmd = new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, " World", {});
+    SECTION("Cursor position preserved") {
+        TextMarker marker;
+        marker.position = 3;
+        marker.length = 2;
+        marker.id = TextMarker::generateId();
+
+        CursorPosition cursor{0, 5};
+        auto* cmd = new MarkerAddCommand(&document, cursor, marker);
         undoStack.push(cmd);
 
         REQUIRE(cmd->cursorBefore().paragraph == 0);
@@ -368,327 +241,149 @@ TEST_CASE("TextDeleteCommand basic operations", "[editor][buffer_commands]") {
     }
 }
 
-TEST_CASE("TextDeleteCommand multi-paragraph", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello\nWorld\nTest");
-
-    SECTION("Delete across paragraphs") {
-        CursorPosition start{0, 3};  // "Hel|lo"
-        CursorPosition end{1, 2};    // "Wo|rld"
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "lo\nWo", {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Helrld");
-        REQUIRE(buffer.paragraphText(1) == "Test");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 3);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-        REQUIRE(buffer.paragraphText(1) == "World");
-        REQUIRE(buffer.paragraphText(2) == "Test");
-    }
-
-    SECTION("Delete entire middle paragraph") {
-        CursorPosition start{0, 5};  // End of "Hello"
-        CursorPosition end{2, 0};    // Start of "Test"
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "\nWorld\n", {}));
-
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "HelloTest");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 3);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-        REQUIRE(buffer.paragraphText(1) == "World");
-        REQUIRE(buffer.paragraphText(2) == "Test");
-    }
-}
-
-TEST_CASE("TextDeleteCommand with format restoration", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello World");
-
-    // Add bold format to "World" (positions 6-11)
-    TextFormat boldFormat;
-    boldFormat.setBold();
-    formatLayer.addFormat(6, 11, boldFormat);
-
-    SECTION("Delete formatted text and restore on undo") {
-        // Save the format ranges that will be deleted
-        std::vector<FormatRange> deletedFormats = formatLayer.getFormatsInRange(6, 11);
-
-        CursorPosition start{0, 6};
-        CursorPosition end{0, 11};
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "World", deletedFormats));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello ");
-
-        // After deletion, format should be gone
-        auto formatsAfterDelete = formatLayer.getFormatsInRange(0, 10);
-        // The format range was at 6-11, now text is shorter
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-
-        // Format should be restored
-        REQUIRE(formatLayer.hasFormatAt(7, FormatType::Bold));
-    }
-}
-
 // =============================================================================
-// ParagraphSplitCommand Tests
+// MarkerRemoveCommand Tests
 // =============================================================================
 
-TEST_CASE("ParagraphSplitCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
+TEST_CASE("MarkerRemoveCommand basic operations", "[editor][buffer_commands]") {
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Hello World"));
     QUndoStack undoStack;
 
-    buffer.setPlainText("Hello World");
+    // First add a marker
+    TextMarker marker;
+    marker.position = 0;
+    marker.length = 5;
+    marker.text = QStringLiteral("Check this");
+    marker.type = MarkerType::Todo;
+    marker.id = TextMarker::generateId();
+    setMarkerInDocument(&document, marker);
 
-    SECTION("Split paragraph at middle") {
-        CursorPosition splitPos{0, 6};  // After "Hello "
-        undoStack.push(new ParagraphSplitCommand(
-            &buffer, &formatLayer, nullptr, splitPos, {}));
+    SECTION("Remove marker") {
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerRemoveCommand(&document, cursor, marker));
 
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello ");
-        REQUIRE(buffer.paragraphText(1) == "World");
+        // Verify marker was removed
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.empty());
 
+        // Undo
         undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
 
+        // Redo
         undoStack.redo();
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello ");
-        REQUIRE(buffer.paragraphText(1) == "World");
-    }
-
-    SECTION("Split at start of paragraph") {
-        CursorPosition splitPos{0, 0};
-        undoStack.push(new ParagraphSplitCommand(
-            &buffer, &formatLayer, nullptr, splitPos, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "");
-        REQUIRE(buffer.paragraphText(1) == "Hello World");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-    }
-
-    SECTION("Split at end of paragraph") {
-        CursorPosition splitPos{0, 11};  // At end
-        undoStack.push(new ParagraphSplitCommand(
-            &buffer, &formatLayer, nullptr, splitPos, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-        REQUIRE(buffer.paragraphText(1) == "");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "Hello World");
-    }
-
-    SECTION("Verify cursor position after split") {
-        CursorPosition splitPos{0, 6};
-        auto* cmd = new ParagraphSplitCommand(&buffer, &formatLayer, nullptr, splitPos, {});
-        undoStack.push(cmd);
-
-        REQUIRE(cmd->cursorAfter().paragraph == 1);
-        REQUIRE(cmd->cursorAfter().offset == 0);
-    }
-}
-
-TEST_CASE("ParagraphSplitCommand format preservation", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello World");
-
-    // Add italic format spanning the split point
-    TextFormat italicFormat;
-    italicFormat.setItalic();
-    formatLayer.addFormat(3, 8, italicFormat);  // "lo Wo" is italic
-
-    SECTION("Format ranges adjust after split") {
-        CursorPosition splitPos{0, 6};  // After "Hello "
-        undoStack.push(new ParagraphSplitCommand(
-            &buffer, &formatLayer, nullptr, splitPos, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-
-        // After split, format layer should have adjusted ranges
-        // The format should still be present but may be split
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.empty());
     }
 }
 
 // =============================================================================
-// ParagraphMergeCommand Tests
+// MarkerToggleCommand Tests
 // =============================================================================
 
-TEST_CASE("ParagraphMergeCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
+TEST_CASE("MarkerToggleCommand basic operations", "[editor][buffer_commands]") {
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Hello World"));
     QUndoStack undoStack;
 
-    buffer.setPlainText("Hello\nWorld");
+    // First add a TODO marker
+    TextMarker marker;
+    marker.position = 0;
+    marker.length = 5;
+    marker.text = QStringLiteral("Fix this");
+    marker.type = MarkerType::Todo;
+    marker.completed = false;
+    marker.id = TextMarker::generateId();
+    setMarkerInDocument(&document, marker);
 
-    SECTION("Merge two paragraphs") {
-        CursorPosition cursorPos{1, 0};
-        QString mergedContent = buffer.paragraphText(1);
+    SECTION("Toggle completes TODO") {
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
 
-        undoStack.push(new ParagraphMergeCommand(
-            &buffer, &formatLayer, nullptr, cursorPos, 1, mergedContent, {}));
+        // Verify marker is now completed
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
+        REQUIRE(markers[0].completed == true);
 
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "HelloWorld");
-
+        // Undo
         undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-        REQUIRE(buffer.paragraphText(1) == "World");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers[0].completed == false);
 
+        // Redo
         undoStack.redo();
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.paragraphText(0) == "HelloWorld");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers[0].completed == true);
     }
 
-    SECTION("Verify text content after merge") {
-        CursorPosition cursorPos{1, 0};
-        QString mergedContent = buffer.paragraphText(1);
+    SECTION("Double toggle returns to original state") {
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
+        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
 
-        undoStack.push(new ParagraphMergeCommand(
-            &buffer, &formatLayer, nullptr, cursorPos, 1, mergedContent, {}));
-
-        QString result = buffer.paragraphText(0);
-        REQUIRE(result.length() == 10);
-        REQUIRE(result.startsWith("Hello"));
-        REQUIRE(result.endsWith("World"));
-    }
-
-    SECTION("Verify cursor position after merge") {
-        // Note: m_splitOffset is set in constructor based on buffer state
-        // paragraphLength(0) = 5 (text length without separator for "Hello")
-        CursorPosition cursorPos{1, 0};
-        QString mergedContent = buffer.paragraphText(1);
-
-        auto* cmd = new ParagraphMergeCommand(
-            &buffer, &formatLayer, nullptr, cursorPos, 1, mergedContent, {});
-        undoStack.push(cmd);
-
-        REQUIRE(cmd->cursorAfter().paragraph == 0);
-        // m_splitOffset = paragraphLength(0) = 5 (text length without separator)
-        REQUIRE(cmd->cursorAfter().offset == 5);
-    }
-}
-
-TEST_CASE("ParagraphMergeCommand with multiple paragraphs", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("One\nTwo\nThree");
-
-    SECTION("Merge middle paragraph with first") {
-        CursorPosition cursorPos{1, 0};
-        QString mergedContent = buffer.paragraphText(1);
-
-        undoStack.push(new ParagraphMergeCommand(
-            &buffer, &formatLayer, nullptr, cursorPos, 1, mergedContent, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "OneTwo");
-        REQUIRE(buffer.paragraphText(1) == "Three");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 3);
-        REQUIRE(buffer.paragraphText(0) == "One");
-        REQUIRE(buffer.paragraphText(1) == "Two");
-        REQUIRE(buffer.paragraphText(2) == "Three");
-    }
-
-    SECTION("Merge last paragraph with middle") {
-        CursorPosition cursorPos{2, 0};
-        QString mergedContent = buffer.paragraphText(2);
-
-        undoStack.push(new ParagraphMergeCommand(
-            &buffer, &formatLayer, nullptr, cursorPos, 2, mergedContent, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "One");
-        REQUIRE(buffer.paragraphText(1) == "TwoThree");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 3);
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
+        REQUIRE(markers[0].completed == false);
     }
 }
 
 // =============================================================================
-// CompositeBufferCommand Tests
+// CompositeDocumentCommand Tests
 // =============================================================================
 
-TEST_CASE("CompositeBufferCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
+TEST_CASE("CompositeDocumentCommand basic operations", "[editor][buffer_commands]") {
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Hello World"));
     QUndoStack undoStack;
 
-    buffer.setPlainText("Hello");
+    SECTION("Multiple marker operations as one undo step") {
+        auto* composite = new CompositeDocumentCommand(
+            &document, CursorPosition{0, 0}, QStringLiteral("Multiple Markers"));
 
-    SECTION("Multiple commands as one undo step") {
-        auto* composite = new CompositeBufferCommand(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, "Multiple Operations");
+        // Add two markers
+        TextMarker marker1;
+        marker1.position = 0;
+        marker1.length = 5;
+        marker1.text = QStringLiteral("First");
+        marker1.type = MarkerType::Todo;
+        marker1.id = TextMarker::generateId();
 
-        // Add first insert
-        composite->addCommand(std::make_unique<TextInsertCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 5}, "!"));
+        TextMarker marker2;
+        marker2.position = 6;
+        marker2.length = 5;
+        marker2.text = QStringLiteral("Second");
+        marker2.type = MarkerType::Note;
+        marker2.id = TextMarker::generateId();
 
-        // Execute first insert manually (redo is called on push)
-        buffer.setParagraphText(0, "Hello!");
-
-        // Add second insert
-        composite->addCommand(std::make_unique<TextInsertCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 6}, "!"));
-
-        buffer.setParagraphText(0, "Hello!!");
+        composite->addCommand(std::make_unique<MarkerAddCommand>(
+            &document, CursorPosition{0, 0}, marker1));
+        composite->addCommand(std::make_unique<MarkerAddCommand>(
+            &document, CursorPosition{0, 6}, marker2));
 
         REQUIRE(composite->commandCount() == 2);
 
-        // Push composite to stack (this will call redo on all children)
-        // Reset buffer first for proper redo
-        buffer.setPlainText("Hello");
         undoStack.push(composite);
 
-        REQUIRE(buffer.paragraphText(0) == "Hello!!");
+        // Both markers should exist
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 2);
 
-        // Single undo should revert all commands
+        // Single undo should remove both
         undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.empty());
 
-        // Single redo should reapply all commands
+        // Single redo should add both
         undoStack.redo();
-        REQUIRE(buffer.paragraphText(0) == "Hello!!");
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 2);
     }
 
     SECTION("Empty composite command") {
-        auto* composite = new CompositeBufferCommand(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, "Empty");
+        auto* composite = new CompositeDocumentCommand(
+            &document, CursorPosition{0, 0}, QStringLiteral("Empty"));
 
         REQUIRE(composite->commandCount() == 0);
 
@@ -698,372 +393,106 @@ TEST_CASE("CompositeBufferCommand basic operations", "[editor][buffer_commands]"
         undoStack.undo();
         undoStack.redo();
     }
-
-    SECTION("Composite with mixed command types") {
-        buffer.setPlainText("Hello World");
-
-        auto* composite = new CompositeBufferCommand(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, "Mixed Operations");
-
-        // Insert "!"
-        composite->addCommand(std::make_unique<TextInsertCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 11}, "!"));
-
-        // Note: Composite commands execute their children in order on redo
-        // For this test, we verify the structure works
-
-        REQUIRE(composite->commandCount() == 1);
-    }
 }
 
 // =============================================================================
-// FormatApplyCommand Tests
+// Marker Utility Functions Tests
 // =============================================================================
 
-TEST_CASE("FormatApplyCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
+TEST_CASE("Marker utility functions", "[editor][buffer_commands][utilities]") {
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Line one\nLine two\nLine three"));
 
-    buffer.setPlainText("Hello World");
+    // Add some markers
+    TextMarker todo1;
+    todo1.position = 0;
+    todo1.length = 4;
+    todo1.text = QStringLiteral("First TODO");
+    todo1.type = MarkerType::Todo;
+    todo1.id = QStringLiteral("todo-1");
+    setMarkerInDocument(&document, todo1);
 
-    SECTION("Apply bold format") {
-        TextFormat boldFormat;
-        boldFormat.setBold();
+    TextMarker note1;
+    note1.position = 9;
+    note1.length = 4;
+    note1.text = QStringLiteral("A note");
+    note1.type = MarkerType::Note;
+    note1.id = QStringLiteral("note-1");
+    setMarkerInDocument(&document, note1);
 
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 5};
+    TextMarker todo2;
+    todo2.position = 18;
+    todo2.length = 4;
+    todo2.text = QStringLiteral("Second TODO");
+    todo2.type = MarkerType::Todo;
+    todo2.id = QStringLiteral("todo-2");
+    setMarkerInDocument(&document, todo2);
 
-        // Store previous formats (empty in this case)
-        std::vector<FormatRange> previousFormats = formatLayer.getFormatsInRange(0, 5);
-
-        undoStack.push(new FormatApplyCommand(
-            &buffer, &formatLayer, nullptr, start, end, boldFormat, previousFormats));
-
-        REQUIRE(formatLayer.hasFormatAt(2, FormatType::Bold));
-
-        undoStack.undo();
-        REQUIRE_FALSE(formatLayer.hasFormatAt(2, FormatType::Bold));
-
-        undoStack.redo();
-        REQUIRE(formatLayer.hasFormatAt(2, FormatType::Bold));
+    SECTION("findAllMarkers - no filter") {
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 3);
     }
 
-    SECTION("Apply italic format") {
-        TextFormat italicFormat;
-        italicFormat.setItalic();
-
-        CursorPosition start{0, 6};
-        CursorPosition end{0, 11};
-
-        std::vector<FormatRange> previousFormats = formatLayer.getFormatsInRange(6, 11);
-
-        undoStack.push(new FormatApplyCommand(
-            &buffer, &formatLayer, nullptr, start, end, italicFormat, previousFormats));
-
-        REQUIRE(formatLayer.hasFormatAt(8, FormatType::Italic));
-        REQUIRE_FALSE(formatLayer.hasFormatAt(3, FormatType::Italic));
-
-        undoStack.undo();
-        REQUIRE_FALSE(formatLayer.hasFormatAt(8, FormatType::Italic));
+    SECTION("findAllMarkers - TODO filter") {
+        auto markers = findAllMarkers(&document, MarkerType::Todo);
+        REQUIRE(markers.size() == 2);
+        REQUIRE(markers[0].type == MarkerType::Todo);
+        REQUIRE(markers[1].type == MarkerType::Todo);
     }
 
-    SECTION("Verify format state after undo") {
-        // First apply bold
-        TextFormat boldFormat;
-        boldFormat.setBold();
-
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 5};
-
-        undoStack.push(new FormatApplyCommand(
-            &buffer, &formatLayer, nullptr, start, end, boldFormat, {}));
-
-        REQUIRE(formatLayer.hasFormatAt(2, FormatType::Bold));
-
-        // Now apply italic to overlapping range
-        TextFormat italicFormat;
-        italicFormat.setItalic();
-
-        CursorPosition start2{0, 3};
-        CursorPosition end2{0, 8};
-
-        std::vector<FormatRange> previousFormats = formatLayer.getFormatsInRange(3, 8);
-
-        undoStack.push(new FormatApplyCommand(
-            &buffer, &formatLayer, nullptr, start2, end2, italicFormat, previousFormats));
-
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Italic));
-
-        // Undo italic
-        undoStack.undo();
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Italic));
-        // Bold should still be there
-        REQUIRE(formatLayer.hasFormatAt(2, FormatType::Bold));
+    SECTION("findAllMarkers - Note filter") {
+        auto markers = findAllMarkers(&document, MarkerType::Note);
+        REQUIRE(markers.size() == 1);
+        REQUIRE(markers[0].type == MarkerType::Note);
     }
 
-    SECTION("Apply underline format") {
-        TextFormat underlineFormat;
-        underlineFormat.setUnderline();
+    SECTION("findMarkerById") {
+        auto marker = findMarkerById(&document, QStringLiteral("note-1"));
+        REQUIRE(marker.has_value());
+        REQUIRE(marker->text == QStringLiteral("A note"));
 
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 11};
-
-        undoStack.push(new FormatApplyCommand(
-            &buffer, &formatLayer, nullptr, start, end, underlineFormat, {}));
-
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Underline));
-
-        undoStack.undo();
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Underline));
-    }
-}
-
-// =============================================================================
-// FormatRemoveCommand Tests
-// =============================================================================
-
-TEST_CASE("FormatRemoveCommand basic operations", "[editor][buffer_commands]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    buffer.setPlainText("Hello World");
-
-    // Add initial bold format
-    TextFormat boldFormat;
-    boldFormat.setBold();
-    formatLayer.addFormat(0, 11, boldFormat);
-
-    SECTION("Remove format") {
-        std::vector<FormatRange> removedFormats = formatLayer.getFormatsInRange(0, 11);
-
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 11};
-
-        undoStack.push(new FormatRemoveCommand(
-            &buffer, &formatLayer, nullptr, start, end, FormatType::Bold, removedFormats));
-
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Bold));
-
-        undoStack.undo();
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Bold));
-
-        undoStack.redo();
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Bold));
+        auto notFound = findMarkerById(&document, QStringLiteral("nonexistent"));
+        REQUIRE(!notFound.has_value());
     }
 
-    SECTION("Verify format restoration after undo") {
-        // Add italic format as well
-        TextFormat italicFormat;
-        italicFormat.setItalic();
-        formatLayer.addFormat(3, 8, italicFormat);
+    SECTION("findNextMarker") {
+        auto next = findNextMarker(&document, 0);
+        REQUIRE(next.has_value());
+        REQUIRE(next->id == QStringLiteral("note-1"));
 
-        // Remove only bold
-        std::vector<FormatRange> boldRanges;
-        for (const auto& range : formatLayer.allRanges()) {
-            if (range.format.hasFlag(FormatType::Bold)) {
-                boldRanges.push_back(range);
-            }
-        }
-
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 11};
-
-        undoStack.push(new FormatRemoveCommand(
-            &buffer, &formatLayer, nullptr, start, end, FormatType::Bold, boldRanges));
-
-        // Italic should still be there
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Italic));
-
-        undoStack.undo();
-        // Both should be there
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Bold));
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Italic));
+        next = findNextMarker(&document, 10);
+        REQUIRE(next.has_value());
+        REQUIRE(next->id == QStringLiteral("todo-2"));
     }
 
-    SECTION("Remove all formats") {
-        // Add italic format as well
-        TextFormat italicFormat;
-        italicFormat.setItalic();
-        formatLayer.addFormat(3, 8, italicFormat);
-
-        std::vector<FormatRange> allRanges = formatLayer.allRanges();
-
-        CursorPosition start{0, 0};
-        CursorPosition end{0, 11};
-
-        undoStack.push(new FormatRemoveCommand(
-            &buffer, &formatLayer, nullptr, start, end, FormatType::None, allRanges));
-
-        // All formats should be gone
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Bold));
-        REQUIRE_FALSE(formatLayer.hasFormatAt(5, FormatType::Italic));
-
-        undoStack.undo();
-        // All formats should be restored
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Bold));
-        REQUIRE(formatLayer.hasFormatAt(5, FormatType::Italic));
-    }
-}
-
-// =============================================================================
-// Stress Test
-// =============================================================================
-
-TEST_CASE("Buffer commands stress test - 100+ operations", "[editor][buffer_commands][stress]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
-
-    // Start with known initial state
-    buffer.setPlainText("Initial");
-    const QString originalText = buffer.paragraphText(0);
-
-    SECTION("100 insert operations with undo/redo") {
-        // Perform 100 insert operations
-        for (int i = 0; i < 100; ++i) {
-            CursorPosition cursor{0, static_cast<int>(buffer.paragraphText(0).length())};
-            undoStack.push(new TextInsertCommand(
-                &buffer, &formatLayer, nullptr, cursor, QString::number(i % 10)));
-        }
-
-        // Verify text was modified
-        QString finalText = buffer.paragraphText(0);
-        REQUIRE(finalText.length() > originalText.length());
-
-        // Undo all operations
-        while (undoStack.canUndo()) {
-            undoStack.undo();
-        }
-
-        // Verify original state is restored
-        REQUIRE(buffer.paragraphText(0) == originalText);
-
-        // Redo all operations
-        while (undoStack.canRedo()) {
-            undoStack.redo();
-        }
-
-        // Verify final state is restored
-        REQUIRE(buffer.paragraphText(0) == finalText);
+    SECTION("findNextMarker with type filter") {
+        auto next = findNextMarker(&document, 0, MarkerType::Todo);
+        REQUIRE(next.has_value());
+        REQUIRE(next->id == QStringLiteral("todo-2"));
     }
 
-    SECTION("Mixed insert and delete operations") {
-        // Perform 50 insert operations
-        for (int i = 0; i < 50; ++i) {
-            CursorPosition cursor{0, static_cast<int>(buffer.paragraphText(0).length())};
-            undoStack.push(new TextInsertCommand(
-                &buffer, &formatLayer, nullptr, cursor, "X"));
-        }
-
-        // Record state after inserts
-        QString afterInserts = buffer.paragraphText(0);
-
-        // Perform 25 delete operations from the end
-        for (int i = 0; i < 25; ++i) {
-            int len = buffer.paragraphText(0).length();
-            if (len > 0) {
-                CursorPosition start{0, len - 1};
-                CursorPosition end{0, len};
-                undoStack.push(new TextDeleteCommand(
-                    &buffer, &formatLayer, nullptr, start, end, "X", {}));
-            }
-        }
-
-        QString finalText = buffer.paragraphText(0);
-        REQUIRE(finalText.length() == afterInserts.length() - 25);
-
-        // Undo all operations
-        while (undoStack.canUndo()) {
-            undoStack.undo();
-        }
-
-        // Verify original state
-        REQUIRE(buffer.paragraphText(0) == originalText);
-
-        // Redo all operations
-        while (undoStack.canRedo()) {
-            undoStack.redo();
-        }
-
-        // Verify final state
-        REQUIRE(buffer.paragraphText(0) == finalText);
+    SECTION("findPreviousMarker") {
+        // Position 20 is after todo-2 at 18, so previous should be todo-2
+        auto prev = findPreviousMarker(&document, 20);
+        REQUIRE(prev.has_value());
+        REQUIRE(prev->id == QStringLiteral("todo-2"));
     }
 
-    SECTION("Paragraph split and merge stress test") {
-        // Start with single paragraph
-        buffer.setPlainText("ABCDEFGHIJ");
-        QString original = buffer.plainText();
+    SECTION("setMarkerInDocument and removeMarkerFromDocument") {
+        TextMarker newMarker;
+        newMarker.position = 5;
+        newMarker.length = 3;
+        newMarker.text = QStringLiteral("New marker");
+        newMarker.type = MarkerType::Todo;
+        newMarker.id = QStringLiteral("new-marker");
 
-        // Perform 10 splits
-        for (int i = 0; i < 10; ++i) {
-            if (buffer.paragraphCount() > 0) {
-                int paraLen = buffer.paragraphText(0).length();
-                if (paraLen > 1) {
-                    CursorPosition splitPos{0, 1};
-                    undoStack.push(new ParagraphSplitCommand(
-                        &buffer, &formatLayer, nullptr, splitPos, {}));
-                }
-            }
-        }
+        setMarkerInDocument(&document, newMarker);
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 4);
 
-        REQUIRE(buffer.paragraphCount() > 1);
-
-        // Undo all splits
-        while (undoStack.canUndo()) {
-            undoStack.undo();
-        }
-
-        // Should be back to original state
-        REQUIRE(buffer.paragraphCount() == 1);
-        REQUIRE(buffer.plainText() == original);
-    }
-
-    SECTION("Format operations stress test") {
-        buffer.setPlainText("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-
-        // Apply 20 non-overlapping format operations
-        for (int i = 0; i < 20; ++i) {
-            TextFormat format;
-            if (i % 3 == 0) format.setBold();
-            if (i % 3 == 1) format.setItalic();
-            if (i % 3 == 2) format.setUnderline();
-
-            // Non-overlapping ranges: 0-1, 2-3, 4-5, etc.
-            size_t start = static_cast<size_t>(i);
-            size_t end = start + 1;
-
-            std::vector<FormatRange> prev = formatLayer.getFormatsInRange(start, end);
-
-            CursorPosition startPos{0, static_cast<int>(start)};
-            CursorPosition endPos{0, static_cast<int>(end)};
-
-            undoStack.push(new FormatApplyCommand(
-                &buffer, &formatLayer, nullptr, startPos, endPos, format, prev));
-        }
-
-        // Record format count
-        size_t formatCount = formatLayer.rangeCount();
-        REQUIRE(formatCount > 0);
-
-        // Undo all
-        while (undoStack.canUndo()) {
-            undoStack.undo();
-        }
-
-        // After undo, format count should decrease (may not be exactly 0 due to
-        // how FormatApplyCommand restores previous formats, but should be minimal)
-        size_t afterUndo = formatLayer.rangeCount();
-        REQUIRE(afterUndo < formatCount);
-
-        // Redo all
-        while (undoStack.canRedo()) {
-            undoStack.redo();
-        }
-
-        // Should have formats again
-        REQUIRE(formatLayer.rangeCount() > 0);
+        removeMarkerFromDocument(&document, 5);
+        markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 3);
     }
 }
 
@@ -1072,96 +501,34 @@ TEST_CASE("Buffer commands stress test - 100+ operations", "[editor][buffer_comm
 // =============================================================================
 
 TEST_CASE("Buffer commands edge cases", "[editor][buffer_commands][edge]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    QUndoStack undoStack;
+    SECTION("Operations on empty document") {
+        QTextDocument document;
+        document.setPlainText(QString());
+        QUndoStack undoStack;
 
-    SECTION("Operations on empty buffer") {
-        buffer.setPlainText("");
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.empty());
 
-        CursorPosition cursor{0, 0};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, "Test"));
-
-        REQUIRE(buffer.paragraphText(0) == "Test");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0).isEmpty());
+        auto next = findNextMarker(&document, 0);
+        REQUIRE(!next.has_value());
     }
 
-    SECTION("Insert empty string") {
-        buffer.setPlainText("Hello");
+    SECTION("Null document handling") {
+        REQUIRE(calculateAbsolutePosition(nullptr, 0, 0) == 0);
+        REQUIRE(absoluteToCursorPosition(nullptr, 0).paragraph == 0);
+        REQUIRE(!createCursor(nullptr, CursorPosition{0, 0}).isNull() == false);
 
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, ""));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
+        auto markers = findAllMarkers(nullptr);
+        REQUIRE(markers.empty());
     }
 
-    SECTION("Delete empty range") {
-        buffer.setPlainText("Hello");
+    SECTION("Position beyond document bounds") {
+        QTextDocument document;
+        document.setPlainText(QStringLiteral("Short"));
 
-        CursorPosition start{0, 3};
-        CursorPosition end{0, 3};
-        undoStack.push(new TextDeleteCommand(
-            &buffer, &formatLayer, nullptr, start, end, "", {}));
-
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-    }
-
-    SECTION("Split at exact paragraph boundary") {
-        buffer.setPlainText("Hello");
-
-        // Split at the end creates empty paragraph
-        CursorPosition splitPos{0, 5};
-        undoStack.push(new ParagraphSplitCommand(
-            &buffer, &formatLayer, nullptr, splitPos, {}));
-
-        REQUIRE(buffer.paragraphCount() == 2);
-        REQUIRE(buffer.paragraphText(0) == "Hello");
-        REQUIRE(buffer.paragraphText(1).isEmpty());
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphCount() == 1);
-    }
-
-    SECTION("Unicode text handling") {
-        buffer.setPlainText(QString::fromUtf8("Hello"));
-
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, QString::fromUtf8(" World")));
-
-        REQUIRE(buffer.paragraphText(0) == QString::fromUtf8("Hello World"));
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == QString::fromUtf8("Hello"));
-    }
-
-    SECTION("Very long text insertion") {
-        buffer.setPlainText("Start");
-
-        // Create a long string
-        QString longText;
-        for (int i = 0; i < 1000; ++i) {
-            longText += QString::number(i % 10);
-        }
-
-        CursorPosition cursor{0, 5};
-        undoStack.push(new TextInsertCommand(
-            &buffer, &formatLayer, nullptr, cursor, longText));
-
-        REQUIRE(buffer.paragraphText(0).length() == 5 + 1000);
-
-        undoStack.undo();
-        REQUIRE(buffer.paragraphText(0) == "Start");
+        CursorPosition pos = absoluteToCursorPosition(&document, 1000);
+        // Should clamp to end of document
+        REQUIRE(pos.paragraph == 0);
     }
 }
 
@@ -1170,46 +537,28 @@ TEST_CASE("Buffer commands edge cases", "[editor][buffer_commands][edge]") {
 // =============================================================================
 
 TEST_CASE("Buffer command IDs", "[editor][buffer_commands][id]") {
-    TextBuffer buffer;
-    FormatLayer formatLayer;
-    buffer.setPlainText("Test");
+    QTextDocument document;
+    document.setPlainText(QStringLiteral("Test"));
 
-    SECTION("TextInsertCommand has correct ID") {
-        auto cmd = std::make_unique<TextInsertCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, "X");
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::TextInsert));
+    SECTION("MarkerAddCommand has correct ID") {
+        TextMarker marker;
+        marker.id = TextMarker::generateId();
+        auto cmd = std::make_unique<MarkerAddCommand>(
+            &document, CursorPosition{0, 0}, marker);
+        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerAdd));
     }
 
-    SECTION("TextDeleteCommand has correct ID") {
-        auto cmd = std::make_unique<TextDeleteCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, CursorPosition{0, 1}, "T", std::vector<FormatRange>{});
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::TextDelete));
+    SECTION("MarkerRemoveCommand has correct ID") {
+        TextMarker marker;
+        marker.id = TextMarker::generateId();
+        auto cmd = std::make_unique<MarkerRemoveCommand>(
+            &document, CursorPosition{0, 0}, marker);
+        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerRemove));
     }
 
-    SECTION("ParagraphSplitCommand has correct ID") {
-        auto cmd = std::make_unique<ParagraphSplitCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 2}, std::vector<FormatRange>{});
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::ParagraphSplit));
-    }
-
-    SECTION("ParagraphMergeCommand has correct ID") {
-        buffer.setPlainText("A\nB");
-        auto cmd = std::make_unique<ParagraphMergeCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{1, 0}, 1, "B", std::vector<FormatRange>{});
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::ParagraphMerge));
-    }
-
-    SECTION("FormatApplyCommand has correct ID") {
-        TextFormat format;
-        format.setBold();
-        auto cmd = std::make_unique<FormatApplyCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, CursorPosition{0, 4}, format, std::vector<FormatRange>{});
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::FormatApply));
-    }
-
-    SECTION("FormatRemoveCommand has correct ID") {
-        auto cmd = std::make_unique<FormatRemoveCommand>(
-            &buffer, &formatLayer, nullptr, CursorPosition{0, 0}, CursorPosition{0, 4}, FormatType::Bold, std::vector<FormatRange>{});
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::FormatRemove));
+    SECTION("MarkerToggleCommand has correct ID") {
+        auto cmd = std::make_unique<MarkerToggleCommand>(
+            &document, CursorPosition{0, 0}, QStringLiteral("id"), 0);
+        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerToggle));
     }
 }

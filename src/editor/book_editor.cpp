@@ -13,6 +13,7 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_layout.h>
 #include <kalahari/gui/find_replace_bar.h>
+#include <QAbstractTextDocumentLayout>
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QEasingCurve>
@@ -59,6 +60,60 @@ constexpr qreal LEFT_MARGIN = 10.0;
 constexpr qreal TOP_MARGIN = 10.0;
 
 // =============================================================================
+// Phase 11.6: Helper functions for QTextDocument paragraph operations
+// These replace TextBuffer methods with direct QTextDocument access
+// =============================================================================
+
+/// @brief Get paragraph length (excluding block separator)
+/// @param doc QTextDocument pointer
+/// @param index Block/paragraph index
+/// @return Character count in paragraph (length - 1 to exclude block separator)
+inline int paragraphLength(QTextDocument* doc, int index) {
+    if (!doc) return 0;
+    QTextBlock block = doc->findBlockByNumber(index);
+    return block.isValid() ? (block.length() - 1) : 0;
+}
+
+/// @brief Get paragraph text
+/// @param doc QTextDocument pointer
+/// @param index Block/paragraph index
+/// @return Text content of the paragraph
+inline QString paragraphText(QTextDocument* doc, int index) {
+    if (!doc) return QString();
+    QTextBlock block = doc->findBlockByNumber(index);
+    return block.isValid() ? block.text() : QString();
+}
+
+/// @brief Get Y position of paragraph using block layout
+/// @param doc QTextDocument pointer
+/// @param index Block/paragraph index
+/// @return Y position in document coordinates
+inline double getParagraphY(QTextDocument* doc, int index) {
+    if (!doc) return 0.0;
+    QTextBlock block = doc->findBlockByNumber(index);
+    if (block.isValid() && block.layout()) {
+        return block.layout()->position().y();
+    }
+    return 0.0;
+}
+
+/// @brief Find paragraph at Y position using document layout hit test
+/// @param doc QTextDocument pointer
+/// @param y Y coordinate in document
+/// @return Block/paragraph index
+inline int getParagraphAtY(QTextDocument* doc, double y) {
+    if (!doc) return 0;
+    if (auto* layout = doc->documentLayout()) {
+        int pos = layout->hitTest(QPointF(0, y), Qt::FuzzyHit);
+        if (pos >= 0) {
+            QTextBlock block = doc->findBlock(pos);
+            return block.isValid() ? block.blockNumber() : 0;
+        }
+    }
+    return 0;
+}
+
+// =============================================================================
 // Construction / Destruction
 // =============================================================================
 
@@ -92,9 +147,9 @@ BookEditor::BookEditor(QWidget* parent)
     , m_hasComposition(false)
     , m_undoStack(nullptr)
     // Phase 8: New performance-optimized components (OpenSpec #00043)
-    , m_textBuffer(std::make_unique<TextBuffer>())
-    , m_formatLayer(std::make_unique<FormatLayer>())
-    , m_metadataLayer(std::make_unique<MetadataLayer>())
+    // Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer, TextBuffer - use QTextDocument directly
+    , m_textBuffer(std::make_unique<QTextDocument>())
+    // Phase 11.6: Removed m_metadataLayer - markers stored in QTextCharFormat::UserProperty
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);
@@ -111,24 +166,23 @@ BookEditor::BookEditor(QWidget* parent)
         update();
     });
 
-    // Phase 8: Initialize and wire up new performance-optimized components
-    // Create LazyLayoutManager with TextBuffer
-    m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
+    // Phase 11.6: Direct QTextDocument usage (no wrapper layers)
+    // Set document width for text wrapping
+    if (m_textBuffer) {
+        m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+    }
 
     // Phase 11.6: Initialize QTextCursor for direct cursor operations
-    m_textCursor = QTextCursor(m_textBuffer->document());
+    m_textCursor = QTextCursor(m_textBuffer.get());
 
     // Create ViewportManager and connect to document
     m_viewportManager = std::make_unique<ViewportManager>(this);
-    m_viewportManager->setDocument(m_textBuffer->document());
+    m_viewportManager->setDocument(m_textBuffer.get());
 
     // Create RenderEngine and connect all dependencies
     m_renderEngine = std::make_unique<RenderEngine>(this);
-    m_renderEngine->setDocument(m_textBuffer->document());
+    m_renderEngine->setDocument(m_textBuffer.get());
     m_renderEngine->setViewportManager(m_viewportManager.get());
-
-    // Attach FormatLayer to TextBuffer for automatic range adjustment
-    m_formatLayer->attachToBuffer(m_textBuffer.get());
 
     // Connect RenderEngine repaint signal
     connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
@@ -201,7 +255,7 @@ void BookEditor::setDocument(KmlDocument* document)
     updateScrollBarRange();
     logger.debug("BookEditor::setDocument - scrollbar updated");
 
-    // Sync to TextBuffer for new architecture (backward compatibility with tests)
+    // Sync to QTextDocument for new architecture (backward compatibility with tests)
     if (m_textBuffer && document) {
         QStringList paragraphs;
         int paraCount = static_cast<int>(document->paragraphCount());
@@ -212,13 +266,12 @@ void BookEditor::setDocument(KmlDocument* document)
             }
         }
         QString fullText = paragraphs.join(QChar::ParagraphSeparator);
-        m_textBuffer->setPlainText(fullText);
-        logger.debug("BookEditor::setDocument - TextBuffer synced ({} paragraphs)", paraCount);
-
-        // Trigger layout refresh
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateAllLayouts();
-        }
+        // Phase 11.6: Set text using QTextCursor instead of TextBuffer::setPlainText
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.select(QTextCursor::Document);
+        cursor.insertText(fullText);
+        logger.debug("BookEditor::setDocument - QTextDocument synced ({} paragraphs)", paraCount);
+        // Note: QTextDocument handles layout refresh automatically
     }
 
     // Sync cursor to RenderEngine (Phase 8 fix)
@@ -459,7 +512,7 @@ void BookEditor::ensureCursorVisible()
 
 void BookEditor::moveCursorLeft()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -472,7 +525,7 @@ void BookEditor::moveCursorLeft()
         --newPos.offset;
     } else if (newPos.paragraph > 0) {
         --newPos.paragraph;
-        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
     }
     // else: already at document start, do nothing
 
@@ -482,7 +535,7 @@ void BookEditor::moveCursorLeft()
 
 void BookEditor::moveCursorRight()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -490,11 +543,11 @@ void BookEditor::moveCursorRight()
     m_preferredCursorXValid = false;
 
     CursorPosition newPos = m_cursorPosition;
-    int paraLen = m_textBuffer->paragraphLength(newPos.paragraph);
+    int paraLen = paragraphLength(m_textBuffer.get(), newPos.paragraph);
 
     if (newPos.offset < paraLen) {
         ++newPos.offset;
-    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
+    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
         ++newPos.paragraph;
         newPos.offset = 0;
     }
@@ -506,7 +559,7 @@ void BookEditor::moveCursorRight()
 
 void BookEditor::moveCursorUp()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -515,7 +568,7 @@ void BookEditor::moveCursorUp()
     if (newPos.paragraph > 0) {
         // Move to end of previous paragraph
         --newPos.paragraph;
-        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
     } else {
         // At first paragraph: move to start
         newPos.offset = 0;
@@ -527,19 +580,19 @@ void BookEditor::moveCursorUp()
 
 void BookEditor::moveCursorDown()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
     CursorPosition newPos = m_cursorPosition;
 
-    if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->paragraphCount() - 1) {
+    if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
         // Move to start of next paragraph
         ++newPos.paragraph;
         newPos.offset = 0;
     } else {
         // At last paragraph: move to end
-        newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+        newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
     }
 
     setCursorPosition(newPos);
@@ -631,7 +684,7 @@ void BookEditor::moveCursorWordRight()
 
 void BookEditor::moveCursorToLineStart()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -647,7 +700,7 @@ void BookEditor::moveCursorToLineStart()
 
 void BookEditor::moveCursorToLineEnd()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -655,7 +708,7 @@ void BookEditor::moveCursorToLineEnd()
     m_preferredCursorXValid = false;
 
     CursorPosition newPos = m_cursorPosition;
-    newPos.offset = m_textBuffer->paragraphLength(newPos.paragraph);
+    newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
 
     setCursorPosition(newPos);
     ensureCursorVisible();
@@ -917,7 +970,7 @@ QString BookEditor::selectedText() const
 
 void BookEditor::selectAll()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -925,8 +978,8 @@ void BookEditor::selectAll()
     SelectionRange range;
     range.start = {0, 0};
 
-    size_t lastPara = m_textBuffer->paragraphCount() - 1;
-    range.end = {static_cast<int>(lastPara), m_textBuffer->paragraphLength(lastPara)};
+    int lastPara = m_textBuffer->blockCount() - 1;
+    range.end = {lastPara, paragraphLength(m_textBuffer.get(), lastPara)};
 
     m_selectionAnchor = range.start;
     m_cursorPosition = range.end;
@@ -958,7 +1011,7 @@ void BookEditor::insertText(const QString& text)
         // Get text being deleted for undo
         QString deletedText;
         for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-            QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(paraIdx));
+            QString paraText = paragraphText(m_textBuffer.get(), paraIdx);
             int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
             int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
             deletedText += paraText.mid(startOff, endOff - startOff);
@@ -968,19 +1021,16 @@ void BookEditor::insertText(const QString& text)
         }
 
         // Create composite command for delete + insert
-        auto* composite = new CompositeBufferCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            cursorBefore, tr("Replace"));
+        auto* composite = new CompositeDocumentCommand(
+            m_textBuffer.get(), cursorBefore, tr("Replace"));
 
         // Delete selection first
         composite->addCommand(std::make_unique<TextDeleteCommand>(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            sel.start, sel.end, deletedText, std::vector<FormatRange>{}));
+            m_textBuffer.get(), sel.start, sel.end, deletedText));
 
         // Then insert text at selection start
         composite->addCommand(std::make_unique<TextInsertCommand>(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            sel.start, text));
+            m_textBuffer.get(), sel.start, text));
 
         m_undoStack->push(composite);  // push() calls redo() automatically
 
@@ -991,18 +1041,12 @@ void BookEditor::insertText(const QString& text)
     } else {
         // Simple insert - push single command
         m_undoStack->push(new TextInsertCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            m_cursorPosition, text));
+            m_textBuffer.get(), m_cursorPosition, text));
 
         // Update cursor position (redo already executed)
         m_cursorPosition.offset += text.length();
     }
 
-    // Invalidate layout for modified paragraph
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager->invalidateLayout(
-            static_cast<size_t>(m_cursorPosition.paragraph));
-    }
 
     ensureCursorVisible();
     update();
@@ -1022,7 +1066,7 @@ bool BookEditor::deleteSelectedText()
     // Get text being deleted for undo
     QString deletedText;
     for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-        QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(paraIdx));
+        QString paraText = paragraphText(m_textBuffer.get(), paraIdx);
         int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
         int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
         deletedText += paraText.mid(startOff, endOff - startOff);
@@ -1033,17 +1077,11 @@ bool BookEditor::deleteSelectedText()
 
     // Push delete command (push() calls redo() automatically)
     m_undoStack->push(new TextDeleteCommand(
-        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-        sel.start, sel.end, deletedText, std::vector<FormatRange>{}));
+        m_textBuffer.get(), sel.start, sel.end, deletedText));
 
     // Move cursor to start of deleted range (redo already executed)
     m_cursorPosition = sel.start;
     clearSelection();
-
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager->invalidateLayout(
-            static_cast<size_t>(m_cursorPosition.paragraph));
-    }
 
     update();
     emit contentChanged();
@@ -1064,16 +1102,7 @@ void BookEditor::insertNewline()
 
     // Push paragraph split command (push() calls redo() automatically)
     m_undoStack->push(new ParagraphSplitCommand(
-        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-        m_cursorPosition, std::vector<FormatRange>{}));
-
-    // Invalidate layouts for both paragraphs
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager->invalidateLayout(
-            static_cast<size_t>(m_cursorPosition.paragraph));
-        m_lazyLayoutManager->invalidateLayout(
-            static_cast<size_t>(m_cursorPosition.paragraph + 1));
-    }
+        m_textBuffer.get(), m_cursorPosition));
 
     // Move cursor to start of new paragraph (redo already executed)
     m_cursorPosition.paragraph++;
@@ -1105,8 +1134,7 @@ void BookEditor::deleteBackward()
 
     if (m_cursorPosition.offset > 0) {
         // Delete character before cursor using TextDeleteCommand
-        QString paraText = m_textBuffer->paragraphText(
-            static_cast<size_t>(m_cursorPosition.paragraph));
+        QString paraText = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph);
         QString deletedChar = paraText.mid(m_cursorPosition.offset - 1, 1);
 
         CursorPosition deleteStart = m_cursorPosition;
@@ -1114,16 +1142,10 @@ void BookEditor::deleteBackward()
 
         // Push delete command (push() calls redo() automatically)
         m_undoStack->push(new TextDeleteCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            deleteStart, m_cursorPosition, deletedChar, std::vector<FormatRange>{}));
+            m_textBuffer.get(), deleteStart, m_cursorPosition, deletedChar));
 
         // Update cursor (redo already executed)
         m_cursorPosition.offset--;
-
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
         ensureCursorVisible();
         update();
         emit contentChanged();
@@ -1131,24 +1153,18 @@ void BookEditor::deleteBackward()
     } else if (m_cursorPosition.paragraph > 0) {
         // Merge with previous paragraph using ParagraphMergeCommand
         int mergeFromIndex = m_cursorPosition.paragraph;
-        QString mergedContent = m_textBuffer->paragraphText(
-            static_cast<size_t>(mergeFromIndex));
-        int prevParaLen = m_textBuffer->paragraphLength(
-            static_cast<size_t>(m_cursorPosition.paragraph - 1));
+        QString mergedContent = paragraphText(m_textBuffer.get(), mergeFromIndex);
+        int prevParaLen = paragraphLength(m_textBuffer.get(), m_cursorPosition.paragraph - 1);
 
         // Push merge command (push() calls redo() automatically)
         m_undoStack->push(new ParagraphMergeCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
+            m_textBuffer.get(), cursorBefore, mergeFromIndex, mergedContent));
 
         // Update cursor (redo already executed)
         m_cursorPosition.paragraph--;
         m_cursorPosition.offset = prevParaLen;
 
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
+        // Qt's QTextDocument handles layout invalidation automatically
         ensureCursorVisible();
         update();
         emit contentChanged();
@@ -1158,7 +1174,7 @@ void BookEditor::deleteBackward()
 
 void BookEditor::deleteForward()
 {
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -1167,8 +1183,7 @@ void BookEditor::deleteForward()
         return;
     }
 
-    QString paraText = m_textBuffer->paragraphText(
-        static_cast<size_t>(m_cursorPosition.paragraph));
+    QString paraText = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph);
     int paraLen = paraText.length();
 
     CursorPosition cursorBefore = m_cursorPosition;
@@ -1182,34 +1197,25 @@ void BookEditor::deleteForward()
 
         // Push delete command (push() calls redo() automatically)
         m_undoStack->push(new TextDeleteCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            m_cursorPosition, deleteEnd, deletedChar, std::vector<FormatRange>{}));
+            m_textBuffer.get(), m_cursorPosition, deleteEnd, deletedChar));
 
         // Cursor position stays the same after forward delete
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
+        // Qt's QTextDocument handles layout invalidation automatically
         update();
         emit contentChanged();
         emit paragraphModified(m_cursorPosition.paragraph);
     } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
-               m_textBuffer->paragraphCount() - 1) {
+               m_textBuffer->blockCount() - 1) {
         // Merge with next paragraph using ParagraphMergeCommand
         int mergeFromIndex = m_cursorPosition.paragraph + 1;
-        QString mergedContent = m_textBuffer->paragraphText(
-            static_cast<size_t>(mergeFromIndex));
+        QString mergedContent = paragraphText(m_textBuffer.get(), mergeFromIndex);
 
         // Push merge command (push() calls redo() automatically)
         m_undoStack->push(new ParagraphMergeCommand(
-            m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-            cursorBefore, mergeFromIndex, mergedContent, std::vector<FormatRange>{}));
+            m_textBuffer.get(), cursorBefore, mergeFromIndex, mergedContent));
 
         // Cursor position stays the same after merge
-        if (m_lazyLayoutManager) {
-            m_lazyLayoutManager->invalidateLayout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-        }
+        // Qt's QTextDocument handles layout invalidation automatically
         update();
         emit contentChanged();
         emit paragraphRemoved(mergeFromIndex);
@@ -1300,7 +1306,7 @@ void BookEditor::copy()
     // Build plain text from selection
     QString plainText;
     for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
-        QString paraText = m_textBuffer->paragraphText(static_cast<size_t>(p));
+        QString paraText = paragraphText(m_textBuffer.get(), p);
         int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
         int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
 
@@ -2396,14 +2402,14 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
 {
     CursorPosition result = position;
 
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return {0, 0};
     }
 
-    int maxParagraph = static_cast<int>(m_textBuffer->paragraphCount()) - 1;
+    int maxParagraph = m_textBuffer->blockCount() - 1;
     result.paragraph = qBound(0, result.paragraph, maxParagraph);
 
-    int maxOffset = m_textBuffer->paragraphLength(static_cast<size_t>(result.paragraph));
+    int maxOffset = paragraphLength(m_textBuffer.get(), result.paragraph);
     result.offset = qBound(0, result.offset, maxOffset);
     return result;
 }
@@ -2642,8 +2648,8 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
 CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
 {
-    // New architecture position calculation using Fenwick tree (O(log N))
-    if (!m_textBuffer || m_textBuffer->paragraphCount() == 0) {
+    // Phase 11.6: Position calculation using QTextDocument layout
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return {0, 0};
     }
 
@@ -2653,20 +2659,28 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         docY = 0;
     }
 
-    // Find paragraph at Y using TextBuffer's Fenwick tree - O(log N)
-    size_t paraIndex = m_textBuffer->getParagraphAtY(docY);
-    if (paraIndex >= m_textBuffer->paragraphCount()) {
-        paraIndex = m_textBuffer->paragraphCount() - 1;
+    // Find paragraph at Y using QTextDocument layout hit test
+    int paraIndex = getParagraphAtY(m_textBuffer.get(), docY);
+    if (paraIndex >= m_textBuffer->blockCount()) {
+        paraIndex = m_textBuffer->blockCount() - 1;
     }
 
-    // Get layout for hit testing using LazyLayoutManager
-    QTextLayout* layout = m_lazyLayoutManager->getLayout(paraIndex);
+    // Phase 11.6: Get layout directly from QTextDocument block
+    QTextDocument* doc = m_textBuffer.get();
+    if (!doc) {
+        return {paraIndex, 0};
+    }
+    QTextBlock block = doc->findBlockByNumber(paraIndex);
+    if (!block.isValid()) {
+        return {paraIndex, 0};
+    }
+    QTextLayout* layout = block.layout();
     if (!layout) {
-        return {static_cast<int>(paraIndex), 0};
+        return {paraIndex, 0};
     }
 
     // Convert to paragraph-relative coordinates
-    double paraY = m_textBuffer->getParagraphY(paraIndex);
+    double paraY = getParagraphY(m_textBuffer.get(), paraIndex);
     double localY = docY - paraY;
     double localX = widgetPos.x() - LEFT_MARGIN;
     if (localX < 0) {
@@ -3224,9 +3238,13 @@ void BookEditor::updateTypewriterScroll()
 
 void BookEditor::paintPageMode(QPainter& painter)
 {
-    // Page Mode rendering using TextBuffer + LazyLayoutManager (new architecture)
+    // Phase 11.6: Page Mode rendering using QTextDocument directly
 
-    if (!m_textBuffer || !m_lazyLayoutManager || !m_viewportManager) {
+    if (!m_textBuffer || !m_viewportManager) {
+        return;
+    }
+    QTextDocument* doc = m_textBuffer.get();
+    if (!doc) {
         return;
     }
 
@@ -3275,7 +3293,7 @@ void BookEditor::paintPageMode(QPainter& painter)
     };
     std::vector<PageContent> pages;
 
-    size_t paraCount = m_textBuffer->paragraphCount();
+    size_t paraCount = m_textBuffer->blockCount();
     if (paraCount == 0) {
         // Draw at least one empty page
         PageContent page;
@@ -3296,9 +3314,12 @@ void BookEditor::paintPageMode(QPainter& painter)
                                       textAreaWidth, textAreaHeight);
 
         for (size_t paraIndex = 0; paraIndex < paraCount; ++paraIndex) {
-            // Ensure paragraph is laid out
-            m_lazyLayoutManager->layoutParagraph(paraIndex);
-            qreal paraHeight = m_lazyLayoutManager->paragraphHeight(paraIndex);
+            // Phase 11.6: Get paragraph height from QTextBlock layout
+            QTextBlock block = doc->findBlockByNumber(static_cast<int>(paraIndex));
+            qreal paraHeight = 0.0;
+            if (block.isValid() && block.layout()) {
+                paraHeight = block.layout()->boundingRect().height();
+            }
 
             // Check if paragraph fits on current page
             if (currentY + paraHeight > textAreaHeight && currentY > 0) {
@@ -3384,10 +3405,11 @@ void BookEditor::paintPageMode(QPainter& painter)
         painter.setClipRect(textRect);
 
         for (const auto& [paraIndex, yOffset] : page.paragraphs) {
-            QTextLayout* layout = m_lazyLayoutManager->getLayout(paraIndex);
-            if (layout) {
+            // Phase 11.6: Get layout from QTextBlock
+            QTextBlock block = doc->findBlockByNumber(static_cast<int>(paraIndex));
+            if (block.isValid() && block.layout()) {
                 QPointF drawPos(textRect.left(), textRect.top() + yOffset);
-                layout->draw(&painter, drawPos);
+                block.layout()->draw(&painter, drawPos);
             }
         }
 
@@ -3422,12 +3444,17 @@ BookEditor::FocusedRange BookEditor::getFocusedRange() const
 {
     FocusedRange range;
 
-    if (!m_textBuffer || !m_lazyLayoutManager || m_textBuffer->paragraphCount() == 0) {
+    // Phase 11.6: Use QTextDocument directly instead of LazyLayoutManager
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+        return range;
+    }
+    QTextDocument* doc = m_textBuffer.get();
+    if (!doc) {
         return range;
     }
 
     int paraIndex = m_cursorPosition.paragraph;
-    size_t paraCount = m_textBuffer->paragraphCount();
+    size_t paraCount = m_textBuffer->blockCount();
 
     if (paraIndex < 0 || paraIndex >= static_cast<int>(paraCount)) {
         paraIndex = 0;
@@ -3439,26 +3466,24 @@ BookEditor::FocusedRange BookEditor::getFocusedRange() const
     range.startLine = 0;
     range.endLine = -1;  // Will be set below
 
+    // Get layout from QTextBlock
+    QTextBlock block = doc->findBlockByNumber(paraIndex);
+    QTextLayout* layout = block.isValid() ? block.layout() : nullptr;
+
     // Determine range based on focus scope
     switch (m_appearance.focusMode.scope) {
         case FocusModeSettings::FocusScope::Line: {
             // Focus on the specific line containing the cursor
-            if (m_lazyLayoutManager) {
-                QTextLayout* layout = m_lazyLayoutManager->getLayout(static_cast<size_t>(paraIndex));
-                if (layout && layout->lineCount() > 0) {
-                    int lineIndex = 0;
-                    if (m_cursorPosition.offset > 0) {
-                        QTextLine line = layout->lineForTextPosition(m_cursorPosition.offset);
-                        if (line.isValid()) {
-                            lineIndex = line.lineNumber();
-                        }
+            if (layout && layout->lineCount() > 0) {
+                int lineIndex = 0;
+                if (m_cursorPosition.offset > 0) {
+                    QTextLine line = layout->lineForTextPosition(m_cursorPosition.offset);
+                    if (line.isValid()) {
+                        lineIndex = line.lineNumber();
                     }
-                    range.startLine = lineIndex;
-                    range.endLine = lineIndex;
-                } else {
-                    range.startLine = 0;
-                    range.endLine = 0;
                 }
+                range.startLine = lineIndex;
+                range.endLine = lineIndex;
             } else {
                 range.startLine = 0;
                 range.endLine = 0;
@@ -3473,13 +3498,8 @@ BookEditor::FocusedRange BookEditor::getFocusedRange() const
         case FocusModeSettings::FocusScope::Paragraph:
         default:
             // Focus on the entire paragraph
-            if (m_lazyLayoutManager) {
-                QTextLayout* layout = m_lazyLayoutManager->getLayout(static_cast<size_t>(paraIndex));
-                if (layout && layout->lineCount() > 0) {
-                    range.endLine = layout->lineCount() - 1;
-                } else {
-                    range.endLine = 0;
-                }
+            if (layout && layout->lineCount() > 0) {
+                range.endLine = layout->lineCount() - 1;
             } else {
                 range.endLine = 0;
             }
@@ -3496,11 +3516,12 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         return;
     }
 
-    if (!m_textBuffer || !m_viewportManager || !m_lazyLayoutManager) {
+    // Phase 11.6: Use QTextDocument directly
+    if (!m_textBuffer || !m_viewportManager) {
         return;
     }
-
-    if (m_textBuffer->paragraphCount() == 0) {
+    QTextDocument* doc = m_textBuffer.get();
+    if (!doc || m_textBuffer->blockCount() == 0) {
         return;
     }
 
@@ -3510,10 +3531,13 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     int viewportHeight = height();
     double scrollY = m_viewportManager->scrollPosition();
 
-    // Calculate Y position of focused paragraph
+    // Calculate Y position of focused paragraph using QTextBlock layouts
     double focusY = 0.0;
-    for (int i = 0; i < focusedRange.startParagraph && i < static_cast<int>(m_textBuffer->paragraphCount()); ++i) {
-        focusY += m_lazyLayoutManager->paragraphHeight(static_cast<size_t>(i));
+    for (int i = 0; i < focusedRange.startParagraph && i < static_cast<int>(m_textBuffer->blockCount()); ++i) {
+        QTextBlock block = doc->findBlockByNumber(i);
+        if (block.isValid() && block.layout()) {
+            focusY += block.layout()->boundingRect().height();
+        }
     }
 
     // Get focused paragraph height (or line height if Line scope)
@@ -3521,11 +3545,13 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     double focusTop = focusY;
 
     if (focusedRange.startParagraph >= 0 &&
-        focusedRange.startParagraph < static_cast<int>(m_textBuffer->paragraphCount())) {
+        focusedRange.startParagraph < static_cast<int>(m_textBuffer->blockCount())) {
+
+        QTextBlock block = doc->findBlockByNumber(focusedRange.startParagraph);
+        QTextLayout* layout = (block.isValid()) ? block.layout() : nullptr;
 
         if (m_appearance.focusMode.scope == FocusModeSettings::FocusScope::Line) {
             // For line scope, calculate specific line bounds
-            QTextLayout* layout = m_lazyLayoutManager->getLayout(static_cast<size_t>(focusedRange.startParagraph));
             if (layout && focusedRange.startLine >= 0 && focusedRange.startLine < layout->lineCount()) {
                 QTextLine line = layout->lineAt(focusedRange.startLine);
                 if (line.isValid()) {
@@ -3535,7 +3561,9 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
             }
         } else {
             // For paragraph scope, use entire paragraph
-            focusHeight = m_lazyLayoutManager->paragraphHeight(static_cast<size_t>(focusedRange.startParagraph));
+            if (layout) {
+                focusHeight = layout->boundingRect().height();
+            }
         }
     }
 
@@ -3583,11 +3611,11 @@ int BookEditor::getWordCount() const
     int count = 0;
     static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
 
-    // Prefer new architecture (TextBuffer)
-    if (m_textBuffer && m_textBuffer->paragraphCount() > 0) {
-        size_t paraCount = m_textBuffer->paragraphCount();
-        for (size_t i = 0; i < paraCount; ++i) {
-            QString text = m_textBuffer->paragraphText(i);
+    // Prefer new architecture (QTextDocument)
+    if (m_textBuffer && m_textBuffer->blockCount() > 0) {
+        int paraCount = m_textBuffer->blockCount();
+        for (int i = 0; i < paraCount; ++i) {
+            QString text = paragraphText(m_textBuffer.get(), i);
             if (!text.isEmpty()) {
                 count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
             }
@@ -3775,25 +3803,8 @@ void BookEditor::insertComment()
     core::Logger::getInstance().info("BookEditor: Added comment '{}' to paragraph {} at ({}, {})",
         comment.id().toStdString(), sel.start.paragraph, sel.start.offset, sel.end.offset);
 
-    // Also add to MetadataLayer
-    if (m_metadataLayer && m_textBuffer) {
-        // Calculate absolute positions using TextBuffer
-        size_t startPos = calculateAbsolutePosition(sel.start);
-        size_t endPos = calculateAbsolutePosition(sel.end);
-
-        // Create TextComment for MetadataLayer
-        TextComment textComment;
-        textComment.id = comment.id();
-        textComment.anchorStart = startPos;
-        textComment.anchorEnd = endPos;
-        textComment.text = commentText;
-        textComment.author = QString();  // Could get from settings in the future
-        textComment.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-        m_metadataLayer->addComment(textComment);
-        core::Logger::getInstance().debug("BookEditor: Added comment to MetadataLayer at ({}, {})",
-            startPos, endPos);
-    }
+    // Phase 11.6: Removed MetadataLayer - comments stored in KmlParagraph (KmlComment)
+    // Comment data is serialized to KML via KmlParagraph::comments()
 
     // Emit signal
     emit commentAdded(sel.start.paragraph);
@@ -3815,12 +3826,7 @@ void BookEditor::deleteComment(const QString& commentId)
             core::Logger::getInstance().info("BookEditor: Deleted comment '{}' from paragraph {}",
                 commentId.toStdString(), i);
 
-            // Also remove from MetadataLayer
-            if (m_metadataLayer) {
-                m_metadataLayer->removeComment(commentId);
-                core::Logger::getInstance().debug("BookEditor: Removed comment '{}' from MetadataLayer",
-                    commentId.toStdString());
-            }
+            // Phase 11.6: Removed MetadataLayer - comments removed from KmlParagraph only
 
             // Emit signal
             emit commentRemoved(i, commentId);
@@ -4291,23 +4297,23 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
 
 int BookEditor::calculateAbsolutePosition(const CursorPosition& pos) const
 {
-    if (m_textBuffer == nullptr || m_textBuffer->paragraphCount() == 0) {
+    if (m_textBuffer == nullptr || m_textBuffer->blockCount() == 0) {
         return 0;
     }
 
     int absolutePos = 0;
     const int targetPara = std::max(0, pos.paragraph);
-    const int paraCount = static_cast<int>(m_textBuffer->paragraphCount());
+    const int paraCount = m_textBuffer->blockCount();
 
     // Sum lengths of all paragraphs before the target paragraph
     for (int i = 0; i < targetPara && i < paraCount; ++i) {
-        absolutePos += m_textBuffer->paragraphLength(static_cast<size_t>(i));
+        absolutePos += paragraphLength(m_textBuffer.get(), i);
         absolutePos += 1;  // Account for newline character between paragraphs
     }
 
     // Add the character offset within the target paragraph
     if (targetPara < paraCount) {
-        const int paraLen = m_textBuffer->paragraphLength(static_cast<size_t>(targetPara));
+        const int paraLen = paragraphLength(m_textBuffer.get(), targetPara);
         absolutePos += std::min(pos.offset, paraLen);
     }
 
@@ -4316,15 +4322,15 @@ int BookEditor::calculateAbsolutePosition(const CursorPosition& pos) const
 
 CursorPosition BookEditor::calculateCursorPosition(int absolutePos) const
 {
-    if (m_textBuffer == nullptr || m_textBuffer->paragraphCount() == 0 || absolutePos <= 0) {
+    if (m_textBuffer == nullptr || m_textBuffer->blockCount() == 0 || absolutePos <= 0) {
         return CursorPosition{0, 0};
     }
 
     int remaining = absolutePos;
-    const int paraCount = static_cast<int>(m_textBuffer->paragraphCount());
+    const int paraCount = m_textBuffer->blockCount();
 
     for (int i = 0; i < paraCount; ++i) {
-        const int paraLen = m_textBuffer->paragraphLength(static_cast<size_t>(i));
+        const int paraLen = paragraphLength(m_textBuffer.get(), i);
 
         if (remaining <= paraLen) {
             // Position is within this paragraph
@@ -4342,7 +4348,7 @@ CursorPosition BookEditor::calculateCursorPosition(int absolutePos) const
 
     // Position is beyond document end - return end of last paragraph
     const int lastPara = paraCount - 1;
-    return CursorPosition{lastPara, m_textBuffer->paragraphLength(static_cast<size_t>(lastPara))};
+    return CursorPosition{lastPara, paragraphLength(m_textBuffer.get(), lastPara)};
 }
 
 // =============================================================================
@@ -4352,7 +4358,7 @@ CursorPosition BookEditor::calculateCursorPosition(int absolutePos) const
 void BookEditor::setupFindReplace()
 {
     m_searchEngine = std::make_unique<SearchEngine>(this);
-    m_searchEngine->setBuffer(m_textBuffer.get());
+    m_searchEngine->setDocument(m_textBuffer.get());
 
     // Connect search engine to render engine
     if (m_renderEngine) {
@@ -4363,7 +4369,7 @@ void BookEditor::setupFindReplace()
     m_findReplaceBar = new gui::FindReplaceBar(this);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
     m_findReplaceBar->setUndoStack(m_undoStack);
-    m_findReplaceBar->setFormatLayer(m_formatLayer.get());
+    // Phase 11.6: Removed setFormatLayer - not needed (formatting in QTextCharFormat)
     m_findReplaceBar->hide();
 
     connect(m_findReplaceBar, &gui::FindReplaceBar::navigateToMatch,
@@ -4471,87 +4477,92 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
 
 void BookEditor::addTodoAtCursor(const QString& text)
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Markers stored in QTextCharFormat::UserProperty
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
     // Calculate absolute position
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    TextTodo marker;
-    marker.id = MetadataLayer::generateMarkerId();
+    TextMarker marker;
+    marker.id = TextMarker::generateId();
     marker.position = absPos;
+    marker.length = 1;
     marker.text = text.isEmpty() ? tr("TODO") : text;
     marker.type = MarkerType::Todo;
     marker.completed = false;
     marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     m_undoStack->push(new MarkerAddCommand(
-        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-        m_cursorPosition, marker));
+        m_textBuffer.get(), m_cursorPosition, marker));
 
     update();
 }
 
 void BookEditor::addNoteAtCursor(const QString& text)
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Markers stored in QTextCharFormat::UserProperty
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
     // Calculate absolute position
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    TextTodo marker;
-    marker.id = MetadataLayer::generateMarkerId();
+    TextMarker marker;
+    marker.id = TextMarker::generateId();
     marker.position = absPos;
+    marker.length = 1;
     marker.text = text.isEmpty() ? tr("Note") : text;
     marker.type = MarkerType::Note;
     marker.completed = false;
     marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     m_undoStack->push(new MarkerAddCommand(
-        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-        m_cursorPosition, marker));
+        m_textBuffer.get(), m_cursorPosition, marker));
 
     update();
 }
 
 void BookEditor::removeMarkerAtCursor()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findAllMarkers from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto markers = m_metadataLayer->getTodosAt(absPos);
-    if (markers.empty()) {
-        return;
+    // Find all markers and filter by position
+    auto allMarkers = findAllMarkers(m_textBuffer.get(), std::nullopt);
+    for (const auto& marker : allMarkers) {
+        if (marker.position == absPos) {
+            // Remove the first marker at cursor position
+            m_undoStack->push(new MarkerRemoveCommand(
+                m_textBuffer.get(), m_cursorPosition, marker));
+            update();
+            return;
+        }
     }
-
-    // Remove the first marker at cursor position
-    m_undoStack->push(new MarkerRemoveCommand(
-        m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-        m_cursorPosition, markers.front()));
-
-    update();
 }
 
 void BookEditor::toggleTodoAtCursor()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findAllMarkers from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto markers = m_metadataLayer->getTodosAt(absPos);
-    for (const auto& marker : markers) {
-        if (marker.type == MarkerType::Todo) {
+    // Find all markers and filter by position and type
+    auto allMarkers = findAllMarkers(m_textBuffer.get(), MarkerType::Todo);
+    for (const auto& marker : allMarkers) {
+        if (marker.position == absPos) {
             m_undoStack->push(new MarkerToggleCommand(
-                m_textBuffer.get(), m_formatLayer.get(), m_metadataLayer.get(),
-                m_cursorPosition, marker.id));
+                m_textBuffer.get(), m_cursorPosition, marker.id,
+                marker.position));
             update();
             return;
         }
@@ -4560,15 +4571,16 @@ void BookEditor::toggleTodoAtCursor()
 
 void BookEditor::goToNextTodo()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findNextMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto next = m_metadataLayer->findNextMarker(absPos, MarkerType::Todo);
+    auto next = findNextMarker(m_textBuffer.get(), absPos, MarkerType::Todo);
     if (next) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(next->position));
+        CursorPosition newPos = calculateCursorPosition(next->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4577,15 +4589,16 @@ void BookEditor::goToNextTodo()
 
 void BookEditor::goToPreviousTodo()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto prev = m_metadataLayer->findPreviousMarker(absPos, MarkerType::Todo);
+    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, MarkerType::Todo);
     if (prev) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(prev->position));
+        CursorPosition newPos = calculateCursorPosition(prev->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4594,15 +4607,16 @@ void BookEditor::goToPreviousTodo()
 
 void BookEditor::goToNextNote()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findNextMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto next = m_metadataLayer->findNextMarker(absPos, MarkerType::Note);
+    auto next = findNextMarker(m_textBuffer.get(), absPos, MarkerType::Note);
     if (next) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(next->position));
+        CursorPosition newPos = calculateCursorPosition(next->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4611,15 +4625,16 @@ void BookEditor::goToNextNote()
 
 void BookEditor::goToPreviousNote()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto prev = m_metadataLayer->findPreviousMarker(absPos, MarkerType::Note);
+    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, MarkerType::Note);
     if (prev) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(prev->position));
+        CursorPosition newPos = calculateCursorPosition(prev->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4628,15 +4643,16 @@ void BookEditor::goToPreviousNote()
 
 void BookEditor::goToNextMarker()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findNextMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto next = m_metadataLayer->findNextMarker(absPos, std::nullopt);  // Any type
+    auto next = findNextMarker(m_textBuffer.get(), absPos, std::nullopt);  // Any type
     if (next) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(next->position));
+        CursorPosition newPos = calculateCursorPosition(next->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4645,15 +4661,16 @@ void BookEditor::goToNextMarker()
 
 void BookEditor::goToPreviousMarker()
 {
-    if (!m_textBuffer || !m_metadataLayer) {
+    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return;
     }
 
-    size_t absPos = static_cast<size_t>(calculateAbsolutePosition(m_cursorPosition));
+    int absPos = calculateAbsolutePosition(m_cursorPosition);
 
-    auto prev = m_metadataLayer->findPreviousMarker(absPos, std::nullopt);  // Any type
+    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, std::nullopt);  // Any type
     if (prev) {
-        CursorPosition newPos = calculateCursorPosition(static_cast<int>(prev->position));
+        CursorPosition newPos = calculateCursorPosition(prev->position);
         m_cursorPosition = newPos;
         ensureCursorVisible();
         update();
@@ -4663,9 +4680,9 @@ void BookEditor::goToPreviousMarker()
 QString BookEditor::toKml() const
 {
     // Phase 11.6: Use KmlSerializer directly with QTextDocument
-    if (m_textBuffer && m_textBuffer->document()) {
+    if (m_textBuffer && m_textBuffer.get()) {
         KmlSerializer serializer;
-        return serializer.toKml(m_textBuffer->document());
+        return serializer.toKml(m_textBuffer.get());
     }
     return QString();
 }
@@ -4673,8 +4690,8 @@ QString BookEditor::toKml() const
 size_t BookEditor::paragraphCount() const
 {
     // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer->document()) {
-        return static_cast<size_t>(m_textBuffer->document()->blockCount());
+    if (m_textBuffer && m_textBuffer.get()) {
+        return static_cast<size_t>(m_textBuffer.get()->blockCount());
     }
     return 0;
 }
@@ -4682,18 +4699,18 @@ size_t BookEditor::paragraphCount() const
 QString BookEditor::paragraphPlainText(size_t index) const
 {
     // Phase 11.6: Use QTextDocument directly
-    if (!m_textBuffer || !m_textBuffer->document()) {
+    if (!m_textBuffer || !m_textBuffer.get()) {
         return QString();
     }
-    QTextBlock block = m_textBuffer->document()->findBlockByNumber(static_cast<int>(index));
+    QTextBlock block = m_textBuffer.get()->findBlockByNumber(static_cast<int>(index));
     return block.isValid() ? block.text() : QString();
 }
 
 QString BookEditor::plainText() const
 {
     // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer->document()) {
-        return m_textBuffer->document()->toPlainText();
+    if (m_textBuffer && m_textBuffer.get()) {
+        return m_textBuffer.get()->toPlainText();
     }
     return QString();
 }
@@ -4701,8 +4718,8 @@ QString BookEditor::plainText() const
 size_t BookEditor::characterCount() const
 {
     // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer->document()) {
-        return static_cast<size_t>(m_textBuffer->document()->characterCount());
+    if (m_textBuffer && m_textBuffer.get()) {
+        return static_cast<size_t>(m_textBuffer.get()->characterCount());
     }
     return 0;
 }
@@ -4727,19 +4744,14 @@ void BookEditor::fromKml(const QString& kml)
     if (kml.isEmpty()) {
         logger.debug("BookEditor::fromKml - empty KML, clearing content");
         // Phase 11.6: Clear content using QTextDocument directly
-        if (m_textBuffer && m_textBuffer->document()) {
-            QTextCursor clearCursor(m_textBuffer->document());
+        if (m_textBuffer && m_textBuffer.get()) {
+            QTextCursor clearCursor(m_textBuffer.get());
             clearCursor.select(QTextCursor::Document);
             clearCursor.removeSelectedText();
         }
-        if (m_formatLayer) {
-            m_formatLayer->clearAll();
-        }
-        if (m_metadataLayer) {
-            m_metadataLayer->clear();
-        }
+        // Phase 11.6: Removed FormatLayer and MetadataLayer - data stored in QTextCharFormat
         m_cursorPosition = {0, 0};
-        m_textCursor = QTextCursor(m_textBuffer->document());
+        m_textCursor = QTextCursor(m_textBuffer.get());
         clearSelection();
         update();
         emit contentChanged();
@@ -4763,26 +4775,18 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("Disconnecting observers");
 
-    // CRITICAL: Disconnect all observers from OLD buffer BEFORE modifying it
-    // Order matters: ViewportManager -> FormatLayer -> LazyLayoutManager
+    // Phase 11.6: Disconnect ViewportManager before modifying buffer
     if (m_viewportManager && m_textBuffer) {
         m_viewportManager->setDocument(nullptr);
     }
-    if (m_formatLayer && m_textBuffer) {
-        m_formatLayer->detachFromBuffer();
-    }
-    // LazyLayoutManager destructor calls m_buffer->removeObserver(this)
-    // Must destroy it BEFORE the buffer content is modified
-    if (m_lazyLayoutManager) {
-        m_lazyLayoutManager.reset();
-    }
+    // Phase 11.6: Removed FormatLayer and LazyLayoutManager
 
     logElapsed("Copying document content");
 
-    // Phase 11.6: Copy content from parsed document to TextBuffer's document
+    // Phase 11.6: Copy content from parsed document to m_textBuffer (QTextDocument)
     // This preserves QTextCharFormat (inline formatting like bold, italic, etc.)
-    if (m_textBuffer && m_textBuffer->document()) {
-        QTextCursor destCursor(m_textBuffer->document());
+    if (m_textBuffer) {
+        QTextCursor destCursor(m_textBuffer.get());
         destCursor.select(QTextCursor::Document);
         destCursor.removeSelectedText();
 
@@ -4795,39 +4799,16 @@ void BookEditor::fromKml(const QString& kml)
     // Clean up parsed document
     delete newDoc;
 
-    logElapsed("Clearing FormatLayer");
+    // Phase 11.6: Removed FormatLayer and MetadataLayer
+    // - Formatting stored in QTextCharFormat
+    // - Markers (TODO/Note) stored in QTextCharFormat::UserProperty (KmlPropTodo)
 
-    // FormatLayer is now empty since formatting is in QTextCharFormat
-    // Keep it for buffer_commands compatibility (will remove in Phase 11.8)
-    if (m_formatLayer) {
-        m_formatLayer->clearAll();
-    }
-
-    // Ensure MetadataLayer exists
-    if (!m_metadataLayer) {
-        m_metadataLayer = std::make_unique<MetadataLayer>();
-    } else {
-        m_metadataLayer->clear();
-    }
-
-    logElapsed("Attaching FormatLayer");
-
-    // Attach FormatLayer to TextBuffer for automatic range adjustment
-    if (m_formatLayer && m_textBuffer) {
-        m_formatLayer->attachToBuffer(m_textBuffer.get());
-    }
-
-    logElapsed("Creating LazyLayoutManager");
-
-    // Re-create LazyLayoutManager with buffer (still needed for ViewportManager)
-    m_lazyLayoutManager = std::make_unique<LazyLayoutManager>(m_textBuffer.get());
-    m_lazyLayoutManager->setWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
-    m_lazyLayoutManager->setFont(m_appearance.typography.textFont);
+    // Phase 11.6: Removed LazyLayoutManager - Qt handles layout automatically
 
     logElapsed("Setting up RenderEngine");
 
     if (m_renderEngine) {
-        m_renderEngine->setDocument(m_textBuffer->document());
+        m_renderEngine->setDocument(m_textBuffer.get());
     }
 
     logElapsed("Setting up ViewportManager");
@@ -4835,7 +4816,7 @@ void BookEditor::fromKml(const QString& kml)
     if (m_viewportManager) {
         // Set viewport size and connect to document
         m_viewportManager->setViewportSize(size());
-        m_viewportManager->setDocument(m_textBuffer->document());
+        m_viewportManager->setDocument(m_textBuffer.get());
         m_viewportManager->setScrollPosition(0.0);
 
         logElapsed("ViewportManager initialized");
@@ -4843,21 +4824,18 @@ void BookEditor::fromKml(const QString& kml)
 
     // Update SearchEngine with buffer (if it exists)
     if (m_searchEngine) {
-        m_searchEngine->setBuffer(m_textBuffer.get());
+        m_searchEngine->setDocument(m_textBuffer.get());
     }
 
-    // Update FindReplaceBar with format layer (if it exists)
-    if (m_findReplaceBar) {
-        m_findReplaceBar->setFormatLayer(m_formatLayer.get());
-    }
+    // Phase 11.6: Removed setFormatLayer - SearchEngine doesn't use it
 
     logElapsed("Loaded paragraphs");
     logger.debug("BookEditor::fromKml - loaded {} paragraphs",
-        m_textBuffer ? m_textBuffer->document()->blockCount() : 0);
+        m_textBuffer ? m_textBuffer.get()->blockCount() : 0);
 
     // Reset editor state
     m_cursorPosition = {0, 0};
-    m_textCursor = QTextCursor(m_textBuffer->document());
+    m_textCursor = QTextCursor(m_textBuffer.get());
     clearSelection();
 
     // Sync cursor to RenderEngine (Phase 8 fix)
