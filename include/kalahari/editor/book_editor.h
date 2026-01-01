@@ -1167,6 +1167,9 @@ private:
     /// @brief True when m_textBuffer is populated and being used for editing
     bool m_isEditMode = false;
 
+    /// @brief Scroll offset for view mode (when ViewportManager has no document)
+    double m_viewModeScrollOffset = 0.0;
+
     /// @brief Ensure document is in edit mode (creates m_textBuffer if needed)
     ///
     /// Converts KmlDocumentModel to QTextDocument when user starts editing.

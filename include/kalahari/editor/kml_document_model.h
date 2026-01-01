@@ -12,6 +12,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QColor>
 #include <QFont>
 #include <QTextLayout>
 #include <QXmlStreamReader>
@@ -186,6 +187,14 @@ public:
     /// @param height Estimated height per line in pixels
     void setEstimatedLineHeight(double height);
 
+    /// @brief Set default text color for layout
+    /// @param color Text color to use
+    void setTextColor(const QColor& color);
+
+    /// @brief Get current text color
+    /// @return Current text color
+    QColor textColor() const;
+
 signals:
     /// @brief Emitted when document is loaded
     void documentLoaded();
@@ -244,7 +253,8 @@ private:
     /// @brief Apply formats to QTextLayout
     /// @param layout QTextLayout to configure
     /// @param formats Format runs to apply
-    void applyFormats(QTextLayout* layout, const std::vector<FormatRun>& formats) const;
+    /// @param textLength Length of text (for base color format)
+    void applyFormats(QTextLayout* layout, const std::vector<FormatRun>& formats, int textLength) const;
 
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     HeightTree m_heightTree;                ///< Fenwick tree for height queries
@@ -253,6 +263,7 @@ private:
     double m_lineWidth = 800.0;             ///< Line width for layout
     double m_estimatedLineHeight = 20.0;    ///< Estimated line height
     double m_charsPerLine = 80.0;           ///< Estimated characters per line
+    QColor m_textColor{30, 30, 30};         ///< Default text color
 
     // Cached statistics (calculated during load)
     size_t m_cachedCharCount = 0;           ///< Total character count

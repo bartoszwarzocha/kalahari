@@ -10,6 +10,7 @@
 
 #include <QXmlStreamReader>
 #include <QFontMetricsF>
+#include <QTextFormat>
 #include <QTextLine>
 
 #include <algorithm>
@@ -479,6 +480,20 @@ void KmlDocumentModel::setEstimatedLineHeight(double height)
     m_estimatedLineHeight = height;
 }
 
+void KmlDocumentModel::setTextColor(const QColor& color)
+{
+    if (m_textColor != color) {
+        m_textColor = color;
+        // Invalidate all layouts so they get recreated with new color
+        invalidateAllLayouts();
+    }
+}
+
+QColor KmlDocumentModel::textColor() const
+{
+    return m_textColor;
+}
+
 // =============================================================================
 // Private Methods
 // =============================================================================
@@ -614,8 +629,8 @@ void KmlDocumentModel::createLayout(size_t index)
     // Create QTextLayout
     para.layout = std::make_unique<QTextLayout>(para.text, m_font);
 
-    // Apply formats
-    applyFormats(para.layout.get(), para.formats);
+    // Apply formats with text color
+    applyFormats(para.layout.get(), para.formats, para.text.length());
 
     // Perform layout
     para.layout->beginLayout();
@@ -664,14 +679,26 @@ double KmlDocumentModel::estimateHeight(const QString& text) const
     return numLines * m_estimatedLineHeight;
 }
 
-void KmlDocumentModel::applyFormats(QTextLayout* layout, const std::vector<FormatRun>& formats) const
+void KmlDocumentModel::applyFormats(QTextLayout* layout, const std::vector<FormatRun>& formats, int textLength) const
 {
-    if (!layout || formats.empty()) {
+    if (!layout) {
         return;
     }
 
     QList<QTextLayout::FormatRange> ranges;
-    ranges.reserve(static_cast<int>(formats.size()));
+
+    // First, add a base format covering all text with the text color
+    // This ensures unformatted text gets the correct color
+    if (textLength > 0) {
+        QTextLayout::FormatRange baseRange;
+        baseRange.start = 0;
+        baseRange.length = textLength;
+        baseRange.format.setForeground(m_textColor);
+        ranges.append(baseRange);
+    }
+
+    // Then add the specific format ranges
+    ranges.reserve(static_cast<int>(formats.size()) + 1);
 
     for (const FormatRun& run : formats) {
         if (run.start >= run.end) {
@@ -682,6 +709,10 @@ void KmlDocumentModel::applyFormats(QTextLayout* layout, const std::vector<Forma
         range.start = static_cast<int>(run.start);
         range.length = static_cast<int>(run.end - run.start);
         range.format = run.format;
+        // Ensure text color is set if not already specified
+        if (!range.format.hasProperty(QTextFormat::ForegroundBrush)) {
+            range.format.setForeground(m_textColor);
+        }
         ranges.append(range);
     }
 

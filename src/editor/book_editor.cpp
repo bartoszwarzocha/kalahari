@@ -39,6 +39,7 @@
 #include <QTimer>
 #include <QUndoStack>
 #include <QWheelEvent>
+#include <algorithm>
 #include <chrono>
 
 namespace kalahari::editor {
@@ -166,9 +167,10 @@ BookEditor::BookEditor(QWidget* parent)
         update();
     });
 
-    // Phase 11.10: Configure KmlDocumentModel with font and line width
+    // Phase 11.10: Configure KmlDocumentModel with font, color and line width
     if (m_documentModel) {
-        m_documentModel->setFont(font());
+        m_documentModel->setFont(m_appearance.typography.textFont);
+        m_documentModel->setTextColor(m_appearance.colors.text);
         m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
     }
 
@@ -234,15 +236,32 @@ QScrollBar* BookEditor::verticalScrollBar() const
 
 qreal BookEditor::scrollOffset() const
 {
-    // Phase 11: Use ViewportManager instead of VirtualScrollManager
+    // Phase 11.10: In view mode, use direct scroll offset
+    if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+        return m_viewModeScrollOffset;
+    }
+    // Phase 11: Use ViewportManager for edit mode
     return m_viewportManager ? m_viewportManager->scrollPosition() : 0.0;
 }
 
 void BookEditor::setScrollOffset(qreal offset)
 {
+    // Phase 11.10: In view mode, manage scroll directly
+    if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+        double maxScroll = std::max(0.0, m_documentModel->totalHeight() - static_cast<double>(height()));
+        double newOffset = std::clamp(static_cast<double>(offset), 0.0, maxScroll);
+        if (std::abs(m_viewModeScrollOffset - newOffset) > 0.001) {
+            m_viewModeScrollOffset = newOffset;
+            syncScrollBarValue();
+            emit scrollOffsetChanged(newOffset);
+            update();
+        }
+        return;
+    }
+
+    // Edit mode: use ViewportManager
     if (!m_viewportManager) return;
 
-    // Phase 11: Use ViewportManager instead of VirtualScrollManager
     qreal oldOffset = m_viewportManager->scrollPosition();
     m_viewportManager->setScrollPosition(offset);
     qreal newOffset = m_viewportManager->scrollPosition();
@@ -1765,6 +1784,12 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_textBuffer->setDefaultFont(docFont);
     }
 
+    // Phase 11.10: Update KmlDocumentModel with new appearance settings
+    if (m_documentModel) {
+        m_documentModel->setFont(m_appearance.typography.textFont);
+        m_documentModel->setTextColor(m_appearance.colors.text);
+    }
+
     emit appearanceChanged();
     update();
 }
@@ -1791,10 +1816,10 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Phase 11.10: Render from KmlDocumentModel when not in edit mode
     if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
         // View mode: render directly from m_documentModel using lazy layouts
-        painter.setPen(m_appearance.colors.text);
+        // Note: Text color is now set in the layout formats, not painter pen
 
-        // Calculate visible range
-        double scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0.0;
+        // Calculate visible range using view mode scroll offset
+        double scrollY = m_viewModeScrollOffset;
         double viewportHeight = static_cast<double>(height());
 
         size_t firstVisible = m_documentModel->paragraphAtY(scrollY);
@@ -1893,17 +1918,27 @@ void BookEditor::resizeEvent(QResizeEvent* event)
 
 void BookEditor::wheelEvent(QWheelEvent* event)
 {
-    if (!m_viewportManager) {
-        QWidget::wheelEvent(event);
-        return;
-    }
-
     QPoint angleDelta = event->angleDelta();
     if (!angleDelta.isNull()) {
         // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
         qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
-        double newPos = m_viewportManager->scrollPosition() + delta;
-        m_viewportManager->setScrollPosition(newPos);
+
+        // Phase 11.10: In view mode, use direct scroll offset management
+        if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+            double newPos = m_viewModeScrollOffset + delta;
+            double maxScroll = std::max(0.0, m_documentModel->totalHeight() - static_cast<double>(height()));
+            m_viewModeScrollOffset = std::clamp(newPos, 0.0, maxScroll);
+            update();
+            emit scrollOffsetChanged(m_viewModeScrollOffset);
+            event->accept();
+            return;
+        }
+
+        // Edit mode: use ViewportManager
+        if (m_viewportManager) {
+            double newPos = m_viewportManager->scrollPosition() + delta;
+            m_viewportManager->setScrollPosition(newPos);
+        }
         event->accept();
     } else {
         QWidget::wheelEvent(event);
@@ -2357,7 +2392,14 @@ void BookEditor::updateScrollBarRange()
     }
 
     // Calculate total content height
-    qreal totalHeight = m_viewportManager->totalDocumentHeight();
+    // Phase 11.10: In view mode, use KmlDocumentModel's height
+    qreal totalHeight = 0.0;
+    if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+        totalHeight = m_documentModel->totalHeight();
+    } else if (m_viewportManager) {
+        totalHeight = m_viewportManager->totalDocumentHeight();
+    }
+
     qreal viewportHeight = static_cast<qreal>(height());
 
     // Maximum scroll offset
@@ -4749,9 +4791,13 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("KmlDocumentModel loaded");
 
-    // Phase 11.10: Setup font and line width for lazy layout
-    m_documentModel->setFont(font());
+    // Phase 11.10: Setup font, text color and line width for lazy layout
+    m_documentModel->setFont(m_appearance.typography.textFont);
+    m_documentModel->setTextColor(m_appearance.colors.text);
     m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+
+    // Phase 11.10: Reset scroll position for view mode
+    m_viewModeScrollOffset = 0.0;
 
     // Phase 11.10: Ensure visible paragraphs are layouted
     if (m_viewportManager) {
@@ -4802,6 +4848,9 @@ void BookEditor::fromKml(const QString& kml)
     }
 
     logElapsed("Before update/signals");
+
+    // Update scrollbar range for new document
+    updateScrollBarRange();
 
     update();
     emit contentChanged();
