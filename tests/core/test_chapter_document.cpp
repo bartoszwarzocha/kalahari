@@ -445,19 +445,6 @@ TEST_CASE("ChapterDocument JSON serialization", "[core][chapter_document][json]"
         CHECK(restored.comments().size() == original.comments().size());
     }
 
-    SECTION("fromJson regenerates plainText if missing") {
-        QJsonObject json;
-        QJsonObject content;
-        content["kml"] = "<kml><p>KML only</p></kml>";
-        // plainText intentionally missing
-        json["content"] = content;
-
-        ChapterDocument doc = ChapterDocument::fromJson(json);
-
-        CHECK_FALSE(doc.plainText().isEmpty());
-        CHECK(doc.plainText().contains("KML only"));
-    }
-
     SECTION("fromJson defaults status to 'draft'") {
         QJsonObject json;
         QJsonObject meta;

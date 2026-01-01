@@ -270,10 +270,11 @@ ChapterDocument ChapterDocument::fromJson(const QJsonObject& json)
         doc.m_kml = content["kml"].toString();
         doc.m_plainText = content["plainText"].toString();
 
-        // Regenerate plainText if missing
-        if (doc.m_plainText.isEmpty() && !doc.m_kml.isEmpty()) {
-            doc.m_plainText = kmlToPlainText(doc.m_kml);
-        }
+        // PERFORMANCE FIX: Don't regenerate plainText during loading
+        // If plainText is missing (legacy file), it will be calculated on demand
+        // by the editor when needed. Parsing KML here creates a redundant QTextDocument
+        // that gets discarded immediately, causing O(n) overhead for large files.
+        // The BookEditor::fromKml() will parse KML into QTextDocument anyway.
     }
 
     // Statistics
@@ -284,10 +285,10 @@ ChapterDocument ChapterDocument::fromJson(const QJsonObject& json)
         doc.m_paragraphCount = stats["paragraphCount"].toInt();
         doc.m_lastModified = QDateTime::fromString(
             stats["lastModified"].toString(), Qt::ISODate);
-    } else {
-        // Recalculate if statistics missing
-        doc.recalculateStatistics();
     }
+    // PERFORMANCE FIX: Don't recalculate statistics during loading
+    // If stats are missing (legacy file), they'll be 0 until editor calculates them.
+    // Calling recalculateStatistics() here requires plainText which might be empty.
 
     // Metadata
     if (json.contains("metadata")) {
@@ -414,11 +415,18 @@ QString ChapterDocument::kmlToPlainText(const QString& kml)
         return QString();
     }
 
-    // Use QTextDocument to strip XML tags and extract plain text
-    // Qt's setHtml() can parse XML-like markup including KML
-    QTextDocument textDoc;
-    textDoc.setHtml(kml);
-    return textDoc.toPlainText();
+    // PERFORMANCE FIX: Use regex to strip XML tags instead of creating QTextDocument
+    // QTextDocument::setHtml() is extremely slow for large documents (O(n²) relayout)
+    // This simple regex approach is O(n) and much faster for large KML.
+    static const QRegularExpression tagPattern(QStringLiteral("<[^>]*>"));
+    QString result = kml;
+    result.replace(tagPattern, QStringLiteral(" "));  // Replace tags with space
+
+    // Normalize whitespace: collapse multiple spaces/newlines to single space
+    static const QRegularExpression whitespacePattern(QStringLiteral("\\s+"));
+    result.replace(whitespacePattern, QStringLiteral(" "));
+
+    return result.trimmed();
 }
 
 } // namespace core

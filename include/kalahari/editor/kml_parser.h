@@ -150,6 +150,11 @@ private:
     /// @brief Clear error state
     void clearError();
 
+    /// @brief Convert KML to HTML for fast setHtml() loading
+    /// @param kml KML markup string
+    /// @return HTML string compatible with QTextDocument::setHtml()
+    static QString kmlToHtml(const QString& kml);
+
     // =========================================================================
     // Members
     // =========================================================================

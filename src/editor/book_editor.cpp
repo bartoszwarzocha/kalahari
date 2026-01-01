@@ -15,6 +15,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QContextMenuEvent>
 #include <QDateTime>
+#include <QTextLine>  // Phase 11.10: For view mode cursor rendering
 #include <QEasingCurve>
 #include <QClipboard>
 #include <QGuiApplication>
@@ -143,8 +144,11 @@ BookEditor::BookEditor(QWidget* parent)
     , m_hasComposition(false)
     , m_undoStack(nullptr)
     // Phase 8: New performance-optimized components (OpenSpec #00043)
-    // Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer, TextBuffer - use QTextDocument directly
-    , m_textBuffer(std::make_unique<QTextDocument>())
+    // Phase 11.10: KmlDocumentModel for fast loading + lazy rendering
+    , m_documentModel(std::make_unique<KmlDocumentModel>(this))
+    // Phase 11.6: QTextDocument for editing - created on-demand (see ensureEditMode())
+    , m_textBuffer(nullptr)
+    , m_isEditMode(false)
     // Phase 11.6: Removed m_metadataLayer - markers stored in QTextCharFormat::UserProperty
 {
     // Enable input method support
@@ -162,23 +166,23 @@ BookEditor::BookEditor(QWidget* parent)
         update();
     });
 
-    // Phase 11.6: Direct QTextDocument usage (no wrapper layers)
-    // Set document width for text wrapping
-    if (m_textBuffer) {
-        m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+    // Phase 11.10: Configure KmlDocumentModel with font and line width
+    if (m_documentModel) {
+        m_documentModel->setFont(font());
+        m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
     }
 
-    // Phase 11.6: Initialize QTextCursor for direct cursor operations
-    m_textCursor = QTextCursor(m_textBuffer.get());
+    // Phase 11.6: m_textBuffer created on-demand in ensureEditMode()
+    // m_textCursor initialized when m_textBuffer is created
 
-    // Create ViewportManager and connect to document
+    // Create ViewportManager (initially without document - set in fromKml())
     m_viewportManager = std::make_unique<ViewportManager>(this);
-    m_viewportManager->setDocument(m_textBuffer.get());
+    // Note: setDocument() called in fromKml() after loading
 
-    // Create RenderEngine and connect all dependencies
+    // Create RenderEngine (initially without document)
     m_renderEngine = std::make_unique<RenderEngine>(this);
-    m_renderEngine->setDocument(m_textBuffer.get());
     m_renderEngine->setViewportManager(m_viewportManager.get());
+    // Note: setDocument() called in ensureEditMode() or fromKml()
 
     // Connect RenderEngine repaint signal
     connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
@@ -756,9 +760,12 @@ void BookEditor::setSelection(const SelectionRange& range)
 {
     SelectionRange normalized = range.normalized();
 
-    // Validate against document
-    if (m_textBuffer && static_cast<size_t>(m_textBuffer->blockCount()) > 0) {
-        // Clamp start
+    // Phase 11.10: Validate against document (m_textBuffer or m_documentModel)
+    bool hasContent = (m_isEditMode && m_textBuffer && m_textBuffer->blockCount() > 0) ||
+                      (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0);
+
+    if (hasContent) {
+        // Clamp start and end to valid positions
         normalized.start = validateCursorPosition(normalized.start);
         normalized.end = validateCursorPosition(normalized.end);
     } else {
@@ -800,28 +807,48 @@ bool BookEditor::hasSelection() const
 
 QString BookEditor::selectedText() const
 {
-    if (!m_textBuffer || m_selection.isEmpty()) {
+    if (m_selection.isEmpty()) {
         return QString();
     }
 
     SelectionRange sel = m_selection.normalized();
     QString result;
 
-    for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(paraIdx);
-        if (!block.isValid()) {
-            continue;
+    // Phase 11.10: Use m_textBuffer in edit mode, m_documentModel in view mode
+    if (m_isEditMode && m_textBuffer) {
+        for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
+            QTextBlock block = m_textBuffer->findBlockByNumber(paraIdx);
+            if (!block.isValid()) {
+                continue;
+            }
+
+            QString text = block.text();
+            int startOffset = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
+            int endOffset = (paraIdx == sel.end.paragraph) ? sel.end.offset : text.length();
+
+            result += text.mid(startOffset, endOffset - startOffset);
+
+            // Add paragraph separator for multi-paragraph selection
+            if (paraIdx < sel.end.paragraph) {
+                result += QChar::ParagraphSeparator;
+            }
         }
+    } else if (m_documentModel) {
+        for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
+            if (static_cast<size_t>(paraIdx) >= m_documentModel->paragraphCount()) {
+                continue;
+            }
 
-        QString text = block.text();
-        int startOffset = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
-        int endOffset = (paraIdx == sel.end.paragraph) ? sel.end.offset : text.length();
+            QString text = m_documentModel->paragraphText(static_cast<size_t>(paraIdx));
+            int startOffset = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
+            int endOffset = (paraIdx == sel.end.paragraph) ? sel.end.offset : text.length();
 
-        result += text.mid(startOffset, endOffset - startOffset);
+            result += text.mid(startOffset, endOffset - startOffset);
 
-        // Add paragraph separator for multi-paragraph selection
-        if (paraIdx < sel.end.paragraph) {
-            result += QChar::ParagraphSeparator;
+            // Add paragraph separator for multi-paragraph selection
+            if (paraIdx < sel.end.paragraph) {
+                result += QChar::ParagraphSeparator;
+            }
         }
     }
 
@@ -858,7 +885,14 @@ void BookEditor::selectAll()
 
 void BookEditor::insertText(const QString& text)
 {
-    if (!m_textBuffer || text.isEmpty()) {
+    if (text.isEmpty()) {
+        return;
+    }
+
+    // Phase 11.10: Ensure we're in edit mode before modifying
+    ensureEditMode();
+
+    if (!m_textBuffer) {
         return;
     }
 
@@ -916,7 +950,14 @@ void BookEditor::insertText(const QString& text)
 
 bool BookEditor::deleteSelectedText()
 {
-    if (!hasSelection() || !m_textBuffer) {
+    if (!hasSelection()) {
+        return false;
+    }
+
+    // Phase 11.10: Ensure we're in edit mode before modifying
+    ensureEditMode();
+
+    if (!m_textBuffer) {
         return false;
     }
 
@@ -950,6 +991,9 @@ bool BookEditor::deleteSelectedText()
 
 void BookEditor::insertNewline()
 {
+    // Phase 11.10: Ensure we're in edit mode before modifying
+    ensureEditMode();
+
     if (!m_textBuffer) {
         return;
     }
@@ -976,6 +1020,9 @@ void BookEditor::insertNewline()
 
 void BookEditor::deleteBackward()
 {
+    // Phase 11.10: Ensure we're in edit mode before modifying
+    ensureEditMode();
+
     if (!m_textBuffer) {
         return;
     }
@@ -1034,6 +1081,9 @@ void BookEditor::deleteBackward()
 
 void BookEditor::deleteForward()
 {
+    // Phase 11.10: Ensure we're in edit mode before modifying
+    ensureEditMode();
+
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
@@ -1725,13 +1775,6 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
-    if (!m_renderEngine || !m_textBuffer) {
-        // Fallback: just fill background
-        QPainter painter(this);
-        painter.fillRect(rect(), m_appearance.colors.editorBackground);
-        return;
-    }
-
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -1741,6 +1784,70 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Page Mode uses separate rendering path
     if (m_viewMode == ViewMode::Page) {
         paintPageMode(painter);
+        event->accept();
+        return;
+    }
+
+    // Phase 11.10: Render from KmlDocumentModel when not in edit mode
+    if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+        // View mode: render directly from m_documentModel using lazy layouts
+        painter.setPen(m_appearance.colors.text);
+
+        // Calculate visible range
+        double scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0.0;
+        double viewportHeight = static_cast<double>(height());
+
+        size_t firstVisible = m_documentModel->paragraphAtY(scrollY);
+        size_t lastVisible = m_documentModel->paragraphAtY(scrollY + viewportHeight);
+        lastVisible = std::min(lastVisible + 1, m_documentModel->paragraphCount() - 1);
+
+        // Ensure paragraphs are layouted
+        m_documentModel->ensureLayouted(firstVisible, lastVisible);
+
+        // Render visible paragraphs
+        for (size_t i = firstVisible; i <= lastVisible; ++i) {
+            QTextLayout* layout = m_documentModel->layout(i);
+            if (layout) {
+                double paraY = m_documentModel->paragraphY(i) - scrollY + TOP_MARGIN;
+                layout->draw(&painter, QPointF(LEFT_MARGIN, paraY));
+            }
+        }
+
+        // Draw cursor in view mode (simple line)
+        if (m_cursorVisible && m_cursorBlinkingEnabled) {
+            // Calculate cursor position
+            size_t paraIdx = static_cast<size_t>(m_cursorPosition.paragraph);
+            if (paraIdx < m_documentModel->paragraphCount()) {
+                QTextLayout* layout = m_documentModel->layout(paraIdx);
+                if (layout) {
+                    double paraY = m_documentModel->paragraphY(paraIdx) - scrollY + TOP_MARGIN;
+                    QTextLine line = layout->lineForTextPosition(m_cursorPosition.offset);
+                    if (line.isValid()) {
+                        qreal cursorX = line.cursorToX(m_cursorPosition.offset) + LEFT_MARGIN;
+                        qreal cursorY = paraY + line.y();
+                        painter.setPen(m_appearance.colors.text);
+                        painter.drawLine(QPointF(cursorX, cursorY),
+                                        QPointF(cursorX, cursorY + line.height()));
+                    }
+                }
+            }
+        }
+
+        // Additional overlays for view modes
+        if (m_appearance.focusMode.enabled) {
+            paintFocusOverlay(painter);
+        }
+
+        // Distraction-free mode overlay
+        paintDistractionFreeOverlay(painter);
+
+        event->accept();
+        return;
+    }
+
+    // Edit mode: use RenderEngine with QTextDocument
+    if (!m_renderEngine || !m_textBuffer) {
+        // Fallback: empty document
         event->accept();
         return;
     }
@@ -2326,16 +2433,27 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
 {
     CursorPosition result = position;
 
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return {0, 0};
+    // Phase 11.10: Use m_documentModel when not in edit mode
+    if (m_isEditMode && m_textBuffer && m_textBuffer->blockCount() > 0) {
+        int maxParagraph = m_textBuffer->blockCount() - 1;
+        result.paragraph = qBound(0, result.paragraph, maxParagraph);
+
+        int maxOffset = paragraphLength(m_textBuffer.get(), result.paragraph);
+        result.offset = qBound(0, result.offset, maxOffset);
+        return result;
     }
 
-    int maxParagraph = m_textBuffer->blockCount() - 1;
-    result.paragraph = qBound(0, result.paragraph, maxParagraph);
+    // View mode: validate against m_documentModel
+    if (m_documentModel && m_documentModel->paragraphCount() > 0) {
+        int maxParagraph = static_cast<int>(m_documentModel->paragraphCount()) - 1;
+        result.paragraph = qBound(0, result.paragraph, maxParagraph);
 
-    int maxOffset = paragraphLength(m_textBuffer.get(), result.paragraph);
-    result.offset = qBound(0, result.offset, maxOffset);
-    return result;
+        int maxOffset = static_cast<int>(m_documentModel->paragraphLength(static_cast<size_t>(result.paragraph)));
+        result.offset = qBound(0, result.offset, maxOffset);
+        return result;
+    }
+
+    return {0, 0};
 }
 
 QRectF BookEditor::calculateCursorRect() const
@@ -4448,47 +4566,133 @@ void BookEditor::goToPreviousMarker()
 
 QString BookEditor::toKml() const
 {
-    // Phase 11.6: Use KmlSerializer directly with QTextDocument
-    if (m_textBuffer && m_textBuffer.get()) {
+    // Phase 11.10: If in edit mode, use QTextDocument serialization
+    if (m_isEditMode && m_textBuffer && m_textBuffer.get()) {
         KmlSerializer serializer;
         return serializer.toKml(m_textBuffer.get());
     }
-    return QString();
+
+    // Phase 11.10: If not in edit mode, reconstruct KML from KmlDocumentModel
+    // TODO: Create dedicated KmlDocumentModel serializer for better performance
+    if (m_documentModel && m_documentModel->paragraphCount() > 0) {
+        QString kml;
+        kml.reserve(static_cast<int>(m_documentModel->characterCount() * 2));  // Estimate with markup
+
+        for (size_t i = 0; i < m_documentModel->paragraphCount(); ++i) {
+            QString text = m_documentModel->paragraphText(i);
+            const auto& formats = m_documentModel->paragraphFormats(i);
+
+            kml += QStringLiteral("<p>");
+
+            if (formats.empty()) {
+                // No formatting, just escape and add text
+                kml += text.toHtmlEscaped();
+            } else {
+                // Apply formatting tags
+                // Simple approach: just output plain text for now
+                // Full implementation would need to properly nest tags
+                kml += text.toHtmlEscaped();
+            }
+
+            kml += QStringLiteral("</p>\n");
+        }
+        return kml;
+    }
+
+    // Return empty string (not null) for empty documents
+    return QStringLiteral("");
 }
 
 size_t BookEditor::paragraphCount() const
 {
-    // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer.get()) {
-        return static_cast<size_t>(m_textBuffer.get()->blockCount());
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
+    if (m_isEditMode && m_textBuffer) {
+        return static_cast<size_t>(m_textBuffer->blockCount());
+    }
+    if (m_documentModel) {
+        return m_documentModel->paragraphCount();
     }
     return 0;
 }
 
 QString BookEditor::paragraphPlainText(size_t index) const
 {
-    // Phase 11.6: Use QTextDocument directly
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return QString();
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
+    if (m_isEditMode && m_textBuffer) {
+        QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(index));
+        return block.isValid() ? block.text() : QString();
     }
-    QTextBlock block = m_textBuffer.get()->findBlockByNumber(static_cast<int>(index));
-    return block.isValid() ? block.text() : QString();
+    if (m_documentModel && index < m_documentModel->paragraphCount()) {
+        return m_documentModel->paragraphText(index);
+    }
+    return QString();
 }
 
 QString BookEditor::plainText() const
 {
-    // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer.get()) {
-        return m_textBuffer.get()->toPlainText();
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
+    if (m_isEditMode && m_textBuffer) {
+        return m_textBuffer->toPlainText();
+    }
+    if (m_documentModel) {
+        return m_documentModel->plainText();
     }
     return QString();
 }
 
 size_t BookEditor::characterCount() const
 {
-    // Phase 11.6: Use QTextDocument directly
-    if (m_textBuffer && m_textBuffer.get()) {
-        return static_cast<size_t>(m_textBuffer.get()->characterCount());
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
+    if (m_isEditMode && m_textBuffer) {
+        return static_cast<size_t>(m_textBuffer->characterCount());
+    }
+    if (m_documentModel) {
+        return m_documentModel->characterCount();
+    }
+    return 0;
+}
+
+size_t BookEditor::wordCount() const
+{
+    // Phase 11.10: Use cached word count from KmlDocumentModel
+    // This avoids iterating over all paragraphs on every contentChanged
+    if (m_documentModel) {
+        return m_documentModel->wordCount();
+    }
+    // Fallback for edit mode: count from QTextDocument
+    if (m_isEditMode && m_textBuffer) {
+        QString text = m_textBuffer->toPlainText();
+        int count = 0;
+        bool inWord = false;
+        for (const QChar& c : text) {
+            if (c.isSpace()) {
+                inWord = false;
+            } else if (!inWord) {
+                inWord = true;
+                ++count;
+            }
+        }
+        return static_cast<size_t>(count);
+    }
+    return 0;
+}
+
+size_t BookEditor::characterCountNoSpaces() const
+{
+    // Phase 11.10: Use cached count from KmlDocumentModel
+    if (m_documentModel) {
+        return m_documentModel->characterCountNoSpaces();
+    }
+    // Fallback for edit mode: count from QTextDocument
+    if (m_isEditMode && m_textBuffer) {
+        QString text = m_textBuffer->toPlainText();
+        int count = 0;
+        for (const QChar& c : text) {
+            if (!c.isSpace()) {
+                ++count;
+            }
+        }
+        return static_cast<size_t>(count);
     }
     return 0;
 }
@@ -4516,17 +4720,17 @@ void BookEditor::fromKml(const QString& kml)
         m_undoStack->clear();
     }
 
+    // Phase 11.10: Clear edit mode - m_textBuffer created on-demand
+    m_isEditMode = false;
+    m_textBuffer.reset();
+
     if (kml.isEmpty()) {
         logger.debug("BookEditor::fromKml - empty KML, clearing content");
-        // Phase 11.6: Clear content using QTextDocument directly
-        if (m_textBuffer && m_textBuffer.get()) {
-            QTextCursor clearCursor(m_textBuffer.get());
-            clearCursor.select(QTextCursor::Document);
-            clearCursor.removeSelectedText();
+        // Phase 11.10: Clear KmlDocumentModel
+        if (m_documentModel) {
+            m_documentModel->clear();
         }
-        // Phase 11.6: Removed FormatLayer and MetadataLayer - data stored in QTextCharFormat
         m_cursorPosition = {0, 0};
-        m_textCursor = QTextCursor(m_textBuffer.get());
         clearSelection();
         update();
         emit contentChanged();
@@ -4534,86 +4738,61 @@ void BookEditor::fromKml(const QString& kml)
         return;
     }
 
-    logElapsed("Before parseKml");
+    logElapsed("Loading into KmlDocumentModel");
 
-    // Phase 11.6: Use KmlParser to parse KML directly into QTextDocument
-    KmlParser parser;
-    QTextDocument* newDoc = parser.parseKml(kml);
-
-    logElapsed("After parseKml");
-
-    if (!newDoc) {
-        logger.error("BookEditor::fromKml - parse error: {} (line {}, col {})",
-            parser.lastError().toStdString(), parser.lastErrorLine(), parser.lastErrorColumn());
+    // Phase 11.10: FAST - Load into KmlDocumentModel (no setHtml, no full layout)
+    // This just parses the KML and stores paragraphs + format runs
+    if (!m_documentModel->loadKml(kml)) {
+        logger.error("BookEditor::fromKml - KmlDocumentModel parse error");
         return;
     }
 
-    logElapsed("Disconnecting observers");
+    logElapsed("KmlDocumentModel loaded");
 
-    // Phase 11.6: Disconnect ViewportManager before modifying buffer
-    if (m_viewportManager && m_textBuffer) {
-        m_viewportManager->setDocument(nullptr);
-    }
-    // Phase 11.6: Removed FormatLayer and LazyLayoutManager
+    // Phase 11.10: Setup font and line width for lazy layout
+    m_documentModel->setFont(font());
+    m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
 
-    logElapsed("Copying document content");
-
-    // Phase 11.6: Copy content from parsed document to m_textBuffer (QTextDocument)
-    // This preserves QTextCharFormat (inline formatting like bold, italic, etc.)
-    if (m_textBuffer) {
-        QTextCursor destCursor(m_textBuffer.get());
-        destCursor.select(QTextCursor::Document);
-        destCursor.removeSelectedText();
-
-        // Copy blocks from parsed document preserving all formatting
-        QTextCursor srcCursor(newDoc);
-        srcCursor.select(QTextCursor::Document);
-        destCursor.insertFragment(srcCursor.selection());
-    }
-
-    // Clean up parsed document
-    delete newDoc;
-
-    // Phase 11.6: Removed FormatLayer and MetadataLayer
-    // - Formatting stored in QTextCharFormat
-    // - Markers (TODO/Note) stored in QTextCharFormat::UserProperty (KmlPropTodo)
-
-    // Phase 11.6: Removed LazyLayoutManager - Qt handles layout automatically
-
-    logElapsed("Setting up RenderEngine");
-
-    if (m_renderEngine) {
-        m_renderEngine->setDocument(m_textBuffer.get());
-    }
-
-    logElapsed("Setting up ViewportManager");
-
+    // Phase 11.10: Ensure visible paragraphs are layouted
     if (m_viewportManager) {
-        // Set viewport size and connect to document
         m_viewportManager->setViewportSize(size());
-        m_viewportManager->setDocument(m_textBuffer.get());
+        // Note: ViewportManager still needs document for some queries
+        // We'll set it when entering edit mode
+        m_viewportManager->setDocument(nullptr);
         m_viewportManager->setScrollPosition(0.0);
-
-        logElapsed("ViewportManager initialized");
     }
 
-    // Update SearchEngine with buffer (if it exists)
+    // Layout visible paragraphs for initial display
+    size_t paraCount = m_documentModel->paragraphCount();
+    if (paraCount > 0) {
+        // Calculate approximate visible range from viewport height
+        double viewportHeight = static_cast<double>(height());
+        size_t lastVisible = m_documentModel->paragraphAtY(viewportHeight);
+        lastVisible = std::min(lastVisible + 1, paraCount - 1);
+        m_documentModel->ensureLayouted(0, lastVisible);
+        logElapsed("Visible paragraphs layouted");
+    }
+
+    // Clear RenderEngine document until edit mode
+    if (m_renderEngine) {
+        m_renderEngine->setDocument(nullptr);
+    }
+
+    // Clear SearchEngine document until edit mode
     if (m_searchEngine) {
-        m_searchEngine->setDocument(m_textBuffer.get());
+        m_searchEngine->setDocument(nullptr);
     }
 
-    // Phase 11.6: Removed setFormatLayer - SearchEngine doesn't use it
-
-    logElapsed("Loaded paragraphs");
-    logger.debug("BookEditor::fromKml - loaded {} paragraphs",
-        m_textBuffer ? m_textBuffer.get()->blockCount() : 0);
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - startTime);
+    logger.info("BookEditor::fromKml - loaded {} paragraphs in {}ms",
+        m_documentModel->paragraphCount(), elapsed.count());
 
     // Reset editor state
     m_cursorPosition = {0, 0};
-    m_textCursor = QTextCursor(m_textBuffer.get());
     clearSelection();
 
-    // Sync cursor to RenderEngine (Phase 8 fix)
+    // Sync cursor to RenderEngine (will be used in edit mode)
     if (m_renderEngine) {
         m_renderEngine->setCursorPosition(m_cursorPosition);
         m_renderEngine->setCursorVisible(true);
@@ -4622,7 +4801,6 @@ void BookEditor::fromKml(const QString& kml)
         }
     }
 
-    // Phase 11: QTextDocument handles layout automatically
     logElapsed("Before update/signals");
 
     update();
@@ -4630,6 +4808,80 @@ void BookEditor::fromKml(const QString& kml)
     emit documentChanged();
 
     logElapsed("DONE");
+}
+
+// =============================================================================
+// Phase 11.10: Edit Mode Conversion
+// =============================================================================
+
+void BookEditor::ensureEditMode()
+{
+    if (m_isEditMode) {
+        return;  // Already in edit mode
+    }
+
+    auto& logger = core::Logger::getInstance();
+    auto startTime = std::chrono::high_resolution_clock::now();
+    logger.info("BookEditor::ensureEditMode - converting to edit mode");
+
+    // Create QTextDocument from KmlDocumentModel for editing
+    m_textBuffer = std::make_unique<QTextDocument>();
+
+    // Build QTextDocument from KmlDocumentModel
+    QTextCursor cursor(m_textBuffer.get());
+
+    size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
+    for (size_t i = 0; i < paraCount; ++i) {
+        if (i > 0) {
+            cursor.insertBlock();
+        }
+
+        QString text = m_documentModel->paragraphText(i);
+        const auto& formats = m_documentModel->paragraphFormats(i);
+
+        // Insert text
+        int blockStart = cursor.position();
+        cursor.insertText(text);
+
+        // Apply formats
+        for (const auto& run : formats) {
+            cursor.setPosition(blockStart + static_cast<int>(run.start));
+            cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
+            cursor.mergeCharFormat(run.format);
+        }
+        cursor.movePosition(QTextCursor::End);
+    }
+
+    // Initialize QTextCursor for editing operations
+    m_textCursor = QTextCursor(m_textBuffer.get());
+
+    // Set document width for text wrapping
+    m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+
+    // Connect ViewportManager to QTextDocument
+    if (m_viewportManager) {
+        m_viewportManager->setDocument(m_textBuffer.get());
+    }
+
+    // Connect RenderEngine to QTextDocument
+    if (m_renderEngine) {
+        m_renderEngine->setDocument(m_textBuffer.get());
+    }
+
+    // Connect SearchEngine to QTextDocument
+    if (m_searchEngine) {
+        m_searchEngine->setDocument(m_textBuffer.get());
+    }
+
+    m_isEditMode = true;
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - startTime);
+    logger.info("BookEditor::ensureEditMode - completed in {}ms ({} paragraphs)",
+        elapsed.count(), paraCount);
+
+    // Trigger repaint to use RenderEngine
+    update();
 }
 
 }  // namespace kalahari::editor

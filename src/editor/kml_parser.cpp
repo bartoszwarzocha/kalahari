@@ -12,6 +12,7 @@
 #include <QTextBlock>
 #include <QFont>
 #include <QVariantMap>
+#include <QRegularExpression>
 
 namespace kalahari {
 namespace editor {
@@ -57,54 +58,63 @@ bool KmlParser::parseInto(const QString& kml, QTextDocument* document)
         return false;
     }
 
-    // Clear document
-    document->clear();
-
     if (kml.isEmpty()) {
-        return true;  // Empty KML is valid
+        document->clear();
+        return true;
     }
 
-    // Wrap in root if needed (bare paragraphs without document wrapper)
-    QString wrappedKml = kml.trimmed();
-    bool needsWrapper = !wrappedKml.startsWith(QStringLiteral("<kml")) &&
-                        !wrappedKml.startsWith(QStringLiteral("<doc")) &&
-                        !wrappedKml.startsWith(QStringLiteral("<document"));
+    // FAST PATH: Convert KML to HTML and use setHtml() - single operation
+    // This is O(n) string replacement instead of O(n) cursor operations
+    QString html = kmlToHtml(kml);
 
-    if (needsWrapper) {
-        wrappedKml = QStringLiteral("<kml>") + wrappedKml + QStringLiteral("</kml>");
-    }
+    // Block signals during setHtml for extra safety
+    bool wasBlocked = document->signalsBlocked();
+    document->blockSignals(true);
 
-    QXmlStreamReader reader(wrappedKml);
+    document->setHtml(html);
 
-    // Skip to first element
-    while (!reader.atEnd() && !reader.isStartElement()) {
-        reader.readNext();
-    }
-
-    if (reader.hasError()) {
-        setError(reader);
-        return false;
-    }
-
-    if (reader.atEnd()) {
-        return true;  // Empty document is valid
-    }
-
-    // Get root tag name
-    QString rootTag = reader.name().toString();
-
-    // Create cursor at document start
-    QTextCursor cursor(document);
-
-    // Move past root element
-    reader.readNext();
-
-    // Parse document content
-    if (!parseDocumentContent(reader, cursor, rootTag)) {
-        return false;
-    }
+    document->blockSignals(wasBlocked);
 
     return true;
+}
+
+QString KmlParser::kmlToHtml(const QString& kml)
+{
+    QString html = kml;
+
+    // Remove KML wrapper tags
+    static const QRegularExpression kmlWrapper(
+        QStringLiteral("</?(?:kml|document|doc)(?:\\s[^>]*)?>"));
+    html.replace(kmlWrapper, QString());
+
+    // Remove text run tags (just keep content)
+    static const QRegularExpression textTags(
+        QStringLiteral("</?(?:t|text)(?:\\s[^>]*)?>"));
+    html.replace(textTags, QString());
+
+    // Convert formatting tags to HTML equivalents
+    static const QRegularExpression boldTag(
+        QStringLiteral("<(/?)bold(?:\\s[^>]*)?>"));
+    html.replace(boldTag, QStringLiteral("<\\1b>"));
+
+    static const QRegularExpression italicTag(
+        QStringLiteral("<(/?)italic(?:\\s[^>]*)?>"));
+    html.replace(italicTag, QStringLiteral("<\\1i>"));
+
+    static const QRegularExpression underlineTag(
+        QStringLiteral("<(/?)underline(?:\\s[^>]*)?>"));
+    html.replace(underlineTag, QStringLiteral("<\\1u>"));
+
+    static const QRegularExpression strikethroughTag(
+        QStringLiteral("<(/?)(?:strikethrough|strike)(?:\\s[^>]*)?>"));
+    html.replace(strikethroughTag, QStringLiteral("<\\1s>"));
+
+    // Metadata tags - just keep content
+    static const QRegularExpression metadataTags(
+        QStringLiteral("</?(?:comment|todo|footnote|note)(?:\\s[^>]*)?>"));
+    html.replace(metadataTags, QString());
+
+    return html;
 }
 
 // =============================================================================

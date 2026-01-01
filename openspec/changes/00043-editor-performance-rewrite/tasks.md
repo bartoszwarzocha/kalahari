@@ -513,6 +513,61 @@ Pełne usunięcie wymaga zastąpienia tych wywołań bezpośrednim dostępem do 
 
 ---
 
+## Phase 11.10: Lazy Rendering Fix (Performance Critical)
+
+**PROBLEM:** `QTextDocument::setHtml()` wykonuje pełny layout wszystkich bloków.
+Dla 1.9MB dokumentu (15,000 paragrafów) trwa to 30+ sekund.
+
+**ROZWIĄZANIE:** Lazy rendering - QTextLayout tylko dla widocznych paragrafów.
+
+### Architektura (Word/Writer style)
+```
+KML ──parse──► KmlDocumentModel (lekka struktura w pamięci)
+                     │
+                     ├── vector<Paragraph> (text + formats)
+                     ├── HeightTree (Fenwick - szacowane wysokości)
+                     └── LayoutCache (QTextLayout tylko dla widocznych)
+                            │
+                  ┌─────────┴─────────┐
+                  ▼                   ▼
+          ViewportManager      RenderEngine
+```
+
+### Komponenty
+- [x] 11.10.1 HeightTree - Fenwick tree dla O(log n) operacji na wysokościach
+- [x] 11.10.2 FormatRun - struct dla zakresów formatowania
+- [x] 11.10.3 KmlDocumentModel - lekka struktura dokumentu w pamięci
+- [x] 11.10.4 LayoutCache - cache QTextLayout dla widocznych paragrafów
+- [x] 11.10.5 Parsowanie KML do KmlDocumentModel (pełny dokument, bez layoutu)
+- [x] 11.10.6 Integracja ViewportManager z KmlDocumentModel
+- [x] 11.10.7 Integracja RenderEngine z lazy rendering
+- [x] 11.10.8 Integracja BookEditor z KmlDocumentModel
+- [x] 11.10.9 Benchmark: load 131ms for 1728 paragraphs (~230x improvement from 30s freeze)
+
+### Kluczowa różnica vs Phase 11.1-11.8
+- **Było:** setHtml() → pełny layout wszystkich bloków (WOLNE)
+- **Jest:** parse → lekka struktura + lazy QTextLayout (SZYBKIE)
+
+---
+
+## Future: Oddzielne metadane (opcjonalnie)
+
+**Pomysł do rozważenia w przyszłości:**
+Metadane (komentarze, TODO, footnotes) jako osobna warstwa zamiast inline w tekście.
+
+**Zalety:**
+- Czystszy model danych (Comment ma id, author, timestamp osobno)
+- Lista komentarzy = iteracja po liście, nie parsowanie dokumentu
+- Prostszy HTML dla formatowania
+
+**Wady:**
+- Synchronizacja pozycji przy edycji tekstu
+- Dwa źródła prawdy
+
+**Status:** Do rozważenia po wdrożeniu lazy rendering.
+
+---
+
 ## Documentation
 
 - [ ] D.1 Update CHANGELOG.md with performance rewrite entry

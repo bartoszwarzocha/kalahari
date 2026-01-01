@@ -18,6 +18,7 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_comment.h>
+#include <kalahari/editor/kml_document_model.h>  // Phase 11.10: Lazy rendering model
 #include <kalahari/editor/kml_element.h>  // For ElementType
 #include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
@@ -127,6 +128,14 @@ public:
     /// @brief Get total character count in the document
     /// @return Character count from QTextDocument
     size_t characterCount() const;
+
+    /// @brief Get total word count in the document (cached for performance)
+    /// @return Word count calculated during load
+    size_t wordCount() const;
+
+    /// @brief Get character count without spaces (cached for performance)
+    /// @return Non-space character count calculated during load
+    size_t characterCountNoSpaces() const;
 
     /// @brief Get the underlying QTextDocument (read-only for accessibility)
     /// @return Pointer to the QTextDocument, or nullptr if not initialized
@@ -1144,12 +1153,29 @@ private:
     // Phase 8: New Performance-Optimized Components (OpenSpec #00043)
     // =========================================================================
 
-    /// @brief QTextDocument for text storage (Phase 11.6)
-    /// @note Replaced TextBuffer - using QTextDocument directly
+    /// @brief KmlDocumentModel for fast loading and lazy rendering (Phase 11.10)
+    /// @note Primary data source - paragraphs + formats with lazy QTextLayout
+    std::unique_ptr<KmlDocumentModel> m_documentModel;
+
+    /// @brief QTextDocument for text editing (Phase 11.6)
+    /// @note Created on-demand when user starts editing (see ensureEditMode())
     std::unique_ptr<QTextDocument> m_textBuffer;
 
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
+
+    /// @brief True when m_textBuffer is populated and being used for editing
+    bool m_isEditMode = false;
+
+    /// @brief Ensure document is in edit mode (creates m_textBuffer if needed)
+    ///
+    /// Converts KmlDocumentModel to QTextDocument when user starts editing.
+    /// This is only done when necessary for editing operations.
+    void ensureEditMode();
+
+    /// @brief Check if document is in edit mode
+    /// @return true if m_textBuffer is populated and active
+    bool isEditMode() const { return m_isEditMode; }
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;

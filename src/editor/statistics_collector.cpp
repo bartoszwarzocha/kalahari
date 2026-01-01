@@ -278,15 +278,11 @@ void StatisticsCollector::recalculateStats()
         return;
     }
 
-    // Get plain text from editor (uses QTextDocument API)
-    QString text = m_editor->plainText();
-
-    // Character counts
-    m_characterCount = text.length();
-    m_characterCountNoSpaces = text.count(QRegularExpression("[^ \\t\\n\\r]"));
-
-    // Word count
-    m_wordCount = countWordsInText(text);
+    // Phase 11.10: Use cached counts from editor for O(1) performance
+    // This avoids iterating over all paragraphs on every contentChanged
+    m_wordCount = static_cast<int>(m_editor->wordCount());
+    m_characterCount = static_cast<int>(m_editor->characterCount());
+    m_characterCountNoSpaces = static_cast<int>(m_editor->characterCountNoSpaces());
 }
 
 void StatisticsCollector::updateHourlyStats(int wordsDelta)
