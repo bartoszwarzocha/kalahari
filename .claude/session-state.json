@@ -1,78 +1,48 @@
 {
-  "mode": "sync",
-  "saved_at": "2025-12-31T21:25:00",
-  "git_commit": "9491c5f",
-  "git_pushed": true,
+  "mode": "quick",
+  "saved_at": "2026-01-02T12:05:00",
+  "git_commit": "d58c988",
+  "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11 Architecture Cleanup - 100% COMPLETE",
+  "working_on": "Phase 11.10 - Single rendering system fix (ensureEditMode in fromKml)",
   "next_steps": [
-    "Verify CI/CD passes on GitHub",
-    "Continue with remaining OpenSpec #00043 tasks if any",
-    "Consider starting OpenSpec #00044 (Text Styling System)"
+    "User testing with large chapter file (Chapter Two)",
+    "Verify all view modes work correctly",
+    "Clean up unused view mode rendering code if tests pass"
   ],
   "blocker": null,
-  "implementation_status": "PHASE_11_COMPLETE",
+  "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
-    "Phase 11.1-11.3: KmlParser, KmlSerializer, ViewportManager",
-    "Phase 11.4: RenderEngine refactored to use QTextDocument",
-    "Phase 11.5: buffer_commands rewritten to use QTextCursor",
-    "Phase 11.6: Removed FormatLayer, LazyLayoutManager, MetadataLayer from BookEditor",
-    "Phase 11.6: Replaced TextBuffer with QTextDocument",
-    "Phase 11.7: SearchService unified with SearchEngine (QTextDocument)",
-    "Phase 11.8: Deleted 12 old files (text_buffer, format_layer, lazy_layout_manager, kml_converter + tests)",
-    "Phase 11.8: Updated CMakeLists.txt to remove deleted file references",
-    "Phase 11.8: Removed FormatLayer parameter from SearchEngine",
-    "Phase 11.9: Deleted remaining old files (kml_commands, layout_manager, page_layout_manager, virtual_scroll_manager)",
-    "Phase 11.9: Removed KmlDocument* API from ClipboardHandler, WordFrequencyAnalyzer, TextToSpeechService",
-    "Phase 11.9: Updated all outdated comments (TextBuffer -> QTextDocument)",
-    "Phase 11.9: Full architecture audit - 100% conformance verified",
-    "Phase 11.9: Build SUCCESS, Tests: 580 passed (3968 assertions)"
+    "Phase 11.1-11.9: Architecture cleanup COMPLETE",
+    "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
+    "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
+    "Phase 11.10: Word/character count caching (O(1) statistics)",
+    "Phase 11.10: Text color support added to KmlDocumentModel",
+    "Phase 11.10: Font propagation from appearance settings",
+    "Phase 11.10: Basic rendering works - user confirmed it loads fast",
+    "Phase 11.10: Fixed dual rendering architecture - ensureEditMode() in fromKml()",
+    "Phase 11.10: Fixed dangling pointer crash on second fromKml() call",
+    "All BookEditor tests passing (41 assertions in 13 test cases)"
   ],
-  "pending_tasks": [],
+  "pending_tasks": [
+    "User testing with large chapter file",
+    "Verify all view modes work (Continuous, Page, Typewriter, Focus)",
+    "Clean up unused view mode code from paintEvent()"
+  ],
   "task_progress": {
-    "completed": 14,
-    "total": 14,
-    "percentage": 100
+    "completed": 10,
+    "total": 13,
+    "percentage": 77
   },
-  "architecture_notes": {
-    "old_architecture": "KML -> TextBuffer -> FormatLayer -> MetadataLayer -> LazyLayoutManager -> HeightTree -> RenderEngine (8 steps)",
-    "new_architecture": "KML -> QTextDocument (with QTextCharFormat for formatting) -> Render visible fragment (2 steps)",
-    "files_deleted_phase_11_8": [
-      "text_buffer.h/cpp + test",
-      "format_layer.h/cpp + test",
-      "lazy_layout_manager.h/cpp + test",
-      "kml_converter.h/cpp + test",
-      "test_snapshot_roundtrip.cpp",
-      "benchmark_new_architecture.cpp"
-    ],
-    "files_deleted_phase_11_9": [
-      "kml_commands.h/cpp",
-      "layout_manager.h/cpp + test",
-      "page_layout_manager.h/cpp",
-      "virtual_scroll_manager.h/cpp + test"
-    ],
-    "key_changes": [
-      "QTextDocument is now the single source of truth",
-      "QTextCharFormat stores inline formatting (bold, italic, etc.)",
-      "QTextCharFormat::UserProperty stores metadata (KmlPropTodo, KmlPropComment)",
-      "QTextBlock::layout() provides paragraph layout",
-      "QTextCursor handles all text operations",
-      "KmlParser/KmlSerializer with shared registry replace KmlConverter",
-      "All editor services use QString API instead of KmlDocument*"
-    ],
-    "verification": {
-      "no_KmlDocument_in_editor": true,
-      "no_TextBuffer_code": true,
-      "no_FormatLayer_code": true,
-      "no_LazyLayoutManager_code": true,
-      "prototypes_isolated": true,
-      "comments_updated": true
-    }
+  "user_feedback": {
+    "loading": "FAST - works correctly",
+    "rendering": "Fixed dual mode issue - awaiting user test",
+    "scrolling": "Pending verification"
   },
-  "openspec_summary": {
-    "00042": "IN_PROGRESS - Custom Text Editor (master spec)",
-    "00043": "IN_PROGRESS - Performance Rewrite Phase 11 COMPLETE",
-    "00044": "PENDING - Text Styling System"
-  }
+  "files_modified_today": [
+    "src/editor/book_editor.cpp - ensureEditMode() at end of fromKml()",
+    "src/editor/book_editor.cpp - clear document pointers before reset",
+    "src/editor/book_editor.cpp - ensureEditMode() for empty KML too"
+  ]
 }

@@ -4763,6 +4763,17 @@ void BookEditor::fromKml(const QString& kml)
     }
 
     // Phase 11.10: Clear edit mode - m_textBuffer created on-demand
+    // IMPORTANT: Clear document pointers BEFORE destroying m_textBuffer to avoid dangling pointers
+    if (m_viewportManager) {
+        m_viewportManager->setDocument(nullptr);
+    }
+    if (m_renderEngine) {
+        m_renderEngine->setDocument(nullptr);
+    }
+    if (m_searchEngine) {
+        m_searchEngine->setDocument(nullptr);
+    }
+    m_textCursor = QTextCursor();  // Clear cursor before destroying document
     m_isEditMode = false;
     m_textBuffer.reset();
 
@@ -4774,6 +4785,8 @@ void BookEditor::fromKml(const QString& kml)
         }
         m_cursorPosition = {0, 0};
         clearSelection();
+        // Always enter edit mode for consistent behavior
+        ensureEditMode();
         update();
         emit contentChanged();
         emit documentChanged();
@@ -4799,12 +4812,9 @@ void BookEditor::fromKml(const QString& kml)
     // Phase 11.10: Reset scroll position for view mode
     m_viewModeScrollOffset = 0.0;
 
-    // Phase 11.10: Ensure visible paragraphs are layouted
+    // Phase 11.10: Configure viewport for initial display
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
-        // Note: ViewportManager still needs document for some queries
-        // We'll set it when entering edit mode
-        m_viewportManager->setDocument(nullptr);
         m_viewportManager->setScrollPosition(0.0);
     }
 
@@ -4819,15 +4829,8 @@ void BookEditor::fromKml(const QString& kml)
         logElapsed("Visible paragraphs layouted");
     }
 
-    // Clear RenderEngine document until edit mode
-    if (m_renderEngine) {
-        m_renderEngine->setDocument(nullptr);
-    }
-
-    // Clear SearchEngine document until edit mode
-    if (m_searchEngine) {
-        m_searchEngine->setDocument(nullptr);
-    }
+    // Note: Document pointers already cleared at start of fromKml()
+    // They will be set to m_textBuffer in ensureEditMode()
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);
@@ -4848,6 +4851,11 @@ void BookEditor::fromKml(const QString& kml)
     }
 
     logElapsed("Before update/signals");
+
+    // Phase 11.10 FIX: Always enter edit mode immediately for consistent rendering
+    // This eliminates the dual view/edit mode system - document is always editable
+    ensureEditMode();
+    logElapsed("Edit mode initialized");
 
     // Update scrollbar range for new document
     updateScrollBarRange();
