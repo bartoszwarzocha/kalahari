@@ -85,33 +85,64 @@ inline QString paragraphText(QTextDocument* doc, int index) {
     return block.isValid() ? block.text() : QString();
 }
 
-/// @brief Get Y position of paragraph using block layout
-/// @param doc QTextDocument pointer
-/// @param index Block/paragraph index
-/// @return Y position in document coordinates
-inline double getParagraphY(QTextDocument* doc, int index) {
-    if (!doc) return 0.0;
-    QTextBlock block = doc->findBlockByNumber(index);
-    if (block.isValid() && block.layout()) {
-        return block.layout()->position().y();
-    }
-    return 0.0;
-}
+/// @brief Get block layout height using boundingRect().height()
+/// Same approach as KmlDocumentModel - gives just text height without double-counting leading
+inline double getBlockLayoutHeight(const QTextBlock& block, QTextDocument* doc = nullptr) {
+    if (!block.isValid()) return 20.0;  // Estimated fallback
 
-/// @brief Find paragraph at Y position using document layout hit test
-/// @param doc QTextDocument pointer
-/// @param y Y coordinate in document
-/// @return Block/paragraph index
-inline int getParagraphAtY(QTextDocument* doc, double y) {
-    if (!doc) return 0;
-    if (auto* layout = doc->documentLayout()) {
-        int pos = layout->hitTest(QPointF(0, y), Qt::FuzzyHit);
-        if (pos >= 0) {
-            QTextBlock block = doc->findBlock(pos);
-            return block.isValid() ? block.blockNumber() : 0;
+    // Use boundingRect().height() - same as KmlDocumentModel (view mode)
+    if (auto* layout = block.layout()) {
+        double height = layout->boundingRect().height();
+        if (height > 0) return height;
+    }
+
+    // Fallback: use blockBoundingRect (layout not prepared yet)
+    if (doc) {
+        if (auto* docLayout = doc->documentLayout()) {
+            double h = docLayout->blockBoundingRect(block).height();
+            if (h > 0) return h;
         }
     }
-    return 0;
+
+    return 20.0;  // Estimated fallback
+}
+
+/// @brief Get Y position of paragraph using cumulative layout heights
+/// Falls back to blockBoundingRect if layout not ready
+inline double getParagraphY(QTextDocument* doc, int index) {
+    if (!doc) return 0.0;
+
+    double y = 0.0;
+    QTextBlock block = doc->begin();
+    for (int i = 0; i < index && block.isValid(); ++i) {
+        y += getBlockLayoutHeight(block, doc);
+        block = block.next();
+    }
+    return y;
+}
+
+/// @brief Find paragraph at Y position using cumulative layout heights
+/// Falls back to blockBoundingRect if layout not ready
+inline int getParagraphAtY(QTextDocument* doc, double y) {
+    if (!doc) return 0;
+
+    double cumulativeY = 0.0;
+    QTextBlock block = doc->begin();
+    int blockIndex = 0;
+
+    while (block.isValid()) {
+        double height = getBlockLayoutHeight(block, doc);
+        if (y >= cumulativeY && y < cumulativeY + height) {
+            return blockIndex;
+        }
+        cumulativeY += height;
+        block = block.next();
+        ++blockIndex;
+    }
+
+    // If y is beyond document, return last block
+    int count = doc->blockCount();
+    return count > 0 ? count - 1 : 0;
 }
 
 // =============================================================================
@@ -4884,13 +4915,27 @@ void BookEditor::ensureEditMode()
     // Create QTextDocument from KmlDocumentModel for editing
     m_textBuffer = std::make_unique<QTextDocument>();
 
+    // Apply font from appearance settings
+    m_textBuffer->setDefaultFont(m_appearance.typography.textFont);
+
+    // Remove default document margins
+    m_textBuffer->setDocumentMargin(0);
+
     // Build QTextDocument from KmlDocumentModel
     QTextCursor cursor(m_textBuffer.get());
+
+    // Create block format with zero margins to avoid gaps between paragraphs
+    QTextBlockFormat zeroMarginFormat;
+    zeroMarginFormat.setTopMargin(0);
+    zeroMarginFormat.setBottomMargin(0);
 
     size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
     for (size_t i = 0; i < paraCount; ++i) {
         if (i > 0) {
-            cursor.insertBlock();
+            cursor.insertBlock(zeroMarginFormat);
+        } else {
+            // First block - apply zero margins too
+            cursor.setBlockFormat(zeroMarginFormat);
         }
 
         QString text = m_documentModel->paragraphText(i);
@@ -4900,7 +4945,7 @@ void BookEditor::ensureEditMode()
         int blockStart = cursor.position();
         cursor.insertText(text);
 
-        // Apply formats
+        // Apply formats (bold, italic, etc.)
         for (const auto& run : formats) {
             cursor.setPosition(blockStart + static_cast<int>(run.start));
             cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
@@ -4914,6 +4959,12 @@ void BookEditor::ensureEditMode()
 
     // Set document width for text wrapping
     m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+
+    // Force layout preparation for all blocks by querying document size
+    // This ensures lineCount() returns correct values
+    if (auto* docLayout = m_textBuffer->documentLayout()) {
+        docLayout->documentSize();  // Forces full layout
+    }
 
     // Connect ViewportManager to QTextDocument
     if (m_viewportManager) {

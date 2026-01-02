@@ -177,21 +177,25 @@ void ViewportManager::updateVisibleRange() {
     m_lastVisible = 0;
     bool foundFirst = false;
 
-    double cumulativeY = 0.0;
+    // Use cumulative line heights (consistent with paragraphY and blockHeight)
     QTextBlock block = m_document->begin();
     size_t blockIndex = 0;
+    double cumulativeY = 0.0;
 
     while (block.isValid()) {
-        double height = blockHeight(block);
+        double height = this->blockHeight(block);
 
-        // Check if this block starts before viewport ends
-        if (cumulativeY + height > viewTop && !foundFirst) {
+        double blockTop = cumulativeY;
+        double blockBottom = cumulativeY + height;
+
+        // Check if this block intersects viewport
+        if (blockBottom > viewTop && !foundFirst) {
             m_firstVisible = blockIndex;
             foundFirst = true;
         }
 
         // Update last visible as long as block starts within viewport
-        if (cumulativeY <= viewBottom) {
+        if (blockTop <= viewBottom) {
             m_lastVisible = blockIndex;
         } else {
             // We've passed the viewport, can stop early
@@ -264,17 +268,13 @@ double ViewportManager::totalDocumentHeight() const {
     if (!m_document) return 0.0;
 
     if (m_totalHeightDirty) {
-        // Try to get height from document layout
-        if (auto* layout = m_document->documentLayout()) {
-            m_cachedTotalHeight = layout->documentSize().height();
-        } else {
-            // Calculate from blocks if layout not available
-            m_cachedTotalHeight = 0.0;
-            QTextBlock block = m_document->begin();
-            while (block.isValid()) {
-                m_cachedTotalHeight += blockHeight(block);
-                block = block.next();
-            }
+        // Calculate from block layouts (NOT documentSize which may include margins)
+        // This ensures consistency with paragraphY() and RenderEngine
+        m_cachedTotalHeight = 0.0;
+        QTextBlock block = m_document->begin();
+        while (block.isValid()) {
+            m_cachedTotalHeight += blockHeight(block);
+            block = block.next();
         }
         m_totalHeightDirty = false;
     }
@@ -285,48 +285,44 @@ double ViewportManager::totalDocumentHeight() const {
 size_t ViewportManager::paragraphAtY(double y) const {
     if (!m_document) return 0;
 
-    double cumulativeY = 0.0;
+    // Iterate blocks using cumulative layout heights (consistent with paragraphY())
+    // NOT using blockBoundingRect or hitTest which use document coordinate system with margins
     QTextBlock block = m_document->begin();
     size_t blockIndex = 0;
+    double cumulativeY = 0.0;
 
     while (block.isValid()) {
         double height = blockHeight(block);
-        if (cumulativeY + height > y) {
+        double blockTop = cumulativeY;
+        double blockBottom = cumulativeY + height;
+
+        if (y >= blockTop && y < blockBottom) {
             return blockIndex;
         }
+
         cumulativeY += height;
         block = block.next();
         ++blockIndex;
     }
 
     // If y is beyond document, return last block
-    return blockIndex > 0 ? blockIndex - 1 : 0;
+    int count = m_document->blockCount();
+    return count > 0 ? static_cast<size_t>(count - 1) : 0;
 }
 
 double ViewportManager::paragraphY(size_t index) const {
     if (!m_document) return 0.0;
 
-    // Try to use document layout for accurate position
-    QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
-    if (block.isValid()) {
-        if (auto* layout = m_document->documentLayout()) {
-            QRectF blockRect = layout->blockBoundingRect(block);
-            return blockRect.top();
-        }
-    }
+    // Calculate Y by summing actual line heights (NOT boundingRect which may be wrong)
+    double y = 0.0;
+    QTextBlock block = m_document->begin();
 
-    // Fallback: calculate cumulative height
-    double cumulativeY = 0.0;
-    block = m_document->begin();
-    size_t blockIndex = 0;
-
-    while (block.isValid() && blockIndex < index) {
-        cumulativeY += blockHeight(block);
+    for (size_t i = 0; i < index && block.isValid(); ++i) {
+        y += blockHeight(block);
         block = block.next();
-        ++blockIndex;
     }
 
-    return cumulativeY;
+    return y;
 }
 
 double ViewportManager::paragraphHeight(size_t index) const {
@@ -337,24 +333,25 @@ double ViewportManager::paragraphHeight(size_t index) const {
 }
 
 double ViewportManager::blockHeight(const QTextBlock& block) const {
-    if (!block.isValid()) return 0.0;
+    if (!block.isValid()) return m_estimatedLineHeight;
 
-    // Try to get height from block layout
-    if (block.layout() && block.layout()->lineCount() > 0) {
-        return block.layout()->boundingRect().height();
-    }
-
-    // Try document layout
-    if (m_document) {
-        if (auto* docLayout = m_document->documentLayout()) {
-            QRectF rect = docLayout->blockBoundingRect(block);
-            if (rect.height() > 0) {
-                return rect.height();
-            }
+    // Use boundingRect().height() - same as KmlDocumentModel (view mode)
+    // This gives just the text height without double-counting leading
+    if (auto* layout = block.layout()) {
+        double height = layout->boundingRect().height();
+        if (height > 0) {
+            return height;
         }
     }
 
-    // Fallback to estimated height
+    // Fallback: use blockBoundingRect (layout not prepared yet)
+    if (m_document) {
+        if (auto* docLayout = m_document->documentLayout()) {
+            double h = docLayout->blockBoundingRect(block).height();
+            if (h > 0) return h;
+        }
+    }
+
     return m_estimatedLineHeight;
 }
 
