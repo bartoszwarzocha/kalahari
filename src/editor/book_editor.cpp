@@ -4960,10 +4960,32 @@ void BookEditor::ensureEditMode()
     // Set document width for text wrapping
     m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
 
-    // Force layout preparation for all blocks by querying document size
-    // This ensures lineCount() returns correct values
-    if (auto* docLayout = m_textBuffer->documentLayout()) {
-        docLayout->documentSize();  // Forces full layout
+    // Manually prepare block layouts with lines starting at y=0
+    // This matches KmlDocumentModel's approach and avoids Qt's internal spacing/leading
+    // which causes gaps between paragraphs
+    {
+        double textWidth = static_cast<double>(width()) - LEFT_MARGIN * 2;
+        QTextBlock block = m_textBuffer->begin();
+        while (block.isValid()) {
+            QTextLayout* layout = block.layout();
+            if (layout) {
+                // Apply font before layout - ensures correct rendering
+                layout->setFont(m_appearance.typography.textFont);
+                layout->beginLayout();
+                double y = 0;
+                while (true) {
+                    QTextLine line = layout->createLine();
+                    if (!line.isValid()) {
+                        break;
+                    }
+                    line.setLineWidth(textWidth);
+                    line.setPosition(QPointF(0, y));
+                    y += line.height();
+                }
+                layout->endLayout();
+            }
+            block = block.next();
+        }
     }
 
     // Connect ViewportManager to QTextDocument

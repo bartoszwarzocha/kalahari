@@ -313,16 +313,20 @@ size_t ViewportManager::paragraphAtY(double y) const {
 double ViewportManager::paragraphY(size_t index) const {
     if (!m_document) return 0.0;
 
-    // Calculate Y by summing actual line heights (NOT boundingRect which may be wrong)
-    double y = 0.0;
+    // Calculate cumulative Y using blockHeight() for consistency
+    // We manually position blocks when rendering (not using Qt's document layout)
+    // so we need our own continuous positioning without Qt's extra margins/spacing
+    double cumulativeY = 0.0;
     QTextBlock block = m_document->begin();
+    size_t blockIndex = 0;
 
-    for (size_t i = 0; i < index && block.isValid(); ++i) {
-        y += blockHeight(block);
+    while (block.isValid() && blockIndex < index) {
+        cumulativeY += blockHeight(block);
         block = block.next();
+        ++blockIndex;
     }
 
-    return y;
+    return cumulativeY;
 }
 
 double ViewportManager::paragraphHeight(size_t index) const {

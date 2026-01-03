@@ -1,48 +1,58 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-02T12:05:00",
-  "git_commit": "d58c988",
+  "saved_at": "2026-01-03T15:30:00",
+  "git_commit": "22f8300",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11.10 - Single rendering system fix (ensureEditMode in fromKml)",
+  "working_on": "Phase 11.10 - Custom QAbstractTextDocumentLayout needed",
   "next_steps": [
-    "User testing with large chapter file (Chapter Two)",
-    "Verify all view modes work correctly",
-    "Clean up unused view mode rendering code if tests pass"
+    "Test QPlainTextDocumentLayout as quick fix",
+    "If fails: Implement KalahariTextDocumentLayout",
+    "Fix empty line at document beginning",
+    "Implement cursor position restoration"
   ],
-  "blocker": null,
+  "blocker": {
+    "type": "architecture",
+    "description": "Qt's QTextDocumentLayout overwrites manual block layouts on any document modification",
+    "resolution": "Need custom QAbstractTextDocumentLayout to control line positioning",
+    "appeared_after": "Pressing Enter creates gaps between paragraphs"
+  },
   "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
     "Phase 11.1-11.9: Architecture cleanup COMPLETE",
     "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
     "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
-    "Phase 11.10: Word/character count caching (O(1) statistics)",
-    "Phase 11.10: Text color support added to KmlDocumentModel",
-    "Phase 11.10: Font propagation from appearance settings",
-    "Phase 11.10: Basic rendering works - user confirmed it loads fast",
-    "Phase 11.10: Fixed dual rendering architecture - ensureEditMode() in fromKml()",
-    "Phase 11.10: Fixed dangling pointer crash on second fromKml() call",
-    "All BookEditor tests passing (41 assertions in 13 test cases)"
+    "Phase 11.10: ensureEditMode() single rendering system",
+    "Phase 11.10: Zero margins on block format",
+    "Phase 11.10: Font fix in Edit Mode (setFont before beginLayout)",
+    "All BookEditor tests passing (41 assertions in 13 test cases)",
+    "Root cause analysis: Qt layout architecture incompatibility identified"
   ],
   "pending_tasks": [
-    "User testing with large chapter file",
-    "Verify all view modes work (Continuous, Page, Typewriter, Focus)",
-    "Clean up unused view mode code from paintEvent()"
+    "Implement custom QAbstractTextDocumentLayout OR test QPlainTextDocumentLayout",
+    "Fix empty line with cursor at document beginning",
+    "Implement cursor position restoration (like Word)",
+    "User testing with large chapter file"
   ],
   "task_progress": {
-    "completed": 10,
-    "total": 13,
-    "percentage": 77
+    "completed": 8,
+    "total": 12,
+    "percentage": 67
   },
-  "user_feedback": {
-    "loading": "FAST - works correctly",
-    "rendering": "Fixed dual mode issue - awaiting user test",
-    "scrolling": "Pending verification"
+  "root_cause_analysis": {
+    "issue": "Paragraph gaps after pressing Enter",
+    "cause": "Qt's QTextDocumentLayout automatically re-layouts blocks with font.leading() spacing",
+    "why_manual_layout_fails": "ensureEditMode() prepares layouts once, but Qt overwrites on any modification",
+    "solutions": [
+      "A: Custom KalahariTextDocumentLayout (proper, 1-2 days)",
+      "B: QPlainTextDocumentLayout (quick test, 5 min)",
+      "C: Dual model sync (complex)"
+    ],
+    "recommended": "Test B first, then implement A if needed"
   },
   "files_modified_today": [
-    "src/editor/book_editor.cpp - ensureEditMode() at end of fromKml()",
-    "src/editor/book_editor.cpp - clear document pointers before reset",
-    "src/editor/book_editor.cpp - ensureEditMode() for empty KML too"
+    "src/editor/book_editor.cpp - ensureEditMode() font fix",
+    "src/editor/viewport_manager.cpp - blockHeight() using boundingRect"
   ]
 }
