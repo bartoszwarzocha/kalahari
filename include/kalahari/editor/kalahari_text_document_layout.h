@@ -71,7 +71,7 @@ private:
     void layoutBlock(QTextBlock& block);
 
     /// @brief Recalculate all block positions
-    void updateBlockPositions();
+    void updateBlockPositions() const;
 
     /// @brief Get Y position of a block
     qreal blockY(int blockNumber) const;

@@ -13,6 +13,7 @@
 #include <kalahari/editor/paragraph_layout.h>
 #include <kalahari/gui/find_replace_bar.h>
 #include <QAbstractTextDocumentLayout>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QTextLine>  // Phase 11.10: For view mode cursor rendering
@@ -4915,6 +4916,13 @@ void BookEditor::ensureEditMode()
     // Create QTextDocument from KmlDocumentModel for editing
     m_textBuffer = std::make_unique<QTextDocument>();
 
+    // Use custom layout that positions lines at y=0 without Qt's leading gaps
+    auto* customLayout = new KalahariTextDocumentLayout(m_textBuffer.get());
+    customLayout->setFont(m_appearance.typography.textFont);
+    double textWidth = static_cast<double>(width()) - LEFT_MARGIN * 2;
+    customLayout->setTextWidth(textWidth);
+    m_textBuffer->setDocumentLayout(customLayout);
+
     // Apply font from appearance settings
     m_textBuffer->setDefaultFont(m_appearance.typography.textFont);
 
@@ -4956,37 +4964,6 @@ void BookEditor::ensureEditMode()
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
-
-    // Set document width for text wrapping
-    m_textBuffer->setTextWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
-
-    // Manually prepare block layouts with lines starting at y=0
-    // This matches KmlDocumentModel's approach and avoids Qt's internal spacing/leading
-    // which causes gaps between paragraphs
-    {
-        double textWidth = static_cast<double>(width()) - LEFT_MARGIN * 2;
-        QTextBlock block = m_textBuffer->begin();
-        while (block.isValid()) {
-            QTextLayout* layout = block.layout();
-            if (layout) {
-                // Apply font before layout - ensures correct rendering
-                layout->setFont(m_appearance.typography.textFont);
-                layout->beginLayout();
-                double y = 0;
-                while (true) {
-                    QTextLine line = layout->createLine();
-                    if (!line.isValid()) {
-                        break;
-                    }
-                    line.setLineWidth(textWidth);
-                    line.setPosition(QPointF(0, y));
-                    y += line.height();
-                }
-                layout->endLayout();
-            }
-            block = block.next();
-        }
-    }
 
     // Connect ViewportManager to QTextDocument
     if (m_viewportManager) {

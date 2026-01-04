@@ -112,6 +112,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
     ${CMAKE_SOURCE_DIR}/src/editor/search_service.cpp      # OpenSpec #00043 Phase 11.7: SearchService
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # OpenSpec #00043: KmlDocumentModel lazy rendering
+    ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
     ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
     # GUI dependencies for FindReplaceBar
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -138,6 +139,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT

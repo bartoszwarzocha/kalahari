@@ -193,6 +193,7 @@ set(KALAHARI_SOURCES
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/search_service.cpp            # OpenSpec #00043 Phase 11.7: QTextDocument-based search service
     editor/kml_document_model.cpp        # OpenSpec #00043: Lazy rendering document model
+    editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -246,6 +247,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h     # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
 )
 
 # Create executable

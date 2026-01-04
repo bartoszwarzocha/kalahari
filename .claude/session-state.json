@@ -1,16 +1,16 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-03T16:00:00",
-  "git_commit": "cc680a8",
+  "saved_at": "2026-01-04T08:12:00",
+  "git_commit": "8e87f9f",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11.11 - KalahariTextDocumentLayout implementation",
+  "working_on": "Phase 11.11 - KalahariTextDocumentLayout INTEGRATED",
   "next_steps": [
-    "Add kalahari_text_document_layout.cpp to CMakeLists.txt",
-    "Integrate layout into BookEditor::ensureEditMode()",
-    "Remove contentsChanged hack",
-    "Fix empty line at document beginning"
+    "Manual test: Open document, press Enter, verify no gaps",
+    "Manual test: Text wrapping works correctly",
+    "Fix empty line at document beginning (if still present)",
+    "Update OpenSpec tasks.md with completion status"
   ],
   "blocker": null,
   "implementation_status": "IN_PROGRESS",
@@ -22,20 +22,19 @@
     "Root cause analysis: Qt layout architecture incompatibility identified",
     "Phase 11.11.1: Created kalahari_text_document_layout.h",
     "Phase 11.11.2: Created kalahari_text_document_layout.cpp",
-    "All BookEditor tests passing (41 assertions in 13 test cases)"
+    "Phase 11.11.3: Added to CMakeLists.txt (src and tests)",
+    "Phase 11.11.4: Integrated into BookEditor::ensureEditMode()",
+    "Phase 11.11.5: Removed contentsChanged hack",
+    "Phase 11.11.6: Build passed, all BookEditor tests pass (41 assertions)"
   ],
   "pending_tasks": [
-    "11.11.3: Add to CMakeLists.txt",
-    "11.11.4: Integrate into BookEditor",
-    "11.11.5: Remove contentsChanged hack",
-    "11.11.6: Build and test",
     "11.11.7: Manual test (Enter, text wrapping)",
     "11.11.8: Fix empty line at document beginning"
   ],
   "task_progress": {
-    "completed": 2,
+    "completed": 6,
     "total": 8,
-    "percentage": 25
+    "percentage": 75
   },
   "architecture_decision": {
     "issue": "Qt's QTextDocumentLayout adds font.leading() causing paragraph gaps",
@@ -55,8 +54,9 @@
     "include/kalahari/editor/kalahari_text_document_layout.h",
     "src/editor/kalahari_text_document_layout.cpp"
   ],
-  "files_to_modify": [
-    "src/CMakeLists.txt - add new cpp file",
-    "src/editor/book_editor.cpp - integrate layout, remove hack"
+  "files_modified": [
+    "src/CMakeLists.txt - added new cpp and header",
+    "tests/CMakeLists.txt - added new cpp and header",
+    "src/editor/book_editor.cpp - integrated layout, removed hack"
   ]
 }
