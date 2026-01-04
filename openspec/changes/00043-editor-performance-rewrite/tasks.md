@@ -609,3 +609,66 @@ KML ──KmlParser──► QTextDocument ──KmlSerializer──► KML
       ViewportManager      RenderEngine
          (visible range)    (painting)
 ```
+
+---
+
+## Phase 11.11: Custom QAbstractTextDocumentLayout (IN PROGRESS)
+
+**DATA:** 2026-01-03
+
+### Problem
+
+Qt's default `QTextDocumentLayout` automatically adds `font.leading()` between lines,
+causing gaps between paragraphs. Previous attempts:
+
+1. **Manual layout in ensureEditMode()** - Qt overwrites on any document modification
+2. **QPlainTextDocumentLayout** - No text wrapping support, designed for plain text
+3. **contentsChanged re-layout** - O(n) on every keystroke, slow for large documents
+
+### Rozwiązanie: Custom Layout Class
+
+Własna klasa `KalahariTextDocumentLayout` dziedzicząca z `QAbstractTextDocumentLayout`:
+
+```
+QAbstractTextDocumentLayout
+          │
+          ▼
+KalahariTextDocumentLayout
+  - documentChanged() → layout affected blocks with lines at y=0
+  - blockBoundingRect() → return tight bounds without leading
+  - hitTest() → proper position mapping
+  - draw() → paint blocks at correct positions
+```
+
+### Kluczowe metody
+
+| Metoda | Rola |
+|--------|------|
+| `documentChanged(from, removed, added)` | Wywoływana przez Qt przy zmianie - re-layout bloków z y=0 |
+| `layoutBlock(block)` | Przygotowuje QTextLayout z liniami zaczynającymi od y=0 |
+| `blockBoundingRect(block)` | Zwraca ścisłe granice bez extra leading |
+| `blockY(blockNumber)` | Pozycja Y bloku (cumulative heights) |
+| `hitTest(point, accuracy)` | Konwersja point → document position |
+| `draw(painter, context)` | Rysowanie widocznych bloków |
+
+### Zadania
+
+- [x] 11.11.1 Utworz header: `include/kalahari/editor/kalahari_text_document_layout.h`
+- [x] 11.11.2 Utworz implementację: `src/editor/kalahari_text_document_layout.cpp`
+- [ ] 11.11.3 Dodaj do CMakeLists.txt
+- [ ] 11.11.4 Integruj z BookEditor::ensureEditMode()
+- [ ] 11.11.5 Usuń contentsChanged hack z ensureEditMode()
+- [ ] 11.11.6 Build i testy
+- [ ] 11.11.7 Manual test: Enter nie powoduje przerw, tekst się zawija
+- [ ] 11.11.8 Fix: pusta linia na początku dokumentu
+
+### Pliki
+
+| Plik | Status |
+|------|--------|
+| `include/kalahari/editor/kalahari_text_document_layout.h` | CREATED |
+| `src/editor/kalahari_text_document_layout.cpp` | CREATED |
+| `src/editor/book_editor.cpp` | TO MODIFY |
+| `src/CMakeLists.txt` | TO MODIFY |
+
+---

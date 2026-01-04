@@ -1,58 +1,62 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-03T15:30:00",
-  "git_commit": "22f8300",
+  "saved_at": "2026-01-03T16:00:00",
+  "git_commit": "cc680a8",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11.10 - Custom QAbstractTextDocumentLayout needed",
+  "working_on": "Phase 11.11 - KalahariTextDocumentLayout implementation",
   "next_steps": [
-    "Test QPlainTextDocumentLayout as quick fix",
-    "If fails: Implement KalahariTextDocumentLayout",
-    "Fix empty line at document beginning",
-    "Implement cursor position restoration"
+    "Add kalahari_text_document_layout.cpp to CMakeLists.txt",
+    "Integrate layout into BookEditor::ensureEditMode()",
+    "Remove contentsChanged hack",
+    "Fix empty line at document beginning"
   ],
-  "blocker": {
-    "type": "architecture",
-    "description": "Qt's QTextDocumentLayout overwrites manual block layouts on any document modification",
-    "resolution": "Need custom QAbstractTextDocumentLayout to control line positioning",
-    "appeared_after": "Pressing Enter creates gaps between paragraphs"
-  },
+  "blocker": null,
   "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
     "Phase 11.1-11.9: Architecture cleanup COMPLETE",
     "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
     "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
-    "Phase 11.10: ensureEditMode() single rendering system",
-    "Phase 11.10: Zero margins on block format",
     "Phase 11.10: Font fix in Edit Mode (setFont before beginLayout)",
-    "All BookEditor tests passing (41 assertions in 13 test cases)",
-    "Root cause analysis: Qt layout architecture incompatibility identified"
+    "Root cause analysis: Qt layout architecture incompatibility identified",
+    "Phase 11.11.1: Created kalahari_text_document_layout.h",
+    "Phase 11.11.2: Created kalahari_text_document_layout.cpp",
+    "All BookEditor tests passing (41 assertions in 13 test cases)"
   ],
   "pending_tasks": [
-    "Implement custom QAbstractTextDocumentLayout OR test QPlainTextDocumentLayout",
-    "Fix empty line with cursor at document beginning",
-    "Implement cursor position restoration (like Word)",
-    "User testing with large chapter file"
+    "11.11.3: Add to CMakeLists.txt",
+    "11.11.4: Integrate into BookEditor",
+    "11.11.5: Remove contentsChanged hack",
+    "11.11.6: Build and test",
+    "11.11.7: Manual test (Enter, text wrapping)",
+    "11.11.8: Fix empty line at document beginning"
   ],
   "task_progress": {
-    "completed": 8,
-    "total": 12,
-    "percentage": 67
+    "completed": 2,
+    "total": 8,
+    "percentage": 25
   },
-  "root_cause_analysis": {
-    "issue": "Paragraph gaps after pressing Enter",
-    "cause": "Qt's QTextDocumentLayout automatically re-layouts blocks with font.leading() spacing",
-    "why_manual_layout_fails": "ensureEditMode() prepares layouts once, but Qt overwrites on any modification",
-    "solutions": [
-      "A: Custom KalahariTextDocumentLayout (proper, 1-2 days)",
-      "B: QPlainTextDocumentLayout (quick test, 5 min)",
-      "C: Dual model sync (complex)"
+  "architecture_decision": {
+    "issue": "Qt's QTextDocumentLayout adds font.leading() causing paragraph gaps",
+    "failed_attempts": [
+      "Manual layout in ensureEditMode() - Qt overwrites on modification",
+      "QPlainTextDocumentLayout - no text wrapping support",
+      "contentsChanged re-layout - O(n) per keystroke, too slow"
     ],
-    "recommended": "Test B first, then implement A if needed"
+    "solution": "Custom KalahariTextDocumentLayout inheriting QAbstractTextDocumentLayout",
+    "key_methods": [
+      "documentChanged() - re-layout affected blocks with lines at y=0",
+      "layoutBlock() - prepare QTextLayout with y=0 line positioning",
+      "blockBoundingRect() - tight bounds without leading"
+    ]
   },
-  "files_modified_today": [
-    "src/editor/book_editor.cpp - ensureEditMode() font fix",
-    "src/editor/viewport_manager.cpp - blockHeight() using boundingRect"
+  "files_created": [
+    "include/kalahari/editor/kalahari_text_document_layout.h",
+    "src/editor/kalahari_text_document_layout.cpp"
+  ],
+  "files_to_modify": [
+    "src/CMakeLists.txt - add new cpp file",
+    "src/editor/book_editor.cpp - integrate layout, remove hack"
   ]
 }
