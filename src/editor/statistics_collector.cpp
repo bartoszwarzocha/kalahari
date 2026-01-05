@@ -23,6 +23,11 @@ StatisticsCollector::StatisticsCollector(QObject* parent)
     m_flushTimer->setInterval(FLUSH_INTERVAL_MS);
     connect(m_flushTimer, &QTimer::timeout, this, &StatisticsCollector::onFlushTimer);
 
+    // Create debounce timer for statistics calculation
+    m_debounceTimer = new QTimer(this);
+    m_debounceTimer->setSingleShot(true);
+    connect(m_debounceTimer, &QTimer::timeout, this, &StatisticsCollector::debouncedRecalculate);
+
     core::Logger::getInstance().debug("StatisticsCollector created");
 }
 
@@ -250,22 +255,46 @@ void StatisticsCollector::onFlushTimer()
 
 void StatisticsCollector::onContentChanged()
 {
-    // Store previous counts
-    int previousWords = m_wordCount;
-
-    // Recalculate all stats
-    recalculateStats();
-
-    // Calculate delta for session tracking
-    if (m_sessionActive) {
-        int wordsDelta = m_wordCount - previousWords;
-        updateHourlyStats(wordsDelta);
-
-        // Update activity timestamp (user is actively editing)
-        m_lastActivityTime = QDateTime::currentDateTime();
+    // Debounce: restart timer on each change
+    // Stats will be calculated 250ms after last keystroke
+    // This prevents O(N) stats calculation on every keystroke
+    if (m_debounceTimer) {
+        m_debounceTimer->start(STATS_DEBOUNCE_MS);
     }
 
-    // Emit statistics changed signal
+    // Track activity time immediately (cheap operation)
+    updateActiveTime();
+}
+
+void StatisticsCollector::debouncedRecalculate()
+{
+    // Store previous word count for delta calculation
+    int previousWords = m_wordCount;
+
+    // Recalculate all statistics
+    recalculateStats();
+
+    // Calculate word delta for session tracking (only if session active)
+    if (m_sessionActive) {
+        int wordsDelta = m_wordCount - previousWords;
+        if (wordsDelta != 0) {
+            // Update session tracking
+            if (wordsDelta > 0) {
+                m_wordsWritten += wordsDelta;
+            } else {
+                m_wordsDeleted += (-wordsDelta);
+            }
+            m_previousWordCount = m_wordCount;
+
+            // Update hourly stats
+            updateHourlyStats(wordsDelta);
+
+            // Emit session stats update
+            emit sessionStatsUpdated(m_wordsWritten, m_wordsDeleted, activeMinutesThisSession());
+        }
+    }
+
+    // Emit statistics changed
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
@@ -290,21 +319,12 @@ void StatisticsCollector::updateHourlyStats(int wordsDelta)
     // Check for hour rollover first
     checkHourRollover();
 
-    // Update session totals
+    // Update hourly stats only (session totals updated in debouncedRecalculate)
     if (wordsDelta > 0) {
-        m_wordsWritten += wordsDelta;
         m_wordsWrittenThisHour += wordsDelta;
     } else if (wordsDelta < 0) {
-        int deleted = -wordsDelta;
-        m_wordsDeleted += deleted;
-        m_wordsDeletedThisHour += deleted;
+        m_wordsDeletedThisHour += (-wordsDelta);
     }
-
-    // Update previous word count for next delta
-    m_previousWordCount = m_wordCount;
-
-    // Emit session stats update
-    emit sessionStatsUpdated(m_wordsWritten, m_wordsDeleted, activeMinutesThisSession());
 }
 
 void StatisticsCollector::checkHourRollover()

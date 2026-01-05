@@ -124,7 +124,9 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
     textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     layout->setTextOption(textOption);
 
-    // Prepare layout with lines starting at y=0
+    // Prepare layout with lines starting at x=0, y=0
+    // Qt handles horizontal alignment positioning via QTextOption - DO NOT manually offset x!
+    // Manual x offset would cause double-alignment (Qt + manual = wrong position)
     layout->beginLayout();
     qreal y = 0;
 
@@ -136,16 +138,8 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
 
         line.setLineWidth(effectiveWidth);
 
-        // Calculate X position based on alignment
-        qreal x = 0;
-        if (alignment & Qt::AlignHCenter) {
-            x = (effectiveWidth - line.naturalTextWidth()) / 2.0;
-        } else if (alignment & Qt::AlignRight) {
-            x = effectiveWidth - line.naturalTextWidth();
-        }
-        // Qt::AlignJustify is handled by QTextLine automatically when width is set
-
-        line.setPosition(QPointF(x, y));
+        // Position at x=0 - Qt handles horizontal alignment via QTextOption
+        line.setPosition(QPointF(0, y));
         y += line.height();
     }
 

@@ -509,6 +509,7 @@ void BookEditor::ensureCursorVisible()
     }
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
+        m_renderPipeline->setCursorVisible(true);  // Must set visible before blink state
         m_renderPipeline->setCursorBlinkState(true);
         if (m_cursorBlinkingEnabled) {
             m_renderPipeline->startCursorBlink();

@@ -154,6 +154,9 @@ private slots:
     /// @brief Handle flush timer timeout
     void onFlushTimer();
 
+    /// @brief Handle debounced statistics recalculation
+    void debouncedRecalculate();
+
 private:
     /// @brief Called when editor content changes
     void onContentChanged();
@@ -205,10 +208,14 @@ private:
     // Auto-flush timer
     QTimer* m_flushTimer{nullptr};
 
+    // Debounce timer for statistics (performance optimization)
+    QTimer* m_debounceTimer{nullptr};
+
     // Constants
     static constexpr int FLUSH_INTERVAL_MS = 5 * 60 * 1000;  ///< 5 minutes
     static constexpr int IDLE_THRESHOLD_MS = 2 * 60 * 1000;  ///< 2 minutes
     static constexpr int WORDS_PER_MINUTE = 200;             ///< Reading speed
+    static constexpr int STATS_DEBOUNCE_MS = 250;            ///< Debounce delay for stats
 };
 
 }  // namespace kalahari::editor
