@@ -138,6 +138,69 @@ void EditorPanel::applySettings() {
     appearance.typography.indentSize = indentSize;
     logger.debug("Applied first line indent: {} (size: {})", firstLineIndent, indentSize);
 
+    // Editor color mode (light/dark toggle - independent from app theme)
+    bool darkMode = settings.get<bool>("editor.darkMode", true);
+    appearance.colorMode = darkMode
+        ? editor::EditorColorMode::Dark
+        : editor::EditorColorMode::Light;
+    logger.debug("Applied editor color mode: {}", darkMode ? "Dark" : "Light");
+
+    // Editor colors - light mode
+    std::string bgLight = settings.get<std::string>("editor.colors.backgroundLight", "#ffffff");
+    std::string textLight = settings.get<std::string>("editor.colors.textLight", "#1e1e1e");
+    std::string inactiveLight = settings.get<std::string>("editor.colors.inactiveLight", "#aaaaaa");
+    appearance.colors.continuous.backgroundLight = QColor(QString::fromStdString(bgLight));
+    appearance.colors.continuous.textLight = QColor(QString::fromStdString(textLight));
+    appearance.colors.focus.inactiveLight = QColor(QString::fromStdString(inactiveLight));
+
+    // Editor colors - dark mode
+    std::string bgDark = settings.get<std::string>("editor.colors.backgroundDark", "#232328");
+    std::string textDark = settings.get<std::string>("editor.colors.textDark", "#e0e0e0");
+    std::string inactiveDark = settings.get<std::string>("editor.colors.inactiveDark", "#78787d");
+    appearance.colors.continuous.backgroundDark = QColor(QString::fromStdString(bgDark));
+    appearance.colors.continuous.textDark = QColor(QString::fromStdString(textDark));
+    appearance.colors.focus.inactiveDark = QColor(QString::fromStdString(inactiveDark));
+
+    logger.debug("Applied editor colors");
+
+    // Cursor settings
+    int cursorStyleInt = settings.get<int>("editor.cursor.style", 0);  // 0 = Line
+    appearance.cursor.style = static_cast<editor::CursorStyle>(cursorStyleInt);
+    appearance.cursor.useCustomColor = settings.get<bool>("editor.cursor.useCustomColor", false);
+    std::string cursorColor = settings.get<std::string>("editor.cursor.customColor", "#ffffff");
+    appearance.cursor.customColor = QColor(QString::fromStdString(cursorColor));
+    appearance.cursor.blinking = settings.get<bool>("editor.cursor.blinking", true);
+    appearance.cursor.blinkInterval = settings.get<int>("editor.cursor.blinkInterval", 500);
+    appearance.cursor.lineWidth = settings.get<int>("editor.cursor.lineWidth", 2);
+    logger.debug("Applied cursor settings: style={}, blinking={}, interval={}ms",
+                 cursorStyleInt, appearance.cursor.blinking, appearance.cursor.blinkInterval);
+
+    // View margins (Continuous/Focus views)
+    double viewMarginH = settings.get<double>("editor.margins.viewHorizontal", 50.0);
+    double viewMarginV = settings.get<double>("editor.margins.viewVertical", 30.0);
+    appearance.viewMargins.horizontal = viewMarginH;
+    appearance.viewMargins.vertical = viewMarginV;
+    logger.debug("Applied view margins: H={} V={}", viewMarginH, viewMarginV);
+
+    // Page margins (Page/Typewriter views)
+    appearance.pageMargins.top = settings.get<double>("editor.margins.pageTop", 25.4);
+    appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom", 25.4);
+    appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft", 25.4);
+    appearance.pageMargins.right = settings.get<double>("editor.margins.pageRight", 25.4);
+    appearance.pageMargins.mirrorEnabled = settings.get<bool>("editor.margins.mirrorEnabled", false);
+    appearance.pageMargins.inner = settings.get<double>("editor.margins.pageInner", 30.0);
+    appearance.pageMargins.outer = settings.get<double>("editor.margins.pageOuter", 20.0);
+    logger.debug("Applied page margins: T={} B={} L={} R={}",
+        appearance.pageMargins.top, appearance.pageMargins.bottom,
+        appearance.pageMargins.left, appearance.pageMargins.right);
+
+    // Text frame border
+    appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show", false);
+    std::string borderColor = settings.get<std::string>("editor.textFrameBorder.color", "#b4b4b4");
+    appearance.textFrameBorder.color = QColor(QString::fromStdString(borderColor));
+    appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width", 1);
+    logger.debug("Applied text frame border: show={}", appearance.textFrameBorder.show);
+
     // Apply appearance
     m_bookEditor->setAppearance(appearance);
 

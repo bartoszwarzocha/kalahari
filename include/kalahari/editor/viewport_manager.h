@@ -97,6 +97,13 @@ public:
     /// @brief Get the buffer size
     size_t bufferSize() const { return m_bufferSize; }
 
+    /// @brief Set bottom scroll padding (allows scrolling past document end)
+    /// @param padding Extra scroll space at bottom in pixels
+    void setBottomScrollPadding(double padding);
+
+    /// @brief Get bottom scroll padding
+    double bottomScrollPadding() const { return m_bottomScrollPadding; }
+
     // =========================================================================
     // Scroll Position
     // =========================================================================
@@ -236,6 +243,7 @@ private:
     QSize m_viewportSize{0, 0};
     double m_scrollY = 0.0;
     size_t m_bufferSize = DEFAULT_BUFFER_SIZE;
+    double m_bottomScrollPadding = 0.0;  ///< Extra scroll space at bottom for margins
 
     size_t m_firstVisible = 0;
     size_t m_lastVisible = 0;

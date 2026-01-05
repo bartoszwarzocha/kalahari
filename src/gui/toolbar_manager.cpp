@@ -1194,13 +1194,9 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
             logger.debug("ToolbarManager: Font family changed to '{}'",
                          font.family().toStdString());
 
-            // Get current appearance, modify font family, and apply
+            // Apply font family to selection or default font
             editor::BookEditor* bookEditor = editor->getBookEditor();
-            editor::EditorAppearance appearance = bookEditor->appearance();
-            QFont currentFont = appearance.typography.textFont;
-            currentFont.setFamily(font.family());
-            appearance.typography.textFont = currentFont;
-            bookEditor->setAppearance(appearance);
+            bookEditor->setSelectionFontFamily(font.family());
         });
 
         logger.debug("ToolbarManager: Font combo connected");
@@ -1222,13 +1218,9 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
             auto& logger = core::Logger::getInstance();
             logger.debug("ToolbarManager: Font size changed to {}", size);
 
-            // Get current appearance, modify font size, and apply
+            // Apply font size to selection or default font
             editor::BookEditor* bookEditor = editor->getBookEditor();
-            editor::EditorAppearance appearance = bookEditor->appearance();
-            QFont currentFont = appearance.typography.textFont;
-            currentFont.setPointSize(size);
-            appearance.typography.textFont = currentFont;
-            bookEditor->setAppearance(appearance);
+            bookEditor->setSelectionFontSize(size);
         });
 
         logger.debug("ToolbarManager: Font size spinner connected");

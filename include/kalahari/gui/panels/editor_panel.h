@@ -88,6 +88,13 @@ public:
     /// @return Pointer to StatisticsCollector, or nullptr if not set
     editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
 
+    /// @brief Apply settings from SettingsManager
+    ///
+    /// Reads and applies editor appearance settings.
+    /// Called on construction and when settings change.
+    /// @note Public to allow MainWindow to apply settings after dialog changes
+    void applySettings();
+
 signals:
     /// @brief Emitted when editor content changes
     ///
@@ -95,11 +102,6 @@ signals:
     void contentChanged();
 
 private:
-    /// @brief Apply settings from SettingsManager
-    ///
-    /// Reads and applies editor appearance settings.
-    /// Called on construction and when settings change.
-    void applySettings();
 
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
 

@@ -30,6 +30,7 @@
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/editor_render_pipeline.h>  // Phase 12.3: Unified render pipeline
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -460,6 +461,26 @@ public:
     bool isStrikethrough() const;
 
     // =========================================================================
+    // Font Selection (applies to selection if any, otherwise default font)
+    // =========================================================================
+
+    /// @brief Set font family for selection or default font if no selection
+    /// @param family The font family name
+    void setSelectionFontFamily(const QString& family);
+
+    /// @brief Set font size for selection or default font if no selection
+    /// @param pointSize The font size in points
+    void setSelectionFontSize(int pointSize);
+
+    /// @brief Get font family at current cursor position
+    /// @return Font family name at cursor
+    QString currentFontFamily() const;
+
+    /// @brief Get font size at current cursor position
+    /// @return Font size in points at cursor
+    int currentFontSize() const;
+
+    // =========================================================================
     // Paragraph Alignment
     // =========================================================================
 
@@ -698,6 +719,20 @@ public:
     /// Emits appearanceChanged if appearance changes. Triggers repaint.
     void setAppearance(const EditorAppearance& appearance);
 
+    /// @brief Toggle editor color mode between light and dark
+    ///
+    /// Switches the editor's color mode independently from the application theme.
+    /// Emits editorColorModeChanged signal.
+    void toggleEditorColorMode();
+
+    /// @brief Set editor color mode
+    /// @param mode The color mode to set (Light or Dark)
+    void setEditorColorMode(EditorColorMode mode);
+
+    /// @brief Get current editor color mode
+    /// @return Current color mode
+    EditorColorMode editorColorMode() const { return m_appearance.colorMode; }
+
     // =========================================================================
     // Size Hints
     // =========================================================================
@@ -745,6 +780,10 @@ signals:
 
     /// @brief Emitted when appearance settings change
     void appearanceChanged();
+
+    /// @brief Emitted when editor color mode changes (light/dark toggle)
+    /// @param mode The new color mode
+    void editorColorModeChanged(EditorColorMode mode);
 
     /// @brief Emitted when the current page changes (Page Mode)
     /// @param page The new current page number (1-based)
@@ -901,6 +940,17 @@ private:
 
     /// @brief Sync scrollbar value with scroll manager (without triggering signals)
     void syncScrollBarValue();
+
+    /// @brief Sync pipeline state from BookEditor (Phase 12.3)
+    ///
+    /// Updates the render pipeline with current BookEditor state:
+    /// - Text source (KmlDocumentModel or QTextDocument)
+    /// - Scroll position
+    /// - Viewport size
+    /// - Cursor position and selection
+    /// - Appearance settings (colors, font, view mode)
+    void syncPipelineState();
+    void syncPipelineCursor();  ///< Lightweight cursor-only sync
 
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
@@ -1184,7 +1234,12 @@ private:
     std::unique_ptr<ViewportManager> m_viewportManager;
 
     /// @brief Render engine for efficient viewport-only rendering (Task 8.5)
+    /// @deprecated Phase 12.3: Use m_renderPipeline instead
     std::unique_ptr<RenderEngine> m_renderEngine;
+
+    /// @brief Unified render pipeline (Phase 12.3: OpenSpec #00043)
+    /// Consolidates all rendering: view mode, edit mode, page mode
+    std::unique_ptr<EditorRenderPipeline> m_renderPipeline;
 
     // Phase 11.6: Removed MetadataLayer - markers stored in QTextCharFormat::UserProperty
     // Use findAllMarkers/findNextMarker/findPreviousMarker from buffer_commands.h

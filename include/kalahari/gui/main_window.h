@@ -103,6 +103,10 @@ public:
     /// @note Delegates to DiagnosticController (OpenSpec #00038)
     [[nodiscard]] bool isDevMode() const;
 
+    /// @brief Apply editor settings to all open EditorPanels
+    /// @note Called when editor font, colors, or other settings change
+    void applyEditorSettingsToAllPanels();
+
 private:
     /// @brief Register all commands in CommandRegistry
     ///

@@ -17,6 +17,7 @@
 #include <QDialog>
 #include <QMap>
 #include "kalahari/gui/settings_data.h"
+#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -25,6 +26,7 @@ class QScrollArea;
 class QDialogButtonBox;
 class QComboBox;
 class QSpinBox;
+class QDoubleSpinBox;
 class QFontComboBox;
 class QCheckBox;
 class QPushButton;
@@ -115,6 +117,9 @@ private:
     QWidget* createAppearanceIconsPage();
     QWidget* createAppearanceDashboardPage();
     QWidget* createEditorGeneralPage();
+    QWidget* createEditorColorsPage();
+    QWidget* createEditorCursorPage();
+    QWidget* createEditorMarginsPage();
     QWidget* createAdvancedGeneralPage();
     QWidget* createAdvancedLogPage();
     QWidget* createPlaceholderPage(const QString& title, const QString& description);
@@ -238,6 +243,58 @@ private:
     QCheckBox* m_wordWrapCheckBox;
 
     // ========================================================================
+    // Member Variables - Editor/Colors
+    // ========================================================================
+
+    QCheckBox* m_editorDarkModeCheckBox;
+    ColorConfigWidget* m_editorBackgroundLightWidget;
+    ColorConfigWidget* m_editorTextLightWidget;
+    ColorConfigWidget* m_editorInactiveLightWidget;
+    ColorConfigWidget* m_editorBackgroundDarkWidget;
+    ColorConfigWidget* m_editorTextDarkWidget;
+    ColorConfigWidget* m_editorInactiveDarkWidget;
+
+    // ========================================================================
+    // Member Variables - Editor/Cursor
+    // ========================================================================
+
+    QComboBox* m_cursorStyleComboBox;
+    QCheckBox* m_cursorUseCustomColorCheckBox;
+    ColorConfigWidget* m_cursorColorWidget;
+    QCheckBox* m_cursorBlinkingCheckBox;
+    QSpinBox* m_cursorBlinkIntervalSpinBox;
+    QSpinBox* m_cursorLineWidthSpinBox;
+    QLabel* m_cursorLineWidthLabel;
+
+    // ========================================================================
+    // Member Variables - Editor/Margins
+    // ========================================================================
+
+    // View margins (Continuous/Focus views)
+    QSpinBox* m_viewMarginHorizontalSpinBox;
+    QSpinBox* m_viewMarginVerticalSpinBox;
+
+    // Page margins (Page/Typewriter views)
+    QDoubleSpinBox* m_pageMarginTopSpinBox;
+    QDoubleSpinBox* m_pageMarginBottomSpinBox;
+    QDoubleSpinBox* m_pageMarginLeftSpinBox;
+    QDoubleSpinBox* m_pageMarginRightSpinBox;
+
+    // Mirror margins
+    QCheckBox* m_pageMirrorMarginsCheckBox;
+    QDoubleSpinBox* m_pageMarginInnerSpinBox;
+    QDoubleSpinBox* m_pageMarginOuterSpinBox;
+    QLabel* m_pageMarginLeftLabel;
+    QLabel* m_pageMarginRightLabel;
+    QLabel* m_pageMarginInnerLabel;
+    QLabel* m_pageMarginOuterLabel;
+
+    // Text frame border
+    QCheckBox* m_textFrameBorderShowCheckBox;
+    ColorConfigWidget* m_textFrameBorderColorWidget;
+    QSpinBox* m_textFrameBorderWidthSpinBox;
+
+    // ========================================================================
     // Member Variables - Advanced/General
     // ========================================================================
 
@@ -266,17 +323,20 @@ private:
         PAGE_APPEARANCE_ICONS = 3,
         PAGE_APPEARANCE_DASHBOARD = 4,
         PAGE_EDITOR_GENERAL = 5,
-        PAGE_EDITOR_SPELLING = 6,
-        PAGE_EDITOR_AUTOCORRECT = 7,
-        PAGE_EDITOR_COMPLETION = 8,
-        PAGE_FILES_BACKUP = 9,
-        PAGE_FILES_AUTOSAVE = 10,
-        PAGE_FILES_IMPORT_EXPORT = 11,
-        PAGE_NETWORK_CLOUD_SYNC = 12,
-        PAGE_NETWORK_UPDATES = 13,
-        PAGE_ADVANCED_GENERAL = 14,
-        PAGE_ADVANCED_PERFORMANCE = 15,
-        PAGE_ADVANCED_LOG = 16
+        PAGE_EDITOR_COLORS = 6,
+        PAGE_EDITOR_CURSOR = 7,
+        PAGE_EDITOR_MARGINS = 8,
+        PAGE_EDITOR_SPELLING = 9,
+        PAGE_EDITOR_AUTOCORRECT = 10,
+        PAGE_EDITOR_COMPLETION = 11,
+        PAGE_FILES_BACKUP = 12,
+        PAGE_FILES_AUTOSAVE = 13,
+        PAGE_FILES_IMPORT_EXPORT = 14,
+        PAGE_NETWORK_CLOUD_SYNC = 15,
+        PAGE_NETWORK_UPDATES = 16,
+        PAGE_ADVANCED_GENERAL = 17,
+        PAGE_ADVANCED_PERFORMANCE = 18,
+        PAGE_ADVANCED_LOG = 19
     };
 };
 

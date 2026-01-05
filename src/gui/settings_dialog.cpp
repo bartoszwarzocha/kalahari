@@ -13,6 +13,7 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
 
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -27,6 +28,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QSpinBox>
+#include <QDoubleSpinBox>
 #include <QFontComboBox>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -106,6 +108,39 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_tabSizeSpinBox(nullptr)
     , m_lineNumbersCheckBox(nullptr)
     , m_wordWrapCheckBox(nullptr)
+    // Editor colors
+    , m_editorDarkModeCheckBox(nullptr)
+    , m_editorBackgroundLightWidget(nullptr)
+    , m_editorTextLightWidget(nullptr)
+    , m_editorInactiveLightWidget(nullptr)
+    , m_editorBackgroundDarkWidget(nullptr)
+    , m_editorTextDarkWidget(nullptr)
+    , m_editorInactiveDarkWidget(nullptr)
+    // Cursor settings
+    , m_cursorStyleComboBox(nullptr)
+    , m_cursorUseCustomColorCheckBox(nullptr)
+    , m_cursorColorWidget(nullptr)
+    , m_cursorBlinkingCheckBox(nullptr)
+    , m_cursorBlinkIntervalSpinBox(nullptr)
+    , m_cursorLineWidthSpinBox(nullptr)
+    , m_cursorLineWidthLabel(nullptr)
+    // Margin settings
+    , m_viewMarginHorizontalSpinBox(nullptr)
+    , m_viewMarginVerticalSpinBox(nullptr)
+    , m_pageMarginTopSpinBox(nullptr)
+    , m_pageMarginBottomSpinBox(nullptr)
+    , m_pageMarginLeftSpinBox(nullptr)
+    , m_pageMarginRightSpinBox(nullptr)
+    , m_pageMirrorMarginsCheckBox(nullptr)
+    , m_pageMarginInnerSpinBox(nullptr)
+    , m_pageMarginOuterSpinBox(nullptr)
+    , m_pageMarginLeftLabel(nullptr)
+    , m_pageMarginRightLabel(nullptr)
+    , m_pageMarginInnerLabel(nullptr)
+    , m_pageMarginOuterLabel(nullptr)
+    , m_textFrameBorderShowCheckBox(nullptr)
+    , m_textFrameBorderColorWidget(nullptr)
+    , m_textFrameBorderWidthSpinBox(nullptr)
     , m_diagModeCheckbox(nullptr)
     , m_originalSettings(currentSettings)
 {
@@ -228,7 +263,7 @@ void SettingsDialog::createNavigationTree() {
     m_itemToPage[appearanceDashboard] = PAGE_APPEARANCE_DASHBOARD;
 
     // ========================================================================
-    // Editor category (4 sub-items)
+    // Editor category (7 sub-items: 4 active + 3 placeholders)
     // ========================================================================
     QTreeWidgetItem* editorItem = new QTreeWidgetItem(m_navTree);
     editorItem->setText(0, tr("Editor"));
@@ -237,6 +272,18 @@ void SettingsDialog::createNavigationTree() {
     QTreeWidgetItem* editorGeneral = new QTreeWidgetItem(editorItem);
     editorGeneral->setText(0, tr("General"));
     m_itemToPage[editorGeneral] = PAGE_EDITOR_GENERAL;
+
+    QTreeWidgetItem* editorColors = new QTreeWidgetItem(editorItem);
+    editorColors->setText(0, tr("Colors"));
+    m_itemToPage[editorColors] = PAGE_EDITOR_COLORS;
+
+    QTreeWidgetItem* editorCursor = new QTreeWidgetItem(editorItem);
+    editorCursor->setText(0, tr("Cursor"));
+    m_itemToPage[editorCursor] = PAGE_EDITOR_CURSOR;
+
+    QTreeWidgetItem* editorMargins = new QTreeWidgetItem(editorItem);
+    editorMargins->setText(0, tr("Margins"));
+    m_itemToPage[editorMargins] = PAGE_EDITOR_MARGINS;
 
     QTreeWidgetItem* editorSpelling = createPlaceholderItem(editorItem, tr("Spelling"));
     m_itemToPage[editorSpelling] = PAGE_EDITOR_SPELLING;
@@ -294,7 +341,7 @@ void SettingsDialog::createNavigationTree() {
     advancedLog->setText(0, tr("Log"));
     m_itemToPage[advancedLog] = PAGE_ADVANCED_LOG;
 
-    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 16 pages");
+    logger.debug("SettingsDialog: Navigation tree created with 5 categories, 19 pages");
 }
 
 void SettingsDialog::createSettingsPages() {
@@ -317,11 +364,17 @@ void SettingsDialog::createSettingsPages() {
     m_pageStack->addWidget(createAppearanceDashboardPage());
 
     // ========================================================================
-    // Editor pages (5-8)
+    // Editor pages (5-11)
     // ========================================================================
     // Page 5: Editor/General
     m_pageStack->addWidget(createEditorGeneralPage());
-    // Page 6: Editor/Spelling
+    // Page 6: Editor/Colors
+    m_pageStack->addWidget(createEditorColorsPage());
+    // Page 7: Editor/Cursor
+    m_pageStack->addWidget(createEditorCursorPage());
+    // Page 8: Editor/Margins
+    m_pageStack->addWidget(createEditorMarginsPage());
+    // Page 9: Editor/Spelling
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Spelling"),
         tr("Spelling settings will be available in a future version.\n\n"
@@ -330,7 +383,7 @@ void SettingsDialog::createSettingsPages() {
            "- Custom dictionary management\n"
            "- Ignore rules for technical terms")
     ));
-    // Page 7: Editor/Auto-correct
+    // Page 10: Editor/Auto-correct
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Auto-correct"),
         tr("Auto-correct settings will be available in a future version.\n\n"
@@ -339,7 +392,7 @@ void SettingsDialog::createSettingsPages() {
            "- Common typo corrections\n"
            "- Custom replacement rules")
     ));
-    // Page 8: Editor/Completion
+    // Page 11: Editor/Completion
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Completion"),
         tr("Completion settings will be available in a future version.\n\n"
@@ -350,9 +403,9 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Files pages (9-11)
+    // Files pages (12-14)
     // ========================================================================
-    // Page 9: Files/Backup
+    // Page 12: Files/Backup
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Backup"),
         tr("Backup settings will be available in a future version.\n\n"
@@ -362,7 +415,7 @@ void SettingsDialog::createSettingsPages() {
            "- Number of backup copies to keep\n"
            "- Restore from backup")
     ));
-    // Page 10: Files/Auto-save
+    // Page 13: Files/Auto-save
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Auto-save"),
         tr("Auto-save settings will be available in a future version.\n\n"
@@ -371,7 +424,7 @@ void SettingsDialog::createSettingsPages() {
            "- Auto-save on focus loss\n"
            "- Session recovery options")
     ));
-    // Page 11: Files/Import/Export
+    // Page 14: Files/Import/Export
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Import/Export"),
         tr("Import/Export settings will be available in a future version.\n\n"
@@ -382,9 +435,9 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Network pages (12-13)
+    // Network pages (15-16)
     // ========================================================================
-    // Page 12: Network/Cloud Sync
+    // Page 15: Network/Cloud Sync
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Cloud Sync"),
         tr("Cloud Sync settings will be available in a future version.\n\n"
@@ -394,7 +447,7 @@ void SettingsDialog::createSettingsPages() {
            "- Conflict resolution\n"
            "- Sync status and history")
     ));
-    // Page 13: Network/Updates
+    // Page 16: Network/Updates
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Updates"),
         tr("Update settings will be available in a future version.\n\n"
@@ -405,11 +458,11 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Advanced pages (14-16)
+    // Advanced pages (17-19)
     // ========================================================================
-    // Page 14: Advanced/General
+    // Page 17: Advanced/General
     m_pageStack->addWidget(createAdvancedGeneralPage());
-    // Page 15: Advanced/Performance
+    // Page 18: Advanced/Performance
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Performance"),
         tr("Performance settings will be available in a future version.\n\n"
@@ -419,7 +472,7 @@ void SettingsDialog::createSettingsPages() {
            "- Cache settings\n"
            "- Hardware acceleration")
     ));
-    // Page 16: Advanced/Log
+    // Page 19: Advanced/Log
     m_pageStack->addWidget(createAdvancedLogPage());
 }
 
@@ -963,7 +1016,7 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
 
     QLabel* fontFamilyLabel = new QLabel(tr("Font Family:"));
     m_fontFamilyComboBox = new QFontComboBox();
-    m_fontFamilyComboBox->setFontFilters(QFontComboBox::MonospacedFonts);
+    m_fontFamilyComboBox->setFontFilters(QFontComboBox::AllFonts);
     fontGrid->addWidget(fontFamilyLabel, 0, 0);
     fontGrid->addWidget(m_fontFamilyComboBox, 0, 1);
 
@@ -996,6 +1049,368 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
 
     behaviorGrid->setColumnStretch(1, 1);
     layout->addWidget(behaviorGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createEditorColorsPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Info label
+    QLabel* infoLabel = new QLabel(
+        tr("Configure editor colors for light and dark mode.\n"
+           "Editor color mode is independent from the application theme.")
+    );
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
+
+    // Dark mode checkbox
+    m_editorDarkModeCheckBox = new QCheckBox(tr("Use dark mode for editor"));
+    m_editorDarkModeCheckBox->setToolTip(tr("Toggle between light and dark editor colors"));
+    layout->addWidget(m_editorDarkModeCheckBox);
+
+    // Light mode colors group
+    QGroupBox* lightGroup = new QGroupBox(tr("Light Mode Colors"));
+    QGridLayout* lightGrid = new QGridLayout(lightGroup);
+
+    m_editorBackgroundLightWidget = new ColorConfigWidget(tr("Background"), lightGroup);
+    m_editorBackgroundLightWidget->setColor(QColor(255, 255, 255));
+    lightGrid->addWidget(m_editorBackgroundLightWidget, 0, 0, 1, 2);
+
+    m_editorTextLightWidget = new ColorConfigWidget(tr("Text"), lightGroup);
+    m_editorTextLightWidget->setColor(QColor(30, 30, 30));
+    lightGrid->addWidget(m_editorTextLightWidget, 1, 0, 1, 2);
+
+    m_editorInactiveLightWidget = new ColorConfigWidget(tr("Inactive (Focus mode)"), lightGroup);
+    m_editorInactiveLightWidget->setColor(QColor(170, 170, 170));
+    lightGrid->addWidget(m_editorInactiveLightWidget, 2, 0, 1, 2);
+
+    lightGrid->setColumnStretch(1, 1);
+    layout->addWidget(lightGroup);
+
+    // Dark mode colors group
+    QGroupBox* darkGroup = new QGroupBox(tr("Dark Mode Colors"));
+    QGridLayout* darkGrid = new QGridLayout(darkGroup);
+
+    m_editorBackgroundDarkWidget = new ColorConfigWidget(tr("Background"), darkGroup);
+    m_editorBackgroundDarkWidget->setColor(QColor(35, 35, 40));
+    darkGrid->addWidget(m_editorBackgroundDarkWidget, 0, 0, 1, 2);
+
+    m_editorTextDarkWidget = new ColorConfigWidget(tr("Text"), darkGroup);
+    m_editorTextDarkWidget->setColor(QColor(224, 224, 224));
+    darkGrid->addWidget(m_editorTextDarkWidget, 1, 0, 1, 2);
+
+    m_editorInactiveDarkWidget = new ColorConfigWidget(tr("Inactive (Focus mode)"), darkGroup);
+    m_editorInactiveDarkWidget->setColor(QColor(120, 120, 125));
+    darkGrid->addWidget(m_editorInactiveDarkWidget, 2, 0, 1, 2);
+
+    darkGrid->setColumnStretch(1, 1);
+    layout->addWidget(darkGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createEditorCursorPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Info label
+    QLabel* infoLabel = new QLabel(
+        tr("Configure the appearance of the text cursor in the editor.")
+    );
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
+
+    // Cursor Style group
+    QGroupBox* styleGroup = new QGroupBox(tr("Cursor Style"));
+    QGridLayout* styleGrid = new QGridLayout(styleGroup);
+
+    QLabel* styleLabel = new QLabel(tr("Style:"));
+    styleLabel->setToolTip(tr("Select the cursor shape"));
+    m_cursorStyleComboBox = new QComboBox();
+    m_cursorStyleComboBox->addItem(tr("Line (|)"), static_cast<int>(editor::CursorStyle::Line));
+    m_cursorStyleComboBox->addItem(tr("Block"), static_cast<int>(editor::CursorStyle::Block));
+    m_cursorStyleComboBox->addItem(tr("Underline (_)"), static_cast<int>(editor::CursorStyle::Underline));
+    m_cursorStyleComboBox->setToolTip(tr("Select the cursor shape:\n"
+                                          "- Line: vertical bar (|)\n"
+                                          "- Block: rectangle on character\n"
+                                          "- Underline: line under character (_)"));
+    styleGrid->addWidget(styleLabel, 0, 0);
+    styleGrid->addWidget(m_cursorStyleComboBox, 0, 1);
+
+    // Line width (only for Line style)
+    m_cursorLineWidthLabel = new QLabel(tr("Cursor width (px):"));
+    m_cursorLineWidthLabel->setToolTip(tr("Width of the line cursor in pixels"));
+    m_cursorLineWidthSpinBox = new QSpinBox();
+    m_cursorLineWidthSpinBox->setRange(1, 5);
+    m_cursorLineWidthSpinBox->setValue(2);
+    m_cursorLineWidthSpinBox->setToolTip(tr("Width of the line cursor (1-5 pixels)"));
+    styleGrid->addWidget(m_cursorLineWidthLabel, 1, 0);
+    styleGrid->addWidget(m_cursorLineWidthSpinBox, 1, 1);
+
+    // Connect style change to show/hide line width
+    connect(m_cursorStyleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int index) {
+        int style = m_cursorStyleComboBox->itemData(index).toInt();
+        bool isLineStyle = (style == static_cast<int>(editor::CursorStyle::Line));
+        m_cursorLineWidthLabel->setVisible(isLineStyle);
+        m_cursorLineWidthSpinBox->setVisible(isLineStyle);
+    });
+
+    styleGrid->setColumnStretch(1, 1);
+    layout->addWidget(styleGroup);
+
+    // Cursor Color group
+    QGroupBox* colorGroup = new QGroupBox(tr("Cursor Color"));
+    QVBoxLayout* colorLayout = new QVBoxLayout(colorGroup);
+
+    m_cursorUseCustomColorCheckBox = new QCheckBox(tr("Use custom color"));
+    m_cursorUseCustomColorCheckBox->setToolTip(tr("When unchecked, cursor uses the text color.\n"
+                                                   "When checked, cursor uses a custom color."));
+    colorLayout->addWidget(m_cursorUseCustomColorCheckBox);
+
+    m_cursorColorWidget = new ColorConfigWidget(tr("Custom Color"), colorGroup);
+    m_cursorColorWidget->setColor(QColor(255, 255, 255));
+    m_cursorColorWidget->setToolTip(tr("Custom cursor color (only used when 'Use custom color' is checked)"));
+    m_cursorColorWidget->setEnabled(false);
+    colorLayout->addWidget(m_cursorColorWidget);
+
+    // Connect checkbox to enable/disable color widget
+    connect(m_cursorUseCustomColorCheckBox, &QCheckBox::toggled,
+            m_cursorColorWidget, &QWidget::setEnabled);
+
+    layout->addWidget(colorGroup);
+
+    // Blinking group
+    QGroupBox* blinkGroup = new QGroupBox(tr("Blinking"));
+    QGridLayout* blinkGrid = new QGridLayout(blinkGroup);
+
+    m_cursorBlinkingCheckBox = new QCheckBox(tr("Enable cursor blinking"));
+    m_cursorBlinkingCheckBox->setChecked(true);
+    m_cursorBlinkingCheckBox->setToolTip(tr("Enable or disable cursor blinking animation"));
+    blinkGrid->addWidget(m_cursorBlinkingCheckBox, 0, 0, 1, 2);
+
+    QLabel* intervalLabel = new QLabel(tr("Blink interval (ms):"));
+    intervalLabel->setToolTip(tr("Time between cursor blink states in milliseconds"));
+    m_cursorBlinkIntervalSpinBox = new QSpinBox();
+    m_cursorBlinkIntervalSpinBox->setRange(100, 2000);
+    m_cursorBlinkIntervalSpinBox->setValue(500);
+    m_cursorBlinkIntervalSpinBox->setSingleStep(50);
+    m_cursorBlinkIntervalSpinBox->setToolTip(tr("Blink interval (100-2000 ms)"));
+    blinkGrid->addWidget(intervalLabel, 1, 0);
+    blinkGrid->addWidget(m_cursorBlinkIntervalSpinBox, 1, 1);
+
+    // Connect blinking checkbox to enable/disable interval
+    connect(m_cursorBlinkingCheckBox, &QCheckBox::toggled,
+            m_cursorBlinkIntervalSpinBox, &QWidget::setEnabled);
+    connect(m_cursorBlinkingCheckBox, &QCheckBox::toggled,
+            intervalLabel, &QWidget::setEnabled);
+
+    blinkGrid->setColumnStretch(1, 1);
+    layout->addWidget(blinkGroup);
+
+    layout->addStretch();
+    return page;
+}
+
+QWidget* SettingsDialog::createEditorMarginsPage() {
+    QWidget* page = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(page);
+
+    // Info label
+    QLabel* infoLabel = new QLabel(
+        tr("Configure margins for different editor views and text frame border.")
+    );
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
+
+    // ========================================================================
+    // View Margins group (for Continuous/Focus views)
+    // ========================================================================
+    QGroupBox* viewMarginsGroup = new QGroupBox(tr("View Margins (Continuous/Focus)"));
+    QGridLayout* viewMarginsGrid = new QGridLayout(viewMarginsGroup);
+
+    QLabel* viewMarginHorizontalLabel = new QLabel(tr("Horizontal:"));
+    viewMarginHorizontalLabel->setToolTip(tr("Left and right margin for continuous editor views"));
+    m_viewMarginHorizontalSpinBox = new QSpinBox();
+    m_viewMarginHorizontalSpinBox->setRange(0, 200);
+    m_viewMarginHorizontalSpinBox->setValue(50);
+    m_viewMarginHorizontalSpinBox->setSuffix(tr(" px"));
+    m_viewMarginHorizontalSpinBox->setToolTip(tr("Horizontal margin in pixels (0-200)"));
+    viewMarginsGrid->addWidget(viewMarginHorizontalLabel, 0, 0);
+    viewMarginsGrid->addWidget(m_viewMarginHorizontalSpinBox, 0, 1);
+
+    QLabel* viewMarginVerticalLabel = new QLabel(tr("Vertical:"));
+    viewMarginVerticalLabel->setToolTip(tr("Top and bottom margin for continuous editor views"));
+    m_viewMarginVerticalSpinBox = new QSpinBox();
+    m_viewMarginVerticalSpinBox->setRange(0, 200);
+    m_viewMarginVerticalSpinBox->setValue(30);
+    m_viewMarginVerticalSpinBox->setSuffix(tr(" px"));
+    m_viewMarginVerticalSpinBox->setToolTip(tr("Vertical margin in pixels (0-200)"));
+    viewMarginsGrid->addWidget(viewMarginVerticalLabel, 1, 0);
+    viewMarginsGrid->addWidget(m_viewMarginVerticalSpinBox, 1, 1);
+
+    viewMarginsGrid->setColumnStretch(1, 1);
+    layout->addWidget(viewMarginsGroup);
+
+    // ========================================================================
+    // Page Margins group (for Page/Typewriter views)
+    // ========================================================================
+    QGroupBox* pageMarginsGroup = new QGroupBox(tr("Page Margins (Page/Typewriter)"));
+    QGridLayout* pageMarginsGrid = new QGridLayout(pageMarginsGroup);
+    int row = 0;
+
+    // Top margin
+    QLabel* pageMarginTopLabel = new QLabel(tr("Top:"));
+    pageMarginTopLabel->setToolTip(tr("Top margin of the page"));
+    m_pageMarginTopSpinBox = new QDoubleSpinBox();
+    m_pageMarginTopSpinBox->setRange(0.0, 100.0);
+    m_pageMarginTopSpinBox->setValue(25.4);
+    m_pageMarginTopSpinBox->setDecimals(1);
+    m_pageMarginTopSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginTopSpinBox->setToolTip(tr("Top margin in millimeters (0-100)"));
+    pageMarginsGrid->addWidget(pageMarginTopLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginTopSpinBox, row, 1);
+    row++;
+
+    // Bottom margin
+    QLabel* pageMarginBottomLabel = new QLabel(tr("Bottom:"));
+    pageMarginBottomLabel->setToolTip(tr("Bottom margin of the page"));
+    m_pageMarginBottomSpinBox = new QDoubleSpinBox();
+    m_pageMarginBottomSpinBox->setRange(0.0, 100.0);
+    m_pageMarginBottomSpinBox->setValue(25.4);
+    m_pageMarginBottomSpinBox->setDecimals(1);
+    m_pageMarginBottomSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginBottomSpinBox->setToolTip(tr("Bottom margin in millimeters (0-100)"));
+    pageMarginsGrid->addWidget(pageMarginBottomLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginBottomSpinBox, row, 1);
+    row++;
+
+    // Left margin
+    m_pageMarginLeftLabel = new QLabel(tr("Left:"));
+    m_pageMarginLeftLabel->setToolTip(tr("Left margin of the page"));
+    m_pageMarginLeftSpinBox = new QDoubleSpinBox();
+    m_pageMarginLeftSpinBox->setRange(0.0, 100.0);
+    m_pageMarginLeftSpinBox->setValue(25.4);
+    m_pageMarginLeftSpinBox->setDecimals(1);
+    m_pageMarginLeftSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginLeftSpinBox->setToolTip(tr("Left margin in millimeters (0-100)"));
+    pageMarginsGrid->addWidget(m_pageMarginLeftLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginLeftSpinBox, row, 1);
+    row++;
+
+    // Right margin
+    m_pageMarginRightLabel = new QLabel(tr("Right:"));
+    m_pageMarginRightLabel->setToolTip(tr("Right margin of the page"));
+    m_pageMarginRightSpinBox = new QDoubleSpinBox();
+    m_pageMarginRightSpinBox->setRange(0.0, 100.0);
+    m_pageMarginRightSpinBox->setValue(25.4);
+    m_pageMarginRightSpinBox->setDecimals(1);
+    m_pageMarginRightSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginRightSpinBox->setToolTip(tr("Right margin in millimeters (0-100)"));
+    pageMarginsGrid->addWidget(m_pageMarginRightLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginRightSpinBox, row, 1);
+    row++;
+
+    // Mirror margins checkbox
+    m_pageMirrorMarginsCheckBox = new QCheckBox(tr("Mirror margins (for book binding)"));
+    m_pageMirrorMarginsCheckBox->setToolTip(
+        tr("Enable mirror margins for book binding.\n"
+           "When enabled, uses inner/outer margins instead of left/right.\n"
+           "Inner margin is the binding side, outer is the edge."));
+    pageMarginsGrid->addWidget(m_pageMirrorMarginsCheckBox, row, 0, 1, 2);
+    row++;
+
+    // Inner margin (only visible when mirror is enabled)
+    m_pageMarginInnerLabel = new QLabel(tr("Inner (binding):"));
+    m_pageMarginInnerLabel->setToolTip(tr("Inner margin (binding side) for book layout"));
+    m_pageMarginInnerSpinBox = new QDoubleSpinBox();
+    m_pageMarginInnerSpinBox->setRange(0.0, 100.0);
+    m_pageMarginInnerSpinBox->setValue(30.0);
+    m_pageMarginInnerSpinBox->setDecimals(1);
+    m_pageMarginInnerSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginInnerSpinBox->setToolTip(tr("Inner margin in millimeters (0-100)"));
+    m_pageMarginInnerLabel->setVisible(false);
+    m_pageMarginInnerSpinBox->setVisible(false);
+    pageMarginsGrid->addWidget(m_pageMarginInnerLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginInnerSpinBox, row, 1);
+    row++;
+
+    // Outer margin (only visible when mirror is enabled)
+    m_pageMarginOuterLabel = new QLabel(tr("Outer (edge):"));
+    m_pageMarginOuterLabel->setToolTip(tr("Outer margin (edge side) for book layout"));
+    m_pageMarginOuterSpinBox = new QDoubleSpinBox();
+    m_pageMarginOuterSpinBox->setRange(0.0, 100.0);
+    m_pageMarginOuterSpinBox->setValue(20.0);
+    m_pageMarginOuterSpinBox->setDecimals(1);
+    m_pageMarginOuterSpinBox->setSuffix(tr(" mm"));
+    m_pageMarginOuterSpinBox->setToolTip(tr("Outer margin in millimeters (0-100)"));
+    m_pageMarginOuterLabel->setVisible(false);
+    m_pageMarginOuterSpinBox->setVisible(false);
+    pageMarginsGrid->addWidget(m_pageMarginOuterLabel, row, 0);
+    pageMarginsGrid->addWidget(m_pageMarginOuterSpinBox, row, 1);
+
+    // Connect mirror checkbox to show/hide inner/outer vs left/right
+    connect(m_pageMirrorMarginsCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
+        // Show/hide left/right
+        m_pageMarginLeftLabel->setVisible(!checked);
+        m_pageMarginLeftSpinBox->setVisible(!checked);
+        m_pageMarginRightLabel->setVisible(!checked);
+        m_pageMarginRightSpinBox->setVisible(!checked);
+        // Show/hide inner/outer
+        m_pageMarginInnerLabel->setVisible(checked);
+        m_pageMarginInnerSpinBox->setVisible(checked);
+        m_pageMarginOuterLabel->setVisible(checked);
+        m_pageMarginOuterSpinBox->setVisible(checked);
+    });
+
+    pageMarginsGrid->setColumnStretch(1, 1);
+    layout->addWidget(pageMarginsGroup);
+
+    // ========================================================================
+    // Text Frame Border group
+    // ========================================================================
+    QGroupBox* textFrameGroup = new QGroupBox(tr("Text Frame Border"));
+    QGridLayout* textFrameGrid = new QGridLayout(textFrameGroup);
+    row = 0;
+
+    m_textFrameBorderShowCheckBox = new QCheckBox(tr("Show text frame border"));
+    m_textFrameBorderShowCheckBox->setToolTip(
+        tr("Display a visible border around the text content area.\n"
+           "Useful for visualizing margin boundaries."));
+    textFrameGrid->addWidget(m_textFrameBorderShowCheckBox, row, 0, 1, 2);
+    row++;
+
+    m_textFrameBorderColorWidget = new ColorConfigWidget(tr("Border color"), textFrameGroup);
+    m_textFrameBorderColorWidget->setColor(QColor(180, 180, 180));
+    m_textFrameBorderColorWidget->setToolTip(tr("Color of the text frame border"));
+    m_textFrameBorderColorWidget->setEnabled(false);
+    textFrameGrid->addWidget(m_textFrameBorderColorWidget, row, 0, 1, 2);
+    row++;
+
+    QLabel* textFrameWidthLabel = new QLabel(tr("Border width:"));
+    textFrameWidthLabel->setToolTip(tr("Width of the text frame border in pixels"));
+    m_textFrameBorderWidthSpinBox = new QSpinBox();
+    m_textFrameBorderWidthSpinBox->setRange(1, 5);
+    m_textFrameBorderWidthSpinBox->setValue(1);
+    m_textFrameBorderWidthSpinBox->setSuffix(tr(" px"));
+    m_textFrameBorderWidthSpinBox->setToolTip(tr("Border width in pixels (1-5)"));
+    m_textFrameBorderWidthSpinBox->setEnabled(false);
+    textFrameGrid->addWidget(textFrameWidthLabel, row, 0);
+    textFrameGrid->addWidget(m_textFrameBorderWidthSpinBox, row, 1);
+
+    // Connect show checkbox to enable/disable color and width
+    connect(m_textFrameBorderShowCheckBox, &QCheckBox::toggled, this, [this, textFrameWidthLabel](bool checked) {
+        m_textFrameBorderColorWidget->setEnabled(checked);
+        m_textFrameBorderWidthSpinBox->setEnabled(checked);
+        textFrameWidthLabel->setEnabled(checked);
+    });
+
+    textFrameGrid->setColumnStretch(1, 1);
+    layout->addWidget(textFrameGroup);
 
     layout->addStretch();
     return page;
@@ -1534,6 +1949,58 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_lineNumbersCheckBox->setChecked(settings.showLineNumbers);
     m_wordWrapCheckBox->setChecked(settings.wordWrap);
 
+    // Editor/Colors
+    m_editorDarkModeCheckBox->setChecked(settings.editorDarkMode);
+    m_editorBackgroundLightWidget->setColor(settings.editorBackgroundLight);
+    m_editorTextLightWidget->setColor(settings.editorTextLight);
+    m_editorInactiveLightWidget->setColor(settings.editorInactiveLight);
+    m_editorBackgroundDarkWidget->setColor(settings.editorBackgroundDark);
+    m_editorTextDarkWidget->setColor(settings.editorTextDark);
+    m_editorInactiveDarkWidget->setColor(settings.editorInactiveDark);
+
+    // Editor/Cursor
+    int cursorStyleIndex = m_cursorStyleComboBox->findData(static_cast<int>(settings.cursorStyle));
+    if (cursorStyleIndex >= 0) m_cursorStyleComboBox->setCurrentIndex(cursorStyleIndex);
+    m_cursorUseCustomColorCheckBox->setChecked(settings.cursorUseCustomColor);
+    m_cursorColorWidget->setColor(settings.cursorCustomColor);
+    m_cursorColorWidget->setEnabled(settings.cursorUseCustomColor);
+    m_cursorBlinkingCheckBox->setChecked(settings.cursorBlinking);
+    m_cursorBlinkIntervalSpinBox->setValue(settings.cursorBlinkInterval);
+    m_cursorBlinkIntervalSpinBox->setEnabled(settings.cursorBlinking);
+    m_cursorLineWidthSpinBox->setValue(settings.cursorLineWidth);
+    // Show/hide line width based on cursor style
+    bool isLineStyle = (settings.cursorStyle == editor::CursorStyle::Line);
+    m_cursorLineWidthLabel->setVisible(isLineStyle);
+    m_cursorLineWidthSpinBox->setVisible(isLineStyle);
+
+    // Editor/Margins
+    m_viewMarginHorizontalSpinBox->setValue(settings.viewMarginHorizontal);
+    m_viewMarginVerticalSpinBox->setValue(settings.viewMarginVertical);
+    m_pageMarginTopSpinBox->setValue(settings.pageMarginTop);
+    m_pageMarginBottomSpinBox->setValue(settings.pageMarginBottom);
+    m_pageMarginLeftSpinBox->setValue(settings.pageMarginLeft);
+    m_pageMarginRightSpinBox->setValue(settings.pageMarginRight);
+    m_pageMirrorMarginsCheckBox->setChecked(settings.pageMirrorMarginsEnabled);
+    m_pageMarginInnerSpinBox->setValue(settings.pageMarginInner);
+    m_pageMarginOuterSpinBox->setValue(settings.pageMarginOuter);
+    // Show/hide left/right vs inner/outer based on mirror state
+    bool mirrorEnabled = settings.pageMirrorMarginsEnabled;
+    m_pageMarginLeftLabel->setVisible(!mirrorEnabled);
+    m_pageMarginLeftSpinBox->setVisible(!mirrorEnabled);
+    m_pageMarginRightLabel->setVisible(!mirrorEnabled);
+    m_pageMarginRightSpinBox->setVisible(!mirrorEnabled);
+    m_pageMarginInnerLabel->setVisible(mirrorEnabled);
+    m_pageMarginInnerSpinBox->setVisible(mirrorEnabled);
+    m_pageMarginOuterLabel->setVisible(mirrorEnabled);
+    m_pageMarginOuterSpinBox->setVisible(mirrorEnabled);
+
+    // Text Frame Border
+    m_textFrameBorderShowCheckBox->setChecked(settings.textFrameBorderShow);
+    m_textFrameBorderColorWidget->setColor(settings.textFrameBorderColor);
+    m_textFrameBorderColorWidget->setEnabled(settings.textFrameBorderShow);
+    m_textFrameBorderWidthSpinBox->setValue(settings.textFrameBorderWidth);
+    m_textFrameBorderWidthSpinBox->setEnabled(settings.textFrameBorderShow);
+
     // Advanced/General
     m_diagModeCheckbox->blockSignals(true);
     m_diagModeCheckbox->setChecked(settings.diagnosticMode);
@@ -1623,6 +2090,40 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.tabSize = m_tabSizeSpinBox->value();
     settingsData.showLineNumbers = m_lineNumbersCheckBox->isChecked();
     settingsData.wordWrap = m_wordWrapCheckBox->isChecked();
+
+    // Editor/Colors
+    settingsData.editorDarkMode = m_editorDarkModeCheckBox->isChecked();
+    settingsData.editorBackgroundLight = m_editorBackgroundLightWidget->color();
+    settingsData.editorTextLight = m_editorTextLightWidget->color();
+    settingsData.editorInactiveLight = m_editorInactiveLightWidget->color();
+    settingsData.editorBackgroundDark = m_editorBackgroundDarkWidget->color();
+    settingsData.editorTextDark = m_editorTextDarkWidget->color();
+    settingsData.editorInactiveDark = m_editorInactiveDarkWidget->color();
+
+    // Editor/Cursor
+    settingsData.cursorStyle = static_cast<editor::CursorStyle>(
+        m_cursorStyleComboBox->currentData().toInt());
+    settingsData.cursorUseCustomColor = m_cursorUseCustomColorCheckBox->isChecked();
+    settingsData.cursorCustomColor = m_cursorColorWidget->color();
+    settingsData.cursorBlinking = m_cursorBlinkingCheckBox->isChecked();
+    settingsData.cursorBlinkInterval = m_cursorBlinkIntervalSpinBox->value();
+    settingsData.cursorLineWidth = m_cursorLineWidthSpinBox->value();
+
+    // Editor/Margins
+    settingsData.viewMarginHorizontal = m_viewMarginHorizontalSpinBox->value();
+    settingsData.viewMarginVertical = m_viewMarginVerticalSpinBox->value();
+    settingsData.pageMarginTop = m_pageMarginTopSpinBox->value();
+    settingsData.pageMarginBottom = m_pageMarginBottomSpinBox->value();
+    settingsData.pageMarginLeft = m_pageMarginLeftSpinBox->value();
+    settingsData.pageMarginRight = m_pageMarginRightSpinBox->value();
+    settingsData.pageMirrorMarginsEnabled = m_pageMirrorMarginsCheckBox->isChecked();
+    settingsData.pageMarginInner = m_pageMarginInnerSpinBox->value();
+    settingsData.pageMarginOuter = m_pageMarginOuterSpinBox->value();
+
+    // Text Frame Border
+    settingsData.textFrameBorderShow = m_textFrameBorderShowCheckBox->isChecked();
+    settingsData.textFrameBorderColor = m_textFrameBorderColorWidget->color();
+    settingsData.textFrameBorderWidth = m_textFrameBorderWidthSpinBox->value();
 
     // Advanced/General
     settingsData.diagnosticMode = m_diagModeCheckbox->isChecked();
@@ -1871,6 +2372,39 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.set("editor.tabSize", settings.tabSize);
         settingsManager.set("editor.lineNumbers", settings.showLineNumbers);
         settingsManager.set("editor.wordWrap", settings.wordWrap);
+
+        // Editor/Colors
+        settingsManager.set("editor.darkMode", settings.editorDarkMode);
+        settingsManager.set("editor.colors.backgroundLight", settings.editorBackgroundLight.name().toStdString());
+        settingsManager.set("editor.colors.textLight", settings.editorTextLight.name().toStdString());
+        settingsManager.set("editor.colors.inactiveLight", settings.editorInactiveLight.name().toStdString());
+        settingsManager.set("editor.colors.backgroundDark", settings.editorBackgroundDark.name().toStdString());
+        settingsManager.set("editor.colors.textDark", settings.editorTextDark.name().toStdString());
+        settingsManager.set("editor.colors.inactiveDark", settings.editorInactiveDark.name().toStdString());
+
+        // Editor/Cursor
+        settingsManager.set("editor.cursor.style", static_cast<int>(settings.cursorStyle));
+        settingsManager.set("editor.cursor.useCustomColor", settings.cursorUseCustomColor);
+        settingsManager.set("editor.cursor.customColor", settings.cursorCustomColor.name().toStdString());
+        settingsManager.set("editor.cursor.blinking", settings.cursorBlinking);
+        settingsManager.set("editor.cursor.blinkInterval", settings.cursorBlinkInterval);
+        settingsManager.set("editor.cursor.lineWidth", settings.cursorLineWidth);
+
+        // Editor/Margins
+        settingsManager.set("editor.margins.viewHorizontal", static_cast<double>(settings.viewMarginHorizontal));
+        settingsManager.set("editor.margins.viewVertical", static_cast<double>(settings.viewMarginVertical));
+        settingsManager.set("editor.margins.pageTop", settings.pageMarginTop);
+        settingsManager.set("editor.margins.pageBottom", settings.pageMarginBottom);
+        settingsManager.set("editor.margins.pageLeft", settings.pageMarginLeft);
+        settingsManager.set("editor.margins.pageRight", settings.pageMarginRight);
+        settingsManager.set("editor.margins.mirrorEnabled", settings.pageMirrorMarginsEnabled);
+        settingsManager.set("editor.margins.pageInner", settings.pageMarginInner);
+        settingsManager.set("editor.margins.pageOuter", settings.pageMarginOuter);
+
+        // Editor/Text Frame Border
+        settingsManager.set("editor.textFrameBorder.show", settings.textFrameBorderShow);
+        settingsManager.set("editor.textFrameBorder.color", settings.textFrameBorderColor.name().toStdString());
+        settingsManager.set("editor.textFrameBorder.width", settings.textFrameBorderWidth);
 
         BusyIndicator::tick();  // Animate
 

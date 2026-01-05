@@ -5,6 +5,7 @@
 #include <QTextBlock>
 #include <QTextLayout>
 #include <QTextLine>
+#include <QTextOption>
 #include <QPainter>
 #include <QTextFrame>
 #include <algorithm>
@@ -111,6 +112,18 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
         effectiveWidth = 10000;  // Very large default for no wrapping
     }
 
+    // Get alignment from QTextBlockFormat and configure QTextOption
+    QTextBlockFormat blockFormat = block.blockFormat();
+    Qt::Alignment alignment = blockFormat.alignment();
+    if (alignment == 0) {
+        alignment = Qt::AlignLeft;  // Default to left if not set
+    }
+
+    QTextOption textOption;
+    textOption.setAlignment(alignment);
+    textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    layout->setTextOption(textOption);
+
     // Prepare layout with lines starting at y=0
     layout->beginLayout();
     qreal y = 0;
@@ -122,7 +135,17 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
         }
 
         line.setLineWidth(effectiveWidth);
-        line.setPosition(QPointF(0, y));
+
+        // Calculate X position based on alignment
+        qreal x = 0;
+        if (alignment & Qt::AlignHCenter) {
+            x = (effectiveWidth - line.naturalTextWidth()) / 2.0;
+        } else if (alignment & Qt::AlignRight) {
+            x = effectiveWidth - line.naturalTextWidth();
+        }
+        // Qt::AlignJustify is handled by QTextLine automatically when width is set
+
+        line.setPosition(QPointF(x, y));
         y += line.height();
     }
 

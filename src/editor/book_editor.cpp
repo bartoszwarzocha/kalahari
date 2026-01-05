@@ -4,6 +4,8 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/text_source_adapter.h>  // Phase 12.3: Text source adapters
+#include <kalahari/editor/render_context.h>       // Phase 12.3: RenderContext, RenderMargins
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_element.h>
@@ -57,9 +59,8 @@ constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 // Cursor width in pixels
 constexpr qreal CURSOR_WIDTH = 2.0;
 
-// Content margins (must match paintEvent)
-constexpr qreal LEFT_MARGIN = 10.0;
-constexpr qreal TOP_MARGIN = 10.0;
+// Phase 12.6: Margins now configurable via m_appearance.viewMargins and m_appearance.pageMargins
+// Removed hardcoded LEFT_MARGIN and TOP_MARGIN constants
 
 // =============================================================================
 // Phase 11.6: Helper functions for QTextDocument paragraph operations
@@ -203,7 +204,8 @@ BookEditor::BookEditor(QWidget* parent)
     if (m_documentModel) {
         m_documentModel->setFont(m_appearance.typography.textFont);
         m_documentModel->setTextColor(m_appearance.colors.text);
-        m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+        // Phase 12.6: Use configurable margins
+        m_documentModel->setLineWidth(static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
     }
 
     // Phase 11.6: m_textBuffer created on-demand in ensureEditMode()
@@ -214,6 +216,7 @@ BookEditor::BookEditor(QWidget* parent)
     // Note: setDocument() called in fromKml() after loading
 
     // Create RenderEngine (initially without document)
+    // @deprecated Phase 12.3: Use m_renderPipeline instead
     m_renderEngine = std::make_unique<RenderEngine>(this);
     m_renderEngine->setViewportManager(m_viewportManager.get());
     // Note: setDocument() called in ensureEditMode() or fromKml()
@@ -222,6 +225,42 @@ BookEditor::BookEditor(QWidget* parent)
     connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
             this, [this](const QRegion& region) {
         update(region.boundingRect());
+    });
+
+    // Phase 12.3: Create EditorRenderPipeline (unified rendering)
+    m_renderPipeline = std::make_unique<EditorRenderPipeline>(this);
+    m_renderPipeline->setViewportManager(m_viewportManager.get());
+    // Note: setSearchEngine() called in setupFindReplace() after search engine creation
+
+    // Configure initial pipeline context
+    RenderContext ctx;
+    ctx.font = m_appearance.typography.textFont;
+    ctx.colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
+    ctx.colors.background = m_appearance.colors.background(m_appearance.colorMode);
+    ctx.colors.cursor = m_appearance.cursor.useCustomColor
+        ? m_appearance.cursor.customColor
+        : m_appearance.colors.textColor(m_appearance.colorMode);
+    ctx.colors.selection = m_appearance.colors.selection;
+    // Phase 12.6: Use configurable margins
+    ctx.margins = RenderContext::calculateMargins(
+        m_appearance.pageMargins,
+        m_appearance.viewMargins,
+        m_viewMode
+    );
+    ctx.textWidth = static_cast<double>(width());
+    ctx.viewMode = m_viewMode;
+    m_renderPipeline->setContext(ctx);
+
+    // Connect pipeline repaint signal
+    connect(m_renderPipeline.get(), &EditorRenderPipeline::repaintRequested,
+            this, [this](const QRegion& region) {
+        update(region.boundingRect());
+    });
+
+    // Connect cursor blink changes
+    connect(m_renderPipeline.get(), &EditorRenderPipeline::cursorBlinkChanged,
+            this, [this]([[maybe_unused]] bool visible) {
+        update();  // Repaint on cursor blink
     });
 
     // Connect ViewportManager signals
@@ -280,12 +319,20 @@ void BookEditor::setScrollOffset(qreal offset)
 {
     // Phase 11.10: In view mode, manage scroll directly
     if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
-        double maxScroll = std::max(0.0, m_documentModel->totalHeight() - static_cast<double>(height()));
+        // Calculate margins for view mode scroll limit
+        double topMargin = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.top * (96.0 / 25.4)
+            : m_appearance.viewMargins.vertical;
+        double bottomMargin = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)
+            : m_appearance.viewMargins.vertical;
+        double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
         double newOffset = std::clamp(static_cast<double>(offset), 0.0, maxScroll);
         if (std::abs(m_viewModeScrollOffset - newOffset) > 0.001) {
             m_viewModeScrollOffset = newOffset;
             syncScrollBarValue();
             emit scrollOffsetChanged(newOffset);
+            syncPipelineState();  // Sync before repaint
             update();
         }
         return;
@@ -301,6 +348,7 @@ void BookEditor::setScrollOffset(qreal offset)
     if (oldOffset != newOffset) {
         syncScrollBarValue();
         emit scrollOffsetChanged(newOffset);
+        syncPipelineState();  // Sync before repaint
         update();  // Request repaint
     }
 }
@@ -371,6 +419,7 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
 
         ensureCursorVisible();
         emit cursorPositionChanged(m_cursorPosition);
+        syncPipelineState();  // Sync before repaint
         update();  // Request repaint
     }
 }
@@ -396,6 +445,10 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         // Sync to RenderEngine (Phase 8 fix)
         if (m_renderEngine) {
             m_renderEngine->startCursorBlink();
+        }
+        // Sync to RenderPipeline (Phase 12 fix)
+        if (m_renderPipeline) {
+            m_renderPipeline->startCursorBlink();
         }
     } else {
         // Stop blinking and keep cursor visible
@@ -454,11 +507,76 @@ void BookEditor::ensureCursorVisible()
             m_renderEngine->startCursorBlink();
         }
     }
+    // Sync to RenderPipeline (Phase 12 fix)
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorBlinkState(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderPipeline->startCursorBlink();
+        }
+    }
 
     // In Typewriter mode, update scroll to keep cursor at focus position
     if (m_viewMode == ViewMode::Typewriter) {
         updateTypewriterScroll();
+        return;
     }
+
+    // Scroll viewport to make cursor visible (only when line is partially clipped)
+    if (!m_isEditMode || !m_textBuffer || !m_viewportManager) {
+        return;
+    }
+
+    // Get current cursor line info
+    QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
+    if (!block.isValid()) return;
+
+    QTextLayout* layout = block.layout();
+    if (!layout || layout->lineCount() == 0) return;
+
+    // Find the line containing cursor offset
+    int lineInBlock = 0;
+    for (int i = 0; i < layout->lineCount(); ++i) {
+        QTextLine line = layout->lineAt(i);
+        if (m_cursorPosition.offset >= line.textStart() &&
+            m_cursorPosition.offset < line.textStart() + line.textLength()) {
+            lineInBlock = i;
+            break;
+        }
+        // If cursor is at end of block, it's on last line
+        if (i == layout->lineCount() - 1) {
+            lineInBlock = i;
+        }
+    }
+
+    QTextLine cursorLine = layout->lineAt(lineInBlock);
+
+    // Get block Y position from document layout
+    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
+    qreal blockY = blockRect.y();
+
+    // Calculate cursor line position in document coordinates
+    qreal lineTop = blockY + cursorLine.y();
+    qreal lineBottom = lineTop + cursorLine.height();
+
+    // Get visible range in document coordinates
+    qreal scrollY = m_viewportManager->scrollPosition();
+    qreal viewportHeight = static_cast<qreal>(height());
+    qreal topMargin = m_appearance.viewMargins.vertical;
+    qreal bottomMargin = m_appearance.viewMargins.vertical;
+
+    qreal visibleTop = scrollY;
+    qreal visibleBottom = scrollY + viewportHeight - topMargin - bottomMargin;
+
+    // Scroll only if line is NOT fully visible
+    if (lineTop < visibleTop) {
+        // Line is clipped at top - scroll up to show full line
+        setScrollOffset(lineTop);
+    } else if (lineBottom > visibleBottom) {
+        // Line is clipped at bottom - scroll down to show full line
+        qreal newScroll = lineBottom - (viewportHeight - topMargin - bottomMargin);
+        setScrollOffset(qMax(0.0, newScroll));
+    }
+    // If line is fully visible, don't scroll
 }
 
 // =============================================================================
@@ -518,15 +636,43 @@ void BookEditor::moveCursorUp()
         return;
     }
 
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) return;
+
+    QTextLayout* layout = block.layout();
+    if (!layout || layout->lineCount() == 0) return;
+
+    // Find current line within this paragraph
+    int currentLine = layout->lineForTextPosition(m_cursorPosition.offset).lineNumber();
+
+    // Remember preferred X position for vertical navigation
+    if (!m_preferredCursorXValid) {
+        QTextLine line = layout->lineAt(currentLine);
+        m_preferredCursorX = line.cursorToX(m_cursorPosition.offset);
+        m_preferredCursorXValid = true;
+    }
+
     CursorPosition newPos = m_cursorPosition;
 
-    if (newPos.paragraph > 0) {
-        // Move to end of previous paragraph
+    if (currentLine > 0) {
+        // Move to previous line within same paragraph
+        QTextLine prevLine = layout->lineAt(currentLine - 1);
+        newPos.offset = prevLine.xToCursor(m_preferredCursorX);
+    } else if (newPos.paragraph > 0) {
+        // Move to last line of previous paragraph
         --newPos.paragraph;
-        newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
+        QTextBlock prevBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
+        if (prevBlock.isValid() && prevBlock.layout() && prevBlock.layout()->lineCount() > 0) {
+            QTextLayout* prevLayout = prevBlock.layout();
+            QTextLine lastLine = prevLayout->lineAt(prevLayout->lineCount() - 1);
+            newPos.offset = lastLine.xToCursor(m_preferredCursorX);
+        } else {
+            newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
+        }
     } else {
-        // At first paragraph: move to start
+        // At first line of first paragraph: move to start
         newPos.offset = 0;
+        m_preferredCursorXValid = false;
     }
 
     setCursorPosition(newPos);
@@ -539,15 +685,43 @@ void BookEditor::moveCursorDown()
         return;
     }
 
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) return;
+
+    QTextLayout* layout = block.layout();
+    if (!layout || layout->lineCount() == 0) return;
+
+    // Find current line within this paragraph
+    int currentLine = layout->lineForTextPosition(m_cursorPosition.offset).lineNumber();
+
+    // Remember preferred X position for vertical navigation
+    if (!m_preferredCursorXValid) {
+        QTextLine line = layout->lineAt(currentLine);
+        m_preferredCursorX = line.cursorToX(m_cursorPosition.offset);
+        m_preferredCursorXValid = true;
+    }
+
     CursorPosition newPos = m_cursorPosition;
 
-    if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
-        // Move to start of next paragraph
+    if (currentLine < layout->lineCount() - 1) {
+        // Move to next line within same paragraph
+        QTextLine nextLine = layout->lineAt(currentLine + 1);
+        newPos.offset = nextLine.xToCursor(m_preferredCursorX);
+    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
+        // Move to first line of next paragraph
         ++newPos.paragraph;
-        newPos.offset = 0;
+        QTextBlock nextBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
+        if (nextBlock.isValid() && nextBlock.layout() && nextBlock.layout()->lineCount() > 0) {
+            QTextLayout* nextLayout = nextBlock.layout();
+            QTextLine firstLine = nextLayout->lineAt(0);
+            newPos.offset = firstLine.xToCursor(m_preferredCursorX);
+        } else {
+            newPos.offset = 0;
+        }
     } else {
-        // At last paragraph: move to end
+        // At last line of last paragraph: move to end
         newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
+        m_preferredCursorXValid = false;
     }
 
     setCursorPosition(newPos);
@@ -711,26 +885,26 @@ void BookEditor::moveCursorPageUp()
         return;
     }
 
-    // Phase 11: Use QTextLayout for cursor positioning
+    // Phase 11: Use document layout for cursor positioning
     qreal pageHeight = static_cast<qreal>(height());
     if (pageHeight <= 0) return;
 
-    // Get current cursor Y position using QTextLayout
+    // Get current cursor Y position using document layout
     QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!currentBlock.isValid()) return;
 
-    QTextLayout* layout = currentBlock.layout();
-    qreal cursorY = layout ? layout->position().y() : 0.0;
+    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(currentBlock);
+    qreal cursorY = blockRect.y();
 
     // Calculate target Y position (one page up)
     qreal targetY = qMax(0.0, cursorY - pageHeight);
 
-    // Find block at target Y using QTextDocument::findBlock
+    // Find block at target Y using document layout
     QTextBlock targetBlock = m_textBuffer->findBlock(0);
     int targetPara = 0;
     while (targetBlock.isValid()) {
-        QTextLayout* tLayout = targetBlock.layout();
-        if (tLayout && tLayout->position().y() > targetY) break;
+        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(targetBlock);
+        if (tBlockRect.y() > targetY) break;
         targetPara = targetBlock.blockNumber();
         targetBlock = targetBlock.next();
     }
@@ -752,29 +926,29 @@ void BookEditor::moveCursorPageDown()
         return;
     }
 
-    // Phase 11: Use QTextLayout for cursor positioning
+    // Phase 11: Use document layout for cursor positioning
     qreal pageHeight = static_cast<qreal>(height());
     if (pageHeight <= 0) return;
 
-    // Get current cursor Y position using QTextLayout
+    // Get current cursor Y position using document layout
     QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!currentBlock.isValid()) return;
 
-    QTextLayout* layout = currentBlock.layout();
-    qreal cursorY = layout ? layout->position().y() : 0.0;
+    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(currentBlock);
+    qreal cursorY = blockRect.y();
 
     // Calculate target Y position (one page down)
     qreal maxY = m_viewportManager->totalDocumentHeight();
     qreal targetY = qMin(maxY, cursorY + pageHeight);
 
-    // Find block at target Y using QTextDocument
+    // Find block at target Y using document layout
     QTextBlock targetBlock = m_textBuffer->lastBlock();
     int targetPara = m_textBuffer->blockCount() - 1;
 
     QTextBlock block = m_textBuffer->firstBlock();
     while (block.isValid()) {
-        QTextLayout* tLayout = block.layout();
-        if (tLayout && tLayout->position().y() > targetY) {
+        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
+        if (tBlockRect.y() > targetY) {
             // Previous block is our target
             if (block.previous().isValid()) {
                 targetBlock = block.previous();
@@ -830,6 +1004,7 @@ void BookEditor::setSelection(const SelectionRange& range)
         updateSelectionInLayouts();
 
         emit selectionChanged();
+        syncPipelineState();  // Sync before repaint
         update();
     }
 }
@@ -847,6 +1022,7 @@ void BookEditor::clearSelection()
         updateSelectionInLayouts();
 
         emit selectionChanged();
+        syncPipelineState();  // Sync before repaint
         update();
     }
 }
@@ -994,6 +1170,7 @@ void BookEditor::insertText(const QString& text)
 
 
     ensureCursorVisible();
+    syncPipelineCursor();
     update();
     emit contentChanged();
     emit paragraphModified(m_cursorPosition.paragraph);
@@ -1064,6 +1241,7 @@ void BookEditor::insertNewline()
     m_cursorPosition.offset = 0;
 
     ensureCursorVisible();
+    syncPipelineCursor();
     update();
     emit contentChanged();
     emit paragraphInserted(m_cursorPosition.paragraph);
@@ -1105,6 +1283,7 @@ void BookEditor::deleteBackward()
         // Update cursor (redo already executed)
         m_cursorPosition.offset--;
         ensureCursorVisible();
+        syncPipelineCursor();
         update();
         emit contentChanged();
         emit paragraphModified(m_cursorPosition.paragraph);
@@ -1124,6 +1303,7 @@ void BookEditor::deleteBackward()
 
         // Qt's QTextDocument handles layout invalidation automatically
         ensureCursorVisible();
+        syncPipelineCursor();
         update();
         emit contentChanged();
         emit paragraphRemoved(mergeFromIndex);
@@ -1162,6 +1342,7 @@ void BookEditor::deleteForward()
 
         // Cursor position stays the same after forward delete
         // Qt's QTextDocument handles layout invalidation automatically
+        syncPipelineCursor();
         update();
         emit contentChanged();
         emit paragraphModified(m_cursorPosition.paragraph);
@@ -1177,6 +1358,7 @@ void BookEditor::deleteForward()
 
         // Cursor position stays the same after merge
         // Qt's QTextDocument handles layout invalidation automatically
+        syncPipelineCursor();
         update();
         emit contentChanged();
         emit paragraphRemoved(mergeFromIndex);
@@ -1417,6 +1599,12 @@ void BookEditor::setAlignLeft()
             cursor.setBlockFormat(format);
         }
     }
+
+    // Phase 12.3: Mark pipeline dirty for relayout
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+
     emit contentChanged();
     update();
 }
@@ -1447,6 +1635,12 @@ void BookEditor::setAlignCenter()
             cursor.setBlockFormat(format);
         }
     }
+
+    // Phase 12.3: Mark pipeline dirty for relayout
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+
     emit contentChanged();
     update();
 }
@@ -1477,6 +1671,12 @@ void BookEditor::setAlignRight()
             cursor.setBlockFormat(format);
         }
     }
+
+    // Phase 12.3: Mark pipeline dirty for relayout
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+
     emit contentChanged();
     update();
 }
@@ -1507,6 +1707,12 @@ void BookEditor::setAlignJustify()
             cursor.setBlockFormat(format);
         }
     }
+
+    // Phase 12.3: Mark pipeline dirty for relayout
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+
     emit contentChanged();
     update();
 }
@@ -1673,6 +1879,127 @@ bool BookEditor::hasFormat(ElementType formatType) const
 }
 
 // =============================================================================
+// Font Selection (applies to selection if any, otherwise default font)
+// =============================================================================
+
+void BookEditor::setSelectionFontFamily(const QString& family)
+{
+    if (!m_isEditMode || !m_textBuffer) {
+        return;
+    }
+
+    if (hasSelection()) {
+        // Apply to selection
+        SelectionRange normRange = m_selection.normalized();
+        QTextBlock startBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.start.paragraph));
+        QTextBlock endBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.end.paragraph));
+
+        if (!startBlock.isValid() || !endBlock.isValid()) {
+            return;
+        }
+
+        int startPos = startBlock.position() + normRange.start.offset;
+        int endPos = endBlock.position() + normRange.end.offset;
+
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.setPosition(startPos);
+        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+
+        QTextCharFormat fmt;
+        fmt.setFontFamilies({family});
+        cursor.mergeCharFormat(fmt);
+
+        emit contentChanged();
+        update();
+    } else {
+        // No selection - change default font
+        EditorAppearance appearance = m_appearance;
+        QFont currentFont = appearance.typography.textFont;
+        currentFont.setFamily(family);
+        appearance.typography.textFont = currentFont;
+        setAppearance(appearance);
+    }
+}
+
+void BookEditor::setSelectionFontSize(int pointSize)
+{
+    if (!m_isEditMode || !m_textBuffer) {
+        return;
+    }
+
+    if (hasSelection()) {
+        // Apply to selection
+        SelectionRange normRange = m_selection.normalized();
+        QTextBlock startBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.start.paragraph));
+        QTextBlock endBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.end.paragraph));
+
+        if (!startBlock.isValid() || !endBlock.isValid()) {
+            return;
+        }
+
+        int startPos = startBlock.position() + normRange.start.offset;
+        int endPos = endBlock.position() + normRange.end.offset;
+
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.setPosition(startPos);
+        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+
+        QTextCharFormat fmt;
+        fmt.setFontPointSize(pointSize);
+        cursor.mergeCharFormat(fmt);
+
+        emit contentChanged();
+        update();
+    } else {
+        // No selection - change default font
+        EditorAppearance appearance = m_appearance;
+        QFont currentFont = appearance.typography.textFont;
+        currentFont.setPointSize(pointSize);
+        appearance.typography.textFont = currentFont;
+        setAppearance(appearance);
+    }
+}
+
+QString BookEditor::currentFontFamily() const
+{
+    if (!m_isEditMode || !m_textBuffer) {
+        return m_appearance.typography.textFont.family();
+    }
+
+    // Get font at cursor position
+    QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
+    if (!block.isValid()) {
+        return m_appearance.typography.textFont.family();
+    }
+
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.setPosition(block.position() + m_cursorPosition.offset);
+    QVariant families = cursor.charFormat().fontFamilies();
+    if (families.isValid() && families.toStringList().size() > 0) {
+        return families.toStringList().first();
+    }
+    return m_appearance.typography.textFont.family();
+}
+
+int BookEditor::currentFontSize() const
+{
+    if (!m_isEditMode || !m_textBuffer) {
+        return m_appearance.typography.textFont.pointSize();
+    }
+
+    // Get font at cursor position
+    QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
+    if (!block.isValid()) {
+        return m_appearance.typography.textFont.pointSize();
+    }
+
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.setPosition(block.position() + m_cursorPosition.offset);
+    int size = static_cast<int>(cursor.charFormat().fontPointSize());
+    return size > 0 ? size : m_appearance.typography.textFont.pointSize();
+}
+
+// =============================================================================
 // View Mode (Phase 5.1)
 // =============================================================================
 
@@ -1712,7 +2039,21 @@ void BookEditor::setViewMode(ViewMode mode)
             emit distractionFreeModeChanged(false);
         }
 
+        // Update viewport scroll padding based on new view mode
+        if (m_viewportManager) {
+            double bottomPadding = (mode == ViewMode::Page)
+                ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
+                : m_appearance.viewMargins.vertical;
+            m_viewportManager->setBottomScrollPadding(bottomPadding);
+        }
+
         emit viewModeChanged(mode);
+        
+        // Sync pipeline state with new view mode before repaint
+        syncPipelineState();
+
+        // Ensure cursor is visible after view mode change
+        ensureCursorVisible();
         update();
     }
 }
@@ -1810,10 +2151,36 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
 
-    // Phase 11: Set font on QTextDocument
+    // Phase 11: Set font on QTextDocument - both default and existing text
     if (m_textBuffer) {
         QFont docFont = m_appearance.typography.textFont;
         m_textBuffer->setDefaultFont(docFont);
+
+        // Apply font to all existing blocks/paragraphs
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.beginEditBlock();
+        cursor.select(QTextCursor::Document);
+        QTextCharFormat fmt;
+        fmt.setFont(docFont);
+        cursor.mergeCharFormat(fmt);
+        cursor.endEditBlock();
+
+        // Force complete document relayout after font change
+        // Reset text width to force re-calculation of line breaks with new font
+        qreal currentWidth = m_textBuffer->textWidth();
+        m_textBuffer->setTextWidth(-1);  // Remove width constraint
+        m_textBuffer->setTextWidth(currentWidth);  // Restore width - forces relayout
+
+        // Mark content as dirty and update viewport
+        m_textBuffer->markContentsDirty(0, m_textBuffer->characterCount());
+        updateLayoutWidth();
+        updateViewport();
+
+        // Update KalahariTextDocumentLayout font for proper relayout
+        auto* customLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        if (customLayout) {
+            customLayout->setFont(docFont);
+        }
     }
 
     // Phase 11.10: Update KmlDocumentModel with new appearance settings
@@ -1822,8 +2189,55 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_documentModel->setTextColor(m_appearance.colors.text);
     }
 
+    // Apply cursor settings
+    setCursorBlinkingEnabled(m_appearance.cursor.blinking);
+    setCursorBlinkInterval(m_appearance.cursor.blinkInterval);
+
+    // Update viewport scroll padding so user can scroll to see bottom margin
+    if (m_viewportManager) {
+        // Use view margins for Continuous/Focus modes, page margins for Page mode
+        double bottomPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
+            : m_appearance.viewMargins.vertical;
+        m_viewportManager->setBottomScrollPadding(bottomPadding);
+    }
+
     emit appearanceChanged();
+    syncPipelineState();  // Sync render context with new appearance before repaint
     update();
+}
+
+// =============================================================================
+// Editor Color Mode (Light/Dark Toggle)
+// =============================================================================
+
+void BookEditor::toggleEditorColorMode()
+{
+    EditorColorMode newMode = (m_appearance.colorMode == EditorColorMode::Light)
+        ? EditorColorMode::Dark
+        : EditorColorMode::Light;
+    setEditorColorMode(newMode);
+}
+
+void BookEditor::setEditorColorMode(EditorColorMode mode)
+{
+    if (m_appearance.colorMode != mode) {
+        m_appearance.colorMode = mode;
+
+        auto& logger = core::Logger::getInstance();
+        logger.info("BookEditor::setEditorColorMode: {}",
+                    mode == EditorColorMode::Light ? "Light" : "Dark");
+
+        // Update KmlDocumentModel colors for view mode
+        if (m_documentModel) {
+            m_documentModel->setTextColor(m_appearance.colors.textColor(mode));
+        }
+
+        emit editorColorModeChanged(mode);
+        emit appearanceChanged();
+        syncPipelineState();  // Sync render context with new color mode before repaint
+        update();
+    }
 }
 
 // =============================================================================
@@ -1835,8 +2249,29 @@ void BookEditor::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-    // Background
-    painter.fillRect(rect(), m_appearance.colors.editorBackground);
+    // =========================================================================
+    // Phase 12.3: Use EditorRenderPipeline for unified rendering
+    // =========================================================================
+    if (m_renderPipeline) {
+        // NOTE: syncPipelineState() is called when state changes, not every paint
+        // (cursor move, scroll, resize, content change, etc.)
+
+        // Single render call handles everything: background, text, cursor, selection, overlays
+        m_renderPipeline->render(&painter, event->rect());
+
+        // Distraction-free mode overlay (not yet migrated to pipeline)
+        paintDistractionFreeOverlay(painter);
+
+        event->accept();
+        return;
+    }
+
+    // =========================================================================
+    // Fallback: Legacy rendering path (deprecated, kept for safety)
+    // =========================================================================
+    // Background - use color mode aware background
+    QColor bgColor = m_appearance.colors.background(m_appearance.colorMode);
+    painter.fillRect(rect(), bgColor);
 
     // Page Mode uses separate rendering path
     if (m_viewMode == ViewMode::Page) {
@@ -1861,12 +2296,15 @@ void BookEditor::paintEvent(QPaintEvent* event)
         // Ensure paragraphs are layouted
         m_documentModel->ensureLayouted(firstVisible, lastVisible);
 
+        // Phase 12.6: Get margins from render context
+        const RenderMargins& margins = m_renderPipeline->context().margins;
+
         // Render visible paragraphs
         for (size_t i = firstVisible; i <= lastVisible; ++i) {
             QTextLayout* layout = m_documentModel->layout(i);
             if (layout) {
-                double paraY = m_documentModel->paragraphY(i) - scrollY + TOP_MARGIN;
-                layout->draw(&painter, QPointF(LEFT_MARGIN, paraY));
+                double paraY = m_documentModel->paragraphY(i) - scrollY + margins.top;
+                layout->draw(&painter, QPointF(margins.left, paraY));
             }
         }
 
@@ -1877,10 +2315,10 @@ void BookEditor::paintEvent(QPaintEvent* event)
             if (paraIdx < m_documentModel->paragraphCount()) {
                 QTextLayout* layout = m_documentModel->layout(paraIdx);
                 if (layout) {
-                    double paraY = m_documentModel->paragraphY(paraIdx) - scrollY + TOP_MARGIN;
+                    double paraY = m_documentModel->paragraphY(paraIdx) - scrollY + margins.top;
                     QTextLine line = layout->lineForTextPosition(m_cursorPosition.offset);
                     if (line.isValid()) {
-                        qreal cursorX = line.cursorToX(m_cursorPosition.offset) + LEFT_MARGIN;
+                        qreal cursorX = line.cursorToX(m_cursorPosition.offset) + margins.left;
                         qreal cursorY = paraY + line.y();
                         painter.setPen(m_appearance.colors.text);
                         painter.drawLine(QPointF(cursorX, cursorY),
@@ -1909,15 +2347,37 @@ void BookEditor::paintEvent(QPaintEvent* event)
         return;
     }
 
-    // Configure render engine with current appearance settings
-    m_renderEngine->setBackgroundColor(m_appearance.colors.editorBackground);
-    m_renderEngine->setTextColor(m_appearance.colors.text);
+    // Configure render engine with current appearance settings (color mode aware)
+    m_renderEngine->setBackgroundColor(m_appearance.colors.background(m_appearance.colorMode));
+    m_renderEngine->setTextColor(m_appearance.colors.textColor(m_appearance.colorMode));
+
+    // Configure focus mode rendering
+    bool focusModeActive = (m_viewMode == ViewMode::Focus);
+    m_renderEngine->setFocusModeEnabled(focusModeActive);
+    if (focusModeActive) {
+        m_renderEngine->setFocusedParagraph(m_cursorPosition.paragraph);
+        // Use color based on current editor color mode
+        m_renderEngine->setInactiveTextColor(
+            m_appearance.colors.focusInactiveColor(m_appearance.colorMode));
+    }
 
     // Delegate painting to RenderEngine
     m_renderEngine->paint(&painter, event->rect(), size());
 
-    // Additional overlays for view modes
-    if (m_appearance.focusMode.enabled) {
+    // Draw selection
+    if (hasSelection()) {
+        drawSelection(&painter);
+    }
+
+    // Draw cursor
+    if (m_cursorVisible && hasFocus()) {
+        drawCursor(&painter);
+    }
+
+    // Focus mode overlay (only if not using text color-based dimming)
+    // Text color dimming is now the primary mechanism for Focus mode
+    // Overlay is kept as a secondary visual effect if highlightBackground is enabled
+    if (m_viewMode == ViewMode::Focus && m_appearance.focusMode.highlightBackground) {
         paintFocusOverlay(painter);
     }
 
@@ -1946,6 +2406,10 @@ void BookEditor::resizeEvent(QResizeEvent* event)
         int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
     }
+
+    // Sync pipeline state on resize (margins, viewport size change)
+    syncPipelineState();
+    update();
 }
 
 void BookEditor::wheelEvent(QWheelEvent* event)
@@ -1958,8 +2422,17 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         // Phase 11.10: In view mode, use direct scroll offset management
         if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
             double newPos = m_viewModeScrollOffset + delta;
-            double maxScroll = std::max(0.0, m_documentModel->totalHeight() - static_cast<double>(height()));
+            // Calculate margins for view mode scroll limit
+            double topMargin = (m_viewMode == ViewMode::Page)
+                ? m_appearance.pageMargins.top * (96.0 / 25.4)
+                : m_appearance.viewMargins.vertical;
+            double bottomMargin = (m_viewMode == ViewMode::Page)
+                ? m_appearance.pageMargins.bottom * (96.0 / 25.4)
+                : m_appearance.viewMargins.vertical;
+            double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
             m_viewModeScrollOffset = std::clamp(newPos, 0.0, maxScroll);
+            syncScrollBarValue();
+            syncPipelineState();  // Sync before repaint
             update();
             emit scrollOffsetChanged(m_viewModeScrollOffset);
             event->accept();
@@ -1970,7 +2443,11 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         if (m_viewportManager) {
             double newPos = m_viewportManager->scrollPosition() + delta;
             m_viewportManager->setScrollPosition(newPos);
+            syncScrollBarValue();
+            emit scrollOffsetChanged(m_viewportManager->scrollPosition());
         }
+        syncPipelineState();  // Sync before repaint
+        update();
         event->accept();
     } else {
         QWidget::wheelEvent(event);
@@ -2327,6 +2804,11 @@ void BookEditor::onCursorBlinkTimeout()
 {
     m_cursorVisible = !m_cursorVisible;
 
+    // Sync to RenderPipeline (Phase 12 fix)
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorBlinkState(m_cursorVisible);
+    }
+
     // Only repaint the cursor area instead of the entire widget
     // This significantly reduces CPU usage during cursor blink
     if (m_textBuffer && m_textBuffer->blockCount() > 0) {
@@ -2369,6 +2851,13 @@ void BookEditor::setupComponents()
             m_renderEngine->startCursorBlink();
         }
     }
+    // Sync to RenderPipeline (Phase 12 fix)
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorBlinkState(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderPipeline->startCursorBlink();
+        }
+    }
 
     // Set a reasonable initial width
     updateLayoutWidth();
@@ -2377,11 +2866,17 @@ void BookEditor::setupComponents()
 
 void BookEditor::updateLayoutWidth()
 {
-    // Phase 11: Set text width on QTextDocument
-    constexpr int margin = 20;  // 10px on each side
-    qreal layoutWidth = qMax(100.0, static_cast<qreal>(width() - margin));
+    // Phase 12.6: Use configurable margins
+    double horizontalMargin = m_appearance.viewMargins.horizontal * 2;
+    qreal layoutWidth = qMax(100.0, static_cast<qreal>(width()) - horizontalMargin);
     if (m_textBuffer) {
         m_textBuffer->setTextWidth(layoutWidth);
+
+        // Also update KalahariTextDocumentLayout if using custom layout
+        auto* customLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        if (customLayout) {
+            customLayout->setTextWidth(layoutWidth);
+        }
     }
 }
 
@@ -2434,8 +2929,17 @@ void BookEditor::updateScrollBarRange()
 
     qreal viewportHeight = static_cast<qreal>(height());
 
-    // Maximum scroll offset
-    qreal maxOffset = qMax(0.0, totalHeight - viewportHeight);
+    // Calculate top and bottom padding based on view mode
+    double topPadding = (m_viewMode == ViewMode::Page)
+        ? m_appearance.pageMargins.top * (96.0 / 25.4)
+        : m_appearance.viewMargins.vertical;
+
+    double bottomPadding = (m_viewMode == ViewMode::Page)
+        ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
+        : m_appearance.viewMargins.vertical;
+
+    // Maximum scroll offset (includes both margins)
+    qreal maxOffset = qMax(0.0, totalHeight + topPadding + bottomPadding - viewportHeight);
 
     // Update scrollbar without triggering signals
     m_updatingScrollBar = true;
@@ -2467,6 +2971,109 @@ void BookEditor::syncScrollBarValue()
     m_updatingScrollBar = true;
     m_verticalScrollBar->setValue(static_cast<int>(scrollOffset()));
     m_updatingScrollBar = false;
+}
+
+void BookEditor::syncPipelineState()
+{
+    // Phase 12.3: Sync BookEditor state to EditorRenderPipeline
+    if (!m_renderPipeline) {
+        return;
+    }
+
+    // 1. Update text source based on mode
+    // View mode uses KmlDocumentModel, Edit mode uses QTextDocument
+    if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
+        // View mode: use KmlDocumentModel
+        // Check if we need a new source (no source, wrong type, or stale pointer)
+        auto* existingKmlSource = dynamic_cast<KmlDocumentModelSource*>(m_renderPipeline->textSource());
+        if (!m_renderPipeline->hasTextSource() ||
+            existingKmlSource == nullptr ||
+            existingKmlSource->model() != m_documentModel.get()) {
+            m_renderPipeline->setTextSource(
+                std::make_unique<KmlDocumentModelSource>(m_documentModel.get()));
+        }
+    } else if (m_isEditMode && m_textBuffer) {
+        // Edit mode: use QTextDocument
+        // Check if we need a new source (no source, wrong type, or stale pointer to old document)
+        auto* existingDocSource = dynamic_cast<QTextDocumentSource*>(m_renderPipeline->textSource());
+        if (!m_renderPipeline->hasTextSource() ||
+            existingDocSource == nullptr ||
+            existingDocSource->document() != m_textBuffer.get()) {
+            m_renderPipeline->setTextSource(
+                std::make_unique<QTextDocumentSource>(m_textBuffer.get()));
+        }
+    }
+
+    // 2. Update scroll position
+    double scrollY = m_isEditMode
+        ? (m_viewportManager ? m_viewportManager->scrollPosition() : 0.0)
+        : m_viewModeScrollOffset;
+    m_renderPipeline->setScrollY(scrollY);
+
+    // 3. Update viewport size
+    m_renderPipeline->setViewportSize(QSizeF(width(), height()));
+    m_renderPipeline->setTextWidth(static_cast<double>(width()));
+
+    // 4. Update cursor position and selection
+    m_renderPipeline->setCursorPosition(m_cursorPosition);
+    m_renderPipeline->setCursorVisible(m_cursorVisible && m_cursorBlinkingEnabled && hasFocus());
+    m_renderPipeline->setCursorBlinkState(m_cursorVisible);
+
+    if (hasSelection()) {
+        m_renderPipeline->setSelection(m_selection);
+    } else {
+        m_renderPipeline->clearSelection();
+    }
+
+    // 5. Update appearance settings (colors, font, view mode)
+    RenderContext& ctx = m_renderPipeline->context();
+    ctx.font = m_appearance.typography.textFont;
+    ctx.colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
+    ctx.colors.background = m_appearance.colors.background(m_appearance.colorMode);
+    ctx.colors.cursor = m_appearance.cursor.useCustomColor
+        ? m_appearance.cursor.customColor
+        : m_appearance.colors.textColor(m_appearance.colorMode);
+    ctx.colors.selection = m_appearance.colors.selection;
+    ctx.colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
+    // Phase 12.6: Calculate margins based on view mode and page number
+    // Use setMargins() to trigger effective text width recalculation
+    RenderMargins newMargins = RenderContext::calculateMargins(
+        m_appearance.pageMargins,
+        m_appearance.viewMargins,
+        m_viewMode,
+        ctx.currentPageNumber
+    );
+    m_renderPipeline->setMargins(newMargins);
+    ctx.viewMode = m_viewMode;
+
+    // 6. Update focus mode settings
+    ctx.focusMode.enabled = (m_viewMode == ViewMode::Focus) || m_appearance.focusMode.enabled;
+    ctx.focusMode.focusedParagraph = m_cursorPosition.paragraph;
+    ctx.focusMode.dimOpacity = 0.4;  // Default dim level
+
+    // 7. Update text frame border settings
+    ctx.showTextFrameBorder = m_appearance.textFrameBorder.show;
+    ctx.textFrameBorderColor = m_appearance.textFrameBorder.color;
+    ctx.textFrameBorderWidth = m_appearance.textFrameBorder.width;
+}
+
+void BookEditor::syncPipelineCursor()
+{
+    // Lightweight sync - only cursor and selection
+    if (!m_renderPipeline) {
+        return;
+    }
+
+    // Update cursor position and selection
+    m_renderPipeline->setCursorPosition(m_cursorPosition);
+    m_renderPipeline->setCursorVisible(m_cursorVisible && m_cursorBlinkingEnabled && hasFocus());
+    m_renderPipeline->setCursorBlinkState(m_cursorVisible);
+
+    if (hasSelection()) {
+        m_renderPipeline->setSelection(m_selection);
+    } else {
+        m_renderPipeline->clearSelection();
+    }
 }
 
 void BookEditor::startScrollAnimation(qreal targetOffset)
@@ -2561,19 +3168,67 @@ QRectF BookEditor::calculateCursorRect() const
 
     if (line.isValid()) {
         qreal x = line.cursorToX(offsetInBlock);
-        layoutCursorRect = QRectF(x, line.y(), CURSOR_WIDTH, line.height());
+        qreal cursorWidth = m_appearance.cursor.lineWidth;
+        qreal cursorHeight = line.height();
+
+        // Adjust dimensions based on cursor style
+        switch (m_appearance.cursor.style) {
+            case CursorStyle::Block:
+            case CursorStyle::Underline: {
+                // Block/Underline cursor covers the character at cursor position
+                // Use QFontMetrics for reliable character width measurement
+                QString text = block.text();
+                qreal charWidth = 0;
+
+                if (offsetInBlock < text.length()) {
+                    // Measure actual character at cursor position
+                    QFontMetricsF fm(m_appearance.typography.textFont);
+                    QChar ch = text.at(offsetInBlock);
+                    charWidth = fm.horizontalAdvance(ch);
+                }
+
+                // Fallback to average character width if measurement failed
+                if (charWidth <= 0) {
+                    QFontMetricsF fm(m_appearance.typography.textFont);
+                    charWidth = fm.averageCharWidth();
+                }
+
+                cursorWidth = qMax(charWidth, 8.0);  // Min width 8px
+
+                if (m_appearance.cursor.style == CursorStyle::Underline) {
+                    cursorHeight = 2.0;  // Thin underline
+                }
+                break;
+            }
+            case CursorStyle::Line:
+            default:
+                // Line cursor: thin vertical line
+                break;
+        }
+
+        // For underline, position at bottom of line
+        qreal yOffset = (m_appearance.cursor.style == CursorStyle::Underline)
+            ? line.height() - cursorHeight
+            : 0;
+
+        layoutCursorRect = QRectF(x, line.y() + yOffset, cursorWidth, cursorHeight);
     } else {
         // Fallback for empty paragraph
-        layoutCursorRect = QRectF(0, 0, CURSOR_WIDTH, 20.0);
+        layoutCursorRect = QRectF(0, 0, m_appearance.cursor.lineWidth, 20.0);
     }
 
     // Convert to widget coordinates
-    qreal paraY = layout->position().y();
+    // Use blockBoundingRect from document layout for correct Y position
+    // (layout->position() may not be set by custom layouts)
+    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
+    qreal paraY = blockRect.y();
     qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
-    qreal widgetY = TOP_MARGIN + paraY - scrollY + layoutCursorRect.y();
-    qreal widgetX = LEFT_MARGIN + layoutCursorRect.x();
+    // Phase 12.6: Use configurable margins
+    const RenderMargins& margins = m_renderPipeline->context().margins;
+    qreal widgetY = margins.top + paraY - scrollY + layoutCursorRect.y();
+    qreal widgetX = margins.left + layoutCursorRect.x();
 
-    return QRectF(widgetX, widgetY, CURSOR_WIDTH, layoutCursorRect.height());
+    return QRectF(widgetX, widgetY, layoutCursorRect.width(), layoutCursorRect.height());
 }
 
 void BookEditor::drawCursor(QPainter* painter)
@@ -2588,9 +3243,21 @@ void BookEditor::drawCursor(QPainter* painter)
         return;
     }
 
-    // Draw cursor as a filled rectangle using text color
-    QColor cursorColor = palette().color(QPalette::Text);
-    painter->fillRect(cursorRect, cursorColor);
+    // Get cursor color: custom or text color
+    QColor cursorColor = m_appearance.cursor.useCustomColor
+        ? m_appearance.cursor.customColor
+        : m_appearance.colors.textColor(m_appearance.colorMode);
+
+    // Draw cursor based on style
+    if (m_appearance.cursor.style == CursorStyle::Block) {
+        // Block cursor: semi-transparent to show character underneath
+        QColor blockColor = cursorColor;
+        blockColor.setAlpha(180);
+        painter->fillRect(cursorRect, blockColor);
+    } else {
+        // Line or Underline cursor: solid fill
+        painter->fillRect(cursorRect, cursorColor);
+    }
 }
 
 void BookEditor::setupCursorBlinkTimer()
@@ -2781,8 +3448,10 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         return {0, 0};
     }
 
+    // Phase 12.6: Use configurable margins
+    const RenderMargins& margins = m_renderPipeline->context().margins;
     // Convert widget Y to document Y (accounting for scroll and margins)
-    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - TOP_MARGIN;
+    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - margins.top;
     if (docY < 0) {
         docY = 0;
     }
@@ -2810,7 +3479,7 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
     // Convert to paragraph-relative coordinates
     double paraY = getParagraphY(m_textBuffer.get(), paraIndex);
     double localY = docY - paraY;
-    double localX = widgetPos.x() - LEFT_MARGIN;
+    double localX = widgetPos.x() - margins.left;
     if (localX < 0) {
         localX = 0;
     }
@@ -2843,6 +3512,8 @@ void BookEditor::drawSelection(QPainter* painter)
     selectionColor.setAlpha(128);  // Semi-transparent
 
     qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
+    // Phase 12.6: Use configurable margins
+    const RenderMargins& margins = m_renderPipeline->context().margins;
 
     for (int paraIndex = sel.start.paragraph; paraIndex <= sel.end.paragraph; ++paraIndex) {
         // Phase 11: Use QTextBlock::layout()
@@ -2852,8 +3523,10 @@ void BookEditor::drawSelection(QPainter* painter)
         QTextLayout* layout = block.layout();
         if (!layout) continue;
 
-        qreal paraY = layout->position().y();
-        qreal widgetY = TOP_MARGIN + paraY - scrollY;
+        // Use document layout for correct Y position
+        QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
+        qreal paraY = blockRect.y();
+        qreal widgetY = margins.top + paraY - scrollY;
 
         // Determine selection range within this paragraph
         int startOffset = (paraIndex == sel.start.paragraph) ? sel.start.offset : 0;
@@ -2879,7 +3552,7 @@ void BookEditor::drawSelection(QPainter* painter)
             qreal x2 = line.cursorToX(selEnd);
 
             QRectF selRect(
-                LEFT_MARGIN + x1,
+                margins.left + x1,
                 widgetY + line.y(),
                 x2 - x1,
                 line.height()
@@ -3282,7 +3955,9 @@ qreal BookEditor::getCursorDocumentY() const
         return 0.0;
     }
 
-    qreal paraY = layout->position().y();
+    // Use document layout for correct Y position
+    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
+    qreal paraY = blockRect.y();
 
     int offsetInBlock = qMin(m_cursorPosition.offset, block.length() - 1);
     if (offsetInBlock < 0) offsetInBlock = 0;
@@ -3654,6 +4329,8 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     // Get viewport info
     int viewportHeight = height();
     double scrollY = m_viewportManager->scrollPosition();
+    // Phase 12.6: Use configurable margins
+    const RenderMargins& margins = m_renderPipeline->context().margins;
 
     // Calculate Y position of focused paragraph using QTextBlock layouts
     double focusY = 0.0;
@@ -3691,9 +4368,9 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         }
     }
 
-    // Calculate screen positions (apply TOP_MARGIN and scroll offset)
-    int widgetFocusTop = static_cast<int>(TOP_MARGIN + focusTop - scrollY);
-    int widgetFocusBottom = static_cast<int>(TOP_MARGIN + focusTop + focusHeight - scrollY);
+    // Calculate screen positions (apply margins and scroll offset)
+    int widgetFocusTop = static_cast<int>(margins.top + focusTop - scrollY);
+    int widgetFocusBottom = static_cast<int>(margins.top + focusTop + focusHeight - scrollY);
 
     // Calculate overlay opacity (inverted: high dimOpacity = more dimming)
     int overlayAlpha = static_cast<int>((1.0 - m_appearance.focusMode.dimOpacity) * 255.0);
@@ -3720,8 +4397,8 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         QColor highlightColor = m_appearance.colors.accent;
         highlightColor.setAlpha(25);  // Very subtle
 
-        QRectF focusRect(LEFT_MARGIN, widgetFocusTop,
-                         width() - LEFT_MARGIN, widgetFocusBottom - widgetFocusTop);
+        QRectF focusRect(margins.left, widgetFocusTop,
+                         width() - margins.left, widgetFocusBottom - widgetFocusTop);
         painter.fillRect(focusRect, highlightColor);
     }
 }
@@ -4047,6 +4724,13 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
     }
 
+    // Color mode toggle
+    menu.addSeparator();
+    QString colorModeText = (m_appearance.colorMode == EditorColorMode::Light)
+        ? tr("Switch to Dark Mode")
+        : tr("Switch to Light Mode");
+    menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
+
     menu.exec(event->globalPos());
 }
 
@@ -4324,6 +5008,11 @@ void BookEditor::setupFindReplace()
     // Connect search engine to render engine
     if (m_renderEngine) {
         m_renderEngine->setSearchEngine(m_searchEngine.get());
+    }
+
+    // Phase 12.3: Connect search engine to pipeline
+    if (m_renderPipeline) {
+        m_renderPipeline->setSearchEngine(m_searchEngine.get());
     }
 
     // Create FindReplaceBar (will be shown when needed)
@@ -4728,12 +5417,7 @@ size_t BookEditor::characterCount() const
 
 size_t BookEditor::wordCount() const
 {
-    // Phase 11.10: Use cached word count from KmlDocumentModel
-    // This avoids iterating over all paragraphs on every contentChanged
-    if (m_documentModel) {
-        return m_documentModel->wordCount();
-    }
-    // Fallback for edit mode: count from QTextDocument
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
     if (m_isEditMode && m_textBuffer) {
         QString text = m_textBuffer->toPlainText();
         int count = 0;
@@ -4748,16 +5432,16 @@ size_t BookEditor::wordCount() const
         }
         return static_cast<size_t>(count);
     }
+    // Fallback for view mode: use cached count from KmlDocumentModel
+    if (m_documentModel) {
+        return m_documentModel->wordCount();
+    }
     return 0;
 }
 
 size_t BookEditor::characterCountNoSpaces() const
 {
-    // Phase 11.10: Use cached count from KmlDocumentModel
-    if (m_documentModel) {
-        return m_documentModel->characterCountNoSpaces();
-    }
-    // Fallback for edit mode: count from QTextDocument
+    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
     if (m_isEditMode && m_textBuffer) {
         QString text = m_textBuffer->toPlainText();
         int count = 0;
@@ -4767,6 +5451,10 @@ size_t BookEditor::characterCountNoSpaces() const
             }
         }
         return static_cast<size_t>(count);
+    }
+    // Fallback for view mode: use cached count from KmlDocumentModel
+    if (m_documentModel) {
+        return m_documentModel->characterCountNoSpaces();
     }
     return 0;
 }
@@ -4839,7 +5527,8 @@ void BookEditor::fromKml(const QString& kml)
     // Phase 11.10: Setup font, text color and line width for lazy layout
     m_documentModel->setFont(m_appearance.typography.textFont);
     m_documentModel->setTextColor(m_appearance.colors.text);
-    m_documentModel->setLineWidth(static_cast<double>(width()) - LEFT_MARGIN * 2);
+    // Phase 12.6: Use configurable margins
+    m_documentModel->setLineWidth(static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
 
     // Phase 11.10: Reset scroll position for view mode
     m_viewModeScrollOffset = 0.0;
@@ -4848,6 +5537,11 @@ void BookEditor::fromKml(const QString& kml)
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
         m_viewportManager->setScrollPosition(0.0);
+        // Set scroll padding so user can scroll to see bottom margin
+        double bottomPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
+            : m_appearance.viewMargins.vertical;
+        m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
     // Layout visible paragraphs for initial display
@@ -4879,6 +5573,13 @@ void BookEditor::fromKml(const QString& kml)
         m_renderEngine->setCursorVisible(true);
         if (m_cursorBlinkingEnabled) {
             m_renderEngine->startCursorBlink();
+        }
+    }
+    // Sync to RenderPipeline (Phase 12 fix)
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorBlinkState(true);
+        if (m_cursorBlinkingEnabled) {
+            m_renderPipeline->startCursorBlink();
         }
     }
 
@@ -4919,7 +5620,8 @@ void BookEditor::ensureEditMode()
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
     auto* customLayout = new KalahariTextDocumentLayout(m_textBuffer.get());
     customLayout->setFont(m_appearance.typography.textFont);
-    double textWidth = static_cast<double>(width()) - LEFT_MARGIN * 2;
+    // Phase 12.6: Use configurable margins
+    double textWidth = static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2;
     customLayout->setTextWidth(textWidth);
     m_textBuffer->setDocumentLayout(customLayout);
 
@@ -4968,6 +5670,11 @@ void BookEditor::ensureEditMode()
     // Connect ViewportManager to QTextDocument
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
+        // Set scroll padding so user can scroll to see bottom margin
+        double bottomPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
+            : m_appearance.viewMargins.vertical;
+        m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
     // Connect RenderEngine to QTextDocument
@@ -4982,10 +5689,19 @@ void BookEditor::ensureEditMode()
 
     m_isEditMode = true;
 
+    // Ensure text width is properly set for word wrapping
+    updateLayoutWidth();
+    updateViewport();
+
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);
     logger.info("BookEditor::ensureEditMode - completed in {}ms ({} paragraphs)",
         elapsed.count(), paraCount);
+
+    // Phase 11 FIX: Sync render pipeline state BEFORE repaint
+    // This ensures the pipeline has the correct text source (QTextDocument)
+    // Without this, the pipeline has no text source and renders nothing
+    syncPipelineState();
 
     // Trigger repaint to use RenderEngine
     update();

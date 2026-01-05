@@ -132,6 +132,28 @@ EditorColors EditorColors::fromJson(const QJsonObject& json)
     readColor("focusHighlight", colors.focusHighlight);
     readColor("focusDimOverlay", colors.focusDimOverlay);
 
+    // Dual-mode colors (Continuous View)
+    if (json.contains("continuous")) {
+        QJsonObject cont = json["continuous"].toObject();
+        if (cont.contains("backgroundLight"))
+            colors.continuous.backgroundLight = QColor(cont["backgroundLight"].toString());
+        if (cont.contains("textLight"))
+            colors.continuous.textLight = QColor(cont["textLight"].toString());
+        if (cont.contains("backgroundDark"))
+            colors.continuous.backgroundDark = QColor(cont["backgroundDark"].toString());
+        if (cont.contains("textDark"))
+            colors.continuous.textDark = QColor(cont["textDark"].toString());
+    }
+
+    // Dual-mode colors (Focus View)
+    if (json.contains("focus")) {
+        QJsonObject foc = json["focus"].toObject();
+        if (foc.contains("inactiveLight"))
+            colors.focus.inactiveLight = QColor(foc["inactiveLight"].toString());
+        if (foc.contains("inactiveDark"))
+            colors.focus.inactiveDark = QColor(foc["inactiveDark"].toString());
+    }
+
     return colors;
 }
 
@@ -164,6 +186,20 @@ QJsonObject EditorColors::toJson() const
     writeColor("error", error);
     writeColor("focusHighlight", focusHighlight);
     writeColor("focusDimOverlay", focusDimOverlay);
+
+    // Dual-mode colors (Continuous View)
+    QJsonObject cont;
+    cont["backgroundLight"] = continuous.backgroundLight.name(QColor::HexArgb);
+    cont["textLight"] = continuous.textLight.name(QColor::HexArgb);
+    cont["backgroundDark"] = continuous.backgroundDark.name(QColor::HexArgb);
+    cont["textDark"] = continuous.textDark.name(QColor::HexArgb);
+    json["continuous"] = cont;
+
+    // Dual-mode colors (Focus View)
+    QJsonObject foc;
+    foc["inactiveLight"] = focus.inactiveLight.name(QColor::HexArgb);
+    foc["inactiveDark"] = focus.inactiveDark.name(QColor::HexArgb);
+    json["focus"] = foc;
 
     return json;
 }
@@ -479,6 +515,14 @@ EditorAppearance EditorAppearance::fromJson(const QJsonObject& json)
 {
     EditorAppearance appearance;
 
+    // Editor color mode (light/dark toggle)
+    if (json.contains("colorMode")) {
+        QString mode = json["colorMode"].toString();
+        appearance.colorMode = (mode == "light")
+            ? EditorColorMode::Light
+            : EditorColorMode::Dark;
+    }
+
     if (json.contains("colors")) {
         appearance.colors = EditorColors::fromJson(json["colors"].toObject());
     }
@@ -520,12 +564,49 @@ EditorAppearance EditorAppearance::fromJson(const QJsonObject& json)
         appearance.distractionFree.uiFadeTimeout = df["uiFadeTimeout"].toInt(2000);
     }
 
+    // Margins
+    if (json.contains("pageMargins") && json["pageMargins"].isObject()) {
+        QJsonObject pm = json["pageMargins"].toObject();
+        if (pm.contains("top")) appearance.pageMargins.top = pm["top"].toDouble();
+        if (pm.contains("bottom")) appearance.pageMargins.bottom = pm["bottom"].toDouble();
+        if (pm.contains("left")) appearance.pageMargins.left = pm["left"].toDouble();
+        if (pm.contains("right")) appearance.pageMargins.right = pm["right"].toDouble();
+        if (pm.contains("mirrorEnabled")) appearance.pageMargins.mirrorEnabled = pm["mirrorEnabled"].toBool();
+        if (pm.contains("inner")) appearance.pageMargins.inner = pm["inner"].toDouble();
+        if (pm.contains("outer")) appearance.pageMargins.outer = pm["outer"].toDouble();
+    }
+    if (json.contains("viewMargins") && json["viewMargins"].isObject()) {
+        QJsonObject vm = json["viewMargins"].toObject();
+        if (vm.contains("vertical")) appearance.viewMargins.vertical = vm["vertical"].toDouble();
+        if (vm.contains("horizontal")) appearance.viewMargins.horizontal = vm["horizontal"].toDouble();
+    }
+
+    // Text frame border
+    if (json.contains("textFrameBorder") && json["textFrameBorder"].isObject()) {
+        QJsonObject tfb = json["textFrameBorder"].toObject();
+        if (tfb.contains("show")) appearance.textFrameBorder.show = tfb["show"].toBool();
+        if (tfb.contains("color") && tfb["color"].isArray()) {
+            QJsonArray colorArray = tfb["color"].toArray();
+            if (colorArray.size() >= 3) {
+                appearance.textFrameBorder.color = QColor(
+                    colorArray[0].toInt(),
+                    colorArray[1].toInt(),
+                    colorArray[2].toInt()
+                );
+            }
+        }
+        if (tfb.contains("width")) appearance.textFrameBorder.width = tfb["width"].toInt();
+    }
+
     return appearance;
 }
 
 QJsonObject EditorAppearance::toJson() const
 {
     QJsonObject json;
+
+    // Editor color mode
+    json["colorMode"] = (colorMode == EditorColorMode::Light) ? "light" : "dark";
 
     json["colors"] = colors.toJson();
     json["elements"] = elements.toJson();
@@ -556,6 +637,33 @@ QJsonObject EditorAppearance::toJson() const
     df["textWidth"] = distractionFree.textWidth;
     df["uiFadeTimeout"] = distractionFree.uiFadeTimeout;
     json["distractionFree"] = df;
+
+    // Margins
+    QJsonObject pm;
+    pm["top"] = pageMargins.top;
+    pm["bottom"] = pageMargins.bottom;
+    pm["left"] = pageMargins.left;
+    pm["right"] = pageMargins.right;
+    pm["mirrorEnabled"] = pageMargins.mirrorEnabled;
+    pm["inner"] = pageMargins.inner;
+    pm["outer"] = pageMargins.outer;
+    json["pageMargins"] = pm;
+
+    QJsonObject vm;
+    vm["vertical"] = viewMargins.vertical;
+    vm["horizontal"] = viewMargins.horizontal;
+    json["viewMargins"] = vm;
+
+    // Text frame border
+    QJsonObject tfb;
+    tfb["show"] = textFrameBorder.show;
+    QJsonArray colorArray;
+    colorArray.append(textFrameBorder.color.red());
+    colorArray.append(textFrameBorder.color.green());
+    colorArray.append(textFrameBorder.color.blue());
+    tfb["color"] = colorArray;
+    tfb["width"] = textFrameBorder.width;
+    json["textFrameBorder"] = tfb;
 
     return json;
 }

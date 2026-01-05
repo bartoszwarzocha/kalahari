@@ -75,6 +75,10 @@ signals:
     /// @brief Emitted when diagnostic mode should be disabled
     void disableDiagnosticModeRequested();
 
+    /// @brief Emitted when editor settings change (font, colors, etc.)
+    /// @note MainWindow should apply settings to all EditorPanels
+    void editorSettingsChanged();
+
 private:
     QMainWindow* m_mainWindow;
     DockCoordinator* m_dockCoordinator;

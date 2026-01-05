@@ -143,6 +143,37 @@ void RenderEngine::setSelectionTextColor(const QColor& color) {
     }
 }
 
+void RenderEngine::setFocusModeEnabled(bool enabled) {
+    if (m_focusModeEnabled != enabled) {
+        m_focusModeEnabled = enabled;
+        markAllDirty();
+    }
+}
+
+void RenderEngine::setFocusedParagraph(int paragraphIndex) {
+    if (m_focusedParagraph != paragraphIndex) {
+        // Mark old and new focused paragraphs as dirty
+        if (m_focusModeEnabled) {
+            if (m_focusedParagraph >= 0) {
+                markParagraphDirty(static_cast<size_t>(m_focusedParagraph));
+            }
+            if (paragraphIndex >= 0) {
+                markParagraphDirty(static_cast<size_t>(paragraphIndex));
+            }
+        }
+        m_focusedParagraph = paragraphIndex;
+    }
+}
+
+void RenderEngine::setInactiveTextColor(const QColor& color) {
+    if (m_inactiveTextColor != color) {
+        m_inactiveTextColor = color;
+        if (m_focusModeEnabled) {
+            markAllDirty();
+        }
+    }
+}
+
 void RenderEngine::setCursorColor(const QColor& color) {
     if (m_cursorColor != color) {
         m_cursorColor = color;
@@ -402,10 +433,8 @@ void RenderEngine::paint(QPainter* painter, const QRect& clipRect,
     // Paint search highlights
     paintSearchHighlights(painter, clipRect);
 
-    // Paint cursor
-    if (m_cursorVisible && m_cursorBlinkState) {
-        paintCursor(painter);
-    }
+    // Cursor is now drawn by BookEditor::drawCursor() in paintEvent()
+    // to ensure correct positioning with KalahariTextDocumentLayout
 
     painter->restore();
 
@@ -437,17 +466,25 @@ void RenderEngine::paintParagraph(QPainter* painter, const QTextBlock& block, do
     // Draw position with margins
     QPointF drawPos(m_leftMargin, y);
 
-    // Build selection format ranges if needed
-    QList<QTextLayout::FormatRange> selections;
+    // Determine text color based on focus mode
+    int paraIdx = block.blockNumber();
+    bool isDimmed = m_focusModeEnabled && paraIdx != m_focusedParagraph;
+
+    // Set text color for drawing (QTextLayout::draw uses painter's pen)
+    painter->setPen(isDimmed ? m_inactiveTextColor : m_textColor);
+
+    // Build format ranges for styling (selection)
+    QList<QTextLayout::FormatRange> formatRanges;
+    int textLen = layout->text().length();
+
+    // Selection highlighting (applied after focus dimming to override it)
     if (hasSelection()) {
         SelectionRange sel = m_selection.normalized();
-        int paraIdx = block.blockNumber();
 
         if (paraIdx >= sel.start.paragraph && paraIdx <= sel.end.paragraph) {
             int paraStart = (paraIdx == sel.start.paragraph)
                                 ? sel.start.offset
                                 : 0;
-            int textLen = layout->text().length();
             int paraEnd = (paraIdx == sel.end.paragraph)
                               ? std::min(sel.end.offset, textLen)
                               : textLen;
@@ -458,13 +495,13 @@ void RenderEngine::paintParagraph(QPainter* painter, const QTextBlock& block, do
                 selRange.length = paraEnd - paraStart;
                 selRange.format.setBackground(m_selectionColor);
                 selRange.format.setForeground(m_selectionTextColor);
-                selections.append(selRange);
+                formatRanges.append(selRange);
             }
         }
     }
 
-    // Draw the layout with selections
-    layout->draw(painter, drawPos, selections);
+    // Draw the layout with format ranges
+    layout->draw(painter, drawPos, formatRanges);
 }
 
 void RenderEngine::paintSelection(QPainter* /*painter*/) {

@@ -20,6 +20,21 @@
 namespace kalahari::editor {
 
 // =============================================================================
+// Editor Color Mode
+// =============================================================================
+
+/// @brief Editor color mode (independent from application theme)
+///
+/// The editor can have its own light/dark mode that user can toggle
+/// independently from the application theme. This allows:
+/// - Dark app theme with light editor (for distraction-free writing)
+/// - Light app theme with dark editor (for eye comfort at night)
+enum class EditorColorMode {
+    Light,  ///< Light background, dark text
+    Dark    ///< Dark background, light text
+};
+
+// =============================================================================
 // Color Palette
 // =============================================================================
 
@@ -62,6 +77,54 @@ struct EditorColors {
     // Focus mode specific
     QColor focusHighlight{255, 250, 230};      ///< Focused paragraph background
     QColor focusDimOverlay{255, 255, 255, 180}; ///< Overlay for dimmed paragraphs
+
+    // =========================================================================
+    // Dual-mode colors (Light/Dark mode toggle - independent from app theme)
+    // =========================================================================
+
+    /// @brief Continuous View colors (and base for other views)
+    struct ContinuousColors {
+        // Light mode
+        QColor backgroundLight{255, 255, 255};   ///< Background - light mode
+        QColor textLight{30, 30, 30};            ///< Text - light mode
+        // Dark mode
+        QColor backgroundDark{35, 35, 40};       ///< Background - dark mode
+        QColor textDark{224, 224, 224};          ///< Text - dark mode
+    } continuous;
+
+    /// @brief Focus View colors (extends Continuous)
+    struct FocusColors {
+        // Inactive paragraph colors - must be between background and text for visibility
+        // Light mode: text is dark (30), inactive should be lighter gray
+        // Dark mode: text is light (224), inactive should be darker but still visible
+        QColor inactiveLight{170, 170, 170};     ///< Inactive text - light mode
+        QColor inactiveDark{120, 120, 125};      ///< Inactive text - dark mode (visible on dark bg)
+    } focus;
+
+    // =========================================================================
+    // Helper methods for color mode
+    // =========================================================================
+
+    /// @brief Get background color for current mode
+    QColor background(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light
+            ? continuous.backgroundLight
+            : continuous.backgroundDark;
+    }
+
+    /// @brief Get text color for current mode
+    QColor textColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light
+            ? continuous.textLight
+            : continuous.textDark;
+    }
+
+    /// @brief Get inactive text color for Focus mode
+    QColor focusInactiveColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light
+            ? focus.inactiveLight
+            : focus.inactiveDark;
+    }
 
     /// @brief Create default light theme colors
     static EditorColors lightTheme();
@@ -232,6 +295,103 @@ struct DistractionFreeSettings {
     bool fadeOnMouseMove{true};                ///< Show UI on mouse move to edges
 };
 
+/// @brief Text frame border settings
+///
+/// Configures a visible border around the text content area to visualize
+/// margin boundaries. Useful for layout visualization and debugging.
+struct TextFrameBorder {
+    bool show = false;              ///< Show border around text area
+    QColor color{180, 180, 180};    ///< Border color
+    int width = 1;                  ///< Border width in pixels
+
+    bool operator==(const TextFrameBorder& other) const {
+        return show == other.show && color == other.color && width == other.width;
+    }
+    bool operator!=(const TextFrameBorder& other) const { return !(*this == other); }
+};
+
+/// @brief Cursor style enumeration
+enum class CursorStyle {
+    Line,       ///< Vertical line cursor (|)
+    Block,      ///< Block cursor covering current character (█)
+    Underline   ///< Underline cursor under current character (_)
+};
+
+/// @brief Settings for cursor appearance
+struct CursorSettings {
+    CursorStyle style{CursorStyle::Line};      ///< Cursor shape
+    bool useCustomColor{false};                ///< Use custom color instead of text color
+    QColor customColor{255, 255, 255};         ///< Custom cursor color (if useCustomColor)
+    bool blinking{true};                       ///< Enable cursor blinking
+    int blinkInterval{500};                    ///< Blink interval in milliseconds
+    int lineWidth{2};                          ///< Width for Line cursor in pixels
+};
+
+// =============================================================================
+// Margin Configuration
+// =============================================================================
+
+/// @brief Page margins configuration (for Page and Typewriter views)
+/// Supports mirror margins for book binding
+struct PageMarginsConfig {
+    double top = 25.4;           ///< Top margin in mm (default 1 inch)
+    double bottom = 25.4;        ///< Bottom margin in mm
+    double left = 25.4;          ///< Left margin in mm (when mirror disabled)
+    double right = 25.4;         ///< Right margin in mm (when mirror disabled)
+
+    // Mirror margins for book binding
+    bool mirrorEnabled = false;  ///< Enable mirror margins (inner/outer)
+    double inner = 30.0;         ///< Inner margin (binding side) in mm
+    double outer = 20.0;         ///< Outer margin in mm
+
+    /// @brief Get effective left margin for given page number
+    /// @param pageNumber 1-based page number
+    /// @return Left margin in mm (considers mirror if enabled)
+    double effectiveLeft(int pageNumber) const {
+        if (!mirrorEnabled) return left;
+        // Odd pages: inner on left (binding), outer on right
+        // Even pages: outer on left, inner on right (binding)
+        return (pageNumber % 2 == 1) ? inner : outer;
+    }
+
+    /// @brief Get effective right margin for given page number
+    /// @param pageNumber 1-based page number
+    /// @return Right margin in mm (considers mirror if enabled)
+    double effectiveRight(int pageNumber) const {
+        if (!mirrorEnabled) return right;
+        return (pageNumber % 2 == 1) ? outer : inner;
+    }
+
+    bool operator==(const PageMarginsConfig& other) const {
+        return top == other.top && bottom == other.bottom &&
+               left == other.left && right == other.right &&
+               mirrorEnabled == other.mirrorEnabled &&
+               inner == other.inner && outer == other.outer;
+    }
+    bool operator!=(const PageMarginsConfig& other) const { return !(*this == other); }
+};
+
+/// @brief View margins configuration (for Continuous, Focus, DistractionFree views)
+/// Symmetric margins for viewport padding
+struct ViewMarginsConfig {
+    double vertical = 30.0;      ///< Top and bottom margin in pixels (symmetric)
+    double horizontal = 50.0;    ///< Left and right margin in pixels (symmetric)
+
+    /// @brief Get top margin
+    double top() const { return vertical; }
+    /// @brief Get bottom margin
+    double bottom() const { return vertical; }
+    /// @brief Get left margin
+    double left() const { return horizontal; }
+    /// @brief Get right margin
+    double right() const { return horizontal; }
+
+    bool operator==(const ViewMarginsConfig& other) const {
+        return vertical == other.vertical && horizontal == other.horizontal;
+    }
+    bool operator!=(const ViewMarginsConfig& other) const { return !(*this == other); }
+};
+
 // =============================================================================
 // Editor Appearance (Main Class)
 // =============================================================================
@@ -257,6 +417,29 @@ public:
     ~EditorAppearance() = default;
 
     // =========================================================================
+    // Editor Color Mode (independent from app theme)
+    // =========================================================================
+
+    /// @brief Current editor color mode (light/dark toggle)
+    ///
+    /// This is independent from the application theme. User can have:
+    /// - Dark app theme with light editor
+    /// - Light app theme with dark editor
+    EditorColorMode colorMode{EditorColorMode::Dark};
+
+    /// @brief Toggle between light and dark editor mode
+    void toggleColorMode() {
+        colorMode = (colorMode == EditorColorMode::Light)
+            ? EditorColorMode::Dark
+            : EditorColorMode::Light;
+    }
+
+    /// @brief Check if editor is in dark mode
+    bool isDarkMode() const {
+        return colorMode == EditorColorMode::Dark;
+    }
+
+    // =========================================================================
     // Configuration Sections
     // =========================================================================
 
@@ -267,6 +450,12 @@ public:
     TypewriterSettings typewriter;             ///< Typewriter mode settings
     FocusModeSettings focusMode;               ///< Focus mode settings
     DistractionFreeSettings distractionFree;   ///< Distraction-free mode settings
+    CursorSettings cursor;                     ///< Cursor appearance settings
+    TextFrameBorder textFrameBorder;           ///< Text frame border settings
+
+    // Margins configuration
+    PageMarginsConfig pageMargins;             ///< Margins for Page/Typewriter views
+    ViewMarginsConfig viewMargins;             ///< Margins for Continuous/Focus/DistractionFree views
 
     // =========================================================================
     // Presets

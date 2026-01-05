@@ -128,6 +128,22 @@ public:
     double lineSpacing() const { return m_lineSpacing; }
 
     // =========================================================================
+    // Focus Mode Configuration
+    // =========================================================================
+
+    /// @brief Enable or disable focus mode text dimming
+    void setFocusModeEnabled(bool enabled);
+    bool isFocusModeEnabled() const { return m_focusModeEnabled; }
+
+    /// @brief Set the currently focused paragraph index
+    void setFocusedParagraph(int paragraphIndex);
+    int focusedParagraph() const { return m_focusedParagraph; }
+
+    /// @brief Set the color for inactive (non-focused) paragraphs
+    void setInactiveTextColor(const QColor& color);
+    QColor inactiveTextColor() const { return m_inactiveTextColor; }
+
+    // =========================================================================
     // Dirty Region Tracking
     // =========================================================================
 
@@ -303,6 +319,11 @@ private:
     double m_rightMargin = 10.0;
     double m_lineSpacing = 1.0;
     double m_cursorWidth = 2.0;
+
+    // Focus mode
+    bool m_focusModeEnabled = false;
+    int m_focusedParagraph = -1;
+    QColor m_inactiveTextColor{160, 160, 160};  // Dimmed text for non-focused paragraphs
 
     // Dirty tracking
     QRegion m_dirtyRegion;

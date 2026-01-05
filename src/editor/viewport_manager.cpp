@@ -65,6 +65,13 @@ void ViewportManager::setBufferSize(size_t paragraphs) {
     m_bufferSize = paragraphs;
 }
 
+void ViewportManager::setBottomScrollPadding(double padding) {
+    if (std::abs(m_bottomScrollPadding - padding) > 0.001) {
+        m_bottomScrollPadding = std::max(0.0, padding);
+        emit viewportChanged();
+    }
+}
+
 // =============================================================================
 // Scroll Position
 // =============================================================================
@@ -115,11 +122,14 @@ double ViewportManager::maxScrollPosition() const {
     double totalHeight = totalDocumentHeight();
     double viewHeight = static_cast<double>(m_viewportSize.height());
 
-    if (totalHeight <= viewHeight) {
+    // Add bottom padding so user can scroll past content to see bottom margin
+    double scrollableHeight = totalHeight + m_bottomScrollPadding;
+
+    if (scrollableHeight <= viewHeight) {
         return 0.0;
     }
 
-    return totalHeight - viewHeight;
+    return scrollableHeight - viewHeight;
 }
 
 double ViewportManager::clampScrollPosition(double y) const {

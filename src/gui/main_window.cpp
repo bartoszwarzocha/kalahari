@@ -41,6 +41,7 @@
 #include "kalahari/core/part.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/statistics_collector.h"
+#include <QActionGroup>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -123,6 +124,9 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::enableDiagnosticMode);
     connect(m_settingsCoordinator, &SettingsCoordinator::disableDiagnosticModeRequested,
             this, &MainWindow::disableDiagnosticMode);
+    // Connect editor settings changed signal to apply to all panels
+    connect(m_settingsCoordinator, &SettingsCoordinator::editorSettingsChanged,
+            this, &MainWindow::applyEditorSettingsToAllPanels);
     logger.debug("MainWindow: SettingsCoordinator created");
 
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
@@ -433,6 +437,25 @@ void MainWindow::createToolbars() {
     // Note: Connection moved to createDocks() after DockCoordinator is created
 
     logger.debug("5 toolbars created successfully (File, Edit, Book, View, Tools)");
+
+    // Create exclusive action group for alignment buttons
+    QActionGroup* alignGroup = new QActionGroup(this);
+    alignGroup->setExclusive(true);
+
+    if (QAction* leftAction = registry.getAction(QString("format.alignLeft"))) {
+        alignGroup->addAction(leftAction);
+    }
+    if (QAction* centerAction = registry.getAction(QString("format.alignCenter"))) {
+        alignGroup->addAction(centerAction);
+    }
+    if (QAction* rightAction = registry.getAction(QString("format.alignRight"))) {
+        alignGroup->addAction(rightAction);
+    }
+    if (QAction* justifyAction = registry.getAction(QString("format.justify"))) {
+        alignGroup->addAction(justifyAction);
+    }
+
+    logger.debug("Alignment action group created (exclusive)");
 }
 
 void MainWindow::createStatusBar() {
@@ -785,6 +808,34 @@ void MainWindow::updateEditorActionStates() {
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
         dfCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::DistractionFree; };
         registry.updateActionState("view.mode.distraction-free");
+    }
+
+    // Update alignment action checked states
+    Qt::Alignment currentAlign = bookEditor->currentAlignment();
+    if (auto* leftCmd = registry.getCommand("format.alignLeft")) {
+        leftCmd->isChecked = [currentAlign]() {
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft ||
+                   (currentAlign & Qt::AlignHorizontal_Mask) == 0;  // Default is left
+        };
+        registry.updateActionState("format.alignLeft");
+    }
+    if (auto* centerCmd = registry.getCommand("format.alignCenter")) {
+        centerCmd->isChecked = [currentAlign]() {
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignHCenter;
+        };
+        registry.updateActionState("format.alignCenter");
+    }
+    if (auto* rightCmd = registry.getCommand("format.alignRight")) {
+        rightCmd->isChecked = [currentAlign]() {
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignRight;
+        };
+        registry.updateActionState("format.alignRight");
+    }
+    if (auto* justifyCmd = registry.getCommand("format.justify")) {
+        justifyCmd->isChecked = [currentAlign]() {
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignJustify;
+        };
+        registry.updateActionState("format.justify");
     }
 }
 
@@ -1304,6 +1355,32 @@ void MainWindow::updateStatusBarStatistics(int words, int chars, int paragraphs)
     if (m_readingTimeLabel) {
         m_readingTimeLabel->setText(tr("Reading: %1 min").arg(readingMinutes));
     }
+}
+
+// =============================================================================
+// Editor Settings Application (OpenSpec #00042)
+// =============================================================================
+
+void MainWindow::applyEditorSettingsToAllPanels() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("MainWindow: Applying editor settings to all panels");
+
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    if (!centralTabs) {
+        logger.warn("MainWindow: No central tabs available");
+        return;
+    }
+
+    int count = 0;
+    for (int i = 0; i < centralTabs->count(); ++i) {
+        EditorPanel* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor) {
+            editor->applySettings();
+            ++count;
+        }
+    }
+
+    logger.debug("MainWindow: Applied settings to {} EditorPanels", count);
 }
 
 } // namespace gui

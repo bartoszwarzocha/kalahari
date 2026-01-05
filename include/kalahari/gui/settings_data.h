@@ -11,6 +11,7 @@
 #include <QColor>
 #include <QMap>
 #include "kalahari/core/art_provider.h"  // For IconContext enum
+#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
 
 namespace kalahari {
 namespace gui {
@@ -56,6 +57,60 @@ struct SettingsData {
     int tabSize = 4;            ///< Tab size in spaces
     bool showLineNumbers = true;///< Show line numbers in editor
     bool wordWrap = true;       ///< Enable word wrap
+
+    // ========================================================================
+    // Editor / Colors (Light/Dark mode, independent from app theme)
+    // ========================================================================
+
+    bool editorDarkMode = true;        ///< Editor dark mode (true = dark, false = light)
+
+    // Light mode colors
+    QColor editorBackgroundLight{255, 255, 255}; ///< Background - light mode
+    QColor editorTextLight{30, 30, 30};          ///< Text - light mode
+    QColor editorInactiveLight{170, 170, 170};   ///< Inactive text (Focus mode) - light
+
+    // Dark mode colors
+    QColor editorBackgroundDark{35, 35, 40};     ///< Background - dark mode
+    QColor editorTextDark{224, 224, 224};        ///< Text - dark mode
+    QColor editorInactiveDark{120, 120, 125};    ///< Inactive text (Focus mode) - dark
+
+    // ========================================================================
+    // Editor / Cursor
+    // ========================================================================
+
+    editor::CursorStyle cursorStyle{editor::CursorStyle::Line}; ///< Cursor shape
+    bool cursorUseCustomColor{false};            ///< Use custom color instead of text color
+    QColor cursorCustomColor{255, 255, 255};     ///< Custom cursor color
+    bool cursorBlinking{true};                   ///< Enable cursor blinking
+    int cursorBlinkInterval{500};                ///< Blink interval in milliseconds
+    int cursorLineWidth{2};                      ///< Width for Line cursor in pixels
+
+    // ========================================================================
+    // Editor / Margins
+    // ========================================================================
+
+    // View margins (for Continuous/Focus views) - in pixels
+    int viewMarginHorizontal = 50;               ///< Horizontal margin in pixels
+    int viewMarginVertical = 30;                 ///< Vertical margin in pixels
+
+    // Page margins (for Page/Typewriter views) - in mm
+    double pageMarginTop = 25.4;                 ///< Top margin in mm
+    double pageMarginBottom = 25.4;              ///< Bottom margin in mm
+    double pageMarginLeft = 25.4;                ///< Left margin in mm
+    double pageMarginRight = 25.4;               ///< Right margin in mm
+
+    // Mirror margins for book binding
+    bool pageMirrorMarginsEnabled = false;       ///< Enable mirror margins
+    double pageMarginInner = 30.0;               ///< Inner margin (binding side) in mm
+    double pageMarginOuter = 20.0;               ///< Outer margin in mm
+
+    // ========================================================================
+    // Editor / Text Frame Border
+    // ========================================================================
+
+    bool textFrameBorderShow = false;            ///< Show border around text area
+    QColor textFrameBorderColor{180, 180, 180};  ///< Border color
+    int textFrameBorderWidth = 1;                ///< Border width in pixels (1-5)
 
     // ========================================================================
     // Advanced / General
@@ -183,7 +238,36 @@ struct SettingsData {
                showRecentFiles != other.showRecentFiles ||
                autoLoadLastProject != other.autoLoadLastProject ||
                dashboardMaxItems != other.dashboardMaxItems ||
-               dashboardIconSize != other.dashboardIconSize;
+               dashboardIconSize != other.dashboardIconSize ||
+               // Editor colors
+               editorDarkMode != other.editorDarkMode ||
+               editorBackgroundLight != other.editorBackgroundLight ||
+               editorTextLight != other.editorTextLight ||
+               editorInactiveLight != other.editorInactiveLight ||
+               editorBackgroundDark != other.editorBackgroundDark ||
+               editorTextDark != other.editorTextDark ||
+               editorInactiveDark != other.editorInactiveDark ||
+               // Cursor settings
+               cursorStyle != other.cursorStyle ||
+               cursorUseCustomColor != other.cursorUseCustomColor ||
+               cursorCustomColor != other.cursorCustomColor ||
+               cursorBlinking != other.cursorBlinking ||
+               cursorBlinkInterval != other.cursorBlinkInterval ||
+               cursorLineWidth != other.cursorLineWidth ||
+               // Margin settings
+               viewMarginHorizontal != other.viewMarginHorizontal ||
+               viewMarginVertical != other.viewMarginVertical ||
+               pageMarginTop != other.pageMarginTop ||
+               pageMarginBottom != other.pageMarginBottom ||
+               pageMarginLeft != other.pageMarginLeft ||
+               pageMarginRight != other.pageMarginRight ||
+               pageMirrorMarginsEnabled != other.pageMirrorMarginsEnabled ||
+               pageMarginInner != other.pageMarginInner ||
+               pageMarginOuter != other.pageMarginOuter ||
+               // Text frame border settings
+               textFrameBorderShow != other.textFrameBorderShow ||
+               textFrameBorderColor != other.textFrameBorderColor ||
+               textFrameBorderWidth != other.textFrameBorderWidth;
     }
 
     /// @brief Check if any setting changed
@@ -207,6 +291,14 @@ struct SettingsData {
                tabSize != other.tabSize ||
                showLineNumbers != other.showLineNumbers ||
                wordWrap != other.wordWrap ||
+               // Editor colors
+               editorDarkMode != other.editorDarkMode ||
+               editorBackgroundLight != other.editorBackgroundLight ||
+               editorTextLight != other.editorTextLight ||
+               editorInactiveLight != other.editorInactiveLight ||
+               editorBackgroundDark != other.editorBackgroundDark ||
+               editorTextDark != other.editorTextDark ||
+               editorInactiveDark != other.editorInactiveDark ||
                diagnosticMode != other.diagnosticMode ||
                logBufferSize != other.logBufferSize ||
                tooltipBackgroundColor != other.tooltipBackgroundColor ||
@@ -243,7 +335,28 @@ struct SettingsData {
                showRecentFiles != other.showRecentFiles ||
                autoLoadLastProject != other.autoLoadLastProject ||
                dashboardMaxItems != other.dashboardMaxItems ||
-               dashboardIconSize != other.dashboardIconSize;
+               dashboardIconSize != other.dashboardIconSize ||
+               // Cursor settings
+               cursorStyle != other.cursorStyle ||
+               cursorUseCustomColor != other.cursorUseCustomColor ||
+               cursorCustomColor != other.cursorCustomColor ||
+               cursorBlinking != other.cursorBlinking ||
+               cursorBlinkInterval != other.cursorBlinkInterval ||
+               cursorLineWidth != other.cursorLineWidth ||
+               // Margin settings
+               viewMarginHorizontal != other.viewMarginHorizontal ||
+               viewMarginVertical != other.viewMarginVertical ||
+               pageMarginTop != other.pageMarginTop ||
+               pageMarginBottom != other.pageMarginBottom ||
+               pageMarginLeft != other.pageMarginLeft ||
+               pageMarginRight != other.pageMarginRight ||
+               pageMirrorMarginsEnabled != other.pageMirrorMarginsEnabled ||
+               pageMarginInner != other.pageMarginInner ||
+               pageMarginOuter != other.pageMarginOuter ||
+               // Text frame border settings
+               textFrameBorderShow != other.textFrameBorderShow ||
+               textFrameBorderColor != other.textFrameBorderColor ||
+               textFrameBorderWidth != other.textFrameBorderWidth;
     }
 
     bool operator==(const SettingsData& other) const {

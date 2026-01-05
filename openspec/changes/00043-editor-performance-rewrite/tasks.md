@@ -672,3 +672,214 @@ KalahariTextDocumentLayout
 | `src/CMakeLists.txt` | TO MODIFY |
 
 ---
+
+## Phase 12: EditorRenderPipeline (Unified Rendering Architecture)
+
+**DATA:** 2026-01-04
+
+### Problem
+
+Obecny kod to balagan - rendering rozsypany po wielu miejscach:
+
+| Problem | Lokalizacja | Skutek |
+|---------|-------------|--------|
+| **God Class** | BookEditor (~1200 linii header) | Trudne do utrzymania |
+| **3 sciezki renderingu** | paintEvent() | Duplikacja, niespojnosc |
+| **Rozrzucone atrybuty** | EditorAppearance, hardcoded margins | Trudne do rozszerzenia |
+| **Podzielona logika layout** | KalahariTextDocumentLayout, ViewportManager, KmlDocumentModel | Niespojne wysokosci |
+| **Duplikowane rysowanie** | Cursor/selection w BookEditor i RenderEngine | Podatne na bledy |
+
+### Rozwiazanie: Jeden Pipeline
+
+Pipeline: TextSource -> Attributes -> Layout -> Render
+
+| Stage | Input | Output | Odpowiedzialnosc |
+|-------|-------|--------|------------------|
+| 1. TextSource | Document data | Text + Formats | Zunifikowany dostep do QTextDocument lub KmlDocumentModel |
+| 2. Attributes | EditorAppearance | RenderContext | Zbierz marginesy, skale, kolory, line spacing |
+| 3. Layout | RenderContext + Text | BlockPositions | Oblicz pozycje z marginesami, skala, zawijaniem, wyrownaniem |
+| 4. Render | BlockPositions + Context | Pixels | Rysuj wszystko (tekst, kursor, selekcje, overlay) |
+
+### Kluczowa zasada: Kolejnosc krokow
+
+ZAWSZE ta sama kolejnosc dla kazdej operacji:
+1. TEXT      -> QTextDocument (zrodlo prawdy)
+2. ATRYBUTY  -> QTextBlockFormat (wyrownanie, wciecia) + RenderContext (marginesy, skala)
+3. LAYOUT    -> layoutBlock() - oblicz pozycje linii z uwzglednieniem wyrownania
+4. RENDER    -> paint() - rysuj na ekran
+
+Zmiana wyrownania:
+setAlignment() -> zmien QTextBlockFormat -> relayout affected blocks -> repaint
+
+### Nowe klasy
+
+- ITextSource - interface dla QTextDocumentSource i KmlDocumentModelSource
+- RenderContext - wszystkie atrybuty renderingu w jednej strukturze
+- EditorRenderPipeline - JEDEN punkt wejscia: render(painter, clipRect)
+
+### BookEditor po refaktoryzacji
+
+PRZED (paintEvent - 100+ linii):
+- 3 osobne sciezki dla Page/View/Edit mode
+- Duplikacja cursor/selection
+
+PO (paintEvent - 3 linie):
+- m_renderPipeline->render(&painter, event->rect())
+
+### Rozszerzalnosc
+
+| Funkcja | Obecny stan | Po refaktoryzacji |
+|---------|-------------|-------------------|
+| Marginesy | Hardcoded LEFT_MARGIN | pipeline->setMargins(50, 30, 50, 30) |
+| Skalowanie | Brak | pipeline->setScaleFactor(1.25) |
+| Wyrownanie | Nie dziala (brak relayout) | pipeline->setBlockAlignment(idx, align) |
+| Zmiana widoku | 3 osobne sciezki | pipeline->setViewMode(ViewMode::Page) |
+
+### Zadania
+
+#### 12.1: Infrastruktura
+- [x] 12.1.1 Utworz text_source_adapter.h/cpp - ITextSource interface
+- [x] 12.1.2 Utworz render_context.h - RenderContext struct
+- [x] 12.1.3 Utworz editor_render_pipeline.h/cpp - glowna klasa
+- [x] 12.1.4 Dodaj do CMakeLists.txt
+
+#### 12.2: Migracja renderingu
+- [x] 12.2.1 Przenies logike z RenderEngine do EditorRenderPipeline
+  - Dodano renderMarkerHighlights() (TODO/NOTE/DONE markers)
+  - Dodano renderCommentHighlights() (HTML/C-style comments)
+  - Dodano cursor styles (Line/Block/Underline)
+  - Dodano cursor blink timer support
+- [x] 12.2.2 Zintegruj ViewportManager wewnetrznie
+  - updateVisibleRange() uzywa ViewportManager gdy dostepny
+  - Fallback na obliczenia z scrollY gdy brak VM
+- [x] 12.2.3 Skonsoliduj rysowanie cursor/selection (tylko w pipeline)
+  - renderCursor() obsluguje wszystkie style
+  - renderSelection() + renderParagraphSelection() complete
+- [x] 12.2.4 Obsluz wszystkie widoki przez ten sam pipeline
+  - ViewMode w RenderContext
+  - FocusModeConfig dla trybu focus
+  - PageModeConfig dla trybu stron
+- [ ] 12.2.5 Zintegruj KalahariTextDocumentLayout z pipeline
+  - Wymaga zmian w BookEditor (Phase 12.3)
+
+#### 12.3: Uproszczenie BookEditor
+- [x] 12.3.1 Dodaj m_renderPipeline member
+  - Dodano #include <kalahari/editor/editor_render_pipeline.h>
+  - Dodano std::unique_ptr<EditorRenderPipeline> m_renderPipeline
+  - Inicjalizacja w konstruktorze z polaczeniem sygnalow
+- [x] 12.3.2 Zamien 3 sciezki renderingu na jedno wywolanie render()
+  - paintEvent() teraz deleguje do m_renderPipeline->render()
+  - Dodano syncPipelineState() do synchronizacji stanu
+  - Zachowano fallback do starego kodu (deprecated, do usuniecia w 12.5)
+- [x] 12.3.3 Usun duplikowany stan (cursor w obu miejscach)
+  - Cursor forwarded do pipeline przez syncPipelineState()
+  - Selection forwarded do pipeline przez syncPipelineState()
+  - BookEditor tylko przechowuje stan, pipeline renderuje
+- [x] 12.3.4 Deleguj wszystkie zapytania o rendering do pipeline
+  - paintEvent() -> pipeline.render()
+  - Focus mode -> pipeline context
+  - View mode -> pipeline context
+- [x] 12.3.5 Przepisz setAlign* na pipeline->setBlockAlignment()
+  - setAlignLeft/Center/Right/Justify wywoluja pipeline.markAllDirty()
+  - Wyrownanie nadal stosowane przez QTextBlockFormat
+  - Pipeline automatycznie pobiera zmiany z QTextDocument
+
+#### 12.4: Rozszerzenia
+- [ ] 12.4.1 Dodaj obsluge skalowania
+- [ ] 12.4.2 Dodaj konfigurowalne marginesy
+- [ ] 12.4.3 Test: wszystkie widoki dzialaja identycznie
+- [ ] 12.4.4 Test: wyrownanie dziala poprawnie
+
+#### 12.5: Cleanup
+- [ ] 12.5.1 Usun stary RenderEngine (po pelnej migracji)
+- [ ] 12.5.2 Usun zduplikowany kod z BookEditor
+- [ ] 12.5.3 Zaktualizuj testy
+
+### Pliki do utworzenia
+
+| Plik | Cel |
+|------|-----|
+| include/kalahari/editor/text_source_adapter.h | ITextSource interface + adaptery |
+| src/editor/text_source_adapter.cpp | Implementacje adapterow |
+| include/kalahari/editor/render_context.h | RenderContext struct |
+| include/kalahari/editor/editor_render_pipeline.h | Glowna klasa pipeline |
+| src/editor/editor_render_pipeline.cpp | Implementacja pipeline |
+
+### Pliki do modyfikacji
+
+| Plik | Zmiana |
+|------|--------|
+| book_editor.h | Dodaj m_renderPipeline, usun renderowanie |
+| book_editor.cpp | Deleguj do pipeline |
+| kalahari_text_document_layout.cpp | Integracja z pipeline |
+| src/CMakeLists.txt | Dodaj nowe pliki |
+
+### Pliki do usuniecia (po migracji)
+
+| Plik | Powod |
+|------|-------|
+| render_engine.h/cpp | Logika przeniesiona do EditorRenderPipeline |
+
+---
+
+#### 12.6: Configurable Margins
+
+**Problem:** Hardcoded `LEFT_MARGIN = 10.0`, `TOP_MARGIN = 10.0` w book_editor.cpp (~25 uzyc).
+Brak marginesow per view mode. Brak marginesow lustrzanych dla oprawy ksiazki.
+
+**Rozwiazanie:** Konfiguracje marginesow per typ widoku + calculateMargins() w RenderContext.
+
+##### Struktury danych
+
+**PageMarginsConfig** (dla Page, Typewriter):
+```cpp
+struct PageMarginsConfig {
+    double top = 25.4;           // mm (1 inch)
+    double bottom = 25.4;
+    double left = 25.4;
+    double right = 25.4;
+    bool mirrorEnabled = false;  // Lustrzane dla oprawy
+    double inner = 30.0;         // Margines wewnetrzny (oprawa)
+    double outer = 20.0;         // Margines zewnetrzny
+
+    double effectiveLeft(int pageNumber) const;
+    double effectiveRight(int pageNumber) const;
+};
+```
+
+**ViewMarginsConfig** (dla Continuous, Focus, DistractionFree):
+```cpp
+struct ViewMarginsConfig {
+    double vertical = 30.0;     // piksele, gora i dol symetrycznie
+    double horizontal = 50.0;   // piksele, lewo i prawo symetrycznie
+};
+```
+
+##### Zadania
+
+###### 12.6.1: Dodaj struktury marginesow do editor_appearance.h
+- [ ] 12.6.1.1 Dodaj `PageMarginsConfig` struct
+- [ ] 12.6.1.2 Dodaj `ViewMarginsConfig` struct
+- [ ] 12.6.1.3 Dodaj `pageMargins` i `viewMargins` do EditorAppearance
+- [ ] 12.6.1.4 Implementuj fromJson/toJson dla nowych struktur
+
+###### 12.6.2: Zaktualizuj RenderContext
+- [ ] 12.6.2.1 Dodaj pole `currentPageNumber`
+- [ ] 12.6.2.2 Dodaj statyczne `calculateMargins(appearance, viewMode, pageNumber)`
+- [ ] 12.6.2.3 Zaktualizuj effectiveTextWidth() o nowe marginesy
+
+###### 12.6.3: Zaktualizuj EditorRenderPipeline
+- [ ] 12.6.3.1 Wywoluj calculateMargins() w render() na podstawie view mode
+- [ ] 12.6.3.2 Przekazuj numer strony dla Page mode (marginesy lustrzane)
+
+###### 12.6.4: Refaktoryzacja BookEditor
+- [ ] 12.6.4.1 Usun `constexpr LEFT_MARGIN`, `TOP_MARGIN`
+- [ ] 12.6.4.2 Zaktualizuj syncPipelineState() - ustawiaj marginesy z appearance
+- [ ] 12.6.4.3 Zaktualizuj updateLayoutWidth() - uzyj RenderContext.margins
+- [ ] 12.6.4.4 Zaktualizuj positionFromPoint() - uzyj marginesow z contextu
+- [ ] 12.6.4.5 Zaktualizuj obliczenia cursor rect
+
+###### 12.6.5: Testy
+- [ ] 12.6.5.1 Test marginesow lustrzanych (odd/even page)
+- [ ] 12.6.5.2 Test przelaczania marginesow per view mode
+- [ ] 12.6.5.3 Test JSON round-trip dla margin configs

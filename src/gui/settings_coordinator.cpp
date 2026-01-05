@@ -14,6 +14,7 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
 #include <QMainWindow>
 #include <QStatusBar>
 
@@ -115,6 +116,48 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.tabSize = settings.get<int>("editor.tabSize", 4);
     settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers", true);
     settingsData.wordWrap = settings.get<bool>("editor.wordWrap", false);
+
+    // Editor/Colors
+    settingsData.editorDarkMode = settings.get<bool>("editor.darkMode", true);
+    settingsData.editorBackgroundLight = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.backgroundLight", "#ffffff")));
+    settingsData.editorTextLight = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.textLight", "#1e1e1e")));
+    settingsData.editorInactiveLight = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.inactiveLight", "#aaaaaa")));
+    settingsData.editorBackgroundDark = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.backgroundDark", "#232328")));
+    settingsData.editorTextDark = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.textDark", "#e0e0e0")));
+    settingsData.editorInactiveDark = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.colors.inactiveDark", "#78787d")));
+
+    // Editor/Cursor
+    int cursorStyleInt = settings.get<int>("editor.cursor.style", 0);  // 0 = Line
+    settingsData.cursorStyle = static_cast<editor::CursorStyle>(cursorStyleInt);
+    settingsData.cursorUseCustomColor = settings.get<bool>("editor.cursor.useCustomColor", false);
+    settingsData.cursorCustomColor = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.cursor.customColor", "#ffffff")));
+    settingsData.cursorBlinking = settings.get<bool>("editor.cursor.blinking", true);
+    settingsData.cursorBlinkInterval = settings.get<int>("editor.cursor.blinkInterval", 500);
+    settingsData.cursorLineWidth = settings.get<int>("editor.cursor.lineWidth", 2);
+
+    // Editor/Margins
+    settingsData.viewMarginHorizontal = static_cast<int>(settings.get<double>("editor.margins.viewHorizontal", 50.0));
+    settingsData.viewMarginVertical = static_cast<int>(settings.get<double>("editor.margins.viewVertical", 30.0));
+    settingsData.pageMarginTop = settings.get<double>("editor.margins.pageTop", 25.4);
+    settingsData.pageMarginBottom = settings.get<double>("editor.margins.pageBottom", 25.4);
+    settingsData.pageMarginLeft = settings.get<double>("editor.margins.pageLeft", 25.4);
+    settingsData.pageMarginRight = settings.get<double>("editor.margins.pageRight", 25.4);
+    settingsData.pageMirrorMarginsEnabled = settings.get<bool>("editor.margins.mirrorEnabled", false);
+    settingsData.pageMarginInner = settings.get<double>("editor.margins.pageInner", 30.0);
+    settingsData.pageMarginOuter = settings.get<double>("editor.margins.pageOuter", 20.0);
+
+    // Editor/Text Frame Border
+    settingsData.textFrameBorderShow = settings.get<bool>("editor.textFrameBorder.show", false);
+    settingsData.textFrameBorderColor = QColor(QString::fromStdString(
+        settings.get<std::string>("editor.textFrameBorder.color", "#b4b4b4")));
+    settingsData.textFrameBorderWidth = settings.get<int>("editor.textFrameBorder.width", 1);
 
     // Advanced/General - use callback to get diagnostic mode
     settingsData.diagnosticMode = m_diagnosticModeGetter();
@@ -318,6 +361,11 @@ void SettingsCoordinator::onApplySettings(const SettingsData& settings, bool /*f
         dashboardPanel->onSettingsChanged();
         logger.info("SettingsCoordinator: Dashboard refreshed after settings change");
     }
+
+    // Emit signal for editor settings changes (font, colors, etc.)
+    // MainWindow connects to this and applies settings to all EditorPanels
+    emit editorSettingsChanged();
+    logger.info("SettingsCoordinator: Editor settings change signal emitted");
 
     logger.info("SettingsCoordinator: Settings reaction complete");
 }

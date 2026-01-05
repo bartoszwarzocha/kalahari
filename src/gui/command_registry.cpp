@@ -350,13 +350,16 @@ void CommandRegistry::updateActionState(const std::string& commandId) {
     }
 
     QAction* action = actionIt.value();
-    const Command& cmd = cmdIt->second;
+    Command& cmd = cmdIt->second;
 
     // Update enabled state
     action->setEnabled(cmd.checkEnabled());
 
-    // Update checked state (only if checkable)
-    if (action->isCheckable()) {
+    // Update checked state - make checkable if isChecked callback was added later
+    if (cmd.isChecked) {
+        if (!action->isCheckable()) {
+            action->setCheckable(true);
+        }
         action->setChecked(cmd.checkChecked());
     }
 }
