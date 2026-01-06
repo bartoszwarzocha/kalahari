@@ -742,7 +742,8 @@ TEST_CASE("KmlParser - Paragraph alignment", "[editor][kml_parser][alignment]") 
         REQUIRE(doc != nullptr);
 
         QTextBlock block = doc->begin();
-        REQUIRE(block.blockFormat().alignment() == Qt::AlignLeft);
+        // Use horizontal mask to ignore Qt::AlignAbsolute flag that Qt may add
+        REQUIRE((block.blockFormat().alignment() & Qt::AlignHorizontal_Mask) == Qt::AlignLeft);
     }
 
     SECTION("Center alignment") {
@@ -750,7 +751,7 @@ TEST_CASE("KmlParser - Paragraph alignment", "[editor][kml_parser][alignment]") 
         REQUIRE(doc != nullptr);
 
         QTextBlock block = doc->begin();
-        REQUIRE(block.blockFormat().alignment() == Qt::AlignHCenter);
+        REQUIRE((block.blockFormat().alignment() & Qt::AlignHorizontal_Mask) == Qt::AlignHCenter);
     }
 
     SECTION("Right alignment") {
@@ -758,7 +759,7 @@ TEST_CASE("KmlParser - Paragraph alignment", "[editor][kml_parser][alignment]") 
         REQUIRE(doc != nullptr);
 
         QTextBlock block = doc->begin();
-        REQUIRE(block.blockFormat().alignment() == Qt::AlignRight);
+        REQUIRE((block.blockFormat().alignment() & Qt::AlignHorizontal_Mask) == Qt::AlignRight);
     }
 
     SECTION("Justify alignment") {
@@ -766,7 +767,7 @@ TEST_CASE("KmlParser - Paragraph alignment", "[editor][kml_parser][alignment]") 
         REQUIRE(doc != nullptr);
 
         QTextBlock block = doc->begin();
-        REQUIRE(block.blockFormat().alignment() == Qt::AlignJustify);
+        REQUIRE((block.blockFormat().alignment() & Qt::AlignHorizontal_Mask) == Qt::AlignJustify);
     }
 }
 

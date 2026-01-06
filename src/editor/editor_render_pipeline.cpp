@@ -154,6 +154,9 @@ void EditorRenderPipeline::setViewportSize(const QSizeF& size) {
 
 void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
     if (m_cursorPosition != position) {
+        // Track old paragraph for focus mode optimization
+        int oldParagraph = m_cursorPosition.paragraph;
+
         // Mark old cursor position dirty
         markDirty(cursorRect().toAlignedRect());
 
@@ -164,8 +167,16 @@ void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
 
         // Update focus mode if enabled
         if (m_context.focusMode.enabled) {
-            m_context.focusMode.focusedParagraph = position.paragraph;
-            markAllDirty();
+            int newParagraph = position.paragraph;
+            m_context.focusMode.focusedParagraph = newParagraph;
+
+            // Phase 11.11: Only mark affected paragraphs dirty, not entire viewport
+            if (oldParagraph != newParagraph) {
+                // Mark old paragraph (now dimmed) and new paragraph (now focused)
+                markParagraphDirty(static_cast<size_t>(oldParagraph));
+                markParagraphDirty(static_cast<size_t>(newParagraph));
+            }
+            // If same paragraph, cursor dirty regions are already marked
         }
     }
 }

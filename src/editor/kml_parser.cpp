@@ -63,19 +63,69 @@ bool KmlParser::parseInto(const QString& kml, QTextDocument* document)
         return true;
     }
 
-    // FAST PATH: Convert KML to HTML and use setHtml() - single operation
-    // This is O(n) string replacement instead of O(n) cursor operations
-    QString html = kmlToHtml(kml);
+    // Use proper XML parsing to preserve metadata and whitespace
+    // The old "fast path" using setHtml() stripped metadata tags and normalized whitespace
 
-    // Block signals during setHtml for extra safety
+    // Check if content starts with <p> but has no wrapper - wrap it
+    // XML requires a single root, but we support multiple <p> elements for convenience
+    QString xmlContent = kml.trimmed();
+    bool needsWrapper = xmlContent.startsWith(QStringLiteral("<p")) &&
+                        !xmlContent.startsWith(QStringLiteral("<p>")) &&
+                        !xmlContent.startsWith(QStringLiteral("<paragraph"));
+    // Check for simple <p> or <p ...> (with attributes)
+    needsWrapper = xmlContent.startsWith(QStringLiteral("<p>")) ||
+                   xmlContent.startsWith(QStringLiteral("<p ")) ||
+                   xmlContent.startsWith(QStringLiteral("<paragraph>")) ||
+                   xmlContent.startsWith(QStringLiteral("<paragraph "));
+
+    if (needsWrapper) {
+        xmlContent = QStringLiteral("<document>") + kml + QStringLiteral("</document>");
+    } else {
+        xmlContent = kml;
+    }
+
+    // Block signals during parsing
     bool wasBlocked = document->signalsBlocked();
     document->blockSignals(true);
 
-    document->setHtml(html);
+    // Clear document for fresh start
+    document->clear();
+
+    // Create cursor at start
+    QTextCursor cursor(document);
+
+    // Create XML reader
+    QXmlStreamReader reader(xmlContent);
+
+    // Find root element
+    while (!reader.atEnd() && !reader.isStartElement()) {
+        reader.readNext();
+    }
+
+    if (reader.atEnd()) {
+        document->blockSignals(wasBlocked);
+        return true;  // Empty or whitespace-only content
+    }
+
+    QString rootTag = reader.name().toString();
+
+    // Move past root element and parse content
+    reader.readNext();
+
+    // Parse document content
+    bool success = parseDocumentContent(reader, cursor, rootTag);
+
+    // Check for XML errors
+    if (reader.hasError() &&
+        reader.error() != QXmlStreamReader::PrematureEndOfDocumentError) {
+        setError(reader);
+        document->blockSignals(wasBlocked);
+        return false;
+    }
 
     document->blockSignals(wasBlocked);
 
-    return true;
+    return success;
 }
 
 QString KmlParser::kmlToHtml(const QString& kml)

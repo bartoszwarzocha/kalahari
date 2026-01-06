@@ -219,6 +219,7 @@ private:
         std::vector<FormatRun> formats;         ///< Format runs within paragraph
         std::unique_ptr<QTextLayout> layout;    ///< QTextLayout (created lazily)
         bool layoutValid = false;               ///< Whether layout is valid
+        Qt::Alignment alignment = Qt::AlignLeft; ///< Paragraph alignment
     };
 
     /// @brief Parse single paragraph from KML

@@ -206,6 +206,13 @@ BookEditor::BookEditor(QWidget* parent)
         m_documentModel->setTextColor(m_appearance.colors.text);
         // Phase 12.6: Use configurable margins
         m_documentModel->setLineWidth(static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
+
+        // Connect height changes to update scroll bar range
+        // When paragraphs are layouted, their actual heights may differ from estimates
+        connect(m_documentModel.get(), &KmlDocumentModel::totalHeightChanged,
+                this, [this]([[maybe_unused]] double newHeight) {
+            updateScrollBarRange();
+        });
     }
 
     // Phase 11.6: m_textBuffer created on-demand in ensureEditMode()
@@ -410,6 +417,8 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
     CursorPosition validatedPos = validateCursorPosition(position);
 
     if (m_cursorPosition != validatedPos) {
+        // Track old position for focus mode optimization
+        CursorPosition oldPos = m_cursorPosition;
         m_cursorPosition = validatedPos;
 
         // Sync cursor position to RenderEngine (Phase 8 fix)
@@ -419,8 +428,28 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
 
         ensureCursorVisible();
         emit cursorPositionChanged(m_cursorPosition);
-        syncPipelineState();  // Sync before repaint
-        update();  // Request repaint
+
+        // Phase 11.11: Optimized cursor sync - only update cursor, not full state
+        syncPipelineCursor();
+
+        // Targeted repaint for cursor movement
+        if (m_renderPipeline) {
+            // For focus mode, repaint old and new paragraphs
+            if (m_appearance.focusMode.enabled && oldPos.paragraph != validatedPos.paragraph) {
+                // Mark old and new paragraphs dirty (pipeline handles this now)
+                update();  // Full update needed for focus mode paragraph change
+            } else {
+                // Just cursor moved within same paragraph or no focus mode
+                QRectF cursorRect = calculateCursorRect();
+                if (!cursorRect.isEmpty()) {
+                    update(cursorRect.toRect().adjusted(-2, -2, 2, 2));
+                } else {
+                    update();
+                }
+            }
+        } else {
+            update();
+        }
     }
 }
 
@@ -2202,6 +2231,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
             : m_appearance.viewMargins.vertical;
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
+
+    // Update scrollbar range when margins change
+    updateScrollBarRange();
 
     emit appearanceChanged();
     syncPipelineState();  // Sync render context with new appearance before repaint
@@ -5408,7 +5440,9 @@ size_t BookEditor::characterCount() const
 {
     // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
     if (m_isEditMode && m_textBuffer) {
-        return static_cast<size_t>(m_textBuffer->characterCount());
+        // QTextDocument::characterCount() includes trailing block separator, subtract 1
+        int count = m_textBuffer->characterCount();
+        return static_cast<size_t>(std::max(0, count - 1));
     }
     if (m_documentModel) {
         return m_documentModel->characterCount();

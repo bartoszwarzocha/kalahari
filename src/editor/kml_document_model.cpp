@@ -12,6 +12,7 @@
 #include <QFontMetricsF>
 #include <QTextFormat>
 #include <QTextLine>
+#include <QTextOption>
 
 #include <algorithm>
 #include <cmath>
@@ -516,6 +517,21 @@ bool KmlDocumentModel::parseParagraph(const QString& paraKml, Paragraph& para)
         return false;
     }
 
+    // Parse alignment attribute
+    QXmlStreamAttributes attrs = reader.attributes();
+    if (attrs.hasAttribute(QStringLiteral("align"))) {
+        QString alignStr = attrs.value(QStringLiteral("align")).toString().toLower();
+        if (alignStr == QStringLiteral("left")) {
+            para.alignment = Qt::AlignLeft;
+        } else if (alignStr == QStringLiteral("center")) {
+            para.alignment = Qt::AlignHCenter;
+        } else if (alignStr == QStringLiteral("right")) {
+            para.alignment = Qt::AlignRight;
+        } else if (alignStr == QStringLiteral("justify")) {
+            para.alignment = Qt::AlignJustify;
+        }
+    }
+
     // Move past start element
     reader.readNext();
 
@@ -631,6 +647,12 @@ void KmlDocumentModel::createLayout(size_t index)
 
     // Apply formats with text color
     applyFormats(para.layout.get(), para.formats, para.text.length());
+
+    // Set text option with alignment
+    QTextOption textOption;
+    textOption.setAlignment(para.alignment);
+    textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    para.layout->setTextOption(textOption);
 
     // Perform layout
     para.layout->beginLayout();
