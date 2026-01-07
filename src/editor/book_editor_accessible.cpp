@@ -228,7 +228,8 @@ int BookEditorAccessible::offsetAtPoint(const QPoint& point) const
     }
 
     // Convert from screen to widget coordinates
-    QPoint widgetPos = editor->mapFromGlobal(point);
+    // Note: widgetPos would be used for proper hit testing in future implementation
+    (void)editor->mapFromGlobal(point);
 
     // Use BookEditor's hit testing
     // This is simplified - would need proper positionFromPoint integration

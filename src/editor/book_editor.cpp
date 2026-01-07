@@ -640,7 +640,7 @@ void BookEditor::moveCursorRight()
 
     if (newPos.offset < paraLen) {
         ++newPos.offset;
-    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
+    } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         ++newPos.paragraph;
         newPos.offset = 0;
     }
@@ -727,7 +727,7 @@ void BookEditor::moveCursorDown()
         // Move to next line within same paragraph
         QTextLine nextLine = layout->lineAt(currentLine + 1);
         newPos.offset = nextLine.xToCursor(m_preferredCursorX);
-    } else if (static_cast<size_t>(newPos.paragraph) < m_textBuffer->blockCount() - 1) {
+    } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         // Move to first line of next paragraph
         ++newPos.paragraph;
         QTextBlock nextBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
@@ -823,7 +823,7 @@ void BookEditor::moveCursorWordRight()
         }
 
         newPos.offset = pos;
-    } else if (newPos.paragraph < static_cast<size_t>(m_textBuffer->blockCount()) - 1) {
+    } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         // Move to start of next paragraph
         ++newPos.paragraph;
         newPos.offset = 0;
@@ -1210,7 +1210,6 @@ bool BookEditor::deleteSelectedText()
     }
 
     SelectionRange sel = m_selection.normalized();
-    CursorPosition cursorBefore = m_cursorPosition;
 
     // Get text being deleted for undo
     QString deletedText;
@@ -1249,8 +1248,6 @@ void BookEditor::insertNewline()
     if (hasSelection()) {
         deleteSelectedText();
     }
-
-    CursorPosition cursorBefore = m_cursorPosition;
 
     // Push paragraph split command (push() calls redo() automatically)
     m_undoStack->push(new ParagraphSplitCommand(
@@ -1347,8 +1344,6 @@ void BookEditor::deleteForward()
     QString paraText = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph);
     int paraLen = paraText.length();
 
-    CursorPosition cursorBefore = m_cursorPosition;
-
     if (m_cursorPosition.offset < paraLen) {
         // Delete character at cursor using TextDeleteCommand
         QString deletedChar = paraText.mid(m_cursorPosition.offset, 1);
@@ -1366,9 +1361,9 @@ void BookEditor::deleteForward()
         update();
         emit contentChanged();
         emit paragraphModified(m_cursorPosition.paragraph);
-    } else if (static_cast<size_t>(m_cursorPosition.paragraph) <
-               m_textBuffer->blockCount() - 1) {
+    } else if (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount()) {
         // Merge with next paragraph using ParagraphMergeCommand
+        CursorPosition cursorBefore = m_cursorPosition;
         int mergeFromIndex = m_cursorPosition.paragraph + 1;
         QString mergedContent = paragraphText(m_textBuffer.get(), mergeFromIndex);
 
