@@ -795,6 +795,47 @@ PO (paintEvent - 3 linie):
 - [ ] 12.5.2 Usun zduplikowany kod z BookEditor
 - [ ] 12.5.3 Zaktualizuj testy
 
+---
+
+## Phase 12.7: CLI Benchmark Mode ✅ COMPLETE
+
+**DATA:** 2026-01-07
+
+### Problem
+Ręczne uruchamianie benchmarków z GUI jest czasochłonne i trudne do automatyzacji.
+
+### Rozwiązanie: CLI parametry dla automatycznych benchmarków
+
+#### Zadania
+- [x] 12.7.1 Dodaj --benchmark parametr CLI
+- [x] 12.7.2 Dodaj --project parametr dla otwierania projektu
+- [x] 12.7.3 Dodaj --chapter parametr dla otwierania rozdziału (prefix matching)
+- [x] 12.7.4 Dodaj public MainWindow::openChapter() wrapper
+- [x] 12.7.5 Automatyczne znajdowanie .klh w katalogu projektu
+- [x] 12.7.6 JSON output wyników benchmarku
+
+### Ambitne wartości referencyjne (70% osiągniętej wydajności)
+
+| Benchmark | Osiągnięte | Referencja | Margines |
+|-----------|-----------|------------|----------|
+| Cursor Left/Right | 5,325 | 2,000 | 2.66x |
+| Cursor Up/Down | 2,906 | 1,500 | 1.94x |
+| Cursor Word Nav | 2,110 | 1,500 | 1.41x |
+| Character Insertion | 1,547 | 1,000 | 1.55x |
+| Backspace Deletion | 1,394 | 900 | 1.55x |
+| Delete Key Deletion | 1,476 | 1,200 | 1.23x |
+| Rapid Typing | 1,567 | 1,100 | 1.42x |
+| Scrolling | 3,447 | 2,300 | 1.50x |
+
+### Optymalizacje wydajności (debounce)
+- [x] 12.7.7 MainWindow: 50ms debounce dla updateEditorActionStates()
+- [x] 12.7.8 PropertiesPanel: 100ms debounce dla updateChapterProperties()
+
+### Użycie CLI
+```bash
+kalahari --benchmark --project ./examples/ExampleNovel --chapter "Chapter One"
+```
+
 ### Pliki do utworzenia
 
 | Plik | Cel |

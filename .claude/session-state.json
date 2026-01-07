@@ -1,16 +1,15 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-06T09:15:00",
-  "git_commit": "f8cff71",
-  "git_pushed": true,
+  "saved_at": "2026-01-07T09:45:00",
+  "git_commit": "c4ea734",
+  "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11.11 - Parser fixes and cursor optimizations COMPLETE",
+  "working_on": "Phase 12.7 - CLI Benchmark Mode COMPLETE",
   "next_steps": [
-    "Manual test: Open document in VIEW mode, scroll to bottom, verify margin visible",
-    "Manual test: Cursor movement speed compared to Word",
-    "Continue with remaining Phase 11 tasks if any",
-    "Update OpenSpec tasks.md with completion status"
+    "Continue Phase 12.6 - Configurable Margins",
+    "Finish Phase 12.5 - Cleanup (remove old RenderEngine)",
+    "Manual testing: Alignment, margins, view modes"
   ],
   "blocker": null,
   "implementation_status": "IN_PROGRESS",
@@ -18,47 +17,39 @@
     "Phase 11.1-11.9: Architecture cleanup COMPLETE",
     "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
     "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
-    "Phase 11.10: Font fix in Edit Mode (setFont before beginLayout)",
     "Phase 11.11: KalahariTextDocumentLayout integration",
-    "Fix KmlParser: proper XML parsing (preserves metadata/whitespace)",
-    "Fix KmlParser: automatic <document> wrapper for multiple paragraphs",
-    "Fix bottom margin: connect totalHeightChanged to updateScrollBarRange",
-    "Optimize cursor: syncPipelineCursor instead of syncPipelineState",
-    "Optimize focus mode: only mark affected paragraphs dirty",
-    "Optimize repaint: targeted cursor rect instead of full update",
-    "All 607 tests passing (4291 assertions)"
+    "Phase 12.1-12.3: EditorRenderPipeline infrastructure",
+    "Phase 12.7: CLI Benchmark Mode",
+    "Phase 12.7: Debounce timers (MainWindow 50ms, PropertiesPanel 100ms)",
+    "Phase 12.7: Ambitious reference values (70% of achieved performance)",
+    "All benchmarks pass with 1.2x-2.7x margin"
   ],
   "pending_tasks": [
-    "Manual testing: VIEW mode scroll, cursor speed",
-    "Update OpenSpec tasks.md"
+    "Phase 12.4: Rozszerzenia (skalowanie, konfigurowalne marginesy)",
+    "Phase 12.5: Cleanup (usun RenderEngine)",
+    "Phase 12.6: Configurable Margins"
   ],
   "task_progress": {
-    "completed": 6,
-    "total": 6,
-    "percentage": 100
+    "completed": 9,
+    "total": 12,
+    "percentage": 75
   },
-  "session_fixes": {
-    "kml_parser": {
-      "issue": "Fast path using setHtml() stripped metadata and normalized whitespace",
-      "solution": "Rewrote parseInto() to use QXmlStreamReader + parseDocumentContent()",
-      "additional": "Added automatic <document> wrapper for multiple <p> siblings"
-    },
-    "bottom_margin": {
-      "issue": "KmlDocumentModel::totalHeightChanged not connected to scroll bar update",
-      "solution": "Added connection in BookEditor constructor to updateScrollBarRange()"
-    },
-    "cursor_lag": {
-      "issue": "Full syncPipelineState() and update() on every cursor move",
-      "solutions": [
-        "Use syncPipelineCursor() for cursor-only sync",
-        "Focus mode: mark only old/new paragraphs dirty, not entire viewport",
-        "Use update(cursorRect) for targeted repaint"
-      ]
-    }
+  "benchmark_results": {
+    "cursor_left_right": { "achieved": 5325, "reference": 2000, "margin": "2.66x" },
+    "cursor_up_down": { "achieved": 2906, "reference": 1500, "margin": "1.94x" },
+    "cursor_word_nav": { "achieved": 2110, "reference": 1500, "margin": "1.41x" },
+    "char_insertion": { "achieved": 1547, "reference": 1000, "margin": "1.55x" },
+    "backspace": { "achieved": 1394, "reference": 900, "margin": "1.55x" },
+    "delete_key": { "achieved": 1476, "reference": 1200, "margin": "1.23x" },
+    "rapid_typing": { "achieved": 1567, "reference": 1100, "margin": "1.42x" },
+    "scrolling": { "achieved": 3447, "reference": 2300, "margin": "1.50x" }
   },
   "files_modified": [
-    "src/editor/kml_parser.cpp - proper XML parsing",
-    "src/editor/book_editor.cpp - bottom margin fix, cursor optimization",
-    "src/editor/editor_render_pipeline.cpp - focus mode optimization"
+    "src/main.cpp - CLI benchmark mode, --project, --chapter options",
+    "include/kalahari/gui/main_window.h - public openChapter()",
+    "src/gui/main_window.cpp - openChapter(), debounce timer",
+    "include/kalahari/editor/editor_benchmark.h - NEW",
+    "src/editor/editor_benchmark.cpp - NEW, ambitious reference values",
+    "src/gui/panels/properties_panel.cpp - debounce timer"
   ]
 }
