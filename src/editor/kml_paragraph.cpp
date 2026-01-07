@@ -496,14 +496,6 @@ std::unique_ptr<KmlInlineContainer> createInlineContainer(ElementType type) {
     }
 }
 
-/// @brief Check if an element or its ancestors have the specified format type
-/// @param element The element to check
-/// @param type The format type to check for
-/// @return true if the element is wrapped in the specified format type
-bool isElementType(const KmlElement* element, ElementType type) {
-    return element && element->type() == type;
-}
-
 /// @brief Recursively check if element has formatting type at given offset
 /// @param element The element to check
 /// @param offset The character offset within the element

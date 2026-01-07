@@ -56,7 +56,7 @@ jobs:
           libinput-dev libmtdev-dev libudev-dev \
           libvulkan-dev libwayland-dev \
           libspdlog-dev nlohmann-json3-dev libzip-dev zipcmp zipmerge ziptool \
-          libcurl4-openssl-dev catch2 \
+          libcurl4-openssl-dev libhunspell-dev catch2 \
           python3-dev pybind11-dev \
           xvfb
         echo "=== Installed versions ==="
