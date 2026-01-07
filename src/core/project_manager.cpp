@@ -335,7 +335,7 @@ bool ProjectManager::saveManifest() {
     auto createdTime = m_document->getCreated();
     auto createdMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         createdTime.time_since_epoch()).count();
-    QDateTime createdDt = QDateTime::fromMSecsSinceEpoch(createdMs, QTimeZone::UTC);
+    QDateTime createdDt = QDateTime::fromMSecsSinceEpoch(createdMs, QTimeZone::utc());
     documentSection["created"] = createdDt.toString(Qt::ISODate);
     documentSection["modified"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     root["document"] = documentSection;
