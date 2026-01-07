@@ -366,7 +366,7 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
         bodyItem->setData(0, Qt::UserRole + 1, "section_body");
         bodyItem->setIcon(0, artProvider.getIcon("structure.body", core::IconContext::TreeView));
         // Body section is not draggable, but accepts parts as drops
-        bodyItem->setFlags(bodyItem->flags() & ~Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
+        bodyItem->setFlags((bodyItem->flags() & ~Qt::ItemIsDragEnabled) | Qt::ItemIsDropEnabled);
 
         for (const auto& part : body) {
             QTreeWidgetItem* partItem = new QTreeWidgetItem(bodyItem);
