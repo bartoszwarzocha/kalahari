@@ -27,6 +27,7 @@
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
+class QTimer;
 
 namespace kalahari {
 
@@ -106,6 +107,18 @@ public:
     /// @brief Apply editor settings to all open EditorPanels
     /// @note Called when editor font, colors, or other settings change
     void applyEditorSettingsToAllPanels();
+
+    /// @brief Get current active editor panel
+    /// @return Active EditorPanel if current tab is an editor, nullptr otherwise
+    /// @note Returns nullptr if current tab is Dashboard or other panel type
+    /// @note Made public for diagnostic/benchmark access (OpenSpec #00043)
+    EditorPanel* getCurrentEditor();
+
+    /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
+    /// @param elementId Element ID to open (from BookElement::getId())
+    /// @param elementTitle Display title of the element
+    /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
+    void openChapter(const QString& elementId, const QString& elementTitle);
 
 private:
     /// @brief Register all commands in CommandRegistry
@@ -323,6 +336,9 @@ private:
     QLabel* m_charCountLabel{nullptr};                ///< Character count display
     QLabel* m_readingTimeLabel{nullptr};              ///< Reading time display
 
+    // OpenSpec #00043: Debounce timer for action state updates
+    QTimer* m_actionStateDebounceTimer{nullptr};      ///< Debounce rapid cursor changes
+
     // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
     // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
 
@@ -334,11 +350,6 @@ private:
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)
     void toggleFullScreen();
-
-    /// @brief Get currently active EditorPanel tab (Task #00015)
-    /// @return Active EditorPanel if current tab is an editor, nullptr otherwise
-    /// @note Returns nullptr if current tab is Dashboard or other panel type
-    EditorPanel* getCurrentEditor();
 
     // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
     // NOTE: getPhase0Content, setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)

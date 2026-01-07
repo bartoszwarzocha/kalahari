@@ -138,7 +138,8 @@
       "Bash(src/editor/kml_document_model.cpp )",
       "Bash(tests/core/test_chapter_document.cpp )",
       "Bash(tests/editor/test_height_tree.cpp )",
-      "Bash(tests/editor/test_kml_document_model.cpp)"
+      "Bash(tests/editor/test_kml_document_model.cpp)",
+      "Bash(./build-windows/bin/kalahari.exe:*)"
     ],
     "deny": [],
     "ask": []

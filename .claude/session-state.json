@@ -1,15 +1,15 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-04T08:12:00",
-  "git_commit": "8e87f9f",
-  "git_pushed": false,
+  "saved_at": "2026-01-06T09:15:00",
+  "git_commit": "f8cff71",
+  "git_pushed": true,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 11.11 - KalahariTextDocumentLayout INTEGRATED",
+  "working_on": "Phase 11.11 - Parser fixes and cursor optimizations COMPLETE",
   "next_steps": [
-    "Manual test: Open document, press Enter, verify no gaps",
-    "Manual test: Text wrapping works correctly",
-    "Fix empty line at document beginning (if still present)",
+    "Manual test: Open document in VIEW mode, scroll to bottom, verify margin visible",
+    "Manual test: Cursor movement speed compared to Word",
+    "Continue with remaining Phase 11 tasks if any",
     "Update OpenSpec tasks.md with completion status"
   ],
   "blocker": null,
@@ -19,44 +19,46 @@
     "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
     "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
     "Phase 11.10: Font fix in Edit Mode (setFont before beginLayout)",
-    "Root cause analysis: Qt layout architecture incompatibility identified",
-    "Phase 11.11.1: Created kalahari_text_document_layout.h",
-    "Phase 11.11.2: Created kalahari_text_document_layout.cpp",
-    "Phase 11.11.3: Added to CMakeLists.txt (src and tests)",
-    "Phase 11.11.4: Integrated into BookEditor::ensureEditMode()",
-    "Phase 11.11.5: Removed contentsChanged hack",
-    "Phase 11.11.6: Build passed, all BookEditor tests pass (41 assertions)"
+    "Phase 11.11: KalahariTextDocumentLayout integration",
+    "Fix KmlParser: proper XML parsing (preserves metadata/whitespace)",
+    "Fix KmlParser: automatic <document> wrapper for multiple paragraphs",
+    "Fix bottom margin: connect totalHeightChanged to updateScrollBarRange",
+    "Optimize cursor: syncPipelineCursor instead of syncPipelineState",
+    "Optimize focus mode: only mark affected paragraphs dirty",
+    "Optimize repaint: targeted cursor rect instead of full update",
+    "All 607 tests passing (4291 assertions)"
   ],
   "pending_tasks": [
-    "11.11.7: Manual test (Enter, text wrapping)",
-    "11.11.8: Fix empty line at document beginning"
+    "Manual testing: VIEW mode scroll, cursor speed",
+    "Update OpenSpec tasks.md"
   ],
   "task_progress": {
     "completed": 6,
-    "total": 8,
-    "percentage": 75
+    "total": 6,
+    "percentage": 100
   },
-  "architecture_decision": {
-    "issue": "Qt's QTextDocumentLayout adds font.leading() causing paragraph gaps",
-    "failed_attempts": [
-      "Manual layout in ensureEditMode() - Qt overwrites on modification",
-      "QPlainTextDocumentLayout - no text wrapping support",
-      "contentsChanged re-layout - O(n) per keystroke, too slow"
-    ],
-    "solution": "Custom KalahariTextDocumentLayout inheriting QAbstractTextDocumentLayout",
-    "key_methods": [
-      "documentChanged() - re-layout affected blocks with lines at y=0",
-      "layoutBlock() - prepare QTextLayout with y=0 line positioning",
-      "blockBoundingRect() - tight bounds without leading"
-    ]
+  "session_fixes": {
+    "kml_parser": {
+      "issue": "Fast path using setHtml() stripped metadata and normalized whitespace",
+      "solution": "Rewrote parseInto() to use QXmlStreamReader + parseDocumentContent()",
+      "additional": "Added automatic <document> wrapper for multiple <p> siblings"
+    },
+    "bottom_margin": {
+      "issue": "KmlDocumentModel::totalHeightChanged not connected to scroll bar update",
+      "solution": "Added connection in BookEditor constructor to updateScrollBarRange()"
+    },
+    "cursor_lag": {
+      "issue": "Full syncPipelineState() and update() on every cursor move",
+      "solutions": [
+        "Use syncPipelineCursor() for cursor-only sync",
+        "Focus mode: mark only old/new paragraphs dirty, not entire viewport",
+        "Use update(cursorRect) for targeted repaint"
+      ]
+    }
   },
-  "files_created": [
-    "include/kalahari/editor/kalahari_text_document_layout.h",
-    "src/editor/kalahari_text_document_layout.cpp"
-  ],
   "files_modified": [
-    "src/CMakeLists.txt - added new cpp and header",
-    "tests/CMakeLists.txt - added new cpp and header",
-    "src/editor/book_editor.cpp - integrated layout, removed hack"
+    "src/editor/kml_parser.cpp - proper XML parsing",
+    "src/editor/book_editor.cpp - bottom margin fix, cursor optimization",
+    "src/editor/editor_render_pipeline.cpp - focus mode optimization"
   ]
 }

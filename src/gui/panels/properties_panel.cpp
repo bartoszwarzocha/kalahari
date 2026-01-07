@@ -23,6 +23,7 @@
 #include <QComboBox>
 #include <QTextEdit>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -83,6 +84,13 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
 
     setupUI();
     connectSignals();
+
+    // OpenSpec #00043: Create debounce timer for cursor updates
+    m_cursorDebounceTimer = new QTimer(this);
+    m_cursorDebounceTimer->setSingleShot(true);
+    m_cursorDebounceTimer->setInterval(100);  // 100ms debounce
+    connect(m_cursorDebounceTimer, &QTimer::timeout,
+            this, &PropertiesPanel::updateEditorStatistics);
 
     // Set initial state based on ProjectManager
     auto& pm = core::ProjectManager::getInstance();
@@ -1205,9 +1213,12 @@ void PropertiesPanel::onEditorSelectionChanged() {
 }
 
 void PropertiesPanel::onEditorCursorChanged() {
+    // OpenSpec #00043: Debounce cursor changes to avoid expensive updates
     // Only update if we're on the Editor page
     if (m_stackedWidget->currentIndex() == static_cast<int>(Page::Editor)) {
-        updateEditorStatistics();
+        if (m_cursorDebounceTimer) {
+            m_cursorDebounceTimer->start();  // Restart timer on each change
+        }
     }
 }
 

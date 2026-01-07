@@ -196,6 +196,7 @@ set(KALAHARI_SOURCES
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
+    editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h  # ThemeManager with Q_OBJECT
@@ -251,6 +252,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h       # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_benchmark.h            # EditorBenchmark with Q_OBJECT (OpenSpec #00043 Phase 11.11)
 )
 
 # Create executable

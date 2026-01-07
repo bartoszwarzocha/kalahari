@@ -20,6 +20,7 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QTimer;
 
 namespace kalahari::editor {
 class BookEditor;
@@ -284,6 +285,9 @@ private:
 
     // Active editor tracking (OpenSpec #00042 Task 7.4)
     EditorPanel* m_activeEditorPanel{nullptr};  ///< Currently tracked editor panel
+
+    // OpenSpec #00043: Debounce timer for cursor change updates
+    QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
     // Style resolver (OpenSpec #00042 Task 7.6)
     editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project

@@ -228,6 +228,15 @@ MainWindow::MainWindow(QWidget* parent)
             m_documentCoordinator, &DocumentCoordinator::onProjectClosed);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
 
+    // OpenSpec #00043: Create debounce timer for action state updates
+    // This prevents expensive updates on every cursor movement
+    m_actionStateDebounceTimer = new QTimer(this);
+    m_actionStateDebounceTimer->setSingleShot(true);
+    m_actionStateDebounceTimer->setInterval(50);  // 50ms debounce
+    connect(m_actionStateDebounceTimer, &QTimer::timeout,
+            this, &MainWindow::updateEditorActionStates);
+    logger.debug("MainWindow: Action state debounce timer created (50ms)");
+
     logger.info("MainWindow initialized successfully");
 }
 
@@ -958,8 +967,13 @@ void MainWindow::createDocks() {
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
                         this, &MainWindow::updateEditorActionStates);
+                // OpenSpec #00043: Use debounced updates for cursor changes
                 connect(bookEditor, &editor::BookEditor::cursorPositionChanged,
-                        this, [this](const editor::CursorPosition&) { updateEditorActionStates(); });
+                        this, [this](const editor::CursorPosition&) {
+                    if (m_actionStateDebounceTimer) {
+                        m_actionStateDebounceTimer->start();  // Restart timer on each move
+                    }
+                });
                 connect(bookEditor, &editor::BookEditor::viewModeChanged,
                         this, [this](editor::ViewMode) { updateEditorActionStates(); });
             }
@@ -1200,6 +1214,11 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
     if (m_navigatorCoordinator) {
         m_navigatorCoordinator->onElementSelected(elementId, elementTitle);
     }
+}
+
+void MainWindow::openChapter(const QString& elementId, const QString& elementTitle) {
+    // OpenSpec #00043: Public wrapper for CLI/benchmark access
+    onNavigatorElementSelected(elementId, elementTitle);
 }
 
 // =============================================================================

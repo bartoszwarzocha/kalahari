@@ -563,22 +563,12 @@ void BookEditor::ensureCursorVisible()
     QTextLayout* layout = block.layout();
     if (!layout || layout->lineCount() == 0) return;
 
-    // Find the line containing cursor offset
-    int lineInBlock = 0;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        QTextLine line = layout->lineAt(i);
-        if (m_cursorPosition.offset >= line.textStart() &&
-            m_cursorPosition.offset < line.textStart() + line.textLength()) {
-            lineInBlock = i;
-            break;
-        }
-        // If cursor is at end of block, it's on last line
-        if (i == layout->lineCount() - 1) {
-            lineInBlock = i;
-        }
+    // Find the line containing cursor offset (O(log n) using Qt's binary search)
+    QTextLine cursorLine = layout->lineForTextPosition(m_cursorPosition.offset);
+    if (!cursorLine.isValid()) {
+        // Fallback: cursor at end of block, use last line
+        cursorLine = layout->lineAt(layout->lineCount() - 1);
     }
-
-    QTextLine cursorLine = layout->lineAt(lineInBlock);
 
     // Get block Y position from document layout
     QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
@@ -633,7 +623,7 @@ void BookEditor::moveCursorLeft()
     // else: already at document start, do nothing
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorRight()
@@ -657,7 +647,7 @@ void BookEditor::moveCursorRight()
     // else: already at document end, do nothing
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorUp()
@@ -706,7 +696,7 @@ void BookEditor::moveCursorUp()
     }
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorDown()
@@ -755,7 +745,7 @@ void BookEditor::moveCursorDown()
     }
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorWordLeft()
@@ -855,7 +845,7 @@ void BookEditor::moveCursorToLineStart()
     newPos.offset = 0;  // Move to paragraph start
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorToLineEnd()
@@ -871,7 +861,7 @@ void BookEditor::moveCursorToLineEnd()
     newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
 
     setCursorPosition(newPos);
-    ensureCursorVisible();
+    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
 void BookEditor::moveCursorToDocStart()

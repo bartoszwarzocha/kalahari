@@ -5,7 +5,11 @@
 
 #include "kalahari/gui/diagnostic_controller.h"
 #include "kalahari/gui/panels/log_panel.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/main_window.h"
+#include "kalahari/editor/editor_benchmark.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 
@@ -18,6 +22,7 @@
 #include <QSysInfo>
 #include <QCoreApplication>
 #include <QDir>
+#include <QProgressDialog>
 
 #include <spdlog/spdlog.h>
 
@@ -402,10 +407,96 @@ void DiagnosticController::onDiagEmbeddedInterpreterStatus() {
 void DiagnosticController::onDiagPerformanceBenchmark() {
     auto& logger = core::Logger::getInstance();
     logger.info("=== DIAGNOSTIC: Performance Benchmark ===");
-    logger.info("NOTE: Performance benchmark requires implementation");
-    logger.info("This will test editor performance, rendering, file I/O, etc.");
+
+    // Get current editor through MainWindow
+    auto* mainWindow = qobject_cast<MainWindow*>(m_mainWindow);
+    if (!mainWindow) {
+        logger.error("Cannot run benchmark: MainWindow not available");
+        if (m_statusBar) {
+            m_statusBar->showMessage(tr("Benchmark failed: No main window"), 3000);
+        }
+        return;
+    }
+
+    EditorPanel* editorPanel = mainWindow->getCurrentEditor();
+    if (!editorPanel) {
+        logger.error("Cannot run benchmark: No editor open");
+        QMessageBox::warning(m_mainWindow, tr("Benchmark"),
+            tr("Please open a document before running the benchmark."));
+        return;
+    }
+
+    editor::BookEditor* bookEditor = editorPanel->getBookEditor();
+    if (!bookEditor) {
+        logger.error("Cannot run benchmark: BookEditor not available");
+        QMessageBox::warning(m_mainWindow, tr("Benchmark"),
+            tr("BookEditor not available."));
+        return;
+    }
+
+    // Confirm benchmark will modify document temporarily
+    auto reply = QMessageBox::question(m_mainWindow, tr("Editor Benchmark"),
+        tr("This benchmark will temporarily modify the editor content.\n"
+           "The original content will NOT be preserved.\n\n"
+           "Do you want to continue?"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+        logger.info("Benchmark cancelled by user");
+        return;
+    }
+
+    // Create and run benchmark
+    editor::EditorBenchmark benchmark(bookEditor, this);
+    benchmark.setIterations(500);      // Reduced for reasonable runtime
+    benchmark.setWarmupIterations(50);
+
+    // Show progress dialog
+    QProgressDialog progress(tr("Running Editor Benchmark..."), tr("Cancel"), 0, 100, m_mainWindow);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(0);
+    progress.show();
+
+    // Connect progress signal
+    connect(&benchmark, &editor::EditorBenchmark::progressUpdated,
+            [&progress](int current, int total) {
+                progress.setValue(current * 100 / total);
+                QCoreApplication::processEvents();
+            });
+
+    // Run all benchmarks
+    logger.info("Starting editor performance benchmarks...");
+    progress.setValue(0);
+
+    auto results = benchmark.runAll();
+
+    progress.setValue(100);
+    progress.close();
+
+    // Show summary in message box
+    QString summary = tr("Editor Benchmark Results\n\n");
+    for (const auto& result : results) {
+        double refOps = editor::EditorBenchmark::referenceOpsPerSecond(result.name);
+        QString status;
+        if (refOps > 0) {
+            double ratio = result.opsPerSecond / refOps;
+            if (ratio >= 1.0) {
+                status = QString(" [OK: %1x]").arg(ratio, 0, 'f', 1);
+            } else {
+                status = QString(" [SLOW: %1x]").arg(ratio, 0, 'f', 2);
+            }
+        }
+        summary += QString("%1: %2 ops/sec%3\n")
+            .arg(result.name)
+            .arg(result.opsPerSecond, 0, 'f', 0)
+            .arg(status);
+    }
+    summary += tr("\nDetails logged to Log Panel.");
+
+    QMessageBox::information(m_mainWindow, tr("Benchmark Complete"), summary);
+
     if (m_statusBar) {
-        m_statusBar->showMessage(tr("Performance benchmark logged"), 2000);
+        m_statusBar->showMessage(tr("Performance benchmark complete - see log"), 5000);
     }
 }
 

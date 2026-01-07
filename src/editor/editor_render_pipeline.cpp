@@ -268,17 +268,9 @@ QRectF EditorRenderPipeline::cursorRect() const {
                       m_context.cursor.width, fm.height());
     }
 
-    // Find line containing cursor
+    // Find line containing cursor - O(log n) using Qt's binary search
     int offset = m_cursorPosition.offset;
-    QTextLine line;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        line = layout->lineAt(i);
-        if (offset >= line.textStart() &&
-            offset <= line.textStart() + line.textLength()) {
-            break;
-        }
-    }
-
+    QTextLine line = layout->lineForTextPosition(offset);
     if (!line.isValid()) {
         line = layout->lineAt(layout->lineCount() - 1);
     }
@@ -796,21 +788,11 @@ QRectF EditorRenderPipeline::getTextRect(size_t paraIndex, int offset, int lengt
     QTextLayout* layout = m_textSource->layout(paraIndex);
     if (!layout || layout->lineCount() == 0) return QRectF();
 
-    // Find line containing offset
-    QTextLine line;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        QTextLine l = layout->lineAt(i);
-        int lineStart = l.textStart();
-        int lineEnd = lineStart + l.textLength();
-        if (offset >= lineStart && offset < lineEnd) {
-            line = l;
-            break;
-        }
-        if (i == layout->lineCount() - 1) {
-            line = l;  // Use last line if offset is beyond
-        }
+    // Find line containing offset - O(log n) using Qt's binary search
+    QTextLine line = layout->lineForTextPosition(offset);
+    if (!line.isValid()) {
+        line = layout->lineAt(layout->lineCount() - 1);  // Use last line if offset is beyond
     }
-
     if (!line.isValid()) return QRectF();
 
     // Get x positions
