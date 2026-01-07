@@ -119,7 +119,14 @@ TEST_CASE("KmlTextRun copy assignment", "[editor][kml_text_run]") {
 
     SECTION("Self-assignment works") {
         KmlTextRun run("Self", "selfStyle");
-        run = run;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+        run = run;  // Self-assignment test
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         REQUIRE(run.text() == "Self");
         REQUIRE(run.styleId() == "selfStyle");
     }

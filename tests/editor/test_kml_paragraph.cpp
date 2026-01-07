@@ -500,7 +500,14 @@ TEST_CASE("KmlParagraph copy assignment", "[editor][kml_paragraph]") {
     REQUIRE(target.styleId() == "style1");
 
     // Self-assignment
-    target = target;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+    target = target;  // Self-assignment test
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     REQUIRE(target.plainText() == "Source");
 }
 

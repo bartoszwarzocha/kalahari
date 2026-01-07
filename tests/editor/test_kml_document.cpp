@@ -670,7 +670,14 @@ TEST_CASE("KmlDocument copy assignment", "[editor][kml_document]") {
     REQUIRE(target.paragraph(0)->plainText() == "Source");
 
     // Self-assignment
-    target = target;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+    target = target;  // Self-assignment test
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     REQUIRE(target.paragraphCount() == 1);
 }
 
