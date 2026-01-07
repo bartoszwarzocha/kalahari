@@ -85,6 +85,8 @@ jobs:
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
     - name: Run tests
+      env:
+        QT_QPA_PLATFORM: offscreen
       run: |
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
