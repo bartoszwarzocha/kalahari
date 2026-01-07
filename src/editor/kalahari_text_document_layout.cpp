@@ -238,6 +238,7 @@ int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccurac
     qreal targetY = point.y();
 
     int blockNumber = 0;
+    (void)blockNumber;  // Suppress unused variable warning
     QTextBlock block = document()->begin();
 
     while (block.isValid()) {

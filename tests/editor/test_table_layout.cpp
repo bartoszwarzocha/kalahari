@@ -752,7 +752,14 @@ TEST_CASE("TableLayout copy assignment", "[editor][table_layout]") {
     }
 
     SECTION("Self-assignment is safe") {
-        target = target;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+        target = target;  // Self-assignment test
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         REQUIRE(target.table() == table.get());
     }
 }
