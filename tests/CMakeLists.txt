@@ -33,7 +33,6 @@ set(TEST_SOURCES
     # Phase 11.9: Removed test_virtual_scroll_manager.cpp, test_layout_manager.cpp
     editor/test_height_tree.cpp            # OpenSpec #00043: HeightTree B-tree
     editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
-    editor/test_render_engine.cpp          # OpenSpec #00043: RenderEngine
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
     editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
@@ -105,7 +104,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/height_tree.cpp           # OpenSpec #00043: HeightTree B-tree
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
-    ${CMAKE_SOURCE_DIR}/src/editor/render_engine.cpp        # OpenSpec #00043: RenderEngine
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # OpenSpec #00043 Phase 9: Buffer undo commands
@@ -137,7 +135,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h    # RenderEngine with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)

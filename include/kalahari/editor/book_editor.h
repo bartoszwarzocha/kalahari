@@ -26,7 +26,6 @@
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
 #include <kalahari/editor/viewport_manager.h>
-#include <kalahari/editor/render_engine.h>
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/search_engine.h>
@@ -1232,10 +1231,6 @@ private:
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;
-
-    /// @brief Render engine for efficient viewport-only rendering (Task 8.5)
-    /// @deprecated Phase 12.3: Use m_renderPipeline instead
-    std::unique_ptr<RenderEngine> m_renderEngine;
 
     /// @brief Unified render pipeline (Phase 12.3: OpenSpec #00043)
     /// Consolidates all rendering: view mode, edit mode, page mode

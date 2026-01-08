@@ -59,7 +59,7 @@ void EditorPanel::setText(const QString& text) {
     QString kml = editor::ClipboardHandler::textToKml(text);
 
     // Use BookEditor::fromKml() for Phase 11 architecture
-    // This method populates QTextDocument, ViewportManager, RenderEngine
+    // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
     m_bookEditor->fromKml(kml);
     logger.debug("EditorPanel::setText - BookEditor::fromKml() complete");
 
@@ -86,7 +86,7 @@ void EditorPanel::setContent(const QString& content) {
     logger.debug("EditorPanel::setContent called with {} chars", content.length());
 
     // Use BookEditor::fromKml() for Phase 11 architecture
-    // This method populates QTextDocument, ViewportManager, RenderEngine
+    // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
     m_bookEditor->fromKml(content);
     logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
 

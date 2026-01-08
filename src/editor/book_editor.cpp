@@ -222,18 +222,6 @@ BookEditor::BookEditor(QWidget* parent)
     m_viewportManager = std::make_unique<ViewportManager>(this);
     // Note: setDocument() called in fromKml() after loading
 
-    // Create RenderEngine (initially without document)
-    // @deprecated Phase 12.3: Use m_renderPipeline instead
-    m_renderEngine = std::make_unique<RenderEngine>(this);
-    m_renderEngine->setViewportManager(m_viewportManager.get());
-    // Note: setDocument() called in ensureEditMode() or fromKml()
-
-    // Connect RenderEngine repaint signal
-    connect(m_renderEngine.get(), &RenderEngine::repaintRequested,
-            this, [this](const QRegion& region) {
-        update(region.boundingRect());
-    });
-
     // Phase 12.3: Create EditorRenderPipeline (unified rendering)
     m_renderPipeline = std::make_unique<EditorRenderPipeline>(this);
     m_renderPipeline->setViewportManager(m_viewportManager.get());
@@ -421,11 +409,6 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
         CursorPosition oldPos = m_cursorPosition;
         m_cursorPosition = validatedPos;
 
-        // Sync cursor position to RenderEngine (Phase 8 fix)
-        if (m_renderEngine) {
-            m_renderEngine->setCursorPosition(validatedPos);
-        }
-
         ensureCursorVisible();
         emit cursorPositionChanged(m_cursorPosition);
 
@@ -471,10 +454,6 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         if (m_cursorBlinkTimer != nullptr) {
             m_cursorBlinkTimer->start(m_cursorBlinkInterval);
         }
-        // Sync to RenderEngine (Phase 8 fix)
-        if (m_renderEngine) {
-            m_renderEngine->startCursorBlink();
-        }
         // Sync to RenderPipeline (Phase 12 fix)
         if (m_renderPipeline) {
             m_renderPipeline->startCursorBlink();
@@ -487,10 +466,6 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         if (!m_cursorVisible) {
             m_cursorVisible = true;
             update();
-        }
-        // Sync to RenderEngine (Phase 8 fix)
-        if (m_renderEngine) {
-            m_renderEngine->stopCursorBlink();
         }
     }
 }
@@ -512,11 +487,6 @@ void BookEditor::setCursorBlinkInterval(int interval)
     if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
         m_cursorBlinkTimer->setInterval(m_cursorBlinkInterval);
     }
-
-    // Sync to RenderEngine (Phase 8 fix)
-    if (m_renderEngine) {
-        m_renderEngine->setCursorBlinkInterval(m_cursorBlinkInterval);
-    }
 }
 
 void BookEditor::ensureCursorVisible()
@@ -529,13 +499,6 @@ void BookEditor::ensureCursorVisible()
         m_cursorBlinkTimer->start(m_cursorBlinkInterval);
     }
 
-    // Sync visibility to RenderEngine (Phase 8 fix)
-    if (m_renderEngine) {
-        m_renderEngine->setCursorVisible(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderEngine->startCursorBlink();
-        }
-    }
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
         m_renderPipeline->setCursorVisible(true);  // Must set visible before blink state
@@ -1034,10 +997,6 @@ void BookEditor::clearSelection()
     if (!m_selection.isEmpty()) {
         m_selection = {};
 
-        if (m_renderEngine) {
-            m_renderEngine->clearSelection();
-        }
-
         // Clear selection in layouts
         updateSelectionInLayouts();
 
@@ -1118,10 +1077,6 @@ void BookEditor::selectAll()
     m_selectionAnchor = range.start;
     m_cursorPosition = range.end;
     setSelection(range);
-
-    if (m_renderEngine) {
-        m_renderEngine->setSelection(range);
-    }
 
     update();
 }
@@ -2358,29 +2313,12 @@ void BookEditor::paintEvent(QPaintEvent* event)
         return;
     }
 
-    // Edit mode: use RenderEngine with QTextDocument
-    if (!m_renderEngine || !m_textBuffer) {
+    // Edit mode: use EditorRenderPipeline (Phase 12.3)
+    if (!m_textBuffer) {
         // Fallback: empty document
         event->accept();
         return;
     }
-
-    // Configure render engine with current appearance settings (color mode aware)
-    m_renderEngine->setBackgroundColor(m_appearance.colors.background(m_appearance.colorMode));
-    m_renderEngine->setTextColor(m_appearance.colors.textColor(m_appearance.colorMode));
-
-    // Configure focus mode rendering
-    bool focusModeActive = (m_viewMode == ViewMode::Focus);
-    m_renderEngine->setFocusModeEnabled(focusModeActive);
-    if (focusModeActive) {
-        m_renderEngine->setFocusedParagraph(m_cursorPosition.paragraph);
-        // Use color based on current editor color mode
-        m_renderEngine->setInactiveTextColor(
-            m_appearance.colors.focusInactiveColor(m_appearance.colorMode));
-    }
-
-    // Delegate painting to RenderEngine
-    m_renderEngine->paint(&painter, event->rect(), size());
 
     // Draw selection
     if (hasSelection()) {
@@ -2859,16 +2797,6 @@ void BookEditor::setupComponents()
     // Setup cursor blink timer
     setupCursorBlinkTimer();
 
-    // Initialize RenderEngine cursor (Phase 8 fix: sync cursor with new architecture)
-    if (m_renderEngine) {
-        m_renderEngine->setCursorPosition(m_cursorPosition);
-        m_renderEngine->setCursorVisible(true);
-        m_renderEngine->setCursorBlinkInterval(m_cursorBlinkInterval);
-        m_renderEngine->setCursorWidth(CURSOR_WIDTH);
-        if (m_cursorBlinkingEnabled) {
-            m_renderEngine->startCursorBlink();
-        }
-    }
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
@@ -3352,20 +3280,12 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         if (event->modifiers() & Qt::ShiftModifier) {
             // Shift+click extends selection
             extendSelection(clickPosition);
-
-            if (m_renderEngine && hasSelection()) {
-                m_renderEngine->setSelection(m_selection);
-                update();
-            }
+            update();
         } else {
             // Normal click clears selection and positions cursor
             clearSelection();
             m_selectionAnchor = clickPosition;
             setCursorPosition(clickPosition);
-
-            if (m_renderEngine) {
-                m_renderEngine->clearSelection();
-            }
         }
 
         // Start drag selection
@@ -3410,11 +3330,7 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     // Move cursor to drag position
     m_cursorPosition = dragPosition;
     setSelection(newSelection);
-
-    if (m_renderEngine) {
-        m_renderEngine->setSelection(newSelection);
-        update();  // Trigger repaint for selection rendering
-    }
+    update();  // Trigger repaint for selection rendering
 
     ensureCursorVisible();
 
@@ -3685,16 +3601,11 @@ void BookEditor::extendSelection(const CursorPosition& newCursor)
 
     m_cursorPosition = newCursor;
     setSelection(range);
-
-    // Phase 8.14: Update render engine selection
-    if (m_renderEngine) {
-        m_renderEngine->setSelection(range);
-    }
 }
 
 void BookEditor::updateSelectionInLayouts()
 {
-    // Phase 11: Selection is stored in m_selection and drawn by drawSelection/RenderEngine
+    // Phase 11: Selection is stored in m_selection and drawn by drawSelection/RenderPipeline
     // No need to update individual paragraph layouts - they use QTextLayout from QTextDocument
     // Just trigger a repaint
     update();
@@ -4686,7 +4597,7 @@ void BookEditor::requestSpellCheck()
 void BookEditor::onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors)
 {
     // Phase 11: Store spell errors for rendering
-    // Spell errors are now tracked separately and drawn by RenderEngine
+    // Spell errors are now tracked separately and drawn by RenderPipeline
     Q_UNUSED(paragraphIndex);
     Q_UNUSED(errors);
     // TODO: Implement spell error storage for Phase 11 if spell check is needed
@@ -5022,11 +4933,6 @@ void BookEditor::setupFindReplace()
 {
     m_searchEngine = std::make_unique<SearchEngine>(this);
     m_searchEngine->setDocument(m_textBuffer.get());
-
-    // Connect search engine to render engine
-    if (m_renderEngine) {
-        m_renderEngine->setSearchEngine(m_searchEngine.get());
-    }
 
     // Phase 12.3: Connect search engine to pipeline
     if (m_renderPipeline) {
@@ -5507,9 +5413,6 @@ void BookEditor::fromKml(const QString& kml)
     if (m_viewportManager) {
         m_viewportManager->setDocument(nullptr);
     }
-    if (m_renderEngine) {
-        m_renderEngine->setDocument(nullptr);
-    }
     if (m_searchEngine) {
         m_searchEngine->setDocument(nullptr);
     }
@@ -5587,14 +5490,6 @@ void BookEditor::fromKml(const QString& kml)
     m_cursorPosition = {0, 0};
     clearSelection();
 
-    // Sync cursor to RenderEngine (will be used in edit mode)
-    if (m_renderEngine) {
-        m_renderEngine->setCursorPosition(m_cursorPosition);
-        m_renderEngine->setCursorVisible(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderEngine->startCursorBlink();
-        }
-    }
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
@@ -5697,11 +5592,6 @@ void BookEditor::ensureEditMode()
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
-    // Connect RenderEngine to QTextDocument
-    if (m_renderEngine) {
-        m_renderEngine->setDocument(m_textBuffer.get());
-    }
-
     // Connect SearchEngine to QTextDocument
     if (m_searchEngine) {
         m_searchEngine->setDocument(m_textBuffer.get());
@@ -5723,7 +5613,7 @@ void BookEditor::ensureEditMode()
     // Without this, the pipeline has no text source and renders nothing
     syncPipelineState();
 
-    // Trigger repaint to use RenderEngine
+    // Trigger repaint to use RenderPipeline
     update();
 }
 

@@ -189,7 +189,6 @@ set(KALAHARI_SOURCES
     editor/quick_insert_popup.cpp        # Tasks 7.11-7.12: Quick insert autocomplete popup
     editor/snapshot_manager.cpp          # Task 7.13: Snapshot (restore points) manager
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
-    editor/render_engine.cpp             # OpenSpec #00043: Render engine for viewport-only rendering
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/search_service.cpp            # OpenSpec #00043 Phase 11.7: QTextDocument-based search service
     editor/kml_document_model.cpp        # OpenSpec #00043: Lazy rendering document model
@@ -246,7 +245,6 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_popup.h    # QuickInsertPopup with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/snapshot_manager.h      # SnapshotManager with Q_OBJECT (OpenSpec #00042 Task 7.13)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/render_engine.h        # RenderEngine with Q_OBJECT (OpenSpec #00043 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h     # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)

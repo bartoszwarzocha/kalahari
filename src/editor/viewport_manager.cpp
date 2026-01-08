@@ -279,7 +279,7 @@ double ViewportManager::totalDocumentHeight() const {
 
     if (m_totalHeightDirty) {
         // Calculate from block layouts (NOT documentSize which may include margins)
-        // This ensures consistency with paragraphY() and RenderEngine
+        // This ensures consistency with paragraphY() and EditorRenderPipeline
         m_cachedTotalHeight = 0.0;
         QTextBlock block = m_document->begin();
         while (block.isValid()) {
