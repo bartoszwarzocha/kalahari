@@ -62,6 +62,10 @@ public:
     void setFont(const QFont& font);
     QFont font() const { return m_font; }
 
+    /// @brief Force layout of all blocks
+    /// Call this after bulk content insertion to ensure all blocks have valid heights
+    void layoutAllBlocks();
+
 protected:
     /// @brief Called by Qt when document content changes
     void documentChanged(int from, int charsRemoved, int charsAdded) override;

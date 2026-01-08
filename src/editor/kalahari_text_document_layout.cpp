@@ -65,6 +65,22 @@ void KalahariTextDocumentLayout::setFont(const QFont& font) {
     }
 }
 
+void KalahariTextDocumentLayout::layoutAllBlocks() {
+    // Force layout of all blocks - call after bulk content insertion
+    // This ensures all blocks have valid heights for scrollbar calculation
+    QTextBlock block = document()->begin();
+    while (block.isValid()) {
+        QTextBlock mutableBlock = block;
+        layoutBlock(mutableBlock);
+        block = block.next();
+    }
+
+    m_positionsDirty = true;
+    updateBlockPositions();
+    emit documentSizeChanged(documentSize());
+    emit update();
+}
+
 // =============================================================================
 // Document Changed - Core Layout Logic
 // =============================================================================

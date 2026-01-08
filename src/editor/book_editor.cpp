@@ -2009,9 +2009,13 @@ void BookEditor::setViewMode(ViewMode mode)
 
         // Update viewport scroll padding based on new view mode
         if (m_viewportManager) {
+            double topPadding = (mode == ViewMode::Page)
+                ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
+                : m_appearance.viewMargins.vertical;
             double bottomPadding = (mode == ViewMode::Page)
                 ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
                 : m_appearance.viewMargins.vertical;
+            m_viewportManager->setTopScrollPadding(topPadding);
             m_viewportManager->setBottomScrollPadding(bottomPadding);
         }
 
@@ -2161,12 +2165,16 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     setCursorBlinkingEnabled(m_appearance.cursor.blinking);
     setCursorBlinkInterval(m_appearance.cursor.blinkInterval);
 
-    // Update viewport scroll padding so user can scroll to see bottom margin
+    // Update viewport scroll padding so user can scroll to see margins
     if (m_viewportManager) {
         // Use view margins for Continuous/Focus modes, page margins for Page mode
+        double topPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // Convert mm to pixels
+            : m_appearance.viewMargins.vertical;
         double bottomPadding = (m_viewMode == ViewMode::Page)
             ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
             : m_appearance.viewMargins.vertical;
+        m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
@@ -5458,10 +5466,14 @@ void BookEditor::fromKml(const QString& kml)
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
         m_viewportManager->setScrollPosition(0.0);
-        // Set scroll padding so user can scroll to see bottom margin
+        // Set scroll padding so user can scroll to see margins
+        double topPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
+            : m_appearance.viewMargins.vertical;
         double bottomPadding = (m_viewMode == ViewMode::Page)
             ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
             : m_appearance.viewMargins.vertical;
+        m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
@@ -5580,13 +5592,29 @@ void BookEditor::ensureEditMode()
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
-    // Connect ViewportManager to QTextDocument
+    m_isEditMode = true;
+
+    // Ensure text width is properly set for word wrapping
+    updateLayoutWidth();
+
+    // CRITICAL: Force layout of all blocks BEFORE connecting ViewportManager
+    // ViewportManager::setDocument() triggers updateVisibleRange() which reads block heights.
+    // If blocks don't have layouts yet, heights are 0 and scrollbar appears "at the end".
+    if (customLayout) {
+        customLayout->layoutAllBlocks();
+    }
+
+    // Connect ViewportManager to QTextDocument AFTER blocks have valid layouts
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
-        // Set scroll padding so user can scroll to see bottom margin
+        // Set scroll padding so user can scroll to see margins
+        double topPadding = (m_viewMode == ViewMode::Page)
+            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
+            : m_appearance.viewMargins.vertical;
         double bottomPadding = (m_viewMode == ViewMode::Page)
             ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
             : m_appearance.viewMargins.vertical;
+        m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
@@ -5595,10 +5623,6 @@ void BookEditor::ensureEditMode()
         m_searchEngine->setDocument(m_textBuffer.get());
     }
 
-    m_isEditMode = true;
-
-    // Ensure text width is properly set for word wrapping
-    updateLayoutWidth();
     updateViewport();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(

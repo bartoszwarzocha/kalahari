@@ -97,6 +97,13 @@ public:
     /// @brief Get the buffer size
     size_t bufferSize() const { return m_bufferSize; }
 
+    /// @brief Set top scroll padding (extra space at top for margins)
+    /// @param padding Extra scroll space at top in pixels
+    void setTopScrollPadding(double padding);
+
+    /// @brief Get top scroll padding
+    double topScrollPadding() const { return m_topScrollPadding; }
+
     /// @brief Set bottom scroll padding (allows scrolling past document end)
     /// @param padding Extra scroll space at bottom in pixels
     void setBottomScrollPadding(double padding);
@@ -243,6 +250,7 @@ private:
     QSize m_viewportSize{0, 0};
     double m_scrollY = 0.0;
     size_t m_bufferSize = DEFAULT_BUFFER_SIZE;
+    double m_topScrollPadding = 0.0;     ///< Extra scroll space at top for margins
     double m_bottomScrollPadding = 0.0;  ///< Extra scroll space at bottom for margins
 
     size_t m_firstVisible = 0;
