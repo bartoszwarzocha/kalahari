@@ -56,10 +56,8 @@ constexpr qreal WHEEL_SCROLL_STEP = 60.0;
 // Default cursor blink interval in milliseconds
 constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
-// Cursor width in pixels
-constexpr qreal CURSOR_WIDTH = 2.0;
-
 // Phase 12.6: Margins now configurable via m_appearance.viewMargins and m_appearance.pageMargins
+// Phase 12.5: Removed CURSOR_WIDTH (now handled by EditorRenderPipeline)
 // Removed hardcoded LEFT_MARGIN and TOP_MARGIN constants
 
 // =============================================================================
