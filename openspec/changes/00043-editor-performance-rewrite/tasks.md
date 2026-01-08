@@ -790,10 +790,18 @@ PO (paintEvent - 3 linie):
 - [ ] 12.4.3 Test: wszystkie widoki dzialaja identycznie
 - [ ] 12.4.4 Test: wyrownanie dziala poprawnie
 
-#### 12.5: Cleanup
-- [ ] 12.5.1 Usun stary RenderEngine (po pelnej migracji)
-- [ ] 12.5.2 Usun zduplikowany kod z BookEditor
-- [ ] 12.5.3 Zaktualizuj testy
+#### 12.5: Cleanup ✅ COMPLETE
+- [x] 12.5.1 Usun stary RenderEngine (po pelnej migracji)
+  - Usunieto render_engine.h (343 lines)
+  - Usunieto render_engine.cpp (798 lines)
+  - Usunieto test_render_engine.cpp (525 lines)
+  - Laczne 1,666 linii kodu usunieto
+- [x] 12.5.2 Usun zduplikowany kod z BookEditor
+  - Usunieto ~40 referencji do m_renderEngine
+  - Usunieto include i member declaration
+  - Zaktualizowano komentarze w viewport_manager.cpp, editor_panel.cpp
+- [x] 12.5.3 Zaktualizuj testy
+  - Testy przechodza: 596/596 (4220 assertions)
 
 ---
 
