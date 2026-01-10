@@ -2830,6 +2830,11 @@ void BookEditor::updateLayoutWidth()
             customLayout->setTextWidth(layoutWidth);
         }
     }
+
+    // Update m_documentModel for view mode scrollbar calculations
+    if (m_documentModel) {
+        m_documentModel->setLineWidth(layoutWidth);
+    }
 }
 
 void BookEditor::updateViewport()
@@ -2889,6 +2894,12 @@ void BookEditor::updateScrollBarRange()
     double bottomPadding = (m_viewMode == ViewMode::Page)
         ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
         : m_appearance.viewMargins.vertical;
+
+    // SYNC padding with ViewportManager to ensure consistency!
+    if (m_viewportManager) {
+        m_viewportManager->setTopScrollPadding(topPadding);
+        m_viewportManager->setBottomScrollPadding(bottomPadding);
+    }
 
     // Maximum scroll offset (includes both margins)
     qreal maxOffset = qMax(0.0, totalHeight + topPadding + bottomPadding - viewportHeight);
@@ -5456,8 +5467,9 @@ void BookEditor::fromKml(const QString& kml)
     // Phase 11.10: Setup font, text color and line width for lazy layout
     m_documentModel->setFont(m_appearance.typography.textFont);
     m_documentModel->setTextColor(m_appearance.colors.text);
-    // Phase 12.6: Use configurable margins
-    m_documentModel->setLineWidth(static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
+    // Phase 12.6: Use configurable margins with minimum width guard
+    double lineWidth = qMax(100.0, static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
+    m_documentModel->setLineWidth(lineWidth);
 
     // Phase 11.10: Reset scroll position for view mode
     m_viewModeScrollOffset = 0.0;

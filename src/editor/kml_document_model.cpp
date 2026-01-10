@@ -456,6 +456,9 @@ QFont KmlDocumentModel::font() const
 
 void KmlDocumentModel::setLineWidth(double width)
 {
+    // Guard: prevent negative or too small values
+    width = std::max(100.0, width);
+
     if (std::abs(m_lineWidth - width) > 0.01) {
         m_lineWidth = width;
 
