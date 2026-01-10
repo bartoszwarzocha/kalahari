@@ -18,11 +18,11 @@
 
 ## 🚧 Status
 
-**Phase 0 Complete ✅** | **Phase 1 Week 13** (Settings System Fixes)
+**Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (Core Editor)
 
-**Current Version:** 0.3.0-alpha (Qt Foundation in progress)
-**Target Release:** Kalahari 1.0 (Q2-Q3 2026)
-**Last Updated:** 2025-11-20
+**Current Version:** 0.3.2-alpha
+**Target Release:** Kalahari 1.0 (Q4 2026)
+**Last Updated:** 2026-01-10
 
 ---
 
@@ -52,6 +52,8 @@ Kalahari • Serengeti • Okavango • Victoria • Zambezi
 - **spdlog** - Fast structured logging (MIT)
 - **nlohmann_json** - Modern C++ JSON (MIT)
 - **libzip** - Project file compression (.klh format, BSD)
+- **Hunspell** - Spell checking library (LGPL/MPL)
+- **OpenSSL** - Plugin signature verification (Apache 2.0)
 - **Catch2** - Unit testing framework (BSL-1.0)
 - **pybind11** - C++/Python bindings (BSD)
 
@@ -81,7 +83,7 @@ The build script will:
 - ✅ Bootstrap vcpkg (automatic)
 - ✅ Configure CMake with correct toolchain
 - ✅ Compile all dependencies (first time: 15-30 min, subsequent: 1-3 min with binary cache)
-- ✅ Run unit tests (50 test cases, 2,239 assertions)
+- ✅ Run unit tests (623 test cases, 4,216 assertions)
 - ✅ Copy binaries to `build*/bin/`
 
 **Performance Note:** CI/CD builds optimized with vcpkg binary cache (~92% faster on Linux!)
@@ -136,10 +138,10 @@ ctest --output-on-failure
 
 **Linux (Debian/Ubuntu/Fedora):**
 ```bash
-# wxWidgets development libraries
-sudo apt-get install libwxgtk-3.2-dev      # Ubuntu/Debian
+# Qt6 and Hunspell development libraries (for system builds)
+sudo apt-get install qt6-base-dev libhunspell-dev  # Ubuntu/Debian
 # OR
-sudo dnf install wxGTK-devel                # Fedora
+sudo dnf install qt6-qtbase-devel hunspell-devel   # Fedora
 ```
 
 **macOS:**
@@ -196,19 +198,25 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ## 🗺️ Development Status
 
-**Phase 0: Foundation** (Weeks 1-8) - **100% COMPLETE ✅** (2025-10-31)
+**Phase 0: Qt Foundation** - **100% COMPLETE ✅** (2025-11-21)
 
-### ✅ Phase 0 Achievements (19 Tasks Complete):
+### ✅ Phase 0 Achievements:
+
+**Qt6 Migration (2025-11-19 Decision):**
+- ✅ Migrated from wxWidgets to Qt6 for superior quality
+- ✅ Automatic DPI scaling, QSS theming, QPalette integration
+- ✅ wxWidgets code archived (wxwidgets-archive branch, v0.2.0-alpha-wxwidgets tag)
 
 **Core Infrastructure:**
 - ✅ CMake build system (all platforms)
 - ✅ vcpkg integration (manifest mode)
-- ✅ wxWidgets application window (menu/toolbar/statusbar)
-- ✅ Settings system (JSON persistence + Dialog UI)
+- ✅ QMainWindow application (menu/toolbar/statusbar)
+- ✅ Settings system (JSON persistence + QDialog UI)
 - ✅ Logging system (spdlog - structured, multi-level)
+- ✅ Theme system (ThemeManager, Light/Dark themes, per-theme colors)
+- ✅ Icon system (ArtProvider, SVG with color placeholders)
 - ✅ Build automation scripts (cross-platform)
 - ✅ CI/CD pipelines (GitHub Actions - Linux/macOS/Windows)
-- ✅ CI/CD optimization (92% build time reduction!)
 
 **Plugin Architecture:**
 - ✅ Python 3.11 embedding + pybind11
@@ -222,26 +230,29 @@ Each assistant has unique personality and communication style, helping you stay 
 - ✅ JSON serialization (nlohmann_json)
 - ✅ .klh file format (ZIP container)
 
-**External Libraries:**
-- ✅ bwx_sdk integration (git submodule, Clean Slate Architecture)
-
 **Testing:**
-- ✅ 50 test cases, 2,239 assertions
+- ✅ 623 test cases, 4,216 assertions
 - ✅ 100% passing on all platforms (Linux, macOS, Windows)
 - ✅ Zero compiler warnings
 
-### ⏸️ Phase 1: Core Editor (Weeks 9-20) - Ready to Start
+### Phase 1: Core Editor - IN PROGRESS
 
-**Focus:** Rich text editor + project navigation
+**Focus:** Custom text editor + project navigation
 
-**Key Features:**
-- wxRichTextCtrl integration (rich text editing)
-- wxAUI docking system (multi-panel workspace)
-- Project Navigator panel (tree view)
-- Chapter management (CRUD operations)
-- Auto-save system (background saves)
+**Completed Features:**
+- ✅ Menu System Review & Cleanup (OpenSpec #00030)
+- ✅ Toolbar System with customization UI (OpenSpec #00031)
+- ✅ Project File System with .klh support (OpenSpec #00033)
+- ✅ Navigator Panel with drag & drop (OpenSpec #00034, #00036)
+- ✅ Theme & Icon System (ArtProvider, KalahariStyle)
 
-[View detailed roadmap →](ROADMAP.md)
+**In Progress:**
+- Custom Text Editor (KML model, rich formatting) - OpenSpec #00042
+- Spell Check (Hunspell integration)
+- Grammar Check (LanguageTool API)
+- Statistics Collector (word count, reading time)
+
+[View detailed roadmap ->](ROADMAP.md)
 
 ---
 
@@ -258,14 +269,57 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ---
 
+## 🔧 Git Hooks
+
+Kalahari uses a pre-commit hook to enforce code quality standards and prevent common anti-patterns from being committed.
+
+### What It Checks
+
+The hook scans staged `.cpp` and `.h` files for prohibited patterns:
+
+| Pattern | Reason | Correct Alternative |
+|---------|--------|---------------------|
+| `QIcon(` | Hardcoded icon paths | `core::ArtProvider::getInstance().getIcon()` |
+| `QColor(` | Hardcoded colors | `core::ArtProvider::getInstance().getPrimaryColor()` |
+| `qDebug` | Debug statements | `core::Logger::getInstance().debug()` |
+| `std::cout` | Console output | `core::Logger::getInstance().info()` |
+
+### Installation
+
+```bash
+# Linux/macOS
+./scripts/install-hooks.sh
+
+# Windows (Git Bash)
+bash scripts/install-hooks.sh
+```
+
+### Check Status
+
+```bash
+./scripts/install-hooks.sh --check
+```
+
+### Bypassing the Hook
+
+In exceptional cases, you can skip the hook:
+
+```bash
+git commit --no-verify -m "message"
+```
+
+**Warning:** Bypassing the hook is discouraged. CI/CD will still fail if prohibited patterns are present.
+
+---
+
 ## 🤝 Contributing
 
-Kalahari has completed **Phase 0 (Foundation) ✅** and is entering **Phase 1 (Core Editor)**. Contributions welcome after 1.0 release.
+Kalahari is in **Phase 1 (Core Editor)** active development. Contributions welcome after 1.0 release.
 
 For now, please:
-- ⭐ Star the repository
-- 📣 Share with writer friends
-- 🐛 Report bugs via [Issues](https://github.com/bartoszwarzocha/kalahari/issues)
+- Star the repository
+- Share with writer friends
+- Report bugs via [Issues](https://github.com/bartoszwarzocha/kalahari/issues)
 
 ---
 
@@ -290,10 +344,11 @@ Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 Created with passion for writers who deserve better tools.
 
 **Project Start:** October 2025
-**Current Phase:** Phase 0 Complete ✅ (2025-10-31) | Phase 1 Ready ⏸️
+**Qt6 Migration:** November 2025
+**Current Phase:** Phase 0 Complete ✅ | Phase 1 IN PROGRESS
 
 **Ecosystem Roadmap:**
-- **Kalahari** - Main writing environment (this project) ✅ Phase 0 Complete
+- **Kalahari** - Main writing environment (this project) - Phase 1 IN PROGRESS
 - **Serengeti** - Collaborative writing (future)
 - **Okavango** - Research & knowledge management (future)
 - **Victoria** - Cloud sync & storage (future)
