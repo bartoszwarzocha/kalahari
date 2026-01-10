@@ -6,6 +6,34 @@ model: inherit
 permissionMode: bypassPermissions
 skills: kalahari-coding, qt6-desktop-ux
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: prompt
+          prompt: |
+            KALAHARI UI PATTERNS CHECK (before writing UI code):
+
+            Verify the UI code follows mandatory patterns:
+
+            CORE PATTERNS:
+            1. Icons: Uses core::ArtProvider::getInstance().getIcon() - NOT QIcon("path")
+            2. Actions: Uses core::ArtProvider::getInstance().createAction() - NOT new QAction with icon
+            3. UI strings: Uses tr("...") - NOT hardcoded strings
+            4. Colors: Uses ArtProvider/ThemeManager colors - NOT hardcoded QColor(r,g,b)
+
+            QT6 UX PATTERNS:
+            5. Tooltips: All interactive controls have setToolTip(tr("..."))
+            6. Spacing: Uses setSpacing(6) and setContentsMargins(11,11,11,11)
+            7. Grouping: Uses QGroupBox for logical sections
+
+            Check only C++ code (.cpp, .h files). Ignore other file types.
+
+            Return JSON:
+            {"decision": "approve"} if patterns OK or not C++ code
+            {"decision": "block", "reason": "UI control missing tooltip. Add setToolTip(tr(\"...\"))."} if violation
+          model: haiku
+          timeout: 15000
 ---
 
 # UI Designer Agent

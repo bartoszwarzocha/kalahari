@@ -6,6 +6,29 @@ model: inherit
 permissionMode: bypassPermissions
 skills: kalahari-coding
 color: green
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: prompt
+          prompt: |
+            KALAHARI CODE PATTERNS CHECK (before writing C++ code):
+
+            Verify the code follows mandatory patterns:
+            1. Icons: Uses core::ArtProvider::getInstance().getIcon() - NOT hardcoded paths
+            2. Actions: Uses core::ArtProvider::getInstance().createAction() - NOT new QAction with icon path
+            3. Config: Uses core::SettingsManager::getInstance() - NOT hardcoded values
+            4. UI strings: Uses tr("...") - NOT hardcoded strings
+            5. Colors: Uses ArtProvider colors - NOT hardcoded QColor
+            6. Logging: Uses core::Logger::getInstance() - NOT qDebug/cout
+
+            Check only C++ code (.cpp, .h files). Ignore other file types.
+
+            Return JSON:
+            {"decision": "approve"} if patterns OK or not C++ code
+            {"decision": "block", "reason": "Found hardcoded icon path: QIcon(\"path\"). Use ArtProvider."} if violation
+          model: haiku
+          timeout: 15000
 ---
 
 # Code Writer Agent

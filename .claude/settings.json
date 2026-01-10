@@ -1,4 +1,60 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(scripts/*)",
+      "Bash(git:*)",
+      "Bash(cmake:*)",
+      "Bash(cd:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(echo:*)",
+      "Bash(type:*)",
+      "Bash(cat:*)",
+      "Read(src/**)",
+      "Read(include/**)",
+      "Read(tests/**)",
+      "Read(openspec/**)",
+      "Read(.claude/**)",
+      "Edit(src/**)",
+      "Edit(include/**)",
+      "Edit(tests/**)",
+      "Edit(openspec/**)",
+      "Edit(.claude/**)",
+      "Write(src/**)",
+      "Write(include/**)",
+      "Write(tests/**)",
+      "Write(openspec/**)",
+      "Task(task-manager)",
+      "Task(architect)",
+      "Task(code-writer)",
+      "Task(code-editor)",
+      "Task(ui-designer)",
+      "Task(code-reviewer)",
+      "Task(tester)",
+      "Task(devops)",
+      "Task(Explore)",
+      "Skill(/workflow:*)",
+      "Skill(/save-session:*)",
+      "Skill(/load-session:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)",
+      "Bash(rm -rf:*)",
+      "Bash(del /s:*)",
+      "Bash(format:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(Invoke-WebRequest:*)",
+      "Bash(powershell -enc:*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Write(.env)",
+      "Write(.env.*)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -61,6 +117,17 @@
             "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. OpenSpec status current?\n4. No TODO in staged files?\n\nReturn JSON:\n{\"decision\": \"approve\"} or\n{\"decision\": \"block\", \"reason\": \"...\"}",
             "model": "haiku",
             "timeout": 30000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(*.cpp)|Edit(*.h)|Write(*.cpp)|Write(*.h)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "KALAHARI C++ PATTERNS CHECK:\n\nCheck if the code being written/edited violates these patterns:\n1. Hardcoded icons: QIcon(\"path\") instead of ArtProvider::getInstance().getIcon()\n2. Hardcoded strings: \"text\" in UI instead of tr(\"text\")\n3. Hardcoded colors: QColor(r,g,b) instead of ArtProvider colors\n4. Direct qDebug/cout instead of Logger::getInstance()\n\nIf ANY violation found, return:\n{\"decision\": \"block\", \"reason\": \"Pattern violation: [describe what's wrong]\"}\n\nIf code is OK or you can't determine, return:\n{\"decision\": \"approve\"}",
+            "model": "haiku",
+            "timeout": 15000
           }
         ]
       }
