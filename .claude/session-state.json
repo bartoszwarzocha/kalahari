@@ -1,55 +1,45 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-07T09:45:00",
-  "git_commit": "c4ea734",
+  "saved_at": "2026-01-14T15:45:00",
+  "git_commit": "382fd92",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Phase 12.7 - CLI Benchmark Mode COMPLETE",
+  "working_on": "Architecture cleanup - Phase 15+ comprehensive refactoring",
   "next_steps": [
-    "Continue Phase 12.6 - Configurable Margins",
-    "Finish Phase 12.5 - Cleanup (remove old RenderEngine)",
-    "Manual testing: Alignment, margins, view modes"
+    "Complete Phase comments cleanup",
+    "Build and run tests",
+    "Consider unifying configuration path",
+    "Consider centralizing margin calculations"
   ],
   "blocker": null,
   "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
-    "Phase 11.1-11.9: Architecture cleanup COMPLETE",
-    "Phase 11.10: KmlDocumentModel with lazy QTextLayout rendering",
-    "Phase 11.10: HeightTree (Fenwick tree) for O(log n) height queries",
-    "Phase 11.11: KalahariTextDocumentLayout integration",
-    "Phase 12.1-12.3: EditorRenderPipeline infrastructure",
-    "Phase 12.7: CLI Benchmark Mode",
-    "Phase 12.7: Debounce timers (MainWindow 50ms, PropertiesPanel 100ms)",
-    "Phase 12.7: Ambitious reference values (70% of achieved performance)",
-    "All benchmarks pass with 1.2x-2.7x margin"
+    "Phase 15: Granular configuration setters implemented",
+    "Removed dead code: configurePipeline() (~90 lines)",
+    "Removed alias: syncPipelineCursorOnly()",
+    "Fixed RenderColors::operator== - added all missing fields",
+    "Replaced m_cursorStyle int with CursorStyle enum",
+    "Removed deprecated setScaleFactor()",
+    "Added DEFAULT_DPI constant (96.0)",
+    "Started cleanup of Phase comments"
   ],
   "pending_tasks": [
-    "Phase 12.4: Rozszerzenia (skalowanie, konfigurowalne marginesy)",
-    "Phase 12.5: Cleanup (usun RenderEngine)",
-    "Phase 12.6: Configurable Margins"
+    "Complete Phase comments cleanup",
+    "Unify configuration path (granular setters only)",
+    "Centralize margin calculations",
+    "Build and run tests",
+    "Visual testing of performance improvements"
   ],
   "task_progress": {
-    "completed": 9,
-    "total": 12,
-    "percentage": 75
+    "completed": 8,
+    "total": 13,
+    "percentage": 62
   },
-  "benchmark_results": {
-    "cursor_left_right": { "achieved": 5325, "reference": 2000, "margin": "2.66x" },
-    "cursor_up_down": { "achieved": 2906, "reference": 1500, "margin": "1.94x" },
-    "cursor_word_nav": { "achieved": 2110, "reference": 1500, "margin": "1.41x" },
-    "char_insertion": { "achieved": 1547, "reference": 1000, "margin": "1.55x" },
-    "backspace": { "achieved": 1394, "reference": 900, "margin": "1.55x" },
-    "delete_key": { "achieved": 1476, "reference": 1200, "margin": "1.23x" },
-    "rapid_typing": { "achieved": 1567, "reference": 1100, "margin": "1.42x" },
-    "scrolling": { "achieved": 3447, "reference": 2300, "margin": "1.50x" }
-  },
-  "files_modified": [
-    "src/main.cpp - CLI benchmark mode, --project, --chapter options",
-    "include/kalahari/gui/main_window.h - public openChapter()",
-    "src/gui/main_window.cpp - openChapter(), debounce timer",
-    "include/kalahari/editor/editor_benchmark.h - NEW",
-    "src/editor/editor_benchmark.cpp - NEW, ambitious reference values",
-    "src/gui/panels/properties_panel.cpp - debounce timer"
-  ]
+  "architecture_audit": {
+    "score": "6/10",
+    "critical_issues_fixed": 2,
+    "serious_issues_remaining": 4,
+    "minor_issues_remaining": 6
+  }
 }

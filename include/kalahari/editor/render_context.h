@@ -1,9 +1,12 @@
 /// @file render_context.h
-/// @brief RenderContext - All rendering attributes in one struct (OpenSpec #00043 Phase 12.1)
+/// @brief RenderContext - Pure data structure for rendering attributes
 ///
-/// RenderContext centralizes all rendering configuration in one place.
-/// This replaces scattered state across BookEditor, RenderEngine, and EditorAppearance,
-/// providing a single source of truth for how content should be rendered.
+/// RenderContext is a pure data container with no logic.
+/// All computation is done in Pipeline::configure().
+///
+/// Contains:
+/// - INPUT PARAMETERS: Set by BookEditor based on user settings
+/// - COMPUTED VALUES: Calculated by EditorRenderPipeline
 
 #pragma once
 
@@ -15,6 +18,9 @@
 #include <QSizeF>
 
 namespace kalahari::editor {
+
+/// @brief Default screen DPI (standard 96 DPI display)
+constexpr double DEFAULT_DPI = 96.0;
 
 /// @brief Margin configuration for rendering
 ///
@@ -82,7 +88,17 @@ struct RenderColors {
                cursor == other.cursor &&
                selection == other.selection &&
                selectionText == other.selectionText &&
-               inactiveText == other.inactiveText;
+               inactiveText == other.inactiveText &&
+               lineHighlight == other.lineHighlight &&
+               searchHighlight == other.searchHighlight &&
+               currentMatch == other.currentMatch &&
+               commentHighlight == other.commentHighlight &&
+               commentBorder == other.commentBorder &&
+               todoHighlight == other.todoHighlight &&
+               noteHighlight == other.noteHighlight &&
+               completedTodo == other.completedTodo &&
+               spellError == other.spellError &&
+               grammarWarning == other.grammarWarning;
     }
 
     bool operator!=(const RenderColors& other) const {
@@ -113,201 +129,152 @@ struct PageModeConfig {
     bool showPageBreaks = true;                ///< Show page break lines
 };
 
-/// @brief Complete rendering context
+/// @brief Complete rendering context - pure data structure
 ///
-/// RenderContext contains ALL rendering configuration needed by the pipeline.
-/// This is the ONLY place where rendering state is stored.
-///
-/// Pipeline order when applying context:
-/// 1. TEXT - Get content from ITextSource
-/// 2. ATTRIBUTES - Apply this context (font, colors, margins)
-/// 3. LAYOUT - Calculate block positions (using margins, scale, text width)
-/// 4. RENDER - Draw to painter (using colors, cursor config)
+/// Contains:
+/// - INPUT PARAMETERS: Set by BookEditor based on user settings
+/// - COMPUTED VALUES: Calculated by EditorRenderPipeline
 ///
 /// Usage:
 /// @code
 /// RenderContext ctx;
 /// ctx.margins.left = 60.0;
 /// ctx.colors.text = Qt::black;
-/// ctx.scaleFactor = 1.25;  // 125% zoom
+/// ctx.zoomFactor = 1.25;  // 125% zoom
+/// ctx.zoomMode = ZoomMode::FontScaling;
 ///
-/// pipeline.setContext(ctx);
+/// pipeline.configure(ctx);  // Fills ctx.computed
 /// pipeline.render(painter, clipRect);
 /// @endcode
 struct RenderContext {
     // =========================================================================
-    // Core Layout Parameters
+    // INPUT PARAMETERS (set by BookEditor)
     // =========================================================================
 
+    // -------------------------------------------------------------------------
+    // Core Layout Parameters
+    // -------------------------------------------------------------------------
+
     RenderMargins margins;                     ///< Margins around content
-    double scaleFactor = 1.0;                  ///< Zoom/scale factor (1.0 = 100%)
+    double zoomFactor = 1.0;                   ///< User's zoom level (1.0 = 100%)
+    ZoomMode zoomMode = ZoomMode::FontScaling; ///< How zoom is applied
     double textWidth = 800.0;                  ///< Available width for text (pixels)
     double lineSpacing = 1.0;                  ///< Line spacing multiplier
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
+    // DPI Scaling (for WYSIWYG rendering)
+    // -------------------------------------------------------------------------
+
+    double screenDpi = DEFAULT_DPI;            ///< Physical screen DPI from physicalDotsPerInch()
+
+    // -------------------------------------------------------------------------
     // Typography
-    // =========================================================================
+    // -------------------------------------------------------------------------
 
     QFont font{"Segoe UI", 11};               ///< Base font for text
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // Colors
-    // =========================================================================
+    // -------------------------------------------------------------------------
 
     RenderColors colors;                       ///< All rendering colors
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // View Mode
-    // =========================================================================
+    // -------------------------------------------------------------------------
 
     ViewMode viewMode = ViewMode::Continuous;  ///< Current view mode
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // Mode-specific Configuration
-    // =========================================================================
+    // -------------------------------------------------------------------------
 
     CursorConfig cursor;                       ///< Cursor rendering config
     FocusModeConfig focusMode;                 ///< Focus mode config
     PageModeConfig pageMode;                   ///< Page mode config
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // Text Frame Border
-    // =========================================================================
+    // -------------------------------------------------------------------------
 
     bool showTextFrameBorder = false;          ///< Show border around text area
     QColor textFrameBorderColor{180, 180, 180}; ///< Border color
     int textFrameBorderWidth = 1;              ///< Border width in pixels
 
-    // =========================================================================
-    // Scroll State (for coordinate transforms)
-    // =========================================================================
+    // -------------------------------------------------------------------------
+    // Scroll State
+    // -------------------------------------------------------------------------
 
     double scrollY = 0.0;                      ///< Current vertical scroll offset
     int currentPageNumber = 1;                 ///< Current page number (1-based, for mirror margins)
 
-    // =========================================================================
-    // Viewport Info (set by render call)
-    // =========================================================================
+    // -------------------------------------------------------------------------
+    // Viewport Info
+    // -------------------------------------------------------------------------
 
     QSizeF viewportSize;                       ///< Viewport dimensions
-    size_t firstVisibleParagraph = 0;          ///< First visible paragraph index
-    size_t lastVisibleParagraph = 0;           ///< Last visible paragraph index
 
     // =========================================================================
-    // Computed Properties
+    // COMPUTED VALUES (set by Pipeline::configure())
     // =========================================================================
 
-    /// @brief Get effective text width after margins and scale
-    /// @return Available width for text content
-    double effectiveTextWidth() const {
-        return (textWidth - margins.left - margins.right) / scaleFactor;
-    }
+    /// @brief Pre-computed values for rendering
+    ///
+    /// These values are calculated by Pipeline::configure() based on input parameters.
+    /// They should not be set directly - always call configure() after changing inputs.
+    struct Computed {
+        // ---------------------------------------------------------------------
+        // DPI-derived values
+        // ---------------------------------------------------------------------
 
-    /// @brief Get left edge of content area
-    /// @return X coordinate where content starts
-    double contentLeft() const {
-        return margins.left;
-    }
+        double dpiScale = 1.0;                  ///< screenDpi / DEFAULT_DPI
+        double mmToPixels = DEFAULT_DPI / 25.4; ///< Conversion factor (dpi / 25.4)
 
-    /// @brief Get top edge of content area
-    /// @return Y coordinate where content starts (before scroll)
-    double contentTop() const {
-        return margins.top;
-    }
+        // ---------------------------------------------------------------------
+        // Effective font (after zoom in FontScaling mode)
+        // ---------------------------------------------------------------------
 
-    /// @brief Convert document Y to widget Y
-    /// @param docY Y coordinate in document space
-    /// @return Y coordinate in widget space
-    double documentToWidgetY(double docY) const {
-        return margins.top + (docY - scrollY) * scaleFactor;
-    }
+        QFont effectiveFont;                    ///< Font with zoom applied (FontScaling mode)
 
-    /// @brief Convert widget Y to document Y
-    /// @param widgetY Y coordinate in widget space
-    /// @return Y coordinate in document space
-    double widgetToDocumentY(double widgetY) const {
-        return (widgetY - margins.top) / scaleFactor + scrollY;
-    }
+        // ---------------------------------------------------------------------
+        // Effective margins in pixels (after DPI/mode calculation)
+        // ---------------------------------------------------------------------
 
-    /// @brief Convert document X to widget X
-    /// @param docX X coordinate in document space
-    /// @return X coordinate in widget space
-    double documentToWidgetX(double docX) const {
-        return margins.left + docX * scaleFactor;
-    }
+        double marginLeft = 50.0;               ///< Left margin (pixels)
+        double marginTop = 30.0;                ///< Top margin (pixels)
+        double marginRight = 50.0;              ///< Right margin (pixels)
+        double marginBottom = 30.0;             ///< Bottom margin (pixels)
 
-    /// @brief Convert widget X to document X
-    /// @param widgetX X coordinate in widget space
-    /// @return X coordinate in document space
-    double widgetToDocumentX(double widgetX) const {
-        return (widgetX - margins.left) / scaleFactor;
-    }
+        // ---------------------------------------------------------------------
+        // Effective text width in pixels
+        // ---------------------------------------------------------------------
 
-    // =========================================================================
-    // Margin Calculation
-    // =========================================================================
+        double textWidth = 700.0;               ///< Available width for text content
 
-    /// @brief Calculate effective margins based on view mode and configuration
-    /// @param pageMargins Page margin config (for Page/Typewriter)
-    /// @param viewMargins View margin config (for Continuous/Focus/DistractionFree)
-    /// @param mode Current view mode
-    /// @param pageNumber Current page number (for mirror margins)
-    /// @param dpi Screen DPI for mm to pixel conversion (default 96)
-    /// @return RenderMargins in pixels
-    static RenderMargins calculateMargins(
-        const PageMarginsConfig& pageMargins,
-        const ViewMarginsConfig& viewMargins,
-        ViewMode mode,
-        int pageNumber = 1,
-        double dpi = 96.0)
-    {
-        // Convert mm to pixels: pixels = mm * dpi / 25.4
-        constexpr double MM_TO_INCH = 25.4;
-        auto mmToPixels = [dpi](double mm) { return mm * dpi / MM_TO_INCH; };
+        // ---------------------------------------------------------------------
+        // Page Mode specific
+        // ---------------------------------------------------------------------
 
-        switch (mode) {
-            case ViewMode::Page:
-            case ViewMode::Typewriter:
-                // Use page margins (in mm, convert to pixels)
-                return RenderMargins{
-                    mmToPixels(pageMargins.effectiveLeft(pageNumber)),
-                    mmToPixels(pageMargins.top),
-                    mmToPixels(pageMargins.effectiveRight(pageNumber)),
-                    mmToPixels(pageMargins.bottom)
-                };
+        double pageWidthPixels = 0.0;           ///< Page width in pixels
+        double pageHeightPixels = 0.0;          ///< Page height in pixels
+        double textAreaHeight = 0.0;            ///< Height of text area on page
+        double pageCenterOffset = 0.0;          ///< Offset to center page in viewport
 
-            case ViewMode::Continuous:
-            case ViewMode::Focus:
-            case ViewMode::DistractionFree:
-            default:
-                // Use view margins (already in pixels)
-                return RenderMargins{
-                    viewMargins.horizontal,
-                    viewMargins.vertical,
-                    viewMargins.horizontal,
-                    viewMargins.vertical
-                };
-        }
-    }
+        // ---------------------------------------------------------------------
+        // Unified scale factor for rendering
+        // ---------------------------------------------------------------------
 
-    // =========================================================================
-    // Equality
-    // =========================================================================
+        double viewScale = 1.0;                 ///< Scale for QPainter (PageScaling mode)
+        double totalScale = 1.0;                ///< Combined DPI + zoom scale
 
-    /// @brief Check if context equals another (for change detection)
-    bool operator==(const RenderContext& other) const {
-        return margins == other.margins &&
-               scaleFactor == other.scaleFactor &&
-               textWidth == other.textWidth &&
-               lineSpacing == other.lineSpacing &&
-               font == other.font &&
-               colors == other.colors &&
-               viewMode == other.viewMode;
-    }
+        // ---------------------------------------------------------------------
+        // Visible range
+        // ---------------------------------------------------------------------
 
-    bool operator!=(const RenderContext& other) const {
-        return !(*this == other);
-    }
+        size_t firstVisibleParagraph = 0;       ///< First visible paragraph index
+        size_t lastVisibleParagraph = 0;        ///< Last visible paragraph index
+
+    } computed;
 };
 
 }  // namespace kalahari::editor

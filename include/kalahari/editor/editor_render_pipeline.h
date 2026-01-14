@@ -31,6 +31,31 @@ class ViewportManager;
 class SearchEngine;
 class KalahariTextDocumentLayout;
 
+// =============================================================================
+// Pagination Structures (Phase 13.3: moved from BookEditor)
+// =============================================================================
+
+/// @brief A slice of a paragraph that fits on a single page
+///
+/// When a paragraph spans multiple pages, it's split into slices.
+/// Each slice contains a range of lines from the paragraph.
+struct ParagraphSlice {
+    size_t paraIndex;      ///< Index of the paragraph in the document
+    int startLine;         ///< First line index (inclusive)
+    int endLine;           ///< Last line index (exclusive)
+    double yOffset;        ///< Y offset on the page (in screen pixels)
+};
+
+/// @brief Content of a single page in Page Mode
+///
+/// Contains the page geometry and all paragraph slices that appear on this page.
+struct PageContent {
+    double pageY;                           ///< Y position of page top in document coordinates
+    QRectF pageRect;                        ///< Page rectangle (including margins) in widget coordinates
+    QRectF textRect;                        ///< Text area rectangle (excluding margins) in widget coordinates
+    std::vector<ParagraphSlice> slices;     ///< Paragraph slices on this page
+};
+
 /// @brief Unified rendering pipeline for the editor
 ///
 /// EditorRenderPipeline provides a single entry point for all editor rendering.
@@ -108,9 +133,16 @@ public:
     void setMargins(double left, double top, double right, double bottom);
     void setMargins(const RenderMargins& margins);
 
-    /// @brief Set scale factor
-    /// @param scale Zoom factor (1.0 = 100%, 1.25 = 125%)
-    void setScaleFactor(double scale);
+    /// @brief Set zoom level and mode
+    /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
+    /// @param mode How zoom should be applied
+    void setZoom(double factor, ZoomMode mode);
+
+    /// @brief Get current zoom factor
+    double zoomFactor() const { return m_context.zoomFactor; }
+
+    /// @brief Get current zoom mode
+    ZoomMode zoomMode() const { return m_context.zoomMode; }
 
     /// @brief Set text width
     /// @param width Available width for text (pixels)
@@ -134,6 +166,82 @@ public:
     /// @brief Set viewport size
     void setViewportSize(const QSizeF& size);
 
+    /// @brief Set screen DPI for WYSIWYG rendering
+    /// @param dpi Physical screen DPI (from screen()->physicalDotsPerInch())
+    /// @note This calculates dpiScale as dpi / 96.0
+    void setScreenDpi(double dpi);
+
+    // =========================================================================
+    // Configuration (Phase 14: called when settings change)
+    // =========================================================================
+
+    /// @brief Configure pipeline with new context
+    /// Called when view mode, zoom, appearance, or viewport changes.
+    /// Performs ALL calculations once (DPI, margins, text width, page layout).
+    /// @deprecated Use granular setters (Phase 15) for better performance
+    void configure(const RenderContext& context);
+
+    // =========================================================================
+    // Granular Configuration (Phase 15: targeted updates)
+    // =========================================================================
+    // These setters update static configuration and recalculate ONLY
+    // the values that depend on what changed. Much faster than configure().
+
+    /// @brief Set screen DPI (recalculates: dpiScale, pageLayout, textWidth, font if PageScaling)
+    /// @param dpi Physical screen DPI (from screen()->physicalDotsPerInch())
+    void setConfigDpi(double dpi);
+
+    /// @brief Set base font (recalculates: effectiveFont)
+    /// @param font User's selected font
+    void setConfigFont(const QFont& font);
+
+    /// @brief Set zoom level (recalculates: effectiveFont, viewScale)
+    /// @param factor Zoom factor (1.0 = 100%)
+    /// @param mode How zoom is applied (FontScaling or PageScaling)
+    void setConfigZoom(double factor, ZoomMode mode);
+
+    /// @brief Set viewport size (recalculates: textWidth or pageCenterOffset)
+    /// @param size Widget size in pixels
+    void setConfigViewportSize(const QSizeF& size);
+
+    /// @brief Set margins in pixels (recalculates: textWidth)
+    /// @param left Left margin in pixels
+    /// @param top Top margin in pixels
+    /// @param right Right margin in pixels
+    /// @param bottom Bottom margin in pixels
+    void setConfigMargins(double left, double top, double right, double bottom);
+
+    /// @brief Set page layout parameters (recalculates: pageLayout, textWidth)
+    /// @param pageSize Page size in points (72 DPI)
+    /// @param pageGap Gap between pages in pixels
+    void setConfigPageLayout(const QSizeF& pageSize, double pageGap);
+
+    /// @brief Set colors (no recalculation, just marks dirty)
+    /// @param colors Render colors (text, background, selection, etc.)
+    void setConfigColors(const RenderColors& colors);
+
+    /// @brief Set view mode (FULL reconfiguration - use sparingly)
+    /// @param mode New view mode
+    /// @note This triggers full reconfiguration because view mode affects everything
+    void setConfigViewMode(ViewMode mode);
+
+    /// @brief Apply initial configuration (called once after setup)
+    /// Sets up initial state without full configure() overhead
+    void applyInitialConfig();
+
+    // =========================================================================
+    // Lightweight updates (called frequently)
+    // =========================================================================
+
+    /// @brief Update cursor state only
+    void updateCursor(const CursorPosition& pos, bool visible, bool blinkState);
+
+    /// @brief Update selection only
+    void updateSelection(const SelectionRange& selection);
+
+    /// @brief Update scroll position only
+    void updateScroll(double scrollY);
+
     // =========================================================================
     // Cursor & Selection
     // =========================================================================
@@ -151,7 +259,7 @@ public:
     void setCursorBlinkState(bool on);
 
     /// @brief Set cursor style (Line, Block, Underline)
-    void setCursorStyle(int style);
+    void setCursorStyle(CursorStyle style);
 
     /// @brief Start cursor blink timer
     void startCursorBlink();
@@ -228,6 +336,35 @@ public:
     /// @brief Clear dirty region (after painting)
     void clearDirtyRegion();
 
+    // =========================================================================
+    // Pagination (Phase 13.3: Page Mode support)
+    // =========================================================================
+
+    /// @brief Get cached pages for Page Mode rendering
+    /// @return Vector of PageContent with page geometry and paragraph slices
+    const std::vector<PageContent>& pages() const;
+
+    /// @brief Check if pagination cache is valid
+    bool isPaginationValid() const { return m_paginationCacheValid; }
+
+    /// @brief Invalidate pagination cache (call when layout changes)
+    void invalidatePagination();
+
+    /// @brief Set page layout parameters for Page Mode
+    /// @param pageSize Page size in points (e.g., A4 = 595x842)
+    /// @param pageGap Gap between pages in pixels
+    void setPageLayout(const QSizeF& pageSize, double pageGap = 20.0);
+
+    /// @brief Find page index at given document Y coordinate
+    /// @param docY Y coordinate in document space
+    /// @return Page index (0-based), or -1 if not found
+    int pageAtY(double docY) const;
+
+    /// @brief Find position (paragraph, offset) at widget point
+    /// @param point Point in widget coordinates
+    /// @return CursorPosition at point, or invalid position if not found
+    CursorPosition positionFromPoint(const QPointF& point) const;
+
 signals:
     /// @brief Emitted when repaint is needed
     /// @param region Area to repaint
@@ -281,6 +418,31 @@ private:
     void renderCommentHighlights(QPainter* painter, const QRect& clipRect);
 
     // =========================================================================
+    // Page Mode Rendering (Phase 13.4: Unified rendering)
+    // =========================================================================
+
+    /// @brief Render page backgrounds, shadows, and borders (Page Mode only)
+    void renderPageBackgrounds(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Render a single paragraph slice on a page
+    /// @param painter QPainter to draw with
+    /// @param slice The paragraph slice to render
+    /// @param textRect Text area rectangle in widget coordinates
+    void renderSlice(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
+
+    /// @brief Render selection highlight for a slice
+    /// @param painter QPainter to draw with
+    /// @param slice The paragraph slice
+    /// @param textRect Text area rectangle in widget coordinates
+    void renderSliceSelection(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
+
+    /// @brief Render cursor within a slice
+    /// @param painter QPainter to draw with
+    /// @param slice The paragraph slice
+    /// @param textRect Text area rectangle in widget coordinates
+    void renderSliceCursor(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
+
+    // =========================================================================
     // Layout Helpers (Stage 3)
     // =========================================================================
 
@@ -313,11 +475,56 @@ private:
 
     // Cursor blinking
     QTimer m_cursorBlinkTimer;
-    int m_cursorStyle = 0;  ///< 0=Line, 1=Block, 2=Underline
+    CursorStyle m_cursorStyle = CursorStyle::Line;  ///< Cursor style
 
     // Cached values
     mutable double m_cachedTotalHeight = 0.0;
     mutable bool m_heightDirty = true;
+
+    // Pagination cache (Phase 13.3)
+    mutable std::vector<PageContent> m_cachedPages;     ///< Cached page layout
+    mutable bool m_paginationCacheValid = false;        ///< Is pagination cache valid?
+    mutable double m_cachedDpiScale = 1.0;              ///< DPI scale used for cache
+    mutable QSizeF m_cachedPageSize;                    ///< Page size used for cache
+    double m_pageGap = 20.0;                            ///< Gap between pages in pixels
+
+    /// @brief Rebuild pagination cache if needed
+    void rebuildPaginationCache() const;
+
+    // =========================================================================
+    // Internal Calculation Methods (Phase 14: called by configure())
+    // =========================================================================
+
+    /// @brief Calculate DPI-derived values
+    void computeDpiScaling();
+
+    /// @brief Calculate effective margins for current view mode (SINGLE PLACE!)
+    void computeMargins();
+
+    /// @brief Calculate text width
+    void computeTextWidth();
+
+    /// @brief Calculate page layout for Page Mode
+    void computePageLayout();
+
+    /// @brief Calculate effective font
+    void computeEffectiveFont();
+
+    /// @brief Apply computed values to text source
+    void applyComputedToSource();
+
+    // =========================================================================
+    // Targeted Apply Methods (Phase 15: granular updates)
+    // =========================================================================
+
+    /// @brief Apply only font to text source (no width change)
+    void applyFontToSource();
+
+    /// @brief Apply only text width to text source (no font change)
+    void applyWidthToSource();
+
+    /// @brief Recalculate only page center offset (for resize in Page mode)
+    void recalcPageCenterOffset();
 
 private slots:
     /// @brief Handle cursor blink timer timeout

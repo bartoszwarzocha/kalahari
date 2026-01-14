@@ -230,6 +230,12 @@ public:
     /// is visible immediately after the user action.
     void ensureCursorVisible();
 
+    /// @brief Reset cursor blink timer without scrolling
+    ///
+    /// Used when cursor position is set to the same location (click on same spot).
+    /// Resets blink state to visible and restarts timer, but does not adjust scroll.
+    void resetCursorBlink();
+
     // =========================================================================
     // Cursor Navigation (Phase 3.6/3.7/3.8)
     // =========================================================================
@@ -547,6 +553,27 @@ public:
     /// Emits viewModeChanged if mode changes. Triggers repaint.
     void setViewMode(ViewMode mode);
 
+    // =======================================================================
+    // Zoom Control
+    // =======================================================================
+
+    /// @brief Get current zoom factor
+    /// @return Zoom factor (1.0 = 100%)
+    double zoomFactor() const;
+
+    /// @brief Set zoom factor
+    /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
+    void setZoomFactor(double factor);
+
+    /// @brief Zoom in by one step (+10%)
+    void zoomIn();
+
+    /// @brief Zoom out by one step (-10%)
+    void zoomOut();
+
+    /// @brief Reset zoom to 100%
+    void zoomReset();
+
     // =========================================================================
     // Page Navigation (Phase 5.3-5.5)
     // =========================================================================
@@ -777,6 +804,9 @@ signals:
     /// @param mode The new view mode
     void viewModeChanged(ViewMode mode);
 
+    /// @brief Emitted when zoom factor changes
+    void zoomChanged(double factor);
+
     /// @brief Emitted when appearance settings change
     void appearanceChanged();
 
@@ -842,6 +872,18 @@ protected:
     ///
     /// Updates the layout width and viewport height when the widget resizes.
     void resizeEvent(QResizeEvent* event) override;
+
+    /// @brief Focus in event handler
+    /// @param event The focus event
+    ///
+    /// Triggers repaint to show cursor when editor gains focus.
+    void focusInEvent(QFocusEvent* event) override;
+
+    /// @brief Focus out event handler
+    /// @param event The focus event
+    ///
+    /// Triggers repaint to hide cursor when editor loses focus.
+    void focusOutEvent(QFocusEvent* event) override;
 
     /// @brief Mouse wheel event handler
     /// @param event The wheel event
@@ -951,6 +993,13 @@ private:
     void syncPipelineState();
     void syncPipelineCursor();  ///< Lightweight cursor-only sync
 
+    /// @brief Setup text source when document changes
+    /// Call this ONCE when switching documents or entering/exiting edit mode
+    void setupPipelineTextSource();
+
+    /// @brief Update only scroll position (lightweight, Phase 14)
+    void updatePipelineScroll();
+
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
     void startScrollAnimation(qreal targetOffset);
@@ -977,9 +1026,7 @@ private:
     /// @return Cursor rectangle, or empty rect if cursor not in visible area
     QRectF calculateCursorRect() const;
 
-    /// @brief Draw the cursor at current position
-    /// @param painter The painter to draw with
-    void drawCursor(QPainter* painter);
+    // Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline
 
     /// @brief Setup cursor blink timer
     void setupCursorBlinkTimer();
@@ -989,11 +1036,12 @@ private:
     /// @return Cursor position using QTextDocument block lookup
     ///
     /// Uses QTextDocument and ViewportManager for efficient position calculation.
+    /// Page Mode delegates to EditorRenderPipeline::positionFromPoint() (Phase 13.5)
     CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
-    /// @brief Draw selection highlighting (Phase 3.10)
-    /// @param painter The painter to draw with
-    void drawSelection(QPainter* painter);
+    // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline
+
+    // Phase 13.5: drawSelection() removed - selection rendering unified in EditorRenderPipeline
 
     /// @brief Update paragraph layouts with current selection state
     void updateSelectionInLayouts();
@@ -1087,6 +1135,9 @@ private:
     /// When timer fires, opacity gradually fades to 0.
     void startUiFade();
 
+    /// @brief Get appropriate zoom mode for current view mode
+    ZoomMode getZoomModeForViewMode() const;
+
     // =========================================================================
     // Formatting Helpers (Phase 7.2)
     // =========================================================================
@@ -1154,6 +1205,8 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+
+    // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 
     // Distraction-Free Mode (Phase 5.7)
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
