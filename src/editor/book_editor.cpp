@@ -235,18 +235,9 @@ BookEditor::BookEditor(QWidget* parent)
         ? m_appearance.cursor.customColor
         : m_appearance.colors.textColor(m_appearance.colorMode);
     ctx.colors.selection = m_appearance.colors.selection;
-    // Phase 14: Select margins based on view mode
-    if (m_viewMode == ViewMode::Page) {
-        ctx.margins.left = m_appearance.pageMargins.effectiveLeft(1);
-        ctx.margins.right = m_appearance.pageMargins.effectiveRight(1);
-        ctx.margins.top = m_appearance.pageMargins.top;
-        ctx.margins.bottom = m_appearance.pageMargins.bottom;
-    } else {
-        ctx.margins.left = m_appearance.viewMargins.left();
-        ctx.margins.right = m_appearance.viewMargins.right();
-        ctx.margins.top = m_appearance.viewMargins.top();
-        ctx.margins.bottom = m_appearance.viewMargins.bottom();
-    }
+    // Phase 15: Use centralized margin calculation (converts mm to pixels for Page Mode)
+    auto margins = calculateEffectiveMargins();
+    ctx.margins = margins;
     ctx.textWidth = static_cast<double>(width());
     ctx.viewMode = m_viewMode;
     // Set initial DPI (will be updated in showEvent when screen is available)
@@ -322,13 +313,7 @@ void BookEditor::setScrollOffset(qreal offset)
 {
     // Phase 11.10: In view mode, manage scroll directly
     if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
-        // Calculate margins for view mode scroll limit
-        double topMargin = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.top * (96.0 / 25.4)
-            : m_appearance.viewMargins.vertical;
-        double bottomMargin = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)
-            : m_appearance.viewMargins.vertical;
+        auto [topMargin, bottomMargin] = getScrollPadding();
         double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
         double newOffset = std::clamp(static_cast<double>(offset), 0.0, maxScroll);
         if (std::abs(m_viewModeScrollOffset - newOffset) > 0.001) {
@@ -2064,12 +2049,7 @@ void BookEditor::setViewMode(ViewMode mode)
 
         // Update viewport scroll padding based on new view mode
         if (m_viewportManager) {
-            double topPadding = (mode == ViewMode::Page)
-                ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
-                : m_appearance.viewMargins.vertical;
-            double bottomPadding = (mode == ViewMode::Page)
-                ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
-                : m_appearance.viewMargins.vertical;
+            auto [topPadding, bottomPadding] = getScrollPadding();
             m_viewportManager->setTopScrollPadding(topPadding);
             m_viewportManager->setBottomScrollPadding(bottomPadding);
         }
@@ -2271,13 +2251,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
     // Update viewport scroll padding so user can scroll to see margins
     if (m_viewportManager) {
-        // Use view margins for Continuous/Focus modes, page margins for Page mode
-        double topPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // Convert mm to pixels
-            : m_appearance.viewMargins.vertical;
-        double bottomPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
-            : m_appearance.viewMargins.vertical;
+        auto [topPadding, bottomPadding] = getScrollPadding();
         m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
@@ -2301,24 +2275,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
         m_renderPipeline->setConfigColors(colors);
 
-        // Margins depend on view mode
-        if (m_viewMode == ViewMode::Page) {
-            double mmToPixels = (screen() ? screen()->physicalDotsPerInch() : 96.0) / 25.4;
-            double marginScale = m_appearance.pageLayout.zoomLevel * m_appearance.pageLayout.pageScaleFactor;
-            m_renderPipeline->setConfigMargins(
-                m_appearance.pageMargins.effectiveLeft(1) * mmToPixels * marginScale,
-                m_appearance.pageMargins.top * mmToPixels * marginScale,
-                m_appearance.pageMargins.effectiveRight(1) * mmToPixels * marginScale,
-                m_appearance.pageMargins.bottom * mmToPixels * marginScale
-            );
-        } else {
-            m_renderPipeline->setConfigMargins(
-                m_appearance.viewMargins.horizontal,
-                m_appearance.viewMargins.vertical,
-                m_appearance.viewMargins.horizontal,
-                m_appearance.viewMargins.vertical
-            );
-        }
+        // Margins using centralized calculation
+        auto margins = calculateEffectiveMargins();
+        m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
     }
 
     update();
@@ -2470,13 +2429,7 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         // Phase 11.10: In view mode, use direct scroll offset management
         if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
             double newPos = m_viewModeScrollOffset + delta;
-            // Calculate margins for view mode scroll limit
-            double topMargin = (m_viewMode == ViewMode::Page)
-                ? m_appearance.pageMargins.top * (96.0 / 25.4)
-                : m_appearance.viewMargins.vertical;
-            double bottomMargin = (m_viewMode == ViewMode::Page)
-                ? m_appearance.pageMargins.bottom * (96.0 / 25.4)
-                : m_appearance.viewMargins.vertical;
+            auto [topMargin, bottomMargin] = getScrollPadding();
             double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
             m_viewModeScrollOffset = std::clamp(newPos, 0.0, maxScroll);
             syncScrollBarValue();
@@ -2980,14 +2933,7 @@ void BookEditor::updateScrollBarRange()
 
     qreal viewportHeight = static_cast<qreal>(height());
 
-    // Calculate top and bottom padding based on view mode
-    double topPadding = (m_viewMode == ViewMode::Page)
-        ? m_appearance.pageMargins.top * (96.0 / 25.4)
-        : m_appearance.viewMargins.vertical;
-
-    double bottomPadding = (m_viewMode == ViewMode::Page)
-        ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // Convert mm to pixels
-        : m_appearance.viewMargins.vertical;
+    auto [topPadding, bottomPadding] = getScrollPadding();
 
     // SYNC padding with ViewportManager to ensure consistency!
     if (m_viewportManager) {
@@ -3042,6 +2988,10 @@ void BookEditor::syncPipelineState()
         m_renderPipeline->setZoom(m_appearance.pageLayout.zoomLevel, getZoomModeForViewMode());
         m_renderPipeline->setFont(m_appearance.typography.textFont);
 
+        // Set margins using centralized calculation
+        auto margins = calculateEffectiveMargins();
+        m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
+
         // Then apply initial configuration
         m_renderPipeline->applyInitialConfig();
     }
@@ -3068,9 +3018,53 @@ void BookEditor::syncPipelineCursor()
 
 void BookEditor::updatePipelineScroll()
 {
-    // Phase 14: Lightweight scroll update only
     if (!m_renderPipeline) return;
     m_renderPipeline->updateScroll(scrollOffset());
+}
+
+RenderMargins BookEditor::calculateEffectiveMargins() const
+{
+    // SINGLE SOURCE OF TRUTH for margin calculations
+    double dpi = screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI;
+    double mmToPixels = dpi / 25.4;
+
+    if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
+        // Page Mode: convert mm to pixels with zoom scaling
+        double scale = m_appearance.pageLayout.zoomLevel * m_appearance.pageLayout.pageScaleFactor;
+        return RenderMargins{
+            m_appearance.pageMargins.effectiveLeft(1) * mmToPixels * scale,
+            m_appearance.pageMargins.top * mmToPixels * scale,
+            m_appearance.pageMargins.effectiveRight(1) * mmToPixels * scale,
+            m_appearance.pageMargins.bottom * mmToPixels * scale
+        };
+    } else {
+        // Scroll modes: use view margins directly (already in pixels)
+        return RenderMargins{
+            m_appearance.viewMargins.horizontal,
+            m_appearance.viewMargins.vertical,
+            m_appearance.viewMargins.horizontal,
+            m_appearance.viewMargins.vertical
+        };
+    }
+}
+
+std::pair<double, double> BookEditor::getScrollPadding() const
+{
+    // SINGLE SOURCE OF TRUTH for scroll padding calculations
+    // Does NOT apply zoom scaling - scroll padding is independent of zoom
+    if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
+        double dpi = screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI;
+        double mmToPixels = dpi / 25.4;
+        return {
+            m_appearance.pageMargins.top * mmToPixels,
+            m_appearance.pageMargins.bottom * mmToPixels
+        };
+    } else {
+        return {
+            m_appearance.viewMargins.vertical,
+            m_appearance.viewMargins.vertical
+        };
+    }
 }
 
 void BookEditor::setupPipelineTextSource()
@@ -3242,10 +3236,10 @@ QRectF BookEditor::calculateCursorRect() const
     QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
     qreal paraY = blockRect.y();
     qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
-    // Phase 12.6: Use configurable margins
-    const RenderMargins& margins = m_renderPipeline->context().margins;
-    qreal widgetY = margins.top + paraY - scrollY + layoutCursorRect.y();
-    qreal widgetX = margins.left + layoutCursorRect.x();
+    // Phase 12.6: Use computed margins (not input)
+    const auto& ctx = m_renderPipeline->context();
+    qreal widgetY = ctx.computed.marginTop + paraY - scrollY + layoutCursorRect.y();
+    qreal widgetX = ctx.computed.marginLeft + layoutCursorRect.x();
 
     return QRectF(widgetX, widgetY, layoutCursorRect.width(), layoutCursorRect.height());
 }
@@ -3438,10 +3432,10 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         return m_renderPipeline->positionFromPoint(widgetPos);
     }
 
-    // Continuous/Scroll Mode: Use configurable margins
-    const RenderMargins& margins = m_renderPipeline->context().margins;
+    // Continuous/Scroll Mode: Use computed margins (not input)
+    const auto& ctx = m_renderPipeline->context();
     // Convert widget Y to document Y (accounting for scroll and margins)
-    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - margins.top;
+    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - ctx.computed.marginTop;
     if (docY < 0) {
         docY = 0;
     }
@@ -3462,6 +3456,7 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
     }
 
     // Convert to paragraph-relative coordinates
+    auto margins = calculateEffectiveMargins();
     double paraY = getParagraphY(doc, paraIndex);
     double localY = docY - paraY;
     double localX = widgetPos.x() - margins.left;
@@ -4057,8 +4052,9 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     // Get viewport info
     int viewportHeight = height();
     double scrollY = m_viewportManager->scrollPosition();
-    // Phase 12.6: Use configurable margins
-    const RenderMargins& margins = m_renderPipeline->context().margins;
+    // Phase 12.6: Use computed margins (not input)
+    const auto& ctx = m_renderPipeline->context();
+    double marginTop = ctx.computed.marginTop;
 
     // Calculate Y position of focused paragraph using QTextBlock layouts
     double focusY = 0.0;
@@ -4097,8 +4093,8 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     }
 
     // Calculate screen positions (apply margins and scroll offset)
-    int widgetFocusTop = static_cast<int>(margins.top + focusTop - scrollY);
-    int widgetFocusBottom = static_cast<int>(margins.top + focusTop + focusHeight - scrollY);
+    int widgetFocusTop = static_cast<int>(marginTop + focusTop - scrollY);
+    int widgetFocusBottom = static_cast<int>(marginTop + focusTop + focusHeight - scrollY);
 
     // Calculate overlay opacity (inverted: high dimOpacity = more dimming)
     int overlayAlpha = static_cast<int>((1.0 - m_appearance.focusMode.dimOpacity) * 255.0);
@@ -4122,11 +4118,14 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
 
     // Draw highlight behind focused area (optional)
     if (m_appearance.focusMode.highlightBackground) {
+        auto margins = calculateEffectiveMargins();
         QColor highlightColor = m_appearance.colors.accent;
         highlightColor.setAlpha(25);  // Very subtle
 
-        QRectF focusRect(margins.left, widgetFocusTop,
-                         width() - margins.left, widgetFocusBottom - widgetFocusTop);
+        QRectF focusRect(static_cast<qreal>(margins.left),
+                         static_cast<qreal>(widgetFocusTop),
+                         static_cast<qreal>(width() - margins.left),
+                         static_cast<qreal>(widgetFocusBottom - widgetFocusTop));
         painter.fillRect(focusRect, highlightColor);
     }
 }
@@ -5260,13 +5259,7 @@ void BookEditor::fromKml(const QString& kml)
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
         m_viewportManager->setScrollPosition(0.0);
-        // Set scroll padding so user can scroll to see margins
-        double topPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
-            : m_appearance.viewMargins.vertical;
-        double bottomPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
-            : m_appearance.viewMargins.vertical;
+        auto [topPadding, bottomPadding] = getScrollPadding();
         m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
@@ -5401,13 +5394,7 @@ void BookEditor::ensureEditMode()
     // Connect ViewportManager to QTextDocument AFTER blocks have valid layouts
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
-        // Set scroll padding so user can scroll to see margins
-        double topPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.top * (96.0 / 25.4)  // mm to pixels
-            : m_appearance.viewMargins.vertical;
-        double bottomPadding = (m_viewMode == ViewMode::Page)
-            ? m_appearance.pageMargins.bottom * (96.0 / 25.4)  // mm to pixels
-            : m_appearance.viewMargins.vertical;
+        auto [topPadding, bottomPadding] = getScrollPadding();
         m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }

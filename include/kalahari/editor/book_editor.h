@@ -997,8 +997,23 @@ private:
     /// Call this ONCE when switching documents or entering/exiting edit mode
     void setupPipelineTextSource();
 
-    /// @brief Update only scroll position (lightweight, Phase 14)
+    /// @brief Update only scroll position (lightweight)
     void updatePipelineScroll();
+
+    /// @brief Calculate effective margins in pixels for current view mode
+    /// @return Margins in pixels, properly converted from mm for Page Mode
+    ///
+    /// SINGLE SOURCE OF TRUTH for margin calculations.
+    /// Handles mm-to-pixels conversion, DPI scaling, and zoom factor.
+    RenderMargins calculateEffectiveMargins() const;
+
+    /// @brief Get scroll padding (top/bottom) for current view mode
+    /// @return {topPadding, bottomPadding} in pixels
+    ///
+    /// SINGLE SOURCE OF TRUTH for scroll padding calculations.
+    /// Used by ViewportManager and scroll limit calculations.
+    /// Does NOT apply zoom scaling (scroll padding is independent of zoom).
+    std::pair<double, double> getScrollPadding() const;
 
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
