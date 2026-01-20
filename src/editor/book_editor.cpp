@@ -199,12 +199,10 @@ BookEditor::BookEditor(QWidget* parent)
         update();
     });
 
-    // Phase 11.10: Configure KmlDocumentModel with font, color and line width
+    // Phase 11.10: Configure KmlDocumentModel initial color
+    // NOTE: Font and lineWidth are now set ONLY in syncPipelineState() after pipeline computes values
     if (m_documentModel) {
-        m_documentModel->setFont(m_appearance.typography.textFont);
         m_documentModel->setTextColor(m_appearance.colors.text);
-        // Phase 12.6: Use configurable margins
-        m_documentModel->setLineWidth(static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
 
         // Connect height changes to update scroll bar range
         // When paragraphs are layouted, their actual heights may differ from estimates
@@ -2239,9 +2237,8 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         }
     }
 
-    // Phase 11.10: Update KmlDocumentModel with new appearance settings
+    // Phase 11.10: Update KmlDocumentModel color (font set via syncPipelineState)
     if (m_documentModel) {
-        m_documentModel->setFont(m_appearance.typography.textFont);
         m_documentModel->setTextColor(m_appearance.colors.text);
     }
 
@@ -2876,9 +2873,10 @@ void BookEditor::updateLayoutWidth()
         }
     }
 
-    // Update m_documentModel for view mode scrollbar calculations
-    if (m_documentModel) {
-        m_documentModel->setLineWidth(layoutWidth);
+    // Update m_documentModel using pipeline computed values (SINGLE SOURCE OF TRUTH)
+    // This ensures lineWidth is consistent with what the pipeline uses for rendering
+    if (m_documentModel && m_renderPipeline && m_renderPipeline->context().computed.textWidth > 0) {
+        m_documentModel->setLineWidth(m_renderPipeline->context().computed.textWidth);
     }
 }
 
@@ -2981,7 +2979,7 @@ void BookEditor::syncPipelineState()
     // Phase 15: Setup text source then apply initial config
     setupPipelineTextSource();
     if (m_renderPipeline) {
-        // Set all base values first
+        // Step 1: Set all config values on pipeline
         m_renderPipeline->setViewMode(m_viewMode);
         m_renderPipeline->setScreenDpi(screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
         m_renderPipeline->setViewportSize(QSizeF(width(), height()));
@@ -2992,8 +2990,23 @@ void BookEditor::syncPipelineState()
         auto margins = calculateEffectiveMargins();
         m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
 
-        // Then apply initial configuration
+        // Step 2: Pipeline computes all derived values
         m_renderPipeline->applyInitialConfig();
+
+        // Step 3: Sync computed values FROM pipeline TO document model (SINGLE SOURCE OF TRUTH)
+        // This ensures font and lineWidth are consistent with pipeline's computed values
+        const auto& ctx = m_renderPipeline->context();
+        if (m_documentModel) {
+            m_documentModel->setFont(ctx.computed.effectiveFont);
+            m_documentModel->setLineWidth(ctx.computed.textWidth);
+        }
+
+        // Step 4: Force layout of visible paragraphs BEFORE first render
+        // This ensures paragraphs have correct heights before painting
+        if (m_documentModel && m_viewportManager) {
+            auto [first, last] = m_viewportManager->visibleRange();
+            m_documentModel->ensureLayouted(first, last);
+        }
     }
 }
 
@@ -3024,8 +3037,21 @@ void BookEditor::updatePipelineScroll()
 
 RenderMargins BookEditor::calculateEffectiveMargins() const
 {
-    // SINGLE SOURCE OF TRUTH for margin calculations
-    double dpi = screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI;
+    // Pipeline is SINGLE SOURCE OF TRUTH for margins when available
+    // Check if pipeline has valid computed margins (textWidth > 0 indicates pipeline is configured)
+    if (m_renderPipeline && m_renderPipeline->context().computed.textWidth > 0) {
+        const auto& ctx = m_renderPipeline->context();
+        return RenderMargins{
+            ctx.computed.marginLeft,
+            ctx.computed.marginTop,
+            ctx.computed.marginRight,
+            ctx.computed.marginBottom
+        };
+    }
+
+    // Fallback: Calculate margins when pipeline not yet initialized
+    // This is used during initial setup before first applyInitialConfig()
+    double dpi = (screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
     double mmToPixels = dpi / 25.4;
 
     if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
@@ -3053,7 +3079,10 @@ std::pair<double, double> BookEditor::getScrollPadding() const
     // SINGLE SOURCE OF TRUTH for scroll padding calculations
     // Does NOT apply zoom scaling - scroll padding is independent of zoom
     if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
-        double dpi = screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI;
+        // Use cached DPI from pipeline if available to avoid expensive OS query
+        double dpi = (m_renderPipeline && m_renderPipeline->context().screenDpi > 0)
+            ? m_renderPipeline->context().screenDpi
+            : (screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
         double mmToPixels = dpi / 25.4;
         return {
             m_appearance.pageMargins.top * mmToPixels,
@@ -3456,10 +3485,10 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
     }
 
     // Convert to paragraph-relative coordinates
-    auto margins = calculateEffectiveMargins();
+    // Use cached margins from pipeline - no DPI query needed
     double paraY = getParagraphY(doc, paraIndex);
     double localY = docY - paraY;
-    double localX = widgetPos.x() - margins.left;
+    double localX = widgetPos.x() - ctx.computed.marginLeft;
     if (localX < 0) {
         localX = 0;
     }
@@ -4118,13 +4147,13 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
 
     // Draw highlight behind focused area (optional)
     if (m_appearance.focusMode.highlightBackground) {
-        auto margins = calculateEffectiveMargins();
+        // Use cached margins from ctx - no DPI query needed
         QColor highlightColor = m_appearance.colors.accent;
         highlightColor.setAlpha(25);  // Very subtle
 
-        QRectF focusRect(static_cast<qreal>(margins.left),
+        QRectF focusRect(static_cast<qreal>(ctx.computed.marginLeft),
                          static_cast<qreal>(widgetFocusTop),
-                         static_cast<qreal>(width() - margins.left),
+                         static_cast<qreal>(width() - ctx.computed.marginLeft),
                          static_cast<qreal>(widgetFocusBottom - widgetFocusTop));
         painter.fillRect(focusRect, highlightColor);
     }
@@ -5245,12 +5274,8 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("KmlDocumentModel loaded");
 
-    // Phase 11.10: Setup font, text color and line width for lazy layout
-    m_documentModel->setFont(m_appearance.typography.textFont);
+    // Phase 11.10: Set text color (font and lineWidth set by syncPipelineState after pipeline computes)
     m_documentModel->setTextColor(m_appearance.colors.text);
-    // Phase 12.6: Use configurable margins with minimum width guard
-    double lineWidth = qMax(100.0, static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2);
-    m_documentModel->setLineWidth(lineWidth);
 
     // Phase 11.10: Reset scroll position for view mode
     m_viewModeScrollOffset = 0.0;
@@ -5264,16 +5289,9 @@ void BookEditor::fromKml(const QString& kml)
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
-    // Layout visible paragraphs for initial display
-    size_t paraCount = m_documentModel->paragraphCount();
-    if (paraCount > 0) {
-        // Calculate approximate visible range from viewport height
-        double viewportHeight = static_cast<double>(height());
-        size_t lastVisible = m_documentModel->paragraphAtY(viewportHeight);
-        lastVisible = std::min(lastVisible + 1, paraCount - 1);
-        m_documentModel->ensureLayouted(0, lastVisible);
-        logElapsed("Visible paragraphs layouted");
-    }
+    // NOTE: Layout of visible paragraphs is deferred to syncPipelineState()
+    // This ensures font and lineWidth are properly set before layout happens
+    // (syncPipelineState is called from ensureEditMode() below)
 
     // Note: Document pointers already cleared at start of fromKml()
     // They will be set to m_textBuffer in ensureEditMode()

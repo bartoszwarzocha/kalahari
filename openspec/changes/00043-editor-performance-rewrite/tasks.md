@@ -932,3 +932,226 @@ struct ViewMarginsConfig {
 - [ ] 12.6.5.1 Test marginesow lustrzanych (odd/even page)
 - [ ] 12.6.5.2 Test przelaczania marginesow per view mode
 - [ ] 12.6.5.3 Test JSON round-trip dla margin configs
+
+---
+
+## Phase 13: Unified RenderPipeline (CRITICAL REFACTORING)
+
+**DATA:** 2026-01-12
+**STATUS:** IN PROGRESS
+**PEŁNA DOKUMENTACJA:** `RENDER_PIPELINE_REFACTOR.md`
+
+### Problem - BAŁAGAN ARCHITEKTONICZNY
+
+Mamy TRZY osobne ścieżki renderowania zamiast jednej:
+
+| Ścieżka | Lokalizacja | DPI Scaling | Status |
+|---------|-------------|-------------|--------|
+| Page Mode | `paintPageMode()` ~400 linii | ✅ TAK | Osobna implementacja |
+| Pipeline | `m_renderPipeline->render()` | ❌ NIE | Brak skalowania DPI |
+| Legacy fallback | `paintEvent()` linie 2353+ | ❌ NIE | MARTWY KOD (crashuje) |
+
+**Skutki:**
+- Scroll Mode ma za małą czcionkę (brak DPI scaling)
+- Zaznaczenie działa tylko w Page Mode
+- Każda naprawa wymaga zmian w 2-3 miejscach
+- ~800 linii zduplikowanego kodu
+
+### Cel - JEDEN PRZEPŁYW
+
+```
+paintEvent() {
+    pipeline->render(viewMode)
+    │
+    ├── 1. OBLICZ SKALOWANIE (raz, dla wszystkich)
+    │      • dpiScale = screenDPI / 96
+    │      • totalScale = dpiScale * zoom
+    │
+    ├── 2. PRZYGOTUJ LAYOUT
+    │      • oblicz marginesy
+    │      • jeśli Page Mode: podziel na strony (paginacja)
+    │      • jeśli Scroll Mode: jedna "strona" ciągła
+    │
+    ├── 3. DLA KAŻDEJ STRONY:
+    │      │
+    │      ├── jeśli Page Mode: rysuj tło strony, cień
+    │      │
+    │      ├── renderSelection()   ← JEDEN kod dla wszystkich
+    │      ├── renderText()        ← JEDEN kod dla wszystkich
+    │      └── renderCursor()      ← JEDEN kod dla wszystkich
+    │
+    └── 4. OVERLAY (focus mode, etc.)
+}
+```
+
+### Zadania
+
+#### 13.1: Wyczyścić legacy fallback (NATYCHMIAST) ✅ COMPLETE
+- [x] 13.1.1 Usunąć martwy kod z `paintEvent()` (linie 2353-2450+) - usunięto ~100 linii
+- [x] 13.1.2 Upewnić się, że pipeline ZAWSZE istnieje w konstruktorze - dodano Q_ASSERT
+- [x] 13.1.3 Usunąć zduplikowane sprawdzenie Page Mode w legacy (linia 2361) - usunięte
+- [x] 13.1.4 Build i test - 596 testów, 4220 asercji PASS
+
+#### 13.2: Dodać DPI scaling do pipeline ✅ COMPLETE
+- [x] 13.2.1 Dodać `screenDpi`, `dpiScale` do `RenderContext` - dodane pola i `totalScale()` metoda
+- [x] 13.2.2 Obliczać `dpiScale = screen()->physicalDotsPerInch() / 96.0` - `setScreenDpi()` w pipeline
+- [x] 13.2.3 Zastosować DPI w `effectiveFont()` i `viewScale()` - FontScaling używa totalScale, PageScaling używa viewScale z totalScale
+- [x] 13.2.4 Zamienić `zoomFactor` na `viewScale()` w pipeline - 15 miejsc zaktualizowanych
+- [x] 13.2.5 Dodać wywołanie `setScreenDpi()` w `syncPipelineState()` BookEditor
+- [x] 13.2.6 Build i test - 596 testów, 4220 asercji PASS
+
+#### 13.3: Przenieść paginację do pipeline ✅ COMPLETE
+- [x] 13.3.1 Przenieść struktury `ParagraphSlice`, `PageContent` do `editor_render_pipeline.h` - przeniesione z dokumentacją
+- [x] 13.3.2 Przenieść logikę paginacji z `paintPageMode()` do pipeline - `rebuildPaginationCache()` w pipeline
+- [x] 13.3.3 Cache paginacji w pipeline (nie w BookEditor) - `m_cachedPages`, `m_paginationCacheValid`, `m_cachedDpiScale`
+- [x] 13.3.4 Dla Scroll Mode: jedna "strona" obejmująca cały dokument - sprawdzane w `rebuildPaginationCache()`
+- [x] 13.3.5 Używać cache paginacji dla hit-testingu (positionFromPoint) - `positionFromPoint()` w pipeline
+- [x] 13.3.6 Dodać metody: `pages()`, `pageAtY()`, `invalidatePagination()`, `setPageLayout()`
+- [x] 13.3.7 Invalidacja cache w `setContext`, `setMargins`, `setZoom`, `setTextSource`, `setViewportSize`, `setScreenDpi`
+- [x] 13.3.8 Build i test - 596 testów, 4220 asercji PASS
+
+#### 13.4: Zunifikować renderowanie ✅ COMPLETE
+- [x] 13.4.1 Jeden `renderSlice()` dla wszystkich widoków - używa pages() dla obu trybów
+- [x] 13.4.2 Jeden `renderSliceSelection()` dla wszystkich widoków - zaznaczenie przez slices
+- [x] 13.4.3 Jeden `renderSliceCursor()` dla wszystkich widoków - kursor przez slices
+- [x] 13.4.4 Page Mode = `renderPageBackgrounds()` + pagination z pages()
+- [x] 13.4.5 Build i test: 596 testów, 4220 asercji PASS
+
+**Implementacja:**
+- Nowy zunifikowany `render()` używa `pages()` dla obu trybów (Page/Scroll)
+- Page Mode: wywołuje `renderPageBackgrounds()` dla cieni, tła, ramek stron
+- Scroll Mode: renderuje tylko `renderTextFrameBorder()` (opcjonalnie)
+- Dla każdej strony: iteracja po slices z `renderSliceSelection()`, `renderSlice()`, `renderSliceCursor()`
+- Jeden kod rysowania = jeden zestaw błędów do naprawy
+
+#### 13.5: Usunąć stary kod z BookEditor ✅ COMPLETE
+- [x] 13.5.1 Usunąć `paintPageMode()` po migracji - usunięto ~418 linii
+- [x] 13.5.2 Usunąć `drawSelection()` z BookEditor - usunięto ~60 linii
+- [x] 13.5.3 Usunąć `drawCursor()` z BookEditor - usunięto ~28 linii
+- [x] 13.5.4 Usunąć duplikaty struktur paginacji z BookEditor - przeniesione do EditorRenderPipeline
+- [x] 13.5.5 Usunąć `positionFromPointPageMode()` - zunifikowane z pipeline::positionFromPoint() - usunięto ~170 linii
+- [x] 13.5.6 Usunąć `invalidatePaginationCache()` - teraz używa pipeline::invalidatePagination()
+- [x] 13.5.7 Zaktualizować deklaracje w book_editor.h
+- [x] 13.5.8 Build i test: 596 testów, 4220 asercji PASS
+
+**Podsumowanie usunięć (Phase 13.5):**
+- `paintPageMode()` ~418 linii
+- `positionFromPointPageMode()` ~170 linii
+- `drawSelection()` ~60 linii
+- `drawCursor()` ~28 linii
+- `invalidatePaginationCache()` ~4 linie
+- Duplikaty struktur (ParagraphSlice, PageContent, cache zmiennych)
+- **Łącznie:** ~680 linii usuniętego kodu
+
+#### 13.6: Walidacja
+- [ ] 13.6.1 Test: Scroll Mode - poprawna czcionka
+- [ ] 13.6.2 Test: Page Mode - paginacja działa jak wcześniej
+- [ ] 13.6.3 Test: Zaznaczenie działa w obu widokach
+- [ ] 13.6.4 Test: Kursor działa w obu widokach
+- [ ] 13.6.5 Test: Hit-testing (kliknięcie) działa w obu widokach
+- [ ] 13.6.6 Test: Zoom działa w obu widokach
+- [ ] 13.6.7 Benchmark: brak regresji wydajności
+
+### Oczekiwane rezultaty
+
+| Metryka | Przed | Po |
+|---------|-------|-----|
+| Ścieżki renderowania | 3 | 1 |
+| Linie kodu renderowania | ~800 | ~400 |
+| DPI scaling | tylko Page Mode | wszędzie |
+| Czcionka w Scroll Mode | za mała | poprawna |
+| Miejsca do naprawy błędów | 2-3 | 1 |
+
+### Pliki do modyfikacji
+
+| Plik | Zmiany |
+|------|--------|
+| `src/editor/book_editor.cpp` | Usunąć legacy, paintPageMode, drawSelection, drawCursor |
+| `include/kalahari/editor/book_editor.h` | Usunąć deklaracje usuniętych funkcji, przenieść struktury |
+| `src/editor/editor_render_pipeline.cpp` | Dodać DPI, paginację, zunifikowane renderowanie |
+| `include/kalahari/editor/editor_render_pipeline.h` | Dodać PageContent, ParagraphSlice, RenderParams |
+| `include/kalahari/editor/render_context.h` | Dodać screenDpi, dpiScale |
+
+### WAŻNE - nie zapomnieć!
+
+1. **ZAWSZE** używać `totalScale` do skalowania tekstu
+2. **NIGDY** nie tworzyć osobnych ścieżek dla widoków
+3. **JEDEN** kod rysowania = JEDEN zestaw błędów
+4. **CACHE** paginacji współdzielony między renderowaniem a hit-testingiem
+
+---
+
+## Phase 15: Configuration Flow Unification (ARCHITECTURE FIX)
+
+**DATA:** 2026-01-18
+**STATUS:** COMPLETE
+
+### Problem - Multiple Sources of Truth for Font/LineWidth
+
+Font was being set in 6 different places, causing inconsistent rendering:
+
+| Location | Problem |
+|----------|---------|
+| Constructor | Set font before pipeline initialized |
+| setAppearance() | Set font directly on model |
+| fromKml() | Set font/lineWidth with local calculations |
+| syncPipelineState() | ONLY correct place after pipeline computes |
+| updateLayoutWidth() | Calculated lineWidth locally |
+| calculateEffectiveMargins() | Calculated margins locally |
+
+**Skutki:**
+- Initial font size incorrect (before pipeline DPI scaling)
+- Margins calculated differently in different places
+- Layout with wrong font caused incorrect paragraph heights
+
+### Rozwiazanie - Pipeline as SINGLE SOURCE OF TRUTH
+
+```
+CONFIGURATION FLOW (CORRECT):
+1. BookEditor sets CONFIG values on pipeline
+   - setFont(), setMargins(), setViewMode(), setScreenDpi(), etc.
+
+2. Pipeline calls applyInitialConfig()
+   - Computes effectiveFont (with DPI/zoom scaling)
+   - Computes textWidth, margins
+
+3. syncPipelineState() syncs COMPUTED values TO document model
+   - m_documentModel->setFont(ctx.computed.effectiveFont)
+   - m_documentModel->setLineWidth(ctx.computed.textWidth)
+
+4. Force layout of visible paragraphs
+   - ensureLayouted() AFTER font/lineWidth set
+```
+
+### Zadania
+
+#### 15.1: Remove Duplicate Font/LineWidth Setters ✅ COMPLETE
+- [x] 15.1.1 Remove setFont() from constructor (was before pipeline init)
+- [x] 15.1.2 Remove setFont() from setAppearance() (pipeline handles it)
+- [x] 15.1.3 Remove setFont()/setLineWidth() from fromKml() (deferred to syncPipelineState)
+- [x] 15.1.4 Remove early ensureLayouted() from fromKml() (layout deferred to syncPipelineState)
+
+#### 15.2: Update syncPipelineState() ✅ COMPLETE
+- [x] 15.2.1 After applyInitialConfig(), sync computed font to m_documentModel
+- [x] 15.2.2 After applyInitialConfig(), sync computed textWidth to m_documentModel
+- [x] 15.2.3 Force layout of visible paragraphs BEFORE first render
+
+#### 15.3: Update calculateEffectiveMargins() ✅ COMPLETE
+- [x] 15.3.1 Use pipeline computed values when available (textWidth > 0 check)
+- [x] 15.3.2 Fallback to local calculation only during initial setup
+
+#### 15.4: Update updateLayoutWidth() ✅ COMPLETE
+- [x] 15.4.1 Use pipeline computed textWidth for m_documentModel (not local calculation)
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/editor/book_editor.cpp` | Removed 3 setFont() calls, 2 setLineWidth() calls, added pipeline sync |
+
+### Key Principle
+
+**ONLY ONE PLACE sets font/lineWidth on document model: `syncPipelineState()`**
+
+All other code sets CONFIG values on pipeline, pipeline COMPUTES derived values,
+then syncPipelineState() syncs COMPUTED values TO document model.
