@@ -1,43 +1,46 @@
 {
   "mode": "quick",
-  "saved_at": "2026-01-14T16:15:00",
-  "git_commit": "743306b",
+  "saved_at": "2026-01-20T12:00:00",
+  "git_commit": "847775c",
   "git_pushed": false,
   "openspec": "00043",
   "openspec_status": "IN_PROGRESS",
-  "working_on": "Architecture cleanup - Phase 15+ refactoring COMPLETE",
+  "working_on": "Phase 15: Configuration Flow Unification - COMPLETE, awaiting manual testing",
   "next_steps": [
-    "Visual testing of performance improvements",
-    "Consider unifying configuration path (optional)",
-    "Consider centralizing margin calculations (optional)"
+    "Manual testing of consolidated rendering",
+    "Verify: consistent fonts in all paragraphs",
+    "Verify: no cursor insertion lag",
+    "Verify: smooth scrolling and view mode switching",
+    "Commit remaining changes when verified"
   ],
   "blocker": null,
   "implementation_status": "IN_PROGRESS",
   "completed_tasks": [
-    "Phase 15: Granular configuration setters",
-    "Remove dead configurePipeline() (~90 lines)",
-    "Remove syncPipelineCursorOnly() alias",
-    "Remove deprecated setScaleFactor()",
-    "Fix RenderColors::operator== (16 fields)",
-    "Replace m_cursorStyle int with CursorStyle enum",
-    "Add DEFAULT_DPI constant",
-    "Clean up Phase comments (pipeline + headers)",
-    "Build and tests pass (458/458)"
+    "Phase 13.1-13.5: Unified RenderPipeline",
+    "Phase 14: DPI caching in hot paths",
+    "Phase 15.1: Font set ONLY in syncPipelineState()",
+    "Phase 15.2: Removed setFont from constructor",
+    "Phase 15.3: Removed setFont/setLineWidth from fromKml()",
+    "Phase 15.4: Removed setFont from setAppearance()",
+    "Phase 15.5: Layout forced BEFORE render",
+    "Phase 15.6: Margins use pipeline computed values",
+    "Phase 15.7: Text width synced from pipeline",
+    "Build fix: QRectF type mismatch",
+    "Build fix: Missing margins variable declarations"
   ],
   "pending_tasks": [
-    "Unify configuration path (optional)",
-    "Centralize margin calculations (optional)",
-    "Visual performance testing"
+    "Phase 13.6: Manual validation tests (7 items)",
+    "Documentation D.1-D.4"
   ],
   "task_progress": {
-    "completed": 9,
-    "total": 12,
-    "percentage": 75
+    "completed": 11,
+    "total": 13,
+    "percentage": 85
   },
-  "architecture_audit": {
-    "score": "7/10",
-    "critical_issues_fixed": 3,
-    "serious_issues_remaining": 2,
-    "minor_issues_remaining": 5
+  "architecture_changes": {
+    "single_config_point": "syncPipelineState() is now ONLY place that configures font/margins/width",
+    "rendering_flow": "Config -> Pipeline.applyInitialConfig() -> Sync computed to model -> Force layout -> Render",
+    "margin_source": "Pipeline computed values are single source of truth",
+    "removed_duplication": "6 competing setFont() calls reduced to 1"
   }
 }
