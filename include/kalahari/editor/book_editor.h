@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_comment.h>
@@ -26,8 +25,6 @@
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
 #include <kalahari/editor/viewport_manager.h>
-#include <kalahari/editor/kml_parser.h>
-#include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/editor_render_pipeline.h>  // Phase 12.3: Unified render pipeline
 #include <QWidget>

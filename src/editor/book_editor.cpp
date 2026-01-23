@@ -9,10 +9,8 @@
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_element.h>
-#include <kalahari/editor/kml_paragraph.h>
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/kml_serializer.h>
-#include <kalahari/editor/paragraph_layout.h>
 #include <kalahari/gui/find_replace_bar.h>
 #include <QAbstractTextDocumentLayout>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -22,7 +20,6 @@
 #include <QEasingCurve>
 #include <QClipboard>
 #include <QGuiApplication>
-#include <QHBoxLayout>
 #include <QInputDialog>
 #include <QFocusEvent>
 #include <QInputMethodEvent>
@@ -32,14 +29,10 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
-#include <QPalette>
-#include <QPen>
 #include <QPropertyAnimation>
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollBar>
-#include <QStyleHints>
-#include <QTextDocumentFragment>
 #include <QTimer>
 #include <QUndoStack>
 #include <QWheelEvent>

@@ -295,11 +295,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("insert.footnote", "Footnote", "INSERT/Footnote", 40, false, 1);
     REG_CMD("insert.endnote", "Endnote", "INSERT/Endnote", 50, false, 1);
 
-    // OpenSpec #00042 Phase 7.9: Insert Comment with Ctrl+Alt+C shortcut
-    REG_CMD_TOOL_ICON("insert.comment", "Comment", "INSERT/Comment", 60, false, 0,
-                      KeyboardShortcut(Qt::Key_C, Qt::ControlModifier | Qt::AltModifier),
-                      IconSet(),
-                      callbacks.onInsertComment ? callbacks.onInsertComment : []() {});
+    // OpenSpec #00042 Phase 7.9: Insert Comment - DISABLED (backend stubs only)
+    // REG_CMD_TOOL_ICON("insert.comment", "Comment", "INSERT/Comment", 60, false, 0,
+    //                   KeyboardShortcut(Qt::Key_C, Qt::ControlModifier | Qt::AltModifier),
+    //                   IconSet(),
+    //                   callbacks.onInsertComment ? callbacks.onInsertComment : []() {});
 
     REG_CMD("insert.annotation", "Annotation", "INSERT/Annotation", 70, true, 1);
 

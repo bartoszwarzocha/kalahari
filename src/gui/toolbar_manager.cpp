@@ -135,7 +135,7 @@ void ToolbarManager::initializeConfigs() {
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
-         "insert.footnote", "insert.comment"}
+         "insert.footnote"}
     };
 
     // Styles Toolbar (quick paragraph styles)
