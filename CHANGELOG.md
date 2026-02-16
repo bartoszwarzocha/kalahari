@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
+  - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
+  - Added PreCompact, Stop, TaskCompleted, PostToolUse hooks
+  - Enabled auto memory and agent-level memory for architect/code-reviewer/code-editor
+  - Added path-scoped rules and CLAUDE.md imports
+
+- **OpenSpec #00042:** Custom Text Editor - DEPLOYED - 2026-02-16
+  - All 7 phases complete: 109/109 tasks, 623 test cases, 4216 assertions
+  - Performance optimization for large documents tracked in #00043
+
+- **OpenSpec #00045:** Architecture Cleanup - ABSORBED by #00043 - 2025-12-30
+
+- **OpenSpec #00043:** Editor Performance Rewrite - Phase 15 complete - 2026-02-16
+  - Configuration flow unified: pipeline as single source of truth
+  - Render pipeline consolidated (680+ lines)
+  - 92-290x benchmark improvements on 150k word documents
+
 - **OpenSpec #00043:** Editor Performance Rewrite - Final Cleanup - 2025-12-29
   - **Architecture Migration:** Services migrated from KmlDocument observer to BookEditor Qt signals
     - SpellCheckService, GrammarCheckService, TagDetector now use `setBookEditor()` API

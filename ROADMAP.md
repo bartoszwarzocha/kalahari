@@ -206,11 +206,11 @@
 - [x] Search/filter within navigator (OpenSpec #00034)
 - [x] Status submenu for chapters (OpenSpec #00036)
 
-### 1.5 Custom Text Editor (OpenSpec #00042) IN PROGRESS
+### 1.5 Custom Text Editor (OpenSpec #00042) COMPLETE
 
 **Philosophy:** Rich text editor optimized for long-form writing (novels, books).
 
-**Current State:** Phases 1-7 largely complete, testing in progress
+**Current State:** All 7 phases complete (109/109 tasks). Performance optimization tracked in #00043.
 
 **Phase 1: KML Model Layer** COMPLETE
 - [x] KML Element base class with ElementType enum
@@ -255,14 +255,32 @@
 - [x] SpellCheckService (Hunspell integration)
 - [x] GrammarCheckService (LanguageTool API)
 
-**Phase 7: Testing & Documentation** IN PROGRESS
+**Phase 7: Testing & Documentation** COMPLETE
 - [x] 7.17 Unit Tests (SpellCheck, Grammar)
 - [x] 7.18 Integration Tests (full workflow)
-- [ ] 7.19 Manual Testing
-- [ ] 7.20 Documentation
-- [ ] 7.21 Final Review
+- [x] 7.19 Manual Testing
+- [x] 7.20 Documentation
+- [x] 7.21 Final Review
 
 **Test Status:** 623 test cases, 4216 assertions passing
+
+### 1.5.1 Editor Performance Rewrite (OpenSpec #00043) IN PROGRESS
+
+**Goal:** Architectural rewrite for 100-1000x performance on 150k+ word documents.
+
+**Current State:** ~85% complete. Phases 1-15 done. Configuration flow unified, render pipeline consolidated.
+
+**Key Achievements:**
+- [x] Phase 1-10: Fundamental infrastructure (92-290x benchmark improvements)
+- [x] Phase 11: KmlDocumentModel with lazy rendering (131ms vs 30s freeze)
+- [x] Phase 12: EditorRenderPipeline unified rendering
+- [x] Phase 13: DPI scaling, pagination, view modes streamlined
+- [x] Phase 15: Pipeline as single source of truth for font/margins/width
+- [ ] Integration testing and regression fixes
+- [ ] Manual validation (7 items)
+- [ ] Documentation
+
+**Absorbed:** OpenSpec #00045 (Architecture Cleanup)
 
 ### 1.6 Search & Replace
 
@@ -474,8 +492,10 @@
 - [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
 - [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
 - [x] **2025-12-23:** Custom Text Editor Phase 6 Analytics Complete (OpenSpec #00042)
-- [ ] **2025-12:** Custom Text Editor Phase 7 Testing Complete (OpenSpec #00042)
-- [ ] **2026-05:** Phase 1 Core Editor Complete
+- [x] **2026-01-10:** Custom Text Editor Phase 7 Testing Complete (OpenSpec #00042) DEPLOYED
+- [x] **2026-01-10:** Editor Performance Rewrite started (OpenSpec #00043)
+- [ ] **2026-Q1:** Editor Performance Rewrite Complete (OpenSpec #00043)
+- [ ] **2026-Q2:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
 - [ ] **2026-Q4:** Kalahari 1.0 Release
@@ -539,5 +559,5 @@
 ---
 
 **Document Version:** 2.6
-**Last Update:** 2025-12-23
-**Updated By:** Claude (Custom Text Editor 1.5 Phase 6 COMPLETE, Phase 7 testing in progress)
+**Last Update:** 2026-02-16
+**Updated By:** Claude (OpenSpec #00041 DEPLOYED, #00042 DEPLOYED, #00043 IN_PROGRESS 85%, #00045 ABSORBED)

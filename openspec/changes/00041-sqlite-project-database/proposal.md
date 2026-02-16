@@ -1,7 +1,7 @@
 # 00041: SQLite Project Database
 
 ## Status
-PENDING
+DEPLOYED
 
 ## Summary
 

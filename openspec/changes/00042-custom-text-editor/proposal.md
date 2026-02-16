@@ -1,7 +1,10 @@
 # 00042: Custom Text Editor
 
 ## Status
-IN_PROGRESS
+DEPLOYED
+
+**Deployed:** 2026-02-16
+**Note:** 109/109 tasks complete. Performance optimization for large documents (100k+ words) tracked separately in OpenSpec #00043.
 
 ## Summary
 
