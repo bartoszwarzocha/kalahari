@@ -241,6 +241,9 @@ struct PageLayout {
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool centerPages{true};                    ///< Center pages horizontally
 
+    // DPI correction factor (user calibration)
+    qreal pageScaleFactor{1.0};                ///< Page size correction factor (1.0 = 100%)
+
     /// @brief Get page dimensions in pixels at given DPI
     QSizeF pageSizePixels(qreal dpi = 96.0) const;
 

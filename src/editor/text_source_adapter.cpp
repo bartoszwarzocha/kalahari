@@ -177,6 +177,9 @@ double QTextDocumentSource::textWidth() const {
 void QTextDocumentSource::setFont(const QFont& font) {
     if (m_document) {
         m_document->setDefaultFont(font);
+        // Force relayout of all blocks - setDefaultFont() does NOT invalidate existing layouts
+        // Without this, blocks laid out with old font keep their old layout
+        m_document->markContentsDirty(0, m_document->characterCount());
     }
 }
 

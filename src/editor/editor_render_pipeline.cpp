@@ -418,6 +418,11 @@ void EditorRenderPipeline::setConfigMargins(double left, double top, double righ
         std::abs(m_context.computed.marginRight - right) < 0.01 &&
         std::abs(m_context.computed.marginBottom - bottom) < 0.01) return;
 
+    // Update BOTH input and computed to keep them in sync
+    m_context.margins.left = left;
+    m_context.margins.top = top;
+    m_context.margins.right = right;
+    m_context.margins.bottom = bottom;
     m_context.computed.marginLeft = left;
     m_context.computed.marginTop = top;
     m_context.computed.marginRight = right;
@@ -621,7 +626,7 @@ QRectF EditorRenderPipeline::cursorRect() const {
         // Fallback: return default cursor rect
         double widgetY = paragraphWidgetY(static_cast<size_t>(paraIndex));
         QFontMetricsF fm(m_context.font);
-        return QRectF(m_context.margins.left, widgetY,
+        return QRectF(m_context.computed.marginLeft, widgetY,
                       m_context.cursor.width, fm.height());
     }
 

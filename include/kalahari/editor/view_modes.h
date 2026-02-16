@@ -21,6 +21,31 @@
 namespace kalahari::editor {
 
 // =============================================================================
+// Zoom Mode Enum
+// =============================================================================
+
+/// @brief Zoom behavior mode
+///
+/// Defines how zooming is applied in different view modes:
+/// - FontScaling: Text reflows to fill width (for continuous modes)
+/// - PageScaling: Entire page view is scaled (for page-like modes)
+enum class ZoomMode {
+    /// @brief Zoom by scaling font size (text reflows to fill width)
+    ///
+    /// Used in: Continuous, Focus, DistractionFree
+    /// The text content is re-laid out at the new font size,
+    /// maintaining the same text width (line length).
+    FontScaling,
+
+    /// @brief Zoom by scaling the entire page view (like PDF viewer)
+    ///
+    /// Used in: Page, Typewriter
+    /// The entire page is scaled uniformly, including margins,
+    /// similar to how PDF viewers handle zoom.
+    PageScaling
+};
+
+// =============================================================================
 // View Mode Enum
 // =============================================================================
 

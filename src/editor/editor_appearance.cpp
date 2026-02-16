@@ -336,8 +336,8 @@ QSizeF PageLayout::pageSizePixels(qreal dpi) const
             break;
     }
 
-    return QSizeF(width * mmToPixels * zoomLevel,
-                  height * mmToPixels * zoomLevel);
+    return QSizeF(width * mmToPixels * zoomLevel * pageScaleFactor,
+                  height * mmToPixels * zoomLevel * pageScaleFactor);
 }
 
 QSizeF PageLayout::textAreaPixels(qreal dpi) const
@@ -377,6 +377,7 @@ PageLayout PageLayout::fromJson(const QJsonObject& json)
     if (json.contains("zoomLevel")) layout.zoomLevel = json["zoomLevel"].toDouble();
     if (json.contains("pageGap")) layout.pageGap = json["pageGap"].toDouble();
     if (json.contains("centerPages")) layout.centerPages = json["centerPages"].toBool();
+    if (json.contains("pageScaleFactor")) layout.pageScaleFactor = json["pageScaleFactor"].toDouble();
 
     return layout;
 }
@@ -407,6 +408,7 @@ QJsonObject PageLayout::toJson() const
     json["zoomLevel"] = zoomLevel;
     json["pageGap"] = pageGap;
     json["centerPages"] = centerPages;
+    json["pageScaleFactor"] = pageScaleFactor;
 
     return json;
 }
