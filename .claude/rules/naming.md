@@ -1,3 +1,11 @@
+---
+paths:
+  - "src/**"
+  - "include/**"
+  - "tests/**"
+  - "openspec/**"
+---
+
 # Naming Conventions
 
 ## Code Style

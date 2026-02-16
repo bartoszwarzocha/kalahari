@@ -4,6 +4,7 @@ description: "CI/CD specialist - GitHub Actions, pipelines, deployment. Triggers
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 model: inherit
 permissionMode: bypassPermissions
+maxTurns: 30
 skills: kalahari-coding, github-actions
 color: pink
 ---

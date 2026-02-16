@@ -108,13 +108,58 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\pre_compact.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before Claude stops, verify the work is complete:\n\n1. Were any C++ files (.cpp/.h) modified in this session?\n2. If yes - was a build attempted after the last modification?\n3. If build was not attempted - this is a problem.\n4. Are there any unfinished tasks or incomplete implementations?\n\nIf C++ files were modified but NO build was run after last change, return:\n{\"hookSpecificOutput\": {\"decision\": \"block\", \"reason\": \"Build not verified after code changes. Run: scripts/build_windows.bat Debug\"}}\n\nIf work appears complete or no code was modified, return:\n{\"hookSpecificOutput\": {\"decision\": \"approve\"}}",
+            "model": "haiku",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "A task is being marked as completed. Verify quality gates:\n\n1. Was a build run successfully in this session?\n2. Were tests run if code was changed?\n3. Does the task description mention any acceptance criteria that haven't been met?\n\nIf there are clear signs that build/tests were NOT run after code changes, return:\n{\"hookSpecificOutput\": {\"decision\": \"block\", \"reason\": \"Quality gate: build/tests not verified. Run build and tests before closing task.\"}}\n\nIf quality appears acceptable, return:\n{\"hookSpecificOutput\": {\"decision\": \"approve\"}}",
+            "model": "haiku",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit(*.cpp)|Edit(*.h)|Write(*.cpp)|Write(*.h)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo {\"additionalContext\": \"[BUILD REMINDER] C++ file modified. Remember to run build before marking task complete: scripts/build_windows.bat Debug\"}"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash(git commit*)",
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. OpenSpec status current?\n4. No TODO in staged files?\n\nReturn JSON:\n{\"decision\": \"approve\"} or\n{\"decision\": \"block\", \"reason\": \"...\"}",
+            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. OpenSpec status current?\n4. No TODO in staged files?\n\nReturn JSON:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}} or\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"...\"}}",
             "model": "haiku",
             "timeout": 30000
           }
@@ -125,7 +170,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "KALAHARI C++ PATTERNS CHECK:\n\nCheck if the code being written/edited violates these patterns:\n1. Hardcoded icons: QIcon(\"path\") instead of ArtProvider::getInstance().getIcon()\n2. Hardcoded strings: \"text\" in UI instead of tr(\"text\")\n3. Hardcoded colors: QColor(r,g,b) instead of ArtProvider colors\n4. Direct qDebug/cout instead of Logger::getInstance()\n\nIf ANY violation found, return:\n{\"decision\": \"block\", \"reason\": \"Pattern violation: [describe what's wrong]\"}\n\nIf code is OK or you can't determine, return:\n{\"decision\": \"approve\"}",
+            "prompt": "KALAHARI C++ PATTERNS CHECK:\n\nCheck if the code being written/edited violates these patterns:\n1. Hardcoded icons: QIcon(\"path\") instead of ArtProvider::getInstance().getIcon()\n2. Hardcoded strings: \"text\" in UI instead of tr(\"text\")\n3. Hardcoded colors: QColor(r,g,b) instead of ArtProvider colors\n4. Direct qDebug/cout instead of Logger::getInstance()\n\nIf ANY violation found, return:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"Pattern violation: [describe what's wrong]\"}}\n\nIf code is OK or you can't determine, return:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}}",
             "model": "haiku",
             "timeout": 15000
           }

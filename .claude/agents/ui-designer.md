@@ -1,9 +1,10 @@
 ---
 name: ui-designer
 description: "UI/UX specialist - dialogs, panels, toolbars, layouts. Triggers: 'dialog', 'panel', 'toolbar', 'UI', 'widget', 'layout'. Focused on Qt6 visual components."
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
 permissionMode: bypassPermissions
+maxTurns: 50
 skills: kalahari-coding, qt6-desktop-ux
 color: cyan
 hooks:
@@ -30,8 +31,8 @@ hooks:
             Check only C++ code (.cpp, .h files). Ignore other file types.
 
             Return JSON:
-            {"decision": "approve"} if patterns OK or not C++ code
-            {"decision": "block", "reason": "UI control missing tooltip. Add setToolTip(tr(\"...\"))."} if violation
+            {"hookSpecificOutput": {"permissionDecision": "allow"}} if patterns OK or not C++ code
+            {"hookSpecificOutput": {"permissionDecision": "deny", "reason": "UI control missing tooltip. Add setToolTip(tr(\"...\"))."}} if violation
           model: haiku
           timeout: 15000
 ---
@@ -70,8 +71,8 @@ Grep("class SettingsDialog", path="include")  # find patterns
 **ALWAYS check Qt6 docs** for widget properties, signals, slots:
 ```
 mcp__context7__resolve-library-id("Qt6")  # once per session
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QSizePolicy")
+mcp__context7__query-docs("/qt/qtdoc", topic="QDockWidget")
+mcp__context7__query-docs("/qt/qtdoc", topic="QSizePolicy")
 ```
 
 Common topics: QDockWidget, QDialog, QGroupBox, QLayout, QToolBar, QAction, signals slots

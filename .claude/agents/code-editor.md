@@ -1,9 +1,11 @@
 ---
 name: code-editor
 description: "Modifies EXISTING code - changes, refactoring, bug fixes. Triggers: 'zmień', 'popraw', 'napraw', 'refaktoruj', 'fix', 'modify', 'change'. Does NOT create new files!"
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
 permissionMode: bypassPermissions
+maxTurns: 50
+memory: project
 skills: kalahari-coding
 color: yellow
 hooks:
@@ -25,8 +27,8 @@ hooks:
             Check only C++ code (.cpp, .h files). Ignore other file types.
 
             Return JSON:
-            {"decision": "approve"} if patterns OK or not C++ code
-            {"decision": "block", "reason": "Found hardcoded string. Use tr() for UI text."} if violation
+            {"hookSpecificOutput": {"permissionDecision": "allow"}} if patterns OK or not C++ code
+            {"hookSpecificOutput": {"permissionDecision": "deny", "reason": "Found hardcoded string. Use tr() for UI text."}} if violation
           model: haiku
           timeout: 15000
 ---
@@ -66,7 +68,7 @@ Grep("methodName", output_mode="content")     # find usages
 When modifying Qt-related code, check API if unsure:
 ```
 mcp__context7__resolve-library-id("Qt6")  # once per session
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QWidget")
+mcp__context7__query-docs("/qt/qtdoc", topic="QWidget")
 ```
 
 ---

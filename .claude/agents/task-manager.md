@@ -3,7 +3,8 @@ name: task-manager
 description: "Project Manager - creates, tracks, closes OpenSpec tasks. Triggers: 'session', 'nowe zadanie', 'new task', 'kontynuuj task', 'continue task', 'wznów', 'co dalej', 'status taska', 'zamknij task', 'status', 'gdzie jesteśmy', 'task gotowy'. Does NOT analyze code!"
 tools: Read, Write, Glob, Grep
 model: inherit
-permissionMode: manual
+permissionMode: default
+maxTurns: 20
 skills: openspec-workflow, roadmap-analysis, session-protocol
 color: purple
 ---

@@ -2,16 +2,9 @@
 
 C++20 + Qt6 | Desktop Application
 
-## Quick Reference
+## Core Rule
 
-| What | Where |
-|------|-------|
-| Agent dispatch & workflow | `.claude/rules/workflow.md` |
-| C++ code patterns | `.claude/rules/patterns.md` |
-| Naming conventions | `.claude/rules/naming.md` |
-| Build commands | `.claude/rules/build.md` |
-| Full project context | `.claude/context/project-brief.txt` |
-| Workflow triggers | `.claude/workflow.json` |
+**For EVERY user message:** Check triggers in `.claude/workflow.json` → dispatch to appropriate agent via `Task` tool. Never do agent's work yourself.
 
 ## Essential Commands
 
@@ -20,6 +13,16 @@ C++20 + Qt6 | Desktop Application
 scripts/build_windows.bat Debug # Build (Windows)
 ```
 
-## Core Rule
+## Project Context
 
-**For EVERY user message:** Check triggers in `.claude/workflow.json` → dispatch to appropriate agent via `Task` tool. Never do agent's work yourself.
+@.claude/context/project-brief.txt
+
+## Rules (auto-loaded from .claude/rules/)
+
+| What | Where |
+|------|-------|
+| Agent dispatch & workflow | `.claude/rules/workflow.md` |
+| C++ code patterns | `.claude/rules/patterns.md` |
+| Naming conventions | `.claude/rules/naming.md` |
+| Build commands | `.claude/rules/build.md` |
+| Workflow triggers | `.claude/workflow.json` |

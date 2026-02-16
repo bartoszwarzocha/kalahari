@@ -4,6 +4,7 @@ description: "QA Engineer - runs build and tests, reports results. Triggers: 'te
 tools: Bash, Read, Grep
 model: inherit
 permissionMode: bypassPermissions
+maxTurns: 20
 skills: kalahari-coding, testing-procedures
 color: red
 ---

@@ -189,3 +189,12 @@ examples/Test004_*/
 /docs/api/html
 /STRATEGY_WORKSPACE.md
 ninja_output.txt
+
+# Temporary build/clipboard artifacts
+/nul
+temp_build.bat
+Clipboard_*.jpg
+Clipboard_*.png
+
+# Claude Code auto-generated state (local only)
+.claude/compact-state.json

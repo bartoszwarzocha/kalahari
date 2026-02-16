@@ -1,6 +1,11 @@
-# C++ Code Patterns
+---
+paths:
+  - "src/**/*.cpp"
+  - "src/**/*.h"
+  - "include/**/*.h"
+---
 
-Applies to: `src/**/*.cpp`, `src/**/*.h`, `include/**/*`
+# C++ Code Patterns
 
 ## Mandatory Patterns (CORRECT API)
 

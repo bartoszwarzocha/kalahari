@@ -1,9 +1,11 @@
 ---
 name: architect
 description: "Analyst + Designer - analyzes code, designs solutions. Triggers: 'zaprojektuj', 'przeanalizuj', 'jak to zrobić', 'gdzie to dodać', 'design'. Does NOT write code!"
-tools: Read, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
-permissionMode: manual
+permissionMode: default
+maxTurns: 30
+memory: project
 skills: kalahari-coding, architecture-patterns
 color: blue
 ---
@@ -43,7 +45,7 @@ Grep("ClassName", output_mode="content")      # find usages
 Use when designing solutions involving Qt6 or external libraries:
 ```
 mcp__context7__resolve-library-id("Qt6")  # once per session
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
+mcp__context7__query-docs("/qt/qtdoc", topic="QDockWidget")
 ```
 
 **When to use Context7:**

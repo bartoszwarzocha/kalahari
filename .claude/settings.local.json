@@ -139,7 +139,11 @@
       "Bash(tests/core/test_chapter_document.cpp )",
       "Bash(tests/editor/test_height_tree.cpp )",
       "Bash(tests/editor/test_kml_document_model.cpp)",
-      "Bash(./build-windows/bin/kalahari.exe:*)"
+      "Bash(./build-windows/bin/kalahari.exe:*)",
+      "Bash(E:PythonProjektyKalahariscriptsbuild_windows.bat Debug)",
+      "Bash(Select-String -Pattern \"passed|failed|All tests\")",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/ctest.exe\":*)",
+      "Bash(E:)"
     ],
     "deny": [],
     "ask": []

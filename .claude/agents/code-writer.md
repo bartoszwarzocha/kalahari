@@ -1,9 +1,10 @@
 ---
 name: code-writer
 description: "Writes NEW code - new classes, new files, new functions. Triggers: 'napisz', 'utwórz klasę', 'dodaj nową funkcję', 'nowy plik', 'create', 'new class'. Does NOT modify existing code!"
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
 permissionMode: bypassPermissions
+maxTurns: 50
 skills: kalahari-coding
 color: green
 hooks:
@@ -25,8 +26,8 @@ hooks:
             Check only C++ code (.cpp, .h files). Ignore other file types.
 
             Return JSON:
-            {"decision": "approve"} if patterns OK or not C++ code
-            {"decision": "block", "reason": "Found hardcoded icon path: QIcon(\"path\"). Use ArtProvider."} if violation
+            {"hookSpecificOutput": {"permissionDecision": "allow"}} if patterns OK or not C++ code
+            {"hookSpecificOutput": {"permissionDecision": "deny", "reason": "Found hardcoded icon path: QIcon(\"path\"). Use ArtProvider."}} if violation
           model: haiku
           timeout: 15000
 ---
@@ -64,7 +65,7 @@ Grep("class ExistingClass", path="include")   # find patterns
 When unsure about Qt6 API:
 ```
 mcp__context7__resolve-library-id("Qt6")  # once per session
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
+mcp__context7__query-docs("/qt/qtdoc", topic="QDockWidget")
 ```
 
 ---
