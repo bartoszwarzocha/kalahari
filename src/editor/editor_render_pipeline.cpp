@@ -155,14 +155,14 @@ void EditorRenderPipeline::setFont(const QFont& font) {
 void EditorRenderPipeline::setTextColor(const QColor& color) {
     if (m_context.colors.text != color) {
         m_context.colors.text = color;
-        markAllDirty();
+        markRepaintOnly();  // Color-only change, no layout invalidation needed
     }
 }
 
 void EditorRenderPipeline::setBackgroundColor(const QColor& color) {
     if (m_context.colors.background != color) {
         m_context.colors.background = color;
-        markAllDirty();
+        markRepaintOnly();  // Color-only change, no layout invalidation needed
     }
 }
 
@@ -461,7 +461,7 @@ void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, double pa
 void EditorRenderPipeline::setConfigColors(const RenderColors& colors) {
     m_context.colors = colors;
     // No layout recalculation needed - just repaint
-    markAllDirty();
+    markRepaintOnly();
 }
 
 void EditorRenderPipeline::setConfigViewMode(ViewMode mode) {
@@ -682,61 +682,58 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
         );
     }
 
-    // Stage 4: Render - UNIFIED for all view modes (Phase 13.4)
+    // Stage 4: Render
     //
-    // The key insight: both Page Mode and Scroll Mode use pages().
-    // - Page Mode: multiple pages with slices, page backgrounds shown
-    // - Scroll Mode: single virtual page covering entire document, no backgrounds
-    //
-    // This ensures ONE code path for text/selection/cursor rendering.
+    // Two rendering paths (Phase 15: viewport culling):
+    // - Page Mode: uses pagination cache with slices (page breaks, clipping)
+    // - Scroll Modes: uses viewport-culled paragraph rendering (O(visible) not O(n))
 
     renderBackground(painter, clipRect);
 
-    // Rebuild pagination cache if needed (lazy evaluation)
-    rebuildPaginationCache();
-
-    // Page Mode: render page backgrounds, shadows, borders
-    if (m_context.viewMode == ViewMode::Page) {
-        renderPageBackgrounds(painter, clipRect);
+    if (m_context.viewMode != ViewMode::Page) {
+        // =====================================================================
+        // SCROLL MODE FAST PATH: render only visible paragraphs
+        // Uses firstVisibleParagraph/lastVisibleParagraph for O(~30) draw calls
+        // instead of iterating ALL paragraph slices (O(n))
+        // =====================================================================
+        renderScrollMode(painter, clipRect);
     } else {
-        // Scroll modes: render text frame border if enabled
-        renderTextFrameBorder(painter);
-    }
+        // =====================================================================
+        // PAGE MODE: uses pagination cache with slices (unchanged)
+        // =====================================================================
+        rebuildPaginationCache();
+        renderPageBackgrounds(painter, clipRect);
 
-    // Unified content rendering using pages() for all modes
-    const auto& pageList = pages();
-    double scrollY = m_context.scrollY;
+        const auto& pageList = pages();
+        double scrollY = m_context.scrollY;
 
-    for (const PageContent& page : pageList) {
-        // Convert to widget coordinates
-        QRectF textRect = page.textRect;
-        double widgetY = textRect.top() - scrollY;
-        textRect.moveTop(widgetY);
+        for (const PageContent& page : pageList) {
+            // Convert to widget coordinates
+            QRectF textRect = page.textRect;
+            double widgetY = textRect.top() - scrollY;
+            textRect.moveTop(widgetY);
 
-        // Skip if page text area is not visible
-        if (textRect.bottom() < 0 || textRect.top() > m_context.viewportSize.height()) {
-            continue;
-        }
+            // Skip if page text area is not visible
+            if (textRect.bottom() < 0 || textRect.top() > m_context.viewportSize.height()) {
+                continue;
+            }
 
-        // Set clip to text area for Page Mode
-        if (m_context.viewMode == ViewMode::Page) {
+            // Set clip to text area for Page Mode
             painter->save();
             painter->setClipRect(textRect.toRect());
-        }
 
-        // Render each slice in this page
-        for (const ParagraphSlice& slice : page.slices) {
-            renderSliceSelection(painter, slice, textRect);
-            renderSlice(painter, slice, textRect);
-            renderSliceCursor(painter, slice, textRect);
-        }
+            // Render each slice in this page
+            for (const ParagraphSlice& slice : page.slices) {
+                renderSliceSelection(painter, slice, textRect);
+                renderSlice(painter, slice, textRect);
+                renderSliceCursor(painter, slice, textRect);
+            }
 
-        if (m_context.viewMode == ViewMode::Page) {
             painter->restore();
         }
     }
 
-    // Overlays (work in all modes)
+    // Overlays (work in all modes, already viewport-culled)
     renderCommentHighlights(painter, clipRect);
     renderMarkerHighlights(painter, clipRect);
     renderSearchHighlights(painter, clipRect);
@@ -753,6 +750,19 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
 // =============================================================================
 
 void EditorRenderPipeline::markAllDirty() {
+    int w = static_cast<int>(m_context.viewportSize.width());
+    int h = static_cast<int>(m_context.viewportSize.height());
+    if (w > 0 && h > 0) {
+        m_dirtyRegion = QRegion(0, 0, w, h);
+        emit repaintRequested(m_dirtyRegion);
+    }
+}
+
+void EditorRenderPipeline::markRepaintOnly() {
+    // Lightweight repaint request for color-only changes.
+    // Does NOT imply pagination or layout invalidation.
+    // Callers use this instead of markAllDirty() when only visual
+    // appearance changed (colors, highlights) without affecting geometry.
     int w = static_cast<int>(m_context.viewportSize.width());
     int h = static_cast<int>(m_context.viewportSize.height());
     if (w > 0 && h > 0) {
@@ -1153,6 +1163,63 @@ void EditorRenderPipeline::renderCommentHighlights(QPainter* painter, const QRec
             painter->drawLine(
                 QPointF(commentRect.left(), commentRect.bottom() - 1),
                 QPointF(commentRect.right(), commentRect.bottom() - 1));
+        }
+    }
+}
+
+// =============================================================================
+// Scroll Mode Rendering (Phase 15: Viewport-culled fast path)
+// =============================================================================
+
+void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clipRect) {
+    // Scroll Mode fast path: renders only visible paragraphs using
+    // firstVisibleParagraph/lastVisibleParagraph.
+    // This is O(visible) instead of O(n) -- ~30 draw calls vs ~3000.
+
+    // Text frame border (if enabled)
+    renderTextFrameBorder(painter);
+
+    // Selection highlights (only visible paragraphs)
+    if (hasSelection() && m_textSource) {
+        SelectionRange sel = m_selection.normalized();
+        size_t first = m_context.computed.firstVisibleParagraph;
+        size_t last = m_context.computed.lastVisibleParagraph;
+        size_t count = m_textSource->paragraphCount();
+
+        // Clamp selection to visible range
+        int selFirst = std::max(sel.start.paragraph, static_cast<int>(first));
+        int selLast = std::min(sel.end.paragraph, static_cast<int>(last));
+
+        for (int para = selFirst; para <= selLast && static_cast<size_t>(para) < count; ++para) {
+            QString text = m_textSource->paragraphText(static_cast<size_t>(para));
+            int textLen = text.length();
+
+            int startOffset = (para == sel.start.paragraph) ? sel.start.offset : 0;
+            int endOffset = (para == sel.end.paragraph)
+                                ? std::min(sel.end.offset, textLen)
+                                : textLen;
+
+            if (startOffset < endOffset) {
+                double docY = m_textSource->paragraphY(static_cast<size_t>(para));
+                double widgetY = m_context.computed.marginTop +
+                                 (docY - m_context.scrollY) * m_context.computed.viewScale;
+
+                renderParagraphSelection(painter, static_cast<size_t>(para),
+                                         startOffset, endOffset, widgetY);
+            }
+        }
+    }
+
+    // Paragraph text (already viewport-culled internally)
+    renderParagraphs(painter, clipRect);
+
+    // Cursor (only if cursor paragraph is in visible range)
+    if (m_context.cursor.visible && m_context.cursor.blinkState && m_textSource) {
+        int cursorPara = m_cursorPosition.paragraph;
+        if (cursorPara >= 0 &&
+            static_cast<size_t>(cursorPara) >= m_context.computed.firstVisibleParagraph &&
+            static_cast<size_t>(cursorPara) <= m_context.computed.lastVisibleParagraph) {
+            renderCursor(painter);
         }
     }
 }

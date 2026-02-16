@@ -87,12 +87,31 @@ void KalahariTextDocumentLayout::layoutAllBlocks() {
 
 void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int charsAdded) {
     Q_UNUSED(charsRemoved);
-    Q_UNUSED(charsAdded);
 
-    // Find affected blocks and re-layout them
+    // Detect full-document change (e.g., markContentsDirty(0, totalChars))
+    // This happens when font or style changes affect the entire document
+    bool isFullDocumentChange = (from == 0 && charsRemoved == 0 &&
+                                  charsAdded >= document()->characterCount() - 1);
+
+    if (isFullDocumentChange) {
+        // Re-layout ALL blocks for document-wide changes
+        QTextBlock block = document()->begin();
+        while (block.isValid()) {
+            QTextBlock mutableBlock = block;
+            layoutBlock(mutableBlock);
+            block = block.next();
+        }
+        m_positionsDirty = true;
+        updateBlockPositions();
+        emit documentSizeChanged(documentSize());
+        emit update();
+        return;
+    }
+
+    // Partial change: layout only affected blocks (typing, paste, etc.)
     QTextBlock block = document()->findBlock(from);
 
-    // Layout at least the changed block and a few after (for paragraph merges/splits)
+    // Layout the changed block and a few after (for paragraph merges/splits)
     int blocksToLayout = 3;
     while (block.isValid() && blocksToLayout > 0) {
         QTextBlock mutableBlock = block;

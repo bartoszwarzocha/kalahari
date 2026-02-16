@@ -485,24 +485,16 @@ UI (FindReplaceBar, SearchPanel) zostanie zaprojektowane osobno.
   - Zaktualizowano test_viewport_manager.cpp i test_render_engine.cpp
   - Build i testy OK (5277 assertions, 775 testów)
 
-**BLOKOWANE - Wymagają refaktoringu BookEditor:**
-BookEditor nadal intensywnie używa TextBuffer, FormatLayer, LazyLayoutManager, KmlConverter.
-Pełne usunięcie wymaga zastąpienia tych wywołań bezpośrednim dostępem do QTextDocument.
+**POSTĘP (2026-02-16):** Większość plików usunięta. Pozostaje height_tree.h/cpp (używany przez KmlDocumentModel).
 
-- [ ] 11.8.1 Usuń `text_buffer.h/cpp` (po usunięciu wszystkich użyć)
-- [ ] 11.8.2 Usuń `height_tree.h/cpp` (część TextBuffer)
-- [ ] 11.8.3 Usuń `format_layer.h/cpp`
-- [ ] 11.8.4 Usuń `interval_tree.h` (część FormatLayer)
-- [ ] 11.8.5 Usuń `lazy_layout_manager.h/cpp`
-- [ ] 11.8.6 Usuń `kml_converter.h/cpp` (stary parser)
-- [ ] 11.8.7 Usuń `ITextBufferObserver` interface
-- [ ] 11.8.8 Zaktualizuj CMakeLists.txt
-
-**NASTĘPNE KROKI:**
-1. Refaktoruj BookEditor::positionFromPoint() - użyj QTextBlock::layout() zamiast m_lazyLayoutManager->getLayout()
-2. Refaktoruj paintPageMode() - użyj bezpośrednio QTextDocument layout
-3. Usuń m_lazyLayoutManager z BookEditor po kompletnym refaktoring
-4. Podobnie dla TextBuffer, FormatLayer, KmlConverter
+- [x] 11.8.1 Usuń `text_buffer.h/cpp` (po usunięciu wszystkich użyć)
+- [ ] 11.8.2 Usuń `height_tree.h/cpp` (część TextBuffer) - nadal używany przez KmlDocumentModel
+- [x] 11.8.3 Usuń `format_layer.h/cpp`
+- [x] 11.8.4 Usuń `interval_tree.h` (część FormatLayer)
+- [x] 11.8.5 Usuń `lazy_layout_manager.h/cpp`
+- [x] 11.8.6 Usuń `kml_converter.h/cpp` (stary parser)
+- [x] 11.8.7 Usuń `ITextBufferObserver` interface
+- [x] 11.8.8 Zaktualizuj CMakeLists.txt
 
 ### 11.9: Cleanup i walidacja
 - [ ] 11.9.1 Usuń nieużywane includes
@@ -655,8 +647,8 @@ KalahariTextDocumentLayout
 
 - [x] 11.11.1 Utworz header: `include/kalahari/editor/kalahari_text_document_layout.h`
 - [x] 11.11.2 Utworz implementację: `src/editor/kalahari_text_document_layout.cpp`
-- [ ] 11.11.3 Dodaj do CMakeLists.txt
-- [ ] 11.11.4 Integruj z BookEditor::ensureEditMode()
+- [x] 11.11.3 Dodaj do CMakeLists.txt
+- [x] 11.11.4 Integruj z BookEditor::ensureEditMode()
 - [ ] 11.11.5 Usuń contentsChanged hack z ensureEditMode()
 - [ ] 11.11.6 Build i testy
 - [ ] 11.11.7 Manual test: Enter nie powoduje przerw, tekst się zawija
@@ -785,8 +777,8 @@ PO (paintEvent - 3 linie):
   - Pipeline automatycznie pobiera zmiany z QTextDocument
 
 #### 12.4: Rozszerzenia
-- [ ] 12.4.1 Dodaj obsluge skalowania
-- [ ] 12.4.2 Dodaj konfigurowalne marginesy
+- [x] 12.4.1 Dodaj obsluge skalowania
+- [x] 12.4.2 Dodaj konfigurowalne marginesy
 - [ ] 12.4.3 Test: wszystkie widoki dzialaja identycznie
 - [ ] 12.4.4 Test: wyrownanie dziala poprawnie
 
@@ -906,14 +898,14 @@ struct ViewMarginsConfig {
 
 ##### Zadania
 
-###### 12.6.1: Dodaj struktury marginesow do editor_appearance.h
-- [ ] 12.6.1.1 Dodaj `PageMarginsConfig` struct
-- [ ] 12.6.1.2 Dodaj `ViewMarginsConfig` struct
-- [ ] 12.6.1.3 Dodaj `pageMargins` i `viewMargins` do EditorAppearance
-- [ ] 12.6.1.4 Implementuj fromJson/toJson dla nowych struktur
+###### 12.6.1: Dodaj struktury marginesow do editor_appearance.h ✅ COMPLETE
+- [x] 12.6.1.1 Dodaj `PageMarginsConfig` struct
+- [x] 12.6.1.2 Dodaj `ViewMarginsConfig` struct
+- [x] 12.6.1.3 Dodaj `pageMargins` i `viewMargins` do EditorAppearance
+- [x] 12.6.1.4 Implementuj fromJson/toJson dla nowych struktur
 
 ###### 12.6.2: Zaktualizuj RenderContext
-- [ ] 12.6.2.1 Dodaj pole `currentPageNumber`
+- [x] 12.6.2.1 Dodaj pole `currentPageNumber`
 - [ ] 12.6.2.2 Dodaj statyczne `calculateMargins(appearance, viewMode, pageNumber)`
 - [ ] 12.6.2.3 Zaktualizuj effectiveTextWidth() o nowe marginesy
 
@@ -922,7 +914,7 @@ struct ViewMarginsConfig {
 - [ ] 12.6.3.2 Przekazuj numer strony dla Page mode (marginesy lustrzane)
 
 ###### 12.6.4: Refaktoryzacja BookEditor
-- [ ] 12.6.4.1 Usun `constexpr LEFT_MARGIN`, `TOP_MARGIN`
+- [x] 12.6.4.1 Usun `constexpr LEFT_MARGIN`, `TOP_MARGIN`
 - [ ] 12.6.4.2 Zaktualizuj syncPipelineState() - ustawiaj marginesy z appearance
 - [ ] 12.6.4.3 Zaktualizuj updateLayoutWidth() - uzyj RenderContext.margins
 - [ ] 12.6.4.4 Zaktualizuj positionFromPoint() - uzyj marginesow z contextu

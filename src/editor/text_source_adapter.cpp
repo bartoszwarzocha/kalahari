@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QAbstractTextDocumentLayout>
@@ -175,10 +176,18 @@ double QTextDocumentSource::textWidth() const {
 }
 
 void QTextDocumentSource::setFont(const QFont& font) {
-    if (m_document) {
-        m_document->setDefaultFont(font);
-        // Force relayout of all blocks - setDefaultFont() does NOT invalidate existing layouts
-        // Without this, blocks laid out with old font keep their old layout
+    if (!m_document) return;
+
+    m_document->setDefaultFont(font);
+
+    // Use custom layout's setFont() which correctly re-layouts ALL blocks,
+    // bypassing documentChanged()'s 3-block limit for partial edits
+    auto* customLayout = qobject_cast<KalahariTextDocumentLayout*>(
+        m_document->documentLayout());
+    if (customLayout) {
+        customLayout->setFont(font);
+    } else {
+        // Fallback for non-custom layouts
         m_document->markContentsDirty(0, m_document->characterCount());
     }
 }

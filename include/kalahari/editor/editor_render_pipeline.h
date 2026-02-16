@@ -319,7 +319,15 @@ public:
     // =========================================================================
 
     /// @brief Mark entire viewport as needing repaint
+    /// @note Also used when layout/pagination may have changed.
+    ///       For color-only changes, use markRepaintOnly() instead.
     void markAllDirty();
+
+    /// @brief Mark viewport for repaint without implying layout invalidation
+    /// @note Use this for color-only changes where pagination cache and
+    ///       layout remain valid. Semantically equivalent to markAllDirty()
+    ///       but signals to callers that no cache rebuild is needed.
+    void markRepaintOnly();
 
     /// @brief Mark specific region as needing repaint
     void markDirty(const QRect& region);
@@ -416,6 +424,18 @@ private:
 
     /// @brief Render comment highlights
     void renderCommentHighlights(QPainter* painter, const QRect& clipRect);
+
+    // =========================================================================
+    // Scroll Mode Rendering (Phase 15: Viewport-culled fast path)
+    // =========================================================================
+
+    /// @brief Render in Scroll Mode using viewport culling (O(visible) not O(n))
+    ///
+    /// For non-Page modes (Continuous, Focus, DistractionFree, Typewriter),
+    /// renders only visible paragraphs using firstVisibleParagraph/lastVisibleParagraph
+    /// instead of iterating ALL paragraph slices.
+    /// This reduces draw calls from ~3000 to ~30 for large documents.
+    void renderScrollMode(QPainter* painter, const QRect& clipRect);
 
     // =========================================================================
     // Page Mode Rendering (Phase 13.4: Unified rendering)

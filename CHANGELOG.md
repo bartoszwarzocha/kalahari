@@ -23,7 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **OpenSpec #00045:** Architecture Cleanup - ABSORBED by #00043 - 2025-12-30
 
-- **OpenSpec #00043:** Editor Performance Rewrite - Phase 15 complete - 2026-02-16
+- **OpenSpec #00043:** Editor Performance Rewrite - P0/P1 fixes complete - 2026-02-16
+  - **P0 Fix: Scroll Mode viewport culling** - render only visible paragraphs (~30) instead of ALL (~3000), ~150x reduction in draw calls
+  - **P0 Fix: Font propagation** - bypass `documentChanged()` 3-block limit, full re-layout on font changes via custom layout's `setFont()`
+  - **P1 Fix: Cache invalidation** - color-only setters use `markRepaintOnly()` instead of `markAllDirty()`, avoiding unnecessary pagination rebuilds
   - Configuration flow unified: pipeline as single source of truth
   - Render pipeline consolidated (680+ lines)
   - 92-290x benchmark improvements on 150k word documents
