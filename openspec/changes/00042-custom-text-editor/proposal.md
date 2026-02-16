@@ -1,10 +1,9 @@
 # 00042: Custom Text Editor
 
 ## Status
-DEPLOYED
+IN_PROGRESS
 
-**Deployed:** 2026-02-16
-**Note:** 109/109 tasks complete. Performance optimization for large documents (100k+ words) tracked separately in OpenSpec #00043.
+**Note:** 109/109 subtasks checked but editor not production-ready. Critical performance issues (O(n) rendering, scroll lag on large documents) being addressed by OpenSpec #00043. Editor is feature-complete but not deployable until #00043 finishes.
 
 ## Summary
 

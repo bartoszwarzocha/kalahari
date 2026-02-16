@@ -17,9 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enabled auto memory and agent-level memory for architect/code-reviewer/code-editor
   - Added path-scoped rules and CLAUDE.md imports
 
-- **OpenSpec #00042:** Custom Text Editor - DEPLOYED - 2026-02-16
-  - All 7 phases complete: 109/109 tasks, 623 test cases, 4216 assertions
-  - Performance optimization for large documents tracked in #00043
+- **OpenSpec #00042:** Custom Text Editor - feature-complete but NOT deployed - 2026-02-16
+  - 109/109 subtasks checked, 623 test cases, 4216 assertions
+  - Blocked by performance issues (O(n) rendering) - fix in #00043
 
 - **OpenSpec #00045:** Architecture Cleanup - ABSORBED by #00043 - 2025-12-30
 

@@ -206,11 +206,11 @@
 - [x] Search/filter within navigator (OpenSpec #00034)
 - [x] Status submenu for chapters (OpenSpec #00036)
 
-### 1.5 Custom Text Editor (OpenSpec #00042) COMPLETE
+### 1.5 Custom Text Editor (OpenSpec #00042) IN PROGRESS
 
 **Philosophy:** Rich text editor optimized for long-form writing (novels, books).
 
-**Current State:** All 7 phases complete (109/109 tasks). Performance optimization tracked in #00043.
+**Current State:** Feature-complete (109/109 subtasks) but NOT production-ready. Performance issues (O(n) rendering, scroll lag) blocking deployment. Fix tracked in #00043.
 
 **Phase 1: KML Model Layer** COMPLETE
 - [x] KML Element base class with ElementType enum
@@ -492,7 +492,7 @@
 - [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
 - [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
 - [x] **2025-12-23:** Custom Text Editor Phase 6 Analytics Complete (OpenSpec #00042)
-- [x] **2026-01-10:** Custom Text Editor Phase 7 Testing Complete (OpenSpec #00042) DEPLOYED
+- [x] **2026-01-10:** Custom Text Editor Phase 7 subtasks complete (OpenSpec #00042) - blocked by perf
 - [x] **2026-01-10:** Editor Performance Rewrite started (OpenSpec #00043)
 - [ ] **2026-Q1:** Editor Performance Rewrite Complete (OpenSpec #00043)
 - [ ] **2026-Q2:** Phase 1 Core Editor Complete
