@@ -1,8 +1,9 @@
 # Refaktoryzacja Render Pipeline
 
 **Data ustalenia:** 2026-01-12
+**Implemented:** 2026-02-16
 **OpenSpec:** #00043 - Editor Performance Rewrite
-**Status:** W TRAKCIE
+**Status:** DEPLOYED
 
 ---
 
@@ -97,42 +98,49 @@ struct RenderParams {
 ## Plan implementacji
 
 ### Krok 1: Wyczyścić legacy fallback
-- [ ] Usunąć martwy kod z `paintEvent()` (linie 2353-2450+)
-- [ ] Upewnić się, że pipeline ZAWSZE istnieje
+- [x] Usunąć martwy kod z `paintEvent()` (linie 2353-2450+)
+- [x] Upewnić się, że pipeline ZAWSZE istnieje
 
 ### Krok 2: Dodać DPI scaling do pipeline
-- [ ] Dodać `screenDpi`, `dpiScale` do `RenderContext`
-- [ ] Zastosować skalowanie w `EditorRenderPipeline::render()`
-- [ ] Scroll Mode zyskuje poprawną czcionkę
+- [x] Dodać `screenDpi`, `dpiScale` do `RenderContext`
+- [x] Zastosować skalowanie w `EditorRenderPipeline::render()`
+- [x] Scroll Mode zyskuje poprawną czcionkę
 
 ### Krok 3: Przenieść paginację do pipeline
-- [ ] Przenieść struktury `ParagraphSlice`, `PageContent` do pipeline
-- [ ] Przenieść logikę paginacji z `paintPageMode()` do pipeline
-- [ ] Cache paginacji w pipeline (nie w BookEditor)
+- [x] Przenieść struktury `ParagraphSlice`, `PageContent` do pipeline
+- [x] Przenieść logikę paginacji z `paintPageMode()` do pipeline
+- [x] Cache paginacji w pipeline (nie w BookEditor)
 
 ### Krok 4: Zunifikować renderowanie
-- [ ] Jeden `renderText()` dla wszystkich widoków
-- [ ] Jeden `renderSelection()` dla wszystkich widoków
-- [ ] Jeden `renderCursor()` dla wszystkich widoków
-- [ ] Page Mode = flagi w pipeline, nie osobna ścieżka
+- [x] Jeden `renderText()` dla wszystkich widoków
+- [x] Jeden `renderSelection()` dla wszystkich widoków
+- [x] Jeden `renderCursor()` dla wszystkich widoków
+- [x] Page Mode = flagi w pipeline, nie osobna ścieżka
 
 ### Krok 5: Usunąć stary kod
-- [ ] Usunąć `paintPageMode()` z BookEditor
-- [ ] Usunąć `drawSelection()` z BookEditor
-- [ ] Usunąć `drawCursor()` z BookEditor
-- [ ] Usunąć duplikaty struktur paginacji z BookEditor
+- [x] Usunąć `paintPageMode()` z BookEditor
+- [x] Usunąć `drawSelection()` z BookEditor
+- [x] Usunąć `drawCursor()` z BookEditor
+- [x] Usunąć duplikaty struktur paginacji z BookEditor
 
 ---
 
-## Oczekiwane rezultaty
+## Wyniki (zaimplementowane)
 
 | Metryka | Przed | Po |
 |---------|-------|-----|
 | Ścieżki renderowania | 3 | 1 |
-| Linie kodu renderowania | ~800 | ~400 |
+| Linie kodu renderowania | ~800 | ~120 (680+ usuniętych) |
 | DPI scaling | tylko Page Mode | wszędzie |
 | Czcionka w Scroll Mode | za mała | poprawna |
 | Miejsca do naprawy błędów | 2-3 | 1 |
+| Draw calls na 150k słów (Scroll) | ~3000 | ~30 (~100x mniej) |
+
+Dodatkowe zmiany (Phase 15):
+- Viewport culling in Scroll Mode: renders only visible paragraphs (~30) instead of all (~3000)
+- Font propagation fix: `KalahariTextDocumentLayout::setFont()` bypasses `documentChanged()` 3-block limit
+- Color-only setters use `markRepaintOnly()` instead of `markAllDirty()` (no cache invalidation)
+- Configuration flow unified: pipeline as single source of truth for all rendering parameters
 
 ---
 

@@ -88,8 +88,10 @@ void KalahariTextDocumentLayout::layoutAllBlocks() {
 void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int charsAdded) {
     Q_UNUSED(charsRemoved);
 
-    // Detect full-document change (e.g., markContentsDirty(0, totalChars))
-    // This happens when font or style changes affect the entire document
+    // Detect full-document change triggered by Qt internals (e.g., QTextDocument::setDefaultFont()
+    // calls markContentsDirty(0, characterCount), which arrives here as charsAdded == total).
+    // We must re-layout ALL blocks here; otherwise setDefaultFont() would only update 3 blocks
+    // (the partial-edit limit below), leaving most of the document with the old line heights.
     bool isFullDocumentChange = (from == 0 && charsRemoved == 0 &&
                                   charsAdded >= document()->characterCount() - 1);
 
