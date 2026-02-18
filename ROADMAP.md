@@ -206,11 +206,11 @@
 - [x] Search/filter within navigator (OpenSpec #00034)
 - [x] Status submenu for chapters (OpenSpec #00036)
 
-### 1.5 Custom Text Editor (OpenSpec #00042) IN PROGRESS
+### 1.5 Custom Text Editor (OpenSpec #00042) DEPLOYED
 
 **Philosophy:** Rich text editor optimized for long-form writing (novels, books).
 
-**Current State:** Feature-complete (109/109 subtasks) but NOT production-ready. Performance issues (O(n) rendering, scroll lag) blocking deployment. Fix tracked in #00043.
+**Current State:** DEPLOYED 2026-02-18. 109/109 subtasks complete, 596 tests passing, 4220 assertions. Performance blockers resolved in OpenSpec #00043 (deployed 2026-02-17).
 
 **Phase 1: KML Model Layer** COMPLETE
 - [x] KML Element base class with ElementType enum
@@ -262,7 +262,7 @@
 - [x] 7.20 Documentation
 - [x] 7.21 Final Review
 
-**Test Status:** 623 test cases, 4216 assertions passing
+**Test Status:** 596 test cases, 4220 assertions passing
 
 ### 1.5.1 Editor Performance Rewrite (OpenSpec #00043) DEPLOYED
 
@@ -493,9 +493,10 @@
 - [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
 - [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
 - [x] **2025-12-23:** Custom Text Editor Phase 6 Analytics Complete (OpenSpec #00042)
-- [x] **2026-01-10:** Custom Text Editor Phase 7 subtasks complete (OpenSpec #00042) - blocked by perf
+- [x] **2026-01-10:** Custom Text Editor Phase 7 subtasks complete (OpenSpec #00042)
 - [x] **2026-01-10:** Editor Performance Rewrite started (OpenSpec #00043)
 - [x] **2026-02-17:** Editor Performance Rewrite DEPLOYED (OpenSpec #00043)
+- [x] **2026-02-18:** Custom Text Editor DEPLOYED (OpenSpec #00042) - 596 tests, 4220 assertions
 - [ ] **2026-Q2:** Phase 1 Core Editor Complete
 - [ ] **2026-07:** Phase 2 Plugin System MVP Complete
 - [ ] **2026-Q3:** Beta Release (0.7.0)
@@ -559,6 +560,6 @@
 
 ---
 
-**Document Version:** 2.6
-**Last Update:** 2026-02-16
-**Updated By:** Claude (OpenSpec #00041 DEPLOYED, #00042 IN_PROGRESS, #00043 DEPLOYED, #00044 PENDING, #00045 ABSORBED)
+**Document Version:** 2.7
+**Last Update:** 2026-02-18
+**Updated By:** Claude (OpenSpec #00041 DEPLOYED, #00042 DEPLOYED, #00043 DEPLOYED, #00044 PENDING, #00045 ABSORBED)
