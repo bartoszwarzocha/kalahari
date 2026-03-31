@@ -6,7 +6,10 @@
 
 #include <kalahari/editor/kml_format_registry.h>
 #include <QFont>
+#include <QBrush>
+#include <QColor>
 #include <QSet>
+#include <QXmlStreamAttributes>
 
 namespace kalahari {
 namespace editor {
@@ -33,7 +36,9 @@ const QSet<QString>& formattingTagSet()
         // Subscript variants
         QStringLiteral("sub"), QStringLiteral("subscript"),
         // Superscript variants
-        QStringLiteral("sup"), QStringLiteral("superscript")
+        QStringLiteral("sup"), QStringLiteral("superscript"),
+        // Span — inline style carrier (no formatting of its own)
+        QStringLiteral("span")
     };
     return tags;
 }
@@ -246,6 +251,40 @@ QString formatToCloseTags(const QTextCharFormat& format)
     }
 
     return tags;
+}
+
+void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,
+                                QTextCharFormat& format)
+{
+    // Font family
+    if (attrs.hasAttribute(QStringLiteral("font"))) {
+        format.setFontFamilies({attrs.value(QStringLiteral("font")).toString()});
+    }
+
+    // Font size (point size)
+    if (attrs.hasAttribute(QStringLiteral("size"))) {
+        bool ok = false;
+        const qreal size = attrs.value(QStringLiteral("size")).toDouble(&ok);
+        if (ok && size > 0) {
+            format.setFontPointSize(size);
+        }
+    }
+
+    // Text color
+    if (attrs.hasAttribute(QStringLiteral("color"))) {
+        const QColor color(attrs.value(QStringLiteral("color")).toString());
+        if (color.isValid()) {
+            format.setForeground(QBrush(color));
+        }
+    }
+
+    // Background color
+    if (attrs.hasAttribute(QStringLiteral("bg"))) {
+        const QColor bgColor(attrs.value(QStringLiteral("bg")).toString());
+        if (bgColor.isValid()) {
+            format.setBackground(QBrush(bgColor));
+        }
+    }
 }
 
 // =============================================================================

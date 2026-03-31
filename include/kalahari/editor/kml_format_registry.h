@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QTextCharFormat>
 #include <QVector>
+#include <QXmlStreamAttributes>
 
 namespace kalahari {
 namespace editor {
@@ -106,6 +107,16 @@ const MetadataTagDef* getMetadataTagDef(const QString& tag);
 /// @param propId The KmlPropertyId
 /// @return Pointer to definition, or nullptr if not found
 const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId);
+
+// =============================================================================
+// Inline Style Attributes
+// =============================================================================
+
+/// @brief Apply inline style attributes (font, size, color, bg) from XML to format
+/// @param attrs XML attributes from a formatting or span tag
+/// @param format Character format to update (modified in place)
+void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,
+                                QTextCharFormat& format);
 
 // =============================================================================
 // Utilities

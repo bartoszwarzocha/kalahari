@@ -10,7 +10,10 @@
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QTextFragment>
+#include <QTextBlockFormat>
 #include <QFont>
+#include <QBrush>
+#include <QColor>
 #include <QVariantMap>
 
 namespace kalahari {
@@ -45,7 +48,9 @@ QString KmlSerializer::toKml(const QTextDocument* document) const
     // Iterate through all blocks (paragraphs)
     QTextBlock block = document->begin();
     while (block.isValid()) {
-        result += indent + QStringLiteral("<p>");
+        result += indent + QStringLiteral("<p");
+        result += serializeBlockAttributes(block);
+        result += QStringLiteral(">");
         result += serializeBlockContent(block);
         result += QStringLiteral("</p>") + newline;
 
@@ -85,6 +90,25 @@ bool KmlSerializer::isIndented() const
 // Internal Serialization Methods
 // =============================================================================
 
+QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
+{
+    QString attrs;
+
+    QTextBlockFormat blockFormat = block.blockFormat();
+    Qt::Alignment align = blockFormat.alignment();
+
+    if (align & Qt::AlignHCenter) {
+        attrs += QStringLiteral(" align=\"center\"");
+    } else if (align & Qt::AlignRight) {
+        attrs += QStringLiteral(" align=\"right\"");
+    } else if (align & Qt::AlignJustify) {
+        attrs += QStringLiteral(" align=\"justify\"");
+    }
+    // Left alignment is default — no attribute emitted
+
+    return attrs;
+}
+
 QString KmlSerializer::serializeBlockContent(const QTextBlock& block) const
 {
     QString result;
@@ -99,6 +123,49 @@ QString KmlSerializer::serializeBlockContent(const QTextBlock& block) const
     }
 
     return result;
+}
+
+QString KmlSerializer::buildInlineStyleAttributes(const QTextCharFormat& format) const
+{
+    QString attrs;
+
+    // Font family — emit when explicitly set
+    const QStringList families = format.fontFamilies().toStringList();
+    if (!families.isEmpty()) {
+        attrs += QStringLiteral(" font=\"") +
+                 KmlFormatRegistry::escapeXml(families.first()) +
+                 QStringLiteral("\"");
+    }
+
+    // Font size — emit when explicitly set (0 means "use document default")
+    const qreal pointSize = format.fontPointSize();
+    if (pointSize > 0) {
+        attrs += QStringLiteral(" size=\"") +
+                 QString::number(pointSize) +
+                 QStringLiteral("\"");
+    }
+
+    // Text color — emit when explicitly set and not default black
+    if (format.foreground().style() != Qt::NoBrush) {
+        const QColor color = format.foreground().color();
+        if (color.isValid() && color != QColor(Qt::black)) {
+            attrs += QStringLiteral(" color=\"") +
+                     color.name() +
+                     QStringLiteral("\"");
+        }
+    }
+
+    // Background color — emit when explicitly set and not transparent
+    if (format.background().style() != Qt::NoBrush) {
+        const QColor bgColor = format.background().color();
+        if (bgColor.isValid() && bgColor.alpha() > 0) {
+            attrs += QStringLiteral(" bg=\"") +
+                     bgColor.name() +
+                     QStringLiteral("\"");
+        }
+    }
+
+    return attrs;
 }
 
 QString KmlSerializer::serializeFragment(const QTextFragment& fragment) const
@@ -119,6 +186,9 @@ QString KmlSerializer::serializeFragment(const QTextFragment& fragment) const
     // Escape XML special characters in text content
     QString escapedText = KmlFormatRegistry::escapeXml(text);
 
+    // Build inline style attributes (font, size, color, bg)
+    QString inlineAttrs = buildInlineStyleAttributes(format);
+
     // Build the result with formatting tags
     QString result;
 
@@ -128,14 +198,30 @@ QString KmlSerializer::serializeFragment(const QTextFragment& fragment) const
         result += metadataToOpenTag(format);
     }
 
-    // Add formatting opening tags (using registry)
-    result += KmlFormatRegistry::formatToOpenTags(format);
+    // Get formatting tags
+    QString openTags = KmlFormatRegistry::formatToOpenTags(format);
+    QString closeTags = KmlFormatRegistry::formatToCloseTags(format);
 
-    // Add the text content
-    result += escapedText;
-
-    // Add formatting closing tags (reverse order, using registry)
-    result += KmlFormatRegistry::formatToCloseTags(format);
+    if (!openTags.isEmpty() && !inlineAttrs.isEmpty()) {
+        // Inject attributes into the first formatting tag: <b> → <b font="...">
+        int firstClose = openTags.indexOf(QLatin1Char('>'));
+        if (firstClose >= 0) {
+            openTags.insert(firstClose, inlineAttrs);
+        }
+        result += openTags;
+        result += escapedText;
+        result += closeTags;
+    } else if (openTags.isEmpty() && !inlineAttrs.isEmpty()) {
+        // No formatting tags but has style overrides — wrap with <span>
+        result += QStringLiteral("<span") + inlineAttrs + QStringLiteral(">");
+        result += escapedText;
+        result += QStringLiteral("</span>");
+    } else {
+        // Standard case: formatting tags without style attributes, or plain text
+        result += openTags;
+        result += escapedText;
+        result += closeTags;
+    }
 
     // Close metadata tag if present
     if (hasMeta) {

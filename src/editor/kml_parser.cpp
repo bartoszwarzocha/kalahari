@@ -299,8 +299,9 @@ void KmlParser::parseInlineContent(QXmlStreamReader& reader,
             QString tag = reader.name().toString();
 
             if (KmlFormatRegistry::isFormattingTag(tag)) {
-                // Formatting element - recurse with updated format
+                // Formatting element - apply tag format + inline style attributes
                 QTextCharFormat newFormat = KmlFormatRegistry::applyTagFormat(tag, activeFormat);
+                KmlFormatRegistry::applyInlineStyleAttributes(reader.attributes(), newFormat);
                 reader.readNext();  // Move past start element
                 parseInlineContent(reader, cursor, newFormat, tag);
             } else if (KmlFormatRegistry::isMetadataTag(tag)) {

@@ -10,7 +10,10 @@
 #include <QTextDocument>
 #include <QTextCursor>
 #include <QTextBlock>
+#include <QTextBlockFormat>
 #include <QFont>
+#include <QBrush>
+#include <QColor>
 #include <QVariantMap>
 #include <memory>
 
@@ -1053,5 +1056,281 @@ TEST_CASE("KmlSerializer - All formatting combinations", "[editor][kml_serialize
         REQUIRE(fmt.fontWeight() == QFont::Bold);
         REQUIRE(fmt.fontItalic());
         REQUIRE(fmt.fontUnderline());
+    }
+}
+
+// =============================================================================
+// Inline Style Round-Trip Tests (OpenSpec #00044A)
+// =============================================================================
+
+TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Center alignment survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextBlockFormat blockFmt;
+        blockFmt.setAlignment(Qt::AlignHCenter);
+        cursor.setBlockFormat(blockFmt);
+        cursor.insertText("Centered text");
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("align=\"center\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignHCenter);
+        REQUIRE(getPlainText(doc2.get()) == "Centered text");
+    }
+
+    SECTION("Right alignment survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextBlockFormat blockFmt;
+        blockFmt.setAlignment(Qt::AlignRight);
+        cursor.setBlockFormat(blockFmt);
+        cursor.insertText("Right text");
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("align=\"right\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignRight);
+    }
+
+    SECTION("Justify alignment survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextBlockFormat blockFmt;
+        blockFmt.setAlignment(Qt::AlignJustify);
+        cursor.setBlockFormat(blockFmt);
+        cursor.insertText("Justified text");
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("align=\"justify\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignJustify);
+    }
+
+    SECTION("Left alignment omits attribute") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        cursor.insertText("Left text");
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE_FALSE(kml.contains("align="));
+    }
+}
+
+TEST_CASE("KmlSerializer - Font family round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Custom font family survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setFontFamilies({"Courier New"});
+        cursor.insertText("Monospace text", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("font=\"Courier New\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.fontFamilies().toStringList().contains("Courier New"));
+    }
+
+    SECTION("Bold with custom font — attributes on <b> tag") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setFontWeight(QFont::Bold);
+        fmt.setFontFamilies({"Courier New"});
+        cursor.insertText("Bold mono", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("<b font=\"Courier New\">Bold mono</b>"));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.fontWeight() == QFont::Bold);
+        REQUIRE(fmt2.fontFamilies().toStringList().contains("Courier New"));
+    }
+}
+
+TEST_CASE("KmlSerializer - Font size round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Custom font size survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setFontPointSize(24);
+        cursor.insertText("Big text", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("size=\"24\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.fontPointSize() == 24);
+    }
+}
+
+TEST_CASE("KmlSerializer - Text color round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Red text color survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setForeground(QBrush(QColor("#ff0000")));
+        cursor.insertText("Red text", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("color=\"#ff0000\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.foreground().color() == QColor("#ff0000"));
+    }
+
+    SECTION("Black text color is NOT emitted (default)") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setForeground(QBrush(QColor(Qt::black)));
+        cursor.insertText("Black text", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE_FALSE(kml.contains("color="));
+    }
+}
+
+TEST_CASE("KmlSerializer - Background color round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Yellow background survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setBackground(QBrush(QColor("#ffff00")));
+        cursor.insertText("Highlighted", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("bg=\"#ffff00\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.background().color() == QColor("#ffff00"));
+    }
+}
+
+TEST_CASE("KmlSerializer - Span wrapper for style-only text", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Text with color but no B/I/U/S uses <span>") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setForeground(QBrush(QColor("#ff0000")));
+        cursor.insertText("Red text", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("<span color=\"#ff0000\">Red text</span>"));
+    }
+
+    SECTION("Span with multiple attributes") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setFontFamilies({"Arial"});
+        fmt.setFontPointSize(18);
+        fmt.setForeground(QBrush(QColor("#0000ff")));
+        cursor.insertText("Styled", fmt);
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("<span"));
+        REQUIRE(kml.contains("font=\"Arial\""));
+        REQUIRE(kml.contains("size=\"18\""));
+        REQUIRE(kml.contains("color=\"#0000ff\""));
+        REQUIRE(kml.contains("</span>"));
+
+        // Round-trip
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+
+        QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
+        REQUIRE(fmt2.fontFamilies().toStringList().contains("Arial"));
+        REQUIRE(fmt2.fontPointSize() == 18);
+        REQUIRE(fmt2.foreground().color() == QColor("#0000ff"));
+    }
+}
+
+TEST_CASE("KmlSerializer - Backward compatibility", "[editor][kml_serializer][roundtrip][00044A]") {
+    KmlParser parser;
+    KmlSerializer serializer;
+
+    SECTION("Old KML without style attributes loads correctly") {
+        QString oldKml = "<kml><p><b>bold</b> and <i>italic</i></p></kml>";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(oldKml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(getPlainText(doc.get()) == "bold and italic");
+
+        QTextCharFormat fmtBold = getFormatAt(doc.get(), 0);
+        REQUIRE(fmtBold.fontWeight() == QFont::Bold);
+
+        QTextCharFormat fmtItalic = getFormatAt(doc.get(), 9);
+        REQUIRE(fmtItalic.fontItalic());
+    }
+
+    SECTION("Old KML without align attribute loads without errors") {
+        QString oldKml = "<kml><p>No alignment</p><p>Second paragraph</p></kml>";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(oldKml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 2);
+        REQUIRE(getPlainText(doc.get()).contains("No alignment"));
+    }
+
+    SECTION("Mixed old and new KML tags") {
+        QString mixedKml = R"(<kml><p><b>old bold</b></p><p align="center"><b font="Arial">new styled</b></p></kml>)";
+
+        std::unique_ptr<QTextDocument> doc(parser.parseKml(mixedKml));
+        REQUIRE(doc != nullptr);
+        REQUIRE(blockCount(doc.get()) == 2);
+
+        // First paragraph: plain bold
+        QTextCharFormat fmt1 = getFormatAt(doc.get(), 0);
+        REQUIRE(fmt1.fontWeight() == QFont::Bold);
+
+        // Second paragraph: centered, bold with font
+        QTextBlock block2 = doc->begin().next();
+        REQUIRE(block2.blockFormat().alignment() == Qt::AlignHCenter);
+
+        int pos2 = block2.position();
+        QTextCharFormat fmt2 = getFormatAt(doc.get(), pos2);
+        REQUIRE(fmt2.fontWeight() == QFont::Bold);
+        REQUIRE(fmt2.fontFamilies().toStringList().contains("Arial"));
     }
 }

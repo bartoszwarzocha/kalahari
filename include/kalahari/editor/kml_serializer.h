@@ -87,6 +87,11 @@ private:
     // Internal Serialization Methods
     // =========================================================================
 
+    /// @brief Serialize paragraph-level attributes (alignment, style)
+    /// @param block The text block
+    /// @return Attribute string (e.g., " align=\"center\"")
+    QString serializeBlockAttributes(const QTextBlock& block) const;
+
     /// @brief Serialize a text block's inline content
     /// @param block The text block to serialize
     /// @return KML markup for the block content
@@ -97,6 +102,11 @@ private:
     /// @return KML markup for the fragment
     /// @note Uses KmlFormatRegistry for format serialization
     QString serializeFragment(const QTextFragment& fragment) const;
+
+    /// @brief Build inline style attributes string from character format
+    /// @param format The character format to extract style from
+    /// @return Attribute string (e.g., " font=\"Arial\" size=\"14\"")
+    QString buildInlineStyleAttributes(const QTextCharFormat& format) const;
 
     // Note: formatToOpenTags and formatToCloseTags are now provided by KmlFormatRegistry
 
