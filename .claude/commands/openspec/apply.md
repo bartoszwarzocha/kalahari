@@ -9,45 +9,24 @@ tags: [openspec, apply, implementation]
 
 Implement an approved OpenSpec change and keep tasks in sync.
 
-## Guardrails
-
-- Favor straightforward, minimal implementations
-- Keep changes tightly scoped
-- Refer to `openspec/AGENTS.md` for conventions
-
 ## Steps
 
 1. **Read change documents:**
-   - `changes/<id>/proposal.md`
-   - `changes/<id>/design.md` (if present)
-   - `changes/<id>/tasks.md`
+   - `openspec/changes/<id>/proposal.md`
+   - `openspec/changes/<id>/tasks.md`
+   - `openspec/changes/<id>/specs/` (delta specs)
 
-2. **Confirm scope:**
-   - Review acceptance criteria
-   - Verify understanding
+2. **Set status to IN_PROGRESS** in proposal.md
 
 3. **Implement sequentially:**
-   - Work through tasks in order
+   - Work through tasks in order (1.1 → 1.2 → 2.1 ...)
    - Keep edits minimal and focused
-   - Run build after each change:
-     ```bash
-     scripts/build_windows.bat Debug
-     ```
+   - Build after each change: `scripts/build_windows.bat Debug`
 
-4. **Update task status:**
-   - Mark completed: `- [x]`
-   - Update status in proposal.md
+4. **Update task status:** Mark completed `- [x]`
 
-5. **Verify completion:**
-   - All tasks marked `[x]`
-   - Build passes
-   - Tests pass
-
-## Reference
-
-- `openspec show <id> --json --deltas-only` for context
-- `openspec list` for active changes
+5. **Update delta specs** if implementation reveals new requirements or changes to existing ones
 
 ## Output
 
-Change implemented, all tasks complete, ready for archive.
+Change implemented, tasks checked off, ready for verify.

@@ -143,7 +143,15 @@
       "Bash(E:PythonProjektyKalahariscriptsbuild_windows.bat Debug)",
       "Bash(Select-String -Pattern \"passed|failed|All tests\")",
       "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/ctest.exe\":*)",
-      "Bash(E:)"
+      "Bash(E:)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:openspec.dev)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(for i:*)",
+      "Bash(do mv:*)",
+      "Bash(done)",
+      "Bash(for d:*)",
+      "Bash(do mkdir:*)"
     ],
     "deny": [],
     "ask": []

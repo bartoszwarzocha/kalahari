@@ -1,16 +1,12 @@
 # Agent Dispatch & Workflow
 
-**ALWAYS, for EVERY user message, BEFORE doing anything else:**
-
-1. **CHECK** if the message contains ANY trigger from `.claude/workflow.json` -> `triggers`
-2. **If match found** → use `Task` tool to launch the corresponding agent
-3. **You MUST NOT perform the agent's work yourself**
+Use agents when the task benefits from specialization. Do NOT force dispatch on every message.
 
 ## Agents
 
 | Agent | Role |
 |-------|------|
-| task-manager | Creates/tracks/closes OpenSpec, manages workflow, SESSION RESTORE |
+| task-manager | Creates/tracks/closes OpenSpec, manages workflow |
 | architect | Analyzes code, designs solutions |
 | code-writer | Writes NEW code (new files, new classes) |
 | code-editor | Modifies EXISTING code |
@@ -21,22 +17,18 @@
 
 ## Workflow
 
-**PREFERRED:** `/workflow "description"` for automatic orchestration.
-
-**Manual workflow:**
 ```
 NEW TASK:
-1. task-manager  → Creates OpenSpec
-2. architect     → Analyzes, designs
-3. code-writer / code-editor / ui-designer → Implements
-4. code-reviewer → Reviews
-5. tester        → Tests
-6. task-manager  → Closes task
+  explore → proposal → apply → verify → archive
 
-CONTINUE TASK:
-1. task-manager  → Loads OpenSpec, shows status
-2. architect     → Reviews design if needed
-3. ... (continues from step 3)
+AGENTS PER STEP:
+1. /openspec:explore    → architect (analysis)
+2. /openspec:proposal   → task-manager (creates OpenSpec)
+3. /openspec:apply      → code-writer / code-editor / ui-designer
+4. code-reviewer        → Reviews
+5. tester               → Build + tests
+6. /openspec:verify     → Validates implementation vs spec
+7. /openspec:archive    → Merges delta specs, closes task
 ```
 
 **CRITICAL:** Never skip code-reviewer or tester! Task is NOT DEPLOYED until all pass.

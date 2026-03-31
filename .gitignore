@@ -188,6 +188,7 @@ examples/Test003_*/
 examples/Test004_*/
 /docs/api/html
 /STRATEGY_WORKSPACE.md
+/STRATEGY_WORKSPACE_ARCHIVE.md
 ninja_output.txt
 
 # Temporary build/clipboard artifacts

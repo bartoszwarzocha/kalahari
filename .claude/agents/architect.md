@@ -3,6 +3,7 @@ name: architect
 description: "Analyst + Designer - analyzes code, designs solutions. Triggers: 'zaprojektuj', 'przeanalizuj', 'jak to zrobić', 'gdzie to dodać', 'design'. Does NOT write code!"
 tools: Read, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
+effort: high
 permissionMode: default
 maxTurns: 30
 memory: project

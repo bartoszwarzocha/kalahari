@@ -3,6 +3,7 @@ name: code-reviewer
 description: "Code review specialist - quality checks before commit. Triggers: 'review', 'sprawdź kod', 'przed commitem', 'czy mogę commitować', 'code review'. Does NOT fix code!"
 tools: Read, Grep, Glob
 model: inherit
+effort: high
 permissionMode: default
 maxTurns: 20
 memory: project

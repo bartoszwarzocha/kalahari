@@ -3,6 +3,7 @@ name: devops
 description: "CI/CD specialist - GitHub Actions, pipelines, deployment. Triggers: 'CI', 'CD', 'napraw CI', 'fix CI', 'pipeline', 'GitHub Actions', 'workflow failed', 'build failed', 'deploy'. Standalone - NOT part of main development workflow."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 model: inherit
+effort: medium
 permissionMode: bypassPermissions
 maxTurns: 30
 skills: kalahari-coding, github-actions

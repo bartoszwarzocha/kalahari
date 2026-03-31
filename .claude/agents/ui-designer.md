@@ -3,6 +3,7 @@ name: ui-designer
 description: "UI/UX specialist - dialogs, panels, toolbars, layouts. Triggers: 'dialog', 'panel', 'toolbar', 'UI', 'widget', 'layout'. Focused on Qt6 visual components."
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
+effort: high
 permissionMode: bypassPermissions
 maxTurns: 50
 skills: kalahari-coding, qt6-desktop-ux

@@ -3,6 +3,7 @@ name: code-editor
 description: "Modifies EXISTING code - changes, refactoring, bug fixes. Triggers: 'zmień', 'popraw', 'napraw', 'refaktoruj', 'fix', 'modify', 'change'. Does NOT create new files!"
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
+effort: high
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project

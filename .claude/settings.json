@@ -33,7 +33,6 @@
       "Task(tester)",
       "Task(devops)",
       "Task(Explore)",
-      "Skill(/workflow:*)",
       "Skill(/save-session:*)",
       "Skill(/load-session:*)"
     ],
@@ -56,16 +55,6 @@
     ]
   },
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\validate_triggers.py"
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [
@@ -97,47 +86,12 @@
         ]
       }
     ],
-    "SubagentStop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo %date% %time%|%CLAUDE_AGENT_ID%|complete >> E:\\Python\\Projekty\\Kalahari\\.claude\\logs\\agents.log"
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
+    "PostCompact": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\pre_compact.py"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Before Claude stops, verify the work is complete:\n\n1. Were any C++ files (.cpp/.h) modified in this session?\n2. If yes - was a build attempted after the last modification?\n3. If build was not attempted - this is a problem.\n4. Are there any unfinished tasks or incomplete implementations?\n\nIf C++ files were modified but NO build was run after last change, return:\n{\"hookSpecificOutput\": {\"decision\": \"block\", \"reason\": \"Build not verified after code changes. Run: scripts/build_windows.bat Debug\"}}\n\nIf work appears complete or no code was modified, return:\n{\"hookSpecificOutput\": {\"decision\": \"approve\"}}",
-            "model": "haiku",
-            "timeout": 15000
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "A task is being marked as completed. Verify quality gates:\n\n1. Was a build run successfully in this session?\n2. Were tests run if code was changed?\n3. Does the task description mention any acceptance criteria that haven't been met?\n\nIf there are clear signs that build/tests were NOT run after code changes, return:\n{\"hookSpecificOutput\": {\"decision\": \"block\", \"reason\": \"Quality gate: build/tests not verified. Run build and tests before closing task.\"}}\n\nIf quality appears acceptable, return:\n{\"hookSpecificOutput\": {\"decision\": \"approve\"}}",
-            "model": "haiku",
-            "timeout": 15000
+            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\post_compact.py"
           }
         ]
       }
@@ -164,23 +118,10 @@
             "timeout": 30000
           }
         ]
-      },
-      {
-        "matcher": "Edit(*.cpp)|Edit(*.h)|Write(*.cpp)|Write(*.h)",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "KALAHARI C++ PATTERNS CHECK:\n\nCheck if the code being written/edited violates these patterns:\n1. Hardcoded icons: QIcon(\"path\") instead of ArtProvider::getInstance().getIcon()\n2. Hardcoded strings: \"text\" in UI instead of tr(\"text\")\n3. Hardcoded colors: QColor(r,g,b) instead of ArtProvider colors\n4. Direct qDebug/cout instead of Logger::getInstance()\n\nIf ANY violation found, return:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"Pattern violation: [describe what's wrong]\"}}\n\nIf code is OK or you can't determine, return:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}}",
-            "model": "haiku",
-            "timeout": 15000
-          }
-        ]
       }
     ]
   },
   "env": {
-    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
-    "MAX_THINKING_TOKENS": "31999",
     "ENABLE_LSP_TOOL": "1"
   }
 }

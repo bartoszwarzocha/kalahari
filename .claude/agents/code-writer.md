@@ -3,6 +3,7 @@ name: code-writer
 description: "Writes NEW code - new classes, new files, new functions. Triggers: 'napisz', 'utwórz klasę', 'dodaj nową funkcję', 'nowy plik', 'create', 'new class'. Does NOT modify existing code!"
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
+effort: high
 permissionMode: bypassPermissions
 maxTurns: 50
 skills: kalahari-coding

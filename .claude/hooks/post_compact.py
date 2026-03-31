@@ -1,8 +1,8 @@
-"""PreCompact hook - saves critical context before auto-compaction.
+"""PostCompact hook - injects critical context after auto-compaction.
 
 When Claude Code auto-compacts the conversation, earlier context is lost.
-This hook saves a snapshot of the current working state so the agent
-can recover after compaction.
+This hook fires AFTER compaction, so injected context survives and is visible.
+Also saves a state snapshot to disk for recovery.
 """
 
 import json
@@ -35,29 +35,26 @@ def main():
 
     state = {
         "timestamp": datetime.now().isoformat(),
-        "event": "pre_compact",
+        "event": "post_compact",
         "active_openspec": openspec,
     }
 
-    # Save state
     os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
-    # Output warning as additionalContext
-    result = {
-        "additionalContext": (
-            f"[CONTEXT COMPACTION] Conversation is being compressed. "
-            f"Active OpenSpec: #{openspec or 'none'}. "
-            f"State saved to .claude/compact-state.json. "
-            f"After compaction, re-read critical files before making decisions: "
-            f"openspec/changes/{openspec}/ANALYSIS_PHASE15_ISSUES.md, "
+    if openspec:
+        context = (
+            f"[POST-COMPACTION RECOVERY] Context was compacted. "
+            f"Active OpenSpec: #{openspec}. "
+            f"Re-read these files before making decisions: "
+            f"openspec/changes/{openspec}/proposal.md, "
             f"openspec/changes/{openspec}/tasks.md"
-            if openspec
-            else "[CONTEXT COMPACTION] No active OpenSpec. State saved."
         )
-    }
+    else:
+        context = "[POST-COMPACTION RECOVERY] Context was compacted. No active OpenSpec."
 
+    result = {"additionalContext": context}
     print(json.dumps(result))
 
 

@@ -3,6 +3,7 @@ name: tester
 description: "QA Engineer - runs build and tests, reports results. Triggers: 'testy', 'przetestuj', 'uruchom testy', 'QA', 'czy działa', 'run tests'. Does NOT fix code!"
 tools: Bash, Read, Grep
 model: inherit
+effort: medium
 permissionMode: bypassPermissions
 maxTurns: 20
 skills: kalahari-coding, testing-procedures

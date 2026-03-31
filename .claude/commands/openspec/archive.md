@@ -1,52 +1,36 @@
 ---
 name: OpenSpec Archive
-description: Archive a deployed OpenSpec change
+description: Archive a deployed OpenSpec change and merge delta specs
 category: OpenSpec
 tags: [openspec, archive, complete]
 ---
 
 # OpenSpec: Archive Change
 
-Archive a completed OpenSpec change and update specs.
-
-## Guardrails
-
-- Favor straightforward, minimal implementations
-- Keep changes tightly scoped
-- Refer to `openspec/AGENTS.md` for conventions
+Archive a completed change: merge delta specs into main specs, move to archive.
 
 ## Steps
 
-1. **Identify change to archive:**
-   - If change ID provided, use it
-   - Otherwise run `openspec list` to find candidates
-   - Confirm with user if unclear
+1. **Identify change:** Find DEPLOYED change in `openspec/changes/`
 
-2. **Validate change:**
-   - Run `openspec list` or `openspec show <id>`
-   - Verify change is complete (not already archived)
+2. **Verify completeness:**
+   - All tasks in tasks.md checked `[x]`
+   - Status = DEPLOYED in proposal.md
+   - CHANGELOG.md has entry
+   - ROADMAP.md updated (if feature)
 
-3. **Archive change:**
+3. **Merge delta specs** from `openspec/changes/<id>/specs/` into `openspec/specs/`:
+   - Apply operations in order: RENAMED → REMOVED → MODIFIED → ADDED
+   - If a main spec doesn't exist yet, create it from ADDED requirements
+   - If no delta specs exist, skip this step
+
+4. **Move to archive:**
    ```bash
-   openspec archive <id> --yes
+   mv openspec/changes/NNNNN-name openspec/archive/NNNNN-name
    ```
-   - Moves change to `changes/archive/`
-   - Updates target specs
 
-4. **Verify archive:**
-   - Check `changes/archive/<id>/` exists
-   - Run `openspec validate --strict`
-
-5. **Update documentation:**
-   - Mark feature `[x]` in ROADMAP.md
-   - Add entry to CHANGELOG.md [Unreleased]
-
-## Reference
-
-- `openspec list` to confirm change IDs
-- `openspec list --specs` to inspect updated specs
-- `openspec show <id>` for change details
+5. **Verify:** Main specs in `openspec/specs/` reflect merged changes
 
 ## Output
 
-Change archived to `changes/archive/`, specs updated, documentation current.
+Change archived to `openspec/archive/`, main specs updated with living documentation.

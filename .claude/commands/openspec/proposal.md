@@ -7,51 +7,44 @@ tags: [openspec, change, proposal]
 
 # OpenSpec: Create Proposal
 
-Scaffold a new OpenSpec change with strict validation.
-
 ## Guardrails
 
-- Favor straightforward, minimal implementations
-- Keep changes tightly scoped
-- Refer to `openspec/AGENTS.md` for conventions
-- Ask follow-up questions before editing files
-- **NO CODE during proposal stage** - only design documents
+- Max 15-25 tasks per OpenSpec — split larger features
+- Each task completable in one session
+- **NO CODE during proposal stage**
 
 ## Steps
 
-1. **Review current state:**
-   - Read `openspec/project.md`
-   - Run `openspec list` and `openspec list --specs`
-   - Inspect related code/docs
-
-2. **Choose change ID:**
-   - Unique, verb-led name
-   - Format: `NNNNN-verb-description`
-   - Example: `00027-add-stats-panel`
-
-3. **Create scaffold:**
+1. Gather requirements (goal, scope, acceptance criteria)
+2. Find next number: `ls openspec/changes/ | sort -r | head -1`
+3. Create change directory:
    ```
    openspec/changes/NNNNN-name/
-   ├── proposal.md    # Change overview
-   ├── tasks.md       # Implementation checklist
-   └── design.md      # Architecture (if needed)
+   ├── proposal.md      # Goal, scope, acceptance criteria, status: PENDING
+   ├── tasks.md         # Hierarchical checklist (1.1, 1.2, 2.1), max 15-25 items
+   └── specs/           # Delta specs (what changes in requirements)
+       └── <area>.md    # One file per affected spec area
    ```
 
-4. **Draft documents:**
-   - `proposal.md`: Goal, scope, acceptance criteria
-   - `tasks.md`: Ordered, verifiable work items
-   - `design.md`: Architecture decisions (if complex)
+4. Write `proposal.md` with status PENDING
+5. Write `tasks.md` with hierarchical tasks
+6. Write delta specs in `specs/` using operations:
+   ```markdown
+   ## ADDED Requirements
+   ### Requirement: <Name>
+   Description of new requirement.
 
-5. **Validate:**
-   ```bash
-   openspec validate <id> --strict
+   ## MODIFIED Requirements
+   ### Requirement: <Existing Name>
+   Updated description.
+
+   ## REMOVED Requirements
+   ### Requirement: <Name>
+   Reason for removal.
    ```
 
-## Reference
-
-- `openspec show <id> --json --deltas-only` for details
-- `rg -n "Requirement:|Scenario:" openspec/specs` for existing requirements
+7. Review existing main specs in `openspec/specs/` to understand what already exists
 
 ## Output
 
-New OpenSpec change created in `openspec/changes/<id>/` ready for approval.
+New OpenSpec change created in `openspec/changes/<id>/` with delta specs, ready for approval.
