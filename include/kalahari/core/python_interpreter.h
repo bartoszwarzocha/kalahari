@@ -45,7 +45,7 @@ public:
 
     /// @brief Initialize Python interpreter
     ///
-    /// This must be called BEFORE wxWidgets initialization.
+    /// This must be called BEFORE QApplication construction.
     /// Sets PYTHONHOME to bundled Python location and starts the interpreter.
     ///
     /// @throws std::runtime_error if Python initialization fails
@@ -53,7 +53,7 @@ public:
 
     /// @brief Finalize Python interpreter
     ///
-    /// This must be called AFTER wxWidgets cleanup.
+    /// This must be called AFTER QApplication destruction.
     /// Safely shuts down the Python interpreter.
     void finalize();
 

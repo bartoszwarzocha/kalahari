@@ -17,20 +17,18 @@ This directory contains the complete technical documentation for the Kalahari pr
 | # | Document | Description | Status |
 |---|----------|-------------|--------|
 | 01 | [**Overview**](01_overview.md) | Project vision, goals, target audience | ✅ Complete |
-| 02 | [**Tech Stack**](02_tech_stack.md) | C++20, wxWidgets, vcpkg, libraries | ✅ Complete |
+| 02 | [**Tech Stack**](02_tech_stack.md) | C++20, Qt6, vcpkg, libraries | ✅ Complete |
 | 03 | [**Architecture**](03_architecture.md) | Core architecture, design patterns, structure | ✅ Complete |
 | 04 | [**Plugin System**](04_plugin_system.md) | Plugin API, extension points, event bus | ✅ Complete |
 | 05 | [**Business Model**](05_business_model.md) | Open Core, premium plugins, pricing | ✅ Complete |
 | 06 | [**Roadmap Rules**](06_roadmap.md) | Rules for maintaining ROADMAP.md and CHANGELOG.md | ✅ Complete |
-| 07 | [**MVP Tasks**](07_mvp_tasks.md) | Detailed task breakdown for MVP (18 months) | ✅ Complete |
-| 08 | [**GUI Design**](08_gui_design.md) | GUI panels, wxAUI, perspectives, customizable toolbars | ✅ Complete |
-| 09 | [**Internationalization**](09_i18n.md) | i18n/l10n system, gettext, translations (bwx_sdk pattern) | ✅ Complete |
+| 07 | [**MVP Tasks**](07_mvp_tasks.md) | Detailed task breakdown for MVP (18 months) | ⚠️ Deprecated |
+| 08 | [**GUI Design**](08_gui_design.md) | GUI panels, Qt6 QDockWidget, perspectives, customizable toolbars | ✅ Complete |
+| 09 | [**Internationalization**](09_i18n.md) | i18n/l10n system, Qt Linguist, translations | ✅ Complete |
 | 10 | [**Branding**](10_branding.md) | Logo, colors, animals, style guide | ✅ Complete |
 | 11 | [**User Docs Plan**](11_user_documentation_plan.md) | MkDocs + Material, phased delivery strategy | ✅ Complete |
 | 12 | [**Dev Protocols**](12_dev_protocols.md) | Task workflow, MCP tools, session management | ✅ Complete |
-| 13 | [**Phase 1 Task Breakdown**](13_phase1_task_breakdown.md) | Phase 1 (Core Editor) detailed task breakdown | ✅ Complete |
-| 14 | [**bwx_sdk Patterns**](14_bwx_sdk_patterns.md) | Custom wxWidgets controls design patterns, rationale | ✅ Complete |
-| 15 | [**Text Editor Architecture**](15_text_editor_architecture.md) | Custom text editor control complete specification | ✅ Complete |
+| 13 | [**Phase 1 Task Breakdown**](13_phase1_task_breakdown.md) | Phase 1 (Core Editor) detailed task breakdown | ⚠️ Deprecated |
 | 16 | [**Settings Inventory**](16_settings_inventory.md) | Complete settings catalog (37 parameters tracked) | ✅ Complete |
 | 17 | [**Visual Studio Setup**](17_visual_studio_setup.md) | VS 2026 integration, CMakePresets.json, debugging | ✅ Complete |
 | 18 | [**Command Registry Architecture**](18_command_registry_architecture.md) | Unified command system, MenuBuilder, ToolbarBuilder, plugin integration | ✅ Complete |

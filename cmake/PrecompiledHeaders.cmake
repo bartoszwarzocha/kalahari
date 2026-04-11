@@ -20,11 +20,10 @@ function(kalahari_add_pch target_name)
             <stdexcept>
             <optional>
 
-            # wxWidgets (Phase 1+)
-            # Uncomment when wxWidgets is used in Phase 1:
-            # <wx/wx.h>
-            # <wx/aui/aui.h>
-            # <wx/richtext/richtextctrl.h>
+            # Qt6 (commonly included across the codebase; uncomment to enable)
+            # <QtCore/QtCore>
+            # <QtWidgets/QtWidgets>
+            # <QtGui/QtGui>
 
             # Third-party libraries
             <spdlog/spdlog.h>

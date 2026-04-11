@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Repo Hygiene:** Sub-Project A — wxWidgets Finalization - 2026-04-11
+- **Repo Hygiene:** wxWidgets Finalization (Sub-Project A + follow-up) - 2026-04-11
   - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
   - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
     `include/kalahari/core/gui_log_sink.h`) — tracked but never compiled since
@@ -21,6 +21,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `.clang-format` include priority from wxWidgets to Qt
   - Deleted stale `src/README.md` (described pre-Qt6 MVP architecture that
     never materialized; current architecture docs live in `project_docs/03_architecture.md`)
+  - Deleted dead `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns,
+    entire document irrelevant post-Qt6 migration)
+  - Deleted dead `project_docs/15_text_editor_architecture.md` (bwxTextEditor specification
+    from wxWidgets era; real editor is the KML/Qt6 editor deployed in OpenSpec #00042)
+  - Updated `BUILDING.md`: dependency list (wxWidgets 3.3.1 → Qt6 6.5+), "Application
+    doesn't start" troubleshooting (`vcpkg list | grep wxwidgets` → `vcpkg list | grep qt`),
+    and "Next Steps" section (stale Phase 0 / wxRichTextCtrl references replaced with
+    link to `ROADMAP.md` and current Phase 1 status)
+  - Updated `project_docs/README.md`: table of contents (removed rows 14 and 15,
+    marked row 07 "MVP Tasks" as Deprecated, Tech Stack `wxWidgets` → `Qt6`, GUI
+    Design `wxAUI` → `Qt6 QDockWidget`, i18n `bwx_sdk pattern` → `Qt Linguist`)
+  - Updated stale doc comments in `include/kalahari/core/python_interpreter.h`
+    (`wxWidgets initialization/cleanup` → `QApplication construction/destruction`)
+  - Cleaned up dead pre-migration placeholder block in `cmake/PrecompiledHeaders.cmake`
+    (commented-out `<wx/wx.h>`, `<wx/aui/aui.h>`, `<wx/richtext/richtextctrl.h>` replaced
+    with Qt6 placeholders)
+  - Deleted physical `lib/x64-*/bwx_*.{lib,a}` files (~50 MB, never tracked in git,
+    leftover from pre-Qt6 vcpkg builds)
 
 - **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
   - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
@@ -57,11 +75,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Repo Hygiene** - 2026-04-11 (see Sub-Project A under Changed above for full detail):
+- **Repo Hygiene** - 2026-04-11 (see under Changed above for full detail):
   - `concept_files/wxFormBuilder/` (4 files, wxWidgets-era UI mockups)
   - `src/core/gui_log_sink.cpp` and `include/kalahari/core/gui_log_sink.h` (orphan `GuiLogSink` template, never compiled post-Qt migration)
   - `tests/gui/test_bwx_text_document.cpp` and `tests/gui/test_bwx_text_renderer.cpp` (dead wxWidgets-era tests)
   - `src/README.md` (stale pre-Qt6 MVP architecture description)
+  - `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns documentation)
+  - `project_docs/15_text_editor_architecture.md` (bwxTextEditor spec, wxWidgets era)
+  - Physical `lib/x64-*/bwx_*.{lib,a}` binaries from disk (not tracked in git)
 
 ### Fixed
 

@@ -56,11 +56,14 @@ scripts\build_windows.bat              # Windows
   - MSVC 2019+ / Visual Studio 2019+ (Windows)
 
 **Included (via vcpkg):**
-- wxWidgets 3.3.1 (GUI framework)
+- Qt6 6.5+ (GUI framework; LGPL v3 — dynamically linked)
 - spdlog 1.16.0 (logging)
 - nlohmann_json 3.12.0 (JSON)
 - libzip 1.11.4 (ZIP archives)
 - Catch2 3.11.0 (testing)
+- pybind11 + Python 3.11 (plugin scripting)
+- OpenSSL (plugin signature verification)
+- Hunspell (spell checking)
 
 ---
 
@@ -594,7 +597,7 @@ ctest --output-on-failure
 
 **Application doesn't start (no window)**
 - Check console output for errors
-- Verify wxWidgets installed correctly: `vcpkg list | grep wxwidgets`
+- Verify Qt6 installed correctly: `vcpkg list | grep qt`
 - Check logs (if enabled)
 
 **Window appears but is blank**
@@ -693,13 +696,10 @@ act -j build-linux
 
 ## Next Steps
 
-- **Phase 0 Week 3:** Implement Task #00003 (Settings System)
-- **Phase 0 Week 3-4:** Python Embedding (pybind11)
-- **Phase 0 Week 5-6:** Plugin Manager
-- **Phase 1:** Rich text editor (wxRichTextCtrl)
+For the current development roadmap, see [ROADMAP.md](ROADMAP.md). Kalahari is in **Phase 1** (Core Editor) as of 2026-04-11, with Phase 0 (Foundation) complete and the custom KML-based Qt6 editor deployed.
 
 ---
 
 **Questions?** See [CLAUDE.md](CLAUDE.md) for project overview or ask in GitHub Issues.
 
-**Last Updated:** 2025-10-26
+**Last Updated:** 2026-04-11
