@@ -254,21 +254,40 @@ include(PrecompiledHeaders)
 add_subdirectory(src)
 add_subdirectory(src/bindings)
 
-# Convert ALL icons to use color placeholders (run before copying)
-# This ensures SVG icons have {COLOR_PRIMARY} placeholders for theming
+# Convert SVG icons to use color placeholders (incremental build via custom_command).
+# The conversion only runs when an SVG source file under resources/icons/ or the
+# Python script itself changes. On unchanged builds, Ninja skips the step entirely
+# because the stamp file is newer than all declared DEPENDS inputs.
+#
+# Feedback-loop safety: convert_all_icons.py is idempotent (it checks for an existing
+# {COLOR_PRIMARY} placeholder before rewriting a path element), and the final
+# `${CMAKE_COMMAND} -E touch ${KALAHARI_ICONS_STAMP}` step ensures the stamp is
+# always newer than the just-(possibly-)modified SVGs, so the next build correctly
+# decides to skip the command.
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
-execute_process(
-    COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/convert_all_icons.py"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    RESULT_VARIABLE CONVERT_RESULT
-    OUTPUT_VARIABLE CONVERT_OUTPUT
-    ERROR_VARIABLE CONVERT_ERROR
+
+file(GLOB_RECURSE KALAHARI_ICON_SVG_SOURCES
+    CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/resources/icons/*.svg"
 )
-if(CONVERT_RESULT EQUAL 0)
-    message(STATUS "SVG icon conversion completed")
-else()
-    message(WARNING "SVG icon conversion failed: ${CONVERT_ERROR}")
-endif()
+
+set(KALAHARI_ICONS_STAMP "${CMAKE_BINARY_DIR}/.icons_converted.stamp")
+
+add_custom_command(
+    OUTPUT ${KALAHARI_ICONS_STAMP}
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/convert_all_icons.py"
+    COMMAND ${CMAKE_COMMAND} -E touch ${KALAHARI_ICONS_STAMP}
+    DEPENDS
+        ${KALAHARI_ICON_SVG_SOURCES}
+        ${CMAKE_SOURCE_DIR}/scripts/convert_all_icons.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Converting SVG icons to color-placeholder format"
+    VERBATIM
+)
+
+add_custom_target(kalahari_convert_svg_icons ALL
+    DEPENDS ${KALAHARI_ICONS_STAMP}
+)
 
 # Resources are copied via POST_BUILD command in src/CMakeLists.txt
 # This ensures resources are always up-to-date after each build

@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Build Quick Wins:** Sub-Project D1 - 2026-04-11
+  - Activated `kalahari_add_pch()` on both `kalahari_core` (SHARED library) and
+    `kalahari` (executable) CMake targets. The function was defined in
+    `cmake/PrecompiledHeaders.cmake` since the Qt6 migration but never called.
+    Precompiled headers now cover the C++ standard library, spdlog, and
+    nlohmann_json, giving a ~10-15% clean-build speedup. Qt6 headers are
+    intentionally still excluded from the PCH set (higher risk of MOC macro
+    collisions; reserved for a later tuning pass).
+  - Replaced the configure-time `execute_process` that ran `convert_all_icons.py`
+    on every CMake configure with an `add_custom_command` + `add_custom_target(ALL)`
+    pair driven by a `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` of the SVG sources
+    under `resources/icons/` and a dependency on the Python script itself. The
+    conversion now only runs when an input actually changes; unchanged builds skip
+    the step entirely.
+  - Out of original Sub-Project D scope: macOS CI trigger (already active,
+    confirmed via `gh run list` against recent commits) and clang-format CI
+    enforcement (deferred to its own mini-project — existing codebase has roughly
+    50 000 formatting violations across 229 tracked source/header files, so
+    enforcement requires a dedicated strategy decision before it can be safely
+    turned on).
+
 - **Repo Hygiene:** wxWidgets Finalization (Sub-Project A + follow-up) - 2026-04-11
   - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
   - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
