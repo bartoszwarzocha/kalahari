@@ -40,6 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Deleted physical `lib/x64-*/bwx_*.{lib,a}` files (~50 MB, never tracked in git,
     leftover from pre-Qt6 vcpkg builds)
 
+- **Workflow Migration:** OpenSpec → Superpowers - 2026-04-10
+  - Replaced OpenSpec task management with Superpowers skills workflow
+  - Migrated 5 pending proposals (00044B-F) to Superpowers design doc
+  - Removed: task-manager agent, openspec commands, openspec-workflow skill
+  - Added: docs/superpowers/ for specs and plans
+  - openspec/archive/ moved to docs/openspec-archive/ (read-only historical reference)
+
+- **OpenSpec #00044A:** Formatting Round-Trip Serialization - DEPLOYED 2026-04-10
+  - KML serializer emits font, size, color, bg attributes on formatting tags and `<span>` elements
+  - KML parser reads inline style attributes from formatting tags and `<span>`
+  - Paragraph alignment attribute on `<p>` elements
+  - Backward compatibility with old KML files (no attributes)
+
 - **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
   - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
   - Added PreCompact, Stop, TaskCompleted, PostToolUse hooks

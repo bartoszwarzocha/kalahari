@@ -3,7 +3,6 @@ paths:
   - "src/**"
   - "include/**"
   - "tests/**"
-  - "openspec/**"
 ---
 
 # Naming Conventions
@@ -17,13 +16,6 @@ paths:
 | Methods | camelCase | `getTitle()` |
 | Members | m_prefix | `m_title` |
 | Constants | UPPER_SNAKE_CASE | `MAX_CHAPTERS` |
-
-## OpenSpec (Task Management)
-
-- Location: `openspec/changes/NNNNN-name/`
-- Files: `proposal.md`, `tasks.md`
-- Numbering: 5 digits with leading zeros (00001, 00027)
-- Lifecycle: `PENDING → IN_PROGRESS → DEPLOYED`
 
 ## Language Policy
 

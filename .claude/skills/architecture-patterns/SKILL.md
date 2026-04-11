@@ -18,7 +18,7 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 | Logger | core/logger.h | Singleton, spdlog wrapper |
 | TrustedKeys | core/trusted_keys.h | Singleton, plugin publisher key management |
 
-### MainWindow Coordinators (OpenSpec #00038)
+### MainWindow Coordinators
 | Class | Location | Role |
 |-------|----------|------|
 | MainWindow | gui/main_window.h | Thin orchestrator (~805 lines) |

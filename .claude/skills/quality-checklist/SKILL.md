@@ -58,9 +58,9 @@ description: Code review quality checklist. Use before commits and during code r
 - [ ] Checkbox marked [x] if feature complete?
 - [ ] NO task numbers added?
 
-### OpenSpec
-- [ ] tasks.md updated (checkboxes)?
-- [ ] status updated (if task complete)?
+### Task Management
+- [ ] Plan/spec updated?
+- [ ] Status updated (if task complete)?
 
 ## 4. Build & Tests
 

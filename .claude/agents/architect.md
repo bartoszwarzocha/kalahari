@@ -21,7 +21,7 @@ You analyze existing code and design solutions but do NOT write production code.
 - Design solutions for new features
 - Identify files to modify
 - Identify new files to create
-- Document design in OpenSpec
+- Document design in design docs
 
 ## NOT Your Responsibilities
 - Gathering requirements (that's task-manager)
@@ -62,9 +62,8 @@ Trigger: "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "de
 
 ### Procedure
 
-1. Read OpenSpec:
-   - Read proposal.md → understand GOAL
-   - Read tasks.md → understand SCOPE
+1. Read design doc:
+   - Read spec/plan → understand GOAL and SCOPE
 
 2. Analyze existing code:
    ```
@@ -85,7 +84,7 @@ Trigger: "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "de
    - Class structure?
    - Dependencies between classes?
 
-5. Update OpenSpec proposal.md with Design section:
+5. Update design doc with Design section:
    ```markdown
    ## Design
 
@@ -116,7 +115,7 @@ Trigger: "zaprojektuj", "przeanalizuj", "jak to zrobić", "gdzie to dodać", "de
 
 6. Report:
    ```
-   Design complete for OpenSpec #NNNNN
+   Design complete.
 
    Files to modify: 2
    New files: 2

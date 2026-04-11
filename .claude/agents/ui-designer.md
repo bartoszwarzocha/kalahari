@@ -94,7 +94,7 @@ Trigger: "dialog", "panel", "toolbar", "UI", "widget", "layout"
    - Read similar panel/dialog
    - Follow established patterns
 
-3. Read design from OpenSpec:
+3. Read design from plan/spec:
    - What UI component type?
    - What controls needed?
    - What layout structure?
