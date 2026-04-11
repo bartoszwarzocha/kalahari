@@ -2,14 +2,15 @@
 
 ## Revision History
 
-- **2026-04-11 r2 (current)**: Corrected scope after direct `git ls-files` verification. The initial 2026-04-11 audit (which seeded this spec) claimed that `.vs/`, `build-*/`, `compile_commands.json`, `lib/x64-*/bwx_*.{lib,a}`, `src/presenters/`, `src/services/`, `external/`, and other on-disk artifacts were tracked in git. Direct verification showed that **only 6 files** from the original cleanup scope are actually tracked (4 under `concept_files/wxFormBuilder/`, 2 under `tests/gui/test_bwx_*.cpp`). Everything else was already correctly ignored by `.gitignore` and never tracked — physically present on the developer's local disk but invisible to git. Scope narrowed from 7 commits to 4. Non-git local disk cleanup moved to an optional, user-run post-merge section. See section "Post-Merge Local Disk Cleanup" for the omitted items and user-runnable commands.
+- **2026-04-11 r3 (current)**: Corrected Group 2 scope after direct verification during Task 3 execution. The r1 and r2 audits both claimed `gui_log_sink.cpp` was "the last active wxWidgets code in `src/`" needing a port to Qt. Direct verification showed `gui_log_sink.{cpp,h}` is **orphan dead code** — not in `src/CMakeLists.txt`, not `#included` by any other source file, and its only method calls `LogPanel::appendLog(log_message)` with one argument against a two-argument signature `appendLog(int level, const QString& message)` that would not even compile if the file were added to the build. A proper Qt replacement (`LogPanelSink`, OpenSpec #00024) already exists at `include/kalahari/core/log_panel_sink.h` and is the actual sink used by `LogPanel`, `DockCoordinator`, and `MainWindow`. Group 2 changed from **"port GuiLogSink to Qt"** (risky code change with smoke test gate) to **"delete orphan GuiLogSink dead code"** (simple `git rm` of two tracked files). Smoke test removed from verification plan — deleting a file not in the build cannot break the build. E1 escalation removed. Final shipping goal unchanged: no active wxWidgets API calls remain in `src/` or `include/kalahari/` after Sub-Project A merges.
+- **2026-04-11 r2 (superseded)**: Corrected scope after direct `git ls-files` verification showed the r1 audit had overstated tracked files. Only 6 files from the original cleanup scope were actually tracked (4 under `concept_files/wxFormBuilder/`, 2 under `tests/gui/test_bwx_*.cpp`). Everything else was already correctly ignored by `.gitignore` and never tracked. Scope narrowed 7 commits → 4 commits. Non-git local disk cleanup moved to an optional, user-run post-merge section.
 - **2026-04-11 r1 (superseded)**: Initial spec based on audit claims; 7 commits planned.
 
 ## Goal
 
-Eliminate the last tracked wxWidgets-era artifacts in the Kalahari repository and port the final piece of active wxWidgets code (`GuiLogSink`) to Qt. After this sub-project merges, no active wxWidgets API calls or `#include <wx/...>` directives remain in `src/` or `include/`, and three categories of dead files are gone from git: legacy `wxFormBuilder` concept files, disabled `test_bwx_*.cpp` tests, and the related stale comment block in `tests/CMakeLists.txt`.
+Eliminate the last tracked wxWidgets-era artifacts in the Kalahari repository. After this sub-project merges, no active wxWidgets API calls or `#include <wx/...>` directives remain in `src/` or `include/`, and four categories of dead files are gone from git: legacy `wxFormBuilder` concept files, disabled `test_bwx_*.cpp` tests, the related stale comment block in `tests/CMakeLists.txt`, and the orphan template class `GuiLogSink` / `GuiLogSinkImpl` that has been unused since the Qt migration.
 
-This is **Sub-Project A** of a four-part cleanup initiative identified in the 2026-04-11 professional audit. The audit surfaced ~32 action items grouped into four independent sub-projects; A is the safety-first starting point because it is mostly mechanical (file/git operations) with only one real code change.
+This is **Sub-Project A** of a four-part cleanup initiative identified in the 2026-04-11 professional audit. The audit surfaced ~32 action items grouped into four independent sub-projects; A is the safety-first starting point because it is mostly mechanical (file/git operations) with no code changes — only deletions of tracked but unused files plus a few doc/config edits.
 
 ## Position in Overall Initiative
 
@@ -29,7 +30,7 @@ Rationale for order: each sub-project increases the safety net for the next. A p
 
 ### Goals
 - Remove the 4 tracked `concept_files/wxFormBuilder/*` files
-- Eliminate all active wxWidgets API calls and `#include <wx/...>` from `src/` (currently only `gui_log_sink.cpp` / `gui_log_sink.h`)
+- Delete `src/core/gui_log_sink.cpp` and `include/kalahari/core/gui_log_sink.h` as orphan dead code (not in build, not used, not even compilable against current `LogPanel::appendLog` signature)
 - Remove the 2 disabled `tests/gui/test_bwx_*.cpp` test files
 - Remove the corresponding stale comment block in `tests/CMakeLists.txt` (lines 58-62)
 - Align `.clang-format` include priorities with the Qt reality (replace `^<wx/` with `^<(Q|qt)/`)
@@ -56,10 +57,14 @@ Rationale for order: each sub-project increases the safety net for the next. A p
 
 These files describe wxWidgets-era UI layouts superseded by the Qt6 `QDockWidget` architecture.
 
-### Group 2: Port `GuiLogSink` from wxWidgets to Qt (code change)
-The last active wxWidgets code in `src/`. See **Section: GuiLogSink Qt Port Design** below for the before/after diff and safety analysis. Files touched:
+**Status**: already executed as commit `419a4c3` on `cleanup/repo-hygiene` during Task 2 of the r2 execution plan.
+
+### Group 2: Delete orphan `GuiLogSink` dead code
+`git rm` two tracked files that are not compiled by `src/CMakeLists.txt` and not used by any other source file:
 - `src/core/gui_log_sink.cpp`
 - `include/kalahari/core/gui_log_sink.h`
+
+See **Section: GuiLogSink Dead Code Analysis** below for evidence.
 
 ### Group 3: Remove dead wxWidgets test files
 Two disabled test files plus a stale CMakeLists comment block:
@@ -101,106 +106,47 @@ Fixing this requires a rewrite, not an update, and the current architecture is a
   - `backup/pre-cleanup-hygiene` — pointer to main HEAD before starting
   - `wip/framework-migration` — snapshot of current uncommitted changes (the OpenSpec→Superpowers framework-migration WIP currently present in working directory; out of scope for A but must not bleed into the feature branch)
 - Working branch: `cleanup/repo-hygiene` (feature branch, not pushed until all commits complete and verified)
-- No `git rm --cached` anywhere — the previous r1 plan was built on the incorrect audit claim that `.vs/`, `build-*/`, etc. were tracked. They are not. Everything in this spec is either `git rm` (removes tracked files + disk) or straight file edits.
+- No `git rm --cached` anywhere — the r1 plan was built on the incorrect audit claim that `.vs/`, `build-*/`, etc. were tracked. They are not. Everything in this spec is either `git rm` (removes tracked files + disk) or straight file edits.
 
 ### Commit Sequence
 
 | # | Commit | Type | Build Verify |
 |---|---|---|---|
 | 1 | `chore(repo): remove wxFormBuilder legacy concept files` | `git rm -r` | No |
-| 2 | `refactor(core): port GuiLogSink from wxWidgets to Qt` | Code change | **Yes + smoke test** |
+| 2 | `refactor(core): remove orphan GuiLogSink dead code` | `git rm` | **Yes (build + tests)** |
 | 3 | `chore(tests): remove dead wxWidgets test files` | `git rm` + edit | **Yes (test build)** |
 | 4 | `chore: finalize repo hygiene cleanup` | Edits + docs | No (clang-format validate only) |
 
-## GuiLogSink Qt Port Design
+## GuiLogSink Dead Code Analysis
 
-### Current State (`src/core/gui_log_sink.cpp`)
+### Evidence of dead-code status
 
-`GuiLogSink` is a template class (`GuiLogSinkImpl<Mutex>`) that forwards spdlog messages to a `LogPanel` widget. Template methods are defined in the `.cpp` with explicit instantiation at the bottom (for `std::mutex` and `spdlog::details::null_mutex`). `LogPanel` is a `QWidget` (verified: `include/kalahari/gui/panels/log_panel.h:46` — `class LogPanel : public QWidget`).
+1. **Not in the build**. `grep "gui_log_sink" src/CMakeLists.txt` returns empty output. `src/CMakeLists.txt:136` lists `core/log_panel_sink.cpp` (the active Qt sink) but not `core/gui_log_sink.cpp`.
 
-Currently uses `wxTheApp->CallAfter([panel, log_message]() { ... })` at two call sites (`sink_it_()` for forwarding, `setPanel()` for backfill). Each lambda checks `panel && !panel->IsBeingDeleted()` before calling `panel->appendLog()`.
+2. **Not included by any source file**. `grep -rn "include.*gui_log_sink\|GuiLogSink" src/` returns only the files themselves (`src/core/gui_log_sink.cpp:4` — the self-include) and `include/kalahari/core/gui_log_sink.h` internal references. No other `.cpp` or `.h` in `src/` or `include/kalahari/` references `GuiLogSink`, `GuiLogSinkImpl`, `GuiLogSinkSt`, or `gui_log_sink.h`.
 
-### Qt Replacement
+3. **Would not compile even if force-added to build**. `include/kalahari/gui/panels/log_panel.h:95` declares `void appendLog(int level, const QString& message);` — the only overload. `src/core/gui_log_sink.cpp:55,92` calls `panel->appendLog(log_message)` with one argument where `log_message` is `std::string`. Compiling this would produce "too few arguments" errors plus an `std::string → QString` implicit conversion error. Template explicit instantiation at `src/core/gui_log_sink.cpp:117-118` would force evaluation, so inclusion in the build is not possible without code changes.
 
-**Core idea**: use `QMetaObject::invokeMethod(panel, lambda, Qt::QueuedConnection)` with `panel` (a `QObject`-derived type) as the target. When `Qt::QueuedConnection` is specified, Qt posts the lambda to the target's event loop. If the target is destroyed before event delivery, Qt silently drops the invocation — semantically equivalent to `wxTheApp`'s shutdown-safe behavior plus `IsBeingDeleted` check, in one atomic operation.
+4. **Qt replacement exists and is in use**. `include/kalahari/core/log_panel_sink.h` declares `class LogPanelSink : public QObject, public spdlog::sinks::base_sink<std::mutex>` with a Qt signal `void logMessage(int level, const QString& message)`. `src/gui/panels/log_panel.cpp:37,55` constructs an instance and connects its signal to `LogPanel::appendLog` via `Qt::QueuedConnection`. `src/gui/dock_coordinator.cpp:17` and `src/gui/main_window.cpp:31` include `log_panel_sink.h` and wire up the sink. This is the spdlog → GUI bridge that Kalahari actually uses; it was introduced by OpenSpec #00024 during the Qt migration.
 
-### `src/core/gui_log_sink.cpp` changes
+### Conclusion
 
-**Includes (lines 6-8)**:
-```diff
- #include <kalahari/core/gui_log_sink.h>
- #include <kalahari/gui/panels/log_panel.h>
--#include <wx/app.h>
- #include <spdlog/details/fmt_helper.h>
- #include <spdlog/pattern_formatter.h>
-+#include <QMetaObject>
-+#include <QCoreApplication>
-```
+`gui_log_sink.{cpp,h}` are tracked source files that have been unused since the Qt migration. The correct action is to delete both files as dead code. The shipping goal of Sub-Project A — **no active wxWidgets API calls remain in `src/` or `include/kalahari/`** — is achieved by this deletion. Porting the code to Qt would be wasted work; even if done correctly, the result would be a second, redundant Qt sink behind the already-deployed `LogPanelSink`.
 
-**`sink_it_()` (lines 44-57)**:
-```diff
--    // Marshal to main GUI thread using wxTheApp->CallAfter()
--    // This is thread-safe - wxWidgets queues the lambda for execution on main thread
--    if (wxTheApp) {
--        // Capture raw pointer (safe: CallAfter won't execute if app is shutting down)
--        gui::LogPanel* panel = m_panel;
--
--        wxTheApp->CallAfter([panel, log_message]() {
--            // On main thread: check if panel is still valid
--            // wxWidgets handles deleted windows gracefully
--            if (panel && !panel->IsBeingDeleted()) {
--                panel->appendLog(log_message);
--            }
--        });
--    }
-+    // Marshal to main GUI thread via Qt event loop.
-+    // QMetaObject::invokeMethod with panel as target + Qt::QueuedConnection
-+    // posts the lambda to the panel's event loop (main thread). If the panel
-+    // is destroyed before the event is processed, Qt drops the invocation
-+    // silently (no IsBeingDeleted equivalent needed).
-+    if (qApp) {
-+        gui::LogPanel* panel = m_panel;
-+        QMetaObject::invokeMethod(
-+            panel,
-+            [panel, log_message]() {
-+                panel->appendLog(log_message);
-+            },
-+            Qt::QueuedConnection);
-+    }
-```
+### Safety
 
-**`setPanel()` backfill path (lines 86-92)**: analogous change. Replace `wxTheApp->CallAfter([panel, history]() { ... })` with `QMetaObject::invokeMethod(panel, [panel, history]() { ... }, Qt::QueuedConnection)`. Drop the `!panel->IsBeingDeleted()` check. Keep the `qApp` null check for defensive shutdown handling.
-
-### `include/kalahari/core/gui_log_sink.h` changes
-
-Doc comment updates only — no include changes needed (the header contains no wx/Qt API calls, only declarations):
-
-- Line 4-5: replace "Uses `wxTheApp->CallAfter()` to marshal GUI calls to main thread" with "Uses `QMetaObject::invokeMethod` with `Qt::QueuedConnection` to marshal GUI calls to main thread"
-- Lines 38-45 (Thread Safety / Lifetime Safety blocks): replace `wxTheApp->CallAfter()` references with `QMetaObject::invokeMethod`; replace `wxAUI/MainWindow` with `QMainWindow / QDockWidget parent`; drop the `IsBeingDeleted` lifetime explanation
-- Line 93: `"Raw pointer to LogPanel (owned by wxWidgets, not ref-counted)"` → `"Raw pointer to LogPanel (owned by Qt parent, not ref-counted)"`
-
-### Safety Analysis
-
-1. **`m_panel == nullptr` case**: both call sites (`sink_it_()` line 32, `setPanel()` line 70) already have early-return guards before reaching any marshalling code. `QMetaObject::invokeMethod` will therefore never be called with a null target. Safe.
-
-2. **`qApp` null during logging**: kept as defensive guard mirroring the original `wxTheApp` null check — handles the edge case of very-early startup or late-shutdown logging.
-
-3. **Template instantiation unchanged**: explicit instantiations (`template class GuiLogSinkImpl<std::mutex>;` and `<null_mutex>;`) remain at the bottom of `gui_log_sink.cpp`. Port is fully contained in `.cpp`.
-
-4. **Qt version**: `QMetaObject::invokeMethod` with functor and explicit connection type requires Qt 5.10+. Kalahari requires Qt 6.5+. Safe.
-
-5. **Include reach**: `QMetaObject` is transitively available via `<QWidget>` (included through `log_panel.h`), but we add explicit `#include <QMetaObject>` for clarity of intent.
+Deleting a file that is not in `src/CMakeLists.txt` and not `#included` by any other source file cannot affect the build. The only way this could fail is if an out-of-tree artifact (for example a cached object file in `build-windows/CMakeFiles/` or a stale `compile_commands.json` entry) still references the removed file. CMake reconfigure during the next build will regenerate both, so this risk is bounded to a fresh reconfigure (i.e., deleting the relevant `build-windows/CMakeFiles/kalahari_core.dir/src/core/gui_log_sink.cpp.obj` if present, or letting Ninja notice the source is gone).
 
 ## Verification Plan
 
 | # | Commit | Verification | Build |
 |---|---|---|---|
 | 1 | Remove wxFormBuilder | (a) `git ls-files concept_files/wxFormBuilder/` → empty output; (b) `git status` shows clean working tree | No |
-| 2 | Port GuiLogSink | (a) full build `scripts/build_windows.bat Debug`; (b) `./build-windows/bin/kalahari-tests.exe` passing at same count as baseline; (c) **manual smoke test**: run `kalahari.exe`; ensure LogPanel dock is visible (open via View menu if hidden); perform log-generating actions in this order — open an example project from `examples/` (generates project-load logs), switch theme in settings (generates theme-change logs), close/reopen document; after each action, **visually confirm new log lines appear in LogPanel** with timestamps matching the action | Yes + smoke |
+| 2 | Delete GuiLogSink dead code | (a) `git ls-files src/core/gui_log_sink.cpp include/kalahari/core/gui_log_sink.h` → empty output; (b) `grep -rn "gui_log_sink\|GuiLogSink" src/ include/kalahari/` → empty output; (c) full build `scripts/build_windows.bat Debug` to confirm no hidden dependency; (d) `./build-windows/bin/kalahari-tests.exe` passing at baseline count | Yes |
 | 3 | Remove dead tests | (a) `grep -rn "test_bwx" tests/` returns empty output (files gone, comment block gone); (b) test build rebuild via `scripts/build_windows.bat Debug` | Yes (test build) |
 | 4 | Config + docs | (a) YAML parse `.clang-format` (e.g., `python -c "import yaml; yaml.safe_load(open('.clang-format'))"`); (b) clang-format dry-run on a sample file (`clang-format --dry-run src/main.cpp`); (c) visual check CHANGELOG.md rendering; (d) `ls src/README.md` → does not exist | No |
 
-**Build time estimate**: ~10 min per full build × 2 full builds (commits 2, 3) = ~20 min build time. Test run time ~2-5 min. Manual smoke test ~5 min. Total verification overhead: ~30 min on top of implementation time.
+**Build time estimate**: ~10 min per full build × 2 full builds (commits 2, 3) = ~20 min build time. Test run time ~2-5 min. **No manual smoke test required in any commit** (the r2 smoke test for the `GuiLogSink` port is removed with the port itself). Total verification overhead: ~25 min on top of implementation time.
 
 ## Rollback Strategy
 
@@ -221,6 +167,8 @@ git checkout -b cleanup/repo-hygiene    # start the real work
 
 After Sub-Project A merges (or is abandoned), the user decides what to do with `wip/framework-migration`: rebase onto the updated main, cherry-pick selectively, or reset.
 
+**Status under r3 execution**: already completed during r2 execution as `wip/framework-migration` commit `9f4ee80`, `backup/pre-cleanup-hygiene`, and `cleanup/repo-hygiene` feature branch. Commit 1 (wxFormBuilder removal) also already landed on `cleanup/repo-hygiene` as commit `419a4c3`. Execution resumes from Commit 2 under r3 semantics (delete instead of port).
+
 ### Per-commit rollback (during A)
 
 - Static verification fails (commits 1, 4): fix inline before `git commit` — never commit broken state
@@ -235,17 +183,15 @@ After Sub-Project A merges (or is abandoned), the user decides what to do with `
 - Abort during work: `git checkout main && git branch -D cleanup/repo-hygiene`
 - Restore post-merge regression: `git reset --hard backup/pre-cleanup-hygiene`
 
-### Commit 2 smoke test failure (E1 escalation)
+### Commit 2 failure scenarios
 
-Manual smoke test is the only non-statically-verifiable check. If log messages do not appear in LogPanel after the port, escalation process:
+With the r3 semantics (delete orphan dead code, not port), the only plausible failure modes are:
 
-1. **First fix attempt** (30 min budget): typical causes — `qApp` unexpectedly null in spdlog background thread context; missing include; wrong connection type. Use `git commit --amend` if fix found.
-2. **Second attempt**: instrumented debugging — temporary `qDebug()` around `invokeMethod`, `QT_LOGGING_RULES` verbose, verify lambda actually posts.
-3. **Third failure → escalation decision**:
-   - **E1 (preferred)**: `git reset --hard HEAD~1` to drop commit 2, continue commits 3 and 4. Sub-Project A ships with 3 commits instead of 4. `GuiLogSink` port becomes a standalone follow-up task with its own brainstorm cycle (~1 day).
-   - **E2 (nuclear)**: abort all of A, full rollback to `backup/pre-cleanup-hygiene`.
+1. **Build fails after deletion** — would indicate a hidden dependency on `gui_log_sink` that the grep-based analysis missed. If this happens, `git commit --amend` after restoring the files, investigate the real dependency (probably a stale `compile_commands.json` or CMake cache entry), and only then retry deletion. Not expected; the dead-code analysis above is thorough.
 
-Pre-decision: **E1**. The rest of Sub-Project A has independent value and should not suffer for one difficult port. Final decision made in the moment if failure occurs.
+2. **Test count regression** — would indicate a test that was somehow linking against `gui_log_sink` (extremely unlikely since the test binary's source list does not include it). Same fix path as #1.
+
+The r2 smoke test escalation (E1) is removed — there is no port to fail, so no smoke test exists to gate.
 
 ## Commit Message Templates
 
@@ -262,27 +208,36 @@ These files describe wxWidgets-era UI layouts that were superseded
 by Qt6 QDockWidget-based architecture during the Nov 2025 migration.
 ```
 
+**Status under r3**: already landed as `419a4c3` during r2 execution.
+
 ### Commit 2
 ```
-refactor(core): port GuiLogSink from wxWidgets to Qt
+refactor(core): remove orphan GuiLogSink dead code
 
-Replace wxTheApp->CallAfter() with QMetaObject::invokeMethod and
-Qt::QueuedConnection for marshalling log messages to the main GUI
-thread.
+Delete two tracked but unused source files:
+- src/core/gui_log_sink.cpp
+- include/kalahari/core/gui_log_sink.h
 
-- Remove #include <wx/app.h>
-- Add #include <QMetaObject>, #include <QCoreApplication>
-- sink_it_(): post lambda to LogPanel event loop
-- setPanel(): same change for backfill path
-- Drop panel->IsBeingDeleted() check (Qt handles deleted targets)
-- Update header doc comments (wxTheApp → QMetaObject::invokeMethod,
-  wxAUI → QMainWindow/QDockWidget)
+GuiLogSink (a template class GuiLogSinkImpl<Mutex> with explicit
+instantiations for std::mutex and null_mutex) has been orphan dead
+code since the Qt migration:
 
-This is the last active wxWidgets code in src/. After this commit,
-the Qt6 migration is complete in all production code.
+- Not in src/CMakeLists.txt (never compiled)
+- Not #included by any other source file in src/ or include/
+- sink_it_() calls panel->appendLog(log_message) with one std::string
+  argument, but LogPanel::appendLog has a single overload taking
+  (int level, const QString& message) — the code would not even
+  compile if force-added to the build
 
-Verified via manual smoke test: log messages appear in LogPanel
-after the port.
+The active Qt sink that replaces this legacy class already exists:
+LogPanelSink (include/kalahari/core/log_panel_sink.h, OpenSpec #00024).
+It uses Q_OBJECT plus a Qt signal logMessage(int, QString) connected
+via Qt::QueuedConnection, and is wired up by LogPanel, DockCoordinator,
+and MainWindow.
+
+Deletion completes the Sub-Project A goal of removing active
+wxWidgets API calls from src/ and include/kalahari/, via a simpler
+and more correct path than porting dead code.
 ```
 
 ### Commit 3
@@ -307,7 +262,7 @@ the KML-based Qt editor (OpenSpec #00042, deployed 2026-02-18).
 chore: finalize repo hygiene cleanup
 
 - .clang-format: replace wxWidgets include priority with Qt:
-    '^<wx/' → '^<(Q|qt)/' in IncludeCategories
+    '^<wx/' -> '^<(Q|qt)/' in IncludeCategories
 - src/README.md: delete (extensively stale; described pre-Qt6
   MVP architecture that never materialized; real architecture
   docs live in project_docs/03_architecture.md)
@@ -323,9 +278,9 @@ Added under `## [Unreleased]`:
 ### Changed
 - **Repo Hygiene:** Sub-Project A — wxWidgets Finalization (2026-04-11)
   - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
-  - Ported `GuiLogSink` from `wxTheApp->CallAfter()` to
-    `QMetaObject::invokeMethod(panel, ..., Qt::QueuedConnection)` —
-    **last active wxWidgets code in src/ eliminated**
+  - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
+    `include/kalahari/core/gui_log_sink.h`) — tracked but never compiled since
+    the Qt migration; Qt replacement `LogPanelSink` already in use (OpenSpec #00024)
   - Removed dead `tests/gui/test_bwx_text_{document,renderer}.cpp`
     and the corresponding stale comment block in `tests/CMakeLists.txt`
   - Updated `.clang-format` include priority from wxWidgets to Qt
@@ -334,7 +289,8 @@ Added under `## [Unreleased]`:
     `project_docs/03_architecture.md`)
 
 ### Removed
-- wxWidgets legacy concept files and test files (see "Repo Hygiene" above)
+- wxWidgets legacy concept files, orphan GuiLogSink, and dead test files
+  (see "Repo Hygiene" above)
 - Stale `src/README.md`
 ```
 
@@ -342,18 +298,19 @@ Added under `## [Unreleased]`:
 
 Sub-Project A is **done** when all of the following are ✅:
 
-1. All 4 commits land on `cleanup/repo-hygiene` (or 3 if E1 escalation — commit 2 dropped)
-2. `git ls-files | grep -E "concept_files/wxFormBuilder|tests/gui/test_bwx_|src/README\.md"` returns empty output
-3. `grep -rn "wxTheApp\|wx/app\.h\|#include <wx" src/ include/kalahari/` returns empty — no active wxWidgets includes or API calls remain. Occurrences of the literal string "wxWidgets" in rationale/history comments are permitted (e.g., "ported from wxWidgets in 2026-04-11")
+1. All 4 commits land on `cleanup/repo-hygiene`
+2. `git ls-files | grep -E "concept_files/wxFormBuilder|tests/gui/test_bwx_|src/README\.md|src/core/gui_log_sink\.|include/kalahari/core/gui_log_sink\."` returns empty output
+3. `grep -rn "wxTheApp\|wx/app\.h\|#include <wx\|GuiLogSink" src/ include/kalahari/` returns empty — no active wxWidgets includes or API calls remain, and no `GuiLogSink` references. Occurrences of the literal string "wxWidgets" in rationale/history comments are permitted (e.g., "ported from wxWidgets in 2026-04-11")
 4. `scripts/build_windows.bat Debug` passes without errors and without cleanup-related warnings
 5. `./build-windows/bin/kalahari-tests.exe` — 100% pass rate (same count as pre-A baseline, not fewer)
-6. Manual smoke test of `kalahari.exe`: log messages appear in LogPanel after the port (or documented as known issue if E1 escalation)
-7. `.clang-format` validates (YAML parseable, dry-run passes); no `^<wx/` regex remains
-8. `CHANGELOG.md` has entry under `[Unreleased]`
-9. `wip/framework-migration` branch exists with pre-work snapshot
-10. `backup/pre-cleanup-hygiene` branch exists as safety net
+6. `.clang-format` validates (YAML parseable, dry-run passes); no `^<wx/` regex remains
+7. `CHANGELOG.md` has entry under `[Unreleased]`
+8. `wip/framework-migration` branch exists with pre-work snapshot
+9. `backup/pre-cleanup-hygiene` branch exists as safety net
 
-After 1-10 are green, the user is asked for explicit approval to merge the feature branch into main. **Merge is not part of Sub-Project A** — it is a separate conscious decision after review of the full diff.
+(r3 note: the r2 list had 10 items including a manual smoke test criterion. With the port removed, smoke test is gone and the criterion count drops to 9. Success criterion numbering shifted accordingly.)
+
+After 1-9 are green, the user is asked for explicit approval to merge the feature branch into main. **Merge is not part of Sub-Project A** — it is a separate conscious decision after review of the full diff.
 
 ## Post-Merge Local Disk Cleanup (Optional, User-Run)
 
@@ -399,11 +356,12 @@ None of the above produces a git commit; `git status` will be unchanged before a
 - Replacing `fprintf` with Logger in `main.cpp` (fits better in Sub-Project C or D)
 - `plugins/hello_plugin.kplugin` evaluation (future cycle)
 - Physical deletion of untracked on-disk artifacts (moved to optional Post-Merge Local Disk Cleanup section)
+- Porting `GuiLogSink` to Qt (r3 removed this; the file is orphan dead code, not active wxWidgets code)
 
 ## Deliverables
 
-- This design document: `docs/superpowers/specs/2026-04-11-sub-project-a-repo-hygiene-cleanup-design.md` (r2)
-- After user approval of this revised spec: invocation of `superpowers:writing-plans` to produce the implementation plan (separate document under `docs/superpowers/plans/`)
+- This design document: `docs/superpowers/specs/2026-04-11-sub-project-a-repo-hygiene-cleanup-design.md` (r3)
+- After user approval of this revised spec: a small implementation plan revision (r3) updating Task 3 from "port" to "delete", and execution resumption from Commit 2
 
 ## Next Steps After Sub-Project A
 
