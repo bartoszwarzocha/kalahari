@@ -58,6 +58,15 @@ set(KALAHARI_CORE_SOURCES
 # SHARED library ensures Python module can link correctly across all platforms
 add_library(kalahari_core SHARED ${KALAHARI_CORE_SOURCES})
 
+# Precompiled headers — activate the function defined in cmake/PrecompiledHeaders.cmake.
+# Covers stdlib + spdlog + nlohmann_json. Qt6 headers are intentionally left out of the
+# PCH set in Sub-Project D1 (they carry higher risk of MOC macro collisions and will be
+# tuned in a later phase). Guarded with if(COMMAND ...) so the build still works if
+# PrecompiledHeaders.cmake is ever removed or renamed.
+if(COMMAND kalahari_add_pch)
+    kalahari_add_pch(kalahari_core)
+endif()
+
 # Core library properties
 set_target_properties(kalahari_core PROPERTIES
     CXX_STANDARD 20
@@ -255,6 +264,11 @@ set(KALAHARI_SOURCES
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
+
+# Precompiled headers for the executable target (same rationale as kalahari_core above).
+if(COMMAND kalahari_add_pch)
+    kalahari_add_pch(kalahari)
+endif()
 
 # Target properties
 set_target_properties(kalahari PROPERTIES
