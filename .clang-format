@@ -95,8 +95,8 @@ IncludeCategories:
   # Kalahari headers (highest priority)
   - Regex: '^<kalahari/'
     Priority: 1
-  # wxWidgets headers
-  - Regex: '^<wx/'
+  # Qt headers
+  - Regex: '^<(Q|qt)/'
     Priority: 2
   # Third-party libraries
   - Regex: '^<(spdlog|nlohmann|pybind11)/'
