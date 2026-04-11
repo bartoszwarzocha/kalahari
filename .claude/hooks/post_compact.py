@@ -12,47 +12,41 @@ from datetime import datetime
 
 PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", r"E:\Python\Projekty\Kalahari")
 STATE_FILE = os.path.join(PROJECT_DIR, ".claude", "compact-state.json")
-OPENSPEC_DIR = os.path.join(PROJECT_DIR, "openspec", "changes")
+PLANS_DIR = os.path.join(PROJECT_DIR, "docs", "superpowers", "plans")
 
 
-def find_active_openspec():
-    """Find the most recent IN_PROGRESS OpenSpec."""
-    if not os.path.isdir(OPENSPEC_DIR):
+def find_active_plan():
+    """Find the most recent implementation plan."""
+    if not os.path.isdir(PLANS_DIR):
         return None
-    folders = sorted(os.listdir(OPENSPEC_DIR), reverse=True)
-    for folder in folders:
-        proposal = os.path.join(OPENSPEC_DIR, folder, "proposal.md")
-        if os.path.isfile(proposal):
-            with open(proposal, "r", encoding="utf-8") as f:
-                content = f.read()
-            if "IN_PROGRESS" in content:
-                return folder
-    return None
+    plans = sorted(
+        [f for f in os.listdir(PLANS_DIR) if f.endswith(".md")],
+        reverse=True,
+    )
+    return plans[0] if plans else None
 
 
 def main():
-    openspec = find_active_openspec()
+    plan = find_active_plan()
 
     state = {
         "timestamp": datetime.now().isoformat(),
         "event": "post_compact",
-        "active_openspec": openspec,
+        "active_plan": plan,
     }
 
     os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
-    if openspec:
+    if plan:
         context = (
             f"[POST-COMPACTION RECOVERY] Context was compacted. "
-            f"Active OpenSpec: #{openspec}. "
-            f"Re-read these files before making decisions: "
-            f"openspec/changes/{openspec}/proposal.md, "
-            f"openspec/changes/{openspec}/tasks.md"
+            f"Active plan: docs/superpowers/plans/{plan}. "
+            f"Re-read this file before continuing."
         )
     else:
-        context = "[POST-COMPACTION RECOVERY] Context was compacted. No active OpenSpec."
+        context = "[POST-COMPACTION RECOVERY] Context was compacted. No active plan."
 
     result = {"additionalContext": context}
     print(json.dumps(result))

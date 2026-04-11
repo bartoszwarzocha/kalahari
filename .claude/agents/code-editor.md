@@ -84,7 +84,7 @@ Trigger: "zmień", "popraw", "napraw", "refaktoruj", "fix", "modify", "change"
    - Read the file to understand structure
    - Grep for related code patterns
 
-2. Read design from OpenSpec:
+2. Read design from plan/spec:
    - Which files to modify?
    - What changes needed?
 

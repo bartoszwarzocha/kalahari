@@ -40,7 +40,7 @@ Trigger: "review", "sprawdź kod", "przed commitem", "code review"
    ```bash
    git diff --name-only HEAD~1
    ```
-   Or from OpenSpec tasks.md
+   Or from plan/spec
 
 2. For each file, check:
 
@@ -68,7 +68,7 @@ Trigger: "review", "sprawdź kod", "przed commitem", "code review"
    ### DOCUMENTATION
    - [ ] CHANGELOG.md has entry in [Unreleased]?
    - [ ] ROADMAP.md updated (if new feature)?
-   - [ ] OpenSpec tasks.md updated?
+   - [ ] Plan/spec updated?
 
 3. Issue decision:
 
@@ -127,7 +127,7 @@ Trigger: "review", "sprawdź kod", "przed commitem", "code review"
 ## DETAILED REPORT
 
 ```
-📋 CODE REVIEW: OpenSpec #NNNNN
+CODE REVIEW REPORT
 
 📁 Files reviewed: 3
 - src/gui/panels/stats_panel.cpp

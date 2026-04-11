@@ -13,18 +13,18 @@
       "Read(src/**)",
       "Read(include/**)",
       "Read(tests/**)",
-      "Read(openspec/**)",
+      "Read(docs/openspec-archive/**)",
+      "Read(docs/superpowers/**)",
       "Read(.claude/**)",
       "Edit(src/**)",
       "Edit(include/**)",
       "Edit(tests/**)",
-      "Edit(openspec/**)",
+      "Edit(docs/superpowers/**)",
       "Edit(.claude/**)",
       "Write(src/**)",
       "Write(include/**)",
       "Write(tests/**)",
-      "Write(openspec/**)",
-      "Task(task-manager)",
+      "Write(docs/superpowers/**)",
       "Task(architect)",
       "Task(code-writer)",
       "Task(code-editor)",
@@ -113,7 +113,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. OpenSpec status current?\n4. No TODO in staged files?\n\nReturn JSON:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}} or\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"...\"}}",
+            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. No TODO in staged files?\n\nReturn JSON:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}} or\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"...\"}}",
             "model": "haiku",
             "timeout": 30000
           }

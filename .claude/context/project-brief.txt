@@ -25,7 +25,7 @@ src/
 │   └── utils/
 └── utils/
 
-## MainWindow Architecture (OpenSpec #00038)
+## MainWindow Architecture
 MainWindow is a thin orchestrator (~805 lines) with 7 coordinators:
 - IconRegistrar, CommandRegistrar, DockCoordinator
 - DocumentCoordinator, NavigatorCoordinator
@@ -79,10 +79,10 @@ core::Logger::getInstance().info("Message: {}", value)
 - Members: m_camelCase
 - Constants: UPPER_SNAKE_CASE
 
-## OpenSpec (Task Management)
-- Location: openspec/changes/NNNNN-name/
-- Files: proposal.md, tasks.md
-- Lifecycle: PENDING → IN_PROGRESS → DEPLOYED
+## Task Management
+- Plans: docs/superpowers/plans/
+- Specs: docs/superpowers/specs/
+- Workflow: brainstorming → writing-plans → implementation → finishing
 
 ## MCP Servers
 - Context7: external library documentation

@@ -6,7 +6,6 @@ Use agents when the task benefits from specialization. Do NOT force dispatch on 
 
 | Agent | Role |
 |-------|------|
-| task-manager | Creates/tracks/closes OpenSpec, manages workflow |
 | architect | Analyzes code, designs solutions |
 | code-writer | Writes NEW code (new files, new classes) |
 | code-editor | Modifies EXISTING code |
@@ -17,18 +16,22 @@ Use agents when the task benefits from specialization. Do NOT force dispatch on 
 
 ## Workflow
 
-```
-NEW TASK:
-  explore → proposal → apply → verify → archive
+Superpowers skills drive the workflow. Agents are dispatched as implementation workers.
 
-AGENTS PER STEP:
-1. /openspec:explore    → architect (analysis)
-2. /openspec:proposal   → task-manager (creates OpenSpec)
-3. /openspec:apply      → code-writer / code-editor / ui-designer
-4. code-reviewer        → Reviews
-5. tester               → Build + tests
-6. /openspec:verify     → Validates implementation vs spec
-7. /openspec:archive    → Merges delta specs, closes task
+```
+NEW FEATURE / CHANGE:
+  brainstorming → writing-plans → subagent-driven-development → finishing-a-development-branch
+
+IMPLEMENTATION AGENTS:
+  - architect           → During brainstorming (analysis, design decisions)
+  - code-writer         → New files, new classes
+  - code-editor         → Modifications to existing code
+  - ui-designer         → Qt6 widgets, dialogs, panels
+  - code-reviewer       → Two-stage review (spec compliance + code quality)
+  - tester              → Build + tests verification
+
+BUG FIX:
+  systematic-debugging → test-driven-development → verification-before-completion
 ```
 
-**CRITICAL:** Never skip code-reviewer or tester! Task is NOT DEPLOYED until all pass.
+**CRITICAL:** Never skip code-reviewer or tester! Work is NOT complete until both pass.

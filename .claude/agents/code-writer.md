@@ -85,7 +85,7 @@ Trigger: "napisz", "utwórz klasę", "nowy plik", "create", "new class"
    - Look up class you're extending
    - Check method signatures
 
-3. Read design from OpenSpec:
+3. Read design from plan/spec:
    - Which new files to create?
    - What class structure?
 

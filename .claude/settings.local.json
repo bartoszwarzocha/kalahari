@@ -151,7 +151,12 @@
       "Bash(do mv:*)",
       "Bash(done)",
       "Bash(for d:*)",
-      "Bash(do mkdir:*)"
+      "Bash(do mkdir:*)",
+      "Bash(du -sh /e/Python/Projekty/Kalahari/openspec/*)",
+      "Bash(rm \"E:/Python/Projekty/Kalahari/.claude/commands/openspec/proposal.md\" \"E:/Python/Projekty/Kalahari/.claude/commands/openspec/apply.md\" \"E:/Python/Projekty/Kalahari/.claude/commands/openspec/verify.md\" \"E:/Python/Projekty/Kalahari/.claude/commands/openspec/explore.md\" \"E:/Python/Projekty/Kalahari/.claude/commands/openspec/archive.md\")",
+      "Bash(rmdir \"E:/Python/Projekty/Kalahari/.claude/commands/openspec\")",
+      "Bash(rm \"E:/Python/Projekty/Kalahari/.claude/skills/openspec-workflow/SKILL.md\")",
+      "Bash(rmdir \"E:/Python/Projekty/Kalahari/.claude/skills/openspec-workflow\")"
     ],
     "deny": [],
     "ask": []
