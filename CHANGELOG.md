@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Repo Hygiene:** Sub-Project A — wxWidgets Finalization - 2026-04-11
+  - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
+  - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
+    `include/kalahari/core/gui_log_sink.h`) — tracked but never compiled since
+    the Qt migration; Qt replacement `LogPanelSink` already in use (OpenSpec #00024)
+  - Removed dead `tests/gui/test_bwx_text_{document,renderer}.cpp` and the
+    corresponding stale comment block in `tests/CMakeLists.txt`
+  - Updated `.clang-format` include priority from wxWidgets to Qt
+  - Deleted stale `src/README.md` (described pre-Qt6 MVP architecture that
+    never materialized; current architecture docs live in `project_docs/03_architecture.md`)
+
 - **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
   - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
   - Added PreCompact, Stop, TaskCompleted, PostToolUse hooks
@@ -43,6 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Single-paragraph edits use O(log N) `invalidateParagraphHeight()` instead of O(N) rebuild
   - Files modified: `book_editor.h/cpp`, `spell_check_service.h/cpp`, `grammar_check_service.h/cpp`, `tag_detector.h/cpp`, `text_buffer.cpp`, `tags_panel.cpp`
   - Tests: 735/735 PASS
+
+### Removed
+
+- **Repo Hygiene** - 2026-04-11 (see Sub-Project A under Changed above for full detail):
+  - `concept_files/wxFormBuilder/` (4 files, wxWidgets-era UI mockups)
+  - `src/core/gui_log_sink.cpp` and `include/kalahari/core/gui_log_sink.h` (orphan `GuiLogSink` template, never compiled post-Qt migration)
+  - `tests/gui/test_bwx_text_document.cpp` and `tests/gui/test_bwx_text_renderer.cpp` (dead wxWidgets-era tests)
+  - `src/README.md` (stale pre-Qt6 MVP architecture description)
 
 ### Fixed
 
