@@ -1,8 +1,13 @@
 # Sub-Project A: Repo Hygiene Cleanup — Design Document
 
+## Revision History
+
+- **2026-04-11 r2 (current)**: Corrected scope after direct `git ls-files` verification. The initial 2026-04-11 audit (which seeded this spec) claimed that `.vs/`, `build-*/`, `compile_commands.json`, `lib/x64-*/bwx_*.{lib,a}`, `src/presenters/`, `src/services/`, `external/`, and other on-disk artifacts were tracked in git. Direct verification showed that **only 6 files** from the original cleanup scope are actually tracked (4 under `concept_files/wxFormBuilder/`, 2 under `tests/gui/test_bwx_*.cpp`). Everything else was already correctly ignored by `.gitignore` and never tracked — physically present on the developer's local disk but invisible to git. Scope narrowed from 7 commits to 4. Non-git local disk cleanup moved to an optional, user-run post-merge section. See section "Post-Merge Local Disk Cleanup" for the omitted items and user-runnable commands.
+- **2026-04-11 r1 (superseded)**: Initial spec based on audit claims; 7 commits planned.
+
 ## Goal
 
-Mechanical cleanup of tracked git artifacts, dead wxWidgets-era files, and orphan architecture directories — plus porting the last remaining active wxWidgets code (`GuiLogSink`) to Qt. After this sub-project, no active wxWidgets code exists in `src/`, the repo root is free of stale build outputs, and empty architectural placeholders from an incomplete MVP migration are gone.
+Eliminate the last tracked wxWidgets-era artifacts in the Kalahari repository and port the final piece of active wxWidgets code (`GuiLogSink`) to Qt. After this sub-project merges, no active wxWidgets API calls or `#include <wx/...>` directives remain in `src/` or `include/`, and three categories of dead files are gone from git: legacy `wxFormBuilder` concept files, disabled `test_bwx_*.cpp` tests, and the related stale comment block in `tests/CMakeLists.txt`.
 
 This is **Sub-Project A** of a four-part cleanup initiative identified in the 2026-04-11 professional audit. The audit surfaced ~32 action items grouped into four independent sub-projects; A is the safety-first starting point because it is mostly mechanical (file/git operations) with only one real code change.
 
@@ -18,95 +23,94 @@ C: Theme System Foundation      (unblocks Phase F of Text Styling)
 B: BookEditor Refactor          (largest risk, best safety net)
 ```
 
-Rationale for order: each sub-project increases the safety net for the next. A produces a clean working directory; D produces CI enforcement; C produces the theme foundation; B is the risky refactor executed under maximum safety.
+Rationale for order: each sub-project increases the safety net for the next. A produces a clean working tree; D produces CI enforcement; C produces the theme foundation; B is the risky refactor executed under maximum safety.
 
 ## Goals / Non-Goals
 
 ### Goals
-- Remove all tracked build artifacts and VS cache from the git index
-- Eliminate all remaining wxWidgets traces in `src/` (code, includes, doc comments)
-- Remove empty architectural placeholders that no longer represent active intent
-- Eliminate wxWidgets-era dead test files
-- Align `.clang-format` include priorities with the Qt reality
+- Remove the 4 tracked `concept_files/wxFormBuilder/*` files
+- Eliminate all active wxWidgets API calls and `#include <wx/...>` from `src/` (currently only `gui_log_sink.cpp` / `gui_log_sink.h`)
+- Remove the 2 disabled `tests/gui/test_bwx_*.cpp` test files
+- Remove the corresponding stale comment block in `tests/CMakeLists.txt` (lines 58-62)
+- Align `.clang-format` include priorities with the Qt reality (replace `^<wx/` with `^<(Q|qt)/`)
+- Update or delete the stale `src/README.md` (describes pre-Qt6 MVP architecture that never materialized)
 - Document all changes under `CHANGELOG.md [Unreleased]`
+- Provide optional, documented post-merge bash commands for local disk cleanup that the user can run at their discretion
 
 ### Non-Goals
-- **Git history rewrite** — `git rm --cached` only; repo physical size reduction (via `git filter-repo` / BFG) is a deferred decision requiring force-push, explicitly out of scope here
+- **Git history rewrite** — even if reductive value were desired, none of the "bulky" items (`.vs/`, `build-*/`) are tracked, so `git filter-repo` / BFG would have no files to remove from history. Out of scope.
+- **Physical deletion of on-disk but gitignored artifacts** — these are committed to post-merge optional commands, not part of Sub-Project A's commits
 - **Linux / macOS build verification** — primary verification is Windows; Linux/macOS are addressed in Sub-Project D
 - **Fixing PCH activation, CI linting, sanitizers** — all Sub-Project D scope
 - **Replacing hardcoded `QColor(r,g,b)` values** — Sub-Project C scope
 - **`BookEditor` / `DocumentCoordinator` refactor** — Sub-Project B scope
 - **Renaming or restructuring `docs/` vs `project_docs/`** — documentation cleanup deferred to a future cycle
 
-## Scope — Six Groups of Changes
+## Scope — Four Groups of Changes
 
-### Group 1: Untrack build/cache artifacts (zero risk)
-Remove from git index (files remain on disk per `.gitignore`):
-- `.vs/` (4.1 GB — `slnx.sqlite` 261 MB, `cmake.db` 119 MB)
-- `build-windows/`, `build-vs2026/`, `build-linux-vmware/`
-- `compile_commands.json` (537 KB, CMake generated)
-- `kalahari.log`, `ninja_output.txt`
-- `nul` (Windows `> NUL` redirect artifact)
-- `temp_build.bat`
-- `.vscode-ai-assistant/`
-
-### Group 2: Remove wxWidgets legacy libraries (~48 MB)
-Physical deletion of stale vcpkg-era `bwx_sdk` binaries:
-- `lib/x64-windows/bwx_core.lib`, `bwx_gui.lib`
-- `lib/x64-linux/Debug/libbwx_core.a`, `libbwx_gui.a`
-- `lib/x64-linux/Release/libbwx_core.a`, `libbwx_gui.a`
-
-Verified (during brainstorming) not referenced by any `CMakeLists.txt` — these are pure vcpkg artifacts from the pre-Qt6 era.
-
-### Group 3: Remove wxFormBuilder legacy concept files (~392 KB)
-Physical deletion of `concept_files/wxFormBuilder/`:
+### Group 1: Remove `concept_files/wxFormBuilder/` (tracked)
+`git rm -r concept_files/wxFormBuilder/` — removes the 4 tracked files (~392 KB):
 - `Kalahari.fbp` (wxFormBuilder project file, 85 KB)
-- 3 GUI concept JPG screenshots
-- GUI concepts text notes
+- `GUI koncepcja 1.jpg`, `GUI koncepcja 2.jpg` (mockup screenshots)
+- `GUI koncepcja.txt` (design notes)
 
-These describe wxWidgets-era UI layouts superseded by Qt6 `QDockWidget` architecture.
+These files describe wxWidgets-era UI layouts superseded by the Qt6 `QDockWidget` architecture.
 
-### Group 4: Remove orphan architecture directories (decision-driven)
-Empty placeholders from an incomplete MVP migration:
-- `src/presenters/`, `src/services/`
-- `include/kalahari/presenters/`, `include/kalahari/services/`
-- `external/` (never populated — vcpkg submodule lives at `/vcpkg/`)
-- `bin/x64-windows/`, `bin/x64-linux/{Debug,Release}/` (empty output dirs)
+### Group 2: Port `GuiLogSink` from wxWidgets to Qt (code change)
+The last active wxWidgets code in `src/`. See **Section: GuiLogSink Qt Port Design** below for the before/after diff and safety analysis. Files touched:
+- `src/core/gui_log_sink.cpp`
+- `include/kalahari/core/gui_log_sink.h`
 
-**Decision**: Delete now. The project uses the Coordinator pattern (`DockCoordinator`, `DocumentCoordinator`, etc.) rather than MVP. If a service layer is needed later, it will be reintroduced as a deliberate design decision rather than carried forward as ghost intent.
+### Group 3: Remove dead wxWidgets test files
+Two disabled test files plus a stale CMakeLists comment block:
+- `git rm tests/gui/test_bwx_text_document.cpp`
+- `git rm tests/gui/test_bwx_text_renderer.cpp`
+- Edit `tests/CMakeLists.txt` — remove the comment block at lines 58-62 referencing the removed files (also references `test_bwx_text_editor.cpp` which no longer exists on disk)
 
-### Group 5: Port `GuiLogSink` from wxWidgets to Qt (real code change)
-The last active wxWidgets code in `src/`. See **Section: GuiLogSink Qt Port Design** below.
+### Group 4: Config housekeeping and documentation
+- `.clang-format`: replace include priority block for wxWidgets (lines 98-100) with Qt:
+  ```yaml
+  # Before (lines 98-100):
+  # wxWidgets headers
+  - Regex: '^<wx/'
+    Priority: 2
+  ```
+  ```yaml
+  # After:
+  # Qt headers
+  - Regex: '^<(Q|qt)/'
+    Priority: 2
+  ```
+- `src/README.md`: **delete** the file (see decision below)
+- `CHANGELOG.md`: add entry under `## [Unreleased]` documenting the sub-project
 
-### Group 6: Config housekeeping and documentation
-- `.clang-format`: replace `'^<wx/'` include priority with `'^<(Q|qt)/'`
-- Remove dead test files:
-  - `tests/gui/test_bwx_text_document.cpp`
-  - `tests/gui/test_bwx_text_renderer.cpp`
-  - Clean up any matching references in the test `CMakeLists.txt` (exact path — `tests/CMakeLists.txt` or `tests/gui/CMakeLists.txt` — verified during implementation via `grep -rn "test_bwx" tests/`)
-- Update `src/README.md` if it references wxWidgets
-- Add CHANGELOG entry under `[Unreleased]`
+#### Decision: `src/README.md` — delete, not update
 
-## Approach: 7 Atomic Commits on Feature Branch
+The file is extensively stale:
+- Documents "MVP (Model-View-Presenter) architecture" with a `presenters/` layer — the project actually uses the Coordinator pattern, and the empty `presenters/` and `services/` directories are out-of-band physical state (not tracked) that the audit flagged
+- States "View layer - wxWidgets GUI" and "wxWidgets-free" dependencies description — all wxWidgets references are false after the Qt6 migration
+- "Precompiled headers for wxWidgets (Phase 1+)" — incorrect; PCH is for Qt (and isn't even activated, a Sub-Project D concern)
+- "Last Updated: 2025-10-26, Phase: 0 (Foundation)" — the project is in Phase 1 now
+
+Fixing this requires a rewrite, not an update, and the current architecture is already documented in `project_docs/03_architecture.md`. A stale pointer README is worse than no README — it actively misinforms new readers. Decision: delete the file and let `project_docs/` remain the single source of architectural truth.
+
+## Approach: 4 Atomic Commits on Feature Branch
 
 ### Branch Strategy
 - Safety net branches created before work starts:
   - `backup/pre-cleanup-hygiene` — pointer to main HEAD before starting
-  - `wip/framework-migration` — snapshot of current uncommitted changes (OpenSpec→Superpowers WIP in working directory)
+  - `wip/framework-migration` — snapshot of current uncommitted changes (the OpenSpec→Superpowers framework-migration WIP currently present in working directory; out of scope for A but must not bleed into the feature branch)
 - Working branch: `cleanup/repo-hygiene` (feature branch, not pushed until all commits complete and verified)
-- `git rm --cached` only for Group 1 — no history rewrite, no force-push
+- No `git rm --cached` anywhere — the previous r1 plan was built on the incorrect audit claim that `.vs/`, `build-*/`, etc. were tracked. They are not. Everything in this spec is either `git rm` (removes tracked files + disk) or straight file edits.
 
 ### Commit Sequence
 
 | # | Commit | Type | Build Verify |
 |---|---|---|---|
-| 1 | `chore(repo): untrack VS cache and build artifacts` | Git ops only | No |
-| 2 | `chore(repo): remove wxWidgets legacy libraries` | Physical delete | No |
-| 3 | `chore(repo): remove wxFormBuilder legacy files` | Physical delete | No |
-| 4 | `refactor(arch): remove orphan presenters/services directories` | Physical delete | **Yes** |
-| 5 | `refactor(core): port GuiLogSink from wxWidgets to Qt` | Code change | **Yes + smoke test** |
-| 6 | `chore(tests): remove dead wxWidgets test files` | Delete + CMake | **Yes (test build)** |
-| 7 | `chore: finalize repo hygiene cleanup` | Config + docs | No |
+| 1 | `chore(repo): remove wxFormBuilder legacy concept files` | `git rm -r` | No |
+| 2 | `refactor(core): port GuiLogSink from wxWidgets to Qt` | Code change | **Yes + smoke test** |
+| 3 | `chore(tests): remove dead wxWidgets test files` | `git rm` + edit | **Yes (test build)** |
+| 4 | `chore: finalize repo hygiene cleanup` | Edits + docs | No (clang-format validate only) |
 
 ## GuiLogSink Qt Port Design
 
@@ -191,15 +195,12 @@ Doc comment updates only — no include changes needed (the header contains no w
 
 | # | Commit | Verification | Build |
 |---|---|---|---|
-| 1 | Untrack artifacts | `git ls-files \| grep -E "\.vs/\|build-\|compile_commands\|kalahari\.log\|nul$\|temp_build\|ninja_output\|\.vscode-ai-assistant"` → empty | No |
-| 2 | Remove bwx libs | `grep -rn "bwx_core\|bwx_gui" CMakeLists.txt src/CMakeLists.txt cmake/ vcpkg.json` → empty | No |
-| 3 | Remove wxFormBuilder | `grep -rn "wxFormBuilder\|Kalahari\.fbp" .` → empty (excluding `.git`) | No |
-| 4 | Remove orphan dirs | (a) grep `presenters\|services\|external` in `CMakeLists.txt` family → no `add_subdirectory` references; (b) full build `scripts/build_windows.bat Debug` | Yes |
-| 5 | Port GuiLogSink | (a) full build; (b) `./build-windows/bin/kalahari-tests.exe` passing; (c) **manual smoke test**: run `kalahari.exe`; ensure LogPanel dock is visible (open via View menu if hidden); perform log-generating actions in this order — open an example project from `examples/` (generates project-load logs), switch theme in settings (generates theme-change logs), close/reopen document; after each action, **visually confirm new log lines appear in LogPanel** with timestamps matching the action | Yes + smoke |
-| 6 | Remove dead tests | (a) `grep -rn "test_bwx" tests/` → empty; (b) test build rebuild kalahari-tests | Yes (test build) |
-| 7 | Config + docs | (a) YAML parse `.clang-format`; (b) clang-format dry-run on sample file; (c) visual check CHANGELOG | No |
+| 1 | Remove wxFormBuilder | (a) `git ls-files concept_files/wxFormBuilder/` → empty output; (b) `git status` shows clean working tree | No |
+| 2 | Port GuiLogSink | (a) full build `scripts/build_windows.bat Debug`; (b) `./build-windows/bin/kalahari-tests.exe` passing at same count as baseline; (c) **manual smoke test**: run `kalahari.exe`; ensure LogPanel dock is visible (open via View menu if hidden); perform log-generating actions in this order — open an example project from `examples/` (generates project-load logs), switch theme in settings (generates theme-change logs), close/reopen document; after each action, **visually confirm new log lines appear in LogPanel** with timestamps matching the action | Yes + smoke |
+| 3 | Remove dead tests | (a) `grep -rn "test_bwx" tests/` returns empty output (files gone, comment block gone); (b) test build rebuild via `scripts/build_windows.bat Debug` | Yes (test build) |
+| 4 | Config + docs | (a) YAML parse `.clang-format` (e.g., `python -c "import yaml; yaml.safe_load(open('.clang-format'))"`); (b) clang-format dry-run on a sample file (`clang-format --dry-run src/main.cpp`); (c) visual check CHANGELOG.md rendering; (d) `ls src/README.md` → does not exist | No |
 
-**Build time estimate**: ~10 min per full build × 3 full builds (commits 4, 5, 6) = ~30 min build time. Test run time ~2-5 min. Manual smoke test ~5 min. Total verification overhead: ~40-45 min on top of implementation time.
+**Build time estimate**: ~10 min per full build × 2 full builds (commits 2, 3) = ~20 min build time. Test run time ~2-5 min. Manual smoke test ~5 min. Total verification overhead: ~30 min on top of implementation time.
 
 ## Rollback Strategy
 
@@ -222,10 +223,10 @@ After Sub-Project A merges (or is abandoned), the user decides what to do with `
 
 ### Per-commit rollback (during A)
 
-- Static verification fails (commits 1-3, 7): fix inline before `git commit` — never commit broken state
-- Build fail in commit 4 or 5: `git commit --amend` after fix (if no subsequent commits exist) — merges fix into the same commit
+- Static verification fails (commits 1, 4): fix inline before `git commit` — never commit broken state
+- Build fail in commit 2 or 3: `git commit --amend` after fix (if no subsequent commits exist) — merges fix into the same commit
 - Build OK but problem discovered later: `git revert <sha>` on feature branch — adds a reverting commit instead of rewriting history
-- Want to discard commit 5 from feature branch history (before any push): `git reset --hard HEAD~1` — destructive but safe on unpushed branch
+- Want to discard commit 2 from feature branch history (before any push): `git reset --hard HEAD~1` — destructive but safe on unpushed branch
 
 **Rule**: on feature branch before first push, `reset --hard` is allowed. After first push, only `revert`.
 
@@ -234,14 +235,14 @@ After Sub-Project A merges (or is abandoned), the user decides what to do with `
 - Abort during work: `git checkout main && git branch -D cleanup/repo-hygiene`
 - Restore post-merge regression: `git reset --hard backup/pre-cleanup-hygiene`
 
-### Commit 5 smoke test failure (E1 escalation)
+### Commit 2 smoke test failure (E1 escalation)
 
 Manual smoke test is the only non-statically-verifiable check. If log messages do not appear in LogPanel after the port, escalation process:
 
 1. **First fix attempt** (30 min budget): typical causes — `qApp` unexpectedly null in spdlog background thread context; missing include; wrong connection type. Use `git commit --amend` if fix found.
 2. **Second attempt**: instrumented debugging — temporary `qDebug()` around `invokeMethod`, `QT_LOGGING_RULES` verbose, verify lambda actually posts.
 3. **Third failure → escalation decision**:
-   - **E1 (preferred)**: `git reset --hard HEAD~1` to drop commit 5, continue commits 6 and 7. Sub-Project A ships with 6 commits. `GuiLogSink` port becomes a standalone follow-up task with its own brainstorm cycle (~1 day).
+   - **E1 (preferred)**: `git reset --hard HEAD~1` to drop commit 2, continue commits 3 and 4. Sub-Project A ships with 3 commits instead of 4. `GuiLogSink` port becomes a standalone follow-up task with its own brainstorm cycle (~1 day).
    - **E2 (nuclear)**: abort all of A, full rollback to `backup/pre-cleanup-hygiene`.
 
 Pre-decision: **E1**. The rest of Sub-Project A has independent value and should not suffer for one difficult port. Final decision made in the moment if failure occurs.
@@ -250,65 +251,18 @@ Pre-decision: **E1**. The rest of Sub-Project A has independent value and should
 
 ### Commit 1
 ```
-chore(repo): untrack VS cache and build artifacts
+chore(repo): remove wxFormBuilder legacy concept files
 
-Remove tracked files that should have been ignored per .gitignore:
-- .vs/ (VS cache, 4.1 GB with slnx.sqlite + cmake.db)
-- build-windows/, build-vs2026/, build-linux-vmware/ (build outputs)
-- compile_commands.json (CMake generated, 537 KB)
-- kalahari.log, ninja_output.txt (build/runtime logs)
-- nul (Windows NUL redirect artifact)
-- temp_build.bat (stale helper script)
-- .vscode-ai-assistant/ (deprecated editor integration)
+Delete concept_files/wxFormBuilder/ (392 KB, 4 tracked files):
+- Kalahari.fbp (wxFormBuilder project file)
+- GUI koncepcja 1.jpg, GUI koncepcja 2.jpg (mockup screenshots)
+- GUI koncepcja.txt (design notes)
 
-Uses git rm --cached only — files remain on disk.
-Git history not rewritten; repo size reduction via filter-repo/BFG
-is a deferred decision requiring force-push.
+These files describe wxWidgets-era UI layouts that were superseded
+by Qt6 QDockWidget-based architecture during the Nov 2025 migration.
 ```
 
 ### Commit 2
-```
-chore(repo): remove wxWidgets legacy libraries
-
-Delete stale vcpkg-era bwx_sdk binaries (48 MB total):
-- lib/x64-windows/bwx_core.lib, bwx_gui.lib
-- lib/x64-linux/Debug/libbwx_core.a, libbwx_gui.a
-- lib/x64-linux/Release/libbwx_core.a, libbwx_gui.a
-
-These libraries were part of the wxWidgets/bwx_sdk stack replaced
-by Qt6 in November 2025. Verified not referenced by any CMakeLists.txt.
-```
-
-### Commit 3
-```
-chore(repo): remove wxFormBuilder legacy concept files
-
-Delete concept_files/wxFormBuilder/ (392 KB):
-- Kalahari.fbp (wxFormBuilder project file)
-- 3 GUI concept JPG screenshots
-- GUI concepts text notes
-
-These files describe wxWidgets-era UI layouts that were superseded
-by Qt6 QDockWidget-based architecture.
-```
-
-### Commit 4
-```
-refactor(arch): remove orphan presenters/services directories
-
-Delete empty architectural placeholders left from an incomplete
-MVP pattern migration:
-- src/presenters/, src/services/
-- include/kalahari/presenters/, include/kalahari/services/
-- external/ (never populated; vcpkg submodule lives at /vcpkg/)
-- bin/x64-windows/, bin/x64-linux/{Debug,Release}/ (empty output dirs)
-
-The project uses the Coordinator pattern (DockCoordinator,
-DocumentCoordinator, etc.) rather than MVP. If a service layer
-is needed later, it will be reintroduced as a deliberate decision.
-```
-
-### Commit 5
 ```
 refactor(core): port GuiLogSink from wxWidgets to Qt
 
@@ -331,7 +285,7 @@ Verified via manual smoke test: log messages appear in LogPanel
 after the port.
 ```
 
-### Commit 6
+### Commit 3
 ```
 chore(tests): remove dead wxWidgets test files
 
@@ -339,22 +293,24 @@ Delete orphaned test files from the wxWidgets era:
 - tests/gui/test_bwx_text_document.cpp
 - tests/gui/test_bwx_text_renderer.cpp
 
-These tests were disabled in tests/gui/CMakeLists.txt with a comment
-noting GTK/X11 display dependency. The bwxTextEditor code they
-tested was replaced by the KML-based Qt editor (OpenSpec #00042,
-deployed 2026-02-18).
+Also remove the stale comment block in tests/CMakeLists.txt
+(lines 58-62) that referenced these files plus test_bwx_text_editor.cpp
+(already gone from disk).
 
-Clean up any matching references in the test CMakeLists.txt (exact
-path verified during implementation via grep).
+These tests were disabled with a comment noting GTK/X11 display
+dependency. The bwxTextEditor code they tested was replaced by
+the KML-based Qt editor (OpenSpec #00042, deployed 2026-02-18).
 ```
 
-### Commit 7
+### Commit 4
 ```
 chore: finalize repo hygiene cleanup
 
 - .clang-format: replace wxWidgets include priority with Qt:
     '^<wx/' → '^<(Q|qt)/' in IncludeCategories
-- src/README.md: update legacy wxWidgets references to Qt6
+- src/README.md: delete (extensively stale; described pre-Qt6
+  MVP architecture that never materialized; real architecture
+  docs live in project_docs/03_architecture.md)
 - CHANGELOG.md: add entry under [Unreleased] documenting
   the cleanup sub-project
 ```
@@ -365,46 +321,75 @@ Added under `## [Unreleased]`:
 
 ```markdown
 ### Changed
-- **Repo Hygiene:** Sub-Project A — Cleanup & wxWidgets Finalization (2026-04-11)
-  - Untracked `.vs/`, `build-*/`, `compile_commands.json`, and other build
-    artifacts from git index (files remain on disk per .gitignore; history
-    rewrite deferred)
-  - Removed wxWidgets legacy libraries (`lib/x64-*/bwx_*.{lib,a}`, 48 MB total)
-  - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI concepts)
-  - Removed orphan `src/presenters/`, `src/services/`, `include/kalahari/presenters/`,
-    `include/kalahari/services/`, `external/` directories (empty architectural
-    placeholders from incomplete MVP migration)
+- **Repo Hygiene:** Sub-Project A — wxWidgets Finalization (2026-04-11)
+  - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
   - Ported `GuiLogSink` from `wxTheApp->CallAfter()` to
     `QMetaObject::invokeMethod(panel, ..., Qt::QueuedConnection)` —
     **last active wxWidgets code in src/ eliminated**
-  - Removed dead `tests/gui/test_bwx_text_*.cpp` files
+  - Removed dead `tests/gui/test_bwx_text_{document,renderer}.cpp`
+    and the corresponding stale comment block in `tests/CMakeLists.txt`
   - Updated `.clang-format` include priority from wxWidgets to Qt
-  - Updated `src/README.md` wxWidgets references to Qt6
+  - Deleted stale `src/README.md` (described pre-Qt6 MVP architecture
+    that never materialized; current architecture docs live in
+    `project_docs/03_architecture.md`)
 
 ### Removed
-- wxWidgets legacy libraries and artifacts (see "Repo Hygiene" above for full list)
+- wxWidgets legacy concept files and test files (see "Repo Hygiene" above)
+- Stale `src/README.md`
 ```
 
 ## Success Criteria
 
 Sub-Project A is **done** when all of the following are ✅:
 
-1. All 7 commits land on `cleanup/repo-hygiene` (or 6 if E1 escalation — commit 5 dropped)
-2. `git ls-files | grep -E "\.vs/|build-windows/|build-vs2026/|build-linux-vmware/|compile_commands\.json|kalahari\.log|nul$|temp_build\.bat|ninja_output\.txt|\.vscode-ai-assistant/|lib/.*bwx_|concept_files/wxFormBuilder|src/presenters|src/services|include/kalahari/presenters|include/kalahari/services|external/|test_bwx_"` returns empty output
+1. All 4 commits land on `cleanup/repo-hygiene` (or 3 if E1 escalation — commit 2 dropped)
+2. `git ls-files | grep -E "concept_files/wxFormBuilder|tests/gui/test_bwx_|src/README\.md"` returns empty output
 3. `grep -rn "wxTheApp\|wx/app\.h\|#include <wx" src/ include/kalahari/` returns empty — no active wxWidgets includes or API calls remain. Occurrences of the literal string "wxWidgets" in rationale/history comments are permitted (e.g., "ported from wxWidgets in 2026-04-11")
 4. `scripts/build_windows.bat Debug` passes without errors and without cleanup-related warnings
 5. `./build-windows/bin/kalahari-tests.exe` — 100% pass rate (same count as pre-A baseline, not fewer)
 6. Manual smoke test of `kalahari.exe`: log messages appear in LogPanel after the port (or documented as known issue if E1 escalation)
-7. `.clang-format` validates (YAML parseable, dry-run passes)
+7. `.clang-format` validates (YAML parseable, dry-run passes); no `^<wx/` regex remains
 8. `CHANGELOG.md` has entry under `[Unreleased]`
 9. `wip/framework-migration` branch exists with pre-work snapshot
 10. `backup/pre-cleanup-hygiene` branch exists as safety net
 
 After 1-10 are green, the user is asked for explicit approval to merge the feature branch into main. **Merge is not part of Sub-Project A** — it is a separate conscious decision after review of the full diff.
 
+## Post-Merge Local Disk Cleanup (Optional, User-Run)
+
+These items were flagged by the original audit as "repo clutter" but are **not tracked in git** — they exist only on the developer's local disk and are already correctly ignored by `.gitignore`. Deleting them has no effect on the repository and is entirely optional. Provided here as a convenience for the user to run manually after Sub-Project A merges, if a cleaner working tree is desired.
+
+**⚠️ Warning**: `.vs/`, `build-windows/`, `build-vs2026/`, `build-linux-vmware/` are active IDE / build state. Close Visual Studio and any running build before deleting them, otherwise the IDE may corrupt its own state or regenerate them immediately.
+
+```bash
+# --- Small root clutter (safe to delete any time) ---
+rm -f nul temp_build.bat ninja_output.txt kalahari.log
+rm -rf .vscode-ai-assistant/
+
+# --- Orphan empty architecture directories (MVP-pattern leftovers) ---
+rm -rf src/presenters/ src/services/
+rm -rf include/kalahari/presenters/ include/kalahari/services/
+rm -rf external/
+rm -rf bin/x64-windows/ bin/x64-linux/
+
+# --- Dead wxWidgets libraries on disk (~50 MB) ---
+rm -f lib/x64-windows/bwx_core.lib lib/x64-windows/bwx_gui.lib
+rm -f lib/x64-linux/Debug/libbwx_core.a lib/x64-linux/Debug/libbwx_gui.a
+rm -f lib/x64-linux/Release/libbwx_core.a lib/x64-linux/Release/libbwx_gui.a
+
+# --- IDE / build caches (ONLY after closing VS and stopping any build!) ---
+# rm -rf .vs/                 # ~4.1 GB VS cache
+# rm -rf build-windows/       # ~3.5 GB CMake/Ninja output
+# rm -rf build-vs2026/
+# rm -rf build-linux-vmware/
+# rm -f compile_commands.json # regenerated on next CMake configure
+```
+
+None of the above produces a git commit; `git status` will be unchanged before and after running these commands (with the exception of newly-empty parent directories, which git tracks via their contents, not as entries).
+
 ## Out of Scope
 
-- Git history rewrite (deferred; separate cycle with force-push implications)
+- Git history rewrite (no tracked bulk items exist to remove from history; moot)
 - Linux / macOS build verification (Sub-Project D)
 - PCH activation (Sub-Project D)
 - CI linting (clang-format/clang-tidy/ASAN/UBSAN) enforcement (Sub-Project D)
@@ -413,11 +398,12 @@ After 1-10 are green, the user is asked for explicit approval to merge the featu
 - `docs/` vs `project_docs/` consolidation (future cycle)
 - Replacing `fprintf` with Logger in `main.cpp` (fits better in Sub-Project C or D)
 - `plugins/hello_plugin.kplugin` evaluation (future cycle)
+- Physical deletion of untracked on-disk artifacts (moved to optional Post-Merge Local Disk Cleanup section)
 
 ## Deliverables
 
-- This design document: `docs/superpowers/specs/2026-04-11-sub-project-a-repo-hygiene-cleanup-design.md`
-- After user approval of this spec: invocation of `superpowers:writing-plans` to produce the implementation plan (separate document under `docs/superpowers/plans/`)
+- This design document: `docs/superpowers/specs/2026-04-11-sub-project-a-repo-hygiene-cleanup-design.md` (r2)
+- After user approval of this revised spec: invocation of `superpowers:writing-plans` to produce the implementation plan (separate document under `docs/superpowers/plans/`)
 
 ## Next Steps After Sub-Project A
 
