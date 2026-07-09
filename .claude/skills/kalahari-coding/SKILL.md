@@ -193,10 +193,14 @@ scripts/build_linux.sh
 | Logger | `getInstance()` | `kalahari::core` |
 | CommandRegistry | `getInstance()` | `kalahari::gui` |
 
-## 11. MCP Tools for Code Intelligence
+## 11. Code Intelligence & Docs
 
-Use for understanding and navigating Kalahari codebase:
+### Serena (semantic C++ navigation)
+Use for understanding and navigating the codebase at symbol level:
 ```
+mcp__serena__get_symbols_overview("path/to/file.cpp")   # see file structure
+mcp__serena__find_symbol("ClassName")                    # find definition
+mcp__serena__find_referencing_symbols("ClassName")       # find all usages
 ```
 
 **When to use:**
@@ -204,11 +208,13 @@ Use for understanding and navigating Kalahari codebase:
 - Before creating new class → find similar patterns
 - Before refactoring → find all usages
 
+Fallback if Serena is unavailable: Grep / Glob / Read. (Native LSP/clangd is non-functional on this Windows setup.)
+
 ### Context7 (External Docs)
 Use for Qt6 and other library documentation:
 ```
 mcp__context7__resolve-library-id("Qt6")           # get library ID (once)
-mcp__context7__get-library-docs("/qt/qtdoc", topic="QDockWidget")
+mcp__context7__query-docs("/qt/qtdoc", topic="QDockWidget")
 ```
 
 **When to use:**

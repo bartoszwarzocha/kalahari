@@ -163,9 +163,11 @@ set(KALAHARI_GUI_HEADERS
 
 ## 8. Analyzing Existing Code
 
-1. `get_symbols_overview("path/to/file.cpp")` - see class structure
-2. `find_symbol("ClassName")` - find class definition
-3. `find_referencing_symbols("ClassName")` - find usages
+1. `mcp__serena__get_symbols_overview("path/to/file.cpp")` - see class structure
+2. `mcp__serena__find_symbol("ClassName")` - find class definition
+3. `mcp__serena__find_referencing_symbols("ClassName")` - find usages
+
+(Serena = semantic C++ engine. Fallback if unavailable: Grep / Glob / Read.)
 
 ### Key files to check
 - `main_window.cpp` - thin orchestrator, coordinator creation

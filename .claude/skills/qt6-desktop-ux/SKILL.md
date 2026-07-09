@@ -207,7 +207,7 @@ Returns: `/qt/qtdoc` or similar
 
 ### Step 2: Get documentation for specific topic
 ```
-mcp__context7__get-library-docs(
+mcp__context7__query-docs(
     context7CompatibleLibraryID="/qt/qtdoc",
     topic="QDockWidget"
 )

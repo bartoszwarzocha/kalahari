@@ -84,5 +84,9 @@ core::Logger::getInstance().info("Message: {}", value)
 - Specs: docs/superpowers/specs/
 - Workflow: brainstorming → writing-plans → implementation → finishing
 
-## MCP Servers
-- Context7: external library documentation
+## MCP Servers & Semantic Tools
+- Context7: external library documentation (Qt6, etc.)
+- Serena: semantic C++ navigation (find_symbol, find_referencing_symbols, symbol-level edits)
+  — this is the working semantic engine; it ships its own language servers
+- Native LSP tool (clangd): NOT functional on this Windows setup (path/"unsafe location"
+  error; historical plugin bugs). ENABLE_LSP_TOOL removed. Fallback: Serena or Grep/Glob/Read.

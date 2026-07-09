@@ -1,12 +1,15 @@
 {
   "mode": "quick",
-  "saved_at": "2026-04-10T00:00:00",
+  "saved_at": "2026-07-08",
   "git_commit": null,
   "git_pushed": false,
-  "working_on": "Migrating from OpenSpec to Superpowers workflow",
+  "working_on": "Framework modernization to native tools (Opus 4.8): full audit + fixes done (orchestrator removed, 7->5 agents, session commands rewritten, skills/hooks fixed, Serena added). Uncommitted.",
   "next_steps": [
-    "Execute Text Styling System plan (00044B-F features)",
-    "Use superpowers:brainstorming for next feature work"
+    "Decide optional changelog modernizations (fallbackModel, hook enhancements, worktree, disallowed-tools)",
+    "Restart session to activate Serena MCP, then live-test semantic navigation",
+    "Commit .claude framework changes",
+    "Resume Kalahari feature work"
   ],
+  "active_plan": null,
   "blocker": null
 }

@@ -13,6 +13,8 @@ scripts/build_windows.bat Debug
 scripts/build_linux.sh
 ```
 
-## MCP Servers
+## MCP Servers & Semantic Tools
 
-- **Context7:** External library docs (resolve-library-id → get-library-docs)
+- **Context7:** External library docs (`resolve-library-id` → `query-docs`)
+- **Serena:** Semantic C++ navigation (`find_symbol`, `find_referencing_symbols`, symbol-level edits)
+- **Native LSP (clangd):** non-functional on this Windows setup — use Serena or Grep/Glob/Read instead

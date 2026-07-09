@@ -26,9 +26,7 @@
       "Write(tests/**)",
       "Write(docs/superpowers/**)",
       "Task(architect)",
-      "Task(code-writer)",
-      "Task(code-editor)",
-      "Task(ui-designer)",
+      "Task(coder)",
       "Task(code-reviewer)",
       "Task(tester)",
       "Task(devops)",
@@ -98,11 +96,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit(*.cpp)|Edit(*.h)|Write(*.cpp)|Write(*.h)",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "echo {\"additionalContext\": \"[BUILD REMINDER] C++ file modified. Remember to run build before marking task complete: scripts/build_windows.bat Debug\"}"
+            "command": "echo {\"additionalContext\": \"[BUILD REMINDER] If you modified a C++ file (.cpp/.h), run the build before marking the task complete: scripts/build_windows.bat Debug\"}"
           }
         ]
       }
@@ -120,8 +118,5 @@
         ]
       }
     ]
-  },
-  "env": {
-    "ENABLE_LSP_TOOL": "1"
   }
 }
