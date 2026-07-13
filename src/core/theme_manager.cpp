@@ -42,6 +42,8 @@ ThemeManager::ThemeManager() {
     m_currentTheme.colors.text = QColor("#000000");
     m_currentTheme.colors.infoPrimary = QColor("#1C69A8");
     m_currentTheme.colors.infoHeader = QColor("#2B4763");
+    m_currentTheme.colors.infoBarBorder = QColor("#FFD54F");
+    m_currentTheme.colors.infoBarBackground = QColor("#FFF8E1");
     m_currentTheme.colors.dashboardSecondary = QColor("#36BBA7");
     m_currentTheme.colors.dashboardPrimary = QColor("#18786F");
     m_currentTheme.colors.infoSecondary = QColor("#34A6F4");
@@ -366,6 +368,10 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
             m_currentTheme.colors.infoPrimary = color;
         } else if (key == "infoHeader") {
             m_currentTheme.colors.infoHeader = color;
+        } else if (key == "infoBarBorder") {
+            m_currentTheme.colors.infoBarBorder = color;
+        } else if (key == "infoBarBackground") {
+            m_currentTheme.colors.infoBarBackground = color;
         } else if (key == "dashboardSecondary") {
             m_currentTheme.colors.dashboardSecondary = color;
         } else if (key == "dashboardPrimary") {
@@ -419,6 +425,14 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
         m_currentTheme.colors.background = color;
     } else if (key == "text" || key == "colors.text") {
         m_currentTheme.colors.text = color;
+    }
+    // Custom color: infoBarBorder
+    else if (key == "infoBarBorder" || key == "colors.infoBarBorder") {
+        m_currentTheme.colors.infoBarBorder = color;
+    }
+    // Custom color: infoBarBackground
+    else if (key == "infoBarBackground" || key == "colors.infoBarBackground") {
+        m_currentTheme.colors.infoBarBackground = color;
     }
     // Custom color: dashboardSecondary
     else if (key == "dashboardSecondary" || key == "colors.dashboardSecondary") {

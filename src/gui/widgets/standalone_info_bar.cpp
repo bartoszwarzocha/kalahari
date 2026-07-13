@@ -102,26 +102,11 @@ void StandaloneInfoBar::onThemeChanged() {
 void StandaloneInfoBar::updateStyling() {
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
 
-    // Use a subtle warning/info color scheme
-    // Light theme: light yellow/cream background
-    // Dark theme: dark amber/brown background
-    QColor bgColor;
-    QColor borderColor;
+    // Use a subtle warning/info color scheme.
+    // The theme system resolves the correct light/dark values automatically.
+    QColor bgColor = theme.colors.infoBarBackground;
+    QColor borderColor = theme.colors.infoBarBorder;
     QColor textColor = theme.palette.windowText;
-
-    // Determine background based on theme luminance
-    // Light themes have brighter backgrounds
-    int luminance = theme.palette.window.lightness();
-
-    if (luminance > 128) {
-        // Light theme - use light yellow/cream
-        bgColor = QColor(255, 248, 225);      // Light cream
-        borderColor = QColor(255, 213, 79);   // Amber border
-    } else {
-        // Dark theme - use dark amber
-        bgColor = QColor(62, 50, 30);         // Dark amber
-        borderColor = QColor(120, 94, 30);    // Darker amber border
-    }
 
     // Apply frame styling
     QString styleSheet = QString(

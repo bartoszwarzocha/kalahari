@@ -13,7 +13,9 @@
     "infoPrimary": "#1C69A8",
     "infoSecondary": "#34A6F4",
     "dashboardPrimary": "#18786F",
-    "dashboardSecondary": "#36BBA7"
+    "dashboardSecondary": "#36BBA7",
+    "infoBarBackground": "#FFF8E1",
+    "infoBarBorder": "#FFD54F"
   },
   "palette": {
     "window": "#f0f0f0",

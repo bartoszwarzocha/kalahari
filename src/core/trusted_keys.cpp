@@ -417,8 +417,16 @@ static std::string base64EncodeInternal(const std::vector<uint8_t>& data) {
         return "";
     }
 
-    // Calculate output length
-    size_t outputLen = ((data.size() + 2) / 3) * 4 + 1;
+    // Calculate output length.
+    // OpenSSL's EVP_EncodeUpdate inserts a newline every 64 output characters,
+    // and EVP_EncodeFinal appends a trailing newline plus a NUL terminator.
+    // The buffer must therefore reserve room for the base64 characters, the
+    // line-break newlines (one per 48 input bytes, plus the final one) and the
+    // terminating NUL. Under-allocating here overflows the heap when a full
+    // 32-byte key is encoded.
+    size_t base64Chars = ((data.size() + 2) / 3) * 4;
+    size_t newlines = (data.size() / 48) + 1;
+    size_t outputLen = base64Chars + newlines + 1;  // +1 for NUL terminator
 
     std::vector<unsigned char> encoded(outputLen);
 

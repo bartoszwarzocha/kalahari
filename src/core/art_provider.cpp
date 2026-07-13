@@ -55,16 +55,43 @@ void ArtProvider::initialize() {
         currentTheme.colors.secondary.name().toStdString());
 
     // Connect to ThemeManager for automatic updates
+    // Qt::UniqueConnection keeps initialize() idempotent: reset() (test-only)
+    // may call initialize() repeatedly without accumulating duplicate connections.
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-            this, &ArtProvider::onThemeChanged);
+            this, &ArtProvider::onThemeChanged, Qt::UniqueConnection);
 
     // CRITICAL: Also connect ThemeManager to IconRegistry for color updates
     // This ensures icons get updated colors when theme changes
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-            &IconRegistry::getInstance(), &IconRegistry::onThemeChanged);
+            &IconRegistry::getInstance(), &IconRegistry::onThemeChanged, Qt::UniqueConnection);
 
     Logger::getInstance().info("ArtProvider: Initialized (iconTheme={})",
         m_iconTheme.toStdString());
+}
+
+// ============================================================================
+// Reset (test-only)
+// ============================================================================
+
+void ArtProvider::reset() {
+    // FOR TESTING ONLY. Return to a deterministic baseline between tests.
+    //
+    // Stop tracking any managed actions. We deliberately do NOT delete them:
+    // they are owned by their parent QObjects (menus/toolbars). Clearing the
+    // set only drops our tracking so a subsequent theme change cannot touch a
+    // dangling pointer.
+    m_managedActions.clear();
+
+    // Drop plugin-registered genre mappings.
+    m_customGenreMappings.clear();
+
+    // Reset batch-mode bookkeeping.
+    m_batchMode = false;
+    m_pendingChanges = false;
+
+    // Re-run initialization to restore icon theme and IconRegistry color sync.
+    // No resourcesChanged() is emitted here, so this is safe between tests.
+    initialize();
 }
 
 // ============================================================================

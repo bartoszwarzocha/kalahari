@@ -11,7 +11,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <kalahari/version.h>
-#include <kalahari/core/settings_manager.h>
+
+#include "test_support/reset_singletons.h"
 
 #include <QApplication>
 
@@ -47,18 +48,23 @@ struct TestEnvironmentSetup {
 // Global instance - constructor runs before main()
 static TestEnvironmentSetup g_testSetup;
 
-/// @brief Test event listener to reset SettingsManager before each test
-class SettingsResetListener : public Catch::EventListenerBase {
+/// @brief Test event listener to reset ALL process-global singletons before each test
+///
+/// Sub-Project C WS4.1: previously this only reset SettingsManager. It now calls
+/// kalahari::test::resetSingletons() so no singleton state leaks across test
+/// ordering (SettingsManager, TrustedKeys, CommandRegistry, IconRegistry,
+/// ThemeManager, ArtProvider).
+class GlobalResetListener : public Catch::EventListenerBase {
 public:
     using Catch::EventListenerBase::EventListenerBase;
 
     void testCaseStarting(Catch::TestCaseInfo const& /* testInfo */) override {
-        // Reset singleton before EACH test case
-        kalahari::core::SettingsManager::getInstance().resetToDefaults();
+        // Reset all singletons to a deterministic baseline before EACH test case
+        kalahari::test::resetSingletons();
     }
 };
 
-CATCH_REGISTER_LISTENER(SettingsResetListener);
+CATCH_REGISTER_LISTENER(GlobalResetListener);
 
 /// @brief Custom main for test initialization
 int main(int argc, char* argv[]) {

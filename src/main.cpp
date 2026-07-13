@@ -119,17 +119,20 @@ int main(int argc, char *argv[]) {
 
         // Validate inputs
         if (url.isEmpty()) {
+            logger.warn("CLI: --get-icon requires a URL");
             fprintf(stderr, "Error: --get-icon requires a URL\n");
             return 1;
         }
 
         if (iconName.isEmpty()) {
+            logger.warn("CLI: --icon-name is required");
             fprintf(stderr, "Error: --icon-name is required\n");
             fprintf(stderr, "Usage: kalahari --cli --get-icon URL --icon-name NAME [--theme THEME]\n");
             return 1;
         }
 
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            logger.warn("CLI: URL must start with http:// or https://");
             fprintf(stderr, "Error: URL must start with http:// or https://\n");
             return 1;
         }
@@ -167,6 +170,7 @@ int main(int argc, char *argv[]) {
         loop.exec();
 
         if (!helper.downloadSuccess) {
+            logger.error("CLI: Download failed (timeout or network error)");
             fprintf(stderr, "Download failed\n");
             return 1;
         }
@@ -210,6 +214,7 @@ int main(int argc, char *argv[]) {
 
     // CLI mode without valid command
     if (cmdLine.hasSwitch("cli")) {
+        logger.warn("CLI mode invoked without --get-icon");
         fprintf(stderr, "CLI mode requires --get-icon URL\n");
         fprintf(stderr, "Usage: kalahari --cli --get-icon URL --icon-name NAME [--theme THEME]\n");
         fprintf(stderr, "\nExample:\n");

@@ -3,6 +3,7 @@
 # Test source files
 set(TEST_SOURCES
     test_main.cpp
+    test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
@@ -16,6 +17,7 @@ set(TEST_SOURCES
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
+    core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     # OpenSpec #00042: Custom Text Editor
     editor/test_editor_types.cpp
     editor/test_kml_element.cpp
@@ -45,6 +47,8 @@ set(TEST_SOURCES
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
     editor/test_search_service.cpp         # OpenSpec #00043 Phase 11.7: SearchService tests
     editor/test_kml_document_model.cpp     # OpenSpec #00043: KmlDocumentModel lazy rendering tests
+    editor/test_format_converter.cpp       # Sub-Project C WS4.2: FormatConverter unit tests
+    editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
@@ -94,6 +98,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
     ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp  # Phase 2.2: Format conversion
+    ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
     # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
     # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
@@ -111,6 +116,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
     # GUI dependencies for FindReplaceBar
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
+    ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
+    ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
@@ -133,11 +140,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # Sub-Project C WS4.4: StyleResolver with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h # Sub-Project C WS4.1: CommandRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h   # IconRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests

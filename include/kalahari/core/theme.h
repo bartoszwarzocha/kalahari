@@ -35,6 +35,8 @@ struct Theme {
         QColor infoSecondary; ///< Secondary info color for panels
         QColor dashboardPrimary; ///< Primary dashboard accent color
         QColor dashboardSecondary; ///< Secondary dashboard accent color
+        QColor infoBarBackground; ///< Info bar (standalone file banner) background color
+        QColor infoBarBorder; ///< Info bar (standalone file banner) border color
     } colors;
 
     /// @brief Qt Palette colors (for native widget styling)

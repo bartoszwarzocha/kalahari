@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Theme System Foundation:** Sub-Project C - 2026-07-13
+  - Test infrastructure: `test::resetSingletons()` hook (in `tests/test_support/`)
+    wired into the Catch2 listener for per-test singleton isolation, plus a new
+    public test-only `ArtProvider::reset()`.
+  - New unit suites: `FormatConverter`, `TrustedKeys`, and `StyleResolver`
+    (Tier A without a database; Tier B with a `ProjectDatabase` fixture including a
+    circular-inheritance termination guard). Suite now at 632 cases / 4419 assertions.
+  - Added `infoBarBackground` / `infoBarBorder` theme colors (via
+    `scripts/add_theme_color.py`); `standalone_info_bar.cpp` now reads them instead
+    of hardcoded cream/amber values plus a manual luminance branch.
+
+### Fixed
+
+- **Security (trusted keys):** Fixed a 1-byte heap overflow in
+  `TrustedKeys::base64EncodeInternal()` — the output buffer did not account for
+  OpenSSL's line-break newlines and NUL terminator, so encoding a 32-byte Ed25519
+  key wrote 46 bytes into a 45-byte buffer. Reachable in production via
+  `addUserKey()` → `saveUserKeys()` (i.e. any time a user adds a trusted publisher
+  key). Verified with a save/load round-trip regression test.
+
 ### Changed
 
 - **Build Quick Wins:** Sub-Project D1 - 2026-04-11

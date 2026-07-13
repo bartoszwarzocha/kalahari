@@ -227,7 +227,9 @@ void SettingsDialog::createNavigationTree() {
     auto createPlaceholderItem = [](QTreeWidgetItem* parent, const QString& text) {
         QTreeWidgetItem* item = new QTreeWidgetItem(parent);
         item->setText(0, text);
-        item->setForeground(0, QColor(Qt::gray));
+        // Grayed-out placeholder foreground from the theme's mid tone
+        const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+        item->setForeground(0, theme.palette.mid);
         item->setToolTip(0, QObject::tr("Coming in future version"));
         return item;
     };
@@ -1843,8 +1845,10 @@ void SettingsDialog::updateIconPreview() {
     int iconSize = 24;  // Simple 24px icons - Qt handles DPI scaling automatically
 
     // Get colors from ColorConfigWidgets
-    QColor primaryColor = m_primaryColorWidget ? m_primaryColorWidget->color() : QColor("#424242");
-    QColor secondaryColor = m_secondaryColorWidget ? m_secondaryColorWidget->color() : QColor("#757575");
+    QColor primaryColor = m_primaryColorWidget ? m_primaryColorWidget->color()
+                                               : core::ArtProvider::getInstance().getPrimaryColor();
+    QColor secondaryColor = m_secondaryColorWidget ? m_secondaryColorWidget->color()
+                                                   : core::ArtProvider::getInstance().getSecondaryColor();
 
     // Sample icons to preview
     QStringList sampleIcons = {

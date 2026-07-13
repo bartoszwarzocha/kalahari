@@ -73,6 +73,17 @@ public:
     /// @note Must be called after IconRegistry::initialize() and ThemeManager setup
     void initialize();
 
+    /// @brief Reset ArtProvider to a deterministic baseline
+    /// @note FOR TESTING ONLY. Mirrors the TrustedKeys::clear() /
+    ///       CommandRegistry::clear() test-only precedent (a plain public method,
+    ///       no friend required). Main-thread only.
+    ///
+    /// Clears the mutable state this singleton accumulates (custom genre
+    /// mappings, tracked actions, batch-mode flags) and re-runs initialize().
+    /// It does NOT delete the tracked QActions (they are owned by their parents)
+    /// and does NOT emit resourcesChanged(), so it is safe to call between tests.
+    void reset();
+
     // ========================================================================
     // Action Factory (self-updating QAction)
     // ========================================================================
