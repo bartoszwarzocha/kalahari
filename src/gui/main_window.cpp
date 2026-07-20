@@ -216,9 +216,10 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::onThemeChanged);
     logger.debug("MainWindow: Connected ThemeManager::themeChanged signal to MainWindow");
 
-    // Note: ThemeManager->IconRegistry connection is handled internally by ArtProvider
-    // ArtProvider::initialize() connects ThemeManager::themeChanged to IconRegistry::onThemeChanged
-    // and synchronizes colors from the current theme
+    // Note: the icon stack's theme handling is internal to ArtProvider.
+    // ArtProvider::initialize() synchronizes colors from the current theme and connects
+    // ThemeManager::themeChanged to ArtProvider::onThemeChanged, which drives IconRegistry
+    // itself. Do not connect IconRegistry to themeChanged here -- see ArtProvider::onThemeChanged.
 
     // Connect ProjectManager signals (OpenSpec #00033 Phase D) to DocumentCoordinator
     auto& pm = core::ProjectManager::getInstance();
@@ -360,6 +361,7 @@ void MainWindow::registerCommands() {
         auto& artProvider = core::ArtProvider::getInstance();
         QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
         int dashboardIndex = centralTabs->addTab(dashboardPanel, dashboardIcon, tr("Dashboard"));
+        dashboardPanel->setProperty("tabIconId", "view.dashboard");
         centralTabs->setCurrentIndex(dashboardIndex);
 
         // Reconnect Dashboard signals to DocumentCoordinator
@@ -1006,6 +1008,11 @@ void MainWindow::createDocks() {
     // OpenSpec #00032: Connect ArtProvider::resourcesChanged() to refresh dock title bar icons
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
             m_dockCoordinator, &DockCoordinator::refreshDockIcons);
+
+    // Central tab icons are plain QIcons (not managed QActions), so they must be
+    // refreshed explicitly on theme/color change, same as dock icons above.
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            m_dockCoordinator, &DockCoordinator::refreshTabIcons);
 
     // Get VIEW menu reference for toolbar actions
     if (m_menuBuilder) {

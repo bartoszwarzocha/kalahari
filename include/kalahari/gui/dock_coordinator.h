@@ -90,6 +90,12 @@ public:
     /// @note Called when theme changes to update icon colors
     void refreshDockIcons();
 
+    /// @brief Re-apply theme colors to central tab icons on resourcesChanged.
+    /// Tab icons are plain QIcons (not managed QActions), so they do not
+    /// auto-refresh. Each tab page stores its icon id in the "tabIconId"
+    /// property; this re-fetches every tab's icon from ArtProvider.
+    void refreshTabIcons();
+
     // =========================================================================
     // Panel accessors
     // =========================================================================

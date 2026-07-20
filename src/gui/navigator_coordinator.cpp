@@ -129,6 +129,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     logElapsed("After new EditorPanel");
     QIcon chapterIcon = core::ArtProvider::getInstance().getIcon("template.chapter");
     int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
+    newEditor->setProperty("tabIconId", "template.chapter");
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store element ID for save operations

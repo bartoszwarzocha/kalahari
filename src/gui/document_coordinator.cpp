@@ -741,6 +741,7 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
     QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
     int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
+    newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store file path for this tab

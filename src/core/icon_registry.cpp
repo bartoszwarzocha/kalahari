@@ -69,16 +69,15 @@ void IconRegistry::initialize() {
     // Load customizations from QSettings (includes default theme colors as fallback)
     loadFromSettings();
 
-    // Note: Connection to ThemeManager is done externally by MainWindow
-    // to avoid circular dependency between kalahari_core.dll and kalahari.exe
-    // MainWindow calls: connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-    //                          &IconRegistry::getInstance(), &IconRegistry::onThemeChanged);
+    // Note: IconRegistry is deliberately NOT connected to ThemeManager::themeChanged.
+    // ArtProvider::onThemeChanged calls onThemeChanged() below directly, so that the
+    // registry always adopts new colors before managed actions refresh their icons.
 
     // DIAGNOSTIC: Warn if colors are black (likely indicates theme not loaded)
-    if (m_theme.primaryColor == QColor("#000000") || m_theme.primaryColor == QColor(0, 0, 0)) {
+    if (m_theme.primaryColor == QColor("#000000")) {
         Logger::getInstance().warn("IconRegistry: PRIMARY color is BLACK - icons will be invisible on dark backgrounds!");
     }
-    if (m_theme.secondaryColor == QColor("#000000") || m_theme.secondaryColor == QColor(0, 0, 0)) {
+    if (m_theme.secondaryColor == QColor("#000000")) {
         Logger::getInstance().warn("IconRegistry: SECONDARY color is BLACK - icons may have invisible fills!");
     }
 

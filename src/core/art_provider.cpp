@@ -54,16 +54,16 @@ void ArtProvider::initialize() {
         currentTheme.colors.primary.name().toStdString(),
         currentTheme.colors.secondary.name().toStdString());
 
-    // Connect to ThemeManager for automatic updates
+    // Connect to ThemeManager for automatic updates.
     // Qt::UniqueConnection keeps initialize() idempotent: reset() (test-only)
     // may call initialize() repeatedly without accumulating duplicate connections.
+    //
+    // This is the ONLY themeChanged connection in the icon stack: onThemeChanged()
+    // drives IconRegistry itself, in a guaranteed order. IconRegistry must not be
+    // connected to themeChanged separately -- two independent connections would run
+    // in registration order, which is exactly the defect described there.
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
             this, &ArtProvider::onThemeChanged, Qt::UniqueConnection);
-
-    // CRITICAL: Also connect ThemeManager to IconRegistry for color updates
-    // This ensures icons get updated colors when theme changes
-    connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-            &IconRegistry::getInstance(), &IconRegistry::onThemeChanged, Qt::UniqueConnection);
 
     Logger::getInstance().info("ArtProvider: Initialized (iconTheme={})",
         m_iconTheme.toStdString());
@@ -322,6 +322,17 @@ void ArtProvider::setSecondaryColor(const QColor& color) {
 
 void ArtProvider::onThemeChanged() {
     Logger::getInstance().info("ArtProvider: Theme changed, refreshing all icons...");
+
+    // Order is load-bearing: IconRegistry must adopt the new colors and drop its
+    // cache BEFORE any managed action refreshes. emitResourcesChanged() makes every
+    // managed QAction re-request its icon; if the registry still held the previous
+    // theme's colors and a warm cache, those requests would hit the cache and
+    // re-apply stale-coloured icons, with nothing left to re-trigger them.
+    //
+    // ThemeManager emits themeChanged(m_currentTheme) only after committing the new
+    // theme, so getCurrentTheme() here is the theme that was just applied.
+    IconRegistry::getInstance().onThemeChanged(ThemeManager::getInstance().getCurrentTheme());
+
     emitResourcesChanged();
 }
 
