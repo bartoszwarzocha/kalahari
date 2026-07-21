@@ -1837,7 +1837,11 @@ bool BookEditor::hasFormat(ElementType formatType) const
     };
 
     if (hasSelection()) {
-        // Check if ALL text in selection has this format
+        // Check if ALL text in the selection carries this format. Iterate the
+        // document's text FRAGMENTS (runs of uniform formatting) instead of
+        // constructing one QTextCursor per character — the old per-character loop
+        // was O(N) cursor allocations and made "select all + bold" take ~10 s on a
+        // large chapter. Fragment iteration is O(runs), effectively instant.
         SelectionRange normRange = m_selection.normalized();
 
         for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
@@ -1847,13 +1851,22 @@ bool BookEditor::hasFormat(ElementType formatType) const
             int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
             int end = (i == normRange.end.paragraph) ? normRange.end.offset : block.length() - 1;
             if (end < 0) end = 0;
+            if (start >= end) continue;  // nothing selected in this block
 
-            // Check each character in range
-            for (int pos = start; pos < end; ++pos) {
-                QTextCursor cursor(m_textBuffer.get());
-                cursor.setPosition(block.position() + pos);
-                cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-                if (!checkCharFormat(cursor.charFormat())) {
+            // Document-absolute bounds of the selected range within this block.
+            const int selFrom = block.position() + start;
+            const int selTo = block.position() + end;
+
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                QTextFragment frag = it.fragment();
+                if (!frag.isValid()) continue;
+
+                const int fragFrom = frag.position();
+                const int fragTo = fragFrom + frag.length();
+                // Skip fragments outside the selected range.
+                if (fragTo <= selFrom || fragFrom >= selTo) continue;
+
+                if (!checkCharFormat(frag.charFormat())) {
                     return false;
                 }
             }
