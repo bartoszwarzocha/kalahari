@@ -116,8 +116,8 @@ void EditorPanel::applySettings() {
     editor::EditorAppearance appearance = m_bookEditor->appearance();
 
     // Font family and size (applied to typography.textFont)
-    std::string fontFamily = settings.get<std::string>("editor.fontFamily", "Georgia");
-    int fontSize = settings.get<int>("editor.fontSize", 14);
+    std::string fontFamily = settings.get<std::string>("editor.fontFamily", editor::DEFAULT_TEXT_FONT_FAMILY);
+    int fontSize = settings.get<int>("editor.fontSize", editor::DEFAULT_TEXT_FONT_SIZE);
     appearance.typography.textFont = QFont(QString::fromStdString(fontFamily), fontSize);
     logger.debug("Applied font: {} {}pt", fontFamily, fontSize);
 

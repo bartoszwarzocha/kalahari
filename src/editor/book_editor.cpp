@@ -1910,14 +1910,13 @@ void BookEditor::setSelectionFontFamily(const QString& family)
 
         emit contentChanged();
         update();
-    } else {
-        // No selection - change default font
-        EditorAppearance appearance = m_appearance;
-        QFont currentFont = appearance.typography.textFont;
-        currentFont.setFamily(family);
-        appearance.typography.textFont = currentFont;
-        setAppearance(appearance);
     }
+    // No selection: the toolbar font combo is a selection-only formatting control,
+    // like a classic word processor. With no selection we intentionally do nothing.
+    // The editor's global default font is owned solely by the settings dialog
+    // (editor.fontFamily); the toolbar must never mutate it here, or saving settings
+    // would appear to "revert" the font (it was only ever an unpersisted live change
+    // on m_appearance, which applyEditorSettingsToAllPanels then overwrote).
 }
 
 void BookEditor::setSelectionFontSize(int pointSize)
@@ -1949,14 +1948,9 @@ void BookEditor::setSelectionFontSize(int pointSize)
 
         emit contentChanged();
         update();
-    } else {
-        // No selection - change default font
-        EditorAppearance appearance = m_appearance;
-        QFont currentFont = appearance.typography.textFont;
-        currentFont.setPointSize(pointSize);
-        appearance.typography.textFont = currentFont;
-        setAppearance(appearance);
     }
+    // No selection: selection-only control, same as setSelectionFontFamily above.
+    // The global default font size is owned by the settings dialog (editor.fontSize).
 }
 
 QString BookEditor::currentFontFamily() const
@@ -2198,17 +2192,37 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
 
+    // Phase 15: push the new base font into the render pipeline FIRST, so it
+    // recomputes the DPI/zoom-SCALED effective font before we apply that font to
+    // the document below. (Colours/margins are order-independent — set further down.)
+    if (m_renderPipeline) {
+        m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
+    }
+
     // Phase 11: Set font on QTextDocument - both default and existing text
     if (m_textBuffer) {
-        QFont docFont = m_appearance.typography.textFont;
-        m_textBuffer->setDefaultFont(docFont);
+        m_textBuffer->setDefaultFont(m_appearance.typography.textFont);
 
-        // Apply font to all existing blocks/paragraphs
+        // Apply the pipeline's SCALED effective font to all existing paragraphs.
+        // We merge only the font FAMILY and POINT SIZE (not a whole QFont), so any
+        // per-run bold/italic/underline is preserved. Baking the raw *base* point
+        // size here (the old behaviour) defeated DPI scaling and shrank edit-mode
+        // text on every settings save — e.g. 17.8pt -> 12pt. The load path
+        // (buildDocument) bakes the scaled font into run formats, so this keeps
+        // existing blocks in sync with the pipeline's effective font.
+        const QFont effectiveFont = m_renderPipeline
+            ? m_renderPipeline->context().computed.effectiveFont
+            : m_appearance.typography.textFont;
+
         QTextCursor cursor(m_textBuffer.get());
         cursor.beginEditBlock();
         cursor.select(QTextCursor::Document);
         QTextCharFormat fmt;
-        fmt.setFont(docFont);
+        const QStringList families = effectiveFont.families();
+        if (!families.isEmpty()) {
+            fmt.setFontFamilies(families);
+        }
+        fmt.setFontPointSize(effectiveFont.pointSizeF());
         cursor.mergeCharFormat(fmt);
         cursor.endEditBlock();
 
@@ -2223,11 +2237,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         updateLayoutWidth();
         updateViewport();
 
-        // Update KalahariTextDocumentLayout font for proper relayout
-        auto* customLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
-        if (customLayout) {
-            customLayout->setFont(docFont);
-        }
+        // NOTE: the custom layout's font is deliberately NOT set here. The render
+        // pipeline owns it: applyFontToSource() -> QTextDocumentSource::setFont() ->
+        // customLayout->setFont() applies the DPI/zoom-SCALED effective font.
     }
 
     // Phase 11.10: Update KmlDocumentModel color (font set via syncPipelineState)
@@ -2251,10 +2263,10 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
     emit appearanceChanged();
 
-    // Phase 15: granular setters for appearance changes
+    // Phase 15: granular setters for appearance changes.
+    // (setConfigFont is applied at the top of this function, before the document
+    //  font update, so the effective font is fresh when we bake it into blocks.)
     if (m_renderPipeline) {
-        m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
-
         RenderColors colors;
         colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
         colors.background = m_appearance.colors.background(m_appearance.colorMode);

@@ -1238,11 +1238,11 @@ void ToolbarManager::syncFontWidgetsToEditor(EditorPanel* editor) {
     if (!editor || !editor->getBookEditor()) {
         // No editor - reset to defaults
         if (m_fontComboBox) {
-            m_fontComboBox->setCurrentFont(QFont("Georgia", 14));
+            m_fontComboBox->setCurrentFont(QFont(editor::DEFAULT_TEXT_FONT_FAMILY, editor::DEFAULT_TEXT_FONT_SIZE));
             m_fontComboBox->setEnabled(false);
         }
         if (m_fontSizeSpinner) {
-            m_fontSizeSpinner->setValue(14);
+            m_fontSizeSpinner->setValue(editor::DEFAULT_TEXT_FONT_SIZE);
             m_fontSizeSpinner->setEnabled(false);
         }
         logger.debug("ToolbarManager: Font widgets disabled (no active editor)");

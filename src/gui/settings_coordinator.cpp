@@ -111,8 +111,8 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.iconSizes[core::IconContext::ComboBox] = sizes.comboBox;
 
     // Editor/General
-    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", "Consolas"));
-    settingsData.editorFontSize = settings.get<int>("editor.fontSize", 12);
+    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", editor::DEFAULT_TEXT_FONT_FAMILY));
+    settingsData.editorFontSize = settings.get<int>("editor.fontSize", editor::DEFAULT_TEXT_FONT_SIZE);
     settingsData.tabSize = settings.get<int>("editor.tabSize", 4);
     settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers", true);
     settingsData.wordWrap = settings.get<bool>("editor.wordWrap", false);
