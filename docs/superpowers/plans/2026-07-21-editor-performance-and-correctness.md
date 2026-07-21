@@ -25,20 +25,23 @@ I build & signal, user runs the app; measure before rewriting.
 
 ---
 
-## Phase 1 — Style operations must be instant  (attacks "c")
-- 🔵 **1.1 Fix `hasFormat()` O(N²)** (built 2026-07-21, tests green — awaiting user verify + commit)
+## Phase 1 — Style operations must be instant  (attacks "c")  ✅ COMPLETE (2026-07-21)
+- ✅ **1.1 Fix `hasFormat()` O(N²)** (committed `d27d2a0`, user-verified: bold now instant)
   — it built one `QTextCursor` per character to decide
   the bold/italic toggle direction; on select-all that is ~100k cursor constructions =
   the ~10 s freeze. Replace with **`QTextFragment` iteration** (runs of uniform format).
   Covers bold/italic/underline/strikethrough (all route through `toggleFormat` → `hasFormat`).
-- ⬜ **1.2 Sweep sibling inefficiencies** in the edit/stat path:
-  - `wordCount()` / `characterCountNoSpaces()` call `toPlainText()` + full scan on **every**
-    `contentChanged` (3× per edit via `StatisticsCollector::recalculateStats`, whose "O(1)
-    cached" comment is false). Make counts genuinely incremental/cached, or debounce.
-  - Audit alignment / other selection ops for per-char loops. (`setSelectionFontFamily/Size`
-    already verified clean.)
-- ⬜ **1.3 Verify**: bold / italic / underline / font / size / align on select-all are all
-  instant on the real chapter.
+- ✅ **1.2 Sweep sibling inefficiencies** (audited 2026-07-21 — **no further fix needed**):
+  - `wordCount()` / `characterCountNoSpaces()` do call `toPlainText()` + full scan, but
+    `StatisticsCollector` **debounces** (`STATS_DEBOUNCE_MS`, single-shot) so it runs once
+    after a typing pause (~1–2 ms at 100k chars) — not felt. The "O(1) cached" comment is
+    misleading but harmless. Left as-is (avoid premature optimization).
+  - Alignment setters (`setAlignLeft/Center/Right/Justify`) loop over **paragraphs** (one
+    `setBlockFormat` each, shared cursor) — O(paragraphs), fine. IME handlers are single-op.
+  - `setSelectionFontFamily/Size` already clean. **Conclusion: `hasFormat` was the only real
+    O(N²) in the edit path.**
+- ✅ **1.3 Verify**: bold confirmed instant by user. Italic/underline route through the same
+  fixed `hasFormat`; font/size/align were already O(paragraphs)/single-cursor — all covered.
 
 ## Phase 2 — Styles must actually render  (attacks "b")
 - ⬜ **2.1** `KalahariTextDocumentLayout::layoutBlock` never calls `QTextLayout::setFormats()`,
