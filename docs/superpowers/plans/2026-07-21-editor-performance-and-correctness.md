@@ -1,76 +1,124 @@
-# Editor: Performance & Correctness — Step-by-Step Plan
+# Editor — MASTER Plan (Performance & Correctness)
 
-**Created:** 2026-07-21
-**Owner topic:** "Make the editor a first-class, performant control."
+**Created:** 2026-07-21 · supersedes the interim Phase-1 plan (folded in below).
+**Basis:** four full-subsystem audits (rendering/layout, editing/formatting, document
+model/persistence, view modes/appearance) — all file:line grounded.
 **Status legend:** ⬜ todo · 🔵 in progress · ✅ done (built + user-verified + committed)
 
-## Goal (user's words)
-A performant editor that is:
-- **a) fast**
-- **b) correctly displays all view modes and styles**
-- **c) reacts fast to style changes** (today: select-all + bold takes ~10 s)
+---
 
-## Guiding principle (decided this session, 2026-07-21)
-At **real** document sizes this project targets (~15k words ≈ ~100k chars, a few
-hundred paragraphs), performance problems are **targeted O(N²) bugs, not scaling walls.**
-→ **Measure, fix the quadratic, verify. No speculative rewrite.**
+## 0. ROOT CAUSE — why we keep patching (answers "why so many fix-iterations")
+All four audits converged on ONE structural cause: **the editor carries duplicated
+representations, and features are half-built on one side and dropped on the other.**
 
-The earlier "Tier 2 / order-statistic treap / viewport virtualization" program is
-**PARKED**: its ceiling benchmark measured **150k *paragraphs*** — 100–500× larger than
-any real file here. It solved a problem we don't have. Revisit only if a *measured*
-profile on a real file demands it (see Phase 4).
+| Duplication | "Good" side | "Lossy/latent" side | Consequence |
+|---|---|---|---|
+| **Two layout engines** | edit: `QTextDocument` + `KalahariTextDocumentLayout` (what the user actually sees — edit mode is always on after load) | view: `KmlDocumentModel` + `HeightTree` (mostly dead at runtime) | every typography feature must be built twice; they diverge (justify source, per-run colour/font) |
+| **Two KML parsers** | `KmlParser` (reads font/size/colour/justify) — **DEAD** | `KmlDocumentModel::parseInlineContent` — **LIVE, lossy** | reload silently drops font/size/colour/justify → re-save makes the loss permanent |
+| **Two undo stacks** | custom `m_undoStack` (text edits) | `QTextDocument` native (never disabled) | formatting is not undoable; caret desyncs after undo |
+| **Two cursor/selection models** | `m_cursorPosition`/`m_selection` | `QTextDocument` cursor | stale caret/selection after undo/redo |
+| **Read-but-dropped settings** | settings dialog writes them | `setAppearance` never forwards them | line spacing, paragraph spacing, indent, cursor style/width, text-frame border all do nothing |
 
-Working rules: one topic end-to-end (build + verify + commit before the next);
-I build & signal, user runs the app; measure before rewriting.
+**The strategy is therefore CONVERGENCE, not symptom-patching:**
+1. Commit to the **edit-mode `QTextDocument` path as the single canonical engine** (it already
+   renders styles correctly and is what the user sees).
+2. Make the **load path lossless** into that engine (fix/replace the lossy parser).
+3. Make it the **single undo + cursor authority**.
+4. Retire the dead duplicates (view parser, stale model, dead `ParagraphLayout`/`TableLayout`) as cleanup.
+5. Feature gaps then become **single-implementation** fixes.
+Performance stays **measurement-gated** (real files are ~15k words; fix quadratics when felt, no speculative rewrite — the treap/virtualization program stays parked until a profile demands it).
 
 ---
 
-## Phase 1 — Style operations must be instant  (attacks "c")  ✅ COMPLETE (2026-07-21)
-- ✅ **1.1 Fix `hasFormat()` O(N²)** (committed `d27d2a0`, user-verified: bold now instant)
-  — it built one `QTextCursor` per character to decide
-  the bold/italic toggle direction; on select-all that is ~100k cursor constructions =
-  the ~10 s freeze. Replace with **`QTextFragment` iteration** (runs of uniform format).
-  Covers bold/italic/underline/strikethrough (all route through `toggleFormat` → `hasFormat`).
-- ✅ **1.2 Sweep sibling inefficiencies** (audited 2026-07-21 — **no further fix needed**):
-  - `wordCount()` / `characterCountNoSpaces()` do call `toPlainText()` + full scan, but
-    `StatisticsCollector` **debounces** (`STATS_DEBOUNCE_MS`, single-shot) so it runs once
-    after a typing pause (~1–2 ms at 100k chars) — not felt. The "O(1) cached" comment is
-    misleading but harmless. Left as-is (avoid premature optimization).
-  - Alignment setters (`setAlignLeft/Center/Right/Justify`) loop over **paragraphs** (one
-    `setBlockFormat` each, shared cursor) — O(paragraphs), fine. IME handlers are single-op.
-  - `setSelectionFontFamily/Size` already clean. **Conclusion: `hasFormat` was the only real
-    O(N²) in the edit path.**
-- ✅ **1.3 Verify**: bold confirmed instant by user. Italic/underline route through the same
-  fixed `hasFormat`; font/size/align were already O(paragraphs)/single-cursor — all covered.
-
-## Phase 2 — Styles must actually render  (attacks "b")
-- ⬜ **2.1** `KalahariTextDocumentLayout::layoutBlock` never calls `QTextLayout::setFormats()`,
-  so per-run bold/italic/underline/font are stored but **invisible** (only block-level
-  alignment + one uniform block font render). Build a `QList<QTextLayout::FormatRange>` from
-  the block's fragment char-formats and apply it. (Same `layoutBlock` we already touched for
-  the font-shrink fix — must stay consistent with the pipeline's scaled effective font.)
-- ⬜ **2.2 Verify**: all inline styles render correctly and match what the toolbar reports.
-
-## Phase 3 — View modes solid  (attacks "b")
-Order the user set: get the **two basic modes flawless first** (Continuous + the "base"
-mode — confirm whether base = Page), reusing shared mechanisms, THEN the two view modes
-(**Typewriter**, **Focus / Distraction-free**).
-- ⬜ 3.1 Continuous mode: correct + fast.
-- ⬜ 3.2 Base/Page mode: correct pagination + fast.
-- ⬜ 3.3 Typewriter mode.
-- ⬜ 3.4 Focus / Distraction-free mode.
-
-## Phase 4 — Load / scroll performance — ONLY IF measured to be a problem
-The OpenOffice-style "load a big book, then work fast" concern. Do **not** pre-build for it.
-- ⬜ 4.1 If opening real files or scrolling shows lag: **measure first** (instrument load +
-  scroll on a real large file, capture paragraph/char counts).
-- ⬜ 4.2 If the profile points at full-document layout: lazy/viewport layout (shape only
-  visible blocks ± margin; estimated heights for the rest). Order-statistic accounting
-  (Fenwick/treap) only if the profile shows the linear position/height walk is itself the cost.
+## 1. WHAT IS ALREADY DONE / WORKING  (the "done" inventory)
+- **This session:** font no longer shrinks on settings save (`bbaa986`); `hasFormat` O(N²) →
+  fragments, style toggles instant (`d27d2a0`); Phase-1 sweep confirmed no other O(N²) in the edit path (`d3b727a`).
+- **Rendering:** plain text, wrapping, block layout; alignment L/C/R (edit mode); caret + selection
+  highlight; DPI+zoom font scaling; margins; scrollbar/height.
+- **Editing:** caret movement (arrows/word/doc/page); selection (mouse/keyboard/select-all); insert/
+  delete/newline/split-merge; bold/italic/underline/strike APPLY + render + persist (edit mode);
+  font family/size on selection; markers (TODO/Note); plain clipboard cut/copy/paste; correct counts.
+- **View/appearance:** Continuous mode (reference, solid); Page-mode *rendering* (real pagination);
+  zoom via Ctrl+wheel + API + zoom modes; appearance: font, text/bg colours, light/dark, selection
+  colour, cursor blink, margins.
+- **Persistence:** `.kchapter`/`.klh` disk I/O is lossless (KML stored verbatim); serializer (SAVE
+  side) writes everything faithfully.
 
 ---
+
+## 2. ROADMAP — ordered stages (dependency-driven)
+Each item: analyze → implement → I build → **you test the specific check I give you** → commit.
+
+### Stage A — Lossless persistence (do FIRST: silent, permanent DATA LOSS)
+- ⬜ **A1** Fix the load parser so **font family / size / text colour / background** survive load.
+  (`kml_document_model.cpp:557-638`; also widen the run-emit predicate `:582-595`, or route load
+  through the complete `KmlParser` + retire the duplicate.)
+- ⬜ **A2** Apply **paragraph alignment (incl. justify)** on materialization — add a model accessor
+  and set the block alignment in `ensureEditMode` (`book_editor.cpp:5386-5411`). Fixes justify-lost-on-reload.
+- ⬜ **A3** Fix **spurious "unsaved changes" on chapter open** — the navigator path connects
+  `contentChanged` before `setContent` with no reset (`navigator_coordinator.cpp:140` vs `:168`).
+- ⬜ **A4 (cleanup)** retire the dead second parser + stale `KmlDocumentModel` two-representation hop.
+
+### Stage B — One undo + one cursor authority (foundation for coherent editing)
+- ⬜ **B1** Disable `QTextDocument` native undo (`m_textBuffer->setUndoRedoEnabled(false)` in
+  `ensureEditMode`); route formatting/alignment/font through the **already-existing**
+  `FormatApplyCommand`/`FormatRemoveCommand` (+ a new alignment command) on `m_undoStack`.
+- ⬜ **B2** Restore `m_cursorPosition`/`m_selection` (and `syncPipelineCursor()`) on undo/redo.
+- ⬜ **B3** Make **pending format** real — `insertText` consumes `m_pendingBold/Italic/...` then clears.
+
+### Stage C — Style & paragraph-format rendering correctness (the visible complaints)
+- ⬜ **C1** **Justify** live: runtime-verify the width-plumbing hazard (`QTextDocumentSource::setTextWidth`
+  vs `updateLayoutWidth` → if `m_textWidth==0`, `effectiveWidth=10000` ⇒ no wrap, no justify), fix so
+  multi-line justified paragraphs actually justify.
+- ⬜ **C2** **Line spacing / paragraph spacing / first-line indent** — currently ignored by the layout
+  math; wire into `layoutBlock` line-height + block formats.
+- ⬜ **C3** **Appearance plumbing** — forward the read-but-dropped settings from `setAppearance` to the
+  pipeline: line spacing, paragraph spacing, indent, cursor style, cursor width, text-frame border.
+- ⬜ **C4** **Text colour** operation (`setSelectionTextColor`, undoable via Stage B) + recolour
+  selected-text foreground.
+
+### Stage D — View modes (build on the now-correct base)
+- ⬜ **D0** Wire the dead **zoom menu/toolbar commands** (`command_registrar.cpp:504-506`) — quick win.
+- ⬜ **D1** Confirm **Continuous** as exact reference.
+- ⬜ **D2** **Page** mode navigation from the real pagination cache (not viewport height); page-size
+  selection (A4/A5/Letter); page numbers; mirror margins.
+- ⬜ **D3** **Focus** mode: actually enable dimming/current-line highlight on `setViewMode(Focus)`.
+- ⬜ **D4** **Typewriter**: line-lock in all modes (not edit-mode-only).
+- ⬜ **D5** **Distraction-Free**: connect fullscreen/hide-UI + real text centering/narrowing.
+
+### Stage E — Rich content (larger, later)
+- ⬜ **E1** Inline **images** (no infrastructure exists today).
+- ⬜ **E2** **Tables** — wire the fully-built-but-dead `TableLayout` into the pipeline, or reimplement.
+
+### Stage F — Performance (measurement-gated)
+- ⬜ **F1** Measure typing/scroll/click on the **real** book. If the edit-path O(N)
+  (`updateBlockPositions` per keystroke, linear `hitTest`, `positionFromPoint`) is felt, replace with
+  the O(log N) `HeightTree` path (design doc `2026-07-14-editor-performance-fix-design.md`). Only then.
+
+### Stage G — Un-stub or clearly disable misleading features (fold in as we pass each area)
+- ⬜ Comments (stubbed), spell-check underline/suggestions (stubbed), grammar (stubbed), formatted
+  clipboard (plain-only). Either implement or disable the UI so it doesn't mislead.
+
+---
+
+## 3. SYSTEMATIC TEST SEQUENCE ("place by place", bottom-up)
+We walk this together; I tell you the exact action + what to look for each time.
+- **T1 Foundation:** type, move caret everywhere, select, **undo/redo of text AND of formatting**.
+- **T2 Character styles:** bold/italic/underline/strike/colour → visible, undoable, and **survive save→reopen**.
+- **T3 Paragraph format:** align L/C/R/**justify** visible + survive reopen; line spacing, paragraph spacing, indent take effect.
+- **T4 Round-trip:** apply everything → save → close → reopen → all survives; **no spurious "unsaved" prompt on open**.
+- **T5 View modes:** Continuous → Page (nav/size/numbers) → Focus → Typewriter → Distraction-Free → zoom buttons.
+- **T6 Performance:** on the real book — typing, scrolling, clicking, select-all ops.
+- **T7 Rich content:** images, tables (later).
+
+---
+
+## 4. CADENCE (how we work — no jumping)
+One stage/item at a time. For each: I analyze deeply first → implement → build & report ready →
+**I tell you precisely what to test and what to look for** → you verify → we commit → next item.
+I keep this file as the single source of progress.
 
 ## Progress log
-- 2026-07-21: Plan created. Priority 0 (font shrink on settings save) already fixed &
-  committed `bbaa986` before this plan. Root-caused the ~10 s bold to `hasFormat` O(N²).
-  Parked the treap/virtualization program (mis-scoped for 150k paragraphs).
+- 2026-07-21: Priority-0 font-shrink fixed (`bbaa986`). hasFormat O(N²) fixed (`d27d2a0`), Phase-1
+  closed (`d3b727a`). Four-subsystem audit completed → this master plan. Root cause = duplicated
+  representations; strategy = convergence on the edit-mode QTextDocument engine.
