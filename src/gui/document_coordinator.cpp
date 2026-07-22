@@ -52,6 +52,7 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
                                            DirtyStateGetter isDirty,
                                            DirtySetter setDirty,
                                            WindowTitleUpdater updateTitle,
+                                           HasUnsavedChangesGetter hasUnsavedChanges,
                                            QObject* parent)
     : QObject(parent)
     , m_mainWindow(mainWindow)
@@ -65,6 +66,7 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     , m_isDirty(std::move(isDirty))
     , m_setDirty(std::move(setDirty))
     , m_updateWindowTitle(std::move(updateTitle))
+    , m_hasUnsavedChanges(std::move(hasUnsavedChanges))
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
 {
@@ -73,7 +75,8 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
 }
 
 bool DocumentCoordinator::maybeSave() {
-    if (!m_isDirty()) {
+    // Consult the single source of truth (content + structure + standalone tabs).
+    if (!m_hasUnsavedChanges()) {
         return true;
     }
 
@@ -90,8 +93,8 @@ bool DocumentCoordinator::maybeSave() {
     );
 
     if (reply == QMessageBox::Save) {
-        onSaveDocument();
-        return !m_isDirty();  // Return true if save succeeded (dirty cleared)
+        onSaveDocument();  // In project mode this delegates to onSaveAll()
+        return !m_hasUnsavedChanges();  // True only if everything is now saved
     } else if (reply == QMessageBox::Cancel) {
         return false;
     }
@@ -160,9 +163,8 @@ void DocumentCoordinator::onNewDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Document");
 
-    // Check for unsaved changes in current editor tab
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (currentEditor && m_isDirty()) {
+    // Check for unsaved changes via the single source of truth.
+    if (m_hasUnsavedChanges()) {
         auto reply = QMessageBox::question(
             m_mainWindow,
             tr("Unsaved Changes"),
@@ -173,7 +175,7 @@ void DocumentCoordinator::onNewDocument() {
 
         if (reply == QMessageBox::Save) {
             onSaveDocument();
-            if (m_isDirty()) return;  // Save was cancelled or failed
+            if (m_hasUnsavedChanges()) return;  // Save was cancelled or failed
         } else if (reply == QMessageBox::Cancel) {
             return;
         }
@@ -277,17 +279,38 @@ void DocumentCoordinator::onOpenDocument() {
         QString currentProjectName = QFileInfo(projectPath).fileName();
         if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
 
-        auto reply = QMessageBox::question(
-            m_mainWindow,
-            tr("Close Current Project?"),
-            tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No
-        );
-
-        if (reply != QMessageBox::Yes) {
-            logger.debug("User cancelled opening new project");
-            return;
+        if (m_hasUnsavedChanges()) {
+            // Dirty: offer to save before switching (single source of truth).
+            auto reply = QMessageBox::question(
+                m_mainWindow,
+                tr("Unsaved Changes"),
+                tr("Do you want to save changes to '%1' before opening the selected project?")
+                    .arg(currentProjectName),
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                QMessageBox::Save
+            );
+            if (reply == QMessageBox::Cancel) {
+                logger.debug("User cancelled opening new project");
+                return;
+            }
+            if (reply == QMessageBox::Save) {
+                onSaveAll();
+                if (m_hasUnsavedChanges()) return;  // Save failed - abort switch
+            }
+            // Discard -> proceed with switch
+        } else {
+            // Clean: plain confirmation to avoid an accidental project switch.
+            auto reply = QMessageBox::question(
+                m_mainWindow,
+                tr("Close Current Project?"),
+                tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No
+            );
+            if (reply != QMessageBox::Yes) {
+                logger.debug("User cancelled opening new project");
+                return;
+            }
         }
 
         // Prepare services for close BEFORE database is destroyed by openProject->closeProject
@@ -325,9 +348,8 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         return;
     }
 
-    // Check for unsaved changes in current editor tab
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (currentEditor && m_isDirty()) {
+    // Check for unsaved changes via the single source of truth.
+    if (m_hasUnsavedChanges()) {
         auto reply = QMessageBox::question(
             m_mainWindow,
             tr("Unsaved Changes"),
@@ -338,7 +360,7 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
 
         if (reply == QMessageBox::Save) {
             onSaveDocument();
-            if (m_isDirty()) return;
+            if (m_hasUnsavedChanges()) return;
         } else if (reply == QMessageBox::Cancel) {
             return;
         }
@@ -358,21 +380,42 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
                 return;
             }
 
-            // Different project - ask user for confirmation before closing
+            // Different project - handle unsaved changes before closing
             QString currentProjectName = QFileInfo(currentProjectPath).fileName();
             if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
 
-            auto reply = QMessageBox::question(
-                m_mainWindow,
-                tr("Close Current Project?"),
-                tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No
-            );
-
-            if (reply != QMessageBox::Yes) {
-                logger.debug("User cancelled opening new project");
-                return;
+            if (m_hasUnsavedChanges()) {
+                // Dirty: offer to save before switching (single source of truth).
+                auto reply = QMessageBox::question(
+                    m_mainWindow,
+                    tr("Unsaved Changes"),
+                    tr("Do you want to save changes to '%1' before opening the selected project?")
+                        .arg(currentProjectName),
+                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                    QMessageBox::Save
+                );
+                if (reply == QMessageBox::Cancel) {
+                    logger.debug("User cancelled opening new project");
+                    return;
+                }
+                if (reply == QMessageBox::Save) {
+                    onSaveAll();
+                    if (m_hasUnsavedChanges()) return;  // Save failed - abort switch
+                }
+                // Discard -> proceed with switch
+            } else {
+                // Clean: plain confirmation to avoid an accidental project switch.
+                auto reply = QMessageBox::question(
+                    m_mainWindow,
+                    tr("Close Current Project?"),
+                    tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No
+                );
+                if (reply != QMessageBox::Yes) {
+                    logger.debug("User cancelled opening new project");
+                    return;
+                }
             }
 
             // Prepare services for close BEFORE database is destroyed by openProject->closeProject
@@ -747,6 +790,9 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     // Store file path for this tab
     newEditor->setProperty("standaloneFilePath", path);
     newEditor->setProperty("isStandaloneFile", true);
+    // Per-tab content-dirty flag, seeded clean. Set true on genuine edits below and
+    // consulted by MainWindow::hasUnsavedChanges() and the tab-close prompt.
+    newEditor->setProperty("dirty", false);
 
     // Set content
     newEditor->setContent(content);
@@ -768,10 +814,15 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
     m_standaloneInfoBar->show();
 
-    // Connect contentChanged signal for dirty tracking
+    // Connect contentChanged signal for dirty tracking.
+    // Connected AFTER setContent() above so merely opening a file does not mark it
+    // dirty (same rationale as the project-chapter path in NavigatorCoordinator).
     connect(newEditor, &EditorPanel::contentChanged,
             this, [this, path, newEditor]() {
-                // Mark tab as dirty
+                // Real per-tab dirty flag (source of truth for standalone tabs).
+                newEditor->setProperty("dirty", true);
+
+                // Mark tab title with asterisk
                 int currentIdx = m_centralTabs->indexOf(newEditor);
                 if (currentIdx >= 0) {
                     QString tabText = m_centralTabs->tabText(currentIdx);

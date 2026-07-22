@@ -213,12 +213,21 @@ public:
     /// @return Const pointer to current Document, nullptr if no document open
     const Document* getDocument() const;
 
-    /// @brief Check if project has unsaved changes
-    /// @return true if dirty, false otherwise
+    /// @brief Check if the project STRUCTURE / manifest has unsaved changes
+    /// @return true if the manifest is dirty, false otherwise
+    ///
+    /// This tracks manifest/structure dirtiness ONLY (add/rename/move/delete of
+    /// elements and metadata changes). It is intentionally reset by saveManifest().
+    /// Per-element CONTENT dirtiness is tracked separately on each BookElement and
+    /// aggregated via hasDirtyElements() / getDirtyElements().
     bool isDirty() const;
 
-    /// @brief Set dirty state
-    /// @param dirty true to mark as dirty, false to mark as clean
+    /// @brief Set the STRUCTURE / manifest dirty state
+    /// @param dirty true to mark manifest as dirty, false to mark as clean
+    ///
+    /// Use for structural operations (add/rename/move/delete) and metadata changes.
+    /// Do NOT use for chapter content edits - use markElementDirty() instead so the
+    /// single per-element content-dirty source of truth stays coherent.
     void setDirty(bool dirty);
 
     // =========================================================================

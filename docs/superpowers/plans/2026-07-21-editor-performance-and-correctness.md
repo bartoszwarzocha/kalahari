@@ -55,9 +55,58 @@ Each item: analyze → implement → I build → **you test the specific check I
   through the complete `KmlParser` + retire the duplicate.)
 - ⬜ **A2** Apply **paragraph alignment (incl. justify)** on materialization — add a model accessor
   and set the block alignment in `ensureEditMode` (`book_editor.cpp:5386-5411`). Fixes justify-lost-on-reload.
-- ⬜ **A3** Fix **spurious "unsaved changes" on chapter open** — the navigator path connects
-  `contentChanged` before `setContent` with no reset (`navigator_coordinator.cpp:140` vs `:168`).
-- ⬜ **A4 (cleanup)** retire the dead second parser + stale `KmlDocumentModel` two-representation hop.
+- ✅ **A3 — Dirty/Save COHERENCE — DONE & user-verified (2026-07-22).** Final design differs from
+  the first cut: content truth is the **per-open-tab** signal (`m_dirtyChapters` + standalone
+  per-tab flag), NOT model `BookElement` dirty — the model flag gets set by tree-build/selection/
+  metadata with no user edit and can't be cleared, which caused a spurious "save on project open"
+  prompt; that layer was removed. Structure/metadata = `pm.isDirty()`. One predicate
+  `MainWindow::hasUnsavedChanges()` drives every prompt path (tab-close, closeEvent, maybeSave,
+  New, Open-Recent, project-switch). Also delivered: **#6** chapter-switch no longer prompts (tab
+  keeps "*" + app-close prompt, per user UX); **#8** rename reads the CLEAN model title so the "*"
+  dirty indicator and " [Status]" suffix never leak into the saved title; the "*" modified indicator
+  is now produced inside `getDisplayTitle()` so it survives every tree rebuild/refresh; dead
+  `confirmSaveOrDiscard`/`saveCurrentChapter` removed. Verified matrix incl. project-switch. Original analysis below.
+- 🔵 **A3 — Dirty/Save COHERENCE (single source of truth).** Audit (2026-07-21) found **4 live
+  dirty flags, no single truth**: `MainWindow::m_isDirty`(#1, only phase-0/standalone),
+  `ProjectManager::m_isDirty`(#2, chapter edit + structural, **eagerly reset by `saveManifest()`
+  pm.cpp:370**), `NavigatorCoordinator::m_dirtyChapters`(#3, per-chapter), `BookElement::m_isDirty`(#5,
+  only during the save routine). Prompt paths read DIFFERENT flags → the observed bugs:
+  - **Bug#1 (fixed):** spurious prompt on chapter open — connect-before-setContent; reordered
+    (navigator_coordinator.cpp:145/150). ✅ user-confirmed.
+  - **Bug#2:** edit chapter → close TAB → no prompt. Tab-close (main_window.cpp:919) checks #1
+    (never set by chapter edits) AND its body is a `// TODO: just close` no-op stub.
+  - **Bug#3:** edit → close PROGRAM → prompt only *sometimes*. closeEvent ORs #1∨#3∨#2 with
+    divergent lifecycles; #2 cleared by every structural `saveManifest()`; #3 can be stale.
+  **Target (minimal, concrete):** dirtiness per-element on `BookElement`, aggregated by
+  `ProjectManager`; one predicate `MainWindow::hasUnsavedChanges()` = `#1 (non-project docs)` OR
+  `!pm.getDirtyElements().empty()` (content) OR `pm.isStructureDirty()` (manifest). Steps:
+    1. Chapter-edit lambda (navigator_coordinator.cpp:155-157) also marks the model
+       (`pm.markElementDirty(id)`); `m_dirtyChapters` becomes a derived `"*"` cache, not a rival truth.
+    2. De-conflate `ProjectManager`: split `m_structureDirty` (manifest) vs content(=`getDirtyElements()`);
+       `saveManifest()` resets ONLY `m_structureDirty` (fixes Bug#3's eager clear).
+    3. Rewrite tab-close (main_window.cpp:913-929): resolve tab's `elementId`, prompt Save/Discard/
+       Cancel via the predicate, clear that element's dirty on close (fixes Bug#2 + stale flag).
+    4. Standalone editor: real per-tab dirty flag (document_coordinator.cpp:772-782), seeded false,
+       included in the predicate.
+    5. Route ALL prompt paths through `hasUnsavedChanges()`: `maybeSave`(doc_coord:75), `onCloseDocument`
+       (:642), `onNewDocument`(:165), `onOpenRecentFile`(:330), project-switch confirms (:275,:352).
+    6. Simplify `closeEvent` (main_window.cpp:1052-1107) to the single predicate (both the check and the
+       Save-branch recheck).
+  - ⬜ **A4 (cleanup)** retire the dead second parser + stale `KmlDocumentModel` two-representation hop;
+    also retire the dead `NavigatorCoordinator::documentModified` signal (emitted 10×, connected nowhere).
+
+  **A3 test matrix (user runs after implement):**
+  | # | Action | Expected |
+  |---|--------|----------|
+  | 1 | open chapter A, no edit, open B | no prompt |
+  | 2 | open A, no edit, close tab / close app | no prompt |
+  | 3 | edit A, close TAB | **prompt Save/Discard/Cancel** (Bug#2) |
+  | 4 | edit A, close APP | **prompt** (Bug#3) |
+  | 5 | edit A, close app, repeat 5× | **prompt every time** (no randomness) |
+  | 6 | edit A, switch to B | prompt (already worked) |
+  | 7 | edit A, Save via any prompt, then close app | **no prompt** (all flags cleared) |
+  | 8 | edit A, structural op (rename/add), close app | **prompt** (structural save must not clear content dirty) |
+  | 9 | edit standalone file, close | **prompt** |
 
 ### Stage B — One undo + one cursor authority (foundation for coherent editing)
 - ⬜ **B1** Disable `QTextDocument` native undo (`m_textBuffer->setUndoRedoEnabled(false)` in

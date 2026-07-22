@@ -88,6 +88,16 @@ public:
     /// @brief Clear all dirty chapter states
     void clearDirtyChapters();
 
+    /// @brief Discard unsaved changes for a single chapter
+    /// @param elementId Element ID whose changes should be discarded
+    ///
+    /// Clears the chapter dirty state everywhere so nothing goes stale:
+    /// - the model BookElement dirty flag (single source of truth)
+    /// - the m_dirtyChapters display cache
+    /// - the navigator "*" indicator (via chapterDirtyStateChanged)
+    /// Does NOT persist any content. Used by the tab-close discard path.
+    void discardChapterChanges(const QString& elementId);
+
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
 
@@ -184,14 +194,6 @@ private:
 
     /// @brief Refresh navigator with current document
     void refreshNavigator();
-
-    /// @brief Save current chapter content to disk (OpenSpec #00042 Phase 7.5)
-    /// @return true if saved successfully, false on error
-    bool saveCurrentChapter();
-
-    /// @brief Show save confirmation dialog for unsaved changes (OpenSpec #00042 Phase 7.5)
-    /// @return true if user wants to proceed (saved or discarded), false if cancelled
-    bool confirmSaveOrDiscard();
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;

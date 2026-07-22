@@ -56,6 +56,25 @@ void NavigatorCoordinator::clearDirtyChapters() {
     m_dirtyChapters.clear();
 }
 
+void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    // Clear the model element dirty flag (single source of truth)
+    if (core::BookElement* element = pm.findElement(elementId)) {
+        element->setDirty(false);
+    }
+
+    // Clear the display cache
+    m_dirtyChapters[elementId] = false;
+
+    // Clear the navigator "*" indicator
+    emit chapterDirtyStateChanged(elementId, false);
+
+    logger.debug("NavigatorCoordinator: Discarded changes for chapter: {}",
+                 elementId.toStdString());
+}
+
 EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
     if (!m_centralTabs) {
         return nullptr;
@@ -104,14 +123,10 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         }
     }
 
-    // Check if current chapter has unsaved changes and prompt user (OpenSpec #00042 Phase 7.5)
-    if (!m_currentElementId.isEmpty() && m_dirtyChapters.value(m_currentElementId, false)) {
-        if (!confirmSaveOrDiscard()) {
-            // User cancelled - don't switch
-            logger.debug("User cancelled chapter switch");
-            return;
-        }
-    }
+    // Switching chapters does NOT prompt to save. The current chapter's tab stays
+    // open with its "*" modified indicator (tab + navigator tree), and any unsaved
+    // changes are reported once at application close. This avoids nagging on every
+    // chapter switch (per the user's UX design: signal with an icon, prompt at close).
 
     // Load chapter content from file via ProjectManager
     logElapsed("Before loadChapterContent");
@@ -136,7 +151,17 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     newEditor->setProperty("elementId", elementId);
     m_currentElementId = elementId;
 
-    // Connect contentChanged signal for per-chapter dirty tracking
+    // Set content BEFORE wiring dirty tracking. BookEditor::fromKml() emits
+    // contentChanged while loading; if the dirty-tracking slot were connected first,
+    // merely opening a chapter would mark it modified (spurious "*" in the tab + a
+    // "save changes?" prompt on close/switch with no real edit). The standalone-file
+    // path already connects after setContent for exactly this reason.
+    logElapsed("Before setContent");
+    newEditor->setContent(content);
+    logElapsed("After setContent");
+
+    // Connect contentChanged signal for per-chapter dirty tracking (AFTER load, so
+    // only genuine user edits mark the chapter dirty).
     connect(newEditor, &EditorPanel::contentChanged,
             this, [this, elementId, elementTitle, newEditor]() {
                 auto& pm = core::ProjectManager::getInstance();
@@ -144,7 +169,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                     // Mark chapter as dirty
                     if (!m_dirtyChapters.value(elementId, false)) {
                         m_dirtyChapters[elementId] = true;
-                        pm.setDirty(true);
+                        // Chapter CONTENT dirtiness is tracked per open tab here, set
+                        // ONLY on genuine edits (this slot is connected AFTER load).
+                        // Do NOT mark the model BookElement or the manifest/structure
+                        // dirty: tree-building/selection/properties can dirty the model
+                        // element with no user edit, which resurfaces as a spurious
+                        // save prompt that can never be cleared.
 
                         // Update tab title with asterisk
                         int currentIdx = m_centralTabs->indexOf(newEditor);
@@ -162,11 +192,6 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                     }
                 }
             });
-
-    // Set content using setContent method
-    logElapsed("Before setContent");
-    newEditor->setContent(content);
-    logElapsed("After setContent");
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -192,23 +217,38 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
         return;
     }
 
-    // Show input dialog for new name
-    bool ok;
+    Q_UNUSED(currentTitle);  // display text is decorated; the clean title comes from the model
+
+    // Resolve the target and read its REAL title from the model. The passed-in
+    // currentTitle is the tree item's DISPLAY text, which carries decorations (the
+    // "*" dirty indicator and a " [Status]" suffix); using it would leak those into
+    // the renamed title (e.g. a doubled "[Draft]").
+    core::BookElement* element = pm.findElement(elementId);
+    core::Part* part = element ? nullptr : pm.findPart(elementId);
+    if (!element && !part) {
+        logger.warn("NavigatorCoordinator: Element not found for rename: {}",
+                    elementId.toStdString());
+        return;
+    }
+    const QString cleanTitle = element
+        ? QString::fromStdString(element->getTitle())
+        : QString::fromStdString(part->getTitle());
+
+    // Show input dialog for new name (pre-filled with the clean title)
+    bool ok = false;
     QString newTitle = QInputDialog::getText(
         qobject_cast<QWidget*>(parent()),
         tr("Rename"),
         tr("New name:"),
         QLineEdit::Normal,
-        currentTitle,
+        cleanTitle,
         &ok
     );
 
-    if (!ok || newTitle.isEmpty() || newTitle == currentTitle) {
+    if (!ok || newTitle.isEmpty() || newTitle == cleanTitle) {
         return;  // Cancelled or no change
     }
 
-    // Find and rename the element
-    core::BookElement* element = pm.findElement(elementId);
     if (element) {
         element->setTitle(newTitle.toStdString());
         element->touch();  // Update modified timestamp
@@ -222,11 +262,13 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
             // Refresh navigator to show new name
             refreshNavigator();
 
-            // Update tab title if this element is open
+            // Update the open tab's title, preserving the "*" dirty indicator.
             for (int i = 0; i < m_centralTabs->count(); ++i) {
                 QWidget* widget = m_centralTabs->widget(i);
                 if (widget->property("elementId").toString() == elementId) {
-                    m_centralTabs->setTabText(i, newTitle);
+                    const QString tabTitle = m_dirtyChapters.value(elementId, false)
+                        ? "*" + newTitle : newTitle;
+                    m_centralTabs->setTabText(i, tabTitle);
                     break;
                 }
             }
@@ -244,31 +286,25 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
         return;
     }
 
-    // Check if it's a Part
-    core::Part* part = pm.findPart(elementId);
-    if (part) {
-        part->setTitle(newTitle.toStdString());
-        pm.setDirty(true);
+    // Otherwise it is a Part (resolved above).
+    part->setTitle(newTitle.toStdString());
+    pm.setDirty(true);
 
-        if (pm.saveManifest()) {
-            logger.info("NavigatorCoordinator: Renamed part '{}' to '{}'",
-                        elementId.toStdString(), newTitle.toStdString());
+    if (pm.saveManifest()) {
+        logger.info("NavigatorCoordinator: Renamed part '{}' to '{}'",
+                    elementId.toStdString(), newTitle.toStdString());
 
-            refreshNavigator();
-            m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
-            emit documentModified();
-        } else {
-            logger.error("NavigatorCoordinator: Failed to save manifest after part rename");
-            QMessageBox::warning(
-                qobject_cast<QWidget*>(parent()),
-                tr("Rename Failed"),
-                tr("Failed to save changes.")
-            );
-        }
-        return;
+        refreshNavigator();
+        m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
+        emit documentModified();
+    } else {
+        logger.error("NavigatorCoordinator: Failed to save manifest after part rename");
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Rename Failed"),
+            tr("Failed to save changes.")
+        );
     }
-
-    logger.warn("NavigatorCoordinator: Element not found for rename: {}", elementId.toStdString());
 }
 
 void NavigatorCoordinator::onRequestDelete(const QString& elementId, const QString& elementType) {
@@ -531,106 +567,6 @@ void NavigatorCoordinator::onPartReordered(int fromIndex, int toIndex) {
     }
 }
 
-// =============================================================================
-// Save and Confirmation (OpenSpec #00042 Phase 7.5)
-// =============================================================================
-
-bool NavigatorCoordinator::saveCurrentChapter() {
-    auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
-
-    if (m_currentElementId.isEmpty()) {
-        return true;  // Nothing to save
-    }
-
-    if (!m_dirtyChapters.value(m_currentElementId, false)) {
-        return true;  // Not dirty, nothing to save
-    }
-
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (!currentEditor) {
-        logger.warn("NavigatorCoordinator: No current editor to save from");
-        return false;
-    }
-
-    // Get content from editor and update element's content cache
-    QString content = currentEditor->getContent();
-    core::BookElement* element = pm.findElement(m_currentElementId);
-    if (element) {
-        element->setContent(content);
-    }
-
-    // Save to file via ProjectManager
-    if (pm.saveChapterContent(m_currentElementId)) {
-        // Clear dirty state
-        m_dirtyChapters[m_currentElementId] = false;
-
-        // Update tab title (remove asterisk)
-        int currentIdx = m_centralTabs->indexOf(currentEditor);
-        if (currentIdx >= 0) {
-            QString tabText = m_centralTabs->tabText(currentIdx);
-            if (tabText.startsWith("*")) {
-                m_centralTabs->setTabText(currentIdx, tabText.mid(1));
-            }
-        }
-
-        // Notify NavigatorPanel to clear modified indicator
-        emit chapterDirtyStateChanged(m_currentElementId, false);
-
-        logger.info("NavigatorCoordinator: Saved chapter: {}", m_currentElementId.toStdString());
-        m_statusBar->showMessage(tr("Saved"), 2000);
-        return true;
-    } else {
-        logger.error("NavigatorCoordinator: Failed to save chapter: {}", m_currentElementId.toStdString());
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Save Failed"),
-            tr("Failed to save chapter. Please try again.")
-        );
-        return false;
-    }
-}
-
-bool NavigatorCoordinator::confirmSaveOrDiscard() {
-    auto& logger = core::Logger::getInstance();
-
-    if (m_currentElementId.isEmpty()) {
-        return true;  // Nothing to confirm
-    }
-
-    if (!m_dirtyChapters.value(m_currentElementId, false)) {
-        return true;  // Not dirty, no confirmation needed
-    }
-
-    logger.debug("NavigatorCoordinator: Showing save confirmation for: {}", m_currentElementId.toStdString());
-
-    // Show confirmation dialog
-    auto reply = QMessageBox::question(
-        qobject_cast<QWidget*>(parent()),
-        tr("Unsaved Changes"),
-        tr("The current chapter has unsaved changes.\n\nDo you want to save before switching?"),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-        QMessageBox::Save
-    );
-
-    switch (reply) {
-    case QMessageBox::Save:
-        // Try to save
-        return saveCurrentChapter();
-
-    case QMessageBox::Discard:
-        // Discard changes - clear dirty state without saving
-        m_dirtyChapters[m_currentElementId] = false;
-        emit chapterDirtyStateChanged(m_currentElementId, false);
-        logger.debug("NavigatorCoordinator: Discarded changes for: {}", m_currentElementId.toStdString());
-        return true;
-
-    case QMessageBox::Cancel:
-    default:
-        // User cancelled
-        return false;
-    }
-}
 
 // =============================================================================
 // Add Chapter/Part/Item Handlers (OpenSpec #00042 Task 7.19 Issue #1)

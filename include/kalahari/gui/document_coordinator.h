@@ -69,6 +69,13 @@ public:
     /// @brief Callback type for updating window title
     using WindowTitleUpdater = std::function<void()>;
 
+    /// @brief Callback type for the single unsaved-changes predicate
+    ///
+    /// Returns true if there are ANY unsaved changes anywhere (content, structure,
+    /// standalone tabs). Provided by MainWindow::hasUnsavedChanges() so every save
+    /// prompt path in this coordinator consults one coherent source of truth.
+    using HasUnsavedChangesGetter = std::function<bool()>;
+
     /// @brief Constructor
     /// @param mainWindow Parent QMainWindow for dialogs
     /// @param centralTabs Central tab widget for editor tabs
@@ -93,6 +100,7 @@ public:
                                   DirtyStateGetter isDirty,
                                   DirtySetter setDirty,
                                   WindowTitleUpdater updateTitle,
+                                  HasUnsavedChangesGetter hasUnsavedChanges,
                                   QObject* parent = nullptr);
 
     /// @brief Destructor
@@ -259,6 +267,7 @@ private:
     DirtyStateGetter m_isDirty;
     DirtySetter m_setDirty;
     WindowTitleUpdater m_updateWindowTitle;
+    HasUnsavedChangesGetter m_hasUnsavedChanges;
 
     /// @brief Current loaded document
     std::optional<core::Document> m_currentDocument;
