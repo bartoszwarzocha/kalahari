@@ -266,6 +266,14 @@ const std::vector<FormatRun>& KmlDocumentModel::paragraphFormats(size_t index) c
     return m_paragraphs[index].formats;
 }
 
+Qt::Alignment KmlDocumentModel::paragraphAlignment(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return Qt::AlignLeft;
+    }
+    return m_paragraphs[index].alignment;
+}
+
 QString KmlDocumentModel::plainText() const
 {
     QString result;

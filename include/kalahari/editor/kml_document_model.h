@@ -88,6 +88,11 @@ public:
     /// @return Vector of format runs
     const std::vector<FormatRun>& paragraphFormats(size_t index) const;
 
+    /// @brief Get paragraph alignment
+    /// @param index Paragraph index (0-based)
+    /// @return Qt::Alignment for the paragraph (Qt::AlignLeft if index out of range)
+    Qt::Alignment paragraphAlignment(size_t index) const;
+
     /// @brief Get full document plain text
     /// @return All paragraphs joined with newlines
     QString plainText() const;

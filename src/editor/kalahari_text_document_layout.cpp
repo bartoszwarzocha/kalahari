@@ -161,6 +161,11 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
     textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     layout->setTextOption(textOption);
 
+    // Enable layout caching, as Qt's own manual-QTextLayout example does. Candidate fix
+    // for Qt::AlignJustify rendering ragged: the uncached path may drop the per-line
+    // justified spacing at draw time. Also a small perf win (avoids re-shaping on redraw).
+    layout->setCacheEnabled(true);
+
     // Prepare layout with lines starting at x=0, y=0
     // Qt handles horizontal alignment positioning via QTextOption - DO NOT manually offset x!
     // Manual x offset would cause double-alignment (Qt + manual = wrong position)

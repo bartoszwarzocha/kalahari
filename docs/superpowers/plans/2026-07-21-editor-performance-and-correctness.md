@@ -53,8 +53,12 @@ Each item: analyze → implement → I build → **you test the specific check I
 - ⬜ **A1** Fix the load parser so **font family / size / text colour / background** survive load.
   (`kml_document_model.cpp:557-638`; also widen the run-emit predicate `:582-595`, or route load
   through the complete `KmlParser` + retire the duplicate.)
-- ⬜ **A2** Apply **paragraph alignment (incl. justify)** on materialization — add a model accessor
-  and set the block alignment in `ensureEditMode` (`book_editor.cpp:5386-5411`). Fixes justify-lost-on-reload.
+- ✅ **A2 — alignment survives reload — DONE & user-verified (2026-07-24).** Added
+  `KmlDocumentModel::paragraphAlignment(index)` and apply it to each block format in `buildDocument`
+  (per-para block format = zero margins + alignment). Save side already serialised align
+  (`kml_serializer.cpp:98-107`), so the round-trip now works: **center/right survive reopen**
+  (previously everything reverted to left). Justify's *value* also survives, but justify does not
+  render live — see C1.
 - ✅ **A3 — Dirty/Save COHERENCE — DONE & user-verified (2026-07-22).** Final design differs from
   the first cut: content truth is the **per-open-tab** signal (`m_dirtyChapters` + standalone
   per-tab flag), NOT model `BookElement` dirty — the model flag gets set by tree-build/selection/
@@ -116,15 +120,29 @@ Each item: analyze → implement → I build → **you test the specific check I
 - ⬜ **B3** Make **pending format** real — `insertText` consumes `m_pendingBold/Italic/...` then clears.
 
 ### Stage C — Style & paragraph-format rendering correctness (the visible complaints)
-- ⬜ **C1** **Justify** live: runtime-verify the width-plumbing hazard (`QTextDocumentSource::setTextWidth`
-  vs `updateLayoutWidth` → if `m_textWidth==0`, `effectiveWidth=10000` ⇒ no wrap, no justify), fix so
-  multi-line justified paragraphs actually justify.
+- ⏸️ **C1 — Justify live: DEFERRED (2026-07-24, user-agreed "not at all costs").** Root-caused via a
+  `[DIAG-JUSTIFY]` instrument: the layout is configured 100% correctly (alignment=0x8 AlignJustify,
+  effWidth==m_textWidth==1255, 6 lines, ~30-50px room to stretch on non-last lines). Center/right
+  render (draw-time offset) but justify does not (Qt's engine-level space-expansion isn't applied in
+  our custom-layout + pipeline `QTextLayout::draw()` path). Ruled out: width, last-line, alignment
+  value, document default text option (no `setDefaultTextOption` anywhere). One bounded fix attempt
+  (`layout->setCacheEnabled(true)`, per Qt's manual-layout example) did NOT fix it — kept anyway as a
+  small perf win. Per the editor's "turbo-typewriter" philosophy justify is view-comfort, so it's
+  parked. **Revisit during Stage-C view-comfort layout work (with hyphenation C5)** — likely needs
+  drawing lines with explicit space-distribution or routing these blocks through Qt's own layout.
 - ⬜ **C2** **Line spacing / paragraph spacing / first-line indent** — currently ignored by the layout
   math; wire into `layoutBlock` line-height + block formats.
 - ⬜ **C3** **Appearance plumbing** — forward the read-but-dropped settings from `setAppearance` to the
   pipeline: line spacing, paragraph spacing, indent, cursor style, cursor width, text-frame border.
 - ⬜ **C4** **Text colour** operation (`setSelectionTextColor`, undoable via Stage B) + recolour
   selected-text foreground.
+- ⬜ **C5** **Automatic hyphenation — VIEW-ONLY** (author-comfort). Qt has NO built-in hyphenation:
+  needs a hyphenation lib + Polish (and per-language) dictionaries; insert soft hyphens (U+00AD)
+  at break points during `layoutBlock`, and NEVER persist them to KML. Pairs with justify (C1).
+  **Design principle behind this:** the editor's job is comfortable WRITING; all formatting/justify/
+  hyphenation are author-comfort for the on-screen view only. The MANUSCRIPT export is clean and
+  standardised (fixed-width font, no hyphenation) because typesetting handles composition later.
+  Implication: keep a clean "manuscript/typescript export" separate from the rich editing view.
 
 ### Stage D — View modes (build on the now-correct base)
 - ⬜ **D0** Wire the dead **zoom menu/toolbar commands** (`command_registrar.cpp:504-506`) — quick win.

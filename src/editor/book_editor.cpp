@@ -5389,11 +5389,18 @@ void BookEditor::ensureEditMode()
 
     size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
     for (size_t i = 0; i < paraCount; ++i) {
+        // Per-paragraph block format = zero margins + the paragraph's alignment
+        // (parsed from the KML "align" attribute). Without applying the alignment
+        // here, justify/center/right were dropped on load, so every reopened chapter
+        // rendered left-aligned regardless of what was saved.
+        QTextBlockFormat blockFormat = zeroMarginFormat;
+        blockFormat.setAlignment(m_documentModel->paragraphAlignment(i));
+
         if (i > 0) {
-            cursor.insertBlock(zeroMarginFormat);
+            cursor.insertBlock(blockFormat);
         } else {
-            // First block - apply zero margins too
-            cursor.setBlockFormat(zeroMarginFormat);
+            // First block - apply the same format
+            cursor.setBlockFormat(blockFormat);
         }
 
         QString text = m_documentModel->paragraphText(i);
