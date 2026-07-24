@@ -275,6 +275,14 @@ void DocumentCoordinator::onOpenDocument() {
 
     // If a project is already open, ask user for confirmation before closing it
     if (pm.isProjectOpen()) {
+        // If the chosen file IS the already-open project, just ignore — no close/reopen
+        // prompt. Compare against the MANIFEST (.klh) path, not getProjectPath() (the
+        // project directory), which would never match the chosen .klh file.
+        if (QFileInfo(pm.getManifestPath()) == QFileInfo(filename)) {
+            logger.debug("Project is already open, ignoring: {}", filename.toStdString());
+            return;
+        }
+
         QString projectPath = pm.getProjectPath();
         QString currentProjectName = QFileInfo(projectPath).fileName();
         if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
@@ -374,8 +382,11 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         if (pm.isProjectOpen()) {
             QString currentProjectPath = pm.getProjectPath();
 
-            // If trying to open the same project that's already open, just ignore
-            if (QFileInfo(currentProjectPath) == QFileInfo(filePath)) {
+            // If trying to open the same project that's already open, just ignore.
+            // Compare against the MANIFEST (.klh) path: getProjectPath() is the project
+            // DIRECTORY, so comparing it to the clicked .klh file never matched and the
+            // "close & reopen?" prompt fired even for the already-open project.
+            if (QFileInfo(pm.getManifestPath()) == QFileInfo(filePath)) {
                 logger.debug("Project is already open, ignoring: {}", filePath.toStdString());
                 return;
             }
