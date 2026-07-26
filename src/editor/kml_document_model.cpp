@@ -592,6 +592,10 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                     currentFormat.fontUnderline() ||
                     currentFormat.fontStrikeOut() ||
                     currentFormat.verticalAlignment() != QTextCharFormat::AlignNormal ||
+                    currentFormat.hasProperty(QTextFormat::ForegroundBrush) ||
+                    currentFormat.hasProperty(QTextFormat::BackgroundBrush) ||
+                    currentFormat.hasProperty(QTextFormat::FontFamilies) ||
+                    currentFormat.hasProperty(QTextFormat::FontPointSize) ||
                     currentFormat.hasProperty(KmlPropComment) ||
                     currentFormat.hasProperty(KmlPropTodo) ||
                     currentFormat.hasProperty(KmlPropFootnote)) {
@@ -609,6 +613,13 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
             if (KmlFormatRegistry::isFormattingTag(tag)) {
                 // Apply formatting tag
                 QTextCharFormat newFormat = KmlFormatRegistry::applyTagFormat(tag, currentFormat);
+                // Read inline style attributes (font, size, color, bg) off the current
+                // start element. Must run BEFORE reader.readNext() while the reader is
+                // still positioned on this tag, otherwise reader.attributes() no longer
+                // refers to it. Covers injected-attribute carriers (b/i/u/s/sub/sup) and
+                // the <span> carrier (span is a formatting tag whose applyTagFormat is a
+                // no-op, so only the attributes take effect).
+                KmlFormatRegistry::applyInlineStyleAttributes(reader.attributes(), newFormat);
                 reader.readNext();
                 parseInlineContent(reader, text, formats, newFormat, currentPos, tag);
             } else if (KmlFormatRegistry::isMetadataTag(tag)) {
