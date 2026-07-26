@@ -799,6 +799,13 @@ void MainWindow::updateEditorActionStates() {
         registry.updateActionState("format.strikethrough");
     }
 
+    // Sync the font family/size toolbar controls to the char format under the caret,
+    // so they reflect the formatting at the cursor (updates on every cursor move /
+    // selection change), not just the global default set on tab activation.
+    if (m_toolbarManager) {
+        m_toolbarManager->syncFontWidgetsToEditor(editor);
+    }
+
     // Update view mode checked states
     editor::ViewMode currentMode = bookEditor->viewMode();
     if (auto* contCmd = registry.getCommand("view.mode.continuous")) {

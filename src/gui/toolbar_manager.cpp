@@ -1247,21 +1247,24 @@ void ToolbarManager::syncFontWidgetsToEditor(EditorPanel* editor) {
         }
         logger.debug("ToolbarManager: Font widgets disabled (no active editor)");
     } else {
-        // Get current font from editor appearance
-        const editor::EditorAppearance& appearance = editor->getBookEditor()->appearance();
-        QFont currentFont = appearance.typography.textFont;
+        // Reflect the font UNDER THE CARET, not just the global editor default:
+        // currentFontFamily()/currentFontSize() read the char format at the cursor
+        // position, so moving into formatted text updates the controls.
+        editor::BookEditor* bookEditor = editor->getBookEditor();
+        const QString family = bookEditor->currentFontFamily();
+        const int size = bookEditor->currentFontSize();
 
         if (m_fontComboBox) {
-            m_fontComboBox->setCurrentFont(currentFont);
+            m_fontComboBox->setCurrentFont(QFont(family, size));
             m_fontComboBox->setEnabled(true);
         }
         if (m_fontSizeSpinner) {
-            m_fontSizeSpinner->setValue(currentFont.pointSize());
+            m_fontSizeSpinner->setValue(size);
             m_fontSizeSpinner->setEnabled(true);
         }
 
-        logger.debug("ToolbarManager: Font widgets synced to '{}' {}pt",
-                     currentFont.family().toStdString(), currentFont.pointSize());
+        logger.debug("ToolbarManager: Font widgets synced to caret '{}' {}pt",
+                     family.toStdString(), size);
     }
 
     m_fontWidgetsSyncing = false;
