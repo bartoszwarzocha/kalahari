@@ -5406,9 +5406,13 @@ void BookEditor::ensureEditMode()
         QString text = m_documentModel->paragraphText(i);
         const auto& formats = m_documentModel->paragraphFormats(i);
 
-        // Insert text
+        // Insert the paragraph text with an EXPLICIT default char format so it does NOT
+        // inherit the char format the cursor still carries from the previous paragraph's
+        // last run. Without this, a bold/italic run (e.g. a bold title or a fully-italic
+        // paragraph) bled its format into every following paragraph on reload — the run
+        // formats below then only re-apply the intended sub-ranges on top of a clean base.
         int blockStart = cursor.position();
-        cursor.insertText(text);
+        cursor.insertText(text, QTextCharFormat());
 
         // Apply formats (bold, italic, etc.)
         for (const auto& run : formats) {
