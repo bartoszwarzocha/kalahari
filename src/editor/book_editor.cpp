@@ -5104,28 +5104,23 @@ QString BookEditor::toKml() const
         return serializer.toKml(m_textBuffer.get());
     }
 
-    // Phase 11.10: If not in edit mode, reconstruct KML from KmlDocumentModel
-    // TODO: Create dedicated KmlDocumentModel serializer for better performance
+    // DEAD PATH / SAFETY NET: fromKml() always calls ensureEditMode(), so the editor is
+    // in edit mode for its whole lifetime and the branch above serialises losslessly via
+    // KmlSerializer. This fallback only runs if that invariant is ever broken — and it is
+    // LOSSY (it drops inline bold/italic/font/colour, emitting plain text). It is kept only
+    // so a stray save preserves the TEXT rather than wiping the file; the loud error makes
+    // the (unexpected) lossy path non-silent instead of quietly corrupting formatting.
     if (m_documentModel && m_documentModel->paragraphCount() > 0) {
+        core::Logger::getInstance().error(
+            "BookEditor::toKml() called while NOT in edit mode — falling back to a LOSSY "
+            "plain-text reconstruction (inline formatting will be dropped). This path should "
+            "be unreachable (ensureEditMode keeps edit mode on); investigate if you see this.");
+
         QString kml;
         kml.reserve(static_cast<int>(m_documentModel->characterCount() * 2));  // Estimate with markup
-
         for (size_t i = 0; i < m_documentModel->paragraphCount(); ++i) {
-            QString text = m_documentModel->paragraphText(i);
-            const auto& formats = m_documentModel->paragraphFormats(i);
-
             kml += QStringLiteral("<p>");
-
-            if (formats.empty()) {
-                // No formatting, just escape and add text
-                kml += text.toHtmlEscaped();
-            } else {
-                // Apply formatting tags
-                // Simple approach: just output plain text for now
-                // Full implementation would need to properly nest tags
-                kml += text.toHtmlEscaped();
-            }
-
+            kml += m_documentModel->paragraphText(i).toHtmlEscaped();  // text only (lossy, see above)
             kml += QStringLiteral("</p>\n");
         }
         return kml;
