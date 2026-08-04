@@ -50,9 +50,14 @@ Performance stays **measurement-gated** (real files are ~15k words; fix quadrati
 Each item: analyze → implement → I build → **you test the specific check I give you** → commit.
 
 ### Stage A — Lossless persistence (do FIRST: silent, permanent DATA LOSS)
-- ⬜ **A1** Fix the load parser so **font family / size / text colour / background** survive load.
-  (`kml_document_model.cpp:557-638`; also widen the run-emit predicate `:582-595`, or route load
-  through the complete `KmlParser` + retire the duplicate.)
+- ✅ **A1 — font/size/colour/background survive reload — DONE & user-verified (2026-07-26, `860277f`).**
+  `KmlDocumentModel::parseInlineContent` now reads inline style attrs (font/size/color/bg) via
+  `applyInlineStyleAttributes` on formatting tags + `<span>`, and the run-emit predicate was widened
+  (Foreground/Background/FontFamilies/FontPointSize). Round-trip symmetric with the serializer.
+  Related fixes shipped alongside: **format-bleed-on-reload** (`2b0ad20` — `ensureEditMode` inserted
+  paragraph text without an explicit char format, so a bold title / italic paragraph bled into all
+  following paragraphs; now inserts with a clean `QTextCharFormat()`), and **toolbar font/size
+  controls follow the caret** (`169ac25`).
 - ✅ **A2 — alignment survives reload — DONE & user-verified (2026-07-24).** Added
   `KmlDocumentModel::paragraphAlignment(index)` and apply it to each block format in `buildDocument`
   (per-para block format = zero margins + alignment). Save side already serialised align
@@ -96,8 +101,13 @@ Each item: analyze → implement → I build → **you test the specific check I
        (:642), `onNewDocument`(:165), `onOpenRecentFile`(:330), project-switch confirms (:275,:352).
     6. Simplify `closeEvent` (main_window.cpp:1052-1107) to the single predicate (both the check and the
        Save-branch recheck).
-  - ⬜ **A4 (cleanup)** retire the dead second parser + stale `KmlDocumentModel` two-representation hop;
-    also retire the dead `NavigatorCoordinator::documentModified` signal (emitted 10×, connected nowhere).
+  - 🟡 **A4 (cleanup) — ASSESSED & real landmine handled (2026-07-27, `d2a833f`).** The lossy
+    unreachable `toKml()` view-mode fallback (silently dropped inline formatting) now logs a loud
+    error + is documented — no silent data loss. Deliberately NOT done: `KmlParser` is NOT dead
+    (3 test files use it as a round-trip parser — removing it drops coverage); the dead
+    `documentModified` signal is harmless (removal = pure churn). Retiring the stale
+    `KmlDocumentModel` two-representation hop is a big rework, not cleanup — leave for a future
+    convergence pass. Net: no forgotten runtime problem remains.
 
   **A3 test matrix (user runs after implement):**
   | # | Action | Expected |
@@ -136,6 +146,13 @@ Each item: analyze → implement → I build → **you test the specific check I
   pipeline: line spacing, paragraph spacing, indent, cursor style, cursor width, text-frame border.
 - ⬜ **C4** **Text colour** operation (`setSelectionTextColor`, undoable via Stage B) + recolour
   selected-text foreground.
+- ⬜ **C6** **Per-run font size not DPI-scaled** (deferred here 2026-07-26, user-agreed). In FontScaling
+  modes (Continuous/Focus/DF) the pipeline scales only the base font; an explicit per-fragment point
+  size (set via the toolbar spinner) renders at its RAW value, inconsistent with the DPI-scaled base.
+  Proper fix = render-time scaling of per-fragment sizes (`layoutBlock` builds `QTextLayout::FormatRange`s
+  with each fragment size × the DPI/zoom factor) — the SAME rework as C2.1 per-run formatting visibility,
+  so do them together. Also reconsider whether the font-shrink fix's "bake scaled size onto every char"
+  shortcut should be replaced by pure render-time scaling. (Per-run sizes are rare in prose → low urgency.)
 - ⬜ **C5** **Automatic hyphenation — VIEW-ONLY** (author-comfort). Qt has NO built-in hyphenation:
   needs a hyphenation lib + Polish (and per-language) dictionaries; insert soft hyphens (U+00AD)
   at break points during `layoutBlock`, and NEVER persist them to KML. Pairs with justify (C1).
