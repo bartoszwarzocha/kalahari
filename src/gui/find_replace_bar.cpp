@@ -359,13 +359,14 @@ void FindReplaceBar::onFindPrevious()
 void FindReplaceBar::onReplaceCurrent()
 {
     // Phase 11.8: Removed m_formatLayer check - no longer needed
-    if (!m_searchEngine || !m_undoStack) {
+    if (!m_searchEngine) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
 
-    if (m_searchEngine->replaceCurrent(m_undoStack)) {
+    // nullptr = edit the document directly; QTextDocument's native undo records it.
+    if (m_searchEngine->replaceCurrent(nullptr)) {
         // Move to next match after replacement
         onFindNext();
     }
@@ -374,12 +375,12 @@ void FindReplaceBar::onReplaceCurrent()
 void FindReplaceBar::onReplaceAll()
 {
     // Phase 11.8: Removed m_formatLayer check - no longer needed
-    if (!m_searchEngine || !m_undoStack) {
+    if (!m_searchEngine) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
-    int count = m_searchEngine->replaceAll(m_undoStack);
+    int count = m_searchEngine->replaceAll(nullptr);  // direct edit → native undo
 
     core::Logger::getInstance().info("Replaced {} occurrences", count);
     updateMatchCountLabel();
@@ -442,7 +443,7 @@ void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
     // Phase 11.8: Removed m_formatLayer check
-    bool canReplace = hasMatches && m_undoStack;
+    bool canReplace = hasMatches;
 
     // Navigation buttons
     m_prevBtn->setEnabled(hasMatches);

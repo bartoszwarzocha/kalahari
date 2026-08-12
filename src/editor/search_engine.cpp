@@ -285,16 +285,17 @@ int SearchEngine::replaceAll(QUndoStack* undoStack) {
         undoStack->push(new ReplaceAllCommand(
             m_document, cursor, replacements));
     } else {
-        // Direct replacement without undo (fallback)
-        // Phase 11.6: Use QTextCursor for direct document modification
-        // Process in reverse order to maintain position validity
+        // Direct replacement — recorded by QTextDocument's native undo as ONE step
+        // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.
+        QTextCursor cursor(m_document);
+        cursor.beginEditBlock();
         for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
             const SearchMatch& match = *it;
-            QTextCursor cursor(m_document);
             cursor.setPosition(static_cast<int>(match.start));
             cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
             cursor.insertText(m_replaceText);
         }
+        cursor.endEditBlock();
     }
 
     // Clear matches after replace all

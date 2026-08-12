@@ -362,10 +362,6 @@ public:
     // Undo/Redo (Phase 4.8)
     // =========================================================================
 
-    /// @brief Get the undo stack for this editor
-    /// @return Pointer to the undo stack
-    QUndoStack* undoStack() const;
-
     /// @brief Check if undo is available
     /// @return true if there are commands to undo
     bool canUndo() const;
@@ -1205,8 +1201,8 @@ private:
     CursorPosition m_preeditStart;                          ///< Start position of preedit text
     bool m_hasComposition;                                  ///< Is composition in progress?
 
-    // Undo/Redo state (Phase 4.8)
-    QUndoStack* m_undoStack;                                ///< Undo stack for editing commands
+    // Undo/Redo: QTextDocument's native undo is the single source of truth
+    // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
 
     // Pending format state (Phase 7.2)
     bool m_pendingBold{false};                              ///< Apply bold to next typed text

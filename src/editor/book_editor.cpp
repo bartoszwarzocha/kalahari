@@ -168,7 +168,6 @@ BookEditor::BookEditor(QWidget* parent)
     , m_preeditString()
     , m_preeditStart{0, 0}
     , m_hasComposition(false)
-    , m_undoStack(nullptr)
     // Phase 8: New performance-optimized components (OpenSpec #00043)
     // Phase 11.10: KmlDocumentModel for fast loading + lazy rendering
     , m_documentModel(std::make_unique<KmlDocumentModel>(this))
@@ -179,9 +178,6 @@ BookEditor::BookEditor(QWidget* parent)
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);
-
-    // Create undo stack
-    m_undoStack = new QUndoStack(this);
 
     // Create UI fade timer for distraction-free mode
     m_uiFadeTimer = new QTimer(this);
@@ -1127,51 +1123,23 @@ void BookEditor::insertText(const QString& text)
         return;
     }
 
-    CursorPosition cursorBefore = m_cursorPosition;
-
-    // Handle selection replacement
+    // Direct QTextCursor edit — recorded by QTextDocument's native undo.
+    QTextCursor cursor(m_textBuffer.get());
     if (hasSelection()) {
         SelectionRange sel = m_selection.normalized();
-
-        // Get text being deleted for undo
-        QString deletedText;
-        for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-            QString paraText = paragraphText(m_textBuffer.get(), paraIdx);
-            int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
-            int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
-            deletedText += paraText.mid(startOff, endOff - startOff);
-            if (paraIdx < sel.end.paragraph) {
-                deletedText += QChar::ParagraphSeparator;
-            }
-        }
-
-        // Create composite command for delete + insert
-        auto* composite = new CompositeDocumentCommand(
-            m_textBuffer.get(), cursorBefore, tr("Replace"));
-
-        // Delete selection first
-        composite->addCommand(std::make_unique<TextDeleteCommand>(
-            m_textBuffer.get(), sel.start, sel.end, deletedText));
-
-        // Then insert text at selection start
-        composite->addCommand(std::make_unique<TextInsertCommand>(
-            m_textBuffer.get(), sel.start, text));
-
-        m_undoStack->push(composite);  // push() calls redo() automatically
-
-        // Update cursor position (redo already executed)
-        m_cursorPosition = sel.start;
-        m_cursorPosition.offset += text.length();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor.beginEditBlock();  // one undo step for the replace (delete + insert)
+        cursor.insertText(text);  // replaces the selection
+        cursor.endEditBlock();
         clearSelection();
     } else {
-        // Simple insert - push single command
-        m_undoStack->push(new TextInsertCommand(
-            m_textBuffer.get(), m_cursorPosition, text));
-
-        // Update cursor position (redo already executed)
-        m_cursorPosition.offset += text.length();
+        cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+        cursor.insertText(text);
     }
 
+    // Mirror the resulting QTextCursor into the editor's cursor model.
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
 
     ensureCursorVisible();
     syncPipelineCursor();
@@ -1195,24 +1163,12 @@ bool BookEditor::deleteSelectedText()
 
     SelectionRange sel = m_selection.normalized();
 
-    // Get text being deleted for undo
-    QString deletedText;
-    for (int paraIdx = sel.start.paragraph; paraIdx <= sel.end.paragraph; ++paraIdx) {
-        QString paraText = paragraphText(m_textBuffer.get(), paraIdx);
-        int startOff = (paraIdx == sel.start.paragraph) ? sel.start.offset : 0;
-        int endOff = (paraIdx == sel.end.paragraph) ? sel.end.offset : paraText.length();
-        deletedText += paraText.mid(startOff, endOff - startOff);
-        if (paraIdx < sel.end.paragraph) {
-            deletedText += QChar::ParagraphSeparator;
-        }
-    }
+    // Direct QTextCursor delete — recorded by QTextDocument's native undo.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+    cursor.removeSelectedText();
 
-    // Push delete command (push() calls redo() automatically)
-    m_undoStack->push(new TextDeleteCommand(
-        m_textBuffer.get(), sel.start, sel.end, deletedText));
-
-    // Move cursor to start of deleted range (redo already executed)
-    m_cursorPosition = sel.start;
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
 
     update();
@@ -1233,13 +1189,14 @@ void BookEditor::insertNewline()
         deleteSelectedText();
     }
 
-    // Push paragraph split command (push() calls redo() automatically)
-    m_undoStack->push(new ParagraphSplitCommand(
-        m_textBuffer.get(), m_cursorPosition));
+    // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
+    // QTextDocument's native undo. insertBlock() inherits the current block format
+    // (zero margins + alignment), so the new paragraph keeps the same layout.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    cursor.insertBlock();
 
-    // Move cursor to start of new paragraph (redo already executed)
-    m_cursorPosition.paragraph++;
-    m_cursorPosition.offset = 0;
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
 
     ensureCursorVisible();
     syncPipelineCursor();
@@ -1267,47 +1224,25 @@ void BookEditor::deleteBackward()
         return;
     }
 
-    CursorPosition cursorBefore = m_cursorPosition;
+    const int oldPara = m_cursorPosition.paragraph;
+    const bool wasAtBlockStart = (m_cursorPosition.offset == 0);
 
-    if (m_cursorPosition.offset > 0) {
-        // Delete character before cursor using TextDeleteCommand
-        QString paraText = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph);
-        QString deletedChar = paraText.mid(m_cursorPosition.offset - 1, 1);
+    // deletePreviousChar() removes the previous character, OR merges with the previous
+    // paragraph when at the start of a block. Recorded by QTextDocument's native undo.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    cursor.deletePreviousChar();
 
-        CursorPosition deleteStart = m_cursorPosition;
-        deleteStart.offset = m_cursorPosition.offset - 1;
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
 
-        // Push delete command (push() calls redo() automatically)
-        m_undoStack->push(new TextDeleteCommand(
-            m_textBuffer.get(), deleteStart, m_cursorPosition, deletedChar));
-
-        // Update cursor (redo already executed)
-        m_cursorPosition.offset--;
-        ensureCursorVisible();
-        syncPipelineCursor();
-        update();
-        emit contentChanged();
+    ensureCursorVisible();
+    syncPipelineCursor();
+    update();
+    emit contentChanged();
+    if (wasAtBlockStart) {
+        emit paragraphRemoved(oldPara);
+    } else {
         emit paragraphModified(m_cursorPosition.paragraph);
-    } else if (m_cursorPosition.paragraph > 0) {
-        // Merge with previous paragraph using ParagraphMergeCommand
-        int mergeFromIndex = m_cursorPosition.paragraph;
-        QString mergedContent = paragraphText(m_textBuffer.get(), mergeFromIndex);
-        int prevParaLen = paragraphLength(m_textBuffer.get(), m_cursorPosition.paragraph - 1);
-
-        // Push merge command (push() calls redo() automatically)
-        m_undoStack->push(new ParagraphMergeCommand(
-            m_textBuffer.get(), cursorBefore, mergeFromIndex, mergedContent));
-
-        // Update cursor (redo already executed)
-        m_cursorPosition.paragraph--;
-        m_cursorPosition.offset = prevParaLen;
-
-        // Qt's QTextDocument handles layout invalidation automatically
-        ensureCursorVisible();
-        syncPipelineCursor();
-        update();
-        emit contentChanged();
-        emit paragraphRemoved(mergeFromIndex);
     }
 }
 
@@ -1325,42 +1260,27 @@ void BookEditor::deleteForward()
         return;
     }
 
-    QString paraText = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph);
-    int paraLen = paraText.length();
+    const int paraLen = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph).length();
+    const bool atBlockEnd = (m_cursorPosition.offset >= paraLen);
+    const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
 
-    if (m_cursorPosition.offset < paraLen) {
-        // Delete character at cursor using TextDeleteCommand
-        QString deletedChar = paraText.mid(m_cursorPosition.offset, 1);
+    if (!atBlockEnd || hasNextBlock) {
+        // deleteChar() removes the character at the cursor, OR merges with the next
+        // paragraph at the end of a block. Recorded by QTextDocument's native undo.
+        QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+        cursor.deleteChar();
 
-        CursorPosition deleteEnd = m_cursorPosition;
-        deleteEnd.offset = m_cursorPosition.offset + 1;
+        m_cursorPosition.paragraph = cursor.blockNumber();
+        m_cursorPosition.offset = cursor.positionInBlock();
 
-        // Push delete command (push() calls redo() automatically)
-        m_undoStack->push(new TextDeleteCommand(
-            m_textBuffer.get(), m_cursorPosition, deleteEnd, deletedChar));
-
-        // Cursor position stays the same after forward delete
-        // Qt's QTextDocument handles layout invalidation automatically
         syncPipelineCursor();
         update();
         emit contentChanged();
-        emit paragraphModified(m_cursorPosition.paragraph);
-    } else if (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount()) {
-        // Merge with next paragraph using ParagraphMergeCommand
-        CursorPosition cursorBefore = m_cursorPosition;
-        int mergeFromIndex = m_cursorPosition.paragraph + 1;
-        QString mergedContent = paragraphText(m_textBuffer.get(), mergeFromIndex);
-
-        // Push merge command (push() calls redo() automatically)
-        m_undoStack->push(new ParagraphMergeCommand(
-            m_textBuffer.get(), cursorBefore, mergeFromIndex, mergedContent));
-
-        // Cursor position stays the same after merge
-        // Qt's QTextDocument handles layout invalidation automatically
-        syncPipelineCursor();
-        update();
-        emit contentChanged();
-        emit paragraphRemoved(mergeFromIndex);
+        if (atBlockEnd) {
+            emit paragraphRemoved(m_cursorPosition.paragraph + 1);
+        } else {
+            emit paragraphModified(m_cursorPosition.paragraph);
+        }
     }
 }
 
@@ -1386,50 +1306,61 @@ QSize BookEditor::sizeHint() const
 // Undo/Redo (Phase 4.8)
 // =============================================================================
 
-QUndoStack* BookEditor::undoStack() const
-{
-    return m_undoStack;
-}
-
 bool BookEditor::canUndo() const
 {
-    return m_undoStack != nullptr && m_undoStack->canUndo();
+    return m_textBuffer && m_textBuffer->isUndoAvailable();
 }
 
 bool BookEditor::canRedo() const
 {
-    return m_undoStack != nullptr && m_undoStack->canRedo();
+    return m_textBuffer && m_textBuffer->isRedoAvailable();
 }
 
 void BookEditor::undo()
 {
-    if (m_undoStack == nullptr) {
+    if (!m_isEditMode || !m_textBuffer || !m_textBuffer->isUndoAvailable()) {
         return;
     }
 
-    m_undoStack->undo();
+    // QTextDocument's native undo is the single source of truth for BOTH text and
+    // formatting. undo(&cursor) also positions the cursor at the change — mirror it
+    // into the editor's own cursor model.
+    QTextCursor cursor(m_textBuffer.get());
+    m_textBuffer->undo(&cursor);
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+    clearSelection();
 
-    // Update cursor position from the undone command
-    // (The command stores cursor positions, so editor needs to update)
+    syncPipelineCursor();
     ensureCursorVisible();
     update();
+    emit contentChanged();
+    emit cursorPositionChanged(m_cursorPosition);
 }
 
 void BookEditor::redo()
 {
-    if (m_undoStack == nullptr) {
+    if (!m_isEditMode || !m_textBuffer || !m_textBuffer->isRedoAvailable()) {
         return;
     }
 
-    m_undoStack->redo();
+    QTextCursor cursor(m_textBuffer.get());
+    m_textBuffer->redo(&cursor);
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+    clearSelection();
+
+    syncPipelineCursor();
     ensureCursorVisible();
     update();
+    emit contentChanged();
+    emit cursorPositionChanged(m_cursorPosition);
 }
 
 void BookEditor::clearUndoStack()
 {
-    if (m_undoStack != nullptr) {
-        m_undoStack->clear();
+    if (m_textBuffer) {
+        m_textBuffer->clearUndoRedoStacks();
     }
 }
 
@@ -4787,7 +4718,9 @@ void BookEditor::setupFindReplace()
     // Create FindReplaceBar (will be shown when needed)
     m_findReplaceBar = new gui::FindReplaceBar(this);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
-    m_findReplaceBar->setUndoStack(m_undoStack);
+    // Find/Replace performs its edits directly on the document, which QTextDocument's
+    // native undo records — no separate undo stack is needed.
+    m_findReplaceBar->setUndoStack(nullptr);
     // Phase 11.6: Removed setFormatLayer - not needed (formatting in QTextCharFormat)
     m_findReplaceBar->hide();
 
@@ -4913,8 +4846,7 @@ void BookEditor::addTodoAtCursor(const QString& text)
     marker.completed = false;
     marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-    m_undoStack->push(new MarkerAddCommand(
-        m_textBuffer.get(), m_cursorPosition, marker));
+    setMarkerInDocument(m_textBuffer.get(), marker);  // native undo records the char-format change
 
     update();
 }
@@ -4938,8 +4870,7 @@ void BookEditor::addNoteAtCursor(const QString& text)
     marker.completed = false;
     marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-    m_undoStack->push(new MarkerAddCommand(
-        m_textBuffer.get(), m_cursorPosition, marker));
+    setMarkerInDocument(m_textBuffer.get(), marker);  // native undo records the char-format change
 
     update();
 }
@@ -4957,9 +4888,8 @@ void BookEditor::removeMarkerAtCursor()
     auto allMarkers = findAllMarkers(m_textBuffer.get(), std::nullopt);
     for (const auto& marker : allMarkers) {
         if (marker.position == absPos) {
-            // Remove the first marker at cursor position
-            m_undoStack->push(new MarkerRemoveCommand(
-                m_textBuffer.get(), m_cursorPosition, marker));
+            // Remove the first marker at cursor position (native undo records it).
+            removeMarkerFromDocument(m_textBuffer.get(), marker.position);
             update();
             return;
         }
@@ -4979,9 +4909,10 @@ void BookEditor::toggleTodoAtCursor()
     auto allMarkers = findAllMarkers(m_textBuffer.get(), MarkerType::Todo);
     for (const auto& marker : allMarkers) {
         if (marker.position == absPos) {
-            m_undoStack->push(new MarkerToggleCommand(
-                m_textBuffer.get(), m_cursorPosition, marker.id,
-                marker.position));
+            // Toggle the TODO completion state directly (native undo records it).
+            TextMarker toggled = marker;
+            toggled.completed = !toggled.completed;
+            setMarkerInDocument(m_textBuffer.get(), toggled);
             update();
             return;
         }
@@ -5243,11 +5174,6 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("START");
 
-    // Clear undo stack first
-    if (m_undoStack) {
-        m_undoStack->clear();
-    }
-
     // Phase 11.10: Clear edit mode - m_textBuffer created on-demand
     // IMPORTANT: Clear document pointers BEFORE destroying m_textBuffer to avoid dangling pointers
     if (m_viewportManager) {
@@ -5332,6 +5258,12 @@ void BookEditor::fromKml(const QString& kml)
     // This eliminates the dual view/edit mode system - document is always editable
     ensureEditMode();
     logElapsed("Edit mode initialized");
+
+    // The document was just rebuilt above — discard the native undo history so the
+    // load itself is not undoable (undo starts fresh from the user's first edit).
+    if (m_textBuffer) {
+        m_textBuffer->clearUndoRedoStacks();
+    }
 
     // Update scrollbar range for new document
     updateScrollBarRange();
