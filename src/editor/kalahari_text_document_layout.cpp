@@ -121,7 +121,9 @@ void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast)
         geometryChanged = !std::equal(heights.begin(), heights.end(), rangeBegin);
         std::copy(heights.begin(), heights.end(), rangeBegin);
     } else {
-        m_blockHeights.erase(rangeBegin, m_blockHeights.begin() + oldLast + 1);
+        // oldLast + 1 first: oldLast is -1 when the cache is empty or blocks were
+        // inserted at the very start, and begin() - 1 is not a valid iterator
+        m_blockHeights.erase(rangeBegin, m_blockHeights.begin() + (oldLast + 1));
         m_blockHeights.insert(m_blockHeights.begin() + first, heights.begin(), heights.end());
     }
     if (geometryChanged) {
