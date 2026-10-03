@@ -16,6 +16,8 @@
 #include <climits>    // PATH_MAX
 #ifdef __APPLE__
 #include <mach-o/dyld.h>  // _NSGetExecutablePath
+#else
+#include <dlfcn.h>        // dladdr
 #endif
 #endif
 
@@ -463,9 +465,29 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
 
         // Development: vcpkg Python
         std::filesystem::path vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "x64-linux" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "lib" / "python3.12")) {
+        if (std::filesystem::exists(vcpkgPython / "lib" / (std::string("python") + LINKED_PYTHON_VERSION))) {
             Logger::getInstance().info("Found vcpkg Python (development mode)");
             return vcpkgPython;
+        }
+    }
+
+    // The installation that provides the linked libpython, e.g.
+    // /usr/lib/x86_64-linux-gnu/libpython3.11.so -> /usr (system Python) or
+    // /opt/hostedtoolcache/Python/3.11.x/x64/lib/libpython3.11.so -> .../x64 (CI)
+    Dl_info info{};
+    if (dladdr(reinterpret_cast<void*>(&Py_Initialize), &info) != 0 && info.dli_fname != nullptr) {
+        std::error_code ec;
+        std::filesystem::path dir = std::filesystem::canonical(info.dli_fname, ec).parent_path();
+        const std::string stdlibName = std::string("python") + LINKED_PYTHON_VERSION;
+        while (!ec && !dir.empty()) {
+            if (std::filesystem::exists(dir / "lib" / stdlibName)) {
+                Logger::getInstance().info("Found Python home of linked libpython: {}", dir.string());
+                return dir;
+            }
+            if (dir == dir.parent_path()) {
+                break;
+            }
+            dir = dir.parent_path();
         }
     }
 
