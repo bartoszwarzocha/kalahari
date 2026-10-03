@@ -8,8 +8,45 @@
 #include <kalahari/core/event_bus.h>
 #include <kalahari/core/extension_points.h>
 #include <cstdint>
+#include <memory>
 
 namespace py = pybind11;
+
+namespace {
+
+/// @brief Owns a Python callable stored inside a C++ EventBus listener
+///
+/// The EventBus singleton is destroyed by C++ static destruction, which runs
+/// after the Python interpreter has been finalized. Dropping the reference then
+/// aborts the process ("PyThreadState_Get: the GIL is released"), so the
+/// reference is released under the GIL while Python is alive and leaked otherwise.
+class PythonCallback {
+public:
+    explicit PythonCallback(py::object callable) : m_callable(std::move(callable)) {}
+
+    PythonCallback(const PythonCallback&) = delete;
+    PythonCallback& operator=(const PythonCallback&) = delete;
+
+    ~PythonCallback() {
+        if (!Py_IsInitialized()) {
+            m_callable.release();
+            return;
+        }
+        try {
+            py::gil_scoped_acquire acquire;
+            m_callable = py::object();
+        } catch (...) {
+            m_callable.release();  // Leaking the reference is the only safe option left
+        }
+    }
+
+    void operator()(const kalahari::core::Event& evt) const { m_callable(evt); }
+
+private:
+    py::object m_callable;
+};
+
+} // namespace
 
 /// @brief Kalahari API module for Python plugins
 /// @details Exposes core C++ functionality to Python via pybind11
@@ -78,11 +115,12 @@ PYBIND11_MODULE(kalahari_api, m) {
         .def("subscribe",
             [](kalahari::core::EventBus& self, const std::string& eventType,
                py::object callback) {
+                auto holder = std::make_shared<PythonCallback>(std::move(callback));
                 kalahari::core::EventListener listener =
-                    [callback](const kalahari::core::Event& evt) {
+                    [holder](const kalahari::core::Event& evt) {
                         try {
                             py::gil_scoped_acquire acquire;
-                            callback(evt);
+                            (*holder)(evt);
                         } catch (const py::error_already_set& e) {
                             kalahari::core::Logger::getInstance().error(
                                 "EventBus: Python callback raised exception: {}",

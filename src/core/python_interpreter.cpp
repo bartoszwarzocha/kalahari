@@ -16,10 +16,22 @@
 #include <climits>    // PATH_MAX
 #ifdef __APPLE__
 #include <mach-o/dyld.h>  // _NSGetExecutablePath
+#else
+#include <dlfcn.h>        // dladdr
 #endif
 #endif
 
 namespace py = pybind11;
+
+namespace {
+
+/// Version of the libpython this binary links against, e.g. "3.11".
+/// The stdlib must match it exactly: a different minor version fails at import
+/// time (e.g. "AssertionError: SRE module mismatch" from the re module).
+constexpr const char* LINKED_PYTHON_VERSION =
+    PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);
+
+} // namespace
 
 namespace kalahari {
 namespace core {
@@ -401,46 +413,49 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
                              vcpkgPython.string());
 
 #elif defined(__APPLE__)
-    // macOS: Check vcpkg first, then fallback to system/bundled Python
+    // macOS: accept only an installation whose stdlib matches the linked libpython
+    const std::string stdlibName = std::string("python") + LINKED_PYTHON_VERSION;
+    auto hasStdlib = [&stdlibName](const std::filesystem::path& home) {
+        return std::filesystem::exists(home / "lib" / stdlibName) ||
+               std::filesystem::exists(home / "Frameworks" / "Python.framework" / "Versions" /
+                                       LINKED_PYTHON_VERSION / "lib" / stdlibName);
+    };
+
+    std::vector<std::filesystem::path> candidates;
     char exePath[PATH_MAX];
     uint32_t size = sizeof(exePath);
     if (_NSGetExecutablePath(exePath, &size) == 0) {
         std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
         Logger::getInstance().debug("Executable directory: {}", exeDir.string());
 
-        // Strategy 1: Development - vcpkg Python (arm64-osx or x64-osx)
-        // build/bin/kalahari
-        // build/vcpkg_installed/arm64-osx/tools/python3/
-        std::filesystem::path vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "arm64-osx" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
-            Logger::getInstance().info("Found vcpkg Python arm64 (development mode)");
-            return vcpkgPython;
+        // Development: vcpkg Python (build/bin/kalahari -> build/vcpkg_installed/<triplet>).
+        // vcpkg installs the stdlib under the triplet prefix (lib/pythonX.Y);
+        // tools/python3 is checked as well for older port layouts.
+        for (const char* triplet : {"arm64-osx", "x64-osx"}) {
+            std::filesystem::path prefix = exeDir.parent_path() / "vcpkg_installed" / triplet;
+            candidates.push_back(prefix);
+            candidates.push_back(prefix / "tools" / "python3");
         }
 
-        // Try x64-osx (Intel Macs)
-        vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "x64-osx" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
-            Logger::getInstance().info("Found vcpkg Python x64 (development mode)");
-            return vcpkgPython;
-        }
+        // Production: bundled Python in .app/Contents/Resources/
+        candidates.push_back(exeDir.parent_path() / "Resources" / "python3");
+    }
 
-        // Strategy 2: Production - Bundled Python in .app/Contents/Resources/
-        std::filesystem::path bundledPython = exeDir.parent_path() / "Resources" / "python3";
-        if (std::filesystem::exists(bundledPython)) {
-            Logger::getInstance().info("Found bundled Python (production mode)");
-            return bundledPython;
+    // Homebrew and system installations
+    candidates.push_back(std::string("/opt/homebrew/opt/python@") + LINKED_PYTHON_VERSION);
+    candidates.push_back(std::string("/usr/local/opt/python@") + LINKED_PYTHON_VERSION);
+    candidates.push_back("/usr/local");
+
+    for (const auto& home : candidates) {
+        Logger::getInstance().debug("macOS Python home attempt: {}", home.string());
+        if (hasStdlib(home)) {
+            Logger::getInstance().info("Found Python home: {}", home.string());
+            return home;
         }
     }
 
-    // Strategy 3: Homebrew Python (CI/CD environment)
-    std::filesystem::path homebrewPython = "/opt/homebrew/opt/python@3.11";
-    if (std::filesystem::exists(homebrewPython)) {
-        Logger::getInstance().info("Found Homebrew Python (CI/CD mode)");
-        return homebrewPython;
-    }
-
-    // Strategy 4: Fallback - System Python
-    Logger::getInstance().warn("vcpkg and Homebrew Python not found, falling back to /usr/local");
+    Logger::getInstance().warn("No Python {} installation found, falling back to /usr/local",
+                               LINKED_PYTHON_VERSION);
     return "/usr/local";
 
 #else
@@ -453,9 +468,29 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
 
         // Development: vcpkg Python
         std::filesystem::path vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "x64-linux" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "lib" / "python3.12")) {
+        if (std::filesystem::exists(vcpkgPython / "lib" / (std::string("python") + LINKED_PYTHON_VERSION))) {
             Logger::getInstance().info("Found vcpkg Python (development mode)");
             return vcpkgPython;
+        }
+    }
+
+    // The installation that provides the linked libpython, e.g.
+    // /usr/lib/x86_64-linux-gnu/libpython3.11.so -> /usr (system Python) or
+    // /opt/hostedtoolcache/Python/3.11.x/x64/lib/libpython3.11.so -> .../x64 (CI)
+    Dl_info info{};
+    if (dladdr(reinterpret_cast<void*>(&Py_Initialize), &info) != 0 && info.dli_fname != nullptr) {
+        std::error_code ec;
+        std::filesystem::path dir = std::filesystem::canonical(info.dli_fname, ec).parent_path();
+        const std::string stdlibName = std::string("python") + LINKED_PYTHON_VERSION;
+        while (!ec && !dir.empty()) {
+            if (std::filesystem::exists(dir / "lib" / stdlibName)) {
+                Logger::getInstance().info("Found Python home of linked libpython: {}", dir.string());
+                return dir;
+            }
+            if (dir == dir.parent_path()) {
+                break;
+            }
+            dir = dir.parent_path();
         }
     }
 
@@ -491,8 +526,9 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     // macOS: Multiple possible locations depending on Python distribution
     // 1. Try lib/pythonX.Y (standard Unix layout - vcpkg, system Python)
     // 2. Try Frameworks/Python.framework/Versions/X.Y/lib/pythonX.Y (Homebrew Python)
-    // 3. Try lib/ directory scan (vcpkg might use different structure)
-    std::vector<std::string> versions = {"3.13", "3.12", "3.11"};
+    // Only directories named after the linked version are accepted: an unversioned
+    // lib/python3 or lib/ could hold a different minor release.
+    const std::vector<std::string> versions = {LINKED_PYTHON_VERSION};
 
     // Attempt 1: Standard Unix layout (lib/pythonX.Y)
     for (const auto& version : versions) {
@@ -516,60 +552,19 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
         }
     }
 
-    // Attempt 3: Scan lib/ directory for python3.X folders (vcpkg)
-    std::filesystem::path libDir = pythonHome / "lib";
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().debug("Scanning lib directory: {}", libDir.string());
-
-        for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
-            if (entry.is_directory()) {
-                std::string dirname = entry.path().filename().string();
-                if (dirname.starts_with("python3.") || dirname == "python3") {
-                    Logger::getInstance().info("Found macOS stdlib (scanned): {}", entry.path().string());
-                    return entry.path();
-                }
-            }
-        }
-    }
-
-    // Fallback: Just use lib/ if it exists (some Python distributions)
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().info("Found macOS stdlib (fallback lib/): {}", libDir.string());
-        return libDir;
-    }
-
     throw std::runtime_error("macOS Python stdlib not found under: " + pythonHome.string());
 
 #else
-    // Linux: lib/pythonX.Y (lowercase, versioned)
-    // Try multiple Python versions (3.13 → 3.11)
-    std::vector<std::string> versions = {"3.13", "3.12", "3.11"};
+    // Linux: lib/pythonX.Y (lowercase, versioned), matching the linked libpython
+    std::filesystem::path stdlibPath = pythonHome / "lib" / (std::string("python") + LINKED_PYTHON_VERSION);
+    Logger::getInstance().debug("Linux stdlib attempt: {}", stdlibPath.string());
 
-    for (const auto& version : versions) {
-        std::filesystem::path stdlibPath = pythonHome / "lib" / ("python" + version);
-        Logger::getInstance().debug("Linux stdlib attempt: {}", stdlibPath.string());
-
-        if (std::filesystem::exists(stdlibPath)) {
-            Logger::getInstance().info("Found Linux stdlib: {}", stdlibPath.string());
-            return stdlibPath;
-        }
+    if (std::filesystem::exists(stdlibPath)) {
+        Logger::getInstance().info("Found Linux stdlib: {}", stdlibPath.string());
+        return stdlibPath;
     }
 
-    // Fallback: Check if pythonHome already points to lib directory
-    // (e.g., /usr → check /usr/lib/python3.12)
-    std::filesystem::path libDir = pythonHome / "lib";
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().debug("Checking lib subdirectory: {}", libDir.string());
-
-        for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
-            if (entry.is_directory() && entry.path().filename().string().starts_with("python3.")) {
-                Logger::getInstance().info("Found Linux stdlib: {}", entry.path().string());
-                return entry.path();
-            }
-        }
-    }
-
-    throw std::runtime_error("Linux Python stdlib not found under: " + pythonHome.string() + "/lib/python3.X");
+    throw std::runtime_error("Linux Python stdlib not found: " + stdlibPath.string());
 #endif
 }
 

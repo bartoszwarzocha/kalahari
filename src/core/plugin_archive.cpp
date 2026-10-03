@@ -8,6 +8,8 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <random>
+#include <cstdint>
 
 #ifdef __linux__
 #include <cstdlib>
@@ -36,12 +38,17 @@ PluginArchive::PluginArchive(const std::filesystem::path& plugin_path)
         return;
     }
 
-    // Generate unique subdirectory: <timestamp>_<plugin_filename>
+    // Generate unique subdirectory: <timestamp>_<random>_<plugin_filename>
+    // The random part keeps directories distinct when the same plugin is extracted
+    // twice within one second (reload, several app instances, parallel tests);
+    // otherwise one archive's destructor would delete the other's files.
     auto now = std::chrono::system_clock::now();
     auto timestamp = std::chrono::system_clock::to_time_t(now);
+    std::random_device randomDevice;
+    const auto randomPart = (static_cast<std::uint64_t>(randomDevice()) << 32) | randomDevice();
 
     std::ostringstream oss;
-    oss << timestamp << "_" << plugin_path.stem().string();
+    oss << timestamp << "_" << std::hex << randomPart << std::dec << "_" << plugin_path.stem().string();
 
     m_extracted_dir = temp_base / oss.str();
 

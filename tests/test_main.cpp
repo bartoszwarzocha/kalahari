@@ -12,6 +12,14 @@
 #include <filesystem>
 #include <kalahari/version.h>
 
+#ifdef _WIN32
+#include <process.h>  // _getpid
+#include <cstdlib>    // _set_abort_behavior
+#include <crtdbg.h>   // _CrtSetReportMode
+#else
+#include <unistd.h>   // getpid
+#endif
+
 #include "test_support/reset_singletons.h"
 
 #include <QApplication>
@@ -22,26 +30,47 @@
 
 /// @brief Sets up test environment before any tests run
 /// This struct's constructor runs before main() due to global initialization
+///
+/// Each test process gets its own temporary directory: TMPDIR (POSIX) and
+/// TMP/TEMP (Windows) are redirected to it, so every temp_directory_path()
+/// based file (test settings, archives, databases) is private to the process.
+/// This keeps tests independent when ctest runs them in parallel.
 struct TestEnvironmentSetup {
+    std::filesystem::path m_testTempDir;
+
     TestEnvironmentSetup() {
+        m_testTempDir = std::filesystem::temp_directory_path() /
+                        ("kalahari_tests_" + std::to_string(currentProcessId()));
+        std::filesystem::create_directories(m_testTempDir);
+        const std::string dir = m_testTempDir.string();
+
         // Set test mode - SettingsManager will use temp directory
 #ifdef _WIN32
+        _putenv_s("TMP", dir.c_str());
+        _putenv_s("TEMP", dir.c_str());
         _putenv("KALAHARI_TEST_MODE=1");
 #else
+        setenv("TMPDIR", dir.c_str(), 1);
+        setenv("XDG_DATA_HOME", dir.c_str(), 1);  // Linux: keep plugin extraction out of $HOME
         setenv("KALAHARI_TEST_MODE", "1", 1);
 #endif
     }
 
     ~TestEnvironmentSetup() {
-        // Cleanup: delete test settings directory
+        // Cleanup: delete this process' temporary directory
         try {
-            std::filesystem::path testDir = std::filesystem::temp_directory_path() / "kalahari_test";
-            if (std::filesystem::exists(testDir)) {
-                std::filesystem::remove_all(testDir);
-            }
+            std::filesystem::remove_all(m_testTempDir);
         } catch (...) {
             // Ignore cleanup errors
         }
+    }
+
+    static long currentProcessId() {
+#ifdef _WIN32
+        return static_cast<long>(_getpid());
+#else
+        return static_cast<long>(getpid());
+#endif
     }
 };
 
@@ -68,8 +97,27 @@ CATCH_REGISTER_LISTENER(GlobalResetListener);
 
 /// @brief Custom main for test initialization
 int main(int argc, char* argv[]) {
+#if defined(_MSC_VER) && defined(_DEBUG)
+    // Report MSVC debug assertions and abort() on stderr instead of a modal
+    // "Debug Assertion Failed" dialog that would hang unattended runs (CI, ctest)
+    for (int reportType : {_CRT_ASSERT, _CRT_ERROR}) {
+        _CrtSetReportMode(reportType, _CRTDBG_MODE_FILE | _CRTDBG_MODE_DEBUG);
+        _CrtSetReportFile(reportType, _CRTDBG_FILE_STDERR);
+    }
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+
     // Initialize Qt (required for QSqlDatabase, QTextLayout, QWidget, and other Qt components)
     // Note: QApplication is needed for QWidget-based tests (BookEditor, etc.)
+#ifdef __linux__
+    // Tests never need a real display; default to the offscreen platform so the
+    // binary also runs headless (CI, ctest discovery) unless the caller overrides it.
+    // Windows and macOS always have their native platform plugin (vcpkg's Qt
+    // ships no offscreen plugin there).
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+    }
+#endif
     QApplication app(argc, argv);
     app.setApplicationName("kalahari-tests");
 

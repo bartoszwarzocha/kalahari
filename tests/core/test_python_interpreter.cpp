@@ -8,6 +8,7 @@ using namespace kalahari::core;
 
 TEST_CASE("PythonInterpreter initialization", "[python]") {
     auto& python = PythonInterpreter::getInstance();
+    python.initialize();  // No-op when already initialized
 
     SECTION("Python is initialized") {
         REQUIRE(python.isInitialized());
@@ -28,11 +29,13 @@ TEST_CASE("PythonInterpreter initialization", "[python]") {
 
 TEST_CASE("PythonInterpreter executeTest", "[python]") {
     auto& python = PythonInterpreter::getInstance();
+    python.initialize();  // No-op when already initialized
 
     REQUIRE(python.isInitialized());
 
     SECTION("Execute test passes all checks") {
         std::string result = python.executeTest();
+        INFO(result);
 
         // Check that all tests passed
         REQUIRE(result.find("Test 1") != std::string::npos);
