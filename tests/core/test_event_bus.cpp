@@ -9,8 +9,14 @@
 /// - Exception handling in callbacks
 /// - Subscriber counting
 
+// Disable Qt keywords (emit, signals, slots) to avoid conflicts with EventBus::emit()
+#ifndef QT_NO_KEYWORDS
+#define QT_NO_KEYWORDS
+#endif
+
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/event_bus.h>
+#include <QCoreApplication>
 #include <thread>
 #include <chrono>
 #include <atomic>
@@ -298,7 +304,7 @@ TEST_CASE("Async event emission (queuing)", "[event-bus][async]") {
         REQUIRE_NOTHROW(bus.emitAsync(evt));
     }
 
-    SECTION("Multiple async emissions queue correctly") {
+    SECTION("Queued events are delivered by the Qt event loop") {
         int emitted_count = 0;
 
         bus.subscribe("async:queue", [&emitted_count](const Event&) {
@@ -306,17 +312,19 @@ TEST_CASE("Async event emission (queuing)", "[event-bus][async]") {
         });
 
         Event evt("async:queue");
-
-        // Queue multiple events
         bus.emitAsync(evt);
         bus.emitAsync(evt);
         bus.emitAsync(evt);
 
-        // In headless test without wxApp, events should be processed immediately
-        // Give a brief time for processing if wxApp available
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // Delivery is queued on the GUI thread, not immediate
+        REQUIRE(emitted_count == 0);
 
-        // At least some events should be processed
-        REQUIRE(emitted_count >= 0); // Graceful fallback when wxApp unavailable
+        QCoreApplication::processEvents();
+        REQUIRE(emitted_count == 3);
     }
+
+    // Drain events still queued (e.g. by the first section) so they cannot reach
+    // listeners registered by later tests
+    QCoreApplication::processEvents();
+    bus.clearAll();
 }
