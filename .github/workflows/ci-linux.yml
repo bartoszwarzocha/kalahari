@@ -163,6 +163,7 @@ jobs:
     - name: Coverage report
       if: always()
       run: |
+        mkdir -p build/coverage
         gcovr --root . build --filter 'src/' --exclude-throw-branches \
           --txt-summary --txt build/coverage.txt \
           --html-details build/coverage/index.html

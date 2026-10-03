@@ -55,6 +55,8 @@ TEST_CASE("PluginManager: loadPlugin fails for an undiscovered plugin", "[plugin
 
 TEST_CASE("PluginManager: getDiscoveredPlugins empty", "[plugin-manager]") {
     PluginManager& manager = PluginManager::getInstance();
+    // Rescan: the singleton may still list plugins discovered by an earlier test
+    manager.discoverPlugins();
     auto plugins = manager.getDiscoveredPlugins();
 
     REQUIRE(plugins.empty());

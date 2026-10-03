@@ -523,7 +523,8 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     // macOS: Multiple possible locations depending on Python distribution
     // 1. Try lib/pythonX.Y (standard Unix layout - vcpkg, system Python)
     // 2. Try Frameworks/Python.framework/Versions/X.Y/lib/pythonX.Y (Homebrew Python)
-    // 3. Try lib/ directory scan (vcpkg might use different structure)
+    // Only directories named after the linked version are accepted: an unversioned
+    // lib/python3 or lib/ could hold a different minor release.
     const std::vector<std::string> versions = {LINKED_PYTHON_VERSION};
 
     // Attempt 1: Standard Unix layout (lib/pythonX.Y)
@@ -546,28 +547,6 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
             Logger::getInstance().info("Found macOS stdlib (framework): {}", frameworkPath.string());
             return frameworkPath;
         }
-    }
-
-    // Attempt 3: Scan lib/ directory for python3.X folders (vcpkg)
-    std::filesystem::path libDir = pythonHome / "lib";
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().debug("Scanning lib directory: {}", libDir.string());
-
-        for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
-            if (entry.is_directory()) {
-                std::string dirname = entry.path().filename().string();
-                if (dirname == std::string("python") + LINKED_PYTHON_VERSION || dirname == "python3") {
-                    Logger::getInstance().info("Found macOS stdlib (scanned): {}", entry.path().string());
-                    return entry.path();
-                }
-            }
-        }
-    }
-
-    // Fallback: Just use lib/ if it exists (some Python distributions)
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().info("Found macOS stdlib (fallback lib/): {}", libDir.string());
-        return libDir;
     }
 
     throw std::runtime_error("macOS Python stdlib not found under: " + pythonHome.string());
