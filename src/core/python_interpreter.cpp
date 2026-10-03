@@ -21,6 +21,16 @@
 
 namespace py = pybind11;
 
+namespace {
+
+/// Version of the libpython this binary links against, e.g. "3.11".
+/// The stdlib must match it exactly: a different minor version fails at import
+/// time (e.g. "AssertionError: SRE module mismatch" from the re module).
+constexpr const char* LINKED_PYTHON_VERSION =
+    PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);
+
+} // namespace
+
 namespace kalahari {
 namespace core {
 
@@ -492,7 +502,7 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     // 1. Try lib/pythonX.Y (standard Unix layout - vcpkg, system Python)
     // 2. Try Frameworks/Python.framework/Versions/X.Y/lib/pythonX.Y (Homebrew Python)
     // 3. Try lib/ directory scan (vcpkg might use different structure)
-    std::vector<std::string> versions = {"3.13", "3.12", "3.11"};
+    const std::vector<std::string> versions = {LINKED_PYTHON_VERSION};
 
     // Attempt 1: Standard Unix layout (lib/pythonX.Y)
     for (const auto& version : versions) {
@@ -524,7 +534,7 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
         for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
             if (entry.is_directory()) {
                 std::string dirname = entry.path().filename().string();
-                if (dirname.starts_with("python3.") || dirname == "python3") {
+                if (dirname == std::string("python") + LINKED_PYTHON_VERSION || dirname == "python3") {
                     Logger::getInstance().info("Found macOS stdlib (scanned): {}", entry.path().string());
                     return entry.path();
                 }
@@ -541,35 +551,16 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     throw std::runtime_error("macOS Python stdlib not found under: " + pythonHome.string());
 
 #else
-    // Linux: lib/pythonX.Y (lowercase, versioned)
-    // Try multiple Python versions (3.13 → 3.11)
-    std::vector<std::string> versions = {"3.13", "3.12", "3.11"};
+    // Linux: lib/pythonX.Y (lowercase, versioned), matching the linked libpython
+    std::filesystem::path stdlibPath = pythonHome / "lib" / (std::string("python") + LINKED_PYTHON_VERSION);
+    Logger::getInstance().debug("Linux stdlib attempt: {}", stdlibPath.string());
 
-    for (const auto& version : versions) {
-        std::filesystem::path stdlibPath = pythonHome / "lib" / ("python" + version);
-        Logger::getInstance().debug("Linux stdlib attempt: {}", stdlibPath.string());
-
-        if (std::filesystem::exists(stdlibPath)) {
-            Logger::getInstance().info("Found Linux stdlib: {}", stdlibPath.string());
-            return stdlibPath;
-        }
+    if (std::filesystem::exists(stdlibPath)) {
+        Logger::getInstance().info("Found Linux stdlib: {}", stdlibPath.string());
+        return stdlibPath;
     }
 
-    // Fallback: Check if pythonHome already points to lib directory
-    // (e.g., /usr → check /usr/lib/python3.12)
-    std::filesystem::path libDir = pythonHome / "lib";
-    if (std::filesystem::exists(libDir)) {
-        Logger::getInstance().debug("Checking lib subdirectory: {}", libDir.string());
-
-        for (const auto& entry : std::filesystem::directory_iterator(libDir)) {
-            if (entry.is_directory() && entry.path().filename().string().starts_with("python3.")) {
-                Logger::getInstance().info("Found Linux stdlib: {}", entry.path().string());
-                return entry.path();
-            }
-        }
-    }
-
-    throw std::runtime_error("Linux Python stdlib not found under: " + pythonHome.string() + "/lib/python3.X");
+    throw std::runtime_error("Linux Python stdlib not found: " + stdlibPath.string());
 #endif
 }
 
