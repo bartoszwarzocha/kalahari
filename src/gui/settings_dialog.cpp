@@ -313,14 +313,11 @@ void SettingsDialog::createNavigationTree() {
     m_itemToPage[filesImportExport] = PAGE_FILES_IMPORT_EXPORT;
 
     // ========================================================================
-    // Network category (2 sub-items)
+    // Network category (1 sub-item)
     // ========================================================================
     QTreeWidgetItem* networkItem = new QTreeWidgetItem(m_navTree);
     networkItem->setText(0, tr("Network"));
     networkItem->setExpanded(true);
-
-    QTreeWidgetItem* networkCloudSync = createPlaceholderItem(networkItem, tr("Cloud Sync"));
-    m_itemToPage[networkCloudSync] = PAGE_NETWORK_CLOUD_SYNC;
 
     QTreeWidgetItem* networkUpdates = createPlaceholderItem(networkItem, tr("Updates"));
     m_itemToPage[networkUpdates] = PAGE_NETWORK_UPDATES;
@@ -437,19 +434,9 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Network pages (15-16)
+    // Network pages (15)
     // ========================================================================
-    // Page 15: Network/Cloud Sync
-    m_pageStack->addWidget(createPlaceholderPage(
-        tr("Cloud Sync"),
-        tr("Cloud Sync settings will be available in a future version.\n\n"
-           "Planned features:\n"
-           "- Cloud provider selection\n"
-           "- Sync frequency\n"
-           "- Conflict resolution\n"
-           "- Sync status and history")
-    ));
-    // Page 16: Network/Updates
+    // Page 15: Network/Updates
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Updates"),
         tr("Update settings will be available in a future version.\n\n"
@@ -460,11 +447,11 @@ void SettingsDialog::createSettingsPages() {
     ));
 
     // ========================================================================
-    // Advanced pages (17-19)
+    // Advanced pages (16-18)
     // ========================================================================
-    // Page 17: Advanced/General
+    // Page 16: Advanced/General
     m_pageStack->addWidget(createAdvancedGeneralPage());
-    // Page 18: Advanced/Performance
+    // Page 17: Advanced/Performance
     m_pageStack->addWidget(createPlaceholderPage(
         tr("Performance"),
         tr("Performance settings will be available in a future version.\n\n"
@@ -474,7 +461,7 @@ void SettingsDialog::createSettingsPages() {
            "- Cache settings\n"
            "- Hardware acceleration")
     ));
-    // Page 19: Advanced/Log
+    // Page 18: Advanced/Log
     m_pageStack->addWidget(createAdvancedLogPage());
 }
 

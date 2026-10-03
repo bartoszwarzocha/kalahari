@@ -106,6 +106,8 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
         QString menuTitle = translateMenuName(topLevel);
 
         QMenu* topMenu = menuBar->addMenu(menuTitle);
+        // Menus hide action tooltips by default; they explain why a command is disabled
+        topMenu->setToolTipsVisible(true);
         topMenu->setObjectName(QString::fromStdString(topLevel + "Menu"));  // e.g., "VIEWMenu"
         m_menuCache[topLevel] = topMenu;
 
@@ -165,6 +167,7 @@ QMenu* MenuBuilder::getOrCreateSubmenu(QMenu* parent, const QString& title) {
 
     // Create new submenu
     QMenu* submenu = parent->addMenu(title);
+    submenu->setToolTipsVisible(true);
     return submenu;
 }
 

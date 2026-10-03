@@ -516,7 +516,7 @@ private:
 **Click Interactions:**
 - Click challenge → Shows detailed progress
 - Click badge → Shows badge description & date earned
-- Click "Advanced Analytics" → Opens Advanced Analytics in center window (Premium $14)
+- Click "Advanced Analytics" → Opens Advanced Analytics in center window (free plugin)
 - Click "View All" → Opens achievements panel in center
 
 **Implementation:**
@@ -542,7 +542,7 @@ private:
 **See also:**
 - ROADMAP.md Section 1.5 (Statistics Architecture - 3-Tier System)
 - Statistics Bar (live monitoring, always visible)
-- Advanced Analytics (central window, Premium plugin $14)
+- Advanced Analytics (central window, free plugin)
 
 ---
 
@@ -1911,7 +1911,6 @@ This section documents the **complete vision** for Kalahari's settings hierarchy
 🦁 Assistant                          [Phase 1+]
 ├─ 🎭 Personality Selection
 │  ├─ Default animal (Lion/Meerkat/Elephant/Cheetah)
-│  ├─ Unlock all 8 animals (premium)
 │  └─ Custom personality (Phase 3+)
 ├─ 💬 Interaction Settings
 │  ├─ Notification frequency (Never/Hourly/Daily/Smart)
@@ -1927,10 +1926,6 @@ This section documents the **complete vision** for Kalahari's settings hierarchy
 │  ├─ Enable/Disable plugins
 │  ├─ Plugin update settings
 │  └─ Plugin load order
-├─ 🛒 Plugin Marketplace              [Phase 3+]
-│  ├─ Marketplace URL
-│  ├─ Auto-check updates
-│  └─ Beta plugins enabled
 └─ ⚙️ Plugin Settings                [Dynamic - added by plugins]
    ├─ AI Assistant Pro
    │  ├─ API Key (OpenAI/Claude)

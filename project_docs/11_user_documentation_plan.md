@@ -121,8 +121,7 @@ docs/                       # MkDocs source
 ├── plugins/               # Plugin ecosystem
 │   ├── overview.md        # What are plugins?
 │   ├── installing.md      # Installing .kplugin files
-│   ├── free-plugins.md    # Free plugin catalog
-│   ├── premium-plugins.md # Premium plugin catalog
+│   ├── catalog.md         # Plugin catalog (all plugins are free)
 │   └── creating.md        # Plugin development intro
 ├── reference/             # Technical reference
 │   ├── file-formats.md    # .klh file format spec
@@ -265,14 +264,14 @@ mkdocs.yml                 # MkDocs configuration
 
 ### Phase 3: Feature Plugins (Weeks 31-44)
 
-**Documentation:** Advanced Features + Premium Plugins
+**Documentation:** Advanced Features + Feature Plugins
 
 **Content to create:**
 - Character Bank guide
 - Location Bank guide
 - Notes system guide
 - Writer's Calendar guide
-- Premium plugins documentation:
+- Feature plugins documentation:
   - AI Assistant Pro
   - Advanced Analytics
 - Customization guides (toolbars, perspectives, themes)

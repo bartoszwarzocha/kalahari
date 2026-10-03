@@ -20,7 +20,6 @@ This directory contains the complete technical documentation for the Kalahari pr
 | 02 | [**Tech Stack**](02_tech_stack.md) | C++20, Qt6, vcpkg, libraries | ✅ Complete |
 | 03 | [**Architecture**](03_architecture.md) | Core architecture, design patterns, structure | ✅ Complete |
 | 04 | [**Plugin System**](04_plugin_system.md) | Plugin API, extension points, event bus | ✅ Complete |
-| 05 | [**Business Model**](05_business_model.md) | Open Core, premium plugins, pricing | ✅ Complete |
 | 06 | [**Roadmap Rules**](06_roadmap.md) | Rules for maintaining ROADMAP.md and CHANGELOG.md | ✅ Complete |
 | 07 | [**MVP Tasks**](07_mvp_tasks.md) | Detailed task breakdown for MVP (18 months) | ⚠️ Deprecated |
 | 08 | [**GUI Design**](08_gui_design.md) | GUI panels, Qt6 QDockWidget, perspectives, customizable toolbars | ✅ Complete |

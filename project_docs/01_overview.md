@@ -52,7 +52,7 @@ Every feature designed with writers in mind:
 **Plugin Architecture:**
 - Python plugins for features
 - Community can extend functionality
-- Premium plugins for advanced features
+- All plugins free and MIT-licensed, like the core
 - Open API for third-party integrations
 
 ### 3. **Native Performance**
@@ -146,7 +146,7 @@ Native look & feel on each platform (Qt6).
 
 ### vs Ulysses
 - ❌ Ulysses: macOS/iOS only, subscription required, limited features
-- ✅ Kalahari: All platforms, open core (free), premium plugins optional, richer feature set
+- ✅ Kalahari: All platforms, free and open source (MIT), no subscription, richer feature set
 
 ### vs Notion / Obsidian
 - ❌ Notion/Obsidian: Note-taking tools, not designed for linear long-form writing
@@ -203,9 +203,8 @@ Each animal has unique communication style while providing same core functions:
 - Research tools (OCR, citations, web scraping)
 - Collaboration (beta-readers, editors, track changes)
 
-**Plugin Marketplace:**
-- Free plugins (community)
-- Premium plugins (official, $14-39)
+**Plugins:**
+- All plugins free and MIT-licensed (official and community)
 - Easy installation (.kplugin drag & drop)
 
 ---
@@ -219,7 +218,7 @@ Each animal has unique communication style while providing same core functions:
 - Productivity charts (trend lines)
 - Session time tracking
 
-**Advanced Analytics (Premium):**
+**Advanced Analytics (plugin):**
 - Pacing analysis (action vs dialogue vs description)
 - Character mention frequency
 - Reading level (Flesch-Kincaid)
@@ -293,7 +292,7 @@ My Novel.klh
 **Progress:**
 - ✅ Concept finalized
 - ✅ Tech stack decided (C++20, Qt6, Python plugins) - Migrated to Qt6 2025-11-19
-- ✅ Business model defined (Open Core + Plugins + SaaS)
+- ✅ Licensing decided: everything MIT, no paid plugins or cloud services (2026-10-03)
 - ✅ Roadmap created (Phases 0-5)
 - ✅ Documentation structure established
 - ⏳ Waiting for: wxFormBuilder GUI layout, i18n pattern
@@ -308,16 +307,13 @@ My Novel.klh
 - ✅ Release Kalahari 1.0 (MVP)
 - ✅ 10,000+ users
 - ✅ 1,000+ GitHub stars
-- ✅ Break-even financially
 - ✅ Recognized in writing tools community
 
 ### Mid-Term (2-5 years)
 
 - ✅ 100,000+ users
-- ✅ Plugin marketplace (own platform)
 - ✅ Mobile companion apps
-- ✅ Ecosystem expansion (Serengeti, Okavango, Victoria)
-- ✅ Sustainable full-time income
+- ✅ Ecosystem expansion (Okavango, Zambezi)
 
 ### Long-Term (5+ years)
 
@@ -344,10 +340,8 @@ My Novel.klh
 
 **All tools named after African landmarks:**
 - **Kalahari** - Writer's IDE (this project)
-- **Serengeti** - Collaborative writing (future)
 - **Okavango** - Research & knowledge management (future)
 - **Kilimanjaro** - Project management (future)
-- **Victoria** - Cloud sync service (future)
 - **Zambezi** - Publishing toolkit (future)
 - **Sahara** - Mobile companion apps (future)
 
@@ -400,7 +394,6 @@ To learn more about specific aspects:
 - **[Tech Stack](02_tech_stack.md)** - Technologies & libraries
 - **[Architecture](03_architecture.md)** - System design
 - **[Plugin System](04_plugin_system.md)** - Extensibility design
-- **[Business Model](05_business_model.md)** - Open Core + Plugins
 - **[Roadmap](../ROADMAP.md)** - Development timeline (18-month plan)
 - **[Branding](10_branding.md)** - Visual identity
 
@@ -410,7 +403,7 @@ To learn more about specific aspects:
 
 **Repository:** github.com/[your-username]/kalahari (when public)
 **Website:** kalahari.app (planned)
-**License:** MIT (core), Proprietary (premium plugins)
+**License:** MIT (all components, including plugins)
 
 **Want to contribute?** See [CONTRIBUTING.md](../CONTRIBUTING.md) (when available)
 
