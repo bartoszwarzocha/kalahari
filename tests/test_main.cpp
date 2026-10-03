@@ -14,6 +14,8 @@
 
 #ifdef _WIN32
 #include <process.h>  // _getpid
+#include <cstdlib>    // _set_abort_behavior
+#include <crtdbg.h>   // _CrtSetReportMode
 #else
 #include <unistd.h>   // getpid
 #endif
@@ -95,6 +97,16 @@ CATCH_REGISTER_LISTENER(GlobalResetListener);
 
 /// @brief Custom main for test initialization
 int main(int argc, char* argv[]) {
+#if defined(_MSC_VER) && defined(_DEBUG)
+    // Report MSVC debug assertions and abort() on stderr instead of a modal
+    // "Debug Assertion Failed" dialog that would hang unattended runs (CI, ctest)
+    for (int reportType : {_CRT_ASSERT, _CRT_ERROR}) {
+        _CrtSetReportMode(reportType, _CRTDBG_MODE_FILE | _CRTDBG_MODE_DEBUG);
+        _CrtSetReportFile(reportType, _CRTDBG_FILE_STDERR);
+    }
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+
     // Initialize Qt (required for QSqlDatabase, QTextLayout, QWidget, and other Qt components)
     // Note: QApplication is needed for QWidget-based tests (BookEditor, etc.)
 #ifdef __linux__
