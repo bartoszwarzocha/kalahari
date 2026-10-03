@@ -384,6 +384,8 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
         cmd->isChecked = [dock]() {
             return dock->isVisible();
         };
+        // The action may already exist (disabled, since it had no callback yet)
+        registry.updateActionState(cmdId);
     }
 }
 

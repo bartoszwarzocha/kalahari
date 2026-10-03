@@ -10,9 +10,11 @@
 /// - Category filtering (getCommandsByCategory)
 /// - All commands retrieval (getAllCommands)
 /// - Category listing (getCategories)
+/// - Action availability (unimplemented commands are disabled)
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/command_registry.h"
+#include <QAction>
 
 using namespace kalahari::gui;
 
@@ -275,6 +277,77 @@ TEST_CASE("CommandRegistry utility methods", "[gui][command][registry][utility]"
         REQUIRE_FALSE(registry.isCommandRegistered("cmd1"));
         REQUIRE_FALSE(registry.isCommandRegistered("cmd2"));
         REQUIRE_FALSE(registry.isCommandRegistered("cmd3"));
+    }
+
+    registry.clear();
+}
+
+// =============================================================================
+// Action Availability Tests
+// =============================================================================
+
+TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][command][registry][action]") {
+    auto& registry = CommandRegistry::getInstance();
+    registry.clear();
+
+    SECTION("command with execute callback has enabled action") {
+        registry.registerCommand(createTestCommand("test.implemented"));
+
+        QAction* action = registry.getAction(std::string("test.implemented"));
+        REQUIRE(action != nullptr);
+        REQUIRE(action->isEnabled());
+        REQUIRE(action->toolTip() == QString("Tooltip for test.implemented"));
+    }
+
+    SECTION("command without execute callback has disabled action") {
+        Command cmd = createTestCommand("test.unimplemented");
+        cmd.execute = nullptr;
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.unimplemented"));
+        REQUIRE(action != nullptr);
+        REQUIRE_FALSE(action->isEnabled());
+        REQUIRE(action->toolTip() != QString("Tooltip for test.unimplemented"));
+        REQUIRE(action->toolTip().startsWith("Tooltip for test.unimplemented"));
+    }
+
+    SECTION("action becomes enabled once execute callback is bound") {
+        Command cmd = createTestCommand("test.lateBound");
+        cmd.execute = nullptr;
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.lateBound"));
+        REQUIRE(action != nullptr);
+        REQUIRE_FALSE(action->isEnabled());
+
+        registry.getCommand("test.lateBound")->execute = []() {};
+        registry.updateActionState("test.lateBound");
+
+        REQUIRE(action->isEnabled());
+        REQUIRE(action->toolTip() == QString("Tooltip for test.lateBound"));
+    }
+
+    SECTION("tooltip equal to the label is not set explicitly") {
+        Command cmd = createTestCommand("test.labelTooltip");
+        cmd.tooltip = cmd.label;
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.labelTooltip"));
+        REQUIRE(action != nullptr);
+        REQUIRE(action->isEnabled());
+        // QAction falls back to its text, which toolbars show; menus show nothing extra
+        REQUIRE(action->toolTip() == QString("Test Command test.labelTooltip"));
+    }
+
+    SECTION("isEnabled callback still disables an implemented command") {
+        Command cmd = createTestCommand("test.disabled");
+        cmd.isEnabled = []() { return false; };
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.disabled"));
+        REQUIRE(action != nullptr);
+        REQUIRE_FALSE(action->isEnabled());
+        REQUIRE(action->toolTip() == QString("Tooltip for test.disabled"));
     }
 
     registry.clear();
