@@ -1,0 +1,7 @@
+# LeakSanitizer suppressions for kalahari-tests.
+# CPython keeps interned objects and module state alive until process exit and
+# does not free all of it in Py_Finalize; these are not Kalahari leaks.
+leak:libpython3
+# pybind11 intentionally never frees its internals structures.
+leak:pybind11::detail::get_internals
+leak:pybind11::detail::get_local_internals
