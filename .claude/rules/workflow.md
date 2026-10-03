@@ -19,6 +19,9 @@ concurrently), or use the native `Workflow` tool to orchestrate fan-out determin
 
 ## Workflow — native tools as the backbone, Superpowers where it helps
 
+The Superpowers plugin is enabled in `.claude/settings.json` (`enabledPlugins`). If its skills are
+not available in a session, follow the same steps without them — do not block on the plugin.
+
 ```
 NEW FEATURE / CHANGE:
   1. Design      → plan mode  (+ superpowers:brainstorming for open-ended intent,
@@ -27,12 +30,12 @@ NEW FEATURE / CHANGE:
   2. Implement   → coder      (one worker: creates, edits, UI)
                    Workflow    → fan out when tasks are independent
   3. Review      → code-reviewer  AND/OR  /code-review   (bundled, multi-agent)
-  4. Verify      → tester  +  /verify   (drive the real app, not just tests)
+  4. Verify      → tester  +  /run   (launch the real app, not just tests)
   5. Finish      → superpowers:finishing-a-development-branch  (merge / PR / cleanup)
 
 BUG FIX:
   superpowers:systematic-debugging → superpowers:test-driven-development
-  → coder (fix) → tester + /verify
+  → coder (fix) → tester + /run
 ```
 
 ### When to reach for what
@@ -43,7 +46,7 @@ BUG FIX:
 - **`superpowers:writing-plans`** — turn a spec into a step-by-step plan under `docs/superpowers/plans/`.
 - **`superpowers:systematic-debugging`** — any bug/test failure, before proposing a fix.
 - **`superpowers:test-driven-development`** — write the failing test first.
-- **`/code-review`, `/simplify`, `/verify`** — bundled native skills, complementary to the agents.
+- **`/code-review`, `/simplify`, `/run`** — bundled native skills, complementary to the agents.
 
 **CRITICAL:** Never skip review + verification. Work is NOT complete until `code-reviewer`
-(or `/code-review`) passes AND the build/tests are green (`tester` / `/verify`).
+(or `/code-review`) passes AND the build/tests are green (`tester`, plus `/run` for UI changes).

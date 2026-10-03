@@ -1,37 +1,41 @@
+---
+name: github-actions
+description: Kalahari CI/CD on GitHub Actions (Windows/Linux/macOS workflows, vcpkg, caching). Use when diagnosing CI failures or editing .github/workflows.
+---
+
 # GitHub Actions - Kalahari CI/CD
 
 ## Project CI Structure
 
 ```
 .github/workflows/
-├── ci-windows.yml    # Windows: MSVC + vcpkg + Ninja
-├── ci-linux.yml      # Linux: GCC + vcpkg + Ninja
-└── ci-macos.yml      # macOS: Clang + vcpkg + Ninja
+├── ci-windows.yml    # windows-latest: MSVC + vcpkg (submodule) + Ninja, Debug+Release, 120 min
+├── ci-linux.yml      # ubuntu-24.04: GCC + system packages from apt (NO vcpkg), Release only, 30 min
+└── ci-macos.yml      # macos-latest: Clang + vcpkg (submodule) + Ninja, Debug+Release, 90 min
 ```
+
+All workflows: trigger on push/PR to `main`/`develop` + `workflow_dispatch`; tests via
+`ctest --output-on-failure`; Release binaries uploaded as artifacts (7 days).
 
 ## Build Matrix
 
-| Platform | Compiler | Generator | Triplet |
-|----------|----------|-----------|---------|
-| Windows | MSVC (cl) | Ninja | x64-windows |
-| Linux | GCC | Ninja | x64-linux |
-| macOS | Clang | Ninja | x64-osx |
-
-Build types: `Debug`, `Release`
+| Platform | Compiler | Dependencies | Build types |
+|----------|----------|--------------|-------------|
+| Windows | MSVC (`ilammy/msvc-dev-cmd`) | vcpkg, triplet `x64-windows`, cache key `windows-msvc-vcpkg-v4-*` | Debug, Release |
+| Linux | GCC | apt: `qt6-base-dev`, `qt6-svg-dev`, `qt6-tools-dev`, `libspdlog-dev`, `nlohmann-json3-dev`, `libzip-dev`, `libcurl4-openssl-dev`, `libhunspell-dev`, `catch2`, `pybind11-dev`, ... | Release |
+| macOS | Apple Clang | vcpkg (default triplet), cache key `macos-clang-vcpkg-v3-*` | Debug, Release |
 
 ## Dependencies (vcpkg.json)
 
-```json
-{
-  "dependencies": [
-    "qt6-base",
-    "qt6-svg",
-    "spdlog",
-    "nlohmann-json",
-    "catch2"
-  ]
-}
-```
+Default feature `qt6`: `qtbase` (widgets, gui, network, openssl, sql; xcb/fontconfig on Linux),
+`qtsvg`, `qttools` (all `>= 6.5.0`). Always: `curl`, `spdlog`, `nlohmann-json`, `hunspell`,
+`libzip[bzip2]`, `catch2`, `python3`, `pybind11`. Versions pinned by `builtin-baseline`.
+
+## Known Issues
+
+- **macOS red since 2026-07-09:** Qt 6.9.1 from vcpkg fails to compile with the current Apple
+  Clang (`__yield` rejected in `qyieldcpu.h`). Fix candidates: bump the vcpkg baseline to a Qt
+  release with the fix, or pin an older Xcode/runner image.
 
 ## Common Failure Patterns
 

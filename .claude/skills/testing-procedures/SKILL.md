@@ -87,29 +87,21 @@ assertions: 42 | 40 passed | 2 failed
 
 ## 7. Reporting Results
 
-### Pass
-```json
-{
-  "decision": "pass",
-  "tests": "42/42 passed",
-  "summary": "All tests pass"
-}
+Report in concise prose:
+- **Pass:** `N/N passed`, duration.
+- **Fail:** each failing test with `file:line`, expected vs. actual.
+- **Build failure:** the error, and stop (do not run tests).
+
+## 8. Running a Subset
+
+Catch2 v3 filters (faster feedback while iterating):
+```bash
+./build-windows/bin/kalahari-tests.exe "[editor]"          # by tag
+./build-windows/bin/kalahari-tests.exe "BookEditor*"       # by test name pattern
+./build-windows/bin/kalahari-tests.exe --list-tests        # list available tests
 ```
 
-### Fail
-```json
-{
-  "decision": "fail",
-  "tests": "40/42 passed",
-  "failures": [
-    "TestSettings::save - expected true, got false",
-    "TestDocument::load - file not found"
-  ],
-  "summary": "2 tests failed"
-}
-```
-
-## 8. Common Issues
+## 9. Common Issues
 
 ### Build fails
 1. Check CMake output for errors

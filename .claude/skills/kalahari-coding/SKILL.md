@@ -10,7 +10,7 @@ description: Core coding patterns and conventions for Kalahari project. MUST be 
 ### ALWAYS
 ```cpp
 core::ArtProvider::getInstance().getIcon("cmd_id")
-core::ArtProvider::getInstance().createAction("cmd_id", parent)  // for QAction with auto-refresh
+core::ArtProvider::getInstance().createAction("cmd_id", tr("Text"), parent)  // QAction with auto-refresh
 ```
 
 ### NEVER
@@ -34,24 +34,30 @@ core::ArtProvider::getInstance().setSecondaryColor(QColor("#hex"));
 
 ### NEVER
 ```cpp
-QColor(255, 0, 0)  // hardcoded color
+QColor(255, 0, 0)  // hardcoded color in UI code
 Theme::instance().getColor()  // DOES NOT EXIST!
 ```
+Literal colors are allowed only where theme defaults are defined (`resources/themes/*.json`,
+`fallback_theme.cpp`, `theme.cpp`).
 
 ## 3. Configuration
 
 ### ALWAYS
 ```cpp
 auto& settings = core::SettingsManager::getInstance();
-std::string value = settings.getValue("key", "default");
-settings.setValue("key", "value");
+int size = settings.get<int>("editor.fontSize", 12);
+std::string theme = settings.get<std::string>("appearance.iconTheme", "twotone");
+settings.set<int>("editor.fontSize", 14);
 ```
 
 ### NEVER
 ```cpp
-// hardcoded configuration values
-const int MAX_SIZE = 100;  // should be in settings
+settings.getValue("key", "default");  // does NOT exist - use get<T>()
 ```
+
+### Settings vs. constants
+- Values a user may want to change (font size, autosave interval, colors) → SettingsManager.
+- Invariants (format limits, protocol values) → named `constexpr` constant in `UPPER_SNAKE_CASE`.
 
 ## 4. UI Strings
 
@@ -208,7 +214,8 @@ mcp__serena__find_referencing_symbols("ClassName")       # find all usages
 - Before creating new class → find similar patterns
 - Before refactoring → find all usages
 
-Fallback if Serena is unavailable: Grep / Glob / Read. (Native LSP/clangd is non-functional on this Windows setup.)
+Serena and Context7 are configured per machine in a git-ignored `.mcp.json` (template: `.mcp.json.example`).
+Fallback if Serena is unavailable: Grep / Glob / Read. (Native LSP/clangd is non-functional on the Windows setup.)
 
 ### Context7 (External Docs)
 Use for Qt6 and other library documentation:
@@ -228,3 +235,5 @@ mcp__context7__query-docs("/qt/qtdoc", topic="QDockWidget")
 | Qt6 API reference | Context7 |
 | Qt6 signals/slots | Context7 |
 | External library docs | Context7 |
+| Class structure / definitions | Serena (`get_symbols_overview`, `find_symbol`) |
+| All usages of a symbol | Serena (`find_referencing_symbols`) |

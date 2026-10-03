@@ -1,38 +1,39 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(scripts/*)",
       "Bash(git:*)",
       "Bash(cmake:*)",
+      "Bash(ctest:*)",
       "Bash(cd:*)",
       "Bash(dir:*)",
       "Bash(ls:*)",
       "Bash(echo:*)",
       "Bash(type:*)",
       "Bash(cat:*)",
+      "Bash(./build-windows/bin/*)",
+      "Bash(./build-linux/bin/*)",
       "Read(src/**)",
       "Read(include/**)",
       "Read(tests/**)",
-      "Read(docs/openspec-archive/**)",
-      "Read(docs/superpowers/**)",
+      "Read(docs/**)",
       "Read(.claude/**)",
       "Edit(src/**)",
       "Edit(include/**)",
       "Edit(tests/**)",
       "Edit(docs/superpowers/**)",
       "Edit(.claude/**)",
-      "Write(src/**)",
-      "Write(include/**)",
-      "Write(tests/**)",
-      "Write(docs/superpowers/**)",
-      "Task(architect)",
-      "Task(coder)",
-      "Task(code-reviewer)",
-      "Task(tester)",
-      "Task(devops)",
-      "Task(Explore)",
-      "Skill(/save-session:*)",
-      "Skill(/load-session:*)"
+      "Agent(architect)",
+      "Agent(coder)",
+      "Agent(code-reviewer)",
+      "Agent(tester)",
+      "Agent(devops)",
+      "Agent(Explore)",
+      "Skill(save-session)",
+      "Skill(load-session)",
+      "mcp__context7",
+      "mcp__serena"
     ],
     "deny": [
       "Read(.env)",
@@ -47,10 +48,15 @@
       "Bash(Invoke-WebRequest:*)",
       "Bash(powershell -enc:*)",
       "Edit(.env)",
-      "Edit(.env.*)",
-      "Write(.env)",
-      "Write(.env.*)"
+      "Edit(.env.*)"
     ]
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "serena"
+  ],
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
   },
   "hooks": {
     "SessionStart": [
@@ -58,38 +64,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo [SESSION START] && if exist E:\\Python\\Projekty\\Kalahari\\.claude\\session-state.json (echo Session state found. Consider running /load-session to restore context.) else (echo No saved session found.)"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo === SESSION END === && echo Remember to use /save-session before leaving! && echo Session ended at: %date% %time%"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "type E:\\Python\\Projekty\\Kalahari\\.claude\\context\\project-brief.txt 2>nul || echo Kalahari | C++20 + Qt6 | Build: scripts/build_windows.bat Debug"
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python E:\\Python\\Projekty\\Kalahari\\.claude\\hooks\\post_compact.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\"",
+            "timeout": 10
           }
         ]
       }
@@ -100,20 +76,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo {\"additionalContext\": \"[BUILD REMINDER] If you modified a C++ file (.cpp/.h), run the build before marking the task complete: scripts/build_windows.bat Debug\"}"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/build_reminder.py\"",
+            "timeout": 10
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash(git commit*)",
+        "matcher": "Bash",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Before commit, verify:\n1. CHANGELOG.md has entry in [Unreleased]?\n2. ROADMAP.md updated if new feature?\n3. No TODO in staged files?\n\nReturn JSON:\n{\"hookSpecificOutput\": {\"permissionDecision\": \"allow\"}} or\n{\"hookSpecificOutput\": {\"permissionDecision\": \"deny\", \"reason\": \"...\"}}",
-            "model": "haiku",
-            "timeout": 30000
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre_commit_check.py\"",
+            "timeout": 15
           }
         ]
       }

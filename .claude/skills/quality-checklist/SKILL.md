@@ -17,13 +17,13 @@ description: Code review quality checklist. Use before commits and during code r
 - [ ] NO hardcoded strings in UI?
 
 ### Configuration
-- [ ] Config via `core::SettingsManager::getInstance()`?
-- [ ] NO hardcoded configuration values?
+- [ ] Config via `core::SettingsManager::getInstance().get<T>()` / `set<T>()`?
+- [ ] User-tunable values in settings, invariants as named `constexpr` constants?
 
 ### Colors
 - [ ] Colors via `core::ArtProvider::getInstance().getPrimaryColor()`?
 - [ ] Or via `core::ThemeManager::getInstance().getCurrentTheme()`?
-- [ ] NO hardcoded `QColor(r, g, b)`?
+- [ ] NO hardcoded `QColor(r, g, b)` outside theme defaults (`fallback_theme.cpp`, `theme.cpp`, theme JSON)?
 
 ### Logging
 - [ ] Using `core::Logger::getInstance().info/debug/error()`?
@@ -41,7 +41,7 @@ description: Code review quality checklist. Use before commits and during code r
 ### Comments
 - [ ] Doxygen for public methods (`///`)?
 - [ ] No commented-out code?
-- [ ] No TODO/FIXME in new code?
+- [ ] No new TODO/FIXME without a reference to a tracked issue or plan?
 
 ### Code style
 - [ ] No unused imports/includes?
@@ -51,11 +51,11 @@ description: Code review quality checklist. Use before commits and during code r
 ## 3. Documentation
 
 ### CHANGELOG.md
-- [ ] Entry in [Unreleased] section?
+- [ ] Entry in [Unreleased] for user-visible changes (not needed for pure refactors/tests)?
 - [ ] Correct category (Added/Changed/Fixed)?
 
 ### ROADMAP.md
-- [ ] Checkbox marked [x] if feature complete?
+- [ ] Only when a roadmap item is completed: checkbox marked [x]?
 - [ ] NO task numbers added?
 
 ### Task Management
@@ -90,15 +90,7 @@ description: Code review quality checklist. Use before commits and during code r
 - Breaking changes without discussion
 - Major architectural violations
 
-## 6. Output Format
+## 6. Output
 
-```json
-{
-  "decision": "approve" | "request_changes" | "block",
-  "summary": "Brief summary",
-  "issues": [
-    "Issue 1 description",
-    "Issue 2 description"
-  ]
-}
-```
+Report in concise prose: decision (approve / request changes / block), then each issue with
+`file:line` and severity (critical / major / minor) and a concrete fix.
