@@ -9,20 +9,22 @@ description: Kalahari CI/CD on GitHub Actions (Windows/Linux/macOS workflows, vc
 
 ```
 .github/workflows/
-├── ci-windows.yml    # windows-latest: MSVC + vcpkg (submodule) + Ninja, Debug+Release, 120 min
-├── ci-linux.yml      # ubuntu-24.04: GCC + system packages from apt (NO vcpkg), Release only, 30 min
-└── ci-macos.yml      # macos-latest: Clang + vcpkg (submodule) + Ninja, Debug+Release, 90 min
+├── ci-windows.yml    # windows-latest: MSVC + vcpkg (submodule) + Ninja, Debug+Release, 120 min, vcpkg binary cache
+├── ci-linux.yml      # ubuntu-24.04: GCC + system packages from apt (NO vcpkg)
+│                     #   job "build": Release, 30 min
+│                     #   job "analysis": sanitizers, coverage and clang-tidy, 60 min
+└── ci-macos.yml      # macos-15 + Xcode 16 (pinned): Clang + vcpkg (submodule) + Ninja, Debug+Release, 90 min
 ```
 
 All workflows: trigger on push/PR to `main`/`develop` + `workflow_dispatch`; tests via
-`ctest --output-on-failure`; Release binaries uploaded as artifacts (7 days).
+`ctest --output-on-failure` (Catch2 tests registered via `catch_discover_tests`); Release binaries uploaded as artifacts (7 days).
 
 ## Build Matrix
 
 | Platform | Compiler | Dependencies | Build types |
 |----------|----------|--------------|-------------|
-| Windows | MSVC (`ilammy/msvc-dev-cmd`) | vcpkg, triplet `x64-windows`, cache key `windows-msvc-vcpkg-v4-*` | Debug, Release |
-| Linux | GCC | apt: `qt6-base-dev`, `qt6-svg-dev`, `qt6-tools-dev`, `libspdlog-dev`, `nlohmann-json3-dev`, `libzip-dev`, `libcurl4-openssl-dev`, `libhunspell-dev`, `catch2`, `pybind11-dev`, ... | Release |
+| Windows | MSVC (`ilammy/msvc-dev-cmd`) | vcpkg, triplet `x64-windows`, binary cache key `windows-msvc-vcpkg-binary-v1-*` | Debug, Release |
+| Linux | GCC (+ sanitizer/coverage/clang-tidy job) | apt: `qt6-base-dev`, `qt6-svg-dev`, `qt6-tools-dev`, `libspdlog-dev`, `nlohmann-json3-dev`, `libzip-dev`, `libcurl4-openssl-dev`, `libhunspell-dev`, `catch2`, `pybind11-dev`, ... | Release |
 | macOS | Apple Clang | vcpkg (default triplet), cache key `macos-clang-vcpkg-v3-*` | Debug, Release |
 
 ## Dependencies (vcpkg.json)
@@ -33,9 +35,9 @@ Default feature `qt6`: `qtbase` (widgets, gui, network, openssl, sql; xcb/fontco
 
 ## Known Issues
 
-- **macOS red since 2026-07-09:** Qt 6.9.1 from vcpkg fails to compile with the current Apple
-  Clang (`__yield` rejected in `qyieldcpu.h`). Fix candidates: bump the vcpkg baseline to a Qt
-  release with the fix, or pin an older Xcode/runner image.
+- **macOS runner pinned (2026-10-03):** `macos-latest` moved to an Xcode whose clang rejects
+  Qt 6.9.1 from vcpkg (`__yield` in `qyieldcpu.h`). The workflow pins `macos-15` + Xcode 16;
+  unpin once the vcpkg baseline brings a Qt release with the upstream fix.
 
 ## Common Failure Patterns
 
