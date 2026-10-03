@@ -327,6 +327,18 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
         REQUIRE(action->toolTip() == QString("Tooltip for test.lateBound"));
     }
 
+    SECTION("tooltip equal to the label is not set explicitly") {
+        Command cmd = createTestCommand("test.labelTooltip");
+        cmd.tooltip = cmd.label;
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.labelTooltip"));
+        REQUIRE(action != nullptr);
+        REQUIRE(action->isEnabled());
+        // QAction falls back to its text, which toolbars show; menus show nothing extra
+        REQUIRE(action->toolTip() == QString("Test Command test.labelTooltip"));
+    }
+
     SECTION("isEnabled callback still disables an implemented command") {
         Command cmd = createTestCommand("test.disabled");
         cmd.isEnabled = []() { return false; };

@@ -117,24 +117,24 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("file.new", "New File", "FILE/New File", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::New),
                       IconSet(),
-                      callbacks.onNewDocument ? callbacks.onNewDocument : []() {});
+                      callbacks.onNewDocument);
 
     // OpenSpec #00033: New Book command (Ctrl+Shift+N)
     REG_CMD_TOOL_ICON("file.new.project", "New Book...", "FILE/New Book...", 15, false, 0,
                       KeyboardShortcut(Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
-                      callbacks.onNewProject ? callbacks.onNewProject : []() {});
+                      callbacks.onNewProject);
 
     REG_CMD_TOOL_ICON("file.open", "Open Book...", "FILE/Open Book...", 20, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
                       IconSet(),
-                      callbacks.onOpenDocument ? callbacks.onOpenDocument : []() {});
+                      callbacks.onOpenDocument);
 
     // OpenSpec #00033 Phase F: Open standalone file (Ctrl+Shift+O)
     REG_CMD_TOOL_ICON("file.open.file", "Open File...", "FILE/Open/Open File...", 35, false, 0,
                       KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
-                      callbacks.onOpenStandaloneFile ? callbacks.onOpenStandaloneFile : []() {});
+                      callbacks.onOpenStandaloneFile);
 
     // Recent Books - dynamic submenu (registered separately)
 
@@ -142,17 +142,17 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("file.close", "Close Book", "FILE/Close Book", 40, true, 1,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Close),
                       IconSet(),
-                      []() {});
+                      callbacks.onCloseDocument);
 
     REG_CMD_TOOL_ICON("file.save", "Save", "FILE/Save", 50, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
                       IconSet(),
-                      callbacks.onSaveDocument ? callbacks.onSaveDocument : []() {});
+                      callbacks.onSaveDocument);
 
     REG_CMD_TOOL_ICON("file.saveAs", "Save As...", "FILE/Save As...", 60, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
                       IconSet(),
-                      callbacks.onSaveAsDocument ? callbacks.onSaveAsDocument : []() {});
+                      callbacks.onSaveAsDocument);
 
     REG_CMD("file.saveAll", "Save All", "FILE/Save All", 70, true, 1);
 
@@ -166,7 +166,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("file.import.archive", "Project Archive...", "FILE/Import/Project Archive...", 75, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      callbacks.onImportArchive ? callbacks.onImportArchive : []() {});
+                      callbacks.onImportArchive);
 
     // Export submenu
     REG_CMD("file.export.docx", "DOCX", "FILE/Export/DOCX", 120, false, 1);
@@ -182,12 +182,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("file.export.archive", "Project Archive...", "FILE/Export/Project Archive...", 195, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      callbacks.onExportArchive ? callbacks.onExportArchive : []() {});
+                      callbacks.onExportArchive);
 
     REG_CMD_TOOL_ICON("file.exit", "Exit", "FILE/Exit", 200, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
                       IconSet(),
-                      callbacks.onExit ? callbacks.onExit : []() {});
+                      callbacks.onExit);
 
     // =========================================================================
     // EDIT MENU
@@ -196,27 +196,27 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("edit.undo", "Undo", "EDIT/Undo", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
                       IconSet(),
-                      callbacks.onUndo ? callbacks.onUndo : []() {});
+                      callbacks.onUndo);
 
     REG_CMD_TOOL_ICON("edit.redo", "Redo", "EDIT/Redo", 20, true, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
                       IconSet(),
-                      callbacks.onRedo ? callbacks.onRedo : []() {});
+                      callbacks.onRedo);
 
     REG_CMD_TOOL_ICON("edit.cut", "Cut", "EDIT/Cut", 30, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
                       IconSet(),
-                      callbacks.onCut ? callbacks.onCut : []() {});
+                      callbacks.onCut);
 
     REG_CMD_TOOL_ICON("edit.copy", "Copy", "EDIT/Copy", 40, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
                       IconSet(),
-                      callbacks.onCopy ? callbacks.onCopy : []() {});
+                      callbacks.onCopy);
 
     REG_CMD_TOOL_ICON("edit.paste", "Paste", "EDIT/Paste", 50, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
                       IconSet(),
-                      callbacks.onPaste ? callbacks.onPaste : []() {});
+                      callbacks.onPaste);
 
     REG_CMD("edit.pasteSpecial", "Paste Special...", "EDIT/Paste Special...", 60, false, 1);
     REG_CMD("edit.delete", "Delete", "EDIT/Delete", 70, true, 1);
@@ -224,7 +224,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("edit.selectAll", "Select All", "EDIT/Select All", 80, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
                       IconSet(),
-                      callbacks.onSelectAll ? callbacks.onSelectAll : []() {});
+                      callbacks.onSelectAll);
 
     REG_CMD("edit.selectWord", "Select Word", "EDIT/Select Word", 90, false, 1);
     REG_CMD("edit.selectParagraph", "Select Paragraph", "EDIT/Select Paragraph", 100, true, 1);
@@ -241,13 +241,13 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("edit.findInBook", "Find in Book...", "EDIT/Find in Book...", 150, true, 1);
 
     REG_CMD_CB("edit.preferences", "Preferences...", "EDIT/Preferences...", 160, false, 0,
-               callbacks.onSettings ? callbacks.onSettings : []() {});
+               callbacks.onSettings);
 
     // OpenSpec #00037: edit.settings command (alias for Settings dialog, used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("edit.settings", "Settings...", "EDIT/Settings...", 165, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      callbacks.onSettings ? callbacks.onSettings : []() {});
+                      callbacks.onSettings);
 
     // =========================================================================
     // BOOK MENU
@@ -256,19 +256,19 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("book.newChapter", "New Chapter...", "BOOK/New Chapter...", 10, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD("book.newScene", "New Scene...", "BOOK/New Scene...", 20, true, 1);
 
     REG_CMD_TOOL_ICON("book.newCharacter", "New Character...", "BOOK/New Character...", 30, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD_TOOL_ICON("book.newLocation", "New Location...", "BOOK/New Location...", 40, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD("book.newItem", "New Item...", "BOOK/New Item...", 50, true, 1);
 
@@ -281,7 +281,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("book.properties", "Book Properties...", "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     // =========================================================================
     // INSERT MENU
@@ -298,7 +298,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // REG_CMD_TOOL_ICON("insert.comment", "Comment", "INSERT/Comment", 60, false, 0,
     //                   KeyboardShortcut(Qt::Key_C, Qt::ControlModifier | Qt::AltModifier),
     //                   IconSet(),
-    //                   callbacks.onInsertComment ? callbacks.onInsertComment : []() {});
+    //                   callbacks.onInsertComment);
 
     REG_CMD("insert.annotation", "Annotation", "INSERT/Annotation", 70, true, 1);
 
@@ -327,36 +327,36 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("format.bold", "Bold", "FORMAT/Bold", 100, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Bold),
                       IconSet(),
-                      callbacks.onFormatBold ? callbacks.onFormatBold : []() {});
+                      callbacks.onFormatBold);
     REG_CMD_TOOL_ICON("format.italic", "Italic", "FORMAT/Italic", 110, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Italic),
                       IconSet(),
-                      callbacks.onFormatItalic ? callbacks.onFormatItalic : []() {});
+                      callbacks.onFormatItalic);
     REG_CMD_TOOL_ICON("format.underline", "Underline", "FORMAT/Underline", 120, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::Underline),
                       IconSet(),
-                      callbacks.onFormatUnderline ? callbacks.onFormatUnderline : []() {});
+                      callbacks.onFormatUnderline);
     REG_CMD_TOOL_ICON("format.strikethrough", "Strikethrough", "FORMAT/Strikethrough", 130, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      callbacks.onFormatStrikethrough ? callbacks.onFormatStrikethrough : []() {});
+                      callbacks.onFormatStrikethrough);
 
     REG_CMD_TOOL_ICON("format.alignLeft", "Align Left", "FORMAT/Align Left", 140, false, 0,
                       KeyboardShortcut::fromString("Ctrl+L"),
                       IconSet(),
-                      callbacks.onAlignLeft ? callbacks.onAlignLeft : []() {});
+                      callbacks.onAlignLeft);
     REG_CMD_TOOL_ICON("format.alignCenter", "Align Center", "FORMAT/Align Center", 150, false, 0,
                       KeyboardShortcut::fromString("Ctrl+E"),
                       IconSet(),
-                      callbacks.onAlignCenter ? callbacks.onAlignCenter : []() {});
+                      callbacks.onAlignCenter);
     REG_CMD_TOOL_ICON("format.alignRight", "Align Right", "FORMAT/Align Right", 160, false, 0,
                       KeyboardShortcut::fromString("Ctrl+R"),
                       IconSet(),
-                      callbacks.onAlignRight ? callbacks.onAlignRight : []() {});
+                      callbacks.onAlignRight);
     REG_CMD_TOOL_ICON("format.justify", "Justify", "FORMAT/Justify", 170, true, 0,
                       KeyboardShortcut::fromString("Ctrl+J"),
                       IconSet(),
-                      callbacks.onAlignJustify ? callbacks.onAlignJustify : []() {});
+                      callbacks.onAlignJustify);
 
     REG_CMD("format.increaseIndent", "Increase Indent", "FORMAT/Increase Indent", 180, false, 1);
     REG_CMD("format.decreaseIndent", "Decrease Indent", "FORMAT/Decrease Indent", 190, true, 1);
@@ -378,12 +378,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("tools.stats.wordCount", "Word Count", "TOOLS/Statistics/Word Count", 20, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD_TOOL_ICON("tools.spellcheck", "Spellchecker", "TOOLS/Spellchecker", 40, false, 2,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD("tools.grammar", "Grammar Check", "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", "Readability Score", "TOOLS/Readability Score", 60, true, 2);
@@ -392,7 +392,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("tools.focus.normal", "Normal", "TOOLS/Focus Mode/Normal", 70, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      []() {});
+                      nullptr);
 
     REG_CMD("tools.focus.focused", "Focused", "TOOLS/Focus Mode/Focused", 80, false, 1);
     REG_CMD("tools.focus.distractionFree", "Distraction-Free", "TOOLS/Focus Mode/Distraction-Free", 90, false, 1);
@@ -413,7 +413,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("tools.toolbarManager", "Customize Toolbars...", "TOOLS/Customize Toolbars...", 210, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
-                      callbacks.onToolbarManager ? callbacks.onToolbarManager : []() {});
+                      callbacks.onToolbarManager);
 
     // =========================================================================
     // ASSISTANT MENU
@@ -438,7 +438,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // Dashboard command - shows/activates Dashboard tab (OpenSpec #00036 Phase D)
     REG_CMD_CB("view.dashboard", "Dashboard", "VIEW/Dashboard", 5, true, 0,
-               callbacks.onDashboard ? callbacks.onDashboard : []() {});
+               callbacks.onDashboard);
 
     // Panel toggle commands - registered here for CommandRegistry/Toolbar system
     // Execute callbacks are set later in createDocks() after dock widgets exist
@@ -462,23 +462,23 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_TOOL_ICON("view.mode.continuous", "Continuous", "VIEW/View Mode/Continuous", 55, false, 0,
                       KeyboardShortcut(Qt::Key_1, Qt::ControlModifier),
                       IconSet(),
-                      callbacks.onViewModeContinuous ? callbacks.onViewModeContinuous : []() {});
+                      callbacks.onViewModeContinuous);
     REG_CMD_TOOL_ICON("view.mode.page", "Page Layout", "VIEW/View Mode/Page Layout", 56, false, 0,
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
-                      callbacks.onViewModePage ? callbacks.onViewModePage : []() {});
+                      callbacks.onViewModePage);
     REG_CMD_TOOL_ICON("view.mode.typewriter", "Typewriter", "VIEW/View Mode/Typewriter", 57, false, 0,
                       KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
                       IconSet(),
-                      callbacks.onViewModeTypewriter ? callbacks.onViewModeTypewriter : []() {});
+                      callbacks.onViewModeTypewriter);
     REG_CMD_TOOL_ICON("view.mode.focus", "Focus", "VIEW/View Mode/Focus", 58, false, 0,
                       KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
                       IconSet(),
-                      callbacks.onViewModeFocus ? callbacks.onViewModeFocus : []() {});
+                      callbacks.onViewModeFocus);
     REG_CMD_TOOL_ICON("view.mode.distraction-free", "Distraction-Free", "VIEW/View Mode/Distraction-Free", 59, true, 0,
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
-                      callbacks.onViewModeDistFree ? callbacks.onViewModeDistFree : []() {});
+                      callbacks.onViewModeDistFree);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
@@ -505,7 +505,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                 KeyboardShortcut::fromQKeySequence(QKeySequence::FullScreen));
 
     REG_CMD_CB("view.resetLayout", "Reset Layout", "VIEW/Reset Layout", 260, false, 0,
-               callbacks.onResetLayout ? callbacks.onResetLayout : []() {});
+               callbacks.onResetLayout);
 
     // =========================================================================
     // HELP MENU
@@ -527,7 +527,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("help.checkUpdates", "Check for Updates...", "HELP/Check for Updates...", 90, true, 2);
 
     REG_CMD_CB("help.about", "About Kalahari", "HELP/About Kalahari", 100, false, 0,
-               callbacks.onAbout ? callbacks.onAbout : []() {});
+               callbacks.onAbout);
 
     // =========================================================================
     // Cleanup macros

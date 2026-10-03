@@ -570,7 +570,7 @@ class DOCXExporter:
 
 ### HTTP Client - libcurl + OpenSSL
 
-**Purpose:** Cloud sync, AI API calls (from plugins)
+**Purpose:** AI API calls and web access (from plugins)
 
 **Why libcurl?**
 - Industry standard
@@ -578,7 +578,6 @@ class DOCXExporter:
 - Cross-platform
 
 **Used by:**
-- Cloud Sync Pro plugin (Dropbox/GDrive API)
 - AI Assistant plugin (OpenAI/Claude API)
 - Research Pro plugin (web scraping)
 

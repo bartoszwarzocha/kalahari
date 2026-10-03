@@ -55,10 +55,10 @@ The wxWidgets code is archived on the `wxwidgets-archive` branch.
 
 No new features. Make the project measurable and its build reliable.
 
-- [ ] Fix macOS CI (runner pinned to `macos-15` with Xcode 16; Qt 6.9.1 does not build with newer Xcode)
-- [ ] Disable menu commands that have no implementation instead of leaving them silently empty
-- [ ] Remove marketplace, cloud sync and collaboration from menus and settings
-- [ ] Rewrite this roadmap and remove the paid-plugin business model from the documentation
+- [x] Fix macOS CI (runner pinned to `macos-15` with Xcode 16; Qt 6.9.1 does not build with newer Xcode)
+- [x] Disable menu commands that have no implementation instead of leaving them silently empty
+- [x] Remove marketplace, cloud sync and collaboration from menus and settings
+- [x] Rewrite this roadmap and remove the paid-plugin business model from the documentation
 - [ ] Register each test case separately in CTest (`catch_discover_tests`)
 - [ ] Add a sanitizer job (ASan/UBSan) and coverage reporting to CI
 - [ ] Use one minimum Qt version on all platforms and in CMake

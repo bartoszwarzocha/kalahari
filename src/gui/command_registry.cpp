@@ -303,6 +303,10 @@ void CommandRegistry::applyActionAvailability(QAction* action, const Command& cm
 
     if (!cmd.canExecute()) {
         tooltip = tr("%1 (not available yet)").arg(tooltip);
+    } else if (tooltip == QString::fromStdString(cmd.label)) {
+        // Menus show explicit tooltips, so do not repeat the label there;
+        // toolbars still fall back to the action text
+        tooltip.clear();
     }
 
     action->setToolTip(tooltip);
