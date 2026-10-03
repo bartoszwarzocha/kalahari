@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Unimplemented menu commands are disabled** - 2026-10-03
+  - Commands registered without an execute callback (93 menu entries) used to do
+    nothing when clicked. Their actions are now disabled and the tooltip says the
+    feature is not available yet. Binding a callback later and calling
+    `CommandRegistry::updateActionState()` enables the action.
+- **Licensing:** every component, including plugins, is MIT-licensed. The paid-plugin
+  and cloud business model is dropped; `project_docs/05_business_model.md` removed and
+  README, LICENSE and project docs updated - 2026-10-03
+- **ROADMAP.md rewritten** to reflect the actual state of the code - 2026-10-03
+
+### Removed
+
+- Menu commands and settings page for features that will not be built:
+  Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
+
 ### Added
 
 - **Theme System Foundation:** Sub-Project C - 2026-07-13

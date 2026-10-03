@@ -18,11 +18,11 @@
 
 ## 🚧 Status
 
-**Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (Core Editor)
+**Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (Core Editor, about half done)
 
 **Current Version:** 0.3.2-alpha
-**Target Release:** Kalahari 1.0 (Q4 2026)
-**Last Updated:** 2026-01-10
+**Next Release:** 0.4.0-alpha (Phase 1 complete)
+**Last Updated:** 2026-10-03
 
 ---
 
@@ -35,7 +35,7 @@ Kalahari is a comprehensive **Writer's IDE** designed to eliminate technical and
 - Professional writing tools (Character banks, Timeline, Analytics)
 
 **Part of the African Ecosystem:**
-Kalahari • Serengeti • Okavango • Victoria • Zambezi
+Kalahari • Okavango • Zambezi
 
 ---
 
@@ -172,7 +172,7 @@ Then open **Diagnostics** menu to verify:
 - [Tech Stack](project_docs/02_tech_stack.md) - Complete technical details
 - [Architecture](project_docs/03_architecture.md) - System design patterns
 - [Plugin System](project_docs/04_plugin_system.md) - Plugin API specification
-- [Development Roadmap](ROADMAP.md) - 18-month development plan
+- [Development Roadmap](ROADMAP.md) - Current state and next stages
 - [Master Project File](CLAUDE.md) - Complete project documentation
 
 **Full Documentation Index:** [project_docs/README.md](project_docs/README.md)
@@ -247,25 +247,20 @@ Each assistant has unique personality and communication style, helping you stay 
 - ✅ Theme & Icon System (ArtProvider, KalahariStyle)
 
 **In Progress:**
-- Custom Text Editor (KML model, rich formatting) - OpenSpec #00042
-- Spell Check (Hunspell integration)
-- Grammar Check (LanguageTool API)
-- Statistics Collector (word count, reading time)
+- Custom Text Editor (KML model, rich formatting) - performance and rendering work
+- Find & Replace, Spell Check - implemented in core, not yet wired to the GUI
+- Text styles (paragraph styles, colors, user styles)
+- Statistics (word count in status bar works; statistics panel planned)
+
+Menu commands that are not implemented yet are shown disabled.
 
 [View detailed roadmap ->](ROADMAP.md)
 
 ---
 
-## 💼 Business Model
+## 💚 Free and Open Source
 
-**Open Core + Premium Plugins + Cloud Services**
-
-- **Core:** MIT License (open source, GitHub public)
-- **Premium Plugins:** 5 paid plugins ($14-39, $79 bundle)
-  - AI Assistant Pro, Advanced Analytics, Export Suite, Research Pro, Collaboration Pack
-- **Cloud:** Subscription ($5-10/month) - Cloud Sync Pro
-
-[Learn more →](project_docs/05_business_model.md)
+Kalahari is free software. Every component – the application, the plugin system and all plugins, present and future – is released under the **MIT License**. There are no paid plugins, subscriptions or cloud services; your work stays on your computer.
 
 ---
 
@@ -330,7 +325,7 @@ For now, please:
 Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 **Key Points:**
-- ✅ Kalahari application code: **MIT License** (permissive, open source)
+- ✅ Kalahari application code and all plugins: **MIT License** (permissive, open source)
 - ✅ Qt6 Framework: **LGPL v3** (dynamically linked for compliance)
 - ✅ All other dependencies: MIT/BSD/permissive licenses
 - ✅ Commercial use: **Allowed** (LGPL v3 compliant via dynamic linking)
@@ -349,7 +344,5 @@ Created with passion for writers who deserve better tools.
 
 **Ecosystem Roadmap:**
 - **Kalahari** - Main writing environment (this project) - Phase 1 IN PROGRESS
-- **Serengeti** - Collaborative writing (future)
 - **Okavango** - Research & knowledge management (future)
-- **Victoria** - Cloud sync & storage (future)
 - **Zambezi** - Publishing toolkit (future)

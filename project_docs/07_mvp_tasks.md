@@ -34,7 +34,7 @@ This document provides week-by-week task breakdown for Kalahari 1.0 development 
 - **Phase 0:** Foundation (8 weeks) - Build infrastructure
 - **Phase 1:** Core Editor (12 weeks) - Rich text editor + project management  
 - **Phase 2:** Plugin System MVP (10 weeks) - 4 working plugins
-- **Phase 3:** Feature Plugins (14 weeks) - Advanced features + premium plugins
+- **Phase 3:** Feature Plugins (14 weeks) - Advanced features + feature plugins
 - **Phase 4:** Advanced Plugins (12 weeks) - Professional features
 - **Phase 5:** Polish & Release (12 weeks) - Testing + documentation + launch
 
@@ -323,13 +323,12 @@ This document provides week-by-week task breakdown for Kalahari 1.0 development 
 
 ### Phase 3: Feature Plugins (Weeks 31-44)
 
-**Goal:** Advanced features + premium plugins
+**Goal:** Advanced features + feature plugins
 
 **Deliverables:**
-- Free plugins: PDF, TXT/RTF, Spell Checker, 4 themes
-- Premium Plugin: AI Assistant Pro (8 animals, AI integration)
-- Premium Plugin: Advanced Analytics (timeline, graphs, pacing)
-- License verification system
+- Plugins: PDF, TXT/RTF, Spell Checker, 4 themes
+- Plugin: AI Assistant Pro (8 animals, AI integration)
+- Plugin: Advanced Analytics (timeline, graphs, pacing)
 
 **Estimated Time:** 14 weeks
 
@@ -340,8 +339,8 @@ This document provides week-by-week task breakdown for Kalahari 1.0 development 
 **Goal:** Professional writer's toolkit
 
 **Deliverables:**
-- Premium Plugin: Export Suite (EPUB, advanced PDF, LaTeX)
-- Premium Plugin: Research Pro (OCR, citations)
+- Plugin: Export Suite (EPUB, advanced PDF, LaTeX)
+- Plugin: Research Pro (OCR, citations)
 - Character/Location banks
 - Notes system + Writer's Calendar
 
@@ -410,7 +409,7 @@ This document provides week-by-week task breakdown for Kalahari 1.0 development 
 **Phase 0:** 8 weeks - Foundation (CMake, Python, Plugin Manager, EventBus, Document model)
 **Phase 1:** 12 weeks - Core Editor (Rich text, navigator, save/load, auto-save, docking, perspectives)
 **Phase 2:** 10 weeks - Plugin MVP (4 plugins proving system)
-**Phase 3:** 14 weeks - Feature Plugins (premium features + AI)
+**Phase 3:** 14 weeks - Feature Plugins (advanced features + AI)
 **Phase 4:** 12 weeks - Advanced Plugins (professional toolkit)
 **Phase 5:** 12 weeks - Polish & Release (testing, docs, installers, launch)
 

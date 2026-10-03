@@ -250,6 +250,13 @@ private:
     /// @return Created QAction
     QAction* createActionForCommand(const QString& commandId, const Command& cmd);
 
+    /// @brief Apply enabled state and tooltip to an action
+    /// @param action Action to update
+    /// @param cmd Command the action belongs to
+    /// @note A command without execute callback is not implemented yet:
+    ///       its action is disabled and its tooltip says so.
+    void applyActionAvailability(QAction* action, const Command& cmd) const;
+
     /// @brief Command storage (key = command ID)
     std::unordered_map<std::string, Command> m_commands;
 

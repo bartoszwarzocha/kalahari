@@ -276,22 +276,14 @@ QAction* CommandRegistry::createActionForCommand(const QString& commandId, const
         action->setShortcut(cmd.shortcut.toQKeySequence());
     }
 
-    // Configure tooltip
-    if (!cmd.tooltip.empty()) {
-        action->setToolTip(QString::fromStdString(cmd.tooltip));
-    } else if (!cmd.label.empty()) {
-        // Fallback: use label as tooltip
-        action->setToolTip(QString::fromStdString(cmd.label));
-    }
-
     // Configure checkable state
     if (cmd.isChecked) {
         action->setCheckable(true);
         action->setChecked(cmd.checkChecked());
     }
 
-    // Configure enabled state
-    action->setEnabled(cmd.checkEnabled());
+    // Configure enabled state and tooltip
+    applyActionAvailability(action, cmd);
 
     // Store command ID in action's data for later retrieval
     action->setData(commandId);
@@ -303,6 +295,22 @@ QAction* CommandRegistry::createActionForCommand(const QString& commandId, const
     });
 
     return action;
+}
+
+void CommandRegistry::applyActionAvailability(QAction* action, const Command& cmd) const {
+    // Fallback: use label as tooltip
+    QString tooltip = QString::fromStdString(cmd.tooltip.empty() ? cmd.label : cmd.tooltip);
+
+    if (!cmd.canExecute()) {
+        tooltip = tr("%1 (not available yet)").arg(tooltip);
+    } else if (tooltip == QString::fromStdString(cmd.label)) {
+        // Menus show explicit tooltips, so do not repeat the label there;
+        // toolbars still fall back to the action text
+        tooltip.clear();
+    }
+
+    action->setToolTip(tooltip);
+    action->setEnabled(cmd.canExecute() && cmd.checkEnabled());
 }
 
 QList<QAction*> CommandRegistry::getAllActions() const {
@@ -352,8 +360,8 @@ void CommandRegistry::updateActionState(const std::string& commandId) {
     QAction* action = actionIt.value();
     Command& cmd = cmdIt->second;
 
-    // Update enabled state
-    action->setEnabled(cmd.checkEnabled());
+    // Update enabled state and tooltip
+    applyActionAvailability(action, cmd);
 
     // Update checked state - make checkable if isChecked callback was added later
     if (cmd.isChecked) {
