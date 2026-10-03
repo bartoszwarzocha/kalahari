@@ -89,7 +89,7 @@ jobs:
         QT_QPA_PLATFORM: offscreen
       run: |
         cd build
-        ctest --output-on-failure --build-config ${{ matrix.build_type }}
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} --parallel 4
 
     - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'
@@ -98,3 +98,90 @@ jobs:
         name: kalahari-linux-${{ matrix.build_type }}
         path: build/bin/kalahari*
         retention-days: 7
+
+  # Debug build with AddressSanitizer + UndefinedBehaviorSanitizer and line coverage.
+  # On pull requests also runs clang-tidy on the changed lines only.
+  analysis:
+    name: Sanitizers, Coverage & clang-tidy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # clang-tidy needs the base branch to compute the diff
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Python dependencies
+      run: pip install jinja2 gcovr
+
+    - name: Install dependencies from apt
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential g++ cmake ninja-build pkg-config clang-tidy \
+          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
+          libgl1-mesa-dev libxkbcommon-dev \
+          libspdlog-dev nlohmann-json3-dev libzip-dev zipcmp zipmerge ziptool \
+          libcurl4-openssl-dev libhunspell-dev catch2 \
+          python3-dev pybind11-dev libssl-dev
+
+    - name: Configure CMake (Debug, ASan + UBSan, coverage)
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DUSE_SYSTEM_PACKAGES=ON \
+          -DENABLE_ASAN=ON \
+          -DENABLE_UBSAN=ON \
+          -DCMAKE_CXX_FLAGS="--coverage" \
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+          -DCMAKE_SHARED_LINKER_FLAGS="--coverage" \
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: Build
+      # Full build: clang-tidy needs the generated sources of every target
+      run: cmake --build build --parallel
+
+    - name: Run tests under sanitizers
+      env:
+        ASAN_OPTIONS: detect_leaks=1
+        LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/sanitizers/lsan.supp
+        UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      run: |
+        cd build
+        # Python script tests load the module into a non-instrumented interpreter
+        ctest --output-on-failure --parallel 4 --exclude-regex '^python\.'
+
+    - name: Coverage report
+      if: always()
+      run: |
+        gcovr --root . build --filter 'src/' --exclude-throw-branches \
+          --txt-summary --txt build/coverage.txt \
+          --html-details build/coverage/index.html
+        echo '### Line coverage (files compiled into tests)' >> "$GITHUB_STEP_SUMMARY"
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
+        tail -n 4 build/coverage.txt >> "$GITHUB_STEP_SUMMARY"
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: build/coverage/
+        retention-days: 14
+
+    - name: clang-tidy on changed lines
+      if: github.event_name == 'pull_request'
+      run: |
+        git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- '*.cpp' '*.h' \
+          | clang-tidy-diff-18.py -p1 -path build -quiet -j 4
+
