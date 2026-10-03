@@ -97,11 +97,15 @@ CATCH_REGISTER_LISTENER(GlobalResetListener);
 int main(int argc, char* argv[]) {
     // Initialize Qt (required for QSqlDatabase, QTextLayout, QWidget, and other Qt components)
     // Note: QApplication is needed for QWidget-based tests (BookEditor, etc.)
+#ifdef __linux__
     // Tests never need a real display; default to the offscreen platform so the
     // binary also runs headless (CI, ctest discovery) unless the caller overrides it.
+    // Windows and macOS always have their native platform plugin (vcpkg's Qt
+    // ships no offscreen plugin there).
     if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
         qputenv("QT_QPA_PLATFORM", "offscreen");
     }
+#endif
     QApplication app(argc, argv);
     app.setApplicationName("kalahari-tests");
 

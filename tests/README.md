@@ -44,7 +44,8 @@ e.g. `./bin/kalahari-tests "[.dll-boundary]"`.
 
 `test_main.cpp` prepares every test process:
 
-- `QT_QPA_PLATFORM=offscreen` unless set by the caller, so tests never need a display.
+- On Linux, `QT_QPA_PLATFORM=offscreen` unless set by the caller, so tests never need a
+  display. Windows and macOS use their native platform plugin.
 - A private temporary directory per process: `TMPDIR` (and `XDG_DATA_HOME` on Linux)
   or `TMP`/`TEMP` on Windows point to it, so settings, archives and databases written
   by one test process are invisible to the others. This is what makes parallel
