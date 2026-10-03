@@ -10,7 +10,10 @@ on:
 jobs:
   build:
     name: macOS Build & Test
-    runs-on: macos-latest
+    # Pinned: macos-latest moved to a newer Xcode whose clang rejects Qt 6.9.1
+    # (qyieldcpu.h: implicit declaration of __yield). Unpin after the vcpkg
+    # baseline brings a Qt version with the upstream fix.
+    runs-on: macos-15
     timeout-minutes: 90  # Prevent runaway builds
 
     strategy:
@@ -29,6 +32,18 @@ jobs:
         sudo rm -rf /opt/hostedtoolcache/CodeQL 2>/dev/null || true
         echo "Disk space after cleanup:"
         df -h
+
+    - name: Select Xcode 16
+      run: |
+        XCODE_APP=$( (ls -d /Applications/Xcode_16*.app 2>/dev/null || true) | sort -V | tail -n 1)
+        if [ -z "$XCODE_APP" ]; then
+          echo "::error::No Xcode 16.x found on the runner"
+          ls -d /Applications/Xcode*.app
+          exit 1
+        fi
+        sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+        xcodebuild -version
+        clang --version
 
     - name: Checkout code
       uses: actions/checkout@v4
