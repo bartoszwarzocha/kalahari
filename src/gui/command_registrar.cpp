@@ -32,7 +32,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // MACROS - Same as register_commands.hpp but adapted for this context
     // =========================================================================
 
-    // Standard menu command (no toolbar, no shortcut)
+    // Standard menu command (no toolbar, no shortcut).
+    // No execute callback: the feature is not implemented yet, so its action is disabled.
     #define REG_CMD(id_, label_tr_, path_, order_, sep_, phase_) \
         do { \
             Command cmd; \
@@ -46,7 +47,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
             cmd.phase = phase_; \
             cmd.showInMenu = true; \
             cmd.showInToolbar = false; \
-            cmd.execute = []() {}; \
             registry.registerCommand(cmd); \
             count++; \
         } while(0)
@@ -91,7 +91,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
             count++; \
         } while(0)
 
-    // Menu command with shortcut (no toolbar)
+    // Menu command with shortcut (no toolbar). No execute callback, see REG_CMD.
     #define REG_CMD_KEY(id_, label_tr_, path_, order_, sep_, phase_, shortcut_) \
         do { \
             Command cmd; \
@@ -106,7 +106,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
             cmd.showInMenu = true; \
             cmd.showInToolbar = false; \
             cmd.shortcut = shortcut_; \
-            cmd.execute = []() {}; \
             registry.registerCommand(cmd); \
             count++; \
         } while(0)
@@ -404,15 +403,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // Plugins submenu
     REG_CMD("tools.plugins.manager", "Plugin Manager...", "TOOLS/Plugins/Plugin Manager...", 130, false, 2);
-    REG_CMD("tools.plugins.marketplace", "Browse Marketplace...", "TOOLS/Plugins/Browse Marketplace...", 140, false, 2);
     REG_CMD("tools.plugins.updates", "Check for Updates...", "TOOLS/Plugins/Check for Updates...", 150, true, 2);
     REG_CMD("tools.plugins.reload", "Reload Plugins", "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
     REG_CMD("tools.challenges", "Challenges & Badges...", "TOOLS/Challenges & Badges...", 170, false, 2);
     REG_CMD("tools.writingGoals", "Writing Goals & Deadlines...", "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
-
-    REG_CMD("tools.cloudSync", "Cloud Sync...", "TOOLS/Cloud Sync...", 190, false, 3);
-    REG_CMD("tools.collaboration", "Collaboration...", "TOOLS/Collaboration...", 200, true, 3);
 
     // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("tools.toolbarManager", "Customize Toolbars...", "TOOLS/Customize Toolbars...", 210, false, 0,

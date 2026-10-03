@@ -6,7 +6,8 @@
 
 #pragma once
 
-// Standard menu command (no toolbar, no shortcut)
+// Standard menu command (no toolbar, no shortcut).
+// No execute callback: the feature is not implemented yet, so its action is disabled.
 // label_tr: Translatable string (will be wrapped in tr())
 #define REG_CMD(id_, label_tr_, path_, order_, sep_, phase_) \
     do { \
@@ -21,7 +22,6 @@
         cmd.phase = phase_; \
         cmd.showInMenu = true; \
         cmd.showInToolbar = false; \
-        cmd.execute = []() {}; \
         registry.registerCommand(cmd); \
         count++; \
     } while(0)
@@ -86,7 +86,7 @@
         count++; \
     } while(0)
 
-// Menu command with shortcut (no toolbar) - OpenSpec #00030
+// Menu command with shortcut (no toolbar) - OpenSpec #00030. No execute callback, see REG_CMD.
 #define REG_CMD_KEY(id_, label_tr_, path_, order_, sep_, phase_, shortcut_) \
     do { \
         Command cmd; \
@@ -101,7 +101,6 @@
         cmd.showInMenu = true; \
         cmd.showInToolbar = false; \
         cmd.shortcut = shortcut_; \
-        cmd.execute = []() {}; \
         registry.registerCommand(cmd); \
         count++; \
     } while(0)

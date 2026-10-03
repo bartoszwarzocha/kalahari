@@ -507,7 +507,7 @@ To support external plugin developers and reduce barriers to entry, Kalahari wil
 **Timing Rationale:**
 1. **API Stability** - Plugin API will evolve significantly during Phase 1-3
 2. **Community Feedback** - Need real developer pain points before building tools
-3. **Business Context** - Plugin marketplace (Phase 5) requires quality tooling
+3. **Distribution** - Sharing plugins publicly requires quality tooling
 4. **Resource Optimization** - Documentation + CLI tools provide 80% value with 20% effort
 
 ### Phase 0-1: Foundation (Q1 2026) ✅
@@ -569,7 +569,7 @@ docs/plugin_development_guide.md
 │   ├── Performance
 │   ├── Thread safety
 │   └── Error handling
-└── 7. Distribution & Marketplace
+└── 7. Distribution
 ```
 
 ### Phase 4: Developer Tools in Application (Q3 2026)
@@ -719,7 +719,7 @@ examples/plugin_templates/
 ├── panel/               # IPanelProvider with UI
 ├── assistant/           # IAssistant with personality
 ├── advanced/            # All features (events, permissions, dependencies)
-└── premium/             # Marketplace-ready structure
+└── distribution/        # Ready-to-share package structure
 ```
 
 ### Implementation Priority
@@ -740,7 +740,6 @@ examples/plugin_templates/
 - 🔨 JSON Schema
 
 **Phase 5 (Q3 2026):**
-- 🔨 Plugin marketplace integration
 - 🔨 Digital signatures
 - 🔨 Automated testing
 
@@ -764,7 +763,7 @@ examples/plugin_templates/
 - 🎯 Average plugin creation time < 30 minutes (using wizard)
 
 **Phase 5 Success:**
-- 🎯 Plugin marketplace with 100+ plugins
+- 🎯 100+ free community plugins
 - 🎯 Community-contributed plugins in top downloads
 - 🎯 External developers contributing to core Extension Points
 
@@ -854,7 +853,6 @@ This plugin system provides:
 ✅ **Error Isolation** - Plugin crashes don't crash app
 ✅ **Complete Example** - hello_plugin.kplugin (Task #00011)
 🔜 **Developer Tools** - Planned Phase 4-5 (Q3 2026)
-🔜 **Plugin Marketplace** - Planned Phase 5 (Q3 2026)
 
 **Next Steps:**
 1. ✅ Implement PluginManager (C++) - DONE Task #00011
