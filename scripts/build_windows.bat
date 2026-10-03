@@ -57,6 +57,21 @@ if defined VCINSTALLDIR (
 
 echo [INFO] Detecting Visual Studio installation...
 
+REM Preferred: ask vswhere for the newest installation (any edition, incl. Build Tools)
+REM that has the x64 C++ toolset. Fixed paths below remain as a fallback.
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" (
+    set "VS_INSTALL_DIR="
+    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -prerelease -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL_DIR=%%i"
+    if defined VS_INSTALL_DIR (
+        if exist "!VS_INSTALL_DIR!\VC\Auxiliary\Build\vcvarsall.bat" (
+            set "VCVARSALL=!VS_INSTALL_DIR!\VC\Auxiliary\Build\vcvarsall.bat"
+            set "VS_VERSION=at !VS_INSTALL_DIR! (vswhere)"
+            goto found_vs
+        )
+    )
+)
+
 REM Try Visual Studio 2026 Preview (newest)
 set "VS_PATH=C:\Program Files\Microsoft Visual Studio\18"
 if exist "%VS_PATH%\Community\VC\Auxiliary\Build\vcvarsall.bat" (
@@ -72,6 +87,17 @@ if exist "%VS_PATH%\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
 if exist "%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
     set "VCVARSALL=%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
     set "VS_VERSION=2026 Preview Enterprise"
+    goto found_vs
+)
+if exist "%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2026 Build Tools"
+    goto found_vs
+)
+set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\18"
+if exist "%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2026 Build Tools (x86 dir)"
     goto found_vs
 )
 
@@ -90,6 +116,17 @@ if exist "%VS_PATH%\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
 if exist "%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
     set "VCVARSALL=%VS_PATH%\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
     set "VS_VERSION=2022 Enterprise"
+    goto found_vs
+)
+if exist "%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2022 Build Tools"
+    goto found_vs
+)
+set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2022"
+if exist "%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
+    set "VCVARSALL=%VS_PATH%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+    set "VS_VERSION=2022 Build Tools (x86 dir)"
     goto found_vs
 )
 
