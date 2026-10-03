@@ -413,46 +413,49 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
                              vcpkgPython.string());
 
 #elif defined(__APPLE__)
-    // macOS: Check vcpkg first, then fallback to system/bundled Python
+    // macOS: accept only an installation whose stdlib matches the linked libpython
+    const std::string stdlibName = std::string("python") + LINKED_PYTHON_VERSION;
+    auto hasStdlib = [&stdlibName](const std::filesystem::path& home) {
+        return std::filesystem::exists(home / "lib" / stdlibName) ||
+               std::filesystem::exists(home / "Frameworks" / "Python.framework" / "Versions" /
+                                       LINKED_PYTHON_VERSION / "lib" / stdlibName);
+    };
+
+    std::vector<std::filesystem::path> candidates;
     char exePath[PATH_MAX];
     uint32_t size = sizeof(exePath);
     if (_NSGetExecutablePath(exePath, &size) == 0) {
         std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
         Logger::getInstance().debug("Executable directory: {}", exeDir.string());
 
-        // Strategy 1: Development - vcpkg Python (arm64-osx or x64-osx)
-        // build/bin/kalahari
-        // build/vcpkg_installed/arm64-osx/tools/python3/
-        std::filesystem::path vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "arm64-osx" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
-            Logger::getInstance().info("Found vcpkg Python arm64 (development mode)");
-            return vcpkgPython;
+        // Development: vcpkg Python (build/bin/kalahari -> build/vcpkg_installed/<triplet>).
+        // vcpkg installs the stdlib under the triplet prefix (lib/pythonX.Y);
+        // tools/python3 is checked as well for older port layouts.
+        for (const char* triplet : {"arm64-osx", "x64-osx"}) {
+            std::filesystem::path prefix = exeDir.parent_path() / "vcpkg_installed" / triplet;
+            candidates.push_back(prefix);
+            candidates.push_back(prefix / "tools" / "python3");
         }
 
-        // Try x64-osx (Intel Macs)
-        vcpkgPython = exeDir.parent_path() / "vcpkg_installed" / "x64-osx" / "tools" / "python3";
-        if (std::filesystem::exists(vcpkgPython / "bin" / "python3")) {
-            Logger::getInstance().info("Found vcpkg Python x64 (development mode)");
-            return vcpkgPython;
-        }
+        // Production: bundled Python in .app/Contents/Resources/
+        candidates.push_back(exeDir.parent_path() / "Resources" / "python3");
+    }
 
-        // Strategy 2: Production - Bundled Python in .app/Contents/Resources/
-        std::filesystem::path bundledPython = exeDir.parent_path() / "Resources" / "python3";
-        if (std::filesystem::exists(bundledPython)) {
-            Logger::getInstance().info("Found bundled Python (production mode)");
-            return bundledPython;
+    // Homebrew and system installations
+    candidates.push_back(std::string("/opt/homebrew/opt/python@") + LINKED_PYTHON_VERSION);
+    candidates.push_back(std::string("/usr/local/opt/python@") + LINKED_PYTHON_VERSION);
+    candidates.push_back("/usr/local");
+
+    for (const auto& home : candidates) {
+        Logger::getInstance().debug("macOS Python home attempt: {}", home.string());
+        if (hasStdlib(home)) {
+            Logger::getInstance().info("Found Python home: {}", home.string());
+            return home;
         }
     }
 
-    // Strategy 3: Homebrew Python (CI/CD environment)
-    std::filesystem::path homebrewPython = "/opt/homebrew/opt/python@3.11";
-    if (std::filesystem::exists(homebrewPython)) {
-        Logger::getInstance().info("Found Homebrew Python (CI/CD mode)");
-        return homebrewPython;
-    }
-
-    // Strategy 4: Fallback - System Python
-    Logger::getInstance().warn("vcpkg and Homebrew Python not found, falling back to /usr/local");
+    Logger::getInstance().warn("No Python {} installation found, falling back to /usr/local",
+                               LINKED_PYTHON_VERSION);
     return "/usr/local";
 
 #else

@@ -15,7 +15,7 @@ tests/
 ├── sanitizers/      # LeakSanitizer suppressions used by CI
 ├── test_support/    # shared test helpers (resetSingletons)
 ├── test_main.cpp    # custom main: QApplication, temp dir, singleton reset
-└── test_*.py        # Python binding tests (Linux/macOS)
+└── test_*.py        # Python binding tests (system-package builds only)
 ```
 
 `tests/CMakeLists.txt` builds a single `kalahari-tests` executable. Production

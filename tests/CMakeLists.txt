@@ -239,9 +239,10 @@ catch_discover_tests(kalahari-tests
 
 # Python binding tests: plain scripts that exit with a non-zero code on failure.
 # They import the kalahari_api module copied to bin/ by src/bindings.
-# Not registered on Windows yet: the interpreter must match the vcpkg-built
-# libpython, which is not verified there.
-if(NOT WIN32)
+# Registered only with system packages (Linux CI): vcpkg's Python is a static
+# library, so the extension module carries its own interpreter (and Qt) copy and
+# aborts when loaded into a separate python process.
+if(USE_SYSTEM_PACKAGES)
     foreach(_script test_python_bindings test_event_bus)
         add_test(NAME python.${_script}
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${_script}.py
