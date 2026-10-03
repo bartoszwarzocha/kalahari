@@ -24,15 +24,9 @@ EditorRenderPipeline::EditorRenderPipeline(QObject* parent)
     : QObject(parent) {
     // Initialize with default context
     m_context.font = QFont("Segoe UI", 11);
-
-    // Setup cursor blink timer
-    connect(&m_cursorBlinkTimer, &QTimer::timeout,
-            this, &EditorRenderPipeline::onCursorBlinkTimeout);
 }
 
-EditorRenderPipeline::~EditorRenderPipeline() {
-    m_cursorBlinkTimer.stop();
-}
+EditorRenderPipeline::~EditorRenderPipeline() = default;
 
 // =============================================================================
 // Text Source (Stage 1)
@@ -54,7 +48,7 @@ void EditorRenderPipeline::setContext(const RenderContext& context) {
     bool widthChanged = (m_context.textWidth != context.textWidth);
     bool marginsChanged = (m_context.margins != context.margins);
     bool viewModeChanged = (m_context.viewMode != context.viewMode);
-    bool dpiChanged = (std::abs(m_context.computed.dpiScale - context.computed.dpiScale) > 0.001);
+    bool dpiChanged = (std::abs(m_context.screenDpi - context.screenDpi) > 0.001);
 
     m_context = context;
 
@@ -195,13 +189,9 @@ void EditorRenderPipeline::setScreenDpi(double dpi) {
         return;  // No change
     }
 
+    // No relayout: the text is sized in points, which Qt converts with this same logical
+    // DPI. Only the page geometry depends on it (recomputed by applyInitialConfig()).
     m_context.screenDpi = dpi;
-
-    // Relayout with new DPI scale
-    if (m_textSource) {
-        m_textSource->setFont(m_context.computed.effectiveFont);
-        m_heightDirty = true;
-    }
 
     m_paginationCacheValid = false;
     markAllDirty();
@@ -229,9 +219,10 @@ void EditorRenderPipeline::configure(const RenderContext& context) {
 }
 
 void EditorRenderPipeline::computeDpiScaling() {
-    m_context.computed.dpiScale = m_context.screenDpi / DEFAULT_DPI;
-    m_context.computed.mmToPixels = m_context.screenDpi / 25.4;
-    m_context.computed.totalScale = m_context.computed.dpiScale * m_context.zoomFactor;
+    // screenDpi is the logical DPI Qt already uses for the font's points, so only zoom
+    // scales the text; the DPI converts page sizes (points) and margins (mm) to pixels.
+    m_context.computed.mmToPixels = m_context.screenDpi / MM_PER_INCH;
+    m_context.computed.totalScale = m_context.zoomFactor;
 
     // viewScale depends on zoom mode
     if (m_context.zoomMode == ZoomMode::PageScaling) {
@@ -278,11 +269,10 @@ void EditorRenderPipeline::computePageLayout() {
         return;
     }
 
-    double dpiScale = m_context.computed.dpiScale;
-
-    // Page size in pixels
-    m_context.computed.pageWidthPixels = m_context.pageMode.pageSize.width() * dpiScale;
-    m_context.computed.pageHeightPixels = m_context.pageMode.pageSize.height() * dpiScale;
+    // Page size in pixels (the page size is in points)
+    const double pointsToPixels = m_context.screenDpi / POINTS_PER_INCH;
+    m_context.computed.pageWidthPixels = m_context.pageMode.pageSize.width() * pointsToPixels;
+    m_context.computed.pageHeightPixels = m_context.pageMode.pageSize.height() * pointsToPixels;
 
     // Text area height
     m_context.computed.textAreaHeight = m_context.computed.pageHeightPixels
@@ -298,17 +288,20 @@ void EditorRenderPipeline::computePageLayout() {
 }
 
 void EditorRenderPipeline::computeTextWidth() {
+    double width = 0.0;
     if (m_context.viewMode == ViewMode::Page) {
         // Page Mode: text width from page size minus margins
-        m_context.computed.textWidth = m_context.computed.pageWidthPixels
-                                      - m_context.computed.marginLeft
-                                      - m_context.computed.marginRight;
+        width = m_context.computed.pageWidthPixels
+              - m_context.computed.marginLeft
+              - m_context.computed.marginRight;
     } else {
         // Scroll modes: viewport width minus margins
-        m_context.computed.textWidth = m_context.viewportSize.width()
-                                      - m_context.computed.marginLeft
-                                      - m_context.computed.marginRight;
+        width = m_context.viewportSize.width()
+              - m_context.computed.marginLeft
+              - m_context.computed.marginRight;
     }
+    // A narrow (or not yet sized) viewport must not wrap the text a few glyphs per line
+    m_context.computed.textWidth = std::max(MIN_TEXT_WIDTH, width);
 }
 
 void EditorRenderPipeline::applyComputedToSource() {
@@ -354,12 +347,6 @@ void EditorRenderPipeline::setConfigDpi(double dpi) {
         computePageLayout();
     }
     computeTextWidth();
-
-    if (m_context.zoomMode == ZoomMode::PageScaling) {
-        computeEffectiveFont();
-        applyFontToSource();
-    }
-
     applyWidthToSource();
     m_paginationCacheValid = false;
     markAllDirty();
@@ -520,12 +507,12 @@ void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
         int oldParagraph = m_cursorPosition.paragraph;
 
         // Mark old cursor position dirty
-        markDirty(cursorRect().toAlignedRect());
+        markDirty(cursorPaintRect().toAlignedRect());
 
         m_cursorPosition = position;
 
         // Mark new cursor position dirty
-        markDirty(cursorRect().toAlignedRect());
+        markDirty(cursorPaintRect().toAlignedRect());
 
         // Update focus mode if enabled
         if (m_context.focusMode.enabled) {
@@ -546,43 +533,23 @@ void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
 void EditorRenderPipeline::setCursorVisible(bool visible) {
     if (m_context.cursor.visible != visible) {
         m_context.cursor.visible = visible;
-        markDirty(cursorRect().toAlignedRect());
+        markDirty(cursorPaintRect().toAlignedRect());
     }
 }
 
 void EditorRenderPipeline::setCursorBlinkState(bool on) {
     if (m_context.cursor.blinkState != on) {
         m_context.cursor.blinkState = on;
-        markDirty(cursorRect().toAlignedRect());
-        emit cursorBlinkChanged(on);
+        markDirty(cursorPaintRect().toAlignedRect());
     }
 }
 
 void EditorRenderPipeline::setCursorStyle(CursorStyle style) {
     if (m_cursorStyle != style) {
-        markDirty(cursorRect().toAlignedRect());
+        markDirty(cursorPaintRect().toAlignedRect());
         m_cursorStyle = style;
-        markDirty(cursorRect().toAlignedRect());
+        markDirty(cursorPaintRect().toAlignedRect());
     }
-}
-
-void EditorRenderPipeline::startCursorBlink() {
-    if (m_context.cursor.blinkInterval > 0) {
-        m_context.cursor.blinkState = true;
-        m_cursorBlinkTimer.start(m_context.cursor.blinkInterval);
-    }
-}
-
-void EditorRenderPipeline::stopCursorBlink() {
-    m_cursorBlinkTimer.stop();
-    m_context.cursor.blinkState = true;  // Keep cursor visible when not blinking
-    markDirty(cursorRect().toAlignedRect());
-}
-
-void EditorRenderPipeline::onCursorBlinkTimeout() {
-    m_context.cursor.blinkState = !m_context.cursor.blinkState;
-    markDirty(cursorRect().toAlignedRect());
-    emit cursorBlinkChanged(m_context.cursor.blinkState);
 }
 
 void EditorRenderPipeline::setSelection(const SelectionRange& selection) {
@@ -940,19 +907,24 @@ void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t pa
 void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect& clipRect) {
     if (!m_searchEngine || !m_searchEngine->isActive()) return;
 
+    // Matches are sorted by position, so the ones in the visible paragraphs (the same
+    // range the text is drawn for) are found by binary search instead of measuring all.
     const auto& matches = m_searchEngine->matches();
-    int currentIdx = m_searchEngine->currentMatchIndex();
+    const int firstVisible = static_cast<int>(m_context.computed.firstVisibleParagraph);
+    const int lastVisible = static_cast<int>(m_context.computed.lastVisibleParagraph);
+    const auto firstMatch = std::lower_bound(
+        matches.begin(), matches.end(), firstVisible,
+        [](const SearchMatch& match, int paragraph) { return match.paragraph < paragraph; });
+    const int currentIdx = m_searchEngine->currentMatchIndex();
 
-    for (size_t i = 0; i < matches.size(); ++i) {
-        const auto& match = matches[i];
-
-        QRectF matchRect = getTextRect(static_cast<size_t>(match.paragraph),
-                                       match.paragraphOffset,
-                                       static_cast<int>(match.length));
+    for (auto it = firstMatch; it != matches.end() && it->paragraph <= lastVisible; ++it) {
+        QRectF matchRect = getTextRect(static_cast<size_t>(it->paragraph),
+                                       it->paragraphOffset,
+                                       static_cast<int>(it->length));
 
         if (matchRect.isEmpty() || !matchRect.intersects(clipRect)) continue;
 
-        QColor color = (static_cast<int>(i) == currentIdx)
+        QColor color = (static_cast<int>(it - matches.begin()) == currentIdx)
                            ? m_context.colors.currentMatch
                            : m_context.colors.searchHighlight;
 
@@ -960,48 +932,44 @@ void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect
     }
 }
 
+QRectF EditorRenderPipeline::cursorPaintRect() const {
+    QRectF rect = cursorRect();
+    if (rect.isEmpty() || !m_textSource) return rect;
+
+    const double scale = m_context.computed.viewScale;
+    if (m_cursorStyle == CursorStyle::Block) {
+        // Block cursor: covers the character at the cursor
+        const QString text = m_textSource->paragraphText(
+            static_cast<size_t>(m_cursorPosition.paragraph));
+        if (m_cursorPosition.offset < text.length()) {
+            const double charWidth =
+                QFontMetricsF(m_context.font).horizontalAdvance(text.at(m_cursorPosition.offset)) *
+                scale;
+            if (charWidth > 0) {
+                rect.setWidth(charWidth);
+            }
+        }
+    } else if (m_cursorStyle == CursorStyle::Underline) {
+        // Underline cursor: a thin bar under the character
+        const double underlineHeight = 2.0 * scale;
+        rect.setTop(rect.bottom() - underlineHeight);
+        rect.setHeight(underlineHeight);
+        rect.setWidth(QFontMetricsF(m_context.font).averageCharWidth() * scale);
+    }
+    return rect;
+}
+
 void EditorRenderPipeline::renderCursor(QPainter* painter) {
     if (!m_context.cursor.visible || !m_context.cursor.blinkState) return;
 
-    QRectF rect = cursorRect();
+    const QRectF rect = cursorPaintRect();
     if (rect.isEmpty()) return;
 
-    // Adjust rect based on cursor style
+    QColor color = m_context.colors.cursor;
     if (m_cursorStyle == CursorStyle::Block) {
-        // Block cursor: use character width
-        if (m_textSource) {
-            QTextLayout* layout = m_textSource->layout(
-                static_cast<size_t>(m_cursorPosition.paragraph));
-            if (layout && layout->lineCount() > 0) {
-                QString text = m_textSource->paragraphText(
-                    static_cast<size_t>(m_cursorPosition.paragraph));
-                if (m_cursorPosition.offset < text.length()) {
-                    QFontMetricsF fm(m_context.font);
-                    QChar ch = text.at(m_cursorPosition.offset);
-                    double charWidth = fm.horizontalAdvance(ch) * m_context.computed.viewScale;
-                    if (charWidth > 0) {
-                        rect.setWidth(charWidth);
-                    }
-                }
-            }
-        }
-        // Semi-transparent block to show character underneath
-        QColor blockColor = m_context.colors.cursor;
-        blockColor.setAlpha(180);
-        painter->fillRect(rect, blockColor);
-    } else if (m_cursorStyle == CursorStyle::Underline) {
-        // Underline cursor
-        double underlineHeight = 2.0 * m_context.computed.viewScale;
-        QFontMetricsF fm(m_context.font);
-        double charWidth = fm.averageCharWidth() * m_context.computed.viewScale;
-        rect.setTop(rect.bottom() - underlineHeight);
-        rect.setHeight(underlineHeight);
-        rect.setWidth(charWidth);
-        painter->fillRect(rect, m_context.colors.cursor);
-    } else {
-        // Line cursor (default)
-        painter->fillRect(rect, m_context.colors.cursor);
+        color.setAlpha(180);  // Semi-transparent block to show character underneath
     }
+    painter->fillRect(rect, color);
 }
 
 void EditorRenderPipeline::renderFocusOverlay([[maybe_unused]] QPainter* painter,
@@ -1585,11 +1553,11 @@ int EditorRenderPipeline::pageAtY(double docY) const {
 
     if (m_cachedPages.empty()) return -1;
 
-    // Binary search for page containing docY - Phase 14: use computed dpiScale
+    // Linear search for page containing docY
     for (size_t i = 0; i < m_cachedPages.size(); ++i) {
         const PageContent& page = m_cachedPages[i];
         double pageTop = page.pageY;
-        double pageBottom = pageTop + m_context.pageMode.pageSize.height() * m_context.computed.dpiScale + m_pageGap;
+        double pageBottom = pageTop + m_context.computed.pageHeightPixels + m_pageGap;
 
         if (docY >= pageTop && docY < pageBottom) {
             return static_cast<int>(i);
@@ -1736,9 +1704,9 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
 }
 
 void EditorRenderPipeline::rebuildPaginationCache() const {
-    // Check if cache is still valid - Phase 14: use computed dpiScale
+    // Check if cache is still valid
     bool cacheValid = m_paginationCacheValid &&
-                      std::abs(m_cachedDpiScale - m_context.computed.dpiScale) < 0.001 &&
+                      std::abs(m_cachedScreenDpi - m_context.screenDpi) < 0.001 &&
                       m_cachedPageSize == m_context.pageMode.pageSize;
 
     if (cacheValid) {
@@ -1790,7 +1758,7 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
 
         m_cachedPages.push_back(scrollPage);
         m_paginationCacheValid = true;
-        m_cachedDpiScale = m_context.computed.dpiScale;
+        m_cachedScreenDpi = m_context.screenDpi;
         return;
     }
 
@@ -1803,7 +1771,6 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
     double textAreaWidth = c.textWidth;
     double textAreaHeight = c.textAreaHeight;
     double centerOffset = c.pageCenterOffset;
-    double dpiScale = c.dpiScale;
 
     size_t paraCount = m_textSource->paragraphCount();
 
@@ -1849,8 +1816,9 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
 
             // Process each line in the paragraph
             for (int lineIdx = 0; lineIdx < lineCount; ++lineIdx) {
+                // Same units as the page: line heights are already in pixels
                 QTextLine line = layout->lineAt(lineIdx);
-                double lineHeight = line.height() * dpiScale;
+                double lineHeight = line.height();
 
                 // Check if this line fits on current page
                 if (currentY + lineHeight > textAreaHeight && currentY > 0) {
@@ -1892,8 +1860,8 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
         }
     }
 
-    // Update cache parameters - Phase 14: use computed dpiScale
-    m_cachedDpiScale = m_context.computed.dpiScale;
+    // Update cache parameters
+    m_cachedScreenDpi = m_context.screenDpi;
     m_cachedPageSize = m_context.pageMode.pageSize;
     m_paginationCacheValid = true;
 }

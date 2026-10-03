@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTextCharFormat>
+#include <QVariantMap>
 #include <QVector>
 #include <QXmlStreamAttributes>
 
@@ -107,6 +108,24 @@ const MetadataTagDef* getMetadataTagDef(const QString& tag);
 /// @param propId The KmlPropertyId
 /// @return Pointer to definition, or nullptr if not found
 const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId);
+
+/// @brief Read a metadata tag's XML attributes into the map stored under its property
+///
+/// Flag attributes (resolved, completed) become bool and numeric ones (number) int;
+/// every other attribute is kept as a string, so unknown attributes survive a
+/// load/save cycle.
+/// @param attrs XML attributes of the metadata start element
+/// @return Map of attribute name to value
+QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs);
+
+/// @brief Serialize a metadata map as XML attributes, e.g. ` id="c1" resolved="true"`
+///
+/// The tag's known attributes come first, in definition order, then any other keys.
+/// False flags and empty values are omitted; values are XML-escaped.
+/// @param tag The metadata tag name
+/// @param metadata Map stored under the tag's property
+/// @return Attribute string, each attribute preceded by a space
+QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata);
 
 // =============================================================================
 // Inline Style Attributes

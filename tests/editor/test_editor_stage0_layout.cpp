@@ -8,8 +8,8 @@
 /// The oracle is always a *reference document*: the same text laid out from scratch
 /// with layoutAllBlocks(). Whatever an incremental update produces must match it.
 ///
-/// Tests that expose an existing defect are tagged [known-bug] and [!mayfail]: they are
-/// documented, not fixed, in Stage 0.
+/// A test that exposes a defect not fixed yet is tagged [known-bug] and [!mayfail]. Once
+/// the defect is fixed the tags go and a "Regression" comment says what used to go wrong.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -17,8 +17,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/viewport_manager.h>
-#include <QCoreApplication>
-#include <QResizeEvent>
+#include "editor_test_utils.h"
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -28,6 +27,7 @@
 #include <vector>
 
 using namespace kalahari::editor;
+using namespace kalahari::test;
 using Catch::Approx;
 
 namespace {
@@ -137,14 +137,6 @@ QStringList longParagraphs(int count, int firstIndex = 0) {
     return list;
 }
 
-/// Deliver a resize to a hidden widget (QWidget::resize() alone only queues it).
-void resizeWidget(QWidget& widget, const QSize& newSize) {
-    const QSize oldSize = widget.size();
-    widget.resize(newSize);
-    QResizeEvent event(newSize, oldSize);
-    QCoreApplication::sendEvent(&widget, &event);
-}
-
 }  // anonymous namespace
 
 // =============================================================================
@@ -165,12 +157,11 @@ TEST_CASE("Stage0 layout: initial load lays out every block", "[editor][stage0][
     }
 }
 
-TEST_CASE("Stage0 layout: pasting more than 3 paragraphs at once",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): KalahariTextDocumentLayout::documentChanged() lays out only
-    // the changed block and the next 2 ("blocksToLayout = 3") for any edit that is not a
-    // whole-document change. A paste that creates N > 3 paragraphs leaves N-3 blocks with
-    // no lines, so they report a one-line fallback height until something re-lays them out.
+TEST_CASE("Stage0 layout: pasting more than 3 paragraphs at once", "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): KalahariTextDocumentLayout::documentChanged() used to
+    // lay out only the changed block and the next 2 for any edit that was not a
+    // whole-document change. A paste creating more than 3 paragraphs left blocks with no
+    // lines, reporting a one-line fallback height.
     LaidOutDocument d(kNarrowWidth);
     d.load({QStringLiteral("Intro paragraph.")});
 
@@ -190,7 +181,7 @@ TEST_CASE("Stage0 layout: pasting more than 3 paragraphs at once",
 }
 
 TEST_CASE("Stage0 layout: pasting up to 3 paragraphs stays consistent", "[editor][stage0][layout]") {
-    // Control case for the test above: within the 3-block window the update is correct.
+    // Control case for the test above: a paste that fitted in the old 3-block window.
     LaidOutDocument d(kNarrowWidth);
     d.load({QStringLiteral("Intro paragraph.")});
 
@@ -202,10 +193,9 @@ TEST_CASE("Stage0 layout: pasting up to 3 paragraphs stays consistent", "[editor
     CHECK(mismatchCount(actual, referenceGeometry(d.paragraphs(), kNarrowWidth)) == 0);
 }
 
-TEST_CASE("Stage0 layout: undo of a large deletion",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): same 3-block window as the paste test - undo re-inserts many
-    // paragraphs in one change notification.
+TEST_CASE("Stage0 layout: undo of a large deletion", "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): same cause as the paste test above - undo re-inserts
+    // many paragraphs in one change notification.
     LaidOutDocument d(kNarrowWidth);
     const QStringList original = longParagraphs(20);
     d.load(original);
@@ -241,13 +231,12 @@ TEST_CASE("Stage0 layout: width change re-lays out every block", "[editor][stage
     CHECK(mismatchCount(geometryOf(d.doc.get()), narrow) == 0);
 }
 
-TEST_CASE("Stage0 layout: QTextDocument::setTextWidth alone does not change the wrap width",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): QTextDocumentSource::setTextWidth() - the path the render
-    // pipeline uses (applyWidthToSource) - calls only QTextDocument::setTextWidth(). That
-    // re-lays out every block, but KalahariTextDocumentLayout wraps at its own m_textWidth,
-    // which only KalahariTextDocumentLayout::setTextWidth() changes. So the pipeline's width
-    // is ignored for wrapping (it is a full but useless relayout).
+TEST_CASE("Stage0 layout: QTextDocument::setTextWidth alone changes the wrap width",
+          "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): KalahariTextDocumentLayout used to wrap at its own
+    // width, which only KalahariTextDocumentLayout::setTextWidth() changed, so the width
+    // the render pipeline sets through QTextDocumentSource (QTextDocument::setTextWidth())
+    // caused a full but useless relayout. The document's text width is now the only one.
     LaidOutDocument d(kNarrowWidth);
     const QStringList paras = longParagraphs(8);
     d.load(paras);
@@ -308,9 +297,8 @@ TEST_CASE("Stage0 layout: ViewportManager::paragraphY matches blockBoundingRect"
 
 TEST_CASE("Stage0 layout: ViewportManager matches layout after a multi-paragraph paste",
           "[editor][stage0][layout][viewport]") {
-    // Both sides read the same (possibly unlaid) QTextLayouts, so they should agree with
-    // each other even where they disagree with the reference - this pins the invariant
-    // "one geometry source", independent of the 3-block bug above.
+    // Both sides read the same QTextLayouts, so they must agree with each other - this
+    // pins the invariant "one geometry source", independently of the reference checks.
     LaidOutDocument d(kNarrowWidth);
     d.load({QStringLiteral("Intro.")});
 
@@ -334,12 +322,6 @@ TEST_CASE("Stage0 layout: ViewportManager matches layout after a multi-paragraph
 // =============================================================================
 
 namespace {
-
-QString kmlOf(const QStringList& paragraphs) {
-    QString kml = QStringLiteral("<kml>");
-    for (const auto& p : paragraphs) kml += QStringLiteral("<p>") + p + QStringLiteral("</p>");
-    return kml + QStringLiteral("</kml>");
-}
 
 /// Reference geometry for the editor's document: same text, same font, same wrap width.
 Geometry editorReference(BookEditor& editor) {
@@ -369,9 +351,8 @@ TEST_CASE("Stage0 layout: BookEditor load produces a complete layout", "[editor]
     CHECK(mismatchCount(g, editorReference(editor)) == 0);
 }
 
-TEST_CASE("Stage0 layout: BookEditor paste of many paragraphs",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): see "pasting more than 3 paragraphs at once".
+TEST_CASE("Stage0 layout: BookEditor paste of many paragraphs", "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): see "pasting more than 3 paragraphs at once".
     BookEditor editor;
     resizeWidget(editor, QSize(600, 400));
     editor.fromKml(kmlOf({QStringLiteral("Intro.")}));
@@ -384,8 +365,8 @@ TEST_CASE("Stage0 layout: BookEditor paste of many paragraphs",
     CHECK(mismatchCount(g, editorReference(editor)) == 0);
 }
 
-TEST_CASE("Stage0 layout: BookEditor undo of a large deletion",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
+TEST_CASE("Stage0 layout: BookEditor undo of a large deletion", "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): see "undo of a large deletion".
     BookEditor editor;
     resizeWidget(editor, QSize(600, 400));
     editor.fromKml(kmlOf(longParagraphs(20)));
@@ -414,23 +395,16 @@ TEST_CASE("Stage0 layout: BookEditor resize re-wraps to the new width", "[editor
 }
 
 TEST_CASE("Stage0 layout: BookEditor resize performs a single full relayout",
-          "[editor][stage0][layout][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): BookEditor::resizeEvent() -> updateLayoutWidth() calls
-    // QTextDocument::setTextWidth() (full relayout via setPageSize -> documentChanged) and
-    // then KalahariTextDocumentLayout::setTextWidth() (second full relayout); the render
-    // pipeline's setConfigViewportSize() -> QTextDocumentSource::setTextWidth() can add a
-    // third. Each full relayout emits documentSizeChanged exactly once, so the emission
-    // count during one resize equals the number of full relayouts.
+          "[editor][stage0][layout]") {
+    // Regression (fixed in Stage 1): one resize used to re-lay out the whole document two
+    // or three times - BookEditor set the width on the document and on the layout, and the
+    // render pipeline set it again. The pipeline is now the only owner of the wrap width.
+    // A hidden widget, as here, applies the new width at once.
     BookEditor editor;
     resizeWidget(editor, QSize(500, 400));
     editor.fromKml(kmlOf(longParagraphs(15)));
 
-    int fullRelayouts = 0;
-    QObject::connect(editor.textDocument()->documentLayout(),
-                     &QAbstractTextDocumentLayout::documentSizeChanged,
-                     [&fullRelayouts](const QSizeF&) { ++fullRelayouts; });
-
+    FullRelayoutCounter relayouts(editor);
     resizeWidget(editor, QSize(900, 400));
-    INFO("full relayouts during one resize: " << fullRelayouts);
-    CHECK(fullRelayouts == 1);
+    CHECK(relayouts.count() == 1);
 }

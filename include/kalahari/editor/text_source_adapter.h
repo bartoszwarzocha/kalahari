@@ -172,7 +172,6 @@ public:
 
 private:
     QTextDocument* m_document;
-    double m_textWidth = 800.0;
 };
 
 // =============================================================================

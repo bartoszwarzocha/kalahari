@@ -2,15 +2,26 @@
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
-#include <QTextBlock>
+#include <QFontMetricsF>
+#include <QPainter>
+#include <QTextDocument>
+#include <QTextFrame>
 #include <QTextLayout>
 #include <QTextLine>
 #include <QTextOption>
-#include <QPainter>
-#include <QTextFrame>
 #include <algorithm>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// Line width used when the document has no text width (no wrapping)
+constexpr qreal UNWRAPPED_LINE_WIDTH = 10000.0;
+
+/// Extent Qt itself uses for an "everything" update rect
+constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
+
+}  // anonymous namespace
 
 // =============================================================================
 // Constructor
@@ -18,9 +29,6 @@ namespace kalahari::editor {
 
 KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
     : QAbstractTextDocumentLayout(doc) {
-    if (doc) {
-        m_font = doc->defaultFont();
-    }
 }
 
 // =============================================================================
@@ -28,57 +36,31 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
 // =============================================================================
 
 void KalahariTextDocumentLayout::setTextWidth(qreal width) {
-    if (m_textWidth != width) {
-        m_textWidth = width;
-        m_positionsDirty = true;
-
-        // Re-layout all blocks with new width
-        QTextBlock block = document()->begin();
-        while (block.isValid()) {
-            QTextBlock mutableBlock = block;
-            layoutBlock(mutableBlock);
-            block = block.next();
-        }
-
-        updateBlockPositions();
-        emit documentSizeChanged(documentSize());
-        emit update();
+    // QTextDocument::setTextWidth() re-lays out the whole document through
+    // documentChanged() even when the width does not change.
+    if (document()->textWidth() != width) {
+        document()->setTextWidth(width);
     }
+}
+
+qreal KalahariTextDocumentLayout::textWidth() const {
+    return document()->textWidth();
 }
 
 void KalahariTextDocumentLayout::setFont(const QFont& font) {
-    if (m_font != font) {
-        m_font = font;
-        m_positionsDirty = true;
-
-        // Re-layout all blocks with new font
-        QTextBlock block = document()->begin();
-        while (block.isValid()) {
-            QTextBlock mutableBlock = block;
-            layoutBlock(mutableBlock);
-            block = block.next();
-        }
-
-        updateBlockPositions();
-        emit documentSizeChanged(documentSize());
-        emit update();
+    // Same as setTextWidth(): setDefaultFont() always re-lays out the whole document.
+    if (document()->defaultFont() != font) {
+        document()->setDefaultFont(font);
     }
 }
 
-void KalahariTextDocumentLayout::layoutAllBlocks() {
-    // Force layout of all blocks - call after bulk content insertion
-    // This ensures all blocks have valid heights for scrollbar calculation
-    QTextBlock block = document()->begin();
-    while (block.isValid()) {
-        QTextBlock mutableBlock = block;
-        layoutBlock(mutableBlock);
-        block = block.next();
-    }
+QFont KalahariTextDocumentLayout::font() const {
+    return document()->defaultFont();
+}
 
-    m_positionsDirty = true;
-    updateBlockPositions();
-    emit documentSizeChanged(documentSize());
-    emit update();
+void KalahariTextDocumentLayout::layoutAllBlocks() {
+    relayoutRange(0, document()->blockCount() - 1,
+                  static_cast<int>(m_blockHeights.size()) - 1);
 }
 
 // =============================================================================
@@ -87,71 +69,90 @@ void KalahariTextDocumentLayout::layoutAllBlocks() {
 
 void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int charsAdded) {
     Q_UNUSED(charsRemoved);
+    const QTextDocument* doc = document();
 
-    // Detect full-document change triggered by Qt internals (e.g., QTextDocument::setDefaultFont()
-    // calls markContentsDirty(0, characterCount), which arrives here as charsAdded == total).
-    // We must re-layout ALL blocks here; otherwise setDefaultFont() would only update 3 blocks
-    // (the partial-edit limit below), leaving most of the document with the old line heights.
-    bool isFullDocumentChange = (from == 0 && charsRemoved == 0 &&
-                                  charsAdded >= document()->characterCount() - 1);
-
-    if (isFullDocumentChange) {
-        // Re-layout ALL blocks for document-wide changes
-        QTextBlock block = document()->begin();
-        while (block.isValid()) {
-            QTextBlock mutableBlock = block;
-            layoutBlock(mutableBlock);
-            block = block.next();
-        }
-        m_positionsDirty = true;
-        updateBlockPositions();
-        emit documentSizeChanged(documentSize());
-        emit update();
-        return;
+    // Qt reports the change in new-document coordinates: [from, from + charsAdded) holds
+    // everything inserted or reformatted (setTextWidth()/setDefaultFont() report the
+    // whole document). Every block touching that range is re-laid out, including the
+    // block holding the first character after it: it may have been split off from, or
+    // merged with, the changed text. Blocks outside the range are untouched.
+    QTextBlock first = doc->findBlock(from);
+    if (!first.isValid()) {
+        first = doc->firstBlock();
+    }
+    QTextBlock last = doc->findBlock(from + charsAdded);
+    if (!last.isValid()) {
+        last = doc->lastBlock();
     }
 
-    // Partial change: layout only affected blocks (typing, paste, etc.)
-    QTextBlock block = document()->findBlock(from);
-
-    // Layout the changed block and a few after (for paragraph merges/splits)
-    int blocksToLayout = 3;
-    while (block.isValid() && blocksToLayout > 0) {
-        QTextBlock mutableBlock = block;
-        layoutBlock(mutableBlock);
-        block = block.next();
-        --blocksToLayout;
-    }
-
-    // Mark positions as dirty - they need recalculation
-    m_positionsDirty = true;
-
-    emit documentSizeChanged(documentSize());
-    emit update();
+    // Untouched blocks keep their cache entries, so the old entries of the changed range
+    // end where the new range ends, shifted by the change in block count.
+    const int lastNumber = last.blockNumber();
+    const int oldLast =
+        lastNumber - (doc->blockCount() - static_cast<int>(m_blockHeights.size()));
+    relayoutRange(first.blockNumber(), lastNumber, oldLast);
 }
 
-void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
-    if (!block.isValid()) return;
+void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast) {
+    const QTextDocument* doc = document();
+    const int oldCount = static_cast<int>(m_blockHeights.size());
 
+    if (oldLast < first - 1 || oldLast >= oldCount) {
+        // The height cache is out of step with the document: rebuild it completely.
+        first = 0;
+        last = doc->blockCount() - 1;
+        oldLast = oldCount - 1;
+    }
+
+    std::vector<qreal> heights;
+    heights.reserve(static_cast<size_t>(last - first + 1));
+    QTextBlock block = doc->findBlockByNumber(first);
+    for (int number = first; number <= last && block.isValid(); ++number) {
+        layoutBlock(block);
+        heights.push_back(measuredHeight(block));
+        block = block.next();
+    }
+
+    // Replace the range's cache entries. Positions only move when a height changed or
+    // blocks were added/removed - typing within a line leaves them valid.
+    const auto rangeBegin = m_blockHeights.begin() + first;
+    bool geometryChanged = true;
+    if (static_cast<int>(heights.size()) == oldLast - first + 1) {
+        geometryChanged = !std::equal(heights.begin(), heights.end(), rangeBegin);
+        std::copy(heights.begin(), heights.end(), rangeBegin);
+    } else {
+        m_blockHeights.erase(rangeBegin, m_blockHeights.begin() + oldLast + 1);
+        m_blockHeights.insert(m_blockHeights.begin() + first, heights.begin(), heights.end());
+    }
+    if (geometryChanged) {
+        m_positionsDirty = true;
+    }
+
+    emit blocksLaidOut(first, static_cast<int>(heights.size()));
+
+    const QSizeF size = documentSize();
+    if (size != m_lastReportedSize) {
+        m_lastReportedSize = size;
+        emit documentSizeChanged(size);
+    }
+
+    // Repaint the re-laid-out blocks, and everything below them if they moved it
+    const qreal top = blockY(first);
+    const qreal bottom = (geometryChanged || heights.empty())
+        ? UNBOUNDED_EXTENT
+        : blockY(last) + m_blockHeights[static_cast<size_t>(last)];
+    emit update(QRectF(0, top, UNBOUNDED_EXTENT, bottom - top));
+}
+
+void KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block) const {
     QTextLayout* layout = block.layout();
     if (!layout) return;
 
-    // Set font from block format or default
-    QTextCharFormat charFormat = block.charFormat();
-    QFont blockFont = charFormat.font();
-    if (blockFont == QFont()) {
-        blockFont = m_font;
-    }
-    layout->setFont(blockFont);
-
-    // Calculate effective width
-    qreal effectiveWidth = m_textWidth;
-    if (effectiveWidth <= 0) {
-        effectiveWidth = 10000;  // Very large default for no wrapping
-    }
+    // Glyph fonts come from the document's character formats (resolved against the
+    // document's default font), so the QTextLayout's own font is irrelevant here.
 
     // Get alignment from QTextBlockFormat and configure QTextOption
-    QTextBlockFormat blockFormat = block.blockFormat();
-    Qt::Alignment alignment = blockFormat.alignment();
+    Qt::Alignment alignment = block.blockFormat().alignment();
     if (alignment == 0) {
         alignment = Qt::AlignLeft;  // Default to left if not set
     }
@@ -166,26 +167,32 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
     // justified spacing at draw time. Also a small perf win (avoids re-shaping on redraw).
     layout->setCacheEnabled(true);
 
-    // Prepare layout with lines starting at x=0, y=0
-    // Qt handles horizontal alignment positioning via QTextOption - DO NOT manually offset x!
-    // Manual x offset would cause double-alignment (Qt + manual = wrong position)
+    const qreal width = document()->textWidth();
+    const qreal lineWidth = width > 0 ? width : UNWRAPPED_LINE_WIDTH;
+
+    // Lines start at x=0, y=0. Qt handles horizontal alignment via QTextOption - DO NOT
+    // manually offset x (Qt + manual offset = double alignment).
     layout->beginLayout();
     qreal y = 0;
-
-    while (true) {
-        QTextLine line = layout->createLine();
-        if (!line.isValid()) {
-            break;
-        }
-
-        line.setLineWidth(effectiveWidth);
-
-        // Position at x=0 - Qt handles horizontal alignment via QTextOption
+    for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
+        line.setLineWidth(lineWidth);
         line.setPosition(QPointF(0, y));
         y += line.height();
     }
-
     layout->endLayout();
+}
+
+qreal KalahariTextDocumentLayout::measuredHeight(const QTextBlock& block) const {
+    if (QTextLayout* layout = block.layout()) {
+        // boundingRect gives tight bounds without extra leading
+        const qreal height = layout->boundingRect().height();
+        if (height > 0) {
+            return height;
+        }
+    }
+
+    // Fallback: estimate from font
+    return QFontMetricsF(document()->defaultFont()).height();
 }
 
 // =============================================================================
@@ -195,18 +202,11 @@ void KalahariTextDocumentLayout::layoutBlock(QTextBlock& block) {
 void KalahariTextDocumentLayout::updateBlockPositions() const {
     if (!m_positionsDirty) return;
 
-    int blockCount = document()->blockCount();
-    m_blockYPositions.resize(static_cast<size_t>(blockCount));
-
+    m_blockYPositions.resize(m_blockHeights.size());
     qreal y = 0;
-    QTextBlock block = document()->begin();
-    int index = 0;
-
-    while (block.isValid() && index < blockCount) {
-        m_blockYPositions[static_cast<size_t>(index)] = y;
-        y += blockHeight(block);
-        block = block.next();
-        ++index;
+    for (size_t i = 0; i < m_blockHeights.size(); ++i) {
+        m_blockYPositions[i] = y;
+        y += m_blockHeights[i];
     }
 
     m_cachedDocumentHeight = y;
@@ -216,28 +216,31 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
 qreal KalahariTextDocumentLayout::blockY(int blockNumber) const {
     updateBlockPositions();
 
-    if (blockNumber < 0 || static_cast<size_t>(blockNumber) >= m_blockYPositions.size()) {
+    if (blockNumber < 0) {
         return 0;
     }
-
+    if (static_cast<size_t>(blockNumber) >= m_blockYPositions.size()) {
+        return m_cachedDocumentHeight;
+    }
     return m_blockYPositions[static_cast<size_t>(blockNumber)];
 }
 
-qreal KalahariTextDocumentLayout::blockHeight(const QTextBlock& block) const {
-    if (!block.isValid()) return 0;
+int KalahariTextDocumentLayout::blockNumberAtY(qreal y) const {
+    updateBlockPositions();
 
-    QTextLayout* layout = block.layout();
-    if (!layout) return 0;
-
-    // Use boundingRect which gives tight bounds without extra leading
-    qreal height = layout->boundingRect().height();
-    if (height > 0) {
-        return height;
+    if (m_blockYPositions.empty()) {
+        return -1;
     }
+    // Last block starting at or above y
+    const auto it = std::upper_bound(m_blockYPositions.begin(), m_blockYPositions.end(), y);
+    if (it == m_blockYPositions.begin()) {
+        return 0;
+    }
+    return static_cast<int>(std::distance(m_blockYPositions.begin(), it)) - 1;
+}
 
-    // Fallback: estimate from font
-    QFontMetricsF fm(m_font);
-    return fm.height();
+qreal KalahariTextDocumentLayout::documentWidth() const {
+    return qMax<qreal>(0, document()->textWidth());
 }
 
 // =============================================================================
@@ -247,80 +250,56 @@ qreal KalahariTextDocumentLayout::blockHeight(const QTextBlock& block) const {
 void KalahariTextDocumentLayout::draw(QPainter* painter, const PaintContext& context) {
     if (!painter) return;
 
+    const QRectF& clip = context.clip;
     painter->save();
-
-    // Clip to context rect
-    if (!context.clip.isEmpty()) {
-        painter->setClipRect(context.clip);
+    if (!clip.isEmpty()) {
+        painter->setClipRect(clip);
     }
 
-    // Draw each visible block
-    QTextBlock block = document()->begin();
-    while (block.isValid()) {
-        QTextLayout* layout = block.layout();
-        if (layout) {
-            qreal y = blockY(block.blockNumber());
-            QRectF blockRect(0, y, m_textWidth, blockHeight(block));
-
-            // Only draw if intersects clip
-            if (context.clip.isEmpty() || blockRect.intersects(context.clip)) {
-                layout->draw(painter, QPointF(0, y));
-            }
+    int number = clip.isEmpty() ? 0 : blockNumberAtY(clip.top());
+    for (QTextBlock block = document()->findBlockByNumber(number); block.isValid();
+         block = block.next(), ++number) {
+        const qreal y = blockY(number);
+        if (!clip.isEmpty() && y > clip.bottom()) {
+            break;
         }
-        block = block.next();
+        if (QTextLayout* layout = block.layout()) {
+            layout->draw(painter, QPointF(0, y));
+        }
     }
 
     painter->restore();
 }
 
 int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccuracy accuracy) const {
-    updateBlockPositions();
+    const bool exact = (accuracy == Qt::ExactHit);
+    const qreal y = point.y();
+    if (exact && (y < 0 || y >= documentSize().height())) {
+        return -1;
+    }
 
-    // Find block at Y position using binary search
-    qreal targetY = point.y();
+    // A fuzzy hit above or below the document snaps to the first or last block
+    const int number = blockNumberAtY(y);
+    const QTextBlock block = document()->findBlockByNumber(number);
+    QTextLayout* layout = block.isValid() ? block.layout() : nullptr;
+    if (!layout || layout->lineCount() == 0) {
+        return exact ? -1 : qMax(0, document()->characterCount() - 1);
+    }
 
-    int blockNumber = 0;
-    (void)blockNumber;  // Suppress unused variable warning
-    QTextBlock block = document()->begin();
-
-    while (block.isValid()) {
-        qreal y = blockY(block.blockNumber());
-        qreal height = blockHeight(block);
-
-        if (targetY >= y && targetY < y + height) {
-            // Found the block, now find position within it
-            QTextLayout* layout = block.layout();
-            if (layout) {
-                // Adjust point to block-local coordinates
-                QPointF localPoint(point.x(), targetY - y);
-
-                for (int i = 0; i < layout->lineCount(); ++i) {
-                    QTextLine line = layout->lineAt(i);
-                    if (localPoint.y() >= line.y() && localPoint.y() < line.y() + line.height()) {
-                        int pos = line.xToCursor(localPoint.x(),
-                            accuracy == Qt::ExactHit ? QTextLine::CursorOnCharacter : QTextLine::CursorBetweenCharacters);
-                        return block.position() + pos;
-                    }
-                }
-
-                // After last line - return end of block
-                if (accuracy == Qt::FuzzyHit) {
-                    return block.position() + block.length() - 1;
-                }
-            }
+    // Line covering the point (or the nearest line, for a fuzzy hit)
+    const qreal localY = y - blockY(number);
+    int lineIndex = layout->lineCount() - 1;
+    for (int i = 0; i < layout->lineCount(); ++i) {
+        const QTextLine line = layout->lineAt(i);
+        if (localY < line.y() + line.height()) {
+            lineIndex = i;
             break;
         }
-
-        block = block.next();
-        ++blockNumber;
     }
-
-    // Not found - return end of document for fuzzy hit
-    if (accuracy == Qt::FuzzyHit) {
-        return document()->characterCount() - 1;
-    }
-
-    return -1;
+    const QTextLine line = layout->lineAt(lineIndex);
+    const int pos = line.xToCursor(point.x(), exact ? QTextLine::CursorOnCharacter
+                                                    : QTextLine::CursorBetweenCharacters);
+    return block.position() + pos;
 }
 
 int KalahariTextDocumentLayout::pageCount() const {
@@ -329,12 +308,12 @@ int KalahariTextDocumentLayout::pageCount() const {
 
 QSizeF KalahariTextDocumentLayout::documentSize() const {
     updateBlockPositions();
-    return QSizeF(m_textWidth, m_cachedDocumentHeight);
+    return QSizeF(documentWidth(), m_cachedDocumentHeight);
 }
 
 QRectF KalahariTextDocumentLayout::frameBoundingRect(QTextFrame* frame) const {
     if (frame == document()->rootFrame()) {
-        return QRectF(0, 0, m_textWidth, documentSize().height());
+        return QRectF(QPointF(0, 0), documentSize());
     }
     return QRectF();
 }
@@ -342,10 +321,11 @@ QRectF KalahariTextDocumentLayout::frameBoundingRect(QTextFrame* frame) const {
 QRectF KalahariTextDocumentLayout::blockBoundingRect(const QTextBlock& block) const {
     if (!block.isValid()) return QRectF();
 
-    qreal y = blockY(block.blockNumber());
-    qreal height = blockHeight(block);
-
-    return QRectF(0, y, m_textWidth, height);
+    const int number = block.blockNumber();
+    const qreal height = static_cast<size_t>(number) < m_blockHeights.size()
+        ? m_blockHeights[static_cast<size_t>(number)]
+        : measuredHeight(block);
+    return QRectF(0, blockY(number), documentWidth(), height);
 }
 
 }  // namespace kalahari::editor

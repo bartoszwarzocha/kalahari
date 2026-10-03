@@ -245,129 +245,31 @@ bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 
 QString KmlSerializer::metadataToOpenTag(const QTextCharFormat& format) const
 {
-    QString tag;
-
-    // Check each metadata type and build appropriate tag
-    // Using KmlFormatRegistry::escapeXml for attribute value escaping
-
-    // Comment
-    QVariant commentVar = format.property(KmlPropComment);
-    if (commentVar.isValid()) {
-        QVariantMap meta = commentVar.toMap();
-        tag = QStringLiteral("<comment");
-
-        if (meta.contains(QStringLiteral("id"))) {
-            tag += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("id")].toString()) + QStringLiteral("\"");
+    // Every metadata property present opens its own tag - nested in definition order -
+    // with all of its attributes (KmlFormatRegistry escapes the values)
+    QString tags;
+    for (const auto& def : KmlFormatRegistry::metadataTagDefinitions()) {
+        const QVariant metadata = format.property(def.propertyId);
+        if (metadata.isValid()) {
+            tags += QLatin1Char('<') + def.tagName +
+                    KmlFormatRegistry::writeMetadataAttributes(def.tagName, metadata.toMap()) +
+                    QLatin1Char('>');
         }
-        if (meta.contains(QStringLiteral("author"))) {
-            tag += QStringLiteral(" author=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("author")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("created"))) {
-            tag += QStringLiteral(" created=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("created")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("resolved")) && meta[QStringLiteral("resolved")].toBool()) {
-            tag += QStringLiteral(" resolved=\"true\"");
-        }
-
-        tag += QStringLiteral(">");
-        return tag;
     }
-
-    // Todo
-    QVariant todoVar = format.property(KmlPropTodo);
-    if (todoVar.isValid()) {
-        QVariantMap meta = todoVar.toMap();
-        tag = QStringLiteral("<todo");
-
-        if (meta.contains(QStringLiteral("id"))) {
-            tag += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("id")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("completed")) && meta[QStringLiteral("completed")].toBool()) {
-            tag += QStringLiteral(" completed=\"true\"");
-        }
-        if (meta.contains(QStringLiteral("priority"))) {
-            tag += QStringLiteral(" priority=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("priority")].toString()) + QStringLiteral("\"");
-        }
-
-        tag += QStringLiteral(">");
-        return tag;
-    }
-
-    // Footnote
-    QVariant footnoteVar = format.property(KmlPropFootnote);
-    if (footnoteVar.isValid()) {
-        QVariantMap meta = footnoteVar.toMap();
-        tag = QStringLiteral("<footnote");
-
-        if (meta.contains(QStringLiteral("id"))) {
-            tag += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("id")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("number"))) {
-            tag += QStringLiteral(" number=\"") + QString::number(meta[QStringLiteral("number")].toInt()) + QStringLiteral("\"");
-        }
-
-        tag += QStringLiteral(">");
-        return tag;
-    }
-
-    // Character reference
-    QVariant charRefVar = format.property(KmlPropCharRef);
-    if (charRefVar.isValid()) {
-        QVariantMap meta = charRefVar.toMap();
-        tag = QStringLiteral("<charref");
-
-        if (meta.contains(QStringLiteral("id"))) {
-            tag += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("id")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("target"))) {
-            tag += QStringLiteral(" target=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("target")].toString()) + QStringLiteral("\"");
-        }
-
-        tag += QStringLiteral(">");
-        return tag;
-    }
-
-    // Location reference
-    QVariant locRefVar = format.property(KmlPropLocRef);
-    if (locRefVar.isValid()) {
-        QVariantMap meta = locRefVar.toMap();
-        tag = QStringLiteral("<locref");
-
-        if (meta.contains(QStringLiteral("id"))) {
-            tag += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("id")].toString()) + QStringLiteral("\"");
-        }
-        if (meta.contains(QStringLiteral("target"))) {
-            tag += QStringLiteral(" target=\"") + KmlFormatRegistry::escapeXml(meta[QStringLiteral("target")].toString()) + QStringLiteral("\"");
-        }
-
-        tag += QStringLiteral(">");
-        return tag;
-    }
-
-    return tag;
+    return tags;
 }
 
 QString KmlSerializer::metadataToCloseTag(const QTextCharFormat& format) const
 {
-    // Return appropriate closing tag based on which metadata is present
-
-    if (format.property(KmlPropComment).isValid()) {
-        return QStringLiteral("</comment>");
+    // Close the tags opened by metadataToOpenTag(), innermost first
+    QString tags;
+    const auto& defs = KmlFormatRegistry::metadataTagDefinitions();
+    for (auto it = defs.crbegin(); it != defs.crend(); ++it) {
+        if (format.property(it->propertyId).isValid()) {
+            tags += QStringLiteral("</") + it->tagName + QLatin1Char('>');
+        }
     }
-    if (format.property(KmlPropTodo).isValid()) {
-        return QStringLiteral("</todo>");
-    }
-    if (format.property(KmlPropFootnote).isValid()) {
-        return QStringLiteral("</footnote>");
-    }
-    if (format.property(KmlPropCharRef).isValid()) {
-        return QStringLiteral("</charref>");
-    }
-    if (format.property(KmlPropLocRef).isValid()) {
-        return QStringLiteral("</locref>");
-    }
-
-    return QString();
+    return tags;
 }
 
 // Note: escapeXml is now provided by KmlFormatRegistry::escapeXml()

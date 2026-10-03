@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/text_source_adapter.h>  // Phase 12.3: Text source adapters
 #include <kalahari/editor/render_context.h>       // Phase 12.3: RenderContext, RenderMargins
@@ -30,7 +31,6 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPropertyAnimation>
-#include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QTimer>
@@ -139,6 +139,55 @@ inline int getParagraphAtY(QTextDocument* doc, double y) {
     return count > 0 ? count - 1 : 0;
 }
 
+namespace {
+
+/// @brief Per-paragraph cache attached to each block of the edit buffer
+///
+/// Document statistics are sums of per-paragraph counts, so after an edit only the
+/// paragraphs it touched are counted again.
+class ParagraphCache : public QTextBlockUserData {
+public:
+    core::TextCounts counts;
+    bool countsValid = false;
+};
+
+/// @brief Word and character counts of the whole document, from the paragraph caches
+core::TextCounts countDocument(const QTextDocument* doc) {
+    core::TextCounts total;
+    for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+        auto* cache = static_cast<ParagraphCache*>(block.userData());
+        if (!cache) {
+            cache = new ParagraphCache;
+            block.setUserData(cache);  // the document takes ownership
+        }
+        if (!cache->countsValid) {
+            cache->counts = core::countText(block.text());
+            cache->countsValid = true;
+        }
+        total.words += cache->counts.words;
+        total.nonSpaceCharacters += cache->counts.nonSpaceCharacters;
+    }
+    return total;
+}
+
+/// @brief Drop the cached counts of the paragraphs a content change touched
+///
+/// Same range as KalahariTextDocumentLayout::documentChanged(): every block from the one
+/// holding @p from to the one holding the first character after the change.
+void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdded) {
+    const QTextBlock last = doc->findBlock(from + charsAdded);
+    for (QTextBlock block = doc->findBlock(from); block.isValid(); block = block.next()) {
+        if (auto* cache = static_cast<ParagraphCache*>(block.userData())) {
+            cache->countsValid = false;
+        }
+        if (block == last) {
+            break;
+        }
+    }
+}
+
+}  // anonymous namespace
+
 // =============================================================================
 // Construction / Destruction
 // =============================================================================
@@ -188,25 +237,37 @@ BookEditor::BookEditor(QWidget* parent)
         update();
     });
 
-    // Phase 11.10: Configure KmlDocumentModel initial color
-    // NOTE: Font and lineWidth are now set ONLY in syncPipelineState() after pipeline computes values
-    if (m_documentModel) {
-        m_documentModel->setTextColor(m_appearance.colors.text);
-
-        // Connect height changes to update scroll bar range
-        // When paragraphs are layouted, their actual heights may differ from estimates
-        connect(m_documentModel.get(), &KmlDocumentModel::totalHeightChanged,
-                this, [this]([[maybe_unused]] double newHeight) {
-            updateScrollBarRange();
-        });
-    }
-
     // Phase 11.6: m_textBuffer created on-demand in ensureEditMode()
     // m_textCursor initialized when m_textBuffer is created
 
     // Create ViewportManager (initially without document - set in fromKml())
     m_viewportManager = std::make_unique<ViewportManager>(this);
     // Note: setDocument() called in fromKml() after loading
+
+    // The scrollbar range follows the document height: edits, re-wrapping after a width
+    // change, font and zoom changes all end up here.
+    connect(m_viewportManager.get(), &ViewportManager::documentHeightChanged,
+            this, [this]([[maybe_unused]] double newHeight) {
+        updateScrollBarRange();
+    });
+
+    // Width and zoom changes re-lay out the whole document. While the user drags the
+    // window edge or turns the mouse wheel, they are applied once the input settles.
+    m_resizeTimer = new QTimer(this);
+    m_resizeTimer->setSingleShot(true);
+    m_resizeTimer->setInterval(RELAYOUT_DELAY_MS);
+    connect(m_resizeTimer, &QTimer::timeout, this, [this]() {
+        m_renderPipeline->setConfigViewportSize(QSizeF(size()));
+        update();
+    });
+
+    m_zoomTimer = new QTimer(this);
+    m_zoomTimer->setSingleShot(true);
+    m_zoomTimer->setInterval(RELAYOUT_DELAY_MS);
+    connect(m_zoomTimer, &QTimer::timeout, this, [this]() {
+        m_renderPipeline->setConfigZoom(m_pendingZoom, getZoomModeForViewMode());
+        update();
+    });
 
     // Phase 12.3: Create EditorRenderPipeline (unified rendering)
     m_renderPipeline = std::make_unique<EditorRenderPipeline>(this);
@@ -229,19 +290,12 @@ BookEditor::BookEditor(QWidget* parent)
     ctx.viewMode = m_viewMode;
     // Set initial DPI (will be updated in showEvent when screen is available)
     ctx.screenDpi = DEFAULT_DPI;
-    // Note: dpiScale is computed by pipeline.configure() in Phase 14
     m_renderPipeline->setContext(ctx);
 
     // Connect pipeline repaint signal
     connect(m_renderPipeline.get(), &EditorRenderPipeline::repaintRequested,
             this, [this](const QRegion& region) {
         update(region.boundingRect());
-    });
-
-    // Connect cursor blink changes
-    connect(m_renderPipeline.get(), &EditorRenderPipeline::cursorBlinkChanged,
-            this, [this]([[maybe_unused]] bool visible) {
-        update();  // Repaint on cursor blink
     });
 
     // Connect ViewportManager signals
@@ -408,12 +462,7 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
                 update();  // Full update needed for focus mode paragraph change
             } else {
                 // Just cursor moved within same paragraph or no focus mode
-                QRectF cursorRect = calculateCursorRect();
-                if (!cursorRect.isEmpty()) {
-                    update(cursorRect.toRect().adjusted(-2, -2, 2, 2));
-                } else {
-                    update();
-                }
+                updateCursorArea();
             }
         } else {
             update();
@@ -440,12 +489,8 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
 
     if (enabled) {
         // Start blinking
-        if (m_cursorBlinkTimer != nullptr) {
+        if (m_cursorBlinkTimer != nullptr && hasFocus()) {
             m_cursorBlinkTimer->start(m_cursorBlinkInterval);
-        }
-        // Sync to RenderPipeline (Phase 12 fix)
-        if (m_renderPipeline) {
-            m_renderPipeline->startCursorBlink();
         }
     } else {
         // Stop blinking and keep cursor visible
@@ -454,7 +499,10 @@ void BookEditor::setCursorBlinkingEnabled(bool enabled)
         }
         if (!m_cursorVisible) {
             m_cursorVisible = true;
-            update();
+            if (m_renderPipeline) {
+                m_renderPipeline->setCursorBlinkState(true);
+            }
+            updateCursorArea();
         }
     }
 }
@@ -484,25 +532,31 @@ void BookEditor::resetCursorBlink()
     // Used when cursor position is set to same location (click on same spot)
     m_cursorVisible = true;
 
-    if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
+    if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled && hasFocus()) {
         m_cursorBlinkTimer->start(m_cursorBlinkInterval);
     }
 
-    // Sync to RenderPipeline
+    // Sync to RenderPipeline (the cursor is drawn only while the editor has focus)
     if (m_renderPipeline) {
-        m_renderPipeline->setCursorVisible(true);
+        m_renderPipeline->setCursorVisible(hasFocus());
         m_renderPipeline->setCursorBlinkState(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderPipeline->startCursorBlink();
-        }
     }
 
-    // Request cursor area repaint
-    QRectF cursorRect = calculateCursorRect();
-    if (!cursorRect.isEmpty()) {
-        update(cursorRect.toRect().adjusted(-2, -2, 2, 2));
-    } else {
+    updateCursorArea();
+}
+
+void BookEditor::updateCursorArea()
+{
+    // The pipeline paints the cursor, so it also says where. Page Mode paints it at page
+    // coordinates, which cursorPaintRect() (scroll geometry) does not know - repaint all.
+    const QRectF cursorRect = (m_viewMode == ViewMode::Page || !m_renderPipeline)
+        ? QRectF()
+        : m_renderPipeline->cursorPaintRect();
+    if (cursorRect.isEmpty()) {
         update();
+    } else {
+        // Small margin for antialiasing
+        update(cursorRect.toAlignedRect().adjusted(-2, -2, 2, 2));
     }
 }
 
@@ -512,17 +566,14 @@ void BookEditor::ensureCursorVisible()
     m_cursorVisible = true;
 
     // Restart blink timer if blinking is enabled
-    if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled) {
+    if (m_cursorBlinkTimer != nullptr && m_cursorBlinkingEnabled && hasFocus()) {
         m_cursorBlinkTimer->start(m_cursorBlinkInterval);
     }
 
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
-        m_renderPipeline->setCursorVisible(true);  // Must set visible before blink state
+        m_renderPipeline->setCursorVisible(hasFocus());  // Drawn only while focused
         m_renderPipeline->setCursorBlinkState(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderPipeline->startCursorBlink();
-        }
     }
 
     // In Typewriter mode, update scroll to keep cursor at focus position
@@ -2015,6 +2066,9 @@ ZoomMode BookEditor::getZoomModeForViewMode() const {
 }
 
 double BookEditor::zoomFactor() const {
+    if (m_zoomTimer->isActive()) {
+        return m_pendingZoom;  // Ctrl+wheel zoom not applied yet
+    }
     if (m_renderPipeline) {
         return m_renderPipeline->zoomFactor();
     }
@@ -2023,6 +2077,7 @@ double BookEditor::zoomFactor() const {
 
 void BookEditor::setZoomFactor(double factor) {
     if (m_renderPipeline) {
+        m_zoomTimer->stop();
         ZoomMode mode = getZoomModeForViewMode();
         // Phase 15: granular setter handles zoom change
         m_renderPipeline->setConfigZoom(factor, mode);
@@ -2136,59 +2191,12 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
 
-    // Phase 15: push the new base font into the render pipeline FIRST, so it
-    // recomputes the DPI/zoom-SCALED effective font before we apply that font to
-    // the document below. (Colours/margins are order-independent — set further down.)
+    // The render pipeline owns the document font: it applies the zoom-scaled effective
+    // font as the document's default font (one relayout, only when it changes).
+    // Character formats carry only explicit styling - no font is baked into them here,
+    // or it would be saved with the chapter and stop following the settings and zoom.
     if (m_renderPipeline) {
         m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
-    }
-
-    // Phase 11: Set font on QTextDocument - both default and existing text
-    if (m_textBuffer) {
-        m_textBuffer->setDefaultFont(m_appearance.typography.textFont);
-
-        // Apply the pipeline's SCALED effective font to all existing paragraphs.
-        // We merge only the font FAMILY and POINT SIZE (not a whole QFont), so any
-        // per-run bold/italic/underline is preserved. Baking the raw *base* point
-        // size here (the old behaviour) defeated DPI scaling and shrank edit-mode
-        // text on every settings save — e.g. 17.8pt -> 12pt. The load path
-        // (buildDocument) bakes the scaled font into run formats, so this keeps
-        // existing blocks in sync with the pipeline's effective font.
-        const QFont effectiveFont = m_renderPipeline
-            ? m_renderPipeline->context().computed.effectiveFont
-            : m_appearance.typography.textFont;
-
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.beginEditBlock();
-        cursor.select(QTextCursor::Document);
-        QTextCharFormat fmt;
-        const QStringList families = effectiveFont.families();
-        if (!families.isEmpty()) {
-            fmt.setFontFamilies(families);
-        }
-        fmt.setFontPointSize(effectiveFont.pointSizeF());
-        cursor.mergeCharFormat(fmt);
-        cursor.endEditBlock();
-
-        // Force complete document relayout after font change
-        // Reset text width to force re-calculation of line breaks with new font
-        qreal currentWidth = m_textBuffer->textWidth();
-        m_textBuffer->setTextWidth(-1);  // Remove width constraint
-        m_textBuffer->setTextWidth(currentWidth);  // Restore width - forces relayout
-
-        // Mark content as dirty and update viewport
-        m_textBuffer->markContentsDirty(0, m_textBuffer->characterCount());
-        updateLayoutWidth();
-        updateViewport();
-
-        // NOTE: the custom layout's font is deliberately NOT set here. The render
-        // pipeline owns it: applyFontToSource() -> QTextDocumentSource::setFont() ->
-        // customLayout->setFont() applies the DPI/zoom-SCALED effective font.
-    }
-
-    // Phase 11.10: Update KmlDocumentModel color (font set via syncPipelineState)
-    if (m_documentModel) {
-        m_documentModel->setTextColor(m_appearance.colors.text);
     }
 
     // Apply cursor settings
@@ -2207,9 +2215,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
     emit appearanceChanged();
 
-    // Phase 15: granular setters for appearance changes.
-    // (setConfigFont is applied at the top of this function, before the document
-    //  font update, so the effective font is fresh when we bake it into blocks.)
+    // Phase 15: granular setters for appearance changes
     if (m_renderPipeline) {
         RenderColors colors;
         colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
@@ -2249,11 +2255,6 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         auto& logger = core::Logger::getInstance();
         logger.info("BookEditor::setEditorColorMode: {}",
                     mode == EditorColorMode::Light ? "Light" : "Dark");
-
-        // Update KmlDocumentModel colors for view mode
-        if (m_documentModel) {
-            m_documentModel->setTextColor(m_appearance.colors.textColor(mode));
-        }
 
         emit editorColorModeChanged(mode);
         emit appearanceChanged();
@@ -2309,14 +2310,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
 
     // Notify ViewportManager of size changes
-    if (m_viewportManager) {
-        m_viewportManager->setViewportSize(event->size());
-    }
-
-    // Update legacy components for compatibility
-    updateLayoutWidth();
     updateViewport();
-    updateScrollBarRange();
 
     // Position FindReplaceBar at top if visible
     if (m_findReplaceBar && m_findReplaceBar->isVisible()) {
@@ -2324,27 +2318,44 @@ void BookEditor::resizeEvent(QResizeEvent* event)
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
     }
 
-    // Phase 15: granular setter for viewport resize
+    // The pipeline owns the wrap width. In the scroll modes it follows the viewport
+    // width, so a width change re-lays out the whole document: while the window is being
+    // resized, only the height is applied now and the width once the size settles.
     if (m_renderPipeline) {
-        m_renderPipeline->setConfigViewportSize(QSizeF(width(), height()));
+        const double appliedWidth = m_renderPipeline->context().viewportSize.width();
+        const bool deferWidth = isVisible() && m_viewMode != ViewMode::Page &&
+                                appliedWidth > 0 && appliedWidth != width();
+        if (deferWidth) {
+            m_renderPipeline->setConfigViewportSize(QSizeF(appliedWidth, height()));
+            m_resizeTimer->start();
+        } else {
+            m_resizeTimer->stop();
+            m_renderPipeline->setConfigViewportSize(QSizeF(size()));
+        }
     }
+
+    updateScrollBarRange();
     update();
 }
 
 void BookEditor::focusInEvent(QFocusEvent* event)
 {
     QWidget::focusInEvent(event);
-    // Reset cursor blink to visible state when gaining focus
+    // Show the cursor and start blinking from the visible phase
     resetCursorBlink();
-    // Repaint to show cursor
-    update();
 }
 
 void BookEditor::focusOutEvent(QFocusEvent* event)
 {
     QWidget::focusOutEvent(event);
-    // Repaint to hide cursor
-    update();
+    // Hide the cursor; it does not blink without focus
+    if (m_cursorBlinkTimer != nullptr) {
+        m_cursorBlinkTimer->stop();
+    }
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorVisible(false);
+    }
+    updateCursorArea();
 }
 
 void BookEditor::wheelEvent(QWheelEvent* event)
@@ -2354,15 +2365,20 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         // Ctrl+scroll = zoom
         if (event->modifiers() & Qt::ControlModifier) {
             if (m_renderPipeline) {
-                qreal currentZoom = m_renderPipeline->zoomFactor();
                 qreal zoomDelta = angleDelta.y() > 0 ? 1.1 : (1.0 / 1.1);
-                qreal newZoom = currentZoom * zoomDelta;
-                newZoom = qBound(0.25, newZoom, 4.0);
+                qreal newZoom = qBound(0.25, zoomFactor() * zoomDelta, 4.0);
 
                 ZoomMode mode = getZoomModeForViewMode();
-                // Phase 15: granular setter handles zoom change
-                m_renderPipeline->setConfigZoom(newZoom, mode);
-                update();
+                if (mode == ZoomMode::FontScaling) {
+                    // Font scaling re-lays out the whole document: apply the zoom once
+                    // the wheel stops instead of once per notch.
+                    m_pendingZoom = newZoom;
+                    m_zoomTimer->start();
+                } else {
+                    // Page scaling only changes the painter scale - no relayout
+                    m_renderPipeline->setConfigZoom(newZoom, mode);
+                    update();
+                }
                 emit zoomChanged(newZoom);
             }
             event->accept();
@@ -2678,8 +2694,8 @@ QVariant BookEditor::inputMethodQuery(Qt::InputMethodQuery query) const
             return true;
 
         case Qt::ImCursorRectangle: {
-            // Return cursor rectangle for IME positioning
-            QRectF rect = calculateCursorRect();
+            // Cursor rectangle for IME positioning, from the pipeline that paints the cursor
+            const QRectF rect = m_renderPipeline ? m_renderPipeline->cursorRect() : QRectF();
             if (rect.isEmpty()) {
                 // Default position at top-left with some offset
                 return QRectF(10, 10, 2, 20);
@@ -2757,18 +2773,7 @@ void BookEditor::onCursorBlinkTimeout()
     }
 
     // Only repaint the cursor area instead of the entire widget
-    // This significantly reduces CPU usage during cursor blink
-    if (m_textBuffer && m_textBuffer->blockCount() > 0) {
-        QRectF cursorRect = calculateCursorRect();
-        if (!cursorRect.isEmpty()) {
-            // Add small margin around cursor for antialiasing artifacts
-            update(cursorRect.toRect().adjusted(-2, -2, 2, 2));
-            return;
-        }
-    }
-
-    // Fallback to full update if cursor rect unavailable
-    update();
+    updateCursorArea();
 }
 
 // =============================================================================
@@ -2788,45 +2793,13 @@ void BookEditor::setupComponents()
     // Setup cursor blink timer
     setupCursorBlinkTimer();
 
-    // Sync to RenderPipeline (Phase 12 fix)
+    // Sync to RenderPipeline (Phase 12 fix): the cursor shows once the editor has focus
     if (m_renderPipeline) {
+        m_renderPipeline->setCursorVisible(hasFocus());
         m_renderPipeline->setCursorBlinkState(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderPipeline->startCursorBlink();
-        }
     }
 
-    // Set a reasonable initial width
-    updateLayoutWidth();
     updateViewport();
-}
-
-void BookEditor::updateLayoutWidth()
-{
-    // Page Mode uses different text width - don't override it here
-    // (paintPageMode will set the correct width based on page dimensions)
-    if (m_viewMode == ViewMode::Page) {
-        return;
-    }
-
-    // Phase 12.6: Use configurable margins for scroll/continuous modes
-    double horizontalMargin = m_appearance.viewMargins.horizontal * 2;
-    qreal layoutWidth = qMax(100.0, static_cast<qreal>(width()) - horizontalMargin);
-    if (m_textBuffer) {
-        m_textBuffer->setTextWidth(layoutWidth);
-
-        // Also update KalahariTextDocumentLayout if using custom layout
-        auto* customLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
-        if (customLayout) {
-            customLayout->setTextWidth(layoutWidth);
-        }
-    }
-
-    // Update m_documentModel using pipeline computed values (SINGLE SOURCE OF TRUTH)
-    // This ensures lineWidth is consistent with what the pipeline uses for rendering
-    if (m_documentModel && m_renderPipeline && m_renderPipeline->context().computed.textWidth > 0) {
-        m_documentModel->setLineWidth(m_renderPipeline->context().computed.textWidth);
-    }
 }
 
 // Phase 13.5: invalidatePaginationCache() moved to EditorRenderPipeline::invalidatePagination()
@@ -2930,7 +2903,9 @@ void BookEditor::syncPipelineState()
     if (m_renderPipeline) {
         // Step 1: Set all config values on pipeline
         m_renderPipeline->setViewMode(m_viewMode);
-        m_renderPipeline->setScreenDpi(screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
+        // Logical DPI: the one Qt converts the font's points with (display scaling is
+        // applied on top through the device pixel ratio)
+        m_renderPipeline->setScreenDpi(screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
         m_renderPipeline->setViewportSize(QSizeF(width(), height()));
         m_renderPipeline->setZoom(m_appearance.pageLayout.zoomLevel, getZoomModeForViewMode());
         m_renderPipeline->setFont(m_appearance.typography.textFont);
@@ -2939,23 +2914,8 @@ void BookEditor::syncPipelineState()
         auto margins = calculateEffectiveMargins();
         m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
 
-        // Step 2: Pipeline computes all derived values
+        // Step 2: Pipeline computes all derived values and applies them to the text source
         m_renderPipeline->applyInitialConfig();
-
-        // Step 3: Sync computed values FROM pipeline TO document model (SINGLE SOURCE OF TRUTH)
-        // This ensures font and lineWidth are consistent with pipeline's computed values
-        const auto& ctx = m_renderPipeline->context();
-        if (m_documentModel) {
-            m_documentModel->setFont(ctx.computed.effectiveFont);
-            m_documentModel->setLineWidth(ctx.computed.textWidth);
-        }
-
-        // Step 4: Force layout of visible paragraphs BEFORE first render
-        // This ensures paragraphs have correct heights before painting
-        if (m_documentModel && m_viewportManager) {
-            auto [first, last] = m_viewportManager->visibleRange();
-            m_documentModel->ensureLayouted(first, last);
-        }
     }
 }
 
@@ -2968,7 +2928,8 @@ void BookEditor::syncPipelineCursor()
 
     // Update cursor position and selection
     m_renderPipeline->setCursorPosition(m_cursorPosition);
-    m_renderPipeline->setCursorVisible(m_cursorVisible && m_cursorBlinkingEnabled && hasFocus());
+    // Shown while focused; m_cursorVisible is the blink phase (always on without blinking)
+    m_renderPipeline->setCursorVisible(hasFocus());
     m_renderPipeline->setCursorBlinkState(m_cursorVisible);
 
     if (hasSelection()) {
@@ -3000,8 +2961,8 @@ RenderMargins BookEditor::calculateEffectiveMargins() const
 
     // Fallback: Calculate margins when pipeline not yet initialized
     // This is used during initial setup before first applyInitialConfig()
-    double dpi = (screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
-    double mmToPixels = dpi / 25.4;
+    double dpi = (screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
+    double mmToPixels = dpi / MM_PER_INCH;
 
     if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
         // Page Mode: convert mm to pixels with zoom scaling
@@ -3031,8 +2992,8 @@ std::pair<double, double> BookEditor::getScrollPadding() const
         // Use cached DPI from pipeline if available to avoid expensive OS query
         double dpi = (m_renderPipeline && m_renderPipeline->context().screenDpi > 0)
             ? m_renderPipeline->context().screenDpi
-            : (screen() ? screen()->physicalDotsPerInch() : DEFAULT_DPI);
-        double mmToPixels = dpi / 25.4;
+            : (screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
+        double mmToPixels = dpi / MM_PER_INCH;
         return {
             m_appearance.pageMargins.top * mmToPixels,
             m_appearance.pageMargins.bottom * mmToPixels
@@ -3128,100 +3089,6 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
     return {0, 0};
 }
 
-QRectF BookEditor::calculateCursorRect() const
-{
-    // Phase 11: Use QTextLayout for cursor positioning
-    if (!m_textBuffer) {
-        return QRectF();
-    }
-
-    int paraIndex = m_cursorPosition.paragraph;
-    if (paraIndex < 0 || paraIndex >= m_textBuffer->blockCount()) {
-        return QRectF();
-    }
-
-    QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
-    if (!block.isValid()) {
-        return QRectF();
-    }
-
-    QTextLayout* layout = block.layout();
-    if (!layout) {
-        return QRectF();
-    }
-
-    // Get cursor rect from QTextLayout
-    int offsetInBlock = qMin(m_cursorPosition.offset, block.length() - 1);
-    if (offsetInBlock < 0) offsetInBlock = 0;
-
-    QTextLine line = layout->lineForTextPosition(offsetInBlock);
-    QRectF layoutCursorRect;
-
-    if (line.isValid()) {
-        qreal x = line.cursorToX(offsetInBlock);
-        qreal cursorWidth = m_appearance.cursor.lineWidth;
-        qreal cursorHeight = line.height();
-
-        // Adjust dimensions based on cursor style
-        switch (m_appearance.cursor.style) {
-            case CursorStyle::Block:
-            case CursorStyle::Underline: {
-                // Block/Underline cursor covers the character at cursor position
-                // Use QFontMetrics for reliable character width measurement
-                QString text = block.text();
-                qreal charWidth = 0;
-
-                if (offsetInBlock < text.length()) {
-                    // Measure actual character at cursor position
-                    QFontMetricsF fm(m_appearance.typography.textFont);
-                    QChar ch = text.at(offsetInBlock);
-                    charWidth = fm.horizontalAdvance(ch);
-                }
-
-                // Fallback to average character width if measurement failed
-                if (charWidth <= 0) {
-                    QFontMetricsF fm(m_appearance.typography.textFont);
-                    charWidth = fm.averageCharWidth();
-                }
-
-                cursorWidth = qMax(charWidth, 8.0);  // Min width 8px
-
-                if (m_appearance.cursor.style == CursorStyle::Underline) {
-                    cursorHeight = 2.0;  // Thin underline
-                }
-                break;
-            }
-            case CursorStyle::Line:
-            default:
-                // Line cursor: thin vertical line
-                break;
-        }
-
-        // For underline, position at bottom of line
-        qreal yOffset = (m_appearance.cursor.style == CursorStyle::Underline)
-            ? line.height() - cursorHeight
-            : 0;
-
-        layoutCursorRect = QRectF(x, line.y() + yOffset, cursorWidth, cursorHeight);
-    } else {
-        // Fallback for empty paragraph
-        layoutCursorRect = QRectF(0, 0, m_appearance.cursor.lineWidth, 20.0);
-    }
-
-    // Convert to widget coordinates
-    // Use blockBoundingRect from document layout for correct Y position
-    // (layout->position() may not be set by custom layouts)
-    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
-    qreal paraY = blockRect.y();
-    qreal scrollY = m_viewportManager ? m_viewportManager->scrollPosition() : 0;
-    // Phase 12.6: Use computed margins (not input)
-    const auto& ctx = m_renderPipeline->context();
-    qreal widgetY = ctx.computed.marginTop + paraY - scrollY + layoutCursorRect.y();
-    qreal widgetX = ctx.computed.marginLeft + layoutCursorRect.x();
-
-    return QRectF(widgetX, widgetY, layoutCursorRect.width(), layoutCursorRect.height());
-}
-
 // Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline::renderCursor()
 
 void BookEditor::setupCursorBlinkTimer()
@@ -3231,10 +3098,7 @@ void BookEditor::setupCursorBlinkTimer()
     connect(m_cursorBlinkTimer, &QTimer::timeout,
             this, &BookEditor::onCursorBlinkTimeout);
 
-    // Start the timer if blinking is enabled
-    if (m_cursorBlinkingEnabled) {
-        m_cursorBlinkTimer->start(m_cursorBlinkInterval);
-    }
+    // The timer runs only while the editor has focus (see focusInEvent/focusOutEvent)
 }
 
 // =============================================================================
@@ -4112,25 +3976,6 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
 // Distraction-Free Mode (Phase 5.7)
 // =============================================================================
 
-int BookEditor::getWordCount() const
-{
-    int count = 0;
-    static const QRegularExpression wordSplitter(QStringLiteral("\\s+"));
-
-    // Phase 11: Use QTextDocument
-    if (m_textBuffer && m_textBuffer->blockCount() > 0) {
-        int paraCount = m_textBuffer->blockCount();
-        for (int i = 0; i < paraCount; ++i) {
-            QString text = paragraphText(m_textBuffer.get(), i);
-            if (!text.isEmpty()) {
-                count += text.split(wordSplitter, Qt::SkipEmptyParts).size();
-            }
-        }
-    }
-
-    return count;
-}
-
 void BookEditor::startUiFade()
 {
     if (m_uiFadeTimer == nullptr) {
@@ -4190,8 +4035,7 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
 
     // Draw word count at bottom center
     if (m_appearance.distractionFree.showWordCount) {
-        int wordCount = getWordCount();
-        QString countText = tr("%1 words").arg(wordCount);
+        QString countText = tr("%1 words").arg(wordCount());
 
         // Use UI font, slightly smaller
         QFont countFont = m_appearance.typography.uiFont;
@@ -4889,7 +4733,7 @@ void BookEditor::removeMarkerAtCursor()
     for (const auto& marker : allMarkers) {
         if (marker.position == absPos) {
             // Remove the first marker at cursor position (native undo records it).
-            removeMarkerFromDocument(m_textBuffer.get(), marker.position);
+            removeMarkerFromDocument(m_textBuffer.get(), marker.position, marker.length);
             update();
             return;
         }
@@ -5114,20 +4958,8 @@ size_t BookEditor::characterCount() const
 
 size_t BookEditor::wordCount() const
 {
-    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
     if (m_isEditMode && m_textBuffer) {
-        QString text = m_textBuffer->toPlainText();
-        int count = 0;
-        bool inWord = false;
-        for (const QChar& c : text) {
-            if (c.isSpace()) {
-                inWord = false;
-            } else if (!inWord) {
-                inWord = true;
-                ++count;
-            }
-        }
-        return static_cast<size_t>(count);
+        return static_cast<size_t>(countDocument(m_textBuffer.get()).words);
     }
     // Fallback for view mode: use cached count from KmlDocumentModel
     if (m_documentModel) {
@@ -5138,16 +4970,8 @@ size_t BookEditor::wordCount() const
 
 size_t BookEditor::characterCountNoSpaces() const
 {
-    // Phase 11.10: Use m_textBuffer when in edit mode, m_documentModel otherwise
     if (m_isEditMode && m_textBuffer) {
-        QString text = m_textBuffer->toPlainText();
-        int count = 0;
-        for (const QChar& c : text) {
-            if (!c.isSpace()) {
-                ++count;
-            }
-        }
-        return static_cast<size_t>(count);
+        return static_cast<size_t>(countDocument(m_textBuffer.get()).nonSpaceCharacters);
     }
     // Fallback for view mode: use cached count from KmlDocumentModel
     if (m_documentModel) {
@@ -5213,9 +5037,6 @@ void BookEditor::fromKml(const QString& kml)
 
     logElapsed("KmlDocumentModel loaded");
 
-    // Phase 11.10: Set text color (font and lineWidth set by syncPipelineState after pipeline computes)
-    m_documentModel->setTextColor(m_appearance.colors.text);
-
     // Phase 11.10: Reset scroll position for view mode
     m_viewModeScrollOffset = 0.0;
 
@@ -5247,23 +5068,16 @@ void BookEditor::fromKml(const QString& kml)
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
-        if (m_cursorBlinkingEnabled) {
-            m_renderPipeline->startCursorBlink();
-        }
     }
 
     logElapsed("Before update/signals");
 
     // Phase 11.10 FIX: Always enter edit mode immediately for consistent rendering
     // This eliminates the dual view/edit mode system - document is always editable
+    // ensureEditMode() builds the document with undo disabled, so the load itself is
+    // not undoable (undo starts fresh from the user's first edit).
     ensureEditMode();
     logElapsed("Edit mode initialized");
-
-    // The document was just rebuilt above — discard the native undo history so the
-    // load itself is not undoable (undo starts fresh from the user's first edit).
-    if (m_textBuffer) {
-        m_textBuffer->clearUndoRedoStacks();
-    }
 
     // Update scrollbar range for new document
     updateScrollBarRange();
@@ -5289,25 +5103,37 @@ void BookEditor::ensureEditMode()
     auto startTime = std::chrono::high_resolution_clock::now();
     logger.info("BookEditor::ensureEditMode - converting to edit mode");
 
-    // Create QTextDocument from KmlDocumentModel for editing
+    // Create QTextDocument from KmlDocumentModel for editing. Undo stays off while the
+    // document is built: the load itself must not be undoable, and recording an undo
+    // command for every insertion is a large part of the build cost.
     m_textBuffer = std::make_unique<QTextDocument>();
+    m_textBuffer->setUndoRedoEnabled(false);
+    m_textBuffer->setDocumentMargin(0);  // Remove default document margins
 
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
-    auto* customLayout = new KalahariTextDocumentLayout(m_textBuffer.get());
-    customLayout->setFont(m_appearance.typography.textFont);
-    // Phase 12.6: Use configurable margins
-    double textWidth = static_cast<double>(width()) - m_appearance.viewMargins.horizontal * 2;
-    customLayout->setTextWidth(textWidth);
-    m_textBuffer->setDocumentLayout(customLayout);
+    m_textBuffer->setDocumentLayout(new KalahariTextDocumentLayout(m_textBuffer.get()));
 
-    // Apply font from appearance settings
-    m_textBuffer->setDefaultFont(m_appearance.typography.textFont);
+    m_isEditMode = true;
 
-    // Remove default document margins
-    m_textBuffer->setDocumentMargin(0);
+    // The render pipeline applies the (zoom-scaled) font and the wrap width while
+    // the document is still empty, so the content below is laid out exactly once.
+    syncPipelineState();
 
-    // Build QTextDocument from KmlDocumentModel
+    // Invalidate the Page Mode pagination cache on every content change (Phase 13.5:
+    // moved to pipeline). Connected before the build, which reports one change.
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged,
+            this, [this]() { m_renderPipeline->invalidatePagination(); });
+
+    // Paragraphs touched by an edit are counted again on the next statistics query
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange,
+            this, [doc = m_textBuffer.get()](int from, int, int charsAdded) {
+                invalidateParagraphCounts(doc, from, charsAdded);
+            });
+
+    // Build QTextDocument from KmlDocumentModel in a single edit block: Qt then reports
+    // one change and the layout runs once, at endEditBlock().
     QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
 
     // Create block format with zero margins to avoid gaps between paragraphs
     QTextBlockFormat zeroMarginFormat;
@@ -5350,22 +5176,18 @@ void BookEditor::ensureEditMode()
         cursor.movePosition(QTextCursor::End);
     }
 
+    cursor.endEditBlock();
+    m_textBuffer->setUndoRedoEnabled(true);
+
+    // The model only carried the parse result - the QTextDocument now holds the content.
+    if (m_documentModel) {
+        m_documentModel->clear();
+    }
+
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
-    m_isEditMode = true;
-
-    // Ensure text width is properly set for word wrapping
-    updateLayoutWidth();
-
-    // CRITICAL: Force layout of all blocks BEFORE connecting ViewportManager
-    // ViewportManager::setDocument() triggers updateVisibleRange() which reads block heights.
-    // If blocks don't have layouts yet, heights are 0 and scrollbar appears "at the end".
-    if (customLayout) {
-        customLayout->layoutAllBlocks();
-    }
-
-    // Connect ViewportManager to QTextDocument AFTER blocks have valid layouts
+    // Connect ViewportManager to QTextDocument (all blocks are laid out by now)
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
         auto [topPadding, bottomPadding] = getScrollPadding();
@@ -5378,21 +5200,12 @@ void BookEditor::ensureEditMode()
         m_searchEngine->setDocument(m_textBuffer.get());
     }
 
-    // Connect to contentsChanged to invalidate Page Mode pagination cache (Phase 13.5: moved to pipeline)
-    connect(m_textBuffer.get(), &QTextDocument::contentsChanged,
-            this, [this]() { m_renderPipeline->invalidatePagination(); });
-
     updateViewport();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);
     logger.info("BookEditor::ensureEditMode - completed in {}ms ({} paragraphs)",
         elapsed.count(), paraCount);
-
-    // Phase 11 FIX: Sync render pipeline state BEFORE repaint
-    // This ensures the pipeline has the correct text source (QTextDocument)
-    // Without this, the pipeline has no text source and renders nothing
-    syncPipelineState();
 
     // Trigger repaint to use RenderPipeline
     update();

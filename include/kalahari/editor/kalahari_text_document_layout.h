@@ -18,9 +18,10 @@ namespace kalahari::editor {
 ///
 /// Key features:
 /// - Lines positioned at y=0 within each block (no leading gaps)
-/// - Proper text wrapping support via setTextWidth()
+/// - Wrap width and default font are owned by the QTextDocument (textWidth(),
+///   defaultFont()); changing either there re-lays out the document exactly once
+/// - Incremental updates: an edit re-lays out only the blocks it touched
 /// - Full QTextCursor and undo/redo compatibility
-/// - Efficient incremental layout updates
 class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout {
     Q_OBJECT
 
@@ -32,7 +33,7 @@ public:
     // QAbstractTextDocumentLayout required overrides
     // ==========================================================================
 
-    /// @brief Draw the document
+    /// @brief Draw the blocks intersecting the paint context's clip rect
     void draw(QPainter* painter, const PaintContext& context) override;
 
     /// @brief Hit test - convert point to document position
@@ -54,43 +55,66 @@ public:
     // Configuration
     // ==========================================================================
 
-    /// @brief Set the text width for wrapping
+    /// @brief Set the wrap width - forwards to QTextDocument::setTextWidth()
+    ///
+    /// The document's text width is the single source of truth, so setting it on the
+    /// document directly has the same effect. A width <= 0 disables wrapping.
+    /// Does nothing when the width is unchanged.
     void setTextWidth(qreal width);
-    qreal textWidth() const { return m_textWidth; }
+    qreal textWidth() const;
 
-    /// @brief Set the font for layout
+    /// @brief Set the default font - forwards to QTextDocument::setDefaultFont()
+    ///
+    /// Does nothing when the font is unchanged.
     void setFont(const QFont& font);
-    QFont font() const { return m_font; }
+    QFont font() const;
 
     /// @brief Force layout of all blocks
-    /// Call this after bulk content insertion to ensure all blocks have valid heights
     void layoutAllBlocks();
+
+signals:
+    /// @brief Emitted after blocks have been laid out
+    /// @param firstBlock Number of the first block laid out
+    /// @param blockCount Number of consecutive blocks laid out
+    void blocksLaidOut(int firstBlock, int blockCount);
 
 protected:
     /// @brief Called by Qt when document content changes
     void documentChanged(int from, int charsRemoved, int charsAdded) override;
 
 private:
-    /// @brief Prepare layout for a single block with lines at y=0
-    void layoutBlock(QTextBlock& block);
+    /// @brief Lay out blocks [first, last] (by number) and update the height cache
+    /// @param oldLast Number of the last block of the changed range before the change
+    void relayoutRange(int first, int last, int oldLast);
 
-    /// @brief Recalculate all block positions
+    /// @brief Break a single block into lines, starting at y=0
+    void layoutBlock(const QTextBlock& block) const;
+
+    /// @brief Height of a laid out block, measured from its QTextLayout
+    qreal measuredHeight(const QTextBlock& block) const;
+
+    /// @brief Recalculate cumulative block positions from the height cache
     void updateBlockPositions() const;
 
     /// @brief Get Y position of a block
     qreal blockY(int blockNumber) const;
 
-    /// @brief Get height of a block
-    qreal blockHeight(const QTextBlock& block) const;
+    /// @brief Number of the block covering @p y (clamped to the first/last block)
+    int blockNumberAtY(qreal y) const;
 
-    // Layout state
-    qreal m_textWidth = 0;
-    QFont m_font;
+    /// @brief Width reported for the document and its blocks
+    qreal documentWidth() const;
 
-    // Cached block Y positions (cumulative)
+    // Height of every block, indexed by block number; kept in step with the document
+    std::vector<qreal> m_blockHeights;
+
+    // Cached block Y positions (cumulative heights)
     mutable std::vector<qreal> m_blockYPositions;
     mutable bool m_positionsDirty = true;
     mutable qreal m_cachedDocumentHeight = 0;
+
+    // Last size announced through documentSizeChanged()
+    QSizeF m_lastReportedSize;
 };
 
 }  // namespace kalahari::editor

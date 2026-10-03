@@ -1,5 +1,5 @@
 /// @file test_editor_stage0_benchmark.cpp
-/// @brief Stage 0 editor benchmark on a ~150k-word document
+/// @brief Editor benchmark on a ~150k-word document (written in Stage 0, kept up to date)
 ///
 /// Hidden from the normal suite (tag [.]). Run explicitly:
 ///   build-windows\bin\kalahari-tests.exe "[benchmark][stage0]"
@@ -12,13 +12,15 @@
 ///
 /// Every timing goes through the real BookEditor entry points. Painting is measured with
 /// QWidget::render() into a QPixmap, which calls BookEditor::paintEvent() without showing
-/// a window.
+/// a window. A full relayout is one KalahariTextDocumentLayout::blocksLaidOut() covering
+/// every block of the document.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/viewport_manager.h>
+#include "../editor/editor_test_utils.h"
 #include "test_document_generator.h"
 
 #include <QCoreApplication>
@@ -27,17 +29,16 @@
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QPixmap>
-#include <QResizeEvent>
 #include <QScreen>
-#include <QTextBlock>
-#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextStream>
+#include <QWheelEvent>
 
 #include <functional>
 #include <vector>
 
 using namespace kalahari::editor;
+using namespace kalahari::test;
 using kalahari::benchmarks::TestDocumentGenerator;
 
 namespace {
@@ -63,13 +64,6 @@ QString generateKml(int words) {
     return generator.generateKml();
 }
 
-void resizeWidget(QWidget& widget, const QSize& newSize) {
-    const QSize oldSize = widget.size();
-    widget.resize(newSize);
-    QResizeEvent event(newSize, oldSize);
-    QCoreApplication::sendEvent(&widget, &event);
-}
-
 void paint(QWidget& widget) {
     QPixmap target(widget.size());
     widget.render(&target);
@@ -78,48 +72,6 @@ void paint(QWidget& widget) {
 void typeChar(QWidget& widget, QChar c) {
     QKeyEvent press(QEvent::KeyPress, Qt::Key_A, Qt::NoModifier, QString(c));
     QCoreApplication::sendEvent(&widget, &press);
-}
-
-/// Build a QTextDocument from a KmlDocumentModel exactly like BookEditor::ensureEditMode()
-/// does (same calls, same order), optionally wrapped in one edit block. Test-only replica
-/// used to check whether the missing beginEditBlock() is what makes loading slow.
-double buildDocumentLikeEnsureEditMode(const KmlDocumentModel& model, bool editBlock, qreal width) {
-    QTextDocument doc;
-    auto* layout = new KalahariTextDocumentLayout(&doc);
-    layout->setTextWidth(width);
-    doc.setDocumentLayout(layout);
-    doc.setDocumentMargin(0);
-
-    return timeMs([&] {
-        QTextCursor cursor(&doc);
-        if (editBlock) cursor.beginEditBlock();
-
-        QTextBlockFormat zeroMargin;
-        zeroMargin.setTopMargin(0);
-        zeroMargin.setBottomMargin(0);
-
-        const size_t count = model.paragraphCount();
-        for (size_t i = 0; i < count; ++i) {
-            QTextBlockFormat blockFormat = zeroMargin;
-            blockFormat.setAlignment(model.paragraphAlignment(i));
-            if (i > 0) {
-                cursor.insertBlock(blockFormat);
-            } else {
-                cursor.setBlockFormat(blockFormat);
-            }
-            const int blockStart = cursor.position();
-            cursor.insertText(model.paragraphText(i), QTextCharFormat());
-            for (const auto& run : model.paragraphFormats(i)) {
-                cursor.setPosition(blockStart + static_cast<int>(run.start));
-                cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
-                cursor.mergeCharFormat(run.format);
-            }
-            cursor.movePosition(QTextCursor::End);
-        }
-
-        if (editBlock) cursor.endEditBlock();
-        layout->layoutAllBlocks();
-    });
 }
 
 void report(const std::vector<BenchRow>& rows, const QStringList& header) {
@@ -183,21 +135,7 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     }
 
     // -------------------------------------------------------------------------
-    // 2. Is the missing beginEditBlock() the cost? (test-only replica, 50k words)
-    // -------------------------------------------------------------------------
-    {
-        KmlDocumentModel model;
-        model.loadKml(generateKml(50000));
-        const double without = buildDocumentLikeEnsureEditMode(model, false, 900);
-        const double with = buildDocumentLikeEnsureEditMode(model, true, 900);
-        rows.push_back({QStringLiteral("Budowa QTextDocument jak ensureEditMode – 50k, bez edit block"),
-                        without, QStringLiteral("replika testowa, kod produkcyjny bez zmian")});
-        rows.push_back({QStringLiteral("Budowa QTextDocument jak ensureEditMode – 50k, z beginEditBlock"),
-                        with, QStringLiteral("replika testowa")});
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. Operations on the full 150k document
+    // 2. Operations on the full 150k document
     // -------------------------------------------------------------------------
     const QString kml = generateKml(150000);
     BookEditor editor;
@@ -212,32 +150,50 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     rows.push_back({QStringLiteral("paintEvent – Continuous (średnio z 10)"),
                     timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
 
-    // Resize (width change) + count full relayouts
+    // Resize (width change) + count full relayouts. The widget is hidden, so the width is
+    // applied at once (a visible editor waits for the resize to settle).
     {
-        int relayouts = 0;
-        auto conn = QObject::connect(editor.textDocument()->documentLayout(),
-                                     &QAbstractTextDocumentLayout::documentSizeChanged,
-                                     [&relayouts](const QSizeF&) { ++relayouts; });
+        FullRelayoutCounter relayouts(editor);
         const double ms = timeMs([&] { resizeWidget(editor, QSize(1200, 800)); });
-        QObject::disconnect(conn);
         rows.push_back({QStringLiteral("Zmiana szerokości 1000→1200 px"), ms,
-                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts)});
+                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts.count())});
         rows.push_back({QStringLiteral("paintEvent po zmianie szerokości"),
-                        timeMs([&] { paint(editor); }), QString()});
+                        timeMs([&] { paint(editor); }),
+                        QStringLiteral("pełnych przełożeń łącznie: %1").arg(relayouts.count())});
     }
 
     // Zoom in Continuous mode
     {
-        int relayouts = 0;
-        auto conn = QObject::connect(editor.textDocument()->documentLayout(),
-                                     &QAbstractTextDocumentLayout::documentSizeChanged,
-                                     [&relayouts](const QSizeF&) { ++relayouts; });
+        FullRelayoutCounter relayouts(editor);
         const double ms = timeMs([&] { editor.setZoomFactor(1.25); });
-        QObject::disconnect(conn);
         rows.push_back({QStringLiteral("Zmiana powiększenia 100→125% (Continuous)"), ms,
-                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts)});
+                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts.count())});
         rows.push_back({QStringLiteral("paintEvent po zmianie powiększenia"),
                         timeMs([&] { paint(editor); }), QString()});
+        editor.setZoomFactor(1.0);
+        paint(editor);
+    }
+
+    // Ctrl+wheel zoom: five notches in a row, applied once the wheel stops
+    {
+        FullRelayoutCounter relayouts(editor);
+        const double wheelMs = timeMs([&] {
+            for (int notch = 0; notch < 5; ++notch) {
+                QWheelEvent wheel(QPointF(100, 100), QPointF(100, 100), QPoint(), QPoint(0, 120),
+                                  Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+                QCoreApplication::sendEvent(&editor, &wheel);
+            }
+        });
+        const int duringWheel = relayouts.count();
+        QElapsedTimer settle;
+        settle.start();
+        while (relayouts.count() == duringWheel && settle.elapsed() < 2000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+        }
+        rows.push_back({QStringLiteral("Ctrl+kółko – 5 ząbków (Continuous)"), wheelMs,
+                        QStringLiteral("pełnych przełożeń w trakcie: %1, po ustaniu: %2")
+                            .arg(duringWheel)
+                            .arg(relayouts.count() - duringWheel)});
         editor.setZoomFactor(1.0);
         paint(editor);
     }
@@ -322,6 +278,22 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
                     timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0,
                     QStringLiteral("porównaj z Continuous")});
     editor.setViewMode(ViewMode::Continuous);
+
+    // Search highlights: a very common letter gives many thousands of matches
+    {
+        editor.showFind();  // creates the search engine, as Ctrl+F does
+        SearchEngine* search = editor.searchEngine();
+        search->setSearchText(QStringLiteral("a"));
+        int matchCount = 0;
+        const double searchMs = timeMs([&] { matchCount = search->totalMatchCount(); });
+        rows.push_back({QStringLiteral("Wyszukanie „a” (lista wszystkich trafień)"), searchMs,
+                        QStringLiteral("%1 trafień").arg(matchCount)});
+        paint(editor);
+        rows.push_back({QStringLiteral("paintEvent z wyróżnieniem wyników wyszukiwania"),
+                        timeMs([&] { paint(editor); }), QString()});
+        editor.hideFindReplace();
+        paint(editor);
+    }
 
     // Select All + copy
     rows.push_back({QStringLiteral("Select All"), timeMs([&] { editor.selectAll(); }), QString()});

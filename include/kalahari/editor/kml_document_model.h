@@ -227,11 +227,11 @@ private:
         Qt::Alignment alignment = Qt::AlignLeft; ///< Paragraph alignment
     };
 
-    /// @brief Parse single paragraph from KML
-    /// @param paraKml KML markup for single paragraph
+    /// @brief Parse a paragraph element
+    /// @param reader XML reader positioned at the paragraph's start element; on return it
+    ///               is positioned after the matching end element
     /// @param para Output paragraph structure
-    /// @return true if parsing succeeded
-    bool parseParagraph(const QString& paraKml, Paragraph& para);
+    void parseParagraphElement(QXmlStreamReader& reader, Paragraph& para);
 
     /// @brief Parse inline content recursively
     /// @param reader XML reader positioned at content

@@ -7,20 +7,19 @@
 /// to pin down what survives the path the application actually uses when a chapter is
 /// opened and saved.
 ///
-/// Tests that expose an existing defect are tagged [known-bug] and [!mayfail]: they are
-/// documented, not fixed, in Stage 0. When a later stage fixes the defect, drop the two
-/// tags so the test becomes a regular regression guard.
+/// A test that exposes a defect not fixed yet is tagged [known-bug] and [!mayfail]. Once
+/// the defect is fixed the tags go and a "Regression" comment says what used to go wrong.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include "editor_test_utils.h"
 #include <QTextBlock>
 #include <QTextDocument>
-#include <QTextFragment>
-#include <QVariantMap>
 
 using namespace kalahari::editor;
+using namespace kalahari::test;
 
 namespace {
 
@@ -29,23 +28,6 @@ QString roundTrip(const QString& kml) {
     BookEditor editor;
     editor.fromKml(kml);
     return editor.toKml();
-}
-
-/// Char format of the first fragment of @p block whose text contains @p needle.
-/// Returns an invalid (default) format when no fragment matches.
-QTextCharFormat formatOfFragmentContaining(const QTextBlock& block, const QString& needle) {
-    for (auto it = block.begin(); !it.atEnd(); ++it) {
-        const QTextFragment fragment = it.fragment();
-        if (fragment.isValid() && fragment.text().contains(needle)) {
-            return fragment.charFormat();
-        }
-    }
-    return QTextCharFormat();
-}
-
-/// Metadata map stored under a KML metadata property, whatever its storage type.
-QVariantMap metadataOf(const QTextCharFormat& format, int property) {
-    return format.property(property).toMap();
 }
 
 }  // anonymous namespace
@@ -187,12 +169,10 @@ TEST_CASE("Stage0 KML: comment anchor and id survive load and save", "[editor][s
     CHECK(saved.contains(QStringLiteral("<comment id=\"c1\">anchored</comment>")));
 }
 
-TEST_CASE("Stage0 KML: comment author/created/resolved survive load",
-          "[editor][stage0][kml][known-bug][!mayfail]") {
-    // KNOWN BUG: KmlDocumentModel::parseInlineContent() copies only the "id" attribute of
-    // metadata tags. author/created/resolved (and todo completed/priority, footnote number)
-    // are dropped on every load, so the next save writes them out empty. KmlParser keeps
-    // them, but BookEditor::fromKml() does not use KmlParser.
+TEST_CASE("Stage0 KML: comment author/created/resolved survive load", "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1): loading used to keep only the "id" attribute of
+    // metadata tags, so author/created/resolved (and todo completed/priority, footnote
+    // number) were lost on the next save.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
         "<kml><p><comment id=\"c1\" author=\"Ann\" created=\"2026-01-02T03:04:05\" "
@@ -214,9 +194,8 @@ TEST_CASE("Stage0 KML: todo anchor and id survive load and save", "[editor][stag
     CHECK(editor.toKml().contains(QStringLiteral("<todo id=\"t1\">this</todo>")));
 }
 
-TEST_CASE("Stage0 KML: todo completed/priority survive load",
-          "[editor][stage0][kml][known-bug][!mayfail]") {
-    // KNOWN BUG: same root cause as the comment-attribute test above.
+TEST_CASE("Stage0 KML: todo completed/priority survive load", "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1): same cause as the comment-attribute test above.
     const QString saved = roundTrip(QStringLiteral(
         "<kml><p><todo id=\"t1\" completed=\"true\" priority=\"high\">x</todo></p></kml>"));
     CHECK(saved.contains(QStringLiteral("completed=\"true\"")));
@@ -233,21 +212,18 @@ TEST_CASE("Stage0 KML: footnote anchor and id survive load and save", "[editor][
     CHECK(editor.toKml().contains(QStringLiteral("<footnote id=\"f1\">1</footnote>")));
 }
 
-TEST_CASE("Stage0 KML: footnote number survives load",
-          "[editor][stage0][kml][known-bug][!mayfail]") {
-    // KNOWN BUG: same root cause as the comment-attribute test above.
+TEST_CASE("Stage0 KML: footnote number survives load", "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1): same cause as the comment-attribute test above.
     const QString saved = roundTrip(QStringLiteral(
         "<kml><p>Text<footnote id=\"f1\" number=\"7\">7</footnote>.</p></kml>"));
     CHECK(saved.contains(QStringLiteral("number=\"7\"")));
 }
 
 TEST_CASE("Stage0 KML: TODO marker added in the editor survives save and reload",
-          "[editor][stage0][kml][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): addTodoAtCursor() stores the marker as a JSON *string* under
-    // KmlPropTodo (TextMarker::toJson), while KmlSerializer::metadataToOpenTag() reads the
-    // property with toMap(). A string does not convert to a map, so the marker is written
-    // as a bare <todo> and its text/id are lost; after reload findAllMarkers() (which expects
-    // the JSON string) cannot see it either.
+          "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1): markers used to be stored as a JSON string under
+    // KmlPropTodo, while the serializer and the parser use an attribute map, so a marker
+    // was saved as a bare <todo> and was invisible to findAllMarkers() after reload.
     BookEditor editor;
     editor.fromKml(QStringLiteral("<kml><p>Some text here</p></kml>"));
     editor.setCursorPosition({0, 5});
@@ -309,11 +285,10 @@ TEST_CASE("Stage0 KML: special characters typed in the editor survive save", "[e
 }
 
 TEST_CASE("Stage0 KML: special characters in attribute values survive load",
-          "[editor][stage0][kml][known-bug][!mayfail]") {
-    // KNOWN BUG (suspected): KmlDocumentModel::loadKml() re-serialises each <p> into a string
-    // and rebuilds attributes as name="value" from the *decoded* value without escaping it.
-    // A value containing & < or " therefore produces malformed XML for parseParagraph(),
-    // which loses the rest of the paragraph (text after the tag, or the whole paragraph).
+          "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1): loading used to re-serialise each <p> into a string,
+    // rebuilding attributes from decoded values without escaping them, so a value with
+    // & < or " produced malformed XML and the rest of the paragraph was lost.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
         "<kml><p>One <comment id=\"a&amp;b &quot;q&quot; &lt;x&gt;\">anchored</comment> two</p>"

@@ -197,6 +197,14 @@ TEST_CASE("ChapterDocument statistics calculation", "[core][chapter_document]") 
         CHECK(doc.characterCount() == 0);
         CHECK(doc.paragraphCount() == 0);
     }
+
+    SECTION("Statistics use the shared word definition") {
+        doc.setKml(QStringLiteral(
+            "<kml><p>\u2013 Tak \u2013 rzek\u0142.</p><p></p><p>Tom &amp; Jerry</p></kml>"));
+
+        CHECK(doc.wordCount() == 4);         // dashes and "&" are not words
+        CHECK(doc.paragraphCount() == 2);    // the empty paragraph does not count
+    }
 }
 
 // =============================================================================
@@ -614,6 +622,16 @@ TEST_CASE("ChapterDocument migration helpers", "[core][chapter_document]") {
         QString plain = ChapterDocument::kmlToPlainText("");
 
         CHECK(plain.isEmpty());
+    }
+
+    SECTION("kmlToPlainText gives the editor's text: one paragraph per line") {
+        // Inline tags must not split words, entities are decoded and the whitespace
+        // between paragraph tags is not text
+        const QString plain = ChapterDocument::kmlToPlainText(
+            "<kml>\n  <p>Nie<italic>zwykle</italic> &amp; <bold>tak</bold></p>\n"
+            "  <p></p>\n  <p>Koniec</p>\n</kml>");
+
+        CHECK(plain == "Niezwykle & tak\n\nKoniec");
     }
 }
 

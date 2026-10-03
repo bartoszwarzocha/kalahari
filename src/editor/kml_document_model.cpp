@@ -7,6 +7,7 @@
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/text_statistics.h"
 
 #include <QXmlStreamReader>
 #include <QFontMetricsF>
@@ -107,59 +108,10 @@ bool KmlDocumentModel::loadKml(const QString& kml)
             QString tag = reader.name().toString();
 
             if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
-                // Read entire paragraph element as string
-                QString paraKml;
-                int depth = 1;
-                QString startTagWithAttrs;
-
-                // Capture start tag with attributes
-                QXmlStreamAttributes attrs = reader.attributes();
-                startTagWithAttrs = QStringLiteral("<") + tag;
-                for (const auto& attr : attrs) {
-                    startTagWithAttrs += QStringLiteral(" ") +
-                                        attr.name().toString() +
-                                        QStringLiteral("=\"") +
-                                        attr.value().toString() +
-                                        QStringLiteral("\"");
-                }
-                startTagWithAttrs += QStringLiteral(">");
-
-                // Read until closing tag
-                reader.readNext();
-                while (!reader.atEnd() && depth > 0) {
-                    if (reader.isStartElement()) {
-                        QString elemTag = reader.name().toString();
-                        QXmlStreamAttributes elemAttrs = reader.attributes();
-                        paraKml += QStringLiteral("<") + elemTag;
-                        for (const auto& attr : elemAttrs) {
-                            paraKml += QStringLiteral(" ") +
-                                      attr.name().toString() +
-                                      QStringLiteral("=\"") +
-                                      attr.value().toString() +
-                                      QStringLiteral("\"");
-                        }
-                        paraKml += QStringLiteral(">");
-                        depth++;
-                    } else if (reader.isEndElement()) {
-                        QString elemTag = reader.name().toString();
-                        depth--;
-                        if (depth > 0) {
-                            paraKml += QStringLiteral("</") + elemTag + QStringLiteral(">");
-                        }
-                    } else if (reader.isCharacters()) {
-                        QString text = reader.text().toString();
-                        // Escape XML special characters
-                        paraKml += KmlFormatRegistry::escapeXml(text);
-                    }
-                    reader.readNext();
-                }
-
-                // Parse paragraph into structure
+                // Parse the paragraph straight from the document reader (consumes </p>)
                 Paragraph para;
-                QString fullParaKml = startTagWithAttrs + paraKml + QStringLiteral("</") + tag + QStringLiteral(">");
-                if (parseParagraph(fullParaKml, para)) {
-                    m_paragraphs.push_back(std::move(para));
-                }
+                parseParagraphElement(reader, para);
+                m_paragraphs.push_back(std::move(para));
             } else {
                 // Skip unknown elements
                 reader.skipCurrentElement();
@@ -197,24 +149,9 @@ bool KmlDocumentModel::loadKml(const QString& kml)
             m_cachedCharCount += static_cast<size_t>(text.length());
 
             // Word count and character count without spaces
-            if (!text.isEmpty()) {
-                int wordCount = 0;
-                int nonSpaceCount = 0;
-                bool inWord = false;
-                for (const QChar& c : text) {
-                    if (c.isSpace()) {
-                        inWord = false;
-                    } else {
-                        ++nonSpaceCount;
-                        if (!inWord) {
-                            inWord = true;
-                            ++wordCount;
-                        }
-                    }
-                }
-                m_cachedWordCount += static_cast<size_t>(wordCount);
-                m_cachedCharCountNoSpaces += static_cast<size_t>(nonSpaceCount);
-            }
+            const core::TextCounts counts = core::countText(text);
+            m_cachedWordCount += static_cast<size_t>(counts.words);
+            m_cachedCharCountNoSpaces += static_cast<size_t>(counts.nonSpaceCharacters);
         }
     }
 
@@ -510,23 +447,9 @@ QColor KmlDocumentModel::textColor() const
 // Private Methods
 // =============================================================================
 
-bool KmlDocumentModel::parseParagraph(const QString& paraKml, Paragraph& para)
+void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
 {
-    QXmlStreamReader reader(paraKml);
-
-    // Skip to <p> element
-    while (!reader.atEnd() && !reader.isStartElement()) {
-        reader.readNext();
-    }
-
-    if (reader.atEnd()) {
-        return false;
-    }
-
-    QString tag = reader.name().toString();
-    if (tag != QStringLiteral("p") && tag != QStringLiteral("paragraph")) {
-        return false;
-    }
+    const QString tag = reader.name().toString();
 
     // Parse alignment attribute
     QXmlStreamAttributes attrs = reader.attributes();
@@ -546,20 +469,17 @@ bool KmlDocumentModel::parseParagraph(const QString& paraKml, Paragraph& para)
     // Move past start element
     reader.readNext();
 
-    // Parse inline content
+    // Parse inline content, up to and including the closing tag
     QString text;
     std::vector<FormatRun> formats;
-    QTextCharFormat defaultFormat;
     size_t pos = 0;
 
-    parseInlineContent(reader, text, formats, defaultFormat, pos, tag);
+    parseInlineContent(reader, text, formats, QTextCharFormat(), pos, tag);
 
     para.text = text;
     para.formats = std::move(formats);
     para.layout.reset();
     para.layoutValid = false;
-
-    return true;
 }
 
 void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
@@ -586,19 +506,9 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 text += chars;
                 currentPos += static_cast<size_t>(chars.length());
 
-                // Add format run if non-default formatting
-                if (currentFormat.fontWeight() != QFont::Normal ||
-                    currentFormat.fontItalic() ||
-                    currentFormat.fontUnderline() ||
-                    currentFormat.fontStrikeOut() ||
-                    currentFormat.verticalAlignment() != QTextCharFormat::AlignNormal ||
-                    currentFormat.hasProperty(QTextFormat::ForegroundBrush) ||
-                    currentFormat.hasProperty(QTextFormat::BackgroundBrush) ||
-                    currentFormat.hasProperty(QTextFormat::FontFamilies) ||
-                    currentFormat.hasProperty(QTextFormat::FontPointSize) ||
-                    currentFormat.hasProperty(KmlPropComment) ||
-                    currentFormat.hasProperty(KmlPropTodo) ||
-                    currentFormat.hasProperty(KmlPropFootnote)) {
+                // Add a format run for any formatting or metadata (the base format of
+                // a paragraph is empty, so any property marks a non-default run)
+                if (currentFormat.propertyCount() > 0) {
                     FormatRun run;
                     run.start = start;
                     run.end = currentPos;
@@ -622,23 +532,11 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 KmlFormatRegistry::applyInlineStyleAttributes(reader.attributes(), newFormat);
                 reader.readNext();
                 parseInlineContent(reader, text, formats, newFormat, currentPos, tag);
-            } else if (KmlFormatRegistry::isMetadataTag(tag)) {
-                // Apply metadata
+            } else if (const MetadataTagDef* def = KmlFormatRegistry::getMetadataTagDef(tag)) {
+                // Apply metadata with all of its attributes
                 QTextCharFormat newFormat = currentFormat;
-                QXmlStreamAttributes attrs = reader.attributes();
-                QVariantMap metadata;
-
-                if (attrs.hasAttribute(QStringLiteral("id"))) {
-                    metadata[QStringLiteral("id")] = attrs.value(QStringLiteral("id")).toString();
-                }
-
-                if (tag == QStringLiteral("comment")) {
-                    newFormat.setProperty(KmlPropComment, metadata);
-                } else if (tag == QStringLiteral("todo")) {
-                    newFormat.setProperty(KmlPropTodo, metadata);
-                } else if (tag == QStringLiteral("footnote")) {
-                    newFormat.setProperty(KmlPropFootnote, metadata);
-                }
+                newFormat.setProperty(def->propertyId,
+                                      KmlFormatRegistry::readMetadataAttributes(reader.attributes()));
 
                 reader.readNext();
                 parseInlineContent(reader, text, formats, newFormat, currentPos, tag);
@@ -647,8 +545,10 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 reader.readNext();
                 parseInlineContent(reader, text, formats, currentFormat, currentPos, tag);
             } else {
-                // Unknown element - skip
+                // Unknown element - skip it, together with its end tag (where
+                // skipCurrentElement() stops), so the text after it is still parsed
                 reader.skipCurrentElement();
+                reader.readNext();
             }
         } else {
             reader.readNext();

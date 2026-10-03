@@ -316,8 +316,10 @@ void KmlParser::parseInlineContent(QXmlStreamReader& reader,
                 reader.readNext();
                 parseInlineContent(reader, cursor, activeFormat, tag);
             } else {
-                // Unknown element - skip
+                // Unknown element - skip it, together with its end tag (where
+                // skipCurrentElement() stops), so the text after it is still parsed
                 reader.skipCurrentElement();
+                reader.readNext();
             }
         } else {
             reader.readNext();
@@ -329,67 +331,12 @@ void KmlParser::parseMetadataElement(QXmlStreamReader& reader,
                                       const QString& tag,
                                       QTextCharFormat& format)
 {
-    // Note: This function updates the format with metadata properties
-    // The calling code (parseInlineContent) should use this format to insert text
-    // However, metadata elements contain their own text content, so we need
-    // to return the content to be inserted
-
-    // Read attributes
-    QXmlStreamAttributes attrs = reader.attributes();
-    QVariantMap metadata;
-
-    // Common attributes for all metadata types
-    if (attrs.hasAttribute(QStringLiteral("id"))) {
-        metadata[QStringLiteral("id")] = attrs.value(QStringLiteral("id")).toString();
+    // Store every attribute of the metadata element under the tag's property. The text
+    // content is inserted by parseInlineContent() with the format updated here.
+    if (const MetadataTagDef* def = KmlFormatRegistry::getMetadataTagDef(tag)) {
+        format.setProperty(def->propertyId,
+                           KmlFormatRegistry::readMetadataAttributes(reader.attributes()));
     }
-
-    // Type-specific attributes
-    if (tag == QStringLiteral("comment")) {
-        if (attrs.hasAttribute(QStringLiteral("author"))) {
-            metadata[QStringLiteral("author")] = attrs.value(QStringLiteral("author")).toString();
-        }
-        if (attrs.hasAttribute(QStringLiteral("created"))) {
-            metadata[QStringLiteral("created")] = attrs.value(QStringLiteral("created")).toString();
-        }
-        if (attrs.hasAttribute(QStringLiteral("resolved"))) {
-            QString resolved = attrs.value(QStringLiteral("resolved")).toString().toLower();
-            metadata[QStringLiteral("resolved")] = (resolved == QStringLiteral("true") ||
-                                                    resolved == QStringLiteral("1"));
-        }
-        format.setProperty(KmlPropComment, metadata);
-    }
-    else if (tag == QStringLiteral("todo")) {
-        if (attrs.hasAttribute(QStringLiteral("completed"))) {
-            QString completed = attrs.value(QStringLiteral("completed")).toString().toLower();
-            metadata[QStringLiteral("completed")] = (completed == QStringLiteral("true") ||
-                                                     completed == QStringLiteral("1"));
-        }
-        if (attrs.hasAttribute(QStringLiteral("priority"))) {
-            metadata[QStringLiteral("priority")] = attrs.value(QStringLiteral("priority")).toString();
-        }
-        format.setProperty(KmlPropTodo, metadata);
-    }
-    else if (tag == QStringLiteral("footnote")) {
-        if (attrs.hasAttribute(QStringLiteral("number"))) {
-            metadata[QStringLiteral("number")] = attrs.value(QStringLiteral("number")).toInt();
-        }
-        format.setProperty(KmlPropFootnote, metadata);
-    }
-    else if (tag == QStringLiteral("charref")) {
-        if (attrs.hasAttribute(QStringLiteral("target"))) {
-            metadata[QStringLiteral("target")] = attrs.value(QStringLiteral("target")).toString();
-        }
-        format.setProperty(KmlPropCharRef, metadata);
-    }
-    else if (tag == QStringLiteral("locref")) {
-        if (attrs.hasAttribute(QStringLiteral("target"))) {
-            metadata[QStringLiteral("target")] = attrs.value(QStringLiteral("target")).toString();
-        }
-        format.setProperty(KmlPropLocRef, metadata);
-    }
-
-    // Note: The actual text insertion happens in parseInlineContent
-    // after this function returns with the format updated
 }
 
 // =============================================================================

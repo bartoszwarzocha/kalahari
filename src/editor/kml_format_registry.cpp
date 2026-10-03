@@ -70,7 +70,8 @@ const QVector<MetadataTagDef>& metadataDefinitions()
             QStringLiteral("todo"),
             KmlPropTodo,
             {QStringLiteral("id"), QStringLiteral("completed"),
-             QStringLiteral("priority")}
+             QStringLiteral("priority"), QStringLiteral("text"),
+             QStringLiteral("type"), QStringLiteral("created")}
         },
         {
             QStringLiteral("footnote"),
@@ -89,6 +90,18 @@ const QVector<MetadataTagDef>& metadataDefinitions()
         }
     };
     return defs;
+}
+
+/// @brief Metadata attributes stored as bool ("true"/"1" when set)
+bool isFlagAttribute(const QString& name)
+{
+    return name == QStringLiteral("resolved") || name == QStringLiteral("completed");
+}
+
+/// @brief Metadata attributes stored as int
+bool isNumberAttribute(const QString& name)
+{
+    return name == QStringLiteral("number");
 }
 
 } // anonymous namespace
@@ -321,6 +334,64 @@ const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId)
         }
     }
     return nullptr;
+}
+
+QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs)
+{
+    QVariantMap metadata;
+    for (const QXmlStreamAttribute& attr : attrs) {
+        const QString name = attr.name().toString();
+        const QString value = attr.value().toString();
+        if (isFlagAttribute(name)) {
+            const QString flag = value.toLower();
+            metadata[name] = (flag == QStringLiteral("true") || flag == QStringLiteral("1"));
+        } else if (isNumberAttribute(name)) {
+            bool ok = false;
+            const int number = value.toInt(&ok);
+            metadata[name] = ok ? QVariant(number) : QVariant(value);
+        } else {
+            metadata[name] = value;
+        }
+    }
+    return metadata;
+}
+
+QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata)
+{
+    QString result;
+    auto write = [&result](const QString& name, const QVariant& value) {
+        QString text;
+        if (value.typeId() == QMetaType::Bool) {
+            if (!value.toBool()) {
+                return;
+            }
+            text = QStringLiteral("true");
+        } else {
+            text = value.toString();
+            if (text.isEmpty()) {
+                return;
+            }
+        }
+        result += QLatin1Char(' ') + name + QStringLiteral("=\"") + escapeXml(text) +
+                  QLatin1Char('"');
+    };
+
+    QStringList known;
+    if (const MetadataTagDef* def = getMetadataTagDef(tag)) {
+        known = def->knownAttributes;
+    }
+    for (const QString& name : known) {
+        const auto it = metadata.constFind(name);
+        if (it != metadata.constEnd()) {
+            write(name, it.value());
+        }
+    }
+    for (auto it = metadata.constBegin(); it != metadata.constEnd(); ++it) {
+        if (!known.contains(it.key())) {
+            write(it.key(), it.value());
+        }
+    }
+    return result;
 }
 
 // =============================================================================

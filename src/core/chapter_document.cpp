@@ -5,11 +5,13 @@
 
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/text_statistics.h>
 
 #include <QFile>
 #include <QJsonDocument>
-#include <QTextDocument>
-#include <QRegularExpression>
+#include <QXmlStreamReader>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace core {
@@ -93,51 +95,18 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    m_wordCount = calculateWordCount(m_plainText);
-    m_characterCount = calculateCharacterCount(m_plainText);
+    const TextCounts counts = countText(m_plainText);
+    m_wordCount = counts.words;
+    m_characterCount = counts.nonSpaceCharacters;
     m_paragraphCount = calculateParagraphCount(m_plainText);
-}
-
-int ChapterDocument::calculateWordCount(const QString& text)
-{
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Split on whitespace and count non-empty tokens
-    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
-    const auto parts = text.split(whitespace, Qt::SkipEmptyParts);
-    return static_cast<int>(parts.count());
-}
-
-int ChapterDocument::calculateCharacterCount(const QString& text)
-{
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Count non-whitespace characters
-    int count = 0;
-    for (const QChar& ch : text) {
-        if (!ch.isSpace()) {
-            ++count;
-        }
-    }
-    return count;
 }
 
 int ChapterDocument::calculateParagraphCount(const QString& text)
 {
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Split on double newlines (paragraph separators)
-    static const QRegularExpression paragraphSep(QStringLiteral("\n\\s*\n"));
-    const auto parts = text.split(paragraphSep, Qt::SkipEmptyParts);
-
-    // At least 1 paragraph if there's any content
-    return qMax(1, static_cast<int>(parts.count()));
+    const auto lines = QStringView(text).split(QLatin1Char('\n'));
+    return static_cast<int>(std::count_if(lines.begin(), lines.end(), [](QStringView line) {
+        return !line.trimmed().isEmpty();
+    }));
 }
 
 // =============================================================================
@@ -411,22 +380,40 @@ ChapterDocument ChapterDocument::fromKmlContent(const QString& content,
 
 QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
-    if (kml.isEmpty()) {
-        return QString();
+    // Collect the characters inside paragraphs, in a single streaming pass. Formatting
+    // and metadata tags vanish without splitting words, entities are decoded and the
+    // whitespace between paragraphs is ignored - so the statistics match the editor's.
+    QString result;
+    result.reserve(kml.size());
+    QXmlStreamReader reader(kml);
+    bool inParagraph = false;
+    bool firstParagraph = true;
+    while (!reader.atEnd()) {
+        switch (reader.readNext()) {
+        case QXmlStreamReader::StartElement:
+            if (reader.name() == u"p" || reader.name() == u"paragraph") {
+                if (!firstParagraph) {
+                    result += QLatin1Char('\n');
+                }
+                firstParagraph = false;
+                inParagraph = true;
+            }
+            break;
+        case QXmlStreamReader::EndElement:
+            if (reader.name() == u"p" || reader.name() == u"paragraph") {
+                inParagraph = false;
+            }
+            break;
+        case QXmlStreamReader::Characters:
+            if (inParagraph) {
+                result += reader.text();
+            }
+            break;
+        default:
+            break;
+        }
     }
-
-    // PERFORMANCE FIX: Use regex to strip XML tags instead of creating QTextDocument
-    // QTextDocument::setHtml() is extremely slow for large documents (O(n²) relayout)
-    // This simple regex approach is O(n) and much faster for large KML.
-    static const QRegularExpression tagPattern(QStringLiteral("<[^>]*>"));
-    QString result = kml;
-    result.replace(tagPattern, QStringLiteral(" "));  // Replace tags with space
-
-    // Normalize whitespace: collapse multiple spaces/newlines to single space
-    static const QRegularExpression whitespacePattern(QStringLiteral("\\s+"));
-    result.replace(whitespacePattern, QStringLiteral(" "));
-
-    return result.trimmed();
+    return result;
 }
 
 } // namespace core

@@ -18,7 +18,6 @@
 #include <kalahari/editor/editor_types.h>
 #include <QObject>
 #include <QRect>
-#include <QTimer>
 #include <memory>
 
 class QPainter;
@@ -166,9 +165,8 @@ public:
     /// @brief Set viewport size
     void setViewportSize(const QSizeF& size);
 
-    /// @brief Set screen DPI for WYSIWYG rendering
-    /// @param dpi Physical screen DPI (from screen()->physicalDotsPerInch())
-    /// @note This calculates dpiScale as dpi / 96.0
+    /// @brief Set screen DPI for WYSIWYG page geometry
+    /// @param dpi Logical screen DPI (from screen()->logicalDotsPerInch())
     void setScreenDpi(double dpi);
 
     // =========================================================================
@@ -187,8 +185,8 @@ public:
     // These setters update static configuration and recalculate ONLY
     // the values that depend on what changed. Much faster than configure().
 
-    /// @brief Set screen DPI (recalculates: dpiScale, pageLayout, textWidth, font if PageScaling)
-    /// @param dpi Physical screen DPI (from screen()->physicalDotsPerInch())
+    /// @brief Set screen DPI (recalculates: mmToPixels, pageLayout, textWidth)
+    /// @param dpi Logical screen DPI (from screen()->logicalDotsPerInch())
     void setConfigDpi(double dpi);
 
     /// @brief Set base font (recalculates: effectiveFont)
@@ -255,17 +253,11 @@ public:
     /// @brief Set cursor visibility
     void setCursorVisible(bool visible);
 
-    /// @brief Set cursor blink state
+    /// @brief Set cursor blink state (BookEditor's blink timer drives it)
     void setCursorBlinkState(bool on);
 
     /// @brief Set cursor style (Line, Block, Underline)
     void setCursorStyle(CursorStyle style);
-
-    /// @brief Start cursor blink timer
-    void startCursorBlink();
-
-    /// @brief Stop cursor blink timer
-    void stopCursorBlink();
 
     /// @brief Set selection range
     void setSelection(const SelectionRange& selection);
@@ -281,6 +273,11 @@ public:
 
     /// @brief Get cursor rectangle in widget coordinates
     QRectF cursorRect() const;
+
+    /// @brief Area the cursor is painted in (cursorRect() adjusted to the cursor style)
+    ///
+    /// Scroll-mode geometry; also the area to repaint when the cursor blinks or moves.
+    QRectF cursorPaintRect() const;
 
     // =========================================================================
     // Integration with other components
@@ -377,10 +374,6 @@ signals:
     /// @brief Emitted when repaint is needed
     /// @param region Area to repaint
     void repaintRequested(const QRegion& region);
-
-    /// @brief Emitted when cursor blink state changes
-    /// @param visible Current blink state
-    void cursorBlinkChanged(bool visible);
 
     /// @brief Emitted when document height changes
     /// @param newHeight New total height
@@ -493,8 +486,6 @@ private:
     // Dirty tracking
     QRegion m_dirtyRegion;
 
-    // Cursor blinking
-    QTimer m_cursorBlinkTimer;
     CursorStyle m_cursorStyle = CursorStyle::Line;  ///< Cursor style
 
     // Cached values
@@ -504,7 +495,7 @@ private:
     // Pagination cache (Phase 13.3)
     mutable std::vector<PageContent> m_cachedPages;     ///< Cached page layout
     mutable bool m_paginationCacheValid = false;        ///< Is pagination cache valid?
-    mutable double m_cachedDpiScale = 1.0;              ///< DPI scale used for cache
+    mutable double m_cachedScreenDpi = DEFAULT_DPI;     ///< Screen DPI used for cache
     mutable QSizeF m_cachedPageSize;                    ///< Page size used for cache
     double m_pageGap = 20.0;                            ///< Gap between pages in pixels
 
@@ -545,10 +536,6 @@ private:
 
     /// @brief Recalculate only page center offset (for resize in Page mode)
     void recalcPageCenterOffset();
-
-private slots:
-    /// @brief Handle cursor blink timer timeout
-    void onCursorBlinkTimeout();
 };
 
 }  // namespace kalahari::editor
