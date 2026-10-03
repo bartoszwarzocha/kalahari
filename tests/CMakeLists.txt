@@ -50,6 +50,10 @@ set(TEST_SOURCES
     editor/test_kml_document_model.cpp     # OpenSpec #00043: KmlDocumentModel lazy rendering tests
     editor/test_format_converter.cpp       # Sub-Project C WS4.2: FormatConverter unit tests
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
+    editor/test_editor_stage0_kml_roundtrip.cpp  # Editor Stage 0: KML load/save through BookEditor
+    editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
+    benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
+    benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
 )
