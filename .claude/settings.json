@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\"",
+            "command": "\"$(command -v python || command -v python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\"",
             "timeout": 10
           }
         ]
@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/build_reminder.py\"",
+            "command": "\"$(command -v python || command -v python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/build_reminder.py\"",
             "timeout": 10
           }
         ]
@@ -89,7 +89,7 @@
           {
             "type": "command",
             "if": "Bash(git commit*)",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre_commit_check.py\"",
+            "command": "\"$(command -v python || command -v python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre_commit_check.py\"",
             "timeout": 15
           }
         ]
