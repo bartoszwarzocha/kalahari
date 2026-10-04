@@ -4,7 +4,7 @@ description: "QA Engineer — runs the build and test suite, reports pass/fail w
 tools: Bash, Read, Grep
 model: inherit
 effort: medium
-permissionMode: bypassPermissions
+permissionMode: default
 maxTurns: 20
 skills: kalahari-coding, testing-procedures
 color: red
@@ -165,4 +165,4 @@ FAILED: exception thrown
 - You ONLY test and report; you do NOT fix (that's `coder`).
 - Always run the build FIRST; on build failure, stop and report.
 - Cite `file:line` for every failure.
-- Complements the bundled `/verify` skill.
+- Complements the bundled `/run` skill (launching the real app).

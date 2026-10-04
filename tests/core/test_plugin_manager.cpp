@@ -16,13 +16,14 @@ TEST_CASE("PluginManager: Singleton pattern", "[plugin-manager]") {
 }
 
 TEST_CASE("PluginManager: Thread safety", "[plugin-manager]") {
+    constexpr size_t THREAD_COUNT = 10;
     std::vector<std::thread> threads;
-    std::vector<PluginManager*> instances;
+    std::vector<PluginManager*> instances(THREAD_COUNT, nullptr);
 
-    // Create 10 threads, each accessing getInstance()
-    for (int i = 0; i < 10; ++i) {
-        threads.emplace_back([&instances]() {
-            instances.push_back(&PluginManager::getInstance());
+    // Create 10 threads, each accessing getInstance() and writing its own slot
+    for (size_t i = 0; i < THREAD_COUNT; ++i) {
+        threads.emplace_back([&instances, i]() {
+            instances[i] = &PluginManager::getInstance();
         });
     }
 
@@ -32,6 +33,7 @@ TEST_CASE("PluginManager: Thread safety", "[plugin-manager]") {
     }
 
     // All instances should point to same singleton
+    REQUIRE(instances[0] != nullptr);
     for (size_t i = 1; i < instances.size(); ++i) {
         REQUIRE(instances[i] == instances[0]);
     }
@@ -41,20 +43,20 @@ TEST_CASE("PluginManager: discoverPlugins returns 0", "[plugin-manager]") {
     PluginManager& manager = PluginManager::getInstance();
     size_t count = manager.discoverPlugins();
 
-    // Phase 0 Week 3-4: Stub returns 0
+    // The test user plugin directory is empty
     REQUIRE(count == 0);
 }
 
-TEST_CASE("PluginManager: loadPlugin succeeds", "[plugin-manager]") {
+TEST_CASE("PluginManager: loadPlugin fails for an undiscovered plugin", "[plugin-manager]") {
     PluginManager& manager = PluginManager::getInstance();
 
-    // Phase 0 Week 3-4: Stub always returns true
-    bool result = manager.loadPlugin("test-plugin");
-    REQUIRE(result == true);
+    REQUIRE_FALSE(manager.loadPlugin("test-plugin"));
 }
 
 TEST_CASE("PluginManager: getDiscoveredPlugins empty", "[plugin-manager]") {
     PluginManager& manager = PluginManager::getInstance();
+    // Rescan: the singleton may still list plugins discovered by an earlier test
+    manager.discoverPlugins();
     auto plugins = manager.getDiscoveredPlugins();
 
     REQUIRE(plugins.empty());
@@ -63,6 +65,6 @@ TEST_CASE("PluginManager: getDiscoveredPlugins empty", "[plugin-manager]") {
 TEST_CASE("PluginManager: unloadPlugin works", "[plugin-manager]") {
     PluginManager& manager = PluginManager::getInstance();
 
-    // Phase 0 Week 3-4: Stub should not throw
+    // Unloading a plugin that is not loaded is a no-op
     REQUIRE_NOTHROW(manager.unloadPlugin("test-plugin"));
 }

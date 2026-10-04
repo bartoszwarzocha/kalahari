@@ -38,10 +38,8 @@ All tools in the ecosystem follow the African naming convention:
 | Tool | Named After | Type | Status |
 |------|-------------|------|--------|
 | **Kalahari** | Kalahari Desert | Writer's IDE | In development |
-| **Serengeti** | Serengeti Plains | Collaborative writing | Planned |
 | **Okavango** | Okavango Delta | Research & knowledge mgmt | Planned |
 | **Kilimanjaro** | Mount Kilimanjaro | Project management | Planned |
-| **Victoria** | Lake Victoria | Cloud sync service | Planned |
 | **Zambezi** | Zambezi River | Publishing toolkit | Planned |
 | **Sahara** | Sahara Desert | Mobile companion apps | Planned |
 

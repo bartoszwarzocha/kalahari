@@ -20,6 +20,9 @@ set(TEST_SOURCES
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
+    core/test_plugin_manager.cpp
+    core/test_python_interpreter.cpp
+    core/test_python_interop.cpp
     # OpenSpec #00042: Custom Text Editor
     editor/test_editor_types.cpp
     editor/test_kml_element.cpp
@@ -57,7 +60,8 @@ set(TEST_SOURCES
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
-    # GUI tests removed (wxWidgets → Qt6 migration - CommandRegistry/ShortcutManager not yet ported)
+    gui/test_command_registry.cpp
+    gui/test_command_registry_execution.cpp
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -194,6 +198,7 @@ target_link_libraries(kalahari-tests PRIVATE
     libzip::zip
     Python3::Python
     pybind11::embed
+    ${CMAKE_DL_LIBS}  # dladdr (Python home detection on Linux)
     OpenSSL::SSL      # OpenSpec #00038: Ed25519 signature verification
     OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
     ${HUNSPELL_LIBRARIES}  # OpenSpec #00042: Spell check service with Hunspell
@@ -231,16 +236,31 @@ if(WIN32)
     )
 endif()
 
-# Register tests with CTest (commented out until Day 4 - when we have real tests)
-# include(CTest)
-# include(Catch)
-# catch_discover_tests(kalahari-tests)
-
-# For now: manual test execution
-add_test(NAME kalahari-basic-tests
-         COMMAND kalahari-tests
-         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+# Register every Catch2 test case as a separate CTest test.
+# PRE_TEST discovery runs the binary at ctest time, not at build time, so the
+# build does not depend on runtime DLLs (Qt, Python) being on PATH.
+include(Catch)
+catch_discover_tests(kalahari-tests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DISCOVERY_MODE PRE_TEST
 )
+
+# Python binding tests: plain scripts that exit with a non-zero code on failure.
+# They import the kalahari_api module copied to bin/ by src/bindings.
+# Registered only with system packages (Linux CI): vcpkg's Python is a static
+# library, so the extension module carries its own interpreter (and Qt) copy and
+# aborts when loaded into a separate python process.
+if(USE_SYSTEM_PACKAGES)
+    foreach(_script test_python_bindings test_event_bus)
+        add_test(NAME python.${_script}
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${_script}.py
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+        set_tests_properties(python.${_script} PROPERTIES
+            ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/bin"
+        )
+    endforeach()
+endif()
 
 message(STATUS "Configured test target: kalahari-tests")
 

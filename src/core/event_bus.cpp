@@ -76,13 +76,15 @@ void EventBus::emit(const Event& event) {
 }
 
 void EventBus::emitAsync(const Event& event) {
+    size_t queueSize = 0;
     {
         std::lock_guard<std::mutex> lock(m_queue_mutex);
         m_eventQueue.push(event);
+        queueSize = m_eventQueue.size();
     }
 
     Logger::getInstance().debug("EventBus: Queued async event '{}' (queue size: {})",
-                               event.type, m_eventQueue.size());
+                               event.type, queueSize);
 
     // Qt6 GUI thread marshalling via QMetaObject::invokeMethod
     QCoreApplication* app = QCoreApplication::instance();

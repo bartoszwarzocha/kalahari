@@ -1,37 +1,43 @@
+---
+name: github-actions
+description: Kalahari CI/CD on GitHub Actions (Windows/Linux/macOS workflows, vcpkg, caching). Use when diagnosing CI failures or editing .github/workflows.
+---
+
 # GitHub Actions - Kalahari CI/CD
 
 ## Project CI Structure
 
 ```
 .github/workflows/
-├── ci-windows.yml    # Windows: MSVC + vcpkg + Ninja
-├── ci-linux.yml      # Linux: GCC + vcpkg + Ninja
-└── ci-macos.yml      # macOS: Clang + vcpkg + Ninja
+├── ci-windows.yml    # windows-latest: MSVC + vcpkg (submodule) + Ninja, Debug+Release, 120 min, vcpkg binary cache
+├── ci-linux.yml      # ubuntu-24.04: GCC + system packages from apt (NO vcpkg)
+│                     #   job "build": Release, 30 min
+│                     #   job "analysis": sanitizers, coverage and clang-tidy, 60 min
+└── ci-macos.yml      # macos-15 + Xcode 16 (pinned): Clang + vcpkg (submodule) + Ninja, Debug+Release, 90 min
 ```
+
+All workflows: trigger on push/PR to `main`/`develop` + `workflow_dispatch`; tests via
+`ctest --output-on-failure` (Catch2 tests registered via `catch_discover_tests`); Release binaries uploaded as artifacts (7 days).
 
 ## Build Matrix
 
-| Platform | Compiler | Generator | Triplet |
-|----------|----------|-----------|---------|
-| Windows | MSVC (cl) | Ninja | x64-windows |
-| Linux | GCC | Ninja | x64-linux |
-| macOS | Clang | Ninja | x64-osx |
-
-Build types: `Debug`, `Release`
+| Platform | Compiler | Dependencies | Build types |
+|----------|----------|--------------|-------------|
+| Windows | MSVC (`ilammy/msvc-dev-cmd`) | vcpkg, triplet `x64-windows`, binary cache key `windows-msvc-vcpkg-binary-v1-*` | Debug, Release |
+| Linux | GCC (+ sanitizer/coverage/clang-tidy job) | apt: `qt6-base-dev`, `qt6-svg-dev`, `qt6-tools-dev`, `libspdlog-dev`, `nlohmann-json3-dev`, `libzip-dev`, `libcurl4-openssl-dev`, `libhunspell-dev`, `catch2`, `pybind11-dev`, ... | Release |
+| macOS | Apple Clang | vcpkg (default triplet), cache key `macos-clang-vcpkg-v3-*` | Debug, Release |
 
 ## Dependencies (vcpkg.json)
 
-```json
-{
-  "dependencies": [
-    "qt6-base",
-    "qt6-svg",
-    "spdlog",
-    "nlohmann-json",
-    "catch2"
-  ]
-}
-```
+Default feature `qt6`: `qtbase` (widgets, gui, network, openssl, sql; xcb/fontconfig on Linux),
+`qtsvg`, `qttools` (all `>= 6.5.0`). Always: `curl`, `spdlog`, `nlohmann-json`, `hunspell`,
+`libzip[bzip2]`, `catch2`, `python3`, `pybind11`. Versions pinned by `builtin-baseline`.
+
+## Known Issues
+
+- **macOS runner pinned (2026-10-03):** `macos-latest` moved to an Xcode whose clang rejects
+  Qt 6.9.1 from vcpkg (`__yield` in `qyieldcpu.h`). The workflow pins `macos-15` + Xcode 16;
+  unpin once the vcpkg baseline brings a Qt release with the upstream fix.
 
 ## Common Failure Patterns
 

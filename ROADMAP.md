@@ -1,565 +1,158 @@
 # Kalahari Development Roadmap
 
-> **Writer's IDE** - Qt6 Architecture | Phase-based Development
+> **Writer's IDE** – C++20 + Qt6 desktop application, free and open source (MIT)
 
-**Current Phase:** Phase 1 (Core Editor) IN PROGRESS
+**Current Phase:** Phase 1 (Core Editor) – in progress, about half done
 **Version:** 0.3.2-alpha
-**Last Updated:** 2025-12-11
+**Next Release:** 0.4.0-alpha (Phase 1 complete)
+**Last Updated:** 2026-10-03
+
+This roadmap was rewritten on 2026-10-03 after a review of the actual state of the code.
+The previous version overstated progress in some areas (the editor, the menus) and
+understated it in others (Find & Replace). Each item below reflects what the code does
+today, not what was planned.
 
 ---
 
-## MIGRATION CONTEXT (2025-11-19)
+## Principles
 
-**Decision:** Migrated from wxWidgets to Qt6 for long-term quality and maintainability.
-
-**Reason:** wxWidgets limitations (manual DPI scaling, wxStaticBoxSizer bugs, complex reactive patterns) incompatible with "opus magnum" quality standards. Qt6 provides automatic DPI scaling, QApplication::setFont() global styling, QSS theming, and superior documentation.
-
-**Strategy:** Clean Slate Approach (Option B)
-- **Archived:** wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
-- **Preserved:** Core (5,966 LOC), Tests (5,912 LOC), Bindings (120 LOC), Plugin system
-- **Deleted:** GUI layer (28,098 LOC), 49 task files, bwx_sdk submodule
-- **Timeline:** +4 weeks for Qt Foundation (Phase 0)
-
-**Reference:** [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md) - Complete migration plan
+- **Free and open source.** Every component – the application, the plugin system and all
+  plugins, present and future – is released under the MIT License. There are no paid
+  plugins, marketplace, subscriptions or cloud services. Your work stays on your computer.
+- **Working software over wide menus.** A menu command that is not implemented yet is shown
+  disabled, with a tooltip saying so. It becomes active once its feature is wired.
+- **Measured, not assumed.** Performance work is judged by benchmarks run in CI, and a
+  stage is complete only when its tests pass and the application has been checked by hand.
 
 ---
 
-## PHASE 0: Qt Foundation COMPLETE
+## Completed
 
-**Status:** COMPLETE (Started 2025-11-19, Finished 2025-11-21)
-**Duration:** 2 days (estimate: 4 weeks)
-**Target:** 0.3.0-alpha RELEASED (basic GUI) -> 0.3.1-alpha (Command Registry) COMPLETE
+### Phase 0 – Qt Foundation (2025-11-19 – 2025-11-21)
 
-### Step 0: Preparation COMPLETE (Day 1, ~6 hours)
+Migration from wxWidgets to Qt6: main window, settings dialog, command registry, logging,
+Python plugin runtime (pybind11), document model and the `.klh` project format.
+The wxWidgets code is archived on the `wxwidgets-archive` branch.
 
-**Goal:** Archive wxWidgets, update build system, refresh documentation
+### Phase 1 – completed parts
 
-- [x] Archive Current State - wxwidgets-archive branch, v0.2.0-alpha-wxwidgets tag
-- [x] Clean Main Branch - Deleted 28,098 LOC (103 files)
-- [x] Update Project Configuration - vcpkg.json Qt6, CMakeLists.txt Qt6 integration
-- [x] Update CLAUDE.md - Qt6 patterns, Cardinal Rules
-- [x] Create Fresh ROADMAP.md - Phase 0-5 structure
-- [x] Update CHANGELOG.md - Added [0.3.0-alpha], [0.3.1-alpha] sections
-- [x] Update project_docs/ - 02_tech_stack.md, 08_gui_design.md, 01_overview.md
-- [x] Update .claude/ Resources - Skills verified Qt-compatible
-- [x] Update Serena Memories - Migration decision documented
-- [x] Final Push & Verification - All changes committed
-
-### Week 1: Qt Hello World COMPLETE
-
-**Goal:** Basic Qt6 application with window, menu, logging
-
-- [x] Qt6 vcpkg Installation & CMake Configuration - Qt6 6.9.1, CI/CD updated
-- [x] QMainWindow Skeleton - Menu bar, toolbar, status bar
-- [x] Basic QDockWidget System - 5 dock panels, perspective save/restore
-
-### Week 2: Settings System COMPLETE
-
-**Goal:** Settings dialog with Qt layouts, JSON persistence
-
-- [x] Settings Dialog Structure - QTabWidget, Apply/OK/Cancel, SettingsManager integration
-- [x] Appearance Settings Panel - Font size, theme, icon size
-- [x] Editor Settings Panel - Font family/size, tab size, line numbers, word wrap
-
-### Week 3: Core Editor Foundation COMPLETE
-
-**Goal:** Basic text editing with QPlainTextEdit
-
-- [x] EditorWidget Basic Implementation - Settings integration, syntax highlighter stub
-- [x] File Operations - New/Open/Save/SaveAs, dirty state, .klh files
-- [x] Edit Operations - Undo/Redo/Cut/Copy/Paste/SelectAll
-
-### Week 4: Panels & Polish COMPLETE
-
-**Goal:** Navigator panel, About dialog, first release
-
-- [x] Navigator Panel with QTreeWidget - Book hierarchy display, document integration
-- [x] About Dialog & Help Menu - QMessageBox dialogs
-- [x] Qt Foundation Release - v0.3.0-alpha tag
-
-### Week 5: Command Registry Migration COMPLETE (2025-11-21)
-
-**Goal:** Migrate Command Registry system from wxWidgets to Qt6
-
-**Architecture Migrated:**
-- Command Registry (singleton, ~200 LOC, framework-agnostic)
-- Command struct (id, label, category, icons, shortcuts, execute/isEnabled/isChecked callbacks)
-- IconSet (16/24/32px QPixmap, toQIcon() helper)
-- KeyboardShortcut (Qt::Key + Qt::KeyboardModifiers, toQKeySequence())
-- ToolbarBuilder (dynamic QToolBar generation from registry)
-- MenuBuilder (hierarchical menu support, 150 LOC)
-
-**Benefits Delivered:**
-- Single source of truth for all commands (15 registered: File, Edit, Help)
-- Plugin commands integrate seamlessly (ICommandProvider interface ready)
-- Customizable toolbars (user can add/remove/reorder in Phase 1)
-- Command Palette ready (Ctrl+Shift+P foundation, Phase 1 implementation)
-- No hardcoded QAction connections (MainWindow uses builders)
-
-- [x] Command Registry Qt Migration - Recovered from wxwidgets-archive, adapted to Qt6
-- [x] Plugin Integration Foundation - ICommandProvider, EventBus Qt6, QWidget* panels
+| Area | State |
+|---|---|
+| Menu structure and keyboard shortcuts (#00030) | Done; commands without a feature are disabled |
+| Toolbars, customization and persistence (#00031, #00039) | Done |
+| Project file system, export/import archive (#00033) | Done |
+| Navigator panel (#00034, #00036) | Done |
+| Theme and icon system, ArtProvider (#00027, #00032) | Done; editor colors not yet unified with ThemeManager |
+| SQLite project database (#00041) | Done |
+| Formatting round-trip in KML (#00044A) | Done |
+| Custom text editor (#00042, #00043) | Works, but performance and rendering are not satisfactory – see Stage 1 |
 
 ---
 
-## PHASE 1: Core Editor (Weeks 1-20) IN PROGRESS
+## Phase 1 – remaining work (target: 0.4.0-alpha)
 
-**Status:** IN PROGRESS (Started 2025-11-21)
-**Target:** 0.4.0-alpha
-**Timeline:** ~5 months
+### Stage 0 – Foundation
 
-**Development Order:** Menu → Toolbars → Project File → Perspectives → Navigator → Editor
+No new features. Make the project measurable and its build reliable.
 
-### 1.0 Menu System Review & Cleanup COMPLETE
+- [x] Fix macOS CI (runner pinned to `macos-15` with Xcode 16; Qt 6.9.1 does not build with newer Xcode)
+- [x] Disable menu commands that have no implementation instead of leaving them silently empty
+- [x] Remove marketplace, cloud sync and collaboration from menus and settings
+- [x] Rewrite this roadmap and remove the paid-plugin business model from the documentation
+- [ ] Register each test case separately in CTest (`catch_discover_tests`)
+- [ ] Add a sanitizer job (ASan/UBSan) and coverage reporting to CI
+- [ ] Use one minimum Qt version on all platforms and in CMake
+- [ ] Run the editor benchmark (150k-word document) in CI with thresholds
 
-**Philosophy:** Clean, coherent menu structure without duplicates. Every menu item serves a purpose.
+### Stage 1 – Editor
 
-**Resolved Issues (OpenSpec #00030):**
-- ~~Duplicate toolbar entries in VIEW menu~~ → Dynamic Toolbars submenu via ToolbarManager
-- ~~Inconsistent naming~~ → Toolbars now use consistent names
-- Added standard keyboard shortcuts (F1-F6, F11, Ctrl+B/I/U/F/H/W)
-- Created RecentBooksManager for FILE/Recent Books submenu
+Make the editor fast and correct on book-length documents. Detailed plan:
+editor review, stages 0–6 (safety net and measurement, quick fixes, a single layout core
+built on `QTextDocument`, incremental pagination and one zoom model, missing rendering
+features, cleanup, wiring of unconnected features).
 
-**Tasks:**
-- [x] Full menu audit - document all 9 menus and their items
-- [x] Remove VIEW/Toolbars duplicates (dynamic submenu)
-- [x] Verify all CommandRegistry commands have correct phase markers
-- [x] Ensure menu structure matches application architecture
-- [x] Review keyboard shortcuts for conflicts
-- [x] Document final menu specification (in OpenSpec #00030)
+- [ ] Round-trip and layout tests for the real `fromKml → toKml` path
+- [ ] Quick fixes: loading in one edit block, debounced resize and zoom, cached word count
+- [ ] One layout core as the single source of geometry (lazy layout, estimated heights)
+- [ ] Incremental pagination in page mode; one zoom model for all view modes
+- [ ] Paragraph formatting (spacing, indents, line height, tabs) handled by the layout
+- [ ] Spelling and grammar underlines, comments, TODO markers and footnotes rendered from formats
+- [ ] Remove the old document model and layout code once the new core is in place
+- [ ] Split `book_editor.cpp` (5,400 lines) into smaller classes
 
-### 1.1 Toolbar System COMPLETE (OpenSpec #00031)
+**Done when:** benchmark thresholds are met on all platforms and a manual test on a large
+document is positive.
 
-**Philosophy:** Toolbars mirror menu structure. Each toolbar groups related actions.
+### Stage 2 – Wire features that already exist
 
-**Tasks:**
-- [x] Synchronize toolbar names with menu structure
-- [x] Create Format Toolbar (font dropdown, size spinner, formatting commands)
-- [x] Create Insert Toolbar, Styles Toolbar (optional, hidden by default)
-- [x] Toolbar customization UI ("Customize Toolbars..." dialog)
-- [x] Drag & drop toolbar button reordering (via dialog Move Up/Down)
-- [x] Save/restore toolbar configuration per user
-- [x] Context menu on toolbars (visibility toggles, lock positions)
-- [x] User-defined toolbar creation/deletion/rename
+These are implemented and unit-tested in core, but not reachable from the GUI.
 
-**Known Limitations:**
-- Toolbar drag behavior shrinks adjacent toolbar instead of swapping (Qt default)
-- Overflow menu (chevron) deferred - Qt6 lacks built-in support
+- [ ] Find & Replace: connect `edit.find`, `edit.findReplace`, `edit.findNext/Previous`,
+      `edit.findInBook` to `FindReplaceBar` and `SearchPanel`
+- [ ] Spell check: create `SpellCheckService`, pass it to the editor, dictionary language setting
+- [ ] Grammar check (LanguageTool)
+- [ ] Zoom, formatting marks, status bar toggle
+- [ ] Accessibility, comments and tags panels, quick insert, snapshots, word frequency
+      analysis, text-to-speech, split view
 
-### 1.2 Project File System (OpenSpec #00033)
+### Stage 3 – Text styles (#00044B–F)
 
-**Philosophy:** Solution-like folder structure with .klh JSON manifest.
+Design: `docs/superpowers/specs/2026-04-10-text-styling-system-design.md`.
+Starts after Stage 1, because B and C change `BookEditor`.
 
-**Current State:** COMPLETE - All phases implemented
+- [ ] B – Pending format (toggle bold, then type) and clear formatting (Ctrl+Space)
+- [ ] C – Toolbar follows the formatting at the cursor; font size drop-down
+- [ ] D – Text and highlight color
+- [ ] E – Paragraph styles (Heading 1–3, Body, Quote, Code)
+- [ ] F – User-defined styles stored in the project
 
-**Architecture Decision (ADR-005):** Interim RTF editing uses QTextEdit.
-- ProjectManager handles RTF file I/O (separation of concerns)
-- EditorPanel uses QTextEdit for display (can swap to custom editor later)
-- See `project_docs/15_text_editor_architecture.md` for migration path
+### Stage 4 – Phase 1 completion
 
-**Completed:**
-- [x] Phase A: Analysis & Design
-- [x] Phase B: Core Infrastructure (ProjectManager, BookElement)
-- [x] Phase C: NewItemDialog
-- [x] Phase D: Project Loading
-- [x] Phase E: Chapter Editing (QTextEdit, dirty tracking, Save All)
-- [x] Phase F: Standalone Mode (StandaloneInfoBar, AddToProject, Other Files)
-- [x] Phase G: PropertiesPanel (project/chapter properties, contextual views)
-
-**Completed:**
-- [x] Phase H: Export/Import Archive (.klh.zip)
-- [x] Phase I: SKIPPED (no legacy users)
-- [x] Phase J: Manual testing done
-
-**Status: COMPLETE (100%)**
-
-**Dependencies for full functionality:**
-- Word count (chapters): Requires Custom Text Editor (1.5)
-- Statistics aggregation: Requires Statistics Module (1.7)
-- Chapter status field: Add to BookElement class
-
-### 1.3 Perspective System
-
-**Philosophy:** Named window layouts for different workflows (Writer, Editor, Researcher).
-
-**Current State:** Basic saveState/restoreState works, but no named perspectives
-
-**Tasks:**
-- [ ] Define default perspectives (Writer, Editor, Researcher, Planner)
-- [ ] Perspective save/load mechanism
-- [ ] "Save Current Perspective..." dialog
-- [ ] "Manage Perspectives..." dialog
-- [ ] Default perspective on first run
-- [ ] Perspective switching via VIEW menu and keyboard shortcuts
-
-### 1.4 Navigator Panel COMPLETE
-
-**Philosophy:** Tree view of project structure with full editing capabilities.
-
-**Current State:** ~~Basic QTreeWidget showing book structure~~ Full-featured navigator (OpenSpec #00034, #00036)
-
-**Tasks:**
-- [x] Context menu (right-click) for all operations (OpenSpec #00034)
-- [x] Drag & drop reordering of chapters/parts (OpenSpec #00034)
-- [x] Icons for element types (Part, Chapter, Scene, Note) (OpenSpec #00034)
-- [x] Double-click opens chapter in editor (OpenSpec #00034)
-- [x] Synchronization with editor (highlight current chapter) (OpenSpec #00034)
-- [x] Search/filter within navigator (OpenSpec #00034)
-- [x] Status submenu for chapters (OpenSpec #00036)
-
-### 1.5 Custom Text Editor (OpenSpec #00042) DEPLOYED
-
-**Philosophy:** Rich text editor optimized for long-form writing (novels, books).
-
-**Current State:** DEPLOYED 2026-02-18. 109/109 subtasks complete, 596 tests passing, 4220 assertions. Performance blockers resolved in OpenSpec #00043 (deployed 2026-02-17).
-
-**Phase 1: KML Model Layer** COMPLETE
-- [x] KML Element base class with ElementType enum
-- [x] KML Text Run with styling support
-- [x] KML Inline Elements (Bold, Italic, Underline, Strike)
-- [x] KML Paragraph with text manipulation
-- [x] KML Document with observer pattern
-- [x] KML Parser (read/write)
-- [x] KML Table support (`<table>`, `<tr>`, `<td>`, `<th>`)
-
-**Phase 2: Layout Engine** COMPLETE
-- [x] Paragraph layout with text measurement
-- [x] Table layout with cell sizing
-- [x] Virtual scroll manager for performance
-- [x] Layout manager integration
-
-**Phase 3: BookEditor Widget** COMPLETE
-- [x] Custom QWidget-based editor
-- [x] Rendering pipeline (QPainter)
-- [x] Cursor and selection handling
-- [x] Keyboard navigation
-- [x] Mouse interaction
-- [x] Accessibility support
-
-**Phase 4: Text Input & Editing** COMPLETE
-- [x] Unicode input with IME support
-- [x] Rich text formatting commands
-- [x] Undo/Redo with QUndoStack
-- [x] Clipboard (KML, HTML, plain text)
-
-**Phase 5: View Modes** COMPLETE
-- [x] Continuous Mode (default)
-- [x] Page Mode with A4/Letter sizes
-- [x] Typewriter Mode with scroll animation
-- [x] Focus Mode (paragraph/sentence/line dimming)
-- [x] Distraction-Free Mode with overlays
-- [x] Split View (horizontal/vertical)
-
-**Phase 6: Analytics & Language Services** COMPLETE
-- [x] StatisticsCollector (word count, reading time)
-- [x] WordFrequencyAnalyzer (overused words)
-- [x] SpellCheckService (Hunspell integration)
-- [x] GrammarCheckService (LanguageTool API)
-
-**Phase 7: Testing & Documentation** COMPLETE
-- [x] 7.17 Unit Tests (SpellCheck, Grammar)
-- [x] 7.18 Integration Tests (full workflow)
-- [x] 7.19 Manual Testing
-- [x] 7.20 Documentation
-- [x] 7.21 Final Review
-
-**Test Status:** 596 test cases, 4220 assertions passing
-
-### 1.5.1 Editor Performance Rewrite (OpenSpec #00043) DEPLOYED
-
-**Goal:** Architectural rewrite for 100-1000x performance on 150k+ word documents.
-
-**Deployed:** 2026-02-17. ~20 deep-refactoring tasks deferred to future OpenSpec.
-
-**Key Achievements:**
-- [x] Phase 1-10: Fundamental infrastructure (92-290x benchmark improvements)
-- [x] Phase 11: KmlDocumentModel with lazy rendering (131ms vs 30s freeze)
-- [x] Phase 12: EditorRenderPipeline unified rendering
-- [x] Phase 13: DPI scaling, pagination, view modes streamlined
-- [x] Phase 15: Pipeline as single source of truth for font/margins/width
-- [x] P0 Fix: Scroll Mode viewport culling (~150x fewer draw calls)
-- [x] P0 Fix: Font propagation (full re-layout instead of 3 blocks)
-- [x] P1 Fix: markRepaintOnly() for color-only setters
-- [x] Documentation and cleanup
-
-**Absorbed:** OpenSpec #00045 (Architecture Cleanup)
-
-### 1.6 Search & Replace
-
-**Philosophy:** Fast, powerful search within current document and entire project.
-
-**Tasks:**
-- [ ] Find dialog (Ctrl+F)
-- [ ] Replace dialog (Ctrl+H)
-- [ ] Options: case-sensitive, whole word, regex
-- [ ] Find in selection
-- [ ] Find in entire project (all chapters)
-- [ ] Search results panel
-- [ ] Highlight all matches
-
-### 1.7 Statistics Architecture (3-Tier System)
-
-**Philosophy:** Live monitoring (Bar) + Weekly analysis (Panel) + Deep dive (Central Window)
-
-- [ ] **Statistics Bar** (top of central window, always visible)
-- [ ] **Weekly Statistics Panel** (dockable, toggleable via VIEW menu)
-- [ ] **Advanced Analytics** (central window tab, Premium plugin $14)
-
-### 1.8 Mind Maps & Timelines (Library Architecture)
-
-**Philosophy:** Multiple maps/timelines per project, edited in central window
-
-- [ ] **Mind Maps Library** (MindMaps/*.kmap files)
-- [ ] **Timelines Library** (Timelines/*.ktl files)
-
-### 1.9 Theme & Icon System COMPLETE
-
-**Philosophy:** User-configurable themes with per-theme color customization and centralized icon management.
-
-**Architecture (Implemented):**
-
-1. **ThemeManager (QObject singleton)**
-   - Loads theme JSON files (Light.json, Dark.json)
-   - Emits `themeChanged(const Theme&)` signal on theme switch
-   - Stores per-theme user color overrides in SettingsManager
-   - Applies QPalette to QApplication for native widget styling
-
-2. **IconRegistry (Runtime SVG rendering)**
-   - SVG templates with `{COLOR_PRIMARY}` / `{COLOR_SECONDARY}` placeholders
-   - Renders icons on-demand with current theme colors
-   - Connected to ThemeManager::themeChanged for color updates
-   - Caches rendered QPixmaps for performance
-
-3. **Per-Theme Icon Colors (SettingsManager)**
-   - Each theme can have custom primary/secondary icon colors
-   - Stored as: `iconColors.Light.primary`, `iconColors.Dark.primary`, etc.
-   - User overrides persist across sessions
-   - "Restore Defaults" resets to theme file values
-
-4. **ArtProvider (Central Visual Resource Manager)**
-   - Singleton facade for all icon/image requests
-   - 9 icon contexts (toolbar, menu, treeView, tabBar, statusBar, button, panel, dialog, comboBox)
-   - Self-updating QActions via `createAction()` method
-   - `getPreviewPixmap()` for HiDPI icon previews
-   - Automatic icon refresh on theme/color changes
-
-5. **KalahariStyle (QProxyStyle)**
-   - Reads icon sizes from ArtProvider for each context
-   - Applied globally in main.cpp
-   - Provides consistent icon sizing across all Qt widgets
-
-6. **BusyIndicator (Reusable Spinner Widget)**
-   - Modal overlay with animated 3 pulsating dots
-   - Theme-aware primary color
-   - Static `tick()` method for animation during blocking operations
-   - `BusyIndicator::run()` helper for simple usage
-
-**Settings Dialog Structure:**
-
-- **Appearance/General:** Font size, language selection
-- **Appearance/Theme:** Theme selector, color overrides, "Restore Defaults"
-- **Appearance/Icons:** Icon theme selector (twotone/filled/outlined/rounded), sizes for all 9 contexts, primary/secondary color buttons with preview
-- **Editor:** Font, line spacing, spell check (placeholder)
-- **Advanced:** Diagnostic mode, log configuration
-
-**Implementation Status:**
-- [x] Theme JSON schema with full color palette
-- [x] ThemeManager class with QPalette integration
-- [x] Default themes: Light.json + Dark.json
-- [x] IconRegistry SVG color replacement
-- [x] Settings Dialog with QTreeWidget + QStackedWidget (14 pages)
-- [x] Per-theme icon color storage and persistence
-- [x] GUI icon refresh on theme/color change (toolbar + menu)
-- [x] ArtProvider central visual resource manager
-- [x] KalahariStyle QProxyStyle integration
-- [x] Extended icon size configuration (9 contexts)
-- [x] Icon theme selector UI with preview
-- [x] BusyIndicator reusable spinner widget
-- [x] Log Panel enhanced (real-time logs, colored output, batched updates) - OpenSpec #00027
-- [x] Centralized icon color management (ArtProvider single source of truth) - OpenSpec #00032
+- [ ] Statistics bar and weekly statistics panel
+- [ ] Named perspectives (Writer, Editor, Researcher, Planner), save and manage dialogs
+- [ ] Export: DOCX and Markdown as a minimum
+- [ ] Translations (Qt Linguist `.ts`/`.qm`)
+- [ ] Release **0.4.0-alpha**
 
 ---
 
-## PHASE 2: Plugin System MVP (Weeks 21-30)
+## Phase 2 – Plugins (target: 0.5.0-alpha)
 
-**Status:** PLANNED
-**Target:** 0.5.0-alpha
+All plugins are free and MIT-licensed. Plugin signing (`PluginSignature`, `TrustedKeys`)
+stays: it protects users from tampered code.
 
-### 2.1 Plugin UI Integration
+- [ ] Plugin Manager dialog: discovery, install, uninstall, enable, disable, settings
+- [ ] Extension points: `IExporter`, `IPanelProvider`, `IAssistant`
+- [ ] First plugins: statistics (Meerkat), writing goals (Lion), notes and character cards
+      (Elephant), quick actions and snippets (Cheetah)
+- [ ] Plugin API documentation and templates
 
-- [ ] Plugin Manager dialog (QDialog)
-- [ ] Plugin discovery from ~/.kalahari/plugins/
-- [ ] Install/Uninstall/Enable/Disable UI
-- [ ] Plugin settings panels (QWidget subclasses)
+## Phase 3 – Writer's features
 
-### 2.2 Four MVP Plugins
+Delivered as free plugins or core features, in an order decided after Phase 2.
 
-- [ ] **Meerkat (Statistics):** Word count, character count, reading time
-- [ ] **Lion (Writing Goals):** Daily/weekly goals, progress tracking
-- [ ] **Elephant (Notes):** Research notes, character cards
-- [ ] **Cheetah (Quick Actions):** Keyboard shortcuts, snippets
+- [ ] Mind maps and timelines (`.kmap`, `.ktl`)
+- [ ] Export suite: PDF, EPUB, LaTeX, ICML
+- [ ] Import: DOCX, Markdown, plain text, Scrivener
+- [ ] Research tools and notes
+- [ ] AI assistant integrations (user-provided keys or local models)
+- [ ] Tables, lists and images in the editor
 
-### 2.3 Extension Point API
+## Phase 4 – Release 1.0
 
-- [ ] IExporter C++ interface (PDF, DOCX, HTML)
-- [ ] IPanelProvider C++ interface (dock panels)
-- [ ] IAssistant C++ interface (AI assistants)
-- [ ] Plugin API documentation
+- [ ] Full test suite (unit, integration, GUI with QTest, rendering snapshots)
+- [ ] User manual and plugin development guide
+- [ ] Installers: Windows, macOS (`.dmg`), Linux (`.deb`, Flatpak)
+- [ ] Version 1.0.0
 
----
-
-## PHASE 3: Feature Plugins (Weeks 31-44)
-
-**Status:** PLANNED
-**Target:** 0.6.0-beta
-
-### 3.1 Premium Plugin Development
-
-- [ ] **AI Assistant Pro** ($19)
-- [ ] **Advanced Analytics** ($14)
-- [ ] **Export Suite** ($29)
-
-### 3.2 Plugin Marketplace
-
-- [ ] Online plugin repository
-- [ ] License verification system
-- [ ] Update notification system
+No dates are given: the project is developed in spare time, and earlier estimates
+proved unreliable.
 
 ---
 
-## PHASE 4: Advanced Plugins (Weeks 45-56)
+## Related documents
 
-**Status:** PLANNED
-**Target:** 0.7.0-beta
-
-### 4.1 Research & Collaboration
-
-- [ ] **Research Pro** ($39)
-- [ ] **Collaboration Pack** ($29)
-
-### 4.2 Cloud Integration
-
-- [ ] Cloud Sync Pro (SaaS $5-10/month)
-- [ ] Auto-save to cloud
-- [ ] Device synchronization
-
----
-
-## PHASE 5: Polish & Release (Weeks 57-68)
-
-**Status:** PLANNED
-**Target:** 1.0.0
-
-### 5.1 Testing & QA
-
-- [ ] Comprehensive test suite (unit + integration)
-- [ ] Manual testing on all platforms
-- [ ] Beta testing program (100 users)
-- [ ] Bug triage and fixes
-
-### 5.2 Documentation
-
-- [ ] User manual (MkDocs)
-- [ ] Plugin development guide
-- [ ] API reference (Doxygen)
-- [ ] Video tutorials
-
-### 5.3 Packaging & Distribution
-
-- [ ] Windows installer (NSIS or WiX)
-- [ ] macOS .dmg (notarized)
-- [ ] Linux .deb/.rpm packages
-- [ ] Flatpak/Snap for universal Linux
-
-### 5.4 Release
-
-- [ ] Version 1.0.0 release
-- [ ] Press kit
-- [ ] Launch announcement
-- [ ] Community support channels
-
----
-
-## Key Milestones
-
-- [x] **2025-10-31:** Phase 0 Foundation Complete (wxWidgets)
-- [x] **2025-11-19:** Qt Migration Decision & Start
-- [x] **2025-11-21:** Phase 0 Qt Foundation Complete (2 days!)
-- [x] **2025-11-27:** Theme & Icon System Complete (ArtProvider, BusyIndicator)
-- [x] **2025-11-27:** Enhanced Log Panel Complete (real-time spdlog, mode visibility)
-- [x] **2025-12-07:** Theme Color Configuration Complete (OpenSpec #00027)
-- [x] **2025-12-10:** Menu System Review & Cleanup Complete (OpenSpec #00030)
-- [x] **2025-12-11:** Theme & Icons Optimization Complete (OpenSpec #00032)
-- [x] **2025-12-15:** Navigator Panel Enhancements Complete (OpenSpec #00034)
-- [x] **2025-12-16:** Dashboard & Navigator Enhancements Complete (OpenSpec #00036)
-- [x] **2025-12-16:** Quick Actions & Help Toolbar Complete (OpenSpec #00037)
-- [x] **2025-12-23:** Custom Text Editor Phase 6 Analytics Complete (OpenSpec #00042)
-- [x] **2026-01-10:** Custom Text Editor Phase 7 subtasks complete (OpenSpec #00042)
-- [x] **2026-01-10:** Editor Performance Rewrite started (OpenSpec #00043)
-- [x] **2026-02-17:** Editor Performance Rewrite DEPLOYED (OpenSpec #00043)
-- [x] **2026-02-18:** Custom Text Editor DEPLOYED (OpenSpec #00042) - 596 tests, 4220 assertions
-- [ ] **2026-Q2:** Phase 1 Core Editor Complete
-- [ ] **2026-07:** Phase 2 Plugin System MVP Complete
-- [ ] **2026-Q3:** Beta Release (0.7.0)
-- [ ] **2026-Q4:** Kalahari 1.0 Release
-
----
-
-## Success Criteria
-
-### Phase 0 (Qt Foundation) COMPLETE
-- wxWidgets archived (branch + tag)
-- Qt6 build system working (all platforms)
-- Documentation updated (CLAUDE.md, CHANGELOG.md, project_docs/)
-- QMainWindow with menu/toolbar/statusbar
-- Settings dialog with Qt layouts
-- Basic text editor with QPlainTextEdit
-- Command Registry migrated
-
-### Phase 1 (Core Editor) IN PROGRESS
-- Rich text editing with formatting
-- Document structure (Parts, Chapters)
-- Search & Replace
-- Project management
-- Word count & statistics
-- Theme & Icon system foundation
-
-### Phases 2-5
-- See individual phase sections above
-
----
-
-## Technical Debt & Future Improvements
-
-### Immediate (Phase 0-1)
-- [ ] Qt Designer .ui files for dialogs (consider for Phase 1)
-- [ ] QTest unit tests for GUI (supplement Catch2)
-- [ ] Qt Linguist integration (.ts/.qm i18n)
-- [x] Centralized icon refresh (ArtProvider::resourcesChanged signal) - OpenSpec #00032
-
-### Medium-term (Phase 2-3)
-- [ ] Custom QSyntaxHighlighter for book-specific formatting
-- [ ] QUndoStack/QUndoCommand for undo/redo
-- [ ] QDataStream for binary serialization (performance)
-
-### Long-term (Phase 4-5)
-- [ ] Qt WebEngine for HTML preview
-- [ ] Qt Quick/QML for modern UI (future consideration)
-- [ ] Qt Network for cloud sync
-- [ ] Qt Concurrent for background tasks
-
----
-
-## Notes
-
-1. **OpenSpec Tasks:** All implementation tasks tracked in `openspec/changes/` directory
-2. **wxWidgets Archive:** All wxWidgets code preserved in wxwidgets-archive branch
-3. **Atomic Workflow:** Maintained from v5.x (30-120 min tasks)
-4. **Testing:** Catch2 for core, QTest for GUI (Phase 1+)
-5. **Qt LGPL:** Dynamic linking, no commercial license needed
-6. **Plugin API:** Pure C++ types (no Qt types in API) -> proprietary plugins OK
-
----
-
-**Document Version:** 2.7
-**Last Update:** 2026-02-18
-**Updated By:** Claude (OpenSpec #00041 DEPLOYED, #00042 DEPLOYED, #00043 DEPLOYED, #00044 PENDING, #00045 ABSORBED)
+- `CHANGELOG.md` – what changed in each version
+- `docs/superpowers/specs/` and `docs/superpowers/plans/` – designs and implementation plans
+- `docs/openspec-archive/` – historical task records (#00001–#00045)
+- `project_docs/06_roadmap.md` – rules for maintaining this file and the changelog

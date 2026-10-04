@@ -11,7 +11,10 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
-    timeout-minutes: 120  # Qt6 via vcpkg takes a long time
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
 
     strategy:
       matrix:
@@ -70,16 +73,22 @@ jobs:
         C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf autoconf-archive automake libtool"
       continue-on-error: true
 
-    - name: Cache vcpkg
-      uses: actions/cache@v4
+    # vcpkg binary cache: zipped build results of every port, shared by the Debug
+    # and Release jobs (the x64-windows triplet builds both configurations).
+    # Ports whose ABI did not change (same baseline, compiler and flags) are
+    # restored from it instead of being rebuilt.
+    - name: Prepare vcpkg binary cache directory
+      run: New-Item -ItemType Directory -Force -Path "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}" | Out-Null
+      shell: pwsh
+
+    - name: Restore vcpkg binary cache
+      uses: actions/cache/restore@v4
       with:
-        path: |
-          vcpkg
-          build/vcpkg_installed
-        key: windows-msvc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: windows-msvc-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
         restore-keys: |
-          windows-msvc-vcpkg-v4-${{ hashFiles('vcpkg.json') }}-
-          windows-msvc-vcpkg-v4-
+          windows-msvc-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-
+          windows-msvc-vcpkg-binary-v1-
 
     - name: Bootstrap vcpkg
       run: |
@@ -88,7 +97,7 @@ jobs:
           cd vcpkg
           .\bootstrap-vcpkg.bat
         } else {
-          Write-Host "vcpkg already bootstrapped (from cache or previous run)"
+          Write-Host "vcpkg already bootstrapped"
           .\vcpkg\vcpkg.exe version
         }
       shell: powershell
@@ -104,13 +113,22 @@ jobs:
         CC: cl
         CXX: cl
 
+    # Saved once per run (Release job only, both jobs produce the same ports) so the
+    # next run starts from the newest set of binaries; old entries age out of the cache.
+    - name: Save vcpkg binary cache
+      if: matrix.build_type == 'Release'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: windows-msvc-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
+
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure --build-config ${{ matrix.build_type }}
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} --parallel 4
 
     - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'

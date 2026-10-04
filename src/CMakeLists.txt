@@ -126,6 +126,7 @@ target_link_libraries(kalahari_core PUBLIC
     libzip::zip
     Python3::Python
     pybind11::embed
+    ${CMAKE_DL_LIBS}  # dladdr (Python home detection on Linux)
     OpenSSL::SSL      # OpenSpec #00038: Ed25519 signature verification
     OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
 )

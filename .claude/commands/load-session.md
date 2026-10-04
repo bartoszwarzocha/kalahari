@@ -4,6 +4,8 @@ description: Restore session state from .claude/session-state.json
 
 # Load Session Command
 
+> `.claude/session-state.json` is git-ignored: it is a local, per-machine checkpoint.
+
 Restores working context at the start of a session.
 
 ## Usage

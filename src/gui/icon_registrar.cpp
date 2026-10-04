@@ -129,13 +129,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.autoSaveSettings", "resources/icons/twotone/sync.svg", "Auto-Save Settings");
     iconRegistry.registerIcon("tools.versionHistory", "resources/icons/twotone/history.svg", "Version History");
     iconRegistry.registerIcon("tools.plugins.manager", "resources/icons/twotone/extension.svg", "Plugin Manager");
-    iconRegistry.registerIcon("tools.plugins.marketplace", "resources/icons/twotone/storefront.svg", "Marketplace");
     iconRegistry.registerIcon("tools.plugins.updates", "resources/icons/twotone/system_update.svg", "Plugin Updates");
     iconRegistry.registerIcon("tools.plugins.reload", "resources/icons/twotone/refresh.svg", "Reload Plugins");
     iconRegistry.registerIcon("tools.challenges", "resources/icons/twotone/emoji_events.svg", "Writing Challenges");
     iconRegistry.registerIcon("tools.writingGoals", "resources/icons/twotone/track_changes.svg", "Writing Goals");
-    iconRegistry.registerIcon("tools.cloudSync", "resources/icons/twotone/cloud_sync.svg", "Cloud Sync");
-    iconRegistry.registerIcon("tools.collaboration", "resources/icons/twotone/groups.svg", "Collaboration");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 

@@ -2,68 +2,59 @@
 /// @brief C++ ↔ Python interoperability tests
 
 #include <catch2/catch_test_macros.hpp>
-#include <Python.h>
+#include <pybind11/embed.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/plugin_manager.h>
+#include <kalahari/core/python_interpreter.h>
 
+namespace py = pybind11;
 using namespace kalahari::core;
 
-/// @brief Python interpreter RAII wrapper for tests
-class PythonInterpreter {
-public:
-    PythonInterpreter() {
-        Py_Initialize();
-    }
+namespace {
 
-    ~PythonInterpreter() {
-        if (Py_IsInitialized()) {
-            Py_Finalize();
-        }
+/// Runs Python code in the application's interpreter. The interpreter is a
+/// process-wide singleton shared with the other Python tests, so the tests
+/// never finalize it themselves.
+bool runPython(const char* code) {
+    PythonInterpreter::getInstance().initialize();  // No-op when already initialized
+    py::gil_scoped_acquire gil;
+    try {
+        py::exec(code);
+        return true;
+    } catch (const py::error_already_set& e) {
+        UNSCOPED_INFO(e.what());
+        return false;
     }
+}
 
-private:
-    // Prevent copying
-    PythonInterpreter(const PythonInterpreter&) = delete;
-    PythonInterpreter& operator=(const PythonInterpreter&) = delete;
-};
+} // namespace
 
 TEST_CASE("Python interop: Initialize Python interpreter", "[python-interop]") {
-    PythonInterpreter py;
+    PythonInterpreter::getInstance().initialize();
+    REQUIRE(PythonInterpreter::getInstance().isInitialized());
     REQUIRE(Py_IsInitialized());
 }
 
 TEST_CASE("Python interop: Execute simple Python code", "[python-interop]") {
-    PythonInterpreter py;
-
-    const char* code = R"(
+    REQUIRE(runPython(R"(
 print("Hello from Python")
 x = 42
-)";
-
-    int result = PyRun_SimpleString(code);
-    REQUIRE(result == 0);  // Success
+)"));
 }
 
 TEST_CASE("Python interop: Execute Python with sys.path setup", "[python-interop]") {
-    PythonInterpreter py;
-
-    // In real scenario, would add build directory to sys.path here
-    // For now, just verify Python code execution works
-    const char* code = R"(
+    REQUIRE(runPython(R"(
 import sys
 sys.path.insert(0, '.')
-)";
-
-    int result = PyRun_SimpleString(code);
-    REQUIRE(result == 0);
+)"));
 }
 
 TEST_CASE("Python interop: PluginManager accessible from C++", "[python-interop]") {
     PluginManager& manager = PluginManager::getInstance();
 
-    // Verify singleton is working
-    REQUIRE(manager.getDiscoveredPlugins().empty());
+    // Verify singleton is working (rescan first: an earlier test may have discovered plugins)
     REQUIRE_NOTHROW(manager.discoverPlugins());
+    REQUIRE(manager.getDiscoveredPlugins().empty());
 }
 
 TEST_CASE("Python interop: Logger accessible from C++", "[python-interop]") {

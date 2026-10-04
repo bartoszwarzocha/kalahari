@@ -199,3 +199,5 @@ Clipboard_*.png
 
 # Claude Code auto-generated state (local only)
 .claude/compact-state.json
+.claude/session-state.json
+.claude/settings.local.json
