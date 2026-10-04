@@ -248,6 +248,7 @@ private:
     void updateCurrentMatchForPosition(size_t position);
 
     QTextDocument* m_document = nullptr;     ///< QTextDocument (not owned) - Phase 11.6
+    QMetaObject::Connection m_documentEdits; ///< Invalidates the matches on document edits
     QString m_searchText;                    ///< Current search text
     QString m_replaceText;                   ///< Current replacement text
     SearchOptions m_options;                 ///< Current search options

@@ -16,8 +16,10 @@ set(TEST_SOURCES
     core/test_document.cpp
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
+    core/test_text_statistics.cpp
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
+    core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
     core/test_plugin_manager.cpp
     core/test_python_interpreter.cpp
     core/test_python_interop.cpp
@@ -52,6 +54,11 @@ set(TEST_SOURCES
     editor/test_kml_document_model.cpp     # OpenSpec #00043: KmlDocumentModel lazy rendering tests
     editor/test_format_converter.cpp       # Sub-Project C WS4.2: FormatConverter unit tests
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
+    editor/test_editor_stage0_kml_roundtrip.cpp  # Editor Stage 0: KML load/save through BookEditor
+    editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
+    editor/test_editor_stage1.cpp                # Editor Stage 1: regressions for the quick fixes
+    benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
+    benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
@@ -82,6 +89,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp

@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTextCharFormat>
+#include <QVariantMap>
 #include <QVector>
 #include <QXmlStreamAttributes>
 
@@ -108,6 +109,24 @@ const MetadataTagDef* getMetadataTagDef(const QString& tag);
 /// @return Pointer to definition, or nullptr if not found
 const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId);
 
+/// @brief Read a metadata tag's XML attributes into the map stored under its property
+///
+/// Flag attributes (resolved, completed) become bool and numeric ones (number) int;
+/// every other attribute is kept as a string, so unknown attributes survive a
+/// load/save cycle.
+/// @param attrs XML attributes of the metadata start element
+/// @return Map of attribute name to value
+QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs);
+
+/// @brief Serialize a metadata map as XML attributes, e.g. ` id="c1" resolved="true"`
+///
+/// The tag's known attributes come first, in definition order, then any other keys.
+/// False flags and empty values are omitted; values are XML-escaped.
+/// @param tag The metadata tag name
+/// @param metadata Map stored under the tag's property
+/// @return Attribute string, each attribute preceded by a space
+QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata);
+
 // =============================================================================
 // Inline Style Attributes
 // =============================================================================
@@ -117,6 +136,26 @@ const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId);
 /// @param format Character format to update (modified in place)
 void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,
                                 QTextCharFormat& format);
+
+// =============================================================================
+// Document Structure
+// =============================================================================
+
+/// @brief Give KML the root element the editor reads it with
+///
+/// Content that does not start with a <kml>, <document> or <doc> element, such as a
+/// bare sequence of paragraphs, is wrapped in <kml>...</kml>.
+/// @param kml KML content
+/// @return Trimmed content with a single root element
+QString withRootElement(const QString& kml);
+
+/// @brief Check if an element inside a paragraph contributes its text
+///
+/// True for formatting tags, metadata tags and text runs (<t>, <text>). The editor
+/// skips any other element inside a paragraph together with everything in it.
+/// @param tag The tag name
+/// @return true if the element's text belongs to the paragraph
+bool isInlineTextTag(const QString& tag);
 
 // =============================================================================
 // Utilities

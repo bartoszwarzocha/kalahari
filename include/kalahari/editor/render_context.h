@@ -22,6 +22,15 @@ namespace kalahari::editor {
 /// @brief Default screen DPI (standard 96 DPI display)
 constexpr double DEFAULT_DPI = 96.0;
 
+/// @brief Typographic points per inch (page sizes are given in points)
+constexpr double POINTS_PER_INCH = 72.0;
+
+/// @brief Millimetres per inch (page margins are given in millimetres)
+constexpr double MM_PER_INCH = 25.4;
+
+/// @brief Narrowest wrap width (pixels), used when the viewport is narrower than its margins
+constexpr double MIN_TEXT_WIDTH = 100.0;
+
 /// @brief Margin configuration for rendering
 ///
 /// Defines the margins around the text content area.
@@ -109,7 +118,6 @@ struct RenderColors {
 /// @brief Cursor rendering configuration
 struct CursorConfig {
     double width = 2.0;                        ///< Cursor width in pixels
-    int blinkInterval = 530;                   ///< Blink interval in ms (0 = no blink)
     bool visible = true;                       ///< Whether cursor is visible
     bool blinkState = true;                    ///< Current blink state (for rendering)
 };
@@ -165,7 +173,9 @@ struct RenderContext {
     // DPI Scaling (for WYSIWYG rendering)
     // -------------------------------------------------------------------------
 
-    double screenDpi = DEFAULT_DPI;            ///< Physical screen DPI from physicalDotsPerInch()
+    /// Logical screen DPI (QScreen::logicalDotsPerInch()) - the DPI Qt converts font points
+    /// to pixels with, so page sizes in points and margins in mm match the text
+    double screenDpi = DEFAULT_DPI;
 
     // -------------------------------------------------------------------------
     // Typography
@@ -227,8 +237,7 @@ struct RenderContext {
         // DPI-derived values
         // ---------------------------------------------------------------------
 
-        double dpiScale = 1.0;                  ///< screenDpi / DEFAULT_DPI
-        double mmToPixels = DEFAULT_DPI / 25.4; ///< Conversion factor (dpi / 25.4)
+        double mmToPixels = DEFAULT_DPI / MM_PER_INCH;  ///< Conversion factor (dpi / 25.4)
 
         // ---------------------------------------------------------------------
         // Effective font (after zoom in FontScaling mode)
@@ -265,7 +274,7 @@ struct RenderContext {
         // ---------------------------------------------------------------------
 
         double viewScale = 1.0;                 ///< Scale for QPainter (PageScaling mode)
-        double totalScale = 1.0;                ///< Combined DPI + zoom scale
+        double totalScale = 1.0;                ///< Zoom scale (DPI needs none: see screenDpi)
 
         // ---------------------------------------------------------------------
         // Visible range

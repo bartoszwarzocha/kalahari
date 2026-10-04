@@ -108,24 +108,20 @@ TEST_CASE("Buffer command helper functions", "[editor][buffer_commands][helpers]
 // =============================================================================
 
 TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
-    SECTION("toJson and fromJson roundtrip") {
+    SECTION("toVariantMap and fromVariant roundtrip") {
         TextMarker original;
-        original.position = 42;
-        original.length = 5;
         original.text = QStringLiteral("Fix this bug");
         original.type = MarkerType::Todo;
-        original.completed = false;
+        original.completed = true;
         original.priority = QStringLiteral("high");
         original.id = QStringLiteral("test-uuid-123");
         original.timestamp = QStringLiteral("2024-01-15T10:30:00Z");
 
-        QString json = original.toJson();
-        REQUIRE(!json.isEmpty());
+        const QVariantMap map = original.toVariantMap();
+        REQUIRE(map.value(QStringLiteral("id")).toString() == original.id);
 
-        auto restored = TextMarker::fromJson(json);
+        auto restored = TextMarker::fromVariant(map);
         REQUIRE(restored.has_value());
-        REQUIRE(restored->position == original.position);
-        REQUIRE(restored->length == original.length);
         REQUIRE(restored->text == original.text);
         REQUIRE(restored->type == original.type);
         REQUIRE(restored->completed == original.completed);
@@ -134,14 +130,48 @@ TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
         REQUIRE(restored->timestamp == original.timestamp);
     }
 
-    SECTION("fromJson with invalid JSON returns nullopt") {
-        auto result = TextMarker::fromJson(QStringLiteral("not valid json"));
-        REQUIRE(!result.has_value());
+    SECTION("map keys are the attributes of the KML todo tag") {
+        TextMarker marker;
+        marker.id = QStringLiteral("t1");
+        marker.text = QStringLiteral("Check");
+        marker.timestamp = QStringLiteral("2026-01-02T03:04:05");
+
+        const QString attrs =
+            KmlFormatRegistry::writeMetadataAttributes(QStringLiteral("todo"), marker.toVariantMap());
+        REQUIRE(attrs == QStringLiteral(" id=\"t1\" text=\"Check\" created=\"2026-01-02T03:04:05\""));
     }
 
-    SECTION("fromJson with empty string returns nullopt") {
-        auto result = TextMarker::fromJson(QString());
-        REQUIRE(!result.has_value());
+    SECTION("attributes without a field survive fromVariant and toVariantMap") {
+        // Regression: only the fields were kept, so a toggled marker written back lost
+        // every other attribute of its <todo> tag
+        const QVariantMap loaded{{QStringLiteral("id"), QStringLiteral("t1")},
+                                 {QStringLiteral("owner"), QStringLiteral("Ann")},
+                                 {QStringLiteral("completed"), false}};
+        auto marker = TextMarker::fromVariant(loaded);
+        REQUIRE(marker.has_value());
+        if (marker) {  // clang-tidy cannot see that a failed REQUIRE ends the test
+            CHECK(marker->otherAttributes ==
+                  QVariantMap{{QStringLiteral("owner"), QStringLiteral("Ann")}});
+            marker->completed = true;
+            const QVariantMap written = marker->toVariantMap();
+            CHECK(written.value(QStringLiteral("owner")).toString() == QStringLiteral("Ann"));
+            CHECK(written.value(QStringLiteral("id")).toString() == QStringLiteral("t1"));
+            CHECK(written.value(QStringLiteral("completed")).toBool());
+        }
+    }
+
+    SECTION("fromVariant with a non-map value returns nullopt") {
+        REQUIRE(!TextMarker::fromVariant(QVariant()).has_value());
+        REQUIRE(!TextMarker::fromVariant(QStringLiteral("{\"id\":\"x\"}")).has_value());
+    }
+
+    SECTION("a bare todo (empty map) is still a marker") {
+        auto marker = TextMarker::fromVariant(QVariantMap());
+        REQUIRE(marker.has_value());
+        if (marker) {  // clang-tidy cannot see that a failed REQUIRE ends the test
+            REQUIRE(marker->type == MarkerType::Todo);
+            REQUIRE_FALSE(marker->completed);
+        }
     }
 
     SECTION("generateId creates unique IDs") {
@@ -163,8 +193,7 @@ TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
         note.text = QStringLiteral("Just a note");
         note.id = TextMarker::generateId();
 
-        QString json = note.toJson();
-        auto restored = TextMarker::fromJson(json);
+        auto restored = TextMarker::fromVariant(note.toVariantMap());
 
         REQUIRE(restored.has_value());
         REQUIRE(restored->type == MarkerType::Note);
@@ -316,6 +345,22 @@ TEST_CASE("MarkerToggleCommand basic operations", "[editor][buffer_commands]") {
         undoStack.redo();
         markers = findAllMarkers(&document);
         REQUIRE(markers[0].completed == true);
+    }
+
+    SECTION("Toggle keeps the marker's other attributes") {
+        // Regression: the toggled marker was written back without them
+        TextMarker withOwner = marker;
+        withOwner.otherAttributes = {{QStringLiteral("owner"), QStringLiteral("Ann")}};
+        setMarkerInDocument(&document, withOwner);
+
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
+
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
+        CHECK(markers[0].completed);
+        CHECK(markers[0].otherAttributes.value(QStringLiteral("owner")).toString() ==
+              QStringLiteral("Ann"));
     }
 
     SECTION("Double toggle returns to original state") {
@@ -490,7 +535,7 @@ TEST_CASE("Marker utility functions", "[editor][buffer_commands][utilities]") {
         auto markers = findAllMarkers(&document);
         REQUIRE(markers.size() == 4);
 
-        removeMarkerFromDocument(&document, 5);
+        removeMarkerFromDocument(&document, newMarker.position, newMarker.length);
         markers = findAllMarkers(&document);
         REQUIRE(markers.size() == 3);
     }

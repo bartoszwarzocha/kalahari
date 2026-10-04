@@ -39,6 +39,14 @@ DockCoordinator::DockCoordinator(QMainWindow* mainWindow, MenuBuilder* menuBuild
     logger.debug("DockCoordinator created");
 }
 
+DashboardPanel* DockCoordinator::dashboardPanel() const {
+    return m_dashboardPanel;
+}
+
+void DockCoordinator::setDashboardPanel(DashboardPanel* panel) {
+    m_dashboardPanel = panel;  // QPointer accepts raw ptr
+}
+
 void DockCoordinator::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator: Creating dock widgets");
@@ -103,6 +111,7 @@ void DockCoordinator::createCentralWidget() {
     auto& artProvider = core::ArtProvider::getInstance();
     QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
     int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, dashboardIcon, QObject::tr("Dashboard"));
+    m_dashboardPanel->setProperty("tabIconId", "view.dashboard");
     m_centralTabs->setCurrentIndex(dashboardIndex);
 
     // Connect Dashboard recent book signal
@@ -304,6 +313,23 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     }
 
     dock->setTitleBarWidget(titleBar);
+}
+
+void DockCoordinator::refreshTabIcons() {
+    if (!m_centralTabs) {
+        return;
+    }
+    auto& artProvider = core::ArtProvider::getInstance();
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        QWidget* page = m_centralTabs->widget(i);
+        if (!page) {
+            continue;
+        }
+        const QString iconId = page->property("tabIconId").toString();
+        if (!iconId.isEmpty()) {
+            m_centralTabs->setTabIcon(i, artProvider.getIcon(iconId));
+        }
+    }
 }
 
 void DockCoordinator::refreshDockIcons() {

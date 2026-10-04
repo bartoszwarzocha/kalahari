@@ -185,6 +185,7 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return m_isDirty; },
         [this](bool dirty) { setDirty(dirty); },
         [this]() { updateWindowTitle(); },
+        [this]() { return hasUnsavedChanges(); },
         this
     );
     // Connect DocumentCoordinator signals
@@ -216,9 +217,10 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::onThemeChanged);
     logger.debug("MainWindow: Connected ThemeManager::themeChanged signal to MainWindow");
 
-    // Note: ThemeManager->IconRegistry connection is handled internally by ArtProvider
-    // ArtProvider::initialize() connects ThemeManager::themeChanged to IconRegistry::onThemeChanged
-    // and synchronizes colors from the current theme
+    // Note: the icon stack's theme handling is internal to ArtProvider.
+    // ArtProvider::initialize() synchronizes colors from the current theme and connects
+    // ThemeManager::themeChanged to ArtProvider::onThemeChanged, which drives IconRegistry
+    // itself. Do not connect IconRegistry to themeChanged here -- see ArtProvider::onThemeChanged.
 
     // Connect ProjectManager signals (OpenSpec #00033 Phase D) to DocumentCoordinator
     auto& pm = core::ProjectManager::getInstance();
@@ -361,6 +363,7 @@ void MainWindow::registerCommands() {
         auto& artProvider = core::ArtProvider::getInstance();
         QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
         int dashboardIndex = centralTabs->addTab(dashboardPanel, dashboardIcon, tr("Dashboard"));
+        dashboardPanel->setProperty("tabIconId", "view.dashboard");
         centralTabs->setCurrentIndex(dashboardIndex);
 
         // Reconnect Dashboard signals to DocumentCoordinator
@@ -797,6 +800,13 @@ void MainWindow::updateEditorActionStates() {
         registry.updateActionState("format.strikethrough");
     }
 
+    // Sync the font family/size toolbar controls to the char format under the caret,
+    // so they reflect the formatting at the cursor (updates on every cursor move /
+    // selection change), not just the global default set on tab activation.
+    if (m_toolbarManager) {
+        m_toolbarManager->syncFontWidgetsToEditor(editor);
+    }
+
     // Update view mode checked states
     editor::ViewMode currentMode = bookEditor->viewMode();
     if (auto* contCmd = registry.getCommand("view.mode.continuous")) {
@@ -914,10 +924,28 @@ void MainWindow::createDocks() {
         QWidget* widget = centralTabs->widget(index);
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
-        // Check for unsaved changes if EditorPanel
-        if (editor && m_isDirty) {
-            // TODO (Phase 1): Prompt user to save changes
-            // For now: just close
+        // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
+        if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
+            auto reply = QMessageBox::question(
+                this,
+                tr("Unsaved Changes"),
+                tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                QMessageBox::Save);
+
+            if (reply == QMessageBox::Cancel) {
+                return;  // Do NOT close the tab.
+            }
+
+            if (reply == QMessageBox::Save) {
+                // Close the tab only once its content is saved: a failed or cancelled
+                // save keeps it open, with its changes
+                if (!m_documentCoordinator->saveEditor(editor)) {
+                    return;
+                }
+            } else {  // QMessageBox::Discard
+                m_documentCoordinator->discardEditorChanges(editor);
+            }
         }
 
         // Remove tab and delete widget
@@ -1008,6 +1036,11 @@ void MainWindow::createDocks() {
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
             m_dockCoordinator, &DockCoordinator::refreshDockIcons);
 
+    // Central tab icons are plain QIcons (not managed QActions), so they must be
+    // refreshed explicitly on theme/color change, same as dock icons above.
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            m_dockCoordinator, &DockCoordinator::refreshTabIcons);
+
     // Get VIEW menu reference for toolbar actions
     if (m_menuBuilder) {
         m_viewMenu = m_menuBuilder->getMenu("VIEW");
@@ -1038,35 +1071,56 @@ void MainWindow::resetLayout() {
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
 
+bool MainWindow::hasUnsavedChanges() const {
+    // Any dirty standalone editor tab (per-tab "dirty" property). Checked
+    // regardless of project state because standalone tabs can coexist with a project.
+    if (m_dockCoordinator) {
+        if (QTabWidget* tabs = m_dockCoordinator->centralTabs()) {
+            for (int i = 0; i < tabs->count(); ++i) {
+                EditorPanel* editor = qobject_cast<EditorPanel*>(tabs->widget(i));
+                if (editor && editor->property("isStandaloneFile").toBool()
+                    && editor->property("dirty").toBool()) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        // Phase-0 / standalone single-file document flag.
+        return m_isDirty;
+    }
+
+    // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
+    // set only on genuine edits because the slot is connected AFTER load. We do NOT
+    // consult the model BookElement dirty flag here: building the project tree,
+    // selecting an element, or populating the properties panel can mark an element
+    // dirty with no user edit (setContent/setMetadata set it), and such a flag can
+    // never be cleared (saveChapterContent no-ops for unloaded content) — that was
+    // the spurious "save on project open" prompt. Structure/metadata dirtiness
+    // (add/rename/move/delete + properties) is the separate pm.isDirty() axis.
+    if (m_navigatorCoordinator) {
+        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
+        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
+            if (it.value()) {
+                return true;
+            }
+        }
+    }
+    return pm.isDirty();
+}
+
 // Perspective save/restore
 void MainWindow::closeEvent(QCloseEvent* event) {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow::closeEvent triggered");
 
-    // Check for unsaved changes at project/document level
-    // OpenSpec #00042 Task 7.19 Issue #7: Also check chapter-level dirty state
-    bool hasUnsavedChanges = m_isDirty;
-
-    // Check if any chapters have unsaved changes via NavigatorCoordinator
-    if (!hasUnsavedChanges && m_navigatorCoordinator) {
-        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
-        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
-            if (it.value()) {
-                hasUnsavedChanges = true;
-                logger.debug("MainWindow::closeEvent: Found dirty chapter: {}", it.key().toStdString());
-                break;
-            }
-        }
-    }
-
-    // Check if project is dirty via ProjectManager
+    // Single source of truth for all unsaved-changes prompts (content + structure
+    // + standalone tabs). Fixes Bug#3 - previously divergent OR of competing flags.
     auto& pm = core::ProjectManager::getInstance();
-    if (!hasUnsavedChanges && pm.isProjectOpen() && pm.isDirty()) {
-        hasUnsavedChanges = true;
-        logger.debug("MainWindow::closeEvent: Project is dirty");
-    }
 
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges()) {
         QString filename = "Untitled";
         if (m_documentCoordinator && !m_documentCoordinator->currentFilePath().empty()) {
             filename = QString::fromStdString(m_documentCoordinator->currentFilePath().filename().string());
@@ -1087,20 +1141,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         );
 
         if (reply == QMessageBox::Save) {
-            if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
-            // Re-check if still dirty after save attempt
-            bool stillDirty = m_isDirty;
-            if (!stillDirty && m_navigatorCoordinator) {
-                const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
-                for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
-                    if (it.value()) {
-                        stillDirty = true;
-                        break;
-                    }
-                }
-            }
-            if (stillDirty) {
-                // Save was cancelled or failed
+            // Save the project and every editor tab; whatever could not be saved (failed,
+            // cancelled, or a standalone file, which has no save yet) keeps the window
+            // open with its changes
+            if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;
             }
@@ -1121,8 +1165,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
                 .replace("\\", "_")
                 .replace(":", "_")
                 .replace(" ", "_");
-            m_dockCoordinator->navigatorPanel()->saveExpansionState(projectId);
-            logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+            NavigatorPanel* navigator = m_dockCoordinator ? m_dockCoordinator->navigatorPanel() : nullptr;
+            if (navigator) {
+                navigator->saveExpansionState(projectId);
+                logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+            }
         }
     }
 

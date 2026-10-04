@@ -2,7 +2,9 @@
 /// @brief Chapter snapshot (restore points) implementation (OpenSpec #00042 Task 7.13)
 
 #include <kalahari/editor/snapshot_manager.h>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/text_statistics.h>
 
 #include <QDir>
 #include <QFile>
@@ -12,7 +14,6 @@
 #include <QJsonArray>
 #include <QCryptographicHash>
 #include <QUuid>
-#include <QRegularExpression>
 #include <QTextStream>
 
 #include <algorithm>
@@ -493,25 +494,7 @@ QString SnapshotManager::computeHash(const QString& content) const
 
 int SnapshotManager::countWords(const QString& content) const
 {
-    if (content.isEmpty()) {
-        return 0;
-    }
-
-    // Strip XML/KML tags for word counting
-    QString plainText = content;
-    plainText.remove(QRegularExpression("<[^>]*>"));
-
-    // Count words
-    static QRegularExpression wordRe("\\b\\w+\\b");
-    auto matches = wordRe.globalMatch(plainText);
-
-    int count = 0;
-    while (matches.hasNext()) {
-        matches.next();
-        ++count;
-    }
-
-    return count;
+    return core::countText(core::ChapterDocument::kmlToPlainText(content)).words;
 }
 
 QString SnapshotManager::generateSnapshotId() const

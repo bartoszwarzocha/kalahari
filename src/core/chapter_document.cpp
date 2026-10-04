@@ -5,11 +5,14 @@
 
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/kml_format_registry.h>
 
 #include <QFile>
 #include <QJsonDocument>
-#include <QTextDocument>
-#include <QRegularExpression>
+#include <QXmlStreamReader>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace core {
@@ -93,51 +96,18 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    m_wordCount = calculateWordCount(m_plainText);
-    m_characterCount = calculateCharacterCount(m_plainText);
+    const TextCounts counts = countText(m_plainText);
+    m_wordCount = counts.words;
+    m_characterCount = counts.nonSpaceCharacters;
     m_paragraphCount = calculateParagraphCount(m_plainText);
-}
-
-int ChapterDocument::calculateWordCount(const QString& text)
-{
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Split on whitespace and count non-empty tokens
-    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
-    const auto parts = text.split(whitespace, Qt::SkipEmptyParts);
-    return static_cast<int>(parts.count());
-}
-
-int ChapterDocument::calculateCharacterCount(const QString& text)
-{
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Count non-whitespace characters
-    int count = 0;
-    for (const QChar& ch : text) {
-        if (!ch.isSpace()) {
-            ++count;
-        }
-    }
-    return count;
 }
 
 int ChapterDocument::calculateParagraphCount(const QString& text)
 {
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Split on double newlines (paragraph separators)
-    static const QRegularExpression paragraphSep(QStringLiteral("\n\\s*\n"));
-    const auto parts = text.split(paragraphSep, Qt::SkipEmptyParts);
-
-    // At least 1 paragraph if there's any content
-    return qMax(1, static_cast<int>(parts.count()));
+    const auto lines = QStringView(text).split(QLatin1Char('\n'));
+    return static_cast<int>(std::count_if(lines.begin(), lines.end(), [](QStringView line) {
+        return !line.trimmed().isEmpty();
+    }));
 }
 
 // =============================================================================
@@ -409,24 +379,62 @@ ChapterDocument ChapterDocument::fromKmlContent(const QString& content,
     return doc;
 }
 
+namespace {
+
+/// Appends the text of the paragraph element the reader is on, up to its end tag
+void appendParagraphText(QXmlStreamReader& reader, QString& text)
+{
+    int depth = 1;  // open elements, the paragraph included
+    while (depth > 0 && !reader.atEnd()) {
+        switch (reader.readNext()) {
+        case QXmlStreamReader::StartElement:
+            if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
+                ++depth;
+            } else {
+                reader.skipCurrentElement();  // with everything inside it
+            }
+            break;
+        case QXmlStreamReader::EndElement:
+            --depth;
+            break;
+        case QXmlStreamReader::Characters:
+            text += reader.text();
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+}  // anonymous namespace
+
 QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
-    if (kml.isEmpty()) {
-        return QString();
+    // Collect the text of the paragraphs in a single streaming pass, by the editor's
+    // rules (KmlDocumentModel): a fragment gets the same root element, only <p> and
+    // <paragraph> children of the root are paragraphs, and elements other than
+    // formatting, metadata and text runs are skipped with everything inside them.
+    // Inline tags vanish without splitting words and entities are decoded - so the
+    // statistics match the editor's.
+    QString result;
+    result.reserve(kml.size());
+    QXmlStreamReader reader(editor::KmlFormatRegistry::withRootElement(kml));
+    if (!reader.readNextStartElement()) {
+        return result;  // no root element
     }
-
-    // PERFORMANCE FIX: Use regex to strip XML tags instead of creating QTextDocument
-    // QTextDocument::setHtml() is extremely slow for large documents (O(n²) relayout)
-    // This simple regex approach is O(n) and much faster for large KML.
-    static const QRegularExpression tagPattern(QStringLiteral("<[^>]*>"));
-    QString result = kml;
-    result.replace(tagPattern, QStringLiteral(" "));  // Replace tags with space
-
-    // Normalize whitespace: collapse multiple spaces/newlines to single space
-    static const QRegularExpression whitespacePattern(QStringLiteral("\\s+"));
-    result.replace(whitespacePattern, QStringLiteral(" "));
-
-    return result.trimmed();
+    bool firstParagraph = true;
+    while (reader.readNextStartElement()) {
+        if (reader.name() != u"p" && reader.name() != u"paragraph") {
+            reader.skipCurrentElement();
+            continue;
+        }
+        if (!firstParagraph) {
+            result += QLatin1Char('\n');
+        }
+        firstParagraph = false;
+        appendParagraphText(reader, result);
+    }
+    return result;
 }
 
 } // namespace core

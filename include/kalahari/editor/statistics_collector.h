@@ -171,11 +171,6 @@ private:
     /// @brief Check if hour has changed and handle rollover
     void checkHourRollover();
 
-    /// @brief Count words in a text string
-    /// @param text Text to count words in
-    /// @return Number of words
-    int countWordsInText(const QString& text) const;
-
     /// @brief Save current hour's stats to database
     void saveHourlyStats();
 

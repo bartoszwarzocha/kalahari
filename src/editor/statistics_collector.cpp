@@ -7,8 +7,6 @@
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/logger.h>
 
-#include <QRegularExpression>
-
 namespace kalahari::editor {
 
 // =============================================================================
@@ -343,26 +341,6 @@ void StatisticsCollector::checkHourRollover()
         m_wordsDeletedThisHour = 0;
         m_activeMinutesThisHour = 0;
     }
-}
-
-int StatisticsCollector::countWordsInText(const QString& text) const
-{
-    if (text.isEmpty()) {
-        return 0;
-    }
-
-    // Use regex to match word boundaries
-    // This handles Unicode and various word patterns
-    static QRegularExpression wordRe("\\b\\w+\\b");
-    auto matches = wordRe.globalMatch(text);
-
-    int count = 0;
-    while (matches.hasNext()) {
-        matches.next();
-        ++count;
-    }
-
-    return count;
 }
 
 void StatisticsCollector::saveHourlyStats()

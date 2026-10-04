@@ -52,6 +52,7 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
                                            DirtyStateGetter isDirty,
                                            DirtySetter setDirty,
                                            WindowTitleUpdater updateTitle,
+                                           HasUnsavedChangesGetter hasUnsavedChanges,
                                            QObject* parent)
     : QObject(parent)
     , m_mainWindow(mainWindow)
@@ -65,6 +66,7 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     , m_isDirty(std::move(isDirty))
     , m_setDirty(std::move(setDirty))
     , m_updateWindowTitle(std::move(updateTitle))
+    , m_hasUnsavedChanges(std::move(hasUnsavedChanges))
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
 {
@@ -73,7 +75,8 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
 }
 
 bool DocumentCoordinator::maybeSave() {
-    if (!m_isDirty()) {
+    // Consult the single source of truth (content + structure + standalone tabs).
+    if (!m_hasUnsavedChanges()) {
         return true;
     }
 
@@ -90,8 +93,8 @@ bool DocumentCoordinator::maybeSave() {
     );
 
     if (reply == QMessageBox::Save) {
-        onSaveDocument();
-        return !m_isDirty();  // Return true if save succeeded (dirty cleared)
+        onSaveDocument();  // In project mode this delegates to onSaveAll()
+        return !m_hasUnsavedChanges();  // True only if everything is now saved
     } else if (reply == QMessageBox::Cancel) {
         return false;
     }
@@ -160,9 +163,8 @@ void DocumentCoordinator::onNewDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Document");
 
-    // Check for unsaved changes in current editor tab
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (currentEditor && m_isDirty()) {
+    // Check for unsaved changes via the single source of truth.
+    if (m_hasUnsavedChanges()) {
         auto reply = QMessageBox::question(
             m_mainWindow,
             tr("Unsaved Changes"),
@@ -173,7 +175,7 @@ void DocumentCoordinator::onNewDocument() {
 
         if (reply == QMessageBox::Save) {
             onSaveDocument();
-            if (m_isDirty()) return;  // Save was cancelled or failed
+            if (m_hasUnsavedChanges()) return;  // Save was cancelled or failed
         } else if (reply == QMessageBox::Cancel) {
             return;
         }
@@ -273,21 +275,50 @@ void DocumentCoordinator::onOpenDocument() {
 
     // If a project is already open, ask user for confirmation before closing it
     if (pm.isProjectOpen()) {
+        // If the chosen file IS the already-open project, just ignore — no close/reopen
+        // prompt. Compare against the MANIFEST (.klh) path, not getProjectPath() (the
+        // project directory), which would never match the chosen .klh file.
+        if (QFileInfo(pm.getManifestPath()) == QFileInfo(filename)) {
+            logger.debug("Project is already open, ignoring: {}", filename.toStdString());
+            return;
+        }
+
         QString projectPath = pm.getProjectPath();
         QString currentProjectName = QFileInfo(projectPath).fileName();
         if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
 
-        auto reply = QMessageBox::question(
-            m_mainWindow,
-            tr("Close Current Project?"),
-            tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No
-        );
-
-        if (reply != QMessageBox::Yes) {
-            logger.debug("User cancelled opening new project");
-            return;
+        if (m_hasUnsavedChanges()) {
+            // Dirty: offer to save before switching (single source of truth).
+            auto reply = QMessageBox::question(
+                m_mainWindow,
+                tr("Unsaved Changes"),
+                tr("Do you want to save changes to '%1' before opening the selected project?")
+                    .arg(currentProjectName),
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                QMessageBox::Save
+            );
+            if (reply == QMessageBox::Cancel) {
+                logger.debug("User cancelled opening new project");
+                return;
+            }
+            if (reply == QMessageBox::Save) {
+                onSaveAll();
+                if (m_hasUnsavedChanges()) return;  // Save failed - abort switch
+            }
+            // Discard -> proceed with switch
+        } else {
+            // Clean: plain confirmation to avoid an accidental project switch.
+            auto reply = QMessageBox::question(
+                m_mainWindow,
+                tr("Close Current Project?"),
+                tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No
+            );
+            if (reply != QMessageBox::Yes) {
+                logger.debug("User cancelled opening new project");
+                return;
+            }
         }
 
         // Prepare services for close BEFORE database is destroyed by openProject->closeProject
@@ -325,9 +356,12 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         return;
     }
 
-    // Check for unsaved changes in current editor tab
-    EditorPanel* currentEditor = getCurrentEditor();
-    if (currentEditor && m_isDirty()) {
+    const bool isProjectFile = filePath.endsWith(".klh", Qt::CaseInsensitive);
+
+    // Check for unsaved changes via the single source of truth. Switching from an open
+    // project asks below, once, after checking that it is a different project.
+    if (m_hasUnsavedChanges()
+        && !(isProjectFile && core::ProjectManager::getInstance().isProjectOpen())) {
         auto reply = QMessageBox::question(
             m_mainWindow,
             tr("Unsaved Changes"),
@@ -338,41 +372,65 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
 
         if (reply == QMessageBox::Save) {
             onSaveDocument();
-            if (m_isDirty()) return;
+            if (m_hasUnsavedChanges()) return;
         } else if (reply == QMessageBox::Cancel) {
             return;
         }
     }
 
     // Check if file is a .klh manifest - try ProjectManager first
-    if (filePath.endsWith(".klh", Qt::CaseInsensitive)) {
+    if (isProjectFile) {
         auto& pm = core::ProjectManager::getInstance();
 
         // If a project is already open, check if it's the SAME project
         if (pm.isProjectOpen()) {
             QString currentProjectPath = pm.getProjectPath();
 
-            // If trying to open the same project that's already open, just ignore
-            if (QFileInfo(currentProjectPath) == QFileInfo(filePath)) {
+            // If trying to open the same project that's already open, just ignore.
+            // Compare against the MANIFEST (.klh) path: getProjectPath() is the project
+            // DIRECTORY, so comparing it to the clicked .klh file never matched and the
+            // "close & reopen?" prompt fired even for the already-open project.
+            if (QFileInfo(pm.getManifestPath()) == QFileInfo(filePath)) {
                 logger.debug("Project is already open, ignoring: {}", filePath.toStdString());
                 return;
             }
 
-            // Different project - ask user for confirmation before closing
+            // Different project - handle unsaved changes before closing
             QString currentProjectName = QFileInfo(currentProjectPath).fileName();
             if (currentProjectName.isEmpty()) currentProjectName = tr("current project");
 
-            auto reply = QMessageBox::question(
-                m_mainWindow,
-                tr("Close Current Project?"),
-                tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No
-            );
-
-            if (reply != QMessageBox::Yes) {
-                logger.debug("User cancelled opening new project");
-                return;
+            if (m_hasUnsavedChanges()) {
+                // Dirty: offer to save before switching (single source of truth).
+                auto reply = QMessageBox::question(
+                    m_mainWindow,
+                    tr("Unsaved Changes"),
+                    tr("Do you want to save changes to '%1' before opening the selected project?")
+                        .arg(currentProjectName),
+                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                    QMessageBox::Save
+                );
+                if (reply == QMessageBox::Cancel) {
+                    logger.debug("User cancelled opening new project");
+                    return;
+                }
+                if (reply == QMessageBox::Save) {
+                    onSaveAll();
+                    if (m_hasUnsavedChanges()) return;  // Save failed - abort switch
+                }
+                // Discard -> proceed with switch
+            } else {
+                // Clean: plain confirmation to avoid an accidental project switch.
+                auto reply = QMessageBox::question(
+                    m_mainWindow,
+                    tr("Close Current Project?"),
+                    tr("Do you want to close '%1' and open the selected project?").arg(currentProjectName),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No
+                );
+                if (reply != QMessageBox::Yes) {
+                    logger.debug("User cancelled opening new project");
+                    return;
+                }
             }
 
             // Prepare services for close BEFORE database is destroyed by openProject->closeProject
@@ -466,7 +524,6 @@ void DocumentCoordinator::onSaveDocument() {
         return;
     }
 
-    // Phase 0: Single file document mode
     EditorPanel* editor = getCurrentEditor();
     if (!editor) {
         logger.debug("No editor tab active - cannot save");
@@ -474,37 +531,8 @@ void DocumentCoordinator::onSaveDocument() {
         return;
     }
 
-    // If no current file, delegate to Save As
-    if (m_currentFilePath.empty()) {
-        onSaveAsDocument();
-        return;
-    }
-
-    // Ensure we have a document
-    if (!m_currentDocument.has_value()) {
-        m_currentDocument = core::Document("Untitled", "User", "en");
-    }
-
-    // Get text from current editor and update document
-    QString text = editor->getText();
-    setPhase0Content(m_currentDocument.value(), text);
-
-    // Save to file
-    bool saved = core::DocumentArchive::save(m_currentDocument.value(), m_currentFilePath);
-
-    if (!saved) {
-        QMessageBox::critical(
-            m_mainWindow,
-            tr("Save Error"),
-            tr("Failed to save document: %1").arg(QString::fromStdString(m_currentFilePath.string()))
-        );
-        logger.error("Failed to save document: {}", m_currentFilePath.string());
-        return;
-    }
-
-    m_setDirty(false);
-    logger.info("Document saved: {}", m_currentFilePath.string());
-    m_statusBar->showMessage(tr("Document saved"), 2000);
+    // Phase 0: single file document (a standalone file tab says it cannot be saved)
+    saveEditor(editor);
 }
 
 void DocumentCoordinator::onSaveAsDocument() {
@@ -519,22 +547,34 @@ void DocumentCoordinator::onSaveAsDocument() {
         return;
     }
 
-    // Show save file dialog
-    QString filename = QFileDialog::getSaveFileName(
-        m_mainWindow,
-        tr("Save Document As"),
-        QString(),
-        tr("Kalahari Files (*.klh)")
-    );
+    saveSingleDocument(editor, true);
+}
 
-    if (filename.isEmpty()) {
-        logger.info("Save As cancelled by user");
-        return;
-    }
+bool DocumentCoordinator::saveSingleDocument(EditorPanel* editor, bool askForPath) {
+    auto& logger = core::Logger::getInstance();
 
-    // Ensure .klh extension
-    if (!filename.endsWith(".klh", Qt::CaseInsensitive)) {
-        filename += ".klh";
+    // An unsaved document gets its file name from the user, as with Save As
+    const bool newFile = askForPath || m_currentFilePath.empty();
+    std::filesystem::path filepath = m_currentFilePath;
+    if (newFile) {
+        // Show save file dialog
+        QString filename = QFileDialog::getSaveFileName(
+            m_mainWindow,
+            tr("Save Document As"),
+            QString(),
+            tr("Kalahari Files (*.klh)")
+        );
+
+        if (filename.isEmpty()) {
+            logger.info("Save As cancelled by user");
+            return false;
+        }
+
+        // Ensure .klh extension
+        if (!filename.endsWith(".klh", Qt::CaseInsensitive)) {
+            filename += ".klh";
+        }
+        filepath = filename.toStdString();
     }
 
     // Ensure we have a document
@@ -542,33 +582,145 @@ void DocumentCoordinator::onSaveAsDocument() {
         m_currentDocument = core::Document("Untitled", "User", "en");
     }
 
-    // Get text from current editor and update document
-    QString text = editor->getText();
-    setPhase0Content(m_currentDocument.value(), text);
+    // Get text from the editor and update document
+    setPhase0Content(m_currentDocument.value(), editor->getText());
 
-    // Update document title from filename
-    std::filesystem::path filepath = filename.toStdString();
-    std::string title = filepath.stem().string();
-    m_currentDocument->setTitle(title);
+    // A new file gives the document its title
+    if (newFile) {
+        m_currentDocument->setTitle(filepath.stem().string());
+    }
 
     // Save to file
-    bool saved = core::DocumentArchive::save(m_currentDocument.value(), filepath);
-
-    if (!saved) {
+    const QString filename = QString::fromStdString(filepath.string());
+    if (!core::DocumentArchive::save(m_currentDocument.value(), filepath)) {
         QMessageBox::critical(
             m_mainWindow,
             tr("Save Error"),
             tr("Failed to save document: %1").arg(filename)
         );
         logger.error("Failed to save document: {}", filepath.string());
-        return;
+        return false;
     }
 
     // Success - update state
     m_currentFilePath = filepath;
     m_setDirty(false);
-    logger.info("Document saved as: {}", filepath.string());
-    m_statusBar->showMessage(tr("Document saved as: %1").arg(filename), 2000);
+    logger.info("Document saved: {}", filepath.string());
+    m_statusBar->showMessage(newFile ? tr("Document saved as: %1").arg(filename)
+                                     : tr("Document saved"), 2000);
+    return true;
+}
+
+// =============================================================================
+// Per-editor save state
+// =============================================================================
+
+namespace {
+
+/// What an editor tab shows, which decides how it is saved
+enum class EditorKind {
+    ProjectChapter,  ///< Chapter of the open project (saved with the project)
+    StandaloneFile,  ///< File opened outside the project (no save yet)
+    SingleDocument   ///< Phase 0 single-file document
+};
+
+EditorKind editorKind(const EditorPanel* editor) {
+    if (!editor->property("elementId").toString().isEmpty()
+        && core::ProjectManager::getInstance().isProjectOpen()) {
+        return EditorKind::ProjectChapter;
+    }
+    if (editor->property("isStandaloneFile").toBool()) {
+        return EditorKind::StandaloneFile;
+    }
+    return EditorKind::SingleDocument;
+}
+
+}  // anonymous namespace
+
+bool DocumentCoordinator::isEditorDirty(const EditorPanel* editor) const {
+    if (!editor) {
+        return false;
+    }
+    switch (editorKind(editor)) {
+    case EditorKind::ProjectChapter:
+        // Per-open-tab flag (reliable; set only on real edits)
+        return m_navigatorCoordinator
+            && m_navigatorCoordinator->isChapterDirty(editor->property("elementId").toString());
+    case EditorKind::StandaloneFile:
+        return editor->property("dirty").toBool();
+    case EditorKind::SingleDocument:
+        return m_isDirty();
+    }
+    return false;
+}
+
+bool DocumentCoordinator::saveEditor(EditorPanel* editor) {
+    if (!editor) {
+        return true;
+    }
+    switch (editorKind(editor)) {
+    case EditorKind::ProjectChapter:
+        // Chapters are saved with the project; onSaveAll() clears a chapter's flag only
+        // once its content is written
+        onSaveAll();
+        return !isEditorDirty(editor);
+    case EditorKind::StandaloneFile: {
+        // A standalone file is loaded as KML whatever its format, so writing it back
+        // could destroy the original (e.g. an RTF file): it has no save path yet
+        const QString path = editor->property("standaloneFilePath").toString();
+        QMessageBox::warning(
+            m_mainWindow,
+            tr("Cannot Save File"),
+            tr("Changes to '%1' cannot be saved: saving files that are not part of a book "
+               "is not available yet.").arg(QFileInfo(path).fileName())
+        );
+        return false;
+    }
+    case EditorKind::SingleDocument:
+        return saveSingleDocument(editor, false);
+    }
+    return false;
+}
+
+void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
+    if (!editor) {
+        return;
+    }
+    switch (editorKind(editor)) {
+    case EditorKind::ProjectChapter:
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->discardChapterChanges(editor->property("elementId").toString());
+        }
+        break;
+    case EditorKind::StandaloneFile:
+        editor->setProperty("dirty", false);
+        break;
+    case EditorKind::SingleDocument:
+        m_setDirty(false);
+        break;
+    }
+}
+
+bool DocumentCoordinator::saveAllChanges() {
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        // Every dirty chapter and the project structure, in one save
+        onSaveAll();
+    }
+
+    // Then every other tab that still has unsaved changes
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (!editor || !isEditorDirty(editor)) {
+            continue;
+        }
+        if (editorKind(editor) == EditorKind::ProjectChapter) {
+            return false;  // onSaveAll() above could not write it, and said so
+        }
+        if (!saveEditor(editor)) {
+            return false;
+        }
+    }
+    return !m_hasUnsavedChanges();
 }
 
 void DocumentCoordinator::onSaveAll() {
@@ -741,11 +893,15 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
     QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
     int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
+    newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store file path for this tab
     newEditor->setProperty("standaloneFilePath", path);
     newEditor->setProperty("isStandaloneFile", true);
+    // Per-tab content-dirty flag, seeded clean. Set true on genuine edits below and
+    // consulted by MainWindow::hasUnsavedChanges() and the tab-close prompt.
+    newEditor->setProperty("dirty", false);
 
     // Set content
     newEditor->setContent(content);
@@ -767,10 +923,15 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
     m_standaloneInfoBar->show();
 
-    // Connect contentChanged signal for dirty tracking
+    // Connect contentChanged signal for dirty tracking.
+    // Connected AFTER setContent() above so merely opening a file does not mark it
+    // dirty (same rationale as the project-chapter path in NavigatorCoordinator).
     connect(newEditor, &EditorPanel::contentChanged,
             this, [this, path, newEditor]() {
-                // Mark tab as dirty
+                // Real per-tab dirty flag (source of truth for standalone tabs).
+                newEditor->setProperty("dirty", true);
+
+                // Mark tab title with asterisk
                 int currentIdx = m_centralTabs->indexOf(newEditor);
                 if (currentIdx >= 0) {
                     QString tabText = m_centralTabs->tabText(currentIdx);

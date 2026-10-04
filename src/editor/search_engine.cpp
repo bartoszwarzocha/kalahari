@@ -26,10 +26,20 @@ SearchEngine::SearchEngine(QObject* parent)
 
 void SearchEngine::setDocument(QTextDocument* document) {
     if (m_document != document) {
+        disconnect(m_documentEdits);
         m_document = document;
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
         m_matches.clear();
+
+        // An edit moves the matches after it, so the cached positions and the current
+        // match no longer hold (replacing at a stale position would change other text)
+        if (m_document) {
+            m_documentEdits = connect(m_document, &QTextDocument::contentsChanged, this, [this]() {
+                m_matchesDirty = true;
+                m_currentMatchIndex = -1;
+            });
+        }
     }
 }
 
@@ -198,7 +208,8 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
         return false;
     }
 
-    const SearchMatch& match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
+    // A copy: rebuildMatches() below replaces the elements of m_matches
+    const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
     if (undoStack) {
         // Create cursor positions from match
@@ -252,13 +263,13 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
 }
 
 int SearchEngine::replaceAll(QUndoStack* undoStack) {
-    if (!m_document || m_matches.empty()) {
-        return 0;
-    }
-
     // Ensure matches are up to date
     if (m_matchesDirty) {
         rebuildMatches();
+    }
+
+    if (!m_document || m_matches.empty()) {
+        return 0;
     }
 
     const int count = static_cast<int>(m_matches.size());
@@ -285,16 +296,17 @@ int SearchEngine::replaceAll(QUndoStack* undoStack) {
         undoStack->push(new ReplaceAllCommand(
             m_document, cursor, replacements));
     } else {
-        // Direct replacement without undo (fallback)
-        // Phase 11.6: Use QTextCursor for direct document modification
-        // Process in reverse order to maintain position validity
+        // Direct replacement — recorded by QTextDocument's native undo as ONE step
+        // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.
+        QTextCursor cursor(m_document);
+        cursor.beginEditBlock();
         for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
             const SearchMatch& match = *it;
-            QTextCursor cursor(m_document);
             cursor.setPosition(static_cast<int>(match.start));
             cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
             cursor.insertText(m_replaceText);
         }
+        cursor.endEditBlock();
     }
 
     // Clear matches after replace all

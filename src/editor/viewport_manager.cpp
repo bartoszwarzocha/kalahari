@@ -30,12 +30,17 @@ ViewportManager::~ViewportManager() {
 void ViewportManager::setDocument(QTextDocument* doc) {
     if (m_document) {
         disconnect(m_document, nullptr, this, nullptr);
+        disconnect(m_document->documentLayout(), nullptr, this, nullptr);
     }
 
     m_document = doc;
 
     if (m_document) {
         connect(m_document, &QTextDocument::contentsChanged,
+                this, &ViewportManager::onDocumentChanged);
+        // Re-wrapping after a width or font change alters block heights without a
+        // content change, so contentsChanged is not emitted for it.
+        connect(m_document->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
                 this, &ViewportManager::onDocumentChanged);
         m_totalHeightDirty = true;
         updateVisibleRange();

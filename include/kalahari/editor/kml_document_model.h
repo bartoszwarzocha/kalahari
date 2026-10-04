@@ -88,6 +88,11 @@ public:
     /// @return Vector of format runs
     const std::vector<FormatRun>& paragraphFormats(size_t index) const;
 
+    /// @brief Get paragraph alignment
+    /// @param index Paragraph index (0-based)
+    /// @return Qt::Alignment for the paragraph (Qt::AlignLeft if index out of range)
+    Qt::Alignment paragraphAlignment(size_t index) const;
+
     /// @brief Get full document plain text
     /// @return All paragraphs joined with newlines
     QString plainText() const;
@@ -222,11 +227,11 @@ private:
         Qt::Alignment alignment = Qt::AlignLeft; ///< Paragraph alignment
     };
 
-    /// @brief Parse single paragraph from KML
-    /// @param paraKml KML markup for single paragraph
+    /// @brief Parse a paragraph element
+    /// @param reader XML reader positioned at the paragraph's start element; on return it
+    ///               is positioned after the matching end element
     /// @param para Output paragraph structure
-    /// @return true if parsing succeeded
-    bool parseParagraph(const QString& paraKml, Paragraph& para);
+    void parseParagraphElement(QXmlStreamReader& reader, Paragraph& para);
 
     /// @brief Parse inline content recursively
     /// @param reader XML reader positioned at content

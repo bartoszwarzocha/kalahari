@@ -285,8 +285,13 @@ QAction* CommandRegistry::createActionForCommand(const QString& commandId, const
     // Configure enabled state and tooltip
     applyActionAvailability(action, cmd);
 
-    // Store command ID in action's data for later retrieval
-    action->setData(commandId);
+    // NOTE: do NOT call action->setData(commandId) here. ArtProvider::createAction
+    // has already stored a QVariantMap {"cmdId", "context"} in the action's data,
+    // which ArtProvider::refreshAction reads to repaint the icon on resourcesChanged.
+    // Overwriting it with a bare QString made refreshAction read an empty map and
+    // bail out, so toolbar/menu icons never re-themed. The command id is available
+    // to executeCommand via the lambda capture below, and to anyone else via
+    // action->data().toMap().value("cmdId").
 
     // Connect triggered signal to executeCommand
     // Capture commandId by value (QString copy)

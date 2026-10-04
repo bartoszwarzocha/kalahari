@@ -69,6 +69,13 @@ public:
     /// @brief Callback type for updating window title
     using WindowTitleUpdater = std::function<void()>;
 
+    /// @brief Callback type for the single unsaved-changes predicate
+    ///
+    /// Returns true if there are ANY unsaved changes anywhere (content, structure,
+    /// standalone tabs). Provided by MainWindow::hasUnsavedChanges() so every save
+    /// prompt path in this coordinator consults one coherent source of truth.
+    using HasUnsavedChangesGetter = std::function<bool()>;
+
     /// @brief Constructor
     /// @param mainWindow Parent QMainWindow for dialogs
     /// @param centralTabs Central tab widget for editor tabs
@@ -93,6 +100,7 @@ public:
                                   DirtyStateGetter isDirty,
                                   DirtySetter setDirty,
                                   WindowTitleUpdater updateTitle,
+                                  HasUnsavedChangesGetter hasUnsavedChanges,
                                   QObject* parent = nullptr);
 
     /// @brief Destructor
@@ -114,6 +122,28 @@ public:
 
     /// @brief Get list of open standalone file paths
     [[nodiscard]] const QStringList& standaloneFilePaths() const { return m_standaloneFilePaths; }
+
+    // =========================================================================
+    // Per-editor save state
+    // =========================================================================
+
+    /// @brief Check whether one editor tab has unsaved changes
+    /// @param editor Editor tab: project chapter, standalone file or single-file document
+    [[nodiscard]] bool isEditorDirty(const EditorPanel* editor) const;
+
+    /// @brief Save one editor tab
+    /// @param editor Editor tab to save
+    /// @return true when its content is saved; false when saving failed, was cancelled or
+    ///         is not possible - the tab then keeps its unsaved changes
+    bool saveEditor(EditorPanel* editor);
+
+    /// @brief Drop one editor tab's unsaved changes (it is about to close)
+    /// @param editor Editor tab
+    void discardEditorChanges(EditorPanel* editor);
+
+    /// @brief Save all unsaved changes: the project and every editor tab
+    /// @return true when nothing is left unsaved
+    bool saveAllChanges();
 
 public slots:
     // =========================================================================
@@ -241,6 +271,12 @@ private:
     /// @param text Editor text content
     void setPhase0Content(core::Document& doc, const QString& text);
 
+    /// @brief Save an editor's text as the single-file (Phase 0) document
+    /// @param editor Editor whose text is saved
+    /// @param askForPath Ask for a new file name (Save As) instead of using the current one
+    /// @return true when the document was written
+    bool saveSingleDocument(EditorPanel* editor, bool askForPath);
+
     /// @brief Prepare services for project close (before database is destroyed)
     ///
     /// This must be called BEFORE ProjectManager::closeProject() to ensure
@@ -259,6 +295,7 @@ private:
     DirtyStateGetter m_isDirty;
     DirtySetter m_setDirty;
     WindowTitleUpdater m_updateWindowTitle;
+    HasUnsavedChangesGetter m_hasUnsavedChanges;
 
     /// @brief Current loaded document
     std::optional<core::Document> m_currentDocument;

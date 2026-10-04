@@ -18,6 +18,7 @@
 #include "kalahari/core/book.h"
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/part.h"
+#include "kalahari/core/text_statistics.h"
 #include <QLabel>
 #include <QLineEdit>
 #include <QComboBox>
@@ -32,7 +33,6 @@
 #include <iomanip>
 #include <sstream>
 #include <ctime>
-#include <QRegularExpression>
 
 namespace kalahari {
 namespace gui {
@@ -1206,10 +1206,8 @@ QString PropertiesPanel::formatDate(const std::chrono::system_clock::time_point&
 // =============================================================================
 
 void PropertiesPanel::onEditorSelectionChanged() {
-    // Only update if we're on the Editor page
-    if (m_stackedWidget->currentIndex() == static_cast<int>(Page::Editor)) {
-        updateEditorStatistics();
-    }
+    // Debounced like cursor changes: dragging a selection changes it on every mouse move
+    onEditorCursorChanged();
 }
 
 void PropertiesPanel::onEditorCursorChanged() {
@@ -1273,45 +1271,29 @@ void PropertiesPanel::updateEditorStatistics() {
     // Phase 11: Use BookEditor public API instead of KmlDocument
     m_isUpdating = true;
 
-    QString text;
+    int wordCount = 0;
+    int charCount = 0;
+    int charNoSpaceCount = 0;
     int paragraphCount = 0;
-    bool hasSelection = bookEditor->hasSelection();
 
-    if (hasSelection) {
-        // Get selected text
-        text = bookEditor->selectedText();
+    if (bookEditor->hasSelection()) {
+        const QString text = bookEditor->selectedText();
+        const core::TextCounts counts = core::countText(text);
+        wordCount = counts.words;
+        charCount = static_cast<int>(text.length());
+        charNoSpaceCount = counts.nonSpaceCharacters;
         m_editorTitleLabel->setText(tr("Selection Statistics"));
 
         // Count paragraphs in selection
         auto selection = bookEditor->selection();
         paragraphCount = selection.end.paragraph - selection.start.paragraph + 1;
     } else {
-        // Get entire document text via public API
-        text = bookEditor->plainText();
+        // The editor caches counts per paragraph, so nothing is recounted here
+        wordCount = static_cast<int>(bookEditor->wordCount());
+        charCount = static_cast<int>(bookEditor->characterCount());
+        charNoSpaceCount = static_cast<int>(bookEditor->characterCountNoSpaces());
         m_editorTitleLabel->setText(tr("Document Statistics"));
         paragraphCount = static_cast<int>(bookEditor->paragraphCount());
-    }
-
-    // Calculate word count
-    // Use simple word splitting by whitespace
-    int wordCount = 0;
-    if (!text.isEmpty()) {
-        // Split by whitespace and count non-empty parts
-        static QRegularExpression wordRegex("\\S+");
-        QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
-        while (it.hasNext()) {
-            it.next();
-            wordCount++;
-        }
-    }
-
-    // Calculate character counts
-    int charCount = text.length();
-    int charNoSpaceCount = 0;
-    for (const QChar& ch : text) {
-        if (!ch.isSpace()) {
-            charNoSpaceCount++;
-        }
     }
 
     // Calculate reading time (200 wpm)

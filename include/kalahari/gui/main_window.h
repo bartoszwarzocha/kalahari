@@ -345,6 +345,19 @@ private:
     /// @brief Mark document as modified (add "*" to title)
     void setDirty(bool dirty);
 
+    /// @brief Single source-of-truth predicate for unsaved changes
+    /// @return true if there are any unsaved changes anywhere
+    ///
+    /// Consolidates all dirty concepts into one coherent check:
+    /// - project open: dirty CONTENT elements (ProjectManager::hasDirtyElements)
+    ///   OR dirty STRUCTURE/manifest (ProjectManager::isDirty)
+    /// - no project: the phase-0/standalone document flag (m_isDirty)
+    /// - always: any dirty standalone editor tab (per-tab "dirty" property)
+    ///
+    /// Every save/close prompt path consults this predicate so the flag that a
+    /// prompt reads is always the flag that edits set.
+    [[nodiscard]] bool hasUnsavedChanges() const;
+
     /// @brief Update window title with filename and dirty state
     void updateWindowTitle();
 

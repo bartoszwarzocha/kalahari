@@ -126,12 +126,13 @@ public:
     /// @return Character count from QTextDocument
     size_t characterCount() const;
 
-    /// @brief Get total word count in the document (cached for performance)
-    /// @return Word count calculated during load
+    /// @brief Get total word count in the document
+    /// @return Word count as defined by core::countText(). Counts are cached per
+    ///         paragraph, so only paragraphs edited since the last call are counted.
     size_t wordCount() const;
 
-    /// @brief Get character count without spaces (cached for performance)
-    /// @return Non-space character count calculated during load
+    /// @brief Get character count without spaces
+    /// @return Non-space character count, cached per paragraph like wordCount()
     size_t characterCountNoSpaces() const;
 
     /// @brief Get the underlying QTextDocument (read-only for accessibility)
@@ -361,10 +362,6 @@ public:
     // =========================================================================
     // Undo/Redo (Phase 4.8)
     // =========================================================================
-
-    /// @brief Get the undo stack for this editor
-    /// @return Pointer to the undo stack
-    QUndoStack* undoStack() const;
 
     /// @brief Check if undo is available
     /// @return true if there are commands to undo
@@ -964,9 +961,6 @@ private:
     /// @brief Setup internal components
     void setupComponents();
 
-    /// @brief Update layout manager width from widget width
-    void updateLayoutWidth();
-
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
 
@@ -1034,9 +1028,8 @@ private:
     /// @return Validated position within document bounds
     CursorPosition validateCursorPosition(const CursorPosition& position) const;
 
-    /// @brief Calculate cursor rectangle in widget coordinates
-    /// @return Cursor rectangle, or empty rect if cursor not in visible area
-    QRectF calculateCursorRect() const;
+    /// @brief Repaint the area of the text cursor (the whole widget in Page Mode)
+    void updateCursorArea();
 
     // Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline
 
@@ -1137,10 +1130,6 @@ private:
     /// UI elements fade based on m_uiOpacity.
     void paintDistractionFreeOverlay(QPainter& painter);
 
-    /// @brief Get total word count in the document
-    /// @return Word count using QTextDocument
-    int getWordCount() const;
-
     /// @brief Start UI fade animation
     ///
     /// Sets m_uiOpacity to 1.0 and starts the fade timer.
@@ -1205,8 +1194,8 @@ private:
     CursorPosition m_preeditStart;                          ///< Start position of preedit text
     bool m_hasComposition;                                  ///< Is composition in progress?
 
-    // Undo/Redo state (Phase 4.8)
-    QUndoStack* m_undoStack;                                ///< Undo stack for editing commands
+    // Undo/Redo: QTextDocument's native undo is the single source of truth
+    // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
 
     // Pending format state (Phase 7.2)
     bool m_pendingBold{false};                              ///< Apply bold to next typed text
@@ -1217,6 +1206,13 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+
+    // Deferred relayout: width and font-scaling zoom changes re-lay out the whole
+    // document, so bursts of them (window drag, mouse wheel) are applied once
+    static constexpr int RELAYOUT_DELAY_MS = 80;            ///< Settle time before relayout (ms)
+    QTimer* m_resizeTimer{nullptr};                         ///< Applies the viewport width
+    QTimer* m_zoomTimer{nullptr};                           ///< Applies m_pendingZoom
+    double m_pendingZoom{1.0};                              ///< Ctrl+wheel zoom not applied yet
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 
@@ -1330,6 +1326,12 @@ private:
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to
     void onNavigateToMatch(const SearchMatch& match);
+
+    /// @brief Report an edit made by the find/replace bar
+    ///
+    /// Replacements edit the document directly, outside the editor's own editing
+    /// operations: keep the cursor inside the changed text and emit contentChanged().
+    void onTextReplaced();
 };
 
 }  // namespace kalahari::editor

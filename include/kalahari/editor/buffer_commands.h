@@ -21,6 +21,7 @@
 #include <QTextCharFormat>
 #include <QUndoCommand>
 #include <QString>
+#include <QVariantMap>
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -61,6 +62,9 @@ enum class MarkerType {
 };
 
 /// @brief TODO/Note marker in text
+///
+/// Stored in the document as a QVariantMap under the KmlPropTodo character property -
+/// the same representation the KML <todo> tag is loaded into and saved from.
 struct TextMarker {
     int position = 0;             ///< Position in document (absolute)
     int length = 1;               ///< Length of marker anchor text
@@ -70,12 +74,18 @@ struct TextMarker {
     QString priority;             ///< Priority level (high, normal, low)
     QString id;                   ///< Unique identifier (UUID)
     QString timestamp;            ///< Creation timestamp (ISO 8601)
+    QVariantMap otherAttributes;  ///< Other attributes of the KML <todo> tag, kept as loaded
 
-    /// @brief Serialize marker to JSON string for QTextCharFormat property
-    QString toJson() const;
+    /// @brief Map stored under KmlPropTodo (keys = attributes of the KML <todo> tag)
+    /// @note position and length are not stored - they come from the anchor text
+    QVariantMap toVariantMap() const;
 
-    /// @brief Deserialize marker from JSON string
-    static std::optional<TextMarker> fromJson(const QString& json);
+    /// @brief Marker from a KmlPropTodo property value
+    ///
+    /// Attributes without a field go to otherAttributes, so a marker written back
+    /// (e.g. after toggling it) keeps them.
+    /// @return std::nullopt when @p value is not a marker map
+    static std::optional<TextMarker> fromVariant(const QVariant& value);
 
     /// @brief Generate a new unique marker ID
     static QString generateId();
@@ -327,14 +337,16 @@ std::optional<TextMarker> findPreviousMarker(const QTextDocument* document,
 /// @brief Set marker at position in document
 /// @param document The text document
 /// @param marker The marker to set
-/// @note This modifies the character format at the marker position
+/// @note This modifies the character format of the marker's anchor text
+///       (marker.length characters from marker.position, at least one)
 void setMarkerInDocument(QTextDocument* document, const TextMarker& marker);
 
 /// @brief Remove marker from document
 /// @param document The text document
 /// @param position Position of the marker
-/// @note This clears the KmlPropTodo property at the position
-void removeMarkerFromDocument(QTextDocument* document, int position);
+/// @param length Length of the marker's anchor text
+/// @note This clears the KmlPropTodo property of the anchor text
+void removeMarkerFromDocument(QTextDocument* document, int position, int length = 1);
 
 // =============================================================================
 // Text Editing Commands (QTextDocument-based)

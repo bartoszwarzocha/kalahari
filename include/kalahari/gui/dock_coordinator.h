@@ -90,6 +90,12 @@ public:
     /// @note Called when theme changes to update icon colors
     void refreshDockIcons();
 
+    /// @brief Re-apply theme colors to central tab icons on resourcesChanged.
+    /// Tab icons are plain QIcons (not managed QActions), so they do not
+    /// auto-refresh. Each tab page stores its icon id in the "tabIconId"
+    /// property; this re-fetches every tab's icon from ArtProvider.
+    void refreshTabIcons();
+
     // =========================================================================
     // Panel accessors
     // =========================================================================
@@ -104,11 +110,12 @@ public:
     [[nodiscard]] LogPanel* logPanel() const { return m_logPanel; }
 
     /// @brief Get Dashboard panel
-    [[nodiscard]] DashboardPanel* dashboardPanel() const { return m_dashboardPanel; }
+    /// @note Defined in the .cpp: QPointer needs the complete DashboardPanel type
+    [[nodiscard]] DashboardPanel* dashboardPanel() const;
 
     /// @brief Set Dashboard panel (when recreated from View > Dashboard)
     /// @note Uses QPointer for safe tracking of dynamically-deleted panel
-    void setDashboardPanel(DashboardPanel* panel) { m_dashboardPanel = panel; }  // QPointer accepts raw ptr
+    void setDashboardPanel(DashboardPanel* panel);
 
     /// @brief Get Search panel
     [[nodiscard]] SearchPanel* searchPanel() const { return m_searchPanel; }

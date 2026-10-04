@@ -35,7 +35,7 @@
 namespace {
 // Helper: Get display title with status suffix
 // Final status = no suffix, others show [STATUS]
-QString getDisplayTitle(const kalahari::core::BookElement* element) {
+QString getDisplayTitle(const kalahari::core::BookElement* element, bool isModified = false) {
     QString title = QString::fromStdString(element->getTitle());
     auto status = element->getMetadata("status");
     if (status.has_value()) {
@@ -45,6 +45,12 @@ QString getDisplayTitle(const kalahari::core::BookElement* element) {
             statusStr[0] = statusStr[0].toUpper();
             title += QString(" [%1]").arg(statusStr);
         }
+    }
+    // The "*" modified indicator is part of the canonical display text so it survives
+    // every tree rebuild / refreshItem (instead of being string-spliced on separately,
+    // which broke on refresh and leaked into renames).
+    if (isModified) {
+        title.prepend('*');
     }
     return title;
 }
@@ -346,7 +352,8 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
 
         for (const auto& element : frontMatter) {
             QTreeWidgetItem* item = new QTreeWidgetItem(frontMatterItem);
-            item->setText(0, getDisplayTitle(element.get()));
+            item->setText(0, getDisplayTitle(element.get(),
+            m_modifiedElements.contains(QString::fromStdString(element->getId()))));
             item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
             item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
             item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
@@ -380,7 +387,8 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
             const auto& chapters = part->getChapters();
             for (const auto& chapter : chapters) {
                 QTreeWidgetItem* chapterItem = new QTreeWidgetItem(partItem);
-                chapterItem->setText(0, getDisplayTitle(chapter.get()));
+                chapterItem->setText(0, getDisplayTitle(chapter.get(),
+                    m_modifiedElements.contains(QString::fromStdString(chapter->getId()))));
                 chapterItem->setData(0, Qt::UserRole, QString::fromStdString(chapter->getId()));
                 chapterItem->setData(0, Qt::UserRole + 1, QString::fromStdString(chapter->getType()));
                 chapterItem->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
@@ -407,7 +415,8 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
 
         for (const auto& element : backMatter) {
             QTreeWidgetItem* item = new QTreeWidgetItem(backMatterItem);
-            item->setText(0, getDisplayTitle(element.get()));
+            item->setText(0, getDisplayTitle(element.get(),
+            m_modifiedElements.contains(QString::fromStdString(element->getId()))));
             item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
             item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
             item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
@@ -1337,8 +1346,9 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
         return;
     }
 
-    // Update display title using the same helper function used in loadDocument()
-    item->setText(0, getDisplayTitle(element));
+    // Update display title using the same helper function used in loadDocument().
+    // Pass the modified state so the "*" indicator is re-applied on every refresh.
+    item->setText(0, getDisplayTitle(element, m_modifiedElements.contains(elementId)));
 
     logger.debug("NavigatorPanel: Refreshed item text to: {}", item->text(0).toStdString());
 }
@@ -1637,7 +1647,9 @@ void NavigatorPanel::setElementModified(const QString& elementId, bool isModifie
         return;
     }
 
-    // Track modified state
+    // Track modified state, then rebuild the item's text through refreshItem() so the
+    // "*" indicator is produced by getDisplayTitle() (the single canonical text source).
+    // This keeps the indicator correct across tree rebuilds, renames and status changes.
     bool wasModified = m_modifiedElements.contains(elementId);
     if (isModified) {
         m_modifiedElements.insert(elementId);
@@ -1645,30 +1657,8 @@ void NavigatorPanel::setElementModified(const QString& elementId, bool isModifie
         m_modifiedElements.remove(elementId);
     }
 
-    // Only update if state changed
-    if (wasModified == isModified) {
-        return;
-    }
-
-    // Find item by elementId
-    QTreeWidgetItem* item = findItemByElementId(elementId);
-    if (!item) {
-        logger.debug("NavigatorPanel: Item not found for elementId: {}", elementId.toStdString());
-        return;
-    }
-
-    // Update display text with asterisk indicator
-    QString currentText = item->text(0);
-    bool hasAsterisk = currentText.startsWith("*");
-
-    if (isModified && !hasAsterisk) {
-        // Add asterisk prefix
-        item->setText(0, "*" + currentText);
-        logger.debug("NavigatorPanel: Added modified indicator to: {}", currentText.toStdString());
-    } else if (!isModified && hasAsterisk) {
-        // Remove asterisk prefix
-        item->setText(0, currentText.mid(1));
-        logger.debug("NavigatorPanel: Removed modified indicator from: {}", currentText.toStdString());
+    if (wasModified != isModified) {
+        refreshItem(elementId);
     }
 }
 
@@ -1676,18 +1666,14 @@ void NavigatorPanel::clearAllModifiedIndicators() {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel::clearAllModifiedIndicators()");
 
-    // Clear all modified elements
-    for (const QString& elementId : m_modifiedElements) {
-        QTreeWidgetItem* item = findItemByElementId(elementId);
-        if (item) {
-            QString currentText = item->text(0);
-            if (currentText.startsWith("*")) {
-                item->setText(0, currentText.mid(1));
-            }
-        }
+    // Snapshot the ids, clear the set, then rebuild each item's text via refreshItem()
+    // so the "*" indicator is dropped through the single canonical text source.
+    const QSet<QString> ids = m_modifiedElements;
+    m_modifiedElements.clear();
+    for (const QString& elementId : ids) {
+        refreshItem(elementId);
     }
 
-    m_modifiedElements.clear();
     logger.debug("NavigatorPanel: Cleared all modified indicators");
 }
 

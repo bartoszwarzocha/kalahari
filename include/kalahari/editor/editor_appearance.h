@@ -192,10 +192,18 @@ struct VisualElements {
 // Typography Configuration
 // =============================================================================
 
+/// @brief Canonical default editor text font. Single source of truth: the editor,
+/// the settings dialog (SettingsCoordinator) and the toolbar font combo all read
+/// their fallback from here. When these drifted apart (dialog defaulted to Consolas
+/// 12 while the editor used Georgia 14), saving settings silently changed the
+/// editor font, because the dialog persisted its own default on every save.
+inline constexpr const char* DEFAULT_TEXT_FONT_FAMILY = "Georgia";
+inline constexpr int DEFAULT_TEXT_FONT_SIZE = 14;
+
 /// @brief Typography settings for the editor
 struct EditorTypography {
     // Main text
-    QFont textFont{"Georgia", 14};             ///< Main text font
+    QFont textFont{DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE};  ///< Main text font
     qreal lineHeight{1.6};                     ///< Line height multiplier
     qreal paragraphSpacing{12.0};              ///< Space between paragraphs
 

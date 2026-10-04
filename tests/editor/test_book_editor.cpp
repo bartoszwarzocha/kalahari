@@ -272,6 +272,35 @@ TEST_CASE("BookEditor appearance", "[editor][book_editor]") {
     }
 }
 
+TEST_CASE("BookEditor toolbar font change with no selection leaves global appearance untouched",
+          "[editor][book_editor][regression]") {
+    // Regression: the toolbar font combo is a selection-only formatting control.
+    // With no selection it must NOT mutate the editor's global default font
+    // (m_appearance) — that font is owned solely by the settings dialog. When it
+    // did, saving settings appeared to "revert" the font, because
+    // applyEditorSettingsToAllPanels re-applied editor.fontFamily over the
+    // unpersisted live change. See BookEditor::setSelectionFontFamily/Size.
+    BookEditor editor;
+    editor.fromKml("<p></p>");
+    editor.setCursorPosition({0, 0});
+    editor.insertText("Z");  // forces edit mode on
+    REQUIRE(editor.plainText().contains("Z"));  // edit took effect => edit mode active
+    editor.clearSelection();
+    REQUIRE_FALSE(editor.hasSelection());
+
+    QFont before = editor.appearance().typography.textFont;
+    REQUIRE(before.pointSize() > 0);
+    REQUIRE(before.family() != QStringLiteral("Comic Sans MS"));
+
+    // With no selection, these must be no-ops for the global default font.
+    editor.setSelectionFontFamily("Comic Sans MS");
+    editor.setSelectionFontSize(before.pointSize() + 7);
+
+    QFont after = editor.appearance().typography.textFont;
+    CHECK(after.family() == before.family());
+    CHECK(after.pointSize() == before.pointSize());
+}
+
 // =============================================================================
 // Text Editing Tests (Phase 11)
 // =============================================================================

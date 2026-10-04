@@ -41,6 +41,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Icon theming — toolbar/menu icons did not recolor on theme or icon-color change**
+  (BUG-1) - 2026-07-20. Two independent root causes, both fixed:
+  - Ordering: `ArtProvider` and `IconRegistry` were connected to
+    `ThemeManager::themeChanged` independently; same-thread direct connections fire in
+    registration order, so managed actions refreshed while `IconRegistry` still held the
+    previous colors + a warm cache. `ArtProvider::onThemeChanged` now drives
+    `IconRegistry` directly (single connection, explicit order).
+  - Clobbered refresh data (regression from OpenSpec #00040): `CommandRegistry` overwrote
+    the `{cmdId, context}` `QVariantMap` that `ArtProvider::createAction` stores for
+    `refreshAction`, with a bare command-id string — so every toolbar/menu action's icon
+    refresh bailed out and never repainted. Removed the clobbering `setData` call.
+  - Regression tests in `tests/core/test_art_provider_theme.cpp` (proven to fail on the
+    buggy code). Suite now at 634 cases.
+- **Icon theming — central tab icons did not recolor.** Editor/Dashboard tab icons are
+  plain `QIcon`s (not managed `QAction`s), set once at tab creation across four
+  coordinators and never subscribed to `ArtProvider::resourcesChanged`. Added
+  `DockCoordinator::refreshTabIcons()` (mirroring `refreshDockIcons`); each tab page now
+  stores its icon id in a `tabIconId` property and all tabs re-fetch on color change.
 - **Security (trusted keys):** Fixed a 1-byte heap overflow in
   `TrustedKeys::base64EncodeInternal()` — the output buffer did not account for
   OpenSSL's line-break newlines and NUL terminator, so encoding a 32-byte Ed25519

@@ -359,27 +359,45 @@ void FindReplaceBar::onFindPrevious()
 void FindReplaceBar::onReplaceCurrent()
 {
     // Phase 11.8: Removed m_formatLayer check - no longer needed
-    if (!m_searchEngine || !m_undoStack) {
+    if (!m_searchEngine) {
+        return;
+    }
+
+    if (m_searchEngine->currentMatchIndex() < 0) {
+        // No occurrence selected yet, or the text changed since: select one first, so
+        // the user sees what the next click replaces
+        onFindNext();
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
 
-    if (m_searchEngine->replaceCurrent(m_undoStack)) {
-        // Move to next match after replacement
-        onFindNext();
+    // nullptr = edit the document directly; QTextDocument's native undo records it.
+    if (m_searchEngine->replaceCurrent(nullptr)) {
+        emit textReplaced(1);
+
+        // replaceCurrent() has already moved to the match after the replaced text
+        // (nextMatch() would skip it)
+        const editor::SearchMatch next = m_searchEngine->currentMatch();
+        if (next.isValid()) {
+            emit navigateToMatch(next);
+        }
+        updateMatchCountLabel();
     }
 }
 
 void FindReplaceBar::onReplaceAll()
 {
     // Phase 11.8: Removed m_formatLayer check - no longer needed
-    if (!m_searchEngine || !m_undoStack) {
+    if (!m_searchEngine) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
-    int count = m_searchEngine->replaceAll(m_undoStack);
+    int count = m_searchEngine->replaceAll(nullptr);  // direct edit → native undo
+    if (count > 0) {
+        emit textReplaced(count);
+    }
 
     core::Logger::getInstance().info("Replaced {} occurrences", count);
     updateMatchCountLabel();
@@ -442,7 +460,7 @@ void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
     // Phase 11.8: Removed m_formatLayer check
-    bool canReplace = hasMatches && m_undoStack;
+    bool canReplace = hasMatches;
 
     // Navigation buttons
     m_prevBtn->setEnabled(hasMatches);
