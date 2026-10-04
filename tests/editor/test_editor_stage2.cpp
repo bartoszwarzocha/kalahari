@@ -765,7 +765,10 @@ TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the 
     for (int i = 0; i < shown; ++i) {
         CHECK(layout->isLaidOut(i));
     }
-    CHECK(layout->pendingBlockCount() == 300 - shown);
+    // The view finds its blocks by the estimated heights first: a block shown by the
+    // estimates can end up below the view once the blocks above it are laid out
+    CHECK(layout->pendingBlockCount() <= 300 - shown);
+    CHECK(layout->pendingBlockCount() >= 300 - shown - 2);
     // The glyphs of a laid out block are shaped again when drawn, not kept in memory
     CHECK_FALSE(editor.textDocument()->firstBlock().layout()->cacheEnabled());
 
