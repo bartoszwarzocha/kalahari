@@ -8,7 +8,8 @@
 /// stage0_benchmark_results.md in the current directory (override with the
 /// KALAHARI_BENCH_OUT environment variable).
 ///
-/// NOTE: the "Select All + copy" step overwrites the system clipboard.
+/// The copy step builds the clipboard data without putting it on the system clipboard,
+/// so a run leaves the user's clipboard alone.
 ///
 /// Every timing goes through the real BookEditor entry points. Painting is measured with
 /// QWidget::render() into a QPixmap, which calls BookEditor::paintEvent() without showing
@@ -30,6 +31,7 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QKeyEvent>
+#include <QMimeData>
 #include <QPixmap>
 #include <QScreen>
 #include <QTextDocument>
@@ -362,10 +364,12 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
         paint(editor);
     }
 
-    // Select All + copy
+    // Select All + copy: the clipboard data (KML, HTML, text) is the work, putting it on
+    // the system clipboard would overwrite what the user has there
     rows.push_back({QStringLiteral("Select All"), timeMs([&] { editor.selectAll(); }), QString()});
-    rows.push_back({QStringLiteral("Copy (cały dokument)"), timeMs([&] { editor.copy(); }),
-                    QStringLiteral("nadpisuje schowek systemowy")});
+    rows.push_back({QStringLiteral("Copy (cały dokument)"),
+                    timeMs([&] { editor.createMimeDataFromSelection(); }),
+                    QStringLiteral("dane dla schowka (KML, HTML, tekst), bez zapisu do schowka")});
     rows.push_back({QStringLiteral("paintEvent z zaznaczonym całym dokumentem"),
                     timeMs([&] { paint(editor); }), QString()});
 
