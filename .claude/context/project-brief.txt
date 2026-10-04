@@ -1,32 +1,33 @@
 # KALAHARI - Project Brief
-# Injected via SubagentStart hook into every agent
+# Imported into CLAUDE.md (main session and subagents). Keep it short and in sync with the code.
 
 ## Project
-- Name: Kalahari (Writer's IDE)
+- Name: Kalahari (Writer's IDE), version 0.3.x-alpha
 - Type: Desktop Application
-- Stack: C++20 + Qt6 6.5.0+
-- Phase: Phase 0 - Qt Migration
+- Stack: C++20 + Qt6 6.5.0+, CMake + vcpkg, Python plugins (pybind11), Catch2 v3 tests
+- Phase: Phase 1 - Core Editor (in progress); see ROADMAP.md
 
-## Build
-- Windows: scripts/build_windows.bat Debug
-- Linux: scripts/build_linux.sh
+## Build & Test
+- Windows: scripts/build_windows.bat Debug   -> tests: ./build-windows/bin/kalahari-tests.exe
+- Linux:   scripts/build_linux.sh             -> tests: ./build-linux/bin/kalahari-tests
+- macOS:   scripts/build_macos.sh
 - NEVER: cmake directly, WSL for Windows builds
 
 ## Source Structure
-include/kalahari/
-├── core/       # business logic, singletons
-├── gui/        # UI components, coordinators
-│   └── utils/  # GUI utilities (clearLayout, etc.)
-└── utils/      # general utilities
-
-src/
-├── core/
-├── gui/
-│   └── utils/
-└── utils/
+include/kalahari/   (headers)     src/   (sources, same layout)
+├── core/           # business logic, singletons, plugins, project/database
+│   └── utils/      # icon downloader, SVG converter
+├── editor/         # BookEditor: KML document model, layout, rendering, services
+├── gui/            # MainWindow, coordinators, registries, settings dialog
+│   ├── dialogs/
+│   ├── panels/     # editor, navigator, log, properties, search, tags, ...
+│   ├── widgets/
+│   └── utils/      # layout_utils.h (clearLayout)
+src/bindings/       # pybind11 Python bindings
+tests/              # core/, editor/, gui/, benchmarks/ (Catch2)
 
 ## MainWindow Architecture
-MainWindow is a thin orchestrator (~805 lines) with 7 coordinators:
+MainWindow orchestrates 7 coordinators:
 - IconRegistrar, CommandRegistrar, DockCoordinator
 - DocumentCoordinator, NavigatorCoordinator
 - DiagnosticController, SettingsCoordinator
@@ -44,7 +45,7 @@ MainWindow is a thin orchestrator (~805 lines) with 7 coordinators:
 
 ### Icons
 core::ArtProvider::getInstance().getIcon("cmd_id")
-core::ArtProvider::getInstance().createAction("cmd_id", parent)
+core::ArtProvider::getInstance().createAction("cmd_id", tr("Text"), parent)
 
 ### Icon Colors
 core::ArtProvider::getInstance().getPrimaryColor()
@@ -52,8 +53,8 @@ core::ArtProvider::getInstance().getSecondaryColor()
 core::ArtProvider::getInstance().setPrimaryColor(QColor("#hex"))
 
 ### Configuration
-core::SettingsManager::getInstance().getValue("key", "default")
-core::SettingsManager::getInstance().setValue("key", "value")
+core::SettingsManager::getInstance().get<int>("editor.fontSize", 12)
+core::SettingsManager::getInstance().set<std::string>("appearance.iconTheme", "twotone")
 
 ### Themes
 core::ThemeManager::getInstance().getCurrentTheme()
@@ -67,8 +68,9 @@ core::Logger::getInstance().info("Message: {}", value)
 
 ## NEVER Use
 - QIcon("path/to/icon.svg")     # Use ArtProvider
-- QColor(255, 0, 0) hardcoded   # Use ArtProvider colors
+- QColor(255, 0, 0) in UI code  # Use ArtProvider/ThemeManager colors (theme defaults are the exception)
 - "Hardcoded string" in UI      # Use tr()
+- SettingsManager getValue()/setValue()  # Do NOT exist - use get<T>()/set<T>()
 - Theme::instance()             # Does NOT exist!
 - ArtProvider::instance()       # Wrong method name!
 
@@ -82,11 +84,11 @@ core::Logger::getInstance().info("Message: {}", value)
 ## Task Management
 - Plans: docs/superpowers/plans/
 - Specs: docs/superpowers/specs/
-- Workflow: brainstorming → writing-plans → implementation → finishing
+- Workflow: brainstorming -> writing-plans -> implementation -> finishing
 
 ## MCP Servers & Semantic Tools
 - Context7: external library documentation (Qt6, etc.)
 - Serena: semantic C++ navigation (find_symbol, find_referencing_symbols, symbol-level edits)
-  — this is the working semantic engine; it ships its own language servers
-- Native LSP tool (clangd): NOT functional on this Windows setup (path/"unsafe location"
-  error; historical plugin bugs). ENABLE_LSP_TOOL removed. Fallback: Serena or Grep/Glob/Read.
+- Both are configured per machine in a git-ignored .mcp.json (template: .mcp.json.example).
+  If they are unavailable, fall back to Grep/Glob/Read.
+- Native LSP tool (clangd): not functional on the Windows setup; use Serena or Grep/Glob/Read.

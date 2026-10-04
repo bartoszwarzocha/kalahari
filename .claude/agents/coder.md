@@ -1,7 +1,7 @@
 ---
 name: coder
 description: "Implements C++/Qt6 code for Kalahari — creates new files/classes AND modifies existing code, including UI components (dialogs, panels, toolbars). The single implementation worker."
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__search_for_pattern, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol
 model: inherit
 effort: high
 permissionMode: default
@@ -15,14 +15,19 @@ hooks:
       hooks:
         - type: prompt
           prompt: |
-            KALAHARI CODE PATTERNS CHECK (only for .cpp/.h files — ignore all others):
+            KALAHARI CODE PATTERNS CHECK for this tool call:
+            $ARGUMENTS
+
+            Only check C++ files (.cpp/.h/.hpp) under src/ or include/. For any other file, answer ok.
+            Judge only the NEW content being written, not code that already existed.
 
             CORE PATTERNS:
             1. Icons: core::ArtProvider::getInstance().getIcon() — NOT QIcon("path")
             2. Actions: core::ArtProvider::getInstance().createAction() — NOT new QAction with icon path
-            3. Config: core::SettingsManager::getInstance() — NOT hardcoded values
+            3. Config: core::SettingsManager::getInstance().get<T>()/set<T>() — getValue()/setValue() do NOT exist
             4. UI strings: tr("...") — NOT hardcoded strings
             5. Colors: ArtProvider/ThemeManager colors — NOT hardcoded QColor(r,g,b)
+               (exception: theme defaults in fallback_theme.cpp / theme.cpp)
             6. Logging: core::Logger::getInstance() — NOT qDebug/cout
 
             UI PATTERNS (when writing widgets/dialogs/panels):
@@ -30,11 +35,11 @@ hooks:
             8. Spacing: setSpacing(6) + setContentsMargins(11,11,11,11)
             9. Grouping: QGroupBox for logical sections
 
-            Return JSON:
-            {"hookSpecificOutput": {"permissionDecision": "allow"}} if patterns OK or not C++ code
-            {"hookSpecificOutput": {"permissionDecision": "deny", "reason": "<specific violation, e.g. hardcoded QIcon path — use ArtProvider>"}} if violation
+            Answer with JSON only:
+            {"ok": true} if the patterns are respected or the file is not C++
+            {"ok": false, "reason": "<specific violation, e.g. hardcoded QIcon path — use ArtProvider>"} if violated
           model: haiku
-          timeout: 15000
+          timeout: 30
 ---
 
 # Coder Agent
@@ -52,7 +57,8 @@ analyze → implement → build → report.
 
 ## Workflow
 
-1. **Analyze first.** Read the target/similar files before touching anything. For edits, read the
+1. **Analyze first.** Read the target/similar files before touching anything. Use Serena for
+   symbol-level navigation and edits when it is available. For edits, read the
    full file. For new code, read a similar existing file as a template.
    ```
    Glob("**/navigator_panel.cpp")            # find similar
@@ -91,7 +97,7 @@ analyze → implement → build → report.
 ## UI work (see `qt6-desktop-ux` skill for the full checklist)
 - Standard spacing: `setSpacing(6)`, `setContentsMargins(11, 11, 11, 11)`.
 - Group logical sections in `QGroupBox`; use stretch factors for responsive sizing.
-- Toolbar actions via `ArtProvider::createAction("cmd_id", parent)`.
+- Toolbar actions via `ArtProvider::createAction("cmd_id", tr("Text"), parent)`.
 - Every interactive control gets `setToolTip(tr("..."))`; sensible tab order.
 
 ## Remember

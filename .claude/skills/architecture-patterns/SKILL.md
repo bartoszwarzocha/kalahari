@@ -21,7 +21,7 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 ### MainWindow Coordinators
 | Class | Location | Role |
 |-------|----------|------|
-| MainWindow | gui/main_window.h | Thin orchestrator (~805 lines) |
+| MainWindow | gui/main_window.h | Orchestrator delegating to the coordinators below |
 | IconRegistrar | gui/icon_registrar.h | Icon registration with IconRegistry |
 | CommandRegistrar | gui/command_registrar.h | Command registration with callbacks |
 | DockCoordinator | gui/dock_coordinator.h | Panel and dock widget management |
@@ -57,42 +57,38 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 
 ## 3. Source Structure
 
+Headers in `include/kalahari/<module>/`, sources in `src/<module>/` (same layout).
+
 ```
 include/kalahari/
 ├── core/           # business logic, singletons
-│   ├── art_provider.h
-│   ├── settings_manager.h
-│   ├── theme_manager.h
-│   ├── icon_registry.h
-│   ├── logger.h
-│   ├── book.h
-│   ├── document.h
-│   ├── plugin_signature.h    # Ed25519 verification
-│   └── trusted_keys.h        # Publisher key management
-├── gui/            # UI components
-│   ├── main_window.h         # Thin orchestrator
-│   ├── icon_registrar.h      # Icon registration
-│   ├── command_registrar.h   # Command registration
-│   ├── dock_coordinator.h    # Panel management
-│   ├── document_coordinator.h
-│   ├── navigator_coordinator.h
-│   ├── diagnostic_controller.h
-│   ├── settings_coordinator.h
-│   ├── command_registry.h
-│   ├── settings_dialog.h
-│   ├── panels/
-│   │   ├── editor_panel.h
-│   │   ├── navigator_panel.h
-│   │   └── log_panel.h
-│   └── utils/
-│       └── layout_utils.h    # clearLayout() helper
-└── utils/          # utilities
-    └── ...
+│   ├── art_provider.h, icon_registry.h, theme_manager.h, theme.h, fallback_theme.h
+│   ├── settings_manager.h, logger.h, event_bus.h
+│   ├── book.h, part.h, book_element.h, document.h, chapter_document.h
+│   ├── project_manager.h, project_database.h, project_lock.h, backup_manager.h
+│   ├── plugin_manager.h, plugin_manifest.h, plugin_archive.h, python_interpreter.h
+│   ├── plugin_signature.h, trusted_keys.h   # Ed25519 plugin security
+│   └── utils/      # icon_downloader.h, svg_converter.h
+├── editor/         # BookEditor and its document model
+│   ├── book_editor.h                         # the editor widget
+│   ├── kml_*.h                               # KML document model, parser, serializer
+│   ├── paragraph_layout.h, table_layout.h, height_tree.h, viewport_manager.h
+│   ├── editor_render_pipeline.h, render_context.h, style_resolver.h
+│   ├── buffer_commands.h, clipboard_handler.h, snapshot_manager.h
+│   └── *_service.h                           # spell/grammar check, search, TTS
+└── gui/            # UI components
+    ├── main_window.h + coordinators (icon_registrar, command_registrar,
+    │   dock_coordinator, document_coordinator, navigator_coordinator,
+    │   diagnostic_controller, settings_coordinator)
+    ├── command_registry.h, menu_builder.h, toolbar_builder.h, toolbar_manager.h
+    ├── settings_dialog.h, settings_data.h
+    ├── dialogs/    # about, new item, add to project, toolbar manager, ...
+    ├── panels/     # editor, navigator, log, properties, search, tags, comments, ...
+    ├── widgets/    # color_config_widget, standalone_info_bar
+    └── utils/      # layout_utils.h (clearLayout)
 
-src/
-├── core/
-├── gui/
-└── utils/
+src/bindings/       # pybind11 Python bindings
+tests/              # core/, editor/, gui/, benchmarks/ (Catch2 v3)
 ```
 
 ## 4. Adding New Components
@@ -101,7 +97,7 @@ src/
 1. Create header: `include/kalahari/gui/panels/my_panel.h`
 2. Create source: `src/gui/panels/my_panel.cpp`
 3. Inherit from QDockWidget
-4. Register in MainWindow::createDockWidgets()
+4. Register in `DockCoordinator::createDocks()` via a `create<Name>Dock()` helper
 5. Add to CMakeLists.txt
 
 ### New Dialog (QDialog)
@@ -149,17 +145,24 @@ connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
 
 ## 7. CMakeLists.txt Integration
 
+Sources are listed in `src/CMakeLists.txt` (paths relative to `src/`). Headers of `Q_OBJECT` classes
+built into the executable must also be listed there (`${CMAKE_SOURCE_DIR}/include/...`) so AUTOMOC sees them:
+
 ```cmake
-set(KALAHARI_GUI_SOURCES
+set(KALAHARI_CORE_SOURCES   # -> kalahari_core shared library (also used by Python bindings)
     ...
-    src/gui/my_new_file.cpp
+    core/my_class.cpp
 )
 
-set(KALAHARI_GUI_HEADERS
+set(KALAHARI_SOURCES        # -> kalahari executable (GUI, Q_OBJECT singletons)
     ...
-    include/kalahari/gui/my_new_file.h
+    gui/my_new_file.cpp
 )
 ```
+
+Rule of thumb: model and logic without `Q_OBJECT` (including the KML editor model) go to `KALAHARI_CORE_SOURCES`;
+GUI code, the editor widget and `Q_OBJECT` classes (ThemeManager, IconRegistry, ArtProvider, BookEditor) go to `KALAHARI_SOURCES`.
+Check where similar files are listed before adding a new one. New test files go to `tests/CMakeLists.txt`.
 
 ## 8. Analyzing Existing Code
 

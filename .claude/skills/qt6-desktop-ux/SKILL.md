@@ -170,7 +170,7 @@ toolbar->setMovable(true);
 toolbar->setIconSize(QSize(24, 24));
 
 // Add actions (use ArtProvider!)
-QAction* action = core::ArtProvider::getInstance().createAction("file.new", toolbar);
+QAction* action = core::ArtProvider::getInstance().createAction("file.new", tr("New"), toolbar);
 toolbar->addAction(action);
 toolbar->addSeparator();
 ```

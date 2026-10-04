@@ -5,6 +5,8 @@ argument-hint: [--sync | --full]
 
 # Save Session Command
 
+> `.claude/session-state.json` is git-ignored: it is a local, per-machine checkpoint.
+
 Saves a checkpoint at the end of a work session.
 
 ## Usage
