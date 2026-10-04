@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
@@ -133,6 +134,67 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
             break;
         }
     }
+}
+
+/// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
+///
+/// Each paragraph gets zero margins and its alignment, and its text on a clean base format
+/// with the run formats on top. Shared by loading a chapter and pasting Kalahari content,
+/// so both read KML the same way.
+void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
+    QTextBlockFormat zeroMarginFormat;
+    zeroMarginFormat.setTopMargin(0);
+    zeroMarginFormat.setBottomMargin(0);
+
+    for (size_t i = 0; i < model.paragraphCount(); ++i) {
+        QTextBlockFormat blockFormat = zeroMarginFormat;
+        blockFormat.setAlignment(model.paragraphAlignment(i));
+        if (i > 0) {
+            cursor.insertBlock(blockFormat);
+        } else {
+            cursor.setBlockFormat(blockFormat);
+        }
+
+        // An EXPLICIT default char format, so the text does not take the format the cursor
+        // still carries from the previous paragraph's last run (formatting bled into every
+        // following paragraph on reload); the runs then format only their own ranges.
+        const int blockStart = cursor.position();
+        cursor.insertText(model.paragraphText(i), QTextCharFormat());
+        for (const auto& run : model.paragraphFormats(i)) {
+            cursor.setPosition(blockStart + static_cast<int>(run.start));
+            cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
+            cursor.mergeCharFormat(run.format);
+        }
+        cursor.movePosition(QTextCursor::EndOfBlock);
+    }
+}
+
+/// @brief Clipboard text as the editor can store and save it
+///
+/// Line and paragraph breaks of every platform become paragraph breaks. Characters XML
+/// cannot hold (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF)
+/// are dropped, so pasted text cannot make the chapter file unreadable.
+QString pastedPlainText(const QString& text) {
+    QString result;
+    result.reserve(text.size());
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        const QChar ch = text.at(i);
+        const char16_t code = ch.unicode();
+        if (code == u'\r' && i + 1 < text.size() && text.at(i + 1) == u'\n') {
+            continue;  // the \n that follows makes the break
+        }
+        if (code == u'\n' || code == u'\r' || code == u'\v' || code == u'\f' ||
+            code == QChar::LineSeparator || code == QChar::ParagraphSeparator) {
+            result += u'\n';
+        } else if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
+            result += ch;
+            result += text.at(++i);
+        } else if ((code >= 0x20 || code == u'\t') && !ch.isSurrogate() && code != 0xFFFE &&
+                   code != 0xFFFF) {
+            result += ch;
+        }
+    }
+    return result;
 }
 
 }  // anonymous namespace
@@ -1155,15 +1217,20 @@ void BookEditor::insertNewline()
         return;
     }
 
-    if (hasSelection()) {
-        deleteSelectedText();
-    }
-
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
-    // QTextDocument's native undo. insertBlock() inherits the current block format
-    // (zero margins + alignment), so the new paragraph keeps the same layout.
+    // QTextDocument's native undo, together with the replaced selection as one step.
+    // insertBlock() inherits the current block format (zero margins + alignment), so the
+    // new paragraph keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
     cursor.insertBlock();
+    cursor.endEditBlock();
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -1340,28 +1407,9 @@ void BookEditor::clearUndoStack()
 
 void BookEditor::copy()
 {
-    if (!hasSelection() || !m_textBuffer) {
-        return;
+    if (std::unique_ptr<QMimeData> mimeData = createMimeDataFromSelection()) {
+        QGuiApplication::clipboard()->setMimeData(mimeData.release());  // clipboard takes ownership
     }
-
-    SelectionRange sel = m_selection.normalized();
-
-    // Build plain text from selection
-    QString plainText;
-    for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
-        QString paraText = paragraphText(m_textBuffer.get(), p);
-        int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
-        int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
-
-        if (p > sel.start.paragraph) {
-            plainText += '\n';  // Paragraph separator
-        }
-        plainText += paraText.mid(startOffset, endOffset - startOffset);
-    }
-
-    // Set clipboard
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    clipboard->setText(plainText);
 }
 
 void BookEditor::cut()
@@ -1373,30 +1421,116 @@ void BookEditor::cut()
     // Copy first
     copy();
 
-    // Then delete selection
+    // Then delete selection (one undo step)
     deleteSelectedText();
 }
 
 void BookEditor::paste()
 {
+    insertFromMimeData(QGuiApplication::clipboard()->mimeData());
+}
+
+std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
+{
+    if (!hasSelection() || !m_textBuffer) {
+        return nullptr;
+    }
+
+    const SelectionRange sel = m_selection.normalized();
+    const QTextCursor range = createCursor(m_textBuffer.get(), sel.start, sel.end);
+    const QString kml =
+        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
+
+    // Paragraphs separated by line breaks
+    QString text = range.selectedText();
+    text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+
+    auto mimeData = std::make_unique<QMimeData>();
+    mimeData->setText(text);
+    mimeData->setHtml(ClipboardHandler::kmlToHtml(kml));
+    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
+    return mimeData;
+}
+
+void BookEditor::insertFromMimeData(const QMimeData* source)
+{
+    if (!source) {
+        return;
+    }
+
+    // Kalahari content: parsed like a chapter file, so formatting and alignment survive
+    if (source->hasFormat(QString::fromLatin1(MIME_KML))) {
+        KmlDocumentModel model;
+        if (model.loadKml(QString::fromUtf8(source->data(QString::fromLatin1(MIME_KML)))) &&
+            model.paragraphCount() > 0) {
+            QTextDocument content;
+            content.setUndoRedoEnabled(false);
+            QTextCursor cursor(&content);
+            appendParagraphs(cursor, model);
+            insertDocument(content);
+            return;
+        }
+        core::Logger::getInstance().warn("BookEditor: unreadable KML on the clipboard, pasting the text");
+    }
+
+    // Text from other programs takes the formatting of the insertion point
+    insertText(pastedPlainText(source->text()));
+}
+
+void BookEditor::insertDocument(const QTextDocument& source)
+{
+    ensureEditMode();
     if (!m_textBuffer) {
         return;
     }
 
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    QString text = clipboard->text();
-
-    if (text.isEmpty()) {
-        return;
-    }
-
-    // Delete selection if any
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        deleteSelectedText();
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
     }
 
-    // Insert the pasted text (insertText handles newlines)
-    insertText(text);
+    // One undo step: the replaced selection, the text, and the paragraph formats
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+
+    const QTextBlockFormat targetFormat = cursor.blockFormat();
+    const bool atParagraphStart = cursor.atBlockStart();
+    const bool atParagraphEnd = cursor.atBlockEnd();
+    const int insertionStart = cursor.position();
+    const QTextBlock firstBlock = source.firstBlock();
+    const QTextBlock lastBlock = source.lastBlock();
+
+    for (QTextBlock block = firstBlock; block.isValid(); block = block.next()) {
+        if (block != firstBlock) {
+            // The last pasted paragraph also holds the text after the insertion point,
+            // unless there is none
+            const bool whole = block != lastBlock || (atParagraphEnd && block.length() > 1);
+            cursor.insertBlock(whole ? block.blockFormat() : targetFormat, block.charFormat());
+        }
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            cursor.insertText(fragment.text(), fragment.charFormat());
+        }
+    }
+
+    // The first pasted paragraph is whole when it starts a paragraph and more follow
+    if (firstBlock != lastBlock && atParagraphStart && firstBlock.length() > 1) {
+        QTextCursor first(m_textBuffer.get());
+        first.setPosition(insertionStart);
+        first.setBlockFormat(firstBlock.blockFormat());
+    }
+    cursor.endEditBlock();
+
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+
+    ensureCursorVisible();
+    syncPipelineCursor();
+    update();
+    emit contentChanged();
+    emit paragraphModified(m_cursorPosition.paragraph);
 }
 
 bool BookEditor::canPaste() const
@@ -5039,50 +5173,12 @@ void BookEditor::ensureEditMode()
 
     // Build QTextDocument from KmlDocumentModel in a single edit block: Qt then reports
     // one change and the layout runs once, at endEditBlock().
+    const size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
     QTextCursor cursor(m_textBuffer.get());
     cursor.beginEditBlock();
-
-    // Create block format with zero margins to avoid gaps between paragraphs
-    QTextBlockFormat zeroMarginFormat;
-    zeroMarginFormat.setTopMargin(0);
-    zeroMarginFormat.setBottomMargin(0);
-
-    size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
-    for (size_t i = 0; i < paraCount; ++i) {
-        // Per-paragraph block format = zero margins + the paragraph's alignment
-        // (parsed from the KML "align" attribute). Without applying the alignment
-        // here, justify/center/right were dropped on load, so every reopened chapter
-        // rendered left-aligned regardless of what was saved.
-        QTextBlockFormat blockFormat = zeroMarginFormat;
-        blockFormat.setAlignment(m_documentModel->paragraphAlignment(i));
-
-        if (i > 0) {
-            cursor.insertBlock(blockFormat);
-        } else {
-            // First block - apply the same format
-            cursor.setBlockFormat(blockFormat);
-        }
-
-        QString text = m_documentModel->paragraphText(i);
-        const auto& formats = m_documentModel->paragraphFormats(i);
-
-        // Insert the paragraph text with an EXPLICIT default char format so it does NOT
-        // inherit the char format the cursor still carries from the previous paragraph's
-        // last run. Without this, a bold/italic run (e.g. a bold title or a fully-italic
-        // paragraph) bled its format into every following paragraph on reload — the run
-        // formats below then only re-apply the intended sub-ranges on top of a clean base.
-        int blockStart = cursor.position();
-        cursor.insertText(text, QTextCharFormat());
-
-        // Apply formats (bold, italic, etc.)
-        for (const auto& run : formats) {
-            cursor.setPosition(blockStart + static_cast<int>(run.start));
-            cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
-            cursor.mergeCharFormat(run.format);
-        }
-        cursor.movePosition(QTextCursor::End);
+    if (m_documentModel) {
+        appendParagraphs(cursor, *m_documentModel);
     }
-
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 

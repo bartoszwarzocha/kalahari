@@ -9,9 +9,11 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include "editor_test_utils.h"
 
 #include <QImage>
+#include <QMimeData>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -332,4 +334,237 @@ TEST_CASE("Stage2 typography: the image shows the indent and a joined-up selecti
         const QImage selected = editor.grab().toImage();
         CHECK(differs(selected, column, gapRow, background));
     }
+}
+
+// =============================================================================
+// Copy, paste and undo
+// =============================================================================
+
+namespace {
+
+/// Editor holding @p kml, sized like a small window
+std::unique_ptr<BookEditor> editorWith(const QString& kml) {
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(600, 400));
+    editor->fromKml(kml);
+    return editor;
+}
+
+/// Clipboard content of a range of @p kml, as BookEditor::copy() would put it there
+std::unique_ptr<QMimeData> copied(const QString& kml, const SelectionRange& range) {
+    auto source = editorWith(kml);
+    source->setSelection(range);
+    return source->createMimeDataFromSelection();
+}
+
+QString kmlData(const QMimeData& mimeData) {
+    return QString::fromUtf8(mimeData.data(QString::fromLatin1(MIME_KML)));
+}
+
+/// Plain text as another program puts it on the clipboard
+std::unique_ptr<QMimeData> plainText(const QString& text) {
+    auto mimeData = std::make_unique<QMimeData>();
+    mimeData->setText(text);
+    return mimeData;
+}
+
+const QString kSource = QStringLiteral(
+    "<kml><p>Plain <b>bold</b> text.</p><p align=\"right\"><i>Right</i> side</p>"
+    "<p>Last</p></kml>");
+
+}  // anonymous namespace
+
+TEST_CASE("Stage2 paste: copy puts KML, HTML and plain text on the clipboard",
+          "[editor][stage2][paste]") {
+    auto editor = editorWith(kSource);
+
+    SECTION("a range across paragraphs") {
+        editor->setSelection({{0, 6}, {1, 5}});
+        const auto mimeData = editor->createMimeDataFromSelection();
+        REQUIRE(mimeData);
+        CHECK(mimeData->text() == QStringLiteral("bold text.\nRight"));
+        CHECK(kmlData(*mimeData) ==
+              QStringLiteral("<kml><p><b>bold</b> text.</p><p align=\"right\"><i>Right</i></p></kml>"));
+        CHECK(mimeData->html() == QStringLiteral("<p><b>bold</b> text.</p>"
+                                                 "<p style=\"text-align:right\"><i>Right</i></p>"));
+    }
+
+    SECTION("whole paragraphs end with an empty one") {
+        editor->setSelection({{0, 0}, {1, 0}});
+        const auto mimeData = editor->createMimeDataFromSelection();
+        REQUIRE(mimeData);
+        CHECK(mimeData->text() == QStringLiteral("Plain bold text.\n"));
+        CHECK(kmlData(*mimeData) ==
+              QStringLiteral("<kml><p>Plain <b>bold</b> text.</p><p align=\"right\"></p></kml>"));
+    }
+
+    SECTION("nothing without a selection") {
+        editor->clearSelection();
+        CHECK_FALSE(editor->createMimeDataFromSelection());
+    }
+}
+
+TEST_CASE("Stage2 paste: pasting over a selection is one undo step", "[editor][stage2][paste]") {
+    auto editor = editorWith(kSource);
+    const QString original = editor->toKml();
+    const auto mimeData = copied(kSource, {{0, 6}, {1, 5}});  // "bold text.¶Right"
+
+    editor->setSelection({{1, 6}, {2, 2}});  // "side¶La"
+    editor->insertFromMimeData(mimeData.get());
+    const QString pasted = editor->toKml();
+    CHECK(pasted == QStringLiteral("<kml><p>Plain <b>bold</b> text.</p>"
+                                   "<p align=\"right\"><i>Right</i> <b>bold</b> text.</p>"
+                                   "<p align=\"right\"><i>Right</i>st</p></kml>"));
+    CHECK(editor->cursorPosition() == CursorPosition{2, 5});
+    CHECK_FALSE(editor->hasSelection());
+
+    editor->undo();
+    CHECK(editor->toKml() == original);
+    CHECK_FALSE(editor->canUndo());
+
+    editor->redo();
+    CHECK(editor->toKml() == pasted);
+}
+
+TEST_CASE("Stage2 paste: pasted paragraphs keep their alignment, the target keeps its own",
+          "[editor][stage2][paste]") {
+    const QString target = QStringLiteral("<kml><p align=\"center\">Title</p><p>Body</p></kml>");
+    auto editor = editorWith(target);
+
+    SECTION("whole paragraphs before a heading") {
+        const auto mimeData = copied(kSource, {{0, 0}, {2, 0}});  // two paragraphs and a break
+        editor->setCursorPosition({0, 0});
+        editor->insertFromMimeData(mimeData.get());
+        CHECK(editor->toKml() == QStringLiteral(
+                  "<kml><p>Plain <b>bold</b> text.</p><p align=\"right\"><i>Right</i> side</p>"
+                  "<p align=\"center\">Title</p><p>Body</p></kml>"));
+    }
+
+    SECTION("paragraphs pasted into the middle of a heading") {
+        const auto mimeData = copied(kSource, {{0, 6}, {1, 5}});
+        editor->setCursorPosition({0, 2});
+        editor->insertFromMimeData(mimeData.get());
+        CHECK(editor->toKml() == QStringLiteral(
+                  "<kml><p align=\"center\">Ti<b>bold</b> text.</p>"
+                  "<p align=\"center\"><i>Right</i>tle</p><p>Body</p></kml>"));
+    }
+
+    SECTION("paragraphs pasted at the end of a paragraph") {
+        const auto mimeData = copied(kSource, {{0, 6}, {1, 5}});
+        editor->setCursorPosition({0, 5});
+        editor->insertFromMimeData(mimeData.get());
+        CHECK(editor->toKml() == QStringLiteral(
+                  "<kml><p align=\"center\">Title<b>bold</b> text.</p>"
+                  "<p align=\"right\"><i>Right</i></p><p>Body</p></kml>"));
+    }
+
+    SECTION("text inside one paragraph goes inline") {
+        const auto mimeData = copied(kSource, {{1, 0}, {1, 5}});
+        editor->setCursorPosition({1, 0});
+        editor->insertFromMimeData(mimeData.get());
+        CHECK(editor->toKml() == QStringLiteral(
+                  "<kml><p align=\"center\">Title</p><p><i>Right</i>Body</p></kml>"));
+    }
+}
+
+TEST_CASE("Stage2 paste: a copied range pastes back as the same content", "[editor][stage2][paste]") {
+    const QString formatted = QStringLiteral(
+        "<kml><p>A <b>bold</b>, <i>italic</i>, <u>underlined</u> and <s>struck</s> word.</p>"
+        "<p align=\"justify\">Some <span color=\"#aa0000\">red</span> and "
+        "<b font=\"Georgia\" size=\"14\">big</b> text.</p></kml>");
+    const auto mimeData = copied(formatted, {{0, 2}, {1, 16}});
+
+    auto editor = editorWith(QStringLiteral("<kml><p></p></kml>"));
+    editor->insertFromMimeData(mimeData.get());
+    CHECK(editor->paragraphCount() == 2);
+
+    editor->setSelection({{0, 0}, {1, 16}});
+    const auto again = editor->createMimeDataFromSelection();
+    REQUIRE(again);
+    CHECK(kmlData(*again) == kmlData(*mimeData));
+}
+
+TEST_CASE("Stage2 paste: text from other programs takes the format of the insertion point",
+          "[editor][stage2][paste]") {
+    auto editor = editorWith(QStringLiteral("<kml><p align=\"center\">A <b>bold</b> word</p></kml>"));
+
+    SECTION("inside a bold run, with paragraph breaks") {
+        editor->setCursorPosition({0, 4});
+        editor->insertFromMimeData(plainText(QStringLiteral("one\ntwo")).get());
+        CHECK(editor->toKml() == QStringLiteral("<kml><p align=\"center\">A <b>boone</b></p>"
+                                                "<p align=\"center\"><b>twold</b> word</p></kml>"));
+        editor->undo();
+        CHECK(editor->toKml() ==
+              QStringLiteral("<kml><p align=\"center\">A <b>bold</b> word</p></kml>"));
+    }
+
+    SECTION("line breaks of every platform, without characters a file cannot hold") {
+        editor->setCursorPosition({0, 0});
+        const QString text = QStringLiteral("a") + QChar(0x01) + QStringLiteral("b") + QChar(0x0B) +
+                             QStringLiteral("c\r\nd\re") + QChar(QChar::LineSeparator) +
+                             QStringLiteral("f\tg\n");
+        editor->insertFromMimeData(plainText(text).get());
+        const QString kml = editor->toKml();
+        CHECK(editor->plainText() == QStringLiteral("ab\nc\nd\ne\nf\tg\nA bold word"));
+
+        // The saved chapter loads again
+        auto reloaded = editorWith(kml);
+        CHECK(reloaded->toKml() == kml);
+    }
+}
+
+TEST_CASE("Stage2 paste: Enter and Delete over a selection are one undo step",
+          "[editor][stage2][paste]") {
+    auto editor = editorWith(kSource);
+    const QString original = editor->toKml();
+    editor->setSelection({{0, 6}, {1, 2}});
+
+    SECTION("Enter") {
+        editor->insertNewline();
+        CHECK(editor->paragraphCount() == 3);
+        CHECK(editor->paragraphPlainText(1) == QStringLiteral("ght side"));
+    }
+
+    SECTION("Delete") {
+        editor->deleteSelectedText();
+        CHECK(editor->paragraphCount() == 2);
+    }
+
+    editor->undo();
+    CHECK(editor->toKml() == original);
+    CHECK_FALSE(editor->canUndo());
+}
+
+TEST_CASE("Stage2 paste: the image after paste and undo is the image before",
+          "[editor][stage2][paste][render]") {
+    QStringList paragraphs;
+    for (int i = 0; i < 6; ++i) paragraphs << longParagraph(i);
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->setSelection({{3, 10}, {5, 30}});
+    const auto mimeData = editor->createMimeDataFromSelection();
+    editor->clearSelection();
+    editor->setCursorPosition({0, 0});
+    editor->scrollTo(0.0);
+    const QImage before = editor->grab().toImage();
+
+    editor->setSelection({{1, 5}, {2, 12}});  // on screen
+    editor->insertFromMimeData(mimeData.get());
+    editor->scrollTo(0.0);
+    CHECK(editor->grab().toImage() != before);
+
+    editor->undo();
+    editor->setCursorPosition({0, 0});
+    editor->scrollTo(0.0);
+    CHECK(editor->grab().toImage() == before);
+}
+
+TEST_CASE("Stage2 paste: KML becomes plain HTML for other programs", "[editor][stage2][paste]") {
+    CHECK(ClipboardHandler::kmlToHtml(QStringLiteral(
+              "<kml><p align=\"center\"><b font=\"Georgia\" size=\"14\">Big</b> "
+              "<comment id=\"c1\">noted</comment> <span color=\"#aa0000\">red</span></p>"
+              "<p></p><p>a &amp; b</p></kml>")) ==
+          QStringLiteral("<p style=\"text-align:center\">"
+                         "<b style=\"font-family:'Georgia';font-size:14pt\">Big</b> noted "
+                         "<span style=\"color:#aa0000\">red</span></p>"
+                         "<p>\u00A0</p><p>a &amp; b</p>"));
 }

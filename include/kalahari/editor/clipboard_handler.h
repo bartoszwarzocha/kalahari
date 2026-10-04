@@ -60,7 +60,10 @@ public:
     // Format Conversion
     // =========================================================================
 
-    /// @brief Convert KML to HTML
+    /// @brief Convert KML to HTML for other programs
+    ///
+    /// Paragraphs keep their alignment, formatting tags become b/i/u/s/sub/sup and inline
+    /// styles (font, size, color, bg) CSS. Metadata tags keep only their text.
     /// @param kml KML markup string
     /// @return HTML string with equivalent formatting
     static QString kmlToHtml(const QString& kml);
