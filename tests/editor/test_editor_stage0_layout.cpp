@@ -6,7 +6,8 @@
 /// load, a multi-paragraph paste, undo of a large deletion, and a width change.
 ///
 /// The oracle is always a *reference document*: the same text laid out from scratch
-/// with layoutAllBlocks(). Whatever an incremental update produces must match it.
+/// with layoutAllBlocks(). Whatever an incremental update produces must match it - since
+/// Stage 2, once the blocks left waiting for layout (layoutPendingBlocks()) are laid out.
 ///
 /// A test that exposes a defect not fixed yet is tagged [known-bug] and [!mayfail]. Once
 /// the defect is fixed the tags go and a "Regression" comment says what used to go wrong.
@@ -222,12 +223,17 @@ TEST_CASE("Stage0 layout: width change re-lays out every block", "[editor][stage
     d.load(paras);
     const Geometry narrow = geometryOf(d.doc.get());
 
+    // Every block waits for layout: the view lays out what it shows, a background pass
+    // the rest
     d.layout->setTextWidth(kWideWidth);
+    CHECK(d.layout->pendingBlockCount() == 15);
+    d.layout->layoutPendingBlocks();
     const Geometry wide = geometryOf(d.doc.get());
     CHECK(mismatchCount(wide, referenceGeometry(paras, kWideWidth)) == 0);
     CHECK(wide.y.back() < narrow.y.back());  // fewer lines -> shorter document
 
     d.layout->setTextWidth(kNarrowWidth);
+    d.layout->layoutPendingBlocks();
     CHECK(mismatchCount(geometryOf(d.doc.get()), narrow) == 0);
 }
 
@@ -243,6 +249,7 @@ TEST_CASE("Stage0 layout: QTextDocument::setTextWidth alone changes the wrap wid
 
     QTextDocumentSource source(d.doc.get());
     source.setTextWidth(kWideWidth);
+    d.layout->layoutPendingBlocks();
 
     CHECK(mismatchCount(geometryOf(d.doc.get()), referenceGeometry(paras, kWideWidth)) == 0);
 }
@@ -323,10 +330,13 @@ TEST_CASE("Stage0 layout: ViewportManager matches layout after a multi-paragraph
 
 namespace {
 
+KalahariTextDocumentLayout* layoutOf(const BookEditor& editor) {
+    return qobject_cast<KalahariTextDocumentLayout*>(editor.textDocument()->documentLayout());
+}
+
 /// Reference geometry for the editor's document: same text, same font, same wrap width.
 Geometry editorReference(BookEditor& editor) {
-    auto* layout = qobject_cast<KalahariTextDocumentLayout*>(
-        editor.textDocument()->documentLayout());
+    auto* layout = layoutOf(editor);
     REQUIRE(layout != nullptr);
 
     LaidOutDocument ref(layout->textWidth());
@@ -347,6 +357,7 @@ TEST_CASE("Stage0 layout: BookEditor load produces a complete layout", "[editor]
     editor.fromKml(kmlOf(longParagraphs(30)));
 
     REQUIRE(editor.textDocument() != nullptr);
+    layoutOf(editor)->layoutPendingBlocks();
     const Geometry g = geometryOf(editor.textDocument());
     CHECK(unlaidBlockCount(g) == 0);
     CHECK(mismatchCount(g, editorReference(editor)) == 0);
@@ -390,22 +401,26 @@ TEST_CASE("Stage0 layout: BookEditor resize re-wraps to the new width", "[editor
     const qreal heightBefore = editor.textDocument()->documentLayout()->documentSize().height();
 
     resizeWidget(editor, QSize(1000, 400));
+    layoutOf(editor)->layoutPendingBlocks();
     const Geometry g = geometryOf(editor.textDocument());
     CHECK(mismatchCount(g, editorReference(editor)) == 0);
     CHECK(editor.textDocument()->documentLayout()->documentSize().height() < heightBefore);
 }
 
-TEST_CASE("Stage0 layout: BookEditor resize performs a single full relayout",
+TEST_CASE("Stage0 layout: BookEditor resize lays out every block once",
           "[editor][stage0][layout]") {
     // Regression (fixed in Stage 1): one resize used to re-lay out the whole document two
     // or three times - BookEditor set the width on the document and on the layout, and the
     // render pipeline set it again. The pipeline is now the only owner of the wrap width.
-    // A hidden widget, as here, applies the new width at once.
+    // Since Stage 2 the blocks wait for layout until they are shown (a hidden editor, as
+    // here, shows nothing) or the background pass reaches them.
     BookEditor editor;
     resizeWidget(editor, QSize(500, 400));
     editor.fromKml(kmlOf(longParagraphs(15)));
 
-    FullRelayoutCounter relayouts(editor);
+    LaidOutBlockCounter laidOut(editor);
     resizeWidget(editor, QSize(900, 400));
-    CHECK(relayouts.count() == 1);
+    CHECK(laidOut.count() == 0);
+    layoutOf(editor)->layoutPendingBlocks();
+    CHECK(laidOut.count() == 15);
 }

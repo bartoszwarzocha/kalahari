@@ -4,6 +4,7 @@
 
 #include <kalahari/editor/book_editor_accessible.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QTextBlockFormat>
@@ -193,7 +194,7 @@ QRect BookEditorAccessible::characterRect(int offset) const
         return QRect();
     }
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout) {
         return QRect();
     }

@@ -673,14 +673,22 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     painter->save();
     painter->setClipRect(clipRect);
 
-    // Stage 1+2: Get visible range and ensure layouts
+    // Stage 1+2: Get visible range and ensure layouts. Blocks waiting for layout have
+    // estimated heights; laying them out changes the heights, and the viewport keeps the
+    // text at its top in place by moving the scroll position. Repeat until the range
+    // shown is laid out.
     updateVisibleRange();
 
     if (m_textSource) {
-        m_textSource->ensureLayouted(
-            m_context.computed.firstVisibleParagraph,
-            m_context.computed.lastVisibleParagraph
-        );
+        size_t first = 0;
+        size_t last = 0;
+        do {
+            first = m_context.computed.firstVisibleParagraph;
+            last = m_context.computed.lastVisibleParagraph;
+            m_textSource->ensureLayouted(first, last);
+            updateVisibleRange();
+        } while (first != m_context.computed.firstVisibleParagraph ||
+                 last != m_context.computed.lastVisibleParagraph);
     }
 
     // Stage 4: Render
@@ -1750,6 +1758,11 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
     if (!m_textSource) {
         m_paginationCacheValid = true;
         return;
+    }
+
+    // The slices need the lines of every block: lay out the waiting ones in one go
+    if (m_textSource->paragraphCount() > 0) {
+        m_textSource->ensureLayouted(0, m_textSource->paragraphCount() - 1);
     }
 
     // For Scroll Mode (Continuous, Focus, DistractionFree, Typewriter):

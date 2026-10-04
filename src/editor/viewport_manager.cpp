@@ -4,6 +4,7 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QAbstractTextDocumentLayout>
+#include <QTextLayout>
 #include <algorithm>
 #include <cmath>
 
@@ -43,6 +44,7 @@ void ViewportManager::setDocument(QTextDocument* doc) {
     }
 
     m_document = doc;
+    m_anchor = ScrollAnchor{};
 
     if (m_document) {
         connect(m_document, &QTextDocument::contentsChanged,
@@ -50,15 +52,45 @@ void ViewportManager::setDocument(QTextDocument* doc) {
         // Re-wrapping after a width or font change alters block heights without a
         // content change, so contentsChanged is not emitted for it.
         connect(m_document->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
-                this, &ViewportManager::onDocumentChanged);
+                this, &ViewportManager::onDocumentSizeChanged);
+        if (const auto* layout = kalahariLayout(m_document)) {
+            connect(layout, &KalahariTextDocumentLayout::blockGeometryChanged,
+                    this, &ViewportManager::onBlockGeometryChanged);
+        }
         updateVisibleRange();
+        captureAnchor();
     }
 }
 
 void ViewportManager::onDocumentChanged() {
     updateVisibleRange();
+    // The content moved under the viewport: the text now at its top is the anchor
+    captureAnchor();
     emit documentHeightChanged(totalDocumentHeight());
     emit viewportChanged();
+}
+
+void ViewportManager::onDocumentSizeChanged() {
+    // No repaint here: a content change repaints through onDocumentChanged(), a new
+    // width or font through whoever set it, and blocks laid out on demand leave the
+    // visible text where it is (scroll anchoring)
+    updateVisibleRange();
+    emit documentHeightChanged(totalDocumentHeight());
+}
+
+void ViewportManager::onBlockGeometryChanged(int firstBlock) {
+    // Blocks at or above the anchor changed height or were wrapped again: scroll so that
+    // the anchored text is where it was. Blocks below it do not move it.
+    const bool anchorMoved = m_anchoringEnabled && m_anchor.block >= firstBlock &&
+                             m_anchor.block < m_document->blockCount();
+    const double oldScrollY = m_scrollY;
+    if (anchorMoved) {
+        m_scrollY = clampScrollPosition(anchoredPosition());
+    }
+    updateVisibleRange();
+    if (std::abs(m_scrollY - oldScrollY) > 0.001) {
+        emit scrollPositionAnchored(m_scrollY);
+    }
 }
 
 // =============================================================================
@@ -100,6 +132,7 @@ void ViewportManager::setScrollPosition(double y) {
     if (std::abs(m_scrollY - clamped) > 0.001) {
         m_scrollY = clamped;
         updateVisibleRange();
+        captureAnchor();
         emit scrollPositionChanged(m_scrollY);
         emit viewportChanged();
     }
@@ -160,6 +193,66 @@ double ViewportManager::clampScrollPosition(double y) const {
     if (y > maxY) return maxY;
 
     return y;
+}
+
+// =============================================================================
+// Scroll Anchoring
+// =============================================================================
+
+void ViewportManager::setScrollAnchoringEnabled(bool enabled) {
+    m_anchoringEnabled = enabled;
+    captureAnchor();
+}
+
+void ViewportManager::captureAnchor() {
+    m_anchor = ScrollAnchor{};
+    const KalahariTextDocumentLayout* layout = m_document ? kalahariLayout(m_document) : nullptr;
+    const int block = layout ? layout->blockNumberAtY(m_scrollY) : -1;
+    if (block < 0) {
+        return;
+    }
+    m_anchor.block = block;
+    m_anchor.offset = m_scrollY - layout->blockY(block);
+    m_anchor.height = layout->blockHeight(block);
+
+    // A laid out block also gives the line at the top, which stays the anchor when the
+    // block is wrapped again
+    if (layout->isLaidOut(block)) {
+        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
+        const qreal lineSpacing = layout->typography().lineSpacing;
+        const int index = KalahariTextDocumentLayout::lineIndexAt(*lines, m_anchor.offset, lineSpacing);
+        if (index >= 0) {
+            const QTextLine line = lines->lineAt(index);
+            const QRectF box = KalahariTextDocumentLayout::lineBox(line, lineSpacing);
+            m_anchor.lineStart = line.textStart();
+            m_anchor.lineShare = box.height() > 0.0 ? (m_anchor.offset - box.top()) / box.height() : 0.0;
+        }
+    }
+}
+
+double ViewportManager::anchoredPosition() const {
+    const KalahariTextDocumentLayout* layout = kalahariLayout(m_document);
+    const int block = m_anchor.block;
+    const double top = layout->blockY(block);
+    const double height = layout->blockHeight(block);
+
+    // The block has its lines: the line holding the text that was at the top, also when
+    // the block was wrapped again at a new width or font size
+    if (m_anchor.lineStart >= 0 && layout->isLaidOut(block)) {
+        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
+        const QTextLine line = lines->lineForTextPosition(m_anchor.lineStart);
+        if (line.isValid()) {
+            const QRectF box =
+                KalahariTextDocumentLayout::lineBox(line, layout->typography().lineSpacing);
+            return top + box.top() + m_anchor.lineShare * box.height();
+        }
+    }
+    // The block kept its height: the same offset into it
+    if (height == m_anchor.height) {
+        return top + m_anchor.offset;
+    }
+    // Estimated heights: the same share of the block
+    return top + (m_anchor.height > 0.0 ? m_anchor.offset * height / m_anchor.height : 0.0);
 }
 
 // =============================================================================

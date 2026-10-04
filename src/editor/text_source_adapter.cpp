@@ -47,9 +47,9 @@ size_t QTextDocumentSource::characterCount() const {
 }
 
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
-    QTextBlock block = blockAt(index);
-    if (!block.isValid()) return nullptr;
-    return block.layout();
+    // The pipeline also reads blocks outside the viewport (the cursor's, the pages'):
+    // one waiting for layout gets its lines now
+    return KalahariTextDocumentLayout::blockLayout(blockAt(index));
 }
 
 bool QTextDocumentSource::hasLayout(size_t index) const {
@@ -57,9 +57,12 @@ bool QTextDocumentSource::hasLayout(size_t index) const {
     return lay != nullptr && lay->lineCount() > 0;
 }
 
-void QTextDocumentSource::ensureLayouted(size_t /*first*/, size_t /*last*/) {
-    // QTextDocument handles layout automatically via QAbstractTextDocumentLayout
-    // No explicit action needed - blocks are laid out on demand
+void QTextDocumentSource::ensureLayouted(size_t first, size_t last) {
+    // After a width or font change, a load or a large edit, blocks wait for layout with
+    // estimated heights until they are shown
+    if (auto* layout = kalahariLayout()) {
+        layout->ensureLaidOut(static_cast<int>(first), static_cast<int>(last));
+    }
 }
 
 double QTextDocumentSource::paragraphY(size_t index) const {

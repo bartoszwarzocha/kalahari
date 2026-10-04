@@ -2,6 +2,7 @@
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <QElapsedTimer>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QTextDocument>
@@ -9,6 +10,7 @@
 #include <QTextLayout>
 #include <QTextLine>
 #include <QTextOption>
+#include <QTimer>
 #include <algorithm>
 #include <cmath>
 
@@ -25,6 +27,23 @@ constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
 /// Accepted range of the line spacing multiplier
 constexpr qreal MIN_LINE_SPACING = 0.5;
 constexpr qreal MAX_LINE_SPACING = 4.0;
+
+/// An edit touching at most this many blocks lays them out at once. A larger one (a
+/// load, a long paste or its undo) leaves them waiting for layout.
+constexpr int IMMEDIATE_LAYOUT_LIMIT = 32;
+
+/// Time one step of the background pass may take, so input stays responsive
+constexpr qint64 BACKGROUND_STEP_MS = 4;
+
+/// Share of the line width that wrapped text fills on average (estimates)
+constexpr qreal AVERAGE_LINE_FILL = 0.95;
+
+/// Prose whose width per character is the average character width of the estimates
+const QString& estimateSample() {
+    static const QString sample = QStringLiteral(
+        "The quick brown fox jumps over the lazy dog. Zażółć gęślą jaźń, mówiła.");
+    return sample;
+}
 
 /// Extra space a line gets from the line spacing; whole pixels, so that lines stay on
 /// the pixel grid (Qt rounds line heights up to whole pixels too)
@@ -44,7 +63,16 @@ qreal leadingAbove(qreal extra) {
 // =============================================================================
 
 KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
-    : QAbstractTextDocumentLayout(doc) {
+    : QAbstractTextDocumentLayout(doc)
+    , m_layoutWidth(doc ? doc->textWidth() : -1)
+    , m_layoutFont(doc ? doc->defaultFont() : QFont())
+    , m_backgroundTimer(new QTimer(this)) {
+    if (doc) {
+        updateEstimateMetrics();
+    }
+    // Runs whenever the event loop has nothing else to do, while blocks wait for layout
+    m_backgroundTimer->setInterval(0);
+    connect(m_backgroundTimer, &QTimer::timeout, this, &KalahariTextDocumentLayout::layoutStep);
 }
 
 // =============================================================================
@@ -84,7 +112,7 @@ void KalahariTextDocumentLayout::setTypography(const LayoutTypography& typograph
         return;
     }
     m_typography = normalized;
-    layoutAllBlocks();
+    invalidateAll();
 }
 
 qreal KalahariTextDocumentLayout::typographyScale() const {
@@ -105,8 +133,191 @@ qreal KalahariTextDocumentLayout::firstLineIndent() const {
 }
 
 void KalahariTextDocumentLayout::layoutAllBlocks() {
-    relayoutRange(0, document()->blockCount() - 1,
-                  static_cast<int>(m_blockHeights.size()) - 1);
+    invalidateAll();
+    layoutPendingBlocks();
+}
+
+// =============================================================================
+// Layout on demand
+// =============================================================================
+
+bool KalahariTextDocumentLayout::isLaidOut(int blockNumber) const {
+    return blockNumber >= 0 && static_cast<size_t>(blockNumber) < m_blockPending.size() &&
+           m_blockPending[static_cast<size_t>(blockNumber)] == 0;
+}
+
+bool KalahariTextDocumentLayout::ensureLaidOut(int first, int last) {
+    const int pendingBefore = m_pendingCount;
+    if (pendingBefore > 0) {
+        layOutPending(first, last, -1);
+    }
+    return m_pendingCount != pendingBefore;
+}
+
+void KalahariTextDocumentLayout::layoutPendingBlocks() {
+    layOutPending(0, static_cast<int>(m_blockHeights.size()) - 1, -1);
+}
+
+QTextLayout* KalahariTextDocumentLayout::blockLayout(const QTextBlock& block) {
+    if (!block.isValid()) {
+        return nullptr;
+    }
+    if (auto* layout =
+            qobject_cast<KalahariTextDocumentLayout*>(block.document()->documentLayout())) {
+        layout->ensureLaidOut(block.blockNumber(), block.blockNumber());
+    }
+    return block.layout();
+}
+
+int KalahariTextDocumentLayout::layOutPending(int first, int last, qint64 budgetMs) {
+    first = std::max(first, 0);
+    last = std::min(last, static_cast<int>(m_blockHeights.size()) - 1);
+    if (m_pendingCount == 0 || first > last) {
+        return last;
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+    const qreal spacing = paragraphSpacing();
+    const qreal indent = firstLineIndent();
+
+    // Runs of consecutive blocks laid out, announced once the caches are consistent
+    std::vector<std::pair<int, int>> runs;
+    bool heightChanged = false;
+    int number = first;
+    QTextBlock block = document()->findBlockByNumber(first);
+    for (; number <= last && block.isValid(); ++number, block = block.next()) {
+        if (m_blockPending[static_cast<size_t>(number)] == 0) {
+            continue;
+        }
+        heightChanged |= layOutBlock(number, block, spacing, indent);
+        if (!runs.empty() && runs.back().first + runs.back().second == number) {
+            ++runs.back().second;
+        } else {
+            runs.emplace_back(number, 1);
+        }
+        if (m_pendingCount == 0 || (budgetMs >= 0 && timer.elapsed() >= budgetMs)) {
+            ++number;
+            break;
+        }
+    }
+    if (runs.empty()) {
+        return number - 1;
+    }
+
+    if (heightChanged) {
+        m_positionsDirty = true;
+    }
+    if (m_pendingCount == 0) {
+        m_backgroundTimer->stop();
+    }
+    for (const auto& [runFirst, runCount] : runs) {
+        emit blocksLaidOut(runFirst, runCount);
+    }
+    const int firstLaidOut = runs.front().first;
+    const int lastLaidOut = runs.back().first + runs.back().second - 1;
+    // Also for unchanged heights: the lines are new (a block's estimate can be exact while
+    // its text wraps differently from before)
+    emit blockGeometryChanged(firstLaidOut);
+    notifyGeometryChanged(firstLaidOut,
+                          heightChanged ? UNBOUNDED_EXTENT
+                                        : blockY(lastLaidOut) + blockHeight(lastLaidOut));
+    return number - 1;
+}
+
+void KalahariTextDocumentLayout::layoutStep() {
+    const auto count = static_cast<int>(m_blockPending.size());
+    if (m_pendingCount == 0 || count == 0) {
+        m_backgroundTimer->stop();
+        return;
+    }
+
+    // The next waiting block from where the last step stopped, wrapping around
+    if (m_backgroundNext >= count) {
+        m_backgroundNext = 0;
+    }
+    auto it = std::find(m_blockPending.begin() + m_backgroundNext, m_blockPending.end(), 1);
+    if (it == m_blockPending.end()) {
+        it = std::find(m_blockPending.begin(), m_blockPending.end(), 1);
+    }
+    if (it == m_blockPending.end()) {
+        m_pendingCount = 0;  // nothing waits after all
+        m_backgroundTimer->stop();
+        return;
+    }
+    const auto first = static_cast<int>(std::distance(m_blockPending.begin(), it));
+    m_backgroundNext = layOutPending(first, count - 1, BACKGROUND_STEP_MS) + 1;
+}
+
+void KalahariTextDocumentLayout::invalidateAll() {
+    const QTextDocument* doc = document();
+    updateEstimateMetrics();
+
+    const auto count = static_cast<size_t>(doc->blockCount());
+    if (m_blockHeights.size() != count || m_blockExtents.size() != count) {
+        // Out of step with the document (first layout, or a change the cache missed):
+        // the text length is the only extent known
+        m_blockExtents.clear();
+        m_blockExtents.reserve(count);
+        for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+            m_blockExtents.push_back(block.length());
+        }
+        m_blockExtents.resize(count, 1);
+        m_blockHeights.resize(count);
+    }
+
+    const qreal spacing = paragraphSpacing();
+    for (size_t i = 0; i < count; ++i) {
+        m_blockHeights[i] = estimatedHeight(m_blockExtents[i], spacing);
+    }
+    m_blockPending.assign(count, 1);
+    m_pendingCount = static_cast<int>(count);
+    m_positionsDirty = true;
+    m_backgroundNext = 0;
+    if (m_pendingCount > 0) {
+        m_backgroundTimer->start();
+    }
+    emit blockGeometryChanged(0);
+    notifyGeometryChanged(0, UNBOUNDED_EXTENT);
+}
+
+void KalahariTextDocumentLayout::updateEstimateMetrics() {
+    const QFontMetricsF metrics(document()->defaultFont());
+    const QString& sample = estimateSample();
+    m_averageCharWidth =
+        std::max<qreal>(1.0, metrics.horizontalAdvance(sample) / static_cast<qreal>(sample.size()));
+    // As Qt sizes a line: ascent + descent, rounded up to whole pixels
+    const qreal lineHeight = std::ceil(metrics.ascent() + metrics.descent());
+    m_estimatedLineHeight = lineHeight + extraLeading(lineHeight, m_typography.lineSpacing);
+}
+
+qreal KalahariTextDocumentLayout::estimatedHeight(qreal extent, qreal spacing) const {
+    const qreal width = document()->textWidth();
+    const qreal lineWidth = (width > 0 ? width : UNWRAPPED_LINE_WIDTH) * AVERAGE_LINE_FILL;
+    const qreal lines = std::max<qreal>(1.0, std::ceil(extent * m_averageCharWidth / lineWidth));
+    return lines * m_estimatedLineHeight + spacing;
+}
+
+void KalahariTextDocumentLayout::notifyGeometryChanged(int first, qreal bottom) {
+    const QSizeF size = documentSize();
+    if (size != m_lastReportedSize) {
+        m_lastReportedSize = size;
+        emit documentSizeChanged(size);
+    }
+
+    const qreal top = blockY(first);
+    emit update(QRectF(0, top, UNBOUNDED_EXTENT, bottom - top));
+}
+
+int KalahariTextDocumentLayout::laidOutBlockAtY(qreal y) const {
+    // Laying out a block changes its height, and so which block covers y. The layout is
+    // a cache of the document: filling it in leaves the query const for its callers.
+    auto* self = const_cast<KalahariTextDocumentLayout*>(this);
+    int number = blockNumberAtY(y);
+    while (number >= 0 && self->ensureLaidOut(number, number)) {
+        number = blockNumberAtY(y);
+    }
+    return number;
 }
 
 // =============================================================================
@@ -117,11 +328,21 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
     Q_UNUSED(charsRemoved);
     const QTextDocument* doc = document();
 
+    // A new wrap width or default font (QTextDocument reports either as a change of the
+    // whole document): every block waits for layout. The view lays out what it shows
+    // before the next paint, the background pass the rest.
+    if (doc->textWidth() != m_layoutWidth || doc->defaultFont() != m_layoutFont) {
+        m_layoutWidth = doc->textWidth();
+        m_layoutFont = doc->defaultFont();
+        invalidateAll();
+        return;
+    }
+
     // Qt reports the change in new-document coordinates: [from, from + charsAdded) holds
-    // everything inserted or reformatted (setTextWidth()/setDefaultFont() report the
-    // whole document). Every block touching that range is re-laid out, including the
-    // block holding the first character after it: it may have been split off from, or
-    // merged with, the changed text. Blocks outside the range are untouched.
+    // everything inserted or reformatted. Every block touching that range is laid out
+    // again, including the block holding the first character after it: it may have been
+    // split off from, or merged with, the changed text. Blocks outside the range are
+    // untouched.
     QTextBlock first = doc->findBlock(from);
     if (!first.isValid()) {
         first = doc->firstBlock();
@@ -136,66 +357,98 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
     const int lastNumber = last.blockNumber();
     const int oldLast =
         lastNumber - (doc->blockCount() - static_cast<int>(m_blockHeights.size()));
-    relayoutRange(first.blockNumber(), lastNumber, oldLast);
+    replaceRange(first.blockNumber(), lastNumber, oldLast);
 }
 
-void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast) {
+void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) {
     const QTextDocument* doc = document();
     const int oldCount = static_cast<int>(m_blockHeights.size());
 
     if (oldLast < first - 1 || oldLast >= oldCount) {
-        // The height cache is out of step with the document: rebuild it completely.
-        first = 0;
-        last = doc->blockCount() - 1;
-        oldLast = oldCount - 1;
+        // The cache is out of step with the document: start it over
+        invalidateAll();
+        return;
     }
 
-    const int rangeSize = last - first + 1;
-    std::vector<qreal> heights;
-    heights.reserve(static_cast<size_t>(std::max(rangeSize, 0)));
+    // A small range is laid out now; a large one waits, with estimated heights
+    const int rangeSize = std::max(last - first + 1, 0);
+    const bool layOutNow = rangeSize <= IMMEDIATE_LAYOUT_LIMIT;
     const qreal spacing = paragraphSpacing();
     const qreal indent = firstLineIndent();
+    std::vector<qreal> heights;
+    std::vector<qreal> extents;
+    heights.reserve(static_cast<size_t>(rangeSize));
+    extents.reserve(static_cast<size_t>(rangeSize));
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
-        heights.push_back(layoutBlock(block, spacing, indent));
+        qreal extent = block.length();
+        heights.push_back(layOutNow ? layoutBlock(block, spacing, indent, &extent, true)
+                                    : estimatedHeight(extent, spacing));
+        extents.push_back(extent);
         block = block.next();
     }
+    const std::vector<char> pending(heights.size(), layOutNow ? 0 : 1);
 
     // Replace the range's cache entries. Positions only move when a height changed or
     // blocks were added/removed - typing within a line leaves them valid.
-    const auto rangeBegin = m_blockHeights.begin() + first;
+    const auto begin = static_cast<std::ptrdiff_t>(first);
+    // oldLast + 1: oldLast is -1 when the cache is empty or blocks were inserted at the
+    // very start, and begin() - 1 is not a valid iterator
+    const auto oldEnd = static_cast<std::ptrdiff_t>(oldLast) + 1;
+    m_pendingCount -= static_cast<int>(
+        std::count(m_blockPending.begin() + begin, m_blockPending.begin() + oldEnd, 1));
+    m_pendingCount += layOutNow ? 0 : static_cast<int>(pending.size());
     bool geometryChanged = true;
-    if (static_cast<int>(heights.size()) == oldLast - first + 1) {
-        geometryChanged = !std::equal(heights.begin(), heights.end(), rangeBegin);
-        std::copy(heights.begin(), heights.end(), rangeBegin);
+    if (static_cast<std::ptrdiff_t>(heights.size()) == oldEnd - begin) {
+        geometryChanged = !std::equal(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
+        std::copy(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
+        std::copy(extents.begin(), extents.end(), m_blockExtents.begin() + begin);
+        std::copy(pending.begin(), pending.end(), m_blockPending.begin() + begin);
     } else {
-        // oldLast + 1 first: oldLast is -1 when the cache is empty or blocks were
-        // inserted at the very start, and begin() - 1 is not a valid iterator
-        m_blockHeights.erase(rangeBegin, m_blockHeights.begin() + (oldLast + 1));
-        m_blockHeights.insert(m_blockHeights.begin() + first, heights.begin(), heights.end());
+        m_blockHeights.erase(m_blockHeights.begin() + begin, m_blockHeights.begin() + oldEnd);
+        m_blockHeights.insert(m_blockHeights.begin() + begin, heights.begin(), heights.end());
+        m_blockExtents.erase(m_blockExtents.begin() + begin, m_blockExtents.begin() + oldEnd);
+        m_blockExtents.insert(m_blockExtents.begin() + begin, extents.begin(), extents.end());
+        m_blockPending.erase(m_blockPending.begin() + begin, m_blockPending.begin() + oldEnd);
+        m_blockPending.insert(m_blockPending.begin() + begin, pending.begin(), pending.end());
     }
     if (geometryChanged) {
         m_positionsDirty = true;
     }
 
-    emit blocksLaidOut(first, static_cast<int>(heights.size()));
-
-    const QSizeF size = documentSize();
-    if (size != m_lastReportedSize) {
-        m_lastReportedSize = size;
-        emit documentSizeChanged(size);
+    if (layOutNow && !heights.empty()) {
+        emit blocksLaidOut(first, static_cast<int>(heights.size()));
+    }
+    if (m_pendingCount > 0) {
+        m_backgroundTimer->start();
+    } else {
+        m_backgroundTimer->stop();
     }
 
-    // Repaint the re-laid-out blocks, and everything below them if they moved it
-    const qreal top = blockY(first);
-    const qreal bottom = (geometryChanged || heights.empty())
-        ? UNBOUNDED_EXTENT
-        : blockY(last) + m_blockHeights[static_cast<size_t>(last)];
-    emit update(QRectF(0, top, UNBOUNDED_EXTENT, bottom - top));
+    // Repaint the changed blocks, and everything below them if they moved it
+    notifyGeometryChanged(first, (geometryChanged || heights.empty())
+                                     ? UNBOUNDED_EXTENT
+                                     : blockY(last) + m_blockHeights[static_cast<size_t>(last)]);
+}
+
+bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block, qreal spacing,
+                                             qreal indent) {
+    const auto index = static_cast<size_t>(number);
+    qreal extent = block.length();
+    const qreal height = layoutBlock(block, spacing, indent, &extent, false);
+    const bool changed = height != m_blockHeights[index];
+    m_blockHeights[index] = height;
+    m_blockExtents[index] = extent;
+    if (m_blockPending[index] != 0) {
+        m_blockPending[index] = 0;
+        --m_pendingCount;
+    }
+    return changed;
 }
 
 qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spacing,
-                                              qreal indent) const {
+                                              qreal indent, qreal* extent,
+                                              bool keepGlyphs) const {
     QTextLayout* layout = block.layout();
     if (!layout) {
         return QFontMetricsF(document()->defaultFont()).height() + spacing;
@@ -215,10 +468,12 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spa
     textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     layout->setTextOption(textOption);
 
-    // Enable layout caching, as Qt's own manual-QTextLayout example does. Candidate fix
-    // for Qt::AlignJustify rendering ragged: the uncached path may drop the per-line
-    // justified spacing at draw time. Also a small perf win (avoids re-shaping on redraw).
-    layout->setCacheEnabled(true);
+    // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again
+    // when a line is drawn (only the visible ones are). Cached glyphs of a whole chapter
+    // took most of the editor's memory. A block laid out after an edit keeps its glyphs:
+    // the cursor works there, and each cursor position query would shape the whole
+    // paragraph again. Justified lines come out the same either way (tested).
+    layout->setCacheEnabled(keepGlyphs);
 
     const qreal width = document()->textWidth();
     const qreal lineWidth = width > 0 ? width : UNWRAPPED_LINE_WIDTH;
@@ -236,15 +491,20 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spa
     // indent, which also shortens the line (Qt aligns within the shorter width).
     layout->beginLayout();
     qreal y = 0;
+    qreal textLength = 0;
     for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
         const qreal lineIndent = line.lineNumber() == 0 ? firstIndent : 0.0;
         line.setLineWidth(lineWidth - lineIndent);
         const qreal extra = extraLeading(line.height(), m_typography.lineSpacing);
         line.setPosition(QPointF(rightToLeft ? 0.0 : lineIndent, y + leadingAbove(extra)));
         y += line.height() + extra;
+        textLength += line.naturalTextWidth();
     }
     layout->endLayout();
 
+    if (extent) {
+        *extent = textLength / m_averageCharWidth;
+    }
     return y + spacing;
 }
 
@@ -341,9 +601,10 @@ void KalahariTextDocumentLayout::draw(QPainter* painter, const PaintContext& con
         painter->setClipRect(clip);
     }
 
-    int number = clip.isEmpty() ? 0 : blockNumberAtY(clip.top());
+    int number = clip.isEmpty() ? 0 : laidOutBlockAtY(clip.top());
     for (QTextBlock block = document()->findBlockByNumber(number); block.isValid();
          block = block.next(), ++number) {
+        ensureLaidOut(number, number);
         const qreal y = blockY(number);
         if (!clip.isEmpty() && y > clip.bottom()) {
             break;
@@ -364,7 +625,7 @@ int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccurac
     }
 
     // A fuzzy hit above or below the document snaps to the first or last block
-    const int number = blockNumberAtY(y);
+    const int number = laidOutBlockAtY(y);
     const QTextBlock block = document()->findBlockByNumber(number);
     QTextLayout* layout = block.isValid() ? block.layout() : nullptr;
     if (!layout || layout->lineCount() == 0) {

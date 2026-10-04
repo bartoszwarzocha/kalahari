@@ -1227,13 +1227,6 @@ private:
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
 
-    // Deferred relayout: width and font-scaling zoom changes re-lay out the whole
-    // document, so bursts of them (window drag, mouse wheel) are applied once
-    static constexpr int RELAYOUT_DELAY_MS = 80;            ///< Settle time before relayout (ms)
-    QTimer* m_resizeTimer{nullptr};                         ///< Applies the viewport width
-    QTimer* m_zoomTimer{nullptr};                           ///< Applies m_pendingZoom
-    double m_pendingZoom{1.0};                              ///< Ctrl+wheel zoom not applied yet
-
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 
     // Distraction-Free Mode (Phase 5.7)

@@ -262,22 +262,14 @@ BookEditor::BookEditor(QWidget* parent)
         updateScrollBarRange();
     });
 
-    // Width and zoom changes re-lay out the whole document. While the user drags the
-    // window edge or turns the mouse wheel, they are applied once the input settles.
-    m_resizeTimer = new QTimer(this);
-    m_resizeTimer->setSingleShot(true);
-    m_resizeTimer->setInterval(RELAYOUT_DELAY_MS);
-    connect(m_resizeTimer, &QTimer::timeout, this, [this]() {
-        m_renderPipeline->setConfigViewportSize(QSizeF(size()));
-        update();
-    });
-
-    m_zoomTimer = new QTimer(this);
-    m_zoomTimer->setSingleShot(true);
-    m_zoomTimer->setInterval(RELAYOUT_DELAY_MS);
-    connect(m_zoomTimer, &QTimer::timeout, this, [this]() {
-        m_renderPipeline->setConfigZoom(m_pendingZoom, getZoomModeForViewMode());
-        update();
+    // Blocks laid out on demand, or wrapped again at a new width, change height while the
+    // content stays the same. The viewport keeps the text at its top in place by moving
+    // the scroll position; the scroll bar and the painted position follow it.
+    connect(m_viewportManager.get(), &ViewportManager::scrollPositionAnchored,
+            this, [this](double position) {
+        syncScrollBarValue();
+        updatePipelineScroll();
+        emit scrollOffsetChanged(position);
     });
 
     // Phase 12.3: Create EditorRenderPipeline (unified rendering)
@@ -610,7 +602,7 @@ void BookEditor::ensureCursorVisible()
     QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find the line containing cursor offset (O(log n) using Qt's binary search)
@@ -620,35 +612,36 @@ void BookEditor::ensureCursorVisible()
         cursorLine = layout->lineAt(layout->lineCount() - 1);
     }
 
-    // Get block Y position from document layout
-    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
-    qreal blockY = blockRect.y();
-
     // Cursor line position in document coordinates: the whole line box, with the line
     // spacing around the glyphs (scrolling up to the first line shows the document top)
-    const auto* kalahariLayout =
-        qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    auto* kalahariLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
     const QRectF lineBox = KalahariTextDocumentLayout::lineBox(
         cursorLine, kalahariLayout ? kalahariLayout->typography().lineSpacing : 1.0);
-    qreal lineTop = blockY + lineBox.top();
-    qreal lineBottom = blockY + lineBox.bottom();
+    const auto lineTop = [&] {
+        return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();
+    };
 
     // Get visible range in document coordinates
     qreal scrollY = m_viewportManager->scrollPosition();
     qreal viewportHeight = static_cast<qreal>(height());
     qreal topMargin = m_appearance.viewMargins.vertical;
     qreal bottomMargin = m_appearance.viewMargins.vertical;
-
-    qreal visibleTop = scrollY;
-    qreal visibleBottom = scrollY + viewportHeight - topMargin - bottomMargin;
+    const qreal visibleHeight = viewportHeight - topMargin - bottomMargin;
 
     // Scroll only if line is NOT fully visible
-    if (lineTop < visibleTop) {
+    if (lineTop() < scrollY) {
         // Line is clipped at top - scroll up to show full line
-        setScrollOffset(lineTop);
-    } else if (lineBottom > visibleBottom) {
-        // Line is clipped at bottom - scroll down to show full line
-        qreal newScroll = lineBottom - (viewportHeight - topMargin - bottomMargin);
+        setScrollOffset(lineTop());
+    } else if (lineTop() + lineBox.height() > scrollY + visibleHeight) {
+        // Line is clipped at bottom - scroll down to show full line. The blocks above it
+        // that come into view are laid out first: with estimated heights the line could
+        // end up short of the bottom edge or past it.
+        qreal newScroll = 0.0;
+        do {
+            newScroll = lineTop() + lineBox.height() - visibleHeight;
+        } while (kalahariLayout &&
+                 kalahariLayout->ensureLaidOut(kalahariLayout->blockNumberAtY(newScroll),
+                                               block.blockNumber() - 1));
         setScrollOffset(qMax(0.0, newScroll));
     }
     // If line is fully visible, don't scroll
@@ -714,7 +707,7 @@ void BookEditor::moveCursorUp()
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find current line within this paragraph
@@ -736,9 +729,9 @@ void BookEditor::moveCursorUp()
     } else if (newPos.paragraph > 0) {
         // Move to last line of previous paragraph
         --newPos.paragraph;
-        QTextBlock prevBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
-        if (prevBlock.isValid() && prevBlock.layout() && prevBlock.layout()->lineCount() > 0) {
-            QTextLayout* prevLayout = prevBlock.layout();
+        QTextLayout* prevLayout = KalahariTextDocumentLayout::blockLayout(
+            m_textBuffer->findBlockByNumber(newPos.paragraph));
+        if (prevLayout && prevLayout->lineCount() > 0) {
             QTextLine lastLine = prevLayout->lineAt(prevLayout->lineCount() - 1);
             newPos.offset = lastLine.xToCursor(m_preferredCursorX);
         } else {
@@ -763,7 +756,7 @@ void BookEditor::moveCursorDown()
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find current line within this paragraph
@@ -785,9 +778,9 @@ void BookEditor::moveCursorDown()
     } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         // Move to first line of next paragraph
         ++newPos.paragraph;
-        QTextBlock nextBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
-        if (nextBlock.isValid() && nextBlock.layout() && nextBlock.layout()->lineCount() > 0) {
-            QTextLayout* nextLayout = nextBlock.layout();
+        QTextLayout* nextLayout = KalahariTextDocumentLayout::blockLayout(
+            m_textBuffer->findBlockByNumber(newPos.paragraph));
+        if (nextLayout && nextLayout->lineCount() > 0) {
             QTextLine firstLine = nextLayout->lineAt(0);
             newPos.offset = firstLine.xToCursor(m_preferredCursorX);
         } else {
@@ -2090,6 +2083,8 @@ void BookEditor::setViewMode(ViewMode mode)
             auto [topPadding, bottomPadding] = getScrollPadding();
             m_viewportManager->setTopScrollPadding(topPadding);
             m_viewportManager->setBottomScrollPadding(bottomPadding);
+            // Page mode scrolls over the pages, which scroll anchoring does not know
+            m_viewportManager->setScrollAnchoringEnabled(mode != ViewMode::Page);
         }
 
         emit viewModeChanged(mode);
@@ -2124,9 +2119,6 @@ ZoomMode BookEditor::getZoomModeForViewMode() const {
 }
 
 double BookEditor::zoomFactor() const {
-    if (m_zoomTimer->isActive()) {
-        return m_pendingZoom;  // Ctrl+wheel zoom not applied yet
-    }
     if (m_renderPipeline) {
         return m_renderPipeline->zoomFactor();
     }
@@ -2135,7 +2127,6 @@ double BookEditor::zoomFactor() const {
 
 void BookEditor::setZoomFactor(double factor) {
     if (m_renderPipeline) {
-        m_zoomTimer->stop();
         ZoomMode mode = getZoomModeForViewMode();
         // Phase 15: granular setter handles zoom change
         m_renderPipeline->setConfigZoom(factor, mode);
@@ -2379,20 +2370,11 @@ void BookEditor::resizeEvent(QResizeEvent* event)
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
     }
 
-    // The pipeline owns the wrap width. In the scroll modes it follows the viewport
-    // width, so a width change re-lays out the whole document: while the window is being
-    // resized, only the height is applied now and the width once the size settles.
+    // The pipeline owns the wrap width; in the scroll modes it follows the viewport width.
+    // A new width wraps only the visible paragraphs before the next paint (the others in
+    // the background), so it is applied at once, also while the window edge is dragged.
     if (m_renderPipeline) {
-        const double appliedWidth = m_renderPipeline->context().viewportSize.width();
-        const bool deferWidth = isVisible() && m_viewMode != ViewMode::Page &&
-                                appliedWidth > 0 && appliedWidth != width();
-        if (deferWidth) {
-            m_renderPipeline->setConfigViewportSize(QSizeF(appliedWidth, height()));
-            m_resizeTimer->start();
-        } else {
-            m_resizeTimer->stop();
-            m_renderPipeline->setConfigViewportSize(QSizeF(size()));
-        }
+        m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
 
     updateScrollBarRange();
@@ -2429,17 +2411,10 @@ void BookEditor::wheelEvent(QWheelEvent* event)
                 qreal zoomDelta = angleDelta.y() > 0 ? 1.1 : (1.0 / 1.1);
                 qreal newZoom = qBound(0.25, zoomFactor() * zoomDelta, 4.0);
 
-                ZoomMode mode = getZoomModeForViewMode();
-                if (mode == ZoomMode::FontScaling) {
-                    // Font scaling re-lays out the whole document: apply the zoom once
-                    // the wheel stops instead of once per notch.
-                    m_pendingZoom = newZoom;
-                    m_zoomTimer->start();
-                } else {
-                    // Page scaling only changes the painter scale - no relayout
-                    m_renderPipeline->setConfigZoom(newZoom, mode);
-                    update();
-                }
+                // Font scaling wraps only the visible paragraphs before the next paint,
+                // page scaling only changes the painter scale: applied at every notch
+                m_renderPipeline->setConfigZoom(newZoom, getZoomModeForViewMode());
+                update();
                 emit zoomChanged(newZoom);
             }
             event->accept();
@@ -3744,7 +3719,7 @@ qreal BookEditor::getCursorDocumentY() const
         return 0.0;
     }
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout) {
         return 0.0;
     }
@@ -3868,7 +3843,7 @@ BookEditor::FocusedRange BookEditor::getFocusedRange() const
 
     // Get layout from QTextBlock
     QTextBlock block = doc->findBlockByNumber(paraIndex);
-    QTextLayout* layout = block.isValid() ? block.layout() : nullptr;
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
 
     // Determine range based on focus scope
     switch (m_appearance.focusMode.scope) {
@@ -3946,7 +3921,7 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         focusedRange.startParagraph < static_cast<int>(m_textBuffer->blockCount())) {
 
         QTextBlock block = doc->findBlockByNumber(focusedRange.startParagraph);
-        QTextLayout* layout = (block.isValid()) ? block.layout() : nullptr;
+        QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
 
         if (m_appearance.focusMode.scope == FocusModeSettings::FocusScope::Line) {
             // For line scope, calculate specific line bounds
@@ -5195,7 +5170,8 @@ void BookEditor::ensureEditMode()
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
-    // Connect ViewportManager to QTextDocument (all blocks are laid out by now)
+    // Connect ViewportManager to QTextDocument (the paint lays out the visible blocks,
+    // the layout's background pass the others)
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
         auto [topPadding, bottomPadding] = getScrollPadding();

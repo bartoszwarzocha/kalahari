@@ -6,6 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -14,10 +15,13 @@
 
 #include <QImage>
 #include <QMimeData>
+#include <QScrollBar>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextLayout>
+#include <QWheelEvent>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -115,6 +119,7 @@ TEST_CASE("Stage2 typography: line spacing, paragraph spacing and first-line ind
     TypesetDocument d;
     d.load({longParagraph(0), longParagraph(1), longParagraph(2)});
     d.layout->setTypography({1.5, 10.0, 20.0, 0.0});
+    d.layout->layoutPendingBlocks();
 
     const QTextLayout* first = d.block(0).layout();
     REQUIRE(first->lineCount() >= 3);
@@ -178,6 +183,7 @@ TEST_CASE("Stage2 typography: line spacing, paragraph spacing and first-line ind
         TypesetDocument plain;
         plain.load({longParagraph(0), longParagraph(1), longParagraph(2)});
         d.layout->setTypography({});
+        d.layout->layoutPendingBlocks();
         for (int i = 0; i < 3; ++i) {
             CHECK(d.layout->blockHeight(i) == Approx(plain.layout->blockHeight(i)));
             CHECK(d.layout->blockHeight(i) ==
@@ -197,6 +203,7 @@ TEST_CASE("Stage2 typography: lengths follow the document font", "[editor][stage
     QFont zoomed = testFont();
     zoomed.setPointSizeF(24.0);
     d.doc->setDefaultFont(zoomed);
+    d.layout->layoutPendingBlocks();
     CHECK(d.layout->paragraphSpacing() == Approx(20.0));
     CHECK(d.layout->firstLineIndent() == Approx(40.0));
     CHECK(d.block(0).layout()->lineAt(0).x() == Approx(40.0));
@@ -207,6 +214,7 @@ TEST_CASE("Stage2 typography: hit test between lines and in the paragraph spacin
     TypesetDocument d;
     d.load({longParagraph(0), longParagraph(1)});
     d.layout->setTypography({2.0, 16.0, 0.0, 0.0});
+    d.layout->layoutPendingBlocks();
 
     const QTextBlock block = d.block(0);
     const QTextLayout* layout = block.layout();
@@ -250,16 +258,19 @@ TEST_CASE("Stage2 typography: the editor lays out with its appearance settings",
     const qreal spacedHeight = layout->documentSize().height();
 
     editor.setAppearance(appearanceWith(1.0, 0.0, false, 24.0));
+    layout->layoutPendingBlocks();
     CHECK(layout->typography().lineSpacing == Approx(1.0));
     CHECK(layout->paragraphSpacing() == Approx(0.0));
     CHECK(layout->firstLineIndent() == Approx(0.0));
     CHECK(layout->documentSize().height() < spacedHeight);
 
-    SECTION("zoom scales the spacing with the font, in one relayout") {
+    SECTION("zoom scales the spacing with the font, laying out each block once") {
         editor.setAppearance(appearanceWith(1.5, 10.0, true, 20.0));
-        FullRelayoutCounter relayouts(editor);
+        layout->layoutPendingBlocks();
+        LaidOutBlockCounter laidOut(editor);
         editor.setZoomFactor(2.0);
-        CHECK(relayouts.count() == 1);
+        layout->layoutPendingBlocks();
+        CHECK(laidOut.count() == 3);
         CHECK(layout->paragraphSpacing() == Approx(20.0));
         CHECK(layout->firstLineIndent() == Approx(40.0));
     }
@@ -582,4 +593,352 @@ TEST_CASE("Stage2 paste: KML becomes plain HTML for other programs", "[editor][s
                          "<b style=\"font-family:'Georgia';font-size:14pt\">Big</b> noted "
                          "<span style=\"color:#aa0000\">red</span></p>"
                          "<p>\u00A0</p><p>a &amp; b</p>"));
+}
+
+// =============================================================================
+// Layout on demand
+// =============================================================================
+
+namespace {
+
+/// Paragraphs of different lengths and letter widths: like real text, they make the
+/// estimated heights of blocks never laid out miss
+QStringList mixedParagraphs(int count) {
+    QStringList list;
+    for (int i = 0; i < count; ++i) {
+        QString text;
+        switch (i % 4) {
+            case 0: text = QStringLiteral("WWW MMM WWWW MMMM ").repeated(4 + i % 5); break;
+            case 1: text = QStringLiteral("iii lll iiii llll ").repeated(6 + i % 5); break;
+            case 2:
+                text = QStringLiteral("Pneumonoultramicroscopicsilicovolcanoconiosis is long. ")
+                           .repeated(2 + i % 3);
+                break;
+            default: text = (longParagraph(i) + QLatin1Char(' ')).repeated(1 + i % 3); break;
+        }
+        list << text.trimmed();
+    }
+    return list;
+}
+
+/// The line at the top of the editor's view (document y = scroll offset)
+struct TopLine {
+    int block = -1;
+    int start = 0;   ///< First character of the line, in the block
+    int length = 0;
+};
+
+TopLine topLine(const BookEditor& editor) {
+    const auto* layout = layoutOf(editor);
+    const qreal y = editor.scrollOffset();
+    TopLine top;
+    top.block = layout->blockNumberAtY(y);
+    const QTextLayout* lines = editor.textDocument()->findBlockByNumber(top.block).layout();
+    const int index = KalahariTextDocumentLayout::lineIndexAt(
+        *lines, y - layout->blockY(top.block), layout->typography().lineSpacing);
+    top.start = lines->lineAt(index).textStart();
+    top.length = lines->lineAt(index).textLength();
+    return top;
+}
+
+void sendCtrlWheel(BookEditor& editor, int angleDelta) {
+    QWheelEvent wheel(QPointF(100, 100), QPointF(100, 100), QPoint(), QPoint(0, angleDelta),
+                      Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QCoreApplication::sendEvent(&editor, &wheel);
+}
+
+/// Image of the text area: the editor without its scroll bar, whose thumb follows the
+/// document height (it changes as estimated heights are replaced)
+QImage textArea(BookEditor& editor) {
+    return editor.grab().toImage().copy(
+        0, 0, editor.width() - editor.verticalScrollBar()->width(), editor.height());
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage2 on demand: a new width leaves every block waiting for layout",
+          "[editor][stage2][ondemand]") {
+    const QStringList paragraphs = mixedParagraphs(40);
+    TypesetDocument d;
+    d.load(paragraphs);
+    d.layout->layoutPendingBlocks();
+    REQUIRE(d.layout->pendingBlockCount() == 0);
+
+    LaidOutBlockCounter laidOut(*d.doc);
+    d.doc->setTextWidth(2 * kWidth);
+    CHECK(laidOut.count() == 0);
+    CHECK(d.layout->pendingBlockCount() == 40);
+    CHECK_FALSE(d.layout->isLaidOut(0));
+
+    SECTION("ensureLaidOut lays out only the blocks asked for") {
+        CHECK(d.layout->ensureLaidOut(10, 12));
+        CHECK(laidOut.count() == 3);
+        CHECK(d.layout->isLaidOut(10));
+        CHECK(d.layout->isLaidOut(12));
+        CHECK_FALSE(d.layout->isLaidOut(9));
+        CHECK_FALSE(d.layout->isLaidOut(13));
+        CHECK_FALSE(d.layout->ensureLaidOut(10, 12));  // nothing waits there any more
+    }
+
+    SECTION("laid out, the blocks have the geometry of a layout from scratch") {
+        d.layout->layoutPendingBlocks();
+        CHECK(laidOut.count() == 40);
+
+        TypesetDocument reference;
+        reference.doc->setTextWidth(2 * kWidth);
+        reference.load(paragraphs);
+        reference.layout->layoutPendingBlocks();
+        for (int i = 0; i < 40; ++i) {
+            CHECK(d.layout->blockHeight(i) == reference.layout->blockHeight(i));
+        }
+        CHECK(d.layout->documentSize() == reference.layout->documentSize());
+    }
+
+    SECTION("lines are read through blockLayout(), which lays the block out first") {
+        const QTextLayout* lines = KalahariTextDocumentLayout::blockLayout(d.block(5));
+        CHECK(d.layout->isLaidOut(5));
+        CHECK(lines == d.block(5).layout());
+        CHECK(laidOut.count() == 1);
+    }
+}
+
+TEST_CASE("Stage2 on demand: the background pass lays out the waiting blocks in steps",
+          "[editor][stage2][ondemand]") {
+    TypesetDocument d;
+    d.load(mixedParagraphs(3000));
+    REQUIRE(d.layout->pendingBlockCount() == 3000);  // a large change waits for layout
+
+    int steps = 0;
+    QObject::connect(d.layout, &KalahariTextDocumentLayout::blocksLaidOut, [&steps] { ++steps; });
+    REQUIRE(waitUntil([&d] { return d.layout->pendingBlockCount() == 0; }, 20000));
+    CHECK(steps > 1);  // a step stops after a few milliseconds, so input is not held up
+}
+
+TEST_CASE("Stage2 on demand: small edits are laid out at once, a large paste waits",
+          "[editor][stage2][ondemand]") {
+    TypesetDocument d;
+    d.load(mixedParagraphs(10));
+    d.layout->layoutAllBlocks();  // laid out on demand, as after a resize: lines only
+    CHECK_FALSE(d.block(3).layout()->cacheEnabled());
+
+    QTextCursor cursor(d.block(3));
+    cursor.insertText(QStringLiteral("Typed. "));
+    cursor.insertBlock();
+    CHECK(d.layout->pendingBlockCount() == 0);
+    // The edited blocks keep their glyphs for the cursor working in them
+    CHECK(d.block(3).layout()->cacheEnabled());
+    CHECK(d.block(4).layout()->cacheEnabled());
+
+    cursor.insertText(mixedParagraphs(100).join(QLatin1Char('\n')));
+    CHECK(d.layout->pendingBlockCount() >= 100);
+
+    d.layout->layoutPendingBlocks();
+    CHECK_FALSE(d.block(50).layout()->cacheEnabled());
+    QStringList text;
+    for (QTextBlock b = d.doc->begin(); b.isValid(); b = b.next()) text << b.text();
+    TypesetDocument reference;
+    reference.load(text);
+    reference.layout->layoutPendingBlocks();
+    CHECK(d.layout->documentSize() == reference.layout->documentSize());
+}
+
+TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the background",
+          "[editor][stage2][ondemand]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(mixedParagraphs(300)));
+    auto* layout = layoutOf(editor);
+    CHECK(layout->pendingBlockCount() == 300);  // the load lays out nothing
+
+    editor.grab();
+    const int shown = layout->blockNumberAtY(editor.scrollOffset() + editor.height()) + 1;
+    for (int i = 0; i < shown; ++i) {
+        CHECK(layout->isLaidOut(i));
+    }
+    CHECK(layout->pendingBlockCount() == 300 - shown);
+    // The glyphs of a laid out block are shaped again when drawn, not kept in memory
+    CHECK_FALSE(editor.textDocument()->firstBlock().layout()->cacheEnabled());
+
+    REQUIRE(waitUntil([layout] { return layout->pendingBlockCount() == 0; }, 20000));
+}
+
+TEST_CASE("Stage2 on demand: blocks laid out above the view leave its text in place",
+          "[editor][stage2][ondemand][render]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(mixedParagraphs(300)));
+    auto* layout = layoutOf(editor);
+
+    editor.setScrollOffset(editor.verticalScrollBar()->maximum() * 0.5);
+    const QImage shown = textArea(editor);
+    const qreal estimatedHeight = layout->documentSize().height();
+    const qreal scrollShown = editor.scrollOffset();
+
+    layout->layoutPendingBlocks();  // the background pass, at once
+    REQUIRE(layout->documentSize().height() != estimatedHeight);  // the estimates missed
+    CHECK(editor.scrollOffset() != scrollShown);  // the scroll position followed the text
+    CHECK(editor.verticalScrollBar()->value() == static_cast<int>(editor.scrollOffset()));
+    CHECK(textArea(editor) == shown);
+}
+
+TEST_CASE("Stage2 on demand: Ctrl+End right after loading shows the end",
+          "[editor][stage2][ondemand][render]") {
+    // Wide letters at the end: estimated too short, the paragraphs on screen grow when
+    // laid out and would push the end out of view
+    QStringList paragraphs = mixedParagraphs(300);
+    for (int i = 0; i < 15; ++i) {
+        paragraphs << QStringLiteral("WWW MMM WWWW MMMM ").repeated(8).trimmed();
+    }
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(paragraphs));
+    auto* layout = layoutOf(editor);
+
+    editor.moveCursorToDocEnd();
+    const QImage shown = textArea(editor);
+    const int last = editor.textDocument()->blockCount() - 1;
+    const qreal marginTop = editor.appearance().viewMargins.vertical;
+    const qreal endOnScreen = marginTop + layout->blockY(last) + layout->blockHeight(last) -
+                              editor.scrollOffset();
+    CHECK(endOnScreen <= editor.height());
+    CHECK(endOnScreen > editor.height() - 2 * marginTop - layout->blockHeight(last));
+
+    layout->layoutPendingBlocks();
+    CHECK(textArea(editor) == shown);
+}
+
+TEST_CASE("Stage2 on demand: a resize shows the text at the new width at once, without a jump",
+          "[editor][stage2][ondemand][render]") {
+    const double position = GENERATE(0.0, 0.4, 1.0);  // share of the scroll range
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(mixedParagraphs(300)));
+    auto* layout = layoutOf(editor);
+    layout->layoutPendingBlocks();
+    editor.setScrollOffset(editor.verticalScrollBar()->maximum() * position);
+    editor.grab();
+    const TopLine before = topLine(editor);
+
+    LaidOutBlockCounter laidOut(editor);
+    resizeWidget(editor, QSize(800, 400));
+    const QImage resized = textArea(editor);
+    CHECK(laidOut.count() <= 10);  // only the paragraphs on screen
+
+    if (position < 1.0) {
+        // The text at the top stays at the top (the end of a shorter document cannot)
+        const TopLine after = topLine(editor);
+        CHECK(after.block == before.block);
+        CHECK(after.start <= before.start);
+        CHECK(before.start < after.start + after.length);
+    }
+
+    layout->layoutPendingBlocks();
+    CHECK(textArea(editor) == resized);
+}
+
+TEST_CASE("Stage2 on demand: a visible editor wraps at the new width during the resize",
+          "[editor][stage2][ondemand]") {
+    // Regression (Stage 1): a width change re-laid out the whole document, so a visible
+    // editor kept the old width until the window edge stopped for 80 ms, leaving a blank
+    // strip or cut lines in the meantime.
+    BookEditor editor;
+    editor.setAttribute(Qt::WA_DontShowOnScreen);  // visible to Qt, no window on screen
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(mixedParagraphs(300)));
+    editor.show();
+    REQUIRE(editor.isVisible());
+    runEventLoop(50);
+
+    LaidOutBlockCounter laidOut(editor);
+    qreal width = editor.textDocument()->textWidth();
+    for (int windowWidth = 640; windowWidth <= 880; windowWidth += 40) {
+        editor.resize(windowWidth, 400);  // a visible widget gets the resize event at once
+        CHECK(editor.textDocument()->textWidth() > width);
+        width = editor.textDocument()->textWidth();
+        editor.repaint();
+    }
+    CHECK(laidOut.count() < 100);  // each step laid out the paragraphs on screen
+
+    BookEditor reference;
+    resizeWidget(reference, editor.size());
+    reference.fromKml(kmlOf(mixedParagraphs(300)));
+    CHECK(width == Approx(reference.textDocument()->textWidth()));
+}
+
+TEST_CASE("Stage2 on demand: Ctrl+wheel zooms at every notch, keeping the text at the top",
+          "[editor][stage2][ondemand]") {
+    // Regression (Stage 1): font-scaling zoom was applied once the wheel stopped for 80 ms
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.fromKml(kmlOf(mixedParagraphs(300)));
+    layoutOf(editor)->layoutPendingBlocks();
+    editor.setScrollOffset(editor.verticalScrollBar()->maximum() * 0.4 + 7);  // within a line
+    editor.grab();
+    const TopLine before = topLine(editor);
+    const qreal baseSize = editor.textDocument()->defaultFont().pointSizeF();
+
+    LaidOutBlockCounter laidOut(editor);
+    int notch = 0;
+    for (const int delta : {120, 120, 120, -120, -120, -120, -120}) {
+        sendCtrlWheel(editor, delta);
+        notch += delta > 0 ? 1 : -1;
+        CHECK(editor.zoomFactor() == Approx(std::pow(1.1, notch)));
+        CHECK(editor.textDocument()->defaultFont().pointSizeF() ==
+              Approx(baseSize * std::pow(1.1, notch)));
+        editor.grab();
+
+        // The line at the top still holds the text that was there, wrapped anew
+        const TopLine now = topLine(editor);
+        CHECK(now.block == before.block);
+        CHECK(now.start <= before.start);
+        CHECK(before.start < now.start + now.length);
+    }
+    CHECK(laidOut.count() < 100);  // each notch laid out the paragraphs on screen
+}
+
+TEST_CASE("Stage2 on demand: justified lines reach the right edge without cached glyphs",
+          "[editor][stage2][ondemand][render]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.setAppearance(appearanceWith(1.0, 0.0, false, 0.0));
+    // No punctuation: every line ends with a letter, whose ink reaches the line's end
+    const QString words = QStringLiteral(
+        "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor "
+        "incididunt ut labore et dolore magna aliqua ");
+    editor.fromKml(QStringLiteral("<kml><p align=\"justify\">") + words.repeated(4).trimmed() +
+                   QStringLiteral("</p></kml>"));
+    layoutOf(editor)->layoutAllBlocks();  // laid out on demand, as after a resize
+
+    const EditorAppearance& appearance = editor.appearance();
+    const QColor background = appearance.colors.background(appearance.colorMode);
+    const int marginLeft = static_cast<int>(appearance.viewMargins.horizontal);
+    const int marginTop = static_cast<int>(appearance.viewMargins.vertical);
+    const int textRight = marginLeft + static_cast<int>(editor.textDocument()->textWidth());
+    const QTextLayout* lines =
+        KalahariTextDocumentLayout::blockLayout(editor.textDocument()->firstBlock());
+    REQUIRE(lines->lineCount() >= 4);
+    REQUIRE_FALSE(lines->cacheEnabled());
+
+    // Rightmost ink of every line but the last (which is not stretched), left of the
+    // scroll bar
+    const QImage image = editor.grab().toImage();
+    std::vector<int> rightEdges;
+    for (int i = 0; i + 1 < lines->lineCount(); ++i) {
+        const QTextLine line = lines->lineAt(i);
+        const int top = marginTop + static_cast<int>(line.y());
+        const int bottom = marginTop + static_cast<int>(line.y() + line.height());
+        int rightmost = -1;
+        for (int x = std::min(textRight + 4, image.width() - 1); x >= 0 && rightmost < 0; --x) {
+            for (int y = top; y < bottom; ++y) {
+                if (differs(image, x, y, background)) {
+                    rightmost = x;
+                    break;
+                }
+            }
+        }
+        rightEdges.push_back(rightmost);
+    }
+    const auto [narrowest, widest] = std::minmax_element(rightEdges.begin(), rightEdges.end());
+    CHECK(*narrowest >= textRight - 4);
+    CHECK(*widest <= textRight + 1);
 }
