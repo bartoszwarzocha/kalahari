@@ -266,6 +266,7 @@ void FindReplaceBar::showFind()
     m_replaceSection->setVisible(false);
     setMaximumHeight(40);
     adjustSize();
+    searchAgain();
 }
 
 void FindReplaceBar::showFindReplace()
@@ -273,6 +274,16 @@ void FindReplaceBar::showFindReplace()
     m_replaceSection->setVisible(true);
     setMaximumHeight(70);
     adjustSize();
+    searchAgain();
+}
+
+void FindReplaceBar::searchAgain()
+{
+    // Closing the bar clears the search engine, while the field keeps its text: search
+    // for it again, so the matches show and Enter finds them
+    if (m_searchEngine && m_searchEngine->searchText() != m_searchInput->text()) {
+        onSearchTextChanged(m_searchInput->text());
+    }
 }
 
 void FindReplaceBar::setSearchText(const QString& text)
@@ -293,7 +304,8 @@ void FindReplaceBar::focusSearchInput()
 
 bool FindReplaceBar::isReplaceMode() const
 {
-    return m_replaceSection->isVisible();
+    // isVisible() would be false while the bar itself is hidden
+    return !m_replaceSection->isHidden();
 }
 
 // =============================================================================

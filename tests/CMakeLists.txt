@@ -58,12 +58,13 @@ set(TEST_SOURCES
     editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
     editor/test_editor_stage1.cpp                # Editor Stage 1: regressions for the quick fixes
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
-    editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop of text
+    editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
+    gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -132,6 +133,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
     ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
+    ${CMAKE_SOURCE_DIR}/src/gui/command_registrar.cpp       # Editor Stage 3: the application's commands, for shortcut checks
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider

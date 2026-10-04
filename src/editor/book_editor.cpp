@@ -4954,7 +4954,11 @@ void BookEditor::showFindReplace()
 
 void BookEditor::findNext()
 {
-    if (!m_searchEngine) return;
+    // Without a search term, open the bar to type one
+    if (!m_searchEngine || !m_searchEngine->isActive()) {
+        showFind();
+        return;
+    }
     auto match = m_searchEngine->nextMatch();
     if (match.isValid()) {
         onNavigateToMatch(match);
@@ -4963,7 +4967,10 @@ void BookEditor::findNext()
 
 void BookEditor::findPrevious()
 {
-    if (!m_searchEngine) return;
+    if (!m_searchEngine || !m_searchEngine->isActive()) {
+        showFind();
+        return;
+    }
     auto match = m_searchEngine->previousMatch();
     if (match.isValid()) {
         onNavigateToMatch(match);

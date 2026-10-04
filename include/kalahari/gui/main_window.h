@@ -197,6 +197,18 @@ private slots:
     /// @brief Slot for Edit > Select All action
     void onSelectAll();
 
+    /// @brief Slot for Edit > Find... (search bar of the current editor)
+    void onFind();
+
+    /// @brief Slot for Edit > Find Next
+    void onFindNext();
+
+    /// @brief Slot for Edit > Find Previous
+    void onFindPrevious();
+
+    /// @brief Slot for Edit > Find & Replace... (search bar with replacing)
+    void onFindReplace();
+
     /// @brief Slot for Edit > Settings action
     void onSettings();
 

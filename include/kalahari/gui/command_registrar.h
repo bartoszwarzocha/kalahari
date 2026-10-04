@@ -46,6 +46,10 @@ struct CommandCallbacks {
     std::function<void()> onCopy;               ///< Edit > Copy
     std::function<void()> onPaste;              ///< Edit > Paste
     std::function<void()> onSelectAll;          ///< Edit > Select All
+    std::function<void()> onFind;               ///< Edit > Find...
+    std::function<void()> onFindNext;           ///< Edit > Find Next
+    std::function<void()> onFindPrevious;       ///< Edit > Find Previous
+    std::function<void()> onFindReplace;        ///< Edit > Find & Replace...
     std::function<void()> onSettings;           ///< Edit > Preferences/Settings
 
     // =========================================================================

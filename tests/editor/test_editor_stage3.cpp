@@ -1,5 +1,5 @@
 /// @file test_editor_stage3.cpp
-/// @brief Editor Stage 3 (variant A): drag and drop of text
+/// @brief Editor Stage 3 (variant A): drag and drop of text, find and replace
 ///
 /// The drop itself is checked through BookEditor::dropMimeData(), which dropEvent() calls:
 /// QDropEvent::source() is set only during a real drag, which tests cannot run. The mouse
@@ -10,6 +10,8 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/search_engine.h>
+#include <kalahari/gui/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
@@ -17,12 +19,17 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QImage>
+#include <QLineEdit>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <map>
 #include <memory>
 
 using namespace kalahari::editor;
@@ -357,4 +364,164 @@ TEST_CASE("Stage3 hit test: an exact hit is on the text of a line", "[editor][st
     CHECK(layout->hitTest(QPointF(endX + 20.0, y), Qt::ExactHit) == -1);
     CHECK(layout->hitTest(QPointF(endX + 20.0, y), Qt::FuzzyHit) == 5);
     CHECK(layout->hitTest(QPointF(10.0, -5.0), Qt::ExactHit) == -1);
+}
+
+// =============================================================================
+// Find and replace
+// =============================================================================
+
+namespace {
+
+const QString kWords = QStringLiteral(
+    "<kml><p>One word, then another word.</p><p>No match here.</p><p>The last word.</p></kml>");
+
+kalahari::gui::FindReplaceBar* findBar(BookEditor& editor) {
+    return editor.findChild<kalahari::gui::FindReplaceBar*>();
+}
+
+bool isShown(QWidget* widget) {
+    return widget != nullptr && !widget->isHidden();
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
+          "[editor][stage3][search]") {
+    auto editor = editorWith(kWords);
+    editor->setSelection({{0, 4}, {0, 8}});  // "word"
+    editor->showFind();
+
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    CHECK_FALSE(bar->isReplaceMode());
+    CHECK(bar->searchText() == QStringLiteral("word"));
+    CHECK(editor->searchEngine()->totalMatchCount() == 3);
+
+    SECTION("Find Next selects the matches one after another, then from the top") {
+        editor->findNext();
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+        editor->findNext();
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+        editor->findNext();
+        CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+        CHECK(editor->selection().normalized().end == CursorPosition{2, 13});
+        editor->findNext();
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+        editor->findPrevious();
+        CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+    }
+
+    SECTION("the bar opened again searches for its text again") {
+        // Closing the bar clears the search; its field keeps the text
+        editor->hideFindReplace();
+        CHECK_FALSE(editor->searchEngine()->isActive());
+        editor->clearSelection();
+
+        editor->showFind();
+        CHECK(bar->searchText() == QStringLiteral("word"));
+        CHECK(editor->searchEngine()->totalMatchCount() == 3);
+        editor->findNext();
+        CHECK(editor->selectedText() == QStringLiteral("word"));
+    }
+
+    SECTION("Find & Replace shows the replace row, Replace All is one undo step") {
+        editor->showFindReplace();
+        CHECK(bar->isReplaceMode());
+        const QList<QLineEdit*> fields = bar->findChildren<QLineEdit*>();
+        REQUIRE(fields.size() == 2);
+        fields[1]->setText(QStringLiteral("term"));
+        QPushButton* replaceAll = nullptr;
+        for (QPushButton* button : bar->findChildren<QPushButton*>()) {
+            if (button->text() == QStringLiteral("Replace All")) replaceAll = button;
+        }
+        REQUIRE(replaceAll != nullptr);
+
+        replaceAll->click();
+        CHECK(editor->plainText() ==
+              QStringLiteral("One term, then another term.\nNo match here.\nThe last term."));
+        editor->undo();
+        CHECK(editor->toKml() == kWords);
+    }
+}
+
+TEST_CASE("Stage3 find: Find Next without a search term opens the bar",
+          "[editor][stage3][search]") {
+    auto editor = editorWith(kWords);
+    editor->findNext();
+    CHECK(isShown(findBar(*editor)));
+    CHECK_FALSE(editor->hasSelection());
+}
+
+TEST_CASE("Stage3 find: matches are painted under the text", "[editor][stage3][search]") {
+    auto editor = editorWith(kWords);
+    editor->setCursorPosition({0, 8});
+    const QRectF end = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    editor->setCursorPosition({0, 4});
+    const QRectF begin = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    const QImage plain = editorImage(*editor);
+
+    // Searching without the bar, which would cover the first line
+    editor->showFind();
+    editor->hideFindReplace();
+    editor->searchEngine()->setSearchText(QStringLiteral("word"));
+    const QImage found = editorImage(*editor);
+
+    // The first match, without the caret
+    const QRect match(QPoint(static_cast<int>(begin.right()) + 1, static_cast<int>(begin.top()) + 1),
+                      QPoint(static_cast<int>(end.left()) - 2, static_cast<int>(begin.bottom()) - 2));
+    REQUIRE(match.width() > 10);
+    const auto mostCommon = [&match](const QImage& image) {
+        std::map<QRgb, int> counts;
+        for (int y = match.top(); y <= match.bottom(); ++y) {
+            for (int x = match.left(); x <= match.right(); ++x) {
+                ++counts[image.pixel(x, y)];
+            }
+        }
+        return std::max_element(counts.begin(), counts.end(),
+                                [](const auto& a, const auto& b) { return a.second < b.second; })
+            ->first;
+    };
+    const QRgb background = mostCommon(plain);
+    const QRgb highlight = mostCommon(found);
+    CHECK(highlight != background);
+
+    // The background around the letters is tinted, and the letters stand out from the tint
+    // in light and dark color modes alike
+    int tinted = 0;
+    int letters = 0;
+    for (int y = match.top(); y <= match.bottom(); ++y) {
+        for (int x = match.left(); x <= match.right(); ++x) {
+            const QRgb before = plain.pixel(x, y);
+            const QRgb after = found.pixel(x, y);
+            if (before == background && after != background) {
+                ++tinted;
+            }
+            if (std::abs(qGray(before) - qGray(background)) > 100 &&
+                std::abs(qGray(after) - qGray(highlight)) > 60) {
+                ++letters;
+            }
+        }
+    }
+    CHECK(tinted > 20);
+    CHECK(letters > 5);
+}
+
+TEST_CASE("Stage3 find: a match far down a long chapter is shown when found",
+          "[editor][stage3][search]") {
+    QStringList paragraphs;
+    for (int i = 0; i < 400; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 with enough words to wrap onto a second line "
+                                     "in a window of this width, so the heights matter.").arg(i);
+    }
+    paragraphs << QStringLiteral("The needle is here.");
+    auto editor = editorWith(kmlOf(paragraphs));
+
+    editor->showFind();
+    findBar(*editor)->setSearchText(QStringLiteral("needle"));
+    editor->findNext();
+
+    CHECK(editor->selection().normalized().start == CursorPosition{400, 4});
+    const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(caret.top() >= 0.0);
+    CHECK(caret.bottom() <= editor->height());
 }

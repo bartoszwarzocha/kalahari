@@ -161,6 +161,9 @@ private:
     /// @brief Apply search options from toggle buttons
     void applySearchOptions();
 
+    /// @brief Search for the field's text again when the search engine has another one
+    void searchAgain();
+
     // =========================================================================
     // UI Components - Row 1 (Find)
     // =========================================================================

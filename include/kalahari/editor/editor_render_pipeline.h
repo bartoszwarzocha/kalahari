@@ -423,8 +423,13 @@ private:
     void renderParagraphSelection(QPainter* painter, size_t paraIndex,
                                    int startOffset, int endOffset, double widgetY);
 
-    /// @brief Render search highlights
-    void renderSearchHighlights(QPainter* painter, const QRect& clipRect);
+    /// @brief Fill the background of a text range of one paragraph, line by line
+    /// @param lineBoxes Whole line boxes (lines join up) instead of the text height
+    void fillTextRange(QPainter* painter, size_t paraIndex, int startOffset, int endOffset,
+                       double widgetY, const QColor& color, bool lineBoxes);
+
+    /// @brief Render search highlights of the visible paragraphs (scroll modes, under the text)
+    void renderSearchHighlights(QPainter* painter);
 
     /// @brief Render cursor
     void renderCursor(QPainter* painter);

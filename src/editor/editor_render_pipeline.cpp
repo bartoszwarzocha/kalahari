@@ -769,7 +769,6 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     // Overlays (work in all modes, already viewport-culled)
     renderCommentHighlights(painter, clipRect);
     renderMarkerHighlights(painter, clipRect);
-    renderSearchHighlights(painter, clipRect);
     renderFocusOverlay(painter, clipRect);
 
     painter->restore();
@@ -940,16 +939,24 @@ void EditorRenderPipeline::renderSelection(QPainter* painter, [[maybe_unused]] c
 void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t paraIndex,
                                                      int startOffset, int endOffset,
                                                      double widgetY) {
+    // The band covers the whole line boxes, so the lines of a selection join up
+    fillTextRange(painter, paraIndex, startOffset, endOffset, widgetY, m_context.colors.selection,
+                  true);
+}
+
+void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, int startOffset,
+                                         int endOffset, double widgetY, const QColor& color,
+                                         bool lineBoxes) {
     QTextLayout* layout = m_textSource->layout(paraIndex);
     if (!layout) return;
 
-    // Find lines containing selection
+    // Find lines containing the range
     for (int i = 0; i < layout->lineCount(); ++i) {
         QTextLine line = layout->lineAt(i);
         int lineStart = line.textStart();
         int lineEnd = lineStart + line.textLength();
 
-        // Check if selection intersects this line
+        // Check if the range intersects this line
         if (startOffset < lineEnd && endOffset > lineStart) {
             int selStart = std::max(startOffset, lineStart);
             int selEnd = std::min(endOffset, lineEnd);
@@ -958,22 +965,21 @@ void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t pa
             qreal x2 = line.cursorToX(selEnd);
             if (x1 > x2) std::swap(x1, x2);
 
-            // Convert to widget coordinates - Phase 14: use computed values. The band
-            // covers the whole line box, so the lines of a selection join up.
-            const QRectF box = lineBox(line);
+            // Convert to widget coordinates - Phase 14: use computed values
+            const QRectF band = lineBoxes ? lineBox(line)
+                                          : QRectF(line.x(), line.y(), line.width(), line.height());
             double wx1 = m_context.computed.marginLeft + x1 * m_context.computed.viewScale;
             double wx2 = m_context.computed.marginLeft + x2 * m_context.computed.viewScale;
-            double wy = widgetY + box.y() * m_context.computed.viewScale;
-            double wh = box.height() * m_context.computed.viewScale;
+            double wy = widgetY + band.y() * m_context.computed.viewScale;
+            double wh = band.height() * m_context.computed.viewScale;
 
-            QRectF selRect(wx1, wy, wx2 - wx1, wh);
-            painter->fillRect(selRect, m_context.colors.selection);
+            painter->fillRect(QRectF(wx1, wy, wx2 - wx1, wh), color);
         }
     }
 }
 
-void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_searchEngine || !m_searchEngine->isActive()) return;
+void EditorRenderPipeline::renderSearchHighlights(QPainter* painter) {
+    if (!m_searchEngine || !m_searchEngine->isActive() || !m_textSource) return;
 
     // Matches are sorted by position, so the ones in the visible paragraphs (the same
     // range the text is drawn for) are found by binary search instead of measuring all.
@@ -986,17 +992,15 @@ void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect
     const int currentIdx = m_searchEngine->currentMatchIndex();
 
     for (auto it = firstMatch; it != matches.end() && it->paragraph <= lastVisible; ++it) {
-        QRectF matchRect = getTextRect(static_cast<size_t>(it->paragraph),
-                                       it->paragraphOffset,
-                                       static_cast<int>(it->length));
+        const QColor& color = (static_cast<int>(it - matches.begin()) == currentIdx)
+                                  ? m_context.colors.currentMatch
+                                  : m_context.colors.searchHighlight;
 
-        if (matchRect.isEmpty() || !matchRect.intersects(clipRect)) continue;
-
-        QColor color = (static_cast<int>(it - matches.begin()) == currentIdx)
-                           ? m_context.colors.currentMatch
-                           : m_context.colors.searchHighlight;
-
-        painter->fillRect(matchRect, color);
+        // A match is within one paragraph, but may wrap onto the next line
+        const auto paragraph = static_cast<size_t>(it->paragraph);
+        fillTextRange(painter, paragraph, it->paragraphOffset,
+                      it->paragraphOffset + static_cast<int>(it->length),
+                      paragraphWidgetY(paragraph), color, false);
     }
 }
 
@@ -1245,6 +1249,10 @@ void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clip
             }
         }
     }
+
+    // Search matches, under the text like the selection (scroll geometry, so not in
+    // Page mode)
+    renderSearchHighlights(painter);
 
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);

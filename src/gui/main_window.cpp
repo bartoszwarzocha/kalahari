@@ -320,6 +320,10 @@ void MainWindow::registerCommands() {
     callbacks.onCopy = [this]() { onCopy(); };
     callbacks.onPaste = [this]() { onPaste(); };
     callbacks.onSelectAll = [this]() { onSelectAll(); };
+    callbacks.onFind = [this]() { onFind(); };
+    callbacks.onFindNext = [this]() { onFindNext(); };
+    callbacks.onFindPrevious = [this]() { onFindPrevious(); };
+    callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
     // Format commands (OpenSpec #00042 Phase 7.2)
@@ -577,6 +581,42 @@ void MainWindow::onSelectAll() {
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->selectAll();
         statusBar()->showMessage(tr("All text selected"), 2000);
+    }
+}
+
+void MainWindow::onFind() {
+    core::Logger::getInstance().info("Action triggered: Find");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->showFind();
+    }
+}
+
+void MainWindow::onFindNext() {
+    core::Logger::getInstance().info("Action triggered: Find Next");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->findNext();
+    }
+}
+
+void MainWindow::onFindPrevious() {
+    core::Logger::getInstance().info("Action triggered: Find Previous");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->findPrevious();
+    }
+}
+
+void MainWindow::onFindReplace() {
+    core::Logger::getInstance().info("Action triggered: Find & Replace");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->showFindReplace();
     }
 }
 
