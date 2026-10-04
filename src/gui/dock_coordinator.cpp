@@ -39,6 +39,14 @@ DockCoordinator::DockCoordinator(QMainWindow* mainWindow, MenuBuilder* menuBuild
     logger.debug("DockCoordinator created");
 }
 
+DashboardPanel* DockCoordinator::dashboardPanel() const {
+    return m_dashboardPanel;
+}
+
+void DockCoordinator::setDashboardPanel(DashboardPanel* panel) {
+    m_dashboardPanel = panel;  // QPointer accepts raw ptr
+}
+
 void DockCoordinator::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator: Creating dock widgets");

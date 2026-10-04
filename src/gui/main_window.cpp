@@ -1215,8 +1215,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
                 .replace("\\", "_")
                 .replace(":", "_")
                 .replace(" ", "_");
-            m_dockCoordinator->navigatorPanel()->saveExpansionState(projectId);
-            logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+            NavigatorPanel* navigator = m_dockCoordinator ? m_dockCoordinator->navigatorPanel() : nullptr;
+            if (navigator) {
+                navigator->saveExpansionState(projectId);
+                logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+            }
         }
     }
 

@@ -104,8 +104,9 @@ void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast)
         oldLast = oldCount - 1;
     }
 
+    const int rangeSize = last - first + 1;
     std::vector<qreal> heights;
-    heights.reserve(static_cast<size_t>(last - first + 1));
+    heights.reserve(static_cast<size_t>(std::max(rangeSize, 0)));
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
         layoutBlock(block);

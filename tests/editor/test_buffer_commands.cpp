@@ -149,8 +149,10 @@ TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
     SECTION("a bare todo (empty map) is still a marker") {
         auto marker = TextMarker::fromVariant(QVariantMap());
         REQUIRE(marker.has_value());
-        REQUIRE(marker->type == MarkerType::Todo);
-        REQUIRE_FALSE(marker->completed);
+        if (marker) {  // clang-tidy cannot see that a failed REQUIRE ends the test
+            REQUIRE(marker->type == MarkerType::Todo);
+            REQUIRE_FALSE(marker->completed);
+        }
     }
 
     SECTION("generateId creates unique IDs") {
