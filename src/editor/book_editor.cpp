@@ -624,9 +624,14 @@ void BookEditor::ensureCursorVisible()
     QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
     qreal blockY = blockRect.y();
 
-    // Calculate cursor line position in document coordinates
-    qreal lineTop = blockY + cursorLine.y();
-    qreal lineBottom = lineTop + cursorLine.height();
+    // Cursor line position in document coordinates: the whole line box, with the line
+    // spacing around the glyphs (scrolling up to the first line shows the document top)
+    const auto* kalahariLayout =
+        qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    const QRectF lineBox = KalahariTextDocumentLayout::lineBox(
+        cursorLine, kalahariLayout ? kalahariLayout->typography().lineSpacing : 1.0);
+    qreal lineTop = blockY + lineBox.top();
+    qreal lineBottom = blockY + lineBox.bottom();
 
     // Get visible range in document coordinates
     qreal scrollY = m_viewportManager->scrollPosition();

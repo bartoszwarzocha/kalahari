@@ -265,6 +265,21 @@ TEST_CASE("Stage2 typography: the editor lays out with its appearance settings",
     }
 }
 
+TEST_CASE("Stage2 typography: going to the first line scrolls to the document top",
+          "[editor][stage2][typography]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    editor.setAppearance(appearanceWith(2.0, 10.0, false, 0.0));
+    QStringList paragraphs;
+    for (int i = 0; i < 20; ++i) paragraphs << longParagraph(i);
+    editor.fromKml(kmlOf(paragraphs));
+
+    editor.setCursorPosition({19, 0});
+    REQUIRE(editor.scrollOffset() > 0.0);
+    editor.setCursorPosition({0, 0});
+    CHECK(editor.scrollOffset() == Approx(0.0));
+}
+
 TEST_CASE("Stage2 typography: changing it leaves the document and its history alone",
           "[editor][stage2][typography]") {
     BookEditor editor;
