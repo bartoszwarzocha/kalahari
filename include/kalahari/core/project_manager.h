@@ -72,6 +72,7 @@ enum class WorkMode {
 ///
 /// Signals:
 /// - projectOpened: Emitted when project is successfully opened
+/// - projectAboutToClose: Emitted before the project database is closed
 /// - projectClosed: Emitted when project is closed
 /// - workModeChanged: Emitted when work mode changes
 /// - dirtyStateChanged: Emitted when project dirty state changes
@@ -393,6 +394,11 @@ signals:
     /// @brief Emitted when a project is successfully opened
     /// @param projectPath Absolute path to the project folder
     void projectOpened(const QString& projectPath);
+
+    /// @brief Emitted when a project is about to close, while its database is still open
+    ///
+    /// Services holding the project database detach from it here.
+    void projectAboutToClose();
 
     /// @brief Emitted when a project is closed
     void projectClosed();
