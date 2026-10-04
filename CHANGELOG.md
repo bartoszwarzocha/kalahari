@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Editor paste and undo broke the text styles** - 2026-10-04. Paste and cut are one
   undo step; copy puts KML, HTML and plain text on the clipboard, so a paste within
   Kalahari keeps the formatting.
+- **Justified paragraphs stayed ragged on Windows and macOS** - 2026-10-04. The Qt that
+  vcpkg builds had no HarfBuzz text shaping (`vcpkg.json` turns off qtbase's default
+  features), so Qt did not stretch justified lines, and text had no kerning or
+  ligatures there. qtbase now gets the `harfbuzz` feature.
 - **Icon theming — toolbar/menu icons did not recolor on theme or icon-color change**
   (BUG-1) - 2026-07-20. Two independent root causes, both fixed:
   - Ordering: `ArtProvider` and `IconRegistry` were connected to
