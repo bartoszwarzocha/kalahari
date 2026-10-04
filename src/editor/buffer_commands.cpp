@@ -5,9 +5,10 @@
 /// QTextDocument's native undo/redo system.
 
 #include <kalahari/editor/buffer_commands.h>
+#include <QDateTime>
+#include <QStringList>
 #include <QTextBlock>
 #include <QUuid>
-#include <QDateTime>
 #include <algorithm>
 
 namespace kalahari::editor {
@@ -16,9 +17,22 @@ namespace kalahari::editor {
 // TextMarker Implementation
 // =============================================================================
 
+namespace {
+
+/// Attributes of the KML <todo> tag that TextMarker has fields for
+const QStringList& markerFieldAttributes()
+{
+    static const QStringList attributes = {
+        QStringLiteral("id"), QStringLiteral("text"), QStringLiteral("type"),
+        QStringLiteral("completed"), QStringLiteral("priority"), QStringLiteral("created")};
+    return attributes;
+}
+
+}  // anonymous namespace
+
 QVariantMap TextMarker::toVariantMap() const
 {
-    QVariantMap map;
+    QVariantMap map = otherAttributes;
     map[QStringLiteral("id")] = id;
     if (!text.isEmpty()) {
         map[QStringLiteral("text")] = text;
@@ -52,6 +66,10 @@ std::optional<TextMarker> TextMarker::fromVariant(const QVariant& value)
     marker.completed = map.value(QStringLiteral("completed")).toBool();
     marker.priority = map.value(QStringLiteral("priority")).toString();
     marker.timestamp = map.value(QStringLiteral("created")).toString();
+    marker.otherAttributes = map;
+    for (const QString& attribute : markerFieldAttributes()) {
+        marker.otherAttributes.remove(attribute);
+    }
     return marker;
 }
 

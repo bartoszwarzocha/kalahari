@@ -26,10 +26,20 @@ SearchEngine::SearchEngine(QObject* parent)
 
 void SearchEngine::setDocument(QTextDocument* document) {
     if (m_document != document) {
+        disconnect(m_documentEdits);
         m_document = document;
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
         m_matches.clear();
+
+        // An edit moves the matches after it, so the cached positions and the current
+        // match no longer hold (replacing at a stale position would change other text)
+        if (m_document) {
+            m_documentEdits = connect(m_document, &QTextDocument::contentsChanged, this, [this]() {
+                m_matchesDirty = true;
+                m_currentMatchIndex = -1;
+            });
+        }
     }
 }
 
@@ -198,7 +208,8 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
         return false;
     }
 
-    const SearchMatch& match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
+    // A copy: rebuildMatches() below replaces the elements of m_matches
+    const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
     if (undoStack) {
         // Create cursor positions from match
@@ -252,13 +263,13 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
 }
 
 int SearchEngine::replaceAll(QUndoStack* undoStack) {
-    if (!m_document || m_matches.empty()) {
-        return 0;
-    }
-
     // Ensure matches are up to date
     if (m_matchesDirty) {
         rebuildMatches();
+    }
+
+    if (!m_document || m_matches.empty()) {
+        return 0;
     }
 
     const int count = static_cast<int>(m_matches.size());

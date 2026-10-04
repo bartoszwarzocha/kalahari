@@ -69,14 +69,7 @@ bool KmlDocumentModel::loadKml(const QString& kml)
     }
 
     // Wrap KML in root element if needed
-    QString wrappedKml = kml.trimmed();
-    if (!wrappedKml.startsWith(QStringLiteral("<kml")) &&
-        !wrappedKml.startsWith(QStringLiteral("<document")) &&
-        !wrappedKml.startsWith(QStringLiteral("<doc"))) {
-        wrappedKml = QStringLiteral("<kml>") + wrappedKml + QStringLiteral("</kml>");
-    }
-
-    QXmlStreamReader reader(wrappedKml);
+    QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
 
     // Skip to first start element (root)
     while (!reader.atEnd() && !reader.isStartElement()) {

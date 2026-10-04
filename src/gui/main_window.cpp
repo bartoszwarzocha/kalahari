@@ -925,62 +925,26 @@ void MainWindow::createDocks() {
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
-        if (editor) {
-            auto& pm = core::ProjectManager::getInstance();
-            const QString elementId = editor->property("elementId").toString();
-            const bool isStandalone = editor->property("isStandaloneFile").toBool();
-            const bool isProjectChapter = !elementId.isEmpty() && pm.isProjectOpen();
+        if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
+            auto reply = QMessageBox::question(
+                this,
+                tr("Unsaved Changes"),
+                tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                QMessageBox::Save);
 
-            // Determine dirtiness of this specific tab from the single source of truth.
-            bool tabDirty = false;
-            if (isProjectChapter) {
-                // Per-open-tab dirty (reliable; set only on real edits).
-                tabDirty = m_navigatorCoordinator
-                    && m_navigatorCoordinator->isChapterDirty(elementId);
-            } else if (isStandalone) {
-                tabDirty = editor->property("dirty").toBool();
-            } else {
-                tabDirty = m_isDirty;  // phase-0 single-file document
+            if (reply == QMessageBox::Cancel) {
+                return;  // Do NOT close the tab.
             }
 
-            if (tabDirty) {
-                auto reply = QMessageBox::question(
-                    this,
-                    tr("Unsaved Changes"),
-                    tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
-                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                    QMessageBox::Save);
-
-                if (reply == QMessageBox::Cancel) {
-                    return;  // Do NOT close the tab.
+            if (reply == QMessageBox::Save) {
+                // Close the tab only once its content is saved: a failed or cancelled
+                // save keeps it open, with its changes
+                if (!m_documentCoordinator->saveEditor(editor)) {
+                    return;
                 }
-
-                if (reply == QMessageBox::Save) {
-                    if (isProjectChapter) {
-                        if (m_documentCoordinator) m_documentCoordinator->onSaveAll();
-                        // onSaveAll clears m_dirtyChapters on success; if it is still
-                        // dirty the save failed/cancelled, so keep the tab open.
-                        if (m_navigatorCoordinator
-                            && m_navigatorCoordinator->isChapterDirty(elementId)) {
-                            return;
-                        }
-                    } else if (isStandalone) {
-                        // Standalone files have no persistence path; acknowledge and
-                        // clear the flag so a subsequent close does not re-prompt.
-                        editor->setProperty("dirty", false);
-                    } else {
-                        if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
-                        if (m_isDirty) return;  // Save cancelled/failed - keep the tab.
-                    }
-                } else {  // QMessageBox::Discard
-                    if (isProjectChapter) {
-                        if (m_navigatorCoordinator) m_navigatorCoordinator->discardChapterChanges(elementId);
-                    } else if (isStandalone) {
-                        editor->setProperty("dirty", false);
-                    } else {
-                        setDirty(false);
-                    }
-                }
+            } else {  // QMessageBox::Discard
+                m_documentCoordinator->discardEditorChanges(editor);
             }
         }
 
@@ -1177,24 +1141,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         );
 
         if (reply == QMessageBox::Save) {
-            if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
-
-            // Standalone tabs have no persistence path; onSaveDocument cannot clear
-            // them. Acknowledge them here so a Save choice does not deadlock the close.
-            if (m_dockCoordinator) {
-                if (QTabWidget* tabs = m_dockCoordinator->centralTabs()) {
-                    for (int i = 0; i < tabs->count(); ++i) {
-                        EditorPanel* ed = qobject_cast<EditorPanel*>(tabs->widget(i));
-                        if (ed && ed->property("isStandaloneFile").toBool()) {
-                            ed->setProperty("dirty", false);
-                        }
-                    }
-                }
-            }
-
-            // Re-check via the single predicate (now also covers structure dirtiness).
-            if (hasUnsavedChanges()) {
-                // Save was cancelled or failed
+            // Save the project and every editor tab; whatever could not be saved (failed,
+            // cancelled, or a standalone file, which has no save yet) keeps the window
+            // open with its changes
+            if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;
             }

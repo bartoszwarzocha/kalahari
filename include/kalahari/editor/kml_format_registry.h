@@ -138,6 +138,26 @@ void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,
                                 QTextCharFormat& format);
 
 // =============================================================================
+// Document Structure
+// =============================================================================
+
+/// @brief Give KML the root element the editor reads it with
+///
+/// Content that does not start with a <kml>, <document> or <doc> element, such as a
+/// bare sequence of paragraphs, is wrapped in <kml>...</kml>.
+/// @param kml KML content
+/// @return Trimmed content with a single root element
+QString withRootElement(const QString& kml);
+
+/// @brief Check if an element inside a paragraph contributes its text
+///
+/// True for formatting tags, metadata tags and text runs (<t>, <text>). The editor
+/// skips any other element inside a paragraph together with everything in it.
+/// @param tag The tag name
+/// @return true if the element's text belongs to the paragraph
+bool isInlineTextTag(const QString& tag);
+
+// =============================================================================
 // Utilities
 // =============================================================================
 

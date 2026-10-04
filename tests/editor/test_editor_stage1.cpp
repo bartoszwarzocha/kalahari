@@ -14,13 +14,16 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/render_context.h>
+#include <kalahari/gui/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QImage>
+#include <QLineEdit>
 #include <QPaintEvent>
 #include <QPixmap>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QString>
 #include <QWheelEvent>
@@ -79,6 +82,32 @@ protected:
 private:
     QWidget& m_widget;
 };
+
+/// The find/replace bar of @p editor, open in replace mode with both texts filled in
+kalahari::gui::FindReplaceBar* openReplaceBar(BookEditor& editor, const QString& find,
+                                              const QString& replace) {
+    editor.showFindReplace();
+    auto* bar = editor.findChild<kalahari::gui::FindReplaceBar*>();
+    if (bar) {
+        for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
+            if (input->placeholderText() == QStringLiteral("Replace...")) {
+                input->setText(replace);
+            }
+        }
+        bar->setSearchText(find);
+    }
+    return bar;
+}
+
+/// The push button of @p bar labelled @p text
+QPushButton* barButton(QWidget& bar, const QString& text) {
+    for (QPushButton* button : bar.findChildren<QPushButton*>()) {
+        if (button->text() == text) {
+            return button;
+        }
+    }
+    return nullptr;
+}
 
 }  // anonymous namespace
 
@@ -163,6 +192,106 @@ TEST_CASE("Stage1 word count: a saved chapter reports the editor's count",
     CHECK(chapter.characterCount() == static_cast<int>(editor.characterCountNoSpaces()));
     CHECK(chapter.plainText() == editor.plainText());
     CHECK(chapter.paragraphCount() == 3);  // the empty paragraph does not count
+}
+
+TEST_CASE("Stage1 word count: a chapter file counts the text the editor shows",
+          "[editor][stage1][statistics]") {
+    // The chapter file's statistics (ChapterDocument, also used for snapshots) come from
+    // the stored KML, which need not be the editor's own output: it must be read the way
+    // the editor reads it (KmlDocumentModel), before any save rewrites it.
+    auto checkText = [](const QString& kml, const QString& expectedText) {
+        BookEditor editor;
+        editor.fromKml(kml);
+        const core::ChapterDocument chapter(kml);
+        CHECK(editor.plainText() == expectedText);
+        CHECK(chapter.plainText() == expectedText);
+        CHECK(chapter.wordCount() == static_cast<int>(editor.wordCount()));
+    };
+
+    SECTION("paragraphs without a root element") {
+        // Regression: the reader stopped at the second top-level element
+        checkText(QStringLiteral("<p>One two</p><p>Three</p>\n<p>Four</p>"),
+                  QStringLiteral("One two\nThree\nFour"));
+    }
+
+    SECTION("an unknown element inside a paragraph") {
+        // Regression: its text was counted, though the editor skips it
+        checkText(QStringLiteral(
+                      "<kml><p>One <future a=\"1\">hidden <b>words</b></future> two</p></kml>"),
+                  QStringLiteral("One  two"));
+    }
+
+    SECTION("unknown elements and text outside paragraphs") {
+        checkText(QStringLiteral(
+                      "<kml><p>Kept</p><section><p>Hidden</p></section>stray<p>Last</p></kml>"),
+                  QStringLiteral("Kept\nLast"));
+    }
+}
+
+// =============================================================================
+// Find and replace: a replacement is an edit like any other
+// =============================================================================
+
+TEST_CASE("Stage1 find and replace: replacing text is reported as a content change",
+          "[editor][stage1][search]") {
+    // Regression: the bar edits the document directly, and neither Replace nor Replace
+    // All emitted contentChanged - a chapter changed only by them was not marked unsaved
+    BookEditor editor;
+    editor.fromKml(QStringLiteral("<kml><p>one two one</p><p>one</p></kml>"));
+    int changes = 0;
+    QObject::connect(&editor, &BookEditor::contentChanged, [&changes]() { ++changes; });
+
+    auto* bar = openReplaceBar(editor, QStringLiteral("one"), QStringLiteral("1"));
+    REQUIRE(bar != nullptr);
+    QPushButton* replace = barButton(*bar, QStringLiteral("Replace"));
+    QPushButton* replaceAll = barButton(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replace != nullptr);
+    REQUIRE(replaceAll != nullptr);
+
+    SECTION("Replace, occurrence after occurrence") {
+        // The first click selects the first occurrence; each further click replaces the
+        // selected one and selects the next (regression: every other one was skipped)
+        replace->click();
+        CHECK(editor.selectedText() == QStringLiteral("one"));
+        CHECK(editor.selection().start == CursorPosition{0, 0});
+        CHECK(changes == 0);
+
+        replace->click();
+        CHECK(editor.plainText() == QStringLiteral("1 two one\none"));
+        CHECK(changes == 1);
+        CHECK(editor.selectedText() == QStringLiteral("one"));
+        CHECK(editor.selection().start == CursorPosition{0, 6});
+
+        replace->click();
+        CHECK(editor.plainText() == QStringLiteral("1 two 1\none"));
+        CHECK(editor.selection().start == CursorPosition{1, 0});
+
+        replace->click();
+        CHECK(editor.plainText() == QStringLiteral("1 two 1\n1"));
+        CHECK(changes == 3);
+        CHECK_FALSE(editor.hasSelection());
+    }
+
+    SECTION("Replace All") {
+        editor.setCursorPosition({1, 3});  // after the last "one", beyond the shorter "1"
+        replaceAll->click();
+        CHECK(editor.plainText() == QStringLiteral("1 two 1\n1"));
+        CHECK(changes == 1);
+        CHECK(editor.cursorPosition() == CursorPosition{1, 1});
+    }
+
+    SECTION("text typed between two replacements") {
+        replace->click();  // selects the first "one"
+
+        // Regression: the matches kept their old positions, so Replace changed whatever
+        // text had moved to where the selected occurrence used to be
+        editor.clearSelection();
+        editor.setCursorPosition({0, 0});
+        editor.insertText(QStringLiteral("Zero "));
+        replace->click();  // selects an occurrence again ...
+        replace->click();  // ... and replaces it
+        CHECK(editor.plainText() == QStringLiteral("Zero 1 two one\none"));
+    }
 }
 
 // =============================================================================
@@ -327,6 +456,18 @@ TEST_CASE("Stage1 KML: a TODO inside a comment keeps both on save", "[editor][st
 
     CHECK(reloaded.plainText() == QStringLiteral("abc def ghi"));
     CHECK(reloaded.toKml() == saved);  // stable from the first save on
+}
+
+TEST_CASE("Stage1 KML: toggling a TODO keeps its other attributes", "[editor][stage1][kml]") {
+    // Regression: a toggled marker was written back with only the attributes TextMarker
+    // has fields for, so the next save dropped the rest
+    BookEditor editor;
+    editor.fromKml(QStringLiteral("<kml><p><todo id=\"t1\" owner=\"Ann\">text</todo> rest</p></kml>"));
+    editor.setCursorPosition({0, 0});
+    editor.toggleTodoAtCursor();
+    CHECK(editor.toKml() ==
+          QStringLiteral("<kml><p><todo id=\"t1\" completed=\"true\" owner=\"Ann\">text</todo>"
+                         " rest</p></kml>"));
 }
 
 // =============================================================================

@@ -363,12 +363,26 @@ void FindReplaceBar::onReplaceCurrent()
         return;
     }
 
+    if (m_searchEngine->currentMatchIndex() < 0) {
+        // No occurrence selected yet, or the text changed since: select one first, so
+        // the user sees what the next click replaces
+        onFindNext();
+        return;
+    }
+
     m_searchEngine->setReplaceText(m_replaceInput->text());
 
     // nullptr = edit the document directly; QTextDocument's native undo records it.
     if (m_searchEngine->replaceCurrent(nullptr)) {
-        // Move to next match after replacement
-        onFindNext();
+        emit textReplaced(1);
+
+        // replaceCurrent() has already moved to the match after the replaced text
+        // (nextMatch() would skip it)
+        const editor::SearchMatch next = m_searchEngine->currentMatch();
+        if (next.isValid()) {
+            emit navigateToMatch(next);
+        }
+        updateMatchCountLabel();
     }
 }
 
@@ -381,6 +395,9 @@ void FindReplaceBar::onReplaceAll()
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
     int count = m_searchEngine->replaceAll(nullptr);  // direct edit → native undo
+    if (count > 0) {
+        emit textReplaced(count);
+    }
 
     core::Logger::getInstance().info("Replaced {} occurrences", count);
     updateMatchCountLabel();

@@ -395,6 +395,26 @@ QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata)
 }
 
 // =============================================================================
+// Document Structure Implementation
+// =============================================================================
+
+QString withRootElement(const QString& kml)
+{
+    QString content = kml.trimmed();
+    // "<doc" covers "<document" too
+    if (!content.startsWith(QStringLiteral("<kml")) && !content.startsWith(QStringLiteral("<doc"))) {
+        content = QStringLiteral("<kml>") + content + QStringLiteral("</kml>");
+    }
+    return content;
+}
+
+bool isInlineTextTag(const QString& tag)
+{
+    return isFormattingTag(tag) || isMetadataTag(tag) ||
+           tag == QStringLiteral("t") || tag == QStringLiteral("text");
+}
+
+// =============================================================================
 // Utilities Implementation
 // =============================================================================
 

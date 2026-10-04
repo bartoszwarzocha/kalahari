@@ -100,6 +100,13 @@ signals:
     /// @brief Emitted when the bar is closed
     void closed();
 
+    /// @brief Emitted after Replace or Replace All changed the document
+    ///
+    /// Replacements edit the document directly; the owning editor reports them as
+    /// content changes.
+    /// @param count Number of occurrences replaced
+    void textReplaced(int count);
+
     /// @brief Emitted when search text changes
     /// @param text The new search text
     void searchTextChanged(const QString& text);

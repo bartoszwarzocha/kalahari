@@ -123,6 +123,28 @@ public:
     /// @brief Get list of open standalone file paths
     [[nodiscard]] const QStringList& standaloneFilePaths() const { return m_standaloneFilePaths; }
 
+    // =========================================================================
+    // Per-editor save state
+    // =========================================================================
+
+    /// @brief Check whether one editor tab has unsaved changes
+    /// @param editor Editor tab: project chapter, standalone file or single-file document
+    [[nodiscard]] bool isEditorDirty(const EditorPanel* editor) const;
+
+    /// @brief Save one editor tab
+    /// @param editor Editor tab to save
+    /// @return true when its content is saved; false when saving failed, was cancelled or
+    ///         is not possible - the tab then keeps its unsaved changes
+    bool saveEditor(EditorPanel* editor);
+
+    /// @brief Drop one editor tab's unsaved changes (it is about to close)
+    /// @param editor Editor tab
+    void discardEditorChanges(EditorPanel* editor);
+
+    /// @brief Save all unsaved changes: the project and every editor tab
+    /// @return true when nothing is left unsaved
+    bool saveAllChanges();
+
 public slots:
     // =========================================================================
     // Document operations
@@ -248,6 +270,12 @@ private:
     /// @param doc Document to update
     /// @param text Editor text content
     void setPhase0Content(core::Document& doc, const QString& text);
+
+    /// @brief Save an editor's text as the single-file (Phase 0) document
+    /// @param editor Editor whose text is saved
+    /// @param askForPath Ask for a new file name (Save As) instead of using the current one
+    /// @return true when the document was written
+    bool saveSingleDocument(EditorPanel* editor, bool askForPath);
 
     /// @brief Prepare services for project close (before database is destroyed)
     ///

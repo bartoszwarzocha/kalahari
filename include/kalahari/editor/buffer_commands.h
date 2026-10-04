@@ -74,12 +74,16 @@ struct TextMarker {
     QString priority;             ///< Priority level (high, normal, low)
     QString id;                   ///< Unique identifier (UUID)
     QString timestamp;            ///< Creation timestamp (ISO 8601)
+    QVariantMap otherAttributes;  ///< Other attributes of the KML <todo> tag, kept as loaded
 
     /// @brief Map stored under KmlPropTodo (keys = attributes of the KML <todo> tag)
     /// @note position and length are not stored - they come from the anchor text
     QVariantMap toVariantMap() const;
 
     /// @brief Marker from a KmlPropTodo property value
+    ///
+    /// Attributes without a field go to otherAttributes, so a marker written back
+    /// (e.g. after toggling it) keeps them.
     /// @return std::nullopt when @p value is not a marker map
     static std::optional<TextMarker> fromVariant(const QVariant& value);
 

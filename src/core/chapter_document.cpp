@@ -6,6 +6,7 @@
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/kml_format_registry.h>
 
 #include <QFile>
 #include <QJsonDocument>
@@ -378,40 +379,60 @@ ChapterDocument ChapterDocument::fromKmlContent(const QString& content,
     return doc;
 }
 
-QString ChapterDocument::kmlToPlainText(const QString& kml)
+namespace {
+
+/// Appends the text of the paragraph element the reader is on, up to its end tag
+void appendParagraphText(QXmlStreamReader& reader, QString& text)
 {
-    // Collect the characters inside paragraphs, in a single streaming pass. Formatting
-    // and metadata tags vanish without splitting words, entities are decoded and the
-    // whitespace between paragraphs is ignored - so the statistics match the editor's.
-    QString result;
-    result.reserve(kml.size());
-    QXmlStreamReader reader(kml);
-    bool inParagraph = false;
-    bool firstParagraph = true;
-    while (!reader.atEnd()) {
+    int depth = 1;  // open elements, the paragraph included
+    while (depth > 0 && !reader.atEnd()) {
         switch (reader.readNext()) {
         case QXmlStreamReader::StartElement:
-            if (reader.name() == u"p" || reader.name() == u"paragraph") {
-                if (!firstParagraph) {
-                    result += QLatin1Char('\n');
-                }
-                firstParagraph = false;
-                inParagraph = true;
+            if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
+                ++depth;
+            } else {
+                reader.skipCurrentElement();  // with everything inside it
             }
             break;
         case QXmlStreamReader::EndElement:
-            if (reader.name() == u"p" || reader.name() == u"paragraph") {
-                inParagraph = false;
-            }
+            --depth;
             break;
         case QXmlStreamReader::Characters:
-            if (inParagraph) {
-                result += reader.text();
-            }
+            text += reader.text();
             break;
         default:
             break;
         }
+    }
+}
+
+}  // anonymous namespace
+
+QString ChapterDocument::kmlToPlainText(const QString& kml)
+{
+    // Collect the text of the paragraphs in a single streaming pass, by the editor's
+    // rules (KmlDocumentModel): a fragment gets the same root element, only <p> and
+    // <paragraph> children of the root are paragraphs, and elements other than
+    // formatting, metadata and text runs are skipped with everything inside them.
+    // Inline tags vanish without splitting words and entities are decoded - so the
+    // statistics match the editor's.
+    QString result;
+    result.reserve(kml.size());
+    QXmlStreamReader reader(editor::KmlFormatRegistry::withRootElement(kml));
+    if (!reader.readNextStartElement()) {
+        return result;  // no root element
+    }
+    bool firstParagraph = true;
+    while (reader.readNextStartElement()) {
+        if (reader.name() != u"p" && reader.name() != u"paragraph") {
+            reader.skipCurrentElement();
+            continue;
+        }
+        if (!firstParagraph) {
+            result += QLatin1Char('\n');
+        }
+        firstParagraph = false;
+        appendParagraphText(reader, result);
     }
     return result;
 }

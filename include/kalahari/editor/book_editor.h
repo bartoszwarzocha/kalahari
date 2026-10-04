@@ -1326,6 +1326,12 @@ private:
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to
     void onNavigateToMatch(const SearchMatch& match);
+
+    /// @brief Report an edit made by the find/replace bar
+    ///
+    /// Replacements edit the document directly, outside the editor's own editing
+    /// operations: keep the cursor inside the changed text and emit contentChanged().
+    void onTextReplaced();
 };
 
 }  // namespace kalahari::editor

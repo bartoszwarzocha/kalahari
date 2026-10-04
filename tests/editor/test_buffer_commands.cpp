@@ -141,6 +141,25 @@ TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
         REQUIRE(attrs == QStringLiteral(" id=\"t1\" text=\"Check\" created=\"2026-01-02T03:04:05\""));
     }
 
+    SECTION("attributes without a field survive fromVariant and toVariantMap") {
+        // Regression: only the fields were kept, so a toggled marker written back lost
+        // every other attribute of its <todo> tag
+        const QVariantMap loaded{{QStringLiteral("id"), QStringLiteral("t1")},
+                                 {QStringLiteral("owner"), QStringLiteral("Ann")},
+                                 {QStringLiteral("completed"), false}};
+        auto marker = TextMarker::fromVariant(loaded);
+        REQUIRE(marker.has_value());
+        if (marker) {  // clang-tidy cannot see that a failed REQUIRE ends the test
+            CHECK(marker->otherAttributes ==
+                  QVariantMap{{QStringLiteral("owner"), QStringLiteral("Ann")}});
+            marker->completed = true;
+            const QVariantMap written = marker->toVariantMap();
+            CHECK(written.value(QStringLiteral("owner")).toString() == QStringLiteral("Ann"));
+            CHECK(written.value(QStringLiteral("id")).toString() == QStringLiteral("t1"));
+            CHECK(written.value(QStringLiteral("completed")).toBool());
+        }
+    }
+
     SECTION("fromVariant with a non-map value returns nullopt") {
         REQUIRE(!TextMarker::fromVariant(QVariant()).has_value());
         REQUIRE(!TextMarker::fromVariant(QStringLiteral("{\"id\":\"x\"}")).has_value());
@@ -326,6 +345,22 @@ TEST_CASE("MarkerToggleCommand basic operations", "[editor][buffer_commands]") {
         undoStack.redo();
         markers = findAllMarkers(&document);
         REQUIRE(markers[0].completed == true);
+    }
+
+    SECTION("Toggle keeps the marker's other attributes") {
+        // Regression: the toggled marker was written back without them
+        TextMarker withOwner = marker;
+        withOwner.otherAttributes = {{QStringLiteral("owner"), QStringLiteral("Ann")}};
+        setMarkerInDocument(&document, withOwner);
+
+        CursorPosition cursor{0, 0};
+        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
+
+        auto markers = findAllMarkers(&document);
+        REQUIRE(markers.size() == 1);
+        CHECK(markers[0].completed);
+        CHECK(markers[0].otherAttributes.value(QStringLiteral("owner")).toString() ==
+              QStringLiteral("Ann"));
     }
 
     SECTION("Double toggle returns to original state") {

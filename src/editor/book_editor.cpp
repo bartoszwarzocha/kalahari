@@ -4570,6 +4570,8 @@ void BookEditor::setupFindReplace()
 
     connect(m_findReplaceBar, &gui::FindReplaceBar::navigateToMatch,
             this, &BookEditor::onNavigateToMatch);
+    connect(m_findReplaceBar, &gui::FindReplaceBar::textReplaced,
+            this, &BookEditor::onTextReplaced);
     connect(m_findReplaceBar, &gui::FindReplaceBar::closed,
             this, &BookEditor::hideFindReplace);
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
@@ -4665,6 +4667,18 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
 
     ensureCursorVisible();
     update();
+}
+
+void BookEditor::onTextReplaced()
+{
+    // The replaced text may be shorter than the selected match the cursor stood on
+    clearSelection();
+    m_cursorPosition = validateCursorPosition(m_cursorPosition);
+
+    syncPipelineCursor();
+    update();
+    emit contentChanged();
+    emit cursorPositionChanged(m_cursorPosition);
 }
 
 // =============================================================================
