@@ -2,7 +2,7 @@
 /// @brief Editor Stage 2 (variant A): typography, paste and undo, on-demand layout
 ///
 /// Geometry is checked on the layout itself; what the user sees is checked on images of
-/// the editor (QWidget::grab()), compared pixel by pixel with the background.
+/// the editor (editorImage()), compared pixel by pixel with the background.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -89,6 +89,16 @@ EditorAppearance appearanceWith(qreal lineHeight, qreal paragraphSpacing, bool i
 
 KalahariTextDocumentLayout* layoutOf(const BookEditor& editor) {
     return qobject_cast<KalahariTextDocumentLayout*>(editor.textDocument()->documentLayout());
+}
+
+/// Image of the editor with one pixel per logical pixel. QWidget::grab() follows the
+/// display scaling (125% gives 1.25 pixels per logical pixel), which the pixel positions
+/// computed from the layout do not.
+QImage editorImage(BookEditor& editor) {
+    QImage image(editor.size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    editor.render(&image);
+    return image;
 }
 
 /// True when the pixel differs visibly from @p background
@@ -334,7 +344,7 @@ TEST_CASE("Stage2 typography: the image shows the indent and a joined-up selecti
     const QTextLine line1 = layout->lineAt(1);
 
     SECTION("the first line starts at the indent, the next ones at the margin") {
-        const QImage image = editor.grab().toImage();
+        const QImage image = editorImage(editor);
         const int ink0 = leftmostInk(image, marginTop + static_cast<int>(line0.y()),
                                      marginTop + static_cast<int>(line0.y() + line0.height()),
                                      background);
@@ -353,11 +363,11 @@ TEST_CASE("Stage2 typography: the image shows the indent and a joined-up selecti
             line0.y() + line0.height() + extraFor(line0.height(), 2.0) / 4.0);
         const int column = marginLeft + 60;
 
-        const QImage unselected = editor.grab().toImage();
+        const QImage unselected = editorImage(editor);
         CHECK_FALSE(differs(unselected, column, gapRow, background));
 
         editor.selectAll();
-        const QImage selected = editor.grab().toImage();
+        const QImage selected = editorImage(editor);
         CHECK(differs(selected, column, gapRow, background));
     }
 }
@@ -650,8 +660,8 @@ void sendCtrlWheel(BookEditor& editor, int angleDelta) {
 /// Image of the text area: the editor without its scroll bar, whose thumb follows the
 /// document height (it changes as estimated heights are replaced)
 QImage textArea(BookEditor& editor) {
-    return editor.grab().toImage().copy(
-        0, 0, editor.width() - editor.verticalScrollBar()->width(), editor.height());
+    return editorImage(editor).copy(0, 0, editor.width() - editor.verticalScrollBar()->width(),
+                                    editor.height());
 }
 
 }  // anonymous namespace
@@ -921,7 +931,7 @@ TEST_CASE("Stage2 on demand: justified lines reach the right edge without cached
 
     // Rightmost ink of every line but the last (which is not stretched), left of the
     // scroll bar
-    const QImage image = editor.grab().toImage();
+    const QImage image = editorImage(editor);
     std::vector<int> rightEdges;
     for (int i = 0; i + 1 < lines->lineCount(); ++i) {
         const QTextLine line = lines->lineAt(i);
