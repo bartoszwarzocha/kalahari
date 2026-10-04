@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: layout on demand** - 2026-10-04
+  - After a width, font, zoom or typography change, a load or a large paste, only the
+    paragraphs on screen are wrapped before the next paint. The others get estimated
+    heights and are wrapped in the background, in steps of 4 ms.
+  - Window resize and Ctrl+wheel zoom apply at once, without a blank strip (the 80 ms
+    debounce is gone). The text at the top of the view stays in place while paragraphs
+    change height (scroll anchoring).
+  - Only paragraphs being edited keep their shaped glyphs; the others keep just the line
+    breaks, which halves the memory a long chapter takes (24 instead of 51 MB for 150k
+    words).
 - **Unimplemented menu commands are disabled** - 2026-10-03
   - Commands registered without an execute callback (93 menu entries) used to do
     nothing when clicked. Their actions are now disabled and the tooltip says the
@@ -41,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editor typography settings were ignored** - 2026-10-04. Line spacing, paragraph
+  spacing and first-line indent now apply when the text is wrapped and scale with the
+  font and zoom; the settings dialog has a Typography group (Editor > General).
+- **Editor paste and undo broke the text styles** - 2026-10-04. Paste and cut are one
+  undo step; copy puts KML, HTML and plain text on the clipboard, so a paste within
+  Kalahari keeps the formatting.
 - **Icon theming — toolbar/menu icons did not recolor on theme or icon-color change**
   (BUG-1) - 2026-07-20. Two independent root causes, both fixed:
   - Ordering: `ArtProvider` and `IconRegistry` were connected to
