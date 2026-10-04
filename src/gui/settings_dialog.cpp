@@ -29,6 +29,7 @@
 #include <QComboBox>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
+#include <cmath>
 #include <QFontComboBox>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -108,6 +109,10 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_tabSizeSpinBox(nullptr)
     , m_lineNumbersCheckBox(nullptr)
     , m_wordWrapCheckBox(nullptr)
+    , m_lineHeightSpinBox(nullptr)
+    , m_paragraphSpacingSpinBox(nullptr)
+    , m_firstLineIndentCheckBox(nullptr)
+    , m_indentSizeSpinBox(nullptr)
     // Editor colors
     , m_editorDarkModeCheckBox(nullptr)
     , m_editorBackgroundLightWidget(nullptr)
@@ -1039,6 +1044,38 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
     behaviorGrid->setColumnStretch(1, 1);
     layout->addWidget(behaviorGroup);
 
+    // Typography group (a view setting: the chapter files are not changed)
+    QGroupBox* typographyGroup = new QGroupBox(tr("Typography"));
+    QGridLayout* typographyGrid = new QGridLayout(typographyGroup);
+
+    QLabel* lineHeightLabel = new QLabel(tr("Line Spacing:"));
+    m_lineHeightSpinBox = new QDoubleSpinBox();
+    m_lineHeightSpinBox->setRange(1.0, 3.0);
+    m_lineHeightSpinBox->setSingleStep(0.1);
+    m_lineHeightSpinBox->setDecimals(1);
+    m_lineHeightSpinBox->setToolTip(tr("Multiple of the font's line height (1.0 = single spacing)"));
+    typographyGrid->addWidget(lineHeightLabel, 0, 0);
+    typographyGrid->addWidget(m_lineHeightSpinBox, 0, 1);
+
+    QLabel* paragraphSpacingLabel = new QLabel(tr("Space After Paragraph:"));
+    m_paragraphSpacingSpinBox = new QSpinBox();
+    m_paragraphSpacingSpinBox->setRange(0, 48);
+    m_paragraphSpacingSpinBox->setSuffix(" px");
+    typographyGrid->addWidget(paragraphSpacingLabel, 1, 0);
+    typographyGrid->addWidget(m_paragraphSpacingSpinBox, 1, 1);
+
+    m_firstLineIndentCheckBox = new QCheckBox(tr("Indent First Line:"));
+    m_indentSizeSpinBox = new QSpinBox();
+    m_indentSizeSpinBox->setRange(0, 96);
+    m_indentSizeSpinBox->setSuffix(" px");
+    typographyGrid->addWidget(m_firstLineIndentCheckBox, 2, 0);
+    typographyGrid->addWidget(m_indentSizeSpinBox, 2, 1);
+    connect(m_firstLineIndentCheckBox, &QCheckBox::toggled,
+            m_indentSizeSpinBox, &QSpinBox::setEnabled);
+
+    typographyGrid->setColumnStretch(1, 1);
+    layout->addWidget(typographyGroup);
+
     layout->addStretch();
     return page;
 }
@@ -1939,6 +1976,11 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_tabSizeSpinBox->setValue(settings.tabSize);
     m_lineNumbersCheckBox->setChecked(settings.showLineNumbers);
     m_wordWrapCheckBox->setChecked(settings.wordWrap);
+    m_lineHeightSpinBox->setValue(settings.lineHeight);
+    m_paragraphSpacingSpinBox->setValue(static_cast<int>(std::lround(settings.paragraphSpacing)));
+    m_firstLineIndentCheckBox->setChecked(settings.firstLineIndent);
+    m_indentSizeSpinBox->setValue(static_cast<int>(std::lround(settings.indentSize)));
+    m_indentSizeSpinBox->setEnabled(settings.firstLineIndent);
 
     // Editor/Colors
     m_editorDarkModeCheckBox->setChecked(settings.editorDarkMode);
@@ -2081,6 +2123,10 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.tabSize = m_tabSizeSpinBox->value();
     settingsData.showLineNumbers = m_lineNumbersCheckBox->isChecked();
     settingsData.wordWrap = m_wordWrapCheckBox->isChecked();
+    settingsData.lineHeight = m_lineHeightSpinBox->value();
+    settingsData.paragraphSpacing = m_paragraphSpacingSpinBox->value();
+    settingsData.firstLineIndent = m_firstLineIndentCheckBox->isChecked();
+    settingsData.indentSize = m_indentSizeSpinBox->value();
 
     // Editor/Colors
     settingsData.editorDarkMode = m_editorDarkModeCheckBox->isChecked();
@@ -2363,6 +2409,10 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.set("editor.tabSize", settings.tabSize);
         settingsManager.set("editor.lineNumbers", settings.showLineNumbers);
         settingsManager.set("editor.wordWrap", settings.wordWrap);
+        settingsManager.set("editor.lineHeight", settings.lineHeight);
+        settingsManager.set("editor.paragraphSpacing", settings.paragraphSpacing);
+        settingsManager.set("editor.firstLineIndent", settings.firstLineIndent);
+        settingsManager.set("editor.indentSize", settings.indentSize);
 
         // Editor/Colors
         settingsManager.set("editor.darkMode", settings.editorDarkMode);

@@ -3,24 +3,30 @@
 
 #pragma once
 
+#include <kalahari/editor/editor_types.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QFont>
 #include <vector>
 
+class QTextLayout;
+class QTextLine;
+
 namespace kalahari::editor {
 
 /// @brief Custom document layout that positions text lines without Qt's internal leading
 ///
-/// Qt's default QTextDocumentLayout adds font.leading() between lines, causing gaps
-/// between paragraphs. This class provides a layout where lines start at y=0 within
-/// each block, eliminating the gaps while maintaining full Qt integration.
+/// Qt's default QTextDocumentLayout adds font.leading() between lines and document
+/// margins around the text. This layout stacks blocks directly below each other and
+/// spaces lines only as the view typography asks for.
 ///
 /// Key features:
-/// - Lines positioned at y=0 within each block (no leading gaps)
+/// - Line spacing, paragraph spacing and first-line indent from LayoutTypography; the
+///   extra line spacing is split evenly above and below each line
 /// - Wrap width and default font are owned by the QTextDocument (textWidth(),
 ///   defaultFont()); changing either there re-lays out the document exactly once
 /// - Incremental updates: an edit re-lays out only the blocks it touched
+/// - Block positions answered from cached heights (binary search for a y position)
 /// - Full QTextCursor and undo/redo compatibility
 class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout {
     Q_OBJECT
@@ -48,7 +54,7 @@ public:
     /// @brief Bounding rect of a text frame
     QRectF frameBoundingRect(QTextFrame* frame) const override;
 
-    /// @brief Bounding rect of a text block
+    /// @brief Bounding rect of a text block, including its paragraph spacing
     QRectF blockBoundingRect(const QTextBlock& block) const override;
 
     // ==========================================================================
@@ -69,8 +75,44 @@ public:
     void setFont(const QFont& font);
     QFont font() const;
 
+    /// @brief Set the view typography; re-lays out every block when it changes
+    void setTypography(const LayoutTypography& typography);
+    const LayoutTypography& typography() const { return m_typography; }
+
+    /// @brief Paragraph spacing at the current document font (whole pixels)
+    qreal paragraphSpacing() const;
+
+    /// @brief First-line indent at the current document font
+    qreal firstLineIndent() const;
+
     /// @brief Force layout of all blocks
     void layoutAllBlocks();
+
+    // ==========================================================================
+    // Geometry
+    // ==========================================================================
+
+    /// @brief Top of a block in document coordinates (document height past the end)
+    qreal blockY(int blockNumber) const;
+
+    /// @brief Height of a block, including its paragraph spacing
+    qreal blockHeight(int blockNumber) const;
+
+    /// @brief Number of the block covering @p y (clamped to the first/last block)
+    /// @return -1 for an empty height cache
+    int blockNumberAtY(qreal y) const;
+
+    /// @brief Box of a laid out line: the line plus its share of the line spacing
+    ///
+    /// Consecutive boxes of a block touch, so every y within the block's lines belongs
+    /// to exactly one line. Block coordinates.
+    static QRectF lineBox(const QTextLine& line, qreal lineSpacing);
+
+    /// @brief Index of the line whose box covers @p localY (block coordinates)
+    ///
+    /// Points above the first box or below the last one give the first or last line.
+    /// @return -1 when the layout has no lines
+    static int lineIndexAt(const QTextLayout& layout, qreal localY, qreal lineSpacing);
 
 signals:
     /// @brief Emitted after blocks have been laid out
@@ -87,23 +129,22 @@ private:
     /// @param oldLast Number of the last block of the changed range before the change
     void relayoutRange(int first, int last, int oldLast);
 
-    /// @brief Break a single block into lines, starting at y=0
-    void layoutBlock(const QTextBlock& block) const;
+    /// @brief Break a single block into lines
+    /// @param spacing Paragraph spacing, @param indent first-line indent (current font)
+    /// @return Height of the block, including its paragraph spacing
+    qreal layoutBlock(const QTextBlock& block, qreal spacing, qreal indent) const;
 
-    /// @brief Height of a laid out block, measured from its QTextLayout
-    qreal measuredHeight(const QTextBlock& block) const;
+    /// @brief Factor from the typography's reference font size to the document font
+    qreal typographyScale() const;
 
     /// @brief Recalculate cumulative block positions from the height cache
     void updateBlockPositions() const;
 
-    /// @brief Get Y position of a block
-    qreal blockY(int blockNumber) const;
-
-    /// @brief Number of the block covering @p y (clamped to the first/last block)
-    int blockNumberAtY(qreal y) const;
-
     /// @brief Width reported for the document and its blocks
     qreal documentWidth() const;
+
+    // View typography used for every block
+    LayoutTypography m_typography;
 
     // Height of every block, indexed by block number; kept in step with the document
     std::vector<qreal> m_blockHeights;

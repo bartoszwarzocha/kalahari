@@ -240,11 +240,6 @@ private:
     /// @brief Emit signals for range change
     void notifyRangeChanged();
 
-    /// @brief Get height of a text block
-    /// @param block The text block
-    /// @return Block height in pixels
-    double blockHeight(const QTextBlock& block) const;
-
     QTextDocument* m_document = nullptr;
 
     QSize m_viewportSize{0, 0};
@@ -256,12 +251,6 @@ private:
     size_t m_firstVisible = 0;
     size_t m_lastVisible = 0;
 
-    /// @brief Estimated line height for blocks without layout
-    double m_estimatedLineHeight = 20.0;
-
-    // Cached values
-    mutable double m_cachedTotalHeight = 0.0;
-    mutable bool m_totalHeightDirty = true;
 };
 
 }  // namespace kalahari::editor

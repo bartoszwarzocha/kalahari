@@ -10,6 +10,7 @@
 #include <QTextLine>
 #include <QTextOption>
 #include <algorithm>
+#include <cmath>
 
 namespace kalahari::editor {
 
@@ -20,6 +21,21 @@ constexpr qreal UNWRAPPED_LINE_WIDTH = 10000.0;
 
 /// Extent Qt itself uses for an "everything" update rect
 constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
+
+/// Accepted range of the line spacing multiplier
+constexpr qreal MIN_LINE_SPACING = 0.5;
+constexpr qreal MAX_LINE_SPACING = 4.0;
+
+/// Extra space a line gets from the line spacing; whole pixels, so that lines stay on
+/// the pixel grid (Qt rounds line heights up to whole pixels too)
+qreal extraLeading(qreal lineHeight, qreal lineSpacing) {
+    return std::round(lineHeight * (lineSpacing - 1.0));
+}
+
+/// Part of the extra leading that goes above the line (the rest goes below it)
+qreal leadingAbove(qreal extra) {
+    return std::floor(extra / 2.0);
+}
 
 }  // anonymous namespace
 
@@ -56,6 +72,36 @@ void KalahariTextDocumentLayout::setFont(const QFont& font) {
 
 QFont KalahariTextDocumentLayout::font() const {
     return document()->defaultFont();
+}
+
+void KalahariTextDocumentLayout::setTypography(const LayoutTypography& typography) {
+    LayoutTypography normalized = typography;
+    normalized.lineSpacing = std::clamp(typography.lineSpacing, MIN_LINE_SPACING, MAX_LINE_SPACING);
+    normalized.paragraphSpacing = std::max<qreal>(0, typography.paragraphSpacing);
+    normalized.firstLineIndent = std::max<qreal>(0, typography.firstLineIndent);
+    normalized.referencePointSize = std::max<qreal>(0, typography.referencePointSize);
+    if (normalized == m_typography) {
+        return;
+    }
+    m_typography = normalized;
+    layoutAllBlocks();
+}
+
+qreal KalahariTextDocumentLayout::typographyScale() const {
+    if (m_typography.referencePointSize <= 0) {
+        return 1.0;
+    }
+    const qreal pointSize = document()->defaultFont().pointSizeF();
+    return pointSize > 0 ? pointSize / m_typography.referencePointSize : 1.0;
+}
+
+qreal KalahariTextDocumentLayout::paragraphSpacing() const {
+    // Whole pixels keep the blocks below on the pixel grid
+    return std::round(m_typography.paragraphSpacing * typographyScale());
+}
+
+qreal KalahariTextDocumentLayout::firstLineIndent() const {
+    return m_typography.firstLineIndent * typographyScale();
 }
 
 void KalahariTextDocumentLayout::layoutAllBlocks() {
@@ -107,10 +153,11 @@ void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast)
     const int rangeSize = last - first + 1;
     std::vector<qreal> heights;
     heights.reserve(static_cast<size_t>(std::max(rangeSize, 0)));
+    const qreal spacing = paragraphSpacing();
+    const qreal indent = firstLineIndent();
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
-        layoutBlock(block);
-        heights.push_back(measuredHeight(block));
+        heights.push_back(layoutBlock(block, spacing, indent));
         block = block.next();
     }
 
@@ -147,9 +194,12 @@ void KalahariTextDocumentLayout::relayoutRange(int first, int last, int oldLast)
     emit update(QRectF(0, top, UNBOUNDED_EXTENT, bottom - top));
 }
 
-void KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block) const {
+qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spacing,
+                                              qreal indent) const {
     QTextLayout* layout = block.layout();
-    if (!layout) return;
+    if (!layout) {
+        return QFontMetricsF(document()->defaultFont()).height() + spacing;
+    }
 
     // Glyph fonts come from the document's character formats (resolved against the
     // document's default font), so the QTextLayout's own font is irrelevant here.
@@ -173,29 +223,54 @@ void KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block) const {
     const qreal width = document()->textWidth();
     const qreal lineWidth = width > 0 ? width : UNWRAPPED_LINE_WIDTH;
 
-    // Lines start at x=0, y=0. Qt handles horizontal alignment via QTextOption - DO NOT
-    // manually offset x (Qt + manual offset = double alignment).
+    // The first-line indent belongs to paragraphs whose lines start at their leading
+    // edge (left-aligned and justified ones), never more than half of the line.
+    // Right-to-left lines keep x = 0: the shorter line already leaves the indent on
+    // their leading (right) side.
+    const bool leadingAligned = !(alignment & (Qt::AlignRight | Qt::AlignHCenter));
+    const qreal firstIndent = leadingAligned ? std::min(indent, lineWidth / 2.0) : 0.0;
+    const bool rightToLeft = block.textDirection() == Qt::RightToLeft;
+
+    // Lines are stacked from y = 0, each with its extra leading split above and below
+    // it. Horizontal alignment is Qt's (QTextOption) - the only manual x offset is the
+    // indent, which also shortens the line (Qt aligns within the shorter width).
     layout->beginLayout();
     qreal y = 0;
     for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
-        line.setLineWidth(lineWidth);
-        line.setPosition(QPointF(0, y));
-        y += line.height();
+        const qreal lineIndent = line.lineNumber() == 0 ? firstIndent : 0.0;
+        line.setLineWidth(lineWidth - lineIndent);
+        const qreal extra = extraLeading(line.height(), m_typography.lineSpacing);
+        line.setPosition(QPointF(rightToLeft ? 0.0 : lineIndent, y + leadingAbove(extra)));
+        y += line.height() + extra;
     }
     layout->endLayout();
+
+    return y + spacing;
 }
 
-qreal KalahariTextDocumentLayout::measuredHeight(const QTextBlock& block) const {
-    if (QTextLayout* layout = block.layout()) {
-        // boundingRect gives tight bounds without extra leading
-        const qreal height = layout->boundingRect().height();
-        if (height > 0) {
-            return height;
+QRectF KalahariTextDocumentLayout::lineBox(const QTextLine& line, qreal lineSpacing) {
+    const qreal extra = extraLeading(line.height(), lineSpacing);
+    return QRectF(line.x(), line.y() - leadingAbove(extra), line.width(), line.height() + extra);
+}
+
+int KalahariTextDocumentLayout::lineIndexAt(const QTextLayout& layout, qreal localY,
+                                            qreal lineSpacing) {
+    const int count = layout.lineCount();
+    if (count == 0) {
+        return -1;
+    }
+    // First line whose box ends below localY (boxes are stacked in line order)
+    int low = 0;
+    int high = count - 1;
+    while (low < high) {
+        const int middle = low + (high - low) / 2;
+        if (localY < lineBox(layout.lineAt(middle), lineSpacing).bottom()) {
+            high = middle;
+        } else {
+            low = middle + 1;
         }
     }
-
-    // Fallback: estimate from font
-    return QFontMetricsF(document()->defaultFont()).height();
+    return low;
 }
 
 // =============================================================================
@@ -226,6 +301,13 @@ qreal KalahariTextDocumentLayout::blockY(int blockNumber) const {
         return m_cachedDocumentHeight;
     }
     return m_blockYPositions[static_cast<size_t>(blockNumber)];
+}
+
+qreal KalahariTextDocumentLayout::blockHeight(int blockNumber) const {
+    if (blockNumber < 0 || static_cast<size_t>(blockNumber) >= m_blockHeights.size()) {
+        return 0;
+    }
+    return m_blockHeights[static_cast<size_t>(blockNumber)];
 }
 
 int KalahariTextDocumentLayout::blockNumberAtY(qreal y) const {
@@ -289,17 +371,9 @@ int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccurac
         return exact ? -1 : qMax(0, document()->characterCount() - 1);
     }
 
-    // Line covering the point (or the nearest line, for a fuzzy hit)
+    // Line whose box covers the point (or the nearest line, for a fuzzy hit)
     const qreal localY = y - blockY(number);
-    int lineIndex = layout->lineCount() - 1;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        const QTextLine line = layout->lineAt(i);
-        if (localY < line.y() + line.height()) {
-            lineIndex = i;
-            break;
-        }
-    }
-    const QTextLine line = layout->lineAt(lineIndex);
+    const QTextLine line = layout->lineAt(lineIndexAt(*layout, localY, m_typography.lineSpacing));
     const int pos = line.xToCursor(point.x(), exact ? QTextLine::CursorOnCharacter
                                                     : QTextLine::CursorBetweenCharacters);
     return block.position() + pos;
@@ -325,9 +399,11 @@ QRectF KalahariTextDocumentLayout::blockBoundingRect(const QTextBlock& block) co
     if (!block.isValid()) return QRectF();
 
     const int number = block.blockNumber();
+    // A block the height cache does not know yet (queried while the document is in the
+    // middle of a change) gets the default line height
     const qreal height = static_cast<size_t>(number) < m_blockHeights.size()
         ? m_blockHeights[static_cast<size_t>(number)]
-        : measuredHeight(block);
+        : QFontMetricsF(document()->defaultFont()).height();
     return QRectF(0, blockY(number), documentWidth(), height);
 }
 

@@ -79,67 +79,16 @@ inline QString paragraphText(QTextDocument* doc, int index) {
     return block.isValid() ? block.text() : QString();
 }
 
-/// @brief Get block layout height using boundingRect().height()
-/// Same approach as KmlDocumentModel - gives just text height without double-counting leading
-inline double getBlockLayoutHeight(const QTextBlock& block, QTextDocument* doc = nullptr) {
-    if (!block.isValid()) return 20.0;  // Estimated fallback
-
-    // Use boundingRect().height() - same as KmlDocumentModel (view mode)
-    if (auto* layout = block.layout()) {
-        double height = layout->boundingRect().height();
-        if (height > 0) return height;
-    }
-
-    // Fallback: use blockBoundingRect (layout not prepared yet)
-    if (doc) {
-        if (auto* docLayout = doc->documentLayout()) {
-            double h = docLayout->blockBoundingRect(block).height();
-            if (h > 0) return h;
-        }
-    }
-
-    return 20.0;  // Estimated fallback
-}
-
-/// @brief Get Y position of paragraph using cumulative layout heights
-/// Falls back to blockBoundingRect if layout not ready
-inline double getParagraphY(QTextDocument* doc, int index) {
-    if (!doc) return 0.0;
-
-    double y = 0.0;
-    QTextBlock block = doc->begin();
-    for (int i = 0; i < index && block.isValid(); ++i) {
-        y += getBlockLayoutHeight(block, doc);
-        block = block.next();
-    }
-    return y;
-}
-
-/// @brief Find paragraph at Y position using cumulative layout heights
-/// Falls back to blockBoundingRect if layout not ready
-inline int getParagraphAtY(QTextDocument* doc, double y) {
-    if (!doc) return 0;
-
-    double cumulativeY = 0.0;
-    QTextBlock block = doc->begin();
-    int blockIndex = 0;
-
-    while (block.isValid()) {
-        double height = getBlockLayoutHeight(block, doc);
-        if (y >= cumulativeY && y < cumulativeY + height) {
-            return blockIndex;
-        }
-        cumulativeY += height;
-        block = block.next();
-        ++blockIndex;
-    }
-
-    // If y is beyond document, return last block
-    int count = doc->blockCount();
-    return count > 0 ? count - 1 : 0;
-}
-
 namespace {
+
+/// @brief Typography settings as the layout applies them (pixels at 100% zoom)
+LayoutTypography layoutTypography(const EditorTypography& typography) {
+    LayoutTypography result;
+    result.lineSpacing = typography.lineHeight;
+    result.paragraphSpacing = typography.paragraphSpacing;
+    result.firstLineIndent = typography.firstLineIndent ? typography.indentSize : 0.0;
+    return result;
+}
 
 /// @brief Per-paragraph cache attached to each block of the edit buffer
 ///
@@ -958,18 +907,8 @@ void BookEditor::moveCursorPageUp()
     // Calculate target Y position (one page up)
     qreal targetY = qMax(0.0, cursorY - pageHeight);
 
-    // Find block at target Y using document layout
-    QTextBlock targetBlock = m_textBuffer->findBlock(0);
-    int targetPara = 0;
-    while (targetBlock.isValid()) {
-        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(targetBlock);
-        if (tBlockRect.y() > targetY) break;
-        targetPara = targetBlock.blockNumber();
-        targetBlock = targetBlock.next();
-    }
-
     CursorPosition newPos;
-    newPos.paragraph = targetPara;
+    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
     newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
@@ -1000,28 +939,8 @@ void BookEditor::moveCursorPageDown()
     qreal maxY = m_viewportManager->totalDocumentHeight();
     qreal targetY = qMin(maxY, cursorY + pageHeight);
 
-    // Find block at target Y using document layout
-    QTextBlock targetBlock = m_textBuffer->lastBlock();
-    int targetPara = m_textBuffer->blockCount() - 1;
-
-    QTextBlock block = m_textBuffer->firstBlock();
-    while (block.isValid()) {
-        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
-        if (tBlockRect.y() > targetY) {
-            // Previous block is our target
-            if (block.previous().isValid()) {
-                targetBlock = block.previous();
-                targetPara = targetBlock.blockNumber();
-            }
-            break;
-        }
-        targetBlock = block;
-        targetPara = block.blockNumber();
-        block = block.next();
-    }
-
     CursorPosition newPos;
-    newPos.paragraph = targetPara;
+    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
     newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
@@ -2197,6 +2116,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // or it would be saved with the chapter and stop following the settings and zoom.
     if (m_renderPipeline) {
         m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
+        // Line spacing, paragraph spacing and indent are a view setting of the layout,
+        // like the font: never stored in the document or its undo history
+        m_renderPipeline->setConfigTypography(layoutTypography(m_appearance.typography));
     }
 
     // Apply cursor settings
@@ -2909,6 +2831,7 @@ void BookEditor::syncPipelineState()
         m_renderPipeline->setViewportSize(QSizeF(width(), height()));
         m_renderPipeline->setZoom(m_appearance.pageLayout.zoomLevel, getZoomModeForViewMode());
         m_renderPipeline->setFont(m_appearance.typography.textFont);
+        m_renderPipeline->setConfigTypography(layoutTypography(m_appearance.typography));
 
         // Set margins using centralized calculation
         auto margins = calculateEffectiveMargins();
@@ -3282,45 +3205,19 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         docY = 0;
     }
 
-    // Find paragraph at Y using QTextDocument layout hit test
-    int paraIndex = getParagraphAtY(doc, docY);
-    if (paraIndex >= doc->blockCount()) {
-        paraIndex = doc->blockCount() - 1;
-    }
-
-    QTextBlock block = doc->findBlockByNumber(paraIndex);
-    if (!block.isValid()) {
-        return {paraIndex, 0};
-    }
-    QTextLayout* layout = block.layout();
-    if (!layout) {
-        return {paraIndex, 0};
-    }
-
-    // Convert to paragraph-relative coordinates
-    // Use cached margins from pipeline - no DPI query needed
-    double paraY = getParagraphY(doc, paraIndex);
-    double localY = docY - paraY;
     double localX = widgetPos.x() - ctx.computed.marginLeft;
     if (localX < 0) {
         localX = 0;
     }
 
-    // Hit test within layout to find character offset
-    int offset = 0;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        QTextLine line = layout->lineAt(i);
-        if (localY >= line.y() && localY < line.y() + line.height()) {
-            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-            break;
-        }
-        // If below all lines, use last line
-        if (i == layout->lineCount() - 1) {
-            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-        }
+    // The document layout's hit test: block from the cached positions, line from the
+    // line boxes (a click between lines lands on the nearest one), offset within the line
+    const int position = doc->documentLayout()->hitTest(QPointF(localX, docY), Qt::FuzzyHit);
+    const QTextBlock block = doc->findBlock(std::max(0, position));
+    if (!block.isValid()) {
+        return {0, 0};
     }
-
-    return {static_cast<int>(paraIndex), offset};
+    return {block.blockNumber(), std::max(0, position - block.position())};
 }
 
 // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline::positionFromPoint()
@@ -3898,14 +3795,9 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     const auto& ctx = m_renderPipeline->context();
     double marginTop = ctx.computed.marginTop;
 
-    // Calculate Y position of focused paragraph using QTextBlock layouts
-    double focusY = 0.0;
-    for (int i = 0; i < focusedRange.startParagraph && i < static_cast<int>(m_textBuffer->blockCount()); ++i) {
-        QTextBlock block = doc->findBlockByNumber(i);
-        if (block.isValid() && block.layout()) {
-            focusY += block.layout()->boundingRect().height();
-        }
-    }
+    // Y position of the focused paragraph, from the document layout
+    const double focusY = m_viewportManager->paragraphY(
+        static_cast<size_t>(std::max(0, focusedRange.startParagraph)));
 
     // Get focused paragraph height (or line height if Line scope)
     double focusHeight = 0.0;
@@ -3922,15 +3814,16 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
             if (layout && focusedRange.startLine >= 0 && focusedRange.startLine < layout->lineCount()) {
                 QTextLine line = layout->lineAt(focusedRange.startLine);
                 if (line.isValid()) {
-                    focusTop = focusY + line.y();
-                    focusHeight = line.height();
+                    const QRectF box = KalahariTextDocumentLayout::lineBox(
+                        line, m_renderPipeline->textSource()->lineSpacing());
+                    focusTop = focusY + box.top();
+                    focusHeight = box.height();
                 }
             }
         } else {
             // For paragraph scope, use entire paragraph
-            if (layout) {
-                focusHeight = layout->boundingRect().height();
-            }
+            focusHeight = m_viewportManager->paragraphHeight(
+                static_cast<size_t>(focusedRange.startParagraph));
         }
     }
 

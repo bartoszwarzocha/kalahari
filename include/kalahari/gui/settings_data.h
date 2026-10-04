@@ -58,6 +58,12 @@ struct SettingsData {
     bool showLineNumbers = true;///< Show line numbers in editor
     bool wordWrap = true;       ///< Enable word wrap
 
+    // Typography (view settings: not stored in the chapter files)
+    double lineHeight = 1.6;        ///< Line spacing multiplier (1.0 = single)
+    double paragraphSpacing = 12.0; ///< Space below each paragraph in pixels
+    bool firstLineIndent = true;    ///< Indent the first line of paragraphs
+    double indentSize = 24.0;       ///< First-line indent in pixels
+
     // ========================================================================
     // Editor / Colors (Light/Dark mode, independent from app theme)
     // ========================================================================
@@ -291,6 +297,10 @@ struct SettingsData {
                tabSize != other.tabSize ||
                showLineNumbers != other.showLineNumbers ||
                wordWrap != other.wordWrap ||
+               lineHeight != other.lineHeight ||
+               paragraphSpacing != other.paragraphSpacing ||
+               firstLineIndent != other.firstLineIndent ||
+               indentSize != other.indentSize ||
                // Editor colors
                editorDarkMode != other.editorDarkMode ||
                editorBackgroundLight != other.editorBackgroundLight ||

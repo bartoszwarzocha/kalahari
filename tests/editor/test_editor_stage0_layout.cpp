@@ -332,6 +332,7 @@ Geometry editorReference(BookEditor& editor) {
     LaidOutDocument ref(layout->textWidth());
     ref.layout->setFont(layout->font());
     ref.doc->setDefaultFont(editor.textDocument()->defaultFont());
+    ref.layout->setTypography(layout->typography());
     QStringList paras;
     for (QTextBlock b = editor.textDocument()->begin(); b.isValid(); b = b.next()) paras << b.text();
     ref.load(paras);

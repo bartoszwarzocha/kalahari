@@ -11,6 +11,7 @@
 #pragma once
 
 #include <kalahari/editor/editor_appearance.h>
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/view_modes.h>
 #include <QFont>
 #include <QColor>
@@ -167,7 +168,6 @@ struct RenderContext {
     double zoomFactor = 1.0;                   ///< User's zoom level (1.0 = 100%)
     ZoomMode zoomMode = ZoomMode::FontScaling; ///< How zoom is applied
     double textWidth = 800.0;                  ///< Available width for text (pixels)
-    double lineSpacing = 1.0;                  ///< Line spacing multiplier
 
     // -------------------------------------------------------------------------
     // DPI Scaling (for WYSIWYG rendering)
@@ -182,6 +182,9 @@ struct RenderContext {
     // -------------------------------------------------------------------------
 
     QFont font{"Segoe UI", 11};               ///< Base font for text
+
+    /// Line spacing, paragraph spacing and first-line indent; lengths in pixels at 100% zoom
+    LayoutTypography typography;
 
     // -------------------------------------------------------------------------
     // Colors
@@ -244,6 +247,10 @@ struct RenderContext {
         // ---------------------------------------------------------------------
 
         QFont effectiveFont;                    ///< Font with zoom applied (FontScaling mode)
+
+        /// Typography handed to the layout: the input with the base font size as the
+        /// reference size of its lengths
+        LayoutTypography typography;
 
         // ---------------------------------------------------------------------
         // Effective margins in pixels (after DPI/mode calculation)
