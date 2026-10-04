@@ -612,12 +612,36 @@ void EditorRenderPipeline::clearSelection() {
     setSelection(SelectionRange{});
 }
 
+void EditorRenderPipeline::setDropCaret(const std::optional<CursorPosition>& position) {
+    if (m_dropCaret == position) {
+        return;
+    }
+    if (m_context.viewMode == ViewMode::Page) {
+        // caretRect() has scroll-mode geometry: repaint the whole view
+        m_dropCaret = position;
+        markRepaintOnly();
+        return;
+    }
+    // Repaint the old and the new caret line
+    if (m_dropCaret) {
+        markDirty(caretRect(*m_dropCaret).toAlignedRect());
+    }
+    m_dropCaret = position;
+    if (m_dropCaret) {
+        markDirty(caretRect(*m_dropCaret).toAlignedRect());
+    }
+}
+
 QRectF EditorRenderPipeline::cursorRect() const {
+    return caretRect(m_cursorPosition);
+}
+
+QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     if (!m_textSource) {
         return QRectF();
     }
 
-    int paraIndex = m_cursorPosition.paragraph;
+    int paraIndex = position.paragraph;
     if (paraIndex < 0 || static_cast<size_t>(paraIndex) >= m_textSource->paragraphCount()) {
         return QRectF();
     }
@@ -632,7 +656,7 @@ QRectF EditorRenderPipeline::cursorRect() const {
     }
 
     // Find line containing cursor - O(log n) using Qt's binary search
-    int offset = m_cursorPosition.offset;
+    int offset = position.offset;
     QTextLine line = layout->lineForTextPosition(offset);
     if (!line.isValid()) {
         line = layout->lineAt(layout->lineCount() - 1);
@@ -1225,14 +1249,18 @@ void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clip
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);
 
-    // Cursor (only if cursor paragraph is in visible range)
-    if (m_context.cursor.visible && m_context.cursor.blinkState && m_textSource) {
-        int cursorPara = m_cursorPosition.paragraph;
-        if (cursorPara >= 0 &&
-            static_cast<size_t>(cursorPara) >= m_context.computed.firstVisibleParagraph &&
-            static_cast<size_t>(cursorPara) <= m_context.computed.lastVisibleParagraph) {
-            renderCursor(painter);
-        }
+    // Cursor and drop caret (only if their paragraph is in visible range)
+    const auto isVisible = [this](int paragraph) {
+        return paragraph >= 0 &&
+               static_cast<size_t>(paragraph) >= m_context.computed.firstVisibleParagraph &&
+               static_cast<size_t>(paragraph) <= m_context.computed.lastVisibleParagraph;
+    };
+    if (m_context.cursor.visible && m_context.cursor.blinkState && m_textSource &&
+        isVisible(m_cursorPosition.paragraph)) {
+        renderCursor(painter);
+    }
+    if (m_dropCaret && isVisible(m_dropCaret->paragraph)) {
+        painter->fillRect(caretRect(*m_dropCaret), m_context.colors.cursor);
     }
 }
 
@@ -1424,19 +1452,30 @@ void EditorRenderPipeline::renderSliceSelection(QPainter* painter, const Paragra
 
 void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphSlice& slice,
                                                const QRectF& textRect) {
-    // Check if cursor should be visible
-    if (!m_context.cursor.visible || !m_context.cursor.blinkState) return;
+    if (m_context.cursor.visible && m_context.cursor.blinkState) {
+        renderSliceCaret(painter, slice, textRect, m_cursorPosition, m_cursorStyle,
+                         m_context.colors.cursor);
+    }
+    if (m_dropCaret) {
+        renderSliceCaret(painter, slice, textRect, *m_dropCaret, CursorStyle::Line,
+                         m_context.colors.cursor);
+    }
+}
+
+void EditorRenderPipeline::renderSliceCaret(QPainter* painter, const ParagraphSlice& slice,
+                                              const QRectF& textRect, const CursorPosition& position,
+                                              CursorStyle style, const QColor& color) {
     if (!m_textSource) return;
 
-    // Check if cursor is in this paragraph
-    if (m_cursorPosition.paragraph != static_cast<int>(slice.paraIndex)) return;
+    // Check if the caret is in this paragraph
+    if (position.paragraph != static_cast<int>(slice.paraIndex)) return;
 
     QTextLayout* layout = m_textSource->layout(slice.paraIndex);
     if (!layout || layout->lineCount() == 0) return;
 
     QString text = m_textSource->paragraphText(slice.paraIndex);
     int textLen = static_cast<int>(text.length());
-    int offsetInBlock = m_cursorPosition.offset;
+    int offsetInBlock = position.offset;
     if (offsetInBlock < 0) offsetInBlock = 0;
     if (offsetInBlock > textLen && textLen > 0) offsetInBlock = textLen;
 
@@ -1471,10 +1510,10 @@ void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphS
     double cursorWidth = m_context.cursor.width;
     double cursorHeight = cursorLine.height();
 
-    QColor cursorColor = m_context.colors.cursor;
+    QColor cursorColor = color;
 
     // Adjust based on cursor style
-    if (m_cursorStyle == CursorStyle::Block) {
+    if (style == CursorStyle::Block) {
         // Block cursor: use character width
         if (offsetInBlock < textLen) {
             QFontMetricsF fm(m_context.computed.effectiveFont);
@@ -1487,7 +1526,7 @@ void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphS
         // Semi-transparent block
         cursorColor.setAlpha(180);
         painter->fillRect(QRectF(cursorX, cursorY, cursorWidth, cursorHeight), cursorColor);
-    } else if (m_cursorStyle == CursorStyle::Underline) {
+    } else if (style == CursorStyle::Underline) {
         // Underline cursor
         double underlineHeight = 2.0;
         QFontMetricsF fm(m_context.computed.effectiveFont);

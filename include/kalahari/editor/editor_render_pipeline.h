@@ -19,6 +19,7 @@
 #include <QObject>
 #include <QRect>
 #include <memory>
+#include <optional>
 
 class QPainter;
 class QTextDocument;
@@ -279,6 +280,20 @@ public:
     /// @brief Get cursor rectangle in widget coordinates
     QRectF cursorRect() const;
 
+    /// @brief Rectangle of a caret line at a position, in widget coordinates
+    ///
+    /// Scroll-mode geometry, like cursorRect().
+    QRectF caretRect(const CursorPosition& position) const;
+
+    /// @brief Show where dragged text would be dropped (std::nullopt hides it)
+    ///
+    /// Painted as a line caret in the cursor color, independent of the cursor's
+    /// visibility and blinking.
+    void setDropCaret(const std::optional<CursorPosition>& position);
+
+    /// @brief Position shown by the drop caret, if any
+    const std::optional<CursorPosition>& dropCaret() const { return m_dropCaret; }
+
     /// @brief Area the cursor is painted in (cursorRect() adjusted to the cursor style)
     ///
     /// Scroll-mode geometry; also the area to repaint when the cursor blinks or moves.
@@ -454,11 +469,15 @@ private:
     /// @param textRect Text area rectangle in widget coordinates
     void renderSliceSelection(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
 
-    /// @brief Render cursor within a slice
+    /// @brief Render the cursor and the drop caret within a slice
     /// @param painter QPainter to draw with
     /// @param slice The paragraph slice
     /// @param textRect Text area rectangle in widget coordinates
     void renderSliceCursor(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
+
+    /// @brief Render a caret at a position within a slice (nothing if it is not in the slice)
+    void renderSliceCaret(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect,
+                          const CursorPosition& position, CursorStyle style, const QColor& color);
 
     // =========================================================================
     // Layout Helpers (Stage 3)
@@ -483,6 +502,7 @@ private:
     // Cursor and selection
     CursorPosition m_cursorPosition;             ///< Current cursor position
     SelectionRange m_selection;                  ///< Current selection
+    std::optional<CursorPosition> m_dropCaret;   ///< Drop point of dragged text
 
     // External components (not owned)
     ViewportManager* m_viewportManager = nullptr;

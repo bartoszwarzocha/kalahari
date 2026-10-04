@@ -635,6 +635,17 @@ int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccurac
     // Line whose box covers the point (or the nearest line, for a fuzzy hit)
     const qreal localY = y - blockY(number);
     const QTextLine line = layout->lineAt(lineIndexAt(*layout, localY, m_typography.lineSpacing));
+    if (exact) {
+        // An exact hit is on the text of a line: not in the spacing after the paragraph,
+        // nor before or after the text of the line
+        const QRectF box = lineBox(line, m_typography.lineSpacing);
+        const qreal startX = line.cursorToX(line.textStart());
+        const qreal endX = line.cursorToX(line.textStart() + line.textLength());
+        if (localY < box.top() || localY >= box.bottom() || point.x() < qMin(startX, endX) ||
+            point.x() > qMax(startX, endX)) {
+            return -1;
+        }
+    }
     const int pos = line.xToCursor(point.x(), exact ? QTextLine::CursorOnCharacter
                                                     : QTextLine::CursorBetweenCharacters);
     return block.position() + pos;
