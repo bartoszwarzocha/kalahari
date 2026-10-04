@@ -444,6 +444,7 @@ void BookEditor::setScrollOffset(qreal offset)
             emit scrollOffsetChanged(newOffset);
             updatePipelineScroll();  // Phase 14: lightweight scroll only
             update();
+            resetCursorBlink();
         }
         return;
     }
@@ -460,6 +461,9 @@ void BookEditor::setScrollOffset(qreal offset)
         emit scrollOffsetChanged(newOffset);
         updatePipelineScroll();  // Phase 14: lightweight scroll only
         update();  // Request repaint
+        // Wherever the view stops, the cursor shows at once instead of in the middle of a
+        // blink
+        resetCursorBlink();
     }
 }
 
@@ -2332,6 +2336,10 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // Apply cursor settings
     setCursorBlinkingEnabled(m_appearance.cursor.blinking);
     setCursorBlinkInterval(m_appearance.cursor.blinkInterval);
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorStyle(m_appearance.cursor.style);
+        m_renderPipeline->setCursorWidth(m_appearance.cursor.lineWidth);
+    }
 
     // Update viewport scroll padding so user can scroll to see margins
     if (m_viewportManager) {
@@ -2500,31 +2508,8 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         }
 
         // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
-        qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
-
-        // Phase 11.10: In view mode, use direct scroll offset management
-        if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
-            double newPos = m_viewModeScrollOffset + delta;
-            auto [topMargin, bottomMargin] = getScrollPadding();
-            double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
-            m_viewModeScrollOffset = std::clamp(newPos, 0.0, maxScroll);
-            syncScrollBarValue();
-            updatePipelineScroll();  // Phase 14: lightweight scroll only
-            update();
-            emit scrollOffsetChanged(m_viewModeScrollOffset);
-            event->accept();
-            return;
-        }
-
-        // Edit mode: use ViewportManager
-        if (m_viewportManager) {
-            double newPos = m_viewportManager->scrollPosition() + delta;
-            m_viewportManager->setScrollPosition(newPos);
-            syncScrollBarValue();
-            emit scrollOffsetChanged(m_viewportManager->scrollPosition());
-        }
-        updatePipelineScroll();  // Phase 14: lightweight scroll only
-        update();
+        const qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
+        setScrollOffset(scrollOffset() + delta);
         event->accept();
     } else {
         QWidget::wheelEvent(event);

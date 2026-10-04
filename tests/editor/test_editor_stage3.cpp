@@ -1,5 +1,5 @@
 /// @file test_editor_stage3.cpp
-/// @brief Editor Stage 3 (variant A): drag and drop of text, find and replace
+/// @brief Editor Stage 3 (variant A): drag and drop of text, find and replace, cursor
 ///
 /// The drop itself is checked through BookEditor::dropMimeData(), which dropEvent() calls:
 /// QDropEvent::source() is set only during a real drag, which tests cannot run. The mouse
@@ -18,6 +18,7 @@
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QGuiApplication>
 #include <QImage>
 #include <QLineEdit>
 #include <QMimeData>
@@ -26,6 +27,7 @@
 #include <QScrollBar>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -524,4 +526,142 @@ TEST_CASE("Stage3 find: a match far down a long chapter is shown when found",
     const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
     CHECK(caret.top() >= 0.0);
     CHECK(caret.bottom() <= editor->height());
+}
+
+// =============================================================================
+// Cursor
+// =============================================================================
+
+namespace {
+
+/// Show @p editor and give it focus (offscreen platform only, see test_editor_stage1.cpp)
+bool focusEditor(BookEditor& editor) {
+    editor.show();
+    editor.activateWindow();
+    editor.setFocus();
+    return waitUntil([&editor] { return editor.hasFocus(); });
+}
+
+/// The editor with focus, and the area its cursor is painted in: what differs without focus
+struct CursorShot {
+    QImage image;
+    QRect box;
+};
+
+CursorShot cursorShot(BookEditor& editor) {
+    editor.setFocus();
+    waitUntil([&editor] { return editor.hasFocus(); });
+    CursorShot shot;
+    shot.image = editorImage(editor);
+    editor.clearFocus();
+    shot.box = differenceBox(shot.image, editorImage(editor));
+    return shot;
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage3 cursor: the cursor shows at once when the view scrolls",
+          "[editor][stage3][cursor]") {
+    // Regression: when the view scrolled during the hidden phase of a blink, the cursor
+    // stayed hidden for up to one blink interval where the view stopped
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs window focus without a window on screen: run with QT_QPA_PLATFORM=offscreen");
+    }
+    QStringList paragraphs;
+    for (int i = 0; i < 60; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 of a chapter long enough to scroll.").arg(i);
+    }
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->setCursorBlinkInterval(100);
+    if (!focusEditor(*editor)) {
+        SKIP("the platform did not give the editor focus");
+    }
+    REQUIRE(waitUntil([&editor] { return !editor->isCursorVisible(); }));
+
+    SECTION("with the mouse wheel") {
+        const QPointF pos(100, 100);
+        QWheelEvent wheel(pos, editor->mapToGlobal(pos), QPoint(), QPoint(0, -120), Qt::NoButton,
+                          Qt::NoModifier, Qt::NoScrollPhase, false);
+        QCoreApplication::sendEvent(editor.get(), &wheel);
+    }
+    SECTION("with the scroll bar") {
+        auto* scrollBar = editor->findChild<QScrollBar*>();
+        REQUIRE(scrollBar != nullptr);
+        scrollBar->setValue(scrollBar->value() + 60);
+    }
+    CHECK(editor->scrollOffset() > 0.0);
+    CHECK(editor->isCursorVisible());
+}
+
+TEST_CASE("Stage3 cursor: the cursor shape and width follow the settings and the text",
+          "[editor][stage3][cursor]") {
+    // Regression: the cursor shape and width chosen in the settings were ignored, and the
+    // block and underline sizes came from the unzoomed font, not the character's format
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs window focus without a window on screen: run with QT_QPA_PLATFORM=offscreen");
+    }
+    auto editor = editorWith(QStringLiteral("<kml><p>Wide iii <b>WWW</b></p></kml>"));
+    editor->setCursorBlinkingEnabled(false);
+    if (!focusEditor(*editor)) {
+        SKIP("the platform did not give the editor focus");
+    }
+    EditorAppearance appearance = editor->appearance();
+    const auto useCursor = [&](CursorStyle style, int lineWidth) {
+        appearance.cursor.style = style;
+        appearance.cursor.lineWidth = lineWidth;
+        editor->setAppearance(appearance);
+    };
+    const auto boxAt = [&editor](const CursorPosition& position) {
+        editor->setCursorPosition(position);
+        return cursorShot(*editor).box;
+    };
+
+    useCursor(CursorStyle::Line, 2);
+    const QRect line = boxAt({0, 0});
+    REQUIRE_FALSE(line.isEmpty());
+
+    SECTION("a block covers the character, which stays readable") {
+        useCursor(CursorStyle::Block, 2);
+        const int wide = boxAt({0, 0}).width();   // W
+        const int thin = boxAt({0, 5}).width();   // i
+        const int bold = boxAt({0, 9}).width();   // bold W
+        CHECK(wide > 2 * thin);
+        CHECK(bold >= wide);
+
+        editor->setCursorPosition({0, 0});
+        const CursorShot shot = cursorShot(*editor);
+        CHECK(shot.box.height() == line.height());
+        const QRgb block = shot.image.pixel(shot.box.left(), shot.box.top());
+        int letter = 0;
+        for (int y = shot.box.top(); y <= shot.box.bottom(); ++y) {
+            for (int x = shot.box.left(); x <= shot.box.right(); ++x) {
+                if (std::abs(qGray(shot.image.pixel(x, y)) - qGray(block)) > 100) {
+                    ++letter;
+                }
+            }
+        }
+        CHECK(letter > 10);
+
+        editor->setZoomFactor(2.0);
+        CHECK(std::abs(boxAt({0, 0}).width() - 2 * wide) <= 3);
+    }
+
+    SECTION("an underline is as wide as the character") {
+        useCursor(CursorStyle::Block, 2);
+        const int wide = boxAt({0, 0}).width();
+        useCursor(CursorStyle::Underline, 2);
+        const QRect underline = boxAt({0, 0});
+        CHECK(underline.height() <= 3);
+        CHECK(underline.bottom() == line.bottom());
+        CHECK(std::abs(underline.width() - wide) <= 1);
+    }
+
+    SECTION("a line has the width from the settings, at every zoom") {
+        useCursor(CursorStyle::Line, 4);
+        const int width = boxAt({0, 0}).width();
+        CHECK(width >= 4);
+        CHECK(width <= 5);
+        editor->setZoomFactor(2.0);
+        CHECK(boxAt({0, 0}).width() == width);
+    }
 }

@@ -265,6 +265,11 @@ public:
     /// @brief Set cursor style (Line, Block, Underline)
     void setCursorStyle(CursorStyle style);
 
+    /// @brief Set the width of the line cursor and the drop caret, in pixels
+    ///
+    /// The same at every zoom, like the caret of a word processor.
+    void setCursorWidth(double width);
+
     /// @brief Set selection range
     void setSelection(const SelectionRange& selection);
 
@@ -483,6 +488,12 @@ private:
     /// @brief Render a caret at a position within a slice (nothing if it is not in the slice)
     void renderSliceCaret(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect,
                           const CursorPosition& position, CursorStyle style, const QColor& color);
+
+    /// @brief Width of the character at a position, in layout units
+    ///
+    /// Block and underline cursors are as wide. At the end of a line, where there is no
+    /// character, the average character width.
+    double caretCharWidth(const CursorPosition& position) const;
 
     // =========================================================================
     // Layout Helpers (Stage 3)
