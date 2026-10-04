@@ -948,6 +948,8 @@ TEST_CASE("Stage2 on demand: justified lines reach the right edge without cached
         }
         rightEdges.push_back(rightmost);
     }
+    // Qt finds where to stretch a line only when it shapes text with HarfBuzz (qtbase
+    // feature "harfbuzz" in vcpkg.json); without it, justified lines stay ragged
     const auto [narrowest, widest] = std::minmax_element(rightEdges.begin(), rightEdges.end());
     CHECK(*narrowest >= textRight - 4);
     CHECK(*widest <= textRight + 1);
