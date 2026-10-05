@@ -241,6 +241,10 @@ private:
     QSpinBox* m_tabSizeSpinBox;
     QCheckBox* m_lineNumbersCheckBox;
     QCheckBox* m_wordWrapCheckBox;
+    QDoubleSpinBox* m_lineHeightSpinBox;
+    QSpinBox* m_paragraphSpacingSpinBox;
+    QCheckBox* m_firstLineIndentCheckBox;
+    QSpinBox* m_indentSizeSpinBox;
 
     // ========================================================================
     // Member Variables - Editor/Colors

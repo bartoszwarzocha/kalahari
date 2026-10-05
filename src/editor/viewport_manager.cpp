@@ -2,12 +2,22 @@
 /// @brief ViewportManager implementation (OpenSpec #00043 Phase 11.8)
 
 #include <kalahari/editor/viewport_manager.h>
-#include <QTextLayout>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QAbstractTextDocumentLayout>
+#include <QTextLayout>
 #include <algorithm>
 #include <cmath>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// The editor's own layout, which answers position queries from cached block positions
+const KalahariTextDocumentLayout* kalahariLayout(const QTextDocument* doc) {
+    return qobject_cast<const KalahariTextDocumentLayout*>(doc->documentLayout());
+}
+
+}  // anonymous namespace
 
 // =============================================================================
 // Constructor / Destructor
@@ -34,6 +44,7 @@ void ViewportManager::setDocument(QTextDocument* doc) {
     }
 
     m_document = doc;
+    m_anchor = ScrollAnchor{};
 
     if (m_document) {
         connect(m_document, &QTextDocument::contentsChanged,
@@ -41,17 +52,45 @@ void ViewportManager::setDocument(QTextDocument* doc) {
         // Re-wrapping after a width or font change alters block heights without a
         // content change, so contentsChanged is not emitted for it.
         connect(m_document->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
-                this, &ViewportManager::onDocumentChanged);
-        m_totalHeightDirty = true;
+                this, &ViewportManager::onDocumentSizeChanged);
+        if (const auto* layout = kalahariLayout(m_document)) {
+            connect(layout, &KalahariTextDocumentLayout::blockGeometryChanged,
+                    this, &ViewportManager::onBlockGeometryChanged);
+        }
         updateVisibleRange();
+        captureAnchor();
     }
 }
 
 void ViewportManager::onDocumentChanged() {
-    m_totalHeightDirty = true;
     updateVisibleRange();
+    // The content moved under the viewport: the text now at its top is the anchor
+    captureAnchor();
     emit documentHeightChanged(totalDocumentHeight());
     emit viewportChanged();
+}
+
+void ViewportManager::onDocumentSizeChanged() {
+    // No repaint here: a content change repaints through onDocumentChanged(), a new
+    // width or font through whoever set it, and blocks laid out on demand leave the
+    // visible text where it is (scroll anchoring)
+    updateVisibleRange();
+    emit documentHeightChanged(totalDocumentHeight());
+}
+
+void ViewportManager::onBlockGeometryChanged(int firstBlock) {
+    // Blocks at or above the anchor changed height or were wrapped again: scroll so that
+    // the anchored text is where it was. Blocks below it do not move it.
+    const bool anchorMoved = m_anchoringEnabled && m_anchor.block >= firstBlock &&
+                             m_anchor.block < m_document->blockCount();
+    const double oldScrollY = m_scrollY;
+    if (anchorMoved) {
+        m_scrollY = clampScrollPosition(anchoredPosition());
+    }
+    updateVisibleRange();
+    if (std::abs(m_scrollY - oldScrollY) > 0.001) {
+        emit scrollPositionAnchored(m_scrollY);
+    }
 }
 
 // =============================================================================
@@ -93,6 +132,7 @@ void ViewportManager::setScrollPosition(double y) {
     if (std::abs(m_scrollY - clamped) > 0.001) {
         m_scrollY = clamped;
         updateVisibleRange();
+        captureAnchor();
         emit scrollPositionChanged(m_scrollY);
         emit viewportChanged();
     }
@@ -156,6 +196,66 @@ double ViewportManager::clampScrollPosition(double y) const {
 }
 
 // =============================================================================
+// Scroll Anchoring
+// =============================================================================
+
+void ViewportManager::setScrollAnchoringEnabled(bool enabled) {
+    m_anchoringEnabled = enabled;
+    captureAnchor();
+}
+
+void ViewportManager::captureAnchor() {
+    m_anchor = ScrollAnchor{};
+    const KalahariTextDocumentLayout* layout = m_document ? kalahariLayout(m_document) : nullptr;
+    const int block = layout ? layout->blockNumberAtY(m_scrollY) : -1;
+    if (block < 0) {
+        return;
+    }
+    m_anchor.block = block;
+    m_anchor.offset = m_scrollY - layout->blockY(block);
+    m_anchor.height = layout->blockHeight(block);
+
+    // A laid out block also gives the line at the top, which stays the anchor when the
+    // block is wrapped again
+    if (layout->isLaidOut(block)) {
+        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
+        const qreal lineSpacing = layout->typography().lineSpacing;
+        const int index = KalahariTextDocumentLayout::lineIndexAt(*lines, m_anchor.offset, lineSpacing);
+        if (index >= 0) {
+            const QTextLine line = lines->lineAt(index);
+            const QRectF box = KalahariTextDocumentLayout::lineBox(line, lineSpacing);
+            m_anchor.lineStart = line.textStart();
+            m_anchor.lineShare = box.height() > 0.0 ? (m_anchor.offset - box.top()) / box.height() : 0.0;
+        }
+    }
+}
+
+double ViewportManager::anchoredPosition() const {
+    const KalahariTextDocumentLayout* layout = kalahariLayout(m_document);
+    const int block = m_anchor.block;
+    const double top = layout->blockY(block);
+    const double height = layout->blockHeight(block);
+
+    // The block has its lines: the line holding the text that was at the top, also when
+    // the block was wrapped again at a new width or font size
+    if (m_anchor.lineStart >= 0 && layout->isLaidOut(block)) {
+        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
+        const QTextLine line = lines->lineForTextPosition(m_anchor.lineStart);
+        if (line.isValid()) {
+            const QRectF box =
+                KalahariTextDocumentLayout::lineBox(line, layout->typography().lineSpacing);
+            return top + box.top() + m_anchor.lineShare * box.height();
+        }
+    }
+    // The block kept its height: the same offset into it
+    if (height == m_anchor.height) {
+        return top + m_anchor.offset;
+    }
+    // Estimated heights: the same share of the block
+    return top + (m_anchor.height > 0.0 ? m_anchor.offset * height / m_anchor.height : 0.0);
+}
+
+// =============================================================================
 // Visible Range
 // =============================================================================
 
@@ -190,52 +290,14 @@ void ViewportManager::updateVisibleRange() {
         return;
     }
 
-    size_t oldFirst = m_firstVisible;
-    size_t oldLast = m_lastVisible;
+    const size_t oldFirst = m_firstVisible;
+    const size_t oldLast = m_lastVisible;
 
-    double viewTop = m_scrollY;
-    double viewBottom = m_scrollY + static_cast<double>(m_viewportSize.height());
-
-    // Iterate blocks to find visible range
-    m_firstVisible = 0;
-    m_lastVisible = 0;
-    bool foundFirst = false;
-
-    // Use cumulative line heights (consistent with paragraphY and blockHeight)
-    QTextBlock block = m_document->begin();
-    size_t blockIndex = 0;
-    double cumulativeY = 0.0;
-
-    while (block.isValid()) {
-        double height = this->blockHeight(block);
-
-        double blockTop = cumulativeY;
-        double blockBottom = cumulativeY + height;
-
-        // Check if this block intersects viewport
-        if (blockBottom > viewTop && !foundFirst) {
-            m_firstVisible = blockIndex;
-            foundFirst = true;
-        }
-
-        // Update last visible as long as block starts within viewport
-        if (blockTop <= viewBottom) {
-            m_lastVisible = blockIndex;
-        } else {
-            // We've passed the viewport, can stop early
-            break;
-        }
-
-        cumulativeY += height;
-        block = block.next();
-        ++blockIndex;
-    }
-
-    // If no blocks found visible, set to 0
-    if (!foundFirst) {
-        m_firstVisible = 0;
-        m_lastVisible = 0;
-    }
+    // First block reaching into the viewport, last block starting above its bottom edge
+    const double viewTop = m_scrollY;
+    const double viewBottom = m_scrollY + static_cast<double>(m_viewportSize.height());
+    m_firstVisible = paragraphAtY(viewTop);
+    m_lastVisible = std::max(m_firstVisible, paragraphAtY(viewBottom));
 
     // Notify if range changed
     if (oldFirst != m_firstVisible || oldLast != m_lastVisible) {
@@ -290,97 +352,48 @@ QRectF ViewportManager::viewportRect() const {
 
 double ViewportManager::totalDocumentHeight() const {
     if (!m_document) return 0.0;
-
-    if (m_totalHeightDirty) {
-        // Calculate from block layouts (NOT documentSize which may include margins)
-        // This ensures consistency with paragraphY() and EditorRenderPipeline
-        m_cachedTotalHeight = 0.0;
-        QTextBlock block = m_document->begin();
-        while (block.isValid()) {
-            m_cachedTotalHeight += blockHeight(block);
-            block = block.next();
-        }
-        m_totalHeightDirty = false;
-    }
-
-    return m_cachedTotalHeight;
+    return m_document->documentLayout()->documentSize().height();
 }
 
 size_t ViewportManager::paragraphAtY(double y) const {
     if (!m_document) return 0;
 
-    // Iterate blocks using cumulative layout heights (consistent with paragraphY())
-    // NOT using blockBoundingRect or hitTest which use document coordinate system with margins
-    QTextBlock block = m_document->begin();
-    size_t blockIndex = 0;
-    double cumulativeY = 0.0;
-
-    while (block.isValid()) {
-        double height = blockHeight(block);
-        double blockTop = cumulativeY;
-        double blockBottom = cumulativeY + height;
-
-        if (y >= blockTop && y < blockBottom) {
-            return blockIndex;
-        }
-
-        cumulativeY += height;
-        block = block.next();
-        ++blockIndex;
+    // The editor's layout keeps cumulative block positions: binary search there
+    if (const auto* layout = kalahariLayout(m_document)) {
+        return static_cast<size_t>(std::max(0, layout->blockNumberAtY(y)));
     }
 
-    // If y is beyond document, return last block
-    int count = m_document->blockCount();
-    return count > 0 ? static_cast<size_t>(count - 1) : 0;
+    // Any other layout: blocks are stacked in order, so binary search on their tops
+    const QAbstractTextDocumentLayout* docLayout = m_document->documentLayout();
+    int low = 0;
+    int high = std::max(0, m_document->blockCount() - 1);
+    while (low < high) {
+        const int middle = low + (high - low + 1) / 2;
+        if (docLayout->blockBoundingRect(m_document->findBlockByNumber(middle)).y() <= y) {
+            low = middle;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return static_cast<size_t>(low);
 }
 
 double ViewportManager::paragraphY(size_t index) const {
     if (!m_document) return 0.0;
 
-    // Calculate cumulative Y using blockHeight() for consistency
-    // We manually position blocks when rendering (not using Qt's document layout)
-    // so we need our own continuous positioning without Qt's extra margins/spacing
-    double cumulativeY = 0.0;
-    QTextBlock block = m_document->begin();
-    size_t blockIndex = 0;
-
-    while (block.isValid() && blockIndex < index) {
-        cumulativeY += blockHeight(block);
-        block = block.next();
-        ++blockIndex;
+    const QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
+    if (!block.isValid()) {
+        return totalDocumentHeight();  // Past the last paragraph
     }
-
-    return cumulativeY;
+    return m_document->documentLayout()->blockBoundingRect(block).y();
 }
 
 double ViewportManager::paragraphHeight(size_t index) const {
     if (!m_document) return 0.0;
 
-    QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
-    return blockHeight(block);
-}
-
-double ViewportManager::blockHeight(const QTextBlock& block) const {
-    if (!block.isValid()) return m_estimatedLineHeight;
-
-    // Use boundingRect().height() - same as KmlDocumentModel (view mode)
-    // This gives just the text height without double-counting leading
-    if (auto* layout = block.layout()) {
-        double height = layout->boundingRect().height();
-        if (height > 0) {
-            return height;
-        }
-    }
-
-    // Fallback: use blockBoundingRect (layout not prepared yet)
-    if (m_document) {
-        if (auto* docLayout = m_document->documentLayout()) {
-            double h = docLayout->blockBoundingRect(block).height();
-            if (h > 0) return h;
-        }
-    }
-
-    return m_estimatedLineHeight;
+    const QTextBlock block = m_document->findBlockByNumber(static_cast<int>(index));
+    if (!block.isValid()) return 0.0;
+    return m_document->documentLayout()->blockBoundingRect(block).height();
 }
 
 }  // namespace kalahari::editor

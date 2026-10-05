@@ -2,6 +2,7 @@
 /// @brief Implementation of unified rendering pipeline (OpenSpec #00043 Phase 12.1)
 
 #include <kalahari/editor/editor_render_pipeline.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/kml_format_registry.h>
@@ -137,8 +138,10 @@ void EditorRenderPipeline::setTextWidth(double width) {
 void EditorRenderPipeline::setFont(const QFont& font) {
     if (m_context.font != font) {
         m_context.font = font;
+        computeTypography();  // the base font size is the typography's reference size
         if (m_textSource) {
             m_textSource->setFont(font);
+            m_textSource->setTypography(m_context.computed.typography);
             m_heightDirty = true;
         }
         m_paginationCacheValid = false;
@@ -207,6 +210,7 @@ void EditorRenderPipeline::configure(const RenderContext& context) {
     // Perform ALL calculations in order
     computeDpiScaling();
     computeEffectiveFont();
+    computeTypography();
     computeMargins();
     computePageLayout();
     computeTextWidth();
@@ -240,6 +244,15 @@ void EditorRenderPipeline::computeEffectiveFont() {
     } else {
         m_context.computed.effectiveFont = m_context.font;
     }
+}
+
+void EditorRenderPipeline::computeTypography() {
+    // Spacing and indent are pixels at 100% zoom, i.e. for the base font. The layout
+    // scales them with the document font: font-scaling zoom grows them with the text
+    // (in the same relayout), page-scaling zoom leaves them to the painter.
+    LayoutTypography typography = m_context.typography;
+    typography.referencePointSize = m_context.font.pointSizeF();
+    m_context.computed.typography = typography;
 }
 
 void EditorRenderPipeline::computeMargins() {
@@ -309,6 +322,7 @@ void EditorRenderPipeline::applyComputedToSource() {
 
     m_textSource->setFont(m_context.computed.effectiveFont);
     m_textSource->setTextWidth(m_context.computed.textWidth);
+    m_textSource->setTypography(m_context.computed.typography);
 }
 
 // =============================================================================
@@ -323,6 +337,11 @@ void EditorRenderPipeline::applyFontToSource() {
 void EditorRenderPipeline::applyWidthToSource() {
     if (!m_textSource) return;
     m_textSource->setTextWidth(m_context.computed.textWidth);
+}
+
+void EditorRenderPipeline::applyTypographyToSource() {
+    if (!m_textSource) return;
+    m_textSource->setTypography(m_context.computed.typography);
 }
 
 void EditorRenderPipeline::recalcPageCenterOffset() {
@@ -357,7 +376,9 @@ void EditorRenderPipeline::setConfigFont(const QFont& font) {
 
     m_context.font = font;
     computeEffectiveFont();
+    computeTypography();  // the base font size is the typography's reference size
     applyFontToSource();
+    applyTypographyToSource();
     m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
@@ -372,8 +393,19 @@ void EditorRenderPipeline::setConfigZoom(double factor, ZoomMode mode) {
 
     computeDpiScaling();  // Recalculates totalScale, viewScale
     computeEffectiveFont();
-    applyFontToSource();
+    applyFontToSource();  // typography lengths follow the font in the same relayout
 
+    m_paginationCacheValid = false;
+    m_heightDirty = true;
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigTypography(const LayoutTypography& typography) {
+    if (m_context.typography == typography) return;  // No change
+
+    m_context.typography = typography;
+    computeTypography();
+    applyTypographyToSource();
     m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
@@ -459,6 +491,7 @@ void EditorRenderPipeline::setConfigViewMode(ViewMode mode) {
     // View mode affects everything - full recalculation
     computeDpiScaling();
     computeEffectiveFont();
+    computeTypography();
     computeMargins();
     computePageLayout();
     computeTextWidth();
@@ -472,6 +505,7 @@ void EditorRenderPipeline::setConfigViewMode(ViewMode mode) {
 void EditorRenderPipeline::applyInitialConfig() {
     computeDpiScaling();
     computeEffectiveFont();
+    computeTypography();
     computeMargins();
     computePageLayout();
     computeTextWidth();
@@ -639,14 +673,22 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     painter->save();
     painter->setClipRect(clipRect);
 
-    // Stage 1+2: Get visible range and ensure layouts
+    // Stage 1+2: Get visible range and ensure layouts. Blocks waiting for layout have
+    // estimated heights; laying them out changes the heights, and the viewport keeps the
+    // text at its top in place by moving the scroll position. Repeat until the range
+    // shown is laid out.
     updateVisibleRange();
 
     if (m_textSource) {
-        m_textSource->ensureLayouted(
-            m_context.computed.firstVisibleParagraph,
-            m_context.computed.lastVisibleParagraph
-        );
+        size_t first = 0;
+        size_t last = 0;
+        do {
+            first = m_context.computed.firstVisibleParagraph;
+            last = m_context.computed.lastVisibleParagraph;
+            m_textSource->ensureLayouted(first, last);
+            updateVisibleRange();
+        } while (first != m_context.computed.firstVisibleParagraph ||
+                 last != m_context.computed.lastVisibleParagraph);
     }
 
     // Stage 4: Render
@@ -892,11 +934,13 @@ void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t pa
             qreal x2 = line.cursorToX(selEnd);
             if (x1 > x2) std::swap(x1, x2);
 
-            // Convert to widget coordinates - Phase 14: use computed values
+            // Convert to widget coordinates - Phase 14: use computed values. The band
+            // covers the whole line box, so the lines of a selection join up.
+            const QRectF box = lineBox(line);
             double wx1 = m_context.computed.marginLeft + x1 * m_context.computed.viewScale;
             double wx2 = m_context.computed.marginLeft + x2 * m_context.computed.viewScale;
-            double wy = widgetY + line.y() * m_context.computed.viewScale;
-            double wh = line.height() * m_context.computed.viewScale;
+            double wy = widgetY + box.y() * m_context.computed.viewScale;
+            double wh = box.height() * m_context.computed.viewScale;
 
             QRectF selRect(wx1, wy, wx2 - wx1, wh);
             painter->fillRect(selRect, m_context.colors.selection);
@@ -1272,9 +1316,8 @@ void EditorRenderPipeline::renderSlice(QPainter* painter, const ParagraphSlice& 
     // Calculate scale factor for this mode - Phase 14: use computed values
     double scale = m_context.computed.viewScale;
 
-    // Calculate Y offset: shift lines so first line of slice starts at Y=0
-    double firstLineY = (slice.startLine < layout->lineCount())
-        ? layout->lineAt(slice.startLine).y() : 0.0;
+    // Shift the lines so that the box of the slice's first line starts at Y=0
+    double firstLineY = sliceTopInBlock(*layout, slice);
 
     // Set up painter transform
     painter->save();
@@ -1320,9 +1363,8 @@ void EditorRenderPipeline::renderSliceSelection(QPainter* painter, const Paragra
         scale = m_context.computed.totalScale;
     }
 
-    // Calculate firstLineY for position adjustment
-    double firstLineY = (slice.startLine < layout->lineCount())
-        ? layout->lineAt(slice.startLine).y() : 0.0;
+    // Shift the lines so that the box of the slice's first line starts at Y=0
+    double firstLineY = sliceTopInBlock(*layout, slice);
 
     // Set up painter transform
     painter->save();
@@ -1362,8 +1404,9 @@ void EditorRenderPipeline::renderSliceSelection(QPainter* painter, const Paragra
             if (actualStart < actualEnd) {
                 double selX1 = line.cursorToX(lineStart + actualStart);
                 double selX2 = line.cursorToX(lineStart + actualEnd);
-                double selY = line.y() - firstLineY;
-                double selHeight = line.height();
+                const QRectF box = lineBox(line);
+                double selY = box.y() - firstLineY;
+                double selHeight = box.height();
 
                 // For full-line selection (middle paragraphs), extend to line width
                 if (paraIdx > sel.start.paragraph && paraIdx < sel.end.paragraph) {
@@ -1412,9 +1455,8 @@ void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphS
         scale = m_context.computed.totalScale;
     }
 
-    // Calculate firstLineY for position adjustment
-    double firstLineY = (slice.startLine < layout->lineCount())
-        ? layout->lineAt(slice.startLine).y() : 0.0;
+    // Shift the lines so that the box of the slice's first line starts at Y=0
+    double firstLineY = sliceTopInBlock(*layout, slice);
 
     // Set up painter transform
     painter->save();
@@ -1490,6 +1532,19 @@ void EditorRenderPipeline::updateVisibleRange() {
     if (m_context.computed.lastVisibleParagraph >= count && count > 0) {
         m_context.computed.lastVisibleParagraph = count - 1;
     }
+}
+
+QRectF EditorRenderPipeline::lineBox(const QTextLine& line) const {
+    return KalahariTextDocumentLayout::lineBox(line,
+                                               m_textSource ? m_textSource->lineSpacing() : 1.0);
+}
+
+double EditorRenderPipeline::sliceTopInBlock(const QTextLayout& layout,
+                                             const ParagraphSlice& slice) const {
+    if (slice.startLine <= 0 || slice.startLine >= layout.lineCount()) {
+        return 0.0;  // A slice starting at the first line starts at the block top
+    }
+    return lineBox(layout.lineAt(slice.startLine)).top();
 }
 
 double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
@@ -1599,18 +1654,9 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
         double paraY = m_textSource->paragraphY(paraIndex);
         double localY = (docY - paraY);
 
-        // Find line at localY
-        QTextLine line;
-        for (int i = 0; i < layout->lineCount(); ++i) {
-            QTextLine l = layout->lineAt(i);
-            if (localY >= l.y() && localY < l.y() + l.height()) {
-                line = l;
-                break;
-            }
-        }
-        if (!line.isValid()) {
-            line = layout->lineAt(layout->lineCount() - 1);
-        }
+        // Line whose box covers localY (the nearest one above or below the lines)
+        const QTextLine line = layout->lineAt(
+            KalahariTextDocumentLayout::lineIndexAt(*layout, localY, m_textSource->lineSpacing()));
 
         // Find X position - Phase 14: inline coordinate conversion
         double docX = (point.x() - m_context.computed.marginLeft) / m_context.computed.viewScale;
@@ -1669,26 +1715,20 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
         QTextLayout* layout = m_textSource->layout(slice.paraIndex);
         if (!layout) continue;
 
-        // Calculate slice height
-        double sliceHeight = 0.0;
-        for (int lineIdx = slice.startLine; lineIdx < slice.endLine && lineIdx < layout->lineCount(); ++lineIdx) {
-            sliceHeight += layout->lineAt(lineIdx).height() * m_context.computed.viewScale;
-        }
-
-        if (localY >= slice.yOffset && localY < slice.yOffset + sliceHeight) {
-            // Found the slice - find exact line and offset
-            double lineY = slice.yOffset;
-            for (int lineIdx = slice.startLine; lineIdx < slice.endLine && lineIdx < layout->lineCount(); ++lineIdx) {
-                QTextLine line = layout->lineAt(lineIdx);
-                double lineHeight = line.height() * m_context.computed.viewScale;
-
-                if (localY >= lineY && localY < lineY + lineHeight) {
-                    // Found the line - find X offset
-                    double localX = (point.x() - textRect.left()) / m_context.computed.viewScale;
-                    int offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-                    return CursorPosition{static_cast<int>(slice.paraIndex), offset};
-                }
-                lineY += lineHeight;
+        // The slice's line boxes are stacked from its top (slice.yOffset)
+        const int endLine = std::min(slice.endLine, layout->lineCount());
+        if (slice.startLine >= endLine) continue;
+        const double sliceTop = sliceTopInBlock(*layout, slice);
+        const double scale = m_context.computed.viewScale;
+        for (int lineIdx = slice.startLine; lineIdx < endLine; ++lineIdx) {
+            const QTextLine line = layout->lineAt(lineIdx);
+            const QRectF box = lineBox(line);
+            const double lineY = slice.yOffset + (box.top() - sliceTop) * scale;
+            if (localY >= lineY && localY < lineY + box.height() * scale) {
+                // Found the line - find X offset
+                double localX = (point.x() - textRect.left()) / scale;
+                int offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
+                return CursorPosition{static_cast<int>(slice.paraIndex), offset};
             }
         }
     }
@@ -1718,6 +1758,11 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
     if (!m_textSource) {
         m_paginationCacheValid = true;
         return;
+    }
+
+    // The slices need the lines of every block: lay out the waiting ones in one go
+    if (m_textSource->paragraphCount() > 0) {
+        m_textSource->ensureLayouted(0, m_textSource->paragraphCount() - 1);
     }
 
     // For Scroll Mode (Continuous, Focus, DistractionFree, Typewriter):
@@ -1816,9 +1861,9 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
 
             // Process each line in the paragraph
             for (int lineIdx = 0; lineIdx < lineCount; ++lineIdx) {
-                // Same units as the page: line heights are already in pixels
+                // Same units as the page: line boxes are already in pixels
                 QTextLine line = layout->lineAt(lineIdx);
-                double lineHeight = line.height();
+                double lineHeight = lineBox(line).height();
 
                 // Check if this line fits on current page
                 if (currentY + lineHeight > textAreaHeight && currentY > 0) {
@@ -1852,6 +1897,9 @@ void EditorRenderPipeline::rebuildPaginationCache() const {
                 slice.yOffset = sliceStartY;
                 currentPage.slices.push_back(slice);
             }
+
+            // Paragraph spacing below the paragraph (a page break swallows it)
+            currentY += m_textSource->paragraphSpacing();
         }
 
         // Add final page

@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
@@ -79,67 +80,16 @@ inline QString paragraphText(QTextDocument* doc, int index) {
     return block.isValid() ? block.text() : QString();
 }
 
-/// @brief Get block layout height using boundingRect().height()
-/// Same approach as KmlDocumentModel - gives just text height without double-counting leading
-inline double getBlockLayoutHeight(const QTextBlock& block, QTextDocument* doc = nullptr) {
-    if (!block.isValid()) return 20.0;  // Estimated fallback
-
-    // Use boundingRect().height() - same as KmlDocumentModel (view mode)
-    if (auto* layout = block.layout()) {
-        double height = layout->boundingRect().height();
-        if (height > 0) return height;
-    }
-
-    // Fallback: use blockBoundingRect (layout not prepared yet)
-    if (doc) {
-        if (auto* docLayout = doc->documentLayout()) {
-            double h = docLayout->blockBoundingRect(block).height();
-            if (h > 0) return h;
-        }
-    }
-
-    return 20.0;  // Estimated fallback
-}
-
-/// @brief Get Y position of paragraph using cumulative layout heights
-/// Falls back to blockBoundingRect if layout not ready
-inline double getParagraphY(QTextDocument* doc, int index) {
-    if (!doc) return 0.0;
-
-    double y = 0.0;
-    QTextBlock block = doc->begin();
-    for (int i = 0; i < index && block.isValid(); ++i) {
-        y += getBlockLayoutHeight(block, doc);
-        block = block.next();
-    }
-    return y;
-}
-
-/// @brief Find paragraph at Y position using cumulative layout heights
-/// Falls back to blockBoundingRect if layout not ready
-inline int getParagraphAtY(QTextDocument* doc, double y) {
-    if (!doc) return 0;
-
-    double cumulativeY = 0.0;
-    QTextBlock block = doc->begin();
-    int blockIndex = 0;
-
-    while (block.isValid()) {
-        double height = getBlockLayoutHeight(block, doc);
-        if (y >= cumulativeY && y < cumulativeY + height) {
-            return blockIndex;
-        }
-        cumulativeY += height;
-        block = block.next();
-        ++blockIndex;
-    }
-
-    // If y is beyond document, return last block
-    int count = doc->blockCount();
-    return count > 0 ? count - 1 : 0;
-}
-
 namespace {
+
+/// @brief Typography settings as the layout applies them (pixels at 100% zoom)
+LayoutTypography layoutTypography(const EditorTypography& typography) {
+    LayoutTypography result;
+    result.lineSpacing = typography.lineHeight;
+    result.paragraphSpacing = typography.paragraphSpacing;
+    result.firstLineIndent = typography.firstLineIndent ? typography.indentSize : 0.0;
+    return result;
+}
 
 /// @brief Per-paragraph cache attached to each block of the edit buffer
 ///
@@ -184,6 +134,67 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
             break;
         }
     }
+}
+
+/// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
+///
+/// Each paragraph gets zero margins and its alignment, and its text on a clean base format
+/// with the run formats on top. Shared by loading a chapter and pasting Kalahari content,
+/// so both read KML the same way.
+void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
+    QTextBlockFormat zeroMarginFormat;
+    zeroMarginFormat.setTopMargin(0);
+    zeroMarginFormat.setBottomMargin(0);
+
+    for (size_t i = 0; i < model.paragraphCount(); ++i) {
+        QTextBlockFormat blockFormat = zeroMarginFormat;
+        blockFormat.setAlignment(model.paragraphAlignment(i));
+        if (i > 0) {
+            cursor.insertBlock(blockFormat);
+        } else {
+            cursor.setBlockFormat(blockFormat);
+        }
+
+        // An EXPLICIT default char format, so the text does not take the format the cursor
+        // still carries from the previous paragraph's last run (formatting bled into every
+        // following paragraph on reload); the runs then format only their own ranges.
+        const int blockStart = cursor.position();
+        cursor.insertText(model.paragraphText(i), QTextCharFormat());
+        for (const auto& run : model.paragraphFormats(i)) {
+            cursor.setPosition(blockStart + static_cast<int>(run.start));
+            cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
+            cursor.mergeCharFormat(run.format);
+        }
+        cursor.movePosition(QTextCursor::EndOfBlock);
+    }
+}
+
+/// @brief Clipboard text as the editor can store and save it
+///
+/// Line and paragraph breaks of every platform become paragraph breaks. Characters XML
+/// cannot hold (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF)
+/// are dropped, so pasted text cannot make the chapter file unreadable.
+QString pastedPlainText(const QString& text) {
+    QString result;
+    result.reserve(text.size());
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        const QChar ch = text.at(i);
+        const char16_t code = ch.unicode();
+        if (code == u'\r' && i + 1 < text.size() && text.at(i + 1) == u'\n') {
+            continue;  // the \n that follows makes the break
+        }
+        if (code == u'\n' || code == u'\r' || code == u'\v' || code == u'\f' ||
+            code == QChar::LineSeparator || code == QChar::ParagraphSeparator) {
+            result += u'\n';
+        } else if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
+            result += ch;
+            result += text.at(++i);
+        } else if ((code >= 0x20 || code == u'\t') && !ch.isSurrogate() && code != 0xFFFE &&
+                   code != 0xFFFF) {
+            result += ch;
+        }
+    }
+    return result;
 }
 
 }  // anonymous namespace
@@ -251,22 +262,14 @@ BookEditor::BookEditor(QWidget* parent)
         updateScrollBarRange();
     });
 
-    // Width and zoom changes re-lay out the whole document. While the user drags the
-    // window edge or turns the mouse wheel, they are applied once the input settles.
-    m_resizeTimer = new QTimer(this);
-    m_resizeTimer->setSingleShot(true);
-    m_resizeTimer->setInterval(RELAYOUT_DELAY_MS);
-    connect(m_resizeTimer, &QTimer::timeout, this, [this]() {
-        m_renderPipeline->setConfigViewportSize(QSizeF(size()));
-        update();
-    });
-
-    m_zoomTimer = new QTimer(this);
-    m_zoomTimer->setSingleShot(true);
-    m_zoomTimer->setInterval(RELAYOUT_DELAY_MS);
-    connect(m_zoomTimer, &QTimer::timeout, this, [this]() {
-        m_renderPipeline->setConfigZoom(m_pendingZoom, getZoomModeForViewMode());
-        update();
+    // Blocks laid out on demand, or wrapped again at a new width, change height while the
+    // content stays the same. The viewport keeps the text at its top in place by moving
+    // the scroll position; the scroll bar and the painted position follow it.
+    connect(m_viewportManager.get(), &ViewportManager::scrollPositionAnchored,
+            this, [this](double position) {
+        syncScrollBarValue();
+        updatePipelineScroll();
+        emit scrollOffsetChanged(position);
     });
 
     // Phase 12.3: Create EditorRenderPipeline (unified rendering)
@@ -599,7 +602,7 @@ void BookEditor::ensureCursorVisible()
     QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find the line containing cursor offset (O(log n) using Qt's binary search)
@@ -609,30 +612,36 @@ void BookEditor::ensureCursorVisible()
         cursorLine = layout->lineAt(layout->lineCount() - 1);
     }
 
-    // Get block Y position from document layout
-    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
-    qreal blockY = blockRect.y();
-
-    // Calculate cursor line position in document coordinates
-    qreal lineTop = blockY + cursorLine.y();
-    qreal lineBottom = lineTop + cursorLine.height();
+    // Cursor line position in document coordinates: the whole line box, with the line
+    // spacing around the glyphs (scrolling up to the first line shows the document top)
+    auto* kalahariLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    const QRectF lineBox = KalahariTextDocumentLayout::lineBox(
+        cursorLine, kalahariLayout ? kalahariLayout->typography().lineSpacing : 1.0);
+    const auto lineTop = [&] {
+        return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();
+    };
 
     // Get visible range in document coordinates
     qreal scrollY = m_viewportManager->scrollPosition();
     qreal viewportHeight = static_cast<qreal>(height());
     qreal topMargin = m_appearance.viewMargins.vertical;
     qreal bottomMargin = m_appearance.viewMargins.vertical;
-
-    qreal visibleTop = scrollY;
-    qreal visibleBottom = scrollY + viewportHeight - topMargin - bottomMargin;
+    const qreal visibleHeight = viewportHeight - topMargin - bottomMargin;
 
     // Scroll only if line is NOT fully visible
-    if (lineTop < visibleTop) {
+    if (lineTop() < scrollY) {
         // Line is clipped at top - scroll up to show full line
-        setScrollOffset(lineTop);
-    } else if (lineBottom > visibleBottom) {
-        // Line is clipped at bottom - scroll down to show full line
-        qreal newScroll = lineBottom - (viewportHeight - topMargin - bottomMargin);
+        setScrollOffset(lineTop());
+    } else if (lineTop() + lineBox.height() > scrollY + visibleHeight) {
+        // Line is clipped at bottom - scroll down to show full line. The blocks above it
+        // that come into view are laid out first: with estimated heights the line could
+        // end up short of the bottom edge or past it.
+        qreal newScroll = 0.0;
+        do {
+            newScroll = lineTop() + lineBox.height() - visibleHeight;
+        } while (kalahariLayout &&
+                 kalahariLayout->ensureLaidOut(kalahariLayout->blockNumberAtY(newScroll),
+                                               block.blockNumber() - 1));
         setScrollOffset(qMax(0.0, newScroll));
     }
     // If line is fully visible, don't scroll
@@ -698,7 +707,7 @@ void BookEditor::moveCursorUp()
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find current line within this paragraph
@@ -720,9 +729,9 @@ void BookEditor::moveCursorUp()
     } else if (newPos.paragraph > 0) {
         // Move to last line of previous paragraph
         --newPos.paragraph;
-        QTextBlock prevBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
-        if (prevBlock.isValid() && prevBlock.layout() && prevBlock.layout()->lineCount() > 0) {
-            QTextLayout* prevLayout = prevBlock.layout();
+        QTextLayout* prevLayout = KalahariTextDocumentLayout::blockLayout(
+            m_textBuffer->findBlockByNumber(newPos.paragraph));
+        if (prevLayout && prevLayout->lineCount() > 0) {
             QTextLine lastLine = prevLayout->lineAt(prevLayout->lineCount() - 1);
             newPos.offset = lastLine.xToCursor(m_preferredCursorX);
         } else {
@@ -747,7 +756,7 @@ void BookEditor::moveCursorDown()
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (!block.isValid()) return;
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
     // Find current line within this paragraph
@@ -769,9 +778,9 @@ void BookEditor::moveCursorDown()
     } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         // Move to first line of next paragraph
         ++newPos.paragraph;
-        QTextBlock nextBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
-        if (nextBlock.isValid() && nextBlock.layout() && nextBlock.layout()->lineCount() > 0) {
-            QTextLayout* nextLayout = nextBlock.layout();
+        QTextLayout* nextLayout = KalahariTextDocumentLayout::blockLayout(
+            m_textBuffer->findBlockByNumber(newPos.paragraph));
+        if (nextLayout && nextLayout->lineCount() > 0) {
             QTextLine firstLine = nextLayout->lineAt(0);
             newPos.offset = firstLine.xToCursor(m_preferredCursorX);
         } else {
@@ -958,18 +967,8 @@ void BookEditor::moveCursorPageUp()
     // Calculate target Y position (one page up)
     qreal targetY = qMax(0.0, cursorY - pageHeight);
 
-    // Find block at target Y using document layout
-    QTextBlock targetBlock = m_textBuffer->findBlock(0);
-    int targetPara = 0;
-    while (targetBlock.isValid()) {
-        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(targetBlock);
-        if (tBlockRect.y() > targetY) break;
-        targetPara = targetBlock.blockNumber();
-        targetBlock = targetBlock.next();
-    }
-
     CursorPosition newPos;
-    newPos.paragraph = targetPara;
+    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
     newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
@@ -1000,28 +999,8 @@ void BookEditor::moveCursorPageDown()
     qreal maxY = m_viewportManager->totalDocumentHeight();
     qreal targetY = qMin(maxY, cursorY + pageHeight);
 
-    // Find block at target Y using document layout
-    QTextBlock targetBlock = m_textBuffer->lastBlock();
-    int targetPara = m_textBuffer->blockCount() - 1;
-
-    QTextBlock block = m_textBuffer->firstBlock();
-    while (block.isValid()) {
-        QRectF tBlockRect = m_textBuffer->documentLayout()->blockBoundingRect(block);
-        if (tBlockRect.y() > targetY) {
-            // Previous block is our target
-            if (block.previous().isValid()) {
-                targetBlock = block.previous();
-                targetPara = targetBlock.blockNumber();
-            }
-            break;
-        }
-        targetBlock = block;
-        targetPara = block.blockNumber();
-        block = block.next();
-    }
-
     CursorPosition newPos;
-    newPos.paragraph = targetPara;
+    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
     newPos.offset = 0;  // Start of paragraph for simplicity
 
     setCursorPosition(newPos);
@@ -1236,15 +1215,20 @@ void BookEditor::insertNewline()
         return;
     }
 
-    if (hasSelection()) {
-        deleteSelectedText();
-    }
-
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
-    // QTextDocument's native undo. insertBlock() inherits the current block format
-    // (zero margins + alignment), so the new paragraph keeps the same layout.
+    // QTextDocument's native undo, together with the replaced selection as one step.
+    // insertBlock() inherits the current block format (zero margins + alignment), so the
+    // new paragraph keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
     cursor.insertBlock();
+    cursor.endEditBlock();
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -1421,28 +1405,9 @@ void BookEditor::clearUndoStack()
 
 void BookEditor::copy()
 {
-    if (!hasSelection() || !m_textBuffer) {
-        return;
+    if (std::unique_ptr<QMimeData> mimeData = createMimeDataFromSelection()) {
+        QGuiApplication::clipboard()->setMimeData(mimeData.release());  // clipboard takes ownership
     }
-
-    SelectionRange sel = m_selection.normalized();
-
-    // Build plain text from selection
-    QString plainText;
-    for (int p = sel.start.paragraph; p <= sel.end.paragraph; ++p) {
-        QString paraText = paragraphText(m_textBuffer.get(), p);
-        int startOffset = (p == sel.start.paragraph) ? sel.start.offset : 0;
-        int endOffset = (p == sel.end.paragraph) ? sel.end.offset : paraText.length();
-
-        if (p > sel.start.paragraph) {
-            plainText += '\n';  // Paragraph separator
-        }
-        plainText += paraText.mid(startOffset, endOffset - startOffset);
-    }
-
-    // Set clipboard
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    clipboard->setText(plainText);
 }
 
 void BookEditor::cut()
@@ -1454,30 +1419,116 @@ void BookEditor::cut()
     // Copy first
     copy();
 
-    // Then delete selection
+    // Then delete selection (one undo step)
     deleteSelectedText();
 }
 
 void BookEditor::paste()
 {
+    insertFromMimeData(QGuiApplication::clipboard()->mimeData());
+}
+
+std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
+{
+    if (!hasSelection() || !m_textBuffer) {
+        return nullptr;
+    }
+
+    const SelectionRange sel = m_selection.normalized();
+    const QTextCursor range = createCursor(m_textBuffer.get(), sel.start, sel.end);
+    const QString kml =
+        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
+
+    // Paragraphs separated by line breaks
+    QString text = range.selectedText();
+    text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+
+    auto mimeData = std::make_unique<QMimeData>();
+    mimeData->setText(text);
+    mimeData->setHtml(ClipboardHandler::kmlToHtml(kml));
+    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
+    return mimeData;
+}
+
+void BookEditor::insertFromMimeData(const QMimeData* source)
+{
+    if (!source) {
+        return;
+    }
+
+    // Kalahari content: parsed like a chapter file, so formatting and alignment survive
+    if (source->hasFormat(QString::fromLatin1(MIME_KML))) {
+        KmlDocumentModel model;
+        if (model.loadKml(QString::fromUtf8(source->data(QString::fromLatin1(MIME_KML)))) &&
+            model.paragraphCount() > 0) {
+            QTextDocument content;
+            content.setUndoRedoEnabled(false);
+            QTextCursor cursor(&content);
+            appendParagraphs(cursor, model);
+            insertDocument(content);
+            return;
+        }
+        core::Logger::getInstance().warn("BookEditor: unreadable KML on the clipboard, pasting the text");
+    }
+
+    // Text from other programs takes the formatting of the insertion point
+    insertText(pastedPlainText(source->text()));
+}
+
+void BookEditor::insertDocument(const QTextDocument& source)
+{
+    ensureEditMode();
     if (!m_textBuffer) {
         return;
     }
 
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    QString text = clipboard->text();
-
-    if (text.isEmpty()) {
-        return;
-    }
-
-    // Delete selection if any
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        deleteSelectedText();
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
     }
 
-    // Insert the pasted text (insertText handles newlines)
-    insertText(text);
+    // One undo step: the replaced selection, the text, and the paragraph formats
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+
+    const QTextBlockFormat targetFormat = cursor.blockFormat();
+    const bool atParagraphStart = cursor.atBlockStart();
+    const bool atParagraphEnd = cursor.atBlockEnd();
+    const int insertionStart = cursor.position();
+    const QTextBlock firstBlock = source.firstBlock();
+    const QTextBlock lastBlock = source.lastBlock();
+
+    for (QTextBlock block = firstBlock; block.isValid(); block = block.next()) {
+        if (block != firstBlock) {
+            // The last pasted paragraph also holds the text after the insertion point,
+            // unless there is none
+            const bool whole = block != lastBlock || (atParagraphEnd && block.length() > 1);
+            cursor.insertBlock(whole ? block.blockFormat() : targetFormat, block.charFormat());
+        }
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            cursor.insertText(fragment.text(), fragment.charFormat());
+        }
+    }
+
+    // The first pasted paragraph is whole when it starts a paragraph and more follow
+    if (firstBlock != lastBlock && atParagraphStart && firstBlock.length() > 1) {
+        QTextCursor first(m_textBuffer.get());
+        first.setPosition(insertionStart);
+        first.setBlockFormat(firstBlock.blockFormat());
+    }
+    cursor.endEditBlock();
+
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+
+    ensureCursorVisible();
+    syncPipelineCursor();
+    update();
+    emit contentChanged();
+    emit paragraphModified(m_cursorPosition.paragraph);
 }
 
 bool BookEditor::canPaste() const
@@ -2032,6 +2083,8 @@ void BookEditor::setViewMode(ViewMode mode)
             auto [topPadding, bottomPadding] = getScrollPadding();
             m_viewportManager->setTopScrollPadding(topPadding);
             m_viewportManager->setBottomScrollPadding(bottomPadding);
+            // Page mode scrolls over the pages, which scroll anchoring does not know
+            m_viewportManager->setScrollAnchoringEnabled(mode != ViewMode::Page);
         }
 
         emit viewModeChanged(mode);
@@ -2066,9 +2119,6 @@ ZoomMode BookEditor::getZoomModeForViewMode() const {
 }
 
 double BookEditor::zoomFactor() const {
-    if (m_zoomTimer->isActive()) {
-        return m_pendingZoom;  // Ctrl+wheel zoom not applied yet
-    }
     if (m_renderPipeline) {
         return m_renderPipeline->zoomFactor();
     }
@@ -2077,7 +2127,6 @@ double BookEditor::zoomFactor() const {
 
 void BookEditor::setZoomFactor(double factor) {
     if (m_renderPipeline) {
-        m_zoomTimer->stop();
         ZoomMode mode = getZoomModeForViewMode();
         // Phase 15: granular setter handles zoom change
         m_renderPipeline->setConfigZoom(factor, mode);
@@ -2197,6 +2246,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // or it would be saved with the chapter and stop following the settings and zoom.
     if (m_renderPipeline) {
         m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
+        // Line spacing, paragraph spacing and indent are a view setting of the layout,
+        // like the font: never stored in the document or its undo history
+        m_renderPipeline->setConfigTypography(layoutTypography(m_appearance.typography));
     }
 
     // Apply cursor settings
@@ -2318,20 +2370,11 @@ void BookEditor::resizeEvent(QResizeEvent* event)
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
     }
 
-    // The pipeline owns the wrap width. In the scroll modes it follows the viewport
-    // width, so a width change re-lays out the whole document: while the window is being
-    // resized, only the height is applied now and the width once the size settles.
+    // The pipeline owns the wrap width; in the scroll modes it follows the viewport width.
+    // A new width wraps only the visible paragraphs before the next paint (the others in
+    // the background), so it is applied at once, also while the window edge is dragged.
     if (m_renderPipeline) {
-        const double appliedWidth = m_renderPipeline->context().viewportSize.width();
-        const bool deferWidth = isVisible() && m_viewMode != ViewMode::Page &&
-                                appliedWidth > 0 && appliedWidth != width();
-        if (deferWidth) {
-            m_renderPipeline->setConfigViewportSize(QSizeF(appliedWidth, height()));
-            m_resizeTimer->start();
-        } else {
-            m_resizeTimer->stop();
-            m_renderPipeline->setConfigViewportSize(QSizeF(size()));
-        }
+        m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
 
     updateScrollBarRange();
@@ -2368,17 +2411,10 @@ void BookEditor::wheelEvent(QWheelEvent* event)
                 qreal zoomDelta = angleDelta.y() > 0 ? 1.1 : (1.0 / 1.1);
                 qreal newZoom = qBound(0.25, zoomFactor() * zoomDelta, 4.0);
 
-                ZoomMode mode = getZoomModeForViewMode();
-                if (mode == ZoomMode::FontScaling) {
-                    // Font scaling re-lays out the whole document: apply the zoom once
-                    // the wheel stops instead of once per notch.
-                    m_pendingZoom = newZoom;
-                    m_zoomTimer->start();
-                } else {
-                    // Page scaling only changes the painter scale - no relayout
-                    m_renderPipeline->setConfigZoom(newZoom, mode);
-                    update();
-                }
+                // Font scaling wraps only the visible paragraphs before the next paint,
+                // page scaling only changes the painter scale: applied at every notch
+                m_renderPipeline->setConfigZoom(newZoom, getZoomModeForViewMode());
+                update();
                 emit zoomChanged(newZoom);
             }
             event->accept();
@@ -2909,6 +2945,7 @@ void BookEditor::syncPipelineState()
         m_renderPipeline->setViewportSize(QSizeF(width(), height()));
         m_renderPipeline->setZoom(m_appearance.pageLayout.zoomLevel, getZoomModeForViewMode());
         m_renderPipeline->setFont(m_appearance.typography.textFont);
+        m_renderPipeline->setConfigTypography(layoutTypography(m_appearance.typography));
 
         // Set margins using centralized calculation
         auto margins = calculateEffectiveMargins();
@@ -3282,45 +3319,19 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         docY = 0;
     }
 
-    // Find paragraph at Y using QTextDocument layout hit test
-    int paraIndex = getParagraphAtY(doc, docY);
-    if (paraIndex >= doc->blockCount()) {
-        paraIndex = doc->blockCount() - 1;
-    }
-
-    QTextBlock block = doc->findBlockByNumber(paraIndex);
-    if (!block.isValid()) {
-        return {paraIndex, 0};
-    }
-    QTextLayout* layout = block.layout();
-    if (!layout) {
-        return {paraIndex, 0};
-    }
-
-    // Convert to paragraph-relative coordinates
-    // Use cached margins from pipeline - no DPI query needed
-    double paraY = getParagraphY(doc, paraIndex);
-    double localY = docY - paraY;
     double localX = widgetPos.x() - ctx.computed.marginLeft;
     if (localX < 0) {
         localX = 0;
     }
 
-    // Hit test within layout to find character offset
-    int offset = 0;
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        QTextLine line = layout->lineAt(i);
-        if (localY >= line.y() && localY < line.y() + line.height()) {
-            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-            break;
-        }
-        // If below all lines, use last line
-        if (i == layout->lineCount() - 1) {
-            offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-        }
+    // The document layout's hit test: block from the cached positions, line from the
+    // line boxes (a click between lines lands on the nearest one), offset within the line
+    const int position = doc->documentLayout()->hitTest(QPointF(localX, docY), Qt::FuzzyHit);
+    const QTextBlock block = doc->findBlock(std::max(0, position));
+    if (!block.isValid()) {
+        return {0, 0};
     }
-
-    return {static_cast<int>(paraIndex), offset};
+    return {block.blockNumber(), std::max(0, position - block.position())};
 }
 
 // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline::positionFromPoint()
@@ -3708,7 +3719,7 @@ qreal BookEditor::getCursorDocumentY() const
         return 0.0;
     }
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout) {
         return 0.0;
     }
@@ -3832,7 +3843,7 @@ BookEditor::FocusedRange BookEditor::getFocusedRange() const
 
     // Get layout from QTextBlock
     QTextBlock block = doc->findBlockByNumber(paraIndex);
-    QTextLayout* layout = block.isValid() ? block.layout() : nullptr;
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
 
     // Determine range based on focus scope
     switch (m_appearance.focusMode.scope) {
@@ -3898,14 +3909,9 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
     const auto& ctx = m_renderPipeline->context();
     double marginTop = ctx.computed.marginTop;
 
-    // Calculate Y position of focused paragraph using QTextBlock layouts
-    double focusY = 0.0;
-    for (int i = 0; i < focusedRange.startParagraph && i < static_cast<int>(m_textBuffer->blockCount()); ++i) {
-        QTextBlock block = doc->findBlockByNumber(i);
-        if (block.isValid() && block.layout()) {
-            focusY += block.layout()->boundingRect().height();
-        }
-    }
+    // Y position of the focused paragraph, from the document layout
+    const double focusY = m_viewportManager->paragraphY(
+        static_cast<size_t>(std::max(0, focusedRange.startParagraph)));
 
     // Get focused paragraph height (or line height if Line scope)
     double focusHeight = 0.0;
@@ -3915,22 +3921,23 @@ void BookEditor::paintFocusOverlay(QPainter& painter)
         focusedRange.startParagraph < static_cast<int>(m_textBuffer->blockCount())) {
 
         QTextBlock block = doc->findBlockByNumber(focusedRange.startParagraph);
-        QTextLayout* layout = (block.isValid()) ? block.layout() : nullptr;
+        QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
 
         if (m_appearance.focusMode.scope == FocusModeSettings::FocusScope::Line) {
             // For line scope, calculate specific line bounds
             if (layout && focusedRange.startLine >= 0 && focusedRange.startLine < layout->lineCount()) {
                 QTextLine line = layout->lineAt(focusedRange.startLine);
                 if (line.isValid()) {
-                    focusTop = focusY + line.y();
-                    focusHeight = line.height();
+                    const QRectF box = KalahariTextDocumentLayout::lineBox(
+                        line, m_renderPipeline->textSource()->lineSpacing());
+                    focusTop = focusY + box.top();
+                    focusHeight = box.height();
                 }
             }
         } else {
             // For paragraph scope, use entire paragraph
-            if (layout) {
-                focusHeight = layout->boundingRect().height();
-            }
+            focusHeight = m_viewportManager->paragraphHeight(
+                static_cast<size_t>(focusedRange.startParagraph));
         }
     }
 
@@ -5146,50 +5153,12 @@ void BookEditor::ensureEditMode()
 
     // Build QTextDocument from KmlDocumentModel in a single edit block: Qt then reports
     // one change and the layout runs once, at endEditBlock().
+    const size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
     QTextCursor cursor(m_textBuffer.get());
     cursor.beginEditBlock();
-
-    // Create block format with zero margins to avoid gaps between paragraphs
-    QTextBlockFormat zeroMarginFormat;
-    zeroMarginFormat.setTopMargin(0);
-    zeroMarginFormat.setBottomMargin(0);
-
-    size_t paraCount = m_documentModel ? m_documentModel->paragraphCount() : 0;
-    for (size_t i = 0; i < paraCount; ++i) {
-        // Per-paragraph block format = zero margins + the paragraph's alignment
-        // (parsed from the KML "align" attribute). Without applying the alignment
-        // here, justify/center/right were dropped on load, so every reopened chapter
-        // rendered left-aligned regardless of what was saved.
-        QTextBlockFormat blockFormat = zeroMarginFormat;
-        blockFormat.setAlignment(m_documentModel->paragraphAlignment(i));
-
-        if (i > 0) {
-            cursor.insertBlock(blockFormat);
-        } else {
-            // First block - apply the same format
-            cursor.setBlockFormat(blockFormat);
-        }
-
-        QString text = m_documentModel->paragraphText(i);
-        const auto& formats = m_documentModel->paragraphFormats(i);
-
-        // Insert the paragraph text with an EXPLICIT default char format so it does NOT
-        // inherit the char format the cursor still carries from the previous paragraph's
-        // last run. Without this, a bold/italic run (e.g. a bold title or a fully-italic
-        // paragraph) bled its format into every following paragraph on reload — the run
-        // formats below then only re-apply the intended sub-ranges on top of a clean base.
-        int blockStart = cursor.position();
-        cursor.insertText(text, QTextCharFormat());
-
-        // Apply formats (bold, italic, etc.)
-        for (const auto& run : formats) {
-            cursor.setPosition(blockStart + static_cast<int>(run.start));
-            cursor.setPosition(blockStart + static_cast<int>(run.end), QTextCursor::KeepAnchor);
-            cursor.mergeCharFormat(run.format);
-        }
-        cursor.movePosition(QTextCursor::End);
+    if (m_documentModel) {
+        appendParagraphs(cursor, *m_documentModel);
     }
-
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
@@ -5201,7 +5170,8 @@ void BookEditor::ensureEditMode()
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
-    // Connect ViewportManager to QTextDocument (all blocks are laid out by now)
+    // Connect ViewportManager to QTextDocument (the paint lays out the visible blocks,
+    // the layout's background pass the others)
     if (m_viewportManager) {
         m_viewportManager->setDocument(m_textBuffer.get());
         auto [topPadding, bottomPadding] = getScrollPadding();

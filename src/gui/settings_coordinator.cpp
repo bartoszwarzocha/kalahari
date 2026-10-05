@@ -116,6 +116,10 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.tabSize = settings.get<int>("editor.tabSize", 4);
     settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers", true);
     settingsData.wordWrap = settings.get<bool>("editor.wordWrap", false);
+    settingsData.lineHeight = settings.get<double>("editor.lineHeight", 1.6);
+    settingsData.paragraphSpacing = settings.get<double>("editor.paragraphSpacing", 12.0);
+    settingsData.firstLineIndent = settings.get<bool>("editor.firstLineIndent", true);
+    settingsData.indentSize = settings.get<double>("editor.indentSize", 24.0);
 
     // Editor/Colors
     settingsData.editorDarkMode = settings.get<bool>("editor.darkMode", true);

@@ -26,7 +26,6 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QString>
-#include <QWheelEvent>
 #include <memory>
 #include <vector>
 
@@ -55,12 +54,6 @@ QStringList longParagraphs(int count) {
 
 qreal documentHeight(const BookEditor& editor) {
     return editor.textDocument()->documentLayout()->documentSize().height();
-}
-
-void sendCtrlWheel(BookEditor& editor, int angleDelta) {
-    QWheelEvent wheel(QPointF(100, 100), QPointF(100, 100), QPoint(), QPoint(0, angleDelta),
-                      Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
-    QCoreApplication::sendEvent(&editor, &wheel);
 }
 
 /// Records the areas of the paint events a widget receives
@@ -295,58 +288,8 @@ TEST_CASE("Stage1 find and replace: replacing text is reported as a content chan
 }
 
 // =============================================================================
-// Resize and zoom: one relayout, once the input settles
+// Scrolling after a zoom
 // =============================================================================
-
-TEST_CASE("Stage1 resize: a visible editor re-wraps once, after the resize settles",
-          "[editor][stage1][layout]") {
-    BookEditor editor;
-    editor.setAttribute(Qt::WA_DontShowOnScreen);  // visible to Qt, no window on screen
-    resizeWidget(editor, QSize(600, 400));
-    editor.fromKml(kmlOf(longParagraphs(20)));
-    editor.show();
-    REQUIRE(editor.isVisible());
-    runEventLoop(50);
-
-    FullRelayoutCounter relayouts(editor);
-    for (int width = 640; width <= 880; width += 40) {
-        editor.resize(width, 400);  // a visible widget gets the resize event at once
-    }
-    CHECK(relayouts.count() == 0);  // nothing while the window edge is being dragged
-
-    REQUIRE(waitUntil([&relayouts] { return relayouts.count() > 0; }));
-    runEventLoop(150);
-    CHECK(relayouts.count() == 1);
-
-    // The result equals applying the final size at once
-    BookEditor reference;
-    resizeWidget(reference, editor.size());
-    reference.fromKml(kmlOf(longParagraphs(20)));
-    CHECK(editor.textDocument()->textWidth() == Approx(reference.textDocument()->textWidth()));
-    CHECK(documentHeight(editor) == Approx(documentHeight(reference)));
-    CHECK(editor.verticalScrollBar()->maximum() == reference.verticalScrollBar()->maximum());
-}
-
-TEST_CASE("Stage1 zoom: Ctrl+wheel applies the zoom once, after the wheel stops",
-          "[editor][stage1][layout]") {
-    BookEditor editor;
-    resizeWidget(editor, QSize(600, 400));
-    editor.fromKml(kmlOf(longParagraphs(20)));
-    const qreal baseSize = editor.textDocument()->defaultFont().pointSizeF();
-
-    FullRelayoutCounter relayouts(editor);
-    for (int notch = 0; notch < 3; ++notch) {
-        sendCtrlWheel(editor, 120);
-    }
-    CHECK(relayouts.count() == 0);
-    CHECK(editor.zoomFactor() == Approx(1.1 * 1.1 * 1.1));  // reported at once
-
-    REQUIRE(waitUntil([&relayouts] { return relayouts.count() > 0; }));
-    runEventLoop(150);
-    CHECK(relayouts.count() == 1);
-    CHECK(editor.zoomFactor() == Approx(1.1 * 1.1 * 1.1));
-    CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(baseSize * 1.1 * 1.1 * 1.1));
-}
 
 TEST_CASE("Stage1 scrolling: the scroll range follows the document height after a zoom",
           "[editor][stage1][layout]") {

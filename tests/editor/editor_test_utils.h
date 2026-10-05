@@ -78,22 +78,22 @@ inline QVariantMap metadataOf(const QTextCharFormat& format, int property) {
     return format.property(property).toMap();
 }
 
-/// Counts full relayouts of the editor's document while it is alive: one
-/// KalahariTextDocumentLayout::blocksLaidOut() covering every block
-class FullRelayoutCounter {
+/// Counts the blocks the editor's document layout lays out while the counter is alive
+/// (KalahariTextDocumentLayout::blocksLaidOut())
+class LaidOutBlockCounter {
 public:
-    explicit FullRelayoutCounter(const editor::BookEditor& bookEditor) {
-        auto* layout = qobject_cast<editor::KalahariTextDocumentLayout*>(
-            bookEditor.textDocument()->documentLayout());
-        const int blockCount = bookEditor.textDocument()->blockCount();
+    explicit LaidOutBlockCounter(const editor::BookEditor& bookEditor)
+        : LaidOutBlockCounter(*bookEditor.textDocument()) {}
+
+    explicit LaidOutBlockCounter(const QTextDocument& document) {
+        auto* layout =
+            qobject_cast<editor::KalahariTextDocumentLayout*>(document.documentLayout());
         m_connection = QObject::connect(layout, &editor::KalahariTextDocumentLayout::blocksLaidOut,
-                                        [this, blockCount](int, int count) {
-                                            if (count == blockCount) ++m_count;
-                                        });
+                                        [this](int, int count) { m_count += count; });
     }
-    ~FullRelayoutCounter() { QObject::disconnect(m_connection); }
-    FullRelayoutCounter(const FullRelayoutCounter&) = delete;
-    FullRelayoutCounter& operator=(const FullRelayoutCounter&) = delete;
+    ~LaidOutBlockCounter() { QObject::disconnect(m_connection); }
+    LaidOutBlockCounter(const LaidOutBlockCounter&) = delete;
+    LaidOutBlockCounter& operator=(const LaidOutBlockCounter&) = delete;
 
     int count() const { return m_count; }
 
