@@ -15,6 +15,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QVariantMap>
+#include <algorithm>
 
 namespace kalahari {
 namespace editor {
@@ -38,6 +39,20 @@ QString KmlSerializer::toKml(const QTextDocument* document) const
         return QString();
     }
 
+    // The whole text, without the paragraph separator that ends the document
+    return toKml(document, 0, document->characterCount() - 1);
+}
+
+QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) const
+{
+    if (!document) {
+        return QString();
+    }
+
+    const int end = document->characterCount() - 1;
+    from = std::clamp(from, 0, end);
+    to = std::clamp(to, from, end);
+
     QString result;
     const QString newline = m_indented ? QStringLiteral("\n") : QString();
     const QString indent = m_indented ? QStringLiteral("  ") : QString();
@@ -45,16 +60,18 @@ QString KmlSerializer::toKml(const QTextDocument* document) const
     // Start document
     result += QStringLiteral("<kml>") + newline;
 
-    // Iterate through all blocks (paragraphs)
-    QTextBlock block = document->begin();
-    while (block.isValid()) {
+    // Every block (paragraph) from the one holding the range start to the one holding its end
+    const QTextBlock last = document->findBlock(to);
+    for (QTextBlock block = document->findBlock(from); block.isValid(); block = block.next()) {
         result += indent + QStringLiteral("<p");
         result += serializeBlockAttributes(block);
         result += QStringLiteral(">");
-        result += serializeBlockContent(block);
+        result += serializeBlockContent(block, from, to);
         result += QStringLiteral("</p>") + newline;
 
-        block = block.next();
+        if (block == last) {
+            break;
+        }
     }
 
     // End document
@@ -69,7 +86,7 @@ QString KmlSerializer::blockToKml(const QTextBlock& block) const
         return QString();
     }
 
-    return serializeBlockContent(block);
+    return serializeBlockContent(block, block.position(), block.position() + block.length() - 1);
 }
 
 // =============================================================================
@@ -109,17 +126,36 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     return attrs;
 }
 
-QString KmlSerializer::serializeBlockContent(const QTextBlock& block) const
+QString KmlSerializer::serializeBlockContent(const QTextBlock& block, int from, int to) const
 {
     QString result;
 
-    // Iterate through all fragments in the block
-    QTextBlock::iterator it;
-    for (it = block.begin(); !it.atEnd(); ++it) {
-        QTextFragment fragment = it.fragment();
-        if (fragment.isValid()) {
-            result += serializeFragment(fragment);
+    // Iterate through all fragments in the block, each cut to the range. Neighbouring
+    // fragments with the same format (an edit splits a run into several) make one run.
+    QString runText;
+    QTextCharFormat runFormat;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid()) {
+            continue;
         }
+        const int start = std::max(fragment.position(), from);
+        const int stop = std::min(fragment.position() + fragment.length(), to);
+        if (start >= stop) {
+            continue;
+        }
+        const QTextCharFormat format = fragment.charFormat();
+        if (!runText.isEmpty() && format != runFormat) {
+            result += serializeRun(runText, runFormat);
+            runText.clear();
+        }
+        if (runText.isEmpty()) {
+            runFormat = format;
+        }
+        runText += fragment.text().mid(start - fragment.position(), stop - start);
+    }
+    if (!runText.isEmpty()) {
+        result += serializeRun(runText, runFormat);
     }
 
     return result;
@@ -168,15 +204,8 @@ QString KmlSerializer::buildInlineStyleAttributes(const QTextCharFormat& format)
     return attrs;
 }
 
-QString KmlSerializer::serializeFragment(const QTextFragment& fragment) const
+QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& format) const
 {
-    if (!fragment.isValid()) {
-        return QString();
-    }
-
-    QString text = fragment.text();
-    QTextCharFormat format = fragment.charFormat();
-
     // Handle special case: paragraph separator (0x2029)
     // These are inserted by Qt between blocks - skip them
     if (text == QString(QChar(0x2029))) {

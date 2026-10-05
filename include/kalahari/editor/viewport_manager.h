@@ -10,6 +10,8 @@
 /// - Visible block range calculation
 /// - Buffer zone management for smooth scrolling
 /// - Scrollbar position from layout heights
+/// - Scroll anchoring: the text at the top of the viewport stays in place while blocks
+///   change height without a content change (layout on demand, a new width or font)
 /// - Qt signals for viewport changes
 
 #pragma once
@@ -137,6 +139,15 @@ public:
     /// @brief Clamp scroll position to valid range
     double clampScrollPosition(double y) const;
 
+    /// @brief Keep the text at the top of the viewport in place while blocks change
+    ///        height without a content change (on by default)
+    ///
+    /// Page mode turns it off: its scroll position is a position on the pages.
+    void setScrollAnchoringEnabled(bool enabled);
+
+    /// @brief Whether scroll anchoring is on
+    bool isScrollAnchoringEnabled() const { return m_anchoringEnabled; }
+
     // =========================================================================
     // Visible Range
     // =========================================================================
@@ -220,6 +231,11 @@ signals:
     /// @param position New scroll position
     void scrollPositionChanged(double position);
 
+    /// @brief Emitted when the scroll position moved to keep the text at the top of the
+    ///        viewport in place (scroll anchoring) - the visible text did not move
+    /// @param position New scroll position
+    void scrollPositionAnchored(double position);
+
     /// @brief Emitted when layout is needed for paragraphs
     /// @param first First paragraph to layout
     /// @param last Last paragraph to layout
@@ -233,17 +249,24 @@ private slots:
     /// @brief Handle document content changes
     void onDocumentChanged();
 
+    /// @brief Handle a new document height
+    void onDocumentSizeChanged();
+
+    /// @brief Keep the anchored text in place after blocks changed height
+    void onBlockGeometryChanged(int firstBlock);
+
 private:
     /// @brief Update visible range from current scroll position
     void updateVisibleRange();
 
+    /// @brief Remember the text at the top of the viewport (the scroll anchor)
+    void captureAnchor();
+
+    /// @brief Scroll position that puts the anchored text back at the top
+    double anchoredPosition() const;
+
     /// @brief Emit signals for range change
     void notifyRangeChanged();
-
-    /// @brief Get height of a text block
-    /// @param block The text block
-    /// @return Block height in pixels
-    double blockHeight(const QTextBlock& block) const;
 
     QTextDocument* m_document = nullptr;
 
@@ -256,12 +279,17 @@ private:
     size_t m_firstVisible = 0;
     size_t m_lastVisible = 0;
 
-    /// @brief Estimated line height for blocks without layout
-    double m_estimatedLineHeight = 20.0;
-
-    // Cached values
-    mutable double m_cachedTotalHeight = 0.0;
-    mutable bool m_totalHeightDirty = true;
+    /// Text at the top of the viewport, taken when the scroll position was set or the
+    /// content changed (the scroll position is the document y at the top)
+    struct ScrollAnchor {
+        int block = -1;           ///< Block at the top (-1: none)
+        double offset = 0.0;      ///< Top below the block's top
+        double height = 0.0;      ///< Block height at the time
+        int lineStart = -1;       ///< Laid out block: start of the line at the top
+        double lineShare = 0.0;   ///< Top below that line's box top, in box heights
+    };
+    ScrollAnchor m_anchor;
+    bool m_anchoringEnabled = true;
 };
 
 }  // namespace kalahari::editor

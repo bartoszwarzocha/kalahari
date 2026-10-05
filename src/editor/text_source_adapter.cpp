@@ -2,10 +2,12 @@
 /// @brief Implementation of ITextSource adapters (OpenSpec #00043 Phase 12.1)
 
 #include <kalahari/editor/text_source_adapter.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QAbstractTextDocumentLayout>
+#include <algorithm>
 
 namespace kalahari::editor {
 
@@ -45,9 +47,9 @@ size_t QTextDocumentSource::characterCount() const {
 }
 
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
-    QTextBlock block = blockAt(index);
-    if (!block.isValid()) return nullptr;
-    return block.layout();
+    // The pipeline also reads blocks outside the viewport (the cursor's, the pages'):
+    // one waiting for layout gets its lines now
+    return KalahariTextDocumentLayout::blockLayout(blockAt(index));
 }
 
 bool QTextDocumentSource::hasLayout(size_t index) const {
@@ -55,9 +57,12 @@ bool QTextDocumentSource::hasLayout(size_t index) const {
     return lay != nullptr && lay->lineCount() > 0;
 }
 
-void QTextDocumentSource::ensureLayouted(size_t /*first*/, size_t /*last*/) {
-    // QTextDocument handles layout automatically via QAbstractTextDocumentLayout
-    // No explicit action needed - blocks are laid out on demand
+void QTextDocumentSource::ensureLayouted(size_t first, size_t last) {
+    // After a width or font change, a load or a large edit, blocks wait for layout with
+    // estimated heights until they are shown
+    if (auto* layout = kalahariLayout()) {
+        layout->ensureLaidOut(static_cast<int>(first), static_cast<int>(last));
+    }
 }
 
 double QTextDocumentSource::paragraphY(size_t index) const {
@@ -133,6 +138,11 @@ double QTextDocumentSource::totalHeight() const {
 size_t QTextDocumentSource::paragraphAtY(double y) const {
     if (!m_document || y < 0) return 0;
 
+    // The editor's layout finds the block from its cached positions
+    if (const auto* layout = kalahariLayout()) {
+        return static_cast<size_t>(std::max(0, layout->blockNumberAtY(y)));
+    }
+
     // Use document layout for accurate hit testing
     QAbstractTextDocumentLayout* docLayout = m_document->documentLayout();
     if (docLayout) {
@@ -184,6 +194,29 @@ QFont QTextDocumentSource::font() const {
         return m_document->defaultFont();
     }
     return QFont();
+}
+
+void QTextDocumentSource::setTypography(const LayoutTypography& typography) {
+    // Typography lives in the layout (it is a view setting, the document knows nothing
+    // about it); the layout re-lays out the text only when it changes
+    if (auto* layout = kalahariLayout()) {
+        layout->setTypography(typography);
+    }
+}
+
+double QTextDocumentSource::lineSpacing() const {
+    const auto* layout = kalahariLayout();
+    return layout ? layout->typography().lineSpacing : 1.0;
+}
+
+double QTextDocumentSource::paragraphSpacing() const {
+    const auto* layout = kalahariLayout();
+    return layout ? layout->paragraphSpacing() : 0.0;
+}
+
+KalahariTextDocumentLayout* QTextDocumentSource::kalahariLayout() const {
+    return m_document ? qobject_cast<KalahariTextDocumentLayout*>(m_document->documentLayout())
+                      : nullptr;
 }
 
 QTextBlock QTextDocumentSource::blockAt(size_t index) const {

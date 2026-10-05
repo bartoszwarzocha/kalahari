@@ -68,4 +68,23 @@ struct SelectionRange {
     }
 };
 
+/// @brief View typography applied when blocks are broken into lines
+///
+/// A view setting, not a block format: changing it re-lays out the text but does not
+/// touch the document, its formats or the undo history, so it is never saved with a
+/// chapter.
+///
+/// Lengths are pixels for a document font of @c referencePointSize. They scale with the
+/// document's default font, so a zoom that scales the font scales the spacing with it
+/// (and re-lays out the text once, for the font). A reference size of 0 uses the
+/// lengths as they are.
+struct LayoutTypography {
+    qreal lineSpacing = 1.0;         ///< Multiplier of each line's natural height
+    qreal paragraphSpacing = 0.0;    ///< Space below every paragraph
+    qreal firstLineIndent = 0.0;     ///< Indent of the first line (left-aligned and justified paragraphs)
+    qreal referencePointSize = 0.0;  ///< Font size the lengths are given for
+
+    bool operator==(const LayoutTypography&) const = default;
+};
+
 }  // namespace kalahari::editor

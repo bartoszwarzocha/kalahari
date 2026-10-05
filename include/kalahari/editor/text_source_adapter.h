@@ -12,6 +12,7 @@
 #include <QTextLayout>
 #include <QTextCharFormat>
 #include <QFont>
+#include <kalahari/editor/editor_types.h>
 #include <vector>
 #include <memory>
 
@@ -21,6 +22,7 @@ namespace kalahari::editor {
 
 // Forward declarations
 class KmlDocumentModel;
+class KalahariTextDocumentLayout;
 
 /// @brief Abstract interface for text source (unified access to QTextDocument or KmlDocumentModel)
 ///
@@ -120,6 +122,19 @@ public:
     /// @brief Get current font
     /// @return Current font
     virtual QFont font() const = 0;
+
+    /// @brief Set the view typography (line and paragraph spacing, first-line indent)
+    /// @note Sources without typography support ignore it
+    virtual void setTypography(const LayoutTypography& /*typography*/) {}
+
+    /// @brief Line spacing multiplier the layout uses
+    ///
+    /// Together with KalahariTextDocumentLayout::lineBox() it gives the full box of a
+    /// line (the line plus its share of the extra spacing) for selection and hit tests.
+    virtual double lineSpacing() const { return 1.0; }
+
+    /// @brief Space the layout leaves below every paragraph (current font, pixels)
+    virtual double paragraphSpacing() const { return 0.0; }
 };
 
 // =============================================================================
@@ -160,6 +175,9 @@ public:
     double textWidth() const override;
     void setFont(const QFont& font) override;
     QFont font() const override;
+    void setTypography(const LayoutTypography& typography) override;
+    double lineSpacing() const override;
+    double paragraphSpacing() const override;
 
     /// @brief Get underlying QTextDocument
     /// @return Pointer to wrapped document
@@ -171,6 +189,9 @@ public:
     QTextBlock blockAt(size_t index) const;
 
 private:
+    /// @brief The document's layout, when it is the editor's own layout
+    KalahariTextDocumentLayout* kalahariLayout() const;
+
     QTextDocument* m_document;
 };
 

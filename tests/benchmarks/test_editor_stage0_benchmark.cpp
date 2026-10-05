@@ -8,15 +8,18 @@
 /// stage0_benchmark_results.md in the current directory (override with the
 /// KALAHARI_BENCH_OUT environment variable).
 ///
-/// NOTE: the "Select All + copy" step overwrites the system clipboard.
+/// The copy step builds the clipboard data without putting it on the system clipboard,
+/// so a run leaves the user's clipboard alone.
 ///
 /// Every timing goes through the real BookEditor entry points. Painting is measured with
 /// QWidget::render() into a QPixmap, which calls BookEditor::paintEvent() without showing
-/// a window. A full relayout is one KalahariTextDocumentLayout::blocksLaidOut() covering
-/// every block of the document.
+/// a window. Since Stage 2 a load, a width or a font change leaves the paragraphs waiting
+/// for layout: the paint lays out the ones it shows, a background pass the others (here
+/// run at once with layoutPendingBlocks(), as there is no event loop).
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/viewport_manager.h>
@@ -28,6 +31,7 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QKeyEvent>
+#include <QMimeData>
 #include <QPixmap>
 #include <QScreen>
 #include <QTextDocument>
@@ -36,6 +40,19 @@
 
 #include <functional>
 #include <vector>
+
+#if defined(Q_OS_WIN)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "psapi.lib")
+#endif
+#elif defined(Q_OS_LINUX)
+#include <unistd.h>
+#endif
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -67,6 +84,30 @@ QString generateKml(int words) {
 void paint(QWidget& widget) {
     QPixmap target(widget.size());
     widget.render(&target);
+}
+
+KalahariTextDocumentLayout* layoutOf(const BookEditor& editor) {
+    return qobject_cast<KalahariTextDocumentLayout*>(editor.textDocument()->documentLayout());
+}
+
+/// Memory the process holds in RAM, in MB (-1 where the platform is not covered)
+double residentMemoryMb() {
+#if defined(Q_OS_WIN)
+    PROCESS_MEMORY_COUNTERS counters{};
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters))) {
+        return static_cast<double>(counters.WorkingSetSize) / (1024.0 * 1024.0);
+    }
+#elif defined(Q_OS_LINUX)
+    QFile statm(QStringLiteral("/proc/self/statm"));
+    if (statm.open(QIODevice::ReadOnly)) {
+        const QList<QByteArray> fields = statm.readAll().split(' ');
+        if (fields.size() > 1) {
+            return fields[1].toDouble() * static_cast<double>(sysconf(_SC_PAGESIZE)) /
+                   (1024.0 * 1024.0);
+        }
+    }
+#endif
+    return -1.0;
 }
 
 void typeChar(QWidget& widget, QChar c) {
@@ -118,6 +159,10 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     // -------------------------------------------------------------------------
     // 1. Load scaling: fromKml at growing sizes (quadratic => ~4x per 2x)
     // -------------------------------------------------------------------------
+    // Memory is taken before the first document: memory a document frees stays with the
+    // process and is reused by the next one, so a later baseline would hide it
+    const double memoryBefore = residentMemoryMb();
+    double memoryLoaded = -1.0;
     for (int words : {25000, 50000, 100000, 150000}) {
         const QString kml = generateKml(words);
 
@@ -127,12 +172,26 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
         BookEditor editor;
         resizeWidget(editor, QSize(1000, 800));
         const double loadMs = timeMs([&] { editor.fromKml(kml); });
+        const double firstPaintMs = timeMs([&] { paint(editor); });
+        const double restMs = timeMs([&] { layoutOf(editor)->layoutPendingBlocks(); });
+        if (words == 150000) {
+            memoryLoaded = residentMemoryMb();
+        }
 
         rows.push_back({QStringLiteral("fromKml – %1k słów").arg(words / 1000), loadMs,
-                        QStringLiteral("%1 akapitów; w tym parsowanie KmlDocumentModel %2 ms")
+                        QStringLiteral("%1 akapitów; w tym parsowanie KmlDocumentModel %2 ms; "
+                                       "pierwszy paintEvent %3 ms; łamanie reszty w tle %4 ms")
                             .arg(editor.paragraphCount())
-                            .arg(parseMs, 0, 'f', 1)});
+                            .arg(parseMs, 0, 'f', 1)
+                            .arg(firstPaintMs, 0, 'f', 1)
+                            .arg(restMs, 0, 'f', 1)});
     }
+    rows.push_back({QStringLiteral("Pamięć zajęta przez rozdział 150k słów (wczytany i złamany "
+                                   "w całości)"),
+                    memoryLoaded - memoryBefore,
+                    QStringLiteral("MB, a nie ms; proces przed wczytaniem %1 MB, potem %2 MB")
+                        .arg(memoryBefore, 0, 'f', 0)
+                        .arg(memoryLoaded, 0, 'f', 0)});
 
     // -------------------------------------------------------------------------
     // 2. Operations on the full 150k document
@@ -141,61 +200,71 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     BookEditor editor;
     resizeWidget(editor, QSize(1000, 800));
     editor.fromKml(kml);
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
     header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 znaków")
                   .arg(editor.wordCount())
                   .arg(editor.paragraphCount())
                   .arg(editor.characterCount());
 
+    rows.push_back({QStringLiteral("Ctrl+End zaraz po wczytaniu (+ paintEvent)"),
+                    timeMs([&] {
+                        editor.moveCursorToDocEnd();
+                        paint(editor);
+                    }),
+                    QStringLiteral("akapitów czekających na złamanie: %1")
+                        .arg(layout->pendingBlockCount())});
+    editor.moveCursorToDocStart();
+    layout->layoutPendingBlocks();  // what the background pass does after a load
     paint(editor);  // warm-up
     rows.push_back({QStringLiteral("paintEvent – Continuous (średnio z 10)"),
                     timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
 
-    // Resize (width change) + count full relayouts. The widget is hidden, so the width is
-    // applied at once (a visible editor waits for the resize to settle).
+    // Resize (width change): applied at once; the paint lays out what it shows
     {
-        FullRelayoutCounter relayouts(editor);
+        LaidOutBlockCounter laidOut(editor);
         const double ms = timeMs([&] { resizeWidget(editor, QSize(1200, 800)); });
         rows.push_back({QStringLiteral("Zmiana szerokości 1000→1200 px"), ms,
-                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts.count())});
+                        QStringLiteral("złamanych akapitów: %1").arg(laidOut.count())});
         rows.push_back({QStringLiteral("paintEvent po zmianie szerokości"),
                         timeMs([&] { paint(editor); }),
-                        QStringLiteral("pełnych przełożeń łącznie: %1").arg(relayouts.count())});
+                        QStringLiteral("złamanych akapitów łącznie: %1").arg(laidOut.count())});
+        rows.push_back({QStringLiteral("Łamanie pozostałych akapitów (cała praca tła)"),
+                        timeMs([&] { layout->layoutPendingBlocks(); }),
+                        QStringLiteral("tło dzieli ją na kroki po 4 ms")});
     }
 
     // Zoom in Continuous mode
     {
-        FullRelayoutCounter relayouts(editor);
+        LaidOutBlockCounter laidOut(editor);
         const double ms = timeMs([&] { editor.setZoomFactor(1.25); });
         rows.push_back({QStringLiteral("Zmiana powiększenia 100→125% (Continuous)"), ms,
-                        QStringLiteral("pełnych przełożeń dokumentu: %1").arg(relayouts.count())});
+                        QStringLiteral("złamanych akapitów: %1").arg(laidOut.count())});
         rows.push_back({QStringLiteral("paintEvent po zmianie powiększenia"),
-                        timeMs([&] { paint(editor); }), QString()});
+                        timeMs([&] { paint(editor); }),
+                        QStringLiteral("złamanych akapitów łącznie: %1").arg(laidOut.count())});
+        rows.push_back({QStringLiteral("Łamanie pozostałych akapitów (cała praca tła)"),
+                        timeMs([&] { layout->layoutPendingBlocks(); }), QString()});
         editor.setZoomFactor(1.0);
         paint(editor);
+        layout->layoutPendingBlocks();
     }
 
-    // Ctrl+wheel zoom: five notches in a row, applied once the wheel stops
+    // Ctrl+wheel zoom: five notches in a row, each applied and painted at once
     {
-        FullRelayoutCounter relayouts(editor);
+        LaidOutBlockCounter laidOut(editor);
         const double wheelMs = timeMs([&] {
             for (int notch = 0; notch < 5; ++notch) {
                 QWheelEvent wheel(QPointF(100, 100), QPointF(100, 100), QPoint(), QPoint(0, 120),
                                   Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
                 QCoreApplication::sendEvent(&editor, &wheel);
+                paint(editor);
             }
         });
-        const int duringWheel = relayouts.count();
-        QElapsedTimer settle;
-        settle.start();
-        while (relayouts.count() == duringWheel && settle.elapsed() < 2000) {
-            QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
-        }
-        rows.push_back({QStringLiteral("Ctrl+kółko – 5 ząbków (Continuous)"), wheelMs,
-                        QStringLiteral("pełnych przełożeń w trakcie: %1, po ustaniu: %2")
-                            .arg(duringWheel)
-                            .arg(relayouts.count() - duringWheel)});
+        rows.push_back({QStringLiteral("Ctrl+kółko – 5 ząbków, paintEvent po każdym (Continuous)"),
+                        wheelMs, QStringLiteral("złamanych akapitów: %1").arg(laidOut.count())});
         editor.setZoomFactor(1.0);
         paint(editor);
+        layout->layoutPendingBlocks();
     }
 
     // Typing 100 characters in the middle of the document
@@ -295,10 +364,12 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
         paint(editor);
     }
 
-    // Select All + copy
+    // Select All + copy: the clipboard data (KML, HTML, text) is the work, putting it on
+    // the system clipboard would overwrite what the user has there
     rows.push_back({QStringLiteral("Select All"), timeMs([&] { editor.selectAll(); }), QString()});
-    rows.push_back({QStringLiteral("Copy (cały dokument)"), timeMs([&] { editor.copy(); }),
-                    QStringLiteral("nadpisuje schowek systemowy")});
+    rows.push_back({QStringLiteral("Copy (cały dokument)"),
+                    timeMs([&] { editor.createMimeDataFromSelection(); }),
+                    QStringLiteral("dane dla schowka (KML, HTML, tekst), bez zapisu do schowka")});
     rows.push_back({QStringLiteral("paintEvent z zaznaczonym całym dokumentem"),
                     timeMs([&] { paint(editor); }), QString()});
 

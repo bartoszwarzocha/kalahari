@@ -26,7 +26,6 @@
 
 class QTextDocument;
 class QTextBlock;
-class QTextFragment;
 
 namespace kalahari {
 namespace editor {
@@ -65,6 +64,17 @@ public:
     /// @return KML markup string
     QString toKml(const QTextDocument* document) const;
 
+    /// @brief Serialize the characters in [from, to) of a document to KML
+    ///
+    /// Every paragraph the range touches becomes a <p> with its block attributes and its
+    /// content cut to the range. A range ending at the start of a paragraph ends with an
+    /// empty <p> - the paragraph break before it is part of the range.
+    /// @param document The document to serialize
+    /// @param from First document position of the range
+    /// @param to Document position after the range
+    /// @return KML markup string
+    QString toKml(const QTextDocument* document, int from, int to) const;
+
     /// @brief Serialize a single block (paragraph) to KML
     /// @param block The text block to serialize
     /// @return KML paragraph content (without <p> wrapper)
@@ -92,16 +102,19 @@ private:
     /// @return Attribute string (e.g., " align=\"center\"")
     QString serializeBlockAttributes(const QTextBlock& block) const;
 
-    /// @brief Serialize a text block's inline content
+    /// @brief Serialize the part of a text block's inline content inside [from, to)
     /// @param block The text block to serialize
+    /// @param from First document position to include
+    /// @param to Document position after the last one to include
     /// @return KML markup for the block content
-    QString serializeBlockContent(const QTextBlock& block) const;
+    QString serializeBlockContent(const QTextBlock& block, int from, int to) const;
 
-    /// @brief Serialize a text fragment with its format
-    /// @param fragment The text fragment to serialize
-    /// @return KML markup for the fragment
+    /// @brief Serialize a run of text with its format
+    /// @param text The text of the run
+    /// @param format The character format of the run
+    /// @return KML markup for the run
     /// @note Uses KmlFormatRegistry for format serialization
-    QString serializeFragment(const QTextFragment& fragment) const;
+    QString serializeRun(const QString& text, const QTextCharFormat& format) const;
 
     /// @brief Build inline style attributes string from character format
     /// @param format The character format to extract style from

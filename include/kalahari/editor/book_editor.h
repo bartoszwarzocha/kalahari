@@ -42,6 +42,7 @@ class QScrollBar;
 class QTimer;
 class QUndoStack;
 class QMenu;
+class QMimeData;
 
 namespace kalahari::gui {
 class FindReplaceBar;
@@ -392,16 +393,27 @@ public:
 
     /// @brief Cut selected content to clipboard (Ctrl+X)
     ///
-    /// Copies selection to clipboard and deletes it.
+    /// Copies selection to clipboard and deletes it, as one undo step.
     /// Does nothing if no selection.
     void cut();
 
     /// @brief Paste content from clipboard (Ctrl+V)
     ///
-    /// Inserts clipboard content at cursor position.
-    /// If there is a selection, it is deleted first.
-    /// Supports KML, HTML, and plain text formats.
+    /// Inserts the clipboard content at the cursor, replacing the selection, as one undo
+    /// step - see insertFromMimeData().
     void paste();
+
+    /// @brief Clipboard content of the selection: KML (native), HTML and plain text
+    /// @return New MIME data, or nullptr without a selection
+    std::unique_ptr<QMimeData> createMimeDataFromSelection() const;
+
+    /// @brief Insert MIME data at the cursor, replacing the selection, as one undo step
+    ///
+    /// Kalahari content (KML) keeps its formatting. Paragraphs inserted whole keep their
+    /// alignment, while the paragraph the content goes into keeps its own. Text from other
+    /// programs takes the formatting of the insertion point.
+    /// @param source MIME data to insert (nothing happens for nullptr)
+    void insertFromMimeData(const QMimeData* source);
 
     /// @brief Check if paste is available
     /// @return true if clipboard has compatible content
@@ -961,6 +973,14 @@ private:
     /// @brief Setup internal components
     void setupComponents();
 
+    /// @brief Insert a document at the cursor, replacing the selection, as one undo step
+    ///
+    /// Each fragment keeps its character format. Paragraphs inserted whole keep their
+    /// block format; the paragraph the document goes into keeps its own, also on the text
+    /// after the insertion point.
+    /// @param source Document to insert
+    void insertDocument(const QTextDocument& source);
+
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
 
@@ -1206,13 +1226,6 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
-
-    // Deferred relayout: width and font-scaling zoom changes re-lay out the whole
-    // document, so bursts of them (window drag, mouse wheel) are applied once
-    static constexpr int RELAYOUT_DELAY_MS = 80;            ///< Settle time before relayout (ms)
-    QTimer* m_resizeTimer{nullptr};                         ///< Applies the viewport width
-    QTimer* m_zoomTimer{nullptr};                           ///< Applies m_pendingZoom
-    double m_pendingZoom{1.0};                              ///< Ctrl+wheel zoom not applied yet
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 

@@ -198,6 +198,11 @@ public:
     /// @param mode How zoom is applied (FontScaling or PageScaling)
     void setConfigZoom(double factor, ZoomMode mode);
 
+    /// @brief Set the view typography (recalculates: typography)
+    /// @param typography Line spacing, paragraph spacing and first-line indent; lengths
+    ///                   in pixels at 100% zoom
+    void setConfigTypography(const LayoutTypography& typography);
+
     /// @brief Set viewport size (recalculates: textWidth or pageCenterOffset)
     /// @param size Widget size in pixels
     void setConfigViewportSize(const QSizeF& size);
@@ -499,6 +504,12 @@ private:
     mutable QSizeF m_cachedPageSize;                    ///< Page size used for cache
     double m_pageGap = 20.0;                            ///< Gap between pages in pixels
 
+    /// @brief Box of a laid out line: the line plus its share of the line spacing
+    QRectF lineBox(const QTextLine& line) const;
+
+    /// @brief Top of a slice within its block (the box top of its first line)
+    double sliceTopInBlock(const QTextLayout& layout, const ParagraphSlice& slice) const;
+
     /// @brief Rebuild pagination cache if needed
     void rebuildPaginationCache() const;
 
@@ -521,6 +532,9 @@ private:
     /// @brief Calculate effective font
     void computeEffectiveFont();
 
+    /// @brief Calculate the typography handed to the layout (reference font size)
+    void computeTypography();
+
     /// @brief Apply computed values to text source
     void applyComputedToSource();
 
@@ -533,6 +547,9 @@ private:
 
     /// @brief Apply only text width to text source (no font change)
     void applyWidthToSource();
+
+    /// @brief Apply only the typography to the text source
+    void applyTypographyToSource();
 
     /// @brief Recalculate only page center offset (for resize in Page mode)
     void recalcPageCenterOffset();

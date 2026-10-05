@@ -4,6 +4,8 @@
 
 #include <kalahari/editor/book_editor_accessible.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
+#include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QTextBlockFormat>
 #include <QTextDocument>
@@ -192,7 +194,7 @@ QRect BookEditorAccessible::characterRect(int offset) const
         return QRect();
     }
 
-    QTextLayout* layout = block.layout();
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout) {
         return QRect();
     }
@@ -209,7 +211,7 @@ QRect BookEditorAccessible::characterRect(int offset) const
     // Convert to screen coordinates
     QPoint widgetPos = editor->mapToGlobal(QPoint(0, 0));
     qreal scrollOffset = editor->scrollOffset();
-    qreal paraY = layout->position().y();
+    qreal paraY = doc->documentLayout()->blockBoundingRect(block).y();
 
     QRect screenRect;
     screenRect.setX(widgetPos.x() + static_cast<int>(cursorRect.x()));

@@ -3,13 +3,54 @@
 /// Phase 11: Removed KmlDocument-dependent methods (use BookEditor API instead)
 
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/kml_format_registry.h>
+#include <QColor>
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QRegularExpression>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+#include <algorithm>
+#include <vector>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// @brief CSS for the inline style attributes (font, size, color, bg) of a KML tag
+QString inlineStyleCss(const QXmlStreamAttributes& attrs)
+{
+    QStringList css;
+    if (attrs.hasAttribute(QStringLiteral("font"))) {
+        QString family = attrs.value(QStringLiteral("font")).toString();
+        family.remove(QLatin1Char('\'')).remove(QLatin1Char(';'));
+        if (!family.isEmpty()) {
+            css << QStringLiteral("font-family:'%1'").arg(family);
+        }
+    }
+    if (attrs.hasAttribute(QStringLiteral("size"))) {
+        bool ok = false;
+        const double size = attrs.value(QStringLiteral("size")).toDouble(&ok);
+        if (ok && size > 0) {
+            css << QStringLiteral("font-size:%1pt").arg(size);
+        }
+    }
+    if (attrs.hasAttribute(QStringLiteral("color"))) {
+        const QColor color(attrs.value(QStringLiteral("color")).toString());
+        if (color.isValid()) {
+            css << QStringLiteral("color:") + color.name();
+        }
+    }
+    if (attrs.hasAttribute(QStringLiteral("bg"))) {
+        const QColor color(attrs.value(QStringLiteral("bg")).toString());
+        if (color.isValid()) {
+            css << QStringLiteral("background-color:") + color.name();
+        }
+    }
+    return css.join(QLatin1Char(';'));
+}
+
+}  // namespace
 
 // =============================================================================
 // Paste Operations
@@ -106,61 +147,73 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
         return QString();
     }
 
-    // Wrap in root element to handle multiple paragraphs at top level
-    QString wrappedKml = "<root>" + kml + "</root>";
+    // Plain HTML that other programs paste: paragraphs with their alignment, the basic
+    // formatting tags and the explicit inline styles. Metadata (comments, TODO markers,
+    // footnotes), text runs and unknown elements keep only their text.
+    struct OpenElement {
+        bool written = false;    ///< The element wrote an HTML element to close
+        bool paragraph = false;  ///< The element is a paragraph
+    };
+    std::vector<OpenElement> open;
+    bool emptyParagraph = false;
 
     QString html;
-    QXmlStreamReader reader(wrappedKml);
     QXmlStreamWriter writer(&html);
+    QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
 
-    // Simple conversion without document declaration
-    while (!reader.atEnd() && !reader.hasError()) {
-        reader.readNext();
-
-        switch (reader.tokenType()) {
+    while (!reader.atEnd()) {
+        switch (reader.readNext()) {
             case QXmlStreamReader::StartElement: {
-                const QString tagName = reader.name().toString();
-
-                if (tagName == "p") {
-                    writer.writeStartElement("p");
-                } else if (tagName == "bold" || tagName == "b") {
-                    writer.writeStartElement("b");
-                } else if (tagName == "italic" || tagName == "i") {
-                    writer.writeStartElement("i");
-                } else if (tagName == "underline" || tagName == "u") {
-                    writer.writeStartElement("u");
-                } else if (tagName == "strike" || tagName == "s") {
-                    writer.writeStartElement("s");
-                } else if (tagName == "span") {
-                    writer.writeStartElement("span");
-                    // Copy style attribute if present
-                    if (reader.attributes().hasAttribute("style")) {
-                        writer.writeAttribute("style",
-                                             reader.attributes().value("style").toString());
+                const QString tag = reader.name().toString();
+                const QXmlStreamAttributes attrs = reader.attributes();
+                OpenElement element;
+                if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+                    writer.writeStartElement(QStringLiteral("p"));
+                    const QString align = attrs.value(QStringLiteral("align")).toString().toLower();
+                    if (align == QStringLiteral("center") || align == QStringLiteral("right") ||
+                        align == QStringLiteral("justify")) {
+                        writer.writeAttribute(QStringLiteral("style"),
+                                              QStringLiteral("text-align:") + align);
                     }
-                } else if (tagName == "br") {
-                    writer.writeEmptyElement("br");
-                } else if (tagName == "text") {
-                    // Text runs are just containers, skip the tag
-                } else if (tagName == "document" || tagName == "root") {
-                    // Skip document wrapper and our temporary root
-                } else {
-                    // Pass through unknown elements
-                    writer.writeStartElement(tagName);
+                    element = {true, true};
+                    emptyParagraph = true;
+                } else if (KmlFormatRegistry::isFormattingTag(tag)) {
+                    const QString name = KmlFormatRegistry::canonicalFormattingTag(tag);
+                    const QString style = inlineStyleCss(attrs);
+                    if (!name.isEmpty() || !style.isEmpty()) {
+                        writer.writeStartElement(name.isEmpty() ? QStringLiteral("span") : name);
+                        if (!style.isEmpty()) {
+                            writer.writeAttribute(QStringLiteral("style"), style);
+                        }
+                        element.written = true;
+                    }
                 }
+                open.push_back(element);
                 break;
             }
 
-            case QXmlStreamReader::EndElement: {
-                const QString tagName = reader.name().toString();
-                if (tagName != "text" && tagName != "document" && tagName != "root") {
-                    writer.writeEndElement();
+            case QXmlStreamReader::EndElement:
+                if (!open.empty()) {
+                    const OpenElement element = open.back();
+                    open.pop_back();
+                    if (element.paragraph && emptyParagraph) {
+                        // Most programs drop an empty paragraph - a no-break space keeps the line
+                        writer.writeCharacters(QString(QChar(QChar::Nbsp)));
+                    }
+                    if (element.written) {
+                        writer.writeEndElement();
+                    }
                 }
                 break;
-            }
 
             case QXmlStreamReader::Characters: {
-                writer.writeCharacters(reader.text().toString());
+                // Whitespace outside paragraphs is only the indentation between them
+                const bool inParagraph = std::any_of(open.begin(), open.end(),
+                                                     [](const OpenElement& e) { return e.paragraph; });
+                if (!reader.text().isEmpty() && (inParagraph || !reader.isWhitespace())) {
+                    writer.writeCharacters(reader.text().toString());
+                    emptyParagraph = false;
+                }
                 break;
             }
 
