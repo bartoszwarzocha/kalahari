@@ -10,9 +10,14 @@
 /// - Wrap around
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <kalahari/editor/search_engine.h>
+#include <QAbstractTextDocumentLayout>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QUndoStack>
+#include <algorithm>
+#include <random>
 
 using namespace kalahari::editor;
 
@@ -744,4 +749,222 @@ TEST_CASE("SearchEngine signals", "[editor][search_engine]") {
         engine.nextMatch();
         REQUIRE(currentMatchChangedEmitted);
     }
+}
+
+// =============================================================================
+// Editor Stage 3: matching, matches that follow edits, searching on from a cursor
+// =============================================================================
+
+TEST_CASE("SearchEngine regex that can match nothing finds only text it matches",
+          "[editor][search_engine][stage3]") {
+    // Regression: an expression matching an empty string (b*, ^) never got past it
+    SearchEngine engine;
+    QTextDocument doc;
+    doc.setPlainText("abbc b\nc");
+    engine.setDocument(&doc);
+    SearchOptions opts;
+    opts.useRegex = true;
+    engine.setOptions(opts);
+
+    engine.setSearchText("b*");
+    const auto matches = engine.findAll();
+    REQUIRE(matches.size() == 2);
+    CHECK(matches[0].matchedText == "bb");
+    CHECK(matches[1].matchedText == "b");
+
+    engine.setSearchText("^");
+    CHECK(engine.findAll().empty());
+}
+
+TEST_CASE("SearchEngine regex words and letter case beyond ASCII",
+          "[editor][search_engine][stage3]") {
+    SearchEngine engine;
+    QTextDocument doc;
+    doc.setPlainText(QStringLiteral("Żółw i żółwie. ŻÓŁW!"));
+    engine.setDocument(&doc);
+    SearchOptions opts;
+    opts.useRegex = true;
+    engine.setOptions(opts);
+
+    engine.setSearchText(QStringLiteral("\\bżółw\\b"));
+    const auto matches = engine.findAll();
+    REQUIRE(matches.size() == 2);
+    CHECK(matches[0].start == 0);
+    CHECK(matches[1].matchedText == QStringLiteral("ŻÓŁW"));
+}
+
+TEST_CASE("SearchEngine a space matches a non-breaking space", "[editor][search_engine][stage3]") {
+    SearchEngine engine;
+    QTextDocument doc;
+    doc.setPlainText(QStringLiteral("w domu i w domu"));
+    engine.setDocument(&doc);
+
+    engine.setSearchText(QStringLiteral("w domu"));
+    auto matches = engine.findAll();
+    REQUIRE(matches.size() == 2);
+    CHECK(matches[1].matchedText == QStringLiteral("w domu"));
+
+    engine.setSearchText(QStringLiteral("w domu"));
+    CHECK(engine.findAll().size() == 2);
+}
+
+TEST_CASE("SearchEngine goes on from the origin", "[editor][search_engine][stage3]") {
+    SearchEngine engine;
+    QTextDocument doc;
+    doc.setPlainText("ab x ab x ab");  // matches at 0, 5, 10
+    engine.setDocument(&doc);
+    engine.setSearchText("ab");
+    REQUIRE(engine.totalMatchCount() == 3);
+
+    SECTION("from a cursor") {
+        engine.setOrigin(3, 3);
+        CHECK(engine.nextMatch().start == 5);
+        engine.setOrigin(3, 3);
+        CHECK(engine.previousMatch().start == 0);
+        engine.setOrigin(11, 11);  // inside the last match
+        CHECK(engine.nextMatch().start == 0);  // from the top
+    }
+
+    SECTION("a selected match is the current one") {
+        engine.setOrigin(5, 7);
+        CHECK(engine.currentMatchIndex() == 1);
+        CHECK(engine.nextMatch().start == 10);
+        engine.setOrigin(4, 7);  // more than the match
+        CHECK(engine.currentMatchIndex() == -1);
+        CHECK(engine.nextMatch().start == 10);
+    }
+
+    SECTION("the origin moves with edits") {
+        engine.setOrigin(6, 6);  // within the second match
+        QTextCursor cursor(&doc);
+        cursor.insertText("ab ");  // "ab ab x ab x ab": the origin is now at 9
+        CHECK(engine.nextMatch().start == 13);
+    }
+
+    SECTION("a match selected before the search becomes the current one") {
+        engine.setSearchText(QString());
+        engine.setOrigin(10, 12);
+        engine.setSearchText("ab");
+        CHECK(engine.totalMatchCount() == 3);
+        CHECK(engine.currentMatchIndex() == 2);
+    }
+}
+
+TEST_CASE("SearchEngine matches follow edits of the document", "[editor][search_engine][stage3]") {
+    struct Variant {
+        const char* name;
+        QString text;
+        SearchOptions options;
+    };
+    SearchOptions caseAndWord;
+    caseAndWord.caseSensitive = true;
+    caseAndWord.wholeWord = true;
+    SearchOptions regex;
+    regex.useRegex = true;
+    const Variant variant = GENERATE_COPY(values<Variant>({
+        {"plain", QStringLiteral("ab"), SearchOptions{}},
+        {"case sensitive, whole words", QStringLiteral("ab"), caseAndWord},
+        {"with a space", QStringLiteral("a b"), SearchOptions{}},
+        {"regex", QStringLiteral("a+b"), regex},
+    }));
+    INFO(variant.name);
+
+    QTextDocument doc;
+    doc.documentLayout();  // QTextDocument reports edited ranges only with a layout
+    doc.setPlainText(QStringLiteral("ab x AB ab\nxab a b\n\nab ab"));
+    SearchEngine engine;
+    engine.setDocument(&doc);
+    engine.setOptions(variant.options);
+    engine.setSearchText(variant.text);
+    REQUIRE(engine.totalMatchCount() > 0);
+
+    int reported = 0;
+    int followed = 0;
+    QObject::connect(&doc, &QTextDocument::contentsChange, [&reported]() { ++reported; });
+    QObject::connect(&engine, &SearchEngine::matchesChanged, [&followed]() { ++followed; });
+
+    std::mt19937 random(20261004);
+    const auto number = [&random](int from, int to) {
+        return std::uniform_int_distribution<int>(from, to)(random);
+    };
+    const auto randomText = [&]() {
+        static const QString letters = QStringLiteral("abAB  x \n");
+        QString text;
+        for (int i = number(1, 8); i > 0; --i) {
+            text += letters.at(number(0, static_cast<int>(letters.size()) - 1));
+        }
+        return text;
+    };
+    const auto randomRange = [&](QTextCursor& cursor) {
+        const int last = doc.characterCount() - 1;
+        const int from = number(0, last);
+        cursor.setPosition(from);
+        cursor.setPosition(std::min(last, from + number(0, 20)), QTextCursor::KeepAnchor);
+    };
+
+    int missed = 0;
+    for (int step = 0; step < 300; ++step) {
+        const int reportedBefore = reported;
+        const int followedBefore = followed;
+        QTextCursor cursor(&doc);
+        switch (number(0, 6)) {
+        case 0:  // typing
+            cursor.setPosition(number(0, doc.characterCount() - 1));
+            cursor.insertText(randomText());
+            break;
+        case 1:  // deleting, also across paragraphs
+            randomRange(cursor);
+            cursor.removeSelectedText();
+            break;
+        case 2:  // typing over a selection
+            randomRange(cursor);
+            cursor.insertText(randomText());
+            break;
+        case 3:  // several edits in one undo step
+            cursor.beginEditBlock();
+            for (int i = number(2, 3); i > 0; --i) {
+                randomRange(cursor);
+                cursor.insertText(i % 2 ? randomText() : QString());
+            }
+            cursor.endEditBlock();
+            break;
+        case 4: {  // formatting only
+            randomRange(cursor);
+            QTextCharFormat bold;
+            bold.setFontWeight(QFont::Bold);
+            cursor.mergeCharFormat(bold);
+            break;
+        }
+        case 5:
+            doc.undo();
+            break;
+        default:
+            doc.redo();
+            break;
+        }
+
+        // Followed at once, from the edited paragraphs, when the document reported the edit
+        if (reported > reportedBefore && followed == followedBefore) {
+            ++missed;
+        }
+
+        SearchEngine fresh;
+        fresh.setDocument(&doc);
+        fresh.setOptions(variant.options);
+        fresh.setSearchText(variant.text);
+        const std::vector<SearchMatch>& expected = fresh.matches();
+        const std::vector<SearchMatch>& actual = engine.matches();
+        INFO("step " << step << ", text: " << doc.toPlainText().toStdString());
+        REQUIRE(actual.size() == expected.size());
+        for (size_t i = 0; i < actual.size(); ++i) {
+            INFO("match " << i);
+            REQUIRE(actual[i].start == expected[i].start);
+            REQUIRE(actual[i].length == expected[i].length);
+            REQUIRE(actual[i].paragraph == expected[i].paragraph);
+            REQUIRE(actual[i].paragraphOffset == expected[i].paragraphOffset);
+            REQUIRE(actual[i].matchedText == expected[i].matchedText);
+        }
+    }
+    CHECK(reported > 150);
+    CHECK(missed == 0);
 }

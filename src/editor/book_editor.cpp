@@ -3028,6 +3028,8 @@ void BookEditor::syncPipelineState()
 
 void BookEditor::syncPipelineCursor()
 {
+    syncSearchOrigin();
+
     // Lightweight sync - only cursor and selection
     if (!m_renderPipeline) {
         return;
@@ -4889,11 +4891,35 @@ void BookEditor::setupFindReplace()
             this, &BookEditor::hideFindReplace);
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
+    syncSearchOrigin();
 }
 
 SearchEngine* BookEditor::searchEngine() const
 {
     return m_searchEngine.get();
+}
+
+void BookEditor::syncSearchOrigin()
+{
+    if (!m_searchEngine || !m_textBuffer) {
+        return;
+    }
+
+    // Find Next goes on from the selection, or from the cursor without one; a selected
+    // match is the current one
+    const SelectionRange range = hasSelection() ? m_selection.normalized()
+                                                : SelectionRange{m_cursorPosition, m_cursorPosition};
+    m_searchEngine->setOrigin(
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.start)),
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)));
+}
+
+void BookEditor::takeSearchTextFromSelection()
+{
+    // The search goes paragraph by paragraph: text across paragraphs would never be found
+    if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
+        m_findReplaceBar->setSearchText(selectedText());
+    }
 }
 
 void BookEditor::showFind()
@@ -4902,10 +4928,7 @@ void BookEditor::showFind()
         setupFindReplace();
     }
 
-    // If text selected, use as search text
-    if (hasSelection()) {
-        m_findReplaceBar->setSearchText(selectedText());
-    }
+    takeSearchTextFromSelection();
 
     m_findReplaceBar->showFind();
 
@@ -4923,9 +4946,7 @@ void BookEditor::showFindReplace()
         setupFindReplace();
     }
 
-    if (hasSelection()) {
-        m_findReplaceBar->setSearchText(selectedText());
-    }
+    takeSearchTextFromSelection();
 
     m_findReplaceBar->showFindReplace();
 

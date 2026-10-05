@@ -13,10 +13,13 @@
 
 // Phase 11.6: Removed text_buffer.h - using QTextDocument directly
 #include <QObject>
+#include <QRegularExpression>
 #include <QString>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <vector>
 
+class QTextBlock;
 class QUndoStack;
 
 namespace kalahari::editor {
@@ -180,6 +183,15 @@ public:
     /// @return true if index is valid
     bool setCurrentMatchIndex(int index);
 
+    /// @brief Set where the search goes on from: the editor's selection, or its cursor
+    ///
+    /// A selection that is exactly a match makes that match the current one; anything
+    /// else clears the current match, so nextMatch() and previousMatch() continue from
+    /// here instead of from the first or the last match. The range follows later edits.
+    /// @param start Absolute start of the selection, or the cursor position
+    /// @param end Absolute end of the selection (equal to @p start without one)
+    void setOrigin(size_t start, size_t end);
+
     // =========================================================================
     // Replace Operations (stubs for Task 9.5)
     // =========================================================================
@@ -212,7 +224,8 @@ public:
     bool isActive() const;
 
 signals:
-    /// @brief Emitted when matches list changes
+    /// @brief Emitted when the matches change, or which of them is the current one
+    /// without a navigation (setOrigin())
     void matchesChanged();
 
     /// @brief Emitted when current match changes
@@ -227,15 +240,33 @@ private:
     /// @brief Rebuild match cache from buffer
     void rebuildMatches();
 
-    /// @brief Build a SearchMatch from position and length
-    /// @param start Absolute start position
-    /// @param length Match length
-    /// @return Populated SearchMatch
-    SearchMatch buildMatch(size_t start, size_t length) const;
+    /// @brief Prepare the search text (or the regular expression) for searchBlocks()
+    /// @return false if there is nothing to search for
+    bool prepareSearch();
 
-    /// @brief Build Qt find flags from current options
-    /// @return QTextDocument::FindFlags
-    QTextDocument::FindFlags buildFindFlags() const;
+    /// @brief Append the matches in the paragraphs from @p block to @p last
+    /// @param block First paragraph to search
+    /// @param last Last paragraph to search
+    /// @param found Receives the matches, in document order
+    void searchBlocks(QTextBlock block, const QTextBlock& last,
+                      std::vector<SearchMatch>& found) const;
+
+    /// @brief Bring the matches up to date with an edit of the document
+    ///
+    /// Only the edited paragraphs are searched again, the matches after them move with the
+    /// text (QTextDocument::contentsChange).
+    void onContentsChange(int position, int charsRemoved, int charsAdded);
+
+    /// @brief Index of the first match starting at or after @p position
+    /// @return The match count if there is none
+    int firstMatchFrom(size_t position) const;
+
+    /// @brief Index of the match that is exactly the origin's selection, or -1
+    int originMatchIndex() const;
+
+    /// @brief Make the match at @p index the current one and announce it
+    /// @return A copy of the match
+    SearchMatch selectMatch(int index);
 
     /// @brief Find match at or after position
     /// @param fromPosition Start position for search
@@ -243,18 +274,22 @@ private:
     /// @return Found match or invalid match
     SearchMatch findMatch(size_t fromPosition, bool forward);
 
-    /// @brief Update current match index to match containing position
-    /// @param position Absolute character position
-    void updateCurrentMatchForPosition(size_t position);
-
-    QTextDocument* m_document = nullptr;     ///< QTextDocument (not owned) - Phase 11.6
-    QMetaObject::Connection m_documentEdits; ///< Invalidates the matches on document edits
-    QString m_searchText;                    ///< Current search text
-    QString m_replaceText;                   ///< Current replacement text
-    SearchOptions m_options;                 ///< Current search options
-    std::vector<SearchMatch> m_matches;      ///< Cached matches
-    int m_currentMatchIndex = -1;            ///< Current match index (-1 = none)
-    bool m_matchesDirty = true;              ///< Matches need rebuild
+    QTextDocument* m_document = nullptr;      ///< QTextDocument (not owned) - Phase 11.6
+    QMetaObject::Connection m_documentEdits;  ///< Notices edits the matches did not follow
+    QMetaObject::Connection m_documentChange; ///< Follows the edits with the matches
+    QTextCursor m_origin;                     ///< Where the search goes on from (setOrigin())
+    QString m_searchText;                     ///< Current search text
+    QString m_replaceText;                    ///< Current replacement text
+    SearchOptions m_options;                  ///< Current search options
+    QString m_needle;                         ///< Search text as matched (plain search)
+    QRegularExpression m_regex;               ///< Search text as matched (regex search)
+    bool m_searchReady = false;               ///< m_needle or m_regex can be searched for
+    std::vector<SearchMatch> m_matches;       ///< Cached matches
+    int m_currentMatchIndex = -1;             ///< Current match index (-1 = none)
+    bool m_matchesDirty = true;               ///< Matches need rebuild
+    int m_characterCount = 0;                 ///< Document length the matches are for
+    int m_blockCount = 0;                     ///< Paragraph count the matches are for
+    bool m_changeReported = false;            ///< The document reported the latest edit's range
 };
 
 }  // namespace kalahari::editor

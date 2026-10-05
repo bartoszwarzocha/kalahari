@@ -20,6 +20,7 @@
 #include <QDropEvent>
 #include <QGuiApplication>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QMimeData>
 #include <QMouseEvent>
@@ -398,10 +399,9 @@ TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
     CHECK_FALSE(bar->isReplaceMode());
     CHECK(bar->searchText() == QStringLiteral("word"));
     CHECK(editor->searchEngine()->totalMatchCount() == 3);
+    CHECK(editor->searchEngine()->currentMatchIndex() == 0);  // the selected one
 
-    SECTION("Find Next selects the matches one after another, then from the top") {
-        editor->findNext();
-        CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+    SECTION("Find Next goes on from the selected match, then from the top") {
         editor->findNext();
         CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
         editor->findNext();
@@ -411,6 +411,15 @@ TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
         CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
         editor->findPrevious();
         CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+    }
+
+    SECTION("a selection across paragraphs leaves the search text as it was") {
+        editor->setSelection({{0, 23}, {1, 2}});  // "word.", the paragraph end, "No"
+        editor->showFind();
+        CHECK(bar->searchText() == QStringLiteral("word"));
+        editor->showFindReplace();
+        CHECK(bar->searchText() == QStringLiteral("word"));
+        CHECK(editor->searchEngine()->totalMatchCount() == 3);
     }
 
     SECTION("the bar opened again searches for its text again") {
@@ -452,6 +461,135 @@ TEST_CASE("Stage3 find: Find Next without a search term opens the bar",
     editor->findNext();
     CHECK(isShown(findBar(*editor)));
     CHECK_FALSE(editor->hasSelection());
+}
+
+TEST_CASE("Stage3 find: Find Next and Find Previous go on from the cursor",
+          "[editor][stage3][search]") {
+    auto editor = editorWith(kWords);
+    editor->showFind();
+    auto* bar = findBar(*editor);
+    bar->setSearchText(QStringLiteral("word"));
+
+    // A click in the second paragraph: the next match is in the third one, the previous
+    // one at the end of the first (regression: always the first or the last match)
+    editor->clearSelection();
+    editor->setCursorPosition({1, 3});
+    editor->findNext();
+    CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+
+    editor->clearSelection();
+    editor->setCursorPosition({1, 3});
+    editor->findPrevious();
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+
+    SECTION("the bar counts from the selected match") {
+        editor->findNext();
+        CHECK(editor->searchEngine()->currentMatchIndex() == 2);
+        // Moving away from it: no match is the current one any more
+        editor->clearSelection();
+        CHECK(editor->searchEngine()->currentMatchIndex() == -1);
+    }
+}
+
+TEST_CASE("Stage3 find: keys typed in the find bar do not reach the text",
+          "[editor][stage3][search]") {
+    // Regression: the fields leave Enter unused, so it went on to the editor under the bar,
+    // which replaced the match just found with a new paragraph
+    auto editor = editorWith(kWords);
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    bar->setSearchText(QStringLiteral("word"));
+    QLineEdit* find = nullptr;
+    QLineEdit* replace = nullptr;
+    for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
+        if (input->placeholderText() == QStringLiteral("Find...")) {
+            find = input;
+        } else {
+            replace = input;
+        }
+    }
+    REQUIRE(find != nullptr);
+    REQUIRE(replace != nullptr);
+    const auto press = [](QWidget* widget, int key, Qt::KeyboardModifiers modifiers = {}) {
+        QKeyEvent event(QEvent::KeyPress, key, modifiers);
+        QCoreApplication::sendEvent(widget, &event);
+    };
+
+    press(find, Qt::Key_Return);
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+    press(find, Qt::Key_Enter);  // on the keypad
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+    press(find, Qt::Key_Return, Qt::ShiftModifier);  // backwards
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+    CHECK(editor->toKml() == kWords);
+
+    // Enter in the replace field replaces the selected match and selects the next one
+    replace->setText(QStringLiteral("term"));
+    press(replace, Qt::Key_Return);
+    CHECK(editor->plainText() ==
+          QStringLiteral("One term, then another word.\nNo match here.\nThe last word."));
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+
+    // A key the field leaves unused does not move the editor's cursor
+    press(find, Qt::Key_Down);
+    CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+}
+
+TEST_CASE("Stage3 find: after an edit, Find Next goes on from the cursor",
+          "[editor][stage3][search]") {
+    auto editor = editorWith(kWords);
+    editor->showFind();
+    findBar(*editor)->setSearchText(QStringLiteral("word"));
+    editor->findNext();
+    editor->findNext();
+    REQUIRE(editor->selection().normalized().start == CursorPosition{0, 23});
+
+    // The found word corrected (regression: an edit sent Find Next back to the first match)
+    editor->insertText(QStringLiteral("text"));
+    CHECK(editor->plainText().startsWith(QStringLiteral("One word, then another text.")));
+    CHECK(editor->searchEngine()->totalMatchCount() == 2);
+    editor->findNext();
+    CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+}
+
+TEST_CASE("Stage3 find: the matches follow typing in a long chapter",
+          "[editor][stage3][search]") {
+    QStringList paragraphs;
+    for (int i = 0; i < 300; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1: a word, another word and one more word.").arg(i);
+    }
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->showFind();
+    findBar(*editor)->setSearchText(QStringLiteral("word"));
+    REQUIRE(editor->searchEngine()->totalMatchCount() == 900);
+
+    // The matches are updated as the text changes, from the edited paragraph only, instead
+    // of searching the whole chapter again on the next paint
+    int updates = 0;
+    QObject::connect(editor->searchEngine(), &SearchEngine::matchesChanged,
+                     [&updates]() { ++updates; });
+    editor->clearSelection();
+    editor->setCursorPosition({150, 0});
+    editor->insertText(QStringLiteral("word "));
+    CHECK(updates > 0);
+    editor->insertNewline();
+    editor->setCursorPosition({0, 0});
+    editor->deleteForward();
+
+    // The same matches as a search from scratch
+    const std::vector<SearchMatch> followed = editor->searchEngine()->matches();
+    SearchEngine fresh;
+    fresh.setDocument(editor->searchEngine()->document());
+    fresh.setSearchText(QStringLiteral("word"));
+    const std::vector<SearchMatch>& expected = fresh.matches();
+    REQUIRE(followed.size() == 901);
+    REQUIRE(followed.size() == expected.size());
+    for (size_t i = 0; i < followed.size(); ++i) {
+        INFO("match " << i);
+        CHECK(followed[i].start == expected[i].start);
+        CHECK(followed[i].paragraph == expected[i].paragraph);
+        CHECK(followed[i].paragraphOffset == expected[i].paragraphOffset);
+    }
 }
 
 TEST_CASE("Stage3 find: matches are painted under the text", "[editor][stage3][search]") {

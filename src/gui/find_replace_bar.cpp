@@ -184,8 +184,9 @@ void FindReplaceBar::createConnections()
     // Search input
     connect(m_searchInput, &QLineEdit::textChanged,
             this, &FindReplaceBar::onSearchTextChanged);
-    connect(m_searchInput, &QLineEdit::returnPressed,
-            this, &FindReplaceBar::onFindNext);
+    // Enter: eventFilter()
+    m_searchInput->installEventFilter(this);
+    m_replaceInput->installEventFilter(this);
 
     // Option toggles
     connect(m_caseSensitiveBtn, &QToolButton::toggled,
@@ -210,10 +211,6 @@ void FindReplaceBar::createConnections()
             this, &FindReplaceBar::onReplaceCurrent);
     connect(m_replaceAllBtn, &QPushButton::clicked,
             this, &FindReplaceBar::onReplaceAll);
-
-    // Replace input - Enter to replace current
-    connect(m_replaceInput, &QLineEdit::returnPressed,
-            this, &FindReplaceBar::onReplaceCurrent);
 
     // Keyboard shortcuts
     connect(m_escapeShortcut, &QShortcut::activated,
@@ -314,14 +311,30 @@ bool FindReplaceBar::isReplaceMode() const
 
 void FindReplaceBar::keyPressEvent(QKeyEvent* event)
 {
-    // Shift+Enter for find previous
-    if (event->key() == Qt::Key_Return && event->modifiers() & Qt::ShiftModifier) {
-        onFindPrevious();
-        event->accept();
-        return;
-    }
+    // Keys the fields and buttons leave unused (the arrows, Page Up) would go on to the
+    // editor under the bar and move or change its text
+    event->accept();
+}
 
-    QWidget::keyPressEvent(event);
+bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
+{
+    // Enter is taken before the field gets it: QLineEdit leaves it unused, so it went on
+    // to the editor, which replaced the match just found with a new paragraph
+    if (event->type() == QEvent::KeyPress &&
+        (watched == m_searchInput || watched == m_replaceInput)) {
+        const auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
+            if (watched == m_replaceInput) {
+                onReplaceCurrent();
+            } else if (keyEvent->modifiers() & Qt::ShiftModifier) {
+                onFindPrevious();
+            } else {
+                onFindNext();
+            }
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 // =============================================================================
@@ -386,11 +399,11 @@ void FindReplaceBar::onReplaceCurrent()
 
     // nullptr = edit the document directly; QTextDocument's native undo records it.
     if (m_searchEngine->replaceCurrent(nullptr)) {
-        emit textReplaced(1);
-
         // replaceCurrent() has already moved to the match after the replaced text
-        // (nextMatch() would skip it)
+        // (nextMatch() would skip it). Taken before textReplaced(), which clears the
+        // editor's selection and with it the current match.
         const editor::SearchMatch next = m_searchEngine->currentMatch();
+        emit textReplaced(1);
         if (next.isValid()) {
             emit navigateToMatch(next);
         }

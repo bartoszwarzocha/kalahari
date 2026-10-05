@@ -677,12 +677,12 @@ public:
 
     /// @brief Show the find bar (find-only mode)
     ///
-    /// If text is selected, uses selection as initial search text.
+    /// Text selected within one paragraph becomes the search text.
     void showFind();
 
     /// @brief Show the find/replace bar
     ///
-    /// If text is selected, uses selection as initial search text.
+    /// Text selected within one paragraph becomes the search text.
     void showFindReplace();
 
     /// @brief Navigate to the next search match
@@ -1406,6 +1406,12 @@ private:
 
     /// @brief Setup find/replace components
     void setupFindReplace();
+
+    /// @brief Tell the search engine where the cursor and the selection are
+    void syncSearchOrigin();
+
+    /// @brief Make the selected text the search text, if it lies in one paragraph
+    void takeSearchTextFromSelection();
 
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to
