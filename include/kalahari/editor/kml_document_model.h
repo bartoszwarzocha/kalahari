@@ -88,9 +88,10 @@ public:
     /// @return Vector of format runs
     const std::vector<FormatRun>& paragraphFormats(size_t index) const;
 
-    /// @brief Get paragraph alignment
+    /// @brief Get the paragraph's own alignment
     /// @param index Paragraph index (0-based)
-    /// @return Qt::Alignment for the paragraph (Qt::AlignLeft if index out of range)
+    /// @return The alignment its align attribute sets; none without one (it is shown with
+    ///         DEFAULT_PARAGRAPH_ALIGNMENT) or if index is out of range
     Qt::Alignment paragraphAlignment(size_t index) const;
 
     /// @brief Get full document plain text
@@ -224,7 +225,7 @@ private:
         std::vector<FormatRun> formats;         ///< Format runs within paragraph
         std::unique_ptr<QTextLayout> layout;    ///< QTextLayout (created lazily)
         bool layoutValid = false;               ///< Whether layout is valid
-        Qt::Alignment alignment = Qt::AlignLeft; ///< Paragraph alignment
+        Qt::Alignment alignment;                ///< Own alignment (none: the default)
     };
 
     /// @brief Parse a paragraph element

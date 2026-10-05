@@ -874,8 +874,7 @@ void MainWindow::updateEditorActionStates() {
     Qt::Alignment currentAlign = bookEditor->currentAlignment();
     if (auto* leftCmd = registry.getCommand("format.alignLeft")) {
         leftCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft ||
-                   (currentAlign & Qt::AlignHorizontal_Mask) == 0;  // Default is left
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft;
         };
         registry.updateActionState("format.alignLeft");
     }

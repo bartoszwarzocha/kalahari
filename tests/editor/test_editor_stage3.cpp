@@ -687,6 +687,69 @@ TEST_CASE("Stage3 alignment: aligning selected paragraphs is one undo step",
     CHECK(editor->textDocument()->firstBlock().blockFormat().alignment() == Qt::AlignHCenter);
 }
 
+namespace {
+
+/// Right edge of the text on line @p lineIndex of @p block, trailing spaces left out
+qreal textRightEdge(const QTextBlock& block, int lineIndex) {
+    const QTextLine line = KalahariTextDocumentLayout::blockLayout(block)->lineAt(lineIndex);
+    int end = line.textStart() + line.textLength();
+    while (end > line.textStart() && block.text().at(end - 1).isSpace()) {
+        --end;
+    }
+    return line.cursorToX(end);
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage3 alignment: a paragraph without its own alignment is justified",
+          "[editor][stage3][format]") {
+    const QString words =
+        QStringLiteral("The quick brown fox jumps over the lazy dog. ").repeated(8).trimmed();
+    auto editor = editorWith(QStringLiteral("<kml><p>%1</p><p align=\"left\">%1</p></kml>").arg(words));
+    const QTextBlock plain = editor->textDocument()->firstBlock();
+    const QTextBlock left = plain.next();
+    const QTextLayout* plainLayout = KalahariTextDocumentLayout::blockLayout(plain);
+    const QTextLayout* leftLayout = KalahariTextDocumentLayout::blockLayout(left);
+    REQUIRE(plainLayout->lineCount() > 2);
+    REQUIRE(leftLayout->lineCount() == plainLayout->lineCount());
+
+    SECTION("its lines reach both edges, the last one stays at the leading edge") {
+        CHECK(plainLayout->textOption().alignment() == Qt::AlignJustify);
+        for (int i = 0; i + 1 < plainLayout->lineCount(); ++i) {
+            const QTextLine line = plainLayout->lineAt(i);
+            CHECK(std::abs(textRightEdge(plain, i) - (line.x() + line.width())) < 1.0);
+        }
+        const int lastIndex = plainLayout->lineCount() - 1;
+        const QTextLine last = plainLayout->lineAt(lastIndex);
+        CHECK(std::abs(textRightEdge(plain, lastIndex) - (last.x() + last.naturalTextWidth())) < 1.0);
+    }
+
+    SECTION("left alignment set on purpose stays") {
+        CHECK(leftLayout->textOption().alignment() == Qt::AlignLeft);
+        const QTextLine first = leftLayout->lineAt(0);
+        CHECK(std::abs(textRightEdge(left, 0) - (first.x() + first.naturalTextWidth())) < 1.0);
+    }
+
+    SECTION("Justify is the current alignment, the file keeps no attribute") {
+        editor->setCursorPosition({0, 0});
+        CHECK(editor->currentAlignment() == Qt::AlignJustify);
+        editor->setCursorPosition({1, 0});
+        CHECK(editor->currentAlignment() == Qt::AlignLeft);
+        CHECK(editor->toKml().startsWith(QStringLiteral("<kml><p>The quick")));
+    }
+
+    SECTION("Align Left there is saved, and undone in one step") {
+        const QString before = editor->toKml();
+        editor->setCursorPosition({0, 3});
+        editor->setAlignLeft();
+        CHECK(editor->currentAlignment() == Qt::AlignLeft);
+        CHECK(editor->toKml().startsWith(QStringLiteral("<kml><p align=\"left\">The quick")));
+        editor->undo();
+        CHECK(editor->currentAlignment() == Qt::AlignJustify);
+        CHECK(editor->toKml() == before);
+    }
+}
+
 // =============================================================================
 // Cursor
 // =============================================================================

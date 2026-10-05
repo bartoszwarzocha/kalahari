@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: paragraphs without their own alignment are justified** - 2026-10-05
+  - A paragraph with no `align` attribute is shown justified, its last line at the
+    leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as
+    they are; chapter files are not rewritten.
+  - Align Left now saves `align="left"`, so a paragraph aligned left on purpose can be
+    told from one without an alignment.
 - **Editor: layout on demand** - 2026-10-04
   - After a width, font, zoom or typography change, a load or a large paste, only the
     paragraphs on screen are wrapped before the next paint. The others get estimated

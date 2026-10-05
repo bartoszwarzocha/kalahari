@@ -457,11 +457,8 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spa
     // Glyph fonts come from the document's character formats (resolved against the
     // document's default font), so the QTextLayout's own font is irrelevant here.
 
-    // Get alignment from QTextBlockFormat and configure QTextOption
-    Qt::Alignment alignment = block.blockFormat().alignment();
-    if (alignment == 0) {
-        alignment = Qt::AlignLeft;  // Default to left if not set
-    }
+    // A paragraph without its own alignment is justified
+    const Qt::Alignment alignment = effectiveAlignment(ownAlignment(block.blockFormat()));
 
     QTextOption textOption;
     textOption.setAlignment(alignment);

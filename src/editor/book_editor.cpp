@@ -152,8 +152,9 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
 
 /// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
 ///
-/// Each paragraph gets zero margins and its alignment, and its text on a clean base format
-/// with the run formats on top. Shared by loading a chapter and pasting Kalahari content,
+/// Each paragraph gets zero margins and its own alignment, if it has one (without one it
+/// is shown with the default), and its text on a clean base format with the run formats
+/// on top. Shared by loading a chapter and pasting Kalahari content,
 /// so both read KML the same way.
 void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
     QTextBlockFormat zeroMarginFormat;
@@ -162,7 +163,9 @@ void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
 
     for (size_t i = 0; i < model.paragraphCount(); ++i) {
         QTextBlockFormat blockFormat = zeroMarginFormat;
-        blockFormat.setAlignment(model.paragraphAlignment(i));
+        if (const Qt::Alignment alignment = model.paragraphAlignment(i); alignment) {
+            blockFormat.setAlignment(alignment);
+        }
         if (i > 0) {
             cursor.insertBlock(blockFormat);
         } else {
@@ -1749,14 +1752,14 @@ void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 Qt::Alignment BookEditor::currentAlignment() const
 {
     if (!m_textBuffer) {
-        return Qt::AlignLeft;
+        return DEFAULT_PARAGRAPH_ALIGNMENT;
     }
 
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (block.isValid()) {
-        return block.blockFormat().alignment();
+        return effectiveAlignment(ownAlignment(block.blockFormat()));
     }
-    return Qt::AlignLeft;
+    return DEFAULT_PARAGRAPH_ALIGNMENT;
 }
 
 void BookEditor::toggleFormat(ElementType formatType)

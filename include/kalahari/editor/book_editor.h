@@ -522,8 +522,8 @@ public:
     /// @brief Set justify alignment on current paragraph
     void setAlignJustify();
 
-    /// @brief Get alignment of current paragraph
-    /// @return Current paragraph alignment (Qt::AlignLeft, Qt::AlignHCenter, Qt::AlignRight, Qt::AlignJustify)
+    /// @brief Get the alignment the current paragraph is shown with
+    /// @return Its own alignment, or DEFAULT_PARAGRAPH_ALIGNMENT without one
     Qt::Alignment currentAlignment() const;
 
     // =========================================================================
