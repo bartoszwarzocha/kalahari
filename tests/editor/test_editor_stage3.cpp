@@ -667,6 +667,27 @@ TEST_CASE("Stage3 find: a match far down a long chapter is shown when found",
 }
 
 // =============================================================================
+// Paragraph alignment
+// =============================================================================
+
+TEST_CASE("Stage3 alignment: aligning selected paragraphs is one undo step",
+          "[editor][stage3][format]") {
+    // Regression: each paragraph was a separate undo step
+    const QString kml = kmlOf({QStringLiteral("One"), QStringLiteral("Two"), QStringLiteral("Three")});
+    auto editor = editorWith(kml);
+    editor->setSelection({{0, 1}, {2, 2}});
+    editor->setAlignCenter();
+    for (QTextBlock block = editor->textDocument()->begin(); block.isValid(); block = block.next()) {
+        CHECK(block.blockFormat().alignment() == Qt::AlignHCenter);
+    }
+    editor->undo();
+    CHECK(editor->toKml() == kml);
+    editor->redo();
+    CHECK(editor->textDocument()->lastBlock().blockFormat().alignment() == Qt::AlignHCenter);
+    CHECK(editor->textDocument()->firstBlock().blockFormat().alignment() == Qt::AlignHCenter);
+}
+
+// =============================================================================
 // Cursor
 // =============================================================================
 

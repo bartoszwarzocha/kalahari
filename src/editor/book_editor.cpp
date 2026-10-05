@@ -1689,113 +1689,25 @@ bool BookEditor::isStrikethrough() const
 
 void BookEditor::setAlignLeft()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignLeft);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignLeft);
 }
 
 void BookEditor::setAlignCenter()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignHCenter);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignHCenter);
 }
 
 void BookEditor::setAlignRight()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignRight);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignRight);
 }
 
 void BookEditor::setAlignJustify()
+{
+    setParagraphAlignment(Qt::AlignJustify);
+}
+
+void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 {
     if (!m_textBuffer) {
         return;
@@ -1811,16 +1723,19 @@ void BookEditor::setAlignJustify()
         endPara = normRange.end.paragraph;
     }
 
+    // All the paragraphs in one undo step
     QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
     for (int i = startPara; i <= endPara; ++i) {
         QTextBlock block = m_textBuffer->findBlockByNumber(i);
         if (block.isValid()) {
             cursor.setPosition(block.position());
             QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignJustify);
+            format.setAlignment(alignment);
             cursor.setBlockFormat(format);
         }
     }
+    cursor.endEditBlock();
 
     // Phase 12.3: Mark pipeline dirty for relayout
     if (m_renderPipeline) {

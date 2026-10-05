@@ -1010,6 +1010,9 @@ private:
     /// report the change
     void finishEdit(const QTextCursor& cursor);
 
+    /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
+    void setParagraphAlignment(Qt::Alignment alignment);
+
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
 
