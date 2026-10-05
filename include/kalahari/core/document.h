@@ -95,6 +95,12 @@ public:
     void setLanguage(const std::string& language);
     void setGenre(const std::string& genre);
 
+    /// @brief Restore identity read from an existing manifest (does not touch modified)
+    /// @param id Document id
+    /// @param created Creation timestamp
+    void restoreIdentity(const std::string& id,
+                         const std::chrono::system_clock::time_point& created);
+
     /// @brief Get book structure (mutable)
     /// @return Reference to book
     Book& getBook() { return m_book; }

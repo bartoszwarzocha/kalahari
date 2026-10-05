@@ -51,6 +51,12 @@ void Document::setGenre(const std::string& genre) {
     touch();
 }
 
+void Document::restoreIdentity(const std::string& id,
+                               const std::chrono::system_clock::time_point& created) {
+    m_id = id;
+    m_created = created;
+}
+
 void Document::touch() {
     m_modified = std::chrono::system_clock::now();
 }

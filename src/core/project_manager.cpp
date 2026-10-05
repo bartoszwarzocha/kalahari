@@ -225,6 +225,18 @@ bool ProjectManager::openProject(const QString& manifestPath) {
     );
     m_document->setGenre(genre.toStdString());
 
+    // Keep the document identity: the constructor generates a new id and creation time
+    QDateTime created = QDateTime::fromString(documentSection["created"].toString(), Qt::ISODate);
+    if (!docId.isEmpty() && created.isValid()) {
+        m_document->restoreIdentity(
+            docId.toStdString(),
+            std::chrono::system_clock::time_point(
+                std::chrono::milliseconds(created.toMSecsSinceEpoch())));
+    } else {
+        Logger::getInstance().warn("Manifest has no valid id or created timestamp, keeping new ones");
+    }
+    m_manifest = root;
+
     // Set paths
     m_manifestPath = path;
     m_projectPath = path.parent_path();
@@ -234,6 +246,7 @@ bool ProjectManager::openProject(const QString& manifestPath) {
     if (!m_database->open(projectDir)) {
         Logger::getInstance().error("Failed to open project database");
         m_document.reset();
+        m_manifest = QJsonObject();
         m_projectLock.reset();
         m_database.reset();
         return false;
@@ -299,6 +312,7 @@ bool ProjectManager::closeProject(bool promptSave) {
     m_document.reset();
     m_projectPath.clear();
     m_manifestPath.clear();
+    m_manifest = QJsonObject();
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
@@ -315,8 +329,9 @@ bool ProjectManager::saveManifest() {
 
     Logger::getInstance().debug("Saving manifest to: {}", m_manifestPath.string());
 
-    // Build manifest JSON
-    QJsonObject root;
+    // Build manifest JSON on top of the one read from disk, so fields this
+    // version does not manage survive a save
+    QJsonObject root = m_manifest;
 
     // Kalahari section
     QJsonObject kalahariSection;
@@ -325,7 +340,7 @@ bool ProjectManager::saveManifest() {
     root["kalahari"] = kalahariSection;
 
     // Document section
-    QJsonObject documentSection;
+    QJsonObject documentSection = root["document"].toObject();
     documentSection["id"] = QString::fromStdString(m_document->getId());
     documentSection["title"] = QString::fromStdString(m_document->getTitle());
     documentSection["author"] = QString::fromStdString(m_document->getAuthor());
@@ -344,18 +359,20 @@ bool ProjectManager::saveManifest() {
     // Structure section - serialize book structure
     root["structure"] = saveStructureToManifest();
 
-    // Statistics section
-    QJsonObject statisticsSection;
-    statisticsSection["totalWords"] = 0;
-    statisticsSection["totalChapters"] = 0;
-    statisticsSection["lastEdited"] = "";
-    root["statistics"] = statisticsSection;
-
-    // Settings section
-    QJsonObject settingsSection;
-    settingsSection["defaultPerspective"] = "writer";
-    settingsSection["autoSaveInterval"] = 300;
-    root["settings"] = settingsSection;
+    // Statistics and settings sections: defaults only for a new manifest
+    if (!root.contains("statistics")) {
+        QJsonObject statisticsSection;
+        statisticsSection["totalWords"] = 0;
+        statisticsSection["totalChapters"] = 0;
+        statisticsSection["lastEdited"] = "";
+        root["statistics"] = statisticsSection;
+    }
+    if (!root.contains("settings")) {
+        QJsonObject settingsSection;
+        settingsSection["defaultPerspective"] = "writer";
+        settingsSection["autoSaveInterval"] = 300;
+        root["settings"] = settingsSection;
+    }
 
     // Write to file
     QJsonDocument jsonDoc(root);

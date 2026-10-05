@@ -448,6 +448,7 @@ private:
     std::unique_ptr<Document> m_document;     ///< Current document
     std::filesystem::path m_projectPath;      ///< Project root folder path
     std::filesystem::path m_manifestPath;     ///< Path to .klh manifest file
+    QJsonObject m_manifest;                   ///< Manifest as read, so saving keeps unknown fields
     bool m_isDirty;                           ///< Has unsaved changes
 
     // OpenSpec #00041: SQLite Project Database
