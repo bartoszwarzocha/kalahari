@@ -226,6 +226,8 @@ MainWindow::MainWindow(QWidget* parent)
     auto& pm = core::ProjectManager::getInstance();
     connect(&pm, &core::ProjectManager::projectOpened,
             m_documentCoordinator, &DocumentCoordinator::onProjectOpened);
+    connect(&pm, &core::ProjectManager::projectAboutToClose,
+            m_documentCoordinator, &DocumentCoordinator::prepareForProjectClose);
     connect(&pm, &core::ProjectManager::projectClosed,
             m_documentCoordinator, &DocumentCoordinator::onProjectClosed);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");

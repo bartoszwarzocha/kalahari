@@ -18,6 +18,7 @@ set(TEST_SOURCES
     core/test_chapter_document.cpp
     core/test_text_statistics.cpp
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
+    core/test_project_manager.cpp
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
     core/test_plugin_manager.cpp
@@ -94,6 +95,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp
     ${CMAKE_SOURCE_DIR}/src/core/database_schema_manager.cpp
@@ -165,6 +167,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h # Sub-Project C WS4.1: CommandRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h   # IconRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h # ProjectManager with Q_OBJECT
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features

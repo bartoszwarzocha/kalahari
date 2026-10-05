@@ -406,6 +406,12 @@ int main(int argc, char *argv[]) {
         });
     }
 
+    // Close the project while Qt is still alive: the ProjectManager singleton is
+    // destroyed after QApplication, when the Qt SQL connection registry is gone.
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, []() {
+        kalahari::core::ProjectManager::getInstance().closeProject();
+    });
+
     logger.info("Main window shown - entering event loop");
 
     int result = app.exec();

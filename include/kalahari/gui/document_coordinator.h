@@ -207,6 +207,12 @@ public slots:
     /// @param projectPath Path to the opened project
     void onProjectOpened(const QString& projectPath);
 
+    /// @brief Prepare services for project close (before database is destroyed)
+    ///
+    /// Connected to ProjectManager::projectAboutToClose, so StatisticsCollector
+    /// and other services flush data before the database closes.
+    void prepareForProjectClose();
+
     /// @brief Handle project closed event
     void onProjectClosed();
 
@@ -276,12 +282,6 @@ private:
     /// @param askForPath Ask for a new file name (Save As) instead of using the current one
     /// @return true when the document was written
     bool saveSingleDocument(EditorPanel* editor, bool askForPath);
-
-    /// @brief Prepare services for project close (before database is destroyed)
-    ///
-    /// This must be called BEFORE ProjectManager::closeProject() to ensure
-    /// StatisticsCollector and other services flush data before database closes.
-    void prepareForProjectClose();
 
     QMainWindow* m_mainWindow;
     QTabWidget* m_centralTabs;
