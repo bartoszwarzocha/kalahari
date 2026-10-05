@@ -276,6 +276,7 @@ bool ProjectManager::closeProject(bool promptSave) {
     }
 
     Logger::getInstance().info("Closing project: {}", m_manifestPath.string());
+    emit projectAboutToClose();
 
     // OpenSpec #00041: Backup and close database
     if (m_backupManager && m_database && m_database->isOpen()) {
