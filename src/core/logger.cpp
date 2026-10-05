@@ -4,8 +4,8 @@
 #include <kalahari/core/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <filesystem>
 #include <vector>
-#include <stdexcept>
 
 namespace kalahari {
 namespace core {
@@ -16,6 +16,27 @@ Logger& Logger::getInstance() {
     return instance;
 }
 
+spdlog::sink_ptr Logger::openFileSink(const std::string& logFilePath, std::string& openedPath) {
+    std::vector<std::string> candidates{logFilePath};
+    std::error_code ec;
+    const auto tempDir = std::filesystem::temp_directory_path(ec);
+    if (!ec) {
+        candidates.push_back((tempDir / "kalahari.log").string());
+    }
+
+    for (const auto& path : candidates) {
+        try {
+            auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path, true);
+            openedPath = path;
+            return sink;
+        } catch (const spdlog::spdlog_ex&) {
+            // Not writable, try the next location
+        }
+    }
+    openedPath.clear();
+    return nullptr;
+}
+
 void Logger::init(const std::string& logFilePath) {
     if (m_logger) {
         // Already initialized - just log a warning
@@ -23,44 +44,48 @@ void Logger::init(const std::string& logFilePath) {
         return;
     }
 
-    try {
-        // Create sinks (console + file)
-        std::vector<spdlog::sink_ptr> sinks;
+    // Create sinks (console + file)
+    std::vector<spdlog::sink_ptr> sinks;
 
-        // Console sink (color output to stdout/stderr)
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        console_sink->set_level(spdlog::level::trace);
-        sinks.push_back(console_sink);
+    // Console sink (color output to stdout/stderr)
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::trace);
+    sinks.push_back(console_sink);
 
-        // File sink (write to log file)
-        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath, true);
+    // File sink (write to log file, with a fallback when it is not writable)
+    auto file_sink = openFileSink(logFilePath, m_logFilePath);
+    if (file_sink) {
         file_sink->set_level(spdlog::level::trace);
         sinks.push_back(file_sink);
+    }
 
-        // Create logger with both sinks
-        m_logger = std::make_shared<spdlog::logger>("kalahari", sinks.begin(), sinks.end());
+    // Create logger with both sinks
+    m_logger = std::make_shared<spdlog::logger>("kalahari", sinks.begin(), sinks.end());
 
-        // Set log level based on build type
+    // Set log level based on build type
 #ifdef NDEBUG
-        m_logger->set_level(spdlog::level::info);  // Release: info and above
+    m_logger->set_level(spdlog::level::info);  // Release: info and above
 #else
-        m_logger->set_level(spdlog::level::debug); // Debug: all messages
+    m_logger->set_level(spdlog::level::debug); // Debug: all messages
 #endif
 
-        // Set pattern: [timestamp] [level] message
-        m_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+    // Set pattern: [timestamp] [level] message
+    m_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 
-        // Register as default logger
-        spdlog::set_default_logger(m_logger);
+    // Register as default logger
+    spdlog::set_default_logger(m_logger);
 
-        // Flush on every message (safer, minimal performance impact)
-        m_logger->flush_on(spdlog::level::trace);
+    // Flush on every message (safer, minimal performance impact)
+    m_logger->flush_on(spdlog::level::trace);
 
-        m_logger->info("Logger initialized (log file: {})", logFilePath);
-
-    } catch (const spdlog::spdlog_ex& ex) {
-        // If we can't initialize logger, throw exception
-        throw std::runtime_error(std::string("Failed to initialize logger: ") + ex.what());
+    if (m_logFilePath.empty()) {
+        m_logger->warn("Cannot write log file {} or a temp-directory fallback - logging to console only",
+                       logFilePath);
+    } else {
+        if (m_logFilePath != logFilePath) {
+            m_logger->warn("Cannot write log file {} - using {}", logFilePath, m_logFilePath);
+        }
+        m_logger->info("Logger initialized (log file: {})", m_logFilePath);
     }
 }
 

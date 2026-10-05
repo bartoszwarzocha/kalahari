@@ -19,6 +19,7 @@ set(TEST_SOURCES
     core/test_text_statistics.cpp
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_project_manager.cpp
+    core/test_logger.cpp
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
     core/test_plugin_manager.cpp

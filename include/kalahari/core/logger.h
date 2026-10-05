@@ -35,12 +35,24 @@ public:
     static Logger& getInstance();
 
     /// @brief Initialize the logger with file output
-    /// @param logFilePath Absolute path to the log file
-    /// @throws std::runtime_error if logger initialization fails
+    /// @param logFilePath Path to the log file
     ///
     /// This method should be called once during application startup.
-    /// It creates both console and file sinks for output.
+    /// It creates both console and file sinks for output. When the file cannot
+    /// be written (e.g. a read-only working directory), the log goes to
+    /// kalahari.log in the system temp directory, and failing that to the
+    /// console only; startup never fails because of the log file.
     void init(const std::string& logFilePath);
+
+    /// @brief Path of the log file actually in use
+    /// @return Path passed to init(), its temp-directory fallback, or empty when logging to the console only
+    const std::string& getLogFilePath() const { return m_logFilePath; }
+
+    /// @brief Open a log file sink, falling back to the system temp directory
+    /// @param logFilePath Preferred log file path
+    /// @param[out] openedPath Path of the opened file, empty when none could be opened
+    /// @return File sink, or nullptr when neither path is writable
+    static spdlog::sink_ptr openFileSink(const std::string& logFilePath, std::string& openedPath);
 
     /// @brief Check if logger has been initialized
     /// @return true if init() has been called, false otherwise
@@ -153,6 +165,9 @@ private:
 
     /// @brief The underlying spdlog logger instance
     std::shared_ptr<spdlog::logger> m_logger;
+
+    /// @brief Log file in use (empty when logging to the console only)
+    std::string m_logFilePath;
 };
 
 } // namespace core
