@@ -45,6 +45,8 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <chrono>
+#include <functional>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -95,6 +97,19 @@ inline QString paragraphText(QTextDocument* doc, int index) {
 }
 
 namespace {
+
+/// @brief Undo item that calls back when its step is undone or redone
+class CallbackUndoItem final : public QAbstractUndoItem {
+public:
+    explicit CallbackUndoItem(std::function<void()> callback)
+        : m_callback(std::move(callback)) {}
+
+    void undo() override { m_callback(); }
+    void redo() override { m_callback(); }
+
+private:
+    std::function<void()> m_callback;
+};
 
 /// @brief Typography settings as the layout applies them (pixels at 100% zoom)
 LayoutTypography layoutTypography(const EditorTypography& typography) {
@@ -1445,11 +1460,13 @@ void BookEditor::undo()
     // QTextDocument's native undo is the single source of truth for BOTH text and
     // formatting. undo(&cursor) also positions the cursor at the change — mirror it
     // into the editor's own cursor model.
+    m_stepCursor.reset();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
+    restoreStepCursor();
 
     syncPipelineCursor();
     ensureCursorVisible();
@@ -1464,11 +1481,13 @@ void BookEditor::redo()
         return;
     }
 
+    m_stepCursor.reset();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
+    restoreStepCursor();
 
     syncPipelineCursor();
     ensureCursorVisible();
@@ -1726,9 +1745,13 @@ void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
         endPara = normRange.end.paragraph;
     }
 
-    // All the paragraphs in one undo step
+    // All the paragraphs in one undo step. Undoing or redoing it brings back the cursor and
+    // selection it was made with: QTextDocument would put the cursor after the last
+    // paragraph changed, so the next paragraph's alignment would show.
     QTextCursor cursor(m_textBuffer.get());
     cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
     for (int i = startPara; i <= endPara; ++i) {
         QTextBlock block = m_textBuffer->findBlockByNumber(i);
         if (block.isValid()) {
@@ -1747,6 +1770,16 @@ void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 
     emit contentChanged();
     update();
+}
+
+void BookEditor::restoreStepCursor()
+{
+    // The step changed no text, so its cursor and selection fit the text on both sides of it
+    if (m_stepCursor) {
+        m_cursorPosition = validateCursorPosition(m_stepCursor->cursor);
+        setSelection(m_stepCursor->selection);
+        m_stepCursor.reset();
+    }
 }
 
 Qt::Alignment BookEditor::currentAlignment() const

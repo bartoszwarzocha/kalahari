@@ -1013,6 +1013,10 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
+    /// @brief Put back the cursor and selection a paragraph format step just undone or
+    /// redone was made with
+    void restoreStepCursor();
+
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
 
@@ -1363,6 +1367,16 @@ private:
 
     /// @brief True when m_textBuffer is populated and being used for editing
     bool m_isEditMode = false;
+
+    /// @brief Cursor and selection a paragraph format step was made with
+    struct StepCursor {
+        CursorPosition cursor;
+        SelectionRange selection;
+    };
+
+    /// @brief Set by the undo item of a paragraph format step being undone or redone
+    /// (see setParagraphAlignment())
+    std::optional<StepCursor> m_stepCursor;
 
     /// @brief Scroll offset for view mode (when ViewportManager has no document)
     double m_viewModeScrollOffset = 0.0;

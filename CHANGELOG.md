@@ -80,7 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Aligning selected paragraphs took one undo step per paragraph** - 2026-10-05. Left,
-  center, right and justified alignment of a selection is now undone at once.
+  center, right and justified alignment of a selection is now undone at once. Undo and
+  redo leave the cursor and selection on the aligned paragraphs (the cursor used to jump
+  to the next paragraph).
 - **Editor cursor settings were ignored** - 2026-10-04. The cursor shape (line, block,
   underline) and the line width chosen in the settings now apply. Block and underline
   cursors are as wide as the character under them, also zoomed or in bold, and the

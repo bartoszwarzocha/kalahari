@@ -687,6 +687,54 @@ TEST_CASE("Stage3 alignment: aligning selected paragraphs is one undo step",
     CHECK(editor->textDocument()->firstBlock().blockFormat().alignment() == Qt::AlignHCenter);
 }
 
+TEST_CASE("Stage3 alignment: undo and redo keep the cursor on the aligned paragraphs",
+          "[editor][stage3][format]") {
+    // Regression: QTextDocument put the cursor after the last aligned paragraph, so the
+    // toolbar showed the alignment of the next one
+    auto editor = editorWith(QStringLiteral(
+        "<kml><p>One</p><p>Two</p><p align=\"right\">Three</p><p align=\"center\">Four</p></kml>"));
+
+    SECTION("the cursor in one paragraph") {
+        editor->setCursorPosition({1, 2});
+        editor->setAlignCenter();
+        editor->undo();
+        CHECK(editor->cursorPosition() == CursorPosition{1, 2});
+        CHECK(editor->currentAlignment() == Qt::AlignJustify);
+        editor->redo();
+        CHECK(editor->cursorPosition() == CursorPosition{1, 2});
+        CHECK(editor->currentAlignment() == Qt::AlignHCenter);
+    }
+
+    SECTION("a selection over several paragraphs stays selected") {
+        const SelectionRange selected{{0, 1}, {2, 3}};
+        editor->setCursorPosition({2, 3});
+        editor->setSelection(selected);
+        editor->setAlignLeft();
+        editor->undo();
+        CHECK(editor->selection().start == selected.start);
+        CHECK(editor->selection().end == selected.end);
+        CHECK(editor->cursorPosition() == CursorPosition{2, 3});
+        CHECK(editor->currentAlignment() == Qt::AlignRight);
+        editor->redo();
+        CHECK(editor->selection().start == selected.start);
+        CHECK(editor->selection().end == selected.end);
+        CHECK(editor->currentAlignment() == Qt::AlignLeft);
+    }
+
+    SECTION("undoing a later edit puts the cursor at that edit") {
+        editor->setCursorPosition({1, 2});
+        editor->setAlignCenter();
+        editor->undo();
+        editor->setCursorPosition({3, 4});
+        editor->insertText(QStringLiteral("!"));
+        editor->undo();
+        CHECK(editor->toKml().contains(QStringLiteral("<p>Two</p>")));
+        CHECK(editor->cursorPosition() == CursorPosition{3, 4});
+        editor->redo();
+        CHECK(editor->cursorPosition() == CursorPosition{3, 5});
+    }
+}
+
 namespace {
 
 /// Right edge of the text on line @p lineIndex of @p block, trailing spaces left out
