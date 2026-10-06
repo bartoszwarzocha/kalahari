@@ -225,9 +225,9 @@ void EditorRenderPipeline::computeDpiScaling() {
     m_context.computed.mmToPixels = m_context.screenDpi / MM_PER_INCH;
     m_context.computed.totalScale = m_context.zoomFactor;
 
-    // viewScale depends on zoom mode
+    // viewScale depends on zoom mode; pages at 100% have their size on paper
     if (m_context.zoomMode == ZoomMode::PageScaling) {
-        m_context.computed.viewScale = m_context.computed.totalScale;
+        m_context.computed.viewScale = m_context.computed.totalScale * m_context.paperScale;
     } else {
         m_context.computed.viewScale = 1.0;  // FontScaling: scale in font, not painter
     }
@@ -454,6 +454,16 @@ void EditorRenderPipeline::setConfigZoom(double factor, ZoomMode mode) {
     computeViewGeometry();
 
     m_heightDirty = true;
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigPaperScale(double scale) {
+    scale = scale > 0.0 ? scale : 1.0;
+    if (std::abs(m_context.paperScale - scale) < 1e-6) return;  // No change
+
+    m_context.paperScale = scale;
+    computeDpiScaling();  // The page view's scale
+    computeViewGeometry();
     markAllDirty();
 }
 

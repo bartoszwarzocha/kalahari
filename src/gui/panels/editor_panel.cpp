@@ -8,7 +8,10 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
+#include <QEvent>
+#include <QScreen>
 #include <QVBoxLayout>
+#include <cmath>
 
 namespace kalahari {
 namespace gui {
@@ -216,8 +219,32 @@ void EditorPanel::applySettings() {
 
     // Apply appearance
     m_bookEditor->setAppearance(appearance);
+    applyPaperScale();
 
     logger.debug("EditorPanel settings applied to BookEditor");
+}
+
+void EditorPanel::applyPaperScale() {
+    // Zoom 100% shows the pages at their size on paper, from the size of the screen
+    const QScreen* panelScreen = screen();
+    const double scale = editor::BookEditor::paperScaleOf(panelScreen);
+    if (std::abs(scale - m_bookEditor->paperScale()) < 1e-6) {
+        return;
+    }
+    m_bookEditor->setPaperScale(scale);
+    core::Logger::getInstance().info(
+        "EditorPanel: pages at their size on paper, scale {:.3f} (screen {:.1f} dpi, logical {:.1f})",
+        scale, panelScreen ? panelScreen->physicalDotsPerInch() : 0.0,
+        panelScreen ? panelScreen->logicalDotsPerInch() : 0.0);
+}
+
+bool EditorPanel::event(QEvent* event) {
+    // Shown, or moved to another screen, the pages keep their size on paper
+    if ((event->type() == QEvent::Show || event->type() == QEvent::ScreenChangeInternal) &&
+        m_bookEditor) {
+        applyPaperScale();
+    }
+    return QWidget::event(event);
 }
 
 void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector) {

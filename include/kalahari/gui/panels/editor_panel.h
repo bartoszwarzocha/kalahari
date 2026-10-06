@@ -101,7 +101,14 @@ signals:
     /// Forwarded from BookEditor/KmlDocument content changes.
     void contentChanged();
 
+protected:
+    /// @brief Keeps the pages at their size on paper when the panel is shown or moves to
+    ///        another screen
+    bool event(QEvent* event) override;
+
 private:
+    /// @brief Set the editor's paper scale from the screen the panel is on
+    void applyPaperScale();
 
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
 

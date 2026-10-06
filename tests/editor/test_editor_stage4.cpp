@@ -5,7 +5,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/render_context.h>
 #include <kalahari/editor/view_modes.h>
 #include "editor_test_utils.h"
 
@@ -497,6 +499,61 @@ TEST_CASE("Stage4 page mode: the page format and the gap come from the appearanc
     const double narrow = pageTwoTop(20.0);
     const double wide = pageTwoTop(60.0);
     CHECK(wide - narrow == Catch::Approx(40.0).margin(1.0));
+}
+
+TEST_CASE("Stage4 zoom: 100% shows the pages at their size on paper",
+          "[editor][stage4][pagemode][dpi]") {
+    // Regression: zoom 100% gave the size of the system's display scaling, which on a laptop
+    // screen (2560 x 1600 pixels, 37 cm wide, 125% scaling) is two thirds of the paper
+    const double physicalDpi = 2560.0 / (370.0 / 25.4) / 1.25;  // Device-independent
+    const double scale = BookEditor::paperScaleFor(physicalDpi, 96.0);
+    REQUIRE(scale == Approx(1.464).margin(0.001));
+
+    EditorRenderPipeline pipeline;
+    RenderContext context;
+    context.viewMode = ViewMode::Page;
+    context.zoomMode = ZoomMode::PageScaling;
+    context.pageMode.pageSize = QSizeF(595.28, 841.89);  // A4 in points
+    context.paperScale = scale;
+    pipeline.configure(context);
+    const auto& computed = pipeline.context().computed;
+    // 210 mm on the screen
+    CHECK(computed.pageWidthPixels * computed.viewScale / physicalDpi * 25.4 ==
+          Approx(210.0).margin(0.1));
+    context.zoomFactor = 2.0;
+    pipeline.configure(context);
+    CHECK(pipeline.context().computed.viewScale == Approx(2.0 * scale));
+
+    // The scroll modes lay the text out at the zoomed font size, as before
+    context.viewMode = ViewMode::Continuous;
+    context.zoomMode = ZoomMode::FontScaling;
+    context.font = QFont(QStringLiteral("Arial"), 12);
+    pipeline.configure(context);
+    CHECK(pipeline.context().computed.viewScale == Approx(1.0));
+    CHECK(pipeline.context().computed.effectiveFont.pointSizeF() == Approx(24.0));
+
+    // A screen that reports no size or a made-up one keeps the size of the display scaling
+    CHECK(BookEditor::paperScaleFor(0.0, 96.0) == 1.0);
+    CHECK(BookEditor::paperScaleFor(96.0, 0.0) == 1.0);
+    CHECK(BookEditor::paperScaleFor(30.0, 96.0) == 1.0);
+    CHECK(BookEditor::paperScaleFor(1000.0, 96.0) == 1.0);
+
+    SECTION("the editor's pages and its zoom to fit") {
+        auto editor = editorIn(ViewMode::Page);
+        paint(*editor);
+        const double caretHeight = caret(*editor).height();
+        editor->zoomToPageWidth();
+        const double pageWidthZoom = editor->zoomFactor();
+
+        editor->setZoomFactor(1.0);
+        editor->setPaperScale(scale);
+        paint(*editor);
+        CHECK(editor->paperScale() == Approx(scale));
+        CHECK(caret(*editor).height() == Approx(caretHeight * scale).margin(0.5));
+        // Page Width fills the view as before: the zoom it needs is smaller by the scale
+        editor->zoomToPageWidth();
+        CHECK(editor->zoomFactor() == Approx(pageWidthZoom / scale).margin(0.001));
+    }
 }
 
 TEST_CASE("Stage4 typewriter: typing keeps the cursor line at the focus height",

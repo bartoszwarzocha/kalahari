@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Margins used to be squeezed until their fields overlapped).
   - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
     Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
+  - Zoom 100% shows the pages at their size on paper, from the size the screen reports (on
+    a laptop screen at 125% display scaling they were two thirds of it); the Continuous
+    view keeps the text size of the display scaling.
 - **Editor: typewriter scrolling is a toggle** - 2026-10-06
   - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
     and is remembered. The line being written stays at one height of the view (Settings >

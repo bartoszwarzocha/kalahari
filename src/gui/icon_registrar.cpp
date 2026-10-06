@@ -174,6 +174,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.zoomIn", "resources/icons/twotone/zoom_in.svg", "Zoom In");
     iconRegistry.registerIcon("view.zoomOut", "resources/icons/twotone/zoom_out.svg", "Zoom Out");
     iconRegistry.registerIcon("view.resetZoom", "resources/icons/twotone/fit_screen.svg", "Reset Zoom");
+    iconRegistry.registerIcon("view.zoomPageWidth", "resources/icons/twotone/swap_horiz.svg", "Page Width");
+    iconRegistry.registerIcon("view.zoomWholePage", "resources/icons/twotone/zoom_out_map.svg", "Whole Page");
+    iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 

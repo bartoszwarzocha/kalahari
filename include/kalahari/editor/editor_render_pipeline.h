@@ -176,6 +176,10 @@ public:
     /// @param mode How zoom is applied (FontScaling or PageScaling)
     void setConfigZoom(double factor, ZoomMode mode);
 
+    /// @brief Set the page view's widget pixels per layout pixel at zoom 100% (recalculates:
+    ///        viewScale; see RenderContext::paperScale)
+    void setConfigPaperScale(double scale);
+
     /// @brief Set the view typography (recalculates: typography)
     /// @param typography Line spacing, paragraph spacing and first-line indent; lengths
     ///                   in pixels at 100% zoom

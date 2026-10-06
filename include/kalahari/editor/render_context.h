@@ -193,6 +193,11 @@ struct RenderContext {
     /// to pixels with, so page sizes in points and margins in mm match the text
     double screenDpi = DEFAULT_DPI;
 
+    /// Page mode: widget pixels per layout pixel at zoom 100%. The screen's physical DPI
+    /// over its logical DPI shows the pages at their size on paper; 1 gives the size of the
+    /// system's display scaling.
+    double paperScale = 1.0;
+
     // -------------------------------------------------------------------------
     // Typography
     // -------------------------------------------------------------------------

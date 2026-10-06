@@ -43,6 +43,7 @@ class QInputMethodEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QVariantAnimation;
+class QScreen;
 class QScrollBar;
 class QTimer;
 class QUndoStack;
@@ -597,6 +598,21 @@ public:
     /// @brief Set zoom factor
     /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
     void setZoomFactor(double factor);
+
+    /// @brief Widget pixels per layout pixel at zoom 100% in the Page Layout view. With the
+    ///        screen's paperScaleOf(), 100% shows the pages at their size on paper; 1 (the
+    ///        default) gives the size of the system's display scaling.
+    void setPaperScale(double scale);
+
+    /// @brief The page view's widget pixels per layout pixel at zoom 100% (setPaperScale())
+    double paperScale() const;
+
+    /// @brief The paper scale of a screen: its physical DPI over its logical DPI (the one
+    ///        the text is laid out with), or 1 where its reported size gives no likely ratio
+    static double paperScaleOf(const QScreen* screen);
+
+    /// @brief The paper scale for a physical and a logical DPI (see paperScaleOf())
+    static double paperScaleFor(double physicalDpi, double logicalDpi);
 
     /// @brief Zoom the pages to fill the width of the view (Page Layout view)
     void zoomToPageWidth();

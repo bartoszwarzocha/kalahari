@@ -40,6 +40,7 @@
 #include <QVariantAnimation>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
+#include <QScreen>
 #include <QScrollBar>
 #include <QTimer>
 #include <QUndoStack>
@@ -2365,6 +2366,42 @@ void BookEditor::scrollToPageTop(int page)
                     ctx.pageMode.pageSpacing + ctx.computed.originY / ctx.computed.viewScale);
 }
 
+void BookEditor::setPaperScale(double scale)
+{
+    if (!m_renderPipeline) {
+        return;
+    }
+    m_renderPipeline->setConfigPaperScale(scale);
+    if (m_viewMode == ViewMode::Page) {
+        updateScrollBarRange();
+        updateHorizontalScrollBar();
+        updateTypewriterScroll(false);
+        update();
+    }
+}
+
+double BookEditor::paperScale() const
+{
+    return m_renderPipeline ? m_renderPipeline->context().paperScale : 1.0;
+}
+
+double BookEditor::paperScaleOf(const QScreen* screen)
+{
+    return screen ? paperScaleFor(screen->physicalDotsPerInch(), screen->logicalDotsPerInch())
+                  : 1.0;
+}
+
+double BookEditor::paperScaleFor(double physicalDpi, double logicalDpi)
+{
+    // A screen that reports no size, or a made-up one, gives a ratio far from any real
+    // screen's (from about 70 to 300 pixels per inch at 100% to 300% display scaling)
+    if (physicalDpi <= 0.0 || logicalDpi <= 0.0) {
+        return 1.0;
+    }
+    const double ratio = physicalDpi / logicalDpi;
+    return ratio >= 0.5 && ratio <= 3.0 ? ratio : 1.0;
+}
+
 void BookEditor::zoomToPageWidth()
 {
     if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
@@ -2372,7 +2409,8 @@ void BookEditor::zoomToPageWidth()
     }
     // The page with the gap on both sides fills the width left of the scroll bar
     const RenderContext& ctx = m_renderPipeline->context();
-    const double pagesWidth = ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing;
+    const double pagesWidth =
+        (ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing) * ctx.paperScale;
     if (pagesWidth > 0.0) {
         applyZoom((width() - ctx.scrollBarWidth) / pagesWidth,
                   QPointF(width() / 2.0, height() / 2.0));
@@ -2387,8 +2425,8 @@ void BookEditor::zoomToWholePage()
     // The page with the gaps around it fits the view; the cursor's page is shown
     const RenderContext& ctx = m_renderPipeline->context();
     const double gaps = 2.0 * ctx.pageMode.pageSpacing;
-    const double pageWidth = ctx.computed.pageWidthPixels + gaps;
-    const double pageHeight = ctx.computed.pageHeightPixels + gaps;
+    const double pageWidth = (ctx.computed.pageWidthPixels + gaps) * ctx.paperScale;
+    const double pageHeight = (ctx.computed.pageHeightPixels + gaps) * ctx.paperScale;
     if (pageWidth <= 0.0 || pageHeight <= 0.0) {
         return;
     }
