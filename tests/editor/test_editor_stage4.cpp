@@ -413,6 +413,32 @@ TEST_CASE("Stage4 page mode: the first line of a page is shown on that page",
     CHECK(editor->currentPage() == 2);
 }
 
+TEST_CASE("Stage4 page mode: the page format and the gap come from the appearance",
+          "[editor][stage4][pagemode]") {
+    auto editor = editorIn(ViewMode::Page);
+    paint(*editor);
+    const int a4Pages = editor->totalPages();
+
+    // A smaller page holds less text
+    EditorAppearance appearance = editor->appearance();
+    appearance.pageLayout.pageSize = PageLayout::PageSize::A5;
+    editor->setAppearance(appearance);
+    paint(*editor);
+    CHECK(editor->totalPages() > a4Pages);
+
+    // A wider gap moves the sheet of a page, put at the top of the view, down by as much
+    const auto pageTwoTop = [&](double gap) {
+        appearance.pageLayout.pageGap = gap;
+        editor->setAppearance(appearance);
+        editor->goToPage(2);
+        paint(*editor);
+        return caret(*editor).top();
+    };
+    const double narrow = pageTwoTop(20.0);
+    const double wide = pageTwoTop(60.0);
+    CHECK(wide - narrow == Catch::Approx(40.0).margin(1.0));
+}
+
 TEST_CASE("Stage4 typewriter: typing keeps the cursor line at the focus height",
           "[editor][stage4][typewriter]") {
     for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {

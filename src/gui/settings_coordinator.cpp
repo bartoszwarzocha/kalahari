@@ -161,6 +161,7 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.pageSize = settings.get<std::string>("editor.page.size", "A4");
     settingsData.pageCustomWidth = settings.get<double>("editor.page.customWidth", 210.0);
     settingsData.pageCustomHeight = settings.get<double>("editor.page.customHeight", 297.0);
+    settingsData.pageGap = settings.get<int>("editor.page.gap", 20);
     settingsData.pageShowNumbers = settings.get<bool>("editor.page.showNumbers", true);
     settingsData.typewriterFocusPercent = static_cast<int>(
         std::lround(settings.get<double>("editor.typewriter.focusPosition", 0.5) * 100.0));

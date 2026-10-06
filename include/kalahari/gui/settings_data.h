@@ -120,6 +120,7 @@ struct SettingsData {
     double pageCustomWidth = 210.0;              ///< Custom page width in mm
     double pageCustomHeight = 297.0;             ///< Custom page height in mm
     bool pageShowNumbers = true;                 ///< Page numbers at the bottom of the pages
+    int pageGap = 20;                            ///< Gap between the pages in pixels (at 100%)
     int typewriterFocusPercent = 50;             ///< Height of the cursor line (% of the view)
     bool typewriterSmoothScroll = true;          ///< Glide to the cursor line
 
@@ -288,6 +289,7 @@ struct SettingsData {
                pageCustomWidth != other.pageCustomWidth ||
                pageCustomHeight != other.pageCustomHeight ||
                pageShowNumbers != other.pageShowNumbers ||
+               pageGap != other.pageGap ||
                typewriterFocusPercent != other.typewriterFocusPercent ||
                typewriterSmoothScroll != other.typewriterSmoothScroll ||
                // Text frame border settings
@@ -388,6 +390,7 @@ struct SettingsData {
                pageCustomWidth != other.pageCustomWidth ||
                pageCustomHeight != other.pageCustomHeight ||
                pageShowNumbers != other.pageShowNumbers ||
+               pageGap != other.pageGap ||
                typewriterFocusPercent != other.typewriterFocusPercent ||
                typewriterSmoothScroll != other.typewriterSmoothScroll ||
                // Text frame border settings

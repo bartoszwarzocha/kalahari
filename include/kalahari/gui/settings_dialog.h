@@ -284,6 +284,7 @@ private:
     QComboBox* m_pageSizeComboBox = nullptr;
     QDoubleSpinBox* m_pageCustomWidthSpinBox = nullptr;
     QDoubleSpinBox* m_pageCustomHeightSpinBox = nullptr;
+    QSpinBox* m_pageGapSpinBox = nullptr;
     QCheckBox* m_pageShowNumbersCheckBox = nullptr;
 
     // Page margins (Page Layout view)

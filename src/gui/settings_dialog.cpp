@@ -1349,8 +1349,16 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
         m_pageCustomHeightSpinBox->setEnabled(custom);
     });
 
+    QLabel* pageGapLabel = new QLabel(tr("Gap between pages:"));
+    m_pageGapSpinBox = new QSpinBox();
+    m_pageGapSpinBox->setRange(0, 100);
+    m_pageGapSpinBox->setSuffix(tr(" px"));
+    m_pageGapSpinBox->setToolTip(tr("Space between the pages and around them, at 100% zoom"));
+    pageGrid->addWidget(pageGapLabel, 3, 0);
+    pageGrid->addWidget(m_pageGapSpinBox, 3, 1);
+
     m_pageShowNumbersCheckBox = new QCheckBox(tr("Show page numbers"));
-    pageGrid->addWidget(m_pageShowNumbersCheckBox, 3, 0, 1, 2);
+    pageGrid->addWidget(m_pageShowNumbersCheckBox, 4, 0, 1, 2);
 
     pageGrid->setColumnStretch(1, 1);
     layout->addWidget(pageGroup);
@@ -2109,6 +2117,7 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     const bool customPage = m_pageSizeComboBox->currentData().toString() == QStringLiteral("Custom");
     m_pageCustomWidthSpinBox->setEnabled(customPage);
     m_pageCustomHeightSpinBox->setEnabled(customPage);
+    m_pageGapSpinBox->setValue(settings.pageGap);
     m_pageShowNumbersCheckBox->setChecked(settings.pageShowNumbers);
     m_typewriterFocusSpinBox->setValue(settings.typewriterFocusPercent);
     m_typewriterSmoothCheckBox->setChecked(settings.typewriterSmoothScroll);
@@ -2247,6 +2256,7 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.pageSize = m_pageSizeComboBox->currentData().toString().toStdString();
     settingsData.pageCustomWidth = m_pageCustomWidthSpinBox->value();
     settingsData.pageCustomHeight = m_pageCustomHeightSpinBox->value();
+    settingsData.pageGap = m_pageGapSpinBox->value();
     settingsData.pageShowNumbers = m_pageShowNumbersCheckBox->isChecked();
     settingsData.typewriterFocusPercent = m_typewriterFocusSpinBox->value();
     settingsData.typewriterSmoothScroll = m_typewriterSmoothCheckBox->isChecked();
@@ -2540,6 +2550,7 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.set("editor.page.size", settings.pageSize);
         settingsManager.set("editor.page.customWidth", settings.pageCustomWidth);
         settingsManager.set("editor.page.customHeight", settings.pageCustomHeight);
+        settingsManager.set("editor.page.gap", settings.pageGap);
         settingsManager.set("editor.page.showNumbers", settings.pageShowNumbers);
         settingsManager.set("editor.typewriter.focusPosition", settings.typewriterFocusPercent / 100.0);
         settingsManager.set("editor.typewriter.smoothScroll", settings.typewriterSmoothScroll);

@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Page Up / Page Down move by one view height in every view mode, keeping the cursor's
     place in the view and its column.
   - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
-    Legal or a custom size, and page numbers on or off.
+    Legal or a custom size, the gap between the pages, and page numbers on or off.
   - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
     Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
 - **Editor: typewriter scrolling is a toggle** - 2026-10-06

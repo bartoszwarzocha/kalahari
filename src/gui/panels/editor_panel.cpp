@@ -199,6 +199,7 @@ void EditorPanel::applySettings() {
         QString::fromStdString(settings.get<std::string>("editor.page.size", "A4")));
     appearance.pageLayout.customWidth = settings.get<double>("editor.page.customWidth", 210.0);
     appearance.pageLayout.customHeight = settings.get<double>("editor.page.customHeight", 297.0);
+    appearance.pageLayout.pageGap = settings.get<int>("editor.page.gap", 20);
     appearance.pageLayout.showPageNumbers = settings.get<bool>("editor.page.showNumbers", true);
 
     // Typewriter scrolling (View > Typewriter Scrolling; the height in the settings)
