@@ -101,10 +101,14 @@ public:
 
 private:
     /// @brief Private constructor (singleton)
-    PluginManager() = default;
+    PluginManager();
 
     /// @brief Private destructor
-    ~PluginManager() = default;
+    ///
+    /// Releases the Python objects of loaded plugins safely. The destruction
+    /// order of this singleton and PythonInterpreter is not fixed, so the
+    /// interpreter may already be finalized here.
+    ~PluginManager();
 
     /// @brief Read and parse manifest.json from .kplugin archive
     /// @param kpluginPath Path to .kplugin file

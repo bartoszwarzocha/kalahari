@@ -1240,7 +1240,6 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
 
 void DocumentCoordinator::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
 
     // =========================================================================
     // OpenSpec #00042 Task 7.7: End statistics session and disconnect
@@ -1274,21 +1273,6 @@ void DocumentCoordinator::onProjectClosed() {
         m_styleResolver->invalidateCache();
     }
 
-    // Save Navigator expansion state before clearing
-    QString projectPath = pm.getProjectPath();
-    if (!projectPath.isEmpty()) {
-        QFileInfo pathInfo(projectPath);
-        QString projectId = pathInfo.absoluteFilePath()
-            .replace("/", "_")
-            .replace("\\", "_")
-            .replace(":", "_")
-            .replace(" ", "_");
-        m_navigatorPanel->saveExpansionState(projectId);
-        // Persist to disk immediately
-        core::SettingsManager::getInstance().save();
-        logger.debug("Saved expansion state for project: {}", projectId.toStdString());
-    }
-
     // Clear Navigator panel
     m_navigatorPanel->clearAllModifiedIndicators();  // Clear modified indicators first (OpenSpec #00042 Phase 7.5)
     m_navigatorPanel->clearDocument();
@@ -1310,6 +1294,25 @@ void DocumentCoordinator::onProjectClosed() {
 
 void DocumentCoordinator::prepareForProjectClose() {
     auto& logger = core::Logger::getInstance();
+
+    // =========================================================================
+    // Save Navigator expansion state while the project path is still known.
+    // closeProject() clears the path before it emits projectClosed, so this
+    // cannot wait for onProjectClosed().
+    // =========================================================================
+    const QString projectPath = core::ProjectManager::getInstance().getProjectPath();
+    if (!projectPath.isEmpty() && m_navigatorPanel) {
+        QFileInfo pathInfo(projectPath);
+        QString projectId = pathInfo.absoluteFilePath()
+            .replace("/", "_")
+            .replace("\\", "_")
+            .replace(":", "_")
+            .replace(" ", "_");
+        m_navigatorPanel->saveExpansionState(projectId);
+        // Persist to disk immediately
+        core::SettingsManager::getInstance().save();
+        logger.debug("Saved expansion state for project: {}", projectId.toStdString());
+    }
 
     // =========================================================================
     // End statistics session BEFORE database is closed

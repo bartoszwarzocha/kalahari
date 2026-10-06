@@ -1481,10 +1481,7 @@ void NavigatorPanel::saveExpansionState(const QString& projectId) {
 
     logger.debug("NavigatorPanel::saveExpansionState() - Project: {}", projectId.toStdString());
 
-    QStringList expandedIds;
-    for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
-        collectExpandedIds(m_treeWidget->topLevelItem(i), expandedIds);
-    }
+    QStringList expandedIds = expandedItemIds();
 
     // Store in settings (comma-separated list)
     auto& settings = core::SettingsManager::getInstance();
@@ -1507,18 +1504,33 @@ void NavigatorPanel::restoreExpansionState(const QString& projectId) {
 
     auto& settings = core::SettingsManager::getInstance();
     std::string key = "navigator.expansion." + projectId.toStdString();
-    std::string value = settings.get<std::string>(key, "");
-
-    if (value.empty()) {
+    if (!settings.hasKey(key)) {
         logger.debug("NavigatorPanel: No saved expansion state for project {}", projectId.toStdString());
         return;
     }
 
+    // An empty value is a valid state: everything collapsed
+    std::string value = settings.get<std::string>(key, "");
     QStringList ids = QString::fromStdString(value).split(",", Qt::SkipEmptyParts);
-    expandItemsById(ids);
+    setExpandedItemIds(ids);
 
     logger.debug("NavigatorPanel: Restored {} expanded items for project {}",
                  ids.size(), projectId.toStdString());
+}
+
+QStringList NavigatorPanel::expandedItemIds() const {
+    QStringList expandedIds;
+    for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
+        collectExpandedIds(m_treeWidget->topLevelItem(i), expandedIds);
+    }
+    return expandedIds;
+}
+
+void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
+    // Items expanded by default (document, body, parts) must close too,
+    // otherwise a collapsed part would reopen on every load
+    m_treeWidget->collapseAll();
+    expandItemsById(ids);
 }
 
 void NavigatorPanel::collectExpandedIds(QTreeWidgetItem* item, QStringList& expandedIds) const {

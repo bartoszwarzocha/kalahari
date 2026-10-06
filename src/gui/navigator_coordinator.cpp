@@ -86,7 +86,10 @@ EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
 void NavigatorCoordinator::refreshNavigator() {
     auto& pm = core::ProjectManager::getInstance();
     if (pm.getDocument()) {
+        // Rebuilding the tree resets expansion to defaults, so keep the user's state
+        const QStringList expandedIds = m_navigatorPanel->expandedItemIds();
         m_navigatorPanel->loadDocument(*pm.getDocument());
+        m_navigatorPanel->setExpandedItemIds(expandedIds);
     }
     emit refreshNavigatorRequested();
 }

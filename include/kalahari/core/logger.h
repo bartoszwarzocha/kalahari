@@ -120,6 +120,12 @@ public:
     /// for critical logging points.
     void flush();
 
+    /// @brief Stop logging; later calls to the log methods do nothing
+    ///
+    /// Called automatically at process exit, before the spdlog statics
+    /// created by init() are destroyed.
+    void shutdown();
+
     /// @brief Get the underlying spdlog logger
     ///
     /// Provides direct access to spdlog logger for advanced use cases.

@@ -14,6 +14,7 @@
 #include <QMap>
 #include <QSet>
 #include <QString>
+#include <QStringList>
 
 class QAction;
 class QTreeWidget;
@@ -86,6 +87,14 @@ public:
     /// @param projectId Unique identifier for the project
     /// @note Call after loadDocument() to restore tree expansion state
     void restoreExpansionState(const QString& projectId);
+
+    /// @brief Get IDs of all expanded items
+    /// @return Item IDs, "type:<elementType>:<text>" for sections without IDs
+    QStringList expandedItemIds() const;
+
+    /// @brief Expand exactly the given items and collapse all others
+    /// @param ids Item IDs as returned by expandedItemIds()
+    void setExpandedItemIds(const QStringList& ids);
 
     /// @brief Refresh a single item's display text by element ID
     /// @param elementId Element ID of the item to refresh

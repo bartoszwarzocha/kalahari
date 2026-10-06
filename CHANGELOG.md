@@ -114,6 +114,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Navigator forgot which parts and sections were expanded** - 2026-10-06. The state is
+  now saved when a book is closed and restored when it is reopened, including parts the
+  user collapsed. Renaming or deleting an item no longer resets the tree.
 - **Aligning selected paragraphs took one undo step per paragraph** - 2026-10-05. Left,
   center, right and justified alignment of a selection is now undone at once. Undo and
   redo leave the cursor and selection on the aligned paragraphs (the cursor used to jump
