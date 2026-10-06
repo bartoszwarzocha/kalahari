@@ -11,6 +11,7 @@
 #include <kalahari/editor/view_modes.h>
 #include "editor_test_utils.h"
 
+#include <QAbstractTextDocumentLayout>
 #include <QCoreApplication>
 #include <QImage>
 #include <QKeyEvent>
@@ -367,6 +368,36 @@ std::vector<int> lineStarts(BookEditor& editor, int blocks) {
     return starts;
 }
 
+struct LineSpan {
+    double top;
+    double bottom;
+};
+
+/// The text of every line, in document units
+std::vector<LineSpan> lineSpans(BookEditor& editor) {
+    QAbstractTextDocumentLayout* layout = editor.textDocument()->documentLayout();
+    std::vector<LineSpan> lines;
+    for (QTextBlock block = editor.textDocument()->begin(); block.isValid();
+         block = block.next()) {
+        const QTextLayout* blockLayout = KalahariTextDocumentLayout::blockLayout(block);
+        const double blockTop = layout->blockBoundingRect(block).top();
+        for (int i = 0; blockLayout && i < blockLayout->lineCount(); ++i) {
+            const QTextLine line = blockLayout->lineAt(i);
+            lines.push_back({blockTop + line.y(), blockTop + line.y() + line.height()});
+        }
+    }
+    return lines;
+}
+
+/// The top of the view in document units, from the cursor's line and its row in the view
+double viewTop(BookEditor& editor) {
+    const CursorPosition position = editor.cursorPosition();
+    const QTextBlock block = editor.textDocument()->findBlockByNumber(position.paragraph);
+    const double lineTop = editor.textDocument()->documentLayout()->blockBoundingRect(block).top() +
+                           block.layout()->lineForTextPosition(position.offset).y();
+    return lineTop - caret(editor).top() / editor.zoomFactor();
+}
+
 }  // namespace
 
 TEST_CASE("Stage4 page mode: a click lands on the character under it, on every page and zoom",
@@ -659,14 +690,21 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view, the cursor in i
         const QRectF before = caret(*editor);
         const double scroll = editor->scrollOffset();
         const double viewHeight = editor->height() / editor->zoomFactor();
+        // The first line the view does not show in full
+        const double viewBottom = viewTop(*editor) + viewHeight;
+        const std::vector<LineSpan> lines = lineSpans(*editor);
+        const auto cut = std::find_if(lines.begin(), lines.end(), [&](const LineSpan& line) {
+            return line.bottom > viewBottom + 0.5;
+        });
+        REQUIRE(cut != lines.end());
 
         pressKey(*editor, Qt::Key_PageDown);
         paint(*editor);
         CHECK(editor->cursorPosition().paragraph > 2);
         CHECK(editor->scrollOffset() > scroll + viewHeight / 2.0);
-        if (mode == ViewMode::Continuous) {
-            CHECK(editor->scrollOffset() <= scroll + viewHeight + 0.5);
-        }
+        // No line skipped: the view starts at that line at the latest (it may pass over the
+        // space between the paragraphs or the pages at the bottom of the view)
+        CHECK(viewTop(*editor) <= cut->top + 0.5);
         // The cursor keeps its place in the view: its line in the same row
         CHECK(caret(*editor).top() == Approx(before.top()).margin(0.5));
 
@@ -689,31 +727,9 @@ TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no li
         auto* layout =
             qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
         layout->layoutPendingBlocks();
-        const double zoom = editor->zoomFactor();
-        const double viewHeight = editor->height() / zoom;
+        const double viewHeight = editor->height() / editor->zoomFactor();
         const double documentHeight = layout->documentSize().height();
-
-        // The text of every line, in document units
-        struct LineSpan {
-            double top;
-            double bottom;
-        };
-        std::vector<LineSpan> lines;
-        for (QTextBlock block = editor->textDocument()->begin(); block.isValid();
-             block = block.next()) {
-            const QTextLayout* blockLayout = KalahariTextDocumentLayout::blockLayout(block);
-            const double blockTop = layout->blockBoundingRect(block).top();
-            for (int i = 0; blockLayout && i < blockLayout->lineCount(); ++i) {
-                const QTextLine line = blockLayout->lineAt(i);
-                lines.push_back({blockTop + line.y(), blockTop + line.y() + line.height()});
-            }
-        }
-        const auto caretLineTop = [&] {
-            const CursorPosition position = editor->cursorPosition();
-            const QTextBlock block = editor->textDocument()->findBlockByNumber(position.paragraph);
-            return layout->blockBoundingRect(block).top() +
-                   block.layout()->lineForTextPosition(position.offset).y();
-        };
+        const std::vector<LineSpan> lines = lineSpans(*editor);
 
         editor->setCursorPosition({1, 5});
         paint(*editor);
@@ -721,9 +737,9 @@ TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no li
         std::vector<bool> seen(lines.size(), false);
         for (int press = 0; press < 400; ++press) {
             // The lines fully in view
-            const double viewTop = caretLineTop() - caret(*editor).top() / zoom;
+            const double top = viewTop(*editor);
             for (size_t i = 0; i < lines.size(); ++i) {
-                if (lines[i].top >= viewTop - 0.5 && lines[i].bottom <= viewTop + viewHeight + 0.5) {
+                if (lines[i].top >= top - 0.5 && lines[i].bottom <= top + viewHeight + 0.5) {
                     seen[i] = true;
                 }
             }
@@ -734,8 +750,7 @@ TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no li
                 break;  // The end of the text
             }
             // The row holds until the view reaches the end of the text
-            const double newViewTop = caretLineTop() - caret(*editor).top() / zoom;
-            if (newViewTop + viewHeight < documentHeight - 1.0) {
+            if (viewTop(*editor) + viewHeight < documentHeight - 1.0) {
                 CAPTURE(press);
                 CHECK(caret(*editor).top() == Approx(row).margin(0.5));
             }
