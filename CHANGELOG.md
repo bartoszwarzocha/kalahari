@@ -151,6 +151,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Focus mode dimmed nothing** - 2026-10-06. View > View Mode > Focus (Ctrl+4) now dims
+  every paragraph but the one with the cursor, and the bright paragraph follows the
+  cursor.
 - **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
   paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
   "/* */" or "<!-- -->" in the text a comment highlight, while the TODO markers, notes and

@@ -38,10 +38,9 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
 
         // Targeted repaint for cursor movement
         if (m_renderPipeline) {
-            // For focus mode, repaint old and new paragraphs
-            if (m_appearance.focusMode.enabled && oldPos.paragraph != validatedPos.paragraph) {
-                // Mark old and new paragraphs dirty (pipeline handles this now)
-                update();  // Full update needed for focus mode paragraph change
+            // Focus mode: the paragraph left is dimmed, the one entered is not
+            if (m_viewMode == ViewMode::Focus && oldPos.paragraph != validatedPos.paragraph) {
+                update();
             } else {
                 // Just cursor moved within same paragraph or no focus mode
                 updateCursorArea();

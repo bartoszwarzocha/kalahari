@@ -473,9 +473,6 @@ private:
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 
-    /// @brief Render focus mode overlay
-    void renderFocusOverlay(QPainter* painter, const QRect& clipRect);
-
     /// @brief Render the visible text: selection, highlights, paragraphs, cursor and drop
     ///        caret (only the visible paragraphs: O(visible), not O(n))
     void renderText(QPainter* painter, const QRect& clipRect);

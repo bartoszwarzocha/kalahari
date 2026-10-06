@@ -365,3 +365,36 @@ TEST_CASE("Stage5 files: text with CR LF line ends gives one paragraph per line"
     CHECK(editor->paragraphCount() == 3);
     CHECK(editor->plainText() == QStringLiteral("one\ntwo\n"));
 }
+
+// =============================================================================
+// Focus mode
+// =============================================================================
+
+TEST_CASE("Stage5 focus: the paragraphs other than the cursor's are dimmed", "[editor][stage5][focus]") {
+    auto editor = editorWith(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph"),
+                                    QStringLiteral("Third paragraph")}));
+    // Focus mode lays the text out as the continuous view, so the same areas hold the text
+    const QRect first = rangeArea(*editor, 0, 0, 5);
+    const QRect second = rangeArea(*editor, 1, 0, 6);
+    const QRect third = rangeArea(*editor, 2, 0, 5);
+    editor->setCursorPosition({1, 2});
+    const QImage continuous = editorImage(*editor);
+
+    editor->setViewMode(ViewMode::Focus);
+    const QImage focus = editorImage(*editor);
+    CHECK(differingPixels(continuous, focus, first) > 0);
+    CHECK(differingPixels(continuous, focus, second) == 0);
+    CHECK(differingPixels(continuous, focus, third) > 0);
+
+    SECTION("the focus follows the cursor") {
+        editor->setCursorPosition({2, 0});
+        const QImage moved = editorImage(*editor);
+        CHECK(differingPixels(continuous, moved, second) > 0);
+        CHECK(differingPixels(continuous, moved, third) == 0);
+    }
+
+    SECTION("leaving focus mode shows all the text as before") {
+        editor->setViewMode(ViewMode::Continuous);
+        CHECK(differingPixels(continuous, editorImage(*editor), editor->rect()) == 0);
+    }
+}

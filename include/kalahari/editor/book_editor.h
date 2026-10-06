@@ -1234,38 +1234,6 @@ private:
     void moveCursorToDocEndWithSelection(bool extend);
 
     // =========================================================================
-    // Focus Mode (Phase 5.6)
-    // =========================================================================
-
-    /// @brief Range of content that is currently focused
-    ///
-    /// In Focus Mode, content outside this range is dimmed to help
-    /// the user concentrate on the focused area.
-    struct FocusedRange {
-        int startParagraph{0};    ///< First paragraph in focused range
-        int endParagraph{0};      ///< Last paragraph in focused range (inclusive)
-        int startLine{0};         ///< First line within start paragraph (for Line scope)
-        int endLine{0};           ///< Last line within end paragraph (for Line scope)
-    };
-
-    /// @brief Calculate the currently focused range based on cursor position
-    /// @return Range of paragraphs/lines that should be focused
-    ///
-    /// The range is determined by m_appearance.focusMode.scope:
-    /// - Paragraph: The paragraph containing the cursor
-    /// - Line: The specific line containing the cursor
-    /// - Sentence: Currently treated same as Paragraph
-    FocusedRange getFocusedRange() const;
-
-    /// @brief Paint the focus mode overlay (dimming effect)
-    /// @param painter The painter to draw with
-    ///
-    /// Uses QTextDocument and ViewportManager for O(log N) performance.
-    /// Draws semi-transparent overlays over non-focused content to
-    /// create the focus effect.
-    void paintFocusOverlay(QPainter& painter);
-
-    // =========================================================================
     // Distraction-Free Mode (Phase 5.7)
     // =========================================================================
 
