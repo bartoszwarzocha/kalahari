@@ -272,6 +272,13 @@ if(COMMAND kalahari_add_pch)
     kalahari_add_pch(kalahari)
 endif()
 
+# UI translations: lrelease compiles the .ts files into .qm files embedded under :/i18n.
+# After changing UI strings, refresh the .ts files with: cmake --build <dir> --target update_translations
+qt_add_translations(kalahari
+    TS_FILES ${CMAKE_SOURCE_DIR}/translations/kalahari_pl.ts
+    LUPDATE_OPTIONS -no-obsolete -locations none
+)
+
 # Target properties
 set_target_properties(kalahari PROPERTIES
     OUTPUT_NAME "kalahari"
