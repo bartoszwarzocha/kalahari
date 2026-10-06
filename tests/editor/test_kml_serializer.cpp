@@ -1116,13 +1116,29 @@ TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roun
         REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignJustify);
     }
 
-    SECTION("Left alignment omits attribute") {
+    SECTION("A paragraph without its own alignment has no attribute") {
         QTextDocument doc;
         QTextCursor cursor(&doc);
-        cursor.insertText("Left text");
+        cursor.insertText("Default text");
 
         QString kml = serializer.toKml(&doc);
         REQUIRE_FALSE(kml.contains("align="));
+    }
+
+    SECTION("Left alignment set on purpose survives round-trip") {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextBlockFormat blockFmt;
+        blockFmt.setAlignment(Qt::AlignLeft);
+        cursor.setBlockFormat(blockFmt);
+        cursor.insertText("Left text");
+
+        QString kml = serializer.toKml(&doc);
+        REQUIRE(kml.contains("align=\"left\""));
+
+        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        REQUIRE(doc2 != nullptr);
+        REQUIRE(doc2->begin().blockFormat().intProperty(QTextFormat::BlockAlignment) == Qt::AlignLeft);
     }
 }
 

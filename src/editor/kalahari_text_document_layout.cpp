@@ -457,11 +457,8 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spa
     // Glyph fonts come from the document's character formats (resolved against the
     // document's default font), so the QTextLayout's own font is irrelevant here.
 
-    // Get alignment from QTextBlockFormat and configure QTextOption
-    Qt::Alignment alignment = block.blockFormat().alignment();
-    if (alignment == 0) {
-        alignment = Qt::AlignLeft;  // Default to left if not set
-    }
+    // A paragraph without its own alignment is justified
+    const Qt::Alignment alignment = effectiveAlignment(ownAlignment(block.blockFormat()));
 
     QTextOption textOption;
     textOption.setAlignment(alignment);
@@ -635,6 +632,17 @@ int KalahariTextDocumentLayout::hitTest(const QPointF& point, Qt::HitTestAccurac
     // Line whose box covers the point (or the nearest line, for a fuzzy hit)
     const qreal localY = y - blockY(number);
     const QTextLine line = layout->lineAt(lineIndexAt(*layout, localY, m_typography.lineSpacing));
+    if (exact) {
+        // An exact hit is on the text of a line: not in the spacing after the paragraph,
+        // nor before or after the text of the line
+        const QRectF box = lineBox(line, m_typography.lineSpacing);
+        const qreal startX = line.cursorToX(line.textStart());
+        const qreal endX = line.cursorToX(line.textStart() + line.textLength());
+        if (localY < box.top() || localY >= box.bottom() || point.x() < qMin(startX, endX) ||
+            point.x() > qMax(startX, endX)) {
+            return -1;
+        }
+    }
     const int pos = line.xToCursor(point.x(), exact ? QTextLine::CursorOnCharacter
                                                     : QTextLine::CursorBetweenCharacters);
     return block.position() + pos;

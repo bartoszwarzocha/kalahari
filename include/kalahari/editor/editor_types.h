@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QString>
+#include <QTextFormat>
 #include <QVector>
 
 namespace kalahari::editor {
@@ -86,5 +87,27 @@ struct LayoutTypography {
 
     bool operator==(const LayoutTypography&) const = default;
 };
+
+/// @brief Alignment of a paragraph without one of its own: justified (Qt leaves the last
+/// line of a justified paragraph at its leading edge)
+inline constexpr Qt::Alignment DEFAULT_PARAGRAPH_ALIGNMENT = Qt::AlignJustify;
+
+/// @brief The horizontal alignment a block format sets itself, none without one
+///
+/// QTextBlockFormat::alignment() reports Qt::AlignLeft for a block without an alignment,
+/// so left alignment set on purpose could not be told from none.
+inline Qt::Alignment ownAlignment(const QTextBlockFormat& format) {
+    return Qt::Alignment(format.intProperty(QTextFormat::BlockAlignment)) &
+           Qt::AlignHorizontal_Mask;
+}
+
+/// @brief The alignment a paragraph is shown with: its own, or the default without one
+inline Qt::Alignment effectiveAlignment(Qt::Alignment own) {
+    own &= Qt::AlignHorizontal_Mask;
+    if (!own) {
+        return DEFAULT_PARAGRAPH_ALIGNMENT;
+    }
+    return own;
+}
 
 }  // namespace kalahari::editor

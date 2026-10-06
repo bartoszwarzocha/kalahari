@@ -322,6 +322,10 @@ void MainWindow::registerCommands() {
     callbacks.onCopy = [this]() { onCopy(); };
     callbacks.onPaste = [this]() { onPaste(); };
     callbacks.onSelectAll = [this]() { onSelectAll(); };
+    callbacks.onFind = [this]() { onFind(); };
+    callbacks.onFindNext = [this]() { onFindNext(); };
+    callbacks.onFindPrevious = [this]() { onFindPrevious(); };
+    callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
     // Format commands (OpenSpec #00042 Phase 7.2)
@@ -582,6 +586,42 @@ void MainWindow::onSelectAll() {
     }
 }
 
+void MainWindow::onFind() {
+    core::Logger::getInstance().info("Action triggered: Find");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->showFind();
+    }
+}
+
+void MainWindow::onFindNext() {
+    core::Logger::getInstance().info("Action triggered: Find Next");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->findNext();
+    }
+}
+
+void MainWindow::onFindPrevious() {
+    core::Logger::getInstance().info("Action triggered: Find Previous");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->findPrevious();
+    }
+}
+
+void MainWindow::onFindReplace() {
+    core::Logger::getInstance().info("Action triggered: Find & Replace");
+
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor->getBookEditor()->showFindReplace();
+    }
+}
+
 // =============================================================================
 // Format Actions (OpenSpec #00042 Phase 7.2)
 // =============================================================================
@@ -836,8 +876,7 @@ void MainWindow::updateEditorActionStates() {
     Qt::Alignment currentAlign = bookEditor->currentAlignment();
     if (auto* leftCmd = registry.getCommand("format.alignLeft")) {
         leftCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft ||
-                   (currentAlign & Qt::AlignHorizontal_Mask) == 0;  // Default is left
+            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft;
         };
         registry.updateActionState("format.alignLeft");
     }

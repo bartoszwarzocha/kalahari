@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: paragraphs without their own alignment are justified** - 2026-10-05
+  - A paragraph with no `align` attribute is shown justified, its last line at the
+    leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as
+    they are; chapter files are not rewritten.
+  - Align Left now saves `align="left"`, so a paragraph aligned left on purpose can be
+    told from one without an alignment.
 - **Editor: layout on demand** - 2026-10-04
   - After a width, font, zoom or typography change, a load or a large paste, only the
     paragraphs on screen are wrapped before the next paint. The others get estimated
@@ -38,6 +44,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editor: drag and drop of text** - 2026-10-04
+  - Selected text can be dragged with the mouse. Dropped in the editor, it moves (with
+    Ctrl it is copied) as one undo step and stays selected; dragged to another program,
+    it carries HTML and plain text. Text dropped from other programs takes the format of
+    the drop point.
+  - A caret shows the drop point. The view scrolls near the top and bottom edges while
+    text is dragged, and when a mouse selection goes past them.
+  - An I-beam pointer over the text, an arrow over the selection.
+- **Editor: find and replace from the Edit menu** - 2026-10-04
+  - Find (Ctrl+F), Find Next (F3), Find Previous (Shift+F3) and Find & Replace (Ctrl+H)
+    work in the active editor (the commands were disabled). The Properties panel toggle
+    moves from F3 to F8: F3 belonged to both commands, so it would have triggered neither.
+  - The search goes on from the cursor, also after an edit, and a selected match counts as
+    the current one. Enter in the find field finds the next match, Shift+Enter the
+    previous one; keys typed in the bar do not reach the text.
+  - Matches are highlighted under the text, so the words stay readable in light and dark
+    modes. They follow the edits paragraph by paragraph: typing in a 150k-word chapter
+    with the find bar open is as fast as without it (searching the whole chapter again
+    cost up to 230 ms per keystroke), and a new search is up to 8 times faster.
+  - A space in the search text also finds a non-breaking space. In regular expressions
+    `\w` and `\b` know letters beyond ASCII, and an expression that can match an empty
+    string (such as `x*`) no longer freezes the editor.
 - **Theme System Foundation:** Sub-Project C - 2026-07-13
   - Test infrastructure: `test::resetSingletons()` hook (in `tests/test_support/`)
     wired into the Catch2 listener for per-test singleton isolation, plus a new
@@ -51,6 +79,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Aligning selected paragraphs took one undo step per paragraph** - 2026-10-05. Left,
+  center, right and justified alignment of a selection is now undone at once. Undo and
+  redo leave the cursor and selection on the aligned paragraphs (the cursor used to jump
+  to the next paragraph).
+- **Editor cursor settings were ignored** - 2026-10-04. The cursor shape (line, block,
+  underline) and the line width chosen in the settings now apply. Block and underline
+  cursors are as wide as the character under them, also zoomed or in bold, and the
+  character under a block stays readable. When the view scrolls, the cursor shows at once
+  instead of in the middle of a blink.
 - **Editor typography settings were ignored** - 2026-10-04. Line spacing, paragraph
   spacing and first-line indent now apply when the text is wrapped and scale with the
   font and zoom; the settings dialog has a Typography group (Editor > General).

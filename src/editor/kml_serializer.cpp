@@ -5,6 +5,7 @@
 /// This is the reverse operation of KmlParser.
 
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum and registry functions
 #include <kalahari/core/logger.h>
 #include <QTextDocument>
@@ -111,8 +112,7 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
 {
     QString attrs;
 
-    QTextBlockFormat blockFormat = block.blockFormat();
-    Qt::Alignment align = blockFormat.alignment();
+    const Qt::Alignment align = ownAlignment(block.blockFormat());
 
     if (align & Qt::AlignHCenter) {
         attrs += QStringLiteral(" align=\"center\"");
@@ -120,8 +120,10 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
         attrs += QStringLiteral(" align=\"right\"");
     } else if (align & Qt::AlignJustify) {
         attrs += QStringLiteral(" align=\"justify\"");
+    } else if (align & Qt::AlignLeft) {
+        attrs += QStringLiteral(" align=\"left\"");
     }
-    // Left alignment is default — no attribute emitted
+    // No attribute: a paragraph without its own alignment, shown with the default
 
     return attrs;
 }

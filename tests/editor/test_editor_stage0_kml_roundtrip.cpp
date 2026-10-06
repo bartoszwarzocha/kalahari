@@ -42,6 +42,7 @@ TEST_CASE("Stage0 KML: paragraph alignment survives load", "[editor][stage0][kml
         Qt::Alignment expected;
     };
     const Case cases[] = {
+        {"left", Qt::AlignLeft},
         {"center", Qt::AlignHCenter},
         {"right", Qt::AlignRight},
         {"justify", Qt::AlignJustify},
@@ -57,12 +58,11 @@ TEST_CASE("Stage0 KML: paragraph alignment survives load", "[editor][stage0][kml
             REQUIRE(doc != nullptr);
             REQUIRE(doc->blockCount() == 2);
 
-            // First paragraph has no attribute -> left (or unset, which renders left)
-            const Qt::Alignment first = doc->begin().blockFormat().alignment();
-            CHECK((first == Qt::AlignLeft || first == Qt::Alignment()));
+            // First paragraph has no attribute: no alignment of its own (shown justified)
+            CHECK(ownAlignment(doc->begin().blockFormat()) == Qt::Alignment());
 
             // Second paragraph carries the attribute
-            CHECK((doc->begin().next().blockFormat().alignment() & c.expected) == c.expected);
+            CHECK(ownAlignment(doc->begin().next().blockFormat()) == c.expected);
         }
     }
 }
@@ -70,13 +70,14 @@ TEST_CASE("Stage0 KML: paragraph alignment survives load", "[editor][stage0][kml
 TEST_CASE("Stage0 KML: paragraph alignment survives save", "[editor][stage0][kml]") {
     const QString kml = QStringLiteral(
         "<kml><p align=\"center\">C</p><p align=\"right\">R</p>"
-        "<p align=\"justify\">J</p><p>L</p></kml>");
+        "<p align=\"justify\">J</p><p align=\"left\">L</p><p>D</p></kml>");
 
     const QString saved = roundTrip(kml);
     CHECK(saved.contains(QStringLiteral("<p align=\"center\">C</p>")));
     CHECK(saved.contains(QStringLiteral("<p align=\"right\">R</p>")));
     CHECK(saved.contains(QStringLiteral("<p align=\"justify\">J</p>")));
-    CHECK(saved.contains(QStringLiteral("<p>L</p>")));
+    CHECK(saved.contains(QStringLiteral("<p align=\"left\">L</p>")));
+    CHECK(saved.contains(QStringLiteral("<p>D</p>")));
 
     // Stable across a second load/save cycle
     CHECK(roundTrip(saved) == saved);

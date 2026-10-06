@@ -586,6 +586,15 @@ void EditorRenderPipeline::setCursorStyle(CursorStyle style) {
     }
 }
 
+void EditorRenderPipeline::setCursorWidth(double width) {
+    width = std::max(1.0, width);
+    if (m_context.cursor.width != width) {
+        markDirty(cursorPaintRect().toAlignedRect());
+        m_context.cursor.width = width;
+        markDirty(cursorPaintRect().toAlignedRect());
+    }
+}
+
 void EditorRenderPipeline::setSelection(const SelectionRange& selection) {
     if (m_selection.start != selection.start || m_selection.end != selection.end) {
         // Mark old selection dirty
@@ -612,12 +621,36 @@ void EditorRenderPipeline::clearSelection() {
     setSelection(SelectionRange{});
 }
 
+void EditorRenderPipeline::setDropCaret(const std::optional<CursorPosition>& position) {
+    if (m_dropCaret == position) {
+        return;
+    }
+    if (m_context.viewMode == ViewMode::Page) {
+        // caretRect() has scroll-mode geometry: repaint the whole view
+        m_dropCaret = position;
+        markRepaintOnly();
+        return;
+    }
+    // Repaint the old and the new caret line
+    if (m_dropCaret) {
+        markDirty(caretRect(*m_dropCaret).toAlignedRect());
+    }
+    m_dropCaret = position;
+    if (m_dropCaret) {
+        markDirty(caretRect(*m_dropCaret).toAlignedRect());
+    }
+}
+
 QRectF EditorRenderPipeline::cursorRect() const {
+    return caretRect(m_cursorPosition);
+}
+
+QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     if (!m_textSource) {
         return QRectF();
     }
 
-    int paraIndex = m_cursorPosition.paragraph;
+    int paraIndex = position.paragraph;
     if (paraIndex < 0 || static_cast<size_t>(paraIndex) >= m_textSource->paragraphCount()) {
         return QRectF();
     }
@@ -632,7 +665,7 @@ QRectF EditorRenderPipeline::cursorRect() const {
     }
 
     // Find line containing cursor - O(log n) using Qt's binary search
-    int offset = m_cursorPosition.offset;
+    int offset = position.offset;
     QTextLine line = layout->lineForTextPosition(offset);
     if (!line.isValid()) {
         line = layout->lineAt(layout->lineCount() - 1);
@@ -745,7 +778,6 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     // Overlays (work in all modes, already viewport-culled)
     renderCommentHighlights(painter, clipRect);
     renderMarkerHighlights(painter, clipRect);
-    renderSearchHighlights(painter, clipRect);
     renderFocusOverlay(painter, clipRect);
 
     painter->restore();
@@ -916,16 +948,24 @@ void EditorRenderPipeline::renderSelection(QPainter* painter, [[maybe_unused]] c
 void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t paraIndex,
                                                      int startOffset, int endOffset,
                                                      double widgetY) {
+    // The band covers the whole line boxes, so the lines of a selection join up
+    fillTextRange(painter, paraIndex, startOffset, endOffset, widgetY, m_context.colors.selection,
+                  true);
+}
+
+void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, int startOffset,
+                                         int endOffset, double widgetY, const QColor& color,
+                                         bool lineBoxes) {
     QTextLayout* layout = m_textSource->layout(paraIndex);
     if (!layout) return;
 
-    // Find lines containing selection
+    // Find lines containing the range
     for (int i = 0; i < layout->lineCount(); ++i) {
         QTextLine line = layout->lineAt(i);
         int lineStart = line.textStart();
         int lineEnd = lineStart + line.textLength();
 
-        // Check if selection intersects this line
+        // Check if the range intersects this line
         if (startOffset < lineEnd && endOffset > lineStart) {
             int selStart = std::max(startOffset, lineStart);
             int selEnd = std::min(endOffset, lineEnd);
@@ -934,22 +974,21 @@ void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t pa
             qreal x2 = line.cursorToX(selEnd);
             if (x1 > x2) std::swap(x1, x2);
 
-            // Convert to widget coordinates - Phase 14: use computed values. The band
-            // covers the whole line box, so the lines of a selection join up.
-            const QRectF box = lineBox(line);
+            // Convert to widget coordinates - Phase 14: use computed values
+            const QRectF band = lineBoxes ? lineBox(line)
+                                          : QRectF(line.x(), line.y(), line.width(), line.height());
             double wx1 = m_context.computed.marginLeft + x1 * m_context.computed.viewScale;
             double wx2 = m_context.computed.marginLeft + x2 * m_context.computed.viewScale;
-            double wy = widgetY + box.y() * m_context.computed.viewScale;
-            double wh = box.height() * m_context.computed.viewScale;
+            double wy = widgetY + band.y() * m_context.computed.viewScale;
+            double wh = band.height() * m_context.computed.viewScale;
 
-            QRectF selRect(wx1, wy, wx2 - wx1, wh);
-            painter->fillRect(selRect, m_context.colors.selection);
+            painter->fillRect(QRectF(wx1, wy, wx2 - wx1, wh), color);
         }
     }
 }
 
-void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_searchEngine || !m_searchEngine->isActive()) return;
+void EditorRenderPipeline::renderSearchHighlights(QPainter* painter) {
+    if (!m_searchEngine || !m_searchEngine->isActive() || !m_textSource) return;
 
     // Matches are sorted by position, so the ones in the visible paragraphs (the same
     // range the text is drawn for) are found by binary search instead of measuring all.
@@ -962,45 +1001,51 @@ void EditorRenderPipeline::renderSearchHighlights(QPainter* painter, const QRect
     const int currentIdx = m_searchEngine->currentMatchIndex();
 
     for (auto it = firstMatch; it != matches.end() && it->paragraph <= lastVisible; ++it) {
-        QRectF matchRect = getTextRect(static_cast<size_t>(it->paragraph),
-                                       it->paragraphOffset,
-                                       static_cast<int>(it->length));
+        const QColor& color = (static_cast<int>(it - matches.begin()) == currentIdx)
+                                  ? m_context.colors.currentMatch
+                                  : m_context.colors.searchHighlight;
 
-        if (matchRect.isEmpty() || !matchRect.intersects(clipRect)) continue;
-
-        QColor color = (static_cast<int>(it - matches.begin()) == currentIdx)
-                           ? m_context.colors.currentMatch
-                           : m_context.colors.searchHighlight;
-
-        painter->fillRect(matchRect, color);
+        // A match is within one paragraph, but may wrap onto the next line
+        const auto paragraph = static_cast<size_t>(it->paragraph);
+        fillTextRange(painter, paragraph, it->paragraphOffset,
+                      it->paragraphOffset + static_cast<int>(it->length),
+                      paragraphWidgetY(paragraph), color, false);
     }
 }
 
 QRectF EditorRenderPipeline::cursorPaintRect() const {
     QRectF rect = cursorRect();
-    if (rect.isEmpty() || !m_textSource) return rect;
+    if (rect.isEmpty() || !m_textSource || m_cursorStyle == CursorStyle::Line) return rect;
 
+    // Block and underline cursors are as wide as the character at the cursor, with its
+    // format and the zoom
     const double scale = m_context.computed.viewScale;
-    if (m_cursorStyle == CursorStyle::Block) {
-        // Block cursor: covers the character at the cursor
-        const QString text = m_textSource->paragraphText(
-            static_cast<size_t>(m_cursorPosition.paragraph));
-        if (m_cursorPosition.offset < text.length()) {
-            const double charWidth =
-                QFontMetricsF(m_context.font).horizontalAdvance(text.at(m_cursorPosition.offset)) *
-                scale;
-            if (charWidth > 0) {
-                rect.setWidth(charWidth);
-            }
-        }
-    } else if (m_cursorStyle == CursorStyle::Underline) {
-        // Underline cursor: a thin bar under the character
-        const double underlineHeight = 2.0 * scale;
-        rect.setTop(rect.bottom() - underlineHeight);
-        rect.setHeight(underlineHeight);
-        rect.setWidth(QFontMetricsF(m_context.font).averageCharWidth() * scale);
+    rect.setWidth(caretCharWidth(m_cursorPosition) * scale);
+    if (m_cursorStyle == CursorStyle::Underline) {
+        // A thin bar under the character
+        rect.setTop(rect.bottom() - 2.0 * scale);
     }
     return rect;
+}
+
+double EditorRenderPipeline::caretCharWidth(const CursorPosition& position) const {
+    const double averageWidth =
+        QFontMetricsF(m_context.computed.effectiveFont).averageCharWidth();
+    if (!m_textSource || position.paragraph < 0 ||
+        static_cast<size_t>(position.paragraph) >= m_textSource->paragraphCount()) {
+        return averageWidth;
+    }
+    QTextLayout* layout = m_textSource->layout(static_cast<size_t>(position.paragraph));
+    if (!layout || layout->lineCount() == 0) {
+        return averageWidth;
+    }
+    const QTextLine line = layout->lineForTextPosition(position.offset);
+    if (!line.isValid() || position.offset >= line.textStart() + line.textLength()) {
+        return averageWidth;
+    }
+    const int next = layout->nextCursorPosition(position.offset);
+    const double width = std::abs(line.cursorToX(next) - line.cursorToX(position.offset));
+    return width > 0.0 ? width : averageWidth;
 }
 
 void EditorRenderPipeline::renderCursor(QPainter* painter) {
@@ -1009,11 +1054,25 @@ void EditorRenderPipeline::renderCursor(QPainter* painter) {
     const QRectF rect = cursorPaintRect();
     if (rect.isEmpty()) return;
 
-    QColor color = m_context.colors.cursor;
-    if (m_cursorStyle == CursorStyle::Block) {
-        color.setAlpha(180);  // Semi-transparent block to show character underneath
+    painter->fillRect(rect, m_context.colors.cursor);
+    if (m_cursorStyle != CursorStyle::Block) return;
+
+    // The character under the block is drawn again in the background color, so it stays
+    // readable
+    const auto paragraph = static_cast<size_t>(m_cursorPosition.paragraph);
+    QTextLayout* layout = m_textSource->layout(paragraph);
+    const QTextLine line = layout ? layout->lineForTextPosition(m_cursorPosition.offset) : QTextLine();
+    if (!line.isValid()) return;
+
+    painter->save();
+    painter->setClipRect(rect, Qt::IntersectClip);
+    painter->setPen(m_context.colors.background);
+    painter->translate(m_context.computed.marginLeft, paragraphWidgetY(paragraph));
+    if (m_context.zoomMode == ZoomMode::PageScaling) {
+        painter->scale(m_context.computed.viewScale, m_context.computed.viewScale);
     }
-    painter->fillRect(rect, color);
+    line.draw(painter, layout->position());
+    painter->restore();
 }
 
 void EditorRenderPipeline::renderFocusOverlay([[maybe_unused]] QPainter* painter,
@@ -1222,17 +1281,25 @@ void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clip
         }
     }
 
+    // Search matches, under the text like the selection (scroll geometry, so not in
+    // Page mode)
+    renderSearchHighlights(painter);
+
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);
 
-    // Cursor (only if cursor paragraph is in visible range)
-    if (m_context.cursor.visible && m_context.cursor.blinkState && m_textSource) {
-        int cursorPara = m_cursorPosition.paragraph;
-        if (cursorPara >= 0 &&
-            static_cast<size_t>(cursorPara) >= m_context.computed.firstVisibleParagraph &&
-            static_cast<size_t>(cursorPara) <= m_context.computed.lastVisibleParagraph) {
-            renderCursor(painter);
-        }
+    // Cursor and drop caret (only if their paragraph is in visible range)
+    const auto isVisible = [this](int paragraph) {
+        return paragraph >= 0 &&
+               static_cast<size_t>(paragraph) >= m_context.computed.firstVisibleParagraph &&
+               static_cast<size_t>(paragraph) <= m_context.computed.lastVisibleParagraph;
+    };
+    if (m_context.cursor.visible && m_context.cursor.blinkState && m_textSource &&
+        isVisible(m_cursorPosition.paragraph)) {
+        renderCursor(painter);
+    }
+    if (m_dropCaret && isVisible(m_dropCaret->paragraph)) {
+        painter->fillRect(caretRect(*m_dropCaret), m_context.colors.cursor);
     }
 }
 
@@ -1424,19 +1491,30 @@ void EditorRenderPipeline::renderSliceSelection(QPainter* painter, const Paragra
 
 void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphSlice& slice,
                                                const QRectF& textRect) {
-    // Check if cursor should be visible
-    if (!m_context.cursor.visible || !m_context.cursor.blinkState) return;
+    if (m_context.cursor.visible && m_context.cursor.blinkState) {
+        renderSliceCaret(painter, slice, textRect, m_cursorPosition, m_cursorStyle,
+                         m_context.colors.cursor);
+    }
+    if (m_dropCaret) {
+        renderSliceCaret(painter, slice, textRect, *m_dropCaret, CursorStyle::Line,
+                         m_context.colors.cursor);
+    }
+}
+
+void EditorRenderPipeline::renderSliceCaret(QPainter* painter, const ParagraphSlice& slice,
+                                              const QRectF& textRect, const CursorPosition& position,
+                                              CursorStyle style, const QColor& color) {
     if (!m_textSource) return;
 
-    // Check if cursor is in this paragraph
-    if (m_cursorPosition.paragraph != static_cast<int>(slice.paraIndex)) return;
+    // Check if the caret is in this paragraph
+    if (position.paragraph != static_cast<int>(slice.paraIndex)) return;
 
     QTextLayout* layout = m_textSource->layout(slice.paraIndex);
     if (!layout || layout->lineCount() == 0) return;
 
     QString text = m_textSource->paragraphText(slice.paraIndex);
     int textLen = static_cast<int>(text.length());
-    int offsetInBlock = m_cursorPosition.offset;
+    int offsetInBlock = position.offset;
     if (offsetInBlock < 0) offsetInBlock = 0;
     if (offsetInBlock > textLen && textLen > 0) offsetInBlock = textLen;
 
@@ -1462,41 +1540,37 @@ void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphS
     painter->save();
     painter->translate(textRect.left(), textRect.top() + slice.yOffset);
 
-    if (m_context.zoomMode == ZoomMode::PageScaling || m_context.viewMode == ViewMode::Page) {
+    const bool scaled =
+        m_context.zoomMode == ZoomMode::PageScaling || m_context.viewMode == ViewMode::Page;
+    if (scaled) {
         painter->scale(scale, scale);
     }
+    // The line cursor and the underline keep their thickness in pixels at every zoom
+    const double pixel = scaled && scale > 0.0 ? 1.0 / scale : 1.0;
 
-    double cursorX = cursorLine.cursorToX(offsetInBlock);
-    double cursorY = cursorLine.y() - firstLineY;
-    double cursorWidth = m_context.cursor.width;
-    double cursorHeight = cursorLine.height();
+    const double cursorX = cursorLine.cursorToX(offsetInBlock);
+    const double cursorY = cursorLine.y() - firstLineY;
+    const double cursorHeight = cursorLine.height();
 
-    QColor cursorColor = m_context.colors.cursor;
-
-    // Adjust based on cursor style
-    if (m_cursorStyle == CursorStyle::Block) {
-        // Block cursor: use character width
-        if (offsetInBlock < textLen) {
-            QFontMetricsF fm(m_context.computed.effectiveFont);
-            QChar ch = text.at(offsetInBlock);
-            double charWidth = fm.horizontalAdvance(ch);
-            if (charWidth > 0) {
-                cursorWidth = charWidth;
-            }
-        }
-        // Semi-transparent block
-        cursorColor.setAlpha(180);
-        painter->fillRect(QRectF(cursorX, cursorY, cursorWidth, cursorHeight), cursorColor);
-    } else if (m_cursorStyle == CursorStyle::Underline) {
-        // Underline cursor
-        double underlineHeight = 2.0;
-        QFontMetricsF fm(m_context.computed.effectiveFont);
-        double charWidth = fm.averageCharWidth();
-        painter->fillRect(QRectF(cursorX, cursorY + cursorHeight - underlineHeight,
-                                  charWidth, underlineHeight), cursorColor);
+    if (style == CursorStyle::Line) {
+        painter->fillRect(QRectF(cursorX, cursorY, m_context.cursor.width * pixel, cursorHeight),
+                          color);
     } else {
-        // Line cursor (default)
-        painter->fillRect(QRectF(cursorX, cursorY, cursorWidth, cursorHeight), cursorColor);
+        // Block and underline cursors are as wide as the character at the cursor
+        const double charWidth = caretCharWidth({position.paragraph, offsetInBlock});
+        if (style == CursorStyle::Block) {
+            const QRectF block(cursorX, cursorY, charWidth, cursorHeight);
+            painter->fillRect(block, color);
+            // The character under the block in the background color, so it stays readable
+            painter->setClipRect(block, Qt::IntersectClip);
+            painter->setPen(m_context.colors.background);
+            cursorLine.draw(painter, QPointF(0, -firstLineY));
+        } else {
+            const double underlineHeight = 2.0 * pixel;
+            painter->fillRect(QRectF(cursorX, cursorY + cursorHeight - underlineHeight, charWidth,
+                                     underlineHeight),
+                              color);
+        }
     }
 
     painter->restore();

@@ -34,6 +34,10 @@
 #include <memory>
 #include <optional>
 
+class QDragEnterEvent;
+class QDragLeaveEvent;
+class QDragMoveEvent;
+class QDropEvent;
 class QInputMethodEvent;
 class QKeyEvent;
 class QMouseEvent;
@@ -415,6 +419,17 @@ public:
     /// @param source MIME data to insert (nothing happens for nullptr)
     void insertFromMimeData(const QMimeData* source);
 
+    /// @brief Insert dropped MIME data at a position and select it, as one undo step
+    ///
+    /// The content is inserted as insertFromMimeData() does. With @p moveSelection the
+    /// content is the selected text, which leaves its old place in the same undo step.
+    /// @param source MIME data to insert
+    /// @param position Drop point
+    /// @param moveSelection Whether the selected text moves to the drop point
+    /// @return false if nothing was dropped: the content cannot be inserted, or the
+    ///         selection would move onto itself
+    bool dropMimeData(const QMimeData* source, const CursorPosition& position, bool moveSelection);
+
     /// @brief Check if paste is available
     /// @return true if clipboard has compatible content
     bool canPaste() const;
@@ -507,8 +522,8 @@ public:
     /// @brief Set justify alignment on current paragraph
     void setAlignJustify();
 
-    /// @brief Get alignment of current paragraph
-    /// @return Current paragraph alignment (Qt::AlignLeft, Qt::AlignHCenter, Qt::AlignRight, Qt::AlignJustify)
+    /// @brief Get the alignment the current paragraph is shown with
+    /// @return Its own alignment, or DEFAULT_PARAGRAPH_ALIGNMENT without one
     Qt::Alignment currentAlignment() const;
 
     // =========================================================================
@@ -662,12 +677,12 @@ public:
 
     /// @brief Show the find bar (find-only mode)
     ///
-    /// If text is selected, uses selection as initial search text.
+    /// Text selected within one paragraph becomes the search text.
     void showFind();
 
     /// @brief Show the find/replace bar
     ///
-    /// If text is selected, uses selection as initial search text.
+    /// Text selected within one paragraph becomes the search text.
     void showFindReplace();
 
     /// @brief Navigate to the next search match
@@ -907,13 +922,17 @@ protected:
     /// @param event The mouse event
     ///
     /// Handles click to position cursor, double-click to select word,
-    /// triple-click to select paragraph.
+    /// triple-click to select paragraph. A press on the selected text may start
+    /// dragging it (see mouseMoveEvent()).
     void mousePressEvent(QMouseEvent* event) override;
 
     /// @brief Mouse move event handler (Phase 3.10)
     /// @param event The mouse event
     ///
-    /// Handles drag selection when mouse button is pressed.
+    /// Extends the selection while the button is held, scrolling when the mouse is
+    /// beyond the top or bottom edge; starts dragging the selected text once the mouse
+    /// moves far enough from a press on it. Without a button, shows an arrow over the
+    /// selected text and an I-beam elsewhere.
     void mouseMoveEvent(QMouseEvent* event) override;
 
     /// @brief Mouse release event handler (Phase 3.10)
@@ -925,6 +944,20 @@ protected:
     ///
     /// Handles double-click to select word.
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+
+    /// @brief Accepts dragged content the editor can insert (Kalahari text or plain text)
+    void dragEnterEvent(QDragEnterEvent* event) override;
+
+    /// @brief Shows where dragged text would land; scrolls near the top and bottom edges
+    void dragMoveEvent(QDragMoveEvent* event) override;
+
+    /// @brief Hides the drop caret when the drag leaves the editor
+    void dragLeaveEvent(QDragLeaveEvent* event) override;
+
+    /// @brief Inserts dropped text at the drop point and selects it
+    ///
+    /// Text moved within the editor leaves its old place in the same undo step.
+    void dropEvent(QDropEvent* event) override;
 
     /// @brief Context menu event handler (Phase 6.9)
     /// @param event The context menu event
@@ -973,13 +1006,16 @@ private:
     /// @brief Setup internal components
     void setupComponents();
 
-    /// @brief Insert a document at the cursor, replacing the selection, as one undo step
-    ///
-    /// Each fragment keeps its character format. Paragraphs inserted whole keep their
-    /// block format; the paragraph the document goes into keeps its own, also on the text
-    /// after the insertion point.
-    /// @param source Document to insert
-    void insertDocument(const QTextDocument& source);
+    /// @brief Put the editor's cursor where an edit of the document ended, show it, and
+    /// report the change
+    void finishEdit(const QTextCursor& cursor);
+
+    /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
+    void setParagraphAlignment(Qt::Alignment alignment);
+
+    /// @brief Put back the cursor and selection a paragraph format step just undone or
+    /// redone was made with
+    void restoreStepCursor();
 
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
@@ -1063,6 +1099,40 @@ private:
     /// Uses QTextDocument and ViewportManager for efficient position calculation.
     /// Page Mode delegates to EditorRenderPipeline::positionFromPoint() (Phase 13.5)
     CursorPosition positionFromPoint(const QPointF& widgetPos) const;
+
+    // Drag and drop of text (stage 3)
+
+    /// @brief Whether a widget point is over the selected text (a press there may drag it)
+    bool isOverSelectedText(const QPointF& widgetPos) const;
+
+    /// @brief Whether a position lies in the selection, its ends included
+    bool isInSelection(const CursorPosition& position) const;
+
+    /// @brief Whether insertFromMimeData() can insert the content
+    static bool canInsertFromMimeData(const QMimeData* source);
+
+    /// @brief Drag the selected text (copy or move)
+    ///
+    /// Text moved to another widget or program is removed here once dropped; a move
+    /// within the editor is done by dropEvent().
+    void startTextDrag();
+
+    /// @brief Extend the mouse selection to a point (past the top or bottom edge: to the
+    /// first or last visible line)
+    void extendMouseSelection(const QPointF& widgetPos);
+
+    /// @brief Scroll while the mouse is beyond the top or bottom edge during selection,
+    /// or near it while text is dragged over the editor
+    void updateAutoScroll(const QPointF& widgetPos, bool forDrop);
+
+    /// @brief Stop scrolling started by updateAutoScroll()
+    void stopAutoScroll();
+
+    /// @brief Pixels to scroll at the last mouse position (negative: up; 0: none)
+    double autoScrollStep() const;
+
+    /// @brief Scroll one step and follow the mouse with the selection or the drop caret
+    void onAutoScrollTimeout();
 
     // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline
 
@@ -1209,6 +1279,14 @@ private:
     static constexpr int MULTI_CLICK_INTERVAL = 400;        ///< Max interval between clicks (ms)
     static constexpr qreal MULTI_CLICK_DISTANCE = 5.0;      ///< Max distance for multi-click
 
+    // Drag and drop of text (stage 3)
+    bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
+    QPointF m_textDragStartPos;         ///< Where that press was
+    QTimer* m_autoScrollTimer = nullptr;  ///< Scrolls while selecting or dragging near the edges
+    QPointF m_autoScrollPos;            ///< Last mouse position for automatic scrolling
+    bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
+    bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
+
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
     CursorPosition m_preeditStart;                          ///< Start position of preedit text
@@ -1290,6 +1368,16 @@ private:
     /// @brief True when m_textBuffer is populated and being used for editing
     bool m_isEditMode = false;
 
+    /// @brief Cursor and selection a paragraph format step was made with
+    struct StepCursor {
+        CursorPosition cursor;
+        SelectionRange selection;
+    };
+
+    /// @brief Set by the undo item of a paragraph format step being undone or redone
+    /// (see setParagraphAlignment())
+    std::optional<StepCursor> m_stepCursor;
+
     /// @brief Scroll offset for view mode (when ViewportManager has no document)
     double m_viewModeScrollOffset = 0.0;
 
@@ -1335,6 +1423,12 @@ private:
 
     /// @brief Setup find/replace components
     void setupFindReplace();
+
+    /// @brief Tell the search engine where the cursor and the selection are
+    void syncSearchOrigin();
+
+    /// @brief Make the selected text the search text, if it lies in one paragraph
+    void takeSearchTextFromSelection();
 
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to

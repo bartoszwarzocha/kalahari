@@ -49,6 +49,9 @@ public:
     void draw(QPainter* painter, const PaintContext& context) override;
 
     /// @brief Hit test - convert point to document position (lays out the block hit)
+    ///
+    /// Qt::FuzzyHit returns the nearest position between characters. Qt::ExactHit returns
+    /// the character under the point, or -1 when the point is not on the text of a line.
     int hitTest(const QPointF& point, Qt::HitTestAccuracy accuracy) const override;
 
     /// @brief Number of pages (always 1 for continuous layout)

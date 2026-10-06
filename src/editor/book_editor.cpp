@@ -15,7 +15,13 @@
 #include <kalahari/gui/find_replace_bar.h>
 #include <QAbstractTextDocumentLayout>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <QApplication>
 #include <QContextMenuEvent>
+#include <QDrag>
+#include <QDragEnterEvent>
+#include <QDragLeaveEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QDateTime>
 #include <QTextLine>  // Phase 11.10: For view mode cursor rendering
 #include <QEasingCurve>
@@ -39,6 +45,8 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <chrono>
+#include <functional>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -50,6 +58,14 @@ constexpr qreal WHEEL_SCROLL_STEP = 60.0;
 
 // Default cursor blink interval in milliseconds
 constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
+
+// Automatic scrolling while selecting with the mouse or dragging text: one step per
+// interval, longer the further the mouse is past the edge (or into the edge band, for
+// dragged text)
+constexpr int AUTO_SCROLL_INTERVAL = 25;           // ms
+constexpr qreal AUTO_SCROLL_DROP_BAND = 24.0;      // px at the top and bottom edges
+constexpr qreal AUTO_SCROLL_MIN_STEP = 2.0;        // px
+constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
 // Phase 12.6: Margins now configurable via m_appearance.viewMargins and m_appearance.pageMargins
 // Phase 12.5: Removed CURSOR_WIDTH (now handled by EditorRenderPipeline)
@@ -81,6 +97,19 @@ inline QString paragraphText(QTextDocument* doc, int index) {
 }
 
 namespace {
+
+/// @brief Undo item that calls back when its step is undone or redone
+class CallbackUndoItem final : public QAbstractUndoItem {
+public:
+    explicit CallbackUndoItem(std::function<void()> callback)
+        : m_callback(std::move(callback)) {}
+
+    void undo() override { m_callback(); }
+    void redo() override { m_callback(); }
+
+private:
+    std::function<void()> m_callback;
+};
 
 /// @brief Typography settings as the layout applies them (pixels at 100% zoom)
 LayoutTypography layoutTypography(const EditorTypography& typography) {
@@ -138,8 +167,9 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
 
 /// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
 ///
-/// Each paragraph gets zero margins and its alignment, and its text on a clean base format
-/// with the run formats on top. Shared by loading a chapter and pasting Kalahari content,
+/// Each paragraph gets zero margins and its own alignment, if it has one (without one it
+/// is shown with the default), and its text on a clean base format with the run formats
+/// on top. Shared by loading a chapter and pasting Kalahari content,
 /// so both read KML the same way.
 void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
     QTextBlockFormat zeroMarginFormat;
@@ -148,7 +178,9 @@ void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
 
     for (size_t i = 0; i < model.paragraphCount(); ++i) {
         QTextBlockFormat blockFormat = zeroMarginFormat;
-        blockFormat.setAlignment(model.paragraphAlignment(i));
+        if (const Qt::Alignment alignment = model.paragraphAlignment(i); alignment) {
+            blockFormat.setAlignment(alignment);
+        }
         if (i > 0) {
             cursor.insertBlock(blockFormat);
         } else {
@@ -195,6 +227,70 @@ QString pastedPlainText(const QString& text) {
         }
     }
     return result;
+}
+
+/// @brief Insert a document at the cursor, replacing its selection, as one edit block
+///
+/// Each fragment keeps its character format. Paragraphs inserted whole keep their block
+/// format; the paragraph the document goes into keeps its own, also on the text after the
+/// insertion point. The cursor ends after the inserted text.
+void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+
+    const QTextBlockFormat targetFormat = cursor.blockFormat();
+    const bool atParagraphStart = cursor.atBlockStart();
+    const bool atParagraphEnd = cursor.atBlockEnd();
+    const int insertionStart = cursor.position();
+    const QTextBlock firstBlock = source.firstBlock();
+    const QTextBlock lastBlock = source.lastBlock();
+
+    for (QTextBlock block = firstBlock; block.isValid(); block = block.next()) {
+        if (block != firstBlock) {
+            // The last inserted paragraph also holds the text after the insertion point,
+            // unless there is none
+            const bool whole = block != lastBlock || (atParagraphEnd && block.length() > 1);
+            cursor.insertBlock(whole ? block.blockFormat() : targetFormat, block.charFormat());
+        }
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            cursor.insertText(fragment.text(), fragment.charFormat());
+        }
+    }
+
+    // The first inserted paragraph is whole when it starts a paragraph and more follow
+    if (firstBlock != lastBlock && atParagraphStart && firstBlock.length() > 1) {
+        QTextCursor first(cursor.document());
+        first.setPosition(insertionStart);
+        first.setBlockFormat(firstBlock.blockFormat());
+    }
+    cursor.endEditBlock();
+}
+
+/// @brief Insert MIME data at the cursor, replacing its selection, as one edit block
+///
+/// Kalahari content (KML) is parsed like a chapter file, so formatting and alignment
+/// survive; text from other programs takes the formatting of the insertion point. Only the
+/// document changes: the editor's cursor and view follow once the outermost edit block has
+/// ended. The cursor ends after the inserted text.
+void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
+    if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
+        KmlDocumentModel model;
+        if (model.loadKml(QString::fromUtf8(source.data(QString::fromLatin1(MIME_KML)))) &&
+            model.paragraphCount() > 0) {
+            QTextDocument content;
+            content.setUndoRedoEnabled(false);
+            QTextCursor contentCursor(&content);
+            appendParagraphs(contentCursor, model);
+            insertDocument(cursor, content);
+            return;
+        }
+        core::Logger::getInstance().warn("BookEditor: unreadable KML, inserting the text");
+    }
+
+    cursor.beginEditBlock();  // the replaced selection and the text: one undo step
+    cursor.insertText(pastedPlainText(source.text()));
+    cursor.endEditBlock();
 }
 
 }  // anonymous namespace
@@ -366,6 +462,7 @@ void BookEditor::setScrollOffset(qreal offset)
             emit scrollOffsetChanged(newOffset);
             updatePipelineScroll();  // Phase 14: lightweight scroll only
             update();
+            resetCursorBlink();
         }
         return;
     }
@@ -382,6 +479,9 @@ void BookEditor::setScrollOffset(qreal offset)
         emit scrollOffsetChanged(newOffset);
         updatePipelineScroll();  // Phase 14: lightweight scroll only
         update();  // Request repaint
+        // Wherever the view stops, the cursor shows at once instead of in the middle of a
+        // blink
+        resetCursorBlink();
     }
 }
 
@@ -1360,11 +1460,13 @@ void BookEditor::undo()
     // QTextDocument's native undo is the single source of truth for BOTH text and
     // formatting. undo(&cursor) also positions the cursor at the change — mirror it
     // into the editor's own cursor model.
+    m_stepCursor.reset();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
+    restoreStepCursor();
 
     syncPipelineCursor();
     ensureCursorVisible();
@@ -1379,11 +1481,13 @@ void BookEditor::redo()
         return;
     }
 
+    m_stepCursor.reset();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
+    restoreStepCursor();
 
     syncPipelineCursor();
     ensureCursorVisible();
@@ -1450,33 +1554,22 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     return mimeData;
 }
 
-void BookEditor::insertFromMimeData(const QMimeData* source)
+bool BookEditor::canInsertFromMimeData(const QMimeData* source)
 {
-    if (!source) {
-        return;
-    }
-
-    // Kalahari content: parsed like a chapter file, so formatting and alignment survive
-    if (source->hasFormat(QString::fromLatin1(MIME_KML))) {
-        KmlDocumentModel model;
-        if (model.loadKml(QString::fromUtf8(source->data(QString::fromLatin1(MIME_KML)))) &&
-            model.paragraphCount() > 0) {
-            QTextDocument content;
-            content.setUndoRedoEnabled(false);
-            QTextCursor cursor(&content);
-            appendParagraphs(cursor, model);
-            insertDocument(content);
-            return;
-        }
-        core::Logger::getInstance().warn("BookEditor: unreadable KML on the clipboard, pasting the text");
-    }
-
-    // Text from other programs takes the formatting of the insertion point
-    insertText(pastedPlainText(source->text()));
+    return source != nullptr &&
+           (source->hasFormat(QString::fromLatin1(MIME_KML)) || source->hasText());
 }
 
-void BookEditor::insertDocument(const QTextDocument& source)
+void BookEditor::insertFromMimeData(const QMimeData* source)
 {
+    if (!canInsertFromMimeData(source)) {
+        return;
+    }
+    // Text from other programs is cleaned first: nothing to insert, nothing replaced
+    if (!source->hasFormat(QString::fromLatin1(MIME_KML)) &&
+        pastedPlainText(source->text()).isEmpty()) {
+        return;
+    }
     ensureEditMode();
     if (!m_textBuffer) {
         return;
@@ -1488,39 +1581,50 @@ void BookEditor::insertDocument(const QTextDocument& source)
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
+    insertMimeData(cursor, *source);
+    finishEdit(cursor);
+}
 
-    // One undo step: the replaced selection, the text, and the paragraph formats
+bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& position,
+                              bool moveSelection)
+{
+    if (!canInsertFromMimeData(source)) {
+        return false;
+    }
+    ensureEditMode();
+    if (!m_textBuffer || (moveSelection && (!hasSelection() || isInSelection(position)))) {
+        return false;
+    }
+
+    const SelectionRange moved = m_selection.normalized();
+    clearSelection();
+
+    // One undo step: moved text leaves its place and lands at the drop point. Both
+    // cursors stay at the same text while the other one edits the document.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), validateCursorPosition(position));
+    QTextCursor oldPlace;
     cursor.beginEditBlock();
-    cursor.removeSelectedText();
-
-    const QTextBlockFormat targetFormat = cursor.blockFormat();
-    const bool atParagraphStart = cursor.atBlockStart();
-    const bool atParagraphEnd = cursor.atBlockEnd();
+    if (moveSelection) {
+        oldPlace = createCursor(m_textBuffer.get(), moved.start, moved.end);
+        oldPlace.removeSelectedText();
+    }
     const int insertionStart = cursor.position();
-    const QTextBlock firstBlock = source.firstBlock();
-    const QTextBlock lastBlock = source.lastBlock();
-
-    for (QTextBlock block = firstBlock; block.isValid(); block = block.next()) {
-        if (block != firstBlock) {
-            // The last pasted paragraph also holds the text after the insertion point,
-            // unless there is none
-            const bool whole = block != lastBlock || (atParagraphEnd && block.length() > 1);
-            cursor.insertBlock(whole ? block.blockFormat() : targetFormat, block.charFormat());
-        }
-        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-            const QTextFragment fragment = it.fragment();
-            cursor.insertText(fragment.text(), fragment.charFormat());
-        }
-    }
-
-    // The first pasted paragraph is whole when it starts a paragraph and more follow
-    if (firstBlock != lastBlock && atParagraphStart && firstBlock.length() > 1) {
-        QTextCursor first(m_textBuffer.get());
-        first.setPosition(insertionStart);
-        first.setBlockFormat(firstBlock.blockFormat());
-    }
+    insertMimeData(cursor, *source);
     cursor.endEditBlock();
 
+    // The dropped text is selected, with the cursor at its end
+    finishEdit(cursor);
+    if (!oldPlace.isNull() && oldPlace.blockNumber() != m_cursorPosition.paragraph) {
+        emit paragraphModified(oldPlace.blockNumber());
+    }
+    const QTextBlock startBlock = m_textBuffer->findBlock(insertionStart);
+    m_selectionAnchor = {startBlock.blockNumber(), insertionStart - startBlock.position()};
+    setSelection({m_selectionAnchor, m_cursorPosition});
+    return true;
+}
+
+void BookEditor::finishEdit(const QTextCursor& cursor)
+{
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
 
@@ -1607,113 +1711,25 @@ bool BookEditor::isStrikethrough() const
 
 void BookEditor::setAlignLeft()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignLeft);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignLeft);
 }
 
 void BookEditor::setAlignCenter()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignHCenter);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignHCenter);
 }
 
 void BookEditor::setAlignRight()
 {
-    if (!m_textBuffer) {
-        return;
-    }
-
-    // Phase 11: Use QTextBlockFormat for paragraph alignment
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-
-    if (hasSelection()) {
-        SelectionRange normRange = m_selection.normalized();
-        startPara = normRange.start.paragraph;
-        endPara = normRange.end.paragraph;
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    for (int i = startPara; i <= endPara; ++i) {
-        QTextBlock block = m_textBuffer->findBlockByNumber(i);
-        if (block.isValid()) {
-            cursor.setPosition(block.position());
-            QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignRight);
-            cursor.setBlockFormat(format);
-        }
-    }
-
-    // Phase 12.3: Mark pipeline dirty for relayout
-    if (m_renderPipeline) {
-        m_renderPipeline->markAllDirty();
-    }
-
-    emit contentChanged();
-    update();
+    setParagraphAlignment(Qt::AlignRight);
 }
 
 void BookEditor::setAlignJustify()
+{
+    setParagraphAlignment(Qt::AlignJustify);
+}
+
+void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 {
     if (!m_textBuffer) {
         return;
@@ -1729,16 +1745,23 @@ void BookEditor::setAlignJustify()
         endPara = normRange.end.paragraph;
     }
 
+    // All the paragraphs in one undo step. Undoing or redoing it brings back the cursor and
+    // selection it was made with: QTextDocument would put the cursor after the last
+    // paragraph changed, so the next paragraph's alignment would show.
     QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
     for (int i = startPara; i <= endPara; ++i) {
         QTextBlock block = m_textBuffer->findBlockByNumber(i);
         if (block.isValid()) {
             cursor.setPosition(block.position());
             QTextBlockFormat format = block.blockFormat();
-            format.setAlignment(Qt::AlignJustify);
+            format.setAlignment(alignment);
             cursor.setBlockFormat(format);
         }
     }
+    cursor.endEditBlock();
 
     // Phase 12.3: Mark pipeline dirty for relayout
     if (m_renderPipeline) {
@@ -1747,19 +1770,29 @@ void BookEditor::setAlignJustify()
 
     emit contentChanged();
     update();
+}
+
+void BookEditor::restoreStepCursor()
+{
+    // The step changed no text, so its cursor and selection fit the text on both sides of it
+    if (m_stepCursor) {
+        m_cursorPosition = validateCursorPosition(m_stepCursor->cursor);
+        setSelection(m_stepCursor->selection);
+        m_stepCursor.reset();
+    }
 }
 
 Qt::Alignment BookEditor::currentAlignment() const
 {
     if (!m_textBuffer) {
-        return Qt::AlignLeft;
+        return DEFAULT_PARAGRAPH_ALIGNMENT;
     }
 
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
     if (block.isValid()) {
-        return block.blockFormat().alignment();
+        return effectiveAlignment(ownAlignment(block.blockFormat()));
     }
-    return Qt::AlignLeft;
+    return DEFAULT_PARAGRAPH_ALIGNMENT;
 }
 
 void BookEditor::toggleFormat(ElementType formatType)
@@ -2254,6 +2287,10 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // Apply cursor settings
     setCursorBlinkingEnabled(m_appearance.cursor.blinking);
     setCursorBlinkInterval(m_appearance.cursor.blinkInterval);
+    if (m_renderPipeline) {
+        m_renderPipeline->setCursorStyle(m_appearance.cursor.style);
+        m_renderPipeline->setCursorWidth(m_appearance.cursor.lineWidth);
+    }
 
     // Update viewport scroll padding so user can scroll to see margins
     if (m_viewportManager) {
@@ -2422,31 +2459,8 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         }
 
         // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
-        qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
-
-        // Phase 11.10: In view mode, use direct scroll offset management
-        if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
-            double newPos = m_viewModeScrollOffset + delta;
-            auto [topMargin, bottomMargin] = getScrollPadding();
-            double maxScroll = std::max(0.0, m_documentModel->totalHeight() + topMargin + bottomMargin - static_cast<double>(height()));
-            m_viewModeScrollOffset = std::clamp(newPos, 0.0, maxScroll);
-            syncScrollBarValue();
-            updatePipelineScroll();  // Phase 14: lightweight scroll only
-            update();
-            emit scrollOffsetChanged(m_viewModeScrollOffset);
-            event->accept();
-            return;
-        }
-
-        // Edit mode: use ViewportManager
-        if (m_viewportManager) {
-            double newPos = m_viewportManager->scrollPosition() + delta;
-            m_viewportManager->setScrollPosition(newPos);
-            syncScrollBarValue();
-            emit scrollOffsetChanged(m_viewportManager->scrollPosition());
-        }
-        updatePipelineScroll();  // Phase 14: lightweight scroll only
-        update();
+        const qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
+        setScrollOffset(scrollOffset() + delta);
         event->accept();
     } else {
         QWidget::wheelEvent(event);
@@ -2823,6 +2837,12 @@ void BookEditor::setupComponents()
     // Enable focus for keyboard input
     setFocusPolicy(Qt::StrongFocus);
 
+    // An I-beam over the text (an arrow over the selection, see mouseMoveEvent()), which
+    // takes dropped text
+    setCursor(Qt::IBeamCursor);
+    setMouseTracking(true);
+    setAcceptDrops(true);
+
     // Setup scrollbar
     setupScrollBar();
 
@@ -2848,8 +2868,9 @@ void BookEditor::updateViewport()
 
 void BookEditor::setupScrollBar()
 {
-    // Create vertical scrollbar
+    // Create vertical scrollbar (with an arrow pointer, not the editor's I-beam)
     m_verticalScrollBar = new QScrollBar(Qt::Vertical, this);
+    m_verticalScrollBar->setCursor(Qt::ArrowCursor);
     m_verticalScrollBar->setMinimum(0);
     m_verticalScrollBar->setMaximum(0);
     m_verticalScrollBar->setSingleStep(static_cast<int>(WHEEL_SCROLL_STEP));
@@ -2958,6 +2979,8 @@ void BookEditor::syncPipelineState()
 
 void BookEditor::syncPipelineCursor()
 {
+    syncSearchOrigin();
+
     // Lightweight sync - only cursor and selection
     if (!m_renderPipeline) {
         return;
@@ -3194,6 +3217,11 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         // is detected through our click counting
         m_cursorPosition = clickPosition;
         selectWordAtCursor();
+    } else if (!(event->modifiers() & Qt::ShiftModifier) && isOverSelectedText(clickPos)) {
+        // A press on the selected text drags it once the mouse moves far enough; released
+        // without moving, it places the cursor (mouseReleaseEvent())
+        m_textDragPending = true;
+        m_textDragStartPos = clickPos;
     } else {
         // Single click - position cursor
         if (event->modifiers() & Qt::ShiftModifier) {
@@ -3227,43 +3255,67 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
                          pos.x() > width() - edgeThreshold);
 
         if (nearEdge && m_appearance.distractionFree.fadeOnMouseMove) {
+            // With mouse tracking this runs on every move: repaint only to show faded UI
+            const bool wasFaded = m_uiOpacity < 1.0;
             m_uiOpacity = 1.0;
             startUiFade();
-            update();
+            if (wasFaded) {
+                update();
+            }
         }
     }
 
-    if (!m_isDragging || !(event->buttons() & Qt::LeftButton)) {
+    const QPointF pos = event->position();
+    if (!(event->buttons() & Qt::LeftButton)) {
+        // An arrow over the selected text, which can be dragged; an I-beam elsewhere
+        const Qt::CursorShape shape = isOverSelectedText(pos) ? Qt::ArrowCursor : Qt::IBeamCursor;
+        if (cursor().shape() != shape) {
+            setCursor(shape);
+        }
         QWidget::mouseMoveEvent(event);
         return;
     }
 
-    // Get position from mouse
-    CursorPosition dragPosition = positionFromPoint(event->position());
+    if (m_textDragPending) {
+        if ((pos - m_textDragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
+            m_textDragPending = false;
+            startTextDrag();
+        }
+        event->accept();
+        return;
+    }
 
-    // Update selection from anchor to current position
-    SelectionRange newSelection;
-    newSelection.start = m_selectionAnchor;
-    newSelection.end = dragPosition;
+    if (!m_isDragging) {
+        QWidget::mouseMoveEvent(event);
+        return;
+    }
 
-    // Move cursor to drag position
-    m_cursorPosition = dragPosition;
-    setSelection(newSelection);
-    update();  // Trigger repaint for selection rendering
-
+    // The selection follows the mouse; past the top or bottom edge the view scrolls
+    extendMouseSelection(pos);
     ensureCursorVisible();
+    updateAutoScroll(pos, false);
 
     event->accept();
 }
 
 void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::LeftButton) {
-        m_isDragging = false;
-        event->accept();
-    } else {
+    if (event->button() != Qt::LeftButton) {
         QWidget::mouseReleaseEvent(event);
+        return;
     }
+
+    stopAutoScroll();
+    m_isDragging = false;
+    if (m_textDragPending) {
+        // A click on the selected text without dragging places the cursor there
+        m_textDragPending = false;
+        clearSelection();
+        const CursorPosition position = positionFromPoint(event->position());
+        m_selectionAnchor = position;
+        setCursorPosition(position);
+    }
+    event->accept();
 }
 
 void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
@@ -3288,6 +3340,211 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
     }
 
     event->accept();
+}
+
+// =============================================================================
+// Drag and drop of text (stage 3)
+// =============================================================================
+
+void BookEditor::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (!m_textBuffer || !canInsertFromMimeData(event->mimeData())) {
+        event->ignore();
+        return;
+    }
+    event->acceptProposedAction();
+}
+
+void BookEditor::dragMoveEvent(QDragMoveEvent* event)
+{
+    if (!m_textBuffer || !canInsertFromMimeData(event->mimeData())) {
+        event->ignore();
+        return;
+    }
+
+    const QPointF pos = event->position();
+    updateAutoScroll(pos, true);
+
+    // The selected text is not moved onto itself
+    const CursorPosition position = positionFromPoint(pos);
+    if (event->source() == this && event->proposedAction() == Qt::MoveAction &&
+        isInSelection(position)) {
+        m_renderPipeline->setDropCaret(std::nullopt);
+        event->ignore();
+        return;
+    }
+
+    m_renderPipeline->setDropCaret(position);
+    event->acceptProposedAction();
+}
+
+void BookEditor::dragLeaveEvent(QDragLeaveEvent* event)
+{
+    stopAutoScroll();
+    m_renderPipeline->setDropCaret(std::nullopt);
+    event->accept();
+}
+
+void BookEditor::dropEvent(QDropEvent* event)
+{
+    stopAutoScroll();
+    m_renderPipeline->setDropCaret(std::nullopt);
+
+    const bool moveSelection = event->source() == this && event->dropAction() == Qt::MoveAction;
+    if (!dropMimeData(event->mimeData(), positionFromPoint(event->position()), moveSelection)) {
+        event->ignore();
+        return;
+    }
+    setFocus();
+    event->accept();
+}
+
+bool BookEditor::isOverSelectedText(const QPointF& widgetPos) const
+{
+    if (!hasSelection() || !m_textBuffer) {
+        return false;
+    }
+
+    // The character under the point: in the scroll modes the layout's exact hit, which
+    // misses the space around the text; Page mode has only the nearest position
+    CursorPosition position;
+    if (m_viewMode == ViewMode::Page) {
+        position = m_renderPipeline->positionFromPoint(widgetPos);
+    } else {
+        const auto& ctx = m_renderPipeline->context();
+        const QPointF docPoint(widgetPos.x() - ctx.computed.marginLeft,
+                               m_viewportManager->scrollPosition() + widgetPos.y() -
+                                   ctx.computed.marginTop);
+        const int hit = m_textBuffer->documentLayout()->hitTest(docPoint, Qt::ExactHit);
+        if (hit < 0) {
+            return false;
+        }
+        const QTextBlock block = m_textBuffer->findBlock(hit);
+        position = {block.blockNumber(), hit - block.position()};
+    }
+
+    const SelectionRange sel = m_selection.normalized();
+    return sel.start <= position && position < sel.end;
+}
+
+bool BookEditor::isInSelection(const CursorPosition& position) const
+{
+    const SelectionRange sel = m_selection.normalized();
+    return hasSelection() && sel.start <= position && position <= sel.end;
+}
+
+void BookEditor::startTextDrag()
+{
+    std::unique_ptr<QMimeData> mimeData = createMimeDataFromSelection();
+    if (!mimeData) {
+        return;
+    }
+
+    // Stays at the dragged text if the drop target edits the document before it
+    const SelectionRange sel = m_selection.normalized();
+    QTextCursor dragged = createCursor(m_textBuffer.get(), sel.start, sel.end);
+
+    auto* drag = new QDrag(this);  // Qt deletes it once the drag is over
+    drag->setMimeData(mimeData.release());
+    m_draggingText = true;
+    const Qt::DropAction action = drag->exec(Qt::CopyAction | Qt::MoveAction, Qt::MoveAction);
+    m_draggingText = false;
+    stopAutoScroll();
+
+    // Moved to another widget or program: the text leaves the editor (dropMimeData()
+    // moves it within the editor). The editor's own find bar only takes a copy.
+    const auto* target = qobject_cast<QWidget*>(drag->target());
+    const bool movedAway =
+        action == Qt::MoveAction && target != this && (target == nullptr || !isAncestorOf(target));
+    if (movedAway && dragged.hasSelection()) {
+        clearSelection();
+        dragged.removeSelectedText();
+        finishEdit(dragged);
+    }
+}
+
+void BookEditor::extendMouseSelection(const QPointF& widgetPos)
+{
+    // Past the top or bottom edge, the selection ends in the first or last visible line;
+    // automatic scrolling brings the next lines in
+    const double y = std::clamp(widgetPos.y(), 0.0, std::max(0.0, height() - 1.0));
+    const CursorPosition position = positionFromPoint(QPointF(widgetPos.x(), y));
+
+    m_cursorPosition = position;
+    setSelection({m_selectionAnchor, position});
+    syncPipelineCursor();
+    update();
+}
+
+void BookEditor::updateAutoScroll(const QPointF& widgetPos, bool forDrop)
+{
+    m_autoScrollPos = widgetPos;
+    m_autoScrollForDrop = forDrop;
+    if (autoScrollStep() == 0.0) {
+        stopAutoScroll();
+        return;
+    }
+
+    if (m_autoScrollTimer == nullptr) {
+        m_autoScrollTimer = new QTimer(this);
+        m_autoScrollTimer->setInterval(AUTO_SCROLL_INTERVAL);
+        connect(m_autoScrollTimer, &QTimer::timeout, this, &BookEditor::onAutoScrollTimeout);
+    }
+    if (!m_autoScrollTimer->isActive()) {
+        m_autoScrollTimer->start();
+    }
+}
+
+void BookEditor::stopAutoScroll()
+{
+    if (m_autoScrollTimer != nullptr) {
+        m_autoScrollTimer->stop();
+    }
+}
+
+double BookEditor::autoScrollStep() const
+{
+    // Dragged text scrolls the view in a band along the top and bottom edges, a mouse
+    // selection past them
+    const double band = m_autoScrollForDrop ? AUTO_SCROLL_DROP_BAND : 0.0;
+    const double y = m_autoScrollPos.y();
+    double distance = 0.0;
+    if (y < band) {
+        distance = y - band;
+    } else if (y > height() - band) {
+        distance = y - (height() - band);
+    }
+    if (distance == 0.0) {
+        return 0.0;
+    }
+    const double step =
+        std::clamp(std::abs(distance) / 2.0, AUTO_SCROLL_MIN_STEP, AUTO_SCROLL_MAX_STEP);
+    return distance < 0.0 ? -step : step;
+}
+
+void BookEditor::onAutoScrollTimeout()
+{
+    const double step = autoScrollStep();
+    const qreal before = scrollOffset();
+    if (step != 0.0) {
+        scrollBy(step, false);
+    }
+    if (scrollOffset() == before) {
+        stopAutoScroll();  // the mouse is back inside, or the view is at the end
+        return;
+    }
+
+    // The text under the mouse has moved: the selection or the drop caret follows it
+    if (m_autoScrollForDrop) {
+        const CursorPosition position = positionFromPoint(m_autoScrollPos);
+        if (m_draggingText && isInSelection(position)) {
+            m_renderPipeline->setDropCaret(std::nullopt);
+        } else {
+            m_renderPipeline->setDropCaret(position);
+        }
+    } else if (m_isDragging) {
+        extendMouseSelection(m_autoScrollPos);
+    }
 }
 
 // =============================================================================
@@ -4566,8 +4823,10 @@ void BookEditor::setupFindReplace()
         m_renderPipeline->setSearchEngine(m_searchEngine.get());
     }
 
-    // Create FindReplaceBar (will be shown when needed)
+    // Create FindReplaceBar (will be shown when needed), with an arrow pointer over its
+    // buttons instead of the editor's I-beam
     m_findReplaceBar = new gui::FindReplaceBar(this);
+    m_findReplaceBar->setCursor(Qt::ArrowCursor);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
     // Find/Replace performs its edits directly on the document, which QTextDocument's
     // native undo records — no separate undo stack is needed.
@@ -4583,11 +4842,35 @@ void BookEditor::setupFindReplace()
             this, &BookEditor::hideFindReplace);
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
+    syncSearchOrigin();
 }
 
 SearchEngine* BookEditor::searchEngine() const
 {
     return m_searchEngine.get();
+}
+
+void BookEditor::syncSearchOrigin()
+{
+    if (!m_searchEngine || !m_textBuffer) {
+        return;
+    }
+
+    // Find Next goes on from the selection, or from the cursor without one; a selected
+    // match is the current one
+    const SelectionRange range = hasSelection() ? m_selection.normalized()
+                                                : SelectionRange{m_cursorPosition, m_cursorPosition};
+    m_searchEngine->setOrigin(
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.start)),
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)));
+}
+
+void BookEditor::takeSearchTextFromSelection()
+{
+    // The search goes paragraph by paragraph: text across paragraphs would never be found
+    if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
+        m_findReplaceBar->setSearchText(selectedText());
+    }
 }
 
 void BookEditor::showFind()
@@ -4596,10 +4879,7 @@ void BookEditor::showFind()
         setupFindReplace();
     }
 
-    // If text selected, use as search text
-    if (hasSelection()) {
-        m_findReplaceBar->setSearchText(selectedText());
-    }
+    takeSearchTextFromSelection();
 
     m_findReplaceBar->showFind();
 
@@ -4617,9 +4897,7 @@ void BookEditor::showFindReplace()
         setupFindReplace();
     }
 
-    if (hasSelection()) {
-        m_findReplaceBar->setSearchText(selectedText());
-    }
+    takeSearchTextFromSelection();
 
     m_findReplaceBar->showFindReplace();
 
@@ -4633,7 +4911,11 @@ void BookEditor::showFindReplace()
 
 void BookEditor::findNext()
 {
-    if (!m_searchEngine) return;
+    // Without a search term, open the bar to type one
+    if (!m_searchEngine || !m_searchEngine->isActive()) {
+        showFind();
+        return;
+    }
     auto match = m_searchEngine->nextMatch();
     if (match.isValid()) {
         onNavigateToMatch(match);
@@ -4642,7 +4924,10 @@ void BookEditor::findNext()
 
 void BookEditor::findPrevious()
 {
-    if (!m_searchEngine) return;
+    if (!m_searchEngine || !m_searchEngine->isActive()) {
+        showFind();
+        return;
+    }
     auto match = m_searchEngine->previousMatch();
     if (match.isValid()) {
         onNavigateToMatch(match);

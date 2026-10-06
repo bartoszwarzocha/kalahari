@@ -110,6 +110,26 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
             count++; \
         } while(0)
 
+    // Menu command with shortcut and callback (no toolbar)
+    #define REG_CMD_KEY_CB(id_, label_tr_, path_, order_, sep_, phase_, shortcut_, callback_) \
+        do { \
+            Command cmd; \
+            cmd.id = id_; \
+            cmd.label = tr(label_tr_).toStdString(); \
+            cmd.tooltip = tr(label_tr_).toStdString(); \
+            cmd.category = std::string(path_).substr(0, std::string(path_).find('/')); \
+            cmd.menuPath = path_; \
+            cmd.menuOrder = order_; \
+            cmd.addSeparatorAfter = sep_; \
+            cmd.phase = phase_; \
+            cmd.showInMenu = true; \
+            cmd.showInToolbar = false; \
+            cmd.shortcut = shortcut_; \
+            cmd.execute = callback_; \
+            registry.registerCommand(cmd); \
+            count++; \
+        } while(0)
+
     // =========================================================================
     // FILE MENU
     // =========================================================================
@@ -230,14 +250,17 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("edit.selectParagraph", "Select Paragraph", "EDIT/Select Paragraph", 100, true, 1);
 
     // OpenSpec #00030: Added keyboard shortcuts for Find operations
-    REG_CMD_KEY("edit.find", "Find...", "EDIT/Find...", 110, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::Find));
-    REG_CMD_KEY("edit.findNext", "Find Next", "EDIT/Find Next", 120, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::FindNext));
-    REG_CMD_KEY("edit.findPrevious", "Find Previous", "EDIT/Find Previous", 130, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::FindPrevious));
-    REG_CMD_KEY("edit.findReplace", "Find & Replace...", "EDIT/Find & Replace...", 140, false, 1,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::Replace));
+    REG_CMD_KEY_CB("edit.find", "Find...", "EDIT/Find...", 110, false, 1,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::Find), callbacks.onFind);
+    REG_CMD_KEY_CB("edit.findNext", "Find Next", "EDIT/Find Next", 120, false, 1,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::FindNext),
+                   callbacks.onFindNext);
+    REG_CMD_KEY_CB("edit.findPrevious", "Find Previous", "EDIT/Find Previous", 130, false, 1,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::FindPrevious),
+                   callbacks.onFindPrevious);
+    REG_CMD_KEY_CB("edit.findReplace", "Find & Replace...", "EDIT/Find & Replace...", 140, false, 1,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::Replace),
+                   callbacks.onFindReplace);
     REG_CMD("edit.findInBook", "Find in Book...", "EDIT/Find in Book...", 150, true, 1);
 
     REG_CMD_CB("edit.preferences", "Preferences...", "EDIT/Preferences...", 160, false, 0,
@@ -445,8 +468,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("view.navigator", "Navigator", "VIEW/Panels/Navigator", 10, false, 0,
                 KeyboardShortcut(Qt::Key_F2, Qt::NoModifier));
 
+    // F8, not F3: F3 is Find Next (edit.findNext)
     REG_CMD_KEY("view.properties", "Properties", "VIEW/Panels/Properties", 20, false, 0,
-                KeyboardShortcut(Qt::Key_F3, Qt::NoModifier));
+                KeyboardShortcut(Qt::Key_F8, Qt::NoModifier));
 
     REG_CMD_KEY("view.log", "Log", "VIEW/Panels/Log", 30, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));

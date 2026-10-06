@@ -112,9 +112,12 @@ signals:
     void searchTextChanged(const QString& text);
 
 protected:
-    /// @brief Handle key press events
+    /// @brief Keep the keys typed in the bar away from the editor under it
     /// @param event Key event
     void keyPressEvent(QKeyEvent* event) override;
+
+    /// @brief Enter in the fields: Find Next (Shift+Enter: Find Previous) or Replace
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     /// @brief Handle search text changes
@@ -160,6 +163,9 @@ private:
 
     /// @brief Apply search options from toggle buttons
     void applySearchOptions();
+
+    /// @brief Search for the field's text again when the search engine has another one
+    void searchAgain();
 
     // =========================================================================
     // UI Components - Row 1 (Find)

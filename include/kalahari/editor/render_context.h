@@ -76,9 +76,10 @@ struct RenderColors {
     QColor inactiveText{150, 150, 150};        ///< Dimmed text (focus mode)
     QColor lineHighlight{245, 245, 245};       ///< Current line highlight
 
-    /// @brief Search highlight colors
-    QColor searchHighlight{255, 255, 100};     ///< Search match background
-    QColor currentMatch{255, 180, 50};         ///< Current search match background
+    /// @brief Search highlight colors (translucent: drawn under the text, they suit light and
+    /// dark backgrounds alike)
+    QColor searchHighlight{255, 214, 0, 96};   ///< Search match background
+    QColor currentMatch{255, 140, 0, 140};     ///< Current search match background
 
     /// @brief Marker colors
     QColor commentHighlight{255, 255, 200};    ///< Comment annotation background

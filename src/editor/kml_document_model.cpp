@@ -5,6 +5,7 @@
 /// viewport-only rendering using QTextLayout.
 
 #include "kalahari/editor/kml_document_model.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/text_statistics.h"
@@ -199,7 +200,7 @@ const std::vector<FormatRun>& KmlDocumentModel::paragraphFormats(size_t index) c
 Qt::Alignment KmlDocumentModel::paragraphAlignment(size_t index) const
 {
     if (index >= m_paragraphs.size()) {
-        return Qt::AlignLeft;
+        return {};
     }
     return m_paragraphs[index].alignment;
 }
@@ -565,7 +566,7 @@ void KmlDocumentModel::createLayout(size_t index)
 
     // Set text option with alignment
     QTextOption textOption;
-    textOption.setAlignment(para.alignment);
+    textOption.setAlignment(effectiveAlignment(para.alignment));
     textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     para.layout->setTextOption(textOption);
 
