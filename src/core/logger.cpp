@@ -4,6 +4,7 @@
 #include <kalahari/core/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <vector>
@@ -88,6 +89,19 @@ void Logger::init(const std::string& logFilePath) {
             m_logger->warn("Cannot write log file {} - using {}", logFilePath, m_logFilePath);
         }
         m_logger->info("Logger initialized (log file: {})", m_logFilePath);
+    }
+
+    // spdlog statics created above (e.g. the console mutex) are destroyed
+    // before singletons that were constructed earlier. Handlers registered
+    // now run before those statics go away, so destructors that run later
+    // (PluginManager, PythonInterpreter) log nothing instead of crashing.
+    std::atexit([] { Logger::getInstance().shutdown(); });
+}
+
+void Logger::shutdown() {
+    if (m_logger) {
+        m_logger->flush();
+        m_logger.reset();
     }
 }
 

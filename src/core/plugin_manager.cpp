@@ -6,7 +6,9 @@
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/python_interpreter.h>
 #include <zip.h>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -25,6 +27,39 @@ namespace core {
 PluginManager& PluginManager::getInstance() {
     static PluginManager instance;
     return instance;
+}
+
+PluginManager::PluginManager() {
+    // Function-local statics are destroyed in reverse order of construction.
+    // Creating Logger and PythonInterpreter first makes them outlive this
+    // singleton, so the plugins (and their archives, which log on cleanup)
+    // are released while both are still alive.
+    Logger::getInstance();
+    PythonInterpreter::getInstance();
+}
+
+PluginManager::~PluginManager() {
+    try {
+        if (Py_IsInitialized() != 0) {
+            py::gil_scoped_acquire gil;
+            m_loaded_plugins.clear();
+            return;
+        }
+    } catch (...) {
+        // Logger may already be destroyed at process exit
+        std::fputs("PluginManager: failed to release plugins at exit\n", stderr);
+    }
+
+    // The interpreter is already finalized: dropping a reference now would
+    // crash, so the Python objects are intentionally leaked at process exit.
+    for (auto& [id, plugin] : m_loaded_plugins) {
+        if (plugin.instance) {
+            plugin.instance->release();
+        }
+        if (plugin.module) {
+            plugin.module->release();
+        }
+    }
 }
 
 std::filesystem::path PluginManager::getPluginsDirectory() const {

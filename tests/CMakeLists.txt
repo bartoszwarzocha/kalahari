@@ -253,6 +253,16 @@ catch_discover_tests(kalahari-tests
     DISCOVERY_MODE PRE_TEST
 )
 
+# Process exit with a plugin still loaded, PluginManager created before the
+# Python interpreter: its Python objects must not be released after
+# py::finalize_interpreter(). The seed fixes an order that crashed before.
+add_test(NAME plugin_manager.exit_after_python_finalize
+    COMMAND kalahari-tests
+        "Python interop: PluginManager accessible from C++,Plugin Manager - Loading"
+        --order rand --rng-seed 1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
 # Python binding tests: plain scripts that exit with a non-zero code on failure.
 # They import the kalahari_api module copied to bin/ by src/bindings.
 # Registered only with system packages (Linux CI): vcpkg's Python is a static
