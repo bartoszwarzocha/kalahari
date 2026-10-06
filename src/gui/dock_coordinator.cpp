@@ -5,7 +5,6 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
-#include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -23,17 +22,14 @@
 #include <QToolButton>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QMenu>
-#include <QMenuBar>
 #include <QAction>
 
 namespace kalahari {
 namespace gui {
 
-DockCoordinator::DockCoordinator(QMainWindow* mainWindow, MenuBuilder* menuBuilder, QObject* parent)
+DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
     , m_mainWindow(mainWindow)
-    , m_menuBuilder(menuBuilder)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator created");
@@ -364,21 +360,6 @@ void DockCoordinator::refreshDockIcons() {
 }
 
 void DockCoordinator::setupViewMenuActions() {
-    auto& logger = core::Logger::getInstance();
-
-    // Get VIEW menu from MenuBuilder
-    if (m_menuBuilder) {
-        m_viewMenu = m_menuBuilder->getMenu("VIEW");
-        if (m_viewMenu) {
-            logger.debug("DockCoordinator: Found VIEW menu via MenuBuilder::getMenu()");
-        }
-    }
-
-    if (!m_viewMenu) {
-        logger.warn("DockCoordinator: VIEW menu not found in MenuBuilder! Creating fallback menu.");
-        m_viewMenu = m_mainWindow->menuBar()->addMenu(QObject::tr("&View"));
-    }
-
     // Connect panel toggle commands to dock widgets
     connectPanelCommand("view.navigator", m_navigatorDock);
     connectPanelCommand("view.properties", m_propertiesDock);
@@ -386,16 +367,13 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
 
-    // Create Panels submenu with actions from CommandRegistry
-    QMenu* panelsSubmenu = m_viewMenu->addMenu(QObject::tr("Panels"));
-    logger.debug("DockCoordinator: Created VIEW/Panels submenu for dock toggles");
-
-    // Create panel toggle actions
-    m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock, panelsSubmenu);
-    m_viewPropertiesAction = createPanelAction("view.properties", m_propertiesDock, panelsSubmenu);
-    m_viewLogAction = createPanelAction("view.log", m_logDock, panelsSubmenu);
-    m_viewSearchAction = createPanelAction("view.search", m_searchDock, panelsSubmenu);
-    m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock, panelsSubmenu);
+    // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
+    // commands) follow the docks' visibility
+    m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock);
+    m_viewPropertiesAction = createPanelAction("view.properties", m_propertiesDock);
+    m_viewLogAction = createPanelAction("view.log", m_logDock);
+    m_viewSearchAction = createPanelAction("view.search", m_searchDock);
+    m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
@@ -415,7 +393,7 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
     }
 }
 
-QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock, QMenu* menu) {
+QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock) {
     auto& logger = core::Logger::getInstance();
     auto& registry = CommandRegistry::getInstance();
 
@@ -440,7 +418,6 @@ QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidge
         action->blockSignals(false);
     });
 
-    menu->addAction(action);
     return action;
 }
 

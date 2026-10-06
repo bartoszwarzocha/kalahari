@@ -970,7 +970,7 @@ void MainWindow::createDocks() {
     logger.debug("Creating dock widgets via DockCoordinator");
 
     // Create DockCoordinator to manage all dock widgets and panels
-    m_dockCoordinator = new DockCoordinator(this, m_menuBuilder, this);
+    m_dockCoordinator = new DockCoordinator(this, this);
     m_dockCoordinator->createDocks();
 
     // Connect DockCoordinator signals to MainWindow slots or DocumentCoordinator
