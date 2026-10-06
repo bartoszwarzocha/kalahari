@@ -33,6 +33,7 @@
 #include <QList>
 #include <memory>
 #include <optional>
+#include <vector>
 
 class QDragEnterEvent;
 class QDragLeaveEvent;
@@ -41,7 +42,8 @@ class QDropEvent;
 class QInputMethodEvent;
 class QKeyEvent;
 class QMouseEvent;
-class QPropertyAnimation;
+class QVariantAnimation;
+class QScreen;
 class QScrollBar;
 class QTimer;
 class QUndoStack;
@@ -291,14 +293,18 @@ public:
     /// @brief Move cursor to document end (Ctrl+End)
     void moveCursorToDocEnd();
 
-    /// @brief Move cursor one page up (Page Up)
+    /// @brief Move cursor one view height up (Page Up)
     ///
-    /// Moves approximately one viewport height up.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view. In
+    /// page mode both move by one page: the previous page shows where this one was, the
+    /// cursor on the same line of it.
     void moveCursorPageUp();
 
-    /// @brief Move cursor one page down (Page Down)
+    /// @brief Move cursor one view height down (Page Down)
     ///
-    /// Moves approximately one viewport height down.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view. In
+    /// page mode both move by one page: the next page shows where this one was, the cursor
+    /// on the same line of it.
     void moveCursorPageDown();
 
     // =========================================================================
@@ -574,6 +580,19 @@ public:
     /// Emits viewModeChanged if mode changes. Triggers repaint.
     void setViewMode(ViewMode mode);
 
+    /// @brief Whether typewriter scrolling is on (in any view mode)
+    bool isTypewriterEnabled() const;
+
+    /// @brief Turn typewriter scrolling on or off
+    ///
+    /// While it is on, the line with the cursor stays at the focus height of the view
+    /// (appearance().typewriter.focusPosition) as the text is typed or the cursor moved
+    /// with the keyboard. The text still starts at the top of the view: the first lines
+    /// stay above the focus height. Mouse clicks and manual scrolling leave the view where
+    /// it is.
+    /// Emits typewriterChanged if the state changes.
+    void setTypewriterEnabled(bool enabled);
+
     // =======================================================================
     // Zoom Control
     // =======================================================================
@@ -585,6 +604,28 @@ public:
     /// @brief Set zoom factor
     /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
     void setZoomFactor(double factor);
+
+    /// @brief Widget pixels per layout pixel at zoom 100% in the Page Layout view. With the
+    ///        screen's paperScaleOf(), 100% shows the pages at their size on paper; 1 (the
+    ///        default) gives the size of the system's display scaling.
+    void setPaperScale(double scale);
+
+    /// @brief The page view's widget pixels per layout pixel at zoom 100% (setPaperScale())
+    double paperScale() const;
+
+    /// @brief The paper scale of a screen: its physical DPI over its logical DPI (the one
+    ///        the text is laid out with), or 1 where its reported size gives no likely ratio
+    static double paperScaleOf(const QScreen* screen);
+
+    /// @brief The paper scale for a physical and a logical DPI (see paperScaleOf())
+    static double paperScaleFor(double physicalDpi, double logicalDpi);
+
+    /// @brief Zoom the pages to fill the width of the view (Page Layout view)
+    void zoomToPageWidth();
+
+    /// @brief Zoom so that a whole page fits the view, showing the cursor's page
+    ///        (Page Layout view)
+    void zoomToWholePage();
 
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
@@ -825,6 +866,9 @@ signals:
     /// @param mode The new view mode
     void viewModeChanged(ViewMode mode);
 
+    /// @brief Emitted when typewriter scrolling is turned on or off
+    void typewriterChanged(bool enabled);
+
     /// @brief Emitted when zoom factor changes
     void zoomChanged(double factor);
 
@@ -1026,6 +1070,34 @@ private:
     /// @brief Update scrollbar range based on content height
     void updateScrollBarRange();
 
+    /// @brief Show the horizontal scrollbar while the zoomed pages are wider than the view
+    void updateHorizontalScrollBar();
+
+    /// @brief Scroll the pages sideways (page mode; clamped to the pipeline's range)
+    void setHorizontalScrollOffset(double x);
+
+    /// @brief Move the cursor and the view by about one view height (-1 up, 1 down), the
+    ///        cursor's line staying in its row of the view; in page mode by one page, the
+    ///        cursor to the same line of the next (previous) page
+    void moveCursorByViewHeight(double direction);
+
+    /// @brief Zoom to a factor, keeping the document point under a widget point in place
+    ///        (page mode; the scroll modes keep the text at the top of the view)
+    void applyZoom(double factor, const QPointF& fixedPoint);
+
+    /// @brief Give the pipeline the page size, margins, gap and page numbers
+    void applyPageLayout();
+
+    /// @brief Give the pipeline the typewriter state, keeping the text in place on the
+    ///        screen, and put the cursor line at the focus height when it is on
+    void applyTypewriter();
+
+    /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
+    void updatePageInfo();
+
+    /// @brief Scroll so that a page's sheet starts at the top of the view (1-based page)
+    void scrollToPageTop(int page);
+
     /// @brief Sync scrollbar value with scroll manager (without triggering signals)
     void syncScrollBarValue();
 
@@ -1047,33 +1119,27 @@ private:
     /// @brief Update only scroll position (lightweight)
     void updatePipelineScroll();
 
-    /// @brief Calculate effective margins in pixels for current view mode
-    /// @return Margins in pixels, properly converted from mm for Page Mode
+    /// @brief View margins of the scroll modes, in pixels
     ///
-    /// SINGLE SOURCE OF TRUTH for margin calculations.
-    /// Handles mm-to-pixels conversion, DPI scaling, and zoom factor.
+    /// Page mode uses the page's margins, given to the pipeline by applyPageLayout().
     RenderMargins calculateEffectiveMargins() const;
 
-    /// @brief Get scroll padding (top/bottom) for current view mode
-    /// @return {topPadding, bottomPadding} in pixels
-    ///
-    /// SINGLE SOURCE OF TRUTH for scroll padding calculations.
-    /// Used by ViewportManager and scroll limit calculations.
-    /// Does NOT apply zoom scaling (scroll padding is independent of zoom).
+    /// @brief Scroll room above and below the text, in document units
+    /// @return {topPadding, bottomPadding}, as computed by the render pipeline
     std::pair<double, double> getScrollPadding() const;
 
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
-    void startScrollAnimation(qreal targetOffset);
+    /// @param durationMs Animation length; the smooth scrolling duration when negative
+    void startScrollAnimation(qreal targetOffset, int durationMs = -1);
 
     /// @brief Stop any running scroll animation
     void stopScrollAnimation();
 
-    /// @brief Update scroll position for typewriter mode
-    ///
-    /// In typewriter mode, keeps the cursor at a fixed vertical position
-    /// (m_appearance.typewriter.focusPosition). Uses smooth scrolling if enabled.
-    void updateTypewriterScroll();
+    /// @brief Scroll the line with the cursor to the typewriter focus height
+    /// @param animate Animate a short scroll (when smooth typewriter scrolling is on); a
+    ///        jump of more than a view height is never animated
+    void updateTypewriterScroll(bool animate = true);
 
     /// @brief Get the Y coordinate of the cursor in document coordinates
     /// @return The Y position of the cursor line in the document
@@ -1249,12 +1315,17 @@ private:
     // Using QTextDocument (m_textBuffer), ViewportManager, RenderEngine instead
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
-    QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
-    QPropertyAnimation* m_typewriterScrollAnimation;        ///< Typewriter mode scroll animation
+    QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
+    int m_lastCurrentPage = -1;                             ///< Page number last emitted
+    int m_lastTotalPages = -1;                              ///< Page count last emitted
+    QVariantAnimation* m_scrollAnimation;                   ///< Smooth scroll animation
+    bool m_pointerMovesCursor = false;                      ///< A mouse or drop event moves the cursor
+                                                            ///< (typewriter scrolling leaves the view)
 
     bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
     bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
+    bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position
@@ -1266,6 +1337,19 @@ private:
     // Cursor navigation state (Phase 3.6/3.7/3.8)
     qreal m_preferredCursorX;                               ///< Preferred X position for vertical movement
     bool m_preferredCursorXValid;                           ///< Is m_preferredCursorX valid?
+    CursorPosition m_preferredCursorXPosition;              ///< Cursor position the last vertical move gave
+                                                            ///< (m_preferredCursorX holds only there)
+
+    /// @brief A Page Up/Down move: where it found the cursor, and the cursor's row then (how
+    /// far below the top of the view its line starts, in document units)
+    struct PageMove {
+        CursorPosition cursor;
+        double row = 0.0;
+        int pageLine = 0;  ///< Page mode: the cursor's line on its page, from 0
+    };
+    std::vector<PageMove> m_pageMoves;                      ///< Page Up/Down moves in a row, one way
+    double m_pageMovesDirection = 0.0;                      ///< Their way: 1 down, -1 up
+    CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position the last of them gave
 
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range

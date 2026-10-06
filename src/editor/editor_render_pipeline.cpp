@@ -17,6 +17,18 @@
 
 namespace kalahari::editor {
 
+namespace {
+
+/// Size of the page numbers relative to the text font
+constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
+
+/// Shade of the desk around the pages, from the paper color (QColor::darker() for light
+/// paper, QColor::lighter() for dark paper)
+constexpr int DESK_DARKER_FACTOR = 118;
+constexpr int DESK_LIGHTER_FACTOR = 160;
+
+}  // anonymous namespace
+
 // =============================================================================
 // Constructor / Destructor
 // =============================================================================
@@ -36,7 +48,6 @@ EditorRenderPipeline::~EditorRenderPipeline() = default;
 void EditorRenderPipeline::setTextSource(std::unique_ptr<ITextSource> source) {
     m_textSource = std::move(source);
     m_heightDirty = true;
-    m_paginationCacheValid = false;
     markAllDirty();
 }
 
@@ -48,8 +59,6 @@ void EditorRenderPipeline::setContext(const RenderContext& context) {
     bool fontChanged = (m_context.font != context.font);
     bool widthChanged = (m_context.textWidth != context.textWidth);
     bool marginsChanged = (m_context.margins != context.margins);
-    bool viewModeChanged = (m_context.viewMode != context.viewMode);
-    bool dpiChanged = (std::abs(m_context.screenDpi - context.screenDpi) > 0.001);
 
     m_context = context;
 
@@ -58,11 +67,6 @@ void EditorRenderPipeline::setContext(const RenderContext& context) {
         m_textSource->setFont(m_context.font);
         m_textSource->setTextWidth(m_context.computed.textWidth);
         m_heightDirty = true;
-    }
-
-    // Invalidate pagination if relevant settings changed
-    if (fontChanged || widthChanged || marginsChanged || viewModeChanged || dpiChanged) {
-        m_paginationCacheValid = false;
     }
 
     markAllDirty();
@@ -80,7 +84,7 @@ void EditorRenderPipeline::setMargins(double left, double top, double right, dou
         m_textSource->setTextWidth(m_context.computed.textWidth);
         m_heightDirty = true;
     }
-    m_paginationCacheValid = false;
+    computeViewGeometry();
     markAllDirty();
 }
 
@@ -118,7 +122,7 @@ void EditorRenderPipeline::setZoom(double factor, ZoomMode mode) {
         m_heightDirty = true;
     }
 
-    m_paginationCacheValid = false;
+    computeViewGeometry();
     markAllDirty();
 }
 
@@ -130,7 +134,6 @@ void EditorRenderPipeline::setTextWidth(double width) {
             m_textSource->setTextWidth(m_context.computed.textWidth);
             m_heightDirty = true;
         }
-        m_paginationCacheValid = false;
         markAllDirty();
     }
 }
@@ -144,7 +147,6 @@ void EditorRenderPipeline::setFont(const QFont& font) {
             m_textSource->setTypography(m_context.computed.typography);
             m_heightDirty = true;
         }
-        m_paginationCacheValid = false;
         markAllDirty();
     }
 }
@@ -166,7 +168,6 @@ void EditorRenderPipeline::setBackgroundColor(const QColor& color) {
 void EditorRenderPipeline::setViewMode(ViewMode mode) {
     if (m_context.viewMode != mode) {
         m_context.viewMode = mode;
-        m_paginationCacheValid = false;
         markAllDirty();
     }
 }
@@ -181,7 +182,6 @@ void EditorRenderPipeline::setViewportSize(const QSizeF& size) {
         return;  // No change
     }
     m_context.viewportSize = size;
-    m_paginationCacheValid = false;  // Page centering changes with viewport
     updateVisibleRange();
 }
 
@@ -195,8 +195,6 @@ void EditorRenderPipeline::setScreenDpi(double dpi) {
     // No relayout: the text is sized in points, which Qt converts with this same logical
     // DPI. Only the page geometry depends on it (recomputed by applyInitialConfig()).
     m_context.screenDpi = dpi;
-
-    m_paginationCacheValid = false;
     markAllDirty();
 }
 
@@ -211,13 +209,12 @@ void EditorRenderPipeline::configure(const RenderContext& context) {
     computeDpiScaling();
     computeEffectiveFont();
     computeTypography();
-    computeMargins();
     computePageLayout();
+    computeMargins();
     computeTextWidth();
+    computeViewGeometry();
     applyComputedToSource();
 
-    // Invalidate caches
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
@@ -228,9 +225,9 @@ void EditorRenderPipeline::computeDpiScaling() {
     m_context.computed.mmToPixels = m_context.screenDpi / MM_PER_INCH;
     m_context.computed.totalScale = m_context.zoomFactor;
 
-    // viewScale depends on zoom mode
+    // viewScale depends on zoom mode; pages at 100% have their size on paper
     if (m_context.zoomMode == ZoomMode::PageScaling) {
-        m_context.computed.viewScale = m_context.computed.totalScale;
+        m_context.computed.viewScale = m_context.computed.totalScale * m_context.paperScale;
     } else {
         m_context.computed.viewScale = 1.0;  // FontScaling: scale in font, not painter
     }
@@ -256,48 +253,53 @@ void EditorRenderPipeline::computeTypography() {
 }
 
 void EditorRenderPipeline::computeMargins() {
-    // Margins are passed pre-calculated in pixels from BookEditor
-    switch (m_context.viewMode) {
-        case ViewMode::Page:
-        case ViewMode::Typewriter: {
-            // Page margins from pageMode config (already in pixels from BookEditor)
-            m_context.computed.marginLeft = m_context.margins.left;
-            m_context.computed.marginRight = m_context.margins.right;
-            m_context.computed.marginTop = m_context.margins.top;
-            m_context.computed.marginBottom = m_context.margins.bottom;
-            break;
-        }
-        default:
-            // View margins (already in pixels)
-            m_context.computed.marginLeft = m_context.margins.left;
-            m_context.computed.marginRight = m_context.margins.right;
-            m_context.computed.marginTop = m_context.margins.top;
-            m_context.computed.marginBottom = m_context.margins.bottom;
-            break;
+    auto& computed = m_context.computed;
+    if (m_context.viewMode == ViewMode::Page) {
+        // The page's own margins (computePageLayout() fits them to the page)
+        computed.marginLeft = computed.pageMargins.left();
+        computed.marginTop = computed.pageMargins.top();
+        computed.marginRight = computed.pageMargins.right();
+        computed.marginBottom = computed.pageMargins.bottom();
+    } else {
+        // View margins (pixels)
+        computed.marginLeft = m_context.margins.left;
+        computed.marginTop = m_context.margins.top;
+        computed.marginRight = m_context.margins.right;
+        computed.marginBottom = m_context.margins.bottom;
     }
 }
 
 void EditorRenderPipeline::computePageLayout() {
-    if (m_context.viewMode != ViewMode::Page) {
-        return;
-    }
+    auto& computed = m_context.computed;
 
-    // Page size in pixels (the page size is in points)
+    // Page size in document units (the page size is in points, the margins in mm)
     const double pointsToPixels = m_context.screenDpi / POINTS_PER_INCH;
-    m_context.computed.pageWidthPixels = m_context.pageMode.pageSize.width() * pointsToPixels;
-    m_context.computed.pageHeightPixels = m_context.pageMode.pageSize.height() * pointsToPixels;
+    computed.pageWidthPixels = m_context.pageMode.pageSize.width() * pointsToPixels;
+    computed.pageHeightPixels = m_context.pageMode.pageSize.height() * pointsToPixels;
 
-    // Text area height
-    m_context.computed.textAreaHeight = m_context.computed.pageHeightPixels
-                                       - m_context.computed.marginTop
-                                       - m_context.computed.marginBottom;
+    // Margins taking more than the page leaves for text are scaled down together
+    const auto fit = [](double first, double second, double extent) {
+        first = std::max(0.0, first);
+        second = std::max(0.0, second);
+        const double available = extent * (1.0 - MIN_PAGE_TEXT_SHARE);
+        const double total = first + second;
+        const double factor = total > available && total > 0.0 ? available / total : 1.0;
+        return std::pair{first * factor, second * factor};
+    };
+    const QMarginsF& mm = m_context.pageMode.marginsMm;
+    const auto [left, right] = fit(mm.left() * computed.mmToPixels,
+                                   mm.right() * computed.mmToPixels, computed.pageWidthPixels);
+    const auto [top, bottom] = fit(mm.top() * computed.mmToPixels,
+                                   mm.bottom() * computed.mmToPixels, computed.pageHeightPixels);
+    computed.pageMargins = QMarginsF(left, top, right, bottom);
 
-    // Center offset for page
-    double viewportWidth = m_context.viewportSize.width();
-    m_context.computed.pageCenterOffset =
-        (viewportWidth > m_context.computed.pageWidthPixels)
-        ? (viewportWidth - m_context.computed.pageWidthPixels) / 2.0
-        : 0.0;
+    // Whole pixels, as the layout places the lines (on the pixel grid): the sheets follow
+    // the same pitch, or the text drifts off them page by page (A4 is 1122.52 px high at
+    // 96 dpi)
+    computed.textAreaHeight = std::max(1.0, std::round(computed.pageHeightPixels - top - bottom));
+    computed.pagePitch = std::max(
+        computed.textAreaHeight,
+        std::round(computed.pageHeightPixels + std::max(0.0, m_context.pageMode.pageSpacing)));
 }
 
 void EditorRenderPipeline::computeTextWidth() {
@@ -317,12 +319,62 @@ void EditorRenderPipeline::computeTextWidth() {
     m_context.computed.textWidth = std::max(MIN_TEXT_WIDTH, width);
 }
 
+void EditorRenderPipeline::computeViewGeometry() {
+    auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    const double viewWidth = m_context.viewportSize.width();
+    const double viewHeight = m_context.viewportSize.height();
+
+    // Typewriter scrolling: room below the last line, so that the last lines can be
+    // scrolled up to the focus height. None above the first line: the text starts at the
+    // top, and the cursor line stays at the focus height once it has come down to it.
+    double typewriterBottom = 0.0;
+    if (m_context.typewriter.enabled && viewHeight > 0.0) {
+        const double focus = std::clamp(m_context.typewriter.focusPosition, 0.0, 1.0);
+        typewriterBottom = (1.0 - focus) * viewHeight;
+    }
+
+    if (m_context.viewMode == ViewMode::Page) {
+        // The pages are a column with the page gap around it. It is centred while it
+        // fits the view and scrolls sideways when the zoom makes it wider.
+        const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
+        const double pageWidth = computed.pageWidthPixels * scale;
+        const double pagesViewWidth = std::max(0.0, viewWidth - m_context.scrollBarWidth);
+        computed.contentWidth = pageWidth + 2.0 * gap * scale;
+        const double maxX = std::max(0.0, computed.contentWidth - pagesViewWidth);
+        m_context.scrollX = std::clamp(m_context.scrollX, 0.0, maxX);
+        computed.pageCenterOffset =
+            maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
+        computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
+        computed.originY = (gap + computed.marginTop) * scale;
+        computed.scrollPaddingTop = gap + computed.marginTop;
+        computed.scrollPaddingBottom = gap + computed.marginBottom + typewriterBottom / scale;
+    } else {
+        computed.contentWidth = viewWidth;
+        m_context.scrollX = 0.0;
+        computed.pageCenterOffset = 0.0;
+        computed.originX = computed.marginLeft;
+        computed.originY = computed.marginTop;
+        computed.scrollPaddingTop = computed.marginTop;
+        computed.scrollPaddingBottom = computed.marginBottom + typewriterBottom;
+    }
+
+    // The viewport manager works in document units: it needs the scale and where the
+    // scroll position is shown to tell the visible paragraphs and the scroll range
+    if (m_viewportManager) {
+        m_viewportManager->setViewGeometry(scale, computed.originY);
+        m_viewportManager->setTopScrollPadding(computed.scrollPaddingTop);
+        m_viewportManager->setBottomScrollPadding(computed.scrollPaddingBottom);
+    }
+}
+
 void EditorRenderPipeline::applyComputedToSource() {
     if (!m_textSource) return;
 
     m_textSource->setFont(m_context.computed.effectiveFont);
     m_textSource->setTextWidth(m_context.computed.textWidth);
     m_textSource->setTypography(m_context.computed.typography);
+    applyPageFlowToSource();
 }
 
 // =============================================================================
@@ -344,12 +396,16 @@ void EditorRenderPipeline::applyTypographyToSource() {
     m_textSource->setTypography(m_context.computed.typography);
 }
 
-void EditorRenderPipeline::recalcPageCenterOffset() {
-    double viewportWidth = m_context.viewportSize.width();
-    m_context.computed.pageCenterOffset =
-        (viewportWidth > m_context.computed.pageWidthPixels)
-        ? (viewportWidth - m_context.computed.pageWidthPixels) / 2.0
-        : 0.0;
+void EditorRenderPipeline::applyPageFlowToSource() {
+    if (!m_textSource) return;
+    // The layout places the lines on the pages; the other modes have one long page
+    PageFlow flow;
+    if (m_context.viewMode == ViewMode::Page) {
+        flow.enabled = true;
+        flow.pitch = m_context.computed.pagePitch;
+        flow.textHeight = m_context.computed.textAreaHeight;
+    }
+    m_textSource->setPageFlow(flow);
 }
 
 // =============================================================================
@@ -361,13 +417,12 @@ void EditorRenderPipeline::setConfigDpi(double dpi) {
 
     m_context.screenDpi = dpi;
     computeDpiScaling();
-
-    if (m_context.viewMode == ViewMode::Page) {
-        computePageLayout();
-    }
+    computePageLayout();
+    computeMargins();
     computeTextWidth();
     applyWidthToSource();
-    m_paginationCacheValid = false;
+    applyPageFlowToSource();
+    computeViewGeometry();
     markAllDirty();
 }
 
@@ -379,7 +434,6 @@ void EditorRenderPipeline::setConfigFont(const QFont& font) {
     computeTypography();  // the base font size is the typography's reference size
     applyFontToSource();
     applyTypographyToSource();
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
@@ -393,10 +447,22 @@ void EditorRenderPipeline::setConfigZoom(double factor, ZoomMode mode) {
 
     computeDpiScaling();  // Recalculates totalScale, viewScale
     computeEffectiveFont();
-    applyFontToSource();  // typography lengths follow the font in the same relayout
+    // Font scaling lays the text out again at the new size (typography lengths follow the
+    // font in the same relayout); page scaling keeps the font and only scales the painter
+    applyFontToSource();
+    computeViewGeometry();
 
-    m_paginationCacheValid = false;
     m_heightDirty = true;
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigPaperScale(double scale) {
+    scale = scale > 0.0 ? scale : 1.0;
+    if (std::abs(m_context.paperScale - scale) < 1e-6) return;  // No change
+
+    m_context.paperScale = scale;
+    computeDpiScaling();  // The page view's scale
+    computeViewGeometry();
     markAllDirty();
 }
 
@@ -406,7 +472,6 @@ void EditorRenderPipeline::setConfigTypography(const LayoutTypography& typograph
     m_context.typography = typography;
     computeTypography();
     applyTypographyToSource();
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
@@ -416,64 +481,90 @@ void EditorRenderPipeline::setConfigViewportSize(const QSizeF& size) {
 
     m_context.viewportSize = size;
 
-    if (m_context.viewMode == ViewMode::Page) {
-        // Page mode: only center offset changes, text width stays same
-        recalcPageCenterOffset();
-    } else {
-        // Scroll modes: text width depends on viewport
+    if (m_context.viewMode != ViewMode::Page) {
+        // Scroll modes: text width depends on viewport (pages keep theirs)
         computeTextWidth();
         applyWidthToSource();
-        m_paginationCacheValid = false;
         m_heightDirty = true;
     }
+    computeViewGeometry();
 
     updateVisibleRange();
     markAllDirty();
 }
 
 void EditorRenderPipeline::setConfigMargins(double left, double top, double right, double bottom) {
-    if (std::abs(m_context.computed.marginLeft - left) < 0.01 &&
-        std::abs(m_context.computed.marginTop - top) < 0.01 &&
-        std::abs(m_context.computed.marginRight - right) < 0.01 &&
-        std::abs(m_context.computed.marginBottom - bottom) < 0.01) return;
+    const RenderMargins margins{left, top, right, bottom};
+    if (std::abs(m_context.margins.left - left) < 0.01 &&
+        std::abs(m_context.margins.top - top) < 0.01 &&
+        std::abs(m_context.margins.right - right) < 0.01 &&
+        std::abs(m_context.margins.bottom - bottom) < 0.01) return;
 
-    // Update BOTH input and computed to keep them in sync
-    m_context.margins.left = left;
-    m_context.margins.top = top;
-    m_context.margins.right = right;
-    m_context.margins.bottom = bottom;
-    m_context.computed.marginLeft = left;
-    m_context.computed.marginTop = top;
-    m_context.computed.marginRight = right;
-    m_context.computed.marginBottom = bottom;
-
+    // View margins: the page mode uses the page's own (setConfigPageLayout())
+    m_context.margins = margins;
+    computeMargins();
     computeTextWidth();
     applyWidthToSource();
+    computeViewGeometry();
 
-    if (m_context.viewMode == ViewMode::Page) {
-        // Text area height changes with margins
-        m_context.computed.textAreaHeight = m_context.computed.pageHeightPixels
-                                           - top - bottom;
-    }
-
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
 
-void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, double pageGap) {
-    if (m_context.pageMode.pageSize == pageSize &&
-        std::abs(m_pageGap - pageGap) < 0.01) return;
+void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm,
+                                               double pageGap) {
+    PageModeConfig& page = m_context.pageMode;
+    if (page.pageSize == pageSize && page.marginsMm == marginsMm &&
+        std::abs(page.pageSpacing - pageGap) < 0.01) return;
 
-    m_context.pageMode.pageSize = pageSize;
-    m_pageGap = pageGap;
+    page.pageSize = pageSize;
+    page.marginsMm = marginsMm;
+    page.pageSpacing = pageGap;
 
     computePageLayout();
+    computeMargins();
     computeTextWidth();
     applyWidthToSource();
+    applyPageFlowToSource();
+    computeViewGeometry();
 
-    m_paginationCacheValid = false;
     m_heightDirty = true;
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigShowPageNumbers(bool show) {
+    if (m_context.pageMode.showPageNumbers == show) return;
+
+    m_context.pageMode.showPageNumbers = show;
+    markRepaintOnly();
+}
+
+void EditorRenderPipeline::setConfigTypewriter(bool enabled, double focusPosition) {
+    TypewriterConfig& typewriter = m_context.typewriter;
+    if (typewriter.enabled == enabled &&
+        std::abs(typewriter.focusPosition - focusPosition) < 0.0001) return;
+
+    typewriter.enabled = enabled;
+    typewriter.focusPosition = focusPosition;
+    computeViewGeometry();
+    updateVisibleRange();
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigScrollX(double x) {
+    const double oldScrollX = m_context.scrollX;
+    m_context.scrollX = x;
+    computeViewGeometry();  // clamps the offset
+    if (std::abs(m_context.scrollX - oldScrollX) > 0.001) {
+        markAllDirty();
+    }
+}
+
+void EditorRenderPipeline::setConfigScrollBarWidth(double width) {
+    if (std::abs(m_context.scrollBarWidth - width) < 0.01) return;
+
+    m_context.scrollBarWidth = width;
+    computeViewGeometry();
     markAllDirty();
 }
 
@@ -483,21 +574,22 @@ void EditorRenderPipeline::setConfigColors(const RenderColors& colors) {
     markRepaintOnly();
 }
 
-void EditorRenderPipeline::setConfigViewMode(ViewMode mode) {
-    if (m_context.viewMode == mode) return;
+void EditorRenderPipeline::setConfigViewMode(ViewMode mode, ZoomMode zoomMode) {
+    if (m_context.viewMode == mode && m_context.zoomMode == zoomMode) return;
 
     m_context.viewMode = mode;
+    m_context.zoomMode = zoomMode;
 
     // View mode affects everything - full recalculation
     computeDpiScaling();
     computeEffectiveFont();
     computeTypography();
-    computeMargins();
     computePageLayout();
+    computeMargins();
     computeTextWidth();
+    computeViewGeometry();
     applyComputedToSource();
 
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
@@ -506,12 +598,12 @@ void EditorRenderPipeline::applyInitialConfig() {
     computeDpiScaling();
     computeEffectiveFont();
     computeTypography();
-    computeMargins();
     computePageLayout();
+    computeMargins();
     computeTextWidth();
+    computeViewGeometry();
     applyComputedToSource();
 
-    m_paginationCacheValid = false;
     m_heightDirty = true;
     markAllDirty();
 }
@@ -625,12 +717,6 @@ void EditorRenderPipeline::setDropCaret(const std::optional<CursorPosition>& pos
     if (m_dropCaret == position) {
         return;
     }
-    if (m_context.viewMode == ViewMode::Page) {
-        // caretRect() has scroll-mode geometry: repaint the whole view
-        m_dropCaret = position;
-        markRepaintOnly();
-        return;
-    }
     // Repaint the old and the new caret line
     if (m_dropCaret) {
         markDirty(caretRect(*m_dropCaret).toAlignedRect());
@@ -655,13 +741,14 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
         return QRectF();
     }
 
+    const double scale = m_context.computed.viewScale;
     QTextLayout* layout = m_textSource->layout(static_cast<size_t>(paraIndex));
     if (!layout || layout->lineCount() == 0) {
         // Fallback: return default cursor rect
         double widgetY = paragraphWidgetY(static_cast<size_t>(paraIndex));
-        QFontMetricsF fm(m_context.font);
-        return QRectF(m_context.computed.marginLeft, widgetY,
-                      m_context.cursor.width, fm.height());
+        QFontMetricsF fm(m_context.computed.effectiveFont);
+        return QRectF(m_context.computed.originX, widgetY,
+                      m_context.cursor.width, fm.height() * scale);
     }
 
     // Find line containing cursor - O(log n) using Qt's binary search
@@ -674,14 +761,10 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     // Calculate cursor X position
     qreal cursorX = line.cursorToX(offset);
 
-    // Convert to widget coordinates - Phase 14: use computed values
-    double docY = m_textSource->paragraphY(static_cast<size_t>(paraIndex));
-    double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale + line.y() * m_context.computed.viewScale;
-    double widgetX = m_context.computed.marginLeft + cursorX * m_context.computed.viewScale;
-
-    return QRectF(widgetX, widgetY,
-                  m_context.cursor.width,
-                  line.height() * m_context.computed.viewScale);
+    // The cursor is as wide at every zoom, like the caret of a word processor
+    const double docY = m_textSource->paragraphY(static_cast<size_t>(paraIndex)) + line.y();
+    return QRectF(documentToWidget(QPointF(cursorX, docY)),
+                  QSizeF(m_context.cursor.width, line.height() * scale));
 }
 
 // =============================================================================
@@ -700,80 +783,44 @@ void EditorRenderPipeline::setSearchEngine(SearchEngine* engine) {
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
 
+void EditorRenderPipeline::ensureVisibleLaidOut() {
+    // Blocks waiting for layout have estimated heights; laying them out changes the
+    // heights, and the viewport keeps the text at its top in place by moving the scroll
+    // position. Repeat until the range shown is laid out.
+    updateVisibleRange();
+    if (!m_textSource) {
+        return;
+    }
+    size_t first = 0;
+    size_t last = 0;
+    do {
+        first = m_context.computed.firstVisibleParagraph;
+        last = m_context.computed.lastVisibleParagraph;
+        m_textSource->ensureLayouted(first, last);
+        updateVisibleRange();
+    } while (first != m_context.computed.firstVisibleParagraph ||
+             last != m_context.computed.lastVisibleParagraph);
+}
+
 void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     if (!painter) return;
 
     painter->save();
     painter->setClipRect(clipRect);
 
-    // Stage 1+2: Get visible range and ensure layouts. Blocks waiting for layout have
-    // estimated heights; laying them out changes the heights, and the viewport keeps the
-    // text at its top in place by moving the scroll position. Repeat until the range
-    // shown is laid out.
-    updateVisibleRange();
+    // Stage 1+2: Get visible range and ensure layouts
+    ensureVisibleLaidOut();
 
-    if (m_textSource) {
-        size_t first = 0;
-        size_t last = 0;
-        do {
-            first = m_context.computed.firstVisibleParagraph;
-            last = m_context.computed.lastVisibleParagraph;
-            m_textSource->ensureLayouted(first, last);
-            updateVisibleRange();
-        } while (first != m_context.computed.firstVisibleParagraph ||
-                 last != m_context.computed.lastVisibleParagraph);
-    }
-
-    // Stage 4: Render
-    //
-    // Two rendering paths (Phase 15: viewport culling):
-    // - Page Mode: uses pagination cache with slices (page breaks, clipping)
-    // - Scroll Modes: uses viewport-culled paragraph rendering (O(visible) not O(n))
-
+    // Stage 4: Render. One path for every view mode: the layout has placed the lines on
+    // the pages (page mode), so only the visible paragraphs are drawn, through the same
+    // document-to-widget mapping.
     renderBackground(painter, clipRect);
-
-    if (m_context.viewMode != ViewMode::Page) {
-        // =====================================================================
-        // SCROLL MODE FAST PATH: render only visible paragraphs
-        // Uses firstVisibleParagraph/lastVisibleParagraph for O(~30) draw calls
-        // instead of iterating ALL paragraph slices (O(n))
-        // =====================================================================
-        renderScrollMode(painter, clipRect);
+    if (m_context.viewMode == ViewMode::Page) {
+        renderPages(painter, clipRect);
     } else {
-        // =====================================================================
-        // PAGE MODE: uses pagination cache with slices (unchanged)
-        // =====================================================================
-        rebuildPaginationCache();
-        renderPageBackgrounds(painter, clipRect);
-
-        const auto& pageList = pages();
-        double scrollY = m_context.scrollY;
-
-        for (const PageContent& page : pageList) {
-            // Convert to widget coordinates
-            QRectF textRect = page.textRect;
-            double widgetY = textRect.top() - scrollY;
-            textRect.moveTop(widgetY);
-
-            // Skip if page text area is not visible
-            if (textRect.bottom() < 0 || textRect.top() > m_context.viewportSize.height()) {
-                continue;
-            }
-
-            // Set clip to text area for Page Mode
-            painter->save();
-            painter->setClipRect(textRect.toRect());
-
-            // Render each slice in this page
-            for (const ParagraphSlice& slice : page.slices) {
-                renderSliceSelection(painter, slice, textRect);
-                renderSlice(painter, slice, textRect);
-                renderSliceCursor(painter, slice, textRect);
-            }
-
-            painter->restore();
-        }
+        renderTextFrameBorder(painter);
     }
+    renderText(painter, clipRect);
 
     // Overlays (work in all modes, already viewport-culled)
     renderCommentHighlights(painter, clipRect);
@@ -801,7 +848,7 @@ void EditorRenderPipeline::markAllDirty() {
 
 void EditorRenderPipeline::markRepaintOnly() {
     // Lightweight repaint request for color-only changes.
-    // Does NOT imply pagination or layout invalidation.
+    // Does NOT imply layout invalidation.
     // Callers use this instead of markAllDirty() when only visual
     // appearance changed (colors, highlights) without affecting geometry.
     int w = static_cast<int>(m_context.viewportSize.width());
@@ -822,8 +869,7 @@ void EditorRenderPipeline::markDirty(const QRect& region) {
 void EditorRenderPipeline::markParagraphDirty(size_t paragraphIndex) {
     if (!m_textSource) return;
 
-    double docY = m_textSource->paragraphY(paragraphIndex);
-    double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale;
+    double widgetY = paragraphWidgetY(paragraphIndex);
     double height = m_textSource->paragraphHeight(paragraphIndex) * m_context.computed.viewScale;
 
     QRect rect(0, static_cast<int>(widgetY),
@@ -842,7 +888,15 @@ void EditorRenderPipeline::clearDirtyRegion() {
 // =============================================================================
 
 void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clipRect) {
-    painter->fillRect(clipRect, m_context.colors.background);
+    if (m_context.viewMode != ViewMode::Page) {
+        painter->fillRect(clipRect, m_context.colors.background);
+        return;
+    }
+    // The desk around the pages: a shade of the paper, darker for light paper and
+    // lighter for dark paper, so the sheets stand out in both color modes
+    const QColor& paper = m_context.colors.background;
+    painter->fillRect(clipRect, paper.lightness() > 127 ? paper.darker(DESK_DARKER_FACTOR)
+                                                        : paper.lighter(DESK_LIGHTER_FACTOR));
 }
 
 void EditorRenderPipeline::renderTextFrameBorder(QPainter* painter) {
@@ -853,12 +907,9 @@ void EditorRenderPipeline::renderTextFrameBorder(QPainter* painter) {
     if (docHeight <= 0) return;
 
     // Frame surrounds the document content, scrolling with it
-    double left = m_context.computed.marginLeft;
-    double top = m_context.computed.marginTop + (0 - m_context.scrollY) * m_context.computed.viewScale;  // Top of document in widget coords
-    double width = m_context.computed.textWidth;
-    double height = docHeight * m_context.computed.viewScale;
-
-    QRectF textFrame(left, top, width, height);
+    const double scale = m_context.computed.viewScale;
+    const QRectF textFrame(documentToWidget(QPointF(0.0, 0.0)),
+                           QSizeF(m_context.computed.textWidth * scale, docHeight * scale));
 
     painter->save();
     painter->setPen(QPen(m_context.textFrameBorderColor, m_context.textFrameBorderWidth));
@@ -875,8 +926,7 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
     size_t count = m_textSource->paragraphCount();
 
     for (size_t i = first; i <= last && i < count; ++i) {
-        double docY = m_textSource->paragraphY(i);
-        double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale;
+        double widgetY = paragraphWidgetY(i);
         double height = m_textSource->paragraphHeight(i) * m_context.computed.viewScale;
 
         // Check if paragraph intersects clip rect
@@ -891,7 +941,7 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     QTextLayout* layout = m_textSource->layout(index);
     if (!layout) return;
 
-    QPointF drawPos(m_context.computed.marginLeft, widgetY);
+    QPointF drawPos(m_context.computed.originX, widgetY);
 
     // Determine text color (focus mode dimming)
     bool isDimmed = m_context.focusMode.enabled &&
@@ -904,10 +954,10 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     painter->save();
     painter->translate(drawPos);
 
-    // Apply scale only for PageScaling mode
-    // For FontScaling: no painter scale needed, font is already scaled via effectiveFont()
-    if (m_context.zoomMode == ZoomMode::PageScaling) {
-        double scale = m_context.computed.viewScale;
+    // Page scaling zooms with the painter; font scaling has already laid out the text at
+    // the zoomed font size (view scale 1)
+    const double scale = m_context.computed.viewScale;
+    if (scale != 1.0) {
         painter->scale(scale, scale);
     }
 
@@ -936,11 +986,8 @@ void EditorRenderPipeline::renderSelection(QPainter* painter, [[maybe_unused]] c
                             : textLen;
 
         if (startOffset < endOffset) {
-            double docY = m_textSource->paragraphY(static_cast<size_t>(para));
-            double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale;
-
-            renderParagraphSelection(painter, static_cast<size_t>(para),
-                                     startOffset, endOffset, widgetY);
+            renderParagraphSelection(painter, static_cast<size_t>(para), startOffset, endOffset,
+                                     paragraphWidgetY(static_cast<size_t>(para)));
         }
     }
 }
@@ -977,8 +1024,8 @@ void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, in
             // Convert to widget coordinates - Phase 14: use computed values
             const QRectF band = lineBoxes ? lineBox(line)
                                           : QRectF(line.x(), line.y(), line.width(), line.height());
-            double wx1 = m_context.computed.marginLeft + x1 * m_context.computed.viewScale;
-            double wx2 = m_context.computed.marginLeft + x2 * m_context.computed.viewScale;
+            double wx1 = m_context.computed.originX + x1 * m_context.computed.viewScale;
+            double wx2 = m_context.computed.originX + x2 * m_context.computed.viewScale;
             double wy = widgetY + band.y() * m_context.computed.viewScale;
             double wh = band.height() * m_context.computed.viewScale;
 
@@ -1067,8 +1114,8 @@ void EditorRenderPipeline::renderCursor(QPainter* painter) {
     painter->save();
     painter->setClipRect(rect, Qt::IntersectClip);
     painter->setPen(m_context.colors.background);
-    painter->translate(m_context.computed.marginLeft, paragraphWidgetY(paragraph));
-    if (m_context.zoomMode == ZoomMode::PageScaling) {
+    painter->translate(m_context.computed.originX, paragraphWidgetY(paragraph));
+    if (m_context.computed.viewScale != 1.0) {
         painter->scale(m_context.computed.viewScale, m_context.computed.viewScale);
     }
     line.draw(painter, layout->position());
@@ -1115,12 +1162,12 @@ void EditorRenderPipeline::renderMarkerHighlights(QPainter* painter, const QRect
 
         if (!hasTodo) continue;
 
-        // Get line rect for this paragraph - Phase 14: inline coordinate conversion
-        double docY = m_textSource->paragraphY(para);
-        double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale;
+        // The paragraph across the text column (the whole view, or the page)
+        double widgetY = paragraphWidgetY(para);
         double height = m_textSource->paragraphHeight(para) * m_context.computed.viewScale;
+        const auto [columnLeft, columnRight] = columnExtent();
 
-        QRectF lineRect(0, widgetY, m_context.viewportSize.width(), height);
+        QRectF lineRect(columnLeft, widgetY, columnRight - columnLeft, height);
 
         if (!lineRect.toRect().intersects(clipRect)) continue;
 
@@ -1239,16 +1286,12 @@ void EditorRenderPipeline::renderCommentHighlights(QPainter* painter, const QRec
 }
 
 // =============================================================================
-// Scroll Mode Rendering (Phase 15: Viewport-culled fast path)
+// Text and Pages
 // =============================================================================
 
-void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clipRect) {
-    // Scroll Mode fast path: renders only visible paragraphs using
-    // firstVisibleParagraph/lastVisibleParagraph.
-    // This is O(visible) instead of O(n) -- ~30 draw calls vs ~3000.
-
-    // Text frame border (if enabled)
-    renderTextFrameBorder(painter);
+void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) {
+    // Only the visible paragraphs (firstVisibleParagraph..lastVisibleParagraph): O(visible)
+    // instead of O(n) -- ~30 draw calls vs ~3000.
 
     // Selection highlights (only visible paragraphs)
     if (hasSelection() && m_textSource) {
@@ -1271,18 +1314,13 @@ void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clip
                                 : textLen;
 
             if (startOffset < endOffset) {
-                double docY = m_textSource->paragraphY(static_cast<size_t>(para));
-                double widgetY = m_context.computed.marginTop +
-                                 (docY - m_context.scrollY) * m_context.computed.viewScale;
-
-                renderParagraphSelection(painter, static_cast<size_t>(para),
-                                         startOffset, endOffset, widgetY);
+                renderParagraphSelection(painter, static_cast<size_t>(para), startOffset,
+                                         endOffset, paragraphWidgetY(static_cast<size_t>(para)));
             }
         }
     }
 
-    // Search matches, under the text like the selection (scroll geometry, so not in
-    // Page mode)
+    // Search matches, under the text like the selection
     renderSearchHighlights(painter);
 
     // Paragraph text (already viewport-culled internally)
@@ -1303,16 +1341,15 @@ void EditorRenderPipeline::renderScrollMode(QPainter* painter, const QRect& clip
     }
 }
 
-// =============================================================================
-// Page Mode Rendering (Phase 13.4: Unified rendering)
-// =============================================================================
+void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect) {
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
 
-void EditorRenderPipeline::renderPageBackgrounds(QPainter* painter, [[maybe_unused]] const QRect& clipRect) {
-    // Page Mode: render page backgrounds, shadows, and borders
-    if (m_context.viewMode != ViewMode::Page) return;
-
-    const auto& pageList = pages();
-    double scrollY = m_context.scrollY;
+    // Pages whose sheets reach into the clip rect
+    const double clipTop = widgetToDocument(QPointF(0.0, clipRect.top())).y();
+    const double clipBottom = widgetToDocument(QPointF(0.0, clipRect.bottom() + 1.0)).y();
+    const int firstPage = pageAtDocumentY(clipTop);
+    const int lastPage = pageAtDocumentY(clipBottom);
 
     // Page styling from context
     constexpr double shadowOffsetX = 4.0;
@@ -1321,47 +1358,43 @@ void EditorRenderPipeline::renderPageBackgrounds(QPainter* painter, [[maybe_unus
 
     QColor borderColor = m_context.colors.text;
     borderColor.setAlpha(30);
+    QColor numberColor = m_context.colors.text;
+    numberColor.setAlpha(150);
+    // Page numbers are drawn in page units, scaled with the page
+    QFont numberFont = m_context.font;
+    numberFont.setPointSizeF(m_context.font.pointSizeF() * PAGE_NUMBER_FONT_SCALE);
 
-    for (const PageContent& page : pageList) {
-        // Convert to widget coordinates
-        QRectF pageRect = page.pageRect;
-        double widgetY = pageRect.top() - scrollY;
-        pageRect.moveTop(widgetY);
+    for (int page = firstPage; page <= lastPage; ++page) {
+        const double sheetTop = pageTextTop(page) - computed.marginTop;
+        const QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, sheetTop)),
+                           QSizeF(computed.pageWidthPixels * scale,
+                                  computed.pageHeightPixels * scale));
 
-        // Skip if page is not visible
-        if (pageRect.bottom() < 0 || pageRect.top() > m_context.viewportSize.height()) {
-            continue;
-        }
-
-        // Draw page shadow
-        if (m_context.pageMode.showPageBreaks) {  // Use existing flag for shadows
-            QRectF shadowRect = pageRect.translated(shadowOffsetX, shadowOffsetY);
-
+        // Page shadow
+        if (m_context.pageMode.showPageBreaks) {
+            const QRectF shadowRect = sheet.translated(shadowOffsetX, shadowOffsetY);
             for (int i = 0; i < 4; ++i) {
                 QColor shadow = m_context.pageMode.pageShadow;
                 shadow.setAlpha(shadow.alpha() / (i + 1));
-                double expand = shadowBlur * (i + 1) / 4.0;
-                QRectF blurRect = shadowRect.adjusted(-expand, -expand, expand, expand);
-                painter->fillRect(blurRect, shadow);
+                const double expand = shadowBlur * (i + 1) / 4.0;
+                painter->fillRect(shadowRect.adjusted(-expand, -expand, expand, expand), shadow);
             }
         }
 
-        // Draw page background (white)
-        painter->fillRect(pageRect, m_context.colors.background);
-
-        // Draw page border
+        // Paper and its edge
+        painter->fillRect(sheet, m_context.colors.background);
         painter->save();
         QPen borderPen(borderColor);
         borderPen.setWidthF(1.0);
         painter->setPen(borderPen);
-        painter->drawRect(pageRect);
+        painter->drawRect(sheet);
         painter->restore();
 
-        // Draw text frame border if enabled
+        // Text frame border if enabled
         if (m_context.showTextFrameBorder) {
-            QRectF textRect = page.textRect;
-            textRect.moveTop(textRect.top() - scrollY);
-
+            const QRectF textRect(documentToWidget(QPointF(0.0, pageTextTop(page))),
+                                  QSizeF(computed.textWidth * scale,
+                                         computed.textAreaHeight * scale));
             painter->save();
             QPen framePen(m_context.textFrameBorderColor);
             framePen.setWidth(m_context.textFrameBorderWidth);
@@ -1370,210 +1403,29 @@ void EditorRenderPipeline::renderPageBackgrounds(QPainter* painter, [[maybe_unus
             painter->drawRect(textRect);
             painter->restore();
         }
+
+        // Page number at the bottom centre, numbered from 1 in each chapter
+        if (m_context.pageMode.showPageNumbers) {
+            painter->save();
+            painter->translate(sheet.topLeft());
+            painter->scale(scale, scale);
+            painter->setFont(numberFont);
+            painter->setPen(numberColor);
+            const QRectF bottomMargin(0.0, computed.pageHeightPixels - computed.marginBottom,
+                                      computed.pageWidthPixels, computed.marginBottom);
+            painter->drawText(bottomMargin, Qt::AlignCenter, QString::number(page + 1));
+            painter->restore();
+        }
     }
 }
 
-void EditorRenderPipeline::renderSlice(QPainter* painter, const ParagraphSlice& slice,
-                                        const QRectF& textRect) {
-    if (!m_textSource) return;
-
-    QTextLayout* layout = m_textSource->layout(slice.paraIndex);
-    if (!layout || layout->lineCount() == 0) return;
-
-    // Calculate scale factor for this mode - Phase 14: use computed values
-    double scale = m_context.computed.viewScale;
-
-    // Shift the lines so that the box of the slice's first line starts at Y=0
-    double firstLineY = sliceTopInBlock(*layout, slice);
-
-    // Set up painter transform
-    painter->save();
-    painter->translate(textRect.left(), textRect.top() + slice.yOffset);
-
-    // Apply scale only for PageScaling mode or Page Mode
-    if (m_context.zoomMode == ZoomMode::PageScaling || m_context.viewMode == ViewMode::Page) {
-        painter->scale(scale, scale);
-    }
-
-    // Determine text color (focus mode dimming)
-    bool isDimmed = m_context.focusMode.enabled &&
-                    static_cast<int>(slice.paraIndex) != m_context.focusMode.focusedParagraph;
-    QColor textColor = isDimmed ? m_context.colors.inactiveText : m_context.colors.text;
-    painter->setPen(textColor);
-
-    // Draw text lines for this slice
-    for (int lineIdx = slice.startLine; lineIdx < slice.endLine && lineIdx < layout->lineCount(); ++lineIdx) {
-        QTextLine line = layout->lineAt(lineIdx);
-        // Offset is -firstLineY for all lines (shifts the slice to start at Y=0)
-        line.draw(painter, QPointF(0, -firstLineY));
-    }
-
-    painter->restore();
-}
-
-void EditorRenderPipeline::renderSliceSelection(QPainter* painter, const ParagraphSlice& slice,
-                                                  const QRectF& textRect) {
-    if (!hasSelection() || !m_textSource) return;
-
-    SelectionRange sel = m_selection.normalized();
-    int paraIdx = static_cast<int>(slice.paraIndex);
-
-    // Check if this paragraph is part of the selection
-    if (paraIdx < sel.start.paragraph || paraIdx > sel.end.paragraph) return;
-
-    QTextLayout* layout = m_textSource->layout(slice.paraIndex);
-    if (!layout || layout->lineCount() == 0) return;
-
-    // Calculate scale factor - Phase 14: use computed values
-    double scale = m_context.computed.viewScale;
-    if (m_context.viewMode == ViewMode::Page) {
-        scale = m_context.computed.totalScale;
-    }
-
-    // Shift the lines so that the box of the slice's first line starts at Y=0
-    double firstLineY = sliceTopInBlock(*layout, slice);
-
-    // Set up painter transform
-    painter->save();
-    painter->translate(textRect.left(), textRect.top() + slice.yOffset);
-
-    if (m_context.zoomMode == ZoomMode::PageScaling || m_context.viewMode == ViewMode::Page) {
-        painter->scale(scale, scale);
-    }
-
-    QColor selColor = m_context.colors.selection;
-
-    for (int lineIdx = slice.startLine; lineIdx < slice.endLine && lineIdx < layout->lineCount(); ++lineIdx) {
-        QTextLine line = layout->lineAt(lineIdx);
-        int lineStart = line.textStart();
-        int lineEnd = lineStart + line.textLength();
-
-        // Determine selection bounds for this line
-        int selStartInLine = 0;
-        int selEndInLine = lineEnd - lineStart;
-
-        if (paraIdx == sel.start.paragraph) {
-            selStartInLine = std::max(0, sel.start.offset - lineStart);
-        }
-        if (paraIdx == sel.end.paragraph) {
-            selEndInLine = std::min(lineEnd - lineStart, sel.end.offset - lineStart);
-        }
-
-        // Only draw if there's something selected on this line
-        if (selStartInLine < selEndInLine &&
-            sel.start.offset < lineEnd &&
-            (paraIdx < sel.end.paragraph || sel.end.offset > lineStart)) {
-
-            // Clamp to valid range
-            int actualStart = std::max(0, std::min(selStartInLine, line.textLength()));
-            int actualEnd = std::max(0, std::min(selEndInLine, line.textLength()));
-
-            if (actualStart < actualEnd) {
-                double selX1 = line.cursorToX(lineStart + actualStart);
-                double selX2 = line.cursorToX(lineStart + actualEnd);
-                const QRectF box = lineBox(line);
-                double selY = box.y() - firstLineY;
-                double selHeight = box.height();
-
-                // For full-line selection (middle paragraphs), extend to line width
-                if (paraIdx > sel.start.paragraph && paraIdx < sel.end.paragraph) {
-                    selX1 = 0;
-                    selX2 = line.naturalTextWidth();
-                }
-
-                painter->fillRect(QRectF(selX1, selY, selX2 - selX1, selHeight), selColor);
-            }
-        }
-    }
-
-    painter->restore();
-}
-
-void EditorRenderPipeline::renderSliceCursor(QPainter* painter, const ParagraphSlice& slice,
-                                               const QRectF& textRect) {
-    if (m_context.cursor.visible && m_context.cursor.blinkState) {
-        renderSliceCaret(painter, slice, textRect, m_cursorPosition, m_cursorStyle,
-                         m_context.colors.cursor);
-    }
-    if (m_dropCaret) {
-        renderSliceCaret(painter, slice, textRect, *m_dropCaret, CursorStyle::Line,
-                         m_context.colors.cursor);
-    }
-}
-
-void EditorRenderPipeline::renderSliceCaret(QPainter* painter, const ParagraphSlice& slice,
-                                              const QRectF& textRect, const CursorPosition& position,
-                                              CursorStyle style, const QColor& color) {
-    if (!m_textSource) return;
-
-    // Check if the caret is in this paragraph
-    if (position.paragraph != static_cast<int>(slice.paraIndex)) return;
-
-    QTextLayout* layout = m_textSource->layout(slice.paraIndex);
-    if (!layout || layout->lineCount() == 0) return;
-
-    QString text = m_textSource->paragraphText(slice.paraIndex);
-    int textLen = static_cast<int>(text.length());
-    int offsetInBlock = position.offset;
-    if (offsetInBlock < 0) offsetInBlock = 0;
-    if (offsetInBlock > textLen && textLen > 0) offsetInBlock = textLen;
-
-    // Find which line the cursor is on
-    QTextLine cursorLine = layout->lineForTextPosition(offsetInBlock);
-    if (!cursorLine.isValid()) return;
-
-    int cursorLineNum = cursorLine.lineNumber();
-
-    // Only draw cursor if the line is in this slice
-    if (cursorLineNum < slice.startLine || cursorLineNum >= slice.endLine) return;
-
-    // Calculate scale factor - Phase 14: use computed values
-    double scale = m_context.computed.viewScale;
-    if (m_context.viewMode == ViewMode::Page) {
-        scale = m_context.computed.totalScale;
-    }
-
-    // Shift the lines so that the box of the slice's first line starts at Y=0
-    double firstLineY = sliceTopInBlock(*layout, slice);
-
-    // Set up painter transform
-    painter->save();
-    painter->translate(textRect.left(), textRect.top() + slice.yOffset);
-
-    const bool scaled =
-        m_context.zoomMode == ZoomMode::PageScaling || m_context.viewMode == ViewMode::Page;
-    if (scaled) {
-        painter->scale(scale, scale);
-    }
-    // The line cursor and the underline keep their thickness in pixels at every zoom
-    const double pixel = scaled && scale > 0.0 ? 1.0 / scale : 1.0;
-
-    const double cursorX = cursorLine.cursorToX(offsetInBlock);
-    const double cursorY = cursorLine.y() - firstLineY;
-    const double cursorHeight = cursorLine.height();
-
-    if (style == CursorStyle::Line) {
-        painter->fillRect(QRectF(cursorX, cursorY, m_context.cursor.width * pixel, cursorHeight),
-                          color);
-    } else {
-        // Block and underline cursors are as wide as the character at the cursor
-        const double charWidth = caretCharWidth({position.paragraph, offsetInBlock});
-        if (style == CursorStyle::Block) {
-            const QRectF block(cursorX, cursorY, charWidth, cursorHeight);
-            painter->fillRect(block, color);
-            // The character under the block in the background color, so it stays readable
-            painter->setClipRect(block, Qt::IntersectClip);
-            painter->setPen(m_context.colors.background);
-            cursorLine.draw(painter, QPointF(0, -firstLineY));
-        } else {
-            const double underlineHeight = 2.0 * pixel;
-            painter->fillRect(QRectF(cursorX, cursorY + cursorHeight - underlineHeight, charWidth,
-                                     underlineHeight),
-                              color);
-        }
-    }
-
-    painter->restore();
+std::pair<double, double> EditorRenderPipeline::columnExtent() const {
+    // The view margins span the whole view in the scroll modes; in page mode the margins
+    // are the page's, so the column is the sheet of paper
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    return {computed.originX - computed.marginLeft * scale,
+            computed.originX + (computed.textWidth + computed.marginRight) * scale};
 }
 
 // =============================================================================
@@ -1594,9 +1446,9 @@ void EditorRenderPipeline::updateVisibleRange() {
         return;
     }
 
-    // Calculate visible range from scroll position
-    double viewTop = m_context.scrollY;
-    double viewBottom = viewTop + m_context.viewportSize.height() / m_context.computed.viewScale;
+    // Calculate visible range from the document y shown at the top and bottom edges
+    const double viewTop = widgetToDocument(QPointF(0.0, 0.0)).y();
+    const double viewBottom = widgetToDocument(QPointF(0.0, m_context.viewportSize.height())).y();
 
     m_context.computed.firstVisibleParagraph = m_textSource->paragraphAtY(viewTop);
     m_context.computed.lastVisibleParagraph = m_textSource->paragraphAtY(viewBottom);
@@ -1613,19 +1465,9 @@ QRectF EditorRenderPipeline::lineBox(const QTextLine& line) const {
                                                m_textSource ? m_textSource->lineSpacing() : 1.0);
 }
 
-double EditorRenderPipeline::sliceTopInBlock(const QTextLayout& layout,
-                                             const ParagraphSlice& slice) const {
-    if (slice.startLine <= 0 || slice.startLine >= layout.lineCount()) {
-        return 0.0;  // A slice starting at the first line starts at the block top
-    }
-    return lineBox(layout.lineAt(slice.startLine)).top();
-}
-
 double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
-    if (!m_textSource) return m_context.computed.marginTop;
-
-    double docY = m_textSource->paragraphY(index);
-    return m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale;
+    const double docY = m_textSource ? m_textSource->paragraphY(index) : 0.0;
+    return documentToWidget(QPointF(0.0, docY)).y();
 }
 
 QRectF EditorRenderPipeline::getTextRect(size_t paraIndex, int offset, int length) const {
@@ -1646,346 +1488,85 @@ QRectF EditorRenderPipeline::getTextRect(size_t paraIndex, int offset, int lengt
     qreal x2 = line.cursorToX(offset + length);
     if (x1 > x2) std::swap(x1, x2);
 
-    // Convert to widget coordinates - Phase 14: use computed values
-    double docY = m_textSource->paragraphY(paraIndex);
-    double widgetY = m_context.computed.marginTop + (docY - m_context.scrollY) * m_context.computed.viewScale + line.y() * m_context.computed.viewScale;
-    double widgetX = m_context.computed.marginLeft + x1 * m_context.computed.viewScale;
-    double width = (x2 - x1) * m_context.computed.viewScale;
-    double height = line.height() * m_context.computed.viewScale;
-
-    return QRectF(widgetX, widgetY, width, height);
+    const double scale = m_context.computed.viewScale;
+    const double docY = m_textSource->paragraphY(paraIndex) + line.y();
+    return QRectF(documentToWidget(QPointF(x1, docY)),
+                  QSizeF((x2 - x1) * scale, line.height() * scale));
 }
 
 // =============================================================================
-// Pagination (Phase 13.3)
+// Geometry: document <-> widget, pages
 // =============================================================================
 
-const std::vector<PageContent>& EditorRenderPipeline::pages() const {
-    rebuildPaginationCache();
-    return m_cachedPages;
+QPointF EditorRenderPipeline::documentToWidget(const QPointF& point) const {
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    return QPointF(computed.originX + point.x() * scale,
+                   computed.originY + (point.y() - m_context.scrollY) * scale);
 }
 
-void EditorRenderPipeline::invalidatePagination() {
-    m_paginationCacheValid = false;
+QPointF EditorRenderPipeline::widgetToDocument(const QPointF& point) const {
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    return QPointF((point.x() - computed.originX) / scale,
+                   (point.y() - computed.originY) / scale + m_context.scrollY);
 }
 
-void EditorRenderPipeline::setPageLayout(const QSizeF& pageSize, double pageGap) {
-    if (m_context.pageMode.pageSize != pageSize || m_pageGap != pageGap) {
-        m_context.pageMode.pageSize = pageSize;
-        m_pageGap = pageGap;
-        m_paginationCacheValid = false;
+int EditorRenderPipeline::pageCount() const {
+    if (m_context.viewMode != ViewMode::Page || !m_textSource) {
+        return 1;
     }
+    return std::max(1, m_textSource->pageCount());
 }
 
-int EditorRenderPipeline::pageAtY(double docY) const {
-    rebuildPaginationCache();
-
-    if (m_cachedPages.empty()) return -1;
-
-    // Linear search for page containing docY
-    for (size_t i = 0; i < m_cachedPages.size(); ++i) {
-        const PageContent& page = m_cachedPages[i];
-        double pageTop = page.pageY;
-        double pageBottom = pageTop + m_context.computed.pageHeightPixels + m_pageGap;
-
-        if (docY >= pageTop && docY < pageBottom) {
-            return static_cast<int>(i);
-        }
-
-        // Check if we're past this page
-        if (i == m_cachedPages.size() - 1) {
-            // Last page - return it if docY is beyond
-            return static_cast<int>(i);
-        }
+int EditorRenderPipeline::pageAtDocumentY(double y) const {
+    // Sheet i spans [i * pitch - top margin, i * pitch - top margin + page height); the
+    // gap below a sheet counts to it
+    const auto& computed = m_context.computed;
+    if (computed.pagePitch <= 0.0) {
+        return 0;
     }
+    const double page = std::floor((y + computed.marginTop) / computed.pagePitch);
+    return static_cast<int>(std::clamp(page, 0.0, static_cast<double>(pageCount() - 1)));
+}
 
-    return 0;
+double EditorRenderPipeline::pageTextTop(int page) const {
+    return page * m_context.computed.pagePitch;
+}
+
+double EditorRenderPipeline::maxScrollX() const {
+    if (m_context.viewMode != ViewMode::Page) {
+        return 0.0;
+    }
+    return std::max(0.0, m_context.computed.contentWidth -
+                             std::max(0.0, m_context.viewportSize.width() - m_context.scrollBarWidth));
 }
 
 CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) const {
-    if (!m_textSource) {
+    if (!m_textSource || m_textSource->paragraphCount() == 0) {
         return CursorPosition{0, 0};
     }
 
-    rebuildPaginationCache();
-
-    // For Scroll Mode (Continuous), use simple paragraph lookup
-    if (m_context.viewMode == ViewMode::Continuous || m_cachedPages.empty()) {
-        // Convert widget Y to document Y - Phase 14: inline coordinate conversion
-        double docY = (point.y() - m_context.computed.marginTop) / m_context.computed.viewScale + m_context.scrollY;
-        size_t paraIndex = m_textSource->paragraphAtY(docY);
-
-        if (paraIndex >= m_textSource->paragraphCount()) {
-            paraIndex = m_textSource->paragraphCount() > 0 ? m_textSource->paragraphCount() - 1 : 0;
-        }
-
-        QTextLayout* layout = m_textSource->layout(paraIndex);
-        if (!layout || layout->lineCount() == 0) {
-            return CursorPosition{static_cast<int>(paraIndex), 0};
-        }
-
-        // Find Y within paragraph
-        double paraY = m_textSource->paragraphY(paraIndex);
-        double localY = (docY - paraY);
-
-        // Line whose box covers localY (the nearest one above or below the lines)
-        const QTextLine line = layout->lineAt(
-            KalahariTextDocumentLayout::lineIndexAt(*layout, localY, m_textSource->lineSpacing()));
-
-        // Find X position - Phase 14: inline coordinate conversion
-        double docX = (point.x() - m_context.computed.marginLeft) / m_context.computed.viewScale;
-        int offset = line.xToCursor(docX, QTextLine::CursorBetweenCharacters);
-
-        return CursorPosition{static_cast<int>(paraIndex), offset};
+    // The document position under the point; the layout has the lines where they are
+    // shown, on their pages too
+    const QPointF docPoint = widgetToDocument(point);
+    size_t paraIndex = m_textSource->paragraphAtY(docPoint.y());
+    if (paraIndex >= m_textSource->paragraphCount()) {
+        paraIndex = m_textSource->paragraphCount() - 1;
     }
 
-    // Page Mode: use cached pages
-    double scrollY = m_context.scrollY;
-    double widgetY = point.y();
-
-    // Find which page contains this point
-    int pageIndex = -1;
-    for (size_t i = 0; i < m_cachedPages.size(); ++i) {
-        const PageContent& page = m_cachedPages[i];
-        QRectF pageRect = page.pageRect;
-        pageRect.moveTop(pageRect.top() - scrollY);
-
-        if (pageRect.contains(point)) {
-            pageIndex = static_cast<int>(i);
-            break;
-        }
+    QTextLayout* layout = m_textSource->layout(paraIndex);
+    if (!layout || layout->lineCount() == 0) {
+        return CursorPosition{static_cast<int>(paraIndex), 0};
     }
 
-    if (pageIndex < 0) {
-        // Click outside any page - find closest page
-        for (size_t i = 0; i < m_cachedPages.size(); ++i) {
-            const PageContent& page = m_cachedPages[i];
-            QRectF pageRect = page.pageRect;
-            pageRect.moveTop(pageRect.top() - scrollY);
+    // Line whose box covers the point (the nearest one above or below the lines)
+    const double localY = docPoint.y() - m_textSource->paragraphY(paraIndex);
+    const QTextLine line = layout->lineAt(
+        KalahariTextDocumentLayout::lineIndexAt(*layout, localY, m_textSource->lineSpacing()));
+    const int offset = line.xToCursor(docPoint.x(), QTextLine::CursorBetweenCharacters);
 
-            if (widgetY < pageRect.bottom()) {
-                pageIndex = static_cast<int>(i);
-                break;
-            }
-        }
-        if (pageIndex < 0 && !m_cachedPages.empty()) {
-            pageIndex = static_cast<int>(m_cachedPages.size() - 1);
-        }
-    }
-
-    if (pageIndex < 0 || m_cachedPages.empty()) {
-        return CursorPosition{0, 0};
-    }
-
-    const PageContent& page = m_cachedPages[static_cast<size_t>(pageIndex)];
-    QRectF textRect = page.textRect;
-    textRect.moveTop(textRect.top() - scrollY);
-
-    // Find Y within text area
-    double localY = point.y() - textRect.top();
-
-    // Find which slice contains this Y - Phase 14: use computed values
-    for (const ParagraphSlice& slice : page.slices) {
-        QTextLayout* layout = m_textSource->layout(slice.paraIndex);
-        if (!layout) continue;
-
-        // The slice's line boxes are stacked from its top (slice.yOffset)
-        const int endLine = std::min(slice.endLine, layout->lineCount());
-        if (slice.startLine >= endLine) continue;
-        const double sliceTop = sliceTopInBlock(*layout, slice);
-        const double scale = m_context.computed.viewScale;
-        for (int lineIdx = slice.startLine; lineIdx < endLine; ++lineIdx) {
-            const QTextLine line = layout->lineAt(lineIdx);
-            const QRectF box = lineBox(line);
-            const double lineY = slice.yOffset + (box.top() - sliceTop) * scale;
-            if (localY >= lineY && localY < lineY + box.height() * scale) {
-                // Found the line - find X offset
-                double localX = (point.x() - textRect.left()) / scale;
-                int offset = line.xToCursor(localX, QTextLine::CursorBetweenCharacters);
-                return CursorPosition{static_cast<int>(slice.paraIndex), offset};
-            }
-        }
-    }
-
-    // Fallback: return position in last slice of this page
-    if (!page.slices.empty()) {
-        const ParagraphSlice& lastSlice = page.slices.back();
-        QString text = m_textSource->paragraphText(lastSlice.paraIndex);
-        return CursorPosition{static_cast<int>(lastSlice.paraIndex), static_cast<int>(text.length())};
-    }
-
-    return CursorPosition{0, 0};
-}
-
-void EditorRenderPipeline::rebuildPaginationCache() const {
-    // Check if cache is still valid
-    bool cacheValid = m_paginationCacheValid &&
-                      std::abs(m_cachedScreenDpi - m_context.screenDpi) < 0.001 &&
-                      m_cachedPageSize == m_context.pageMode.pageSize;
-
-    if (cacheValid) {
-        return;
-    }
-
-    m_cachedPages.clear();
-
-    if (!m_textSource) {
-        m_paginationCacheValid = true;
-        return;
-    }
-
-    // The slices need the lines of every block: lay out the waiting ones in one go
-    if (m_textSource->paragraphCount() > 0) {
-        m_textSource->ensureLayouted(0, m_textSource->paragraphCount() - 1);
-    }
-
-    // For Scroll Mode (Continuous, Focus, DistractionFree, Typewriter):
-    // Create a single "virtual page" covering the entire document
-    if (m_context.viewMode != ViewMode::Page) {
-        // Calculate total document height - Phase 14: use computed values
-        double totalHeight = 0.0;
-        size_t paraCount = m_textSource->paragraphCount();
-        for (size_t i = 0; i < paraCount; ++i) {
-            totalHeight += m_textSource->paragraphHeight(i);
-        }
-        totalHeight *= m_context.computed.viewScale;
-
-        // Create single page covering entire document
-        PageContent scrollPage;
-        scrollPage.pageY = 0.0;
-        // For Scroll Mode, pageRect = textRect = full viewport width
-        scrollPage.pageRect = QRectF(0, 0, m_context.viewportSize.width(),
-                                      totalHeight + m_context.computed.marginTop + m_context.computed.marginBottom);
-        scrollPage.textRect = QRectF(m_context.computed.marginLeft, m_context.computed.marginTop,
-                                      m_context.computed.textWidth, totalHeight);
-
-        // Add all paragraphs as slices (each paragraph = one slice with all lines)
-        double currentY = 0.0;
-        for (size_t i = 0; i < paraCount; ++i) {
-            QTextLayout* layout = m_textSource->layout(i);
-            if (!layout) continue;
-
-            ParagraphSlice slice;
-            slice.paraIndex = i;
-            slice.startLine = 0;
-            slice.endLine = layout->lineCount();
-            slice.yOffset = currentY;
-            scrollPage.slices.push_back(slice);
-
-            currentY += m_textSource->paragraphHeight(i) * m_context.computed.viewScale;
-        }
-
-        m_cachedPages.push_back(scrollPage);
-        m_paginationCacheValid = true;
-        m_cachedScreenDpi = m_context.screenDpi;
-        return;
-    }
-
-    // Page Mode: calculate page breaks - Phase 14: use ALL computed values
-    const auto& c = m_context.computed;
-    double pageWidth = c.pageWidthPixels;
-    double pageHeight = c.pageHeightPixels;
-    double marginLeft = c.marginLeft;
-    double marginTop = c.marginTop;
-    double textAreaWidth = c.textWidth;
-    double textAreaHeight = c.textAreaHeight;
-    double centerOffset = c.pageCenterOffset;
-
-    size_t paraCount = m_textSource->paragraphCount();
-
-    if (paraCount == 0) {
-        // Empty document: create one empty page
-        PageContent page;
-        page.pageY = 0.0;
-        page.pageRect = QRectF(centerOffset, 0.0, pageWidth, pageHeight);
-        page.textRect = QRectF(centerOffset + marginLeft, marginTop, textAreaWidth, textAreaHeight);
-        m_cachedPages.push_back(page);
-    } else {
-        double currentPageY = 0.0;
-        double currentY = 0.0;  // Y within current page's text area
-
-        PageContent currentPage;
-        currentPage.pageY = currentPageY;
-        currentPage.pageRect = QRectF(centerOffset, currentPageY, pageWidth, pageHeight);
-        currentPage.textRect = QRectF(centerOffset + marginLeft, currentPageY + marginTop,
-                                       textAreaWidth, textAreaHeight);
-
-        // Lambda to start a new page
-        auto startNewPage = [&]() {
-            m_cachedPages.push_back(currentPage);
-            currentPageY += pageHeight + m_pageGap;
-            currentY = 0.0;
-
-            currentPage = PageContent();
-            currentPage.pageY = currentPageY;
-            currentPage.pageRect = QRectF(centerOffset, currentPageY, pageWidth, pageHeight);
-            currentPage.textRect = QRectF(centerOffset + marginLeft, currentPageY + marginTop,
-                                           textAreaWidth, textAreaHeight);
-        };
-
-        for (size_t paraIndex = 0; paraIndex < paraCount; ++paraIndex) {
-            QTextLayout* layout = m_textSource->layout(paraIndex);
-            if (!layout) continue;
-
-            int lineCount = layout->lineCount();
-            if (lineCount == 0) continue;
-
-            int startLine = 0;
-            double sliceStartY = currentY;
-
-            // Process each line in the paragraph
-            for (int lineIdx = 0; lineIdx < lineCount; ++lineIdx) {
-                // Same units as the page: line boxes are already in pixels
-                QTextLine line = layout->lineAt(lineIdx);
-                double lineHeight = lineBox(line).height();
-
-                // Check if this line fits on current page
-                if (currentY + lineHeight > textAreaHeight && currentY > 0) {
-                    // Save current slice if we have any lines
-                    if (lineIdx > startLine) {
-                        ParagraphSlice slice;
-                        slice.paraIndex = paraIndex;
-                        slice.startLine = startLine;
-                        slice.endLine = lineIdx;
-                        slice.yOffset = sliceStartY;
-                        currentPage.slices.push_back(slice);
-                    }
-
-                    // Start new page
-                    startNewPage();
-
-                    // Start new slice from this line
-                    startLine = lineIdx;
-                    sliceStartY = currentY;
-                }
-
-                currentY += lineHeight;
-            }
-
-            // Add final slice for this paragraph
-            if (startLine < lineCount) {
-                ParagraphSlice slice;
-                slice.paraIndex = paraIndex;
-                slice.startLine = startLine;
-                slice.endLine = lineCount;
-                slice.yOffset = sliceStartY;
-                currentPage.slices.push_back(slice);
-            }
-
-            // Paragraph spacing below the paragraph (a page break swallows it)
-            currentY += m_textSource->paragraphSpacing();
-        }
-
-        // Add final page
-        if (!currentPage.slices.empty() || m_cachedPages.empty()) {
-            m_cachedPages.push_back(currentPage);
-        }
-    }
-
-    // Update cache parameters
-    m_cachedScreenDpi = m_context.screenDpi;
-    m_cachedPageSize = m_context.pageMode.pageSize;
-    m_paginationCacheValid = true;
+    return CursorPosition{static_cast<int>(paraIndex), offset};
 }
 
 }  // namespace kalahari::editor

@@ -234,7 +234,9 @@ struct PageLayout {
         A5,
         Letter,
         Legal,
-        Custom
+        Custom,
+        B5,
+        Trade6x9                               ///< 6 x 9 inch, a common book format
     };
 
     PageSize pageSize{PageSize::A4};
@@ -248,9 +250,20 @@ struct PageLayout {
     qreal zoomLevel{1.0};                      ///< Zoom level (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool centerPages{true};                    ///< Center pages horizontally
+    bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
 
     // DPI correction factor (user calibration)
     qreal pageScaleFactor{1.0};                ///< Page size correction factor (1.0 = 100%)
+
+    /// @brief Page dimensions in millimetres
+    QSizeF pageSizeMm() const;
+
+    /// @brief Page size from its id ("A4", "A5", "B5", "6x9", "Letter", "Legal", "Custom");
+    ///        A4 for an unknown id
+    static PageSize pageSizeFromId(const QString& id);
+
+    /// @brief Id of a page size, as saved in settings and JSON
+    static QString pageSizeId(PageSize size);
 
     /// @brief Get page dimensions in pixels at given DPI
     QSizeF pageSizePixels(qreal dpi = 96.0) const;
@@ -269,10 +282,10 @@ struct PageLayout {
 // Mode-Specific Settings
 // =============================================================================
 
-/// @brief Settings specific to Typewriter Mode
+/// @brief Typewriter scrolling (a toggle in every view mode)
 struct TypewriterSettings {
-    bool enabled{false};                       ///< Typewriter mode active
-    qreal focusPosition{0.4};                  ///< Vertical position (0-1, 0.4 = 40% from top)
+    bool enabled{false};                       ///< Typewriter scrolling on
+    qreal focusPosition{0.5};                  ///< Height of the cursor line (0-1, 0.5 = middle)
     bool smoothScroll{true};                   ///< Smooth scrolling animation
     int scrollDuration{150};                   ///< Scroll animation duration in ms
 };

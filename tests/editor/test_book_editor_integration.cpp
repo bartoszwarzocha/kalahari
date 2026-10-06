@@ -165,9 +165,10 @@ TEST_CASE("Integration: View mode switching", "[integration][editor][view_modes]
         editor.setViewMode(ViewMode::Page);
         REQUIRE(editor.viewMode() == ViewMode::Page);
 
-        // Switch to typewriter mode
-        editor.setViewMode(ViewMode::Typewriter);
-        REQUIRE(editor.viewMode() == ViewMode::Typewriter);
+        // Typewriter scrolling on top of the page mode
+        editor.setTypewriterEnabled(true);
+        REQUIRE(editor.viewMode() == ViewMode::Page);
+        REQUIRE(editor.isTypewriterEnabled());
 
         // Switch to distraction-free mode
         editor.setViewMode(ViewMode::DistractionFree);

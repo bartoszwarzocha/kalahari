@@ -33,6 +33,9 @@ namespace kalahari::editor {
 /// - Glyphs are cached only for blocks laid out after an edit: the others keep their
 ///   line breaks, so memory does not grow with the length of the document
 /// - Block positions answered from cached heights (binary search for a y position)
+/// - Page flow (page mode): lines are placed only within the text areas of a stack of
+///   pages; a line that would cross the end of a text area moves to the next one. After
+///   an edit, only blocks whose place on their page changed are placed again.
 /// - Full QTextCursor and undo/redo compatibility
 class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout {
     Q_OBJECT
@@ -54,10 +57,12 @@ public:
     /// the character under the point, or -1 when the point is not on the text of a line.
     int hitTest(const QPointF& point, Qt::HitTestAccuracy accuracy) const override;
 
-    /// @brief Number of pages (always 1 for continuous layout)
+    /// @brief Number of pages: 1 without page flow, else the pages the text fills
+    ///        (estimated while blocks wait for layout)
     int pageCount() const override;
 
-    /// @brief Total document size
+    /// @brief Total document size; with page flow its height ends at the bottom of the
+    ///        last page's text area
     QSizeF documentSize() const override;
 
     /// @brief Bounding rect of a text frame
@@ -89,6 +94,13 @@ public:
     void setTypography(const LayoutTypography& typography);
     const LayoutTypography& typography() const { return m_typography; }
 
+    /// @brief Set the page flow; every block waits for layout again when it changes
+    ///
+    /// With page flow, line breaks follow the font's design metrics instead of its
+    /// screen metrics, so that they stay the same when a scaled painter zooms the pages.
+    void setPageFlow(const PageFlow& flow);
+    const PageFlow& pageFlow() const { return m_pageFlow; }
+
     /// @brief Paragraph spacing at the current document font (whole pixels)
     qreal paragraphSpacing() const;
 
@@ -114,6 +126,12 @@ public:
 
     /// @brief Lay out every waiting block now, as the background pass would
     void layoutPendingBlocks();
+
+    /// @brief Lay out the waiting blocks from the start of the document down to y
+    ///
+    /// Positions down to y are then exact: with page flow, the pages above y hold their
+    /// final lines (estimated heights above a page shift its text).
+    void ensureLaidOutTo(qreal y);
 
     /// @brief The block's lines, laid out first when the block waits for layout
     ///
@@ -207,7 +225,29 @@ private:
     qreal typographyScale() const;
 
     /// @brief Recalculate cumulative block positions from the height cache
+    ///
+    /// With page flow, also places the lines of every laid out block whose place on its
+    /// page changed (or that was laid out again).
     void updateBlockPositions() const;
+
+    /// @brief Top of a line box of the given height in the page flow
+    /// @param top Top the box would have without page breaks (document coordinates)
+    /// @return @p top, or the top of the next text area when the box starts between two
+    ///         areas, or would cross the end of its area below another line
+    qreal flowLineTop(qreal top, qreal height) const;
+
+    /// @brief Place a laid out block's lines in the page flow
+    /// @param top Top of the block (document coordinates)
+    /// @return Height of the block in the flow, including its paragraph spacing
+    qreal paginateBlock(QTextLayout* layout, qreal top, qreal spacing) const;
+
+    /// @brief Height a block waiting for layout probably takes in the page flow
+    /// @param height Its estimated height without page breaks
+    qreal flowEstimate(qreal height, qreal top, qreal spacing) const;
+
+    /// @brief Height the page flow gives the document: down to the end of the text area
+    ///        of the page holding the last line
+    qreal flowDocumentHeight() const;
 
     /// @brief Width reported for the document and its blocks
     qreal documentWidth() const;
@@ -217,6 +257,9 @@ private:
 
     // View typography used for every block
     LayoutTypography m_typography;
+
+    // Page flow (page mode); its text areas in whole pixels
+    PageFlow m_pageFlow;
 
     // Per block, indexed by block number and kept in step with the document: height
     // (estimated while waiting for layout), text length in average characters (for
@@ -242,6 +285,15 @@ private:
     mutable std::vector<qreal> m_blockYPositions;
     mutable bool m_positionsDirty = true;
     mutable qreal m_cachedDocumentHeight = 0;
+
+    // Page flow, per block: where on its page (offset from the top of the page) the
+    // block's lines were last placed - FLOW_UNPLACED when they follow its own top - and
+    // the height it takes in the flow. Kept in step with the document.
+    mutable std::vector<qreal> m_blockFlowOffsets;
+    mutable std::vector<qreal> m_blockFlowHeights;
+
+    // Page flow: bottom of the last line box (document coordinates)
+    mutable qreal m_contentBottom = 0;
 
     // Last size announced through documentSizeChanged()
     QSizeF m_lastReportedSize;

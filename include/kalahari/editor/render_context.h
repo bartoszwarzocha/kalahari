@@ -32,6 +32,10 @@ constexpr double MM_PER_INCH = 25.4;
 /// @brief Narrowest wrap width (pixels), used when the viewport is narrower than its margins
 constexpr double MIN_TEXT_WIDTH = 100.0;
 
+/// @brief Smallest share of a page's width and of its height left for the text; margins
+/// that would take more are scaled down
+constexpr double MIN_PAGE_TEXT_SHARE = 0.2;
+
 /// @brief Margin configuration for rendering
 ///
 /// Defines the margins around the text content area.
@@ -134,9 +138,20 @@ struct FocusModeConfig {
 /// @brief Page mode configuration
 struct PageModeConfig {
     QSizeF pageSize{595.0, 842.0};            ///< Page size (A4 default, in points)
-    double pageSpacing = 20.0;                 ///< Gap between pages (pixels)
+    QMarginsF marginsMm{25.4, 25.4, 25.4, 25.4};  ///< Page margins (millimetres)
+    double pageSpacing = 20.0;                 ///< Gap between and around pages (pixels at 100%)
     QColor pageShadow{0, 0, 0, 50};           ///< Page shadow color
-    bool showPageBreaks = true;                ///< Show page break lines
+    bool showPageBreaks = true;                ///< Draw page shadows
+    bool showPageNumbers = true;               ///< Page numbers at the bottom centre
+};
+
+/// @brief Typewriter scrolling configuration
+///
+/// The line with the cursor stays at a fixed height of the view. Extra room above the
+/// first line and below the last one lets those lines reach it too.
+struct TypewriterConfig {
+    bool enabled = false;                      ///< Whether typewriter scrolling is on
+    double focusPosition = 0.5;                ///< Height of the cursor line (0 = top, 1 = bottom)
 };
 
 /// @brief Complete rendering context - pure data structure
@@ -178,6 +193,11 @@ struct RenderContext {
     /// to pixels with, so page sizes in points and margins in mm match the text
     double screenDpi = DEFAULT_DPI;
 
+    /// Page mode: widget pixels per layout pixel at zoom 100%. The screen's physical DPI
+    /// over its logical DPI shows the pages at their size on paper; 1 gives the size of the
+    /// system's display scaling.
+    double paperScale = 1.0;
+
     // -------------------------------------------------------------------------
     // Typography
     // -------------------------------------------------------------------------
@@ -206,6 +226,7 @@ struct RenderContext {
     CursorConfig cursor;                       ///< Cursor rendering config
     FocusModeConfig focusMode;                 ///< Focus mode config
     PageModeConfig pageMode;                   ///< Page mode config
+    TypewriterConfig typewriter;               ///< Typewriter scrolling config
 
     // -------------------------------------------------------------------------
     // Text Frame Border
@@ -219,7 +240,9 @@ struct RenderContext {
     // Scroll State
     // -------------------------------------------------------------------------
 
-    double scrollY = 0.0;                      ///< Current vertical scroll offset
+    double scrollY = 0.0;                      ///< Vertical scroll offset (document units)
+    double scrollX = 0.0;                      ///< Horizontal scroll offset (pixels; page mode,
+                                               ///< when the zoomed page is wider than the view)
     int currentPageNumber = 1;                 ///< Current page number (1-based, for mirror margins)
 
     // -------------------------------------------------------------------------
@@ -227,6 +250,8 @@ struct RenderContext {
     // -------------------------------------------------------------------------
 
     QSizeF viewportSize;                       ///< Viewport dimensions
+    double scrollBarWidth = 0.0;               ///< Width of the vertical scroll bar over the
+                                               ///< view's right edge (pages keep clear of it)
 
     // =========================================================================
     // COMPUTED VALUES (set by Pipeline::configure())
@@ -254,13 +279,13 @@ struct RenderContext {
         LayoutTypography typography;
 
         // ---------------------------------------------------------------------
-        // Effective margins in pixels (after DPI/mode calculation)
+        // Effective margins (document units: pixels at 100% zoom)
         // ---------------------------------------------------------------------
 
-        double marginLeft = 50.0;               ///< Left margin (pixels)
-        double marginTop = 30.0;                ///< Top margin (pixels)
-        double marginRight = 50.0;              ///< Right margin (pixels)
-        double marginBottom = 30.0;             ///< Bottom margin (pixels)
+        double marginLeft = 50.0;               ///< Left margin (view margin, or page margin)
+        double marginTop = 30.0;                ///< Top margin
+        double marginRight = 50.0;              ///< Right margin
+        double marginBottom = 30.0;             ///< Bottom margin
 
         // ---------------------------------------------------------------------
         // Effective text width in pixels
@@ -269,19 +294,32 @@ struct RenderContext {
         double textWidth = 700.0;               ///< Available width for text content
 
         // ---------------------------------------------------------------------
-        // Page Mode specific
+        // Page Mode specific (document units unless noted)
         // ---------------------------------------------------------------------
 
-        double pageWidthPixels = 0.0;           ///< Page width in pixels
-        double pageHeightPixels = 0.0;          ///< Page height in pixels
-        double textAreaHeight = 0.0;            ///< Height of text area on page
-        double pageCenterOffset = 0.0;          ///< Offset to center page in viewport
+        double pageWidthPixels = 0.0;           ///< Page width
+        double pageHeightPixels = 0.0;          ///< Page height
+        QMarginsF pageMargins;                  ///< Page margins (fitted to the page)
+        double textAreaHeight = 0.0;            ///< Height of the text area of a page
+        double pagePitch = 0.0;                 ///< Page height plus the gap between pages
+        double pageCenterOffset = 0.0;          ///< Widget x of the left edge of the pages
+        double contentWidth = 0.0;              ///< Zoomed width of the pages with the gaps
+                                                ///< around them (widget pixels)
+
+        // ---------------------------------------------------------------------
+        // View mapping: widget = origin + (document - (0, scrollY)) * viewScale
+        // ---------------------------------------------------------------------
+
+        double originX = 50.0;                  ///< Widget x of document x = 0
+        double originY = 30.0;                  ///< Widget y of document y = scrollY
+        double scrollPaddingTop = 30.0;         ///< Scroll room above the text (document units)
+        double scrollPaddingBottom = 30.0;      ///< Scroll room below the text (document units)
 
         // ---------------------------------------------------------------------
         // Unified scale factor for rendering
         // ---------------------------------------------------------------------
 
-        double viewScale = 1.0;                 ///< Scale for QPainter (PageScaling mode)
+        double viewScale = 1.0;                 ///< Painter scale (zoom in page mode, else 1)
         double totalScale = 1.0;                ///< Zoom scale (DPI needs none: see screenDpi)
 
         // ---------------------------------------------------------------------

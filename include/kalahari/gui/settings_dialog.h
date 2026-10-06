@@ -245,6 +245,8 @@ private:
     QSpinBox* m_paragraphSpacingSpinBox;
     QCheckBox* m_firstLineIndentCheckBox;
     QSpinBox* m_indentSizeSpinBox;
+    QSpinBox* m_typewriterFocusSpinBox = nullptr;
+    QCheckBox* m_typewriterSmoothCheckBox = nullptr;
 
     // ========================================================================
     // Member Variables - Editor/Colors
@@ -278,7 +280,14 @@ private:
     QSpinBox* m_viewMarginHorizontalSpinBox;
     QSpinBox* m_viewMarginVerticalSpinBox;
 
-    // Page margins (Page/Typewriter views)
+    // Page format (Page Layout view)
+    QComboBox* m_pageSizeComboBox = nullptr;
+    QDoubleSpinBox* m_pageCustomWidthSpinBox = nullptr;
+    QDoubleSpinBox* m_pageCustomHeightSpinBox = nullptr;
+    QSpinBox* m_pageGapSpinBox = nullptr;
+    QCheckBox* m_pageShowNumbersCheckBox = nullptr;
+
+    // Page margins (Page Layout view)
     QDoubleSpinBox* m_pageMarginTopSpinBox;
     QDoubleSpinBox* m_pageMarginBottomSpinBox;
     QDoubleSpinBox* m_pageMarginLeftSpinBox;

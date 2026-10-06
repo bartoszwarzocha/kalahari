@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <string>
+
 #include <QString>
 #include <QColor>
 #include <QMap>
@@ -109,6 +111,18 @@ struct SettingsData {
     bool pageMirrorMarginsEnabled = false;       ///< Enable mirror margins
     double pageMarginInner = 30.0;               ///< Inner margin (binding side) in mm
     double pageMarginOuter = 20.0;               ///< Outer margin in mm
+
+    // ========================================================================
+    // Editor / Page and Typewriter
+    // ========================================================================
+
+    std::string pageSize = "A4";                 ///< A4, A5, B5, 6x9, Letter, Legal or Custom
+    double pageCustomWidth = 210.0;              ///< Custom page width in mm
+    double pageCustomHeight = 297.0;             ///< Custom page height in mm
+    bool pageShowNumbers = true;                 ///< Page numbers at the bottom of the pages
+    int pageGap = 20;                            ///< Gap between the pages in pixels (at 100%)
+    int typewriterFocusPercent = 50;             ///< Height of the cursor line (% of the view)
+    bool typewriterSmoothScroll = true;          ///< Glide to the cursor line
 
     // ========================================================================
     // Editor / Text Frame Border
@@ -270,6 +284,14 @@ struct SettingsData {
                pageMirrorMarginsEnabled != other.pageMirrorMarginsEnabled ||
                pageMarginInner != other.pageMarginInner ||
                pageMarginOuter != other.pageMarginOuter ||
+               // Page and typewriter settings
+               pageSize != other.pageSize ||
+               pageCustomWidth != other.pageCustomWidth ||
+               pageCustomHeight != other.pageCustomHeight ||
+               pageShowNumbers != other.pageShowNumbers ||
+               pageGap != other.pageGap ||
+               typewriterFocusPercent != other.typewriterFocusPercent ||
+               typewriterSmoothScroll != other.typewriterSmoothScroll ||
                // Text frame border settings
                textFrameBorderShow != other.textFrameBorderShow ||
                textFrameBorderColor != other.textFrameBorderColor ||
@@ -363,6 +385,14 @@ struct SettingsData {
                pageMirrorMarginsEnabled != other.pageMirrorMarginsEnabled ||
                pageMarginInner != other.pageMarginInner ||
                pageMarginOuter != other.pageMarginOuter ||
+               // Page and typewriter settings
+               pageSize != other.pageSize ||
+               pageCustomWidth != other.pageCustomWidth ||
+               pageCustomHeight != other.pageCustomHeight ||
+               pageShowNumbers != other.pageShowNumbers ||
+               pageGap != other.pageGap ||
+               typewriterFocusPercent != other.typewriterFocusPercent ||
+               typewriterSmoothScroll != other.typewriterSmoothScroll ||
                // Text frame border settings
                textFrameBorderShow != other.textFrameBorderShow ||
                textFrameBorderColor != other.textFrameBorderColor ||

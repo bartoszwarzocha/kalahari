@@ -8,7 +8,10 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
+#include <QEvent>
+#include <QScreen>
 #include <QVBoxLayout>
+#include <cmath>
 
 namespace kalahari {
 namespace gui {
@@ -194,6 +197,19 @@ void EditorPanel::applySettings() {
         appearance.pageMargins.top, appearance.pageMargins.bottom,
         appearance.pageMargins.left, appearance.pageMargins.right);
 
+    // Page format (Page Layout view)
+    appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
+        QString::fromStdString(settings.get<std::string>("editor.page.size", "A4")));
+    appearance.pageLayout.customWidth = settings.get<double>("editor.page.customWidth", 210.0);
+    appearance.pageLayout.customHeight = settings.get<double>("editor.page.customHeight", 297.0);
+    appearance.pageLayout.pageGap = settings.get<int>("editor.page.gap", 20);
+    appearance.pageLayout.showPageNumbers = settings.get<bool>("editor.page.showNumbers", true);
+
+    // Typewriter scrolling (View > Typewriter Scrolling; the height in the settings)
+    appearance.typewriter.enabled = settings.get<bool>("editor.typewriter.enabled", false);
+    appearance.typewriter.focusPosition = settings.get<double>("editor.typewriter.focusPosition", 0.5);
+    appearance.typewriter.smoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+
     // Text frame border
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show", false);
     std::string borderColor = settings.get<std::string>("editor.textFrameBorder.color", "#b4b4b4");
@@ -203,8 +219,32 @@ void EditorPanel::applySettings() {
 
     // Apply appearance
     m_bookEditor->setAppearance(appearance);
+    applyPaperScale();
 
     logger.debug("EditorPanel settings applied to BookEditor");
+}
+
+void EditorPanel::applyPaperScale() {
+    // Zoom 100% shows the pages at their size on paper, from the size of the screen
+    const QScreen* panelScreen = screen();
+    const double scale = editor::BookEditor::paperScaleOf(panelScreen);
+    if (std::abs(scale - m_bookEditor->paperScale()) < 1e-6) {
+        return;
+    }
+    m_bookEditor->setPaperScale(scale);
+    core::Logger::getInstance().info(
+        "EditorPanel: pages at their size on paper, scale {:.3f} (screen {:.1f} dpi, logical {:.1f})",
+        scale, panelScreen ? panelScreen->physicalDotsPerInch() : 0.0,
+        panelScreen ? panelScreen->logicalDotsPerInch() : 0.0);
+}
+
+bool EditorPanel::event(QEvent* event) {
+    // Shown, or moved to another screen, the pages keep their size on paper
+    if ((event->type() == QEvent::Show || event->type() == QEvent::ScreenChangeInternal) &&
+        m_bookEditor) {
+        applyPaperScale();
+    }
+    return QWidget::event(event);
 }
 
 void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector) {

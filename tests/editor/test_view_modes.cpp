@@ -531,7 +531,8 @@ TEST_CASE("ViewModeRegistry allModes returns all modes", "[viewmodes][registry]"
     }
 
     SECTION("Contains all expected modes") {
-        // Should have 7 modes: Continuous, Page, Typewriter, Focus, DistractionFree, Outline, Split
+        // 6 modes: Continuous, Page, Focus, DistractionFree, Outline, Split (typewriter
+        // scrolling is a toggle, not a mode)
         REQUIRE(modes.size() == static_cast<size_t>(ViewMode::_Count));
     }
 
@@ -635,9 +636,9 @@ TEST_CASE("ViewModeRegistry modeFromId returns correct mode", "[viewmodes][regis
         REQUIRE(mode == ViewMode::Page);
     }
 
-    SECTION("typewriter returns Typewriter mode") {
+    SECTION("typewriter is no longer a view mode") {
         ViewMode mode = ViewModeRegistry::modeFromId("typewriter");
-        REQUIRE(mode == ViewMode::Typewriter);
+        REQUIRE(mode == ViewMode::Continuous);
     }
 
     SECTION("distraction-free returns DistractionFree mode") {
@@ -757,9 +758,13 @@ TEST_CASE("BookEditor setViewMode changes mode", "[editor][viewmodes]") {
         REQUIRE(editor.viewMode() == ViewMode::Focus);
     }
 
-    SECTION("Can set to Typewriter mode") {
-        editor.setViewMode(ViewMode::Typewriter);
-        REQUIRE(editor.viewMode() == ViewMode::Typewriter);
+    SECTION("Typewriter scrolling is independent of the view mode") {
+        editor.setViewMode(ViewMode::Page);
+        editor.setTypewriterEnabled(true);
+        REQUIRE(editor.viewMode() == ViewMode::Page);
+        REQUIRE(editor.isTypewriterEnabled());
+        editor.setViewMode(ViewMode::Continuous);
+        REQUIRE(editor.isTypewriterEnabled());
     }
 
     SECTION("Can set to DistractionFree mode") {
@@ -804,9 +809,9 @@ TEST_CASE("BookEditor setViewMode emits signal", "[editor][viewmodes][signals]")
     SECTION("Multiple changes emit multiple signals") {
         editor.setViewMode(ViewMode::Page);
         editor.setViewMode(ViewMode::Focus);
-        editor.setViewMode(ViewMode::Typewriter);
+        editor.setViewMode(ViewMode::DistractionFree);
         REQUIRE(signalCount == 3);
-        REQUIRE(lastEmittedMode == ViewMode::Typewriter);
+        REQUIRE(lastEmittedMode == ViewMode::DistractionFree);
     }
 }
 

@@ -491,10 +491,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModePage);
-    REG_CMD_TOOL_ICON("view.mode.typewriter", "Typewriter", "VIEW/View Mode/Typewriter", 57, false, 0,
-                      KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
-                      IconSet(),
-                      callbacks.onViewModeTypewriter);
     REG_CMD_TOOL_ICON("view.mode.focus", "Focus", "VIEW/View Mode/Focus", 58, false, 0,
                       KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
                       IconSet(),
@@ -503,6 +499,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onViewModeDistFree);
+
+    // Typewriter scrolling: a toggle on top of the view mode (the cursor line stays at a
+    // fixed height of the view)
+    REG_CMD_KEY_CB("view.typewriter", "Typewriter Scrolling", "VIEW/Typewriter Scrolling", 60, true, 0,
+                   KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
+                   callbacks.onTypewriterToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);
@@ -520,9 +522,16 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.showStatsBar", "Show Statistics Bar", "VIEW/Show Statistics Bar", 190, false, 1);
     REG_CMD("view.showFormattingMarks", "Show Formatting Marks", "VIEW/Show Formatting Marks", 210, true, 1);
 
-    REG_CMD("view.zoomIn", "Zoom In", "VIEW/Zoom In", 220, false, 1);
-    REG_CMD("view.zoomOut", "Zoom Out", "VIEW/Zoom Out", 230, false, 1);
-    REG_CMD("view.resetZoom", "Reset Zoom", "VIEW/Reset Zoom", 240, true, 1);
+    REG_CMD_KEY_CB("view.zoomIn", "Zoom In", "VIEW/Zoom/Zoom In", 220, false, 0,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::ZoomIn), callbacks.onZoomIn);
+    REG_CMD_KEY_CB("view.zoomOut", "Zoom Out", "VIEW/Zoom/Zoom Out", 221, false, 0,
+                   KeyboardShortcut::fromQKeySequence(QKeySequence::ZoomOut), callbacks.onZoomOut);
+    REG_CMD_KEY_CB("view.resetZoom", "Zoom 100%", "VIEW/Zoom/Zoom 100%", 222, true, 0,
+                   KeyboardShortcut(Qt::Key_0, Qt::ControlModifier), callbacks.onZoomReset);
+    REG_CMD_CB("view.zoomPageWidth", "Page Width", "VIEW/Zoom/Page Width", 223, false, 0,
+               callbacks.onZoomPageWidth);
+    REG_CMD_CB("view.zoomWholePage", "Whole Page", "VIEW/Zoom/Whole Page", 224, true, 0,
+               callbacks.onZoomWholePage);
 
     // OpenSpec #00030: F11 for Full Screen (standard)
     REG_CMD_KEY("view.fullScreen", "Full Screen", "VIEW/Full Screen", 250, true, 0,

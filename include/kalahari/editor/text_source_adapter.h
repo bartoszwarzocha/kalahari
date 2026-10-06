@@ -135,6 +135,13 @@ public:
 
     /// @brief Space the layout leaves below every paragraph (current font, pixels)
     virtual double paragraphSpacing() const { return 0.0; }
+
+    /// @brief Set the page flow (page mode: lines only within the pages' text areas)
+    /// @note Sources without page support ignore it and keep a single page
+    virtual void setPageFlow(const PageFlow& /*flow*/) {}
+
+    /// @brief Number of pages the text fills (1 without page flow)
+    virtual int pageCount() const { return 1; }
 };
 
 // =============================================================================
@@ -178,6 +185,8 @@ public:
     void setTypography(const LayoutTypography& typography) override;
     double lineSpacing() const override;
     double paragraphSpacing() const override;
+    void setPageFlow(const PageFlow& flow) override;
+    int pageCount() const override;
 
     /// @brief Get underlying QTextDocument
     /// @return Pointer to wrapped document

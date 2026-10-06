@@ -13,6 +13,10 @@
 /// - Scroll anchoring: the text at the top of the viewport stays in place while blocks
 ///   change height without a content change (layout on demand, a new width or font)
 /// - Qt signals for viewport changes
+///
+/// Positions and scroll offsets are document coordinates. The view geometry says how the
+/// view shows them: the scroll position is drawn at the top inset (widget pixels) and
+/// document lengths are multiplied by the view scale (page mode zoom).
 
 #pragma once
 
@@ -112,6 +116,20 @@ public:
 
     /// @brief Get bottom scroll padding
     double bottomScrollPadding() const { return m_bottomScrollPadding; }
+
+    /// @brief Set how the view shows the document
+    /// @param scale Widget pixels per document unit (page mode zoom; 1 otherwise)
+    /// @param topInset Widget y at which the scroll position is drawn
+    void setViewGeometry(double scale, double topInset);
+
+    /// @brief Widget pixels per document unit
+    double viewScale() const { return m_viewScale; }
+
+    /// @brief Widget y at which the scroll position is drawn
+    double viewTopInset() const { return m_viewTopInset; }
+
+    /// @brief Height of the view in document units
+    double visibleDocumentHeight() const;
 
     // =========================================================================
     // Scroll Position
@@ -275,6 +293,8 @@ private:
     size_t m_bufferSize = DEFAULT_BUFFER_SIZE;
     double m_topScrollPadding = 0.0;     ///< Extra scroll space at top for margins
     double m_bottomScrollPadding = 0.0;  ///< Extra scroll space at bottom for margins
+    double m_viewScale = 1.0;            ///< Widget pixels per document unit
+    double m_viewTopInset = 0.0;         ///< Widget y of the scroll position
 
     size_t m_firstVisible = 0;
     size_t m_lastVisible = 0;

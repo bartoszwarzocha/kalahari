@@ -214,6 +214,18 @@ double QTextDocumentSource::paragraphSpacing() const {
     return layout ? layout->paragraphSpacing() : 0.0;
 }
 
+void QTextDocumentSource::setPageFlow(const PageFlow& flow) {
+    // Pages are a view setting of the layout, like the typography
+    if (auto* layout = kalahariLayout()) {
+        layout->setPageFlow(flow);
+    }
+}
+
+int QTextDocumentSource::pageCount() const {
+    const auto* layout = kalahariLayout();
+    return layout ? layout->pageCount() : 1;
+}
+
 KalahariTextDocumentLayout* QTextDocumentSource::kalahariLayout() const {
     return m_document ? qobject_cast<KalahariTextDocumentLayout*>(m_document->documentLayout())
                       : nullptr;

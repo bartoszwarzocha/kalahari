@@ -123,6 +123,21 @@ void ViewportManager::setBottomScrollPadding(double padding) {
     }
 }
 
+void ViewportManager::setViewGeometry(double scale, double topInset) {
+    scale = scale > 0.0 ? scale : 1.0;
+    if (std::abs(m_viewScale - scale) < 1e-9 && std::abs(m_viewTopInset - topInset) < 0.001) {
+        return;
+    }
+    m_viewScale = scale;
+    m_viewTopInset = topInset;
+    updateVisibleRange();
+    emit viewportChanged();
+}
+
+double ViewportManager::visibleDocumentHeight() const {
+    return static_cast<double>(m_viewportSize.height()) / m_viewScale;
+}
+
 // =============================================================================
 // Scroll Position
 // =============================================================================
@@ -149,7 +164,7 @@ double ViewportManager::scrollToMakeParagraphVisible(size_t index) {
 
     double paraY = paragraphY(index);
     double paraHeight = paragraphHeight(index);
-    double viewHeight = static_cast<double>(m_viewportSize.height());
+    double viewHeight = visibleDocumentHeight();
 
     // Already visible?
     if (paraY >= m_scrollY && paraY + paraHeight <= m_scrollY + viewHeight) {
@@ -172,7 +187,7 @@ double ViewportManager::scrollToMakeParagraphVisible(size_t index) {
 
 double ViewportManager::maxScrollPosition() const {
     double totalHeight = totalDocumentHeight();
-    double viewHeight = static_cast<double>(m_viewportSize.height());
+    double viewHeight = visibleDocumentHeight();
 
     // Include both top and bottom padding so user can see margins
     // Top padding: allows content to be scrolled up to show top margin
@@ -294,8 +309,9 @@ void ViewportManager::updateVisibleRange() {
     const size_t oldLast = m_lastVisible;
 
     // First block reaching into the viewport, last block starting above its bottom edge
-    const double viewTop = m_scrollY;
-    const double viewBottom = m_scrollY + static_cast<double>(m_viewportSize.height());
+    // (the scroll position is drawn at the top inset)
+    const double viewTop = m_scrollY - m_viewTopInset / m_viewScale;
+    const double viewBottom = viewTop + visibleDocumentHeight();
     m_firstVisible = paragraphAtY(viewTop);
     m_lastVisible = std::max(m_firstVisible, paragraphAtY(viewBottom));
 
@@ -324,7 +340,7 @@ double ViewportManager::scrollbarThumbSize() const {
     double totalHeight = totalDocumentHeight();
     if (totalHeight <= 0.0) return 1.0;
 
-    double viewHeight = static_cast<double>(m_viewportSize.height());
+    double viewHeight = visibleDocumentHeight();
     double thumbSize = viewHeight / totalHeight;
 
     return std::min(1.0, std::max(0.05, thumbSize));  // At least 5% visible
@@ -337,7 +353,7 @@ void ViewportManager::setScrollbarPosition(double position) {
 }
 
 bool ViewportManager::isScrollbarNeeded() const {
-    return totalDocumentHeight() > static_cast<double>(m_viewportSize.height());
+    return totalDocumentHeight() > visibleDocumentHeight();
 }
 
 // =============================================================================
@@ -345,9 +361,9 @@ bool ViewportManager::isScrollbarNeeded() const {
 // =============================================================================
 
 QRectF ViewportManager::viewportRect() const {
-    return QRectF(0.0, m_scrollY,
-                  static_cast<double>(m_viewportSize.width()),
-                  static_cast<double>(m_viewportSize.height()));
+    return QRectF(0.0, m_scrollY - m_viewTopInset / m_viewScale,
+                  static_cast<double>(m_viewportSize.width()) / m_viewScale,
+                  visibleDocumentHeight());
 }
 
 double ViewportManager::totalDocumentHeight() const {
