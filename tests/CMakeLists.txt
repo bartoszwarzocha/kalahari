@@ -60,6 +60,7 @@ set(TEST_SOURCES
     editor/test_editor_stage1.cpp                # Editor Stage 1: regressions for the quick fixes
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
+    editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)

@@ -88,6 +88,20 @@ struct LayoutTypography {
     bool operator==(const LayoutTypography&) const = default;
 };
 
+/// @brief Page flow of a document layout: the text as a stack of page text areas
+///
+/// Text area i spans [i * pitch, i * pitch + textHeight) in document coordinates. The
+/// space between two areas holds the bottom margin of one page, the gap and the top
+/// margin of the next one, so no line is placed there. Lengths in document units (the
+/// layout rounds them to whole pixels).
+struct PageFlow {
+    bool enabled = false;
+    qreal pitch = 0.0;       ///< Distance between the tops of two consecutive text areas
+    qreal textHeight = 0.0;  ///< Height of one text area
+
+    bool operator==(const PageFlow&) const = default;
+};
+
 /// @brief Alignment of a paragraph without one of its own: justified (Qt leaves the last
 /// line of a justified paragraph at its leading edge)
 inline constexpr Qt::Alignment DEFAULT_PARAGRAPH_ALIGNMENT = Qt::AlignJustify;
