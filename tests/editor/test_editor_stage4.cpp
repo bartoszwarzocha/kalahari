@@ -322,13 +322,21 @@ QRectF caret(BookEditor& editor) {
     return editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF();
 }
 
-void click(BookEditor& editor, const QPointF& pos) {
+void pressAndRelease(BookEditor& editor, const QPointF& pos) {
     QMouseEvent press(QEvent::MouseButtonPress, pos, editor.mapToGlobal(pos), Qt::LeftButton,
                       Qt::LeftButton, Qt::NoModifier);
     QCoreApplication::sendEvent(&editor, &press);
     QMouseEvent release(QEvent::MouseButtonRelease, pos, editor.mapToGlobal(pos), Qt::LeftButton,
                         Qt::NoButton, Qt::NoModifier);
     QCoreApplication::sendEvent(&editor, &release);
+}
+
+/// A single click. The editor takes a click near the previous one for a double click until
+/// its timer runs out, which needs an event loop the tests do not run: a click aside on the
+/// same line comes first.
+void click(BookEditor& editor, const QPointF& pos) {
+    pressAndRelease(editor, pos + QPointF(40.0, 0.0));
+    pressAndRelease(editor, pos);
 }
 
 void pressKey(BookEditor& editor, int key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
@@ -488,22 +496,24 @@ TEST_CASE("Stage4 typewriter: the line holds at the start and the end of the cha
 TEST_CASE("Stage4 typewriter: a click and manual scrolling leave the view",
           "[editor][stage4][typewriter]") {
     auto editor = editorIn(ViewMode::Continuous);
+    // The background pass done: no estimated heights for scroll anchoring to correct
+    qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout())
+        ->layoutPendingBlocks();
     typewriterOn(*editor);
     editor->setCursorPosition({20, 0});
     paint(*editor);
     const double focusY = editor->height() * 0.5;
 
-    // A click near the top moves the cursor, not the view
+    // A click on a line above, well within the view, moves the cursor, not the view
     const double scroll = editor->scrollOffset();
-    click(*editor, QPointF(200.0, 60.0));
-    CHECK(editor->scrollOffset() == Approx(scroll));
+    click(*editor, QPointF(200.0, focusY - 100.0));
+    CHECK(editor->scrollOffset() == Approx(scroll).margin(0.5));
     CHECK(editor->cursorPosition().paragraph < 20);
 
-    // The wheel scrolls away from the line, and the view stays there (laying out the text
-    // that comes into view may move it by a few pixels)
+    // The wheel scrolls away from the line, and the view stays there
     editor->setScrollOffset(scroll + 300.0);
     paint(*editor);
-    CHECK(editor->scrollOffset() == Approx(scroll + 300.0).margin(5.0));
+    CHECK(editor->scrollOffset() == Approx(scroll + 300.0).margin(0.5));
 
     // Typing brings the line back to its height
     editor->insertText(QStringLiteral("x"));
