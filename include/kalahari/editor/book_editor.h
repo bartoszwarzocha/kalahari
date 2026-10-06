@@ -291,14 +291,14 @@ public:
     /// @brief Move cursor to document end (Ctrl+End)
     void moveCursorToDocEnd();
 
-    /// @brief Move cursor one page up (Page Up)
+    /// @brief Move cursor one view height up (Page Up)
     ///
-    /// Moves approximately one viewport height up.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view.
     void moveCursorPageUp();
 
-    /// @brief Move cursor one page down (Page Down)
+    /// @brief Move cursor one view height down (Page Down)
     ///
-    /// Moves approximately one viewport height down.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view.
     void moveCursorPageDown();
 
     // =========================================================================
@@ -1026,6 +1026,25 @@ private:
     /// @brief Update scrollbar range based on content height
     void updateScrollBarRange();
 
+    /// @brief Show the horizontal scrollbar while the zoomed pages are wider than the view
+    void updateHorizontalScrollBar();
+
+    /// @brief Scroll the pages sideways (page mode; clamped to the pipeline's range)
+    void setHorizontalScrollOffset(double x);
+
+    /// @brief Move the cursor and the view by one view height (-1 up, 1 down)
+    void moveCursorByViewHeight(double direction);
+
+    /// @brief Zoom to a factor, keeping the document point under a widget point in place
+    ///        (page mode; the scroll modes keep the text at the top of the view)
+    void applyZoom(double factor, const QPointF& fixedPoint);
+
+    /// @brief Give the pipeline the page size, margins, gap and page numbers
+    void applyPageLayout();
+
+    /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
+    void updatePageInfo();
+
     /// @brief Sync scrollbar value with scroll manager (without triggering signals)
     void syncScrollBarValue();
 
@@ -1047,19 +1066,13 @@ private:
     /// @brief Update only scroll position (lightweight)
     void updatePipelineScroll();
 
-    /// @brief Calculate effective margins in pixels for current view mode
-    /// @return Margins in pixels, properly converted from mm for Page Mode
+    /// @brief View margins of the scroll modes, in pixels
     ///
-    /// SINGLE SOURCE OF TRUTH for margin calculations.
-    /// Handles mm-to-pixels conversion, DPI scaling, and zoom factor.
+    /// Page mode uses the page's margins, given to the pipeline by applyPageLayout().
     RenderMargins calculateEffectiveMargins() const;
 
-    /// @brief Get scroll padding (top/bottom) for current view mode
-    /// @return {topPadding, bottomPadding} in pixels
-    ///
-    /// SINGLE SOURCE OF TRUTH for scroll padding calculations.
-    /// Used by ViewportManager and scroll limit calculations.
-    /// Does NOT apply zoom scaling (scroll padding is independent of zoom).
+    /// @brief Scroll room above and below the text, in document units
+    /// @return {topPadding, bottomPadding}, as computed by the render pipeline
     std::pair<double, double> getScrollPadding() const;
 
     /// @brief Start smooth scroll animation to target offset
@@ -1249,6 +1262,9 @@ private:
     // Using QTextDocument (m_textBuffer), ViewportManager, RenderEngine instead
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
+    QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
+    int m_lastCurrentPage = -1;                             ///< Page number last emitted
+    int m_lastTotalPages = -1;                              ///< Page count last emitted
     QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
     QPropertyAnimation* m_typewriterScrollAnimation;        ///< Typewriter mode scroll animation
 

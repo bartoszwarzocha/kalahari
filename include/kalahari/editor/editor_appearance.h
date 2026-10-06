@@ -234,7 +234,9 @@ struct PageLayout {
         A5,
         Letter,
         Legal,
-        Custom
+        Custom,
+        B5,
+        Trade6x9                               ///< 6 x 9 inch, a common book format
     };
 
     PageSize pageSize{PageSize::A4};
@@ -248,9 +250,13 @@ struct PageLayout {
     qreal zoomLevel{1.0};                      ///< Zoom level (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool centerPages{true};                    ///< Center pages horizontally
+    bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
 
     // DPI correction factor (user calibration)
     qreal pageScaleFactor{1.0};                ///< Page size correction factor (1.0 = 100%)
+
+    /// @brief Page dimensions in millimetres
+    QSizeF pageSizeMm() const;
 
     /// @brief Get page dimensions in pixels at given DPI
     QSizeF pageSizePixels(qreal dpi = 96.0) const;

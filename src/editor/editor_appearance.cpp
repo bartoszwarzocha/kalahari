@@ -306,38 +306,33 @@ QJsonObject EditorTypography::toJson() const
 // PageLayout
 // =============================================================================
 
-QSizeF PageLayout::pageSizePixels(qreal dpi) const
+QSizeF PageLayout::pageSizeMm() const
 {
-    qreal mmToPixels = dpi / 25.4;
-
-    qreal width = 0;
-    qreal height = 0;
-
     switch (pageSize) {
         case PageSize::A4:
-            width = 210.0;
-            height = 297.0;
-            break;
+            return QSizeF(210.0, 297.0);
         case PageSize::A5:
-            width = 148.0;
-            height = 210.0;
-            break;
+            return QSizeF(148.0, 210.0);
+        case PageSize::B5:
+            return QSizeF(176.0, 250.0);
+        case PageSize::Trade6x9:
+            return QSizeF(152.4, 228.6);
         case PageSize::Letter:
-            width = 215.9;
-            height = 279.4;
-            break;
+            return QSizeF(215.9, 279.4);
         case PageSize::Legal:
-            width = 215.9;
-            height = 355.6;
-            break;
+            return QSizeF(215.9, 355.6);
         case PageSize::Custom:
-            width = customWidth;
-            height = customHeight;
-            break;
+            return QSizeF(customWidth, customHeight);
     }
+    return QSizeF(210.0, 297.0);
+}
 
-    return QSizeF(width * mmToPixels * zoomLevel * pageScaleFactor,
-                  height * mmToPixels * zoomLevel * pageScaleFactor);
+QSizeF PageLayout::pageSizePixels(qreal dpi) const
+{
+    const qreal mmToPixels = dpi / 25.4;
+    const QSizeF size = pageSizeMm();
+    return QSizeF(size.width() * mmToPixels * zoomLevel * pageScaleFactor,
+                  size.height() * mmToPixels * zoomLevel * pageScaleFactor);
 }
 
 QSizeF PageLayout::textAreaPixels(qreal dpi) const
@@ -359,6 +354,8 @@ PageLayout PageLayout::fromJson(const QJsonObject& json)
         QString size = json["pageSize"].toString();
         if (size == "A4") layout.pageSize = PageSize::A4;
         else if (size == "A5") layout.pageSize = PageSize::A5;
+        else if (size == "B5") layout.pageSize = PageSize::B5;
+        else if (size == "6x9") layout.pageSize = PageSize::Trade6x9;
         else if (size == "Letter") layout.pageSize = PageSize::Letter;
         else if (size == "Legal") layout.pageSize = PageSize::Legal;
         else if (size == "Custom") layout.pageSize = PageSize::Custom;
@@ -377,6 +374,7 @@ PageLayout PageLayout::fromJson(const QJsonObject& json)
     if (json.contains("zoomLevel")) layout.zoomLevel = json["zoomLevel"].toDouble();
     if (json.contains("pageGap")) layout.pageGap = json["pageGap"].toDouble();
     if (json.contains("centerPages")) layout.centerPages = json["centerPages"].toBool();
+    if (json.contains("showPageNumbers")) layout.showPageNumbers = json["showPageNumbers"].toBool();
     if (json.contains("pageScaleFactor")) layout.pageScaleFactor = json["pageScaleFactor"].toDouble();
 
     return layout;
@@ -390,6 +388,8 @@ QJsonObject PageLayout::toJson() const
     switch (pageSize) {
         case PageSize::A4: sizeStr = "A4"; break;
         case PageSize::A5: sizeStr = "A5"; break;
+        case PageSize::B5: sizeStr = "B5"; break;
+        case PageSize::Trade6x9: sizeStr = "6x9"; break;
         case PageSize::Letter: sizeStr = "Letter"; break;
         case PageSize::Legal: sizeStr = "Legal"; break;
         case PageSize::Custom: sizeStr = "Custom"; break;
@@ -408,6 +408,7 @@ QJsonObject PageLayout::toJson() const
     json["zoomLevel"] = zoomLevel;
     json["pageGap"] = pageGap;
     json["centerPages"] = centerPages;
+    json["showPageNumbers"] = showPageNumbers;
     json["pageScaleFactor"] = pageScaleFactor;
 
     return json;

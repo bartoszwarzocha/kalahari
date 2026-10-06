@@ -31,31 +31,6 @@ class ViewportManager;
 class SearchEngine;
 class KalahariTextDocumentLayout;
 
-// =============================================================================
-// Pagination Structures (Phase 13.3: moved from BookEditor)
-// =============================================================================
-
-/// @brief A slice of a paragraph that fits on a single page
-///
-/// When a paragraph spans multiple pages, it's split into slices.
-/// Each slice contains a range of lines from the paragraph.
-struct ParagraphSlice {
-    size_t paraIndex;      ///< Index of the paragraph in the document
-    int startLine;         ///< First line index (inclusive)
-    int endLine;           ///< Last line index (exclusive)
-    double yOffset;        ///< Y offset on the page (in screen pixels)
-};
-
-/// @brief Content of a single page in Page Mode
-///
-/// Contains the page geometry and all paragraph slices that appear on this page.
-struct PageContent {
-    double pageY;                           ///< Y position of page top in document coordinates
-    QRectF pageRect;                        ///< Page rectangle (including margins) in widget coordinates
-    QRectF textRect;                        ///< Text area rectangle (excluding margins) in widget coordinates
-    std::vector<ParagraphSlice> slices;     ///< Paragraph slices on this page
-};
-
 /// @brief Unified rendering pipeline for the editor
 ///
 /// EditorRenderPipeline provides a single entry point for all editor rendering.
@@ -81,7 +56,9 @@ struct PageContent {
 /// - Single render() call replaces multiple painting paths
 /// - All state centralized in RenderContext
 /// - Clear separation of concerns (text source, attributes, layout, rendering)
-/// - Easy to extend with new features (scale, margins, effects)
+/// - One mapping between document and widget coordinates for every view mode: the text
+///   layout places the lines on the pages (page flow), the pipeline only offsets and
+///   scales them (widget = origin + (document - scroll) * viewScale)
 class EditorRenderPipeline : public QObject {
     Q_OBJECT
 
@@ -217,8 +194,25 @@ public:
 
     /// @brief Set page layout parameters (recalculates: pageLayout, textWidth)
     /// @param pageSize Page size in points (72 DPI)
-    /// @param pageGap Gap between pages in pixels
-    void setConfigPageLayout(const QSizeF& pageSize, double pageGap);
+    /// @param marginsMm Page margins in millimetres
+    /// @param pageGap Gap between and around pages, in pixels at 100% zoom
+    void setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm, double pageGap);
+
+    /// @brief Show or hide the page numbers (repaint only)
+    void setConfigShowPageNumbers(bool show);
+
+    /// @brief Set typewriter scrolling (recalculates: origin and scroll padding)
+    /// @param enabled Keep the cursor line at a fixed height of the view
+    /// @param focusPosition That height as a share of the view height (0 = top)
+    void setConfigTypewriter(bool enabled, double focusPosition);
+
+    /// @brief Set the horizontal scroll offset in pixels (page mode, zoomed page wider
+    ///        than the view; clamped to [0, maxScrollX()])
+    void setConfigScrollX(double x);
+
+    /// @brief Set the width of the vertical scroll bar over the view's right edge; the
+    ///        pages are centred, and scrolled sideways, in the width left of it
+    void setConfigScrollBarWidth(double width);
 
     /// @brief Set colors (no recalculation, just marks dirty)
     /// @param colors Render colors (text, background, selection, etc.)
@@ -226,8 +220,9 @@ public:
 
     /// @brief Set view mode (FULL reconfiguration - use sparingly)
     /// @param mode New view mode
+    /// @param zoomMode How the zoom applies in that mode (one relayout for both)
     /// @note This triggers full reconfiguration because view mode affects everything
-    void setConfigViewMode(ViewMode mode);
+    void setConfigViewMode(ViewMode mode, ZoomMode zoomMode);
 
     /// @brief Apply initial configuration (called once after setup)
     /// Sets up initial state without full configure() overhead
@@ -286,8 +281,6 @@ public:
     QRectF cursorRect() const;
 
     /// @brief Rectangle of a caret line at a position, in widget coordinates
-    ///
-    /// Scroll-mode geometry, like cursorRect().
     QRectF caretRect(const CursorPosition& position) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
@@ -301,7 +294,7 @@ public:
 
     /// @brief Area the cursor is painted in (cursorRect() adjusted to the cursor style)
     ///
-    /// Scroll-mode geometry; also the area to repaint when the cursor blinks or moves.
+    /// Also the area to repaint when the cursor blinks or moves.
     QRectF cursorPaintRect() const;
 
     // =========================================================================
@@ -367,32 +360,30 @@ public:
     void clearDirtyRegion();
 
     // =========================================================================
-    // Pagination (Phase 13.3: Page Mode support)
+    // Geometry: document <-> widget, pages
     // =========================================================================
 
-    /// @brief Get cached pages for Page Mode rendering
-    /// @return Vector of PageContent with page geometry and paragraph slices
-    const std::vector<PageContent>& pages() const;
+    /// @brief Widget position of a document position (scroll and zoom applied)
+    QPointF documentToWidget(const QPointF& point) const;
 
-    /// @brief Check if pagination cache is valid
-    bool isPaginationValid() const { return m_paginationCacheValid; }
+    /// @brief Document position shown at a widget position
+    QPointF widgetToDocument(const QPointF& point) const;
 
-    /// @brief Invalidate pagination cache (call when layout changes)
-    void invalidatePagination();
+    /// @brief Number of pages (page mode; 1 in the other modes)
+    int pageCount() const;
 
-    /// @brief Set page layout parameters for Page Mode
-    /// @param pageSize Page size in points (e.g., A4 = 595x842)
-    /// @param pageGap Gap between pages in pixels
-    void setPageLayout(const QSizeF& pageSize, double pageGap = 20.0);
+    /// @brief Page (0-based) whose sheet holds document y, or the nearest page
+    int pageAtDocumentY(double y) const;
 
-    /// @brief Find page index at given document Y coordinate
-    /// @param docY Y coordinate in document space
-    /// @return Page index (0-based), or -1 if not found
-    int pageAtY(double docY) const;
+    /// @brief Document y of the top of a page's text area
+    double pageTextTop(int page) const;
+
+    /// @brief Largest horizontal scroll offset (pixels; 0 when the pages fit the view)
+    double maxScrollX() const;
 
     /// @brief Find position (paragraph, offset) at widget point
     /// @param point Point in widget coordinates
-    /// @return CursorPosition at point, or invalid position if not found
+    /// @return CursorPosition at point (the nearest one for a point off the text)
     CursorPosition positionFromPoint(const QPointF& point) const;
 
 signals:
@@ -433,7 +424,7 @@ private:
     void fillTextRange(QPainter* painter, size_t paraIndex, int startOffset, int endOffset,
                        double widgetY, const QColor& color, bool lineBoxes);
 
-    /// @brief Render search highlights of the visible paragraphs (scroll modes, under the text)
+    /// @brief Render search highlights of the visible paragraphs (under the text)
     void renderSearchHighlights(QPainter* painter);
 
     /// @brief Render cursor
@@ -448,46 +439,17 @@ private:
     /// @brief Render comment highlights
     void renderCommentHighlights(QPainter* painter, const QRect& clipRect);
 
-    // =========================================================================
-    // Scroll Mode Rendering (Phase 15: Viewport-culled fast path)
-    // =========================================================================
+    /// @brief Render the visible text: selection, search matches, paragraphs, cursor and
+    ///        drop caret (only the visible paragraphs: O(visible), not O(n))
+    void renderText(QPainter* painter, const QRect& clipRect);
 
-    /// @brief Render in Scroll Mode using viewport culling (O(visible) not O(n))
-    ///
-    /// For non-Page modes (Continuous, Focus, DistractionFree, Typewriter),
-    /// renders only visible paragraphs using firstVisibleParagraph/lastVisibleParagraph
-    /// instead of iterating ALL paragraph slices.
-    /// This reduces draw calls from ~3000 to ~30 for large documents.
-    void renderScrollMode(QPainter* painter, const QRect& clipRect);
+    /// @brief Render the sheets of the pages in the clip rect: shadow, paper, border,
+    ///        text frame and page number (page mode)
+    void renderPages(QPainter* painter, const QRect& clipRect);
 
-    // =========================================================================
-    // Page Mode Rendering (Phase 13.4: Unified rendering)
-    // =========================================================================
-
-    /// @brief Render page backgrounds, shadows, and borders (Page Mode only)
-    void renderPageBackgrounds(QPainter* painter, const QRect& clipRect);
-
-    /// @brief Render a single paragraph slice on a page
-    /// @param painter QPainter to draw with
-    /// @param slice The paragraph slice to render
-    /// @param textRect Text area rectangle in widget coordinates
-    void renderSlice(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
-
-    /// @brief Render selection highlight for a slice
-    /// @param painter QPainter to draw with
-    /// @param slice The paragraph slice
-    /// @param textRect Text area rectangle in widget coordinates
-    void renderSliceSelection(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
-
-    /// @brief Render the cursor and the drop caret within a slice
-    /// @param painter QPainter to draw with
-    /// @param slice The paragraph slice
-    /// @param textRect Text area rectangle in widget coordinates
-    void renderSliceCursor(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect);
-
-    /// @brief Render a caret at a position within a slice (nothing if it is not in the slice)
-    void renderSliceCaret(QPainter* painter, const ParagraphSlice& slice, const QRectF& textRect,
-                          const CursorPosition& position, CursorStyle style, const QColor& color);
+    /// @brief Horizontal extent of the text column in widget coordinates: the page in
+    ///        page mode, the whole view otherwise
+    std::pair<double, double> columnExtent() const;
 
     /// @brief Width of the character at a position, in layout units
     ///
@@ -533,21 +495,8 @@ private:
     mutable double m_cachedTotalHeight = 0.0;
     mutable bool m_heightDirty = true;
 
-    // Pagination cache (Phase 13.3)
-    mutable std::vector<PageContent> m_cachedPages;     ///< Cached page layout
-    mutable bool m_paginationCacheValid = false;        ///< Is pagination cache valid?
-    mutable double m_cachedScreenDpi = DEFAULT_DPI;     ///< Screen DPI used for cache
-    mutable QSizeF m_cachedPageSize;                    ///< Page size used for cache
-    double m_pageGap = 20.0;                            ///< Gap between pages in pixels
-
     /// @brief Box of a laid out line: the line plus its share of the line spacing
     QRectF lineBox(const QTextLine& line) const;
-
-    /// @brief Top of a slice within its block (the box top of its first line)
-    double sliceTopInBlock(const QTextLayout& layout, const ParagraphSlice& slice) const;
-
-    /// @brief Rebuild pagination cache if needed
-    void rebuildPaginationCache() const;
 
     // =========================================================================
     // Internal Calculation Methods (Phase 14: called by configure())
@@ -587,8 +536,12 @@ private:
     /// @brief Apply only the typography to the text source
     void applyTypographyToSource();
 
-    /// @brief Recalculate only page center offset (for resize in Page mode)
-    void recalcPageCenterOffset();
+    /// @brief Apply the page flow (page mode: the text areas of the pages) to the source
+    void applyPageFlowToSource();
+
+    /// @brief Calculate the view mapping: origin, page position, scroll padding; also
+    ///        handed to the viewport manager (view scale and top inset)
+    void computeViewGeometry();
 };
 
 }  // namespace kalahari::editor

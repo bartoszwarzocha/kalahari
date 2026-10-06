@@ -56,6 +56,14 @@ constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
 // Wheel scroll step in pixels (approximate line height)
 constexpr qreal WHEEL_SCROLL_STEP = 60.0;
 
+// View pixels one mouse wheel notch scrolls
+constexpr qreal WHEEL_PIXELS_PER_NOTCH = 40.0;
+
+// Zoom range and the factor of one zoom step (Ctrl+wheel notch, Zoom In/Out)
+constexpr double MIN_ZOOM_FACTOR = 0.25;
+constexpr double MAX_ZOOM_FACTOR = 4.0;
+constexpr double ZOOM_STEP = 1.1;
+
 // Default cursor blink interval in milliseconds
 constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
@@ -356,7 +364,11 @@ BookEditor::BookEditor(QWidget* parent)
     connect(m_viewportManager.get(), &ViewportManager::documentHeightChanged,
             this, [this]([[maybe_unused]] double newHeight) {
         updateScrollBarRange();
+        updatePageInfo();  // the page count follows the height in page mode
     });
+
+    // The page of the cursor, for the status bar
+    connect(this, &BookEditor::cursorPositionChanged, this, [this]() { updatePageInfo(); });
 
     // Blocks laid out on demand, or wrapped again at a new width, change height while the
     // content stays the same. The viewport keeps the text at its top in place by moving
@@ -650,11 +662,8 @@ void BookEditor::resetCursorBlink()
 
 void BookEditor::updateCursorArea()
 {
-    // The pipeline paints the cursor, so it also says where. Page Mode paints it at page
-    // coordinates, which cursorPaintRect() (scroll geometry) does not know - repaint all.
-    const QRectF cursorRect = (m_viewMode == ViewMode::Page || !m_renderPipeline)
-        ? QRectF()
-        : m_renderPipeline->cursorPaintRect();
+    // The pipeline paints the cursor, so it also says where
+    const QRectF cursorRect = m_renderPipeline ? m_renderPipeline->cursorPaintRect() : QRectF();
     if (cursorRect.isEmpty()) {
         update();
     } else {
@@ -682,14 +691,6 @@ void BookEditor::ensureCursorVisible()
     // In Typewriter mode, update scroll to keep cursor at focus position
     if (m_viewMode == ViewMode::Typewriter) {
         updateTypewriterScroll();
-        return;
-    }
-
-    // Page Mode has its own scroll handling based on page coordinates
-    // Don't use Scroll Mode coordinate calculations here
-    if (m_viewMode == ViewMode::Page) {
-        // Page Mode: scroll is handled by page navigation, not cursor position
-        // Just ensure repaint happens
         return;
     }
 
@@ -721,27 +722,31 @@ void BookEditor::ensureCursorVisible()
         return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();
     };
 
-    // Get visible range in document coordinates
-    qreal scrollY = m_viewportManager->scrollPosition();
-    qreal viewportHeight = static_cast<qreal>(height());
-    qreal topMargin = m_appearance.viewMargins.vertical;
-    qreal bottomMargin = m_appearance.viewMargins.vertical;
-    const qreal visibleHeight = viewportHeight - topMargin - bottomMargin;
+    // The band of the view the line must be within: the view without its vertical view
+    // margins, as document y relative to the scroll position (the scroll position is drawn
+    // at the view's top inset, and page mode zooms by the view scale)
+    const qreal scrollY = m_viewportManager->scrollPosition();
+    const qreal scale = m_viewportManager->viewScale();
+    const qreal inset = m_viewportManager->viewTopInset();
+    const qreal viewMargin = m_appearance.viewMargins.vertical;
+    const qreal bandTop = (viewMargin - inset) / scale;
+    const qreal bandBottom = (static_cast<qreal>(height()) - viewMargin - inset) / scale;
 
     // Scroll only if line is NOT fully visible
-    if (lineTop() < scrollY) {
+    if (lineTop() < scrollY + bandTop) {
         // Line is clipped at top - scroll up to show full line
-        setScrollOffset(lineTop());
-    } else if (lineTop() + lineBox.height() > scrollY + visibleHeight) {
+        setScrollOffset(lineTop() - bandTop);
+    } else if (lineTop() + lineBox.height() > scrollY + bandBottom) {
         // Line is clipped at bottom - scroll down to show full line. The blocks above it
         // that come into view are laid out first: with estimated heights the line could
         // end up short of the bottom edge or past it.
         qreal newScroll = 0.0;
         do {
-            newScroll = lineTop() + lineBox.height() - visibleHeight;
+            newScroll = lineTop() + lineBox.height() - bandBottom;
         } while (kalahariLayout &&
-                 kalahariLayout->ensureLaidOut(kalahariLayout->blockNumberAtY(newScroll),
-                                               block.blockNumber() - 1));
+                 kalahariLayout->ensureLaidOut(
+                     kalahariLayout->blockNumberAtY(newScroll + std::min<qreal>(bandTop, 0.0)),
+                     block.blockNumber() - 1));
         setScrollOffset(qMax(0.0, newScroll));
     }
     // If line is fully visible, don't scroll
@@ -1049,65 +1054,39 @@ void BookEditor::moveCursorToDocEnd()
 
 void BookEditor::moveCursorPageUp()
 {
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Phase 11: Use document layout for cursor positioning
-    qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) return;
-
-    // Get current cursor Y position using document layout
-    QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-    if (!currentBlock.isValid()) return;
-
-    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(currentBlock);
-    qreal cursorY = blockRect.y();
-
-    // Calculate target Y position (one page up)
-    qreal targetY = qMax(0.0, cursorY - pageHeight);
-
-    CursorPosition newPos;
-    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
-    newPos.offset = 0;  // Start of paragraph for simplicity
-
-    setCursorPosition(newPos);
-
-    // Scroll by same amount
-    qreal newScrollOffset = qMax(0.0, scrollOffset() - pageHeight);
-    setScrollOffset(newScrollOffset);
+    moveCursorByViewHeight(-1.0);
 }
 
 void BookEditor::moveCursorPageDown()
 {
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+    moveCursorByViewHeight(1.0);
+}
+
+void BookEditor::moveCursorByViewHeight(double direction)
+{
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0 || !m_viewportManager ||
+        !m_renderPipeline) {
         return;
     }
 
-    // Phase 11: Use document layout for cursor positioning
-    qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) return;
+    // One view height in document units (page mode zooms). The view and the cursor move
+    // together: the cursor keeps its place in the view and its x, as in word processors.
+    const double step = direction * m_viewportManager->visibleDocumentHeight();
+    if (step == 0.0) {
+        return;
+    }
+    const QPointF caret =
+        m_renderPipeline->widgetToDocument(m_renderPipeline->caretRect(m_cursorPosition).center());
+    const double targetY =
+        std::clamp(caret.y() + step, 0.0, m_viewportManager->totalDocumentHeight());
+    const int position =
+        m_textBuffer->documentLayout()->hitTest(QPointF(caret.x(), targetY), Qt::FuzzyHit);
+    const QTextBlock block = m_textBuffer->findBlock(std::max(0, position));
 
-    // Get current cursor Y position using document layout
-    QTextBlock currentBlock = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-    if (!currentBlock.isValid()) return;
-
-    QRectF blockRect = m_textBuffer->documentLayout()->blockBoundingRect(currentBlock);
-    qreal cursorY = blockRect.y();
-
-    // Calculate target Y position (one page down)
-    qreal maxY = m_viewportManager->totalDocumentHeight();
-    qreal targetY = qMin(maxY, cursorY + pageHeight);
-
-    CursorPosition newPos;
-    newPos.paragraph = static_cast<int>(m_viewportManager->paragraphAtY(targetY));
-    newPos.offset = 0;  // Start of paragraph for simplicity
-
-    setCursorPosition(newPos);
-
-    // Scroll by same amount
-    qreal newScrollOffset = qMin(m_viewportManager->maxScrollPosition(), scrollOffset() + pageHeight);
-    setScrollOffset(newScrollOffset);
+    setScrollOffset(scrollOffset() + step);
+    if (block.isValid()) {
+        setCursorPosition({block.blockNumber(), std::max(0, position - block.position())});
+    }
 }
 
 // =============================================================================
@@ -2111,21 +2090,16 @@ void BookEditor::setViewMode(ViewMode mode)
             emit distractionFreeModeChanged(false);
         }
 
-        // Update viewport scroll padding based on new view mode
-        if (m_viewportManager) {
-            auto [topPadding, bottomPadding] = getScrollPadding();
-            m_viewportManager->setTopScrollPadding(topPadding);
-            m_viewportManager->setBottomScrollPadding(bottomPadding);
-            // Page mode scrolls over the pages, which scroll anchoring does not know
-            m_viewportManager->setScrollAnchoringEnabled(mode != ViewMode::Page);
-        }
-
         emit viewModeChanged(mode);
 
-        // Phase 15: granular setter for view mode change
+        // The pipeline recomputes the view (margins, pages, zoom mode, scroll padding) and
+        // lays the text out again; scroll anchoring keeps the text at the top of the view,
+        // also between the scroll modes and the pages
         if (m_renderPipeline) {
-            m_renderPipeline->setConfigViewMode(mode);
+            m_renderPipeline->setConfigViewMode(mode, getZoomModeForViewMode());
         }
+        updateScrollBarRange();
+        updatePageInfo();
 
         // Ensure cursor is visible after view mode change
         ensureCursorVisible();
@@ -2138,17 +2112,9 @@ void BookEditor::setViewMode(ViewMode mode)
 // =============================================================================
 
 ZoomMode BookEditor::getZoomModeForViewMode() const {
-    switch (m_viewMode) {
-        case ViewMode::Page:
-        case ViewMode::Typewriter:
-            return ZoomMode::PageScaling;
-
-        case ViewMode::Continuous:
-        case ViewMode::Focus:
-        case ViewMode::DistractionFree:
-        default:
-            return ZoomMode::FontScaling;
-    }
+    // Pages zoom as a whole (their line breaks stay); the scroll modes lay the text out
+    // again at the zoomed font size, wrapped to the view
+    return m_viewMode == ViewMode::Page ? ZoomMode::PageScaling : ZoomMode::FontScaling;
 }
 
 double BookEditor::zoomFactor() const {
@@ -2159,21 +2125,44 @@ double BookEditor::zoomFactor() const {
 }
 
 void BookEditor::setZoomFactor(double factor) {
-    if (m_renderPipeline) {
-        ZoomMode mode = getZoomModeForViewMode();
-        // Phase 15: granular setter handles zoom change
-        m_renderPipeline->setConfigZoom(factor, mode);
-        update();
-        emit zoomChanged(factor);
+    // Zooming keeps the middle of the view on the same text
+    applyZoom(factor, QPointF(width() / 2.0, height() / 2.0));
+}
+
+void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
+    if (!m_renderPipeline) {
+        return;
     }
+    factor = qBound(MIN_ZOOM_FACTOR, factor, MAX_ZOOM_FACTOR);
+    const ZoomMode mode = getZoomModeForViewMode();
+    const QPointF docPoint = m_renderPipeline->widgetToDocument(fixedPoint);
+
+    // Font scaling wraps only the visible paragraphs before the next paint (scroll
+    // anchoring keeps the text at the top of the view), page scaling only changes the
+    // painter scale
+    m_renderPipeline->setConfigZoom(factor, mode);
+    updateScrollBarRange();
+
+    if (mode == ZoomMode::PageScaling) {
+        // The document point under fixedPoint stays there
+        const RenderContext& ctx = m_renderPipeline->context();
+        const double scale = ctx.computed.viewScale;
+        m_renderPipeline->setConfigScrollX(
+            (ctx.pageMode.pageSpacing + ctx.computed.marginLeft + docPoint.x()) * scale -
+            fixedPoint.x());
+        setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
+        updateHorizontalScrollBar();
+    }
+    update();
+    emit zoomChanged(factor);
 }
 
 void BookEditor::zoomIn() {
-    setZoomFactor(zoomFactor() * 1.1);
+    setZoomFactor(zoomFactor() * ZOOM_STEP);
 }
 
 void BookEditor::zoomOut() {
-    setZoomFactor(zoomFactor() / 1.1);
+    setZoomFactor(zoomFactor() / ZOOM_STEP);
 }
 
 void BookEditor::zoomReset() {
@@ -2186,61 +2175,59 @@ void BookEditor::zoomReset() {
 
 int BookEditor::currentPage() const
 {
-    // Phase 11: Calculate page based on scroll position and page height
-    if (!m_textBuffer || m_viewMode != ViewMode::Page) {
+    // The page holding the cursor, as word processors count it
+    if (!m_textBuffer || m_viewMode != ViewMode::Page || !m_renderPipeline) {
         return 0;
     }
-
-    // Phase 11: Use viewport height as "page" height in continuous scroll mode
-    qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) pageHeight = 800;  // Default
-
-    int page = static_cast<int>(scrollOffset() / pageHeight) + 1;
-    return qMax(1, page);
+    return m_renderPipeline->pageAtDocumentY(getCursorDocumentY()) + 1;
 }
 
 int BookEditor::totalPages() const
 {
-    // Phase 11: Calculate total pages from document height
-    if (!m_textBuffer) {
+    if (!m_textBuffer || m_viewMode != ViewMode::Page || !m_renderPipeline) {
         return 0;
     }
-
-    qreal docHeight = m_viewportManager ? m_viewportManager->totalDocumentHeight() : 0;
-    // Phase 11: Use viewport height as "page" height
-    qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) pageHeight = 800;  // Default
-
-    int pages = static_cast<int>(docHeight / pageHeight) + 1;
-    return qMax(1, pages);
+    return m_renderPipeline->pageCount();
 }
 
 void BookEditor::goToPage(int page)
 {
-    if (!m_textBuffer || m_viewMode != ViewMode::Page) {
+    if (!m_textBuffer || m_viewMode != ViewMode::Page || !m_renderPipeline) {
+        return;
+    }
+    if (page < 1 || page > totalPages()) {
         return;
     }
 
-    int total = totalPages();
-    if (page < 1 || page > total) {
-        return;
+    // The cursor goes to the first line of the page, and the sheet's top to the top of the
+    // view
+    const double textTop = m_renderPipeline->pageTextTop(page - 1);
+    const int position = m_textBuffer->documentLayout()->hitTest(QPointF(0.0, textTop),
+                                                                   Qt::FuzzyHit);
+    const QTextBlock block = m_textBuffer->findBlock(std::max(0, position));
+    if (block.isValid()) {
+        setCursorPosition({block.blockNumber(), std::max(0, position - block.position())});
     }
-
-    int oldPage = currentPage();
-
-    // Phase 11: Calculate Y position for page using viewport height
-    qreal pageHeight = static_cast<qreal>(height());
-    if (pageHeight <= 0) pageHeight = 800;
-
-    qreal pageY = (page - 1) * pageHeight;
-    setScrollOffset(pageY);
-
-    // Emit signal if page changed
-    if (page != oldPage) {
-        emit currentPageChanged(page);
-    }
-
+    // Sheet top at the gap below the view's top edge, as the first page shows at the start
+    const RenderContext& ctx = m_renderPipeline->context();
+    setScrollOffset(textTop - ctx.computed.marginTop - ctx.pageMode.pageSpacing +
+                    ctx.computed.originY / ctx.computed.viewScale);
+    updatePageInfo();
     update();
+}
+
+void BookEditor::updatePageInfo()
+{
+    const int current = currentPage();
+    const int total = totalPages();
+    if (total != m_lastTotalPages) {
+        m_lastTotalPages = total;
+        emit totalPagesChanged(total);
+    }
+    if (current != m_lastCurrentPage) {
+        m_lastCurrentPage = current;
+        emit currentPageChanged(current);
+    }
 }
 
 void BookEditor::nextPage()
@@ -2292,16 +2279,6 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_renderPipeline->setCursorWidth(m_appearance.cursor.lineWidth);
     }
 
-    // Update viewport scroll padding so user can scroll to see margins
-    if (m_viewportManager) {
-        auto [topPadding, bottomPadding] = getScrollPadding();
-        m_viewportManager->setTopScrollPadding(topPadding);
-        m_viewportManager->setBottomScrollPadding(bottomPadding);
-    }
-
-    // Update scrollbar range when margins change
-    updateScrollBarRange();
-
     emit appearanceChanged();
 
     // Phase 15: granular setters for appearance changes
@@ -2319,8 +2296,13 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         // Margins using centralized calculation
         auto margins = calculateEffectiveMargins();
         m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
+        applyPageLayout();
     }
 
+    // The margins and the page set the scroll range (the pipeline gives the viewport the
+    // scroll padding)
+    updateScrollBarRange();
+    updatePageInfo();
     update();
 }
 
@@ -2380,11 +2362,6 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // =========================================================================
     Q_ASSERT(m_renderPipeline && "RenderPipeline must always exist!");
 
-    // Page Mode: fill exterior background (area outside pages)
-    if (m_viewMode == ViewMode::Page) {
-        painter.fillRect(rect(), m_appearance.colors.editorBackground);
-    }
-
     // Single render call handles everything for all view modes
     m_renderPipeline->render(&painter, event->rect());
 
@@ -2442,24 +2419,34 @@ void BookEditor::wheelEvent(QWheelEvent* event)
 {
     QPoint angleDelta = event->angleDelta();
     if (!angleDelta.isNull()) {
-        // Ctrl+scroll = zoom
+        // Ctrl+scroll = zoom, applied at every notch; pages zoom around the mouse pointer
         if (event->modifiers() & Qt::ControlModifier) {
-            if (m_renderPipeline) {
-                qreal zoomDelta = angleDelta.y() > 0 ? 1.1 : (1.0 / 1.1);
-                qreal newZoom = qBound(0.25, zoomFactor() * zoomDelta, 4.0);
-
-                // Font scaling wraps only the visible paragraphs before the next paint,
-                // page scaling only changes the painter scale: applied at every notch
-                m_renderPipeline->setConfigZoom(newZoom, getZoomModeForViewMode());
-                update();
-                emit zoomChanged(newZoom);
+            if (angleDelta.y() != 0) {
+                const qreal zoomDelta = angleDelta.y() > 0 ? ZOOM_STEP : (1.0 / ZOOM_STEP);
+                applyZoom(zoomFactor() * zoomDelta, event->position());
             }
             event->accept();
             return;
         }
 
-        // Standard wheel scroll: 1 step = 15 degrees, 8 degrees per line
-        const qreal delta = -angleDelta.y() / 8.0 / 15.0 * 40.0;  // 40 pixels per step
+        // Sideways (a horizontal wheel, or Shift with a vertical one): pages wider than
+        // the view
+        const int sideways = angleDelta.x() != 0 ? angleDelta.x()
+                             : (event->modifiers() & Qt::ShiftModifier) ? angleDelta.y()
+                                                                       : 0;
+        if (sideways != 0) {
+            if (m_renderPipeline && m_renderPipeline->maxScrollX() > 0.0) {
+                setHorizontalScrollOffset(m_renderPipeline->context().scrollX -
+                                          sideways / 8.0 / 15.0 * WHEEL_PIXELS_PER_NOTCH);
+            }
+            event->accept();
+            return;
+        }
+
+        // Standard wheel scroll: 1 notch = 15 degrees, a fixed number of view pixels
+        // (document units divide by the view scale: page mode zooms)
+        const qreal scale = m_viewportManager ? m_viewportManager->viewScale() : 1.0;
+        const qreal delta = -angleDelta.y() / 8.0 / 15.0 * WHEEL_PIXELS_PER_NOTCH / scale;
         setScrollOffset(scrollOffset() + delta);
         event->accept();
     } else {
@@ -2546,27 +2533,21 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
             break;
 
         case Qt::Key_PageUp:
-            // In Page Mode, navigate between pages
-            if (m_viewMode == ViewMode::Page) {
-                previousPage();
-            } else {
-                moveCursorPageUp();
-                if (!shift) {
-                    clearSelection();
-                }
-            }
-            handled = true;
-            break;
-
         case Qt::Key_PageDown:
-            // In Page Mode, navigate between pages
-            if (m_viewMode == ViewMode::Page) {
-                nextPage();
+            // One view height in every view mode (Ctrl+PageUp/PageDown would be the page
+            // jumps of a word processor); Shift extends the selection
+            if (shift && m_selection.isEmpty()) {
+                m_selectionAnchor = m_cursorPosition;
+            }
+            if (event->key() == Qt::Key_PageUp) {
+                moveCursorPageUp();
             } else {
                 moveCursorPageDown();
-                if (!shift) {
-                    clearSelection();
-                }
+            }
+            if (shift) {
+                extendSelection(m_cursorPosition);
+            } else {
+                clearSelection();
             }
             handled = true;
             break;
@@ -2858,7 +2839,6 @@ void BookEditor::setupComponents()
     updateViewport();
 }
 
-// Phase 13.5: invalidatePaginationCache() moved to EditorRenderPipeline::invalidatePagination()
 
 void BookEditor::updateViewport()
 {
@@ -2889,6 +2869,23 @@ void BookEditor::setupScrollBar()
     connect(m_verticalScrollBar, &QScrollBar::valueChanged,
             this, &BookEditor::onScrollBarValueChanged);
 
+    // The pages keep clear of the scroll bar over the right edge
+    if (m_renderPipeline) {
+        m_renderPipeline->setConfigScrollBarWidth(m_verticalScrollBar->sizeHint().width());
+    }
+
+    // Horizontal scrollbar: page mode, while the zoomed pages are wider than the view
+    m_horizontalScrollBar = new QScrollBar(Qt::Horizontal, this);
+    m_horizontalScrollBar->setCursor(Qt::ArrowCursor);
+    m_horizontalScrollBar->setRange(0, 0);
+    m_horizontalScrollBar->setSingleStep(static_cast<int>(WHEEL_SCROLL_STEP));
+    m_horizontalScrollBar->hide();
+    connect(m_horizontalScrollBar, &QScrollBar::valueChanged, this, [this](int value) {
+        if (!m_updatingScrollBar) {
+            setHorizontalScrollOffset(value);
+        }
+    });
+
     // Note: Scroll animation is created lazily in startScrollAnimation()
     // to avoid potential issues with QPropertyAnimation in test environments
 }
@@ -2899,34 +2896,23 @@ void BookEditor::updateScrollBarRange()
         return;
     }
 
-    // Calculate total content height
+    // Scroll range in document units: page mode shows height / zoom of the document
     // Phase 11.10: In view mode, use KmlDocumentModel's height
-    qreal totalHeight = 0.0;
+    double maxOffset = 0.0;
+    double pageStep = static_cast<double>(height());
     if (!m_isEditMode && m_documentModel && m_documentModel->paragraphCount() > 0) {
-        totalHeight = m_documentModel->totalHeight();
+        auto [topPadding, bottomPadding] = getScrollPadding();
+        maxOffset = std::max(0.0, m_documentModel->totalHeight() + topPadding + bottomPadding -
+                                      static_cast<double>(height()));
     } else if (m_viewportManager) {
-        totalHeight = m_viewportManager->totalDocumentHeight();
+        maxOffset = m_viewportManager->maxScrollPosition();
+        pageStep = m_viewportManager->visibleDocumentHeight();
     }
-
-    qreal viewportHeight = static_cast<qreal>(height());
-
-    auto [topPadding, bottomPadding] = getScrollPadding();
-
-    // SYNC padding with ViewportManager to ensure consistency!
-    if (m_viewportManager) {
-        m_viewportManager->setTopScrollPadding(topPadding);
-        m_viewportManager->setBottomScrollPadding(bottomPadding);
-    }
-
-    // Maximum scroll offset (includes both margins)
-    qreal maxOffset = qMax(0.0, totalHeight + topPadding + bottomPadding - viewportHeight);
 
     // Update scrollbar without triggering signals
     m_updatingScrollBar = true;
-
-    m_verticalScrollBar->setMaximum(static_cast<int>(maxOffset));
-    m_verticalScrollBar->setPageStep(static_cast<int>(viewportHeight));
-
+    m_verticalScrollBar->setMaximum(static_cast<int>(std::ceil(maxOffset)));
+    m_verticalScrollBar->setPageStep(std::max(1, static_cast<int>(pageStep)));
     m_updatingScrollBar = false;
 
     // Position scrollbar on right edge (also update position on resize)
@@ -2938,8 +2924,47 @@ void BookEditor::updateScrollBarRange()
         height()
     );
 
-    // Sync current value
+    // A shorter range (zoom out, a taller window) leaves no space below the end of the text
+    if (m_isEditMode && scrollOffset() > maxOffset) {
+        setScrollOffset(maxOffset);
+    }
     syncScrollBarValue();
+    updateHorizontalScrollBar();
+}
+
+void BookEditor::updateHorizontalScrollBar()
+{
+    if (m_horizontalScrollBar == nullptr || !m_renderPipeline) {
+        return;
+    }
+
+    // Shown while the zoomed pages are wider than the view
+    const double maxX = m_renderPipeline->maxScrollX();
+    const bool needed = m_viewMode == ViewMode::Page && maxX >= 1.0;
+    m_updatingScrollBar = true;
+    m_horizontalScrollBar->setRange(0, needed ? static_cast<int>(std::ceil(maxX)) : 0);
+    m_horizontalScrollBar->setPageStep(std::max(1, width()));
+    m_horizontalScrollBar->setValue(static_cast<int>(std::lround(m_renderPipeline->context().scrollX)));
+    m_updatingScrollBar = false;
+
+    const int barHeight = m_horizontalScrollBar->sizeHint().height();
+    const int barRight = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
+    m_horizontalScrollBar->setGeometry(0, height() - barHeight, std::max(0, width() - barRight),
+                                       barHeight);
+    m_horizontalScrollBar->setVisible(needed);
+}
+
+void BookEditor::setHorizontalScrollOffset(double x)
+{
+    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+        return;
+    }
+    const double oldX = m_renderPipeline->context().scrollX;
+    m_renderPipeline->setConfigScrollX(x);  // clamps it
+    if (std::abs(m_renderPipeline->context().scrollX - oldX) > 0.001) {
+        updateHorizontalScrollBar();
+        update();
+    }
 }
 
 void BookEditor::syncScrollBarValue()
@@ -2971,6 +2996,7 @@ void BookEditor::syncPipelineState()
         // Set margins using centralized calculation
         auto margins = calculateEffectiveMargins();
         m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
+        applyPageLayout();
 
         // Step 2: Pipeline computes all derived values and applies them to the text source
         m_renderPipeline->applyInitialConfig();
@@ -2999,6 +3025,25 @@ void BookEditor::syncPipelineCursor()
     }
 }
 
+void BookEditor::applyPageLayout()
+{
+    if (!m_renderPipeline) {
+        return;
+    }
+
+    // Page size in points, margins in millimetres. With mirror margins every page has the
+    // first page's margins for now: the layout gives all pages one text width.
+    const QSizeF sizeMm = m_appearance.pageLayout.pageSizeMm();
+    const QSizeF sizePoints(sizeMm.width() * POINTS_PER_INCH / MM_PER_INCH,
+                            sizeMm.height() * POINTS_PER_INCH / MM_PER_INCH);
+    const PageMarginsConfig& margins = m_appearance.pageMargins;
+    m_renderPipeline->setConfigPageLayout(
+        sizePoints,
+        QMarginsF(margins.effectiveLeft(1), margins.top, margins.effectiveRight(1), margins.bottom),
+        m_appearance.pageLayout.pageGap);
+    m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
+}
+
 void BookEditor::updatePipelineScroll()
 {
     if (!m_renderPipeline) return;
@@ -3007,63 +3052,25 @@ void BookEditor::updatePipelineScroll()
 
 RenderMargins BookEditor::calculateEffectiveMargins() const
 {
-    // Pipeline is SINGLE SOURCE OF TRUTH for margins when available
-    // Check if pipeline has valid computed margins (textWidth > 0 indicates pipeline is configured)
-    if (m_renderPipeline && m_renderPipeline->context().computed.textWidth > 0) {
-        const auto& ctx = m_renderPipeline->context();
-        return RenderMargins{
-            ctx.computed.marginLeft,
-            ctx.computed.marginTop,
-            ctx.computed.marginRight,
-            ctx.computed.marginBottom
-        };
-    }
-
-    // Fallback: Calculate margins when pipeline not yet initialized
-    // This is used during initial setup before first applyInitialConfig()
-    double dpi = (screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
-    double mmToPixels = dpi / MM_PER_INCH;
-
-    if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
-        // Page Mode: convert mm to pixels with zoom scaling
-        double scale = m_appearance.pageLayout.zoomLevel * m_appearance.pageLayout.pageScaleFactor;
-        return RenderMargins{
-            m_appearance.pageMargins.effectiveLeft(1) * mmToPixels * scale,
-            m_appearance.pageMargins.top * mmToPixels * scale,
-            m_appearance.pageMargins.effectiveRight(1) * mmToPixels * scale,
-            m_appearance.pageMargins.bottom * mmToPixels * scale
-        };
-    } else {
-        // Scroll modes: use view margins directly (already in pixels)
-        return RenderMargins{
-            m_appearance.viewMargins.horizontal,
-            m_appearance.viewMargins.vertical,
-            m_appearance.viewMargins.horizontal,
-            m_appearance.viewMargins.vertical
-        };
-    }
+    // The view margins of the scroll modes (pixels); page mode takes the page's margins
+    // from the page layout (applyPageLayout())
+    return RenderMargins{
+        m_appearance.viewMargins.horizontal,
+        m_appearance.viewMargins.vertical,
+        m_appearance.viewMargins.horizontal,
+        m_appearance.viewMargins.vertical
+    };
 }
 
 std::pair<double, double> BookEditor::getScrollPadding() const
 {
-    // SINGLE SOURCE OF TRUTH for scroll padding calculations
-    // Does NOT apply zoom scaling - scroll padding is independent of zoom
-    if (m_viewMode == ViewMode::Page || m_viewMode == ViewMode::Typewriter) {
-        // Use cached DPI from pipeline if available to avoid expensive OS query
-        double dpi = (m_renderPipeline && m_renderPipeline->context().screenDpi > 0)
-            ? m_renderPipeline->context().screenDpi
-            : (screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
-        double mmToPixels = dpi / MM_PER_INCH;
-        return {
-            m_appearance.pageMargins.top * mmToPixels,
-            m_appearance.pageMargins.bottom * mmToPixels
-        };
-    } else {
-        return {
-            m_appearance.viewMargins.vertical,
-            m_appearance.viewMargins.vertical
-        };
+    // The room above and below the text (document units): the margins, the gap around the
+    // pages and the typewriter room, computed by the pipeline with the view mapping
+    if (m_renderPipeline) {
+        const auto& computed = m_renderPipeline->context().computed;
+        return {computed.scrollPaddingTop, computed.scrollPaddingBottom};
     }
+    return {m_appearance.viewMargins.vertical, m_appearance.viewMargins.vertical};
 }
 
 void BookEditor::setupPipelineTextSource()
@@ -3405,23 +3412,15 @@ bool BookEditor::isOverSelectedText(const QPointF& widgetPos) const
         return false;
     }
 
-    // The character under the point: in the scroll modes the layout's exact hit, which
-    // misses the space around the text; Page mode has only the nearest position
-    CursorPosition position;
-    if (m_viewMode == ViewMode::Page) {
-        position = m_renderPipeline->positionFromPoint(widgetPos);
-    } else {
-        const auto& ctx = m_renderPipeline->context();
-        const QPointF docPoint(widgetPos.x() - ctx.computed.marginLeft,
-                               m_viewportManager->scrollPosition() + widgetPos.y() -
-                                   ctx.computed.marginTop);
-        const int hit = m_textBuffer->documentLayout()->hitTest(docPoint, Qt::ExactHit);
-        if (hit < 0) {
-            return false;
-        }
-        const QTextBlock block = m_textBuffer->findBlock(hit);
-        position = {block.blockNumber(), hit - block.position()};
+    // The character under the point: the layout's exact hit, which misses the space around
+    // the text and the gaps between pages
+    const QPointF docPoint = m_renderPipeline->widgetToDocument(widgetPos);
+    const int hit = m_textBuffer->documentLayout()->hitTest(docPoint, Qt::ExactHit);
+    if (hit < 0) {
+        return false;
     }
+    const QTextBlock block = m_textBuffer->findBlock(hit);
+    const CursorPosition position{block.blockNumber(), hit - block.position()};
 
     const SelectionRange sel = m_selection.normalized();
     return sel.start <= position && position < sel.end;
@@ -3563,23 +3562,11 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
         return {0, 0};
     }
 
-    // Page Mode: delegate to pipeline (Phase 13.5: unified hit testing)
-    if (m_viewMode == ViewMode::Page) {
-        return m_renderPipeline->positionFromPoint(widgetPos);
-    }
-
-    // Continuous/Scroll Mode: Use computed margins (not input)
-    const auto& ctx = m_renderPipeline->context();
-    // Convert widget Y to document Y (accounting for scroll and margins)
-    double docY = m_viewportManager->scrollPosition() + widgetPos.y() - ctx.computed.marginTop;
-    if (docY < 0) {
-        docY = 0;
-    }
-
-    double localX = widgetPos.x() - ctx.computed.marginLeft;
-    if (localX < 0) {
-        localX = 0;
-    }
+    // The document point under the widget point, through the same mapping as the painting
+    // (the layout has the lines on their pages in page mode)
+    const QPointF docPoint = m_renderPipeline->widgetToDocument(widgetPos);
+    const double docY = std::max(0.0, docPoint.y());
+    const double localX = std::max(0.0, docPoint.x());
 
     // The document layout's hit test: block from the cached positions, line from the
     // line boxes (a click between lines lands on the nearest one), offset within the line
@@ -5424,11 +5411,6 @@ void BookEditor::ensureEditMode()
     // The render pipeline applies the (zoom-scaled) font and the wrap width while
     // the document is still empty, so the content below is laid out exactly once.
     syncPipelineState();
-
-    // Invalidate the Page Mode pagination cache on every content change (Phase 13.5:
-    // moved to pipeline). Connected before the build, which reports one change.
-    connect(m_textBuffer.get(), &QTextDocument::contentsChanged,
-            this, [this]() { m_renderPipeline->invalidatePagination(); });
 
     // Paragraphs touched by an edit are counted again on the next statistics query
     connect(m_textBuffer.get(), &QTextDocument::contentsChange,

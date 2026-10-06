@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: page mode rebuilt** - 2026-10-06
+  - The text layout places the lines on the pages: a line that does not fit moves to the
+    next page, also in the middle of a paragraph. Editing re-places only the paragraphs
+    it moved, and pages far from the view are estimated until they are laid out.
+  - One mapping between the document and the screen for every view mode: painting,
+    clicks, selection, search highlights and the cursor use it, so they agree on every
+    page and at every zoom. Switching a 150k-word chapter to pages takes 7 ms
+    (was 194 ms).
+  - Zoom in page mode scales the pages without new line breaks and keeps the point under
+    the mouse in place; pages wider than the view scroll sideways (horizontal scroll bar,
+    Shift+wheel).
+  - Page numbers at the bottom of the pages; the desk around the pages follows the paper
+    color. B5 and 6 x 9 in page sizes.
+  - Page Up / Page Down move by one view height in every view mode, keeping the cursor's
+    place in the view and its column.
 - **Editor: paragraphs without their own alignment are justified** - 2026-10-05
   - A paragraph with no `align` attribute is shown justified, its last line at the
     leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as
