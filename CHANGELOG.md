@@ -83,6 +83,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Editor: the unused old architecture** - 2026-10-06. The editor holds a chapter in one
+  QTextDocument; the second document mode (a read-only view before the first edit), the
+  older KML object model and parser, the old paragraph and table layout, the height tree,
+  the old search service, undo command classes nothing used and the view mode registry are
+  gone (about 11 400 lines of code and 13 600 lines of tests). The KML format reference
+  moved from code comments to `docs/kml_format.md`.
 - Menu commands and settings page for features that will not be built:
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
@@ -130,6 +136,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A chapter with malformed KML left the editor without a document** - 2026-10-06. The
+  editor now shows the text read before the error (the rest of the chapter is not loaded,
+  as before) and the error is logged; the render pipeline used to keep a pointer to the
+  deleted document.
 - **Unsubscribing from the event bus removed every listener of that event** - 2026-10-06.
   `subscribe()` now returns a subscription id and `unsubscribe()` takes that id, so a
   plugin removes only its own callback. Python plugins use the same id
