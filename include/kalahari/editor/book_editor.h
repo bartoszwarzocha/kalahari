@@ -1159,8 +1159,6 @@ private:
     /// @brief Repaint the area of the text cursor (the whole widget in Page Mode)
     void updateCursorArea();
 
-    // Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline
-
     /// @brief Setup cursor blink timer
     void setupCursorBlinkTimer();
 
@@ -1206,10 +1204,6 @@ private:
     /// @brief Scroll one step and follow the mouse with the selection or the drop caret
     void onAutoScrollTimeout();
 
-    // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline
-
-    // Phase 13.5: drawSelection() removed - selection rendering unified in EditorRenderPipeline
-
     /// @brief Update paragraph layouts with current selection state
     void updateSelectionInLayouts();
 
@@ -1241,13 +1235,6 @@ private:
     void moveCursorToLineEndWithSelection(bool extend);
     void moveCursorToDocStartWithSelection(bool extend);
     void moveCursorToDocEndWithSelection(bool extend);
-
-    /// @brief Paint the Page Mode view
-    /// @param painter The painter to draw with
-    ///
-    /// Uses QTextDocument, ViewportManager, and RenderEngine for page mode
-    /// rendering with O(log N) performance characteristics.
-    void paintPageMode(QPainter& painter);
 
     // =========================================================================
     // Focus Mode (Phase 5.6)

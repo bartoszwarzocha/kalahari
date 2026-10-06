@@ -908,8 +908,6 @@ CursorPosition BookEditor::validateCursorPosition(const CursorPosition& position
     return {0, 0};
 }
 
-// Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline::renderCursor()
-
 void BookEditor::setupCursorBlinkTimer()
 {
     m_cursorBlinkTimer = new QTimer(this);
@@ -951,9 +949,6 @@ CursorPosition BookEditor::positionFromPoint(const QPointF& widgetPos) const
     }
     return {block.blockNumber(), std::max(0, position - block.position())};
 }
-
-// Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline::positionFromPoint()
-// Phase 13.5: drawSelection() removed - selection rendering unified in EditorRenderPipeline::renderSelection()
 
 void BookEditor::selectWordAtCursor()
 {

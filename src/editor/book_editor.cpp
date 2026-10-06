@@ -33,10 +33,6 @@ constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
 // Default cursor blink interval in milliseconds
 constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
-// Phase 12.6: Margins now configurable via m_appearance.viewMargins and m_appearance.pageMargins
-// Phase 12.5: Removed CURSOR_WIDTH (now handled by EditorRenderPipeline)
-// Removed hardcoded LEFT_MARGIN and TOP_MARGIN constants
-
 namespace {
 
 /// @brief Typography settings as the layout applies them (pixels at 100% zoom)

@@ -35,10 +35,6 @@ constexpr double ZOOM_STEP = 1.1;
 // laying out the paragraphs it brought into view
 constexpr int MAX_TYPEWRITER_ROUNDS = 4;
 
-// Phase 11: Old architecture methods removed (setDocument, document, layoutManager, scrollManager)
-// Use fromKml()/toKml() for document operations
-// Use ViewportManager for scroll operations
-
 // =============================================================================
 // Scrolling
 // =============================================================================
@@ -761,9 +757,6 @@ void BookEditor::applyTypewriter()
     updateTypewriterScroll(false);
     update();
 }
-
-// Phase 13.5: paintPageMode() removed - rendering now handled by EditorRenderPipeline
-// See render() method in editor_render_pipeline.cpp
 
 // =============================================================================
 // Focus Mode (Phase 5.6)
