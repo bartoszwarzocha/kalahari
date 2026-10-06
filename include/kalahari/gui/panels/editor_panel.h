@@ -24,8 +24,6 @@ namespace gui {
 /// - Document loading/saving via KML format
 /// - Settings integration (font, colors, etc.)
 /// - Signal forwarding for content changes
-///
-/// The panel owns the KmlDocument and passes a pointer to BookEditor.
 class EditorPanel : public QWidget {
     Q_OBJECT
 
@@ -98,7 +96,7 @@ public:
 signals:
     /// @brief Emitted when editor content changes
     ///
-    /// Forwarded from BookEditor/KmlDocument content changes.
+    /// Forwarded from BookEditor content changes.
     void contentChanged();
 
 protected:

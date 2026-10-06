@@ -6,7 +6,7 @@
 /// paths in BookEditor, RenderEngine, and ViewportManager.
 ///
 /// Pipeline stages:
-/// 1. TEXT      - Get content from ITextSource (QTextDocument or KmlDocumentModel)
+/// 1. TEXT      - Get content from ITextSource (the QTextDocument)
 /// 2. ATTRIBUTES - Apply RenderContext (font, colors, margins, scale)
 /// 3. LAYOUT    - Calculate block positions (using KalahariTextDocumentLayout)
 /// 4. RENDER    - Draw to painter (text, cursor, selection, overlays)

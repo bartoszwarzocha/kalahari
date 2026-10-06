@@ -45,7 +45,7 @@ QFont testFont() {
     return font;
 }
 
-/// A document wired like BookEditor::ensureEditMode() wires it
+/// A document wired like BookEditor::createDocument() wires it
 struct TypesetDocument {
     std::unique_ptr<QTextDocument> doc = std::make_unique<QTextDocument>();
     KalahariTextDocumentLayout* layout = nullptr;

@@ -8,10 +8,9 @@ Python scripts that test the `kalahari_api` plugin bindings.
 ```
 tests/
 ├── core/            # core:: classes (settings, documents, plugins, Python, EventBus)
-├── editor/          # editor:: classes (KML model, layout, search, services, BookEditor)
+├── editor/          # editor:: classes (KML reading and saving, layout, search, services, BookEditor)
 ├── gui/             # gui:: classes without a window (CommandRegistry)
 ├── benchmarks/      # benchmark helpers (not part of the default run)
-├── prototypes/      # standalone benchmark_prototypes executable
 ├── sanitizers/      # LeakSanitizer suppressions used by CI
 ├── test_support/    # shared test helpers (resetSingletons)
 ├── test_main.cpp    # custom main: QApplication, temp dir, singleton reset
@@ -29,10 +28,10 @@ Build with the platform script (`scripts/build_windows.bat Debug`,
 
 ```bash
 ctest --output-on-failure --parallel 4    # all tests, each Catch2 test case is a separate CTest test
-ctest -R "KmlParser"                      # tests whose name matches a regex
+ctest -R "KML load"                       # tests whose name matches a regex
 ctest -E '^python\.'                      # everything except the Python scripts
 
-./bin/kalahari-tests "[kml_parser]"       # Catch2 tag filter
+./bin/kalahari-tests "[kml]"              # Catch2 tag filter
 ./bin/kalahari-tests "Test case name" -s  # one test case, verbose
 ./bin/kalahari-tests --order rand         # random order
 ```
@@ -60,11 +59,12 @@ Tests must not depend on execution order or on files left by other tests.
 
 ```cpp
 #include <catch2/catch_test_macros.hpp>
-#include <kalahari/editor/kml_parser.h>
+#include <kalahari/editor/book_editor.h>
 
-TEST_CASE("KmlParser parses a single paragraph", "[editor][kml_parser]") {
-    // ...
-    REQUIRE(result.success);
+TEST_CASE("KML load: one paragraph", "[editor][kml][load]") {
+    kalahari::editor::BookEditor editor;
+    editor.fromKml(QStringLiteral("<p>Text</p>"));
+    REQUIRE(editor.plainText() == QStringLiteral("Text"));
 }
 ```
 

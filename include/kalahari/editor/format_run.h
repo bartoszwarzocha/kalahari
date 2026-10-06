@@ -11,8 +11,8 @@ namespace kalahari::editor {
 /// @brief Represents a formatting run within a paragraph
 ///
 /// A FormatRun describes a contiguous range of characters within a paragraph
-/// that share the same formatting. Used by LazyKmlDocument for efficient
-/// storage of formatting information.
+/// that share the same formatting. The KML reader (KmlDocumentModel) stores the
+/// formatting of a paragraph as runs.
 struct FormatRun {
     size_t start = 0;           ///< Start offset within paragraph (inclusive)
     size_t end = 0;             ///< End offset within paragraph (exclusive)

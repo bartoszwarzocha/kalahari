@@ -1,6 +1,5 @@
 /// @file test_word_frequency_analyzer.cpp
 /// @brief Unit tests for WordFrequencyAnalyzer (OpenSpec #00042 Task 7.17)
-/// Phase 11: Updated to use analyzeText() only (no KmlDocument dependency)
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>

@@ -68,7 +68,7 @@ QStringList mixedParagraphs(int count) {
     return list;
 }
 
-/// A document wired like BookEditor::ensureEditMode() wires it, with page flow
+/// A document wired like BookEditor::createDocument() wires it, with page flow
 struct PagedDocument {
     std::unique_ptr<QTextDocument> doc = std::make_unique<QTextDocument>();
     KalahariTextDocumentLayout* layout = nullptr;

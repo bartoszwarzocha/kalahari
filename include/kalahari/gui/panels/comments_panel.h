@@ -21,7 +21,6 @@ class QLabel;
 
 namespace kalahari::editor {
 class BookEditor;
-class KmlDocument;
 class KmlComment;
 }
 

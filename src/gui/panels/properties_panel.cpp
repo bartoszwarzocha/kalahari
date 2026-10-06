@@ -7,8 +7,6 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
-#include "kalahari/editor/kml_paragraph.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -1268,7 +1266,6 @@ void PropertiesPanel::updateEditorStatistics() {
         return;
     }
 
-    // Phase 11: Use BookEditor public API instead of KmlDocument
     m_isUpdating = true;
 
     int wordCount = 0;

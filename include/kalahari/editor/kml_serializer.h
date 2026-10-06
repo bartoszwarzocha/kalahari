@@ -2,7 +2,7 @@
 /// @brief KML Serializer - serializes QTextDocument back to KML (OpenSpec #00043 Phase 11.2)
 ///
 /// KmlSerializer converts QTextDocument content to KML (Kalahari Markup Language) format.
-/// This is the reverse operation of KmlParser.
+/// This is the reverse operation of reading KML (KmlDocumentModel).
 ///
 /// Key design principles (Phase 11 Architecture Correction):
 /// - Direct QTextDocument -> KML serialization

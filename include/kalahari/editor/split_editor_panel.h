@@ -2,13 +2,14 @@
 /// @brief SplitEditorPanel - Container for split view editing (OpenSpec #00042)
 ///
 /// SplitEditorPanel manages one or two BookEditor instances in a split view
-/// configuration. All editors share the same KmlDocument but maintain independent
-/// scroll positions, cursor positions, and selections.
+/// configuration. Each editor loads its own copy of the same KML (loadKml()), with
+/// independent scroll positions, cursor positions, and selections; an edit in one
+/// pane does not show in the other yet.
 ///
 /// Features:
 /// - Single editor or horizontal/vertical split
 /// - Active editor tracking with visual indicator
-/// - Shared document, independent view state
+/// - Same content in both panes, independent view state
 /// - State save/restore for session persistence
 
 #pragma once
@@ -43,14 +44,14 @@ enum class SplitOrientation {
 
 /// @brief Container widget for split view editing
 ///
-/// SplitEditorPanel provides the ability to view and edit the same document
-/// in up to two panes simultaneously. Each pane contains a BookEditor instance
-/// that shares the underlying KmlDocument.
+/// SplitEditorPanel provides the ability to view the same document in up to two
+/// panes simultaneously. Each pane contains a BookEditor instance with its own copy
+/// of the content.
 ///
 /// Usage:
 /// @code
 /// auto panel = new SplitEditorPanel(this);
-/// panel->setDocument(&document);
+/// panel->loadKml(kml);
 ///
 /// // Split horizontally
 /// panel->splitHorizontal();

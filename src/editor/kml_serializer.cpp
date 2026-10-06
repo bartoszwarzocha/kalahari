@@ -2,7 +2,7 @@
 /// @brief KML Serializer implementation (OpenSpec #00043 Phase 11.2)
 ///
 /// Serializes QTextDocument content to KML (Kalahari Markup Language) format.
-/// This is the reverse operation of KmlParser.
+/// This is the reverse operation of reading KML (KmlDocumentModel).
 
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/editor_types.h>

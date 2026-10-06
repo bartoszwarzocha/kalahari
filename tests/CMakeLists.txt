@@ -27,34 +27,21 @@ set(TEST_SOURCES
     core/test_python_interop.cpp
     # OpenSpec #00042: Custom Text Editor
     editor/test_editor_types.cpp
-    editor/test_kml_element.cpp
-    editor/test_kml_text_run.cpp
-    editor/test_kml_inline_elements.cpp
-    editor/test_kml_paragraph.cpp
-    editor/test_kml_document.cpp
-    editor/test_kml_parser.cpp
+    editor/test_kml_load.cpp        # KML reading through BookEditor::fromKml
     editor/test_kml_serializer.cpp  # Phase 11.2.5: KmlSerializer tests
-    editor/test_kml_table.cpp  # Phase 1.12: Table elements
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
-    editor/test_paragraph_layout.cpp  # Phase 2.1: Paragraph layout
-    editor/test_table_layout.cpp  # Phase 2.6: Table layout
-    # Phase 11.8: Removed test_text_buffer.cpp, test_lazy_layout_manager.cpp, test_format_layer.cpp, test_kml_converter.cpp
-    # Phase 11.9: Removed test_virtual_scroll_manager.cpp, test_layout_manager.cpp
-    editor/test_height_tree.cpp            # OpenSpec #00043: HeightTree B-tree
     editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
-    editor/test_view_modes.cpp              # Phase 5: ViewModes and EditorAppearance
+    editor/test_view_modes.cpp              # EditorAppearance and BookEditor view modes
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
     editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
     editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
     editor/test_grammar_check_service.cpp   # Phase 6.14-6.17: GrammarCheckService tests
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
-    editor/test_buffer_commands.cpp        # OpenSpec #00043 Phase 9 Task 9.3: Buffer commands tests
+    editor/test_buffer_commands.cpp        # Cursor position and marker helpers
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
-    editor/test_search_service.cpp         # OpenSpec #00043 Phase 11.7: SearchService tests
-    editor/test_kml_document_model.cpp     # OpenSpec #00043: KmlDocumentModel lazy rendering tests
-    editor/test_format_converter.cpp       # Sub-Project C WS4.2: FormatConverter unit tests
+    editor/test_kml_document_model.cpp     # KML reader tests
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
     editor/test_editor_stage0_kml_roundtrip.cpp  # Editor Stage 0: KML load/save through BookEditor
     editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
@@ -64,7 +51,6 @@ set(TEST_SOURCES
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
-    # Phase 11.8: Removed test_snapshot_roundtrip.cpp (tested old KmlConverter)
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
@@ -107,30 +93,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/backup_manager.cpp
     # OpenSpec #00042: Custom Text Editor
     ${CMAKE_SOURCE_DIR}/src/editor/editor_types.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_element.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_text_run.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_inline_elements.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_paragraph.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_document.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_serializer.cpp  # OpenSpec #00043 Phase 11.2: KmlSerializer
     ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_table.cpp  # Phase 1.12: Table elements
     ${CMAKE_SOURCE_DIR}/src/editor/kml_comment.cpp  # Phase 7.8: Comments feature
-    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
-    ${CMAKE_SOURCE_DIR}/src/editor/format_converter.cpp  # Phase 2.2: Format conversion
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
-    ${CMAKE_SOURCE_DIR}/src/editor/table_layout.cpp      # Phase 2.6: Table layout
-    # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
-    # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/height_tree.cpp           # OpenSpec #00043: HeightTree B-tree
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
-    ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # OpenSpec #00043 Phase 9: Buffer undo commands
+    ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # Cursor position and marker helpers
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
-    ${CMAKE_SOURCE_DIR}/src/editor/search_service.cpp      # OpenSpec #00043 Phase 11.7: SearchService
-    ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # OpenSpec #00043: KmlDocumentModel lazy rendering
+    ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # KML reader
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
     ${CMAKE_SOURCE_DIR}/src/editor/text_source_adapter.cpp      # OpenSpec #00043 Phase 12.1: Text source adapters
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
@@ -152,7 +124,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/stylesheet.cpp            # StyleSheet for ThemeManager
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
-    ${CMAKE_SOURCE_DIR}/src/editor/view_modes.cpp           # Phase 5: View modes
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
@@ -165,8 +136,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # Sub-Project C WS4.4: StyleResolver with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
@@ -293,8 +262,3 @@ if(USE_SYSTEM_PACKAGES)
 endif()
 
 message(STATUS "Configured test target: kalahari-tests")
-
-# OpenSpec #00043: Prototype benchmarks for editor performance rewrite
-add_subdirectory(prototypes)
-
-# Phase 11.8: Removed benchmark-new-arch target (used old TextBuffer/LazyLayoutManager architecture)

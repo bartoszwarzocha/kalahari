@@ -19,7 +19,6 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QToolButton;
-class QUndoStack;
 class QShortcut;
 
 namespace kalahari::editor {
@@ -64,12 +63,6 @@ public:
     /// @brief Set the search engine to use
     /// @param engine Pointer to SearchEngine (not owned)
     void setSearchEngine(editor::SearchEngine* engine);
-
-    /// @brief Set the undo stack for replace operations
-    /// @param stack Pointer to QUndoStack (not owned)
-    void setUndoStack(QUndoStack* stack);
-
-    // Phase 11.8: Removed setFormatLayer - no longer needed (formatting in QTextCharFormat)
 
     /// @brief Show find-only mode (hide replace section)
     void showFind();
@@ -196,8 +189,6 @@ private:
     // =========================================================================
 
     editor::SearchEngine* m_searchEngine = nullptr;  ///< Search engine
-    QUndoStack* m_undoStack = nullptr;               ///< Undo stack for replace
-    // Phase 11.8: Removed m_formatLayer - no longer needed
 
     // =========================================================================
     // Keyboard shortcuts

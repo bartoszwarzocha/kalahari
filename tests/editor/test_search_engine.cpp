@@ -15,7 +15,6 @@
 #include <QAbstractTextDocumentLayout>
 #include <QTextCursor>
 #include <QTextDocument>
-#include <QUndoStack>
 #include <algorithm>
 #include <random>
 
@@ -547,7 +546,6 @@ TEST_CASE("SearchEngine clear", "[editor][search_engine]") {
 TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
     SearchEngine engine;
     QTextDocument doc;
-    QUndoStack undoStack;
 
     doc.setPlainText("Hello World Hello");
     engine.setDocument(&doc);
@@ -558,34 +556,32 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
     SECTION("replaceCurrent replaces single match") {
         REQUIRE(engine.totalMatchCount() == 2);
 
-        // Phase 11.8: Removed FormatLayer parameter
-        bool result = engine.replaceCurrent(&undoStack);
+        bool result = engine.replaceCurrent();
         REQUIRE(result);
         REQUIRE(doc.toPlainText() == "Hi World Hello");
 
-        // Undo should restore original
-        undoStack.undo();
+        // The document's undo restores the original
+        doc.undo();
         REQUIRE(doc.toPlainText() == "Hello World Hello");
 
         // Redo should re-apply
-        undoStack.redo();
+        doc.redo();
         REQUIRE(doc.toPlainText() == "Hi World Hello");
     }
 
     SECTION("replaceAll replaces all matches") {
         REQUIRE(engine.totalMatchCount() == 2);
 
-        // Phase 11.8: Removed FormatLayer parameter
-        int count = engine.replaceAll(&undoStack);
+        int count = engine.replaceAll();
         REQUIRE(count == 2);
         REQUIRE(doc.toPlainText() == "Hi World Hi");
 
-        // Undo should restore all
-        undoStack.undo();
+        // One undo step of the document restores all
+        doc.undo();
         REQUIRE(doc.toPlainText() == "Hello World Hello");
 
         // Redo should re-apply all
-        undoStack.redo();
+        doc.redo();
         REQUIRE(doc.toPlainText() == "Hi World Hi");
     }
 
@@ -597,8 +593,7 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
         emptyEngine.setSearchText("notfound");
         emptyEngine.setReplaceText("x");
 
-        // Phase 11.8: Removed FormatLayer parameter
-        bool result = emptyEngine.replaceCurrent(&undoStack);
+        bool result = emptyEngine.replaceCurrent();
         REQUIRE_FALSE(result);
     }
 
@@ -610,8 +605,7 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
         emptyEngine.setSearchText("notfound");
         emptyEngine.setReplaceText("x");
 
-        // Phase 11.8: Removed FormatLayer parameter
-        int count = emptyEngine.replaceAll(&undoStack);
+        int count = emptyEngine.replaceAll();
         REQUIRE(count == 0);
     }
 }

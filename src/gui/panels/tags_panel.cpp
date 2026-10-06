@@ -4,7 +4,6 @@
 #include "kalahari/gui/panels/tags_panel.h"
 #include "kalahari/editor/tag_detector.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
 #include "kalahari/core/logger.h"
 #include <QTreeWidget>
 #include <QTreeWidgetItem>

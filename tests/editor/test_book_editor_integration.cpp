@@ -8,7 +8,6 @@
 #include <QTextDocument>
 
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_parser.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_appearance.h"
 
@@ -34,14 +33,12 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
         REQUIRE(serialized.contains("First paragraph"));
         REQUIRE(serialized.contains("Second paragraph"));
 
-        // 3. Parse KML back using KmlParser
-        KmlParser parser;
-        QTextDocument* parsedDoc = parser.parseKml(serialized);
-        REQUIRE(parsedDoc != nullptr);
-        REQUIRE(parsedDoc->blockCount() == 2);
-        REQUIRE(parsedDoc->toPlainText().contains("First paragraph with some text."));
-        REQUIRE(parsedDoc->toPlainText().contains("Second paragraph here."));
-        delete parsedDoc;
+        // 3. Load the KML again, as reopening the chapter does
+        BookEditor reopened;
+        reopened.fromKml(serialized);
+        REQUIRE(reopened.paragraphCount() == 2);
+        REQUIRE(reopened.paragraphPlainText(0) == "First paragraph with some text.");
+        REQUIRE(reopened.paragraphPlainText(1) == "Second paragraph here.");
     }
 
     SECTION("edit operations preserve content integrity") {
@@ -55,13 +52,10 @@ TEST_CASE("Integration: Full document workflow", "[integration][editor]") {
         // Verify via BookEditor API
         REQUIRE(editor.paragraphPlainText(0) == "Hello Beautiful World");
 
-        // Serialize and parse back
-        QString kml = editor.toKml();
-        KmlParser parser;
-        QTextDocument* parsedDoc = parser.parseKml(kml);
-        REQUIRE(parsedDoc != nullptr);
-        REQUIRE(parsedDoc->toPlainText().contains("Hello Beautiful World"));
-        delete parsedDoc;
+        // Serialize and load back
+        BookEditor reopened;
+        reopened.fromKml(editor.toKml());
+        REQUIRE(reopened.plainText() == "Hello Beautiful World");
     }
 }
 

@@ -17,8 +17,6 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_comment.h>
-#include <kalahari/editor/kml_document_model.h>  // Phase 11.10: Lazy rendering model
-#include <kalahari/editor/kml_element.h>  // For ElementType
 #include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
@@ -46,7 +44,6 @@ class QVariantAnimation;
 class QScreen;
 class QScrollBar;
 class QTimer;
-class QUndoStack;
 class QMenu;
 class QMimeData;
 
@@ -57,6 +54,7 @@ class FindReplaceBar;
 namespace kalahari::editor {
 
 // Forward declarations
+class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
 
@@ -107,9 +105,9 @@ public:
     /// @brief Load document content from KML markup
     /// @param kml The KML string to load
     ///
-    /// Parses the KML markup using KmlParser and loads directly
-    /// into QTextDocument with QTextCharFormat for formatting.
-    /// Resets cursor position and clears undo stack.
+    /// Reads the KML (KmlDocumentModel) into a new QTextDocument, with QTextCharFormat
+    /// for formatting and metadata. Resets the cursor position and the undo stack.
+    /// KML that is not well-formed gives the text read before the error.
     void fromKml(const QString& kml);
 
     // =========================================================================
@@ -448,48 +446,40 @@ public:
     ///
     /// If text is selected, toggles bold on the selection.
     /// If no selection, toggles bold mode for next typed characters.
-    /// @note Currently a stub - full implementation requires KmlParagraph format runs
     void toggleBold();
 
     /// @brief Toggle italic formatting on selection or at cursor
     ///
     /// If text is selected, toggles italic on the selection.
     /// If no selection, toggles italic mode for next typed characters.
-    /// @note Currently a stub - full implementation requires KmlParagraph format runs
     void toggleItalic();
 
     /// @brief Toggle underline formatting on selection or at cursor
     ///
     /// If text is selected, toggles underline on the selection.
     /// If no selection, toggles underline mode for next typed characters.
-    /// @note Currently a stub - full implementation requires KmlParagraph format runs
     void toggleUnderline();
 
     /// @brief Toggle strikethrough formatting on selection or at cursor
     ///
     /// If text is selected, toggles strikethrough on the selection.
     /// If no selection, toggles strikethrough mode for next typed characters.
-    /// @note Currently a stub - full implementation requires KmlParagraph format runs
     void toggleStrikethrough();
 
     /// @brief Check if current selection/cursor position has bold formatting
     /// @return true if text at cursor/selection is bold
-    /// @note Currently returns false - full implementation requires KmlParagraph format runs
     bool isBold() const;
 
     /// @brief Check if current selection/cursor position has italic formatting
     /// @return true if text at cursor/selection is italic
-    /// @note Currently returns false - full implementation requires KmlParagraph format runs
     bool isItalic() const;
 
     /// @brief Check if current selection/cursor position has underline formatting
     /// @return true if text at cursor/selection is underlined
-    /// @note Currently returns false - full implementation requires KmlParagraph format runs
     bool isUnderline() const;
 
     /// @brief Check if current selection/cursor position has strikethrough formatting
     /// @return true if text at cursor/selection has strikethrough
-    /// @note Currently returns false - full implementation requires KmlParagraph format runs
     bool isStrikethrough() const;
 
     // =========================================================================
@@ -925,11 +915,8 @@ protected:
     /// @brief Paint event handler
     /// @param event The paint event
     ///
-    /// Renders the document content:
-    /// - Fills background with palette window color
-    /// - Layouts visible paragraphs using LayoutManager
-    /// - Draws each paragraph using ParagraphLayout::draw()
-    /// - Applies scroll offset for virtual scrolling
+    /// The render pipeline draws the view (background, pages, text, cursor, selection and
+    /// highlights); the distraction-free overlay is drawn on top.
     void paintEvent(QPaintEvent* event) override;
 
     /// @brief Resize event handler
@@ -1104,7 +1091,7 @@ private:
     /// @brief Sync pipeline state from BookEditor (Phase 12.3)
     ///
     /// Updates the render pipeline with current BookEditor state:
-    /// - Text source (KmlDocumentModel or QTextDocument)
+    /// - Text source (the QTextDocument)
     /// - Scroll position
     /// - Viewport size
     /// - Cursor position and selection
@@ -1113,7 +1100,7 @@ private:
     void syncPipelineCursor();  ///< Lightweight cursor-only sync
 
     /// @brief Setup text source when document changes
-    /// Call this ONCE when switching documents or entering/exiting edit mode
+    /// Call this ONCE when a new document is created
     void setupPipelineTextSource();
 
     /// @brief Update only scroll position (lightweight)
@@ -1299,20 +1286,20 @@ private:
     // Formatting Helpers (Phase 7.2)
     // =========================================================================
 
+    /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
+    enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
+
     /// @brief Toggle inline formatting on selection or set pending format
-    /// @param formatType The type of formatting (Bold, Italic, Underline, Strikethrough)
+    /// @param formatType The type of formatting
     ///
     /// If text is selected, toggles the format on the selection.
     /// If no selection, toggles the pending format state for next typed text.
-    void toggleFormat(ElementType formatType);
+    void toggleFormat(InlineFormat formatType);
 
     /// @brief Check if text at cursor/selection has specific formatting
     /// @param formatType The type of formatting to check
     /// @return true if current position has the specified formatting
-    bool hasFormat(ElementType formatType) const;
-
-    // Phase 11: Old architecture members removed (KmlDocument, LayoutManager, VirtualScrollManager, PageLayoutManager)
-    // Using QTextDocument (m_textBuffer), ViewportManager, RenderEngine instead
+    bool hasFormat(InlineFormat formatType) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
@@ -1435,22 +1422,15 @@ private:
     QMenu* createGrammarContextMenu(const GrammarError& error, int paraIndex);
 
     // =========================================================================
-    // Phase 8: New Performance-Optimized Components (OpenSpec #00043)
+    // Document, viewport and rendering
     // =========================================================================
 
-    /// @brief KmlDocumentModel for fast loading and lazy rendering (Phase 11.10)
-    /// @note Primary data source - paragraphs + formats with lazy QTextLayout
-    std::unique_ptr<KmlDocumentModel> m_documentModel;
-
-    /// @brief QTextDocument for text editing (Phase 11.6)
-    /// @note Created on-demand when user starts editing (see ensureEditMode())
+    /// @brief The document: text, formatting and undo history
+    /// @note Created by fromKml(), or empty by the first edit (see ensureDocument())
     std::unique_ptr<QTextDocument> m_textBuffer;
 
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
-
-    /// @brief True when m_textBuffer is populated and being used for editing
-    bool m_isEditMode = false;
 
     /// @brief Cursor and selection a paragraph format step was made with
     struct StepCursor {
@@ -1462,24 +1442,21 @@ private:
     /// (see setParagraphAlignment())
     std::optional<StepCursor> m_stepCursor;
 
-    /// @brief Scroll offset for view mode (when ViewportManager has no document)
-    double m_viewModeScrollOffset = 0.0;
-
-    /// @brief Ensure document is in edit mode (creates m_textBuffer if needed)
+    /// @brief Create the document with the given content and connect it to the view
     ///
-    /// Converts KmlDocumentModel to QTextDocument when user starts editing.
-    /// This is only done when necessary for editing operations.
-    void ensureEditMode();
+    /// Builds a new QTextDocument (with the editor's layout) with undo disabled, so
+    /// the content is not an undo step, and connects the render pipeline, the viewport
+    /// and the search engine to it.
+    /// @param content Paragraphs read from KML
+    void createDocument(const KmlDocumentModel& content);
 
-    /// @brief Check if document is in edit mode
-    /// @return true if m_textBuffer is populated and active
-    bool isEditMode() const { return m_isEditMode; }
+    /// @brief Create an empty document if there is none yet (before the first edit)
+    void ensureDocument();
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;
 
-    /// @brief Unified render pipeline (Phase 12.3: OpenSpec #00043)
-    /// Consolidates all rendering: view mode, edit mode, page mode
+    /// @brief Render pipeline: draws the view in every view mode
     std::unique_ptr<EditorRenderPipeline> m_renderPipeline;
 
     // Phase 11.6: Removed MetadataLayer - markers stored in QTextCharFormat::UserProperty
