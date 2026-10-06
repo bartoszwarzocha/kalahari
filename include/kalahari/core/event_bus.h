@@ -33,7 +33,7 @@
 ///         std::cout << "Document opened!" << std::endl;
 ///     }
 /// };
-/// EventBus::getInstance().subscribe("document:opened", listener);
+/// SubscriptionId id = EventBus::getInstance().subscribe("document:opened", listener);
 ///
 /// // Emit synchronously
 /// Event evt{"document:opened", "my_document.klh"};
@@ -41,6 +41,9 @@
 ///
 /// // Emit asynchronously (safe from any thread)
 /// EventBus::getInstance().emitAsync(evt);
+///
+/// // Stop listening (other listeners of the same type stay)
+/// EventBus::getInstance().unsubscribe(id);
 /// @endcode
 ///
 /// **Example Usage (Python):**
@@ -51,7 +54,7 @@
 ///     print(f"Document opened: {event.type}")
 ///
 /// # Subscribe
-/// kalahari_api.EventBus.subscribe("document:opened", on_document_opened)
+/// sub_id = kalahari_api.EventBus.subscribe("document:opened", on_document_opened)
 ///
 /// # Emit (from Python)
 /// event = kalahari_api.Event("document:opened")
@@ -68,6 +71,7 @@
 #include <mutex>
 #include <any>
 #include <memory>
+#include <cstdint>
 
 namespace kalahari {
 namespace core {
@@ -98,6 +102,9 @@ struct Event {
 /// Should be exception-safe; exceptions will be logged.
 using EventListener = std::function<void(const Event&)>;
 
+/// @brief Handle returned by EventBus::subscribe(), used to unsubscribe one listener
+using SubscriptionId = std::uint64_t;
+
 /// @brief Thread-safe pub/sub event bus (singleton)
 ///
 /// Central event hub for core ↔ plugin communication.
@@ -119,6 +126,7 @@ public:
     ///
     /// @param eventType Event type to listen for (e.g., "document:opened")
     /// @param listener Callback function to invoke
+    /// @return Handle that removes exactly this listener in unsubscribe()
     /// @throws std::invalid_argument if eventType is empty
     ///
     /// **Thread Safety:** Safe to call from any thread
@@ -129,16 +137,16 @@ public:
     ///     [](const Event& evt) { std::cout << "Doc opened\n"; }
     /// );
     /// ```
-    void subscribe(const std::string& eventType, EventListener listener);
+    SubscriptionId subscribe(const std::string& eventType, EventListener listener);
 
-    /// @brief Unsubscribe from event type
+    /// @brief Remove one listener
     ///
-    /// Removes all listeners for the given event type.
-    /// If no listeners are registered for the type, does nothing.
+    /// Other listeners of the same event type are not affected.
     ///
-    /// @param eventType Event type to stop listening for
+    /// @param id Handle returned by subscribe()
+    /// @return true if the listener was found and removed
     /// **Thread Safety:** Safe to call from any thread
-    void unsubscribe(const std::string& eventType);
+    bool unsubscribe(SubscriptionId id);
 
     /// @brief Emit event synchronously
     ///
@@ -216,8 +224,11 @@ public:
 
 private:
 
-    /// Map of event type → list of listeners
-    std::map<std::string, std::vector<EventListener>> m_listeners;
+    /// Map of event type → listeners with their subscription handles
+    std::map<std::string, std::vector<std::pair<SubscriptionId, EventListener>>> m_listeners;
+
+    /// Next handle returned by subscribe()
+    SubscriptionId m_nextId = 1;
 
     /// Queue of pending async events
     std::queue<Event> m_eventQueue;

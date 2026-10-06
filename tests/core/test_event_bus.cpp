@@ -129,22 +129,33 @@ TEST_CASE("Event unsubscription", "[event-bus][unsubscribe]") {
     auto& bus = EventBus::getInstance();
     bus.clearAll();
 
-    SECTION("Unsubscribe removes all listeners for type") {
-        EventCounter counter("test:event");
-        bus.subscribe("test:event", [&counter](const Event& evt) { counter.onEvent(evt); });
+    SECTION("Unsubscribe removes only the given listener") {
+        EventCounter counter1("test:event");
+        EventCounter counter2("test:event");
+        const SubscriptionId id1 =
+            bus.subscribe("test:event", [&counter1](const Event& evt) { counter1.onEvent(evt); });
+        const SubscriptionId id2 =
+            bus.subscribe("test:event", [&counter2](const Event& evt) { counter2.onEvent(evt); });
+        REQUIRE(id1 != id2);
 
         Event evt("test:event");
         bus.emit(evt);
-        REQUIRE(counter.getCount() == 1);
+        REQUIRE(counter1.getCount() == 1);
+        REQUIRE(counter2.getCount() == 1);
 
-        bus.unsubscribe("test:event");
+        REQUIRE(bus.unsubscribe(id1));
 
         bus.emit(evt);
-        REQUIRE(counter.getCount() == 1); // No new events received
+        REQUIRE(counter1.getCount() == 1); // Removed listener gets nothing new
+        REQUIRE(counter2.getCount() == 2); // The other listener still receives events
+        REQUIRE(bus.getSubscriberCount("test:event") == 1);
     }
 
-    SECTION("Unsubscribing non-existent type does nothing") {
-        REQUIRE_NOTHROW(bus.unsubscribe("non-existent:type"));
+    SECTION("Unsubscribing an unknown or already removed id does nothing") {
+        const SubscriptionId id = bus.subscribe("test:event", [](const Event&) {});
+        REQUIRE(bus.unsubscribe(id));
+        REQUIRE_FALSE(bus.unsubscribe(id));
+        REQUIRE_FALSE(bus.unsubscribe(SubscriptionId{999999}));
     }
 }
 
@@ -166,10 +177,10 @@ TEST_CASE("Subscriber queries", "[event-bus][queries]") {
     SECTION("Check has subscribers") {
         REQUIRE_FALSE(bus.hasSubscribers("test:event"));
 
-        bus.subscribe("test:event", [](const Event&) {});
+        const SubscriptionId id = bus.subscribe("test:event", [](const Event&) {});
         REQUIRE(bus.hasSubscribers("test:event"));
 
-        bus.unsubscribe("test:event");
+        bus.unsubscribe(id);
         REQUIRE_FALSE(bus.hasSubscribers("test:event"));
     }
 }

@@ -10,6 +10,7 @@
 #endif
 
 #include <QCoreApplication>
+#include <algorithm>
 #include <QMetaObject>
 
 namespace kalahari {
@@ -20,7 +21,7 @@ EventBus& EventBus::getInstance() {
     return instance;
 }
 
-void EventBus::subscribe(const std::string& eventType, EventListener listener) {
+SubscriptionId EventBus::subscribe(const std::string& eventType, EventListener listener) {
     if (eventType.empty()) {
         throw std::invalid_argument("Event type cannot be empty");
     }
@@ -31,22 +32,35 @@ void EventBus::subscribe(const std::string& eventType, EventListener listener) {
 
     std::lock_guard<std::mutex> lock(m_listeners_mutex);
 
-    m_listeners[eventType].push_back(listener);
+    const SubscriptionId id = m_nextId++;
+    auto& listeners = m_listeners[eventType];
+    listeners.emplace_back(id, std::move(listener));
 
     Logger::getInstance().debug("EventBus: Subscribed to event type '{}' (subscribers: {})",
-                               eventType, m_listeners[eventType].size());
+                               eventType, listeners.size());
+    return id;
 }
 
-void EventBus::unsubscribe(const std::string& eventType) {
+bool EventBus::unsubscribe(SubscriptionId id) {
     std::lock_guard<std::mutex> lock(m_listeners_mutex);
 
-    auto it = m_listeners.find(eventType);
-    if (it != m_listeners.end()) {
-        size_t count = it->second.size();
-        m_listeners.erase(it);
-        Logger::getInstance().debug("EventBus: Unsubscribed {} listener(s) from event type '{}'",
-                                   count, eventType);
+    for (auto it = m_listeners.begin(); it != m_listeners.end(); ++it) {
+        auto& listeners = it->second;
+        auto found = std::find_if(listeners.begin(), listeners.end(),
+                                  [id](const auto& entry) { return entry.first == id; });
+        if (found == listeners.end()) {
+            continue;
+        }
+        listeners.erase(found);
+        Logger::getInstance().debug("EventBus: Unsubscribed listener {} from event type '{}'",
+                                   id, it->first);
+        // An empty list would still count as "has subscribers"
+        if (listeners.empty()) {
+            m_listeners.erase(it);
+        }
+        return true;
     }
+    return false;
 }
 
 void EventBus::emit(const Event& event) {
@@ -59,7 +73,10 @@ void EventBus::emit(const Event& event) {
         if (it == m_listeners.end()) {
             return;
         }
-        listeners = it->second;
+        listeners.reserve(it->second.size());
+        for (const auto& entry : it->second) {
+            listeners.push_back(entry.second);
+        }
     }
 
     Logger::getInstance().debug("EventBus: Emitting event '{}' to {} subscribers",

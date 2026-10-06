@@ -191,7 +191,7 @@ Get the EventBus singleton instance.
 bus = kalahari_api.EventBus.get_instance()
 ```
 
-#### `subscribe(event_type: str, callback: callable) -> None`
+#### `subscribe(event_type: str, callback: callable) -> int`
 
 Subscribe to events of a specific type. The callback will be invoked whenever an event of that type is emitted.
 
@@ -199,25 +199,29 @@ Subscribe to events of a specific type. The callback will be invoked whenever an
 - `event_type` (str): Event type to listen for
 - `callback` (callable): Function to call when event is emitted. Signature: `callback(event: Event) -> None`
 
+**Returns:** subscription id, passed to `unsubscribe()` to remove this callback
+
 **Example:**
 ```python
 def on_document_opened(event):
     kalahari_api.Logger.info(f"Document opened: {event.type}")
 
 bus = kalahari_api.EventBus.get_instance()
-bus.subscribe("document:opened", on_document_opened)
+sub_id = bus.subscribe("document:opened", on_document_opened)
 ```
 
-#### `unsubscribe(event_type: str) -> None`
+#### `unsubscribe(subscription_id: int) -> bool`
 
-Unsubscribe from all listeners for a specific event type.
+Remove one callback. Other callbacks for the same event type, including other plugins', keep receiving events.
 
 **Parameters:**
-- `event_type` (str): Event type to stop listening for
+- `subscription_id` (int): Id returned by `subscribe()`
+
+**Returns:** `True` if the callback was found and removed
 
 **Example:**
 ```python
-bus.unsubscribe("document:opened")
+bus.unsubscribe(sub_id)
 ```
 
 #### `emit(event: Event) -> None`
@@ -320,7 +324,7 @@ def on_goal_reached(event):
     kalahari_api.Logger.info("Congratulations! Goal reached!")
 
 # Subscribe to events
-bus.subscribe("document:opened", on_document_event)
+opened_id = bus.subscribe("document:opened", on_document_event)
 bus.subscribe("document:saved", on_document_event)
 bus.subscribe("goal:reached", on_goal_reached)
 
@@ -335,7 +339,7 @@ bus.emit(evt2)
 print(f"Document listeners: {bus.get_subscriber_count('document:opened')}")
 
 # Cleanup
-bus.unsubscribe("document:opened")
+bus.unsubscribe(opened_id)
 ```
 
 ### Extension Points (C++ Only - Week 5-6)
