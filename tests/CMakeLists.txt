@@ -17,6 +17,8 @@ set(TEST_SOURCES
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_text_statistics.cpp
+    core/test_text_file.cpp         # Plain text files in their own encoding and line ends
+    core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_project_manager.cpp
     core/test_logger.cpp
@@ -85,6 +87,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     # OpenSpec #00041: SQLite Project Database

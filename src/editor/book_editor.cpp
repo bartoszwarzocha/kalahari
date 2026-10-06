@@ -5485,7 +5485,24 @@ QString BookEditor::paragraphPlainText(size_t index) const
 
 QString BookEditor::plainText() const
 {
-    return m_textBuffer ? m_textBuffer->toPlainText() : QString();
+    if (!m_textBuffer) {
+        return QString();
+    }
+    // As toPlainText(), which would also turn no-break spaces into spaces
+    QString text = m_textBuffer->toRawText();
+    for (QChar& ch : text) {
+        switch (ch.unicode()) {
+        case QChar::ParagraphSeparator:
+        case QChar::LineSeparator:
+        case 0xFDD0:  // QTextBeginningOfFrame
+        case 0xFDD1:  // QTextEndOfFrame
+            ch = QLatin1Char('\n');
+            break;
+        default:
+            break;
+        }
+    }
+    return text;
 }
 
 size_t BookEditor::characterCount() const
@@ -5514,7 +5531,7 @@ QTextDocument* BookEditor::textDocument() const
     return m_textBuffer.get();
 }
 
-void BookEditor::fromKml(const QString& kml)
+bool BookEditor::fromKml(const QString& kml)
 {
     auto& logger = core::Logger::getInstance();
     const auto startTime = std::chrono::high_resolution_clock::now();
@@ -5541,7 +5558,8 @@ void BookEditor::fromKml(const QString& kml)
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
-    if (!content.loadKml(kml)) {
+    const bool complete = content.loadKml(kml);
+    if (!complete) {
         logger.error("BookEditor::fromKml - unreadable KML, {} paragraphs read before the error",
                      content.paragraphCount());
     }
@@ -5573,6 +5591,7 @@ void BookEditor::fromKml(const QString& kml)
     emit documentChanged();
 
     logElapsed("DONE");
+    return complete;
 }
 
 void BookEditor::replaceWithKml(const QString& kml)

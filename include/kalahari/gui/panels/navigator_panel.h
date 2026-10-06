@@ -172,6 +172,10 @@ signals:
     /// @param partId Part ID
     void requestPartProperties(const QString& partId);
 
+    /// @brief Emitted when a file of the "Other Files" section is opened
+    /// @param filePath Absolute file path
+    void standaloneFileSelected(const QString& filePath);
+
     /// @brief Request to add a standalone file to the project
     /// @param filePath Absolute file path
     void requestAddToProject(const QString& filePath);

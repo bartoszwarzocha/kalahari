@@ -32,6 +32,8 @@ set(KALAHARI_CORE_SOURCES
     core/document_archive.cpp
     core/chapter_document.cpp
     core/text_statistics.cpp    # Word/character counting shared by the whole application
+    core/text_file.cpp          # Plain text files in their own encoding and line ends
+    core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/utils/svg_converter.cpp
     core/theme.cpp
     core/fallback_theme.cpp  # Task #00023: Emergency fallback themes

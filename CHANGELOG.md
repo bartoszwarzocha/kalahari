@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Files outside the book: chapters and text files** - 2026-10-06
+  - File > Open > Open File... opens chapters (`.kchapter`) and text files (`.txt`), and
+    Save writes each in its own format: a chapter keeps its title, status, notes and
+    comments; a text file keeps its encoding (UTF-8, UTF-16 with a byte order mark, or the
+    system's 8-bit code page), byte order mark, line ends and no-break spaces. Text the
+    8-bit code page cannot hold is saved as UTF-8. Save As writes the format of the chosen
+    extension.
+  - RTF, mind maps and timelines are gone from the file types; a file of another type
+    picked through "All Files" gives a message instead of an editor showing its bytes.
+  - Save (Ctrl+S) on such a tab saves the file, also while a book is open. The question
+    about unsaved changes names what has them (the book, the file).
+  - Other Files in the navigator opens the file or switches to its tab, and the list
+    stays when a book is opened or closed. The info bar follows the tab and the book.
+  - Add to Project saves the tab first; a text file becomes a chapter, its lines the
+    paragraphs.
 - **Editor: page mode rebuilt** - 2026-10-06
   - The text layout places the lines on the pages: a line that does not fit moves to the
     next page, also in the middle of a paragraph. Editing re-places only the paragraphs
@@ -147,8 +162,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (check results are kept with each paragraph and apply while its text is unchanged).
 - **A chapter with malformed KML left the editor without a document** - 2026-10-06. The
   editor now shows the text read before the error (the rest of the chapter is not loaded,
-  as before) and the error is logged; the render pipeline used to keep a pointer to the
-  deleted document.
+  as before), a message says so and that saving keeps only this text, and the error is
+  logged; the render pipeline used to keep a pointer to the deleted document.
+- **Closing a book left its chapters open** - 2026-10-06. Their tabs stayed after the book
+  closed and were then saved as single documents. They now close with the book, after the
+  question about unsaved changes; files opened outside the book stay open.
+- **Statistics in the Properties panel did not follow typing** - 2026-10-06. Words,
+  characters and paragraphs of the open text changed only when the cursor was moved; they
+  now follow every edit, and stay shown when the book is closed while a file opened
+  outside it is in front.
+- **Text with CR LF line ends got an empty paragraph after each line** - 2026-10-06, when
+  pasted or dropped from a program that keeps the CR.
 - **Unsubscribing from the event bus removed every listener of that event** - 2026-10-06.
   `subscribe()` now returns a subscription id and `unsubscribe()` takes that id, so a
   plugin removes only its own callback. Python plugins use the same id

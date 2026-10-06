@@ -1,10 +1,11 @@
 /// @file test_editor_stage5.cpp
 /// @brief Editor Stage 5: one highlight layer (annotations from the KML data, check
 ///        results kept with the paragraphs, the word read aloud); replacing the content
-///        as one undo step
+///        as one undo step; what files outside a project need from the editor
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
@@ -339,4 +340,28 @@ TEST_CASE("Stage5 replace: an editor without a chapter gets the content",
     CHECK(editor.toKml() == kml);
     editor.undo();
     CHECK(editor.plainText().isEmpty());
+}
+
+TEST_CASE("Stage5 files: loading says whether the whole KML was read", "[editor][stage5][files]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    CHECK(editor.fromKml(kmlOf({QStringLiteral("Whole"), QStringLiteral("chapter")})));
+    CHECK(editor.fromKml(QString()));
+
+    // A damaged chapter shows the text before the damaged place
+    CHECK_FALSE(editor.fromKml(QStringLiteral("<p><t>Before</t></p><p><t>broken</b></p><p><t>After</t></p>")));
+    CHECK(editor.plainText().startsWith(QStringLiteral("Before\n")));
+    CHECK_FALSE(editor.plainText().contains(QStringLiteral("After")));
+}
+
+TEST_CASE("Stage5 files: the plain text keeps no-break spaces", "[editor][stage5][files]") {
+    auto editor = editorWith(kmlOf({QStringLiteral("Szed\u0142 w\u00A0d\u00F3\u0142"), QStringLiteral("two")}));
+    CHECK(editor->plainText() == QStringLiteral("Szed\u0142 w\u00A0d\u00F3\u0142\ntwo"));
+}
+
+TEST_CASE("Stage5 files: text with CR LF line ends gives one paragraph per line",
+          "[editor][stage5][files]") {
+    auto editor = editorWith(ClipboardHandler::textToKml(QStringLiteral("one\r\ntwo\r\n")));
+    CHECK(editor->paragraphCount() == 3);
+    CHECK(editor->plainText() == QStringLiteral("one\ntwo\n"));
 }

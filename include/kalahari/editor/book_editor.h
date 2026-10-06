@@ -108,7 +108,8 @@ public:
     /// Reads the KML (KmlDocumentModel) into a new QTextDocument, with QTextCharFormat
     /// for formatting and metadata. Resets the cursor position and the undo stack.
     /// KML that is not well-formed gives the text read before the error.
-    void fromKml(const QString& kml);
+    /// @return False when the KML is not well-formed, so part of it was not read
+    bool fromKml(const QString& kml);
 
     /// @brief Replace the document content with KML markup, as one edit
     /// @param kml The KML string to put in place of the current content
@@ -132,7 +133,7 @@ public:
     QString paragraphPlainText(size_t index) const;
 
     /// @brief Get the full plain text of the document
-    /// @return Concatenation of all paragraph texts with newlines
+    /// @return Concatenation of all paragraph texts with newlines (no-break spaces stay)
     QString plainText() const;
 
     /// @brief Get total character count in the document
