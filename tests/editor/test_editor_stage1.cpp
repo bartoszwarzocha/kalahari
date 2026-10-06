@@ -76,10 +76,10 @@ private:
 };
 
 /// The find/replace bar of @p editor, open in replace mode with both texts filled in
-kalahari::editor::FindReplaceBar* openReplaceBar(BookEditor& editor, const QString& find,
-                                              const QString& replace) {
+FindReplaceBar* openReplaceBar(BookEditor& editor, const QString& find,
+                               const QString& replace) {
     editor.showFindReplace();
-    auto* bar = editor.findChild<kalahari::editor::FindReplaceBar*>();
+    auto* bar = editor.findChild<FindReplaceBar*>();
     if (bar) {
         for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
             if (input->placeholderText() == QStringLiteral("Replace...")) {

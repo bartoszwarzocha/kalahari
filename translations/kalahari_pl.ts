@@ -1959,7 +1959,7 @@ Do you want to choose a different location?</source>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::FindReplaceBar</name>
+    <name>kalahari::editor::FindReplaceBar</name>
     <message>
         <source>Find...</source>
         <translation type="unfinished"></translation>

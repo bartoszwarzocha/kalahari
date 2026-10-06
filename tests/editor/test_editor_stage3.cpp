@@ -378,8 +378,8 @@ namespace {
 const QString kWords = QStringLiteral(
     "<kml><p>One word, then another word.</p><p>No match here.</p><p>The last word.</p></kml>");
 
-kalahari::editor::FindReplaceBar* findBar(BookEditor& editor) {
-    return editor.findChild<kalahari::editor::FindReplaceBar*>();
+FindReplaceBar* findBar(BookEditor& editor) {
+    return editor.findChild<FindReplaceBar*>();
 }
 
 bool isShown(QWidget* widget) {
