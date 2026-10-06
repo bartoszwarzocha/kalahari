@@ -203,6 +203,31 @@ TEST_CASE("Exception handling in callbacks", "[event-bus][exceptions]") {
     }
 }
 
+TEST_CASE("Listeners may use the bus while an event is delivered", "[event-bus][reentrant]") {
+    auto& bus = EventBus::getInstance();
+    bus.clearAll();
+
+    int nestedCount = 0;
+    size_t seenSubscribers = 0;
+
+    bus.subscribe("reentrant:nested", [&nestedCount](const Event&) { nestedCount++; });
+    bus.subscribe("reentrant:outer", [&bus, &seenSubscribers](const Event&) {
+        // Each of these locks the bus; before the fix this deadlocked
+        seenSubscribers = bus.getSubscriberCount("reentrant:outer");
+        bus.subscribe("reentrant:outer", [](const Event&) {});
+        bus.emit(Event("reentrant:nested"));
+    });
+
+    bus.emit(Event("reentrant:outer"));
+
+    REQUIRE(seenSubscribers == 1);
+    REQUIRE(nestedCount == 1);
+    // A listener added during delivery is kept, but not called for the same event
+    REQUIRE(bus.getSubscriberCount("reentrant:outer") == 2);
+
+    bus.clearAll();
+}
+
 TEST_CASE("Event data payload", "[event-bus][payload]") {
     auto& bus = EventBus::getInstance();
     bus.clearAll();
