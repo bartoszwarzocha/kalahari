@@ -41,7 +41,7 @@ class QDropEvent;
 class QInputMethodEvent;
 class QKeyEvent;
 class QMouseEvent;
-class QPropertyAnimation;
+class QVariantAnimation;
 class QScrollBar;
 class QTimer;
 class QUndoStack;
@@ -1293,7 +1293,7 @@ private:
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
     int m_lastCurrentPage = -1;                             ///< Page number last emitted
     int m_lastTotalPages = -1;                              ///< Page count last emitted
-    QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
+    QVariantAnimation* m_scrollAnimation;                   ///< Smooth scroll animation
     bool m_pointerMovesCursor = false;                      ///< A mouse or drop event moves the cursor
                                                             ///< (typewriter scrolling leaves the view)
 
@@ -1311,6 +1311,10 @@ private:
     // Cursor navigation state (Phase 3.6/3.7/3.8)
     qreal m_preferredCursorX;                               ///< Preferred X position for vertical movement
     bool m_preferredCursorXValid;                           ///< Is m_preferredCursorX valid?
+    CursorPosition m_preferredCursorXPosition;              ///< Cursor position the last vertical move gave
+                                                            ///< (m_preferredCursorX holds only there)
+    double m_pageMoveGoalY = 0.0;                           ///< Document y the last Page Up/Down aimed at
+    CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position that move gave
 
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range

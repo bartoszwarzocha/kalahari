@@ -37,7 +37,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
-#include <QPropertyAnimation>
+#include <QVariantAnimation>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollBar>
@@ -811,8 +811,9 @@ void BookEditor::moveCursorUp()
     // Find current line within this paragraph
     int currentLine = layout->lineForTextPosition(m_cursorPosition.offset).lineNumber();
 
-    // Remember preferred X position for vertical navigation
-    if (!m_preferredCursorXValid) {
+    // Remember preferred X position for vertical navigation (it holds while the cursor stays
+    // where the last vertical move put it: typing or a click drops it)
+    if (!m_preferredCursorXValid || m_preferredCursorXPosition != m_cursorPosition) {
         QTextLine line = layout->lineAt(currentLine);
         m_preferredCursorX = line.cursorToX(m_cursorPosition.offset);
         m_preferredCursorXValid = true;
@@ -842,6 +843,7 @@ void BookEditor::moveCursorUp()
     }
 
     setCursorPosition(newPos);
+    m_preferredCursorXPosition = m_cursorPosition;
     // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
@@ -860,8 +862,9 @@ void BookEditor::moveCursorDown()
     // Find current line within this paragraph
     int currentLine = layout->lineForTextPosition(m_cursorPosition.offset).lineNumber();
 
-    // Remember preferred X position for vertical navigation
-    if (!m_preferredCursorXValid) {
+    // Remember preferred X position for vertical navigation (it holds while the cursor stays
+    // where the last vertical move put it: typing or a click drops it)
+    if (!m_preferredCursorXValid || m_preferredCursorXPosition != m_cursorPosition) {
         QTextLine line = layout->lineAt(currentLine);
         m_preferredCursorX = line.cursorToX(m_cursorPosition.offset);
         m_preferredCursorXValid = true;
@@ -891,6 +894,7 @@ void BookEditor::moveCursorDown()
     }
 
     setCursorPosition(newPos);
+    m_preferredCursorXPosition = m_cursorPosition;
     // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
 }
 
@@ -1067,21 +1071,44 @@ void BookEditor::moveCursorByViewHeight(double direction)
     }
 
     // One view height in document units (page mode zooms). The view and the cursor move
-    // together: the cursor keeps its place in the view and its x, as in word processors.
+    // together: the cursor keeps its place in the view and its column, as in word processors.
     const double step = direction * m_viewportManager->visibleDocumentHeight();
     if (step == 0.0) {
         return;
     }
-    const QPointF caret = m_renderPipeline->caretRect(m_cursorPosition).center();
-    const double oldScroll = scrollOffset();
-    setScrollOffset(oldScroll + step);
-    const double moved = scrollOffset() - oldScroll;
+
+    // The goal in the document: the column vertical moves keep and the middle of the cursor's
+    // line. Presses in a row go on from the previous goal rather than from the line and the
+    // character it hit, so that Page Down and Page Up bring the cursor back where it was.
+    const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+    QPointF goal = m_renderPipeline->widgetToDocument(caret.topLeft());
+    goal.ry() += caret.height() / m_viewportManager->viewScale() / 2.0;
+    if (m_preferredCursorXValid && m_preferredCursorXPosition == m_cursorPosition) {
+        goal.setX(m_preferredCursorX);
+    }
+    // The previous goal holds while it still leads to the cursor: no other move took the
+    // cursor away and the text did not wrap anew (a goal between pages leads to a line nearby)
+    if (m_pageMoveCursor == m_cursorPosition &&
+        positionFromPoint(m_renderPipeline->documentToWidget(
+            QPointF(goal.x(), m_pageMoveGoalY))) == m_cursorPosition) {
+        goal.setY(m_pageMoveGoalY);
+    }
+
+    setScrollOffset(scrollOffset() + step);
 
     // The text now in view laid out, the cursor goes to the same place in the view; at the
     // start or the end of the chapter, where the view stops, it goes on by the rest
     m_renderPipeline->ensureVisibleLaidOut();
-    setCursorPosition(positionFromPoint(
-        QPointF(caret.x(), caret.y() + (step - moved) * m_viewportManager->viewScale())));
+    goal.ry() += step;
+    setCursorPosition(positionFromPoint(m_renderPipeline->documentToWidget(goal)));
+
+    // A goal past the start or the end of the chapter is kept at its edge, so that presses
+    // there do not pile up
+    m_pageMoveGoalY = std::clamp(goal.y(), 0.0, m_viewportManager->totalDocumentHeight());
+    m_pageMoveCursor = m_cursorPosition;
+    m_preferredCursorX = goal.x();
+    m_preferredCursorXValid = true;
+    m_preferredCursorXPosition = m_cursorPosition;
 }
 
 // =============================================================================
@@ -2934,7 +2961,6 @@ void BookEditor::setupScrollBar()
     });
 
     // Note: Scroll animation is created lazily in startScrollAnimation()
-    // to avoid potential issues with QPropertyAnimation in test environments
 }
 
 void BookEditor::updateScrollBarRange()
@@ -3146,11 +3172,13 @@ void BookEditor::startScrollAnimation(qreal targetOffset, int durationMs)
 {
     // Lazily create the animation on first use
     if (m_scrollAnimation == nullptr) {
-        m_scrollAnimation = new QPropertyAnimation(this);
+        // A plain value animation: a QPropertyAnimation needs a target object and
+        // asserts in debug Qt builds without one
+        m_scrollAnimation = new QVariantAnimation(this);
         m_scrollAnimation->setEasingCurve(QEasingCurve::OutCubic);
 
         // Connect animation value changes
-        connect(m_scrollAnimation, &QPropertyAnimation::valueChanged,
+        connect(m_scrollAnimation, &QVariantAnimation::valueChanged,
                 this, &BookEditor::onScrollAnimationValueChanged);
     }
 

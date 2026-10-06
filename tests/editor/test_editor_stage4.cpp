@@ -568,6 +568,64 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view by one view heig
     }
 }
 
+TEST_CASE("Stage4 keys: Page Up and Page Down in a row and the arrows keep the line and the column",
+          "[editor][stage4][pagemode]") {
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode, 120);
+        qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout())
+            ->layoutPendingBlocks();
+        for (int offset : {3, 25, 40}) {
+            CAPTURE(offset);
+            const CursorPosition start{40, offset};
+            editor->setCursorPosition(start);
+            paint(*editor);
+
+            // Each press goes on from the previous goal (between the pages too), not from the
+            // line and the character the previous press hit
+            for (int i = 0; i < 3; ++i) {
+                pressKey(*editor, Qt::Key_PageDown);
+                paint(*editor);
+            }
+            for (int i = 0; i < 3; ++i) {
+                pressKey(*editor, Qt::Key_PageUp);
+                paint(*editor);
+            }
+            CHECK(editor->cursorPosition() == start);
+
+            // The arrows and the page keys keep one column
+            for (int key : {Qt::Key_Down, Qt::Key_PageDown, Qt::Key_PageUp, Qt::Key_Up}) {
+                pressKey(*editor, key);
+                paint(*editor);
+            }
+            CHECK(editor->cursorPosition() == start);
+        }
+    }
+}
+
+TEST_CASE("Stage4 keys: typing drops the column the arrows keep", "[editor][stage4]") {
+    // One paragraph of full lines
+    BookEditor editor;
+    resizeWidget(editor, QSize(700, 500));
+    editor.fromKml(kmlOf({QStringLiteral("Words on a line that wraps. ").repeated(40).trimmed()}));
+    editor.setCursorPosition({0, 10});
+    paint(editor);
+    pressKey(editor, Qt::Key_Down);
+    const QRectF column = caret(editor);
+
+    // Typing moves the cursor to the right on its line: the next line down is under it,
+    // not under the column of the earlier move
+    editor.insertText(QStringLiteral("WWWWW"));
+    paint(editor);
+    const QRectF typed = caret(editor);
+    REQUIRE(typed.top() == Approx(column.top()));
+    REQUIRE(typed.left() > column.left() + 20.0);
+    pressKey(editor, Qt::Key_Down);
+    paint(editor);
+    const double below = caret(editor).left();
+    CHECK(std::abs(below - typed.left()) < std::abs(below - column.left()));
+}
+
 TEST_CASE("Stage4 render: page mode and the scroll modes paint at every zoom",
           "[editor][stage4][render]") {
     // With KALAHARI_RENDER_DUMP_DIR set, the images are saved there to be looked at (the
