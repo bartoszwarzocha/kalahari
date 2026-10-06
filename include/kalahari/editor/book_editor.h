@@ -597,6 +597,13 @@ public:
     /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
     void setZoomFactor(double factor);
 
+    /// @brief Zoom the pages to fill the width of the view (Page Layout view)
+    void zoomToPageWidth();
+
+    /// @brief Zoom so that a whole page fits the view, showing the cursor's page
+    ///        (Page Layout view)
+    void zoomToWholePage();
+
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
 
@@ -1062,6 +1069,9 @@ private:
 
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
     void updatePageInfo();
+
+    /// @brief Scroll so that a page's sheet starts at the top of the view (1-based page)
+    void scrollToPageTop(int page);
 
     /// @brief Sync scrollbar value with scroll manager (without triggering signals)
     void syncScrollBarValue();

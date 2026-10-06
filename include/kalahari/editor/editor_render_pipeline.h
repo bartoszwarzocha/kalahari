@@ -340,14 +340,14 @@ public:
     // =========================================================================
 
     /// @brief Mark entire viewport as needing repaint
-    /// @note Also used when layout/pagination may have changed.
+    /// @note Also used when the layout may have changed.
     ///       For color-only changes, use markRepaintOnly() instead.
     void markAllDirty();
 
     /// @brief Mark viewport for repaint without implying layout invalidation
-    /// @note Use this for color-only changes where pagination cache and
-    ///       layout remain valid. Semantically equivalent to markAllDirty()
-    ///       but signals to callers that no cache rebuild is needed.
+    /// @note Use this for color-only changes where the layout remains valid.
+    ///       Semantically equivalent to markAllDirty() but tells callers that
+    ///       nothing needs to be laid out again.
     void markRepaintOnly();
 
     /// @brief Mark specific region as needing repaint

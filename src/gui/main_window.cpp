@@ -350,6 +350,21 @@ void MainWindow::registerCommands() {
     callbacks.onViewModeFocus = [this]() { onViewModeFocus(); };
     callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
 
+    // Zoom commands act on the editor in front
+    const auto onEditor = [this](void (editor::BookEditor::*action)()) {
+        return [this, action]() {
+            EditorPanel* editor = getCurrentEditor();
+            if (editor && editor->getBookEditor()) {
+                (editor->getBookEditor()->*action)();
+            }
+        };
+    };
+    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn);
+    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut);
+    callbacks.onZoomReset = onEditor(&editor::BookEditor::zoomReset);
+    callbacks.onZoomPageWidth = onEditor(&editor::BookEditor::zoomToPageWidth);
+    callbacks.onZoomWholePage = onEditor(&editor::BookEditor::zoomToWholePage);
+
     // View commands
     callbacks.onDashboard = [this]() {
         // Check if Dashboard tab already exists
@@ -500,7 +515,20 @@ void MainWindow::createStatusBar() {
     m_readingTimeLabel->setFrameStyle(QFrame::NoFrame);
     m_readingTimeLabel->setMinimumWidth(100);
 
+    // Page of the cursor (Page Layout view) and zoom of the editor in front
+    m_pageLabel = new QLabel(this);
+    m_pageLabel->setFrameStyle(QFrame::NoFrame);
+    m_pageLabel->setMinimumWidth(110);
+    m_pageLabel->hide();
+
+    m_zoomLabel = new QLabel(this);
+    m_zoomLabel->setFrameStyle(QFrame::NoFrame);
+    m_zoomLabel->setMinimumWidth(60);
+    m_zoomLabel->hide();
+
     // Add widgets to status bar (permanent = right side)
+    statusBar()->addPermanentWidget(m_pageLabel);
+    statusBar()->addPermanentWidget(m_zoomLabel);
     statusBar()->addPermanentWidget(m_wordCountLabel);
     statusBar()->addPermanentWidget(m_charCountLabel);
     statusBar()->addPermanentWidget(m_readingTimeLabel);
@@ -1044,6 +1072,9 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::selectionChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::cursorPositionChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::viewModeChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::currentPageChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1056,8 +1087,20 @@ void MainWindow::createDocks() {
                     }
                 });
                 connect(bookEditor, &editor::BookEditor::viewModeChanged,
-                        this, [this](editor::ViewMode) { updateEditorActionStates(); });
+                        this, [this](editor::ViewMode) {
+                    updateEditorActionStates();
+                    updatePageStatus();
+                });
+
+                // Page of the cursor and zoom in the status bar
+                connect(bookEditor, &editor::BookEditor::currentPageChanged,
+                        this, [this](int) { updatePageStatus(); });
+                connect(bookEditor, &editor::BookEditor::totalPagesChanged,
+                        this, [this](int) { updatePageStatus(); });
+                connect(bookEditor, &editor::BookEditor::zoomChanged,
+                        this, [this](double) { updatePageStatus(); });
             }
+            updatePageStatus();
 
             // OpenSpec #00042 Task 7.4: Connect properties panel to active editor
             if (propertiesPanel) {
@@ -1479,6 +1522,28 @@ void MainWindow::updateStatusBarStatistics(int words, int chars, int paragraphs)
 // =============================================================================
 // Editor Settings Application (OpenSpec #00042)
 // =============================================================================
+
+void MainWindow::updatePageStatus() {
+    if (!m_pageLabel || !m_zoomLabel) {
+        return;
+    }
+
+    // "Page X of Y" in the Page Layout view; the zoom of any editor
+    EditorPanel* editor = getCurrentEditor();
+    editor::BookEditor* bookEditor = editor ? editor->getBookEditor() : nullptr;
+    if (!bookEditor) {
+        m_pageLabel->hide();
+        m_zoomLabel->hide();
+        return;
+    }
+    const int total = bookEditor->totalPages();
+    m_pageLabel->setVisible(total > 0);
+    if (total > 0) {
+        m_pageLabel->setText(tr("Page %1 of %2").arg(bookEditor->currentPage()).arg(total));
+    }
+    m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
+    m_zoomLabel->show();
+}
 
 void MainWindow::applyEditorSettingsToAllPanels() {
     auto& logger = core::Logger::getInstance();

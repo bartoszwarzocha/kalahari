@@ -2206,15 +2206,60 @@ void BookEditor::goToPage(int page)
     if (block.isValid()) {
         setCursorPosition({block.blockNumber(), std::max(0, position - block.position())});
     }
-    // Sheet top at the gap below the view's top edge, as the first page shows at the start
-    // (typewriter scrolling has put the cursor line at its focus height instead)
+    // Sheet top at the top of the view (typewriter scrolling has put the cursor line at
+    // its focus height instead)
     if (!m_appearance.typewriter.enabled) {
-        const RenderContext& ctx = m_renderPipeline->context();
-        setScrollOffset(textTop - ctx.computed.marginTop - ctx.pageMode.pageSpacing +
-                        ctx.computed.originY / ctx.computed.viewScale);
+        scrollToPageTop(page);
     }
     updatePageInfo();
     update();
+}
+
+void BookEditor::scrollToPageTop(int page)
+{
+    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+        return;
+    }
+    // The sheet's top at the gap below the view's top edge, as the first page shows at the
+    // start of the chapter
+    const RenderContext& ctx = m_renderPipeline->context();
+    setScrollOffset(m_renderPipeline->pageTextTop(page - 1) - ctx.computed.marginTop -
+                    ctx.pageMode.pageSpacing + ctx.computed.originY / ctx.computed.viewScale);
+}
+
+void BookEditor::zoomToPageWidth()
+{
+    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+        return;
+    }
+    // The page with the gap on both sides fills the width left of the scroll bar
+    const RenderContext& ctx = m_renderPipeline->context();
+    const double pagesWidth = ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing;
+    if (pagesWidth > 0.0) {
+        applyZoom((width() - ctx.scrollBarWidth) / pagesWidth,
+                  QPointF(width() / 2.0, height() / 2.0));
+    }
+}
+
+void BookEditor::zoomToWholePage()
+{
+    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+        return;
+    }
+    // The page with the gaps around it fits the view; the cursor's page is shown
+    const RenderContext& ctx = m_renderPipeline->context();
+    const double gaps = 2.0 * ctx.pageMode.pageSpacing;
+    const double pageWidth = ctx.computed.pageWidthPixels + gaps;
+    const double pageHeight = ctx.computed.pageHeightPixels + gaps;
+    if (pageWidth <= 0.0 || pageHeight <= 0.0) {
+        return;
+    }
+    const int page = std::max(1, currentPage());
+    applyZoom(std::min((width() - ctx.scrollBarWidth) / pageWidth, height() / pageHeight),
+              QPointF(width() / 2.0, height() / 2.0));
+    if (!m_appearance.typewriter.enabled) {
+        scrollToPageTop(page);
+    }
 }
 
 void BookEditor::updatePageInfo()

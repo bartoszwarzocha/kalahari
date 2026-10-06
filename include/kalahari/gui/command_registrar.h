@@ -84,6 +84,13 @@ struct CommandCallbacks {
     std::function<void()> onViewModeFocus;      ///< View > View Mode > Focus
     std::function<void()> onViewModeDistFree;   ///< View > View Mode > Distraction-Free
 
+    // Zoom (the editor in front)
+    std::function<void()> onZoomIn;             ///< View > Zoom > Zoom In
+    std::function<void()> onZoomOut;            ///< View > Zoom > Zoom Out
+    std::function<void()> onZoomReset;          ///< View > Zoom > Zoom 100%
+    std::function<void()> onZoomPageWidth;      ///< View > Zoom > Page Width
+    std::function<void()> onZoomWholePage;      ///< View > Zoom > Whole Page
+
     // =========================================================================
     // TOOLS COMMANDS
     // =========================================================================

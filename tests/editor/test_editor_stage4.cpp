@@ -531,3 +531,45 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view by one view heig
         CHECK(editor->scrollOffset() == Approx(scroll).margin(0.5));
     }
 }
+
+TEST_CASE("Stage4 render: page mode and the scroll modes paint at every zoom",
+          "[editor][stage4][render]") {
+    // With KALAHARI_RENDER_DUMP_DIR set, the images are saved there to be looked at (the
+    // sharpness of the letters at each zoom, on each platform)
+    const QString dumpDir = QString::fromLocal8Bit(qgetenv("KALAHARI_RENDER_DUMP_DIR"));
+    const auto shot = [&](BookEditor& editor, const QString& name) {
+        QImage image(editor.size(), QImage::Format_RGB32);
+        editor.render(&image);
+        if (!dumpDir.isEmpty()) {
+            image.save(QStringLiteral("%1/%2.png").arg(dumpDir, name));
+        }
+        return image;
+    };
+    const auto distinctColors = [](const QImage& image) {
+        std::vector<QRgb> colors;
+        for (int y = 0; y < image.height(); y += 4) {
+            for (int x = 0; x < image.width(); x += 4) {
+                const QRgb color = image.pixel(x, y);
+                if (std::find(colors.begin(), colors.end(), color) == colors.end()) {
+                    colors.push_back(color);
+                }
+            }
+        }
+        return colors.size();
+    };
+
+    auto editor = editorIn(ViewMode::Page, 20);
+    for (double zoom : {0.75, 1.0, 1.5, 2.0}) {
+        editor->setZoomFactor(zoom);
+        editor->goToPage(1);
+        CAPTURE(zoom);
+        // Desk, paper and anti-aliased text
+        CHECK(distinctColors(shot(*editor, QStringLiteral("page_%1").arg(qRound(zoom * 100)))) > 8);
+    }
+    editor->setViewMode(ViewMode::Continuous);
+    for (double zoom : {1.0, 1.5}) {
+        editor->setZoomFactor(zoom);
+        CAPTURE(zoom);
+        CHECK(distinctColors(shot(*editor, QStringLiteral("continuous_%1").arg(qRound(zoom * 100)))) > 4);
+    }
+}

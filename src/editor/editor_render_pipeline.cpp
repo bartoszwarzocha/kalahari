@@ -834,7 +834,7 @@ void EditorRenderPipeline::markAllDirty() {
 
 void EditorRenderPipeline::markRepaintOnly() {
     // Lightweight repaint request for color-only changes.
-    // Does NOT imply pagination or layout invalidation.
+    // Does NOT imply layout invalidation.
     // Callers use this instead of markAllDirty() when only visual
     // appearance changed (colors, highlights) without affecting geometry.
     int w = static_cast<int>(m_context.viewportSize.width());

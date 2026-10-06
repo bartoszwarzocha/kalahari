@@ -260,6 +260,9 @@ private slots:
     /// @brief Turn typewriter scrolling on or off in every editor (remembered)
     void onTypewriterToggle();
 
+    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
+    void updatePageStatus();
+
     /// @brief Set editor view mode to Focus
     void onViewModeFocus();
 
@@ -347,6 +350,8 @@ private:
     QLabel* m_wordCountLabel{nullptr};                ///< Word count display
     QLabel* m_charCountLabel{nullptr};                ///< Character count display
     QLabel* m_readingTimeLabel{nullptr};              ///< Reading time display
+    QLabel* m_pageLabel{nullptr};                     ///< Page of the cursor (Page Layout view)
+    QLabel* m_zoomLabel{nullptr};                     ///< Zoom of the editor in front
 
     // OpenSpec #00043: Debounce timer for action state updates
     QTimer* m_actionStateDebounceTimer{nullptr};      ///< Debounce rapid cursor changes
