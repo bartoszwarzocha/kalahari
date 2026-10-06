@@ -127,15 +127,15 @@ PYBIND11_MODULE(kalahari_api, m) {
                                 e.what());
                         }
                     };
-                self.subscribe(eventType, listener);
+                return self.subscribe(eventType, listener);
             },
             py::arg("event_type"),
             py::arg("callback"),
-            "Subscribe to event type with Python callback")
+            "Subscribe to event type with Python callback; returns a subscription id")
         .def("unsubscribe",
             &kalahari::core::EventBus::unsubscribe,
-            py::arg("event_type"),
-            "Unsubscribe from event type")
+            py::arg("subscription_id"),
+            "Remove the listener with the given subscription id; returns True if it was found")
         .def("emit",
             &kalahari::core::EventBus::emit,
             py::arg("event"),

@@ -118,6 +118,16 @@ try:
     assert count2[0] == 1
     print("✅ Both callbacks received event")
 
+    # Unsubscribing one callback leaves the other one subscribed
+    sub_id = bus.subscribe("multi:unsub", callback1)
+    bus.subscribe("multi:unsub", callback2)
+    assert bus.unsubscribe(sub_id)
+    assert not bus.unsubscribe(sub_id)
+    bus.emit(kalahari_api.Event("multi:unsub"))
+    assert count1[0] == 1
+    assert count2[0] == 2
+    print("✅ unsubscribe() removes only the given callback")
+
 except Exception as e:
     print(f"❌ Multiple subscriptions test failed: {e}")
     sys.exit(1)

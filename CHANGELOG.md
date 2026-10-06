@@ -123,6 +123,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Unsubscribing from the event bus removed every listener of that event** - 2026-10-06.
+  `subscribe()` now returns a subscription id and `unsubscribe()` takes that id, so a
+  plugin removes only its own callback. Python plugins use the same id
+  (`sub_id = bus.subscribe(...)`, `bus.unsubscribe(sub_id)`).
 - **Event bus froze when a listener used it** - 2026-10-06. A listener that subscribed,
   emitted another event or asked for the subscriber count while handling an event locked
   the program. Listeners now run without the bus locked.
