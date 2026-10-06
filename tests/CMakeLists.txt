@@ -67,6 +67,7 @@ set(TEST_SOURCES
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
+    gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -132,6 +133,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_source_adapter.cpp      # OpenSpec #00043 Phase 12.1: Text source adapters
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
     ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel.cpp  # Navigator expansion state tests
     # GUI dependencies for FindReplaceBar
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
@@ -163,6 +165,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h # Sub-Project C WS4.1: CommandRegistry with Q_OBJECT
