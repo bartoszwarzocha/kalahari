@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     color. B5 and 6 x 9 in page sizes.
   - Page Up / Page Down move by one view height in every view mode, keeping the cursor's
     place in the view and its column.
+  - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
+    Legal or a custom size, and page numbers on or off.
+- **Editor: typewriter scrolling is a toggle** - 2026-10-06
+  - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
+    and is remembered. The line being written stays at one height of the view (Settings >
+    Editor > General, middle by default), also at the start and the end of the chapter.
+  - Mouse clicks and manual scrolling leave the view where it is; the next keystroke
+    brings the line back. The short glide can be turned off.
+  - The Typewriter entry of View > View Mode is gone (it showed the continuous view).
 - **Editor: paragraphs without their own alignment are justified** - 2026-10-05
   - A paragraph with no `align` attribute is shown justified, its last line at the
     leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as

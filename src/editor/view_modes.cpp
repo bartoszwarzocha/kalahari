@@ -52,15 +52,6 @@ void ViewModeRegistry::initializeRegistry()
             true
         },
         {
-            ViewMode::Typewriter,
-            "typewriter",
-            QObject::tr("Typewriter"),
-            QObject::tr("Keep current line at fixed position. Classic writing feel."),
-            "view.typewriter",
-            QKeySequence("Ctrl+3"),
-            true
-        },
-        {
             ViewMode::Focus,
             "focus",
             QObject::tr("Focus"),

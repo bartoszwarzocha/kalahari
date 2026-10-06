@@ -39,7 +39,7 @@ enum class ZoomMode {
 
     /// @brief Zoom by scaling the entire page view (like PDF viewer)
     ///
-    /// Used in: Page, Typewriter
+    /// Used in: Page
     /// The entire page is scaled uniformly, including margins,
     /// similar to how PDF viewers handle zoom.
     PageScaling
@@ -66,13 +66,6 @@ enum class ViewMode {
     /// WYSIWYG preview of printed output.
     /// Best for: Final formatting, print preview, book layout.
     Page,
-
-    /// @brief Typewriter mode
-    ///
-    /// Keeps the current line at a fixed vertical position (typically
-    /// 40% from top). Text scrolls up as you type.
-    /// Best for: Long writing sessions, maintaining rhythm.
-    Typewriter,
 
     /// @brief Focus mode
     ///

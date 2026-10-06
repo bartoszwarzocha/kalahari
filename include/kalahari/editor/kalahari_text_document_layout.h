@@ -127,6 +127,12 @@ public:
     /// @brief Lay out every waiting block now, as the background pass would
     void layoutPendingBlocks();
 
+    /// @brief Lay out the waiting blocks from the start of the document down to y
+    ///
+    /// Positions down to y are then exact: with page flow, the pages above y hold their
+    /// final lines (estimated heights above a page shift its text).
+    void ensureLaidOutTo(qreal y);
+
     /// @brief The block's lines, laid out first when the block waits for layout
     ///
     /// Use it instead of QTextBlock::layout() wherever the lines are read. A block of a

@@ -769,29 +769,33 @@ void EditorRenderPipeline::setSearchEngine(SearchEngine* engine) {
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
 
+void EditorRenderPipeline::ensureVisibleLaidOut() {
+    // Blocks waiting for layout have estimated heights; laying them out changes the
+    // heights, and the viewport keeps the text at its top in place by moving the scroll
+    // position. Repeat until the range shown is laid out.
+    updateVisibleRange();
+    if (!m_textSource) {
+        return;
+    }
+    size_t first = 0;
+    size_t last = 0;
+    do {
+        first = m_context.computed.firstVisibleParagraph;
+        last = m_context.computed.lastVisibleParagraph;
+        m_textSource->ensureLayouted(first, last);
+        updateVisibleRange();
+    } while (first != m_context.computed.firstVisibleParagraph ||
+             last != m_context.computed.lastVisibleParagraph);
+}
+
 void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     if (!painter) return;
 
     painter->save();
     painter->setClipRect(clipRect);
 
-    // Stage 1+2: Get visible range and ensure layouts. Blocks waiting for layout have
-    // estimated heights; laying them out changes the heights, and the viewport keeps the
-    // text at its top in place by moving the scroll position. Repeat until the range
-    // shown is laid out.
-    updateVisibleRange();
-
-    if (m_textSource) {
-        size_t first = 0;
-        size_t last = 0;
-        do {
-            first = m_context.computed.firstVisibleParagraph;
-            last = m_context.computed.lastVisibleParagraph;
-            m_textSource->ensureLayouted(first, last);
-            updateVisibleRange();
-        } while (first != m_context.computed.firstVisibleParagraph ||
-                 last != m_context.computed.lastVisibleParagraph);
-    }
+    // Stage 1+2: Get visible range and ensure layouts
+    ensureVisibleLaidOut();
 
     // Stage 4: Render. One path for every view mode: the layout has placed the lines on
     // the pages (page mode), so only the visible paragraphs are drawn, through the same

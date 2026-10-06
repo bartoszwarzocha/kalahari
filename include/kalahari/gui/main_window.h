@@ -257,8 +257,8 @@ private slots:
     /// @brief Set editor view mode to Page Layout
     void onViewModePage();
 
-    /// @brief Set editor view mode to Typewriter
-    void onViewModeTypewriter();
+    /// @brief Turn typewriter scrolling on or off in every editor (remembered)
+    void onTypewriterToggle();
 
     /// @brief Set editor view mode to Focus
     void onViewModeFocus();

@@ -327,6 +327,12 @@ public:
     /// 6. Render search highlights
     /// 7. Render cursor
     /// 8. Render overlays (focus mode, markers)
+    /// @brief Lay out the paragraphs in view (the others keep estimated heights)
+    ///
+    /// The scroll position may move while it runs: scroll anchoring keeps the text at the
+    /// top of the view in place.
+    void ensureVisibleLaidOut();
+
     void render(QPainter* painter, const QRect& clipRect);
 
     // =========================================================================

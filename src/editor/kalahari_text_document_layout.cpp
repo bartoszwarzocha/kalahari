@@ -182,6 +182,12 @@ void KalahariTextDocumentLayout::layoutPendingBlocks() {
     layOutPending(0, static_cast<int>(m_blockHeights.size()) - 1, -1);
 }
 
+void KalahariTextDocumentLayout::ensureLaidOutTo(qreal y) {
+    // Laying blocks out changes their heights, and so which block is at y
+    while (ensureLaidOut(0, blockNumberAtY(y))) {
+    }
+}
+
 QTextLayout* KalahariTextDocumentLayout::blockLayout(const QTextBlock& block) {
     if (!block.isValid()) {
         return nullptr;

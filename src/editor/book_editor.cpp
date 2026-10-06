@@ -39,6 +39,7 @@
 #include <QPaintEvent>
 #include <QPropertyAnimation>
 #include <QResizeEvent>
+#include <QScopedValueRollback>
 #include <QScrollBar>
 #include <QTimer>
 #include <QUndoStack>
@@ -312,7 +313,6 @@ BookEditor::BookEditor(QWidget* parent)
     // Phase 11: Removed old architecture (KmlDocument, LayoutManager, VirtualScrollManager, PageLayoutManager)
     , m_verticalScrollBar(nullptr)
     , m_scrollAnimation(nullptr)
-    , m_typewriterScrollAnimation(nullptr)
     , m_smoothScrollingEnabled(false)  // Disabled by default for stability in tests
     , m_smoothScrollDuration(DEFAULT_SMOOTH_SCROLL_DURATION)
     , m_updatingScrollBar(false)
@@ -429,9 +429,6 @@ BookEditor::~BookEditor()
     }
     if (m_scrollAnimation != nullptr) {
         m_scrollAnimation->stop();
-    }
-    if (m_typewriterScrollAnimation != nullptr) {
-        m_typewriterScrollAnimation->stop();
     }
     if (m_uiFadeTimer != nullptr) {
         m_uiFadeTimer->stop();
@@ -564,11 +561,6 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
         // Phase 11.11: Optimized cursor sync - only update cursor, not full state
         syncPipelineCursor();
 
-        // Typewriter Mode: ensure scroll position is updated for cursor centering
-        if (m_viewMode == ViewMode::Typewriter) {
-            updateTypewriterScroll();
-        }
-
         // Targeted repaint for cursor movement
         if (m_renderPipeline) {
             // For focus mode, repaint old and new paragraphs
@@ -688,8 +680,9 @@ void BookEditor::ensureCursorVisible()
         m_renderPipeline->setCursorBlinkState(true);
     }
 
-    // In Typewriter mode, update scroll to keep cursor at focus position
-    if (m_viewMode == ViewMode::Typewriter) {
+    // Typewriter scrolling keeps the cursor line at the focus height, except where the mouse
+    // put the cursor: a click or a drag selection leaves the view where it is
+    if (m_appearance.typewriter.enabled && !m_pointerMovesCursor) {
         updateTypewriterScroll();
         return;
     }
@@ -1028,8 +1021,10 @@ void BookEditor::moveCursorToDocStart()
 
     setCursorPosition({0, 0});
 
-    // Scroll to top
-    setScrollOffset(0.0);
+    // Scroll to top (typewriter scrolling has put the first line at its height instead)
+    if (!m_appearance.typewriter.enabled) {
+        setScrollOffset(0.0);
+    }
 }
 
 void BookEditor::moveCursorToDocEnd()
@@ -1048,8 +1043,10 @@ void BookEditor::moveCursorToDocEnd()
 
     setCursorPosition({lastPara, lastOffset});
 
-    // Scroll to bottom
-    setScrollOffset(m_viewportManager->maxScrollPosition());
+    // Scroll to bottom (typewriter scrolling has put the last line at its height instead)
+    if (!m_appearance.typewriter.enabled) {
+        setScrollOffset(m_viewportManager->maxScrollPosition());
+    }
 }
 
 void BookEditor::moveCursorPageUp()
@@ -1075,18 +1072,16 @@ void BookEditor::moveCursorByViewHeight(double direction)
     if (step == 0.0) {
         return;
     }
-    const QPointF caret =
-        m_renderPipeline->widgetToDocument(m_renderPipeline->caretRect(m_cursorPosition).center());
-    const double targetY =
-        std::clamp(caret.y() + step, 0.0, m_viewportManager->totalDocumentHeight());
-    const int position =
-        m_textBuffer->documentLayout()->hitTest(QPointF(caret.x(), targetY), Qt::FuzzyHit);
-    const QTextBlock block = m_textBuffer->findBlock(std::max(0, position));
+    const QPointF caret = m_renderPipeline->caretRect(m_cursorPosition).center();
+    const double oldScroll = scrollOffset();
+    setScrollOffset(oldScroll + step);
+    const double moved = scrollOffset() - oldScroll;
 
-    setScrollOffset(scrollOffset() + step);
-    if (block.isValid()) {
-        setCursorPosition({block.blockNumber(), std::max(0, position - block.position())});
-    }
+    // The text now in view laid out, the cursor goes to the same place in the view; at the
+    // start or the end of the chapter, where the view stops, it goes on by the rest
+    m_renderPipeline->ensureVisibleLaidOut();
+    setCursorPosition(positionFromPoint(
+        QPointF(caret.x(), caret.y() + (step - moved) * m_viewportManager->viewScale())));
 }
 
 // =============================================================================
@@ -2071,12 +2066,6 @@ void BookEditor::setViewMode(ViewMode mode)
         logger.info("BookEditor::setViewMode: {} -> {}",
                     static_cast<int>(oldMode), static_cast<int>(mode));
 
-        // When entering Typewriter mode, update scroll to focus position
-        if (mode == ViewMode::Typewriter) {
-            logger.debug("BookEditor: Entering Typewriter mode, updating scroll");
-            updateTypewriterScroll();
-        }
-
         // When entering Distraction-Free mode, show UI initially
         if (mode == ViewMode::DistractionFree) {
             m_uiOpacity = 1.0;
@@ -2153,6 +2142,8 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
         setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
         updateHorizontalScrollBar();
     }
+    // Typewriter scrolling keeps the cursor line at the focus height instead
+    updateTypewriterScroll(false);
     update();
     emit zoomChanged(factor);
 }
@@ -2199,6 +2190,13 @@ void BookEditor::goToPage(int page)
         return;
     }
 
+    // Estimated heights above a page shift its text: the blocks down to the page are laid
+    // out first, so the page is where its text will stay
+    if (auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())) {
+        layout->ensureLaidOutTo(m_renderPipeline->pageTextTop(page - 1));
+    }
+    page = std::min(page, totalPages());
+
     // The cursor goes to the first line of the page, and the sheet's top to the top of the
     // view
     const double textTop = m_renderPipeline->pageTextTop(page - 1);
@@ -2209,9 +2207,12 @@ void BookEditor::goToPage(int page)
         setCursorPosition({block.blockNumber(), std::max(0, position - block.position())});
     }
     // Sheet top at the gap below the view's top edge, as the first page shows at the start
-    const RenderContext& ctx = m_renderPipeline->context();
-    setScrollOffset(textTop - ctx.computed.marginTop - ctx.pageMode.pageSpacing +
-                    ctx.computed.originY / ctx.computed.viewScale);
+    // (typewriter scrolling has put the cursor line at its focus height instead)
+    if (!m_appearance.typewriter.enabled) {
+        const RenderContext& ctx = m_renderPipeline->context();
+        setScrollOffset(textTop - ctx.computed.marginTop - ctx.pageMode.pageSpacing +
+                        ctx.computed.originY / ctx.computed.viewScale);
+    }
     updatePageInfo();
     update();
 }
@@ -2302,6 +2303,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // The margins and the page set the scroll range (the pipeline gives the viewport the
     // scroll padding)
     updateScrollBarRange();
+    applyTypewriter();
     updatePageInfo();
     update();
 }
@@ -3095,7 +3097,7 @@ void BookEditor::setupPipelineTextSource()
     }
 }
 
-void BookEditor::startScrollAnimation(qreal targetOffset)
+void BookEditor::startScrollAnimation(qreal targetOffset, int durationMs)
 {
     // Lazily create the animation on first use
     if (m_scrollAnimation == nullptr) {
@@ -3114,7 +3116,7 @@ void BookEditor::startScrollAnimation(qreal targetOffset)
     m_scrollAnimation->stop();
 
     // Configure animation
-    m_scrollAnimation->setDuration(m_smoothScrollDuration);
+    m_scrollAnimation->setDuration(durationMs >= 0 ? durationMs : m_smoothScrollDuration);
     m_scrollAnimation->setStartValue(scrollOffset());
     m_scrollAnimation->setEndValue(targetOffset);
 
@@ -3174,6 +3176,9 @@ void BookEditor::setupCursorBlinkTimer()
 
 void BookEditor::mousePressEvent(QMouseEvent* event)
 {
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
     if (event->button() != Qt::LeftButton) {
         QWidget::mousePressEvent(event);
         return;
@@ -3251,6 +3256,9 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
 
 void BookEditor::mouseMoveEvent(QMouseEvent* event)
 {
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
     // In Distraction-Free mode, show UI on mouse movement
     if (m_viewMode == ViewMode::DistractionFree) {
         // Check if mouse is near edges for fade trigger
@@ -3307,6 +3315,9 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
 void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 {
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseReleaseEvent(event);
         return;
@@ -3327,6 +3338,9 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
 void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 {
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseDoubleClickEvent(event);
         return;
@@ -3394,6 +3408,9 @@ void BookEditor::dragLeaveEvent(QDragLeaveEvent* event)
 
 void BookEditor::dropEvent(QDropEvent* event)
 {
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
     stopAutoScroll();
     m_renderPipeline->setDropCaret(std::nullopt);
 
@@ -3523,7 +3540,12 @@ double BookEditor::autoScrollStep() const
 
 void BookEditor::onAutoScrollTimeout()
 {
-    const double step = autoScrollStep();
+    // The mouse places the cursor: typewriter scrolling leaves the view where it is
+    const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+
+    // The step is in view pixels (page mode zooms the document)
+    const double scale = m_viewportManager ? m_viewportManager->viewScale() : 1.0;
+    const double step = autoScrollStep() / scale;
     const qreal before = scrollOffset();
     if (step != 0.0) {
         scrollBy(step, false);
@@ -3910,7 +3932,9 @@ void BookEditor::moveCursorToDocStartWithSelection(bool extend)
         // Just set cursor position without scrolling first
         m_preferredCursorXValid = false;
         setCursorPosition(newPos);
-        setScrollOffset(0.0);
+        if (!m_appearance.typewriter.enabled) {
+            setScrollOffset(0.0);
+        }
         extendSelection(m_cursorPosition);
     } else {
         clearSelection();
@@ -3939,7 +3963,9 @@ void BookEditor::moveCursorToDocEndWithSelection(bool extend)
     if (extend) {
         m_preferredCursorXValid = false;
         setCursorPosition(newPos);
-        setScrollOffset(m_viewportManager->maxScrollPosition());
+        if (!m_appearance.typewriter.enabled) {
+            setScrollOffset(m_viewportManager->maxScrollPosition());
+        }
         extendSelection(m_cursorPosition);
     } else {
         clearSelection();
@@ -3983,73 +4009,85 @@ qreal BookEditor::getCursorDocumentY() const
     return paraY;
 }
 
-void BookEditor::updateTypewriterScroll()
+void BookEditor::updateTypewriterScroll(bool animate)
 {
-    auto& logger = core::Logger::getInstance();
-
-    if (m_viewMode != ViewMode::Typewriter) {
+    if (!m_appearance.typewriter.enabled || !m_isEditMode || !m_textBuffer ||
+        !m_renderPipeline || !m_viewportManager) {
         return;
     }
 
-    if (!m_textBuffer) {
-        logger.debug("BookEditor::updateTypewriterScroll: No document");
+    // The middle of the cursor line goes to the focus height of the view. The scroll
+    // padding has room for it above the first line and below the last one.
+    const double focusY =
+        std::clamp(m_appearance.typewriter.focusPosition, 0.0, 1.0) * static_cast<double>(height());
+    const auto targetScroll = [&]() -> std::optional<double> {
+        const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+        if (caret.isNull()) {
+            return std::nullopt;
+        }
+        return std::clamp(
+            scrollOffset() + (caret.center().y() - focusY) / m_viewportManager->viewScale(), 0.0,
+            m_viewportManager->maxScrollPosition());
+    };
+    const std::optional<double> target = targetScroll();
+    if (!target) {
+        return;
+    }
+    const double distance = std::abs(*target - scrollOffset());
+    if (distance < 0.5) {
         return;
     }
 
-    // Get cursor Y position in document coordinates
-    qreal cursorY = getCursorDocumentY();
+    // A short move glides, a jump (search, Ctrl+End) is immediate
+    if (animate && m_appearance.typewriter.smoothScroll &&
+        distance <= m_viewportManager->visibleDocumentHeight()) {
+        startScrollAnimation(*target, m_appearance.typewriter.scrollDuration);
+        return;
+    }
+    stopScrollAnimation();
+    setScrollOffset(*target);
 
-    // Calculate target scroll position to keep cursor at focus position
-    // Use widget height as viewport height (BookEditor is a QWidget, not QAbstractScrollArea)
-    qreal viewportHeight = static_cast<qreal>(height());
-    qreal focusY = viewportHeight * m_appearance.typewriter.focusPosition;
-    qreal targetScrollY = cursorY - focusY;
+    // A jump may land among paragraphs with estimated heights: once the view there is laid
+    // out, the line is placed again
+    m_renderPipeline->ensureVisibleLaidOut();
+    if (const std::optional<double> corrected = targetScroll()) {
+        setScrollOffset(*corrected);
+    }
+}
 
-    // Clamp to valid range
-    qreal maxScroll = m_viewportManager->maxScrollPosition();
-    int targetValue = qBound(0, static_cast<int>(targetScrollY), static_cast<int>(maxScroll));
+bool BookEditor::isTypewriterEnabled() const
+{
+    return m_appearance.typewriter.enabled;
+}
 
-    // Log typewriter scroll parameters (OpenSpec #00042 Task 7.19 Issue #6)
-    logger.debug("BookEditor::updateTypewriterScroll: cursorY={:.1f}, viewportH={:.1f}, focusPos={:.2f}, targetScroll={}",
-                 cursorY, viewportHeight, m_appearance.typewriter.focusPosition, targetValue);
+void BookEditor::setTypewriterEnabled(bool enabled)
+{
+    if (m_appearance.typewriter.enabled == enabled) {
+        return;
+    }
+    m_appearance.typewriter.enabled = enabled;
+    applyTypewriter();
+    emit typewriterChanged(enabled);
+}
 
-    QScrollBar* vbar = verticalScrollBar();
-    if (vbar == nullptr) {
-        // Fallback if no scrollbar - use setScrollOffset directly
-        setScrollOffset(static_cast<qreal>(targetValue));
-        // Sync scroll position to render pipeline
-        if (m_renderPipeline) {
-            m_renderPipeline->setScrollY(static_cast<double>(targetValue));
-        }
+void BookEditor::applyTypewriter()
+{
+    if (!m_renderPipeline) {
         return;
     }
 
-    if (m_appearance.typewriter.smoothScroll) {
-        // Use smooth scrolling animation
-        if (m_typewriterScrollAnimation == nullptr) {
-            m_typewriterScrollAnimation = new QPropertyAnimation(vbar, "value", this);
-            m_typewriterScrollAnimation->setEasingCurve(QEasingCurve::OutCubic);
-        }
-
-        // Stop any running animation
-        m_typewriterScrollAnimation->stop();
-
-        // Only animate if there's a significant difference
-        int currentValue = vbar->value();
-        if (qAbs(currentValue - targetValue) > 1) {
-            m_typewriterScrollAnimation->setDuration(m_appearance.typewriter.scrollDuration);
-            m_typewriterScrollAnimation->setStartValue(currentValue);
-            m_typewriterScrollAnimation->setEndValue(targetValue);
-            m_typewriterScrollAnimation->start();
-        }
-    } else {
-        // Immediate scroll
-        vbar->setValue(targetValue);
-        // Sync scroll position to render pipeline
-        if (m_renderPipeline) {
-            m_renderPipeline->setScrollY(static_cast<double>(targetValue));
-        }
-    }
+    // The room above the text changes with it, and the scroll position by as much, so
+    // the text stays where it is on the screen (the pipeline gives the viewport the new
+    // scroll padding). Then the cursor line goes to the focus height at once.
+    const double oldOrigin = m_renderPipeline->context().computed.originY;
+    m_renderPipeline->setConfigTypewriter(m_appearance.typewriter.enabled,
+                                          m_appearance.typewriter.focusPosition);
+    const auto& computed = m_renderPipeline->context().computed;
+    const double scroll = scrollOffset() + (computed.originY - oldOrigin) / computed.viewScale;
+    updateScrollBarRange();
+    setScrollOffset(scroll);
+    updateTypewriterScroll(false);
+    update();
 }
 
 // Phase 13.5: paintPageMode() removed - rendering now handled by EditorRenderPipeline

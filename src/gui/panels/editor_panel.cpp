@@ -194,6 +194,18 @@ void EditorPanel::applySettings() {
         appearance.pageMargins.top, appearance.pageMargins.bottom,
         appearance.pageMargins.left, appearance.pageMargins.right);
 
+    // Page format (Page Layout view)
+    appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
+        QString::fromStdString(settings.get<std::string>("editor.page.size", "A4")));
+    appearance.pageLayout.customWidth = settings.get<double>("editor.page.customWidth", 210.0);
+    appearance.pageLayout.customHeight = settings.get<double>("editor.page.customHeight", 297.0);
+    appearance.pageLayout.showPageNumbers = settings.get<bool>("editor.page.showNumbers", true);
+
+    // Typewriter scrolling (View > Typewriter Scrolling; the height in the settings)
+    appearance.typewriter.enabled = settings.get<bool>("editor.typewriter.enabled", false);
+    appearance.typewriter.focusPosition = settings.get<double>("editor.typewriter.focusPosition", 0.5);
+    appearance.typewriter.smoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+
     // Text frame border
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show", false);
     std::string borderColor = settings.get<std::string>("editor.textFrameBorder.color", "#b4b4b4");

@@ -491,10 +491,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModePage);
-    REG_CMD_TOOL_ICON("view.mode.typewriter", "Typewriter", "VIEW/View Mode/Typewriter", 57, false, 0,
-                      KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
-                      IconSet(),
-                      callbacks.onViewModeTypewriter);
     REG_CMD_TOOL_ICON("view.mode.focus", "Focus", "VIEW/View Mode/Focus", 58, false, 0,
                       KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
                       IconSet(),
@@ -503,6 +499,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onViewModeDistFree);
+
+    // Typewriter scrolling: a toggle on top of the view mode (the cursor line stays at a
+    // fixed height of the view)
+    REG_CMD_KEY_CB("view.typewriter", "Typewriter Scrolling", "VIEW/Typewriter Scrolling", 60, true, 0,
+                   KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
+                   callbacks.onTypewriterToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", "Writer", "VIEW/Perspectives/Writer", 70, false, 1);

@@ -289,7 +289,7 @@ void SettingsDialog::createNavigationTree() {
     m_itemToPage[editorCursor] = PAGE_EDITOR_CURSOR;
 
     QTreeWidgetItem* editorMargins = new QTreeWidgetItem(editorItem);
-    editorMargins->setText(0, tr("Margins"));
+    editorMargins->setText(0, tr("Pages and Margins"));
     m_itemToPage[editorMargins] = PAGE_EDITOR_MARGINS;
 
     QTreeWidgetItem* editorSpelling = createPlaceholderItem(editorItem, tr("Spelling"));
@@ -1076,6 +1076,32 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
     typographyGrid->setColumnStretch(1, 1);
     layout->addWidget(typographyGroup);
 
+    // Typewriter scrolling (turned on and off with View > Typewriter Scrolling)
+    QGroupBox* typewriterGroup = new QGroupBox(tr("Typewriter Scrolling"));
+    QGridLayout* typewriterGrid = new QGridLayout(typewriterGroup);
+
+    QLabel* typewriterInfo = new QLabel(
+        tr("View > Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the "
+           "view, in the Continuous and the Page Layout view."));
+    typewriterInfo->setWordWrap(true);
+    typewriterGrid->addWidget(typewriterInfo, 0, 0, 1, 2);
+
+    QLabel* typewriterFocusLabel = new QLabel(tr("Cursor Line Height:"));
+    m_typewriterFocusSpinBox = new QSpinBox();
+    m_typewriterFocusSpinBox->setRange(10, 90);
+    m_typewriterFocusSpinBox->setSingleStep(5);
+    m_typewriterFocusSpinBox->setSuffix(tr(" % from the top"));
+    m_typewriterFocusSpinBox->setToolTip(tr("Where the line with the cursor stays (50% = middle)"));
+    typewriterGrid->addWidget(typewriterFocusLabel, 1, 0);
+    typewriterGrid->addWidget(m_typewriterFocusSpinBox, 1, 1);
+
+    m_typewriterSmoothCheckBox = new QCheckBox(tr("Smooth scrolling"));
+    m_typewriterSmoothCheckBox->setToolTip(tr("Glide to the next line instead of jumping"));
+    typewriterGrid->addWidget(m_typewriterSmoothCheckBox, 2, 0, 1, 2);
+
+    typewriterGrid->setColumnStretch(1, 1);
+    layout->addWidget(typewriterGroup);
+
     layout->addStretch();
     return page;
 }
@@ -1248,7 +1274,7 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
 
     // Info label
     QLabel* infoLabel = new QLabel(
-        tr("Configure margins for different editor views and text frame border.")
+        tr("Configure the page format, the margins of the editor views and the text frame border.")
     );
     infoLabel->setWordWrap(true);
     layout->addWidget(infoLabel);
@@ -1283,9 +1309,56 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
     layout->addWidget(viewMarginsGroup);
 
     // ========================================================================
-    // Page Margins group (for Page/Typewriter views)
+    // Page group (Page Layout view)
     // ========================================================================
-    QGroupBox* pageMarginsGroup = new QGroupBox(tr("Page Margins (Page/Typewriter)"));
+    QGroupBox* pageGroup = new QGroupBox(tr("Page (Page Layout)"));
+    QGridLayout* pageGrid = new QGridLayout(pageGroup);
+
+    QLabel* pageSizeLabel = new QLabel(tr("Format:"));
+    m_pageSizeComboBox = new QComboBox();
+    m_pageSizeComboBox->addItem(tr("A4 (210 x 297 mm)"), QStringLiteral("A4"));
+    m_pageSizeComboBox->addItem(tr("A5 (148 x 210 mm)"), QStringLiteral("A5"));
+    m_pageSizeComboBox->addItem(tr("B5 (176 x 250 mm)"), QStringLiteral("B5"));
+    m_pageSizeComboBox->addItem(tr("6 x 9 in (152 x 229 mm)"), QStringLiteral("6x9"));
+    m_pageSizeComboBox->addItem(tr("Letter (8.5 x 11 in)"), QStringLiteral("Letter"));
+    m_pageSizeComboBox->addItem(tr("Legal (8.5 x 14 in)"), QStringLiteral("Legal"));
+    m_pageSizeComboBox->addItem(tr("Custom"), QStringLiteral("Custom"));
+    pageGrid->addWidget(pageSizeLabel, 0, 0);
+    pageGrid->addWidget(m_pageSizeComboBox, 0, 1);
+
+    QLabel* pageWidthLabel = new QLabel(tr("Width:"));
+    m_pageCustomWidthSpinBox = new QDoubleSpinBox();
+    m_pageCustomWidthSpinBox->setRange(50.0, 500.0);
+    m_pageCustomWidthSpinBox->setDecimals(1);
+    m_pageCustomWidthSpinBox->setSuffix(tr(" mm"));
+    pageGrid->addWidget(pageWidthLabel, 1, 0);
+    pageGrid->addWidget(m_pageCustomWidthSpinBox, 1, 1);
+
+    QLabel* pageHeightLabel = new QLabel(tr("Height:"));
+    m_pageCustomHeightSpinBox = new QDoubleSpinBox();
+    m_pageCustomHeightSpinBox->setRange(50.0, 500.0);
+    m_pageCustomHeightSpinBox->setDecimals(1);
+    m_pageCustomHeightSpinBox->setSuffix(tr(" mm"));
+    pageGrid->addWidget(pageHeightLabel, 2, 0);
+    pageGrid->addWidget(m_pageCustomHeightSpinBox, 2, 1);
+
+    // The width and height are set for a custom format only
+    connect(m_pageSizeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+        const bool custom = m_pageSizeComboBox->currentData().toString() == QStringLiteral("Custom");
+        m_pageCustomWidthSpinBox->setEnabled(custom);
+        m_pageCustomHeightSpinBox->setEnabled(custom);
+    });
+
+    m_pageShowNumbersCheckBox = new QCheckBox(tr("Show page numbers"));
+    pageGrid->addWidget(m_pageShowNumbersCheckBox, 3, 0, 1, 2);
+
+    pageGrid->setColumnStretch(1, 1);
+    layout->addWidget(pageGroup);
+
+    // ========================================================================
+    // Page Margins group (Page Layout view)
+    // ========================================================================
+    QGroupBox* pageMarginsGroup = new QGroupBox(tr("Page Margins (Page Layout)"));
     QGridLayout* pageMarginsGrid = new QGridLayout(pageMarginsGroup);
     int row = 0;
 
@@ -2027,6 +2100,19 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_pageMarginOuterLabel->setVisible(mirrorEnabled);
     m_pageMarginOuterSpinBox->setVisible(mirrorEnabled);
 
+    // Page format and typewriter scrolling
+    const int pageSizeIndex =
+        m_pageSizeComboBox->findData(QString::fromStdString(settings.pageSize));
+    m_pageSizeComboBox->setCurrentIndex(std::max(0, pageSizeIndex));
+    m_pageCustomWidthSpinBox->setValue(settings.pageCustomWidth);
+    m_pageCustomHeightSpinBox->setValue(settings.pageCustomHeight);
+    const bool customPage = m_pageSizeComboBox->currentData().toString() == QStringLiteral("Custom");
+    m_pageCustomWidthSpinBox->setEnabled(customPage);
+    m_pageCustomHeightSpinBox->setEnabled(customPage);
+    m_pageShowNumbersCheckBox->setChecked(settings.pageShowNumbers);
+    m_typewriterFocusSpinBox->setValue(settings.typewriterFocusPercent);
+    m_typewriterSmoothCheckBox->setChecked(settings.typewriterSmoothScroll);
+
     // Text Frame Border
     m_textFrameBorderShowCheckBox->setChecked(settings.textFrameBorderShow);
     m_textFrameBorderColorWidget->setColor(settings.textFrameBorderColor);
@@ -2156,6 +2242,14 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.pageMirrorMarginsEnabled = m_pageMirrorMarginsCheckBox->isChecked();
     settingsData.pageMarginInner = m_pageMarginInnerSpinBox->value();
     settingsData.pageMarginOuter = m_pageMarginOuterSpinBox->value();
+
+    // Page format and typewriter scrolling
+    settingsData.pageSize = m_pageSizeComboBox->currentData().toString().toStdString();
+    settingsData.pageCustomWidth = m_pageCustomWidthSpinBox->value();
+    settingsData.pageCustomHeight = m_pageCustomHeightSpinBox->value();
+    settingsData.pageShowNumbers = m_pageShowNumbersCheckBox->isChecked();
+    settingsData.typewriterFocusPercent = m_typewriterFocusSpinBox->value();
+    settingsData.typewriterSmoothScroll = m_typewriterSmoothCheckBox->isChecked();
 
     // Text Frame Border
     settingsData.textFrameBorderShow = m_textFrameBorderShowCheckBox->isChecked();
@@ -2441,6 +2535,14 @@ void SettingsDialog::applySettingsWithSpinner(const SettingsData& settings) {
         settingsManager.set("editor.margins.mirrorEnabled", settings.pageMirrorMarginsEnabled);
         settingsManager.set("editor.margins.pageInner", settings.pageMarginInner);
         settingsManager.set("editor.margins.pageOuter", settings.pageMarginOuter);
+
+        // Editor/Page and Typewriter
+        settingsManager.set("editor.page.size", settings.pageSize);
+        settingsManager.set("editor.page.customWidth", settings.pageCustomWidth);
+        settingsManager.set("editor.page.customHeight", settings.pageCustomHeight);
+        settingsManager.set("editor.page.showNumbers", settings.pageShowNumbers);
+        settingsManager.set("editor.typewriter.focusPosition", settings.typewriterFocusPercent / 100.0);
+        settingsManager.set("editor.typewriter.smoothScroll", settings.typewriterSmoothScroll);
 
         // Editor/Text Frame Border
         settingsManager.set("editor.textFrameBorder.show", settings.textFrameBorderShow);

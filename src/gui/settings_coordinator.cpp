@@ -157,6 +157,15 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.pageMarginInner = settings.get<double>("editor.margins.pageInner", 30.0);
     settingsData.pageMarginOuter = settings.get<double>("editor.margins.pageOuter", 20.0);
 
+    // Editor/Page and Typewriter
+    settingsData.pageSize = settings.get<std::string>("editor.page.size", "A4");
+    settingsData.pageCustomWidth = settings.get<double>("editor.page.customWidth", 210.0);
+    settingsData.pageCustomHeight = settings.get<double>("editor.page.customHeight", 297.0);
+    settingsData.pageShowNumbers = settings.get<bool>("editor.page.showNumbers", true);
+    settingsData.typewriterFocusPercent = static_cast<int>(
+        std::lround(settings.get<double>("editor.typewriter.focusPosition", 0.5) * 100.0));
+    settingsData.typewriterSmoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+
     // Editor/Text Frame Border
     settingsData.textFrameBorderShow = settings.get<bool>("editor.textFrameBorder.show", false);
     settingsData.textFrameBorderColor = QColor(QString::fromStdString(

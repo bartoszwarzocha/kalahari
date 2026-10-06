@@ -327,6 +327,31 @@ QSizeF PageLayout::pageSizeMm() const
     return QSizeF(210.0, 297.0);
 }
 
+PageLayout::PageSize PageLayout::pageSizeFromId(const QString& id)
+{
+    for (PageSize size : {PageSize::A4, PageSize::A5, PageSize::B5, PageSize::Trade6x9,
+                          PageSize::Letter, PageSize::Legal, PageSize::Custom}) {
+        if (pageSizeId(size) == id) {
+            return size;
+        }
+    }
+    return PageSize::A4;
+}
+
+QString PageLayout::pageSizeId(PageSize size)
+{
+    switch (size) {
+        case PageSize::A4: return QStringLiteral("A4");
+        case PageSize::A5: return QStringLiteral("A5");
+        case PageSize::B5: return QStringLiteral("B5");
+        case PageSize::Trade6x9: return QStringLiteral("6x9");
+        case PageSize::Letter: return QStringLiteral("Letter");
+        case PageSize::Legal: return QStringLiteral("Legal");
+        case PageSize::Custom: return QStringLiteral("Custom");
+    }
+    return QStringLiteral("A4");
+}
+
 QSizeF PageLayout::pageSizePixels(qreal dpi) const
 {
     const qreal mmToPixels = dpi / 25.4;
@@ -351,14 +376,7 @@ PageLayout PageLayout::fromJson(const QJsonObject& json)
     PageLayout layout;
 
     if (json.contains("pageSize")) {
-        QString size = json["pageSize"].toString();
-        if (size == "A4") layout.pageSize = PageSize::A4;
-        else if (size == "A5") layout.pageSize = PageSize::A5;
-        else if (size == "B5") layout.pageSize = PageSize::B5;
-        else if (size == "6x9") layout.pageSize = PageSize::Trade6x9;
-        else if (size == "Letter") layout.pageSize = PageSize::Letter;
-        else if (size == "Legal") layout.pageSize = PageSize::Legal;
-        else if (size == "Custom") layout.pageSize = PageSize::Custom;
+        layout.pageSize = pageSizeFromId(json["pageSize"].toString());
     }
     if (json.contains("customWidth")) layout.customWidth = json["customWidth"].toDouble();
     if (json.contains("customHeight")) layout.customHeight = json["customHeight"].toDouble();
@@ -384,17 +402,7 @@ QJsonObject PageLayout::toJson() const
 {
     QJsonObject json;
 
-    QString sizeStr;
-    switch (pageSize) {
-        case PageSize::A4: sizeStr = "A4"; break;
-        case PageSize::A5: sizeStr = "A5"; break;
-        case PageSize::B5: sizeStr = "B5"; break;
-        case PageSize::Trade6x9: sizeStr = "6x9"; break;
-        case PageSize::Letter: sizeStr = "Letter"; break;
-        case PageSize::Legal: sizeStr = "Legal"; break;
-        case PageSize::Custom: sizeStr = "Custom"; break;
-    }
-    json["pageSize"] = sizeStr;
+    json["pageSize"] = pageSizeId(pageSize);
     json["customWidth"] = customWidth;
     json["customHeight"] = customHeight;
 
@@ -543,7 +551,7 @@ EditorAppearance EditorAppearance::fromJson(const QJsonObject& json)
     if (json.contains("typewriter")) {
         QJsonObject tw = json["typewriter"].toObject();
         appearance.typewriter.enabled = tw["enabled"].toBool();
-        appearance.typewriter.focusPosition = tw["focusPosition"].toDouble(0.4);
+        appearance.typewriter.focusPosition = tw["focusPosition"].toDouble(0.5);
         appearance.typewriter.smoothScroll = tw["smoothScroll"].toBool(true);
         appearance.typewriter.scrollDuration = tw["scrollDuration"].toInt(150);
     }

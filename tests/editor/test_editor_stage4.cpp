@@ -4,9 +4,15 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/view_modes.h>
 #include "editor_test_utils.h"
 
+#include <QCoreApplication>
+#include <QImage>
+#include <QKeyEvent>
+#include <QMouseEvent>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -280,4 +286,248 @@ TEST_CASE("Stage4 page flow: turning it off gives the continuous layout back",
     reference.load(paragraphs);
     CHECK(lineBoxes(d) == lineBoxes(reference));
     CHECK(d.layout->documentSize() == reference.layout->documentSize());
+}
+
+// =============================================================================
+// The editor: pages in the view, zoom, typewriter scrolling
+// =============================================================================
+
+namespace {
+
+/// Paragraphs that fill several pages
+QStringList chapter(int count) {
+    QStringList list;
+    for (int i = 0; i < count; ++i) {
+        list << QStringLiteral("Paragraph %1 tells a story long enough to wrap over a few lines "
+                               "of the page, so that pages break inside paragraphs too.")
+                    .arg(i);
+    }
+    return list;
+}
+
+std::unique_ptr<BookEditor> editorIn(ViewMode mode, int paragraphs = 60) {
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(700, 500));
+    editor->fromKml(kmlOf(chapter(paragraphs)));
+    editor->setViewMode(mode);
+    return editor;
+}
+
+void paint(BookEditor& editor) {
+    QImage image(editor.size(), QImage::Format_ARGB32_Premultiplied);
+    editor.render(&image);
+}
+
+QRectF caret(BookEditor& editor) {
+    return editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+}
+
+void click(BookEditor& editor, const QPointF& pos) {
+    QMouseEvent press(QEvent::MouseButtonPress, pos, editor.mapToGlobal(pos), Qt::LeftButton,
+                      Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(&editor, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, editor.mapToGlobal(pos), Qt::LeftButton,
+                        Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(&editor, &release);
+}
+
+void pressKey(BookEditor& editor, int key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+    QKeyEvent event(QEvent::KeyPress, key, modifiers);
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+/// Typewriter scrolling on, without the glide (the tests run no event loop)
+void typewriterOn(BookEditor& editor) {
+    EditorAppearance appearance = editor.appearance();
+    appearance.typewriter.enabled = true;
+    appearance.typewriter.smoothScroll = false;
+    editor.setAppearance(appearance);
+}
+
+/// First character of every line of the first paragraphs
+std::vector<int> lineStarts(BookEditor& editor, int blocks) {
+    std::vector<int> starts;
+    QTextBlock block = editor.textDocument()->begin();
+    for (int i = 0; i < blocks && block.isValid(); ++i, block = block.next()) {
+        const QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
+        for (int line = 0; layout && line < layout->lineCount(); ++line) {
+            starts.push_back(block.position() + layout->lineAt(line).textStart());
+        }
+    }
+    return starts;
+}
+
+}  // namespace
+
+TEST_CASE("Stage4 page mode: a click lands on the character under it, on every page and zoom",
+          "[editor][stage4][pagemode]") {
+    auto editor = editorIn(ViewMode::Page);
+    paint(*editor);
+    REQUIRE(editor->totalPages() >= 3);
+
+    for (double zoom : {0.75, 1.0, 1.5}) {
+        editor->setZoomFactor(zoom);
+        for (int page = 1; page <= 3; ++page) {
+            editor->goToPage(page);
+            paint(*editor);
+            REQUIRE(editor->currentPage() == page);
+
+            // A few characters into the first line of the page
+            const CursorPosition first = editor->cursorPosition();
+            const CursorPosition target{first.paragraph, first.offset + 3};
+            editor->setCursorPosition(target);
+            const QRectF at = caret(*editor);
+            CAPTURE(zoom, page);
+            click(*editor, QPointF(at.left() + 1.0, at.center().y()));
+            CHECK(editor->cursorPosition() == target);
+        }
+    }
+}
+
+TEST_CASE("Stage4 page mode: the zoom keeps the line breaks", "[editor][stage4][pagemode]") {
+    auto editor = editorIn(ViewMode::Page);
+    paint(*editor);
+    const std::vector<int> atHundred = lineStarts(*editor, 10);
+    REQUIRE(atHundred.size() >= 20);
+
+    for (double zoom : {0.5, 1.25, 2.0}) {
+        editor->setZoomFactor(zoom);
+        paint(*editor);
+        CAPTURE(zoom);
+        CHECK(lineStarts(*editor, 10) == atHundred);
+    }
+}
+
+TEST_CASE("Stage4 page mode: the first line of a page is shown on that page",
+          "[editor][stage4][pagemode]") {
+    auto editor = editorIn(ViewMode::Page);
+    paint(*editor);
+    editor->goToPage(2);
+    paint(*editor);
+
+    // The cursor at the start of page 2: below the gap and the top margin of its sheet,
+    // which goToPage() puts at the top of the view
+    const QRectF at = caret(*editor);
+    CHECK(at.top() > 20.0 + 50.0);
+    CHECK(at.top() < editor->height() / 2.0);
+    CHECK(editor->currentPage() == 2);
+}
+
+TEST_CASE("Stage4 typewriter: typing keeps the cursor line at the focus height",
+          "[editor][stage4][typewriter]") {
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode);
+        typewriterOn(*editor);
+        editor->setCursorPosition({20, 0});
+        paint(*editor);
+        const double focusY = editor->height() * 0.5;
+        CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+
+        // Typing wraps onto new lines and new paragraphs; the line stays where it is
+        for (int i = 0; i < 40; ++i) {
+            editor->insertText(QStringLiteral("more words "));
+        }
+        pressKey(*editor, Qt::Key_Return);
+        editor->insertText(QStringLiteral("A new paragraph."));
+        paint(*editor);
+        CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+
+        // The keyboard too
+        pressKey(*editor, Qt::Key_Up);
+        pressKey(*editor, Qt::Key_Up);
+        paint(*editor);
+        CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+    }
+}
+
+TEST_CASE("Stage4 typewriter: the line holds at the start and the end of the chapter",
+          "[editor][stage4][typewriter]") {
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode, 200);
+        typewriterOn(*editor);
+        const double focusY = editor->height() * 0.5;
+
+        editor->moveCursorToDocEnd();
+        paint(*editor);
+        CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+
+        editor->moveCursorToDocStart();
+        paint(*editor);
+        CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+    }
+}
+
+TEST_CASE("Stage4 typewriter: a click and manual scrolling leave the view",
+          "[editor][stage4][typewriter]") {
+    auto editor = editorIn(ViewMode::Continuous);
+    typewriterOn(*editor);
+    editor->setCursorPosition({20, 0});
+    paint(*editor);
+    const double focusY = editor->height() * 0.5;
+
+    // A click near the top moves the cursor, not the view
+    const double scroll = editor->scrollOffset();
+    click(*editor, QPointF(200.0, 60.0));
+    CHECK(editor->scrollOffset() == Approx(scroll));
+    CHECK(editor->cursorPosition().paragraph < 20);
+
+    // The wheel scrolls away from the line, and the view stays there (laying out the text
+    // that comes into view may move it by a few pixels)
+    editor->setScrollOffset(scroll + 300.0);
+    paint(*editor);
+    CHECK(editor->scrollOffset() == Approx(scroll + 300.0).margin(5.0));
+
+    // Typing brings the line back to its height
+    editor->insertText(QStringLiteral("x"));
+    paint(*editor);
+    CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+}
+
+TEST_CASE("Stage4 typewriter: turning it on and off keeps the text in place",
+          "[editor][stage4][typewriter]") {
+    auto editor = editorIn(ViewMode::Page);
+    editor->setCursorPosition({25, 0});
+    paint(*editor);
+
+    editor->setTypewriterEnabled(true);
+    paint(*editor);
+    const double focusY = editor->height() * 0.5;
+    CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+
+    editor->setTypewriterEnabled(false);
+    paint(*editor);
+    CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
+}
+
+TEST_CASE("Stage4 keys: Page Down moves the cursor and the view by one view height",
+          "[editor][stage4][pagemode]") {
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode, 120);
+        // The background pass done: no estimated heights
+        qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout())
+            ->layoutPendingBlocks();
+        editor->setCursorPosition({2, 10});
+        paint(*editor);
+        const QRectF before = caret(*editor);
+        const double scroll = editor->scrollOffset();
+
+        pressKey(*editor, Qt::Key_PageDown);
+        paint(*editor);
+        CHECK(editor->cursorPosition().paragraph > 2);
+        CHECK(editor->scrollOffset() == Approx(scroll + editor->height() /
+                                                          editor->zoomFactor()).margin(0.5));
+        // The cursor keeps its place in the view: on the line at the same height (the line
+        // boxes, with the line spacing, are about 1.6 caret heights)
+        CHECK(caret(*editor).center().y() ==
+              Approx(before.center().y()).margin(before.height() * 0.8 + 1.0));
+
+        // Page Up comes back to the same text
+        pressKey(*editor, Qt::Key_PageUp);
+        paint(*editor);
+        CHECK(editor->cursorPosition() == CursorPosition{2, 10});
+        CHECK(editor->scrollOffset() == Approx(scroll).margin(0.5));
+    }
 }

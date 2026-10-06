@@ -574,6 +574,17 @@ public:
     /// Emits viewModeChanged if mode changes. Triggers repaint.
     void setViewMode(ViewMode mode);
 
+    /// @brief Whether typewriter scrolling is on (in any view mode)
+    bool isTypewriterEnabled() const;
+
+    /// @brief Turn typewriter scrolling on or off
+    ///
+    /// While it is on, the line with the cursor stays at the focus height of the view
+    /// (appearance().typewriter.focusPosition) as the text is typed or the cursor moved
+    /// with the keyboard. Mouse clicks and manual scrolling leave the view where it is.
+    /// Emits typewriterChanged if the state changes.
+    void setTypewriterEnabled(bool enabled);
+
     // =======================================================================
     // Zoom Control
     // =======================================================================
@@ -825,6 +836,9 @@ signals:
     /// @param mode The new view mode
     void viewModeChanged(ViewMode mode);
 
+    /// @brief Emitted when typewriter scrolling is turned on or off
+    void typewriterChanged(bool enabled);
+
     /// @brief Emitted when zoom factor changes
     void zoomChanged(double factor);
 
@@ -1042,6 +1056,10 @@ private:
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
 
+    /// @brief Give the pipeline the typewriter state, keeping the text in place on the
+    ///        screen, and put the cursor line at the focus height when it is on
+    void applyTypewriter();
+
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
     void updatePageInfo();
 
@@ -1077,16 +1095,16 @@ private:
 
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
-    void startScrollAnimation(qreal targetOffset);
+    /// @param durationMs Animation length; the smooth scrolling duration when negative
+    void startScrollAnimation(qreal targetOffset, int durationMs = -1);
 
     /// @brief Stop any running scroll animation
     void stopScrollAnimation();
 
-    /// @brief Update scroll position for typewriter mode
-    ///
-    /// In typewriter mode, keeps the cursor at a fixed vertical position
-    /// (m_appearance.typewriter.focusPosition). Uses smooth scrolling if enabled.
-    void updateTypewriterScroll();
+    /// @brief Scroll the line with the cursor to the typewriter focus height
+    /// @param animate Animate a short scroll (when smooth typewriter scrolling is on); a
+    ///        jump of more than a view height is never animated
+    void updateTypewriterScroll(bool animate = true);
 
     /// @brief Get the Y coordinate of the cursor in document coordinates
     /// @return The Y position of the cursor line in the document
@@ -1266,7 +1284,8 @@ private:
     int m_lastCurrentPage = -1;                             ///< Page number last emitted
     int m_lastTotalPages = -1;                              ///< Page count last emitted
     QPropertyAnimation* m_scrollAnimation;                  ///< Smooth scroll animation
-    QPropertyAnimation* m_typewriterScrollAnimation;        ///< Typewriter mode scroll animation
+    bool m_pointerMovesCursor = false;                      ///< A mouse or drop event moves the cursor
+                                                            ///< (typewriter scrolling leaves the view)
 
     bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)

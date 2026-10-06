@@ -346,7 +346,7 @@ void MainWindow::registerCommands() {
     // View Mode commands (OpenSpec #00042 Phase 7.3)
     callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
     callbacks.onViewModePage = [this]() { onViewModePage(); };
-    callbacks.onViewModeTypewriter = [this]() { onViewModeTypewriter(); };
+    callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
     callbacks.onViewModeFocus = [this]() { onViewModeFocus(); };
     callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
 
@@ -746,15 +746,25 @@ void MainWindow::onViewModePage() {
     }
 }
 
-void MainWindow::onViewModeTypewriter() {
+void MainWindow::onTypewriterToggle() {
     auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: View Mode Typewriter");
+    auto& settings = core::SettingsManager::getInstance();
 
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->setViewMode(editor::ViewMode::Typewriter);
-        statusBar()->showMessage(tr("View mode: Typewriter"), 2000);
+    // A setting of all editors, kept between sessions
+    const bool enabled = !settings.get<bool>("editor.typewriter.enabled", false);
+    settings.set<bool>("editor.typewriter.enabled", enabled);
+    logger.info("Action triggered: Typewriter Scrolling {}", enabled ? "on" : "off");
+
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->setTypewriterEnabled(enabled);
+        }
     }
+    updateEditorActionStates();
+    statusBar()->showMessage(enabled ? tr("Typewriter scrolling: on")
+                                     : tr("Typewriter scrolling: off"), 2000);
 }
 
 void MainWindow::onViewModeFocus() {
@@ -859,9 +869,10 @@ void MainWindow::updateEditorActionStates() {
         pageCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Page; };
         registry.updateActionState("view.mode.page");
     }
-    if (auto* typeCmd = registry.getCommand("view.mode.typewriter")) {
-        typeCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Typewriter; };
-        registry.updateActionState("view.mode.typewriter");
+    if (auto* typeCmd = registry.getCommand("view.typewriter")) {
+        const bool typewriter = bookEditor->isTypewriterEnabled();
+        typeCmd->isChecked = [typewriter]() { return typewriter; };
+        registry.updateActionState("view.typewriter");
     }
     if (auto* focusCmd = registry.getCommand("view.mode.focus")) {
         focusCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Focus; };

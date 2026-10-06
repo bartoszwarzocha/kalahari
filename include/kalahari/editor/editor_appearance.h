@@ -258,6 +258,13 @@ struct PageLayout {
     /// @brief Page dimensions in millimetres
     QSizeF pageSizeMm() const;
 
+    /// @brief Page size from its id ("A4", "A5", "B5", "6x9", "Letter", "Legal", "Custom");
+    ///        A4 for an unknown id
+    static PageSize pageSizeFromId(const QString& id);
+
+    /// @brief Id of a page size, as saved in settings and JSON
+    static QString pageSizeId(PageSize size);
+
     /// @brief Get page dimensions in pixels at given DPI
     QSizeF pageSizePixels(qreal dpi = 96.0) const;
 
@@ -275,10 +282,10 @@ struct PageLayout {
 // Mode-Specific Settings
 // =============================================================================
 
-/// @brief Settings specific to Typewriter Mode
+/// @brief Typewriter scrolling (a toggle in every view mode)
 struct TypewriterSettings {
-    bool enabled{false};                       ///< Typewriter mode active
-    qreal focusPosition{0.4};                  ///< Vertical position (0-1, 0.4 = 40% from top)
+    bool enabled{false};                       ///< Typewriter scrolling on
+    qreal focusPosition{0.5};                  ///< Height of the cursor line (0-1, 0.5 = middle)
     bool smoothScroll{true};                   ///< Smooth scrolling animation
     int scrollDuration{150};                   ///< Scroll animation duration in ms
 };
