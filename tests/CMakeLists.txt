@@ -104,6 +104,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_annotations.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_checking.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cursor.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_editing.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_formatting.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # Cursor position and marker helpers
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine

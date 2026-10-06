@@ -173,6 +173,14 @@ set(KALAHARI_SOURCES
     gui/find_replace_bar.cpp    # OpenSpec #00044 Task 9.6: Find/Replace bar widget
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/book_editor_annotations.cpp
+    editor/book_editor_checking.cpp
+    editor/book_editor_cursor.cpp
+    editor/book_editor_editing.cpp
+    editor/book_editor_formatting.cpp
+    editor/book_editor_input.cpp
+    editor/book_editor_search.cpp
+    editor/book_editor_view.cpp
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/buffer_commands.cpp  # Cursor position and marker helpers
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
