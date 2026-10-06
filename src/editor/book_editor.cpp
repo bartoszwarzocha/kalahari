@@ -77,6 +77,10 @@ constexpr qreal AUTO_SCROLL_DROP_BAND = 24.0;      // px at the top and bottom e
 constexpr qreal AUTO_SCROLL_MIN_STEP = 2.0;        // px
 constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
+// Rounds of placing the cursor line at the typewriter focus height after a jump, each
+// laying out the paragraphs it brought into view
+constexpr int MAX_TYPEWRITER_ROUNDS = 4;
+
 // Phase 12.6: Margins now configurable via m_appearance.viewMargins and m_appearance.pageMargins
 // Phase 12.5: Removed CURSOR_WIDTH (now handled by EditorRenderPipeline)
 // Removed hardcoded LEFT_MARGIN and TOP_MARGIN constants
@@ -378,6 +382,13 @@ BookEditor::BookEditor(QWidget* parent)
             this, [this](double position) {
         syncScrollBarValue();
         updatePipelineScroll();
+        // In page mode the text below the changed blocks is broken into pages anew: the
+        // text at the top stays, the page breaks around it move. The whole view is painted
+        // again (a partial repaint, such as the cursor blink, would mix the new layout into
+        // the old picture), unless a paint of the whole view is laying out right now.
+        if (m_viewMode == ViewMode::Page && !m_paintingWholeView) {
+            update();
+        }
         emit scrollOffsetChanged(position);
     });
 
@@ -1169,6 +1180,54 @@ void BookEditor::moveCursorByViewHeight(double direction)
     const double x = m_preferredCursorXValid && m_preferredCursorXPosition == m_cursorPosition
         ? m_preferredCursorX
         : textLine(start).cursorToX(m_cursorPosition.offset);
+
+    const double pitch = m_renderPipeline->context().computed.pagePitch;
+    if (m_viewMode == ViewMode::Page && pitch > 0.0) {
+        // Page mode moves by one page: the next (previous) page is shown where this one
+        // was, the cursor on the line at the same place of it. The lines as far as that
+        // view are laid out first: laying a block out breaks the pages below it anew.
+        Line ahead = start;
+        while (next(ahead) &&
+               direction * (lineTop(ahead) - lineTop(start)) <= pitch + viewHeight) {
+            // lineTop() has laid the line's block out
+        }
+        const double cursorTop = caretTop(m_cursorPosition);
+        const double cursorRow = std::clamp(cursorTop - viewTop(), 0.0,
+                                            std::max(0.0, viewHeight - caretHeight));
+        const double newViewTop = cursorTop - cursorRow + direction * pitch;
+        // The row the presses this way started from: the place on the page does not drift
+        // with the lines of the pages not lining up
+        const double goalRow = m_pageMoves.empty() ? cursorRow : m_pageMoves.front().row;
+        const double goalLineTop = newViewTop + goalRow - (cursorTop - lineTop(start));
+
+        Line target = start;
+        double miss = std::abs(lineTop(start) - goalLineTop);
+        for (Line line = start; next(line);) {
+            const double top = lineTop(line);
+            if (std::abs(top - goalLineTop) < miss) {
+                miss = std::abs(top - goalLineTop);
+                target = line;
+            }
+            if (direction * (top - goalLineTop) >= 0.0) {
+                break;
+            }
+        }
+        const QTextLine targetLine = textLine(target);
+        const CursorPosition to{target.block, targetLine.isValid() ? targetLine.xToCursor(x) : 0};
+        if (to == m_cursorPosition) {
+            return;  // At the start or the end of the text
+        }
+        if (m_pageMoves.empty()) {
+            m_pageMovesDirection = direction;
+        }
+        m_pageMoves.push_back({m_cursorPosition, cursorRow});
+        placeInRow(to, caretTop(to) - newViewTop);
+        m_pageMoveCursor = m_cursorPosition;
+        m_preferredCursorX = x;
+        m_preferredCursorXValid = true;
+        m_preferredCursorXPosition = m_cursorPosition;
+        return;
+    }
 
     // The line the cursor goes to: as far as one view height, but no farther than the first
     // line not fully in view at the bottom (top) of the view comes fully into view at the
@@ -2586,6 +2645,8 @@ void BookEditor::paintEvent(QPaintEvent* event)
     Q_ASSERT(m_renderPipeline && "RenderPipeline must always exist!");
 
     // Single render call handles everything for all view modes
+    const QScopedValueRollback<bool> paintingWholeView(m_paintingWholeView,
+                                                       event->region().contains(rect()));
     m_renderPipeline->render(&painter, event->rect());
 
     // Distraction-free mode overlay (not yet migrated to pipeline)
@@ -3287,7 +3348,7 @@ RenderMargins BookEditor::calculateEffectiveMargins() const
 std::pair<double, double> BookEditor::getScrollPadding() const
 {
     // The room above and below the text (document units): the margins, the gap around the
-    // pages and the typewriter room, computed by the pipeline with the view mapping
+    // pages and the typewriter room below, computed by the pipeline with the view mapping
     if (m_renderPipeline) {
         const auto& computed = m_renderPipeline->context().computed;
         return {computed.scrollPaddingTop, computed.scrollPaddingBottom};
@@ -4239,7 +4300,8 @@ void BookEditor::updateTypewriterScroll(bool animate)
     }
 
     // The middle of the cursor line goes to the focus height of the view. The scroll
-    // padding has room for it above the first line and below the last one.
+    // padding has room for it below the last line; near the start of the text the view
+    // stops at the top and the line stays above the focus height.
     const double focusY =
         std::clamp(m_appearance.typewriter.focusPosition, 0.0, 1.0) * static_cast<double>(height());
     const auto targetScroll = [&]() -> std::optional<double> {
@@ -4270,9 +4332,14 @@ void BookEditor::updateTypewriterScroll(bool animate)
     setScrollOffset(*target);
 
     // A jump may land among paragraphs with estimated heights: once the view there is laid
-    // out, the line is placed again
-    m_renderPipeline->ensureVisibleLaidOut();
-    if (const std::optional<double> corrected = targetScroll()) {
+    // out, the line is placed again. Placing it can bring more of them into view, so a few
+    // rounds.
+    for (int round = 0; round < MAX_TYPEWRITER_ROUNDS; ++round) {
+        m_renderPipeline->ensureVisibleLaidOut();
+        const std::optional<double> corrected = targetScroll();
+        if (!corrected || std::abs(*corrected - scrollOffset()) < 0.5) {
+            break;
+        }
         setScrollOffset(*corrected);
     }
 }
@@ -4298,16 +4365,12 @@ void BookEditor::applyTypewriter()
         return;
     }
 
-    // The room above the text changes with it, and the scroll position by as much, so
-    // the text stays where it is on the screen (the pipeline gives the viewport the new
-    // scroll padding). Then the cursor line goes to the focus height at once.
-    const double oldOrigin = m_renderPipeline->context().computed.originY;
+    // The room below the text changes with it (the pipeline gives the viewport the new
+    // scroll padding), the text stays where it is. Then the cursor line goes to the focus
+    // height at once, as far as the text above it allows.
     m_renderPipeline->setConfigTypewriter(m_appearance.typewriter.enabled,
                                           m_appearance.typewriter.focusPosition);
-    const auto& computed = m_renderPipeline->context().computed;
-    const double scroll = scrollOffset() + (computed.originY - oldOrigin) / computed.viewScale;
     updateScrollBarRange();
-    setScrollOffset(scroll);
     updateTypewriterScroll(false);
     update();
 }

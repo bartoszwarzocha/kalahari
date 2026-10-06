@@ -295,12 +295,14 @@ public:
 
     /// @brief Move cursor one view height up (Page Up)
     ///
-    /// The view scrolls by the same height, so the cursor keeps its place in the view.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view. In
+    /// page mode both move by one page: the previous page shows where this one was.
     void moveCursorPageUp();
 
     /// @brief Move cursor one view height down (Page Down)
     ///
-    /// The view scrolls by the same height, so the cursor keeps its place in the view.
+    /// The view scrolls by the same height, so the cursor keeps its place in the view. In
+    /// page mode both move by one page: the next page shows where this one was.
     void moveCursorPageDown();
 
     // =========================================================================
@@ -583,7 +585,9 @@ public:
     ///
     /// While it is on, the line with the cursor stays at the focus height of the view
     /// (appearance().typewriter.focusPosition) as the text is typed or the cursor moved
-    /// with the keyboard. Mouse clicks and manual scrolling leave the view where it is.
+    /// with the keyboard. The text still starts at the top of the view: the first lines
+    /// stay above the focus height. Mouse clicks and manual scrolling leave the view where
+    /// it is.
     /// Emits typewriterChanged if the state changes.
     void setTypewriterEnabled(bool enabled);
 
@@ -1071,7 +1075,8 @@ private:
     void setHorizontalScrollOffset(double x);
 
     /// @brief Move the cursor and the view by about one view height (-1 up, 1 down), the
-    ///        cursor's line staying in its row of the view
+    ///        cursor's line staying in its row of the view; in page mode by one page, the
+    ///        cursor to the line at the same place of the next (previous) page
     void moveCursorByViewHeight(double direction);
 
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
@@ -1318,6 +1323,7 @@ private:
     bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
     bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
+    bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position

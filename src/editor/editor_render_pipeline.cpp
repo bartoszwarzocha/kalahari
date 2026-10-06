@@ -325,13 +325,12 @@ void EditorRenderPipeline::computeViewGeometry() {
     const double viewWidth = m_context.viewportSize.width();
     const double viewHeight = m_context.viewportSize.height();
 
-    // Typewriter scrolling: room above the first line and below the last one, so that
-    // every line can be scrolled to the focus height
-    double typewriterTop = 0.0;
+    // Typewriter scrolling: room below the last line, so that the last lines can be
+    // scrolled up to the focus height. None above the first line: the text starts at the
+    // top, and the cursor line stays at the focus height once it has come down to it.
     double typewriterBottom = 0.0;
     if (m_context.typewriter.enabled && viewHeight > 0.0) {
         const double focus = std::clamp(m_context.typewriter.focusPosition, 0.0, 1.0);
-        typewriterTop = focus * viewHeight;
         typewriterBottom = (1.0 - focus) * viewHeight;
     }
 
@@ -347,16 +346,16 @@ void EditorRenderPipeline::computeViewGeometry() {
         computed.pageCenterOffset =
             maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
         computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
-        computed.originY = (gap + computed.marginTop) * scale + typewriterTop;
-        computed.scrollPaddingTop = gap + computed.marginTop + typewriterTop / scale;
+        computed.originY = (gap + computed.marginTop) * scale;
+        computed.scrollPaddingTop = gap + computed.marginTop;
         computed.scrollPaddingBottom = gap + computed.marginBottom + typewriterBottom / scale;
     } else {
         computed.contentWidth = viewWidth;
         m_context.scrollX = 0.0;
         computed.pageCenterOffset = 0.0;
         computed.originX = computed.marginLeft;
-        computed.originY = computed.marginTop + typewriterTop;
-        computed.scrollPaddingTop = computed.marginTop + typewriterTop;
+        computed.originY = computed.marginTop;
+        computed.scrollPaddingTop = computed.marginTop;
         computed.scrollPaddingBottom = computed.marginBottom + typewriterBottom;
     }
 

@@ -24,12 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Shift+wheel).
   - Page numbers at the bottom of the pages; the desk around the pages follows the paper
     color. B5 and 6 x 9 in page sizes.
-  - Page Up / Page Down move the view and the cursor by about one view height in every
-    view mode: the cursor's line stays in its row of the view and keeps its column, and no
-    line is skipped (the line cut at the edge of the view comes fully into view). Page Down
-    and then Page Up bring the cursor back to the same character in the same row. The arrow
-    keys and the page keys keep one column, and typing or a click starts a new one (the
-    arrows used to return to the column from before typing).
+  - Page Up / Page Down in the Continuous view move the view and the cursor by about one
+    view height: the cursor's line stays in its row of the view and keeps its column, and
+    no line is skipped (the line cut at the edge of the view comes fully into view). In the
+    Page Layout view they move by one page: the next (previous) page shows where this one
+    was, the cursor on the line at the same place of it. Page Down and then Page Up bring
+    the cursor back to the same character in the same row. The arrow keys and the page
+    keys keep one column, and typing or a click starts a new one (the arrows used to
+    return to the column from before typing).
+  - The Page Layout view is painted again when the pages break anew around the text at
+    the top of the view (paragraphs above it laid out in the background, for example after
+    a page format change); the cursor blink used to paint its box from the new pages into
+    the old picture.
   - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
     Legal or a custom size, the gap between the pages, and page numbers on or off. The
     settings pages scroll when the dialog is smaller than a page (the groups of Pages and
@@ -42,7 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Editor: typewriter scrolling is a toggle** - 2026-10-06
   - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
     and is remembered. The line being written stays at one height of the view (Settings >
-    Editor > General, middle by default), also at the start and the end of the chapter.
+    Editor > General, middle by default), also at the end of the chapter. The chapter
+    starts at the top of the view: the first lines stay above that height until the
+    cursor comes down to it.
   - Mouse clicks and manual scrolling leave the view where it is; the next keystroke
     brings the line back. The short glide can be turned off.
   - The Typewriter entry of View > View Mode is gone (it showed the continuous view).
