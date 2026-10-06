@@ -47,13 +47,10 @@ class QTimer;
 class QMenu;
 class QMimeData;
 
-namespace kalahari::gui {
-class FindReplaceBar;
-}  // namespace kalahari::gui
-
 namespace kalahari::editor {
 
 // Forward declarations
+class FindReplaceBar;
 class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
@@ -1486,7 +1483,7 @@ private:
     std::unique_ptr<SearchEngine> m_searchEngine;
 
     /// @brief Find/replace bar widget
-    gui::FindReplaceBar* m_findReplaceBar = nullptr;
+    FindReplaceBar* m_findReplaceBar = nullptr;
 
     /// @brief Setup find/replace components
     void setupFindReplace();

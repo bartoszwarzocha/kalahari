@@ -112,6 +112,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/find_replace_bar.cpp       # Find/Replace bar of the editor
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # Cursor position and marker helpers
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
@@ -119,9 +120,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
     ${CMAKE_SOURCE_DIR}/src/editor/text_source_adapter.cpp      # OpenSpec #00043 Phase 12.1: Text source adapters
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
-    ${CMAKE_SOURCE_DIR}/src/gui/find_replace_bar.cpp       # OpenSpec #00044 Task 9.6: FindReplaceBar
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel.cpp  # Navigator expansion state tests
-    # GUI dependencies for FindReplaceBar
+    # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
     ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
@@ -152,7 +152,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # Sub-Project C WS4.4: StyleResolver with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h   # BusyIndicator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT

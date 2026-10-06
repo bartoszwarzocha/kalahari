@@ -10,7 +10,7 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_data.h>
-#include <kalahari/gui/find_replace_bar.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QFocusEvent>
 #include <QPainter>

@@ -3,7 +3,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
-#include <kalahari/gui/find_replace_bar.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include <QScrollBar>
 
 namespace kalahari::editor {
@@ -24,18 +24,18 @@ void BookEditor::setupFindReplace()
 
     // Create FindReplaceBar (will be shown when needed), with an arrow pointer over its
     // buttons instead of the editor's I-beam
-    m_findReplaceBar = new gui::FindReplaceBar(this);
+    m_findReplaceBar = new FindReplaceBar(this);
     m_findReplaceBar->setCursor(Qt::ArrowCursor);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
     // Find/Replace performs its edits directly on the document, which QTextDocument's
     // native undo records
     m_findReplaceBar->hide();
 
-    connect(m_findReplaceBar, &gui::FindReplaceBar::navigateToMatch,
+    connect(m_findReplaceBar, &FindReplaceBar::navigateToMatch,
             this, &BookEditor::onNavigateToMatch);
-    connect(m_findReplaceBar, &gui::FindReplaceBar::textReplaced,
+    connect(m_findReplaceBar, &FindReplaceBar::textReplaced,
             this, &BookEditor::onTextReplaced);
-    connect(m_findReplaceBar, &gui::FindReplaceBar::closed,
+    connect(m_findReplaceBar, &FindReplaceBar::closed,
             this, &BookEditor::hideFindReplace);
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
