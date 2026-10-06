@@ -5,6 +5,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <filesystem>
+#include <iostream>
 #include <vector>
 
 namespace kalahari {
@@ -29,8 +30,9 @@ spdlog::sink_ptr Logger::openFileSink(const std::string& logFilePath, std::strin
             auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path, true);
             openedPath = path;
             return sink;
-        } catch (const spdlog::spdlog_ex&) {
-            // Not writable, try the next location
+        } catch (const spdlog::spdlog_ex& e) {
+            // Logger is not set up yet, so report to stderr and try the next location
+            std::cerr << "Cannot open log file " << path << ": " << e.what() << '\n';
         }
     }
     openedPath.clear();
