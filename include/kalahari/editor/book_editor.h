@@ -296,13 +296,15 @@ public:
     /// @brief Move cursor one view height up (Page Up)
     ///
     /// The view scrolls by the same height, so the cursor keeps its place in the view. In
-    /// page mode both move by one page: the previous page shows where this one was.
+    /// page mode both move by one page: the previous page shows where this one was, the
+    /// cursor on the same line of it.
     void moveCursorPageUp();
 
     /// @brief Move cursor one view height down (Page Down)
     ///
     /// The view scrolls by the same height, so the cursor keeps its place in the view. In
-    /// page mode both move by one page: the next page shows where this one was.
+    /// page mode both move by one page: the next page shows where this one was, the cursor
+    /// on the same line of it.
     void moveCursorPageDown();
 
     // =========================================================================
@@ -1076,7 +1078,7 @@ private:
 
     /// @brief Move the cursor and the view by about one view height (-1 up, 1 down), the
     ///        cursor's line staying in its row of the view; in page mode by one page, the
-    ///        cursor to the line at the same place of the next (previous) page
+    ///        cursor to the same line of the next (previous) page
     void moveCursorByViewHeight(double direction);
 
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
@@ -1343,6 +1345,7 @@ private:
     struct PageMove {
         CursorPosition cursor;
         double row = 0.0;
+        int pageLine = 0;  ///< Page mode: the cursor's line on its page, from 0
     };
     std::vector<PageMove> m_pageMoves;                      ///< Page Up/Down moves in a row, one way
     double m_pageMovesDirection = 0.0;                      ///< Their way: 1 down, -1 up

@@ -311,6 +311,20 @@ QStringList chapter(int count) {
     return list;
 }
 
+/// Paragraphs of one line to several, in no regular order: the lines of the pages do
+/// not line up
+QStringList unevenParagraphs(int count) {
+    QStringList list;
+    for (int i = 0; i < count; ++i) {
+        QStringList words;
+        for (int word = 0; word < 6 + (i * 37 % 11) * 8; ++word) {
+            words << QStringLiteral("Word%1").arg(word % 10);
+        }
+        list << words.join(QLatin1Char(' '));
+    }
+    return list;
+}
+
 std::unique_ptr<BookEditor> editorIn(ViewMode mode, int paragraphs = 60) {
     auto editor = std::make_unique<BookEditor>();
     resizeWidget(*editor, QSize(700, 500));
@@ -831,11 +845,16 @@ TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no li
 
 TEST_CASE("Stage4 keys: in page mode Page Down and Page Up move by one page",
           "[editor][stage4][pagemode]") {
-    // The next page shows where this one was, the cursor on the line at the same place of
-    // it. Also at the paper scale of a laptop screen at 125% display scaling.
+    // The next page shows where this one was, the cursor on the same line of it, counted
+    // from the top of the page: also where paragraphs of different lengths keep the lines
+    // of the pages from lining up. Also at the paper scale of a laptop screen at 125%
+    // display scaling.
     for (const double paper : {1.0, 1.483}) {
         CAPTURE(paper);
-        auto editor = editorIn(ViewMode::Page, 160);
+        auto editor = std::make_unique<BookEditor>();
+        resizeWidget(*editor, QSize(700, 500));
+        editor->fromKml(kmlOf(unevenParagraphs(160)));
+        editor->setViewMode(ViewMode::Page);
         editor->setPaperScale(paper);
         qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout())
             ->layoutPendingBlocks();
@@ -843,53 +862,125 @@ TEST_CASE("Stage4 keys: in page mode Page Down and Page Up move by one page",
         const double pageThree = editor->scrollOffset();
         editor->goToPage(2);
         const double pitch = pageThree - editor->scrollOffset();
-        REQUIRE(pitch > editor->height() / viewScale(*editor));  // more than the view shows
+        const double viewHeight = editor->height() / viewScale(*editor);
+        REQUIRE(pitch > viewHeight);  // more than the view shows
 
-        // The cursor a few lines down page 2
-        for (int i = 0; i < 4; ++i) {
-            pressKey(*editor, Qt::Key_Down);
-        }
-        paint(*editor);
-        const CursorPosition start = editor->cursorPosition();
-        const double scroll = editor->scrollOffset();
-        const double startTop = cursorLineTop(*editor);
+        // Pages counted from 1, as the editor counts them, and lines on a page from 0
         const std::vector<LineSpan> lines = lineSpans(*editor);
-        // The line nearest to where the cursor's line would be @p pages further on
-        const auto lineAt = [&](int pages) {
-            const double goal = startTop + pages * pitch;
-            return std::min_element(lines.begin(), lines.end(),
-                                    [goal](const LineSpan& a, const LineSpan& b) {
-                                        return std::abs(a.top - goal) < std::abs(b.top - goal);
-                                    })
-                ->top;
+        const auto pageNumber = [pitch](double top) {
+            return static_cast<int>(std::floor((top + 0.5) / pitch)) + 1;
+        };
+        const auto lineOnPage = [&](double top) {
+            return static_cast<int>(std::count_if(lines.begin(), lines.end(), [&](const auto& l) {
+                return pageNumber(l.top) == pageNumber(top) && l.top < top - 0.5;
+            }));
+        };
+        const auto pageLines = [&](int page) {
+            return static_cast<int>(std::count_if(lines.begin(), lines.end(), [&](const auto& l) {
+                return pageNumber(l.top) == page;
+            }));
         };
 
-        for (int pages = 1; pages <= 3; ++pages) {
-            CAPTURE(pages);
-            pressKey(*editor, Qt::Key_PageDown);
+        // From every line of page 2, the cursor in the middle of the view
+        const int startLines = pageLines(2);
+        REQUIRE(startLines > 10);
+        for (int line = 0; line < startLines; ++line) {
+            CAPTURE(line);
+            editor->goToPage(2);
+            for (int i = 0; i < line; ++i) {
+                pressKey(*editor, Qt::Key_Down);
+            }
+            editor->setScrollOffset(editor->scrollOffset() + cursorLineTop(*editor) -
+                                    viewTop(*editor) - viewHeight / 2.0);
             paint(*editor);
-            CHECK(editor->scrollOffset() == Approx(scroll + pages * pitch).margin(0.5));
-            CHECK(editor->currentPage() == 2 + pages);
-            CHECK(cursorLineTop(*editor) == Approx(lineAt(pages)).margin(0.5));
-        }
-        for (int pages = 2; pages >= 0; --pages) {
-            CAPTURE(pages);
+            const CursorPosition start = editor->cursorPosition();
+            const double scroll = editor->scrollOffset();
+            REQUIRE(lineOnPage(cursorLineTop(*editor)) == line);
+
+            // A page with fewer lines takes the cursor to its last one, the next page back
+            // to the line the presses started from
+            for (int pages = 1; pages <= 3; ++pages) {
+                CAPTURE(pages);
+                pressKey(*editor, Qt::Key_PageDown);
+                paint(*editor);
+                CHECK(editor->scrollOffset() == Approx(scroll + pages * pitch).margin(0.5));
+                CHECK(editor->currentPage() == 2 + pages);
+                CHECK(lineOnPage(cursorLineTop(*editor)) ==
+                      std::min(line, pageLines(2 + pages) - 1));
+            }
+            for (int pages = 2; pages >= 0; --pages) {
+                CAPTURE(pages);
+                pressKey(*editor, Qt::Key_PageUp);
+                paint(*editor);
+                CHECK(editor->scrollOffset() == Approx(scroll + pages * pitch).margin(0.5));
+            }
+            CHECK(editor->cursorPosition() == start);
+
+            // From page 2 Page Up goes to the same line of page 1, and from there to the
+            // first line
             pressKey(*editor, Qt::Key_PageUp);
             paint(*editor);
-            CHECK(editor->scrollOffset() == Approx(scroll + pages * pitch).margin(0.5));
+            CHECK(editor->currentPage() == 1);
+            CHECK(lineOnPage(cursorLineTop(*editor)) == std::min(line, pageLines(1) - 1));
+            pressKey(*editor, Qt::Key_PageUp);
+            paint(*editor);
+            CHECK(editor->cursorPosition().paragraph == 0);
+            CHECK(cursorLineTop(*editor) == Approx(lines.front().top).margin(0.5));
         }
-        CHECK(editor->cursorPosition() == start);
-
-        // From page 2 Page Up goes to page 1, and from there to the first line
-        pressKey(*editor, Qt::Key_PageUp);
-        paint(*editor);
-        CHECK(editor->currentPage() == 1);
-        CHECK(cursorLineTop(*editor) == Approx(lineAt(-1)).margin(0.5));
-        pressKey(*editor, Qt::Key_PageUp);
-        paint(*editor);
-        CHECK(editor->cursorPosition().paragraph == 0);
-        CHECK(cursorLineTop(*editor) == Approx(lines.front().top).margin(0.5));
     }
+}
+
+TEST_CASE("Stage4 keys: in page mode Page Down lays the text above out before it counts the "
+          "line",
+          "[editor][stage4][pagemode]") {
+    // Estimated heights above a page shift its text: the cursor's line on its page is that
+    // of the text laid out, as it will stay
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(700, 500));
+    editor->fromKml(kmlOf(unevenParagraphs(400)));
+    editor->setViewMode(ViewMode::Page);
+    auto* layout =
+        qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
+    editor->goToPage(3);
+    const double pageThree = editor->scrollOffset();
+    editor->goToPage(2);
+    const double pitch = pageThree - editor->scrollOffset();
+
+    editor->setCursorPosition({300, 0});
+    paint(*editor);
+    for (int i = 0; i < 9; ++i) {
+        pressKey(*editor, Qt::Key_Down);
+    }
+    paint(*editor);
+    REQUIRE(layout->pendingBlockCount() > 0);
+    const CursorPosition start = editor->cursorPosition();
+    pressKey(*editor, Qt::Key_PageDown);
+    paint(*editor);
+
+    // The pages of the whole text laid out (the text below a page does not move it)
+    layout->layoutPendingBlocks();
+    const std::vector<LineSpan> lines = lineSpans(*editor);
+    const auto pageNumber = [pitch](double top) {
+        return static_cast<int>(std::floor((top + 0.5) / pitch)) + 1;
+    };
+    const auto lineOnPage = [&](double top) {
+        return static_cast<int>(std::count_if(lines.begin(), lines.end(), [&](const auto& l) {
+            return pageNumber(l.top) == pageNumber(top) && l.top < top - 0.5;
+        }));
+    };
+    const auto pageLines = [&](int page) {
+        return static_cast<int>(std::count_if(lines.begin(), lines.end(), [&](const auto& l) {
+            return pageNumber(l.top) == page;
+        }));
+    };
+    const QTextBlock startBlock = editor->textDocument()->findBlockByNumber(start.paragraph);
+    const double startTop =
+        editor->textDocument()->documentLayout()->blockBoundingRect(startBlock).top() +
+        startBlock.layout()->lineForTextPosition(start.offset).y();
+    const int nextPage = pageNumber(startTop) + 1;
+    CHECK(editor->currentPage() == nextPage);
+    CHECK(lineOnPage(cursorLineTop(*editor)) ==
+          std::min(lineOnPage(startTop), pageLines(nextPage) - 1));
 }
 
 TEST_CASE("Stage4 keys: Page Up and Page Down in a row and the arrows keep the line and the column",

@@ -1144,8 +1144,9 @@ void BookEditor::moveCursorByViewHeight(double direction)
         return doc->documentLayout()->blockBoundingRect(doc->findBlockByNumber(line.block)).top() +
                (text.isValid() ? text.y() : 0.0);
     };
-    const auto next = [doc, direction](Line& line) {
-        if (direction > 0) {
+    // The line below (way 1) or above (way -1) a line; false at the end (start) of the text
+    const auto step = [doc](Line& line, double way) {
+        if (way > 0) {
             QTextLayout* layout =
                 KalahariTextDocumentLayout::blockLayout(doc->findBlockByNumber(line.block));
             if (layout && line.index + 1 < layout->lineCount()) {
@@ -1166,6 +1167,7 @@ void BookEditor::moveCursorByViewHeight(double direction)
         }
         return true;
     };
+    const auto next = [&step, direction](Line& line) { return step(line, direction); };
 
     QTextLayout* cursorLayout = KalahariTextDocumentLayout::blockLayout(
         doc->findBlockByNumber(m_cursorPosition.paragraph));
@@ -1184,34 +1186,60 @@ void BookEditor::moveCursorByViewHeight(double direction)
     const double pitch = m_renderPipeline->context().computed.pagePitch;
     if (m_viewMode == ViewMode::Page && pitch > 0.0) {
         // Page mode moves by one page: the next (previous) page is shown where this one
-        // was, the cursor on the line at the same place of it. The lines as far as that
-        // view are laid out first: laying a block out breaks the pages below it anew.
+        // was, the cursor on the same line of it, counted from the top of the page (the
+        // lines of two pages do not line up where their paragraphs differ). The text down
+        // to the cursor and as far as that view is laid out first: estimated heights above
+        // a page shift its text, and laying a block out breaks the pages below it anew.
+        if (auto* layout = qobject_cast<KalahariTextDocumentLayout*>(doc->documentLayout())) {
+            layout->ensureLaidOut(0, m_cursorPosition.paragraph);
+        }
         Line ahead = start;
         while (next(ahead) &&
                direction * (lineTop(ahead) - lineTop(start)) <= pitch + viewHeight) {
             // lineTop() has laid the line's block out
         }
+        const auto pageOf = [&](const Line& line) {
+            return m_renderPipeline->pageAtDocumentY(lineTop(line));
+        };
+
+        // The cursor's line on its page. The presses this way keep the line the first of
+        // them started from: a page with fewer lines takes the cursor to its last line,
+        // the next page back to that line.
+        const int page = pageOf(start);
+        int pageLine = 0;
+        for (Line line = start; step(line, -1.0) && pageOf(line) == page;) {
+            ++pageLine;
+        }
+        const int goalLine = m_pageMoves.empty() ? pageLine : m_pageMoves.front().pageLine;
+
+        // The first line on the next (previous) page, the end (start) of the text without
+        // one; down from it to the goal line
+        Line target = start;
+        bool otherPage = false;
+        while (!otherPage && next(target)) {
+            otherPage = pageOf(target) != page;
+        }
+        if (otherPage) {
+            const int targetPage = pageOf(target);
+            if (direction < 0) {
+                // The walk up came to the page's last line: its first line
+                for (Line above = target; step(above, -1.0) && pageOf(above) == targetPage;) {
+                    target = above;
+                }
+            }
+            for (int i = 0; i < goalLine; ++i) {
+                Line below = target;
+                if (!step(below, 1.0) || pageOf(below) != targetPage) {
+                    break;
+                }
+                target = below;
+            }
+        }
+
         const double cursorTop = caretTop(m_cursorPosition);
         const double cursorRow = std::clamp(cursorTop - viewTop(), 0.0,
                                             std::max(0.0, viewHeight - caretHeight));
         const double newViewTop = cursorTop - cursorRow + direction * pitch;
-        // The row the presses this way started from: the place on the page does not drift
-        // with the lines of the pages not lining up
-        const double goalRow = m_pageMoves.empty() ? cursorRow : m_pageMoves.front().row;
-        const double goalLineTop = newViewTop + goalRow - (cursorTop - lineTop(start));
-
-        Line target = start;
-        double miss = std::abs(lineTop(start) - goalLineTop);
-        for (Line line = start; next(line);) {
-            const double top = lineTop(line);
-            if (std::abs(top - goalLineTop) < miss) {
-                miss = std::abs(top - goalLineTop);
-                target = line;
-            }
-            if (direction * (top - goalLineTop) >= 0.0) {
-                break;
-            }
-        }
         const QTextLine targetLine = textLine(target);
         const CursorPosition to{target.block, targetLine.isValid() ? targetLine.xToCursor(x) : 0};
         if (to == m_cursorPosition) {
@@ -1220,7 +1248,7 @@ void BookEditor::moveCursorByViewHeight(double direction)
         if (m_pageMoves.empty()) {
             m_pageMovesDirection = direction;
         }
-        m_pageMoves.push_back({m_cursorPosition, cursorRow});
+        m_pageMoves.push_back({m_cursorPosition, cursorRow, pageLine});
         placeInRow(to, caretTop(to) - newViewTop);
         m_pageMoveCursor = m_cursorPosition;
         m_preferredCursorX = x;

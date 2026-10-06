@@ -28,10 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     view height: the cursor's line stays in its row of the view and keeps its column, and
     no line is skipped (the line cut at the edge of the view comes fully into view). In the
     Page Layout view they move by one page: the next (previous) page shows where this one
-    was, the cursor on the line at the same place of it. Page Down and then Page Up bring
-    the cursor back to the same character in the same row. The arrow keys and the page
-    keys keep one column, and typing or a click starts a new one (the arrows used to
-    return to the column from before typing).
+    was, the cursor on the same line of it, counted from the top of the page (the last
+    line of a page with fewer lines). Page Down and then Page Up bring the cursor back to
+    the same character in the same row. The arrow keys and the page keys keep one column,
+    and typing or a click starts a new one (the arrows used to return to the column from
+    before typing).
   - The Page Layout view is painted again when the pages break anew around the text at
     the top of the view (paragraphs above it laid out in the background, for example after
     a page format change); the cursor blink used to paint its box from the new pages into
