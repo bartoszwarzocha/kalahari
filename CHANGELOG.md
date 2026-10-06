@@ -136,6 +136,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
+  paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
+  "/* */" or "<!-- -->" in the text a comment highlight, while the TODO markers, notes and
+  comments saved in the chapter (`<todo>`, `<comment>`) were not shown. The editor now
+  draws them from the chapter's data: the marked text is tinted (comments also underlined,
+  a resolved comment with a dotted line only), and TODO markers and notes have an icon in
+  the margin next to their line. Search matches, comments and markers are drawn in one
+  layer, which also has room for the spelling and grammar waves and the word read aloud
+  (check results are kept with each paragraph and apply while its text is unchanged).
 - **A chapter with malformed KML left the editor without a document** - 2026-10-06. The
   editor now shows the text read before the error (the rest of the chapter is not loaded,
   as before) and the error is logged; the render pipeline used to keep a pointer to the

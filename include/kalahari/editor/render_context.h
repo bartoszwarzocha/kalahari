@@ -85,16 +85,20 @@ struct RenderColors {
     QColor searchHighlight{255, 214, 0, 96};   ///< Search match background
     QColor currentMatch{255, 140, 0, 140};     ///< Current search match background
 
-    /// @brief Marker colors
-    QColor commentHighlight{255, 255, 200};    ///< Comment annotation background
-    QColor commentBorder{200, 180, 100};       ///< Comment annotation border
-    QColor todoHighlight{255, 220, 100};       ///< TODO marker background
-    QColor noteHighlight{100, 200, 255};       ///< NOTE marker background
-    QColor completedTodo{200, 255, 200};       ///< Completed TODO background
+    /// @brief Annotation colors (backgrounds translucent, like the search highlights; the
+    /// margin icons of the markers use them opaque)
+    QColor commentHighlight{255, 100, 150, 56};  ///< Comment annotation background
+    QColor commentBorder{220, 60, 110};          ///< Comment annotation underline
+    QColor todoHighlight{150, 100, 255, 64};     ///< TODO marker background
+    QColor noteHighlight{60, 150, 255, 64};      ///< NOTE marker background
+    QColor completedTodo{60, 180, 80, 64};       ///< Completed TODO background
 
     /// @brief Spell/grammar check colors
     QColor spellError{255, 0, 0};              ///< Spelling error underline
     QColor grammarWarning{0, 100, 255};        ///< Grammar warning underline
+
+    /// @brief Word being read aloud (background)
+    QColor spokenWord{0, 190, 170, 96};
 
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
@@ -113,7 +117,8 @@ struct RenderColors {
                noteHighlight == other.noteHighlight &&
                completedTodo == other.completedTodo &&
                spellError == other.spellError &&
-               grammarWarning == other.grammarWarning;
+               grammarWarning == other.grammarWarning &&
+               spokenWord == other.spokenWord;
     }
 
     bool operator!=(const RenderColors& other) const {

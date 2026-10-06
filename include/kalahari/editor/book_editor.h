@@ -699,6 +699,16 @@ public:
     void requestGrammarCheck();
 
     // =========================================================================
+    // Reading Aloud
+    // =========================================================================
+
+    /// @brief Highlight the word being read aloud
+    /// @param paragraph Paragraph of the word
+    /// @param offset First character of the word in the paragraph
+    /// @param length Length of the word; 0 clears the highlight
+    void setSpokenWord(int paragraph, int offset, int length);
+
+    // =========================================================================
     // Find/Replace (Phase 9.4-9.6)
     // =========================================================================
 

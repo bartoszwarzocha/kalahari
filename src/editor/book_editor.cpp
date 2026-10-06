@@ -11,6 +11,7 @@
 #include <kalahari/editor/kml_comment.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/paragraph_data.h>
 #include <kalahari/gui/find_replace_bar.h>
 #include <QAbstractTextDocumentLayout>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -132,31 +133,20 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     return result;
 }
 
-/// @brief Per-paragraph cache attached to each block of the edit buffer
+/// @brief Word and character counts of the whole document, from the paragraphs' counts
 ///
 /// Document statistics are sums of per-paragraph counts, so after an edit only the
 /// paragraphs it touched are counted again.
-class ParagraphCache : public QTextBlockUserData {
-public:
-    core::TextCounts counts;
-    bool countsValid = false;
-};
-
-/// @brief Word and character counts of the whole document, from the paragraph caches
 core::TextCounts countDocument(const QTextDocument* doc) {
     core::TextCounts total;
     for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
-        auto* cache = static_cast<ParagraphCache*>(block.userData());
-        if (!cache) {
-            cache = new ParagraphCache;
-            block.setUserData(cache);  // the document takes ownership
+        ParagraphData* data = ParagraphData::of(block);
+        if (!data->countsValid) {
+            data->counts = core::countText(block.text());
+            data->countsValid = true;
         }
-        if (!cache->countsValid) {
-            cache->counts = core::countText(block.text());
-            cache->countsValid = true;
-        }
-        total.words += cache->counts.words;
-        total.nonSpaceCharacters += cache->counts.nonSpaceCharacters;
+        total.words += data->counts.words;
+        total.nonSpaceCharacters += data->counts.nonSpaceCharacters;
     }
     return total;
 }
@@ -168,12 +158,41 @@ core::TextCounts countDocument(const QTextDocument* doc) {
 void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdded) {
     const QTextBlock last = doc->findBlock(from + charsAdded);
     for (QTextBlock block = doc->findBlock(from); block.isValid(); block = block.next()) {
-        if (auto* cache = static_cast<ParagraphCache*>(block.userData())) {
-            cache->countsValid = false;
+        if (ParagraphData* data = ParagraphData::find(block)) {
+            data->countsValid = false;
         }
         if (block == last) {
             break;
         }
+    }
+}
+
+/// @brief Keep the results of a check with the paragraph they were made for
+///
+/// Results can arrive after the paragraph was edited: an issue is kept only while the
+/// text it is about is still at its place (an empty text skips that test), and the results
+/// apply while the paragraph keeps its current text (ParagraphCheck).
+/// @param found Issues with the text each is about
+void storeCheckResults(const QTextDocument* doc, int paragraph,
+                       ParagraphCheck ParagraphData::*check,
+                       const std::vector<std::pair<TextHighlight, QString>>& found) {
+    const QTextBlock block = doc ? doc->findBlockByNumber(paragraph) : QTextBlock();
+    if (!block.isValid()) {
+        return;
+    }
+    ParagraphCheck results{block.text(), {}};
+    for (const auto& [issue, issueText] : found) {
+        const bool inText = issue.start >= 0 && issue.length > 0 &&
+                            issue.start + issue.length <= results.text.length();
+        if (inText && (issueText.isEmpty() ||
+                       QStringView(results.text).mid(issue.start, issue.length) == issueText)) {
+            results.issues.push_back(issue);
+        }
+    }
+    if (!results.issues.empty()) {
+        ParagraphData::of(block)->*check = std::move(results);
+    } else if (ParagraphData* data = ParagraphData::find(block)) {
+        data->*check = ParagraphCheck{};
     }
 }
 
@@ -4721,11 +4740,14 @@ void BookEditor::requestSpellCheck()
 
 void BookEditor::onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors)
 {
-    // Phase 11: Store spell errors for rendering
-    // Spell errors are now tracked separately and drawn by RenderPipeline
-    Q_UNUSED(paragraphIndex);
-    Q_UNUSED(errors);
-    // TODO: Implement spell error storage for Phase 11 if spell check is needed
+    // Kept with the paragraph; the render pipeline draws them as waves
+    std::vector<std::pair<TextHighlight, QString>> found;
+    found.reserve(static_cast<size_t>(errors.size()));
+    for (const SpellErrorInfo& error : errors) {
+        found.emplace_back(TextHighlight{error.startPos, error.length, HighlightKind::Spelling},
+                           error.word);
+    }
+    storeCheckResults(m_textBuffer.get(), paragraphIndex, &ParagraphData::spelling, found);
     update();
 }
 
@@ -4790,10 +4812,19 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 
 std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
 {
-    // Phase 11: Spell errors are not currently stored in new architecture
-    // TODO: Implement spell error tracking for Phase 11 if needed
-    Q_UNUSED(paraIndex);
-    Q_UNUSED(offset);
+    const QTextBlock block = m_textBuffer ? m_textBuffer->findBlockByNumber(paraIndex)
+                                          : QTextBlock();
+    if (const ParagraphData* data = ParagraphData::find(block)) {
+        const QString text = block.text();
+        if (const auto* issues = data->spelling.issuesFor(text)) {
+            for (const TextHighlight& issue : *issues) {
+                if (offset >= issue.start && offset < issue.start + issue.length) {
+                    return {text.mid(issue.start, issue.length), issue.start,
+                            issue.start + issue.length};
+                }
+            }
+        }
+    }
     return {QString(), 0, 0};
 }
 
@@ -4913,11 +4944,22 @@ void BookEditor::requestGrammarCheck()
 
 void BookEditor::onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors)
 {
-    // Phase 11: Grammar errors are not currently stored in new architecture
-    // TODO: Implement grammar error tracking for Phase 11 if needed
-    Q_UNUSED(paragraphIndex);
-    Q_UNUSED(errors);
+    // Kept with the paragraph; the render pipeline draws them as waves
+    std::vector<std::pair<TextHighlight, QString>> found;
+    found.reserve(static_cast<size_t>(errors.size()));
+    for (const GrammarError& error : errors) {
+        found.emplace_back(TextHighlight{error.startPos, error.length, HighlightKind::Grammar},
+                           error.text);
+    }
+    storeCheckResults(m_textBuffer.get(), paragraphIndex, &ParagraphData::grammar, found);
     update();
+}
+
+void BookEditor::setSpokenWord(int paragraph, int offset, int length)
+{
+    if (m_renderPipeline) {
+        m_renderPipeline->setSpokenWord(paragraph, offset, length);
+    }
 }
 
 std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int offset) const
