@@ -2,10 +2,15 @@
 /// @brief Unit tests for ProjectManager project lifecycle
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/document.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 
+#include <QDateTime>
 #include <QDir>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QUuid>
 
 #include <filesystem>
@@ -61,4 +66,51 @@ TEST_CASE("ProjectManager closes the database after projectAboutToClose", "[proj
     CHECK(databaseOpenOnSignal);
     CHECK(pm.getDatabase() == nullptr);
     CHECK_FALSE(pm.isProjectOpen());
+}
+
+TEST_CASE("ProjectManager keeps manifest identity and unknown fields when saving", "[project_manager]") {
+    TempDir dir;
+    auto& pm = ProjectManager::getInstance();
+
+    REQUIRE(pm.createProject(dir.path(), "Identity Test", "Author", "en", true));
+    const QString manifest = QDir(pm.getProjectPath()).filePath("Identity Test.klh");
+    REQUIRE(pm.closeProject(false));
+
+    auto readManifest = [&manifest]() {
+        QFile file(manifest);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        return QJsonDocument::fromJson(file.readAll()).object();
+    };
+    auto writeManifest = [&manifest](const QJsonObject& root) {
+        QFile file(manifest);
+        REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write(QJsonDocument(root).toJson());
+    };
+
+    QJsonObject root = readManifest();
+    QJsonObject document = root["document"].toObject();
+    document["id"] = "1771221457515-61aa";
+    document["created"] = "2026-02-16T05:57:37+00:00";
+    document["description"] = "kept";
+    root["document"] = document;
+    root["statistics"] = QJsonObject{{"totalWords", 1234}, {"totalChapters", 5}, {"lastEdited", "x"}};
+    root["settings"] = QJsonObject{{"defaultPerspective", "editor"}, {"autoSaveInterval", 60}};
+    root["custom"] = QJsonObject{{"key", "value"}};
+    writeManifest(root);
+
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.getDocument()->getId() == "1771221457515-61aa");
+    REQUIRE(pm.saveManifest());
+    REQUIRE(pm.closeProject(false));
+
+    const QJsonObject saved = readManifest();
+    const QJsonObject savedDocument = saved["document"].toObject();
+    CHECK(savedDocument["id"].toString() == "1771221457515-61aa");
+    CHECK(QDateTime::fromString(savedDocument["created"].toString(), Qt::ISODate) ==
+          QDateTime::fromString("2026-02-16T05:57:37+00:00", Qt::ISODate));
+    CHECK(savedDocument["description"].toString() == "kept");
+    CHECK(savedDocument["title"].toString() == "Identity Test");
+    CHECK(saved["statistics"].toObject()["totalWords"].toInt() == 1234);
+    CHECK(saved["settings"].toObject()["autoSaveInterval"].toInt() == 60);
+    CHECK(saved["custom"].toObject()["key"].toString() == "value");
 }
