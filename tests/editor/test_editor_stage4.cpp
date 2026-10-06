@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <utility>
 #include <vector>
 
 using namespace kalahari::editor;
@@ -389,13 +390,18 @@ std::vector<LineSpan> lineSpans(BookEditor& editor) {
     return lines;
 }
 
+/// Widget pixels per document unit: the zoom, and the paper scale in the Page Layout view
+double viewScale(BookEditor& editor) {
+    return editor.zoomFactor() * (editor.viewMode() == ViewMode::Page ? editor.paperScale() : 1.0);
+}
+
 /// The top of the view in document units, from the cursor's line and its row in the view
 double viewTop(BookEditor& editor) {
     const CursorPosition position = editor.cursorPosition();
     const QTextBlock block = editor.textDocument()->findBlockByNumber(position.paragraph);
     const double lineTop = editor.textDocument()->documentLayout()->blockBoundingRect(block).top() +
                            block.layout()->lineForTextPosition(position.offset).y();
-    return lineTop - caret(editor).top() / editor.zoomFactor();
+    return lineTop - caret(editor).top() / viewScale(editor);
 }
 
 }  // namespace
@@ -406,21 +412,25 @@ TEST_CASE("Stage4 page mode: a click lands on the character under it, on every p
     paint(*editor);
     REQUIRE(editor->totalPages() >= 3);
 
-    for (double zoom : {0.75, 1.0, 1.5}) {
-        editor->setZoomFactor(zoom);
-        for (int page = 1; page <= 3; ++page) {
-            editor->goToPage(page);
-            paint(*editor);
-            REQUIRE(editor->currentPage() == page);
+    // At the paper scale of a laptop screen at 125% display scaling too
+    for (const double paper : {1.0, 1.483}) {
+        editor->setPaperScale(paper);
+        for (const double zoom : {0.75, 1.0, 1.5}) {
+            editor->setZoomFactor(zoom);
+            for (int page = 1; page <= 3; ++page) {
+                editor->goToPage(page);
+                paint(*editor);
+                REQUIRE(editor->currentPage() == page);
 
-            // A few characters into the first line of the page
-            const CursorPosition first = editor->cursorPosition();
-            const CursorPosition target{first.paragraph, first.offset + 3};
-            editor->setCursorPosition(target);
-            const QRectF at = caret(*editor);
-            CAPTURE(zoom, page);
-            click(*editor, QPointF(at.left() + 1.0, at.center().y()));
-            CHECK(editor->cursorPosition() == target);
+                // A few characters into the first line of the page
+                const CursorPosition first = editor->cursorPosition();
+                const CursorPosition target{first.paragraph, first.offset + 3};
+                editor->setCursorPosition(target);
+                const QRectF at = caret(*editor);
+                CAPTURE(paper, zoom, page);
+                click(*editor, QPointF(at.left() + 1.0, at.center().y()));
+                CHECK(editor->cursorPosition() == target);
+            }
         }
     }
 }
@@ -689,7 +699,7 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view, the cursor in i
         paint(*editor);
         const QRectF before = caret(*editor);
         const double scroll = editor->scrollOffset();
-        const double viewHeight = editor->height() / editor->zoomFactor();
+        const double viewHeight = editor->height() / viewScale(*editor);
         // The first line the view does not show in full
         const double viewBottom = viewTop(*editor) + viewHeight;
         const std::vector<LineSpan> lines = lineSpans(*editor);
@@ -720,14 +730,18 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view, the cursor in i
 TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no line",
           "[editor][stage4][pagemode]") {
     // Regression: the view went down by its height and the cursor to the line at the same
-    // height, so a cursor whose place fell between the pages went to a line rows away
-    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
-        CAPTURE(static_cast<int>(mode));
+    // height, so a cursor whose place fell between the pages went to a line rows away.
+    // The pages also at the paper scale of a laptop screen at 125% display scaling.
+    const std::pair<ViewMode, double> views[] = {
+        {ViewMode::Continuous, 1.0}, {ViewMode::Page, 1.0}, {ViewMode::Page, 1.483}};
+    for (const auto& [mode, paper] : views) {
+        CAPTURE(static_cast<int>(mode), paper);
         auto editor = editorIn(mode, 120);
+        editor->setPaperScale(paper);
         auto* layout =
             qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
         layout->layoutPendingBlocks();
-        const double viewHeight = editor->height() / editor->zoomFactor();
+        const double viewHeight = editor->height() / viewScale(*editor);
         const double documentHeight = layout->documentSize().height();
         const std::vector<LineSpan> lines = lineSpans(*editor);
 
