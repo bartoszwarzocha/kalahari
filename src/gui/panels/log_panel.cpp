@@ -18,6 +18,7 @@
 #include <QUrl>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QScrollBar>
 #include <QShowEvent>
 #include <QTime>
@@ -160,12 +161,12 @@ void LogPanel::onOptions() {
 void LogPanel::onOpenLogFolder() {
     core::Logger::getInstance().info("LogPanel: Open Log Folder clicked");
 
-    // Log file is in application's current directory (kalahari.log)
-    QString logDir = QDir::currentPath();
-    QString logFile = QDir(logDir).filePath("kalahari.log");
+    // Log file actually opened by the Logger (it may have fallen back to the temp directory)
+    QString logFile = QString::fromStdString(core::Logger::getInstance().getLogFilePath());
+    QString logDir = QFileInfo(logFile).absolutePath();
 
     // Check if log file exists
-    if (!QFile::exists(logFile)) {
+    if (logFile.isEmpty() || !QFile::exists(logFile)) {
         core::Logger::getInstance().warn("LogPanel: Log file does not exist: {}", logFile.toStdString());
         QMessageBox::warning(this, tr("Open Log Folder"),
                              tr("Log file not found:\n%1").arg(logFile));
