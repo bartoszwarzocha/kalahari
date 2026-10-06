@@ -258,7 +258,8 @@ KeyboardShortcut KeyboardShortcut::fromString(const QString& str) {
 // ============================================================================
 
 QAction* Command::toQAction(QObject* parent) const {
-    QAction* action = new QAction(QString::fromStdString(label), parent);
+    // Escape the literal '&' in labels like "Find & Replace..." (QAction mnemonic marker)
+    QAction* action = new QAction(QString::fromStdString(label).replace('&', QStringLiteral("&&")), parent);
 
     // Set tooltip
     if (!tooltip.empty()) {
