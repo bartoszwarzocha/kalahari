@@ -50,19 +50,22 @@ void EventBus::unsubscribe(const std::string& eventType) {
 }
 
 void EventBus::emit(const Event& event) {
-    std::lock_guard<std::mutex> lock(m_listeners_mutex);
-
-    auto it = m_listeners.find(event.type);
-    if (it == m_listeners.end()) {
-        // No subscribers, just log and return
-        return;
+    // Listeners run on a copy without the lock held, so a listener may subscribe,
+    // unsubscribe or emit again without deadlocking on the non-recursive mutex
+    std::vector<EventListener> listeners;
+    {
+        std::lock_guard<std::mutex> lock(m_listeners_mutex);
+        auto it = m_listeners.find(event.type);
+        if (it == m_listeners.end()) {
+            return;
+        }
+        listeners = it->second;
     }
 
     Logger::getInstance().debug("EventBus: Emitting event '{}' to {} subscribers",
-                               event.type, it->second.size());
+                               event.type, listeners.size());
 
-    // Invoke all listeners
-    for (auto& listener : it->second) {
+    for (auto& listener : listeners) {
         try {
             listener(event);
         } catch (const std::exception& e) {

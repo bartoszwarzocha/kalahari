@@ -144,7 +144,9 @@ public:
     ///
     /// Invokes all registered listeners for the event type immediately,
     /// in the calling thread. If any listener throws, the exception is logged
-    /// and processing continues with remaining listeners.
+    /// and processing continues with remaining listeners. Listeners run without
+    /// the bus locked, so they may subscribe, unsubscribe or emit; listeners
+    /// added during delivery are not called for the current event.
     ///
     /// @param event Event to emit
     /// **Thread Safety:** Safe from any thread

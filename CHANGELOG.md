@@ -79,6 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Event bus froze when a listener used it** - 2026-10-06. A listener that subscribed,
+  emitted another event or asked for the subscriber count while handling an event locked
+  the program. Listeners now run without the bus locked.
 - **Navigator forgot which parts and sections were expanded** - 2026-10-06. The state is
   now saved when a book is closed and restored when it is reopened, including parts the
   user collapsed. Renaming or deleting an item no longer resets the tree.
