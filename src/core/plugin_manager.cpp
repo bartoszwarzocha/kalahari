@@ -6,6 +6,7 @@
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/python_interpreter.h>
 #include <zip.h>
 #include <cstdio>
 #include <fstream>
@@ -26,6 +27,15 @@ namespace core {
 PluginManager& PluginManager::getInstance() {
     static PluginManager instance;
     return instance;
+}
+
+PluginManager::PluginManager() {
+    // Function-local statics are destroyed in reverse order of construction.
+    // Creating Logger and PythonInterpreter first makes them outlive this
+    // singleton, so the plugins (and their archives, which log on cleanup)
+    // are released while both are still alive.
+    Logger::getInstance();
+    PythonInterpreter::getInstance();
 }
 
 PluginManager::~PluginManager() {

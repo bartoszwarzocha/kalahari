@@ -101,7 +101,7 @@ public:
 
 private:
     /// @brief Private constructor (singleton)
-    PluginManager() = default;
+    PluginManager();
 
     /// @brief Private destructor
     ///
