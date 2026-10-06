@@ -172,6 +172,11 @@ target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_BINARY_DIR}/include
 )
 
+# Source tree, for tests that read files of the repository (the example project)
+target_compile_definitions(kalahari-tests PRIVATE
+    KALAHARI_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
     Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()
