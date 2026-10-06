@@ -88,6 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **UI translations** - 2026-10-06
+  - The language chosen in Settings (English or Polski) is applied at the next start.
+    Translations live in `translations/kalahari_pl.ts` and are embedded in the program.
+  - Polish covers the menus, the commands and the status bar so far; other texts stay
+    in English until they are translated.
+  - The old wxWidgets `locales/` files and the unused `register_commands.hpp` are removed.
+
 - **Editor: drag and drop of text** - 2026-10-04
   - Selected text can be dragged with the mouse. Dropped in the editor, it moves (with
     Ctrl it is copied) as one undo step and stays selected; dragged to another program,

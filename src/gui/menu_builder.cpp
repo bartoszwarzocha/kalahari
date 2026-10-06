@@ -30,6 +30,7 @@ static QString translateMenuName(const std::string& technicalName) {
     if (technicalName == "HELP") return QObject::tr("Help");
 
     // Submenus
+    if (technicalName == "Open") return QObject::tr("Open");
     if (technicalName == "Import") return QObject::tr("Import");
     if (technicalName == "Export") return QObject::tr("Export");
     if (technicalName == "Text Style") return QObject::tr("Text Style");
@@ -37,6 +38,8 @@ static QString translateMenuName(const std::string& technicalName) {
     if (technicalName == "Focus Mode") return QObject::tr("Focus Mode");
     if (technicalName == "Plugins") return QObject::tr("Plugins");
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant Actions");
+    if (technicalName == "View Mode") return QObject::tr("View Mode");
+    if (technicalName == "Zoom") return QObject::tr("Zoom");
     if (technicalName == "Panels") return QObject::tr("Panels");
     if (technicalName == "Perspectives") return QObject::tr("Perspectives");
     if (technicalName == "Toolbars") return QObject::tr("Toolbars");

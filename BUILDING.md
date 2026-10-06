@@ -422,9 +422,8 @@ ctest --output-on-failure
 - [ ] Position shows "Line 0, Col 0" (placeholder)
 - [ ] Time shows "00:00:00" (placeholder)
 
-**Test 5: i18n Structure**
-- [ ] File → Exit shows localized text (English or Polish)
-- [ ] If you change system language → restart app → UI updates (Phase 1 feature)
+**Test 5: UI Language**
+- [ ] Settings → Language → Polski, restart → menus and commands are in Polish
 
 ---
 
@@ -691,6 +690,16 @@ act -j build-linux
    ```
 
 7. **Merge to main** (after CI passes)
+
+**UI strings and translations:** after adding or changing `tr()` texts, refresh
+`translations/kalahari_pl.ts` and translate the new entries (Qt Linguist or a text editor):
+
+```bash
+cmake --build <build-dir> --target update_translations
+```
+
+Command labels in `command_registrar.cpp` must be wrapped in
+`QT_TRANSLATE_NOOP("CommandRegistrar", ...)`, otherwise `lupdate` does not see them.
 
 ---
 

@@ -12,6 +12,7 @@
 #include <QEventLoop>
 #include <QTimer>
 #include <QThread>
+#include <QTranslator>
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
@@ -88,6 +89,19 @@ int main(int argc, char *argv[]) {
     // OpenSpec #00026: Must be after IconRegistry
     auto& artProvider = kalahari::core::ArtProvider::getInstance();
     artProvider.initialize();
+
+    // UI language: English is the source language, other languages come from
+    // the .qm files embedded under :/i18n. A change takes effect after restart.
+    QTranslator translator;
+    const QString language = QString::fromStdString(settings.getLanguage());
+    if (language != "en") {
+        if (translator.load("kalahari_" + language, ":/i18n")) {
+            app.installTranslator(&translator);
+            logger.info("UI language: {}", language.toStdString());
+        } else {
+            logger.warn("No translation for UI language '{}', using English", language.toStdString());
+        }
+    }
 
     // Parse command line arguments
     kalahari::core::CmdLineParser cmdLine(argc, argv);
