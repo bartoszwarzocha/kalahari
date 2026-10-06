@@ -5575,6 +5575,41 @@ void BookEditor::fromKml(const QString& kml)
     logElapsed("DONE");
 }
 
+void BookEditor::replaceWithKml(const QString& kml)
+{
+    KmlDocumentModel content;
+    if (!content.loadKml(kml)) {
+        core::Logger::getInstance().error(
+            "BookEditor::replaceWithKml - unreadable KML, {} paragraphs read before the error",
+            content.paragraphCount());
+    }
+    ensureDocument();
+
+    // The whole text in one undo step. Undoing or redoing it brings back the cursor and
+    // selection it was made with: QTextDocument would put the cursor at the end of the
+    // text it put back.
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    cursor.select(QTextCursor::Document);
+    cursor.removeSelectedText();
+    cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
+    appendParagraphs(cursor, content);
+    cursor.endEditBlock();
+
+    m_pageMoves.clear();  // Page Up/Down start anew in the new text
+    m_pageMoveCursor = {-1, -1};
+    clearSelection();
+    m_cursorPosition = validateCursorPosition(m_cursorPosition);
+
+    syncPipelineCursor();
+    ensureCursorVisible();
+    update();
+    emit contentChanged();
+    emit cursorPositionChanged(m_cursorPosition);
+}
+
 // =============================================================================
 // Document
 // =============================================================================

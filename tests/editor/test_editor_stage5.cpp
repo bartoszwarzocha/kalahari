@@ -1,6 +1,7 @@
 /// @file test_editor_stage5.cpp
 /// @brief Editor Stage 5: one highlight layer (annotations from the KML data, check
-///        results kept with the paragraphs, the word read aloud)
+///        results kept with the paragraphs, the word read aloud); replacing the content
+///        as one undo step
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
@@ -276,4 +277,66 @@ TEST_CASE("Stage5 highlights: the word read aloud is highlighted", "[editor][sta
 
     editor->setSpokenWord(0, 0, 0);
     CHECK(differingPixels(plain, editorImage(*editor), editor->rect()) == 0);
+}
+
+// =============================================================================
+// Replacing the content as one undo step
+// =============================================================================
+
+TEST_CASE("Stage5 replace: the new content is one undo step", "[editor][stage5][replace]") {
+    const QString first = QStringLiteral(
+        "<kml><p align=\"center\">First <b>version</b></p><p>with <todo id=\"t1\">two</todo> "
+        "paragraphs</p></kml>");
+    const QString second = QStringLiteral(
+        "<kml><p>Second <i>version</i></p><p align=\"right\">of the</p><p>chapter</p></kml>");
+    auto editor = editorWith(first);
+    editor->setCursorPosition({1, 4});
+    editor->insertText(QStringLiteral("just "));
+    const QString edited = editor->toKml();
+    editor->setCursorPosition({1, 3});
+
+    editor->replaceWithKml(second);
+    CHECK(editor->toKml() == editorWith(second)->toKml());
+    CHECK(editor->cursorPosition() == CursorPosition{1, 3});
+
+    editor->undo();
+    CHECK(editor->toKml() == edited);
+    CHECK(editor->cursorPosition() == CursorPosition{1, 3});
+
+    // The typing before it is a step of its own
+    editor->undo();
+    CHECK(editor->toKml() == editorWith(first)->toKml());
+    CHECK_FALSE(editor->canUndo());
+
+    editor->redo();
+    editor->redo();
+    CHECK(editor->toKml() == editorWith(second)->toKml());
+}
+
+TEST_CASE("Stage5 replace: the cursor stays within shorter content", "[editor][stage5][replace]") {
+    auto editor = editorWith(kmlOf({QStringLiteral("One long paragraph"), QStringLiteral("Two"),
+                                    QStringLiteral("Three paragraphs")}));
+    editor->setCursorPosition({2, 10});
+    editor->setSelection({{0, 4}, {2, 10}});
+    REQUIRE(editor->hasSelection());
+
+    editor->replaceWithKml(kmlOf({QStringLiteral("Short")}));
+    CHECK(editor->toKml() == kmlOf({QStringLiteral("Short")}));
+    CHECK(editor->cursorPosition() == CursorPosition{0, 5});
+    CHECK_FALSE(editor->hasSelection());
+
+    editor->setCursorPosition({0, 0});
+    editor->insertText(QStringLiteral("Very "));
+    CHECK(editor->toKml() == kmlOf({QStringLiteral("Very Short")}));
+}
+
+TEST_CASE("Stage5 replace: an editor without a chapter gets the content",
+          "[editor][stage5][replace]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(600, 400));
+    const QString kml = kmlOf({QStringLiteral("Restored"), QStringLiteral("text")});
+    editor.replaceWithKml(kml);
+    CHECK(editor.toKml() == kml);
+    editor.undo();
+    CHECK(editor.plainText().isEmpty());
 }

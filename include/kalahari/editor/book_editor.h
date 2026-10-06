@@ -110,6 +110,14 @@ public:
     /// KML that is not well-formed gives the text read before the error.
     void fromKml(const QString& kml);
 
+    /// @brief Replace the document content with KML markup, as one edit
+    /// @param kml The KML string to put in place of the current content
+    ///
+    /// Unlike fromKml(), the document and its undo history stay: one undo step brings the
+    /// previous content back (restoring a snapshot). The cursor keeps its position, within
+    /// the new text. KML that is not well-formed gives the text read before the error.
+    void replaceWithKml(const QString& kml);
+
     // =========================================================================
     // Content Access (New Architecture API)
     // =========================================================================
