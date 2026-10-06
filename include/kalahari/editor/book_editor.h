@@ -33,6 +33,7 @@
 #include <QList>
 #include <memory>
 #include <optional>
+#include <vector>
 
 class QDragEnterEvent;
 class QDragLeaveEvent;
@@ -1053,7 +1054,8 @@ private:
     /// @brief Scroll the pages sideways (page mode; clamped to the pipeline's range)
     void setHorizontalScrollOffset(double x);
 
-    /// @brief Move the cursor and the view by one view height (-1 up, 1 down)
+    /// @brief Move the cursor and the view by about one view height (-1 up, 1 down), the
+    ///        cursor's line staying in its row of the view
     void moveCursorByViewHeight(double direction);
 
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
@@ -1313,8 +1315,16 @@ private:
     bool m_preferredCursorXValid;                           ///< Is m_preferredCursorX valid?
     CursorPosition m_preferredCursorXPosition;              ///< Cursor position the last vertical move gave
                                                             ///< (m_preferredCursorX holds only there)
-    double m_pageMoveGoalY = 0.0;                           ///< Document y the last Page Up/Down aimed at
-    CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position that move gave
+
+    /// @brief A Page Up/Down move: where it found the cursor, and the cursor's row then (how
+    /// far below the top of the view its line starts, in document units)
+    struct PageMove {
+        CursorPosition cursor;
+        double row = 0.0;
+    };
+    std::vector<PageMove> m_pageMoves;                      ///< Page Up/Down moves in a row, one way
+    double m_pageMovesDirection = 0.0;                      ///< Their way: 1 down, -1 up
+    CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position the last of them gave
 
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range

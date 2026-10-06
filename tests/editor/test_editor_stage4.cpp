@@ -589,7 +589,7 @@ TEST_CASE("Stage4 typewriter: turning it on and off keeps the text in place",
     CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
 }
 
-TEST_CASE("Stage4 keys: Page Down moves the cursor and the view by one view height",
+TEST_CASE("Stage4 keys: Page Down moves the cursor and the view, the cursor in its row",
           "[editor][stage4][pagemode]") {
     for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
         CAPTURE(static_cast<int>(mode));
@@ -601,22 +601,90 @@ TEST_CASE("Stage4 keys: Page Down moves the cursor and the view by one view heig
         paint(*editor);
         const QRectF before = caret(*editor);
         const double scroll = editor->scrollOffset();
+        const double viewHeight = editor->height() / editor->zoomFactor();
 
         pressKey(*editor, Qt::Key_PageDown);
         paint(*editor);
         CHECK(editor->cursorPosition().paragraph > 2);
-        CHECK(editor->scrollOffset() == Approx(scroll + editor->height() /
-                                                          editor->zoomFactor()).margin(0.5));
-        // The cursor keeps its place in the view: on the line at the same height (the line
-        // boxes, with the line spacing, are about 1.6 caret heights)
-        CHECK(caret(*editor).center().y() ==
-              Approx(before.center().y()).margin(before.height() * 0.8 + 1.0));
+        CHECK(editor->scrollOffset() > scroll + viewHeight / 2.0);
+        if (mode == ViewMode::Continuous) {
+            CHECK(editor->scrollOffset() <= scroll + viewHeight + 0.5);
+        }
+        // The cursor keeps its place in the view: its line in the same row
+        CHECK(caret(*editor).top() == Approx(before.top()).margin(0.5));
 
-        // Page Up comes back to the same text
+        // Page Up comes back to the same text, in the same row
         pressKey(*editor, Qt::Key_PageUp);
         paint(*editor);
         CHECK(editor->cursorPosition() == CursorPosition{2, 10});
         CHECK(editor->scrollOffset() == Approx(scroll).margin(0.5));
+        CHECK(caret(*editor).top() == Approx(before.top()).margin(0.5));
+    }
+}
+
+TEST_CASE("Stage4 keys: Page Down through the text keeps the row and skips no line",
+          "[editor][stage4][pagemode]") {
+    // Regression: the view went down by its height and the cursor to the line at the same
+    // height, so a cursor whose place fell between the pages went to a line rows away
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode, 120);
+        auto* layout =
+            qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
+        layout->layoutPendingBlocks();
+        const double zoom = editor->zoomFactor();
+        const double viewHeight = editor->height() / zoom;
+        const double documentHeight = layout->documentSize().height();
+
+        // The text of every line, in document units
+        struct LineSpan {
+            double top;
+            double bottom;
+        };
+        std::vector<LineSpan> lines;
+        for (QTextBlock block = editor->textDocument()->begin(); block.isValid();
+             block = block.next()) {
+            const QTextLayout* blockLayout = KalahariTextDocumentLayout::blockLayout(block);
+            const double blockTop = layout->blockBoundingRect(block).top();
+            for (int i = 0; blockLayout && i < blockLayout->lineCount(); ++i) {
+                const QTextLine line = blockLayout->lineAt(i);
+                lines.push_back({blockTop + line.y(), blockTop + line.y() + line.height()});
+            }
+        }
+        const auto caretLineTop = [&] {
+            const CursorPosition position = editor->cursorPosition();
+            const QTextBlock block = editor->textDocument()->findBlockByNumber(position.paragraph);
+            return layout->blockBoundingRect(block).top() +
+                   block.layout()->lineForTextPosition(position.offset).y();
+        };
+
+        editor->setCursorPosition({1, 5});
+        paint(*editor);
+        const double row = caret(*editor).top();
+        std::vector<bool> seen(lines.size(), false);
+        for (int press = 0; press < 400; ++press) {
+            // The lines fully in view
+            const double viewTop = caretLineTop() - caret(*editor).top() / zoom;
+            for (size_t i = 0; i < lines.size(); ++i) {
+                if (lines[i].top >= viewTop - 0.5 && lines[i].bottom <= viewTop + viewHeight + 0.5) {
+                    seen[i] = true;
+                }
+            }
+            const CursorPosition before = editor->cursorPosition();
+            pressKey(*editor, Qt::Key_PageDown);
+            paint(*editor);
+            if (editor->cursorPosition() == before) {
+                break;  // The end of the text
+            }
+            // The row holds until the view reaches the end of the text
+            const double newViewTop = caretLineTop() - caret(*editor).top() / zoom;
+            if (newViewTop + viewHeight < documentHeight - 1.0) {
+                CAPTURE(press);
+                CHECK(caret(*editor).top() == Approx(row).margin(0.5));
+            }
+        }
+        CHECK(editor->cursorPosition().paragraph == 119);
+        CHECK(std::count(seen.begin(), seen.end(), false) == 0);
     }
 }
 

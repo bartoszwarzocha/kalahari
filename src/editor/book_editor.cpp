@@ -1069,44 +1069,155 @@ void BookEditor::moveCursorByViewHeight(double direction)
         !m_renderPipeline) {
         return;
     }
-
-    // One view height in document units (page mode zooms). The view and the cursor move
-    // together: the cursor keeps its place in the view and its column, as in word processors.
-    const double step = direction * m_viewportManager->visibleDocumentHeight();
-    if (step == 0.0) {
+    const double viewHeight = m_viewportManager->visibleDocumentHeight();
+    if (viewHeight <= 0.0) {
         return;
     }
-
-    // The goal in the document: the column vertical moves keep and the middle of the cursor's
-    // line. Presses in a row go on from the previous goal rather than from the line and the
-    // character it hit, so that Page Down and Page Up bring the cursor back where it was.
-    const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
-    QPointF goal = m_renderPipeline->widgetToDocument(caret.topLeft());
-    goal.ry() += caret.height() / m_viewportManager->viewScale() / 2.0;
-    if (m_preferredCursorXValid && m_preferredCursorXPosition == m_cursorPosition) {
-        goal.setX(m_preferredCursorX);
-    }
-    // The previous goal holds while it still leads to the cursor: no other move took the
-    // cursor away and the text did not wrap anew (a goal between pages leads to a line nearby)
-    if (m_pageMoveCursor == m_cursorPosition &&
-        positionFromPoint(m_renderPipeline->documentToWidget(
-            QPointF(goal.x(), m_pageMoveGoalY))) == m_cursorPosition) {
-        goal.setY(m_pageMoveGoalY);
-    }
-
-    setScrollOffset(scrollOffset() + step);
-
-    // The text now in view laid out, the cursor goes to the same place in the view; at the
-    // start or the end of the chapter, where the view stops, it goes on by the rest
     m_renderPipeline->ensureVisibleLaidOut();
-    goal.ry() += step;
-    setCursorPosition(positionFromPoint(m_renderPipeline->documentToWidget(goal)));
 
-    // A goal past the start or the end of the chapter is kept at its edge, so that presses
-    // there do not pile up
-    m_pageMoveGoalY = std::clamp(goal.y(), 0.0, m_viewportManager->totalDocumentHeight());
+    QTextDocument* doc = m_textBuffer.get();
+    const auto viewTop = [this] {
+        return m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y();
+    };
+    const auto caretTop = [this](const CursorPosition& position) {
+        return m_renderPipeline->widgetToDocument(m_renderPipeline->caretRect(position).topLeft())
+            .y();
+    };
+    // The cursor at a position, its line in a row of the view
+    const auto placeInRow = [&](const CursorPosition& position, double row) {
+        setScrollOffset(scrollOffset() + caretTop(position) - row - viewTop());
+        setCursorPosition(position);
+    };
+
+    // The cursor's row: how far below the top of the view its line starts (a cursor out of
+    // view is taken at the nearest edge). The move keeps it, as in word processors.
+    const double caretHeight =
+        m_renderPipeline->caretRect(m_cursorPosition).height() / m_viewportManager->viewScale();
+    const double row = std::clamp(caretTop(m_cursorPosition) - viewTop(), 0.0,
+                                  std::max(0.0, viewHeight - caretHeight));
+
+    // A press right after presses the other way takes the cursor back where each of them
+    // found it, so that Page Down and then Page Up bring back the same character in the
+    // same row (another move of the cursor ends the run)
+    if (m_pageMoveCursor != m_cursorPosition) {
+        m_pageMoves.clear();
+    }
+    if (!m_pageMoves.empty() && m_pageMovesDirection == -direction) {
+        const PageMove back = m_pageMoves.back();
+        m_pageMoves.pop_back();
+        if (back.cursor.paragraph < doc->blockCount() &&
+            back.cursor.offset <= paragraphLength(doc, back.cursor.paragraph)) {
+            placeInRow(back.cursor, back.row);
+            m_pageMoveCursor = m_cursorPosition;
+            m_preferredCursorXPosition = m_cursorPosition;
+            return;
+        }
+        m_pageMoves.clear();
+    }
+
+    // The lines from the cursor's line on, the way of the move. Their tops are measured from
+    // the cursor's line: laying a block out moves the lines after it, that line among them.
+    struct Line {
+        int block = 0;
+        int index = 0;
+    };
+    const auto textLine = [doc](const Line& line) {
+        QTextLayout* layout =
+            KalahariTextDocumentLayout::blockLayout(doc->findBlockByNumber(line.block));
+        return layout && line.index < layout->lineCount() ? layout->lineAt(line.index)
+                                                          : QTextLine();
+    };
+    const auto lineTop = [doc, &textLine](const Line& line) {
+        const QTextLine text = textLine(line);
+        return doc->documentLayout()->blockBoundingRect(doc->findBlockByNumber(line.block)).top() +
+               (text.isValid() ? text.y() : 0.0);
+    };
+    const auto next = [doc, direction](Line& line) {
+        if (direction > 0) {
+            QTextLayout* layout =
+                KalahariTextDocumentLayout::blockLayout(doc->findBlockByNumber(line.block));
+            if (layout && line.index + 1 < layout->lineCount()) {
+                ++line.index;
+            } else if (line.block + 1 < doc->blockCount()) {
+                line = {line.block + 1, 0};
+            } else {
+                return false;
+            }
+        } else if (line.index > 0) {
+            --line.index;
+        } else if (line.block > 0) {
+            QTextLayout* layout =
+                KalahariTextDocumentLayout::blockLayout(doc->findBlockByNumber(line.block - 1));
+            line = {line.block - 1, layout ? std::max(0, layout->lineCount() - 1) : 0};
+        } else {
+            return false;
+        }
+        return true;
+    };
+
+    QTextLayout* cursorLayout = KalahariTextDocumentLayout::blockLayout(
+        doc->findBlockByNumber(m_cursorPosition.paragraph));
+    if (!cursorLayout || cursorLayout->lineCount() == 0) {
+        return;
+    }
+    const QTextLine cursorLine = cursorLayout->lineForTextPosition(m_cursorPosition.offset);
+    const Line start{m_cursorPosition.paragraph,
+                     cursorLine.isValid() ? cursorLine.lineNumber()
+                                          : cursorLayout->lineCount() - 1};
+    // The column the vertical moves keep, or the cursor's
+    const double x = m_preferredCursorXValid && m_preferredCursorXPosition == m_cursorPosition
+        ? m_preferredCursorX
+        : textLine(start).cursorToX(m_cursorPosition.offset);
+
+    // The line the cursor goes to: as far as one view height, but no farther than the first
+    // line not fully in view at the bottom (top) of the view comes fully into view at the
+    // top (bottom), so that no line is skipped. Lines between the pages count as nothing.
+    Line target = start;
+    double targetDistance = 0.0;
+    std::optional<double> limit;  // Known once that line is reached
+    std::optional<Line> nearest;
+    for (Line line = start; next(line);) {
+        const double top = lineTop(line);  // Lays the line's block out first
+        const double distance = direction * (top - lineTop(start));
+        const double height = textLine(line).height();
+        if (!nearest) {
+            nearest = line;
+        }
+        if (!limit) {
+            if (direction > 0 && distance + height > viewHeight - row) {
+                limit = distance + row;
+            } else if (direction < 0 && distance > row) {
+                limit = viewHeight - row - (height - distance);
+            }
+        }
+        if (limit && distance > *limit) {
+            // Up, the lines that come into view above the target are laid out before the
+            // view goes there (laid out, they would move it)
+            if (direction < 0 && distance <= targetDistance + row) {
+                continue;
+            }
+            break;
+        }
+        target = line;
+        targetDistance = distance;
+    }
+    // A view lower than two lines still moves by one
+    if (target.block == start.block && target.index == start.index && nearest) {
+        target = *nearest;
+    }
+
+    const QTextLine targetLine = textLine(target);
+    const CursorPosition to{target.block, targetLine.isValid() ? targetLine.xToCursor(x) : 0};
+    if (to == m_cursorPosition) {
+        return;  // At the start or the end of the text
+    }
+    if (m_pageMoves.empty()) {
+        m_pageMovesDirection = direction;
+    }
+    m_pageMoves.push_back({m_cursorPosition, row});
+    placeInRow(to, row);
     m_pageMoveCursor = m_cursorPosition;
-    m_preferredCursorX = goal.x();
+    m_preferredCursorX = x;
     m_preferredCursorXValid = true;
     m_preferredCursorXPosition = m_cursorPosition;
 }
@@ -5413,6 +5524,8 @@ void BookEditor::fromKml(const QString& kml)
     m_textCursor = QTextCursor();  // Clear cursor before destroying document
     m_isEditMode = false;
     m_textBuffer.reset();
+    m_pageMoves.clear();  // Page Up/Down start anew in the new text
+    m_pageMoveCursor = {-1, -1};
 
     if (kml.isEmpty()) {
         logger.debug("BookEditor::fromKml - empty KML, clearing content");

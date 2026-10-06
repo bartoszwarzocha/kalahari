@@ -24,12 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Shift+wheel).
   - Page numbers at the bottom of the pages; the desk around the pages follows the paper
     color. B5 and 6 x 9 in page sizes.
-  - Page Up / Page Down move by one view height in every view mode, keeping the cursor's
-    place in the view and its column; Page Down and then Page Up bring the cursor back to
-    the same character. The arrow keys and the page keys keep one column, and typing or a
-    click starts a new one (the arrows used to return to the column from before typing).
+  - Page Up / Page Down move the view and the cursor by about one view height in every
+    view mode: the cursor's line stays in its row of the view and keeps its column, and no
+    line is skipped (the line cut at the edge of the view comes fully into view). Page Down
+    and then Page Up bring the cursor back to the same character in the same row. The arrow
+    keys and the page keys keep one column, and typing or a click starts a new one (the
+    arrows used to return to the column from before typing).
   - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
-    Legal or a custom size, the gap between the pages, and page numbers on or off.
+    Legal or a custom size, the gap between the pages, and page numbers on or off. The
+    settings pages scroll when the dialog is smaller than a page (the groups of Pages and
+    Margins used to be squeezed until their fields overlapped).
   - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
     Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
 - **Editor: typewriter scrolling is a toggle** - 2026-10-06
