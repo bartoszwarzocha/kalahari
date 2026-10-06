@@ -36,6 +36,7 @@
 #include <QMessageBox>
 #include <QHeaderView>
 #include <QSplitter>
+#include <QScreen>
 
 namespace kalahari {
 namespace gui {
@@ -154,7 +155,13 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
 
     setWindowTitle(tr("Settings"));
     setModal(true);
-    resize(750, 500);
+    // Tall enough for the longest editor page where the screen allows; a page that does
+    // not fit scrolls
+    QSize size(800, 700);
+    if (const QScreen* screen = this->screen()) {
+        size = size.boundedTo(screen->availableGeometry().size() * 0.9);
+    }
+    resize(size);
     setMinimumSize(600, 400);
 
     createUI();
@@ -349,37 +356,47 @@ void SettingsDialog::createNavigationTree() {
 }
 
 void SettingsDialog::createSettingsPages() {
+    // Each page sits in a scroll area: a page taller than the dialog scrolls instead of
+    // squeezing its groups until their fields overlap
+    const auto addPage = [this](QWidget* page) {
+        auto* scrollArea = new QScrollArea();
+        scrollArea->setWidget(page);
+        scrollArea->setWidgetResizable(true);
+        scrollArea->setFrameShape(QFrame::NoFrame);
+        m_pageStack->addWidget(scrollArea);
+    };
+
     // ========================================================================
     // General page (top-level)
     // ========================================================================
     // Page 0: General
-    m_pageStack->addWidget(createGeneralPage());
+    addPage(createGeneralPage());
 
     // ========================================================================
     // Appearance pages (1-4)
     // ========================================================================
     // Page 1: Appearance/General
-    m_pageStack->addWidget(createAppearanceGeneralPage());
+    addPage(createAppearanceGeneralPage());
     // Page 2: Appearance/Theme
-    m_pageStack->addWidget(createAppearanceThemePage());
+    addPage(createAppearanceThemePage());
     // Page 3: Appearance/Icons
-    m_pageStack->addWidget(createAppearanceIconsPage());
+    addPage(createAppearanceIconsPage());
     // Page 4: Appearance/Dashboard
-    m_pageStack->addWidget(createAppearanceDashboardPage());
+    addPage(createAppearanceDashboardPage());
 
     // ========================================================================
     // Editor pages (5-11)
     // ========================================================================
     // Page 5: Editor/General
-    m_pageStack->addWidget(createEditorGeneralPage());
+    addPage(createEditorGeneralPage());
     // Page 6: Editor/Colors
-    m_pageStack->addWidget(createEditorColorsPage());
+    addPage(createEditorColorsPage());
     // Page 7: Editor/Cursor
-    m_pageStack->addWidget(createEditorCursorPage());
+    addPage(createEditorCursorPage());
     // Page 8: Editor/Margins
-    m_pageStack->addWidget(createEditorMarginsPage());
+    addPage(createEditorMarginsPage());
     // Page 9: Editor/Spelling
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Spelling"),
         tr("Spelling settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -388,7 +405,7 @@ void SettingsDialog::createSettingsPages() {
            "- Ignore rules for technical terms")
     ));
     // Page 10: Editor/Auto-correct
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Auto-correct"),
         tr("Auto-correct settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -397,7 +414,7 @@ void SettingsDialog::createSettingsPages() {
            "- Custom replacement rules")
     ));
     // Page 11: Editor/Completion
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Completion"),
         tr("Completion settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -410,7 +427,7 @@ void SettingsDialog::createSettingsPages() {
     // Files pages (12-14)
     // ========================================================================
     // Page 12: Files/Backup
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Backup"),
         tr("Backup settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -420,7 +437,7 @@ void SettingsDialog::createSettingsPages() {
            "- Restore from backup")
     ));
     // Page 13: Files/Auto-save
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Auto-save"),
         tr("Auto-save settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -429,7 +446,7 @@ void SettingsDialog::createSettingsPages() {
            "- Session recovery options")
     ));
     // Page 14: Files/Import/Export
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Import/Export"),
         tr("Import/Export settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -442,7 +459,7 @@ void SettingsDialog::createSettingsPages() {
     // Network pages (15)
     // ========================================================================
     // Page 15: Network/Updates
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Updates"),
         tr("Update settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -455,9 +472,9 @@ void SettingsDialog::createSettingsPages() {
     // Advanced pages (16-18)
     // ========================================================================
     // Page 16: Advanced/General
-    m_pageStack->addWidget(createAdvancedGeneralPage());
+    addPage(createAdvancedGeneralPage());
     // Page 17: Advanced/Performance
-    m_pageStack->addWidget(createPlaceholderPage(
+    addPage(createPlaceholderPage(
         tr("Performance"),
         tr("Performance settings will be available in a future version.\n\n"
            "Planned features:\n"
@@ -467,7 +484,7 @@ void SettingsDialog::createSettingsPages() {
            "- Hardware acceleration")
     ));
     // Page 18: Advanced/Log
-    m_pageStack->addWidget(createAdvancedLogPage());
+    addPage(createAdvancedLogPage());
 }
 
 QWidget* SettingsDialog::createGeneralPage() {
@@ -811,19 +828,7 @@ QWidget* SettingsDialog::createAppearanceThemePage() {
 
     layout->addStretch();
 
-    // Wrap in scroll area for Theme page (lots of color settings)
-    auto* scrollArea = new QScrollArea();
-    scrollArea->setWidget(contentWidget);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-
-    // Create wrapper page to return
-    auto* page = new QWidget();
-    auto* pageLayout = new QVBoxLayout(page);
-    pageLayout->setContentsMargins(0, 0, 0, 0);
-    pageLayout->addWidget(scrollArea);
-
-    return page;
+    return contentWidget;
 }
 
 QWidget* SettingsDialog::createAppearanceIconsPage() {

@@ -68,6 +68,7 @@ set(TEST_SOURCES
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
+    gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -138,6 +139,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
     ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
     ${CMAKE_SOURCE_DIR}/src/gui/command_registrar.cpp       # Editor Stage 3: the application's commands, for shortcut checks
+    ${CMAKE_SOURCE_DIR}/src/gui/settings_dialog.cpp         # Editor Stage 4: settings dialog layout checks
+    ${CMAKE_SOURCE_DIR}/src/gui/busy_indicator.cpp          # BusyIndicator for SettingsDialog
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
@@ -164,6 +169,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h   # BusyIndicator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h # Sub-Project C WS4.1: CommandRegistry with Q_OBJECT
