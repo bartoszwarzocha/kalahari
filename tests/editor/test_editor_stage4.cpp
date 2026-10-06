@@ -421,6 +421,58 @@ TEST_CASE("Stage4 page mode: the first line of a page is shown on that page",
     CHECK(editor->currentPage() == 2);
 }
 
+TEST_CASE("Stage4 page mode: the lines stay on their sheets on far pages",
+          "[editor][stage4][pagemode]") {
+    // A4 at 96 dpi is 1122.67 px high: the sheets and the text areas of the layout must
+    // follow one page pitch, or the text drifts off the sheets page by page. Long
+    // paragraphs give a few hundred pages in a few hundred blocks; a view taller than a
+    // page shows a whole sheet.
+    QStringList paragraphs;
+    for (int i = 0; i < 500; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 goes on over many lines of the page. ")
+                          .arg(i)
+                          .repeated(20)
+                          .trimmed();
+    }
+    BookEditor editor;
+    resizeWidget(editor, QSize(900, 1400));
+    editor.fromKml(kmlOf(paragraphs));
+    editor.setViewMode(ViewMode::Page);
+    auto* layout =
+        qobject_cast<KalahariTextDocumentLayout*>(editor.textDocument()->documentLayout());
+    layout->layoutPendingBlocks();
+    paint(editor);
+    const int pages = editor.totalPages();
+    REQUIRE(pages >= 150);
+    const double textHeight = layout->pageFlow().textHeight * editor.zoomFactor();
+
+    // goToPage() puts the sheet's top at the top of the view and the cursor on the page's
+    // first line: on page 2 that line is where the first line of every page belongs
+    editor.goToPage(2);
+    paint(editor);
+    const double firstLineTop = caret(editor).top();
+
+    for (int page : {pages / 2, pages - 2}) {
+        CAPTURE(page);
+        // The last character of the page: just before the first one of the next page
+        editor.goToPage(page + 1);
+        CursorPosition last = editor.cursorPosition();
+        if (last.offset > 0) {
+            --last.offset;
+        } else {
+            --last.paragraph;
+            last.offset = static_cast<int>(paragraphs[last.paragraph].size());
+        }
+
+        editor.goToPage(page);
+        paint(editor);
+        CHECK(caret(editor).top() == Approx(firstLineTop).margin(1.0));
+        editor.setCursorPosition(last);
+        paint(editor);
+        CHECK(caret(editor).bottom() <= firstLineTop + textHeight + 1.0);
+    }
+}
+
 TEST_CASE("Stage4 page mode: the page format and the gap come from the appearance",
           "[editor][stage4][pagemode]") {
     auto editor = editorIn(ViewMode::Page);

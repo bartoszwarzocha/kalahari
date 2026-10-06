@@ -293,8 +293,13 @@ void EditorRenderPipeline::computePageLayout() {
                                    mm.bottom() * computed.mmToPixels, computed.pageHeightPixels);
     computed.pageMargins = QMarginsF(left, top, right, bottom);
 
-    computed.textAreaHeight = computed.pageHeightPixels - top - bottom;
-    computed.pagePitch = computed.pageHeightPixels + std::max(0.0, m_context.pageMode.pageSpacing);
+    // Whole pixels, as the layout places the lines (on the pixel grid): the sheets follow
+    // the same pitch, or the text drifts off them page by page (A4 is 1122.52 px high at
+    // 96 dpi)
+    computed.textAreaHeight = std::max(1.0, std::round(computed.pageHeightPixels - top - bottom));
+    computed.pagePitch = std::max(
+        computed.textAreaHeight,
+        std::round(computed.pageHeightPixels + std::max(0.0, m_context.pageMode.pageSpacing)));
 }
 
 void EditorRenderPipeline::computeTextWidth() {
