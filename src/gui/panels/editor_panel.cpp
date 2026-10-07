@@ -36,6 +36,14 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::contentChanged,
             this, &EditorPanel::contentChanged);
 
+    // The light or dark paper chosen in the editor's context menu is the setting of all
+    // editors, kept between sessions
+    connect(m_bookEditor, &editor::BookEditor::editorColorModeChanged, this,
+            [](editor::EditorColorMode mode) {
+                core::SettingsManager::getInstance().set<bool>(
+                    "editor.darkMode", mode == editor::EditorColorMode::Dark);
+            });
+
     setLayout(layout);
 
     // Apply settings (font, appearance)
@@ -220,6 +228,9 @@ void EditorPanel::applySettings() {
     appearance.typewriter.enabled = settings.get<bool>("editor.typewriter.enabled", false);
     appearance.typewriter.focusPosition = settings.get<double>("editor.typewriter.focusPosition", 0.5);
     appearance.typewriter.smoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+
+    // Focus (View > Focus)
+    appearance.focusMode.enabled = settings.get<bool>("editor.focus.enabled", false);
 
     // Text frame border
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show", false);

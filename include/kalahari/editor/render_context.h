@@ -120,13 +120,6 @@ struct CursorConfig {
     bool blinkState = true;                    ///< Current blink state (for rendering)
 };
 
-/// @brief Focus mode configuration
-struct FocusModeConfig {
-    bool enabled = false;                      ///< Whether focus mode is active
-    int focusedParagraph = -1;                 ///< Currently focused paragraph (-1 = none)
-    double dimOpacity = 0.4;                   ///< Opacity for non-focused text (0.0-1.0)
-};
-
 /// @brief Page mode configuration
 struct PageModeConfig {
     QSizeF pageSize{595.0, 842.0};            ///< Page size (A4 default, in points)
@@ -216,9 +209,10 @@ struct RenderContext {
     // -------------------------------------------------------------------------
 
     CursorConfig cursor;                       ///< Cursor rendering config
-    FocusModeConfig focusMode;                 ///< Focus mode config
     PageModeConfig pageMode;                   ///< Page mode config
     TypewriterConfig typewriter;               ///< Typewriter scrolling config
+    bool focus = false;                        ///< Focus: every paragraph but the cursor's
+                                               ///< is dimmed (in any view mode)
 
     // -------------------------------------------------------------------------
     // Text Frame Border

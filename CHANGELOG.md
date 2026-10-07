@@ -185,6 +185,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
+  every paragraph but the one with the cursor, and the bright paragraph follows the
+  cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
+  view keeps its pages, Ctrl+4 again turns it off, the menu item is checked while it is
+  on, and the state is kept between sessions for all editors.
+- **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
+  same panel switches.
+- **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
+  and the View toolbar keep every open panel checked, also when its tab lies under
+  another panel's tab. A switch closes an open panel and opens a closed one with its tab
+  on top.
+- **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
+  (for example Ctrl+2 twice) unchecked it; the mode in use now stays checked.
+- **The editor forgot its light or dark paper** - 2026-10-07. Switch to Light Mode /
+  Switch to Dark Mode in the editor's context menu changed only the editor on the
+  screen, so the next start, or Apply in the settings, brought the old paper back. The
+  choice is now the "Use dark mode for editor" setting: kept between sessions and given
+  to every open editor.
 - **A stray icon over the Settings icon preview** - 2026-10-07. Appearance > Icons showed
   an extra icon on a grey square in the preview's top-left corner: the preview built
   before the saved icon style was loaded stayed visible until the dialog closed.

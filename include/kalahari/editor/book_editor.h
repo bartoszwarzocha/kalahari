@@ -47,13 +47,10 @@ class QTimer;
 class QMenu;
 class QMimeData;
 
-namespace kalahari::gui {
-class FindReplaceBar;
-}  // namespace kalahari::gui
-
 namespace kalahari::editor {
 
 // Forward declarations
+class FindReplaceBar;
 class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
@@ -592,6 +589,17 @@ public:
     /// Emits typewriterChanged if the state changes.
     void setTypewriterEnabled(bool enabled);
 
+    /// @brief Whether Focus is on (in any view mode)
+    bool isFocusModeEnabled() const;
+
+    /// @brief Turn Focus on or off
+    ///
+    /// While it is on, every paragraph but the one with the cursor is dimmed, and the
+    /// bright paragraph follows the cursor. The view mode, its pages and the layout stay
+    /// as they are.
+    /// Emits focusModeChanged if the state changes.
+    void setFocusModeEnabled(bool enabled);
+
     // =======================================================================
     // Zoom Control
     // =======================================================================
@@ -878,6 +886,9 @@ signals:
     /// @brief Emitted when typewriter scrolling is turned on or off
     void typewriterChanged(bool enabled);
 
+    /// @brief Emitted when Focus is turned on or off
+    void focusModeChanged(bool enabled);
+
     /// @brief Emitted when zoom factor changes
     void zoomChanged(double factor);
 
@@ -1159,8 +1170,6 @@ private:
     /// @brief Repaint the area of the text cursor (the whole widget in Page Mode)
     void updateCursorArea();
 
-    // Phase 13.5: drawCursor() removed - cursor rendering unified in EditorRenderPipeline
-
     /// @brief Setup cursor blink timer
     void setupCursorBlinkTimer();
 
@@ -1206,10 +1215,6 @@ private:
     /// @brief Scroll one step and follow the mouse with the selection or the drop caret
     void onAutoScrollTimeout();
 
-    // Phase 13.5: positionFromPointPageMode() removed - hit testing unified in EditorRenderPipeline
-
-    // Phase 13.5: drawSelection() removed - selection rendering unified in EditorRenderPipeline
-
     /// @brief Update paragraph layouts with current selection state
     void updateSelectionInLayouts();
 
@@ -1241,45 +1246,6 @@ private:
     void moveCursorToLineEndWithSelection(bool extend);
     void moveCursorToDocStartWithSelection(bool extend);
     void moveCursorToDocEndWithSelection(bool extend);
-
-    /// @brief Paint the Page Mode view
-    /// @param painter The painter to draw with
-    ///
-    /// Uses QTextDocument, ViewportManager, and RenderEngine for page mode
-    /// rendering with O(log N) performance characteristics.
-    void paintPageMode(QPainter& painter);
-
-    // =========================================================================
-    // Focus Mode (Phase 5.6)
-    // =========================================================================
-
-    /// @brief Range of content that is currently focused
-    ///
-    /// In Focus Mode, content outside this range is dimmed to help
-    /// the user concentrate on the focused area.
-    struct FocusedRange {
-        int startParagraph{0};    ///< First paragraph in focused range
-        int endParagraph{0};      ///< Last paragraph in focused range (inclusive)
-        int startLine{0};         ///< First line within start paragraph (for Line scope)
-        int endLine{0};           ///< Last line within end paragraph (for Line scope)
-    };
-
-    /// @brief Calculate the currently focused range based on cursor position
-    /// @return Range of paragraphs/lines that should be focused
-    ///
-    /// The range is determined by m_appearance.focusMode.scope:
-    /// - Paragraph: The paragraph containing the cursor
-    /// - Line: The specific line containing the cursor
-    /// - Sentence: Currently treated same as Paragraph
-    FocusedRange getFocusedRange() const;
-
-    /// @brief Paint the focus mode overlay (dimming effect)
-    /// @param painter The painter to draw with
-    ///
-    /// Uses QTextDocument and ViewportManager for O(log N) performance.
-    /// Draws semi-transparent overlays over non-focused content to
-    /// create the focus effect.
-    void paintFocusOverlay(QPainter& painter);
 
     // =========================================================================
     // Distraction-Free Mode (Phase 5.7)
@@ -1499,7 +1465,7 @@ private:
     std::unique_ptr<SearchEngine> m_searchEngine;
 
     /// @brief Find/replace bar widget
-    gui::FindReplaceBar* m_findReplaceBar = nullptr;
+    FindReplaceBar* m_findReplaceBar = nullptr;
 
     /// @brief Setup find/replace components
     void setupFindReplace();

@@ -11,7 +11,7 @@
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/gui/find_replace_bar.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
@@ -378,8 +378,8 @@ namespace {
 const QString kWords = QStringLiteral(
     "<kml><p>One word, then another word.</p><p>No match here.</p><p>The last word.</p></kml>");
 
-kalahari::gui::FindReplaceBar* findBar(BookEditor& editor) {
-    return editor.findChild<kalahari::gui::FindReplaceBar*>();
+FindReplaceBar* findBar(BookEditor& editor) {
+    return editor.findChild<FindReplaceBar*>();
 }
 
 bool isShown(QWidget* widget) {

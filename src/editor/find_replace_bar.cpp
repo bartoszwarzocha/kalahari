@@ -1,7 +1,7 @@
 /// @file find_replace_bar.cpp
 /// @brief Inline find/replace bar widget implementation (OpenSpec #00044 Task 9.6)
 
-#include "kalahari/gui/find_replace_bar.h"
+#include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
@@ -15,7 +15,7 @@
 #include <QShortcut>
 #include <QKeyEvent>
 
-namespace kalahari::gui {
+namespace kalahari::editor {
 
 // =============================================================================
 // Construction / Destruction
@@ -498,4 +498,4 @@ void FindReplaceBar::applySearchOptions()
     m_searchEngine->setOptions(options);
 }
 
-}  // namespace kalahari::gui
+}  // namespace kalahari::editor

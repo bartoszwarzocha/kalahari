@@ -5,7 +5,7 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
-#include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -23,17 +23,14 @@
 #include <QToolButton>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QMenu>
-#include <QMenuBar>
 #include <QAction>
 
 namespace kalahari {
 namespace gui {
 
-DockCoordinator::DockCoordinator(QMainWindow* mainWindow, MenuBuilder* menuBuilder, QObject* parent)
+DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
     , m_mainWindow(mainWindow)
-    , m_menuBuilder(menuBuilder)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator created");
@@ -364,21 +361,6 @@ void DockCoordinator::refreshDockIcons() {
 }
 
 void DockCoordinator::setupViewMenuActions() {
-    auto& logger = core::Logger::getInstance();
-
-    // Get VIEW menu from MenuBuilder
-    if (m_menuBuilder) {
-        m_viewMenu = m_menuBuilder->getMenu("VIEW");
-        if (m_viewMenu) {
-            logger.debug("DockCoordinator: Found VIEW menu via MenuBuilder::getMenu()");
-        }
-    }
-
-    if (!m_viewMenu) {
-        logger.warn("DockCoordinator: VIEW menu not found in MenuBuilder! Creating fallback menu.");
-        m_viewMenu = m_mainWindow->menuBar()->addMenu(QObject::tr("&View"));
-    }
-
     // Connect panel toggle commands to dock widgets
     connectPanelCommand("view.navigator", m_navigatorDock);
     connectPanelCommand("view.properties", m_propertiesDock);
@@ -386,36 +368,33 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
 
-    // Create Panels submenu with actions from CommandRegistry
-    QMenu* panelsSubmenu = m_viewMenu->addMenu(QObject::tr("Panels"));
-    logger.debug("DockCoordinator: Created VIEW/Panels submenu for dock toggles");
-
-    // Create panel toggle actions
-    m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock, panelsSubmenu);
-    m_viewPropertiesAction = createPanelAction("view.properties", m_propertiesDock, panelsSubmenu);
-    m_viewLogAction = createPanelAction("view.log", m_logDock, panelsSubmenu);
-    m_viewSearchAction = createPanelAction("view.search", m_searchDock, panelsSubmenu);
-    m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock, panelsSubmenu);
+    // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
+    // commands) follow the docks' visibility
+    m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock);
+    m_viewPropertiesAction = createPanelAction("view.properties", m_propertiesDock);
+    m_viewLogAction = createPanelAction("view.log", m_logDock);
+    m_viewSearchAction = createPanelAction("view.search", m_searchDock);
+    m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
     auto& registry = CommandRegistry::getInstance();
     Command* cmd = registry.getCommand(cmdId);
     if (cmd) {
-        // Set execute callback to toggle dock visibility
+        // The command closes an open panel and opens a closed one
         cmd->execute = [dock]() {
-            dock->setVisible(!dock->isVisible());
+            utils::togglePanel(dock);
         };
-        // Set isChecked callback for checkable state
+        // Checked while the panel is open, also with its tab under another panel's
         cmd->isChecked = [dock]() {
-            return dock->isVisible();
+            return utils::isPanelOpen(dock);
         };
         // The action may already exist (disabled, since it had no callback yet)
         registry.updateActionState(cmdId);
     }
 }
 
-QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock, QMenu* menu) {
+QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock) {
     auto& logger = core::Logger::getInstance();
     auto& registry = CommandRegistry::getInstance();
 
@@ -427,20 +406,11 @@ QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidge
         return nullptr;
     }
 
-    // Set checkable state (Command's isChecked callback is already set in connectPanelCommand)
-    action->setCheckable(true);
-    action->setChecked(dock->isVisible());
+    // Checked while the panel is open. action->triggered is already connected to
+    // executeCommand in CommandRegistry, which runs cmd->execute (set in
+    // connectPanelCommand) to open or close the panel.
+    utils::followPanel(action, dock);
 
-    // Two-way binding: dock -> action (sync visual state)
-    // Note: action->triggered is already connected to executeCommand in CommandRegistry,
-    // which calls cmd->execute (set in connectPanelCommand) to toggle dock visibility
-    QObject::connect(dock, &QDockWidget::visibilityChanged, [action](bool visible) {
-        action->blockSignals(true);
-        action->setChecked(visible);
-        action->blockSignals(false);
-    });
-
-    menu->addAction(action);
     return action;
 }
 

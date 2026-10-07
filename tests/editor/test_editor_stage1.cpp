@@ -13,7 +13,7 @@
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/render_context.h>
-#include <kalahari/gui/find_replace_bar.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QElapsedTimer>
@@ -76,10 +76,10 @@ private:
 };
 
 /// The find/replace bar of @p editor, open in replace mode with both texts filled in
-kalahari::gui::FindReplaceBar* openReplaceBar(BookEditor& editor, const QString& find,
-                                              const QString& replace) {
+FindReplaceBar* openReplaceBar(BookEditor& editor, const QString& find,
+                               const QString& replace) {
     editor.showFindReplace();
-    auto* bar = editor.findChild<kalahari::gui::FindReplaceBar*>();
+    auto* bar = editor.findChild<FindReplaceBar*>();
     if (bar) {
         for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
             if (input->placeholderText() == QStringLiteral("Replace...")) {

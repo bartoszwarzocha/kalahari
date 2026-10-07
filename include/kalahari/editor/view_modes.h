@@ -17,7 +17,7 @@ namespace kalahari::editor {
 enum class ZoomMode {
     /// @brief Zoom by scaling font size (text reflows to fill width)
     ///
-    /// Used in: Continuous, Focus, DistractionFree
+    /// Used in: Continuous, DistractionFree
     /// The text content is re-laid out at the new font size,
     /// maintaining the same text width (line length).
     FontScaling,
@@ -37,7 +37,9 @@ enum class ZoomMode {
 /// @brief Available view modes for the text editor
 ///
 /// Each mode provides a different writing experience optimized for
-/// specific use cases (drafting, reviewing, focused writing, etc.)
+/// specific use cases (drafting, reviewing, focused writing, etc.). Focus and typewriter
+/// scrolling are toggles on top of the view mode (BookEditor::setFocusModeEnabled(),
+/// BookEditor::setTypewriterEnabled()).
 enum class ViewMode {
     /// @brief Continuous scrolling mode (default)
     ///
@@ -51,13 +53,6 @@ enum class ViewMode {
     /// WYSIWYG preview of printed output.
     /// Best for: Final formatting, print preview, book layout.
     Page,
-
-    /// @brief Focus mode
-    ///
-    /// Dims content outside the current paragraph/sentence.
-    /// Reduces visual distractions.
-    /// Best for: Deep focus, editing specific passages.
-    Focus,
 
     /// @brief Distraction-free mode
     ///

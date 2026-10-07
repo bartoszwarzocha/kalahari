@@ -550,6 +550,13 @@ void EditorRenderPipeline::setConfigTypewriter(bool enabled, double focusPositio
     markAllDirty();
 }
 
+void EditorRenderPipeline::setConfigFocus(bool enabled) {
+    if (m_context.focus == enabled) return;
+
+    m_context.focus = enabled;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigScrollX(double x) {
     const double oldScrollX = m_context.scrollX;
     m_context.scrollX = x;
@@ -628,7 +635,7 @@ void EditorRenderPipeline::updateScroll(double scrollY) {
 
 void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
     if (m_cursorPosition != position) {
-        // Track old paragraph for focus mode optimization
+        // Track old paragraph for Focus
         int oldParagraph = m_cursorPosition.paragraph;
 
         // Mark old cursor position dirty
@@ -639,18 +646,10 @@ void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
         // Mark new cursor position dirty
         markDirty(cursorPaintRect().toAlignedRect());
 
-        // Update focus mode if enabled
-        if (m_context.focusMode.enabled) {
-            int newParagraph = position.paragraph;
-            m_context.focusMode.focusedParagraph = newParagraph;
-
-            // Only mark affected paragraphs dirty, not entire viewport
-            if (oldParagraph != newParagraph) {
-                // Mark old paragraph (now dimmed) and new paragraph (now focused)
-                markParagraphDirty(static_cast<size_t>(oldParagraph));
-                markParagraphDirty(static_cast<size_t>(newParagraph));
-            }
-            // If same paragraph, cursor dirty regions are already marked
+        // Focus: the paragraph left becomes dimmed, the one entered bright
+        if (m_context.focus && oldParagraph != position.paragraph) {
+            markParagraphDirty(static_cast<size_t>(oldParagraph));
+            markParagraphDirty(static_cast<size_t>(position.paragraph));
         }
     }
 }
@@ -839,7 +838,6 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
         renderTextFrameBorder(painter);
     }
     renderText(painter, clipRect);
-    renderFocusOverlay(painter, clipRect);
 
     painter->restore();
 
@@ -957,9 +955,9 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
 
     QPointF drawPos(m_context.computed.originX, widgetY);
 
-    // Determine text color (focus mode dimming)
-    bool isDimmed = m_context.focusMode.enabled &&
-                    static_cast<int>(index) != m_context.focusMode.focusedParagraph;
+    // Focus dims every paragraph but the cursor's
+    const bool isDimmed = m_context.focus &&
+                          static_cast<int>(index) != m_cursorPosition.paragraph;
 
     QColor textColor = isDimmed ? m_context.colors.inactiveText : m_context.colors.text;
     painter->setPen(textColor);
@@ -1215,14 +1213,6 @@ void EditorRenderPipeline::renderCursor(QPainter* painter) {
     }
     line.draw(painter, layout->position());
     painter->restore();
-}
-
-void EditorRenderPipeline::renderFocusOverlay([[maybe_unused]] QPainter* painter,
-                                              [[maybe_unused]] const QRect& clipRect) {
-    if (!m_context.focusMode.enabled || !m_textSource) return;
-
-    // Focus overlay is handled in renderParagraph via dimming
-    // This method can be extended for more complex focus effects
 }
 
 // =============================================================================

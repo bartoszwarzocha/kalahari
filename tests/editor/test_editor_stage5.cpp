@@ -2,7 +2,7 @@
 /// @brief Editor Stage 5: one highlight layer (check results kept with the paragraphs, the
 ///        word read aloud) that leaves annotations and typed patterns as plain text;
 ///        replacing the content as one undo step; what files outside a project need from
-///        the editor
+///        the editor; Focus dims the paragraphs other than the cursor's, in any view
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
@@ -317,4 +317,85 @@ TEST_CASE("Stage5 files: text with CR LF line ends gives one paragraph per line"
     auto editor = editorWith(ClipboardHandler::textToKml(QStringLiteral("one\r\ntwo\r\n")));
     CHECK(editor->paragraphCount() == 3);
     CHECK(editor->plainText() == QStringLiteral("one\ntwo\n"));
+}
+
+// =============================================================================
+// Focus
+// =============================================================================
+
+TEST_CASE("Stage5 focus: the paragraphs other than the cursor's are dimmed", "[editor][stage5][focus]") {
+    auto editor = editorWith(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph"),
+                                    QStringLiteral("Third paragraph")}));
+    // Focus only dims: the layout stays, so the same areas hold the text
+    const QRect first = rangeArea(*editor, 0, 0, 5);
+    const QRect second = rangeArea(*editor, 1, 0, 6);
+    const QRect third = rangeArea(*editor, 2, 0, 5);
+    editor->setCursorPosition({1, 2});
+    const QImage continuous = editorImage(*editor);
+
+    editor->setFocusModeEnabled(true);
+    CHECK(editor->viewMode() == ViewMode::Continuous);
+    const QImage focus = editorImage(*editor);
+    CHECK(differingPixels(continuous, focus, first) > 0);
+    CHECK(differingPixels(continuous, focus, second) == 0);
+    CHECK(differingPixels(continuous, focus, third) > 0);
+
+    SECTION("the focus follows the cursor") {
+        editor->setCursorPosition({2, 0});
+        const QImage moved = editorImage(*editor);
+        CHECK(differingPixels(continuous, moved, second) > 0);
+        CHECK(differingPixels(continuous, moved, third) == 0);
+    }
+
+    SECTION("turning Focus off shows all the text as before") {
+        editor->setFocusModeEnabled(false);
+        CHECK(differingPixels(continuous, editorImage(*editor), editor->rect()) == 0);
+    }
+}
+
+TEST_CASE("Stage5 focus: a toggle that keeps the pages of the page view", "[editor][stage5][focus]") {
+    // Regression: Focus was a view mode of its own, so turning it on in the page view
+    // left the pages for the continuous view
+    auto editor = editorWith(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph"),
+                                    QStringLiteral("Third paragraph")}));
+    editor->setViewMode(ViewMode::Page);
+    const QRect first = rangeArea(*editor, 0, 0, 5);
+    const QRect second = rangeArea(*editor, 1, 0, 6);
+    editor->setCursorPosition({1, 2});
+    const int pages = editor->totalPages();
+    REQUIRE(pages >= 1);
+    const QImage page = editorImage(*editor);
+
+    int changes = 0;
+    QObject::connect(editor.get(), &BookEditor::focusModeChanged, [&changes](bool) { ++changes; });
+    editor->setFocusModeEnabled(true);
+    editor->setFocusModeEnabled(true);
+    CHECK(changes == 1);
+    CHECK(editor->isFocusModeEnabled());
+    CHECK(editor->viewMode() == ViewMode::Page);
+    CHECK(editor->totalPages() == pages);
+    CHECK(rangeArea(*editor, 0, 0, 5) == first);
+    editor->setCursorPosition({1, 2});
+    const QImage focus = editorImage(*editor);
+    CHECK(differingPixels(page, focus, first) > 0);
+    CHECK(differingPixels(page, focus, second) == 0);
+
+    editor->setFocusModeEnabled(false);
+    CHECK(changes == 2);
+    CHECK(editor->viewMode() == ViewMode::Page);
+    CHECK(differingPixels(page, editorImage(*editor), editor->rect()) == 0);
+}
+
+TEST_CASE("Stage5 focus: the appearance turns Focus on", "[editor][stage5][focus]") {
+    // The settings reach the editor through its appearance (editor.focus.enabled)
+    auto editor = editorWith(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph")}));
+    const QRect first = rangeArea(*editor, 0, 0, 5);
+    editor->setCursorPosition({1, 2});
+    const QImage plain = editorImage(*editor);
+
+    EditorAppearance appearance = editor->appearance();
+    appearance.focusMode.enabled = true;
+    editor->setAppearance(appearance);
+    CHECK(editor->isFocusModeEnabled());
+    CHECK(differingPixels(plain, editorImage(*editor), first) > 0);
 }
