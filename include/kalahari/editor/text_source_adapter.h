@@ -1,9 +1,8 @@
 /// @file text_source_adapter.h
 /// @brief Abstract text source interface for EditorRenderPipeline (OpenSpec #00043 Phase 12.1)
 ///
-/// ITextSource provides a unified interface for accessing text content from different
-/// document sources (QTextDocument for edit mode, KmlDocumentModel for view mode).
-/// This abstraction allows the render pipeline to work with either source transparently.
+/// ITextSource is the interface through which the render pipeline reads the text and its
+/// layout; QTextDocumentSource implements it for the editor's QTextDocument.
 
 #pragma once
 
@@ -21,15 +20,12 @@ class QTextDocument;
 namespace kalahari::editor {
 
 // Forward declarations
-class KmlDocumentModel;
 class KalahariTextDocumentLayout;
 
-/// @brief Abstract interface for text source (unified access to QTextDocument or KmlDocumentModel)
+/// @brief Abstract interface for the text source of the render pipeline
 ///
-/// ITextSource abstracts away the differences between QTextDocument and KmlDocumentModel,
-/// providing a common interface for the render pipeline. This allows the pipeline to
-/// render content regardless of whether we're in edit mode (QTextDocument) or view mode
-/// (KmlDocumentModel).
+/// The pipeline reads the paragraphs, their layouts and positions only through this
+/// interface, so it does not depend on how the document stores them.
 class ITextSource {
 public:
     /// @brief Virtual destructor
@@ -151,7 +147,6 @@ public:
 /// @brief Adapter for QTextDocument as text source
 ///
 /// QTextDocumentSource wraps a QTextDocument to implement ITextSource.
-/// Used in edit mode when user is actively editing the document.
 /// QTextDocument provides full editing capabilities, undo/redo, and cursor support.
 class QTextDocumentSource : public ITextSource {
 public:
@@ -202,53 +197,6 @@ private:
     KalahariTextDocumentLayout* kalahariLayout() const;
 
     QTextDocument* m_document;
-};
-
-// =============================================================================
-// KmlDocumentModel Adapter
-// =============================================================================
-
-/// @brief Adapter for KmlDocumentModel as text source
-///
-/// KmlDocumentModelSource wraps a KmlDocumentModel to implement ITextSource.
-/// Used in view mode for efficient read-only rendering without full QTextDocument overhead.
-/// KmlDocumentModel provides lazy layout creation for better performance with large documents.
-class KmlDocumentModelSource : public ITextSource {
-public:
-    /// @brief Construct adapter for KmlDocumentModel
-    /// @param model Model to wrap (must outlive this adapter)
-    explicit KmlDocumentModelSource(KmlDocumentModel* model);
-
-    /// @brief Destructor
-    ~KmlDocumentModelSource() override = default;
-
-    // ITextSource interface
-    size_t paragraphCount() const override;
-    QString paragraphText(size_t index) const override;
-    size_t paragraphLength(size_t index) const override;
-    QString plainText() const override;
-    size_t characterCount() const override;
-
-    QTextLayout* layout(size_t index) const override;
-    bool hasLayout(size_t index) const override;
-    void ensureLayouted(size_t first, size_t last) override;
-
-    double paragraphY(size_t index) const override;
-    double paragraphHeight(size_t index) const override;
-    double totalHeight() const override;
-    size_t paragraphAtY(double y) const override;
-
-    void setTextWidth(double width) override;
-    double textWidth() const override;
-    void setFont(const QFont& font) override;
-    QFont font() const override;
-
-    /// @brief Get underlying KmlDocumentModel
-    /// @return Pointer to wrapped model
-    KmlDocumentModel* model() const { return m_model; }
-
-private:
-    KmlDocumentModel* m_model;
 };
 
 }  // namespace kalahari::editor

@@ -12,7 +12,6 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/kml_format_registry.h>
-#include <kalahari/editor/kml_parser.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/gui/find_replace_bar.h>
 #include "editor_test_utils.h"
@@ -346,20 +345,10 @@ TEST_CASE("Stage1 KML: an unknown inline element does not cut off the rest of th
         "<p>Next</p></kml>");
     const QString expectedText = QStringLiteral("Before  after bold\nNext");
 
-    SECTION("the editor (KmlDocumentModel)") {
-        BookEditor editor;
-        editor.fromKml(kml);
-        CHECK(editor.plainText() == expectedText);
-        CHECK(editor.toKml() ==
-              QStringLiteral("<kml><p>Before  after <b>bold</b></p><p>Next</p></kml>"));
-    }
-
-    SECTION("KmlParser") {
-        KmlParser parser;
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(kml));
-        REQUIRE(doc != nullptr);
-        CHECK(doc->toPlainText() == expectedText);
-    }
+    BookEditor editor;
+    editor.fromKml(kml);
+    CHECK(editor.plainText() == expectedText);
+    CHECK(editor.toKml() == QStringLiteral("<kml><p>Before  after <b>bold</b></p><p>Next</p></kml>"));
 }
 
 TEST_CASE("Stage1 KML: character and location references survive load and save",

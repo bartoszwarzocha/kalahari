@@ -71,11 +71,11 @@ include/kalahari/
 │   └── utils/      # icon_downloader.h, svg_converter.h
 ├── editor/         # BookEditor and its document model
 │   ├── book_editor.h                         # the editor widget
-│   ├── kml_*.h                               # KML document model, parser, serializer
-│   ├── paragraph_layout.h, table_layout.h, height_tree.h, viewport_manager.h
-│   ├── editor_render_pipeline.h, render_context.h, style_resolver.h
+│   ├── kml_*.h                               # KML reader (kml_document_model.h), serializer, format registry
+│   ├── kalahari_text_document_layout.h, viewport_manager.h, search_engine.h
+│   ├── editor_render_pipeline.h, render_context.h, text_source_adapter.h, style_resolver.h
 │   ├── buffer_commands.h, clipboard_handler.h, snapshot_manager.h
-│   └── *_service.h                           # spell/grammar check, search, TTS
+│   └── *_service.h                           # spell/grammar check, TTS
 └── gui/            # UI components
     ├── main_window.h + coordinators (icon_registrar, command_registrar,
     │   dock_coordinator, document_coordinator, navigator_coordinator,

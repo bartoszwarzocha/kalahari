@@ -3,7 +3,6 @@
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
-#include <kalahari/editor/kml_document_model.h>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QAbstractTextDocumentLayout>
@@ -234,97 +233,6 @@ KalahariTextDocumentLayout* QTextDocumentSource::kalahariLayout() const {
 QTextBlock QTextDocumentSource::blockAt(size_t index) const {
     if (!m_document) return QTextBlock();
     return m_document->findBlockByNumber(static_cast<int>(index));
-}
-
-// =============================================================================
-// KmlDocumentModelSource Implementation
-// =============================================================================
-
-KmlDocumentModelSource::KmlDocumentModelSource(KmlDocumentModel* model)
-    : m_model(model) {
-}
-
-size_t KmlDocumentModelSource::paragraphCount() const {
-    if (!m_model) return 0;
-    return m_model->paragraphCount();
-}
-
-QString KmlDocumentModelSource::paragraphText(size_t index) const {
-    if (!m_model) return QString();
-    return m_model->paragraphText(index);
-}
-
-size_t KmlDocumentModelSource::paragraphLength(size_t index) const {
-    if (!m_model) return 0;
-    return m_model->paragraphLength(index);
-}
-
-QString KmlDocumentModelSource::plainText() const {
-    if (!m_model) return QString();
-    return m_model->plainText();
-}
-
-size_t KmlDocumentModelSource::characterCount() const {
-    if (!m_model) return 0;
-    return m_model->characterCount();
-}
-
-QTextLayout* KmlDocumentModelSource::layout(size_t index) const {
-    if (!m_model) return nullptr;
-    return m_model->layout(index);
-}
-
-bool KmlDocumentModelSource::hasLayout(size_t index) const {
-    if (!m_model) return false;
-    return m_model->isLayouted(index);
-}
-
-void KmlDocumentModelSource::ensureLayouted(size_t first, size_t last) {
-    if (m_model) {
-        m_model->ensureLayouted(first, last);
-    }
-}
-
-double KmlDocumentModelSource::paragraphY(size_t index) const {
-    if (!m_model) return 0.0;
-    return m_model->paragraphY(index);
-}
-
-double KmlDocumentModelSource::paragraphHeight(size_t index) const {
-    if (!m_model) return 20.0;
-    return m_model->paragraphHeight(index);
-}
-
-double KmlDocumentModelSource::totalHeight() const {
-    if (!m_model) return 0.0;
-    return m_model->totalHeight();
-}
-
-size_t KmlDocumentModelSource::paragraphAtY(double y) const {
-    if (!m_model) return 0;
-    return m_model->paragraphAtY(y);
-}
-
-void KmlDocumentModelSource::setTextWidth(double width) {
-    if (m_model) {
-        m_model->setLineWidth(width);
-    }
-}
-
-double KmlDocumentModelSource::textWidth() const {
-    if (!m_model) return 800.0;
-    return m_model->lineWidth();
-}
-
-void KmlDocumentModelSource::setFont(const QFont& font) {
-    if (m_model) {
-        m_model->setFont(font);
-    }
-}
-
-QFont KmlDocumentModelSource::font() const {
-    if (!m_model) return QFont();
-    return m_model->font();
 }
 
 }  // namespace kalahari::editor

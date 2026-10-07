@@ -20,11 +20,8 @@
 #include <vector>
 
 class QTextBlock;
-class QUndoStack;
 
 namespace kalahari::editor {
-
-// Phase 11.8: Removed FormatLayer forward declaration - no longer needed
 
 // =============================================================================
 // Search Options
@@ -193,20 +190,20 @@ public:
     void setOrigin(size_t start, size_t end);
 
     // =========================================================================
-    // Replace Operations (stubs for Task 9.5)
+    // Replace Operations
     // =========================================================================
 
-    /// @brief Replace current match with replacement text
-    /// @param undoStack Undo stack for operation (required)
+    /// @brief Replace current match with replacement text and go on to the next match
+    ///
+    /// The edit goes straight into the document, so its native undo records it.
     /// @return true if replacement was made
-    /// @note Phase 11.8: Removed formatLayer parameter - formatting in QTextCharFormat
-    bool replaceCurrent(QUndoStack* undoStack);
+    bool replaceCurrent();
 
     /// @brief Replace all matches with replacement text
-    /// @param undoStack Undo stack for operation (required)
+    ///
+    /// The edit goes straight into the document as one undo step.
     /// @return Number of replacements made
-    /// @note Phase 11.8: Removed formatLayer parameter - formatting in QTextCharFormat
-    int replaceAll(QUndoStack* undoStack);
+    int replaceAll();
 
     // =========================================================================
     // Highlight Access

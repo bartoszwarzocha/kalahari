@@ -2,7 +2,7 @@
 /// @brief KML Format Registry - Single source of truth for KML tag mappings (OpenSpec #00043)
 ///
 /// Provides centralized definitions for KML tag to QTextCharFormat mappings,
-/// used by both KmlParser and KmlSerializer to ensure consistency.
+/// used by both the KML reader (KmlDocumentModel) and KmlSerializer to ensure consistency.
 
 #pragma once
 
@@ -50,7 +50,7 @@ struct MetadataTagDef {
 /// @brief KML Format Registry - centralized tag/format mappings
 ///
 /// This namespace provides functions for converting between KML tags and
-/// QTextCharFormat properties. Both KmlParser and KmlSerializer should use
+/// QTextCharFormat properties. Both the KML reader and KmlSerializer should use
 /// these functions to ensure consistent behavior.
 namespace KmlFormatRegistry {
 

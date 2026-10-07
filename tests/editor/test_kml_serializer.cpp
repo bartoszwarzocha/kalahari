@@ -2,10 +2,11 @@
 /// @brief Unit tests for KmlSerializer (OpenSpec #00043 Phase 11.2.5)
 ///
 /// Tests the KmlSerializer that converts QTextDocument back to KML format.
-/// Focus on round-trip correctness: parse -> serialize -> parse should preserve content.
+/// Focus on round-trip correctness: load -> serialize -> load should preserve content. Loading
+/// goes through BookEditor::fromKml(), the path a chapter takes when it is opened.
 
 #include <catch2/catch_test_macros.hpp>
-#include <kalahari/editor/kml_parser.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <QTextDocument>
 #include <QTextCursor>
@@ -18,6 +19,26 @@
 #include <memory>
 
 using namespace kalahari::editor;
+
+namespace {
+
+/// The document the editor loads KML into, kept alive by the editor that owns it
+struct LoadedKml {
+    std::unique_ptr<BookEditor> editor;
+
+    QTextDocument* get() const { return editor->textDocument(); }
+    QTextDocument* operator->() const { return get(); }
+    bool operator!=(std::nullptr_t) const { return get() != nullptr; }
+};
+
+/// Load KML the way a chapter is opened (BookEditor::fromKml)
+LoadedKml loadKml(const QString& kml) {
+    LoadedKml loaded{std::make_unique<BookEditor>()};
+    loaded.editor->fromKml(kml);
+    return loaded;
+}
+
+}  // anonymous namespace
 
 // =============================================================================
 // Helper Functions
@@ -426,21 +447,20 @@ TEST_CASE("KmlSerializer - Footnote metadata", "[editor][kml_serializer][metadat
 // =============================================================================
 
 TEST_CASE("KmlSerializer - Round trip plain text", "[editor][kml_serializer][roundtrip]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Simple paragraph round-trip") {
         QString originalKml = "<kml><p>Hello world</p></kml>";
 
         // Parse
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         // Serialize
         QString serializedKml = serializer.toKml(doc.get());
 
         // Parse again
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         // Compare content
@@ -451,12 +471,12 @@ TEST_CASE("KmlSerializer - Round trip plain text", "[editor][kml_serializer][rou
     SECTION("Multiple paragraphs round-trip") {
         QString originalKml = "<kml><p>First</p><p>Second</p><p>Third</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(blockCount(doc.get()) == blockCount(doc2.get()));
@@ -467,18 +487,17 @@ TEST_CASE("KmlSerializer - Round trip plain text", "[editor][kml_serializer][rou
 }
 
 TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer][roundtrip]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Bold text round-trip") {
         QString originalKml = "<kml><p><b>bold text</b></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == getPlainText(doc2.get()));
@@ -491,12 +510,12 @@ TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer]
     SECTION("Italic text round-trip") {
         QString originalKml = "<kml><p><i>italic text</i></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt = getFormatAt(doc2.get(), 0);
@@ -506,12 +525,12 @@ TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer]
     SECTION("Mixed formatting round-trip") {
         QString originalKml = "<kml><p>Normal <b>bold</b> normal</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == getPlainText(doc2.get()));
@@ -529,12 +548,12 @@ TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer]
     SECTION("Subscript round-trip") {
         QString originalKml = "<kml><p>H<sub>2</sub>O</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == "H2O");
@@ -548,12 +567,12 @@ TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer]
     SECTION("Superscript round-trip") {
         QString originalKml = "<kml><p>x<sup>2</sup></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == "x2");
@@ -565,7 +584,6 @@ TEST_CASE("KmlSerializer - Round trip formatted text", "[editor][kml_serializer]
 }
 
 TEST_CASE("KmlSerializer - Round trip complex document", "[editor][kml_serializer][roundtrip]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Document with multiple formatting types") {
@@ -575,12 +593,12 @@ TEST_CASE("KmlSerializer - Round trip complex document", "[editor][kml_serialize
             <p><b><i>Bold italic</i></b> text</p>
         </kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(blockCount(doc.get()) == blockCount(doc2.get()));
@@ -589,18 +607,17 @@ TEST_CASE("KmlSerializer - Round trip complex document", "[editor][kml_serialize
 }
 
 TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][roundtrip]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Comment round-trip") {
         QString originalKml = R"(<kml><p>Text <comment id="c1" author="Jan">annotated</comment> text</p></kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == getPlainText(doc2.get()));
@@ -618,12 +635,12 @@ TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][round
     SECTION("Todo round-trip") {
         QString originalKml = R"(<kml><p><todo id="t1" completed="true">done task</todo></p></kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt = getFormatAt(doc2.get(), 0);
@@ -638,12 +655,12 @@ TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][round
     SECTION("Footnote round-trip") {
         QString originalKml = R"(<kml><p>Text<footnote id="f1" number="1">note</footnote></p></kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         // "Text" = 4 chars, "note" starts at position 4
@@ -663,8 +680,6 @@ TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][round
 
 TEST_CASE("KmlSerializer - XML special characters", "[editor][kml_serializer][edge]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("Less than and greater than escaped") {
         std::unique_ptr<QTextDocument> doc(createDocWithText("<tag>"));
         QString kml = serializer.toKml(doc.get());
@@ -690,13 +705,13 @@ TEST_CASE("KmlSerializer - XML special characters", "[editor][kml_serializer][ed
     SECTION("Special characters round-trip") {
         QString originalKml = "<kml><p>&lt;tag&gt; &amp; &quot;text&quot;</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
         REQUIRE(getPlainText(doc.get()) == "<tag> & \"text\"");
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == "<tag> & \"text\"");
     }
@@ -704,17 +719,15 @@ TEST_CASE("KmlSerializer - XML special characters", "[editor][kml_serializer][ed
 
 TEST_CASE("KmlSerializer - Empty paragraphs", "[editor][kml_serializer][edge]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("Empty paragraph preserved") {
         QString originalKml = "<kml><p>First</p><p></p><p>Third</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(blockCount(doc.get()) == blockCount(doc2.get()));
@@ -726,15 +739,13 @@ TEST_CASE("KmlSerializer - Empty paragraphs", "[editor][kml_serializer][edge]") 
 
 TEST_CASE("KmlSerializer - Unicode text", "[editor][kml_serializer][edge]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("Polish characters round-trip") {
         QString polishText = QString::fromUtf8("Zażółć gęślą jaźń");
         std::unique_ptr<QTextDocument> doc(createDocWithText(polishText));
 
         QString kml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == polishText);
     }
@@ -745,7 +756,7 @@ TEST_CASE("KmlSerializer - Unicode text", "[editor][kml_serializer][edge]") {
 
         QString kml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == chineseText);
     }
@@ -756,7 +767,7 @@ TEST_CASE("KmlSerializer - Unicode text", "[editor][kml_serializer][edge]") {
 
         QString kml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == emojiText);
     }
@@ -767,7 +778,7 @@ TEST_CASE("KmlSerializer - Unicode text", "[editor][kml_serializer][edge]") {
 
         QString kml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == mixedText);
     }
@@ -775,17 +786,15 @@ TEST_CASE("KmlSerializer - Unicode text", "[editor][kml_serializer][edge]") {
 
 TEST_CASE("KmlSerializer - Whitespace preservation", "[editor][kml_serializer][edge]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("Leading spaces preserved") {
         QString originalKml = "<kml><p>   Leading spaces</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == "   Leading spaces");
     }
@@ -793,12 +802,12 @@ TEST_CASE("KmlSerializer - Whitespace preservation", "[editor][kml_serializer][e
     SECTION("Trailing spaces preserved") {
         QString originalKml = "<kml><p>Trailing spaces   </p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == "Trailing spaces   ");
     }
@@ -806,12 +815,12 @@ TEST_CASE("KmlSerializer - Whitespace preservation", "[editor][kml_serializer][e
     SECTION("Multiple internal spaces preserved") {
         QString originalKml = "<kml><p>Multiple   spaces   here</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == "Multiple   spaces   here");
     }
@@ -819,12 +828,12 @@ TEST_CASE("KmlSerializer - Whitespace preservation", "[editor][kml_serializer][e
     SECTION("Tabs preserved") {
         QString originalKml = "<kml><p>Tab\there\tthere</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(getPlainText(doc2.get()) == "Tab\there\tthere");
     }
@@ -948,8 +957,6 @@ TEST_CASE("KmlSerializer - Serializer reusability", "[editor][kml_serializer][re
 
 TEST_CASE("KmlSerializer - Performance sanity", "[editor][kml_serializer][performance]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("Serialize 100 paragraphs") {
         QTextDocument doc;
         QTextCursor cursor(&doc);
@@ -973,12 +980,12 @@ TEST_CASE("KmlSerializer - Performance sanity", "[editor][kml_serializer][perfor
         }
         originalKml += "</kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(blockCount(doc.get()) == blockCount(doc2.get()));
@@ -1006,20 +1013,18 @@ TEST_CASE("KmlSerializer - Performance sanity", "[editor][kml_serializer][perfor
 
 TEST_CASE("KmlSerializer - All formatting combinations", "[editor][kml_serializer][comprehensive]") {
     KmlSerializer serializer;
-    KmlParser parser;
-
     SECTION("All basic formats in one document") {
         QString originalKml = R"(<kml>
             <p><b>Bold</b> <i>Italic</i> <u>Underline</u> <s>Strike</s></p>
             <p>H<sub>2</sub>O and x<sup>2</sup></p>
         </kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         REQUIRE(getPlainText(doc.get()) == getPlainText(doc2.get()));
@@ -1028,12 +1033,12 @@ TEST_CASE("KmlSerializer - All formatting combinations", "[editor][kml_serialize
     SECTION("Nested formatting preserved") {
         QString originalKml = "<kml><p><b><i>bold italic</i></b></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt = getFormatAt(doc2.get(), 0);
@@ -1044,12 +1049,12 @@ TEST_CASE("KmlSerializer - All formatting combinations", "[editor][kml_serialize
     SECTION("Three-level nesting preserved") {
         QString originalKml = "<kml><p><b><i><u>formatted</u></i></b></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(originalKml));
+        const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(serializedKml));
+        const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt = getFormatAt(doc2.get(), 0);
@@ -1064,7 +1069,6 @@ TEST_CASE("KmlSerializer - All formatting combinations", "[editor][kml_serialize
 // =============================================================================
 
 TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Center alignment survives round-trip") {
@@ -1078,7 +1082,7 @@ TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roun
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("align=\"center\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignHCenter);
         REQUIRE(getPlainText(doc2.get()) == "Centered text");
@@ -1095,7 +1099,7 @@ TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roun
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("align=\"right\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignRight);
     }
@@ -1111,7 +1115,7 @@ TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roun
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("align=\"justify\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(doc2->begin().blockFormat().alignment() == Qt::AlignJustify);
     }
@@ -1136,14 +1140,13 @@ TEST_CASE("KmlSerializer - Alignment round-trip", "[editor][kml_serializer][roun
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("align=\"left\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
         REQUIRE(doc2->begin().blockFormat().intProperty(QTextFormat::BlockAlignment) == Qt::AlignLeft);
     }
 }
 
 TEST_CASE("KmlSerializer - Font family round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Custom font family survives round-trip") {
@@ -1156,7 +1159,7 @@ TEST_CASE("KmlSerializer - Font family round-trip", "[editor][kml_serializer][ro
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("font=\"Courier New\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1174,7 +1177,7 @@ TEST_CASE("KmlSerializer - Font family round-trip", "[editor][kml_serializer][ro
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("<b font=\"Courier New\">Bold mono</b>"));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1184,7 +1187,6 @@ TEST_CASE("KmlSerializer - Font family round-trip", "[editor][kml_serializer][ro
 }
 
 TEST_CASE("KmlSerializer - Font size round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Custom font size survives round-trip") {
@@ -1197,7 +1199,7 @@ TEST_CASE("KmlSerializer - Font size round-trip", "[editor][kml_serializer][roun
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("size=\"24\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1206,7 +1208,6 @@ TEST_CASE("KmlSerializer - Font size round-trip", "[editor][kml_serializer][roun
 }
 
 TEST_CASE("KmlSerializer - Text color round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Red text color survives round-trip") {
@@ -1219,7 +1220,7 @@ TEST_CASE("KmlSerializer - Text color round-trip", "[editor][kml_serializer][rou
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("color=\"#ff0000\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1239,7 +1240,6 @@ TEST_CASE("KmlSerializer - Text color round-trip", "[editor][kml_serializer][rou
 }
 
 TEST_CASE("KmlSerializer - Background color round-trip", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Yellow background survives round-trip") {
@@ -1252,7 +1252,7 @@ TEST_CASE("KmlSerializer - Background color round-trip", "[editor][kml_serialize
         QString kml = serializer.toKml(&doc);
         REQUIRE(kml.contains("bg=\"#ffff00\""));
 
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1261,7 +1261,6 @@ TEST_CASE("KmlSerializer - Background color round-trip", "[editor][kml_serialize
 }
 
 TEST_CASE("KmlSerializer - Span wrapper for style-only text", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Text with color but no B/I/U/S uses <span>") {
@@ -1292,7 +1291,7 @@ TEST_CASE("KmlSerializer - Span wrapper for style-only text", "[editor][kml_seri
         REQUIRE(kml.contains("</span>"));
 
         // Round-trip
-        std::unique_ptr<QTextDocument> doc2(parser.parseKml(kml));
+        const LoadedKml doc2 = loadKml(kml);
         REQUIRE(doc2 != nullptr);
 
         QTextCharFormat fmt2 = getFormatAt(doc2.get(), 0);
@@ -1303,13 +1302,12 @@ TEST_CASE("KmlSerializer - Span wrapper for style-only text", "[editor][kml_seri
 }
 
 TEST_CASE("KmlSerializer - Backward compatibility", "[editor][kml_serializer][roundtrip][00044A]") {
-    KmlParser parser;
     KmlSerializer serializer;
 
     SECTION("Old KML without style attributes loads correctly") {
         QString oldKml = "<kml><p><b>bold</b> and <i>italic</i></p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(oldKml));
+        const LoadedKml doc = loadKml(oldKml);
         REQUIRE(doc != nullptr);
         REQUIRE(getPlainText(doc.get()) == "bold and italic");
 
@@ -1323,7 +1321,7 @@ TEST_CASE("KmlSerializer - Backward compatibility", "[editor][kml_serializer][ro
     SECTION("Old KML without align attribute loads without errors") {
         QString oldKml = "<kml><p>No alignment</p><p>Second paragraph</p></kml>";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(oldKml));
+        const LoadedKml doc = loadKml(oldKml);
         REQUIRE(doc != nullptr);
         REQUIRE(blockCount(doc.get()) == 2);
         REQUIRE(getPlainText(doc.get()).contains("No alignment"));
@@ -1332,7 +1330,7 @@ TEST_CASE("KmlSerializer - Backward compatibility", "[editor][kml_serializer][ro
     SECTION("Mixed old and new KML tags") {
         QString mixedKml = R"(<kml><p><b>old bold</b></p><p align="center"><b font="Arial">new styled</b></p></kml>)";
 
-        std::unique_ptr<QTextDocument> doc(parser.parseKml(mixedKml));
+        const LoadedKml doc = loadKml(mixedKml);
         REQUIRE(doc != nullptr);
         REQUIRE(blockCount(doc.get()) == 2);
 

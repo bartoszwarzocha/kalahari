@@ -3,8 +3,6 @@
 
 #include "kalahari/gui/panels/comments_panel.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
-#include "kalahari/editor/kml_paragraph.h"
 #include "kalahari/editor/kml_comment.h"
 #include "kalahari/core/logger.h"
 #include <QListWidget>

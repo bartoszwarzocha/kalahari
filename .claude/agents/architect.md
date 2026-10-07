@@ -161,8 +161,8 @@ Grep("ClassName", path="src", output_mode="files_with_matches")
 | Icon handling | `src/core/art_provider.cpp` |
 | Theme handling | `src/core/theme_manager.cpp` |
 | Editor widget | `src/editor/book_editor.cpp` |
-| Editor rendering | `src/editor/editor_render_pipeline.cpp`, `src/editor/paragraph_layout.cpp` |
-| Editor document model | `src/editor/kml_document_model.cpp`, `src/editor/kml_document.cpp` |
+| Editor rendering | `src/editor/editor_render_pipeline.cpp`, `src/editor/kalahari_text_document_layout.cpp` |
+| Editor KML (read / write) | `src/editor/kml_document_model.cpp`, `src/editor/kml_serializer.cpp` |
 
 ---
 

@@ -1,56 +1,19 @@
 /// @file kml_document_model.cpp
-/// @brief Lightweight document model with lazy rendering (OpenSpec #00043)
+/// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
-/// Implementation of KmlDocumentModel for fast document loading and
-/// viewport-only rendering using QTextLayout.
+/// Reads KML in a single streaming pass, by the format rules of KmlFormatRegistry.
 
 #include "kalahari/editor/kml_document_model.h"
-#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/text_statistics.h"
 
 #include <QXmlStreamReader>
-#include <QFontMetricsF>
-#include <QTextFormat>
-#include <QTextLine>
-#include <QTextOption>
-
-#include <algorithm>
-#include <cmath>
 
 namespace kalahari {
 namespace editor {
 
 // Static member initialization
 const std::vector<FormatRun> KmlDocumentModel::s_emptyFormats;
-
-// =============================================================================
-// Constructor / Destructor
-// =============================================================================
-
-KmlDocumentModel::KmlDocumentModel(QObject* parent)
-    : QObject(parent)
-    , m_paragraphs()
-    , m_heightTree()
-    , m_font()
-    , m_lineWidth(800.0)
-    , m_estimatedLineHeight(20.0)
-    , m_charsPerLine(80.0)
-{
-    // Set default font
-    m_font = QFont(QStringLiteral("Segoe UI"), 11);
-
-    // Calculate chars per line from font metrics
-    QFontMetricsF fm(m_font);
-    double avgCharWidth = fm.averageCharWidth();
-    if (avgCharWidth > 0) {
-        m_charsPerLine = m_lineWidth / avgCharWidth;
-    }
-    m_estimatedLineHeight = fm.height();
-}
-
-KmlDocumentModel::~KmlDocumentModel() = default;
 
 // =============================================================================
 // Document Loading
@@ -65,7 +28,6 @@ bool KmlDocumentModel::loadKml(const QString& kml)
     clear();
 
     if (kml.isEmpty()) {
-        emit documentLoaded();
         return true;
     }
 
@@ -79,7 +41,6 @@ bool KmlDocumentModel::loadKml(const QString& kml)
 
     if (reader.atEnd()) {
         logger.warn("KmlDocumentModel::loadKml: No root element found");
-        emit documentLoaded();
         return true;
     }
 
@@ -122,49 +83,13 @@ bool KmlDocumentModel::loadKml(const QString& kml)
         return false;
     }
 
-    // Initialize height tree with estimated heights and calculate statistics
-    size_t count = m_paragraphs.size();
-    m_cachedCharCount = 0;
-    m_cachedWordCount = 0;
-    m_cachedCharCountNoSpaces = 0;
-
-    if (count > 0) {
-        m_heightTree.resize(count, m_estimatedLineHeight);
-
-        // Update with better estimates based on text length and calculate stats
-        for (size_t i = 0; i < count; ++i) {
-            const QString& text = m_paragraphs[i].text;
-
-            // Height estimation
-            double height = estimateHeight(text);
-            m_heightTree.setHeight(i, height);
-
-            // Character count
-            m_cachedCharCount += static_cast<size_t>(text.length());
-
-            // Word count and character count without spaces
-            const core::TextCounts counts = core::countText(text);
-            m_cachedWordCount += static_cast<size_t>(counts.words);
-            m_cachedCharCountNoSpaces += static_cast<size_t>(counts.nonSpaceCharacters);
-        }
-    }
-
-    logger.debug("KmlDocumentModel::loadKml: Loaded {} paragraphs, {} chars, {} words, total height: {}",
-                count, m_cachedCharCount, m_cachedWordCount, m_heightTree.totalHeight());
-
-    emit documentLoaded();
-    emit totalHeightChanged(m_heightTree.totalHeight());
-
+    logger.debug("KmlDocumentModel::loadKml: Loaded {} paragraphs", m_paragraphs.size());
     return true;
 }
 
 void KmlDocumentModel::clear()
 {
     m_paragraphs.clear();
-    m_heightTree.clear();
-    m_cachedCharCount = 0;
-    m_cachedWordCount = 0;
-    m_cachedCharCountNoSpaces = 0;
 }
 
 bool KmlDocumentModel::isEmpty() const
@@ -205,238 +130,6 @@ Qt::Alignment KmlDocumentModel::paragraphAlignment(size_t index) const
     return m_paragraphs[index].alignment;
 }
 
-QString KmlDocumentModel::plainText() const
-{
-    QString result;
-    for (size_t i = 0; i < m_paragraphs.size(); ++i) {
-        if (i > 0) {
-            result += QLatin1Char('\n');
-        }
-        result += m_paragraphs[i].text;
-    }
-    return result;
-}
-
-size_t KmlDocumentModel::paragraphLength(size_t index) const
-{
-    if (index >= m_paragraphs.size()) {
-        return 0;
-    }
-    return static_cast<size_t>(m_paragraphs[index].text.length());
-}
-
-size_t KmlDocumentModel::characterCount() const
-{
-    return m_cachedCharCount;
-}
-
-size_t KmlDocumentModel::wordCount() const
-{
-    return m_cachedWordCount;
-}
-
-size_t KmlDocumentModel::characterCountNoSpaces() const
-{
-    return m_cachedCharCountNoSpaces;
-}
-
-// =============================================================================
-// Height Queries
-// =============================================================================
-
-double KmlDocumentModel::paragraphY(size_t index) const
-{
-    return m_heightTree.prefixSum(index);
-}
-
-double KmlDocumentModel::paragraphHeight(size_t index) const
-{
-    if (index >= m_heightTree.size()) {
-        return 0.0;
-    }
-    return m_heightTree.height(index);
-}
-
-double KmlDocumentModel::totalHeight() const
-{
-    return m_heightTree.totalHeight();
-}
-
-size_t KmlDocumentModel::paragraphAtY(double y) const
-{
-    return m_heightTree.findIndexForY(y);
-}
-
-// =============================================================================
-// Lazy Layout
-// =============================================================================
-
-void KmlDocumentModel::ensureLayouted(size_t first, size_t last)
-{
-    if (m_paragraphs.empty()) {
-        return;
-    }
-
-    // Clamp range
-    first = std::min(first, m_paragraphs.size() - 1);
-    last = std::min(last, m_paragraphs.size() - 1);
-
-    for (size_t i = first; i <= last; ++i) {
-        if (!m_paragraphs[i].layoutValid) {
-            createLayout(i);
-        }
-    }
-}
-
-QTextLayout* KmlDocumentModel::layout(size_t index) const
-{
-    if (index >= m_paragraphs.size()) {
-        return nullptr;
-    }
-    return m_paragraphs[index].layout.get();
-}
-
-bool KmlDocumentModel::isLayouted(size_t index) const
-{
-    if (index >= m_paragraphs.size()) {
-        return false;
-    }
-    return m_paragraphs[index].layoutValid;
-}
-
-void KmlDocumentModel::invalidateLayout(size_t index)
-{
-    if (index >= m_paragraphs.size()) {
-        return;
-    }
-
-    m_paragraphs[index].layout.reset();
-    m_paragraphs[index].layoutValid = false;
-
-    // Update height tree with estimate
-    double height = estimateHeight(m_paragraphs[index].text);
-    double oldHeight = m_heightTree.height(index);
-    if (std::abs(height - oldHeight) > 0.01) {
-        m_heightTree.setHeight(index, height);
-        emit paragraphHeightChanged(index, height);
-        emit totalHeightChanged(m_heightTree.totalHeight());
-    }
-}
-
-void KmlDocumentModel::invalidateAllLayouts()
-{
-    for (size_t i = 0; i < m_paragraphs.size(); ++i) {
-        m_paragraphs[i].layout.reset();
-        m_paragraphs[i].layoutValid = false;
-    }
-
-    // Recalculate all heights
-    for (size_t i = 0; i < m_paragraphs.size(); ++i) {
-        double height = estimateHeight(m_paragraphs[i].text);
-        m_heightTree.setHeight(i, height);
-    }
-
-    emit totalHeightChanged(m_heightTree.totalHeight());
-}
-
-void KmlDocumentModel::evictLayouts(size_t keepFirst, size_t keepLast)
-{
-    if (m_paragraphs.empty()) {
-        return;
-    }
-
-    // Clamp range
-    keepFirst = std::min(keepFirst, m_paragraphs.size() - 1);
-    keepLast = std::min(keepLast, m_paragraphs.size() - 1);
-
-    // Evict layouts before keepFirst
-    for (size_t i = 0; i < keepFirst; ++i) {
-        if (m_paragraphs[i].layout) {
-            m_paragraphs[i].layout.reset();
-            // Keep layoutValid true - height is accurate
-        }
-    }
-
-    // Evict layouts after keepLast
-    for (size_t i = keepLast + 1; i < m_paragraphs.size(); ++i) {
-        if (m_paragraphs[i].layout) {
-            m_paragraphs[i].layout.reset();
-            // Keep layoutValid true - height is accurate
-        }
-    }
-}
-
-// =============================================================================
-// Configuration
-// =============================================================================
-
-void KmlDocumentModel::setFont(const QFont& font)
-{
-    if (m_font != font) {
-        m_font = font;
-
-        // Update chars per line estimate
-        QFontMetricsF fm(m_font);
-        double avgCharWidth = fm.averageCharWidth();
-        if (avgCharWidth > 0) {
-            m_charsPerLine = m_lineWidth / avgCharWidth;
-        }
-        m_estimatedLineHeight = fm.height();
-
-        // Invalidate all layouts
-        invalidateAllLayouts();
-    }
-}
-
-QFont KmlDocumentModel::font() const
-{
-    return m_font;
-}
-
-void KmlDocumentModel::setLineWidth(double width)
-{
-    // Guard: prevent negative or too small values
-    width = std::max(100.0, width);
-
-    if (std::abs(m_lineWidth - width) > 0.01) {
-        m_lineWidth = width;
-
-        // Update chars per line estimate
-        QFontMetricsF fm(m_font);
-        double avgCharWidth = fm.averageCharWidth();
-        if (avgCharWidth > 0) {
-            m_charsPerLine = m_lineWidth / avgCharWidth;
-        }
-
-        // Invalidate all layouts
-        invalidateAllLayouts();
-    }
-}
-
-double KmlDocumentModel::lineWidth() const
-{
-    return m_lineWidth;
-}
-
-void KmlDocumentModel::setEstimatedLineHeight(double height)
-{
-    m_estimatedLineHeight = height;
-}
-
-void KmlDocumentModel::setTextColor(const QColor& color)
-{
-    if (m_textColor != color) {
-        m_textColor = color;
-        // Invalidate all layouts so they get recreated with new color
-        invalidateAllLayouts();
-    }
-}
-
-QColor KmlDocumentModel::textColor() const
-{
-    return m_textColor;
-}
-
 // =============================================================================
 // Private Methods
 // =============================================================================
@@ -472,8 +165,6 @@ void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph
 
     para.text = text;
     para.formats = std::move(formats);
-    para.layout.reset();
-    para.layoutValid = false;
 }
 
 void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
@@ -548,113 +239,6 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
             reader.readNext();
         }
     }
-}
-
-void KmlDocumentModel::createLayout(size_t index)
-{
-    if (index >= m_paragraphs.size()) {
-        return;
-    }
-
-    Paragraph& para = m_paragraphs[index];
-
-    // Create QTextLayout
-    para.layout = std::make_unique<QTextLayout>(para.text, m_font);
-
-    // Apply formats with text color
-    applyFormats(para.layout.get(), para.formats, para.text.length());
-
-    // Set text option with alignment
-    QTextOption textOption;
-    textOption.setAlignment(effectiveAlignment(para.alignment));
-    textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    para.layout->setTextOption(textOption);
-
-    // Perform layout
-    para.layout->beginLayout();
-
-    double y = 0;
-    while (true) {
-        QTextLine line = para.layout->createLine();
-        if (!line.isValid()) {
-            break;
-        }
-
-        line.setLineWidth(m_lineWidth);
-        line.setPosition(QPointF(0, y));
-        y += line.height();
-    }
-
-    para.layout->endLayout();
-    para.layoutValid = true;
-
-    // Update height tree with actual height
-    double actualHeight = para.layout->boundingRect().height();
-    if (actualHeight < 1.0) {
-        actualHeight = m_estimatedLineHeight;  // Minimum height for empty paragraphs
-    }
-
-    double oldHeight = m_heightTree.height(index);
-    if (std::abs(actualHeight - oldHeight) > 0.01) {
-        m_heightTree.setHeight(index, actualHeight);
-        emit paragraphHeightChanged(index, actualHeight);
-        emit totalHeightChanged(m_heightTree.totalHeight());
-    }
-}
-
-double KmlDocumentModel::estimateHeight(const QString& text) const
-{
-    if (text.isEmpty()) {
-        return m_estimatedLineHeight;
-    }
-
-    // Estimate number of lines
-    double numLines = std::ceil(static_cast<double>(text.length()) / m_charsPerLine);
-    if (numLines < 1.0) {
-        numLines = 1.0;
-    }
-
-    return numLines * m_estimatedLineHeight;
-}
-
-void KmlDocumentModel::applyFormats(QTextLayout* layout, const std::vector<FormatRun>& formats, int textLength) const
-{
-    if (!layout) {
-        return;
-    }
-
-    QList<QTextLayout::FormatRange> ranges;
-
-    // First, add a base format covering all text with the text color
-    // This ensures unformatted text gets the correct color
-    if (textLength > 0) {
-        QTextLayout::FormatRange baseRange;
-        baseRange.start = 0;
-        baseRange.length = textLength;
-        baseRange.format.setForeground(m_textColor);
-        ranges.append(baseRange);
-    }
-
-    // Then add the specific format ranges
-    ranges.reserve(static_cast<int>(formats.size()) + 1);
-
-    for (const FormatRun& run : formats) {
-        if (run.start >= run.end) {
-            continue;
-        }
-
-        QTextLayout::FormatRange range;
-        range.start = static_cast<int>(run.start);
-        range.length = static_cast<int>(run.end - run.start);
-        range.format = run.format;
-        // Ensure text color is set if not already specified
-        if (!range.format.hasProperty(QTextFormat::ForegroundBrush)) {
-            range.format.setForeground(m_textColor);
-        }
-        ranges.append(range);
-    }
-
-    layout->setFormats(ranges);
 }
 
 } // namespace editor

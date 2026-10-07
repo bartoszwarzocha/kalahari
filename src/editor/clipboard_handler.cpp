@@ -1,6 +1,5 @@
 /// @file clipboard_handler.cpp
 /// @brief Clipboard operations implementation (OpenSpec #00042 Phase 4.13-4.16)
-/// Phase 11: Removed KmlDocument-dependent methods (use BookEditor API instead)
 
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_format_registry.h>

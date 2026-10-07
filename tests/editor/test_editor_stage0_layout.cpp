@@ -49,7 +49,7 @@ QFont testFont() {
     return font;
 }
 
-/// A QTextDocument wired exactly like BookEditor::ensureEditMode() wires it.
+/// A QTextDocument wired exactly like BookEditor::createDocument() wires it.
 struct LaidOutDocument {
     std::unique_ptr<QTextDocument> doc = std::make_unique<QTextDocument>();
     KalahariTextDocumentLayout* layout = nullptr;

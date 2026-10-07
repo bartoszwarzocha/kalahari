@@ -2,11 +2,9 @@
 /// @brief Search engine implementation for Find/Replace operations (OpenSpec #00044 Task 9.4)
 
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/editor/buffer_commands.h>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QRegularExpression>
-#include <QUndoStack>
 #include <algorithm>
 #include <iterator>
 
@@ -239,7 +237,7 @@ void SearchEngine::setOrigin(size_t start, size_t end) {
 // Replace Operations (Task 9.5)
 // =============================================================================
 
-bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
+bool SearchEngine::replaceCurrent() {
     if (!m_document || m_currentMatchIndex < 0 ||
         m_currentMatchIndex >= static_cast<int>(m_matches.size())) {
         return false;
@@ -248,24 +246,11 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
     // A copy: the edit below updates m_matches
     const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
-    if (undoStack) {
-        // Create cursor positions from match
-        CursorPosition startPos = absoluteToCursorPosition(
-            m_document, static_cast<int>(match.start));
-        CursorPosition endPos = absoluteToCursorPosition(
-            m_document, static_cast<int>(match.end()));
-
-        // Push replacement command to undo stack
-        undoStack->push(new TextReplaceCommand(
-            m_document, startPos, endPos, match.matchedText, m_replaceText));
-    } else {
-        // Direct replacement without undo (fallback)
-        // Phase 11.6: Use QTextCursor for direct document modification
-        QTextCursor cursor(m_document);
-        cursor.setPosition(static_cast<int>(match.start));
-        cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-        cursor.insertText(m_replaceText);
-    }
+    // A direct edit, recorded by the document's native undo
+    QTextCursor cursor(m_document);
+    cursor.setPosition(static_cast<int>(match.start));
+    cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+    cursor.insertText(m_replaceText);
 
     // The matches have followed the edit (searched again here if the document reports
     // no edited ranges); go on with the match after the replaced text
@@ -284,7 +269,7 @@ bool SearchEngine::replaceCurrent(QUndoStack* undoStack) {
     return true;
 }
 
-int SearchEngine::replaceAll(QUndoStack* undoStack) {
+int SearchEngine::replaceAll() {
     // Ensure matches are up to date
     if (m_matchesDirty) {
         rebuildMatches();
@@ -296,40 +281,17 @@ int SearchEngine::replaceAll(QUndoStack* undoStack) {
 
     const int count = static_cast<int>(m_matches.size());
 
-    if (undoStack) {
-        // Build replacements list for ReplaceAllCommand
-        std::vector<ReplaceAllCommand::Replacement> replacements;
-        replacements.reserve(m_matches.size());
-
-        for (const auto& match : m_matches) {
-            ReplaceAllCommand::Replacement repl;
-            repl.startPos = static_cast<int>(match.start);
-            repl.endPos = static_cast<int>(match.end());
-            repl.oldText = match.matchedText;
-            repl.newText = m_replaceText;
-            replacements.push_back(repl);
-        }
-
-        // Create cursor position from first match
-        CursorPosition cursor = absoluteToCursorPosition(
-            m_document, static_cast<int>(m_matches[0].start));
-
-        // Push replace all command to undo stack
-        undoStack->push(new ReplaceAllCommand(
-            m_document, cursor, replacements));
-    } else {
-        // Direct replacement — recorded by QTextDocument's native undo as ONE step
-        // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.
-        QTextCursor cursor(m_document);
-        cursor.beginEditBlock();
-        for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
-            const SearchMatch& match = *it;
-            cursor.setPosition(static_cast<int>(match.start));
-            cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-            cursor.insertText(m_replaceText);
-        }
-        cursor.endEditBlock();
+    // Direct replacement — recorded by QTextDocument's native undo as ONE step
+    // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.
+    QTextCursor cursor(m_document);
+    cursor.beginEditBlock();
+    for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
+        const SearchMatch& match = *it;
+        cursor.setPosition(static_cast<int>(match.start));
+        cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+        cursor.insertText(m_replaceText);
     }
+    cursor.endEditBlock();
 
     // The matches have followed the edit (searched again here if the document reports
     // no edited ranges)

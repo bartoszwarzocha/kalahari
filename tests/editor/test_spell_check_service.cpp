@@ -6,7 +6,6 @@
 
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/kml_document.h"
 
 using namespace kalahari::editor;
 

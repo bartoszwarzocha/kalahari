@@ -1,9 +1,9 @@
 /// @file test_editor_stage0_kml_roundtrip.cpp
 /// @brief Stage 0 safety net: KML load/save through the REAL BookEditor path
 ///
-/// Every test drives BookEditor::fromKml() (KmlDocumentModel parse -> ensureEditMode()
+/// Every test drives BookEditor::fromKml() (KmlDocumentModel parse -> createDocument()
 /// QTextDocument build) and BookEditor::toKml() (KmlSerializer). Nothing here exercises
-/// KmlParser/KmlSerializer in isolation - those have their own unit tests. The point is
+/// KmlSerializer in isolation - it has its own unit tests. The point is
 /// to pin down what survives the path the application actually uses when a chapter is
 /// opened and saved.
 ///

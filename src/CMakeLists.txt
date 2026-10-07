@@ -6,26 +6,11 @@ set(KALAHARI_CORE_SOURCES
     core/settings_manager.cpp
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp
-    editor/kml_element.cpp
-    editor/kml_text_run.cpp
-    editor/kml_inline_elements.cpp
-    editor/kml_paragraph.cpp
-    editor/kml_document.cpp
-    editor/kml_parser.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
-    editor/kml_table.cpp    # Phase 1.12: Table elements
     editor/kml_comment.cpp  # Phase 7.8: Comments feature
-    editor/paragraph_layout.cpp  # Phase 2.1: Paragraph layout
-    editor/format_converter.cpp  # Phase 2.2: Format conversion
-    editor/table_layout.cpp      # Phase 2.6: Table layout
-    # Phase 11.8: Removed text_buffer.cpp, lazy_layout_manager.cpp, format_layer.cpp, kml_converter.cpp
-    # Phase 11.9: Removed virtual_scroll_manager.cpp, layout_manager.cpp, page_layout_manager.cpp
-    # Replaced with QTextDocument + KmlParser/KmlSerializer
-    editor/height_tree.cpp             # OpenSpec #00043: B-tree for line heights
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
-    editor/view_modes.cpp              # Phase 5: View mode registry
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
@@ -187,7 +172,7 @@ set(KALAHARI_SOURCES
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
-    editor/buffer_commands.cpp  # OpenSpec #00043 Phase 9: Buffer/FormatLayer undo commands
+    editor/buffer_commands.cpp  # Cursor position and marker helpers
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
@@ -201,8 +186,7 @@ set(KALAHARI_SOURCES
     editor/snapshot_manager.cpp          # Task 7.13: Snapshot (restore points) manager
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
-    editor/search_service.cpp            # OpenSpec #00043 Phase 11.7: QTextDocument-based search service
-    editor/kml_document_model.cpp        # OpenSpec #00043: Lazy rendering document model
+    editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
@@ -257,8 +241,6 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/snapshot_manager.h      # SnapshotManager with Q_OBJECT (OpenSpec #00042 Task 7.13)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_service.h     # SearchSession with Q_OBJECT (OpenSpec #00043 Phase 11.7)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kml_document_model.h  # KmlDocumentModel with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h       # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_benchmark.h            # EditorBenchmark with Q_OBJECT (OpenSpec #00043 Phase 11.11)

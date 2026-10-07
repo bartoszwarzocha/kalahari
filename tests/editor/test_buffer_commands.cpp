@@ -1,11 +1,8 @@
 /// @file test_buffer_commands.cpp
-/// @brief Unit tests for Buffer Commands (OpenSpec #00043 Phase 11.5)
+/// @brief Unit tests for the cursor position and marker helpers of buffer_commands.h
 ///
-/// Tests for the simplified QTextDocument-based undo/redo commands:
 /// - Helper functions (position calculations)
 /// - TextMarker serialization
-/// - MarkerAddCommand / MarkerRemoveCommand / MarkerToggleCommand
-/// - CompositeDocumentCommand
 /// - Marker utility functions
 
 #include <catch2/catch_test_macros.hpp>
@@ -13,7 +10,6 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <QTextDocument>
 #include <QTextCursor>
-#include <QUndoStack>
 
 using namespace kalahari::editor;
 
@@ -201,246 +197,6 @@ TEST_CASE("TextMarker serialization", "[editor][buffer_commands][marker]") {
 }
 
 // =============================================================================
-// MarkerAddCommand Tests
-// =============================================================================
-
-TEST_CASE("MarkerAddCommand basic operations", "[editor][buffer_commands]") {
-    QTextDocument document;
-    document.setPlainText(QStringLiteral("Hello World"));
-    QUndoStack undoStack;
-
-    SECTION("Add TODO marker") {
-        TextMarker marker;
-        marker.position = 0;
-        marker.length = 5;
-        marker.text = QStringLiteral("Check this");
-        marker.type = MarkerType::Todo;
-        marker.id = TextMarker::generateId();
-
-        CursorPosition cursor{0, 0};
-        undoStack.push(new MarkerAddCommand(&document, cursor, marker));
-
-        // Verify marker was added
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-        REQUIRE(markers[0].text == QStringLiteral("Check this"));
-        REQUIRE(markers[0].type == MarkerType::Todo);
-
-        // Undo
-        undoStack.undo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.empty());
-
-        // Redo
-        undoStack.redo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-    }
-
-    SECTION("Add Note marker") {
-        TextMarker marker;
-        marker.position = 6;
-        marker.length = 5;
-        marker.text = QStringLiteral("World is here");
-        marker.type = MarkerType::Note;
-        marker.id = TextMarker::generateId();
-
-        CursorPosition cursor{0, 6};
-        undoStack.push(new MarkerAddCommand(&document, cursor, marker));
-
-        auto markers = findAllMarkers(&document, MarkerType::Note);
-        REQUIRE(markers.size() == 1);
-        REQUIRE(markers[0].type == MarkerType::Note);
-    }
-
-    SECTION("Cursor position preserved") {
-        TextMarker marker;
-        marker.position = 3;
-        marker.length = 2;
-        marker.id = TextMarker::generateId();
-
-        CursorPosition cursor{0, 5};
-        auto* cmd = new MarkerAddCommand(&document, cursor, marker);
-        undoStack.push(cmd);
-
-        REQUIRE(cmd->cursorBefore().paragraph == 0);
-        REQUIRE(cmd->cursorBefore().offset == 5);
-        REQUIRE(cmd->cursorAfter().paragraph == 0);
-        REQUIRE(cmd->cursorAfter().offset == 5);
-    }
-}
-
-// =============================================================================
-// MarkerRemoveCommand Tests
-// =============================================================================
-
-TEST_CASE("MarkerRemoveCommand basic operations", "[editor][buffer_commands]") {
-    QTextDocument document;
-    document.setPlainText(QStringLiteral("Hello World"));
-    QUndoStack undoStack;
-
-    // First add a marker
-    TextMarker marker;
-    marker.position = 0;
-    marker.length = 5;
-    marker.text = QStringLiteral("Check this");
-    marker.type = MarkerType::Todo;
-    marker.id = TextMarker::generateId();
-    setMarkerInDocument(&document, marker);
-
-    SECTION("Remove marker") {
-        CursorPosition cursor{0, 0};
-        undoStack.push(new MarkerRemoveCommand(&document, cursor, marker));
-
-        // Verify marker was removed
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.empty());
-
-        // Undo
-        undoStack.undo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-
-        // Redo
-        undoStack.redo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.empty());
-    }
-}
-
-// =============================================================================
-// MarkerToggleCommand Tests
-// =============================================================================
-
-TEST_CASE("MarkerToggleCommand basic operations", "[editor][buffer_commands]") {
-    QTextDocument document;
-    document.setPlainText(QStringLiteral("Hello World"));
-    QUndoStack undoStack;
-
-    // First add a TODO marker
-    TextMarker marker;
-    marker.position = 0;
-    marker.length = 5;
-    marker.text = QStringLiteral("Fix this");
-    marker.type = MarkerType::Todo;
-    marker.completed = false;
-    marker.id = TextMarker::generateId();
-    setMarkerInDocument(&document, marker);
-
-    SECTION("Toggle completes TODO") {
-        CursorPosition cursor{0, 0};
-        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
-
-        // Verify marker is now completed
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-        REQUIRE(markers[0].completed == true);
-
-        // Undo
-        undoStack.undo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers[0].completed == false);
-
-        // Redo
-        undoStack.redo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers[0].completed == true);
-    }
-
-    SECTION("Toggle keeps the marker's other attributes") {
-        // Regression: the toggled marker was written back without them
-        TextMarker withOwner = marker;
-        withOwner.otherAttributes = {{QStringLiteral("owner"), QStringLiteral("Ann")}};
-        setMarkerInDocument(&document, withOwner);
-
-        CursorPosition cursor{0, 0};
-        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
-
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-        CHECK(markers[0].completed);
-        CHECK(markers[0].otherAttributes.value(QStringLiteral("owner")).toString() ==
-              QStringLiteral("Ann"));
-    }
-
-    SECTION("Double toggle returns to original state") {
-        CursorPosition cursor{0, 0};
-        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
-        undoStack.push(new MarkerToggleCommand(&document, cursor, marker.id, marker.position));
-
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 1);
-        REQUIRE(markers[0].completed == false);
-    }
-}
-
-// =============================================================================
-// CompositeDocumentCommand Tests
-// =============================================================================
-
-TEST_CASE("CompositeDocumentCommand basic operations", "[editor][buffer_commands]") {
-    QTextDocument document;
-    document.setPlainText(QStringLiteral("Hello World"));
-    QUndoStack undoStack;
-
-    SECTION("Multiple marker operations as one undo step") {
-        auto* composite = new CompositeDocumentCommand(
-            &document, CursorPosition{0, 0}, QStringLiteral("Multiple Markers"));
-
-        // Add two markers
-        TextMarker marker1;
-        marker1.position = 0;
-        marker1.length = 5;
-        marker1.text = QStringLiteral("First");
-        marker1.type = MarkerType::Todo;
-        marker1.id = TextMarker::generateId();
-
-        TextMarker marker2;
-        marker2.position = 6;
-        marker2.length = 5;
-        marker2.text = QStringLiteral("Second");
-        marker2.type = MarkerType::Note;
-        marker2.id = TextMarker::generateId();
-
-        composite->addCommand(std::make_unique<MarkerAddCommand>(
-            &document, CursorPosition{0, 0}, marker1));
-        composite->addCommand(std::make_unique<MarkerAddCommand>(
-            &document, CursorPosition{0, 6}, marker2));
-
-        REQUIRE(composite->commandCount() == 2);
-
-        undoStack.push(composite);
-
-        // Both markers should exist
-        auto markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 2);
-
-        // Single undo should remove both
-        undoStack.undo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.empty());
-
-        // Single redo should add both
-        undoStack.redo();
-        markers = findAllMarkers(&document);
-        REQUIRE(markers.size() == 2);
-    }
-
-    SECTION("Empty composite command") {
-        auto* composite = new CompositeDocumentCommand(
-            &document, CursorPosition{0, 0}, QStringLiteral("Empty"));
-
-        REQUIRE(composite->commandCount() == 0);
-
-        undoStack.push(composite);
-
-        // Should not crash
-        undoStack.undo();
-        undoStack.redo();
-    }
-}
-
-// =============================================================================
 // Marker Utility Functions Tests
 // =============================================================================
 
@@ -549,7 +305,6 @@ TEST_CASE("Buffer commands edge cases", "[editor][buffer_commands][edge]") {
     SECTION("Operations on empty document") {
         QTextDocument document;
         document.setPlainText(QString());
-        QUndoStack undoStack;
 
         auto markers = findAllMarkers(&document);
         REQUIRE(markers.empty());
@@ -574,36 +329,5 @@ TEST_CASE("Buffer commands edge cases", "[editor][buffer_commands][edge]") {
         CursorPosition pos = absoluteToCursorPosition(&document, 1000);
         // Should clamp to end of document
         REQUIRE(pos.paragraph == 0);
-    }
-}
-
-// =============================================================================
-// Command ID Tests
-// =============================================================================
-
-TEST_CASE("Buffer command IDs", "[editor][buffer_commands][id]") {
-    QTextDocument document;
-    document.setPlainText(QStringLiteral("Test"));
-
-    SECTION("MarkerAddCommand has correct ID") {
-        TextMarker marker;
-        marker.id = TextMarker::generateId();
-        auto cmd = std::make_unique<MarkerAddCommand>(
-            &document, CursorPosition{0, 0}, marker);
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerAdd));
-    }
-
-    SECTION("MarkerRemoveCommand has correct ID") {
-        TextMarker marker;
-        marker.id = TextMarker::generateId();
-        auto cmd = std::make_unique<MarkerRemoveCommand>(
-            &document, CursorPosition{0, 0}, marker);
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerRemove));
-    }
-
-    SECTION("MarkerToggleCommand has correct ID") {
-        auto cmd = std::make_unique<MarkerToggleCommand>(
-            &document, CursorPosition{0, 0}, QStringLiteral("id"), 0);
-        REQUIRE(cmd->id() == static_cast<int>(BufferCommandId::MarkerToggle));
     }
 }

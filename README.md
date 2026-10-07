@@ -172,6 +172,7 @@ Then open **Diagnostics** menu to verify:
 - [Tech Stack](project_docs/02_tech_stack.md) - Complete technical details
 - [Architecture](project_docs/03_architecture.md) - System design patterns
 - [Plugin System](project_docs/04_plugin_system.md) - Plugin API specification
+- [KML Format](docs/kml_format.md) - Chapter text format as the editor reads and writes it
 - [Development Roadmap](ROADMAP.md) - Current state and next stages
 - [Master Project File](CLAUDE.md) - Complete project documentation
 

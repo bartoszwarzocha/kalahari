@@ -2,7 +2,7 @@
 /// @brief KML Format Registry implementation (OpenSpec #00043)
 ///
 /// Centralized KML tag to QTextCharFormat mappings, providing a single
-/// source of truth for both KmlParser and KmlSerializer.
+/// source of truth for both the KML reader (KmlDocumentModel) and KmlSerializer.
 
 #include <kalahari/editor/kml_format_registry.h>
 #include <QFont>

@@ -5,7 +5,6 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
-// Phase 11.8: Removed format_layer.h - no longer exists
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -15,7 +14,6 @@
 #include <QToolButton>
 #include <QShortcut>
 #include <QKeyEvent>
-#include <QUndoStack>
 
 namespace kalahari::gui {
 
@@ -250,14 +248,6 @@ void FindReplaceBar::setSearchEngine(editor::SearchEngine* engine)
     updateButtonStates();
 }
 
-void FindReplaceBar::setUndoStack(QUndoStack* stack)
-{
-    m_undoStack = stack;
-    updateButtonStates();
-}
-
-// Phase 11.8: Removed setFormatLayer - no longer needed
-
 void FindReplaceBar::showFind()
 {
     m_replaceSection->setVisible(false);
@@ -383,7 +373,6 @@ void FindReplaceBar::onFindPrevious()
 
 void FindReplaceBar::onReplaceCurrent()
 {
-    // Phase 11.8: Removed m_formatLayer check - no longer needed
     if (!m_searchEngine) {
         return;
     }
@@ -397,8 +386,8 @@ void FindReplaceBar::onReplaceCurrent()
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
 
-    // nullptr = edit the document directly; QTextDocument's native undo records it.
-    if (m_searchEngine->replaceCurrent(nullptr)) {
+    // The document's native undo records the edit
+    if (m_searchEngine->replaceCurrent()) {
         // replaceCurrent() has already moved to the match after the replaced text
         // (nextMatch() would skip it). Taken before textReplaced(), which clears the
         // editor's selection and with it the current match.
@@ -413,13 +402,12 @@ void FindReplaceBar::onReplaceCurrent()
 
 void FindReplaceBar::onReplaceAll()
 {
-    // Phase 11.8: Removed m_formatLayer check - no longer needed
     if (!m_searchEngine) {
         return;
     }
 
     m_searchEngine->setReplaceText(m_replaceInput->text());
-    int count = m_searchEngine->replaceAll(nullptr);  // direct edit → native undo
+    int count = m_searchEngine->replaceAll();  // one undo step of the document
     if (count > 0) {
         emit textReplaced(count);
     }
@@ -484,7 +472,6 @@ void FindReplaceBar::updateMatchCountLabel()
 void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
-    // Phase 11.8: Removed m_formatLayer check
     bool canReplace = hasMatches;
 
     // Navigation buttons
