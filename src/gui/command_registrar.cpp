@@ -413,15 +413,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Grammar Check"), "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
-    // Focus Mode submenu
-    REG_CMD_TOOL_ICON("tools.focus.normal", QT_TRANSLATE_NOOP("CommandRegistrar", "Normal"), "TOOLS/Focus Mode/Normal", 70, false, 1,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      nullptr);
-
-    REG_CMD("tools.focus.focused", QT_TRANSLATE_NOOP("CommandRegistrar", "Focused"), "TOOLS/Focus Mode/Focused", 80, false, 1);
-    REG_CMD("tools.focus.distractionFree", QT_TRANSLATE_NOOP("CommandRegistrar", "Distraction-Free"), "TOOLS/Focus Mode/Distraction-Free", 90, false, 1);
-
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, false, 1);
     REG_CMD("tools.versionHistory", QT_TRANSLATE_NOOP("CommandRegistrar", "Version History..."), "TOOLS/Version History...", 120, true, 2);
