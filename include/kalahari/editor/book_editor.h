@@ -603,6 +603,22 @@ public:
     /// Emits focusModeChanged if the state changes.
     void setFocusModeEnabled(bool enabled);
 
+    /// @brief Whether Distraction-Free writing is on (in any view mode)
+    bool isDistractionFree() const;
+
+    /// @brief Turn Distraction-Free writing on or off
+    ///
+    /// A toggle on top of the view mode, like Focus: the view mode, its pages and the
+    /// layout stay as they are. While it is on, the scroll bars are hidden, the sides of
+    /// the view darken toward its edges, and the word count, the hint and the clock (if
+    /// appearance() shows it) appear at the edges of the view: at first and whenever the
+    /// mouse comes near an edge, fading out after appearance().distractionFree.uiFadeTimeout.
+    /// The window around the editor hides its own parts.
+    /// Emits distractionFreeModeChanged if the state changes.
+    /// @param enabled true to turn it on
+    /// @param hint A line shown at the top of the view (e.g. how to leave); empty for none
+    void setDistractionFree(bool enabled, const QString& hint = QString());
+
     // =======================================================================
     // Zoom Control
     // =======================================================================
@@ -911,8 +927,8 @@ signals:
     /// @param pages The new total page count
     void totalPagesChanged(int pages);
 
-    /// @brief Emitted when distraction-free mode is toggled
-    /// @param enabled true if distraction-free mode is now active
+    /// @brief Emitted when Distraction-Free writing is turned on or off
+    /// @param enabled true if it is now on
     void distractionFreeModeChanged(bool enabled);
 
     /// @brief Emitted when a comment is added to the document
@@ -1254,14 +1270,15 @@ private:
     void moveCursorToDocEndWithSelection(bool extend);
 
     // =========================================================================
-    // Distraction-Free Mode (Phase 5.7)
+    // Distraction-Free writing
     // =========================================================================
 
-    /// @brief Paint the distraction-free mode overlay
+    /// @brief Paint the Distraction-Free overlay (while it is on)
     /// @param painter The painter to draw with
     ///
-    /// Draws word count at bottom center and optional clock at top right.
-    /// UI elements fade based on m_uiOpacity.
+    /// Darkens the sides of the view toward its edges and draws the word count at the
+    /// bottom center, the hint at the top center and the optional clock at the top right.
+    /// The texts fade with m_uiOpacity.
     void paintDistractionFreeOverlay(QPainter& painter);
 
     /// @brief Start UI fade animation
@@ -1366,7 +1383,9 @@ private:
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 
-    // Distraction-Free Mode (Phase 5.7)
+    // Distraction-Free writing (a toggle on top of the view mode)
+    bool m_distractionFree{false};                          ///< Distraction-Free is on
+    QString m_distractionFreeHint;                          ///< Line at the top of the view
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 

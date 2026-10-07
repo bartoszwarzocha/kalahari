@@ -341,12 +341,12 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
 
     // Distraction-free painting (word count on every paint?)
     editor.scrollTo(0.0);
-    editor.setViewMode(ViewMode::DistractionFree);
+    editor.setDistractionFree(true);
     paint(editor);
     rows.push_back({QStringLiteral("paintEvent – DistractionFree (średnio z 10)"),
                     timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0,
                     QStringLiteral("porównaj z Continuous")});
-    editor.setViewMode(ViewMode::Continuous);
+    editor.setDistractionFree(false);
 
     // Search highlights: a very common letter gives many thousands of matches
     {

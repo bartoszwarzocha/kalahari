@@ -1200,8 +1200,8 @@ Document places in your story with descriptions, maps, and associated scenes.</s
 <context>
     <name>kalahari::editor::BookEditor</name>
     <message>
-        <source>%1 words</source>
-        <translation type="unfinished"></translation>
+        <source>Words: %1</source>
+        <translation>Słowa: %1</translation>
     </message>
     <message>
         <source>Insert Comment</source>
@@ -2232,8 +2232,8 @@ Do you want to choose a different location?</source>
         <translation>Ciemny papier: wyłączony</translation>
     </message>
     <message>
-        <source>View mode: Distraction-Free</source>
-        <translation>Tryb widoku: bez rozpraszania</translation>
+        <source>Press Esc to leave Distraction-Free</source>
+        <translation>Naciśnij Esc, aby wyjść z trybu bez rozpraszania</translation>
     </message>
     <message>
         <source>About Qt</source>

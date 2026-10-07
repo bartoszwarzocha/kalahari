@@ -484,13 +484,16 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModePage);
-    REG_CMD_TOOL_ICON("view.mode.distraction-free", QT_TRANSLATE_NOOP("CommandRegistrar", "Distraction-Free"), "VIEW/View Mode/Distraction-Free", 59, true, 0,
+
+    // Distraction-Free, typewriter scrolling and Focus: toggles on top of the view mode
+    // (the window fills the screen and hides its bars and panels; the cursor line stays at
+    // a fixed height of the view; every paragraph but the cursor's is dimmed). The id of
+    // Distraction-Free stays from the time it was a view mode: toolbars and shortcuts the
+    // user set keep it.
+    REG_CMD_TOOL_ICON("view.mode.distraction-free", QT_TRANSLATE_NOOP("CommandRegistrar", "Distraction-Free"), "VIEW/Distraction-Free", 59, false, 0,
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
-                      callbacks.onViewModeDistFree);
-
-    // Typewriter scrolling and Focus: toggles on top of the view mode (the cursor line stays
-    // at a fixed height of the view; every paragraph but the cursor's is dimmed)
+                      callbacks.onDistractionFreeToggle);
     REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Typewriter Scrolling"), "VIEW/Typewriter Scrolling", 60, false, 0,
                    KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
                    callbacks.onTypewriterToggle);

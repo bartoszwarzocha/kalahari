@@ -35,6 +35,9 @@ constexpr double ZOOM_STEP = 1.1;
 // paragraphs it brought into view
 constexpr int MAX_CURSOR_PLACING_ROUNDS = 4;
 
+// Distance of the Distraction-Free texts (word count, hint, clock) from the view's edges
+constexpr qreal DISTRACTION_FREE_TEXT_MARGIN = 20.0;
+
 // =============================================================================
 // Scrolling
 // =============================================================================
@@ -131,19 +134,6 @@ void BookEditor::setViewMode(ViewMode mode)
         // Log view mode transition (OpenSpec #00042 Task 7.19 Issue #6)
         logger.info("BookEditor::setViewMode: {} -> {}",
                     static_cast<int>(oldMode), static_cast<int>(mode));
-
-        // When entering Distraction-Free mode, show UI initially
-        if (mode == ViewMode::DistractionFree) {
-            m_uiOpacity = 1.0;
-            startUiFade();
-            emit distractionFreeModeChanged(true);
-        } else if (oldMode == ViewMode::DistractionFree) {
-            // Leaving distraction-free mode
-            if (m_uiFadeTimer != nullptr) {
-                m_uiFadeTimer->stop();
-            }
-            emit distractionFreeModeChanged(false);
-        }
 
         emit viewModeChanged(mode);
 
@@ -565,7 +555,7 @@ void BookEditor::updateHorizontalScrollBar()
     const int barRight = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
     m_horizontalScrollBar->setGeometry(0, height() - barHeight, std::max(0, width() - barRight),
                                        barHeight);
-    m_horizontalScrollBar->setVisible(needed);
+    m_horizontalScrollBar->setVisible(needed && !m_distractionFree);
 }
 
 void BookEditor::setHorizontalScrollOffset(double x)
@@ -789,8 +779,42 @@ void BookEditor::setFocusModeEnabled(bool enabled)
 }
 
 // =============================================================================
-// Distraction-Free Mode (Phase 5.7)
+// Distraction-Free writing
 // =============================================================================
+
+bool BookEditor::isDistractionFree() const
+{
+    return m_distractionFree;
+}
+
+void BookEditor::setDistractionFree(bool enabled, const QString& hint)
+{
+    m_distractionFreeHint = hint;
+    if (m_distractionFree == enabled) {
+        update();
+        return;
+    }
+    m_distractionFree = enabled;
+
+    // The scroll bars hide with the window's bars (the wheel and the keys still scroll)
+    if (m_verticalScrollBar != nullptr) {
+        m_verticalScrollBar->setVisible(!enabled);
+    }
+    updateHorizontalScrollBar();
+
+    if (enabled) {
+        // The texts at the edges show at first, then fade out
+        m_uiOpacity = 1.0;
+        startUiFade();
+    } else {
+        if (m_uiFadeTimer != nullptr) {
+            m_uiFadeTimer->stop();
+        }
+        m_uiOpacity = 0.0;
+    }
+    update();
+    emit distractionFreeModeChanged(enabled);
+}
 
 void BookEditor::startUiFade()
 {
@@ -810,95 +834,54 @@ void BookEditor::startUiFade()
 
 void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
 {
-    // Only draw overlay in Distraction-Free view mode
-    if (m_viewMode != ViewMode::DistractionFree) {
+    if (!m_distractionFree) {
         return;
     }
 
-    // Calculate content area based on textWidth setting
-    // (This is preparation for Phase 7 - actual text centering will be done there)
-    qreal viewportWidth = static_cast<qreal>(width());
-    qreal textWidth = viewportWidth * m_appearance.distractionFree.textWidth;
-    qreal sideMargin = (viewportWidth - textWidth) / 2.0;
+    // The whole editor: its scroll bars are hidden meanwhile
+    const QRectF view(rect());
 
-    // Draw subtle gradient/vignette on sides (optional visual touch)
-    if (sideMargin > 0) {
-        // Create a subtle vignette effect on the sides
-        QColor vignetteColor = m_appearance.colors.editorBackground;
-        vignetteColor.setAlpha(30);  // Very subtle
-
-        // Left vignette
-        QLinearGradient leftGradient(0, 0, sideMargin, 0);
-        leftGradient.setColorAt(0.0, vignetteColor);
+    // The sides of the view darken toward its edges, in the color of the sheets' shadow,
+    // outside the middle part as wide as appearance().distractionFree.textWidth
+    const qreal middle = std::clamp(m_appearance.distractionFree.textWidth, 0.0, 1.0);
+    const qreal sideWidth = view.width() * (1.0 - middle) / 2.0;
+    if (sideWidth > 0.0) {
+        const QColor shade = m_appearance.colors.pageShadow;
+        QLinearGradient leftGradient(view.left(), 0.0, view.left() + sideWidth, 0.0);
+        leftGradient.setColorAt(0.0, shade);
         leftGradient.setColorAt(1.0, Qt::transparent);
-        painter.fillRect(QRectF(0, 0, sideMargin, height()), leftGradient);
+        painter.fillRect(QRectF(view.left(), view.top(), sideWidth, view.height()), leftGradient);
 
-        // Right vignette
-        QLinearGradient rightGradient(width() - sideMargin, 0, width(), 0);
+        QLinearGradient rightGradient(view.right() - sideWidth, 0.0, view.right(), 0.0);
         rightGradient.setColorAt(0.0, Qt::transparent);
-        rightGradient.setColorAt(1.0, vignetteColor);
-        painter.fillRect(QRectF(width() - sideMargin, 0, sideMargin, height()), rightGradient);
+        rightGradient.setColorAt(1.0, shade);
+        painter.fillRect(QRectF(view.right() - sideWidth, view.top(), sideWidth, view.height()),
+                         rightGradient);
     }
 
-    // Only draw overlays if UI is visible (opacity > 0)
+    // The texts at the edges, while they have not faded out
     if (m_uiOpacity <= 0.0) {
         return;
     }
 
-    // Set up text color with opacity
-    QColor textColor = m_appearance.colors.textSecondary;
-    textColor.setAlphaF(m_uiOpacity);
+    // In the dimmed text color of the paper (the color of the paragraphs Focus dims)
+    QColor textColor = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
+    textColor.setAlphaF(static_cast<float>(textColor.alphaF() * m_uiOpacity));
+    painter.setFont(m_appearance.typography.uiFont);
+    painter.setPen(textColor);
 
-    // Draw word count at bottom center
+    const QRectF area = view.adjusted(DISTRACTION_FREE_TEXT_MARGIN, DISTRACTION_FREE_TEXT_MARGIN,
+                                      -DISTRACTION_FREE_TEXT_MARGIN, -DISTRACTION_FREE_TEXT_MARGIN);
     if (m_appearance.distractionFree.showWordCount) {
-        QString countText = tr("%1 words").arg(wordCount());
-
-        // Use UI font, slightly smaller
-        QFont countFont = m_appearance.typography.uiFont;
-        countFont.setPointSize(10);
-        painter.setFont(countFont);
-        painter.setPen(textColor);
-
-        // Calculate position - bottom center with some padding
-        QFontMetrics countFm(countFont);
-        int countTextWidth = countFm.horizontalAdvance(countText);
-        int countTextHeight = countFm.height();
-        int countPadding = 20;
-
-        QRectF countRect(
-            (width() - countTextWidth) / 2.0,
-            height() - countTextHeight - countPadding,
-            countTextWidth,
-            countTextHeight
-        );
-
-        painter.drawText(countRect, Qt::AlignCenter, countText);
+        painter.drawText(area, Qt::AlignHCenter | Qt::AlignBottom,
+                         tr("Words: %1").arg(wordCount()));
     }
-
-    // Draw clock at top right
+    if (!m_distractionFreeHint.isEmpty()) {
+        painter.drawText(area, Qt::AlignHCenter | Qt::AlignTop, m_distractionFreeHint);
+    }
     if (m_appearance.distractionFree.showClock) {
-        QString timeText = QDateTime::currentDateTime().toString(QStringLiteral("HH:mm"));
-
-        // Use UI font
-        QFont clockFont = m_appearance.typography.uiFont;
-        clockFont.setPointSize(10);
-        painter.setFont(clockFont);
-        painter.setPen(textColor);
-
-        // Calculate position - top right with some padding
-        QFontMetrics clockFm(clockFont);
-        int clockTextWidth = clockFm.horizontalAdvance(timeText);
-        int clockTextHeight = clockFm.height();
-        int clockPadding = 20;
-
-        QRectF clockRect(
-            width() - clockTextWidth - clockPadding,
-            clockPadding,
-            clockTextWidth,
-            clockTextHeight
-        );
-
-        painter.drawText(clockRect, Qt::AlignCenter, timeText);
+        painter.drawText(area, Qt::AlignRight | Qt::AlignTop,
+                         QDateTime::currentDateTime().toString(QStringLiteral("HH:mm")));
     }
 }
 

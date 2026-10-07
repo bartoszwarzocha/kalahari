@@ -73,8 +73,8 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
     REQUIRE(actions.size() == 11);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
-    CHECK(actions[2] == registry.getAction(std::string("view.mode.distraction-free")));
-    CHECK(actions[3]->isSeparator());
+    CHECK(actions[2]->isSeparator());
+    CHECK(actions[3] == registry.getAction(std::string("view.mode.distraction-free")));
     CHECK(actions[4] == registry.getAction(std::string("view.focus")));
     CHECK(actions[5] == registry.getAction(std::string("view.typewriter")));
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));

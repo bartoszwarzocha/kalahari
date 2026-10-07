@@ -16,8 +16,9 @@ namespace kalahari::editor {
 ///
 /// Every view shows the text as wide as the page, with the page's margins and the line
 /// breaks of the printed page, and zooms it as a whole; the views other than Page show it
-/// as one endless page. Focus and typewriter scrolling are toggles on top of the view mode
-/// (BookEditor::setFocusModeEnabled(), BookEditor::setTypewriterEnabled()).
+/// as one endless page. Focus, typewriter scrolling and Distraction-Free are toggles on top
+/// of the view mode (BookEditor::setFocusModeEnabled(), BookEditor::setTypewriterEnabled(),
+/// BookEditor::setDistractionFree()).
 enum class ViewMode {
     /// @brief Continuous scrolling mode (default)
     ///
@@ -31,13 +32,6 @@ enum class ViewMode {
     /// WYSIWYG preview of printed output.
     /// Best for: Final formatting, print preview, book layout.
     Page,
-
-    /// @brief Distraction-free mode
-    ///
-    /// Fullscreen with hidden UI. Only the text visible.
-    /// Optional: word count, clock, fade-in UI on mouse movement.
-    /// Best for: Immersive writing, flow state.
-    DistractionFree,
 
     /// @brief Outline mode (future)
     ///

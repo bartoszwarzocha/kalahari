@@ -3,7 +3,8 @@
 ///        word read aloud) that leaves annotations and typed patterns as plain text;
 ///        replacing the content as one undo step; what files outside a project need from
 ///        the editor; Focus dims the paragraphs other than the cursor's, in any view; the
-///        continuous views are one endless page
+///        continuous view is one endless page; Distraction-Free darkens the sides of any
+///        view
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -16,6 +17,7 @@
 #include "editor_test_utils.h"
 
 #include <QImage>
+#include <QMouseEvent>
 #include <QScreen>
 #include <QScrollBar>
 #include <QTextBlock>
@@ -495,11 +497,13 @@ TEST_CASE("Stage5 continuous view: the lines break as on the pages, at every wid
     CHECK(lineStarts(*editor) == starts);
     editor->setZoomFactor(1.7);
     CHECK(lineStarts(*editor) == starts);
-    for (ViewMode mode : {ViewMode::Page, ViewMode::DistractionFree, ViewMode::Continuous}) {
+    for (ViewMode mode : {ViewMode::Page, ViewMode::Continuous}) {
         editor->setViewMode(mode);
         CAPTURE(static_cast<int>(mode));
         CHECK(lineStarts(*editor) == starts);
     }
+    editor->setDistractionFree(true);
+    CHECK(lineStarts(*editor) == starts);
 }
 
 TEST_CASE("Stage5 continuous view: one endless page, as wide as the pages and in their place",
@@ -614,12 +618,14 @@ TEST_CASE("Stage5 continuous view: switching views keeps the cursor's place on t
     REQUIRE(top > 1000.0);
     REQUIRE(top < 1300.0);
 
-    for (ViewMode mode : {ViewMode::Page, ViewMode::DistractionFree, ViewMode::Continuous}) {
+    for (ViewMode mode : {ViewMode::Page, ViewMode::Continuous}) {
         editor->setViewMode(mode);
         CAPTURE(static_cast<int>(mode));
         CHECK(editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF().top() ==
               Approx(top).margin(1.0));
     }
+    editor->setDistractionFree(true);
+    CHECK(editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF().top() == Approx(top).margin(1.0));
 }
 
 TEST_CASE("Stage5 continuous view: switching views leaves a view scrolled away from the cursor",
@@ -666,4 +672,72 @@ TEST_CASE("Stage5 continuous view: a page wider than the view scrolls sideways t
     const QRectF start = caretAt(*editor, {0, 0});
     CHECK(start.left() >= 0.0);
     CHECK(start.right() <= viewWidth);
+}
+
+// =============================================================================
+// Distraction-Free
+// =============================================================================
+
+TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens the sides",
+          "[editor][stage5][distraction-free]") {
+    // The whole page in the middle of the view, with the desk on both sides; the texts at
+    // the edges fade out quickly
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(1400, 500));
+    EditorAppearance appearance = editor->appearance();
+    appearance.distractionFree.uiFadeTimeout = 50;
+    editor->setAppearance(appearance);
+    editor->fromKml(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph")}));
+    editor->setViewMode(ViewMode::Page);
+    const int pages = editor->totalPages();
+    const QRect first = rangeArea(*editor, 0, 0, 5);
+    const QImage page = editorImage(*editor);
+
+    int changes = 0;
+    QObject::connect(editor.get(), &BookEditor::distractionFreeModeChanged,
+                     [&changes](bool) { ++changes; });
+    editor->setDistractionFree(true, QStringLiteral("Press Esc"));
+    CHECK(changes == 1);
+    CHECK(editor->viewMode() == ViewMode::Page);
+    CHECK(editor->totalPages() == pages);
+    CHECK(rangeArea(*editor, 0, 0, 5) == first);
+    CHECK(scrollBar(*editor, Qt::Vertical)->isHidden());
+
+    // The sides darken toward the edges of the view; the middle stays as it was
+    const QImage dark = editorImage(*editor);
+    const int viewWidth = editor->width() - scrollBar(*editor, Qt::Vertical)->width();
+    const int row = editor->height() / 2;
+    CHECK(qGray(dark.pixel(0, row)) < qGray(page.pixel(0, row)));
+    CHECK(qGray(dark.pixel(viewWidth - 1, row)) < qGray(page.pixel(viewWidth - 1, row)));
+    const QRect middle(viewWidth / 4, 60, viewWidth / 2, editor->height() - 120);
+    REQUIRE(middle.contains(first));
+    CHECK(differingPixels(page, dark, middle) == 0);
+
+    // The hint at the top and the word count at the bottom, at first
+    const QRect top(viewWidth / 4, 0, viewWidth / 2, 60);
+    const QRect bottom(viewWidth / 4, editor->height() - 60, viewWidth / 2, 60);
+    CHECK(differingPixels(page, dark, top) > 0);
+    CHECK(differingPixels(page, dark, bottom) > 0);
+
+    SECTION("the texts at the edges fade out and come back when the mouse nears an edge") {
+        runEventLoop(150);
+        const QImage faded = editorImage(*editor);
+        CHECK(differingPixels(page, faded, top) == 0);
+        CHECK(differingPixels(page, faded, bottom) == 0);
+        CHECK(qGray(faded.pixel(0, row)) < qGray(page.pixel(0, row)));
+
+        const QPointF nearTop(viewWidth / 2.0, 10.0);
+        QMouseEvent move(QEvent::MouseMove, nearTop, editor->mapToGlobal(nearTop), Qt::NoButton,
+                         Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(editor.get(), &move);
+        CHECK(differingPixels(page, editorImage(*editor), top) > 0);
+    }
+
+    SECTION("turning it off shows the view as before") {
+        editor->setDistractionFree(false);
+        CHECK(changes == 2);
+        CHECK(editor->viewMode() == ViewMode::Page);
+        CHECK_FALSE(scrollBar(*editor, Qt::Vertical)->isHidden());
+        CHECK(differingPixels(page, editorImage(*editor), editor->rect()) == 0);
+    }
 }
