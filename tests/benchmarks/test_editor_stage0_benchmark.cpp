@@ -373,6 +373,18 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     rows.push_back({QStringLiteral("paintEvent z zaznaczonym całym dokumentem"),
                     timeMs([&] { paint(editor); }), QString()});
 
+    // Replacing the whole text as one edit (restoring a snapshot), and undoing it
+    editor.clearSelection();
+    rows.push_back({QStringLiteral("Podmiana całej treści (replaceWithKml)"),
+                    timeMs([&] { editor.replaceWithKml(kml); }),
+                    QStringLiteral("jeden krok cofania")});
+    rows.push_back({QStringLiteral("paintEvent po podmianie"), timeMs([&] { paint(editor); }),
+                    QString()});
+    rows.push_back({QStringLiteral("Cofnięcie podmiany (Ctrl+Z)"),
+                    timeMs([&] { editor.undo(); }), QString()});
+    rows.push_back({QStringLiteral("Ponowienie podmiany (Ctrl+Y)"),
+                    timeMs([&] { editor.redo(); }), QString()});
+
     report(rows, header);
     CHECK(editor.paragraphCount() > 0);
 }

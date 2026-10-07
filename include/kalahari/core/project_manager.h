@@ -343,6 +343,7 @@ public:
     ///
     /// Copies/moves the source file to the appropriate project folder,
     /// creates a BookElement, adds it to the book structure, and saves manifest.
+    /// A plain text file (.txt) becomes a chapter file, its lines the paragraphs.
     QString addChapterToSection(const QString& sectionType,
                                const QString& partId,
                                const QString& title,

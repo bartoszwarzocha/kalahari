@@ -11,6 +11,9 @@
 #include <kalahari/core/book_constants.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/standalone_file.h>
+#include <kalahari/core/text_file.h>
+#include <kalahari/editor/clipboard_handler.h>
 
 #include <QFile>
 #include <QFileInfo>
@@ -1065,16 +1068,32 @@ QString ProjectManager::addChapterToSection(const QString& sectionType,
     // Create target directory if needed
     QDir().mkpath(targetDir);
 
-    // Determine target filename (use element ID + original extension or .rtf)
+    // A text file becomes a chapter file; other files keep their extension (or get .rtf)
     QFileInfo sourceInfo(sourceFilePath);
-    QString extension = sourceInfo.suffix().isEmpty() ? "rtf" : sourceInfo.suffix();
+    const bool textFile = StandaloneFile::typeOf(sourceFilePath) == StandaloneFile::Type::PlainText;
+    QString extension = textFile ? QStringLiteral("kchapter")
+                                 : (sourceInfo.suffix().isEmpty() ? QStringLiteral("rtf") : sourceInfo.suffix());
     QString targetFileName = elementId + "." + extension;
     QString targetFilePath = targetDir + "/" + targetFileName;
 
     // Copy or move file
     QFile sourceFile(sourceFilePath);
     bool fileOk = false;
-    if (copyFile) {
+    if (textFile) {
+        // Its lines become the chapter's paragraphs; moving it leaves only the chapter
+        if (auto content = readTextFile(sourceFilePath)) {
+            // The line end of the last line is no empty paragraph
+            if (content->text.endsWith(QLatin1Char('\n'))) {
+                content->text.chop(1);
+            }
+            const QString kml = editor::ClipboardHandler::textToKml(content->text);
+            fileOk = ChapterDocument::fromKmlContent(kml, title).save(targetFilePath);
+        }
+        if (fileOk && !copyFile && !sourceFile.remove()) {
+            logger.warn("addChapterToSection: The chapter was made, but {} could not be removed",
+                        sourceFilePath.toStdString());
+        }
+    } else if (copyFile) {
         fileOk = sourceFile.copy(targetFilePath);
     } else {
         fileOk = sourceFile.rename(targetFilePath);

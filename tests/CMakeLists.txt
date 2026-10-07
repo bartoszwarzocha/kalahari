@@ -17,6 +17,8 @@ set(TEST_SOURCES
     core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_text_statistics.cpp
+    core/test_text_file.cpp         # Plain text files in their own encoding and line ends
+    core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_project_manager.cpp
     core/test_logger.cpp
@@ -49,6 +51,7 @@ set(TEST_SOURCES
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
+    editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -84,6 +87,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     # OpenSpec #00041: SQLite Project Database
@@ -170,6 +175,11 @@ set_target_properties(kalahari-tests PROPERTIES
 target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
+)
+
+# Source tree, for tests that read files of the repository (the example project)
+target_compile_definitions(kalahari-tests PRIVATE
+    KALAHARI_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Link libraries

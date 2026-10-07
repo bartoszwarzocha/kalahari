@@ -679,6 +679,9 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
             this, &PropertiesPanel::onEditorSelectionChanged);
     connect(bookEditor, &editor::BookEditor::cursorPositionChanged,
             this, &PropertiesPanel::onEditorCursorChanged);
+    // Typing changes the counts without a cursor signal
+    connect(bookEditor, &editor::BookEditor::contentChanged,
+            this, &PropertiesPanel::onEditorCursorChanged);
 
     // Show editor properties and update stats
     showEditorProperties();
@@ -694,6 +697,8 @@ void PropertiesPanel::disconnectFromEditor() {
         disconnect(bookEditor, &editor::BookEditor::selectionChanged,
                    this, &PropertiesPanel::onEditorSelectionChanged);
         disconnect(bookEditor, &editor::BookEditor::cursorPositionChanged,
+                   this, &PropertiesPanel::onEditorCursorChanged);
+        disconnect(bookEditor, &editor::BookEditor::contentChanged,
                    this, &PropertiesPanel::onEditorCursorChanged);
     }
 
@@ -745,7 +750,12 @@ void PropertiesPanel::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::onProjectClosed()");
 
-    showNoProject();
+    // A file opened outside the book stays open in the editor
+    if (m_activeEditorPanel) {
+        showEditorProperties();
+    } else {
+        showNoProject();
+    }
 }
 
 void PropertiesPanel::onProjectTitleChanged() {

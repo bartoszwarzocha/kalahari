@@ -9,6 +9,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
+#include <QMessageBox>
 #include <QScreen>
 #include <QVBoxLayout>
 #include <cmath>
@@ -80,9 +81,9 @@ QString EditorPanel::getText() const {
     return QString();
 }
 
-void EditorPanel::setContent(const QString& content) {
+bool EditorPanel::setContent(const QString& content) {
     if (!m_bookEditor) {
-        return;
+        return true;
     }
 
     auto& logger = core::Logger::getInstance();
@@ -90,13 +91,23 @@ void EditorPanel::setContent(const QString& content) {
 
     // Use BookEditor::fromKml() for Phase 11 architecture
     // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
-    m_bookEditor->fromKml(content);
+    const bool complete = m_bookEditor->fromKml(content);
     logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
 
     // Reconnect statistics collector if needed
     if (m_statisticsCollector && m_bookEditor) {
         m_statisticsCollector->setBookEditor(m_bookEditor);
     }
+    return complete;
+}
+
+void EditorPanel::warnDamagedChapter(QWidget* parent, const QString& chapterName) {
+    QMessageBox::warning(
+        parent,
+        tr("Damaged Chapter"),
+        tr("The chapter \"%1\" is damaged, so only its text before the damaged place is shown.\n\n"
+           "Saving the chapter keeps only this text. Close it without saving to leave the file "
+           "as it is.").arg(chapterName));
 }
 
 QString EditorPanel::getContent() const {

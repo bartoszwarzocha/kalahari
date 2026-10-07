@@ -2,9 +2,11 @@
 /// @brief Unit tests for ProjectManager project lifecycle
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_element.h>
 #include <kalahari/core/document.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
+#include <kalahari/editor/kml_document_model.h>
 
 #include <QDateTime>
 #include <QDir>
@@ -113,4 +115,41 @@ TEST_CASE("ProjectManager keeps manifest identity and unknown fields when saving
     CHECK(saved["statistics"].toObject()["totalWords"].toInt() == 1234);
     CHECK(saved["settings"].toObject()["autoSaveInterval"].toInt() == 60);
     CHECK(saved["custom"].toObject()["key"].toString() == "value");
+}
+
+TEST_CASE("ProjectManager makes a chapter of a text file added to the project", "[project_manager]") {
+    TempDir dir;
+    auto& pm = ProjectManager::getInstance();
+    REQUIRE(pm.createProject(dir.path(), "Text Import", "Author", "en", true));
+
+    const QString textPath = QDir(dir.path()).filePath("notes.txt");
+    {
+        QFile file(textPath);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        file.write("First line\r\nSecond & last\r\n");
+    }
+
+    SECTION("Copied") {
+        const QString id = pm.addChapterToSection("frontmatter", QString(), "Notes", textPath, true);
+        REQUIRE_FALSE(id.isEmpty());
+        BookElement* element = pm.findElement(id);
+        REQUIRE(element != nullptr);
+        CHECK(element->getFile().extension() == ".kchapter");
+        CHECK(QFile::exists(textPath));
+
+        kalahari::editor::KmlDocumentModel chapter;
+        REQUIRE(chapter.loadKml(pm.loadChapterContent(id)));
+        REQUIRE(chapter.paragraphCount() == 2);  // the last line end makes no empty paragraph
+        CHECK(chapter.paragraphText(0) == "First line");
+        CHECK(chapter.paragraphText(1) == "Second & last");
+    }
+
+    SECTION("Moved") {
+        const QString id = pm.addChapterToSection("frontmatter", QString(), "Notes", textPath, false);
+        REQUIRE_FALSE(id.isEmpty());
+        CHECK_FALSE(QFile::exists(textPath));
+        CHECK(pm.loadChapterContent(id).contains("Second &amp; last"));
+    }
+
+    REQUIRE(pm.closeProject(false));
 }

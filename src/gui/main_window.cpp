@@ -1216,16 +1216,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     auto& pm = core::ProjectManager::getInstance();
 
     if (hasUnsavedChanges()) {
-        QString filename = "Untitled";
-        if (m_documentCoordinator && !m_documentCoordinator->currentFilePath().empty()) {
-            filename = QString::fromStdString(m_documentCoordinator->currentFilePath().filename().string());
-        } else if (pm.isProjectOpen()) {
-            // Use project name if available
-            const core::Document* doc = pm.getDocument();
-            if (doc) {
-                filename = QString::fromStdString(doc->getTitle());
-            }
-        }
+        const QStringList names = m_documentCoordinator
+            ? m_documentCoordinator->unsavedDocumentNames() : QStringList();
+        const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
 
         auto reply = QMessageBox::question(
             this,
@@ -1236,9 +1229,8 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         );
 
         if (reply == QMessageBox::Save) {
-            // Save the project and every editor tab; whatever could not be saved (failed,
-            // cancelled, or a standalone file, which has no save yet) keeps the window
-            // open with its changes
+            // Save the project and every editor tab; whatever could not be saved (failed
+            // or cancelled) keeps the window open with its changes
             if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;

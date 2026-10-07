@@ -120,7 +120,7 @@ public:
     /// @brief Set current file path
     void setCurrentFilePath(const std::filesystem::path& path) { m_currentFilePath = path; }
 
-    /// @brief Get list of open standalone file paths
+    /// @brief Get the files of the navigator's "Other Files" (opened outside the project)
     [[nodiscard]] const QStringList& standaloneFilePaths() const { return m_standaloneFilePaths; }
 
     // =========================================================================
@@ -144,6 +144,11 @@ public:
     /// @brief Save all unsaved changes: the project and every editor tab
     /// @return true when nothing is left unsaved
     bool saveAllChanges();
+
+    /// @brief Names of what has unsaved changes, for the question whether to save them
+    /// @return The book's title (for its chapters and structure) and the name of every
+    ///         other editor tab with unsaved changes; empty when nothing is known
+    [[nodiscard]] QStringList unsavedDocumentNames() const;
 
 public slots:
     // =========================================================================
@@ -182,12 +187,22 @@ public slots:
     /// @brief Open standalone file via file dialog
     void onOpenStandaloneFile();
 
-    /// @brief Open a specific standalone file
+    /// @brief Open a chapter (.kchapter) or text file (.txt) outside the project
     /// @param path Absolute path to the file
+    ///
+    /// A file already open in a tab is shown there; other files get a message.
     void openStandaloneFile(const QString& path);
 
-    /// @brief Add current standalone file to project
+    /// @brief Add the standalone file of the info bar (the current tab's) to the project
     void onAddToProject();
+
+    /// @brief Add a standalone file to the project, saving its tab's changes first
+    /// @param filePath Absolute path to the file
+    void addToProject(const QString& filePath);
+
+    /// @brief Remove a file from the navigator's "Other Files" (its tab stays open)
+    /// @param path Absolute path to the file
+    void removeStandaloneFile(const QString& path);
 
     // =========================================================================
     // Archive operations
@@ -277,6 +292,24 @@ private:
     /// @param text Editor text content
     void setPhase0Content(core::Document& doc, const QString& text);
 
+    /// @brief Tab of a standalone file, or nullptr when the file is not open
+    EditorPanel* findStandaloneEditor(const QString& path) const;
+
+    /// @brief Show the info bar for the current tab's standalone file, or hide it
+    void updateStandaloneInfoBar();
+
+    /// @brief List the standalone files in the navigator again after it was cleared
+    void relistStandaloneFiles();
+
+    /// @brief Write a standalone file tab's content in the file's own format
+    /// @param path The tab's file (Save) or a new file the tab moves to (Save As)
+    /// @return true when the file was written
+    bool writeStandaloneFile(EditorPanel* editor, const QString& path);
+
+    /// @brief Save a standalone file tab under a name the user chooses (chapter or text file)
+    /// @return true when the file was written
+    bool saveStandaloneFileAs(EditorPanel* editor);
+
     /// @brief Save an editor's text as the single-file (Phase 0) document
     /// @param editor Editor whose text is saved
     /// @param askForPath Ask for a new file name (Save As) instead of using the current one
@@ -303,7 +336,7 @@ private:
     /// @brief Current .klh file path
     std::filesystem::path m_currentFilePath;
 
-    /// @brief List of open standalone file paths
+    /// @brief Files of the navigator's "Other Files" (opened outside the project)
     QStringList m_standaloneFilePaths;
 
     /// @brief Style resolver for the current project (OpenSpec #00042 Task 7.6)

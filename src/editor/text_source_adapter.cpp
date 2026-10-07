@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/paragraph_data.h>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QAbstractTextDocumentLayout>
@@ -43,6 +44,28 @@ QString QTextDocumentSource::plainText() const {
 size_t QTextDocumentSource::characterCount() const {
     if (!m_document) return 0;
     return static_cast<size_t>(m_document->characterCount());
+}
+
+std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index) const {
+    std::vector<TextHighlight> highlights;
+    const QTextBlock block = blockAt(index);
+    if (!block.isValid()) return highlights;
+
+    // Check results, only those made for the paragraph's current text
+    if (const ParagraphData* data = ParagraphData::find(block)) {
+        if (!data->spelling.issues.empty() || !data->grammar.issues.empty()) {
+            const QString text = block.text();
+            for (const ParagraphCheck* check : {&data->spelling, &data->grammar}) {
+                if (const auto* issues = check->issuesFor(text)) {
+                    highlights.insert(highlights.end(), issues->begin(), issues->end());
+                }
+            }
+        }
+    }
+
+    std::stable_sort(highlights.begin(), highlights.end(),
+                     [](const TextHighlight& a, const TextHighlight& b) { return a.start < b.start; });
+    return highlights;
 }
 
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
