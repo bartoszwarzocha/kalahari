@@ -101,6 +101,15 @@ QImage editorImage(BookEditor& editor) {
     return image;
 }
 
+/// Widget position of document point (0, 0): the caret at the start of the text, less its
+/// place in the first line (at zoom 100% a document pixel is a widget pixel)
+QPointF textOrigin(BookEditor& editor) {
+    editor.setCursorPosition({0, 0});
+    const QRectF caret = editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    const QTextLine line = editor.textDocument()->firstBlock().layout()->lineAt(0);
+    return caret.topLeft() - QPointF(line.cursorToX(0), line.y());
+}
+
 /// True when the pixel differs visibly from @p background
 bool differs(const QImage& image, int x, int y, QColor background) {
     const QColor c = image.pixelColor(x, y);
@@ -108,9 +117,10 @@ bool differs(const QImage& image, int x, int y, QColor background) {
                std::abs(c.blue() - background.blue()) > 24;
 }
 
-/// Leftmost column in rows [top, bottom) with a pixel differing from the background
-int leftmostInk(const QImage& image, int top, int bottom, QColor background) {
-    for (int x = 0; x < image.width(); ++x) {
+/// Leftmost column from @p left on, in rows [top, bottom), with a pixel differing from the
+/// background (left of the page, the desk differs too)
+int leftmostInk(const QImage& image, int left, int top, int bottom, QColor background) {
+    for (int x = std::max(0, left); x < image.width(); ++x) {
         for (int y = std::max(0, top); y < std::min(bottom, image.height()); ++y) {
             if (differs(image, x, y, background)) return x;
         }
@@ -209,7 +219,8 @@ TEST_CASE("Stage2 typography: lengths follow the document font", "[editor][stage
     CHECK(d.layout->paragraphSpacing() == Approx(10.0));
     CHECK(d.layout->firstLineIndent() == Approx(20.0));
 
-    // A font-scaling zoom doubles the font: spacing and indent double in the same relayout
+    // A font twice the size (from the settings): spacing and indent double in the same
+    // relayout
     QFont zoomed = testFont();
     zoomed.setPointSizeF(24.0);
     d.doc->setDefaultFont(zoomed);
@@ -259,30 +270,35 @@ TEST_CASE("Stage2 typography: the editor lays out with its appearance settings",
     editor.fromKml(kmlOf({longParagraph(0), longParagraph(1), longParagraph(2)}));
     auto* layout = layoutOf(editor);
     REQUIRE(layout != nullptr);
+    // The height of the text (the endless page is at least a page high)
+    const auto textHeight = [layout] { return layout->blockY(2) + layout->blockHeight(2); };
 
     // Defaults: 1.6 line spacing, 12 px after each paragraph, 24 px first-line indent
     const EditorTypography defaults;
     CHECK(layout->typography().lineSpacing == Approx(defaults.lineHeight));
     CHECK(layout->paragraphSpacing() == Approx(defaults.paragraphSpacing));
     CHECK(layout->firstLineIndent() == Approx(defaults.indentSize));
-    const qreal spacedHeight = layout->documentSize().height();
+    const qreal spacedHeight = textHeight();
 
     editor.setAppearance(appearanceWith(1.0, 0.0, false, 24.0));
     layout->layoutPendingBlocks();
     CHECK(layout->typography().lineSpacing == Approx(1.0));
     CHECK(layout->paragraphSpacing() == Approx(0.0));
     CHECK(layout->firstLineIndent() == Approx(0.0));
-    CHECK(layout->documentSize().height() < spacedHeight);
+    CHECK(textHeight() < spacedHeight);
 
-    SECTION("zoom scales the spacing with the font, laying out each block once") {
+    SECTION("zoom scales the spacing with the text, laying out nothing again") {
+        // The painter scales the page: the layout keeps its spacing, indent and lines
         editor.setAppearance(appearanceWith(1.5, 10.0, true, 20.0));
         layout->layoutPendingBlocks();
+        const qreal height = textHeight();
         LaidOutBlockCounter laidOut(editor);
         editor.setZoomFactor(2.0);
         layout->layoutPendingBlocks();
-        CHECK(laidOut.count() == 3);
-        CHECK(layout->paragraphSpacing() == Approx(20.0));
-        CHECK(layout->firstLineIndent() == Approx(40.0));
+        CHECK(laidOut.count() == 0);
+        CHECK(layout->paragraphSpacing() == Approx(10.0));
+        CHECK(layout->firstLineIndent() == Approx(20.0));
+        CHECK(textHeight() == Approx(height));
     }
 }
 
@@ -335,8 +351,9 @@ TEST_CASE("Stage2 typography: the image shows the indent and a joined-up selecti
 
     const EditorAppearance& appearance = editor.appearance();
     const QColor background = appearance.colors.background(appearance.colorMode);
-    const int marginLeft = static_cast<int>(appearance.viewMargins.horizontal);
-    const int marginTop = static_cast<int>(appearance.viewMargins.vertical);
+    const QPointF origin = textOrigin(editor);
+    const int marginLeft = static_cast<int>(std::round(origin.x()));
+    const int marginTop = static_cast<int>(std::round(origin.y()));
 
     const QTextLayout* layout = editor.textDocument()->firstBlock().layout();
     REQUIRE(layout->lineCount() >= 3);
@@ -344,11 +361,12 @@ TEST_CASE("Stage2 typography: the image shows the indent and a joined-up selecti
     const QTextLine line1 = layout->lineAt(1);
 
     SECTION("the first line starts at the indent, the next ones at the margin") {
+        // From within the page's left margin
         const QImage image = editorImage(editor);
-        const int ink0 = leftmostInk(image, marginTop + static_cast<int>(line0.y()),
+        const int ink0 = leftmostInk(image, marginLeft - 8, marginTop + static_cast<int>(line0.y()),
                                      marginTop + static_cast<int>(line0.y() + line0.height()),
                                      background);
-        const int ink1 = leftmostInk(image, marginTop + static_cast<int>(line1.y()),
+        const int ink1 = leftmostInk(image, marginLeft - 8, marginTop + static_cast<int>(line1.y()),
                                      marginTop + static_cast<int>(line1.y() + line1.height()),
                                      background);
         REQUIRE(ink0 >= 0);
@@ -761,7 +779,10 @@ TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the 
     CHECK(layout->pendingBlockCount() == 300);  // the load lays out nothing
 
     editor.grab();
-    const int shown = layout->blockNumberAtY(editor.scrollOffset() + editor.height()) + 1;
+    // The view shows the document down to its height less the page's top margin and gap
+    // above the text
+    const qreal shownBottom = editor.height() - textOrigin(editor).y();
+    const int shown = layout->blockNumberAtY(editor.scrollOffset() + shownBottom) + 1;
     for (int i = 0; i < shown; ++i) {
         CHECK(layout->isLaidOut(i));
     }
@@ -809,19 +830,20 @@ TEST_CASE("Stage2 on demand: Ctrl+End right after loading shows the end",
 
     editor.moveCursorToDocEnd();
     const QImage shown = textArea(editor);
-    const int last = editor.textDocument()->blockCount() - 1;
-    const qreal marginTop = editor.appearance().viewMargins.vertical;
-    const qreal endOnScreen = marginTop + layout->blockY(last) + layout->blockHeight(last) -
-                              editor.scrollOffset();
-    CHECK(endOnScreen <= editor.height());
-    CHECK(endOnScreen > editor.height() - 2 * marginTop - layout->blockHeight(last));
+    // The view shows the end of the page: the last line, with the page's bottom margin
+    // below it
+    const QRectF caret = editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(editor.verticalScrollBar()->value() == editor.verticalScrollBar()->maximum());
+    CHECK(caret.top() >= 0.0);
+    CHECK(caret.bottom() <= editor.height());
 
     layout->layoutPendingBlocks();
     CHECK(textArea(editor) == shown);
 }
 
-TEST_CASE("Stage2 on demand: a resize shows the text at the new width at once, without a jump",
+TEST_CASE("Stage2 on demand: a resize keeps the text in place, laying out nothing",
           "[editor][stage2][ondemand][render]") {
+    // Every view wraps the text at the page's width: a resize moves the page in the window
     const double position = GENERATE(0.0, 0.4, 1.0);  // share of the scroll range
     BookEditor editor;
     resizeWidget(editor, QSize(600, 400));
@@ -835,25 +857,23 @@ TEST_CASE("Stage2 on demand: a resize shows the text at the new width at once, w
     LaidOutBlockCounter laidOut(editor);
     resizeWidget(editor, QSize(800, 400));
     const QImage resized = textArea(editor);
-    CHECK(laidOut.count() <= 10);  // only the paragraphs on screen
+    CHECK(laidOut.count() == 0);
 
-    if (position < 1.0) {
-        // The text at the top stays at the top (the end of a shorter document cannot)
-        const TopLine after = topLine(editor);
-        CHECK(after.block == before.block);
-        CHECK(after.start <= before.start);
-        CHECK(before.start < after.start + after.length);
-    }
+    // The text stays where it was
+    const TopLine after = topLine(editor);
+    CHECK(after.block == before.block);
+    CHECK(after.start == before.start);
 
     layout->layoutPendingBlocks();
     CHECK(textArea(editor) == resized);
 }
 
-TEST_CASE("Stage2 on demand: a visible editor wraps at the new width during the resize",
+TEST_CASE("Stage2 on demand: a visible editor keeps the page's lines during a resize",
           "[editor][stage2][ondemand]") {
     // Regression (Stage 1): a width change re-laid out the whole document, so a visible
     // editor kept the old width until the window edge stopped for 80 ms, leaving a blank
-    // strip or cut lines in the meantime.
+    // strip or cut lines in the meantime. Every view wraps at the page's width now: a
+    // resize moves the page in the window and lays out nothing.
     BookEditor editor;
     editor.setAttribute(Qt::WA_DontShowOnScreen);  // visible to Qt, no window on screen
     resizeWidget(editor, QSize(600, 400));
@@ -861,58 +881,63 @@ TEST_CASE("Stage2 on demand: a visible editor wraps at the new width during the 
     editor.show();
     REQUIRE(editor.isVisible());
     runEventLoop(50);
+    layoutOf(editor)->layoutPendingBlocks();  // the background pass, at once
 
     LaidOutBlockCounter laidOut(editor);
-    qreal width = editor.textDocument()->textWidth();
+    const qreal width = editor.textDocument()->textWidth();
     for (int windowWidth = 640; windowWidth <= 880; windowWidth += 40) {
         editor.resize(windowWidth, 400);  // a visible widget gets the resize event at once
-        CHECK(editor.textDocument()->textWidth() > width);
-        width = editor.textDocument()->textWidth();
+        CHECK(editor.textDocument()->textWidth() == width);
         editor.repaint();
     }
-    CHECK(laidOut.count() < 100);  // each step laid out the paragraphs on screen
-
-    BookEditor reference;
-    resizeWidget(reference, editor.size());
-    reference.fromKml(kmlOf(mixedParagraphs(300)));
-    CHECK(width == Approx(reference.textDocument()->textWidth()));
+    CHECK(laidOut.count() == 0);
 }
 
-TEST_CASE("Stage2 on demand: Ctrl+wheel zooms at every notch, keeping the text at the top",
+TEST_CASE("Stage2 on demand: Ctrl+wheel zooms at every notch, around the mouse pointer",
           "[editor][stage2][ondemand]") {
-    // Regression (Stage 1): font-scaling zoom was applied once the wheel stopped for 80 ms
+    // Regression (Stage 1): font-scaling zoom was applied once the wheel stopped for 80 ms.
+    // The painter scales the page now: the lines stay, and the text under the pointer
+    // stays under it.
     BookEditor editor;
     resizeWidget(editor, QSize(600, 400));
     editor.fromKml(kmlOf(mixedParagraphs(300)));
     layoutOf(editor)->layoutPendingBlocks();
     editor.setScrollOffset(editor.verticalScrollBar()->maximum() * 0.4 + 7);  // within a line
     editor.grab();
-    const TopLine before = topLine(editor);
     const qreal baseSize = editor.textDocument()->defaultFont().pointSizeF();
+    const qreal baseHeight = layoutOf(editor)->documentSize().height();
+
+    // The caret on a line in the view, and its distance from the pointer (sendCtrlWheel's
+    // position)
+    const TopLine shown = topLine(editor);
+    editor.setCursorPosition({shown.block, shown.start});
+    const qreal pointerY = 100.0;
+    const qreal caretY = editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF().top();
+    REQUIRE(caretY > 0.0);
+    REQUIRE(caretY < editor.height());
 
     LaidOutBlockCounter laidOut(editor);
     int notch = 0;
     for (const int delta : {120, 120, 120, -120, -120, -120, -120}) {
         sendCtrlWheel(editor, delta);
         notch += delta > 0 ? 1 : -1;
-        CHECK(editor.zoomFactor() == Approx(std::pow(1.1, notch)));
-        CHECK(editor.textDocument()->defaultFont().pointSizeF() ==
-              Approx(baseSize * std::pow(1.1, notch)));
+        const double zoom = std::pow(1.1, notch);
+        CHECK(editor.zoomFactor() == Approx(zoom));
+        CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(baseSize));
         editor.grab();
 
-        // The line at the top still holds the text that was there, wrapped anew
-        const TopLine now = topLine(editor);
-        CHECK(now.block == before.block);
-        CHECK(now.start <= before.start);
-        CHECK(before.start < now.start + now.length);
+        // The caret's distance from the pointer follows the zoom
+        const QRectF caret = editor.inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+        CHECK(caret.top() - pointerY == Approx((caretY - pointerY) * zoom).margin(1.0));
     }
-    CHECK(laidOut.count() < 100);  // each notch laid out the paragraphs on screen
+    CHECK(laidOut.count() == 0);
+    CHECK(layoutOf(editor)->documentSize().height() == Approx(baseHeight));
 }
 
 TEST_CASE("Stage2 on demand: justified lines reach the right edge without cached glyphs",
           "[editor][stage2][ondemand][render]") {
     BookEditor editor;
-    resizeWidget(editor, QSize(600, 400));
+    resizeWidget(editor, QSize(900, 400));  // the whole page in the view
     editor.setAppearance(appearanceWith(1.0, 0.0, false, 0.0));
     // No punctuation: every line ends with a letter, whose ink reaches the line's end
     const QString words = QStringLiteral(
@@ -924,8 +949,9 @@ TEST_CASE("Stage2 on demand: justified lines reach the right edge without cached
 
     const EditorAppearance& appearance = editor.appearance();
     const QColor background = appearance.colors.background(appearance.colorMode);
-    const int marginLeft = static_cast<int>(appearance.viewMargins.horizontal);
-    const int marginTop = static_cast<int>(appearance.viewMargins.vertical);
+    const QPointF origin = textOrigin(editor);
+    const int marginLeft = static_cast<int>(std::round(origin.x()));
+    const int marginTop = static_cast<int>(std::round(origin.y()));
     const int textRight = marginLeft + static_cast<int>(editor.textDocument()->textWidth());
     const QTextLayout* lines =
         KalahariTextDocumentLayout::blockLayout(editor.textDocument()->firstBlock());

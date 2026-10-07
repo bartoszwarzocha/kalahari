@@ -197,14 +197,7 @@ void EditorPanel::applySettings() {
     logger.debug("Applied cursor settings: style={}, blinking={}, interval={}ms",
                  cursorStyleInt, appearance.cursor.blinking, appearance.cursor.blinkInterval);
 
-    // View margins (Continuous/Focus views)
-    double viewMarginH = settings.get<double>("editor.margins.viewHorizontal", 50.0);
-    double viewMarginV = settings.get<double>("editor.margins.viewVertical", 30.0);
-    appearance.viewMargins.horizontal = viewMarginH;
-    appearance.viewMargins.vertical = viewMarginV;
-    logger.debug("Applied view margins: H={} V={}", viewMarginH, viewMarginV);
-
-    // Page margins (Page/Typewriter views)
+    // Page margins (every view: the continuous views are an endless page)
     appearance.pageMargins.top = settings.get<double>("editor.margins.pageTop", 25.4);
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom", 25.4);
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft", 25.4);

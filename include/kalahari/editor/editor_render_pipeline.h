@@ -47,7 +47,6 @@ class KalahariTextDocumentLayout;
 /// pipeline.setTextSource(std::make_unique<QTextDocumentSource>(doc));
 ///
 /// RenderContext ctx;
-/// ctx.margins = {50, 30, 50, 30};
 /// ctx.colors.text = Qt::black;
 /// pipeline.setContext(ctx);
 ///
@@ -109,24 +108,8 @@ public:
     // Context Shortcuts (commonly modified properties)
     // =========================================================================
 
-    /// @brief Set margins
-    void setMargins(double left, double top, double right, double bottom);
-    void setMargins(const RenderMargins& margins);
-
-    /// @brief Set zoom level and mode
-    /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
-    /// @param mode How zoom should be applied
-    void setZoom(double factor, ZoomMode mode);
-
     /// @brief Get current zoom factor
     double zoomFactor() const { return m_context.zoomFactor; }
-
-    /// @brief Get current zoom mode
-    ZoomMode zoomMode() const { return m_context.zoomMode; }
-
-    /// @brief Set text width
-    /// @param width Available width for text (pixels)
-    void setTextWidth(double width);
 
     /// @brief Set font
     void setFont(const QFont& font);
@@ -170,17 +153,16 @@ public:
     /// @param dpi Logical screen DPI (from screen()->logicalDotsPerInch())
     void setConfigDpi(double dpi);
 
-    /// @brief Set base font (recalculates: effectiveFont)
+    /// @brief Set base font (recalculates: typography; relayout)
     /// @param font User's selected font
     void setConfigFont(const QFont& font);
 
-    /// @brief Set zoom level (recalculates: effectiveFont, viewScale)
-    /// @param factor Zoom factor (1.0 = 100%)
-    /// @param mode How zoom is applied (FontScaling or PageScaling)
-    void setConfigZoom(double factor, ZoomMode mode);
+    /// @brief Set zoom level (recalculates: viewScale, view geometry; no relayout)
+    /// @param factor Zoom factor (1.0 = 100%), clamped to [MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR]
+    void setConfigZoom(double factor);
 
-    /// @brief Set the page view's widget pixels per layout pixel at zoom 100% (recalculates:
-    ///        viewScale; see RenderContext::paperScale)
+    /// @brief Set the widget pixels per layout pixel at zoom 100% (recalculates: viewScale;
+    ///        see RenderContext::paperScale)
     void setConfigPaperScale(double scale);
 
     /// @brief Set the view typography (recalculates: typography)
@@ -188,16 +170,9 @@ public:
     ///                   in pixels at 100% zoom
     void setConfigTypography(const LayoutTypography& typography);
 
-    /// @brief Set viewport size (recalculates: textWidth or pageCenterOffset)
+    /// @brief Set viewport size (recalculates: the page's place in the view; no relayout)
     /// @param size Widget size in pixels
     void setConfigViewportSize(const QSizeF& size);
-
-    /// @brief Set margins in pixels (recalculates: textWidth)
-    /// @param left Left margin in pixels
-    /// @param top Top margin in pixels
-    /// @param right Right margin in pixels
-    /// @param bottom Bottom margin in pixels
-    void setConfigMargins(double left, double top, double right, double bottom);
 
     /// @brief Set page layout parameters (recalculates: pageLayout, textWidth)
     /// @param pageSize Page size in points (72 DPI)
@@ -216,23 +191,23 @@ public:
     /// @brief Turn Focus on or off: every paragraph but the cursor's is dimmed (repaint only)
     void setConfigFocus(bool enabled);
 
-    /// @brief Set the horizontal scroll offset in pixels (page mode, zoomed page wider
-    ///        than the view; clamped to [0, maxScrollX()])
+    /// @brief Set the horizontal scroll offset in pixels (zoomed page wider than the view;
+    ///        clamped to [0, maxScrollX()])
     void setConfigScrollX(double x);
 
     /// @brief Set the width of the vertical scroll bar over the view's right edge; the
-    ///        pages are centred, and scrolled sideways, in the width left of it
+    ///        page is centred, and scrolled sideways, in the width left of it
     void setConfigScrollBarWidth(double width);
 
     /// @brief Set colors (no recalculation, just marks dirty)
     /// @param colors Render colors (text, background, selection, etc.)
     void setConfigColors(const RenderColors& colors);
 
-    /// @brief Set view mode (FULL reconfiguration - use sparingly)
+    /// @brief Set view mode (recalculates: page flow, view geometry)
     /// @param mode New view mode
-    /// @param zoomMode How the zoom applies in that mode (one relayout for both)
-    /// @note This triggers full reconfiguration because view mode affects everything
-    void setConfigViewMode(ViewMode mode, ZoomMode zoomMode);
+    /// @note Every view has the page's width, margins and zoom, so the line breaks stay;
+    ///       the text is laid out again for the page flow (lines placed on pages or not)
+    void setConfigViewMode(ViewMode mode);
 
     /// @brief Apply initial configuration (called once after setup)
     /// Sets up initial state without full configure() overhead
@@ -399,7 +374,7 @@ public:
     /// @brief Document y of the top of a page's text area
     double pageTextTop(int page) const;
 
-    /// @brief Largest horizontal scroll offset (pixels; 0 when the pages fit the view)
+    /// @brief Largest horizontal scroll offset (pixels; 0 when the page fits the view)
     double maxScrollX() const;
 
     /// @brief Find position (paragraph, offset) at widget point
@@ -482,6 +457,14 @@ private:
     ///        text frame and page number (page mode)
     void renderPages(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Render the endless page of the continuous views (the part in the clip rect):
+    ///        a sheet as wide as the page, from the top margin above the text to the bottom
+    ///        margin below it
+    void renderEndlessPage(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Render a sheet of paper: its shadow, the paper and its edge
+    void renderSheet(QPainter* painter, const QRectF& sheet);
+
     /// @brief Width of the character at a position, in layout units
     ///
     /// Block and underline cursors are as wide. At the end of a line, where there is no
@@ -534,17 +517,14 @@ private:
     /// @brief Calculate DPI-derived values
     void computeDpiScaling();
 
-    /// @brief Calculate effective margins for current view mode (SINGLE PLACE!)
+    /// @brief Calculate effective margins: the page's, in every view (SINGLE PLACE!)
     void computeMargins();
 
     /// @brief Calculate text width
     void computeTextWidth();
 
-    /// @brief Calculate page layout for Page Mode
+    /// @brief Calculate the page's size and margins (every view) and pitch (page mode)
     void computePageLayout();
-
-    /// @brief Calculate effective font
-    void computeEffectiveFont();
 
     /// @brief Calculate the typography handed to the layout (reference font size)
     void computeTypography();

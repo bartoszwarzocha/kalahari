@@ -355,7 +355,7 @@ struct CursorSettings {
 // Margin Configuration
 // =============================================================================
 
-/// @brief Page margins configuration (for Page and Typewriter views)
+/// @brief Page margins configuration (every view: the continuous views are an endless page)
 /// Supports mirror margins for book binding
 struct PageMarginsConfig {
     double top = 25.4;           ///< Top margin in mm (default 1 inch)
@@ -393,27 +393,6 @@ struct PageMarginsConfig {
                inner == other.inner && outer == other.outer;
     }
     bool operator!=(const PageMarginsConfig& other) const { return !(*this == other); }
-};
-
-/// @brief View margins configuration (for Continuous, Focus, DistractionFree views)
-/// Symmetric margins for viewport padding
-struct ViewMarginsConfig {
-    double vertical = 30.0;      ///< Top and bottom margin in pixels (symmetric)
-    double horizontal = 50.0;    ///< Left and right margin in pixels (symmetric)
-
-    /// @brief Get top margin
-    double top() const { return vertical; }
-    /// @brief Get bottom margin
-    double bottom() const { return vertical; }
-    /// @brief Get left margin
-    double left() const { return horizontal; }
-    /// @brief Get right margin
-    double right() const { return horizontal; }
-
-    bool operator==(const ViewMarginsConfig& other) const {
-        return vertical == other.vertical && horizontal == other.horizontal;
-    }
-    bool operator!=(const ViewMarginsConfig& other) const { return !(*this == other); }
 };
 
 // =============================================================================
@@ -478,8 +457,7 @@ public:
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
 
     // Margins configuration
-    PageMarginsConfig pageMargins;             ///< Margins for Page/Typewriter views
-    ViewMarginsConfig viewMargins;             ///< Margins for Continuous/Focus/DistractionFree views
+    PageMarginsConfig pageMargins;             ///< The page's margins, in every view
 
     // =========================================================================
     // Presets

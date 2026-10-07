@@ -96,8 +96,9 @@ public:
 
     /// @brief Set the page flow; every block waits for layout again when it changes
     ///
-    /// With page flow, line breaks follow the font's design metrics instead of its
-    /// screen metrics, so that they stay the same when a scaled painter zooms the pages.
+    /// Line breaks follow the font's design metrics in every view, with page flow or
+    /// without it, so that they stay the same when a scaled painter zooms the page and
+    /// when the view switches between the pages and the endless page.
     void setPageFlow(const PageFlow& flow);
     const PageFlow& pageFlow() const { return m_pageFlow; }
 
@@ -216,6 +217,9 @@ private:
 
     /// @brief Character width and line height the estimates use (current font)
     void updateEstimateMetrics();
+
+    /// @brief Announce the document size if it is not the one announced last
+    void reportDocumentSize();
 
     /// @brief Announce a new document size and the area to repaint
     /// @param first First block that changed, @param bottom lowest y the change can affect

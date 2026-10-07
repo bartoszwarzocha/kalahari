@@ -233,10 +233,11 @@ public:
     /// @param interval Blink interval in milliseconds
     void setCursorBlinkInterval(int interval);
 
-    /// @brief Force cursor to visible state and restart blink timer
+    /// @brief Force cursor to visible state, restart blink timer and scroll to the cursor
     ///
     /// Call this after any cursor movement to ensure the cursor
-    /// is visible immediately after the user action.
+    /// is visible immediately after the user action. A page wider than the view scrolls
+    /// sideways too.
     void ensureCursorVisible();
 
     /// @brief Reset cursor blink timer without scrolling
@@ -573,7 +574,9 @@ public:
     /// @brief Set the view mode
     /// @param mode The new view mode
     ///
-    /// Emits viewModeChanged if mode changes. Triggers repaint.
+    /// Every view has the page's width, so the line breaks stay; the cursor line keeps its
+    /// place on the screen while it is in the view. Emits viewModeChanged if mode changes.
+    /// Triggers repaint.
     void setViewMode(ViewMode mode);
 
     /// @brief Whether typewriter scrolling is on (in any view mode)
@@ -612,12 +615,12 @@ public:
     /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
     void setZoomFactor(double factor);
 
-    /// @brief Widget pixels per layout pixel at zoom 100% in the Page Layout view. With the
-    ///        screen's paperScaleOf(), 100% shows the pages at their size on paper; 1 (the
-    ///        default) gives the size of the system's display scaling.
+    /// @brief Widget pixels per layout pixel at zoom 100%, in every view. With the screen's
+    ///        paperScaleOf(), 100% shows the page at its size on paper; 1 (the default)
+    ///        gives the size of the system's display scaling.
     void setPaperScale(double scale);
 
-    /// @brief The page view's widget pixels per layout pixel at zoom 100% (setPaperScale())
+    /// @brief Widget pixels per layout pixel at zoom 100% (setPaperScale())
     double paperScale() const;
 
     /// @brief The paper scale of a screen: its physical DPI over its logical DPI (the one
@@ -627,11 +630,12 @@ public:
     /// @brief The paper scale for a physical and a logical DPI (see paperScaleOf())
     static double paperScaleFor(double physicalDpi, double logicalDpi);
 
-    /// @brief Zoom the pages to fill the width of the view (Page Layout view)
+    /// @brief Zoom the page (the pages, or the endless page of the continuous views) to
+    ///        fill the width of the view
     void zoomToPageWidth();
 
-    /// @brief Zoom so that a whole page fits the view, showing the cursor's page
-    ///        (Page Layout view)
+    /// @brief Zoom so that a whole page fits the view: the Page Layout view shows the
+    ///        cursor's page, the continuous views take the same zoom
     void zoomToWholePage();
 
     /// @brief Zoom in by one step (+10%)
@@ -1099,7 +1103,6 @@ private:
     void moveCursorByViewHeight(double direction);
 
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
-    ///        (page mode; the scroll modes keep the text at the top of the view)
     void applyZoom(double factor, const QPointF& fixedPoint);
 
     /// @brief Give the pipeline the page size, margins, gap and page numbers
@@ -1136,11 +1139,6 @@ private:
     /// @brief Update only scroll position (lightweight)
     void updatePipelineScroll();
 
-    /// @brief View margins of the scroll modes, in pixels
-    ///
-    /// Page mode uses the page's margins, given to the pipeline by applyPageLayout().
-    RenderMargins calculateEffectiveMargins() const;
-
     /// @brief Scroll room above and below the text, in document units
     /// @return {topPadding, bottomPadding}, as computed by the render pipeline
     std::pair<double, double> getScrollPadding() const;
@@ -1152,6 +1150,14 @@ private:
 
     /// @brief Stop any running scroll animation
     void stopScrollAnimation();
+
+    /// @brief Scroll the cursor line fully into the view, off its top and bottom edges
+    ///
+    /// The first line scrolls to the top of the document, showing the page's top margin.
+    void scrollToCursorLine();
+
+    /// @brief Scroll a page wider than the view sideways to show the cursor
+    void scrollSidewaysToCursor();
 
     /// @brief Scroll the line with the cursor to the typewriter focus height
     /// @param animate Animate a short scroll (when smooth typewriter scrolling is on); a
@@ -1263,9 +1269,6 @@ private:
     /// Sets m_uiOpacity to 1.0 and starts the fade timer.
     /// When timer fires, opacity gradually fades to 0.
     void startUiFade();
-
-    /// @brief Get appropriate zoom mode for current view mode
-    ZoomMode getZoomModeForViewMode() const;
 
     // =========================================================================
     // Formatting Helpers (Phase 7.2)

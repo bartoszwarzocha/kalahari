@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: the continuous views are one endless page** - 2026-10-07
+  - The Continuous and Distraction-Free views show the text on one endless page as wide
+    as the pages, with the page's margins and the desk on both sides. The lines break
+    as on the pages and in print, in every view and at every zoom: switching to the Page
+    Layout view only adds the page breaks. A chapter shorter than a page is on a whole
+    page, as in the Page Layout view.
+  - The zoom scales the page as in the Page Layout view: 100% is the page's size on paper,
+    View > Zoom > Page Width and Whole Page fit it to the window, and a page wider than the
+    window scrolls sideways, following the cursor while you type.
+  - Switching views keeps the cursor's line at its height in the window; a view scrolled
+    away from the cursor stays where it is (it used to jump to the cursor).
+  - Going to the first line shows the top of the page with its margin, as the end of the
+    text shows the bottom margin.
+  - The view margins of the continuous views are gone from the editor's appearance: the
+    page margins apply in every view.
+
 - **Settings: one list of defaults** - 2026-10-07
   - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
     uses it when the key is missing, so readers no longer repeat defaults.
@@ -93,8 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
     Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
   - Zoom 100% shows the pages at their size on paper, from the size the screen reports (on
-    a laptop screen at 125% display scaling they were two thirds of it); the Continuous
-    view keeps the text size of the display scaling.
+    a laptop screen at 125% display scaling they were two thirds of it).
 - **Editor: typewriter scrolling is a toggle** - 2026-10-06
   - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
     and is remembered. The line being written stays at one height of the view (Settings >

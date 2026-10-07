@@ -12,6 +12,10 @@
 
 namespace kalahari::editor {
 
+// Room kept between the cursor and the edges of the view when the view scrolls to the
+// cursor (view pixels)
+constexpr qreal CURSOR_SCROLL_MARGIN = 30.0;
+
 // =============================================================================
 // Cursor Position (Phase 3.4)
 // =============================================================================
@@ -158,9 +162,14 @@ void BookEditor::ensureCursorVisible()
     // put the cursor: a click or a drag selection leaves the view where it is
     if (m_appearance.typewriter.enabled && !m_pointerMovesCursor) {
         updateTypewriterScroll();
-        return;
+    } else {
+        scrollToCursorLine();
     }
+    scrollSidewaysToCursor();
+}
 
+void BookEditor::scrollToCursorLine()
+{
     // Scroll viewport to make cursor visible (only when line is partially clipped)
     if (!m_textBuffer || !m_viewportManager) {
         return;
@@ -189,20 +198,22 @@ void BookEditor::ensureCursorVisible()
         return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();
     };
 
-    // The band of the view the line must be within: the view without its vertical view
-    // margins, as document y relative to the scroll position (the scroll position is drawn
-    // at the view's top inset, and page mode zooms by the view scale)
+    // The band of the view the line must be within: the view without a margin at its top
+    // and bottom edges, as document y relative to the scroll position (the scroll position
+    // is drawn at the view's top inset, and the zoom scales by the view scale)
     const qreal scrollY = m_viewportManager->scrollPosition();
     const qreal scale = m_viewportManager->viewScale();
     const qreal inset = m_viewportManager->viewTopInset();
-    const qreal viewMargin = m_appearance.viewMargins.vertical;
-    const qreal bandTop = (viewMargin - inset) / scale;
-    const qreal bandBottom = (static_cast<qreal>(height()) - viewMargin - inset) / scale;
+    const qreal bandTop = (CURSOR_SCROLL_MARGIN - inset) / scale;
+    const qreal bandBottom =
+        (static_cast<qreal>(height()) - CURSOR_SCROLL_MARGIN - inset) / scale;
 
     // Scroll only if line is NOT fully visible
     if (lineTop() < scrollY + bandTop) {
-        // Line is clipped at top - scroll up to show full line
-        setScrollOffset(lineTop() - bandTop);
+        // Line is clipped at top - scroll up to show full line; the first line shows the top
+        // of the page too, as the last one shows its bottom (the scroll range ends there)
+        const bool firstLine = block.blockNumber() == 0 && cursorLine.lineNumber() == 0;
+        setScrollOffset(firstLine ? 0.0 : lineTop() - bandTop);
     } else if (lineTop() + lineBox.height() > scrollY + bandBottom) {
         // Line is clipped at bottom - scroll down to show full line. The blocks above it
         // that come into view are laid out first: with estimated heights the line could
@@ -217,6 +228,28 @@ void BookEditor::ensureCursorVisible()
         setScrollOffset(qMax(0.0, newScroll));
     }
     // If line is fully visible, don't scroll
+}
+
+void BookEditor::scrollSidewaysToCursor()
+{
+    // A page wider than the view (a narrow window, a high zoom) scrolls sideways to the
+    // cursor, keeping it off the view's edges - only into the view where the mouse put it
+    if (!m_renderPipeline || m_renderPipeline->maxScrollX() <= 0.0) {
+        return;
+    }
+    const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+    if (caret.isNull()) {
+        return;
+    }
+    const RenderContext& ctx = m_renderPipeline->context();
+    const qreal viewWidth = std::max(0.0, ctx.viewportSize.width() - ctx.scrollBarWidth);
+    const qreal margin =
+        m_pointerMovesCursor ? 0.0 : std::min(CURSOR_SCROLL_MARGIN, viewWidth / 4.0);
+    if (caret.left() < margin) {
+        setHorizontalScrollOffset(ctx.scrollX + caret.left() - margin);
+    } else if (caret.right() > viewWidth - margin) {
+        setHorizontalScrollOffset(ctx.scrollX + caret.right() - (viewWidth - margin));
+    }
 }
 
 // =============================================================================

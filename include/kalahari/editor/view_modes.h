@@ -1,34 +1,9 @@
 /// @file view_modes.h
-/// @brief View modes and zoom modes of BookEditor
+/// @brief View modes of BookEditor
 
 #pragma once
 
 namespace kalahari::editor {
-
-// =============================================================================
-// Zoom Mode Enum
-// =============================================================================
-
-/// @brief Zoom behavior mode
-///
-/// Defines how zooming is applied in different view modes:
-/// - FontScaling: Text reflows to fill width (for continuous modes)
-/// - PageScaling: Entire page view is scaled (for page-like modes)
-enum class ZoomMode {
-    /// @brief Zoom by scaling font size (text reflows to fill width)
-    ///
-    /// Used in: Continuous, DistractionFree
-    /// The text content is re-laid out at the new font size,
-    /// maintaining the same text width (line length).
-    FontScaling,
-
-    /// @brief Zoom by scaling the entire page view (like PDF viewer)
-    ///
-    /// Used in: Page
-    /// The entire page is scaled uniformly, including margins,
-    /// similar to how PDF viewers handle zoom.
-    PageScaling
-};
 
 // =============================================================================
 // View Mode Enum
@@ -37,13 +12,16 @@ enum class ZoomMode {
 /// @brief Available view modes for the text editor
 ///
 /// Each mode provides a different writing experience optimized for
-/// specific use cases (drafting, reviewing, focused writing, etc.). Focus and typewriter
-/// scrolling are toggles on top of the view mode (BookEditor::setFocusModeEnabled(),
-/// BookEditor::setTypewriterEnabled()).
+/// specific use cases (drafting, reviewing, focused writing, etc.)
+///
+/// Every view shows the text as wide as the page, with the page's margins and the line
+/// breaks of the printed page, and zooms it as a whole; the views other than Page show it
+/// as one endless page. Focus and typewriter scrolling are toggles on top of the view mode
+/// (BookEditor::setFocusModeEnabled(), BookEditor::setTypewriterEnabled()).
 enum class ViewMode {
     /// @brief Continuous scrolling mode (default)
     ///
-    /// Simple, uninterrupted vertical scrolling. No page breaks.
+    /// One endless page: uninterrupted vertical scrolling, no page breaks.
     /// Best for: First drafts, quick editing, short documents.
     Continuous,
 

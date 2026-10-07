@@ -406,9 +406,9 @@ std::vector<LineSpan> lineSpans(BookEditor& editor) {
     return lines;
 }
 
-/// Widget pixels per document unit: the zoom, and the paper scale in the Page Layout view
+/// Widget pixels per document unit: the zoom and the paper scale, in every view
 double viewScale(BookEditor& editor) {
-    return editor.zoomFactor() * (editor.viewMode() == ViewMode::Page ? editor.paperScale() : 1.0);
+    return editor.zoomFactor() * editor.paperScale();
 }
 
 /// The top of the cursor's line in document units
@@ -612,7 +612,6 @@ TEST_CASE("Stage4 zoom: 100% shows the pages at their size on paper",
     EditorRenderPipeline pipeline;
     RenderContext context;
     context.viewMode = ViewMode::Page;
-    context.zoomMode = ZoomMode::PageScaling;
     context.pageMode.pageSize = QSizeF(595.28, 841.89);  // A4 in points
     context.paperScale = scale;
     pipeline.configure(context);
@@ -624,13 +623,10 @@ TEST_CASE("Stage4 zoom: 100% shows the pages at their size on paper",
     pipeline.configure(context);
     CHECK(pipeline.context().computed.viewScale == Approx(2.0 * scale));
 
-    // The scroll modes lay the text out at the zoomed font size, as before
+    // The continuous views are an endless page of the same size: zoomed the same way
     context.viewMode = ViewMode::Continuous;
-    context.zoomMode = ZoomMode::FontScaling;
-    context.font = QFont(QStringLiteral("Arial"), 12);
     pipeline.configure(context);
-    CHECK(pipeline.context().computed.viewScale == Approx(1.0));
-    CHECK(pipeline.context().computed.effectiveFont.pointSizeF() == Approx(24.0));
+    CHECK(pipeline.context().computed.viewScale == Approx(2.0 * scale));
 
     // A screen that reports no size or a made-up one keeps the size of the display scaling
     CHECK(BookEditor::paperScaleFor(0.0, 96.0) == 1.0);
