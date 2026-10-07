@@ -460,6 +460,10 @@
         <translation>Przewijanie jak w maszynie do pisania</translation>
     </message>
     <message>
+        <source>Dark Paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
         <source>Writer</source>
         <translation>Pisarz</translation>
     </message>
@@ -2218,6 +2222,14 @@ Do you want to choose a different location?</source>
     <message>
         <source>Focus: off</source>
         <translation>Skupienie: wyłączone</translation>
+    </message>
+    <message>
+        <source>Dark paper: on</source>
+        <translation>Ciemny papier: włączony</translation>
+    </message>
+    <message>
+        <source>Dark paper: off</source>
+        <translation>Ciemny papier: wyłączony</translation>
     </message>
     <message>
         <source>View mode: Distraction-Free</source>

@@ -178,6 +178,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.mode.distraction-free", "resources/icons/twotone/edit_note.svg", "Distraction-Free");
     iconRegistry.registerIcon("view.focus", "resources/icons/twotone/center_focus_strong.svg", "Focus");
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
+    iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 

@@ -27,6 +27,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
+#include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/settings_manager.h"
@@ -348,6 +349,7 @@ void MainWindow::registerCommands() {
     callbacks.onViewModePage = [this]() { onViewModePage(); };
     callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
+    callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
     callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
 
     // Zoom commands act on the editor in front
@@ -410,6 +412,10 @@ void MainWindow::registerCommands() {
         fsCmd->execute = [this]() { toggleFullScreen(); };
         fsCmd->isChecked = [this]() { return isFullScreen(); };
     }
+
+    // The paper of every editor is a setting: its toggle shows it also before an editor
+    // opens, and follows the editor's context menu and the Settings dialog
+    utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode", true);
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -817,6 +823,19 @@ void MainWindow::onFocusToggle() {
     }
     updateEditorActionStates();
     statusBar()->showMessage(enabled ? tr("Focus: on") : tr("Focus: off"), 2000);
+}
+
+void MainWindow::onDarkPaperToggle() {
+    auto& logger = core::Logger::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions, as in the editor's context menu
+    const bool dark = !settings.get<bool>("editor.darkMode", true);
+    settings.set<bool>("editor.darkMode", dark);
+    logger.info("Action triggered: Dark Paper {}", dark ? "on" : "off");
+
+    onEditorColorModeChanged(dark ? editor::EditorColorMode::Dark : editor::EditorColorMode::Light);
+    statusBar()->showMessage(dark ? tr("Dark paper: on") : tr("Dark paper: off"), 2000);
 }
 
 void MainWindow::onEditorColorModeChanged(editor::EditorColorMode mode) {
