@@ -11,6 +11,7 @@
 #include <QColor>
 #include <QObject>
 #include <QPalette>
+#include <QToolTip>
 
 #include <map>
 #include <string>
@@ -53,6 +54,9 @@ TEST_CASE("ThemeManager applies a theme with overrides in one pass",
         settings.clearCustomUiColorsForTheme(originalTheme.toStdString());
 
         CHECK(themeManager.getCurrentTheme().palette.toolTipBase == TEST_WINDOW);
+        // Tooltips take their colors from the palette (there is no application style sheet)
+        CHECK(QToolTip::palette().color(QPalette::ToolTipBase) == TEST_WINDOW);
+        CHECK(qApp->styleSheet().isEmpty());
     }
 
     SECTION("stored info panel and Dashboard colors are applied") {

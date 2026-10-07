@@ -63,7 +63,7 @@ public:
     /// @param extraOverrides Colors that are not stored per theme (e.g. info panels)
     /// @return true if successful, false if the theme could not be loaded
     ///
-    /// Applies palette and stylesheet once and emits themeChanged once, with the same
+    /// Applies the palette once and emits themeChanged once, with the same
     /// result as loading the theme at startup. Does not save settings.
     bool reloadTheme(const QString& themeName,
                      const std::map<std::string, QColor>& extraOverrides = {});
@@ -85,7 +85,7 @@ public:
     /// @brief Reset all color overrides (restore theme defaults)
     void resetColorOverrides();
 
-    /// @brief Refresh theme application (reapply palette and stylesheet)
+    /// @brief Refresh theme application (reapply the palette)
     /// Call this after multiple setColorOverride() calls to apply changes
     void refreshTheme();
 
@@ -94,7 +94,7 @@ signals:
     /// @param theme New active theme (with overrides applied)
     void themeChanged(const Theme& theme);
 
-    /// @brief Emitted after stylesheet applied (for additional widget refresh)
+    /// @brief Emitted after the palette is applied (for additional widget refresh)
     void themeStyleChanged();
 
 private:
@@ -107,6 +107,9 @@ private:
 
     /// @brief Apply the user's stored per-theme colors to m_currentTheme
     void applyStoredColors();
+
+    /// @brief Apply m_currentTheme's palette to the application and its tooltips
+    void applyPalette();
 
     /// @brief Load theme JSON file from resources/themes/
     /// @param themeName Theme name

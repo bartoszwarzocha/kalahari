@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Faster theme switch** - 2026-10-07. Kalahari no longer sets an application style
+  sheet (it held only the tooltip colors): setting one restyled every widget, about 1.2 s
+  of the 1.7 s theme switch in a Windows Debug build. Tooltips take their colors from the
+  theme palette and get their thin frame from the application style. Light to Dark in a
+  Linux Release build: about 75 ms, was about 330 ms.
+
 - **Settings: one list of defaults** - 2026-10-07
   - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
     uses it when the key is missing, so readers no longer repeat defaults.
