@@ -188,6 +188,9 @@ public:
     /// @param focusPosition That height as a share of the view height (0 = top)
     void setConfigTypewriter(bool enabled, double focusPosition);
 
+    /// @brief Turn Focus on or off: every paragraph but the cursor's is dimmed (repaint only)
+    void setConfigFocus(bool enabled);
+
     /// @brief Set the horizontal scroll offset in pixels (zoomed page wider than the view;
     ///        clamped to [0, maxScrollX()])
     void setConfigScrollX(double x);

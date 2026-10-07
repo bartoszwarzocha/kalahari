@@ -39,7 +39,7 @@ void ArtProvider::initialize() {
     // Load icon theme from settings
     auto& settings = SettingsManager::getInstance();
     m_iconTheme = QString::fromStdString(
-        settings.get<std::string>("appearance.iconTheme", "twotone")
+        settings.get<std::string>("appearance.iconTheme")
     );
 
     // CRITICAL: Synchronize IconRegistry colors from ThemeManager BEFORE any icons are loaded

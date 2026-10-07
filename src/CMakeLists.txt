@@ -4,6 +4,7 @@
 set(KALAHARI_CORE_SOURCES
     core/logger.cpp
     core/settings_manager.cpp
+    core/settings_schema.cpp         # Default values of all settings
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
@@ -169,6 +170,7 @@ set(KALAHARI_SOURCES
     gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
+    gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/book_editor_annotations.cpp

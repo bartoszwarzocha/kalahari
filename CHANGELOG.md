@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Editor: the continuous views are one endless page** - 2026-10-07
-  - The Continuous, Focus and Distraction-Free views show the text on one endless page as
-    wide as the pages, with the page's margins and the desk on both sides. The lines break
+  - The Continuous and Distraction-Free views show the text on one endless page as wide
+    as the pages, with the page's margins and the desk on both sides. The lines break
     as on the pages and in print, in every view and at every zoom: switching to the Page
     Layout view only adds the page breaks. A chapter shorter than a page is on a whole
     page, as in the Page Layout view.
@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The view margins of the continuous views are gone from the editor's appearance: the
     page margins apply in every view.
 
+- **Settings: one list of defaults** - 2026-10-07
+  - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
+    uses it when the key is missing, so readers no longer repeat defaults.
+  - `SettingsManager::subscribe()` reports changed settings.
+  - settings.json is written to a temporary file and renamed, so an interrupted save
+    cannot truncate it. New files store only the version; keys nothing reads (old icon
+    sizes, log colors, session) are removed from existing files (format 1.2).
+  - Icon colors and the theme name are stored once (per theme); the second copies are
+    removed. Info panel and Dashboard colors are stored per theme and survive a restart.
+  - The log panel buffer size from the settings is used from startup, not only after
+    changing it. "UI Font Size" is greyed out until it does something.
+  - Themes can define any number of editor colors in an "editor" section; the user's
+    value is stored per theme (`ThemeManager::editorColor()`), ready for the colors of
+    comment, TODO and note markers.
 - **Settings: faster and lighter Apply/OK** - 2026-10-07
   - No "Applying settings..." overlay: Apply writes only the options that changed and
     saves once (about 1 ms for an ordinary option in a Linux Release build, was about
@@ -186,11 +200,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Focus mode dimmed nothing** - 2026-10-06. View > View Mode > Focus (Ctrl+4) now dims
+- **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
   every paragraph but the one with the cursor, and the bright paragraph follows the
-  cursor.
+  cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
+  view keeps its pages, Ctrl+4 again turns it off, the menu item is checked while it is
+  on, and the state is kept between sessions for all editors.
 - **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
   same panel switches.
+- **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
+  and the View toolbar keep every open panel checked, also when its tab lies under
+  another panel's tab. A switch closes an open panel and opens a closed one with its tab
+  on top.
+- **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
+  (for example Ctrl+2 twice) unchecked it; the mode in use now stays checked.
+- **The editor forgot its light or dark paper** - 2026-10-07. Switch to Light Mode /
+  Switch to Dark Mode in the editor's context menu changed only the editor on the
+  screen, so the next start, or Apply in the settings, brought the old paper back. The
+  choice is now the "Use dark mode for editor" setting: kept between sessions and given
+  to every open editor.
+- **A stray icon over the Settings icon preview** - 2026-10-07. Appearance > Icons showed
+  an extra icon on a grey square in the preview's top-left corner: the preview built
+  before the saved icon style was loaded stayed visible until the dialog closed.
 - **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
   paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
   "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO

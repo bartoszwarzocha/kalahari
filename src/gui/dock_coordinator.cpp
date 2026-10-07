@@ -5,6 +5,7 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -380,13 +381,13 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
     auto& registry = CommandRegistry::getInstance();
     Command* cmd = registry.getCommand(cmdId);
     if (cmd) {
-        // Set execute callback to toggle dock visibility
+        // The command closes an open panel and opens a closed one
         cmd->execute = [dock]() {
-            dock->setVisible(!dock->isVisible());
+            utils::togglePanel(dock);
         };
-        // Set isChecked callback for checkable state
+        // Checked while the panel is open, also with its tab under another panel's
         cmd->isChecked = [dock]() {
-            return dock->isVisible();
+            return utils::isPanelOpen(dock);
         };
         // The action may already exist (disabled, since it had no callback yet)
         registry.updateActionState(cmdId);
@@ -405,18 +406,10 @@ QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidge
         return nullptr;
     }
 
-    // Set checkable state (Command's isChecked callback is already set in connectPanelCommand)
-    action->setCheckable(true);
-    action->setChecked(dock->isVisible());
-
-    // Two-way binding: dock -> action (sync visual state)
-    // Note: action->triggered is already connected to executeCommand in CommandRegistry,
-    // which calls cmd->execute (set in connectPanelCommand) to toggle dock visibility
-    QObject::connect(dock, &QDockWidget::visibilityChanged, [action](bool visible) {
-        action->blockSignals(true);
-        action->setChecked(visible);
-        action->blockSignals(false);
-    });
+    // Checked while the panel is open. action->triggered is already connected to
+    // executeCommand in CommandRegistry, which runs cmd->execute (set in
+    // connectPanelCommand) to open or close the panel.
+    utils::followPanel(action, dock);
 
     return action;
 }

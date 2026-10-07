@@ -15,6 +15,7 @@
 #include <map>
 #include <string>
 
+using kalahari::core::Theme;
 using kalahari::core::ThemeManager;
 
 TEST_CASE("ThemeManager applies a theme with overrides in one pass",
@@ -54,6 +55,17 @@ TEST_CASE("ThemeManager applies a theme with overrides in one pass",
         CHECK(themeManager.getCurrentTheme().palette.toolTipBase == TEST_WINDOW);
     }
 
+    SECTION("stored info panel and Dashboard colors are applied") {
+        auto& settings = kalahari::core::SettingsManager::getInstance();
+        const std::string key = "themes." + originalTheme.toStdString() + ".colors.dashboardPrimary";
+        settings.set(key, TEST_WINDOW.name().toStdString());
+
+        REQUIRE(themeManager.reloadTheme(originalTheme));
+        settings.removeKey(key);
+
+        CHECK(themeManager.getCurrentTheme().colors.dashboardPrimary == TEST_WINDOW);
+    }
+
     SECTION("re-applying without overrides restores the theme colors") {
         REQUIRE(themeManager.reloadTheme(originalTheme, {{"palette.window", TEST_WINDOW}}));
         REQUIRE(themeManager.reloadTheme(originalTheme, {}));
@@ -70,4 +82,26 @@ TEST_CASE("ThemeManager applies a theme with overrides in one pass",
     // Leave the suite's baseline theme in place for the following tests
     themeManager.reloadTheme(originalTheme, {});
     CHECK(QString::fromStdString(themeManager.getCurrentTheme().name) == originalTheme);
+}
+
+TEST_CASE("Theme editor colors are an open list from the theme file", "[core][theme]") {
+    const nlohmann::json json = {
+        {"name", "Test"},
+        {"colors", {{"background", "#ffffff"}}},
+        {"editor", {{"commentMarker", "#ffcc00"}, {"todoMarker", "#ff0000"}}},
+    };
+
+    const Theme theme = Theme::fromJson(json);
+    REQUIRE(theme.editor.size() == 2);
+    CHECK(theme.editor.at("commentMarker") == QColor("#ffcc00"));
+
+    const nlohmann::json written = theme.toJson();
+    CHECK(written["editor"]["todoMarker"] == "#ff0000");
+
+    auto& themeManager = ThemeManager::getInstance();
+    const QString currentTheme = QString::fromStdString(themeManager.getCurrentTheme().name);
+    themeManager.setColorOverride("editor.noteMarker", QColor("#00ff00"));
+    CHECK(themeManager.editorColor("noteMarker", QColor()) == QColor("#00ff00"));
+    CHECK(themeManager.editorColor("missingMarker", QColor("#123456")) == QColor("#123456"));
+    themeManager.reloadTheme(currentTheme);
 }

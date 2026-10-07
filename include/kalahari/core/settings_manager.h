@@ -11,7 +11,7 @@
 /// auto& settings = SettingsManager::getInstance();
 /// settings.load();  // Load from disk
 ///
-/// int width = settings.get<int>("window.width", 1280);
+/// int width = settings.get<int>("window.width");  // default from settings_schema
 /// settings.set("window.width", 1600);
 ///
 /// settings.save();  // Save to disk
@@ -21,8 +21,12 @@
 
 #include <string>
 #include <filesystem>
+#include <functional>
+#include <map>
 #include <mutex>
+#include <optional>
 #include <nlohmann/json.hpp>
+#include <kalahari/core/settings_schema.h>
 #include <QSize>
 #include <QPoint>
 
@@ -37,7 +41,8 @@ namespace core {
 /// - macOS:   ~/Library/Application Support/Kalahari/settings.json
 ///
 /// Features:
-/// - Type-safe get/set API with default values
+/// - Type-safe get/set API; defaults come from settings_schema
+/// - Change notification (subscribe())
 /// - Thread-safe access (std::mutex)
 /// - Automatic directory creation
 /// - Graceful error handling (corrupted JSON → defaults)
@@ -66,20 +71,42 @@ public:
     /// Useful for tests or user-requested reset
     void resetToDefaults();
 
-    /// @brief Get setting value with default
+    /// @brief Get setting value
     /// @tparam T Type of the value (int, bool, std::string, etc.)
-    /// @param key JSON pointer path (e.g., "window.width" or "ui.theme")
-    /// @param defaultValue Value to return if key doesn't exist
-    /// @return Setting value or defaultValue if not found
+    /// @param key Dot-separated path (e.g., "window.width")
+    /// @return Stored value, or the default from settings_schema if the key is
+    ///         missing (logs a warning and returns T{} for keys not in the schema)
     template<typename T>
-    T get(const std::string& key, const T& defaultValue) const;
+    T get(const std::string& key) const;
 
-    /// @brief Set setting value
+    /// @brief Get setting value with a fallback
+    /// @tparam T Type of the value (int, bool, std::string, etc.)
+    /// @param key Dot-separated path (e.g., "window.width")
+    /// @param fallback Value used only if the key is missing and not in settings_schema
+    /// @return Stored value, schema default, or fallback (in this order)
+    template<typename T>
+    T get(const std::string& key, const T& fallback) const;
+
+    /// @brief Set setting value; notifies subscribers if the value changed
     /// @tparam T Type of the value
-    /// @param key JSON pointer path (e.g., "window.width")
+    /// @param key Dot-separated path (e.g., "window.width")
     /// @param value Value to set
     template<typename T>
     void set(const std::string& key, const T& value);
+
+    /// @brief Callback called with the key of a setting whose value changed
+    using ChangeListener = std::function<void(const std::string& key)>;
+
+    /// @brief Get notified about changed settings
+    ///
+    /// The listener runs on the thread that changed the setting, after the
+    /// value is stored. Keys are reported with '.' separators.
+    /// @return Id for unsubscribe()
+    int subscribe(ChangeListener listener);
+
+    /// @brief Stop notifications for a listener
+    /// @param id Value returned by subscribe()
+    void unsubscribe(int id);
 
     // Convenience methods for common settings
 
@@ -122,22 +149,6 @@ public:
     /// @brief Set UI theme
     /// @param theme Theme name ("Light", "Dark", "Savanna", "Midnight")
     void setTheme(const std::string& theme);
-
-    /// @brief Get primary icon color (Task #00020)
-    /// @return Color in hex format (default: "#333333")
-    std::string getIconColorPrimary() const;
-
-    /// @brief Set primary icon color (Task #00020)
-    /// @param color Color in hex format (e.g., "#333333")
-    void setIconColorPrimary(const std::string& color);
-
-    /// @brief Get secondary icon color (Task #00020)
-    /// @return Color in hex format (default: "#999999")
-    std::string getIconColorSecondary() const;
-
-    /// @brief Set secondary icon color (Task #00020)
-    /// @param color Color in hex format (e.g., "#999999")
-    void setIconColorSecondary(const std::string& color);
 
     // =========================================================================
     // Per-theme icon colors (Task #00025)
@@ -313,12 +324,27 @@ private:
     /// @return JSON pointer like "/window/width"
     std::string keyToJsonPointer(const std::string& key) const;
 
-    /// @brief Migrate settings from version 1.0 to 1.1
-    /// Moves ui.theme -> appearance.theme and adds new appearance keys
-    void migrateFrom_1_0_to_1_1();
+    /// @brief Bring settings from versions before 1.2 up to date
+    /// Moves ui.theme -> appearance.theme and removes keys nothing reads
+    void migrateToCurrentVersion();
+
+    /// @brief Convert a JSON value, or nullopt if it has another type
+    template<typename T>
+    static std::optional<T> convert(const nlohmann::json& value);
+
+    /// @brief Report a get() of a key that has no default in settings_schema
+    void warnMissingDefault(const std::string& key) const;
+
+    /// @brief Call change listeners (must be called without m_mutex held)
+    void notifyChanged(const std::string& key);
 
     /// In-memory settings (nlohmann::json)
     nlohmann::json m_settings;
+
+    /// Change listeners by id
+    std::map<int, ChangeListener> m_listeners;
+    int m_nextListenerId = 1;
+    mutable std::mutex m_listenersMutex;
 
     /// Path to settings.json file
     std::filesystem::path m_filePath;
@@ -330,23 +356,54 @@ private:
 // Template implementations must be in header
 
 template<typename T>
-T SettingsManager::get(const std::string& key, const T& defaultValue) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
+std::optional<T> SettingsManager::convert(const nlohmann::json& value) {
     try {
-        std::string pointer = keyToJsonPointer(key);
-        return m_settings.at(nlohmann::json::json_pointer(pointer)).get<T>();
+        return value.get<T>();
     } catch (const nlohmann::json::exception&) {
-        return defaultValue;
+        return std::nullopt;  // Stored or default value has another type
     }
 }
 
 template<typename T>
-void SettingsManager::set(const std::string& key, const T& value) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+T SettingsManager::get(const std::string& key, const T& fallback) const {
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const nlohmann::json::json_pointer pointer(keyToJsonPointer(key));
+        if (m_settings.contains(pointer)) {
+            if (std::optional<T> stored = convert<T>(m_settings.at(pointer))) {
+                return *stored;
+            }
+        }
+    }
 
-    std::string pointer = keyToJsonPointer(key);
-    m_settings[nlohmann::json::json_pointer(pointer)] = value;
+    if (const nlohmann::json* schemaDefault = settings_schema::defaultValue(key)) {
+        if (std::optional<T> value = convert<T>(*schemaDefault)) {
+            return *value;
+        }
+    }
+    return fallback;
+}
+
+template<typename T>
+T SettingsManager::get(const std::string& key) const {
+    if (settings_schema::defaultValue(key) == nullptr && !hasKey(key)) {
+        warnMissingDefault(key);
+    }
+    return get<T>(key, T{});
+}
+
+template<typename T>
+void SettingsManager::set(const std::string& key, const T& value) {
+    nlohmann::json newValue = value;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        nlohmann::json& slot = m_settings[nlohmann::json::json_pointer(keyToJsonPointer(key))];
+        if (slot == newValue) {
+            return;
+        }
+        slot = std::move(newValue);
+    }
+    notifyChanged(key);
 }
 
 } // namespace core

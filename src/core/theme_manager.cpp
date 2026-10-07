@@ -147,6 +147,11 @@ const Theme& ThemeManager::getCurrentTheme() const {
     return m_currentTheme;
 }
 
+QColor ThemeManager::editorColor(const std::string& key, const QColor& fallback) const {
+    auto it = m_currentTheme.editor.find(key);
+    return it != m_currentTheme.editor.end() ? it->second : fallback;
+}
+
 QStringList ThemeManager::getAvailableThemes() const {
     QStringList themes;
 
@@ -206,6 +211,19 @@ void ThemeManager::applyStoredColors() {
     apply("secondary", theme.colors.secondary,
           settings.getIconColorSecondaryForTheme(themeName, current(theme.colors.secondary)));
 
+    // Info panel and Dashboard colors, stored as themes.<name>.colors.<key>
+    const std::pair<const char*, QColor Theme::Colors::*> panelColors[] = {
+        {"infoHeader", &Theme::Colors::infoHeader}, {"infoPrimary", &Theme::Colors::infoPrimary},
+        {"infoSecondary", &Theme::Colors::infoSecondary},
+        {"dashboardPrimary", &Theme::Colors::dashboardPrimary},
+        {"dashboardSecondary", &Theme::Colors::dashboardSecondary},
+    };
+    for (const auto& [key, field] : panelColors) {
+        QColor& target = theme.colors.*field;
+        apply(std::string("colors.") + key, target,
+              settings.get<std::string>("themes." + themeName + ".colors." + key, current(target)));
+    }
+
     const std::pair<const char*, QColor Theme::Palette::*> paletteColors[] = {
         {"window", &Theme::Palette::window}, {"windowText", &Theme::Palette::windowText},
         {"base", &Theme::Palette::base}, {"alternateBase", &Theme::Palette::alternateBase},
@@ -243,6 +261,12 @@ void ThemeManager::applyStoredColors() {
         QColor& target = theme.log.*field;
         apply(std::string("log.") + key, target,
               settings.getLogColorForTheme(themeName, key, current(target)));
+    }
+
+    // Editor colors: whatever the theme file lists
+    const std::string editorPrefix = "themes." + themeName + ".editor.";
+    for (auto& [key, target] : theme.editor) {
+        apply("editor." + key, target, settings.get<std::string>(editorPrefix + key, current(target)));
     }
 
     if (!m_overrides.empty()) {
@@ -445,6 +469,8 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
         m_currentTheme.palette.placeholderText = color;
     } else if (key == "palette.brightText") {
         m_currentTheme.palette.brightText = color;
+    } else if (key.startsWith("editor.")) {
+        m_currentTheme.editor[key.mid(7).toStdString()] = color;
     } else {
         Logger::getInstance().warn("ThemeManager: Unknown color key '{}'", key.toStdString());
     }
