@@ -699,7 +699,7 @@ void IconRegistry::loadFromSettings() {
     // Load theme (with defaults if missing)
     std::string primaryHexStr = settings.getIconColorPrimary();
     std::string secondaryHexStr = settings.getIconColorSecondary();
-    std::string themeNameStr = settings.get<std::string>("icons/theme/name", "Light");
+    std::string themeNameStr = settings.get<std::string>("icons/theme/name");
 
     QString primaryHex = QString::fromStdString(primaryHexStr);
     QString secondaryHex = QString::fromStdString(secondaryHexStr);
@@ -725,15 +725,15 @@ void IconRegistry::loadFromSettings() {
     m_theme.name = themeName;
 
     // Load sizes (with defaults if missing)
-    m_sizes.toolbar = settings.get<int>("icons/sizes/toolbar", 24);
-    m_sizes.menu = settings.get<int>("icons/sizes/menu", 16);
-    m_sizes.panel = settings.get<int>("icons/sizes/panel", 20);
-    m_sizes.dialog = settings.get<int>("icons/sizes/dialog", 32);
-    m_sizes.treeView = settings.get<int>("icons/sizes/treeView", 16);
-    m_sizes.tabBar = settings.get<int>("icons/sizes/tabBar", 16);
-    m_sizes.statusBar = settings.get<int>("icons/sizes/statusBar", 16);
-    m_sizes.button = settings.get<int>("icons/sizes/button", 20);
-    m_sizes.comboBox = settings.get<int>("icons/sizes/comboBox", 16);
+    m_sizes.toolbar = settings.get<int>("icons/sizes/toolbar");
+    m_sizes.menu = settings.get<int>("icons/sizes/menu");
+    m_sizes.panel = settings.get<int>("icons/sizes/panel");
+    m_sizes.dialog = settings.get<int>("icons/sizes/dialog");
+    m_sizes.treeView = settings.get<int>("icons/sizes/treeView");
+    m_sizes.tabBar = settings.get<int>("icons/sizes/tabBar");
+    m_sizes.statusBar = settings.get<int>("icons/sizes/statusBar");
+    m_sizes.button = settings.get<int>("icons/sizes/button");
+    m_sizes.comboBox = settings.get<int>("icons/sizes/comboBox");
 
     // Load per-icon customizations
     // Note: This requires iterating over all registered icons and checking for custom keys

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings: one list of defaults** - 2026-10-07
+  - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
+    uses it when the key is missing, so readers no longer repeat defaults.
+  - `SettingsManager::subscribe()` reports changed settings.
+  - settings.json is written to a temporary file and renamed, so an interrupted save
+    cannot truncate it. New files store only the version; keys nothing reads (old icon
+    sizes, log colors, session) are removed from existing files (format 1.2).
 - **Settings: faster and lighter Apply/OK** - 2026-10-07
   - No "Applying settings..." overlay: Apply writes only the options that changed and
     saves once (about 1 ms for an ordinary option in a Linux Release build, was about

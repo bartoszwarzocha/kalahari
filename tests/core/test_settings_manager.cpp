@@ -11,10 +11,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/settings_schema.h>
+#include <kalahari/editor/editor_appearance.h>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <vector>
 
 using namespace kalahari::core;
 
@@ -392,4 +395,110 @@ TEST_CASE("SettingsManager icon colors (Task #00020)", "[settings][icons]") {
         settings.setIconColorSecondary("#999999");
         settings.save();
     }
+}
+
+TEST_CASE("SettingsManager takes defaults from the settings schema", "[settings][schema]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+
+    SECTION("A missing key returns the schema default") {
+        REQUIRE_FALSE(settings.hasKey("dashboard.maxItems"));
+        REQUIRE(settings.get<int>("dashboard.maxItems") == 5);
+        REQUIRE(settings.get<int>("icons/sizes/toolbar") == 24);
+        REQUIRE(settings.get<std::string>("appearance.iconTheme") == "twotone");
+    }
+
+    SECTION("The schema default wins over the caller's fallback") {
+        REQUIRE(settings.get<int>("dashboard.maxItems", 99) == 5);
+    }
+
+    SECTION("A stored value wins over the schema default") {
+        settings.set("dashboard.maxItems", 8);
+        REQUIRE(settings.get<int>("dashboard.maxItems") == 8);
+    }
+
+    SECTION("Editor font defaults match the editor's constants") {
+        REQUIRE(*settings_schema::defaultValue("editor.fontFamily") ==
+                kalahari::editor::DEFAULT_TEXT_FONT_FAMILY);
+        REQUIRE(*settings_schema::defaultValue("editor.fontSize") ==
+                kalahari::editor::DEFAULT_TEXT_FONT_SIZE);
+    }
+
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager notifies about changed settings", "[settings][notify]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+
+    std::vector<std::string> changed;
+    int id = settings.subscribe([&changed](const std::string& key) { changed.push_back(key); });
+
+    settings.set("dashboard.maxItems", 7);
+    settings.set("dashboard.maxItems", 7);  // same value: no notification
+    settings.set("icons/sizes/menu", 20);
+    settings.removeKey("dashboard.maxItems");
+    settings.removeKey("dashboard.maxItems");  // already gone: no notification
+
+    settings.unsubscribe(id);
+    settings.set("dashboard.maxItems", 9);  // after unsubscribe: no notification
+
+    REQUIRE(changed == std::vector<std::string>{"dashboard.maxItems", "icons.sizes.menu",
+                                                "dashboard.maxItems"});
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]") {
+    auto& settings = SettingsManager::getInstance();
+    std::filesystem::path filePath = settings.getSettingsFilePath();
+    std::filesystem::create_directories(filePath.parent_path());
+
+    {
+        std::ofstream file(filePath);
+        file << R"({
+            "version": "1.1",
+            "ui": {"language": "pl", "font_size": 12, "theme": "Dark"},
+            "appearance": {"iconTheme": "filled", "toolbarIconSize": 24, "iconSize": 24},
+            "log": {"bufferSize": 800, "fontSize": 11,
+                    "backgroundColor": {"r": 60, "g": 60, "b": 60}},
+            "session": {"auto_save_interval": 300}
+        })";
+    }
+
+    REQUIRE(settings.load());
+
+    REQUIRE(settings.get<std::string>("version", "") == "1.2");
+    REQUIRE(settings.getLanguage() == "pl");
+    REQUIRE(settings.getTheme() == "Dark");
+    REQUIRE(settings.get<std::string>("appearance.iconTheme") == "filled");
+    REQUIRE(settings.get<int>("log.bufferSize") == 800);
+    REQUIRE_FALSE(settings.hasKey("ui.theme"));
+    REQUIRE_FALSE(settings.hasKey("ui.font_size"));
+    REQUIRE_FALSE(settings.hasKey("appearance.toolbarIconSize"));
+    REQUIRE_FALSE(settings.hasKey("appearance.iconSize"));
+    REQUIRE_FALSE(settings.hasKey("log.fontSize"));
+    REQUIRE_FALSE(settings.hasKey("log.backgroundColor"));
+    REQUIRE_FALSE(settings.hasKey("session"));
+
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager save replaces the file in one step", "[settings][persistence]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+    settings.set("dashboard.maxItems", 6);
+
+    REQUIRE(settings.save());
+
+    std::filesystem::path filePath = settings.getSettingsFilePath();
+    std::filesystem::path tempPath = filePath;
+    tempPath += ".tmp";
+    REQUIRE(std::filesystem::exists(filePath));
+    REQUIRE_FALSE(std::filesystem::exists(tempPath));
+
+    settings.set("dashboard.maxItems", 3);
+    REQUIRE(settings.load());
+    REQUIRE(settings.get<int>("dashboard.maxItems") == 6);
+
+    settings.resetToDefaults();
 }

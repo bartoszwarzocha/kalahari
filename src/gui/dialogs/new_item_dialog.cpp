@@ -403,20 +403,20 @@ void NewItemDialog::loadDefaults() {
 
     if (m_mode == NewItemMode::Project) {
         // Load default author
-        std::string defaultAuthor = settings.get<std::string>("project.defaultAuthor", "");
+        std::string defaultAuthor = settings.get<std::string>("project.defaultAuthor");
         if (!defaultAuthor.empty()) {
             m_authorEdit->setText(QString::fromStdString(defaultAuthor));
         }
 
         // Load default language
-        std::string defaultLang = settings.get<std::string>("project.defaultLanguage", "en");
+        std::string defaultLang = settings.get<std::string>("project.defaultLanguage");
         int langIndex = m_languageCombo->findData(QString::fromStdString(defaultLang));
         if (langIndex >= 0) {
             m_languageCombo->setCurrentIndex(langIndex);
         }
 
         // Load default location
-        std::string defaultLocation = settings.get<std::string>("project.defaultLocation", "");
+        std::string defaultLocation = settings.get<std::string>("project.defaultLocation");
         if (defaultLocation.empty()) {
             // Use Documents folder as default
             QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
