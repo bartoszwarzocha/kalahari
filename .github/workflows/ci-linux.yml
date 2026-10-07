@@ -33,12 +33,19 @@ jobs:
       run: pip install jinja2
 
     - name: Install all dependencies from apt (no vcpkg)
+      timeout-minutes: 20
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo apt-get update
+        # The archive mirror sometimes stops answering: each attempt has a time limit and
+        # apt retries single downloads, so a stalled mirror costs minutes, not the whole job
+        for attempt in 1 2 3; do
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break
+          if [ "$attempt" = 3 ]; then exit 1; fi
+          sleep 15
+        done
         # All dependencies from system packages - fast, reliable, no disk space issues
-        sudo apt-get install -y --no-install-recommends \
+        sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
           qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libglu1-mesa-dev \
@@ -122,11 +129,18 @@ jobs:
       run: pip install jinja2 gcovr
 
     - name: Install dependencies from apt
+      timeout-minutes: 20
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
+        # The archive mirror sometimes stops answering: each attempt has a time limit and
+        # apt retries single downloads, so a stalled mirror costs minutes, not the whole job
+        for attempt in 1 2 3; do
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break
+          if [ "$attempt" = 3 ]; then exit 1; fi
+          sleep 15
+        done
+        sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config clang-tidy \
           qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libxkbcommon-dev \
