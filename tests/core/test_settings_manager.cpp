@@ -13,6 +13,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/settings_schema.h>
 #include <kalahari/editor/editor_appearance.h>
+#include <nlohmann/json.hpp>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -442,6 +443,15 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
     REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.primary"));
     REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.secondary"));
     REQUIRE(settings.get<std::string>("themes.Dark.colors.infoHeader", "") == "#123456");
+
+    // The migrated settings reach the file
+    std::filesystem::path tempPath = filePath;
+    tempPath += ".tmp";
+    REQUIRE_FALSE(std::filesystem::exists(tempPath));
+    {
+        std::ifstream file(filePath);
+        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.2");
+    }
 
     settings.resetToDefaults();
 }

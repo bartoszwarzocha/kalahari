@@ -60,13 +60,16 @@ bool SettingsManager::load() {
     }
 
     try {
-        std::ifstream file(m_filePath);
-        if (!file.is_open()) {
-            Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
-            return false;
+        {
+            // Closed before the migration below saves: on Windows a file still open
+            // for reading cannot be replaced, and the migrated settings were lost
+            std::ifstream file(m_filePath);
+            if (!file.is_open()) {
+                Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
+                return false;
+            }
+            m_settings = nlohmann::json::parse(file);
         }
-
-        m_settings = nlohmann::json::parse(file);
         Logger::getInstance().info("Settings loaded successfully from: {}", m_filePath.string());
 
         // Migrate settings if needed (unlock for migration to call set())
