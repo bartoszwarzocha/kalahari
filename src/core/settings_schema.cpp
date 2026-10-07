@@ -113,6 +113,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.typewriter.focusPosition", 0.5},
         {"editor.typewriter.smoothScroll", true},
 
+        // Editor: Focus (View > Focus dims every paragraph but the cursor's)
+        {"editor.focus.enabled", false},
+
         // Editor: text frame border
         {"editor.textFrameBorder.show", false},
         {"editor.textFrameBorder.color", "#b4b4b4"},

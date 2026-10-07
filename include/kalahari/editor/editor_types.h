@@ -76,9 +76,9 @@ struct SelectionRange {
 /// chapter.
 ///
 /// Lengths are pixels for a document font of @c referencePointSize. They scale with the
-/// document's default font, so a zoom that scales the font scales the spacing with it
-/// (and re-lays out the text once, for the font). A reference size of 0 uses the
-/// lengths as they are.
+/// document's default font, so a larger font in the settings spaces the text out with it
+/// (in the one relayout the font needs). A reference size of 0 uses the lengths as they
+/// are.
 struct LayoutTypography {
     qreal lineSpacing = 1.0;         ///< Multiplier of each line's natural height
     qreal paragraphSpacing = 0.0;    ///< Space below every paragraph
@@ -92,8 +92,9 @@ struct LayoutTypography {
 ///
 /// Text area i spans [i * pitch, i * pitch + textHeight) in document coordinates. The
 /// space between two areas holds the bottom margin of one page, the gap and the top
-/// margin of the next one, so no line is placed there. Lengths in document units (the
-/// layout rounds them to whole pixels).
+/// margin of the next one, so no line is placed there. Without the flow (the continuous
+/// views) the text is one endless text area, at least textHeight high, as the first page
+/// is. Lengths in document units (the layout rounds them to whole pixels).
 struct PageFlow {
     bool enabled = false;
     qreal pitch = 0.0;       ///< Distance between the tops of two consecutive text areas

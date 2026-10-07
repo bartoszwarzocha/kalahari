@@ -71,14 +71,14 @@ editor review, stages 0–6 (safety net and measurement, quick fixes, a single l
 built on `QTextDocument`, incremental pagination and one zoom model, missing rendering
 features, cleanup, wiring of unconnected features).
 
-- [ ] Round-trip and layout tests for the real `fromKml → toKml` path
-- [ ] Quick fixes: loading in one edit block, debounced resize and zoom, cached word count
-- [ ] One layout core as the single source of geometry (lazy layout, estimated heights)
-- [ ] Incremental pagination in page mode; one zoom model for all view modes
+- [x] Round-trip and layout tests for the real `fromKml → toKml` path
+- [x] Quick fixes: loading in one edit block, debounced resize and zoom, cached word count
+- [x] One layout core as the single source of geometry (lazy layout, estimated heights)
+- [x] Incremental pagination in page mode; one zoom model for all view modes
 - [ ] Paragraph formatting (spacing, indents, line height, tabs) handled by the layout
 - [ ] Spelling and grammar underlines, comments, TODO markers and footnotes rendered from formats
-- [ ] Remove the old document model and layout code once the new core is in place
-- [ ] Split `book_editor.cpp` (5,400 lines) into smaller classes
+- [x] Remove the old document model and layout code once the new core is in place
+- [x] Split `book_editor.cpp` (5,400 lines) into files by responsibility
 
 **Done when:** benchmark thresholds are met on all platforms and a manual test on a large
 document is positive.

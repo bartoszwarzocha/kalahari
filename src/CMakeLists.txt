@@ -169,9 +169,18 @@ set(KALAHARI_SOURCES
     gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
-    gui/find_replace_bar.cpp    # OpenSpec #00044 Task 9.6: Find/Replace bar widget
+    gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/book_editor_annotations.cpp
+    editor/book_editor_checking.cpp
+    editor/book_editor_cursor.cpp
+    editor/book_editor_editing.cpp
+    editor/book_editor_formatting.cpp
+    editor/book_editor_input.cpp
+    editor/book_editor_search.cpp
+    editor/book_editor_view.cpp
+    editor/find_replace_bar.cpp  # Find/Replace bar of the editor
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/buffer_commands.cpp  # Cursor position and marker helpers
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
@@ -216,7 +225,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h

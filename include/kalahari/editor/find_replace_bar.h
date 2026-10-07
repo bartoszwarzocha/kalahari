@@ -22,11 +22,9 @@ class QToolButton;
 class QShortcut;
 
 namespace kalahari::editor {
+
 class SearchEngine;
 struct SearchMatch;
-}  // namespace kalahari::editor
-
-namespace kalahari::gui {
 
 /// @brief Inline find/replace bar widget
 ///
@@ -202,4 +200,4 @@ private:
     QShortcut* m_toggleRegexShortcut = nullptr;  ///< Alt+R for regex
 };
 
-}  // namespace kalahari::gui
+}  // namespace kalahari::editor

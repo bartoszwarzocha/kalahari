@@ -35,6 +35,10 @@ namespace core {
     struct Theme;  // Forward declaration for Theme (Task #00023)
 }
 
+namespace editor {
+    enum class EditorColorMode;  // Light or dark paper of the editors
+}
+
 namespace gui {
 
 // Forward declarations for panels
@@ -263,8 +267,11 @@ private slots:
     /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
     void updatePageStatus();
 
-    /// @brief Set editor view mode to Focus
-    void onViewModeFocus();
+    /// @brief Turn Focus on or off in every editor (remembered; the view mode stays)
+    void onFocusToggle();
+
+    /// @brief Give every editor the light or dark paper chosen in one editor's context menu
+    void onEditorColorModeChanged(editor::EditorColorMode mode);
 
     /// @brief Set editor view mode to Distraction-Free
     void onViewModeDistFree();

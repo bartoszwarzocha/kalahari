@@ -11,7 +11,7 @@
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/gui/find_replace_bar.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
@@ -378,8 +378,8 @@ namespace {
 const QString kWords = QStringLiteral(
     "<kml><p>One word, then another word.</p><p>No match here.</p><p>The last word.</p></kml>");
 
-kalahari::gui::FindReplaceBar* findBar(BookEditor& editor) {
-    return editor.findChild<kalahari::gui::FindReplaceBar*>();
+FindReplaceBar* findBar(BookEditor& editor) {
+    return editor.findChild<FindReplaceBar*>();
 }
 
 bool isShown(QWidget* widget) {
@@ -912,7 +912,9 @@ TEST_CASE("Stage3 cursor: the cursor shape and width follow the settings and the
         }
         CHECK(letter > 10);
 
+        // The zoom keeps the middle of the view; moving the cursor brings it into view
         editor->setZoomFactor(2.0);
+        editor->setCursorPosition({0, 1});
         CHECK(std::abs(boxAt({0, 0}).width() - 2 * wide) <= 3);
     }
 
@@ -932,6 +934,7 @@ TEST_CASE("Stage3 cursor: the cursor shape and width follow the settings and the
         CHECK(width >= 4);
         CHECK(width <= 5);
         editor->setZoomFactor(2.0);
+        editor->setCursorPosition({0, 1});
         CHECK(boxAt({0, 0}).width() == width);
     }
 }

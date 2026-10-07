@@ -18,7 +18,6 @@ class QLabel;
 class QToolButton;
 class QWidget;
 class QAction;
-class QMenu;
 
 namespace kalahari {
 namespace gui {
@@ -30,7 +29,6 @@ class LogPanel;
 class DashboardPanel;
 class SearchPanel;
 class AssistantPanel;
-class MenuBuilder;
 class StandaloneInfoBar;
 
 /// @brief Coordinates dock widgets and panel management
@@ -44,7 +42,7 @@ class StandaloneInfoBar;
 ///
 /// Example usage:
 /// @code
-/// auto coordinator = new DockCoordinator(this, menuBuilder, this);
+/// auto coordinator = new DockCoordinator(this, this);
 /// coordinator->createDocks();
 /// // Access panels
 /// NavigatorPanel* nav = coordinator->navigatorPanel();
@@ -55,9 +53,8 @@ class DockCoordinator : public QObject {
 public:
     /// @brief Constructor
     /// @param mainWindow Parent QMainWindow
-    /// @param menuBuilder MenuBuilder for VIEW menu access
     /// @param parent Parent QObject
-    explicit DockCoordinator(QMainWindow* mainWindow, MenuBuilder* menuBuilder, QObject* parent = nullptr);
+    explicit DockCoordinator(QMainWindow* mainWindow, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~DockCoordinator() override = default;
@@ -67,7 +64,7 @@ public:
     // =========================================================================
 
     /// @brief Create all dock widgets and panels
-    /// @note Must be called after menus are created (needs VIEW menu)
+    /// @note Must be called after the commands are registered (the panel toggles use them)
     void createDocks();
 
     /// @brief Reset dock layout to default
@@ -275,15 +272,13 @@ private:
     /// @param dock Dock widget to control
     void connectPanelCommand(const std::string& cmdId, QDockWidget* dock);
 
-    /// @brief Create panel toggle action
+    /// @brief Make a panel command's action a check box that follows its dock
     /// @param cmdId Command ID
     /// @param dock Dock widget
-    /// @param menu Menu to add action to
-    /// @return Created action
-    QAction* createPanelAction(const std::string& cmdId, QDockWidget* dock, QMenu* menu);
+    /// @return The command's action, or nullptr when there is none
+    QAction* createPanelAction(const std::string& cmdId, QDockWidget* dock);
 
     QMainWindow* m_mainWindow;
-    MenuBuilder* m_menuBuilder;
 
     // Dock widgets
     QDockWidget* m_navigatorDock{nullptr};
@@ -304,9 +299,6 @@ private:
     QTabWidget* m_centralTabs{nullptr};
     QWidget* m_centralWrapper{nullptr};
     StandaloneInfoBar* m_standaloneInfoBar{nullptr};
-
-    // View menu reference
-    QMenu* m_viewMenu{nullptr};
 
     // View actions (panel toggles)
     QAction* m_viewNavigatorAction{nullptr};

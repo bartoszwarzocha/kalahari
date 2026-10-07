@@ -36,6 +36,14 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::contentChanged,
             this, &EditorPanel::contentChanged);
 
+    // The light or dark paper chosen in the editor's context menu is the setting of all
+    // editors, kept between sessions
+    connect(m_bookEditor, &editor::BookEditor::editorColorModeChanged, this,
+            [](editor::EditorColorMode mode) {
+                core::SettingsManager::getInstance().set<bool>(
+                    "editor.darkMode", mode == editor::EditorColorMode::Dark);
+            });
+
     setLayout(layout);
 
     // Apply settings (font, appearance)
@@ -189,14 +197,7 @@ void EditorPanel::applySettings() {
     logger.debug("Applied cursor settings: style={}, blinking={}, interval={}ms",
                  cursorStyleInt, appearance.cursor.blinking, appearance.cursor.blinkInterval);
 
-    // View margins (Continuous/Focus views)
-    double viewMarginH = settings.get<double>("editor.margins.viewHorizontal", 50.0);
-    double viewMarginV = settings.get<double>("editor.margins.viewVertical", 30.0);
-    appearance.viewMargins.horizontal = viewMarginH;
-    appearance.viewMargins.vertical = viewMarginV;
-    logger.debug("Applied view margins: H={} V={}", viewMarginH, viewMarginV);
-
-    // Page margins (Page/Typewriter views)
+    // Page margins (every view: the continuous views are an endless page)
     appearance.pageMargins.top = settings.get<double>("editor.margins.pageTop", 25.4);
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom", 25.4);
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft", 25.4);
@@ -220,6 +221,9 @@ void EditorPanel::applySettings() {
     appearance.typewriter.enabled = settings.get<bool>("editor.typewriter.enabled", false);
     appearance.typewriter.focusPosition = settings.get<double>("editor.typewriter.focusPosition", 0.5);
     appearance.typewriter.smoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+
+    // Focus (View > Focus)
+    appearance.focusMode.enabled = settings.get<bool>("editor.focus.enabled", false);
 
     // Text frame border
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show", false);

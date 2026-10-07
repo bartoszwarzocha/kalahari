@@ -1971,7 +1971,7 @@ Do you want to choose a different location?</source>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::FindReplaceBar</name>
+    <name>kalahari::editor::FindReplaceBar</name>
     <message>
         <source>Find...</source>
         <translation type="unfinished"></translation>
@@ -2180,8 +2180,12 @@ Do you want to choose a different location?</source>
         <translation>Przewijanie jak w maszynie do pisania: wyłączone</translation>
     </message>
     <message>
-        <source>View mode: Focus</source>
-        <translation>Tryb widoku: skupienie</translation>
+        <source>Focus: on</source>
+        <translation>Skupienie: włączone</translation>
+    </message>
+    <message>
+        <source>Focus: off</source>
+        <translation>Skupienie: wyłączone</translation>
     </message>
     <message>
         <source>View mode: Distraction-Free</source>
