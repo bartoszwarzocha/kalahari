@@ -76,7 +76,8 @@ TEST_CASE("A text file opens as paragraphs and is saved in its own format",
     CHECK(bytesOf(path) == "\xEF\xBB\xBFOne\r\nTwo & <three>\r\nFour");
 
     SECTION("Control characters do not break its paragraphs") {
-        writeBytes(path, QByteArray("a\fb\0c\nd\te", 11));
+        static constexpr char bytes[] = "a\fb\0c\nd\te";
+        writeBytes(path, QByteArray(bytes, sizeof(bytes) - 1));  // without the terminating null
         REQUIRE(StandaloneFile::open(path, kml).has_value());
         CHECK(paragraphsOf(kml) == QStringList{"abc", "d\te"});
     }
