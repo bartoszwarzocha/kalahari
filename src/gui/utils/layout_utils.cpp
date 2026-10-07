@@ -17,8 +17,11 @@ void clearLayout(QLayout* layout) {
     }
 
     while (QLayoutItem* item = layout->takeAt(0)) {
-        // If item has a widget, schedule it for deletion
+        // If item has a widget, hide it and schedule it for deletion. Hidden at once:
+        // inside a modal dialog the deletion waits until the dialog closes, and a
+        // visible widget taken out of its layout stays drawn in the top-left corner
         if (QWidget* widget = item->widget()) {
+            widget->hide();
             widget->deleteLater();
         }
         // If item has a nested layout, recursively clear it

@@ -185,6 +185,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A stray icon over the Settings icon preview** - 2026-10-07. Appearance > Icons showed
+  an extra icon on a grey square in the preview's top-left corner: the preview built
+  before the saved icon style was loaded stayed visible until the dialog closed.
 - **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
   paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
   "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO
