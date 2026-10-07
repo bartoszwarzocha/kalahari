@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The Continuous, Focus and Distraction-Free views show the text on one endless page as
     wide as the pages, with the page's margins and the desk on both sides. The lines break
     as on the pages and in print, in every view and at every zoom: switching to the Page
-    Layout view only adds the page breaks.
+    Layout view only adds the page breaks. A chapter shorter than a page is on a whole
+    page, as in the Page Layout view.
   - The zoom scales the page as in the Page Layout view: 100% is the page's size on paper,
     View > Zoom > Page Width and Whole Page fit it to the window, and a page wider than the
     window scrolls sideways, following the cursor while you type.

@@ -270,33 +270,35 @@ TEST_CASE("Stage2 typography: the editor lays out with its appearance settings",
     editor.fromKml(kmlOf({longParagraph(0), longParagraph(1), longParagraph(2)}));
     auto* layout = layoutOf(editor);
     REQUIRE(layout != nullptr);
+    // The height of the text (the endless page is at least a page high)
+    const auto textHeight = [layout] { return layout->blockY(2) + layout->blockHeight(2); };
 
     // Defaults: 1.6 line spacing, 12 px after each paragraph, 24 px first-line indent
     const EditorTypography defaults;
     CHECK(layout->typography().lineSpacing == Approx(defaults.lineHeight));
     CHECK(layout->paragraphSpacing() == Approx(defaults.paragraphSpacing));
     CHECK(layout->firstLineIndent() == Approx(defaults.indentSize));
-    const qreal spacedHeight = layout->documentSize().height();
+    const qreal spacedHeight = textHeight();
 
     editor.setAppearance(appearanceWith(1.0, 0.0, false, 24.0));
     layout->layoutPendingBlocks();
     CHECK(layout->typography().lineSpacing == Approx(1.0));
     CHECK(layout->paragraphSpacing() == Approx(0.0));
     CHECK(layout->firstLineIndent() == Approx(0.0));
-    CHECK(layout->documentSize().height() < spacedHeight);
+    CHECK(textHeight() < spacedHeight);
 
     SECTION("zoom scales the spacing with the text, laying out nothing again") {
         // The painter scales the page: the layout keeps its spacing, indent and lines
         editor.setAppearance(appearanceWith(1.5, 10.0, true, 20.0));
         layout->layoutPendingBlocks();
-        const qreal height = layout->documentSize().height();
+        const qreal height = textHeight();
         LaidOutBlockCounter laidOut(editor);
         editor.setZoomFactor(2.0);
         layout->layoutPendingBlocks();
         CHECK(laidOut.count() == 0);
         CHECK(layout->paragraphSpacing() == Approx(10.0));
         CHECK(layout->firstLineIndent() == Approx(20.0));
-        CHECK(layout->documentSize().height() == Approx(height));
+        CHECK(textHeight() == Approx(height));
     }
 }
 

@@ -218,6 +218,9 @@ private:
     /// @brief Character width and line height the estimates use (current font)
     void updateEstimateMetrics();
 
+    /// @brief Announce the document size if it is not the one announced last
+    void reportDocumentSize();
+
     /// @brief Announce a new document size and the area to repaint
     /// @param first First block that changed, @param bottom lowest y the change can affect
     void notifyGeometryChanged(int first, qreal bottom);

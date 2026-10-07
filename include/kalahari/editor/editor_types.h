@@ -92,8 +92,9 @@ struct LayoutTypography {
 ///
 /// Text area i spans [i * pitch, i * pitch + textHeight) in document coordinates. The
 /// space between two areas holds the bottom margin of one page, the gap and the top
-/// margin of the next one, so no line is placed there. Lengths in document units (the
-/// layout rounds them to whole pixels).
+/// margin of the next one, so no line is placed there. Without the flow (the continuous
+/// views) the text is one endless text area, at least textHeight high, as the first page
+/// is. Lengths in document units (the layout rounds them to whole pixels).
 struct PageFlow {
     bool enabled = false;
     qreal pitch = 0.0;       ///< Distance between the tops of two consecutive text areas

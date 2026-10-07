@@ -512,6 +512,48 @@ TEST_CASE("Stage5 continuous view: one endless page, as wide as the pages and in
     }
 }
 
+TEST_CASE("Stage5 continuous view: a chapter shorter than a page is on a whole page",
+          "[editor][stage5][continuous][render]") {
+    // No page break to leave out: both views show the same sheet, a page high
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(1000, 700));
+    editor->fromKml(kmlOf(longParagraphs(2)));
+    QScrollBar* vertical = scrollBar(*editor, Qt::Vertical);
+    REQUIRE(vertical != nullptr);
+
+    // The same scroll range: down to the page's bottom edge
+    editor->setViewMode(ViewMode::Page);
+    const int pagesMaximum = vertical->maximum();
+    REQUIRE(pagesMaximum > 0);  // the page is higher than the view
+    editor->setViewMode(ViewMode::Continuous);
+    CHECK(vertical->maximum() == pagesMaximum);
+
+    // The whole page in the view: the paper ends at the same row, a page below its top
+    editor->setZoomFactor(0.5);
+    const EditorAppearance& appearance = editor->appearance();
+    const QRgb paper = appearance.colors.background(appearance.colorMode).rgb();
+    const QRectF first = caretAt(*editor, {0, 0});
+    const int row = static_cast<int>(first.top()) - 10;  // in the page's top margin
+    const QImage continuous = editorImage(*editor);
+    editor->setViewMode(ViewMode::Page);
+    const QImage pages = editorImage(*editor);
+
+    const int column = paperSpan(continuous, row, static_cast<int>(first.left()), paper).first + 4;
+    const auto paperBottom = [&](const QImage& image) {
+        int bottom = row;
+        while (bottom + 1 < image.height() && image.pixel(column, bottom + 1) == paper) {
+            ++bottom;
+        }
+        return bottom;
+    };
+    CHECK(paperBottom(continuous) == paperBottom(pages));
+    const double dpi = editor->screen() != nullptr ? editor->screen()->logicalDotsPerInch() : 96.0;
+    const double pageHeight = appearance.pageLayout.pageSizeMm().height() / 25.4 * dpi * 0.5;
+    CHECK(paperBottom(continuous) - paperTop(continuous, row, column, paper) + 1 ==
+          Approx(pageHeight).margin(3.0));
+    CHECK(paperBottom(continuous) + 1 < continuous.height());  // the desk below the page
+}
+
 TEST_CASE("Stage5 continuous view: switching views keeps the cursor's place on the screen",
           "[editor][stage5][continuous]") {
     // A view taller than the text of a page: a page break lies between the top of the view

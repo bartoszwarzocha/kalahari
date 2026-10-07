@@ -298,12 +298,13 @@ void EditorRenderPipeline::applyTypographyToSource() {
 
 void EditorRenderPipeline::applyPageFlowToSource() {
     if (!m_textSource) return;
-    // The layout places the lines on the pages; the other views have one endless page
+    // The layout places the lines on the pages; the other views have one endless page, at
+    // least as high as a page (a short chapter looks as in the page view)
     PageFlow flow;
+    flow.textHeight = m_context.computed.textAreaHeight;
     if (m_context.viewMode == ViewMode::Page) {
         flow.enabled = true;
         flow.pitch = m_context.computed.pagePitch;
-        flow.textHeight = m_context.computed.textAreaHeight;
     }
     m_textSource->setPageFlow(flow);
 }
@@ -1180,8 +1181,9 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
 }
 
 void EditorRenderPipeline::renderEndlessPage(QPainter* painter, const QRect& clipRect) {
-    // The continuous views: one sheet as wide as the page and as long as the text, with
-    // the page's top margin above the text and its bottom margin below it
+    // The continuous views: one sheet as wide as the page and as long as the text (at
+    // least a page), with the page's top margin above the text and its bottom margin
+    // below it
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
     const double textHeight = m_textSource ? m_textSource->totalHeight() : 0.0;

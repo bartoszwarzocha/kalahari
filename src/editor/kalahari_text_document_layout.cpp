@@ -109,21 +109,28 @@ QFont KalahariTextDocumentLayout::font() const {
 }
 
 void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
-    // Whole pixels keep the lines on the pixel grid; a text area is at least a pixel high
-    // and fits within the pitch
+    // Whole pixels keep the lines on the pixel grid; a page's text area is at least a pixel
+    // high and fits within the pitch
     PageFlow normalized;
+    normalized.textHeight = std::max<qreal>(0.0, std::round(flow.textHeight));
     if (flow.enabled) {
         normalized.enabled = true;
-        normalized.textHeight = std::max<qreal>(1.0, std::round(flow.textHeight));
+        normalized.textHeight = std::max<qreal>(1.0, normalized.textHeight);
         normalized.pitch = std::max(normalized.textHeight, std::round(flow.pitch));
     }
     if (normalized == m_pageFlow) {
         return;
     }
-    // The line breaks stay (design metrics in every view), but the lines of each block are
-    // placed anew: on the pages, or one under another
+    const bool placementChanged = normalized.enabled || m_pageFlow.enabled;
     m_pageFlow = normalized;
-    invalidateAll();
+    if (placementChanged) {
+        // The line breaks stay (design metrics in every view), but the lines of each block
+        // are placed anew: on the pages, or one under another
+        invalidateAll();
+    } else {
+        // Only the height the endless text area takes at least: the lines stay
+        reportDocumentSize();
+    }
 }
 
 void KalahariTextDocumentLayout::setTypography(const LayoutTypography& typography) {
@@ -333,12 +340,16 @@ qreal KalahariTextDocumentLayout::estimatedHeight(qreal extent, qreal spacing) c
     return lines * m_estimatedLineHeight + spacing;
 }
 
-void KalahariTextDocumentLayout::notifyGeometryChanged(int first, qreal bottom) {
+void KalahariTextDocumentLayout::reportDocumentSize() {
     const QSizeF size = documentSize();
     if (size != m_lastReportedSize) {
         m_lastReportedSize = size;
         emit documentSizeChanged(size);
     }
+}
+
+void KalahariTextDocumentLayout::notifyGeometryChanged(int first, qreal bottom) {
+    reportDocumentSize();
 
     const qreal top = blockY(first);
     emit update(QRectF(0, top, UNBOUNDED_EXTENT, bottom - top));
@@ -809,8 +820,10 @@ int KalahariTextDocumentLayout::pageCount() const {
 
 QSizeF KalahariTextDocumentLayout::documentSize() const {
     updateBlockPositions();
-    return QSizeF(documentWidth(),
-                  m_pageFlow.enabled ? flowDocumentHeight() : m_cachedDocumentHeight);
+    // Without the flow the endless text area is at least as high as a page's
+    return QSizeF(documentWidth(), m_pageFlow.enabled
+                                       ? flowDocumentHeight()
+                                       : std::max(m_cachedDocumentHeight, m_pageFlow.textHeight));
 }
 
 QRectF KalahariTextDocumentLayout::frameBoundingRect(QTextFrame* frame) const {
