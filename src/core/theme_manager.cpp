@@ -206,6 +206,19 @@ void ThemeManager::applyStoredColors() {
     apply("secondary", theme.colors.secondary,
           settings.getIconColorSecondaryForTheme(themeName, current(theme.colors.secondary)));
 
+    // Info panel and Dashboard colors, stored as themes.<name>.colors.<key>
+    const std::pair<const char*, QColor Theme::Colors::*> panelColors[] = {
+        {"infoHeader", &Theme::Colors::infoHeader}, {"infoPrimary", &Theme::Colors::infoPrimary},
+        {"infoSecondary", &Theme::Colors::infoSecondary},
+        {"dashboardPrimary", &Theme::Colors::dashboardPrimary},
+        {"dashboardSecondary", &Theme::Colors::dashboardSecondary},
+    };
+    for (const auto& [key, field] : panelColors) {
+        QColor& target = theme.colors.*field;
+        apply(std::string("colors.") + key, target,
+              settings.get<std::string>("themes." + themeName + ".colors." + key, current(target)));
+    }
+
     const std::pair<const char*, QColor Theme::Palette::*> paletteColors[] = {
         {"window", &Theme::Palette::window}, {"windowText", &Theme::Palette::windowText},
         {"base", &Theme::Palette::base}, {"alternateBase", &Theme::Palette::alternateBase},

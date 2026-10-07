@@ -29,9 +29,6 @@ std::map<std::string, json> buildDefaults() {
         {"appearance.iconTheme", "twotone"},
 
         // Icons
-        {"icons.colorPrimary", "#333333"},
-        {"icons.colorSecondary", "#999999"},
-        {"icons.theme.name", "Light"},
         {"icons.sizes.toolbar", 24},
         {"icons.sizes.menu", 16},
         {"icons.sizes.panel", 20},

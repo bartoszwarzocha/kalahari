@@ -346,57 +346,6 @@ TEST_CASE("SettingsManager settings file path", "[settings][paths]") {
     }
 }
 
-TEST_CASE("SettingsManager icon colors (Task #00020)", "[settings][icons]") {
-    auto& settings = SettingsManager::getInstance();
-
-    SECTION("Default primary icon color is #333333") {
-        std::string primary = settings.getIconColorPrimary();
-        REQUIRE(primary == "#333333");
-    }
-
-    SECTION("Default secondary icon color is #999999") {
-        std::string secondary = settings.getIconColorSecondary();
-        REQUIRE(secondary == "#999999");
-    }
-
-    SECTION("Can set and get primary icon color") {
-        settings.setIconColorPrimary("#ff0000");
-        std::string primary = settings.getIconColorPrimary();
-        REQUIRE(primary == "#ff0000");
-
-        // Restore default
-        settings.setIconColorPrimary("#333333");
-    }
-
-    SECTION("Can set and get secondary icon color") {
-        settings.setIconColorSecondary("#00ff00");
-        std::string secondary = settings.getIconColorSecondary();
-        REQUIRE(secondary == "#00ff00");
-
-        // Restore default
-        settings.setIconColorSecondary("#999999");
-    }
-
-    SECTION("Icon colors persist to disk") {
-        // Set custom colors
-        settings.setIconColorPrimary("#abcdef");
-        settings.setIconColorSecondary("#123456");
-        settings.save();
-
-        // Create new instance (reload from disk)
-        settings.load();
-
-        // Verify colors persisted
-        REQUIRE(settings.getIconColorPrimary() == "#abcdef");
-        REQUIRE(settings.getIconColorSecondary() == "#123456");
-
-        // Restore defaults
-        settings.setIconColorPrimary("#333333");
-        settings.setIconColorSecondary("#999999");
-        settings.save();
-    }
-}
-
 TEST_CASE("SettingsManager takes defaults from the settings schema", "[settings][schema]") {
     auto& settings = SettingsManager::getInstance();
     settings.resetToDefaults();
@@ -461,7 +410,13 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
             "appearance": {"iconTheme": "filled", "toolbarIconSize": 24, "iconSize": 24},
             "log": {"bufferSize": 800, "fontSize": 11,
                     "backgroundColor": {"r": 60, "g": 60, "b": 60}},
-            "session": {"auto_save_interval": 300}
+            "session": {"auto_save_interval": 300},
+            "dashboard": {"autoLoadLastProject": true, "maxItems": 4},
+            "icons": {"colorPrimary": "#7a7a7a", "colorSecondary": "#dadada",
+                      "theme": {"name": "Light"},
+                      "themes": {"Dark": {"colorPrimary": "#ffaa00"}}},
+            "themes": {"Dark": {"colors": {"primary": "#ffaa00", "secondary": "#644300",
+                                           "infoHeader": "#123456"}}}
         })";
     }
 
@@ -479,6 +434,14 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
     REQUIRE_FALSE(settings.hasKey("log.fontSize"));
     REQUIRE_FALSE(settings.hasKey("log.backgroundColor"));
     REQUIRE_FALSE(settings.hasKey("session"));
+    REQUIRE_FALSE(settings.hasKey("dashboard.autoLoadLastProject"));
+    REQUIRE(settings.get<int>("dashboard.maxItems") == 4);
+    REQUIRE_FALSE(settings.hasKey("icons.colorPrimary"));
+    REQUIRE_FALSE(settings.hasKey("icons.theme"));
+    REQUIRE(settings.getIconColorPrimaryForTheme("Dark", "") == "#ffaa00");
+    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.primary"));
+    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.secondary"));
+    REQUIRE(settings.get<std::string>("themes.Dark.colors.infoHeader", "") == "#123456");
 
     settings.resetToDefaults();
 }

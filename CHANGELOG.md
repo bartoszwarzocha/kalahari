@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - settings.json is written to a temporary file and renamed, so an interrupted save
     cannot truncate it. New files store only the version; keys nothing reads (old icon
     sizes, log colors, session) are removed from existing files (format 1.2).
+  - Icon colors and the theme name are stored once (per theme); the second copies are
+    removed. Info panel and Dashboard colors are stored per theme and survive a restart.
+  - The log panel buffer size from the settings is used from startup, not only after
+    changing it. "UI Font Size" is greyed out until it does something.
 - **Settings: faster and lighter Apply/OK** - 2026-10-07
   - No "Applying settings..." overlay: Apply writes only the options that changed and
     saves once (about 1 ms for an ordinary option in a Linux Release build, was about

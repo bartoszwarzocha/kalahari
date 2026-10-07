@@ -532,6 +532,10 @@ QWidget* SettingsDialog::createAppearanceGeneralPage() {
     m_uiFontSizeSpinBox->setSuffix(" pt");
     grid->addWidget(fontSizeLabel, 1, 0);
     grid->addWidget(m_uiFontSizeSpinBox, 1, 1);
+    // Stored, but nothing applies it yet (planned with the new Settings pages)
+    fontSizeLabel->setEnabled(false);
+    m_uiFontSizeSpinBox->setEnabled(false);
+    m_uiFontSizeSpinBox->setToolTip(tr("Coming in future version"));
 
     // Note about restart - use mid color from theme for muted text
     QLabel* restartNote = new QLabel(tr("A language change takes effect after restarting Kalahari."));
@@ -1784,12 +1788,16 @@ void SettingsDialog::onThemeComboChanged(int index) {
                      themeName, defaultPrimary, defaultSecondary);
     }
 
-    // Info header color - use theme default (custom per-theme storage not yet implemented)
-    m_infoHeaderColorWidget->setColor(QColor(QString::fromStdString(defaultInfoHeader)));
-    m_dashboardSecondaryColorWidget->setColor(QColor(QString::fromStdString(defaultDashboardSecondary)));
-    m_dashboardPrimaryColorWidget->setColor(QColor(QString::fromStdString(defaultDashboardPrimary)));
-    m_infoSecondaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoSecondary)));
-    m_infoPrimaryColorWidget->setColor(QColor(QString::fromStdString(defaultInfoPrimary)));
+    // Info panel and Dashboard colors: stored per theme, else the theme defaults
+    auto panelColor = [&](const char* key, const std::string& fallback) {
+        return QColor(QString::fromStdString(
+            settings.get<std::string>("themes." + themeName + ".colors." + key, fallback)));
+    };
+    m_infoHeaderColorWidget->setColor(panelColor("infoHeader", defaultInfoHeader));
+    m_dashboardSecondaryColorWidget->setColor(panelColor("dashboardSecondary", defaultDashboardSecondary));
+    m_dashboardPrimaryColorWidget->setColor(panelColor("dashboardPrimary", defaultDashboardPrimary));
+    m_infoSecondaryColorWidget->setColor(panelColor("infoSecondary", defaultInfoSecondary));
+    m_infoPrimaryColorWidget->setColor(panelColor("infoPrimary", defaultInfoPrimary));
 
     // Check if user has custom UI colors for this theme (Task #00028)
     if (settings.hasCustomUiColorsForTheme(themeName)) {
@@ -2374,6 +2382,17 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
             settingsManager.setUiColorForTheme(themeName, color.key, c); });
     }
 
+    const ThemeColorField panelColors[] = {
+        {"infoHeader", &SettingsData::infoHeaderColor},
+        {"infoPrimary", &SettingsData::infoPrimaryColor},
+        {"infoSecondary", &SettingsData::infoSecondaryColor},
+        {"dashboardPrimary", &SettingsData::dashboardPrimaryColor},
+        {"dashboardSecondary", &SettingsData::dashboardSecondaryColor},
+    };
+    for (const ThemeColorField& color : panelColors) {
+        storeThemeColor(settings.*color.field, baseline.*color.field, [&](const std::string& c) {
+            settingsManager.set("themes." + themeName + ".colors." + color.key, c); });
+    }
     const ThemeColorField logColors[] = {
         {"trace", &SettingsData::logTraceColor},
         {"debug", &SettingsData::logDebugColor},
@@ -2414,16 +2433,8 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
     // Theme switch and color changes in one pass (palette, stylesheet and icons once),
     // from the stored colors written above: the same result as after a restart
     if (themeChanged || colorsChanged) {
-        // Info panel and dashboard colors are not stored per theme yet
-        const std::map<std::string, QColor> unstoredColors{
-            {"colors.infoHeader", settings.infoHeaderColor},
-            {"colors.infoPrimary", settings.infoPrimaryColor},
-            {"colors.infoSecondary", settings.infoSecondaryColor},
-            {"colors.dashboardPrimary", settings.dashboardPrimaryColor},
-            {"colors.dashboardSecondary", settings.dashboardSecondaryColor},
-        };
         const qint64 themeStart = timer.elapsed();
-        if (themeManager.reloadTheme(settings.theme, unstoredColors) && themeChanged) {
+        if (themeManager.reloadTheme(settings.theme) && themeChanged) {
             written = true;
         }
         themeMs = timer.elapsed() - themeStart;

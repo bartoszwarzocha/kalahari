@@ -54,6 +54,17 @@ TEST_CASE("ThemeManager applies a theme with overrides in one pass",
         CHECK(themeManager.getCurrentTheme().palette.toolTipBase == TEST_WINDOW);
     }
 
+    SECTION("stored info panel and Dashboard colors are applied") {
+        auto& settings = kalahari::core::SettingsManager::getInstance();
+        const std::string key = "themes." + originalTheme.toStdString() + ".colors.dashboardPrimary";
+        settings.set(key, TEST_WINDOW.name().toStdString());
+
+        REQUIRE(themeManager.reloadTheme(originalTheme));
+        settings.removeKey(key);
+
+        CHECK(themeManager.getCurrentTheme().colors.dashboardPrimary == TEST_WINDOW);
+    }
+
     SECTION("re-applying without overrides restores the theme colors") {
         REQUIRE(themeManager.reloadTheme(originalTheme, {{"palette.window", TEST_WINDOW}}));
         REQUIRE(themeManager.reloadTheme(originalTheme, {}));

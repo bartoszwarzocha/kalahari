@@ -202,22 +202,6 @@ void SettingsManager::setTheme(const std::string& theme) {
     set("appearance.theme", theme);
 }
 
-std::string SettingsManager::getIconColorPrimary() const {
-    return get<std::string>("icons.colorPrimary");
-}
-
-void SettingsManager::setIconColorPrimary(const std::string& color) {
-    set("icons.colorPrimary", color);
-}
-
-std::string SettingsManager::getIconColorSecondary() const {
-    return get<std::string>("icons.colorSecondary");
-}
-
-void SettingsManager::setIconColorSecondary(const std::string& color) {
-    set("icons.colorSecondary", color);
-}
-
 // =============================================================================
 // Per-theme icon colors (Task #00025)
 // =============================================================================
@@ -594,9 +578,28 @@ void SettingsManager::migrateToCurrentVersion() {
         "log.backgroundColor",
         "log.textColor",
         "session",
+        "dashboard.autoLoadLastProject",  // duplicate of startup.autoLoadLastProject
+        "icons.colorPrimary",             // icon colors are stored per theme
+        "icons.colorSecondary",
+        "icons.theme",                    // second copy of appearance.theme
     };
     for (const char* key : obsoleteKeys) {
         removeKey(key);
+    }
+
+    // Old per-theme copies of the icon colors (icons.themes.<name> holds them)
+    std::vector<std::string> themeNames;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_settings.contains("themes") && m_settings["themes"].is_object()) {
+            for (const auto& entry : m_settings["themes"].items()) {
+                themeNames.push_back(entry.key());
+            }
+        }
+    }
+    for (const std::string& themeName : themeNames) {
+        removeKey("themes." + themeName + ".colors.primary");
+        removeKey("themes." + themeName + ".colors.secondary");
     }
 }
 
