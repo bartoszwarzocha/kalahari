@@ -34,10 +34,12 @@ void storeCheckResults(const QTextDocument* doc, int paragraph,
             results.issues.push_back(issue);
         }
     }
-    if (!results.issues.empty()) {
-        ParagraphData::of(block)->*check = std::move(results);
-    } else if (ParagraphData* data = ParagraphData::find(block)) {
-        data->*check = ParagraphCheck{};
+    if (results.issues.empty()) {
+        if (ParagraphData* data = ParagraphData::find(block)) {
+            data->*check = ParagraphCheck{};
+        }
+    } else if (ParagraphData* data = ParagraphData::of(block)) {
+        data->*check = std::move(results);
     }
 }
 

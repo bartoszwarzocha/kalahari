@@ -1172,9 +1172,10 @@ void EditorRenderPipeline::renderHighlightMarks(
                     const double y = widgetY + (piece.line.y() + piece.line.ascent()) * scale +
                                      amplitude + 1.0;
                     QPainterPath wave(QPointF(x1, y));
-                    bool up = true;
-                    for (double x = x1 + step; x < x2 + step; x += step, up = !up) {
-                        wave.lineTo(QPointF(std::min(x, x2), up ? y - amplitude : y + amplitude));
+                    const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
+                    for (int i = 1; i <= steps; ++i) {
+                        wave.lineTo(QPointF(std::min(x1 + i * step, x2),
+                                            i % 2 == 1 ? y - amplitude : y + amplitude));
                     }
                     painter->drawPath(wave);
                 }

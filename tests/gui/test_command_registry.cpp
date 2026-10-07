@@ -339,6 +339,19 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
         REQUIRE(action->toolTip() == QString("Test Command test.labelTooltip"));
     }
 
+    SECTION("literal ampersand in the label is not a mnemonic") {
+        Command cmd = createTestCommand("test.ampersand");
+        cmd.label = "Date & Time";
+        cmd.tooltip = cmd.label;
+        registry.registerCommand(cmd);
+
+        QAction* action = registry.getAction(std::string("test.ampersand"));
+        REQUIRE(action != nullptr);
+        REQUIRE(action->text() == QString("Date && Time"));
+        REQUIRE(action->iconText() == QString("Date & Time"));
+        REQUIRE(action->toolTip() == QString("Date & Time"));
+    }
+
     SECTION("isEnabled callback still disables an implemented command") {
         Command cmd = createTestCommand("test.disabled");
         cmd.isEnabled = []() { return false; };

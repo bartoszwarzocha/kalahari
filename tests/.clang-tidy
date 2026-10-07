@@ -1,0 +1,11 @@
+# Kalahari tests: the checks of the parent configuration, without one that misreads Catch2
+#
+# Disabled checks:
+# - bugprone-unchecked-optional-access: REQUIRE(value.has_value()) ends the test case when
+#   the value is missing, which the check does not see, so it reports every access after it
+
+---
+InheritParentConfig: true
+Checks: >
+  -bugprone-unchecked-optional-access
+...
