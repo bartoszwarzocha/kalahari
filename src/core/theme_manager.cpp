@@ -5,12 +5,12 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
-#include "kalahari/core/stylesheet.h"
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
 #include <QCoreApplication>
 #include <QApplication>
+#include <QToolTip>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -73,17 +73,9 @@ ThemeManager::ThemeManager() {
 
     // Apply palette to QApplication at startup for full theme support
     // Requires Fusion style (set in main.cpp before ThemeManager init)
-    QPalette palette = m_currentTheme.palette.toQPalette();
-    QApplication::setPalette(palette);
+    applyPalette();
 
-    // Apply QSS stylesheet (OpenSpec #00028)
-    QString qss = StyleSheet::generate(m_currentTheme);
-    if (qApp) {
-        qApp->setStyleSheet(qss);
-        Logger::getInstance().debug("ThemeManager: Applied stylesheet ({} chars)", qss.length());
-    }
-
-    Logger::getInstance().info("ThemeManager: Initial palette and stylesheet applied (Fusion style)");
+    Logger::getInstance().info("ThemeManager: Initial palette applied (Fusion style)");
 }
 
 // ============================================================================
@@ -344,17 +336,9 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
     }
 
     // Re-apply palette with overrides
-    QPalette palette = m_currentTheme.palette.toQPalette();
-    QApplication::setPalette(palette);
-
-    // Re-apply stylesheet with updated colors (OpenSpec #00028)
-    QString qss = StyleSheet::generate(m_currentTheme);
-    if (qApp) {
-        qApp->setStyleSheet(qss);
-    }
+    applyPalette();
 
     Logger::getInstance().info("ThemeManager: Applied {} color overrides", overrides.size());
-    Logger::getInstance().debug("ThemeManager: Re-applied stylesheet ({} chars)", qss.length());
 
     emit themeChanged(m_currentTheme);
     emit themeStyleChanged();
@@ -476,18 +460,20 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
     }
 }
 
+void ThemeManager::applyPalette() {
+    // The palette alone styles the whole application (tooltips included, drawn by
+    // KalahariStyle). An application style sheet is avoided on purpose: setting one
+    // re-polishes every widget, which made a theme switch take about 1.2 s on Windows
+    const QPalette palette = m_currentTheme.palette.toQPalette();
+    QApplication::setPalette(palette);
+    QToolTip::setPalette(palette);
+}
+
 void ThemeManager::refreshTheme() {
     // Re-apply palette with current overrides
-    QPalette palette = m_currentTheme.palette.toQPalette();
-    QApplication::setPalette(palette);
+    applyPalette();
 
-    // Re-apply stylesheet with updated colors
-    QString qss = StyleSheet::generate(m_currentTheme);
-    if (qApp) {
-        qApp->setStyleSheet(qss);
-    }
-
-    Logger::getInstance().debug("ThemeManager: Theme refreshed (palette + stylesheet)");
+    Logger::getInstance().debug("ThemeManager: Theme refreshed (palette)");
 
     emit themeChanged(m_currentTheme);
     emit themeStyleChanged();

@@ -2328,7 +2328,7 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
     logger.debug("SettingsDialog: themeChanged={}, colorsChanged={}, iconThemeChanged={}, iconSizesChanged={}",
                  themeChanged, colorsChanged, iconThemeChanged, iconSizesChanged);
 
-    // Only theme and icon changes take noticeable time (stylesheet, icon re-render)
+    // Only theme and icon changes take noticeable time (palette, icon re-render)
     if (visualChange) {
         QApplication::setOverrideCursor(Qt::WaitCursor);
         // One icon refresh at the end instead of one per changed property
@@ -2430,7 +2430,7 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
             settingsManager.setPaletteColorForTheme(themeName, color.key, c); });
     }
 
-    // Theme switch and color changes in one pass (palette, stylesheet and icons once),
+    // Theme switch and color changes in one pass (palette and icons once),
     // from the stored colors written above: the same result as after a restart
     if (themeChanged || colorsChanged) {
         const qint64 themeStart = timer.elapsed();

@@ -81,6 +81,16 @@ void KalahariStyle::drawPrimitive(PrimitiveElement element,
                                   const QStyleOption* option,
                                   QPainter* painter,
                                   const QWidget* widget) const {
+    if (element == PE_PanelTipLabel && option != nullptr) {
+        // Tooltip: theme background with a thin frame (the palette's mid color)
+        painter->save();
+        painter->fillRect(option->rect, option->palette.color(QPalette::ToolTipBase));
+        painter->setPen(option->palette.color(QPalette::Mid));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+        painter->restore();
+        return;
+    }
     if (element != PE_IndicatorCheckBox || option == nullptr) {
         QProxyStyle::drawPrimitive(element, option, painter, widget);
         return;

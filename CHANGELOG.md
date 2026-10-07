@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Faster theme switch** - 2026-10-07. Kalahari no longer sets an application style
+  sheet (it held only the tooltip colors): setting one restyled every widget, about 1.2 s
+  of the 1.7 s theme switch in a Windows Debug build. Tooltips take their colors from the
+  theme palette and get their thin frame from the application style. Light to Dark in a
+  Linux Release build: about 75 ms, was about 330 ms.
 - **Editor: the continuous views are one endless page** - 2026-10-07
   - The Continuous and Distraction-Free views show the text on one endless page as wide
     as the pages, with the page's margins and the desk on both sides. The lines break
