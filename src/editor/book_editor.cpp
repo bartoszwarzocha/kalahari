@@ -274,6 +274,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         colors.selection = m_appearance.colors.selection;
         colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
         m_renderPipeline->setConfigColors(colors);
+        m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
 
         // Margins using centralized calculation
         auto margins = calculateEffectiveMargins();

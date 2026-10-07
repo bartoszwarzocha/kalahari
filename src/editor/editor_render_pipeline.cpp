@@ -550,6 +550,13 @@ void EditorRenderPipeline::setConfigTypewriter(bool enabled, double focusPositio
     markAllDirty();
 }
 
+void EditorRenderPipeline::setConfigFocus(bool enabled) {
+    if (m_context.focus == enabled) return;
+
+    m_context.focus = enabled;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigScrollX(double x) {
     const double oldScrollX = m_context.scrollX;
     m_context.scrollX = x;
@@ -628,7 +635,7 @@ void EditorRenderPipeline::updateScroll(double scrollY) {
 
 void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
     if (m_cursorPosition != position) {
-        // Track old paragraph for focus mode optimization
+        // Track old paragraph for Focus
         int oldParagraph = m_cursorPosition.paragraph;
 
         // Mark old cursor position dirty
@@ -639,8 +646,8 @@ void EditorRenderPipeline::setCursorPosition(const CursorPosition& position) {
         // Mark new cursor position dirty
         markDirty(cursorPaintRect().toAlignedRect());
 
-        // Focus mode: the paragraph left becomes dimmed, the one entered bright
-        if (m_context.viewMode == ViewMode::Focus && oldParagraph != position.paragraph) {
+        // Focus: the paragraph left becomes dimmed, the one entered bright
+        if (m_context.focus && oldParagraph != position.paragraph) {
             markParagraphDirty(static_cast<size_t>(oldParagraph));
             markParagraphDirty(static_cast<size_t>(position.paragraph));
         }
@@ -948,8 +955,8 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
 
     QPointF drawPos(m_context.computed.originX, widgetY);
 
-    // Focus mode dims every paragraph but the cursor's
-    const bool isDimmed = m_context.viewMode == ViewMode::Focus &&
+    // Focus dims every paragraph but the cursor's
+    const bool isDimmed = m_context.focus &&
                           static_cast<int>(index) != m_cursorPosition.paragraph;
 
     QColor textColor = isDimmed ? m_context.colors.inactiveText : m_context.colors.text;

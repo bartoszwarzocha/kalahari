@@ -493,20 +493,20 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModePage);
-    REG_CMD_TOOL_ICON("view.mode.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "Focus"), "VIEW/View Mode/Focus", 58, false, 0,
-                      KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
-                      IconSet(),
-                      callbacks.onViewModeFocus);
     REG_CMD_TOOL_ICON("view.mode.distraction-free", QT_TRANSLATE_NOOP("CommandRegistrar", "Distraction-Free"), "VIEW/View Mode/Distraction-Free", 59, true, 0,
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onViewModeDistFree);
 
-    // Typewriter scrolling: a toggle on top of the view mode (the cursor line stays at a
-    // fixed height of the view)
-    REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Typewriter Scrolling"), "VIEW/Typewriter Scrolling", 60, true, 0,
+    // Typewriter scrolling and Focus: toggles on top of the view mode (the cursor line stays
+    // at a fixed height of the view; every paragraph but the cursor's is dimmed)
+    REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Typewriter Scrolling"), "VIEW/Typewriter Scrolling", 60, false, 0,
                    KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
                    callbacks.onTypewriterToggle);
+    REG_CMD_TOOL_ICON("view.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "Focus"), "VIEW/Focus", 61, true, 0,
+                      KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
+                      IconSet(),
+                      callbacks.onFocusToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "Writer"), "VIEW/Perspectives/Writer", 70, false, 1);

@@ -589,6 +589,17 @@ public:
     /// Emits typewriterChanged if the state changes.
     void setTypewriterEnabled(bool enabled);
 
+    /// @brief Whether Focus is on (in any view mode)
+    bool isFocusModeEnabled() const;
+
+    /// @brief Turn Focus on or off
+    ///
+    /// While it is on, every paragraph but the one with the cursor is dimmed, and the
+    /// bright paragraph follows the cursor. The view mode, its pages and the layout stay
+    /// as they are.
+    /// Emits focusModeChanged if the state changes.
+    void setFocusModeEnabled(bool enabled);
+
     // =======================================================================
     // Zoom Control
     // =======================================================================
@@ -874,6 +885,9 @@ signals:
 
     /// @brief Emitted when typewriter scrolling is turned on or off
     void typewriterChanged(bool enabled);
+
+    /// @brief Emitted when Focus is turned on or off
+    void focusModeChanged(bool enabled);
 
     /// @brief Emitted when zoom factor changes
     void zoomChanged(double factor);

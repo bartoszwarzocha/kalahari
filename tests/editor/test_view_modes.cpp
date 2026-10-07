@@ -535,11 +535,6 @@ TEST_CASE("BookEditor setViewMode changes mode", "[editor][viewmodes]") {
         REQUIRE(editor.viewMode() == ViewMode::Page);
     }
 
-    SECTION("Can set to Focus mode") {
-        editor.setViewMode(ViewMode::Focus);
-        REQUIRE(editor.viewMode() == ViewMode::Focus);
-    }
-
     SECTION("Typewriter scrolling is independent of the view mode") {
         editor.setViewMode(ViewMode::Page);
         editor.setTypewriterEnabled(true);
@@ -547,6 +542,18 @@ TEST_CASE("BookEditor setViewMode changes mode", "[editor][viewmodes]") {
         REQUIRE(editor.isTypewriterEnabled());
         editor.setViewMode(ViewMode::Continuous);
         REQUIRE(editor.isTypewriterEnabled());
+    }
+
+    SECTION("Focus is independent of the view mode") {
+        editor.setViewMode(ViewMode::Page);
+        editor.setFocusModeEnabled(true);
+        REQUIRE(editor.viewMode() == ViewMode::Page);
+        REQUIRE(editor.isFocusModeEnabled());
+        editor.setViewMode(ViewMode::Continuous);
+        REQUIRE(editor.isFocusModeEnabled());
+        editor.setFocusModeEnabled(false);
+        REQUIRE_FALSE(editor.isFocusModeEnabled());
+        REQUIRE(editor.viewMode() == ViewMode::Continuous);
     }
 
     SECTION("Can set to DistractionFree mode") {
@@ -558,8 +565,8 @@ TEST_CASE("BookEditor setViewMode changes mode", "[editor][viewmodes]") {
         editor.setViewMode(ViewMode::Page);
         REQUIRE(editor.viewMode() == ViewMode::Page);
 
-        editor.setViewMode(ViewMode::Focus);
-        REQUIRE(editor.viewMode() == ViewMode::Focus);
+        editor.setViewMode(ViewMode::DistractionFree);
+        REQUIRE(editor.viewMode() == ViewMode::DistractionFree);
 
         editor.setViewMode(ViewMode::Continuous);
         REQUIRE(editor.viewMode() == ViewMode::Continuous);
@@ -578,9 +585,9 @@ TEST_CASE("BookEditor setViewMode emits signal", "[editor][viewmodes][signals]")
                      });
 
     SECTION("Signal emitted on mode change") {
-        editor.setViewMode(ViewMode::Focus);
+        editor.setViewMode(ViewMode::Page);
         REQUIRE(signalCount == 1);
-        REQUIRE(lastEmittedMode == ViewMode::Focus);
+        REQUIRE(lastEmittedMode == ViewMode::Page);
     }
 
     SECTION("Signal not emitted if mode unchanged") {
@@ -590,7 +597,7 @@ TEST_CASE("BookEditor setViewMode emits signal", "[editor][viewmodes][signals]")
 
     SECTION("Multiple changes emit multiple signals") {
         editor.setViewMode(ViewMode::Page);
-        editor.setViewMode(ViewMode::Focus);
+        editor.setViewMode(ViewMode::Continuous);
         editor.setViewMode(ViewMode::DistractionFree);
         REQUIRE(signalCount == 3);
         REQUIRE(lastEmittedMode == ViewMode::DistractionFree);

@@ -347,7 +347,7 @@ void MainWindow::registerCommands() {
     callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
     callbacks.onViewModePage = [this]() { onViewModePage(); };
     callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
-    callbacks.onViewModeFocus = [this]() { onViewModeFocus(); };
+    callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
 
     // Zoom commands act on the editor in front
@@ -799,17 +799,36 @@ void MainWindow::onTypewriterToggle() {
                                      : tr("Typewriter scrolling: off"), 2000);
 }
 
-void MainWindow::onViewModeFocus() {
+void MainWindow::onFocusToggle() {
     auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: View Mode Focus");
+    auto& settings = core::SettingsManager::getInstance();
 
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->setViewMode(editor::ViewMode::Focus);
-        statusBar()->showMessage(tr("View mode: Focus"), 2000);
+    // A setting of all editors, kept between sessions; the view mode stays
+    const bool enabled = !settings.get<bool>("editor.focus.enabled", false);
+    settings.set<bool>("editor.focus.enabled", enabled);
+    logger.info("Action triggered: Focus {}", enabled ? "on" : "off");
+
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->setFocusModeEnabled(enabled);
+        }
     }
-    // Choosing the mode in use unchecks its action, but the mode stays: check again
     updateEditorActionStates();
+    statusBar()->showMessage(enabled ? tr("Focus: on") : tr("Focus: off"), 2000);
+}
+
+void MainWindow::onEditorColorModeChanged(editor::EditorColorMode mode) {
+    // One paper for all editors (the editor panel keeps it in the settings). An editor
+    // signals only a change, so the editors already switched end the round.
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->setEditorColorMode(mode);
+        }
+    }
 }
 
 void MainWindow::onViewModeDistFree() {
@@ -910,9 +929,10 @@ void MainWindow::updateEditorActionStates() {
         typeCmd->isChecked = [typewriter]() { return typewriter; };
         registry.updateActionState("view.typewriter");
     }
-    if (auto* focusCmd = registry.getCommand("view.mode.focus")) {
-        focusCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Focus; };
-        registry.updateActionState("view.mode.focus");
+    if (auto* focusCmd = registry.getCommand("view.focus")) {
+        const bool focus = bookEditor->isFocusModeEnabled();
+        focusCmd->isChecked = [focus]() { return focus; };
+        registry.updateActionState("view.focus");
     }
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
         dfCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::DistractionFree; };
@@ -1083,6 +1103,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::currentPageChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::editorColorModeChanged, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1107,6 +1128,10 @@ void MainWindow::createDocks() {
                         this, [this](int) { updatePageStatus(); });
                 connect(bookEditor, &editor::BookEditor::zoomChanged,
                         this, [this](double) { updatePageStatus(); });
+
+                // The paper chosen in the editor's context menu goes to every editor
+                connect(bookEditor, &editor::BookEditor::editorColorModeChanged,
+                        this, &MainWindow::onEditorColorModeChanged);
             }
             updatePageStatus();
 

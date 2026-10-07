@@ -171,9 +171,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Focus mode dimmed nothing** - 2026-10-06. View > View Mode > Focus (Ctrl+4) now dims
+- **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
   every paragraph but the one with the cursor, and the bright paragraph follows the
-  cursor.
+  cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
+  view keeps its pages, Ctrl+4 again turns it off, the menu item is checked while it is
+  on, and the state is kept between sessions for all editors.
 - **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
   same panel switches.
 - **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
@@ -181,7 +183,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   another panel's tab. A switch closes an open panel and opens a closed one with its tab
   on top.
 - **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
-  (for example Ctrl+4 twice) unchecked it; the mode in use now stays checked.
+  (for example Ctrl+2 twice) unchecked it; the mode in use now stays checked.
+- **The editor forgot its light or dark paper** - 2026-10-07. Switch to Light Mode /
+  Switch to Dark Mode in the editor's context menu changed only the editor on the
+  screen, so the next start, or Apply in the settings, brought the old paper back. The
+  choice is now the "Use dark mode for editor" setting: kept between sessions and given
+  to every open editor.
 - **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
   paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
   "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO

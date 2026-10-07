@@ -1,5 +1,5 @@
 /// @file book_editor_view.cpp
-/// @brief BookEditor: scrolling, view modes, zoom, pages, typewriter scrolling, Focus and Distraction-Free modes
+/// @brief BookEditor: scrolling, view modes, zoom, pages, typewriter scrolling, Focus, Distraction-Free mode
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
@@ -756,6 +756,28 @@ void BookEditor::applyTypewriter()
     updateScrollBarRange();
     updateTypewriterScroll(false);
     update();
+}
+
+// =============================================================================
+// Focus
+// =============================================================================
+
+bool BookEditor::isFocusModeEnabled() const
+{
+    return m_appearance.focusMode.enabled;
+}
+
+void BookEditor::setFocusModeEnabled(bool enabled)
+{
+    if (m_appearance.focusMode.enabled == enabled) {
+        return;
+    }
+    m_appearance.focusMode.enabled = enabled;
+    if (m_renderPipeline) {
+        m_renderPipeline->setConfigFocus(enabled);
+    }
+    update();
+    emit focusModeChanged(enabled);
 }
 
 // =============================================================================

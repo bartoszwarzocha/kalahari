@@ -211,6 +211,8 @@ struct RenderContext {
     CursorConfig cursor;                       ///< Cursor rendering config
     PageModeConfig pageMode;                   ///< Page mode config
     TypewriterConfig typewriter;               ///< Typewriter scrolling config
+    bool focus = false;                        ///< Focus: every paragraph but the cursor's
+                                               ///< is dimmed (in any view mode)
 
     // -------------------------------------------------------------------------
     // Text Frame Border
