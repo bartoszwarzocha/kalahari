@@ -2,7 +2,7 @@
 /// @brief Editor Stage 5: one highlight layer (check results kept with the paragraphs, the
 ///        word read aloud) that leaves annotations and typed patterns as plain text;
 ///        replacing the content as one undo step; what files outside a project need from
-///        the editor
+///        the editor; Focus mode dims the paragraphs other than the cursor's
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
