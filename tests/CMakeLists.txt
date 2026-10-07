@@ -22,6 +22,7 @@ set(TEST_SOURCES
     core/test_logger.cpp
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
+    core/test_theme_manager_apply.cpp  # Theme switch with color overrides in one pass
     core/test_plugin_manager.cpp
     core/test_python_interpreter.cpp
     core/test_python_interop.cpp
@@ -114,7 +115,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
     ${CMAKE_SOURCE_DIR}/src/gui/command_registrar.cpp       # Editor Stage 3: the application's commands, for shortcut checks
     ${CMAKE_SOURCE_DIR}/src/gui/settings_dialog.cpp         # Editor Stage 4: settings dialog layout checks
-    ${CMAKE_SOURCE_DIR}/src/gui/busy_indicator.cpp          # BusyIndicator for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
@@ -141,7 +141,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h   # BusyIndicator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     # GUI dependency headers for MOC

@@ -3,13 +3,14 @@
 ///
 /// Architecture:
 /// - SettingsDialog collects and validates settings (data collection)
-/// - MainWindow applies settings with BusyIndicator (data application)
+/// - On Apply/OK the dialog writes the changed settings and emits settingsApplied
+/// - SettingsCoordinator refreshes the parts of the window the change affects
 /// - SettingsData transfers data between dialog and main window
 ///
 /// Flow:
 /// 1. User edits settings in dialog
-/// 2. On Apply/OK, dialog emits settingsApplyRequested(SettingsData)
-/// 3. MainWindow receives signal, shows BusyIndicator, applies settings
+/// 2. On Apply/OK, dialog writes only the changed values and saves once
+/// 3. Dialog emits settingsApplied(new, previous); the coordinator reacts
 /// 4. Dialog stays open (Apply) or closes (OK)
 
 #pragma once
@@ -78,8 +79,8 @@ public:
 signals:
     /// @brief Emitted AFTER settings have been applied successfully
     /// @param settings Applied settings data
-    /// @note MainWindow can react to this (e.g., update diagnostic mode)
-    void settingsApplied(const SettingsData& settings);
+    /// @param previous Settings before this apply (to react only to what changed)
+    void settingsApplied(const SettingsData& settings, const SettingsData& previous);
 
 private slots:
     /// @brief Tree item selection changed
@@ -134,10 +135,10 @@ private:
     /// @brief Update icon preview with current theme and colors
     void updateIconPreview();
 
-    /// @brief Apply settings with BusyIndicator overlay on this dialog
+    /// @brief Write the changed settings, apply theme/icon changes, save once
     /// @param settings Settings to apply
-    /// @note Shows spinner, applies all settings, emits settingsApplied signal
-    void applySettingsWithSpinner(const SettingsData& settings);
+    /// @note Emits settingsApplied when done
+    void applySettings(const SettingsData& settings);
 
     // ========================================================================
     // Member Variables - Navigation
@@ -324,6 +325,10 @@ private:
     // ========================================================================
 
     SettingsData m_originalSettings;
+
+    /// Theme colors as shown for the selected theme before user edits (stored custom
+    /// colors or theme defaults); a theme color is saved only when it differs from these
+    SettingsData m_themeColorBaseline;
 
     // ========================================================================
     // Page Indices (for QStackedWidget)

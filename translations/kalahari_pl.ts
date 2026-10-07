@@ -806,6 +806,18 @@
         <source>Replace All</source>
         <translation>Zamień wszystko</translation>
     </message>
+    <message>
+        <source>Language Changed</source>
+        <translation>Zmiana języka</translation>
+    </message>
+    <message>
+        <source>The new language will be used after restarting Kalahari.
+
+Restart now?</source>
+        <translation>Nowy język zacznie działać po ponownym uruchomieniu programu Kalahari.
+
+Uruchomić ponownie teraz?</translation>
+    </message>
 </context>
 <context>
     <name>TemplateRegistry</name>
@@ -3095,7 +3107,7 @@ Planned features:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Note: Some changes require application restart.</source>
+        <source>A language change takes effect after restarting Kalahari.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

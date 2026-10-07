@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings: faster and lighter Apply/OK** - 2026-10-07
+  - No "Applying settings..." overlay: Apply writes only the options that changed and
+    saves once (about 1 ms for an ordinary option, was about 180 ms); theme and icon
+    changes show a wait cursor.
+  - A theme switch applies the palette, stylesheet and icons once (Light to Dark about
+    0.33 s, was 0.9-1.1 s). The log panel, Dashboard and editors are refreshed only when
+    their options or the theme changed.
+  - Theme colors are stored only when the user changed them, so the theme files keep
+    providing the rest. The default colors in the dialog and "Reset to Theme Defaults"
+    come from the theme files (the Dark theme showed and stored wrong defaults); the
+    reset takes effect on OK/Apply, so Cancel keeps the custom colors.
+  - Custom tooltip, placeholder and bright text colors survive a restart.
+  - After a UI language change Kalahari offers to restart now; a note on the Appearance >
+    General page says the change needs a restart.
+
 - **Editor: page mode rebuilt** - 2026-10-06
   - The text layout places the lines on the pages: a line that does not fit moves to the
     next page, also in the middle of a paragraph. Editing re-places only the paragraphs
