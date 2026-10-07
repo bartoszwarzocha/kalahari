@@ -48,15 +48,20 @@ public:
     /// @return List of theme names (without .json extension)
     QStringList getAvailableThemes() const;
 
-    /// @brief Apply theme to application
-    /// @param theme Theme to apply
-    /// Emits themeChanged() signal for UI updates
-    void applyTheme(const Theme& theme);
-
     /// @brief Switch to theme by name
     /// @param themeName Theme name to load and apply
     /// @return true if successful, false if theme not found
     bool switchTheme(const QString& themeName);
+
+    /// @brief Load a theme with the user's stored per-theme colors and apply it once
+    /// @param themeName Theme name to load (the current one to pick up changed colors)
+    /// @param extraOverrides Colors that are not stored per theme (e.g. info panels)
+    /// @return true if successful, false if the theme could not be loaded
+    ///
+    /// Applies palette and stylesheet once and emits themeChanged once, with the same
+    /// result as loading the theme at startup. Does not save settings.
+    bool reloadTheme(const QString& themeName,
+                     const std::map<std::string, QColor>& extraOverrides = {});
 
     /// @brief Apply user color overrides to current theme
     /// @param overrides Map of color keys to custom colors
@@ -94,6 +99,9 @@ private:
     Theme m_currentTheme;         ///< Currently active theme
     Theme m_baseTheme;            ///< Base theme (before overrides)
     std::map<std::string, QColor> m_overrides; ///< User color overrides
+
+    /// @brief Apply the user's stored per-theme colors to m_currentTheme
+    void applyStoredColors();
 
     /// @brief Load theme JSON file from resources/themes/
     /// @param themeName Theme name

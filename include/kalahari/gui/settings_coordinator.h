@@ -63,10 +63,10 @@ public:
     void setDiagnosticModeGetter(std::function<bool()> callback);
 
 public slots:
-    /// @brief Apply settings from dialog
-    /// @param settings Settings data to apply
-    /// @param fromOkButton true if triggered by OK (dialog closed), false if Apply
-    void onApplySettings(const SettingsData& settings, bool fromOkButton);
+    /// @brief React to settings applied by the dialog, refreshing only what changed
+    /// @param settings Applied settings
+    /// @param previous Settings before this apply
+    void onApplySettings(const SettingsData& settings, const SettingsData& previous);
 
 signals:
     /// @brief Emitted when diagnostic mode should be enabled
@@ -84,6 +84,10 @@ private:
     DockCoordinator* m_dockCoordinator;
     QStatusBar* m_statusBar;
     std::function<bool()> m_diagnosticModeGetter;
+    bool m_languageChanged = false;  ///< UI language changed while the dialog was open
+
+    /// @brief Offer to restart Kalahari so a new UI language takes effect
+    void offerRestartForLanguage();
 };
 
 } // namespace gui

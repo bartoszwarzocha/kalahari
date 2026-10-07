@@ -15,7 +15,9 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
+#include <QApplication>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QStatusBar>
 
 namespace kalahari {
@@ -51,10 +53,9 @@ void SettingsCoordinator::openSettingsDialog() {
 
     // Connect settings applied signal - coordinator reacts
     connect(&dialog, &SettingsDialog::settingsApplied,
-            this, [this](const SettingsData& settings) {
-                onApplySettings(settings, false);
-            });
+            this, &SettingsCoordinator::onApplySettings);
 
+    m_languageChanged = false;
     int result = dialog.exec();
 
     if (result == QDialog::Accepted) {
@@ -67,6 +68,30 @@ void SettingsCoordinator::openSettingsDialog() {
         if (m_statusBar) {
             m_statusBar->showMessage(QObject::tr("Settings changes discarded"), 2000);
         }
+    }
+
+    // Apply may have changed the language even if the dialog was then cancelled
+    if (m_languageChanged) {
+        offerRestartForLanguage();
+    }
+}
+
+void SettingsCoordinator::offerRestartForLanguage() {
+    auto reply = QMessageBox::question(
+        m_mainWindow,
+        QObject::tr("Language Changed"),
+        QObject::tr("The new language will be used after restarting Kalahari.\n\nRestart now?"),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
+    // main() starts a new instance once the event loop ends. Closing the window asks
+    // about unsaved changes as usual; if the user cancels there, nothing restarts.
+    qApp->setProperty("kalahari.restartRequested", true);
+    if (!m_mainWindow->close()) {
+        qApp->setProperty("kalahari.restartRequested", false);
     }
 }
 
@@ -342,9 +367,13 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     return settingsData;
 }
 
-void SettingsCoordinator::onApplySettings(const SettingsData& settings, bool /*fromOkButton*/) {
+void SettingsCoordinator::onApplySettings(const SettingsData& settings, const SettingsData& previous) {
     auto& logger = core::Logger::getInstance();
     logger.info("SettingsCoordinator: Reacting to settings applied");
+
+    if (settings.language != previous.language) {
+        m_languageChanged = true;
+    }
 
     // Handle diagnostic mode change
     bool currentDiagMode = m_diagnosticModeGetter();
@@ -356,32 +385,32 @@ void SettingsCoordinator::onApplySettings(const SettingsData& settings, bool /*f
         }
     }
 
-    // Handle log buffer size change
+    // Log panel: buffer size and colors
     LogPanel* logPanel = m_dockCoordinator->logPanel();
     if (logPanel && static_cast<int>(logPanel->getMaxBufferSize()) != settings.logBufferSize) {
         logPanel->setMaxBufferSize(static_cast<size_t>(settings.logBufferSize));
         logger.info("SettingsCoordinator: Log buffer size updated to {}", settings.logBufferSize);
     }
-
-    // Apply log panel color changes (Task #00027)
-    if (logPanel) {
+    const bool themeChanged = settings.theme != previous.theme;
+    if (logPanel && (themeChanged || settings.themeColorsDiffer(previous))) {
         logPanel->applyThemeColors();
-        logger.info("SettingsCoordinator: Log panel colors updated");
     }
 
-    // Refresh dashboard to reflect new settings (e.g., show/hide recent files)
+    // Dashboard: only its own options (it follows theme changes by itself)
     DashboardPanel* dashboardPanel = m_dockCoordinator->dashboardPanel();
-    if (dashboardPanel) {
+    const bool dashboardChanged = settings.showKalahariNews != previous.showKalahariNews ||
+                                  settings.showRecentFiles != previous.showRecentFiles ||
+                                  settings.dashboardMaxItems != previous.dashboardMaxItems ||
+                                  settings.dashboardIconSize != previous.dashboardIconSize;
+    if (dashboardPanel && dashboardChanged) {
         dashboardPanel->onSettingsChanged();
-        logger.info("SettingsCoordinator: Dashboard refreshed after settings change");
     }
 
-    // Emit signal for editor settings changes (font, colors, etc.)
-    // MainWindow connects to this and applies settings to all EditorPanels
-    emit editorSettingsChanged();
-    logger.info("SettingsCoordinator: Editor settings change signal emitted");
-
-    logger.info("SettingsCoordinator: Settings reaction complete");
+    // Editors re-layout their documents, which is slow for long chapters: only when an
+    // editor option or the theme changed
+    if (themeChanged || settings.editorSettingsDiffer(previous)) {
+        emit editorSettingsChanged();
+    }
 }
 
 } // namespace gui

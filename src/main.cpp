@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QProcess>
 #include <QEventLoop>
 #include <QTimer>
 #include <QThread>
@@ -431,6 +432,14 @@ int main(int argc, char *argv[]) {
     int result = app.exec();
 
     logger.info("Application exited with code: {}", result);
+
+    // Settings that apply only after a restart (UI language) can ask for one:
+    // SettingsCoordinator sets this property and closes the main window
+    if (app.property("kalahari.restartRequested").toBool()) {
+        logger.info("Restarting Kalahari");
+        QProcess::startDetached(QCoreApplication::applicationFilePath(),
+                                QCoreApplication::arguments().mid(1));
+    }
     return result;
 }
 
