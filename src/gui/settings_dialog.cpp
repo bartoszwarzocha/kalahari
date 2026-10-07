@@ -37,6 +37,8 @@
 #include <QSplitter>
 #include <QScreen>
 #include <QApplication>
+#include <QElapsedTimer>
+#include <QTimer>
 #include <map>
 #include <utility>
 
@@ -2051,6 +2053,8 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
 
     // Editor/General
     m_fontFamilyComboBox->setCurrentFont(QFont(settings.editorFontFamily));
+    m_storedFontFamily = settings.editorFontFamily;
+    m_shownFontFamily = m_fontFamilyComboBox->currentFont().family();
     m_editorFontSizeSpinBox->setValue(settings.editorFontSize);
     m_tabSizeSpinBox->setValue(settings.tabSize);
     m_lineNumbersCheckBox->setChecked(settings.showLineNumbers);
@@ -2211,7 +2215,10 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.iconSizes[core::IconContext::ComboBox] = m_comboBoxIconSizeSpinBox->value();
 
     // Editor/General
-    settingsData.editorFontFamily = m_fontFamilyComboBox->currentFont().family();
+    // A font missing on this system is shown as its substitute: keep the stored name
+    // until the user picks another font
+    const QString shownFamily = m_fontFamilyComboBox->currentFont().family();
+    settingsData.editorFontFamily = shownFamily == m_shownFontFamily ? m_storedFontFamily : shownFamily;
     settingsData.editorFontSize = m_editorFontSizeSpinBox->value();
     settingsData.tabSize = m_tabSizeSpinBox->value();
     settingsData.showLineNumbers = m_lineNumbersCheckBox->isChecked();
@@ -2299,6 +2306,10 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
     auto& artProvider = core::ArtProvider::getInstance();
     const SettingsData& original = m_originalSettings;
     const SettingsData& baseline = m_themeColorBaseline;
+    QElapsedTimer timer;
+    timer.start();
+    qint64 themeMs = 0;
+    qint64 saveMs = 0;
 
     const bool themeChanged = settings.theme != original.theme;
     const bool colorsChanged = settings.themeColorsDiffer(original);
@@ -2411,9 +2422,11 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
             {"colors.dashboardPrimary", settings.dashboardPrimaryColor},
             {"colors.dashboardSecondary", settings.dashboardSecondaryColor},
         };
+        const qint64 themeStart = timer.elapsed();
         if (themeManager.reloadTheme(settings.theme, unstoredColors) && themeChanged) {
             written = true;
         }
+        themeMs = timer.elapsed() - themeStart;
     }
 
     // Appearance/Icons
@@ -2496,19 +2509,33 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
     setIfChanged("startup.autoLoadLastProject", settings.autoLoadLastProject, original.autoLoadLastProject);
 
     if (written) {
+        const qint64 saveStart = timer.elapsed();
         settingsManager.save();
-        logger.info("SettingsDialog: Changed settings saved");
+        saveMs = timer.elapsed() - saveStart;
     }
 
+    const qint64 iconsStart = timer.elapsed();
     if (visualChange) {
         artProvider.endBatchUpdate();
         QApplication::restoreOverrideCursor();
     }
+    const qint64 iconsMs = timer.elapsed() - iconsStart;
+    const qint64 panelsStart = timer.elapsed();
 
     const SettingsData previous = m_originalSettings;
     m_originalSettings = settings;
     m_themeColorBaseline = settings;
     emit settingsApplied(settings, previous);
+
+    // Timing for diagnosing slow Apply/OK on users' machines
+    logger.info("SettingsDialog: settings applied in {} ms (theme {} ms, file {} ms, icons {} ms, "
+                "panels {} ms)",
+                timer.elapsed(), themeMs, saveMs, iconsMs, timer.elapsed() - panelsStart);
+    // Editors and panels lay out and repaint later, in the event loop
+    QTimer::singleShot(0, qApp, [timer]() {
+        core::Logger::getInstance().info("SettingsDialog: window updated {} ms after Apply/OK",
+                                         timer.elapsed());
+    });
 }
 
 } // namespace gui

@@ -111,3 +111,17 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
 
     settings.setLanguage("en");
 }
+
+TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settings]") {
+    // Regression: a font missing on this system was shown as its substitute, and the
+    // substitute's name was saved on the next Apply as if the user had chosen it
+    SettingsData current;
+    {
+        SettingsDialog probe(nullptr, SettingsData{});
+        current = probe.collectSettings();
+    }
+    current.editorFontFamily = QStringLiteral("Kalahari Missing Font");
+
+    SettingsDialog dialog(nullptr, current);
+    CHECK(dialog.collectSettings().editorFontFamily == QStringLiteral("Kalahari Missing Font"));
+}

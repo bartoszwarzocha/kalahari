@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Settings: faster and lighter Apply/OK** - 2026-10-07
   - No "Applying settings..." overlay: Apply writes only the options that changed and
-    saves once (about 1 ms for an ordinary option, was about 180 ms); theme and icon
-    changes show a wait cursor.
+    saves once (about 1 ms for an ordinary option in a Linux Release build, was about
+    180 ms); theme and icon changes show a wait cursor. The log records how long each
+    stage of Apply/OK took.
   - A theme switch applies the palette, stylesheet and icons once (Light to Dark about
     0.33 s, was 0.9-1.1 s). The log panel, Dashboard and editors are refreshed only when
     their options or the theme changed.
@@ -25,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Custom tooltip, placeholder and bright text colors survive a restart.
   - After a UI language change Kalahari offers to restart now; a note on the Appearance >
     General page says the change needs a restart.
+  - An editor font missing on this system keeps its name instead of being replaced by
+    the substitute font on the next Apply.
+  - Check boxes have a clear frame and a check mark in both themes (a checked box showed
+    only a fill color).
 
 - **Editor: page mode rebuilt** - 2026-10-06
   - The text layout places the lines on the pages: a line that does not fit moves to the

@@ -238,6 +238,8 @@ private:
     // ========================================================================
 
     QFontComboBox* m_fontFamilyComboBox;
+    QString m_storedFontFamily;  ///< Editor font name from the settings
+    QString m_shownFontFamily;   ///< Font the combo shows for it (a substitute if missing)
     QSpinBox* m_editorFontSizeSpinBox;
     QSpinBox* m_tabSizeSpinBox;
     QCheckBox* m_lineNumbersCheckBox;
