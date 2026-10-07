@@ -26,6 +26,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     text shows the bottom margin.
   - The view margins of the continuous views are gone from the editor's appearance: the
     page margins apply in every view.
+
+- **Settings: faster and lighter Apply/OK** - 2026-10-07
+  - No "Applying settings..." overlay: Apply writes only the options that changed and
+    saves once (about 1 ms for an ordinary option in a Linux Release build, was about
+    180 ms); theme and icon changes show a wait cursor. The log records how long each
+    stage of Apply/OK took.
+  - A theme switch applies the palette, stylesheet and icons once (Light to Dark about
+    0.33 s, was 0.9-1.1 s). The log panel, Dashboard and editors are refreshed only when
+    their options or the theme changed.
+  - Theme colors are stored only when the user changed them, so the theme files keep
+    providing the rest. The default colors in the dialog and "Reset to Theme Defaults"
+    come from the theme files (the Dark theme showed and stored wrong defaults); the
+    reset takes effect on OK/Apply, so Cancel keeps the custom colors.
+  - Custom tooltip, placeholder and bright text colors survive a restart.
+  - After a UI language change Kalahari offers to restart now; a note on the Appearance >
+    General page says the change needs a restart.
+  - An editor font missing on this system keeps its name instead of being replaced by
+    the substitute font on the next Apply.
+  - Check boxes have a clear frame and a check mark in both themes (a checked box showed
+    only a fill color).
+
 - **Files outside the book: chapters and text files** - 2026-10-06
   - File > Open > Open File... opens chapters (`.kchapter`) and text files (`.txt`), and
     Save writes each in its own format: a chapter keeps its title, status, notes and

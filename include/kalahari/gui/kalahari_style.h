@@ -45,6 +45,15 @@ public:
                        const QStyleOption* option = nullptr,
                        const QWidget* widget = nullptr) const override;
 
+    /// @brief Draw check boxes with a clear frame and a check mark in both themes
+    ///
+    /// Fusion's frame is barely visible on dark palettes; this draws the frame from
+    /// the text color and, when checked, a check mark on the highlight color.
+    void drawPrimitive(PrimitiveElement element,
+                       const QStyleOption* option,
+                       QPainter* painter,
+                       const QWidget* widget = nullptr) const override;
+
 private slots:
     /// @brief Slot called when ArtProvider resources change
     ///

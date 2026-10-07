@@ -67,103 +67,9 @@ ThemeManager::ThemeManager() {
         Logger::getInstance().warn("ThemeManager: Using fallback theme");
     }
 
-    // Task #00025: Load user's custom color overrides from per-theme storage
-    // This ensures icons have correct colors at startup (not just after Apply in Settings)
-    std::string themeName = savedThemeName.toStdString();
-
-    // Get theme defaults for fallback
-    std::string defaultPrimary = (savedThemeName == "Dark") ? "#999999" : "#333333";
-    std::string defaultSecondary = (savedThemeName == "Dark") ? "#333333" : "#999999";
-
-    // Load per-theme custom colors if they exist
-    if (settings.hasCustomIconColorsForTheme(themeName)) {
-        QString savedPrimary = QString::fromStdString(
-            settings.getIconColorPrimaryForTheme(themeName, defaultPrimary));
-        QString savedSecondary = QString::fromStdString(
-            settings.getIconColorSecondaryForTheme(themeName, defaultSecondary));
-
-        QColor primaryColor(savedPrimary);
-        QColor secondaryColor(savedSecondary);
-
-        if (primaryColor.isValid()) {
-            m_currentTheme.colors.primary = primaryColor;
-            m_overrides["primary"] = primaryColor;
-        }
-        if (secondaryColor.isValid()) {
-            m_currentTheme.colors.secondary = secondaryColor;
-            m_overrides["secondary"] = secondaryColor;
-        }
-
-        Logger::getInstance().info("ThemeManager: Loaded custom icon colors for theme '{}' (primary={}, secondary={})",
-            themeName, savedPrimary.toStdString(), savedSecondary.toStdString());
-    } else {
-        Logger::getInstance().info("ThemeManager: Using default icon colors for theme '{}'", themeName);
-    }
-
-    // Task #00028: Load per-theme custom palette colors if they exist
-    bool isDark = (savedThemeName == "Dark");
-    if (settings.hasCustomPaletteColorsForTheme(themeName)) {
-        // Load and apply all 16 palette colors
-        auto loadPaletteColor = [&](const std::string& key, QColor& target, const std::string& defValue) {
-            std::string saved = settings.getPaletteColorForTheme(themeName, key, defValue);
-            QColor color(QString::fromStdString(saved));
-            if (color.isValid()) {
-                target = color;
-                m_overrides["palette." + key] = color;
-            }
-        };
-
-        // Basic Colors
-        loadPaletteColor("window", m_currentTheme.palette.window, isDark ? "#2d2d2d" : "#f0f0f0");
-        loadPaletteColor("windowText", m_currentTheme.palette.windowText, isDark ? "#e0e0e0" : "#000000");
-        loadPaletteColor("base", m_currentTheme.palette.base, isDark ? "#252525" : "#ffffff");
-        loadPaletteColor("alternateBase", m_currentTheme.palette.alternateBase, isDark ? "#323232" : "#f5f5f5");
-        loadPaletteColor("text", m_currentTheme.palette.text, isDark ? "#e0e0e0" : "#000000");
-        // Button Colors
-        loadPaletteColor("button", m_currentTheme.palette.button, isDark ? "#404040" : "#e0e0e0");
-        loadPaletteColor("buttonText", m_currentTheme.palette.buttonText, isDark ? "#e0e0e0" : "#000000");
-        // Selection Colors
-        loadPaletteColor("highlight", m_currentTheme.palette.highlight, "#0078d4");
-        loadPaletteColor("highlightedText", m_currentTheme.palette.highlightedText, "#ffffff");
-        // 3D Effect Colors
-        loadPaletteColor("light", m_currentTheme.palette.light, isDark ? "#505050" : "#ffffff");
-        loadPaletteColor("midlight", m_currentTheme.palette.midlight, isDark ? "#404040" : "#e0e0e0");
-        loadPaletteColor("mid", m_currentTheme.palette.mid, isDark ? "#303030" : "#a0a0a0");
-        loadPaletteColor("dark", m_currentTheme.palette.dark, isDark ? "#202020" : "#606060");
-        loadPaletteColor("shadow", m_currentTheme.palette.shadow, "#000000");
-        // Link Colors
-        loadPaletteColor("link", m_currentTheme.palette.link, isDark ? "#5eb3f0" : "#0078d4");
-        loadPaletteColor("linkVisited", m_currentTheme.palette.linkVisited, isDark ? "#b48ade" : "#551a8b");
-        // UI Colors
-        loadPaletteColor("toolTipBase", m_currentTheme.palette.toolTipBase, isDark ? "#3c3c3c" : "#ffffdc");
-        loadPaletteColor("toolTipText", m_currentTheme.palette.toolTipText, isDark ? "#e0e0e0" : "#000000");
-        loadPaletteColor("placeholderText", m_currentTheme.palette.placeholderText, isDark ? "#808080" : "#a0a0a0");
-        loadPaletteColor("brightText", m_currentTheme.palette.brightText, "#ffffff");
-
-        Logger::getInstance().info("ThemeManager: Loaded custom palette colors for theme '{}'", themeName);
-    }
-
-    // Task #00027: Load per-theme custom log colors if they exist
-    if (settings.hasCustomLogColorsForTheme(themeName)) {
-        auto loadLogColor = [&](const std::string& key, QColor& target, const std::string& defValue) {
-            std::string saved = settings.getLogColorForTheme(themeName, key, defValue);
-            QColor color(QString::fromStdString(saved));
-            if (color.isValid()) {
-                target = color;
-                m_overrides["log." + key] = color;
-            }
-        };
-
-        loadLogColor("trace", m_currentTheme.log.trace, isDark ? "#FF66FF" : "#CC00CC");
-        loadLogColor("debug", m_currentTheme.log.debug, isDark ? "#FF66FF" : "#CC00CC");
-        loadLogColor("info", m_currentTheme.log.info, isDark ? "#FFFFFF" : "#000000");
-        loadLogColor("warning", m_currentTheme.log.warning, isDark ? "#FFA500" : "#FF8C00");
-        loadLogColor("error", m_currentTheme.log.error, isDark ? "#FF4444" : "#CC0000");
-        loadLogColor("critical", m_currentTheme.log.critical, isDark ? "#FF4444" : "#CC0000");
-        loadLogColor("background", m_currentTheme.log.background, isDark ? "#252525" : "#F5F5F5");
-
-        Logger::getInstance().info("ThemeManager: Loaded custom log colors for theme '{}'", themeName);
-    }
+    // Load user's custom per-theme colors, so icons and widgets have them at startup
+    m_baseTheme = m_currentTheme;
+    applyStoredColors();
 
     // Apply palette to QApplication at startup for full theme support
     // Requires Fusion style (set in main.cpp before ThemeManager init)
@@ -271,77 +177,103 @@ QStringList ThemeManager::getAvailableThemes() const {
     return themes;
 }
 
-void ThemeManager::applyTheme(const Theme& theme) {
-    m_currentTheme = theme;
-    m_baseTheme = theme;
-    m_overrides.clear();  // Clear overrides when switching themes
-
-    // Apply QPalette to QApplication for native widget styling
-    // This is the key step that makes Qt Fusion style use our theme colors!
-    QPalette palette = theme.palette.toQPalette();
-    QApplication::setPalette(palette);
-
-    // Apply QSS stylesheet (OpenSpec #00028)
-    QString qss = StyleSheet::generate(theme);
-    if (qApp) {
-        qApp->setStyleSheet(qss);
+bool ThemeManager::switchTheme(const QString& themeName) {
+    if (!reloadTheme(themeName)) {
+        return false;
     }
-
-    Logger::getInstance().debug("ThemeManager: Applied stylesheet ({} chars)", qss.length());
-    Logger::getInstance().debug("ThemeManager: QPalette applied with {} color roles",
-                                static_cast<int>(QPalette::NColorRoles));
-
-    // Save to settings
-    auto& settings = SettingsManager::getInstance();
-    settings.setTheme(theme.name);
-    settings.save();
-
-    Logger::getInstance().info("ThemeManager: Applied theme '{}' (palette + stylesheet + settings)", theme.name);
-
-    emit themeChanged(m_currentTheme);
-    emit themeStyleChanged();
+    SettingsManager::getInstance().save();
+    return true;
 }
 
-bool ThemeManager::switchTheme(const QString& themeName) {
-    try {
-        Theme theme = loadTheme(themeName);
-        applyTheme(theme);
+void ThemeManager::applyStoredColors() {
+    // A stored color replaces the theme's own value; colors that are not stored keep
+    // the theme file values (the user may have changed only some of them)
+    auto& settings = SettingsManager::getInstance();
+    const std::string themeName = m_currentTheme.name;
 
-        // Task #00025: Load per-theme custom colors if they exist
-        auto& settings = SettingsManager::getInstance();
-        std::string themeNameStr = themeName.toStdString();
-
-        if (settings.hasCustomIconColorsForTheme(themeNameStr)) {
-            std::string defaultPrimary = (themeName == "Dark") ? "#999999" : "#333333";
-            std::string defaultSecondary = (themeName == "Dark") ? "#333333" : "#999999";
-
-            std::string savedPrimary = settings.getIconColorPrimaryForTheme(themeNameStr, defaultPrimary);
-            std::string savedSecondary = settings.getIconColorSecondaryForTheme(themeNameStr, defaultSecondary);
-
-            std::map<std::string, QColor> overrides;
-            QColor primaryColor(QString::fromStdString(savedPrimary));
-            QColor secondaryColor(QString::fromStdString(savedSecondary));
-
-            if (primaryColor.isValid()) {
-                overrides["primary"] = primaryColor;
-            }
-            if (secondaryColor.isValid()) {
-                overrides["secondary"] = secondaryColor;
-            }
-
-            if (!overrides.empty()) {
-                applyColorOverrides(overrides);
-                Logger::getInstance().info("ThemeManager: switchTheme loaded custom colors for '{}' (primary={}, secondary={})",
-                    themeNameStr, savedPrimary, savedSecondary);
-            }
+    auto apply = [this](const std::string& overrideKey, QColor& target, const std::string& saved) {
+        QColor color(QString::fromStdString(saved));
+        if (color.isValid() && color != target) {
+            target = color;
+            m_overrides[overrideKey] = color;
         }
+    };
+    auto current = [](const QColor& color) { return color.name().toStdString(); };
 
-        return true;
+    Theme& theme = m_currentTheme;
+    apply("primary", theme.colors.primary,
+          settings.getIconColorPrimaryForTheme(themeName, current(theme.colors.primary)));
+    apply("secondary", theme.colors.secondary,
+          settings.getIconColorSecondaryForTheme(themeName, current(theme.colors.secondary)));
+
+    const std::pair<const char*, QColor Theme::Palette::*> paletteColors[] = {
+        {"window", &Theme::Palette::window}, {"windowText", &Theme::Palette::windowText},
+        {"base", &Theme::Palette::base}, {"alternateBase", &Theme::Palette::alternateBase},
+        {"text", &Theme::Palette::text}, {"button", &Theme::Palette::button},
+        {"buttonText", &Theme::Palette::buttonText}, {"highlight", &Theme::Palette::highlight},
+        {"highlightedText", &Theme::Palette::highlightedText}, {"light", &Theme::Palette::light},
+        {"midlight", &Theme::Palette::midlight}, {"mid", &Theme::Palette::mid},
+        {"dark", &Theme::Palette::dark}, {"shadow", &Theme::Palette::shadow},
+        {"link", &Theme::Palette::link}, {"linkVisited", &Theme::Palette::linkVisited},
+    };
+    for (const auto& [key, field] : paletteColors) {
+        QColor& target = theme.palette.*field;
+        apply(std::string("palette.") + key, target,
+              settings.getPaletteColorForTheme(themeName, key, current(target)));
+    }
+
+    // Tooltip, placeholder and bright text are stored by the Settings dialog under "ui"
+    const std::pair<const char*, QColor Theme::Palette::*> uiColors[] = {
+        {"toolTipBase", &Theme::Palette::toolTipBase}, {"toolTipText", &Theme::Palette::toolTipText},
+        {"placeholderText", &Theme::Palette::placeholderText}, {"brightText", &Theme::Palette::brightText},
+    };
+    for (const auto& [key, field] : uiColors) {
+        QColor& target = theme.palette.*field;
+        apply(std::string("palette.") + key, target,
+              settings.getUiColorForTheme(themeName, key, current(target)));
+    }
+
+    const std::pair<const char*, QColor Theme::LogColors::*> logColors[] = {
+        {"trace", &Theme::LogColors::trace}, {"debug", &Theme::LogColors::debug},
+        {"info", &Theme::LogColors::info}, {"warning", &Theme::LogColors::warning},
+        {"error", &Theme::LogColors::error}, {"critical", &Theme::LogColors::critical},
+        {"background", &Theme::LogColors::background},
+    };
+    for (const auto& [key, field] : logColors) {
+        QColor& target = theme.log.*field;
+        apply(std::string("log.") + key, target,
+              settings.getLogColorForTheme(themeName, key, current(target)));
+    }
+
+    if (!m_overrides.empty()) {
+        Logger::getInstance().info("ThemeManager: Applied {} stored colors for theme '{}'",
+                                   m_overrides.size(), themeName);
+    }
+}
+
+bool ThemeManager::reloadTheme(const QString& themeName,
+                               const std::map<std::string, QColor>& extraOverrides) {
+    Theme theme;
+    try {
+        theme = loadTheme(themeName);
     } catch (const std::exception& e) {
-        Logger::getInstance().error("ThemeManager: Failed to switch to theme '{}': {}",
+        Logger::getInstance().error("ThemeManager: Failed to load theme '{}': {}",
                                     themeName.toStdString(), e.what());
         return false;
     }
+
+    m_baseTheme = theme;
+    m_currentTheme = theme;
+    m_overrides.clear();
+    applyStoredColors();
+    for (const auto& [key, color] : extraOverrides) {
+        setColorOverride(QString::fromStdString(key), color);
+    }
+    SettingsManager::getInstance().setTheme(theme.name);
+
+    refreshTheme();
+    Logger::getInstance().info("ThemeManager: Reloaded theme '{}'", theme.name);
+    return true;
 }
 
 // ============================================================================

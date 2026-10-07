@@ -3,7 +3,7 @@
 ///
 /// Simplified architecture (OpenSpec #00028):
 /// - QPalette (via Fusion style) handles ALL widget colors automatically
-/// - QSS needed for tooltips and checkbox indicators
+/// - QSS needed only for tooltips (Fusion draws checkboxes with a check mark from the palette)
 
 #include "kalahari/core/stylesheet.h"
 
@@ -17,7 +17,6 @@ namespace core {
 QString StyleSheet::generate(const Theme& theme) {
     QString qss;
     qss += generateTooltipStyle(theme);
-    qss += generateCheckboxStyle(theme);
     return qss;
 }
 
@@ -61,22 +60,6 @@ QToolTip {
     .arg(theme.palette.toolTipBase.name())
     .arg(theme.palette.toolTipText.name())
     .arg(getBorderColor(theme).name());
-}
-
-QString StyleSheet::generateCheckboxStyle(const Theme& theme) {
-    return QString(R"(
-QCheckBox::indicator {
-    border: 1px solid %1;
-    border-radius: 2px;
-    width: 14px;
-    height: 14px;
-}
-QCheckBox::indicator:checked {
-    background-color: %2;
-}
-)")
-    .arg(theme.palette.midlight.name())
-    .arg(theme.palette.highlight.name());
 }
 
 } // namespace core

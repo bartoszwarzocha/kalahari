@@ -6,7 +6,11 @@
 
 #include "kalahari/gui/kalahari_style.h"
 #include "kalahari/core/art_provider.h"
+#include <algorithm>
 #include <QApplication>
+#include <QPainter>
+#include <QPainterPath>
+#include <QStyleOption>
 #include <QWidget>
 
 namespace kalahari {
@@ -71,6 +75,58 @@ QIcon KalahariStyle::standardIcon(StandardPixmap standardIcon,
         default:
             return QProxyStyle::standardIcon(standardIcon, option, widget);
     }
+}
+
+void KalahariStyle::drawPrimitive(PrimitiveElement element,
+                                  const QStyleOption* option,
+                                  QPainter* painter,
+                                  const QWidget* widget) const {
+    if (element != PE_IndicatorCheckBox || option == nullptr) {
+        QProxyStyle::drawPrimitive(element, option, painter, widget);
+        return;
+    }
+
+    const QPalette::ColorGroup group =
+        (option->state & State_Enabled) ? QPalette::Active : QPalette::Disabled;
+    const QPalette& palette = option->palette;
+    const bool checked = (option->state & State_On) != 0;
+    const bool partial = (option->state & State_NoChange) != 0;
+    const bool hovered = (option->state & State_MouseOver) && (option->state & State_Enabled);
+
+    const QRectF box = QRectF(option->rect).adjusted(1.5, 1.5, -1.5, -1.5);
+    const QColor highlight = palette.color(group, QPalette::Highlight);
+    QColor frame = palette.color(group, QPalette::Text);
+    frame.setAlphaF(0.55F);
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    if (checked || partial) {
+        painter->setPen(QPen(highlight, 1.0));
+        painter->setBrush(highlight);
+    } else {
+        painter->setPen(QPen(hovered ? highlight : frame, 1.0));
+        painter->setBrush(palette.color(group, QPalette::Base));
+    }
+    painter->drawRoundedRect(box, 2.0, 2.0);
+
+    const QColor markColor = palette.color(group, QPalette::HighlightedText);
+    const qreal penWidth = std::max<qreal>(1.5, box.width() / 7.0);
+    painter->setPen(QPen(markColor, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->setBrush(Qt::NoBrush);
+    if (checked) {
+        QPainterPath mark;
+        mark.moveTo(box.left() + box.width() * 0.22, box.top() + box.height() * 0.52);
+        mark.lineTo(box.left() + box.width() * 0.42, box.top() + box.height() * 0.72);
+        mark.lineTo(box.left() + box.width() * 0.78, box.top() + box.height() * 0.30);
+        painter->drawPath(mark);
+    } else if (partial) {
+        const qreal y = box.center().y();
+        painter->drawLine(QPointF(box.left() + box.width() * 0.25, y),
+                          QPointF(box.right() - box.width() * 0.25, y));
+    }
+
+    painter->restore();
 }
 
 void KalahariStyle::onResourcesChanged() {
