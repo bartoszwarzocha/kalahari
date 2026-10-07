@@ -96,7 +96,7 @@ void KalahariStyle::drawPrimitive(PrimitiveElement element,
     const QRectF box = QRectF(option->rect).adjusted(1.5, 1.5, -1.5, -1.5);
     const QColor highlight = palette.color(group, QPalette::Highlight);
     QColor frame = palette.color(group, QPalette::Text);
-    frame.setAlphaF(0.55);
+    frame.setAlphaF(0.55F);
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
