@@ -13,7 +13,6 @@
 #include <QTextBlock>
 #include <algorithm>
 #include <cmath>
-#include <map>
 
 namespace kalahari::editor {
 
@@ -26,11 +25,6 @@ constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 /// paper, QColor::lighter() for dark paper)
 constexpr int DESK_DARKER_FACTOR = 118;
 constexpr int DESK_LIGHTER_FACTOR = 160;
-
-/// Size of the TODO and note marker icons in the margin, and the gap between them and
-/// the text (pixels at 100% zoom)
-constexpr double MARKER_ICON_SIZE = 8.0;
-constexpr double MARKER_ICON_GAP = 4.0;
 
 }  // anonymous namespace
 
@@ -1055,8 +1049,7 @@ std::vector<EditorRenderPipeline::ParagraphHighlight> EditorRenderPipeline::visi
     const size_t last = m_context.computed.lastVisibleParagraph;
     const size_t count = m_textSource->paragraphCount();
 
-    // Annotations and check results of the paragraphs in the clip rect (a cursor blink
-    // repaints one line)
+    // Check results of the paragraphs in the clip rect (a cursor blink repaints one line)
     const double scale = m_context.computed.viewScale;
     for (size_t paragraph = first; paragraph <= last && paragraph < count; ++paragraph) {
         const QRectF paragraphRect(0.0, paragraphWidgetY(paragraph), m_context.viewportSize.width(),
@@ -1102,13 +1095,8 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
         switch (highlight.kind) {
             case HighlightKind::SearchMatch: color = colors.searchHighlight; break;
             case HighlightKind::CurrentSearchMatch: color = colors.currentMatch; break;
-            case HighlightKind::Comment: color = colors.commentHighlight; break;
-            case HighlightKind::Todo: color = colors.todoHighlight; break;
-            case HighlightKind::CompletedTodo: color = colors.completedTodo; break;
-            case HighlightKind::Note: color = colors.noteHighlight; break;
             case HighlightKind::SpokenWord: color = colors.spokenWord; break;
-            // Drawn as marks only: a resolved comment stays without the background
-            case HighlightKind::ResolvedComment:
+            // Drawn as marks only
             case HighlightKind::Spelling:
             case HighlightKind::Grammar: continue;
         }
@@ -1123,104 +1111,36 @@ void EditorRenderPipeline::renderHighlightMarks(
     const double scale = m_context.computed.viewScale;
     const double originX = m_context.computed.originX;
 
-    // Marker icons drawn on each line so far: a line's icons stand side by side
-    std::map<std::pair<size_t, int>, int> lineIcons;
-
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     for (const auto& [paragraph, highlight] : highlights) {
-        if (highlight.kind == HighlightKind::SearchMatch ||
-            highlight.kind == HighlightKind::CurrentSearchMatch ||
-            highlight.kind == HighlightKind::SpokenWord) {
+        if (highlight.kind != HighlightKind::Spelling && highlight.kind != HighlightKind::Grammar) {
             continue;  // backgrounds only
         }
-        const double widgetY = paragraphWidgetY(paragraph);
         const auto pieces =
             linePieces(paragraph, highlight.start, highlight.start + highlight.length);
         if (pieces.empty()) continue;
 
-        switch (highlight.kind) {
-            case HighlightKind::Comment:
-            case HighlightKind::ResolvedComment: {
-                // A line at the bottom of the text; dotted once the comment is resolved
-                const bool resolved = highlight.kind == HighlightKind::ResolvedComment;
-                QPen pen(colors.commentBorder, std::max(1.0, (resolved ? 1.0 : 2.0) * scale));
-                pen.setStyle(resolved ? Qt::DotLine : Qt::SolidLine);
-                pen.setCapStyle(Qt::FlatCap);
-                painter->setPen(pen);
-                for (const LinePiece& piece : pieces) {
-                    const double y = widgetY + (piece.line.y() + piece.line.height()) * scale -
-                                     pen.widthF() / 2.0;
-                    painter->drawLine(QPointF(originX + piece.x1 * scale, y),
-                                      QPointF(originX + piece.x2 * scale, y));
-                }
-                break;
+        // A wave under the baseline
+        const double widgetY = paragraphWidgetY(paragraph);
+        const double amplitude = std::max(1.0, 1.5 * scale);
+        const double step = 2.0 * amplitude;
+        painter->setPen(QPen(highlight.kind == HighlightKind::Spelling ? colors.spellError
+                                                                       : colors.grammarWarning,
+                             std::max(1.0, scale)));
+        painter->setBrush(Qt::NoBrush);
+        for (const LinePiece& piece : pieces) {
+            const double x1 = originX + piece.x1 * scale;
+            const double x2 = originX + piece.x2 * scale;
+            const double y =
+                widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
+            QPainterPath wave(QPointF(x1, y));
+            const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
+            for (int i = 1; i <= steps; ++i) {
+                wave.lineTo(QPointF(std::min(x1 + i * step, x2),
+                                    i % 2 == 1 ? y - amplitude : y + amplitude));
             }
-            case HighlightKind::Spelling:
-            case HighlightKind::Grammar: {
-                // A wave under the baseline
-                const double amplitude = std::max(1.0, 1.5 * scale);
-                const double step = 2.0 * amplitude;
-                painter->setPen(QPen(highlight.kind == HighlightKind::Spelling
-                                         ? colors.spellError
-                                         : colors.grammarWarning,
-                                     std::max(1.0, scale)));
-                painter->setBrush(Qt::NoBrush);
-                for (const LinePiece& piece : pieces) {
-                    const double x1 = originX + piece.x1 * scale;
-                    const double x2 = originX + piece.x2 * scale;
-                    const double y = widgetY + (piece.line.y() + piece.line.ascent()) * scale +
-                                     amplitude + 1.0;
-                    QPainterPath wave(QPointF(x1, y));
-                    const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
-                    for (int i = 1; i <= steps; ++i) {
-                        wave.lineTo(QPointF(std::min(x1 + i * step, x2),
-                                            i % 2 == 1 ? y - amplitude : y + amplitude));
-                    }
-                    painter->drawPath(wave);
-                }
-                break;
-            }
-            case HighlightKind::Todo:
-            case HighlightKind::CompletedTodo:
-            case HighlightKind::Note: {
-                // An icon in the margin next to the text, level with the marker's first line
-                const QColor color = highlight.kind == HighlightKind::Note ? colors.noteHighlight
-                                     : highlight.kind == HighlightKind::Todo
-                                         ? colors.todoHighlight
-                                         : colors.completedTodo;
-                const QColor solid(color.red(), color.green(), color.blue());
-                const QTextLine& line = pieces.front().line;
-                const int slot = lineIcons[{paragraph, line.lineNumber()}]++;
-                const double iconSize = MARKER_ICON_SIZE * scale;
-                const double pitch = iconSize + MARKER_ICON_GAP * scale;
-                const double centerY = widgetY + (line.y() + line.height() / 2.0) * scale;
-                const QRectF iconRect(originX - (slot + 1) * pitch, centerY - iconSize / 2.0,
-                                      iconSize, iconSize);
-                if (highlight.kind == HighlightKind::Note) {
-                    painter->setPen(Qt::NoPen);
-                    painter->setBrush(solid);
-                    painter->drawEllipse(iconRect);
-                } else {
-                    // A checkbox, ticked when the TODO is completed
-                    painter->setPen(QPen(solid, std::max(1.0, scale)));
-                    painter->setBrush(Qt::NoBrush);
-                    painter->drawRect(iconRect);
-                    if (highlight.kind == HighlightKind::CompletedTodo) {
-                        painter->drawLine(
-                            QPointF(iconRect.left() + 0.2 * iconSize, iconRect.center().y()),
-                            QPointF(iconRect.center().x(), iconRect.bottom() - 0.2 * iconSize));
-                        painter->drawLine(
-                            QPointF(iconRect.center().x(), iconRect.bottom() - 0.2 * iconSize),
-                            QPointF(iconRect.right() - 0.1 * iconSize, iconRect.top() + 0.2 * iconSize));
-                    }
-                }
-                break;
-            }
-            case HighlightKind::SearchMatch:
-            case HighlightKind::CurrentSearchMatch:
-            case HighlightKind::SpokenWord:
-                break;
+            painter->drawPath(wave);
         }
     }
     painter->restore();

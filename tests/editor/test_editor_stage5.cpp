@@ -1,7 +1,8 @@
 /// @file test_editor_stage5.cpp
-/// @brief Editor Stage 5: one highlight layer (annotations from the KML data, check
-///        results kept with the paragraphs, the word read aloud); replacing the content
-///        as one undo step; what files outside a project need from the editor
+/// @brief Editor Stage 5: one highlight layer (check results kept with the paragraphs, the
+///        word read aloud) that leaves annotations and typed patterns as plain text;
+///        replacing the content as one undo step; what files outside a project need from
+///        the editor
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
@@ -87,7 +88,7 @@ int pixelsOtherThan(const QImage& image, QRgb color, const QRect& area) {
     return count;
 }
 
-/// The margin left of a paragraph's first line (where marker icons are drawn)
+/// The margin left of a paragraph's first line
 QRect marginOf(BookEditor& editor, int paragraph) {
     const QRectF line = caretAt(editor, {paragraph, 0});
     return QRect(QPoint(0, static_cast<int>(line.top())),
@@ -97,37 +98,32 @@ QRect marginOf(BookEditor& editor, int paragraph) {
 }  // anonymous namespace
 
 // =============================================================================
-// Annotations come from the KML data
+// Annotations and typed patterns are plain text
 // =============================================================================
 
-TEST_CASE("Stage5 highlights: comments and markers come from the KML data",
+TEST_CASE("Stage5 highlights: annotations in the KML leave the text as it is",
           "[editor][stage5][highlight]") {
-    auto editor = editorWith(QStringLiteral(
+    // Comments, TODO markers and notes stay in the chapter (see the Stage0 KML tests) but
+    // are not drawn until their look is designed: no tint, underline or margin icon
+    auto annotated = editorWith(QStringLiteral(
         "<kml><p>Start <comment id=\"c1\" author=\"A\">noted <b>text</b></comment> and "
-        "<todo id=\"t1\">fix this</todo>.</p>"
+        "<todo id=\"t1\">fix this</todo> now</p>"
         "<p><todo id=\"t2\" completed=\"true\">done</todo> <todo id=\"n1\" type=\"note\">aside</todo> "
-        "<comment id=\"c2\" resolved=\"true\">old</comment></p>"
-        "<p><comment id=\"c3\">one</comment><comment id=\"c4\">two</comment></p></kml>"));
+        "<comment id=\"c2\" resolved=\"true\">old</comment></p></kml>"));
+    auto plain = editorWith(kmlOf({QStringLiteral("Start noted <b>text</b> and fix this now"),
+                                   QStringLiteral("done aside old")}));
+    REQUIRE(annotated->plainText() == plain->plainText());
 
-    // A comment over a bold word is one highlight
-    CHECK(highlightsOf(*editor, 0) == std::vector<TextHighlight>{
-                                          {6, 10, HighlightKind::Comment},
-                                          {21, 8, HighlightKind::Todo}});
-    CHECK(highlightsOf(*editor, 1) == std::vector<TextHighlight>{
-                                          {0, 4, HighlightKind::CompletedTodo},
-                                          {5, 5, HighlightKind::Note},
-                                          {11, 3, HighlightKind::ResolvedComment}});
-    // Two comments side by side stay two
-    CHECK(highlightsOf(*editor, 2) == std::vector<TextHighlight>{
-                                          {0, 3, HighlightKind::Comment},
-                                          {3, 3, HighlightKind::Comment}});
+    CHECK(highlightsOf(*annotated, 0).empty());
+    CHECK(highlightsOf(*annotated, 1).empty());
+    plain->setCursorPosition(annotated->cursorPosition());  // the caret at the same place
+    CHECK(differingPixels(editorImage(*annotated), editorImage(*plain), annotated->rect()) == 0);
 }
 
 TEST_CASE("Stage5 highlights: typed TODO and comment patterns are plain text",
           "[editor][stage5][highlight]") {
     // Regression: paragraphs starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and
-    // a tint, and "/* */" or "<!-- -->" in the text a comment highlight, while TODO
-    // markers and comments saved in KML were not shown
+    // a tint, and "/* */" or "<!-- -->" in the text a comment highlight
     auto editor = editorWith(kmlOf({QStringLiteral("TODO: write the ending"),
                                     QStringLiteral("[NOTE] check the dates"),
                                     QStringLiteral("[x] done already"),
@@ -150,49 +146,6 @@ TEST_CASE("Stage5 highlights: typed TODO and comment patterns are plain text",
                                     QPoint(editor->width() - 30,
                                            static_cast<int>(end.bottom())))) == 0);
     }
-}
-
-TEST_CASE("Stage5 highlights: annotations are painted on their text, markers with an icon",
-          "[editor][stage5][highlight]") {
-    auto annotated = editorWith(QStringLiteral(
-        "<kml><p>Plain <comment id=\"c1\">noted</comment> words here</p>"
-        "<p>Some <todo id=\"t1\">fix</todo> more words</p>"
-        "<p>Only plain words</p></kml>"));
-    auto plain = editorWith(kmlOf({QStringLiteral("Plain noted words here"),
-                                   QStringLiteral("Some fix more words"),
-                                   QStringLiteral("Only plain words")}));
-    const QRect words = rangeArea(*annotated, 0, 0, 5);
-    const QRect comment = rangeArea(*annotated, 0, 6, 11);
-    const QRect todo = rangeArea(*annotated, 1, 5, 8);
-    const QRect margins[] = {marginOf(*annotated, 0), marginOf(*annotated, 1),
-                             marginOf(*annotated, 2)};
-    plain->setCursorPosition(annotated->cursorPosition());  // the caret at the same place
-    const QImage withAnnotations = editorImage(*annotated);
-    const QImage without = editorImage(*plain);
-
-    CHECK(differingPixels(withAnnotations, without, comment) > comment.width() * comment.height() / 2);
-    CHECK(differingPixels(withAnnotations, without, todo) > todo.width() * todo.height() / 2);
-    CHECK(differingPixels(withAnnotations, without, words) == 0);
-
-    // The TODO marker has an icon in the margin, level with its line
-    CHECK(differingPixels(withAnnotations, without, margins[1]) > 0);
-    CHECK(differingPixels(withAnnotations, without, margins[0]) == 0);
-    CHECK(differingPixels(withAnnotations, without, margins[2]) == 0);
-}
-
-TEST_CASE("Stage5 highlights: a marker added in the editor is shown", "[editor][stage5][highlight]") {
-    auto editor = editorWith(kmlOf({QStringLiteral("Words to do")}));
-    editor->setCursorPosition({0, 0});
-    editor->addTodoAtCursor();
-    CHECK(highlightsOf(*editor, 0) == std::vector<TextHighlight>{{0, 1, HighlightKind::Todo}});
-
-    editor->toggleTodoAtCursor();
-    CHECK(highlightsOf(*editor, 0) ==
-          std::vector<TextHighlight>{{0, 1, HighlightKind::CompletedTodo}});
-
-    editor->undo();
-    editor->undo();
-    CHECK(highlightsOf(*editor, 0).empty());
 }
 
 // =============================================================================

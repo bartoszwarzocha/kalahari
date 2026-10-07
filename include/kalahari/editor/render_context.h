@@ -85,14 +85,6 @@ struct RenderColors {
     QColor searchHighlight{255, 214, 0, 96};   ///< Search match background
     QColor currentMatch{255, 140, 0, 140};     ///< Current search match background
 
-    /// @brief Annotation colors (backgrounds translucent, like the search highlights; the
-    /// margin icons of the markers use them opaque)
-    QColor commentHighlight{255, 100, 150, 56};  ///< Comment annotation background
-    QColor commentBorder{220, 60, 110};          ///< Comment annotation underline
-    QColor todoHighlight{150, 100, 255, 64};     ///< TODO marker background
-    QColor noteHighlight{60, 150, 255, 64};      ///< NOTE marker background
-    QColor completedTodo{60, 180, 80, 64};       ///< Completed TODO background
-
     /// @brief Spell/grammar check colors
     QColor spellError{255, 0, 0};              ///< Spelling error underline
     QColor grammarWarning{0, 100, 255};        ///< Grammar warning underline
@@ -111,11 +103,6 @@ struct RenderColors {
                lineHighlight == other.lineHighlight &&
                searchHighlight == other.searchHighlight &&
                currentMatch == other.currentMatch &&
-               commentHighlight == other.commentHighlight &&
-               commentBorder == other.commentBorder &&
-               todoHighlight == other.todoHighlight &&
-               noteHighlight == other.noteHighlight &&
-               completedTodo == other.completedTodo &&
                spellError == other.spellError &&
                grammarWarning == other.grammarWarning &&
                spokenWord == other.spokenWord;

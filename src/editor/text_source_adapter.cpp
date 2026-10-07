@@ -3,15 +3,11 @@
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
-#include <kalahari/editor/buffer_commands.h>
-#include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <QTextDocument>
 #include <QTextBlock>
-#include <QTextFragment>
 #include <QAbstractTextDocumentLayout>
 #include <algorithm>
-#include <optional>
 
 namespace kalahari::editor {
 
@@ -54,61 +50,6 @@ std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index
     std::vector<TextHighlight> highlights;
     const QTextBlock block = blockAt(index);
     if (!block.isValid()) return highlights;
-
-    // Annotations are the KML metadata stored in the character formats. An annotation is
-    // one highlight even when its text runs over several fragments (e.g. partly bold):
-    // a fragment continues the open one when it carries the same metadata.
-    struct OpenAnnotation {
-        TextHighlight highlight;
-        QVariant metadata;
-    };
-    std::optional<OpenAnnotation> comment;
-    std::optional<OpenAnnotation> marker;
-    const auto close = [&highlights](std::optional<OpenAnnotation>& open) {
-        if (open) {
-            highlights.push_back(open->highlight);
-            open.reset();
-        }
-    };
-    const auto extend = [&close](std::optional<OpenAnnotation>& open, const QVariant& metadata,
-                                 int start, int length, HighlightKind kind) {
-        if (open && open->metadata == metadata &&
-            open->highlight.start + open->highlight.length == start) {
-            open->highlight.length += length;
-            return;
-        }
-        close(open);
-        open = OpenAnnotation{TextHighlight{start, length, kind}, metadata};
-    };
-
-    for (auto it = block.begin(); !it.atEnd(); ++it) {
-        const QTextFragment fragment = it.fragment();
-        if (!fragment.isValid()) continue;
-        const QTextCharFormat format = fragment.charFormat();
-        const int start = fragment.position() - block.position();
-        const int length = fragment.length();
-
-        const QVariant commentData = format.property(KmlPropComment);
-        if (commentData.isValid()) {
-            const bool resolved = commentData.toMap().value(QStringLiteral("resolved")).toBool();
-            extend(comment, commentData, start, length,
-                   resolved ? HighlightKind::ResolvedComment : HighlightKind::Comment);
-        } else {
-            close(comment);
-        }
-
-        const QVariant markerData = format.property(KmlPropTodo);
-        if (const auto todo = TextMarker::fromVariant(markerData)) {
-            const HighlightKind kind = todo->type == MarkerType::Note ? HighlightKind::Note
-                                       : todo->completed               ? HighlightKind::CompletedTodo
-                                                                       : HighlightKind::Todo;
-            extend(marker, markerData, start, length, kind);
-        } else {
-            close(marker);
-        }
-    }
-    close(comment);
-    close(marker);
 
     // Check results, only those made for the paragraph's current text
     if (const ParagraphData* data = ParagraphData::find(block)) {

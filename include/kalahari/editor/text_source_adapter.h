@@ -58,10 +58,10 @@ public:
     /// @return Total characters in document
     virtual size_t characterCount() const = 0;
 
-    /// @brief Highlighted ranges of a paragraph: its annotations (comments, TODO and note
-    ///        markers) and the results of the checks made for its current text
+    /// @brief Highlighted ranges of a paragraph: the results of the checks made for its
+    ///        current text
     /// @param index Paragraph index (0-based)
-    /// @note Sources without annotations or checks have none
+    /// @note Sources without checks have none
     virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const { return {}; }
 
     // =========================================================================
