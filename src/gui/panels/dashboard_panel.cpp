@@ -32,10 +32,6 @@
 #include <QTimer>
 #include <algorithm>
 
-namespace {
-    constexpr int DEFAULT_DASHBOARD_ICON_SIZE = 48;  // Default icon size (configurable via settings)
-}
-
 namespace kalahari {
 namespace gui {
 
@@ -218,7 +214,7 @@ void DashboardPanel::setupUI()
     // Load current setting for auto-load checkbox
     // Note: SettingsManager::load() must be called before DashboardPanel is created (done in main.cpp)
     auto& settingsMgr = core::SettingsManager::getInstance();
-    bool autoLoadSetting = settingsMgr.get<bool>("startup.autoLoadLastProject", false);
+    bool autoLoadSetting = settingsMgr.get<bool>("startup.autoLoadLastProject");
     core::Logger::getInstance().info("Dashboard: startup.autoLoadLastProject from settings = {}", autoLoadSetting);
     m_autoLoadCheckbox->setChecked(autoLoadSetting);
     core::Logger::getInstance().info("Dashboard: checkbox setChecked({}) done, isChecked() = {}",
@@ -904,7 +900,7 @@ void DashboardPanel::onSettingsChanged()
     // Sync auto-load checkbox with settings (in case changed from Settings dialog)
     if (m_autoLoadCheckbox) {
         auto& settings = core::SettingsManager::getInstance();
-        bool autoLoad = settings.get<bool>("startup.autoLoadLastProject", false);
+        bool autoLoad = settings.get<bool>("startup.autoLoadLastProject");
         if (m_autoLoadCheckbox->isChecked() != autoLoad) {
             m_autoLoadCheckbox->blockSignals(true);
             m_autoLoadCheckbox->setChecked(autoLoad);
@@ -1033,8 +1029,8 @@ void DashboardPanel::updateColumnVisibility()
     auto& settings = core::SettingsManager::getInstance();
 
     // Read visibility settings from SettingsManager
-    bool showNews = settings.get<bool>("dashboard.showKalahariNews", true);
-    bool showRecentFiles = settings.get<bool>("dashboard.showRecentFiles", true);
+    bool showNews = settings.get<bool>("dashboard.showKalahariNews");
+    bool showRecentFiles = settings.get<bool>("dashboard.showRecentFiles");
 
     // Check if visibility changed
     bool visibilityChanged = (showNews != m_showNews) || (showRecentFiles != m_showRecentFiles);
@@ -1109,14 +1105,14 @@ QPixmap DashboardPanel::loadThemedIcon(const QString& actionId) const
 int DashboardPanel::getMaxItems() const
 {
     // Get max items from settings, with bounds checking (3-9, default 5)
-    int maxItems = core::SettingsManager::getInstance().get<int>("dashboard.maxItems", 5);
+    int maxItems = core::SettingsManager::getInstance().get<int>("dashboard.maxItems");
     return std::clamp(maxItems, 3, 9);
 }
 
 int DashboardPanel::getIconSize() const
 {
     // Get icon size from settings, with bounds checking (24-64, default 48)
-    int iconSize = core::SettingsManager::getInstance().get<int>("dashboard.iconSize", DEFAULT_DASHBOARD_ICON_SIZE);
+    int iconSize = core::SettingsManager::getInstance().get<int>("dashboard.iconSize");
     return std::clamp(iconSize, 24, 64);
 }
 

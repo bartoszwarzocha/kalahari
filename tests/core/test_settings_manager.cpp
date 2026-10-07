@@ -11,10 +11,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/settings_schema.h>
+#include <kalahari/editor/editor_appearance.h>
+#include <nlohmann/json.hpp>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <vector>
 
 using namespace kalahari::core;
 
@@ -343,53 +347,131 @@ TEST_CASE("SettingsManager settings file path", "[settings][paths]") {
     }
 }
 
-TEST_CASE("SettingsManager icon colors (Task #00020)", "[settings][icons]") {
+TEST_CASE("SettingsManager takes defaults from the settings schema", "[settings][schema]") {
     auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
 
-    SECTION("Default primary icon color is #333333") {
-        std::string primary = settings.getIconColorPrimary();
-        REQUIRE(primary == "#333333");
+    SECTION("A missing key returns the schema default") {
+        REQUIRE_FALSE(settings.hasKey("dashboard.maxItems"));
+        REQUIRE(settings.get<int>("dashboard.maxItems") == 5);
+        REQUIRE(settings.get<int>("icons/sizes/toolbar") == 24);
+        REQUIRE(settings.get<std::string>("appearance.iconTheme") == "twotone");
     }
 
-    SECTION("Default secondary icon color is #999999") {
-        std::string secondary = settings.getIconColorSecondary();
-        REQUIRE(secondary == "#999999");
+    SECTION("The schema default wins over the caller's fallback") {
+        REQUIRE(settings.get<int>("dashboard.maxItems", 99) == 5);
     }
 
-    SECTION("Can set and get primary icon color") {
-        settings.setIconColorPrimary("#ff0000");
-        std::string primary = settings.getIconColorPrimary();
-        REQUIRE(primary == "#ff0000");
-
-        // Restore default
-        settings.setIconColorPrimary("#333333");
+    SECTION("A stored value wins over the schema default") {
+        settings.set("dashboard.maxItems", 8);
+        REQUIRE(settings.get<int>("dashboard.maxItems") == 8);
     }
 
-    SECTION("Can set and get secondary icon color") {
-        settings.setIconColorSecondary("#00ff00");
-        std::string secondary = settings.getIconColorSecondary();
-        REQUIRE(secondary == "#00ff00");
-
-        // Restore default
-        settings.setIconColorSecondary("#999999");
+    SECTION("Editor font defaults match the editor's constants") {
+        REQUIRE(*settings_schema::defaultValue("editor.fontFamily") ==
+                kalahari::editor::DEFAULT_TEXT_FONT_FAMILY);
+        REQUIRE(*settings_schema::defaultValue("editor.fontSize") ==
+                kalahari::editor::DEFAULT_TEXT_FONT_SIZE);
     }
 
-    SECTION("Icon colors persist to disk") {
-        // Set custom colors
-        settings.setIconColorPrimary("#abcdef");
-        settings.setIconColorSecondary("#123456");
-        settings.save();
+    settings.resetToDefaults();
+}
 
-        // Create new instance (reload from disk)
-        settings.load();
+TEST_CASE("SettingsManager notifies about changed settings", "[settings][notify]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
 
-        // Verify colors persisted
-        REQUIRE(settings.getIconColorPrimary() == "#abcdef");
-        REQUIRE(settings.getIconColorSecondary() == "#123456");
+    std::vector<std::string> changed;
+    int id = settings.subscribe([&changed](const std::string& key) { changed.push_back(key); });
 
-        // Restore defaults
-        settings.setIconColorPrimary("#333333");
-        settings.setIconColorSecondary("#999999");
-        settings.save();
+    settings.set("dashboard.maxItems", 7);
+    settings.set("dashboard.maxItems", 7);  // same value: no notification
+    settings.set("icons/sizes/menu", 20);
+    settings.removeKey("dashboard.maxItems");
+    settings.removeKey("dashboard.maxItems");  // already gone: no notification
+
+    settings.unsubscribe(id);
+    settings.set("dashboard.maxItems", 9);  // after unsubscribe: no notification
+
+    REQUIRE(changed == std::vector<std::string>{"dashboard.maxItems", "icons.sizes.menu",
+                                                "dashboard.maxItems"});
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]") {
+    auto& settings = SettingsManager::getInstance();
+    std::filesystem::path filePath = settings.getSettingsFilePath();
+    std::filesystem::create_directories(filePath.parent_path());
+
+    {
+        std::ofstream file(filePath);
+        file << R"({
+            "version": "1.1",
+            "ui": {"language": "pl", "font_size": 12, "theme": "Dark"},
+            "appearance": {"iconTheme": "filled", "toolbarIconSize": 24, "iconSize": 24},
+            "log": {"bufferSize": 800, "fontSize": 11,
+                    "backgroundColor": {"r": 60, "g": 60, "b": 60}},
+            "session": {"auto_save_interval": 300},
+            "dashboard": {"autoLoadLastProject": true, "maxItems": 4},
+            "icons": {"colorPrimary": "#7a7a7a", "colorSecondary": "#dadada",
+                      "theme": {"name": "Light"},
+                      "themes": {"Dark": {"colorPrimary": "#ffaa00"}}},
+            "themes": {"Dark": {"colors": {"primary": "#ffaa00", "secondary": "#644300",
+                                           "infoHeader": "#123456"}}}
+        })";
     }
+
+    REQUIRE(settings.load());
+
+    REQUIRE(settings.get<std::string>("version", "") == "1.2");
+    REQUIRE(settings.getLanguage() == "pl");
+    REQUIRE(settings.getTheme() == "Dark");
+    REQUIRE(settings.get<std::string>("appearance.iconTheme") == "filled");
+    REQUIRE(settings.get<int>("log.bufferSize") == 800);
+    REQUIRE_FALSE(settings.hasKey("ui.theme"));
+    REQUIRE_FALSE(settings.hasKey("ui.font_size"));
+    REQUIRE_FALSE(settings.hasKey("appearance.toolbarIconSize"));
+    REQUIRE_FALSE(settings.hasKey("appearance.iconSize"));
+    REQUIRE_FALSE(settings.hasKey("log.fontSize"));
+    REQUIRE_FALSE(settings.hasKey("log.backgroundColor"));
+    REQUIRE_FALSE(settings.hasKey("session"));
+    REQUIRE_FALSE(settings.hasKey("dashboard.autoLoadLastProject"));
+    REQUIRE(settings.get<int>("dashboard.maxItems") == 4);
+    REQUIRE_FALSE(settings.hasKey("icons.colorPrimary"));
+    REQUIRE_FALSE(settings.hasKey("icons.theme"));
+    REQUIRE(settings.getIconColorPrimaryForTheme("Dark", "") == "#ffaa00");
+    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.primary"));
+    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.secondary"));
+    REQUIRE(settings.get<std::string>("themes.Dark.colors.infoHeader", "") == "#123456");
+
+    // The migrated settings reach the file
+    std::filesystem::path tempPath = filePath;
+    tempPath += ".tmp";
+    REQUIRE_FALSE(std::filesystem::exists(tempPath));
+    {
+        std::ifstream file(filePath);
+        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.2");
+    }
+
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager save replaces the file in one step", "[settings][persistence]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+    settings.set("dashboard.maxItems", 6);
+
+    REQUIRE(settings.save());
+
+    std::filesystem::path filePath = settings.getSettingsFilePath();
+    std::filesystem::path tempPath = filePath;
+    tempPath += ".tmp";
+    REQUIRE(std::filesystem::exists(filePath));
+    REQUIRE_FALSE(std::filesystem::exists(tempPath));
+
+    settings.set("dashboard.maxItems", 3);
+    REQUIRE(settings.load());
+    REQUIRE(settings.get<int>("dashboard.maxItems") == 6);
+
+    settings.resetToDefaults();
 }

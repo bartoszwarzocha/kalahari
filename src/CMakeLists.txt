@@ -4,6 +4,7 @@
 set(KALAHARI_CORE_SOURCES
     core/logger.cpp
     core/settings_manager.cpp
+    core/settings_schema.cpp         # Default values of all settings
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer

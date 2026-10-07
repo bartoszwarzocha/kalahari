@@ -44,6 +44,11 @@ public:
     /// @return Current theme (or default Light theme if none loaded)
     const Theme& getCurrentTheme() const;
 
+    /// @brief Editor color of the current theme, with the user's stored value applied
+    /// @param key Name from the theme file's "editor" section (e.g. "commentMarker")
+    /// @param fallback Returned if the theme does not define the color
+    QColor editorColor(const std::string& key, const QColor& fallback) const;
+
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
     QStringList getAvailableThemes() const;

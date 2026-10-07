@@ -863,7 +863,7 @@ void ToolbarManager::loadConfigurations() {
     logger.debug("ToolbarManager: Loading configurations from settings");
 
     // Load built-in toolbar customizations
-    std::string toolbarConfigJson = settings.get<std::string>("toolbars.configurations", "{}");
+    std::string toolbarConfigJson = settings.get<std::string>("toolbars.configurations");
     QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(toolbarConfigJson));
 
     if (doc.isObject()) {
@@ -902,7 +902,7 @@ void ToolbarManager::loadConfigurations() {
     }
 
     // OpenSpec #00031 - Phase E: Load toolbar lock state
-    m_toolbarsLocked = settings.get<bool>("toolbars.locked", false);
+    m_toolbarsLocked = settings.get<bool>("toolbars.locked");
     logger.debug("ToolbarManager: Toolbars locked state: {}", m_toolbarsLocked);
 
     logger.debug("ToolbarManager: Loaded {} toolbar configurations", m_toolbarCommands.size());

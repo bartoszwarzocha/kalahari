@@ -46,8 +46,10 @@ LogPanel::LogPanel(QWidget* parent, bool diagnosticMode)
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     m_isDarkTheme = (theme.name == "Dark");
 
-    // Initialize color cache from SettingsManager
+    // Initialize color cache and buffer size from SettingsManager
     refreshColorCache();
+    setMaxBufferSize(static_cast<size_t>(
+        std::max(1, core::SettingsManager::getInstance().get<int>("log.bufferSize"))));
 
     // Setup UI
     setupLayout();

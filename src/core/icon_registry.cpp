@@ -645,10 +645,8 @@ void IconRegistry::clearCache() {
 void IconRegistry::saveToSettings() {
     auto& settings = SettingsManager::getInstance();
 
-    // Save theme
-    settings.setIconColorPrimary(m_theme.primaryColor.name().toStdString());
-    settings.setIconColorSecondary(m_theme.secondaryColor.name().toStdString());
-    settings.set("icons/theme/name", m_theme.name.toStdString());
+    // Icon colors are not saved here: they belong to the theme (ThemeManager stores
+    // them per theme as icons.themes.<name>.*)
 
     // Save sizes
     settings.set("icons/sizes/toolbar", m_sizes.toolbar);
@@ -696,51 +694,25 @@ void IconRegistry::saveToSettings() {
 void IconRegistry::loadFromSettings() {
     auto& settings = SettingsManager::getInstance();
 
-    // Load theme (with defaults if missing)
-    std::string primaryHexStr = settings.getIconColorPrimary();
-    std::string secondaryHexStr = settings.getIconColorSecondary();
-    std::string themeNameStr = settings.get<std::string>("icons/theme/name", "Light");
-
-    QString primaryHex = QString::fromStdString(primaryHexStr);
-    QString secondaryHex = QString::fromStdString(secondaryHexStr);
-    QString themeName = QString::fromStdString(themeNameStr);
-
-    QColor primary(primaryHex);
-    QColor secondary(secondaryHex);
-
-    if (!primary.isValid()) {
-        Logger::getInstance().warn("IconRegistry: Invalid primary color in settings ({}), using default",
-            primaryHex.toStdString());
-        primary = QColor("#333333");  // Match ThemeManager Light default
-    }
-
-    if (!secondary.isValid()) {
-        Logger::getInstance().warn("IconRegistry: Invalid secondary color in settings ({}), using default",
-            secondaryHex.toStdString());
-        secondary = QColor("#999999");  // Match ThemeManager Light default
-    }
-
-    m_theme.primaryColor = primary;
-    m_theme.secondaryColor = secondary;
-    m_theme.name = themeName;
+    // Icon colors come from the current theme (ArtProvider::initialize)
 
     // Load sizes (with defaults if missing)
-    m_sizes.toolbar = settings.get<int>("icons/sizes/toolbar", 24);
-    m_sizes.menu = settings.get<int>("icons/sizes/menu", 16);
-    m_sizes.panel = settings.get<int>("icons/sizes/panel", 20);
-    m_sizes.dialog = settings.get<int>("icons/sizes/dialog", 32);
-    m_sizes.treeView = settings.get<int>("icons/sizes/treeView", 16);
-    m_sizes.tabBar = settings.get<int>("icons/sizes/tabBar", 16);
-    m_sizes.statusBar = settings.get<int>("icons/sizes/statusBar", 16);
-    m_sizes.button = settings.get<int>("icons/sizes/button", 20);
-    m_sizes.comboBox = settings.get<int>("icons/sizes/comboBox", 16);
+    m_sizes.toolbar = settings.get<int>("icons/sizes/toolbar");
+    m_sizes.menu = settings.get<int>("icons/sizes/menu");
+    m_sizes.panel = settings.get<int>("icons/sizes/panel");
+    m_sizes.dialog = settings.get<int>("icons/sizes/dialog");
+    m_sizes.treeView = settings.get<int>("icons/sizes/treeView");
+    m_sizes.tabBar = settings.get<int>("icons/sizes/tabBar");
+    m_sizes.statusBar = settings.get<int>("icons/sizes/statusBar");
+    m_sizes.button = settings.get<int>("icons/sizes/button");
+    m_sizes.comboBox = settings.get<int>("icons/sizes/comboBox");
 
     // Load per-icon customizations
     // Note: This requires iterating over all registered icons and checking for custom keys
     // For now, we defer this to after icons are registered (called in initialize())
 
-    Logger::getInstance().debug("IconRegistry: Settings loaded (theme={}, sizes={}x{}x{}x{})",
-        themeName.toStdString(), m_sizes.toolbar, m_sizes.menu, m_sizes.panel, m_sizes.dialog);
+    Logger::getInstance().debug("IconRegistry: Settings loaded (sizes={}x{}x{}x{})",
+        m_sizes.toolbar, m_sizes.menu, m_sizes.panel, m_sizes.dialog);
 }
 
 // ============================================================================
