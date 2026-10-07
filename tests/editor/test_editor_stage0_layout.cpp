@@ -394,33 +394,47 @@ TEST_CASE("Stage0 layout: BookEditor undo of a large deletion", "[editor][stage0
     CHECK(mismatchCount(g, editorReference(editor)) == 0);
 }
 
-TEST_CASE("Stage0 layout: BookEditor resize re-wraps to the new width", "[editor][stage0][layout]") {
+TEST_CASE("Stage0 layout: BookEditor resize keeps the page's line breaks",
+          "[editor][stage0][layout]") {
+    // Every view wraps the text at the page's text width: a resize only moves the page in
+    // the window, so no block is laid out again and every line stays as it was.
     BookEditor editor;
     resizeWidget(editor, QSize(500, 400));
     editor.fromKml(kmlOf(longParagraphs(15)));
+    layoutOf(editor)->layoutPendingBlocks();
+    const qreal widthBefore = editor.textDocument()->textWidth();
     const qreal heightBefore = editor.textDocument()->documentLayout()->documentSize().height();
 
+    LaidOutBlockCounter laidOut(editor);
     resizeWidget(editor, QSize(1000, 400));
     layoutOf(editor)->layoutPendingBlocks();
-    const Geometry g = geometryOf(editor.textDocument());
-    CHECK(mismatchCount(g, editorReference(editor)) == 0);
-    CHECK(editor.textDocument()->documentLayout()->documentSize().height() < heightBefore);
+    CHECK(laidOut.count() == 0);
+    CHECK(editor.textDocument()->textWidth() == widthBefore);
+    CHECK(editor.textDocument()->documentLayout()->documentSize().height() == heightBefore);
+    CHECK(mismatchCount(geometryOf(editor.textDocument()), editorReference(editor)) == 0);
 }
 
-TEST_CASE("Stage0 layout: BookEditor resize lays out every block once",
+TEST_CASE("Stage0 layout: BookEditor new page margins lay out every block once",
           "[editor][stage0][layout]") {
-    // Regression (fixed in Stage 1): one resize used to re-lay out the whole document two
-    // or three times - BookEditor set the width on the document and on the layout, and the
-    // render pipeline set it again. The pipeline is now the only owner of the wrap width.
+    // Regression (fixed in Stage 1): one width change used to re-lay out the whole document
+    // two or three times - BookEditor set the width on the document and on the layout, and
+    // the render pipeline set it again. The pipeline is now the only owner of the wrap
+    // width, which follows the page's text width.
     // Since Stage 2 the blocks wait for layout until they are shown (a hidden editor, as
     // here, shows nothing) or the background pass reaches them.
     BookEditor editor;
     resizeWidget(editor, QSize(500, 400));
     editor.fromKml(kmlOf(longParagraphs(15)));
+    layoutOf(editor)->layoutPendingBlocks();
+    const qreal heightBefore = editor.textDocument()->documentLayout()->documentSize().height();
 
+    EditorAppearance appearance = editor.appearance();
+    appearance.pageMargins.left += 20.0;
     LaidOutBlockCounter laidOut(editor);
-    resizeWidget(editor, QSize(900, 400));
+    editor.setAppearance(appearance);
     CHECK(laidOut.count() == 0);
     layoutOf(editor)->layoutPendingBlocks();
     CHECK(laidOut.count() == 15);
+    CHECK(mismatchCount(geometryOf(editor.textDocument()), editorReference(editor)) == 0);
+    CHECK(editor.textDocument()->documentLayout()->documentSize().height() > heightBefore);
 }

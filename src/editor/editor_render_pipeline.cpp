@@ -26,6 +26,12 @@ constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 constexpr int DESK_DARKER_FACTOR = 118;
 constexpr int DESK_LIGHTER_FACTOR = 160;
 
+/// Shadow of the sheets (the pages and the endless page): offset down and to the right,
+/// blurred in a few passes
+constexpr double SHEET_SHADOW_OFFSET = 4.0;
+constexpr double SHEET_SHADOW_BLUR = 8.0;
+constexpr int SHEET_SHADOW_PASSES = 4;
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -55,86 +61,18 @@ void EditorRenderPipeline::setTextSource(std::unique_ptr<ITextSource> source) {
 // =============================================================================
 
 void EditorRenderPipeline::setContext(const RenderContext& context) {
-    bool fontChanged = (m_context.font != context.font);
-    bool widthChanged = (m_context.textWidth != context.textWidth);
-    bool marginsChanged = (m_context.margins != context.margins);
+    const bool fontChanged = (m_context.font != context.font);
 
     m_context = context;
 
-    // Update text source if font, width, or margins changed
-    if (m_textSource && (fontChanged || widthChanged || marginsChanged)) {
+    // Update text source if the font changed
+    if (m_textSource && fontChanged) {
         m_textSource->setFont(m_context.font);
         m_textSource->setTextWidth(m_context.computed.textWidth);
         m_heightDirty = true;
     }
 
     markAllDirty();
-}
-
-void EditorRenderPipeline::setMargins(double left, double top, double right, double bottom) {
-    RenderMargins newMargins{left, top, right, bottom};
-    if (m_context.margins == newMargins) {
-        return;  // No change, skip expensive relayout
-    }
-    m_context.margins = newMargins;
-    computeMargins();
-    computeTextWidth();
-    if (m_textSource) {
-        m_textSource->setTextWidth(m_context.computed.textWidth);
-        m_heightDirty = true;
-    }
-    computeViewGeometry();
-    markAllDirty();
-}
-
-void EditorRenderPipeline::setMargins(const RenderMargins& margins) {
-    setMargins(margins.left, margins.top, margins.right, margins.bottom);
-}
-
-void EditorRenderPipeline::setZoom(double factor, ZoomMode mode) {
-    factor = qBound(0.25, factor, 4.0);  // Limit 25% to 400%
-
-    bool modeChanged = (m_context.zoomMode != mode);
-    bool factorChanged = (std::abs(m_context.zoomFactor - factor) > 0.001);
-
-    if (!modeChanged && !factorChanged) {
-        return;  // No change
-    }
-
-    m_context.zoomFactor = factor;
-    m_context.zoomMode = mode;
-
-    // Recalculate computed values
-    computeDpiScaling();
-    computeEffectiveFont();
-    computeTextWidth();
-
-    if (m_textSource) {
-        if (mode == ZoomMode::FontScaling) {
-            // Font scaling: change font size, trigger layout recalculation
-            m_textSource->setFont(m_context.computed.effectiveFont);
-        } else {
-            // Page scaling: keep base font
-            m_textSource->setFont(m_context.font);
-        }
-        m_textSource->setTextWidth(m_context.computed.textWidth);
-        m_heightDirty = true;
-    }
-
-    computeViewGeometry();
-    markAllDirty();
-}
-
-void EditorRenderPipeline::setTextWidth(double width) {
-    if (m_context.textWidth != width) {
-        m_context.textWidth = width;
-        computeTextWidth();
-        if (m_textSource) {
-            m_textSource->setTextWidth(m_context.computed.textWidth);
-            m_heightDirty = true;
-        }
-        markAllDirty();
-    }
 }
 
 void EditorRenderPipeline::setFont(const QFont& font) {
@@ -206,7 +144,6 @@ void EditorRenderPipeline::configure(const RenderContext& context) {
 
     // Perform ALL calculations in order
     computeDpiScaling();
-    computeEffectiveFont();
     computeTypography();
     computePageLayout();
     computeMargins();
@@ -224,48 +161,27 @@ void EditorRenderPipeline::computeDpiScaling() {
     m_context.computed.mmToPixels = m_context.screenDpi / MM_PER_INCH;
     m_context.computed.totalScale = m_context.zoomFactor;
 
-    // viewScale depends on zoom mode; pages at 100% have their size on paper
-    if (m_context.zoomMode == ZoomMode::PageScaling) {
-        m_context.computed.viewScale = m_context.computed.totalScale * m_context.paperScale;
-    } else {
-        m_context.computed.viewScale = 1.0;  // FontScaling: scale in font, not painter
-    }
-}
-
-void EditorRenderPipeline::computeEffectiveFont() {
-    if (m_context.zoomMode == ZoomMode::FontScaling) {
-        m_context.computed.effectiveFont = m_context.font;
-        m_context.computed.effectiveFont.setPointSizeF(
-            m_context.font.pointSizeF() * m_context.computed.totalScale);
-    } else {
-        m_context.computed.effectiveFont = m_context.font;
-    }
+    // Every view zooms the page as a whole with the painter, so the line breaks stay; at
+    // 100% the page has its size on paper
+    m_context.computed.viewScale = m_context.computed.totalScale * m_context.paperScale;
 }
 
 void EditorRenderPipeline::computeTypography() {
-    // Spacing and indent are pixels at 100% zoom, i.e. for the base font. The layout
-    // scales them with the document font: font-scaling zoom grows them with the text
-    // (in the same relayout), page-scaling zoom leaves them to the painter.
+    // Spacing and indent are pixels at 100% zoom, i.e. for the base font; the zoom scales
+    // them with the painter, like the text
     LayoutTypography typography = m_context.typography;
     typography.referencePointSize = m_context.font.pointSizeF();
     m_context.computed.typography = typography;
 }
 
 void EditorRenderPipeline::computeMargins() {
+    // The page's own margins (computePageLayout() fits them to the page) in every view:
+    // the continuous views are an endless page
     auto& computed = m_context.computed;
-    if (m_context.viewMode == ViewMode::Page) {
-        // The page's own margins (computePageLayout() fits them to the page)
-        computed.marginLeft = computed.pageMargins.left();
-        computed.marginTop = computed.pageMargins.top();
-        computed.marginRight = computed.pageMargins.right();
-        computed.marginBottom = computed.pageMargins.bottom();
-    } else {
-        // View margins (pixels)
-        computed.marginLeft = m_context.margins.left;
-        computed.marginTop = m_context.margins.top;
-        computed.marginRight = m_context.margins.right;
-        computed.marginBottom = m_context.margins.bottom;
-    }
+    computed.marginLeft = computed.pageMargins.left();
+    computed.marginTop = computed.pageMargins.top();
+    computed.marginRight = computed.pageMargins.right();
+    computed.marginBottom = computed.pageMargins.bottom();
 }
 
 void EditorRenderPipeline::computePageLayout() {
@@ -302,19 +218,13 @@ void EditorRenderPipeline::computePageLayout() {
 }
 
 void EditorRenderPipeline::computeTextWidth() {
-    double width = 0.0;
-    if (m_context.viewMode == ViewMode::Page) {
-        // Page Mode: text width from page size minus margins
-        width = m_context.computed.pageWidthPixels
-              - m_context.computed.marginLeft
-              - m_context.computed.marginRight;
-    } else {
-        // Scroll modes: viewport width minus margins
-        width = m_context.viewportSize.width()
-              - m_context.computed.marginLeft
-              - m_context.computed.marginRight;
-    }
-    // A narrow (or not yet sized) viewport must not wrap the text a few glyphs per line
+    // The page width minus its margins in every view: the lines break as on the printed
+    // page, whatever the size of the view
+    const double width = m_context.computed.pageWidthPixels
+                       - m_context.computed.marginLeft
+                       - m_context.computed.marginRight;
+    // A page whose margins take nearly all of it must not wrap the text a few glyphs per
+    // line
     m_context.computed.textWidth = std::max(MIN_TEXT_WIDTH, width);
 }
 
@@ -333,30 +243,21 @@ void EditorRenderPipeline::computeViewGeometry() {
         typewriterBottom = (1.0 - focus) * viewHeight;
     }
 
-    if (m_context.viewMode == ViewMode::Page) {
-        // The pages are a column with the page gap around it. It is centred while it
-        // fits the view and scrolls sideways when the zoom makes it wider.
-        const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
-        const double pageWidth = computed.pageWidthPixels * scale;
-        const double pagesViewWidth = std::max(0.0, viewWidth - m_context.scrollBarWidth);
-        computed.contentWidth = pageWidth + 2.0 * gap * scale;
-        const double maxX = std::max(0.0, computed.contentWidth - pagesViewWidth);
-        m_context.scrollX = std::clamp(m_context.scrollX, 0.0, maxX);
-        computed.pageCenterOffset =
-            maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
-        computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
-        computed.originY = (gap + computed.marginTop) * scale;
-        computed.scrollPaddingTop = gap + computed.marginTop;
-        computed.scrollPaddingBottom = gap + computed.marginBottom + typewriterBottom / scale;
-    } else {
-        computed.contentWidth = viewWidth;
-        m_context.scrollX = 0.0;
-        computed.pageCenterOffset = 0.0;
-        computed.originX = computed.marginLeft;
-        computed.originY = computed.marginTop;
-        computed.scrollPaddingTop = computed.marginTop;
-        computed.scrollPaddingBottom = computed.marginBottom + typewriterBottom;
-    }
+    // The pages, or the endless page of the continuous views, are a column with the page
+    // gap around it, the same in every view. It is centred while it fits the view and
+    // scrolls sideways when the zoom makes it wider.
+    const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
+    const double pageWidth = computed.pageWidthPixels * scale;
+    const double pagesViewWidth = std::max(0.0, viewWidth - m_context.scrollBarWidth);
+    computed.contentWidth = pageWidth + 2.0 * gap * scale;
+    const double maxX = std::max(0.0, computed.contentWidth - pagesViewWidth);
+    m_context.scrollX = std::clamp(m_context.scrollX, 0.0, maxX);
+    computed.pageCenterOffset =
+        maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
+    computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
+    computed.originY = (gap + computed.marginTop) * scale;
+    computed.scrollPaddingTop = gap + computed.marginTop;
+    computed.scrollPaddingBottom = gap + computed.marginBottom + typewriterBottom / scale;
 
     // The viewport manager works in document units: it needs the scale and where the
     // scroll position is shown to tell the visible paragraphs and the scroll range
@@ -370,7 +271,7 @@ void EditorRenderPipeline::computeViewGeometry() {
 void EditorRenderPipeline::applyComputedToSource() {
     if (!m_textSource) return;
 
-    m_textSource->setFont(m_context.computed.effectiveFont);
+    m_textSource->setFont(m_context.font);
     m_textSource->setTextWidth(m_context.computed.textWidth);
     m_textSource->setTypography(m_context.computed.typography);
     applyPageFlowToSource();
@@ -382,7 +283,7 @@ void EditorRenderPipeline::applyComputedToSource() {
 
 void EditorRenderPipeline::applyFontToSource() {
     if (!m_textSource) return;
-    m_textSource->setFont(m_context.computed.effectiveFont);
+    m_textSource->setFont(m_context.font);
 }
 
 void EditorRenderPipeline::applyWidthToSource() {
@@ -397,7 +298,7 @@ void EditorRenderPipeline::applyTypographyToSource() {
 
 void EditorRenderPipeline::applyPageFlowToSource() {
     if (!m_textSource) return;
-    // The layout places the lines on the pages; the other modes have one long page
+    // The layout places the lines on the pages; the other views have one endless page
     PageFlow flow;
     if (m_context.viewMode == ViewMode::Page) {
         flow.enabled = true;
@@ -429,7 +330,6 @@ void EditorRenderPipeline::setConfigFont(const QFont& font) {
     if (m_context.font == font) return;  // No change
 
     m_context.font = font;
-    computeEffectiveFont();
     computeTypography();  // the base font size is the typography's reference size
     applyFontToSource();
     applyTypographyToSource();
@@ -437,21 +337,15 @@ void EditorRenderPipeline::setConfigFont(const QFont& font) {
     markAllDirty();
 }
 
-void EditorRenderPipeline::setConfigZoom(double factor, ZoomMode mode) {
-    if (std::abs(m_context.zoomFactor - factor) < 0.001 &&
-        m_context.zoomMode == mode) return;  // No change
+void EditorRenderPipeline::setConfigZoom(double factor) {
+    factor = std::clamp(factor, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    if (std::abs(m_context.zoomFactor - factor) < 0.001) return;  // No change
 
     m_context.zoomFactor = factor;
-    m_context.zoomMode = mode;
 
+    // Only the painter scale changes: the text keeps its font, width and line breaks
     computeDpiScaling();  // Recalculates totalScale, viewScale
-    computeEffectiveFont();
-    // Font scaling lays the text out again at the new size (typography lengths follow the
-    // font in the same relayout); page scaling keeps the font and only scales the painter
-    applyFontToSource();
     computeViewGeometry();
-
-    m_heightDirty = true;
     markAllDirty();
 }
 
@@ -480,33 +374,11 @@ void EditorRenderPipeline::setConfigViewportSize(const QSizeF& size) {
 
     m_context.viewportSize = size;
 
-    if (m_context.viewMode != ViewMode::Page) {
-        // Scroll modes: text width depends on viewport (pages keep theirs)
-        computeTextWidth();
-        applyWidthToSource();
-        m_heightDirty = true;
-    }
+    // The text keeps the page's width in every view: only the page's place in the view
+    // changes
     computeViewGeometry();
 
     updateVisibleRange();
-    markAllDirty();
-}
-
-void EditorRenderPipeline::setConfigMargins(double left, double top, double right, double bottom) {
-    const RenderMargins margins{left, top, right, bottom};
-    if (std::abs(m_context.margins.left - left) < 0.01 &&
-        std::abs(m_context.margins.top - top) < 0.01 &&
-        std::abs(m_context.margins.right - right) < 0.01 &&
-        std::abs(m_context.margins.bottom - bottom) < 0.01) return;
-
-    // View margins: the page mode uses the page's own (setConfigPageLayout())
-    m_context.margins = margins;
-    computeMargins();
-    computeTextWidth();
-    applyWidthToSource();
-    computeViewGeometry();
-
-    m_heightDirty = true;
     markAllDirty();
 }
 
@@ -573,21 +445,15 @@ void EditorRenderPipeline::setConfigColors(const RenderColors& colors) {
     markRepaintOnly();
 }
 
-void EditorRenderPipeline::setConfigViewMode(ViewMode mode, ZoomMode zoomMode) {
-    if (m_context.viewMode == mode && m_context.zoomMode == zoomMode) return;
+void EditorRenderPipeline::setConfigViewMode(ViewMode mode) {
+    if (m_context.viewMode == mode) return;
 
     m_context.viewMode = mode;
-    m_context.zoomMode = zoomMode;
 
-    // View mode affects everything - full recalculation
-    computeDpiScaling();
-    computeEffectiveFont();
-    computeTypography();
-    computePageLayout();
-    computeMargins();
-    computeTextWidth();
+    // Every view has the page's width, margins and zoom, so the line breaks stay: only
+    // the page view places the lines on pages
+    applyPageFlowToSource();
     computeViewGeometry();
-    applyComputedToSource();
 
     m_heightDirty = true;
     markAllDirty();
@@ -595,7 +461,6 @@ void EditorRenderPipeline::setConfigViewMode(ViewMode mode, ZoomMode zoomMode) {
 
 void EditorRenderPipeline::applyInitialConfig() {
     computeDpiScaling();
-    computeEffectiveFont();
     computeTypography();
     computePageLayout();
     computeMargins();
@@ -737,7 +602,7 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     if (!layout || layout->lineCount() == 0) {
         // Fallback: return default cursor rect
         double widgetY = paragraphWidgetY(static_cast<size_t>(paraIndex));
-        QFontMetricsF fm(m_context.computed.effectiveFont);
+        QFontMetricsF fm(m_context.font);
         return QRectF(m_context.computed.originX, widgetY,
                       m_context.cursor.width, fm.height() * scale);
     }
@@ -828,6 +693,7 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     if (m_context.viewMode == ViewMode::Page) {
         renderPages(painter, clipRect);
     } else {
+        renderEndlessPage(painter, clipRect);
         renderTextFrameBorder(painter);
     }
     renderText(painter, clipRect);
@@ -893,12 +759,8 @@ void EditorRenderPipeline::clearDirtyRegion() {
 // =============================================================================
 
 void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clipRect) {
-    if (m_context.viewMode != ViewMode::Page) {
-        painter->fillRect(clipRect, m_context.colors.background);
-        return;
-    }
-    // The desk around the pages: a shade of the paper, darker for light paper and
-    // lighter for dark paper, so the sheets stand out in both color modes
+    // The desk around the page: a shade of the paper, darker for light paper and lighter
+    // for dark paper, so the sheets stand out in both color modes
     const QColor& paper = m_context.colors.background;
     painter->fillRect(clipRect, paper.lightness() > 127 ? paper.darker(DESK_DARKER_FACTOR)
                                                         : paper.lighter(DESK_LIGHTER_FACTOR));
@@ -959,8 +821,7 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     painter->save();
     painter->translate(drawPos);
 
-    // Page scaling zooms with the painter; font scaling has already laid out the text at
-    // the zoomed font size (view scale 1)
+    // The zoom scales the painter
     const double scale = m_context.computed.viewScale;
     if (scale != 1.0) {
         painter->scale(scale, scale);
@@ -1162,8 +1023,7 @@ QRectF EditorRenderPipeline::cursorPaintRect() const {
 }
 
 double EditorRenderPipeline::caretCharWidth(const CursorPosition& position) const {
-    const double averageWidth =
-        QFontMetricsF(m_context.computed.effectiveFont).averageCharWidth();
+    const double averageWidth = QFontMetricsF(m_context.font).averageCharWidth();
     if (!m_textSource || position.paragraph < 0 ||
         static_cast<size_t>(position.paragraph) >= m_textSource->paragraphCount()) {
         return averageWidth;
@@ -1277,13 +1137,6 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
     const int firstPage = pageAtDocumentY(clipTop);
     const int lastPage = pageAtDocumentY(clipBottom);
 
-    // Page styling from context
-    constexpr double shadowOffsetX = 4.0;
-    constexpr double shadowOffsetY = 4.0;
-    constexpr double shadowBlur = 8.0;
-
-    QColor borderColor = m_context.colors.text;
-    borderColor.setAlpha(30);
     QColor numberColor = m_context.colors.text;
     numberColor.setAlpha(150);
     // Page numbers are drawn in page units, scaled with the page
@@ -1295,26 +1148,7 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
         const QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, sheetTop)),
                            QSizeF(computed.pageWidthPixels * scale,
                                   computed.pageHeightPixels * scale));
-
-        // Page shadow
-        if (m_context.pageMode.showPageBreaks) {
-            const QRectF shadowRect = sheet.translated(shadowOffsetX, shadowOffsetY);
-            for (int i = 0; i < 4; ++i) {
-                QColor shadow = m_context.pageMode.pageShadow;
-                shadow.setAlpha(shadow.alpha() / (i + 1));
-                const double expand = shadowBlur * (i + 1) / 4.0;
-                painter->fillRect(shadowRect.adjusted(-expand, -expand, expand, expand), shadow);
-            }
-        }
-
-        // Paper and its edge
-        painter->fillRect(sheet, m_context.colors.background);
-        painter->save();
-        QPen borderPen(borderColor);
-        borderPen.setWidthF(1.0);
-        painter->setPen(borderPen);
-        painter->drawRect(sheet);
-        painter->restore();
+        renderSheet(painter, sheet);
 
         // Text frame border if enabled
         if (m_context.showTextFrameBorder) {
@@ -1343,6 +1177,49 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
             painter->restore();
         }
     }
+}
+
+void EditorRenderPipeline::renderEndlessPage(QPainter* painter, const QRect& clipRect) {
+    // The continuous views: one sheet as wide as the page and as long as the text, with
+    // the page's top margin above the text and its bottom margin below it
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    const double textHeight = m_textSource ? m_textSource->totalHeight() : 0.0;
+    QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, -computed.marginTop)),
+                 QSizeF(computed.pageWidthPixels * scale,
+                        (computed.marginTop + textHeight + computed.marginBottom) * scale));
+
+    // A chapter's sheet is far taller than the view: it is cut to the clip rect, with room
+    // for the shadow, so the coordinates stay small and the cut edges are not painted
+    const double room = SHEET_SHADOW_OFFSET + SHEET_SHADOW_BLUR + 1.0;
+    sheet.setTop(std::max(sheet.top(), clipRect.top() - room));
+    sheet.setBottom(std::min(sheet.bottom(), clipRect.bottom() + 1.0 + room));
+    if (sheet.height() > 0.0) {
+        renderSheet(painter, sheet);
+    }
+}
+
+void EditorRenderPipeline::renderSheet(QPainter* painter, const QRectF& sheet) {
+    if (m_context.pageMode.showPageBreaks) {
+        const QRectF shadowRect = sheet.translated(SHEET_SHADOW_OFFSET, SHEET_SHADOW_OFFSET);
+        for (int i = 0; i < SHEET_SHADOW_PASSES; ++i) {
+            QColor shadow = m_context.pageMode.pageShadow;
+            shadow.setAlpha(shadow.alpha() / (i + 1));
+            const double expand = SHEET_SHADOW_BLUR * (i + 1) / SHEET_SHADOW_PASSES;
+            painter->fillRect(shadowRect.adjusted(-expand, -expand, expand, expand), shadow);
+        }
+    }
+
+    // Paper and its edge
+    QColor borderColor = m_context.colors.text;
+    borderColor.setAlpha(30);
+    painter->fillRect(sheet, m_context.colors.background);
+    painter->save();
+    QPen borderPen(borderColor);
+    borderPen.setWidthF(1.0);
+    painter->setPen(borderPen);
+    painter->drawRect(sheet);
+    painter->restore();
 }
 
 // =============================================================================
@@ -1428,9 +1305,6 @@ double EditorRenderPipeline::pageTextTop(int page) const {
 }
 
 double EditorRenderPipeline::maxScrollX() const {
-    if (m_context.viewMode != ViewMode::Page) {
-        return 0.0;
-    }
     return std::max(0.0, m_context.computed.contentWidth -
                              std::max(0.0, m_context.viewportSize.width() - m_context.scrollBarWidth));
 }

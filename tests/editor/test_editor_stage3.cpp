@@ -912,7 +912,9 @@ TEST_CASE("Stage3 cursor: the cursor shape and width follow the settings and the
         }
         CHECK(letter > 10);
 
+        // The zoom keeps the middle of the view; moving the cursor brings it into view
         editor->setZoomFactor(2.0);
+        editor->setCursorPosition({0, 1});
         CHECK(std::abs(boxAt({0, 0}).width() - 2 * wide) <= 3);
     }
 
@@ -932,6 +934,7 @@ TEST_CASE("Stage3 cursor: the cursor shape and width follow the settings and the
         CHECK(width >= 4);
         CHECK(width <= 5);
         editor->setZoomFactor(2.0);
+        editor->setCursorPosition({0, 1});
         CHECK(boxAt({0, 0}).width() == width);
     }
 }

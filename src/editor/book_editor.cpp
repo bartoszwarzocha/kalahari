@@ -128,8 +128,8 @@ BookEditor::BookEditor(QWidget* parent)
     m_viewportManager = std::make_unique<ViewportManager>(this);
     // Note: setDocument() called in fromKml() after loading
 
-    // The scrollbar range follows the document height: edits, re-wrapping after a width
-    // change, font and zoom changes all end up here.
+    // The scrollbar range follows the document height: edits and re-wrapping after a font
+    // or page change end up here (a zoom sets the range itself).
     connect(m_viewportManager.get(), &ViewportManager::documentHeightChanged,
             this, [this]([[maybe_unused]] double newHeight) {
         updateScrollBarRange();
@@ -170,10 +170,6 @@ BookEditor::BookEditor(QWidget* parent)
         ? m_appearance.cursor.customColor
         : m_appearance.colors.textColor(m_appearance.colorMode);
     ctx.colors.selection = m_appearance.colors.selection;
-    // Phase 15: Use centralized margin calculation (converts mm to pixels for Page Mode)
-    auto margins = calculateEffectiveMargins();
-    ctx.margins = margins;
-    ctx.textWidth = static_cast<double>(width());
     ctx.viewMode = m_viewMode;
     // Set initial DPI (will be updated in showEvent when screen is available)
     ctx.screenDpi = DEFAULT_DPI;
@@ -242,10 +238,10 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
     m_appearance = appearance;
 
-    // The render pipeline owns the document font: it applies the zoom-scaled effective
-    // font as the document's default font (one relayout, only when it changes).
-    // Character formats carry only explicit styling - no font is baked into them here,
-    // or it would be saved with the chapter and stop following the settings and zoom.
+    // The render pipeline owns the document font: it applies the font of the settings as
+    // the document's default font (one relayout, only when it changes; the zoom scales the
+    // painter). Character formats carry only explicit styling - no font is baked into them
+    // here, or it would be saved with the chapter and stop following the settings.
     if (m_renderPipeline) {
         m_renderPipeline->setConfigFont(m_appearance.typography.textFont);
         // Line spacing, paragraph spacing and indent are a view setting of the layout,
@@ -275,14 +271,12 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
         m_renderPipeline->setConfigColors(colors);
 
-        // Margins using centralized calculation
-        auto margins = calculateEffectiveMargins();
-        m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
+        // The page's size and margins, in every view
         applyPageLayout();
     }
 
-    // The margins and the page set the scroll range (the pipeline gives the viewport the
-    // scroll padding)
+    // The page's margins set the scroll range (the pipeline gives the viewport the scroll
+    // padding)
     updateScrollBarRange();
     applyTypewriter();
     updatePageInfo();
@@ -369,9 +363,8 @@ void BookEditor::resizeEvent(QResizeEvent* event)
         m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
     }
 
-    // The pipeline owns the wrap width; in the scroll modes it follows the viewport width.
-    // A new width wraps only the visible paragraphs before the next paint (the others in
-    // the background), so it is applied at once, also while the window edge is dragged.
+    // The text keeps the page's width in every view: a new size only moves the page in the
+    // view, without a relayout
     if (m_renderPipeline) {
         m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
@@ -449,13 +442,9 @@ void BookEditor::syncPipelineState()
         // applied on top through the device pixel ratio)
         m_renderPipeline->setScreenDpi(screen() ? screen()->logicalDotsPerInch() : DEFAULT_DPI);
         m_renderPipeline->setViewportSize(QSizeF(width(), height()));
-        m_renderPipeline->setZoom(m_appearance.pageLayout.zoomLevel, getZoomModeForViewMode());
+        m_renderPipeline->setConfigZoom(m_appearance.pageLayout.zoomLevel);
         m_renderPipeline->setFont(m_appearance.typography.textFont);
         m_renderPipeline->setConfigTypography(layoutTypography(m_appearance.typography));
-
-        // Set margins using centralized calculation
-        auto margins = calculateEffectiveMargins();
-        m_renderPipeline->setConfigMargins(margins.left, margins.top, margins.right, margins.bottom);
         applyPageLayout();
 
         // Step 2: Pipeline computes all derived values and applies them to the text source
@@ -491,27 +480,16 @@ void BookEditor::updatePipelineScroll()
     m_renderPipeline->updateScroll(scrollOffset());
 }
 
-RenderMargins BookEditor::calculateEffectiveMargins() const
-{
-    // The view margins of the scroll modes (pixels); page mode takes the page's margins
-    // from the page layout (applyPageLayout())
-    return RenderMargins{
-        m_appearance.viewMargins.horizontal,
-        m_appearance.viewMargins.vertical,
-        m_appearance.viewMargins.horizontal,
-        m_appearance.viewMargins.vertical
-    };
-}
-
 std::pair<double, double> BookEditor::getScrollPadding() const
 {
-    // The room above and below the text (document units): the margins, the gap around the
-    // pages and the typewriter room below, computed by the pipeline with the view mapping
+    // The room above and below the text (document units): the page's margins, the gap
+    // around the page and the typewriter room below, computed by the pipeline with the
+    // view mapping
     if (m_renderPipeline) {
         const auto& computed = m_renderPipeline->context().computed;
         return {computed.scrollPaddingTop, computed.scrollPaddingBottom};
     }
-    return {m_appearance.viewMargins.vertical, m_appearance.viewMargins.vertical};
+    return {0.0, 0.0};
 }
 
 void BookEditor::setupPipelineTextSource()
@@ -777,8 +755,8 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
     m_textBuffer->setDocumentLayout(new KalahariTextDocumentLayout(m_textBuffer.get()));
 
-    // The render pipeline applies the (zoom-scaled) font and the wrap width while
-    // the document is still empty, so the content below is laid out exactly once.
+    // The render pipeline applies the font and the wrap width while the document is
+    // still empty, so the content below is laid out exactly once.
     syncPipelineState();
 
     // Paragraphs touched by an edit are counted again on the next statistics query

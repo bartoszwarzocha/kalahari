@@ -586,11 +586,6 @@ EditorAppearance EditorAppearance::fromJson(const QJsonObject& json)
         if (pm.contains("inner")) appearance.pageMargins.inner = pm["inner"].toDouble();
         if (pm.contains("outer")) appearance.pageMargins.outer = pm["outer"].toDouble();
     }
-    if (json.contains("viewMargins") && json["viewMargins"].isObject()) {
-        QJsonObject vm = json["viewMargins"].toObject();
-        if (vm.contains("vertical")) appearance.viewMargins.vertical = vm["vertical"].toDouble();
-        if (vm.contains("horizontal")) appearance.viewMargins.horizontal = vm["horizontal"].toDouble();
-    }
 
     // Text frame border
     if (json.contains("textFrameBorder") && json["textFrameBorder"].isObject()) {
@@ -659,11 +654,6 @@ QJsonObject EditorAppearance::toJson() const
     pm["inner"] = pageMargins.inner;
     pm["outer"] = pageMargins.outer;
     json["pageMargins"] = pm;
-
-    QJsonObject vm;
-    vm["vertical"] = viewMargins.vertical;
-    vm["horizontal"] = viewMargins.horizontal;
-    json["viewMargins"] = vm;
 
     // Text frame border
     QJsonObject tfb;

@@ -96,8 +96,9 @@ public:
 
     /// @brief Set the page flow; every block waits for layout again when it changes
     ///
-    /// With page flow, line breaks follow the font's design metrics instead of its
-    /// screen metrics, so that they stay the same when a scaled painter zooms the pages.
+    /// Line breaks follow the font's design metrics in every view, with page flow or
+    /// without it, so that they stay the same when a scaled painter zooms the page and
+    /// when the view switches between the pages and the endless page.
     void setPageFlow(const PageFlow& flow);
     const PageFlow& pageFlow() const { return m_pageFlow; }
 

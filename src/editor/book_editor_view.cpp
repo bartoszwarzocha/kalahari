@@ -26,14 +26,14 @@ constexpr qreal WHEEL_SCROLL_STEP = 60.0;
 // View pixels one mouse wheel notch scrolls
 constexpr qreal WHEEL_PIXELS_PER_NOTCH = 40.0;
 
-// Zoom range and the factor of one zoom step (Ctrl+wheel notch, Zoom In/Out)
-constexpr double MIN_ZOOM_FACTOR = 0.25;
-constexpr double MAX_ZOOM_FACTOR = 4.0;
+// The factor of one zoom step (Ctrl+wheel notch, Zoom In/Out; the range is
+// MIN_ZOOM_FACTOR..MAX_ZOOM_FACTOR)
 constexpr double ZOOM_STEP = 1.1;
 
-// Rounds of placing the cursor line at the typewriter focus height after a jump, each
-// laying out the paragraphs it brought into view
-constexpr int MAX_TYPEWRITER_ROUNDS = 4;
+// Rounds of placing the cursor line at a height of the view (the typewriter focus height
+// after a jump, its place on the screen after a change of view), each laying out the
+// paragraphs it brought into view
+constexpr int MAX_CURSOR_PLACING_ROUNDS = 4;
 
 // =============================================================================
 // Scrolling
@@ -147,17 +147,34 @@ void BookEditor::setViewMode(ViewMode mode)
 
         emit viewModeChanged(mode);
 
-        // The pipeline recomputes the view (margins, pages, zoom mode, scroll padding) and
-        // lays the text out again; scroll anchoring keeps the text at the top of the view,
-        // also between the scroll modes and the pages
-        if (m_renderPipeline) {
-            m_renderPipeline->setConfigViewMode(mode, getZoomModeForViewMode());
+        // Every view has the page's width, margins and zoom, so the line breaks stay: the
+        // pipeline places the lines on the pages or one under another and lays the text out
+        // again. Scroll anchoring keeps the text at the top of the view in place; the
+        // cursor line, while it is in the view, keeps its place on the screen instead.
+        if (m_renderPipeline && m_viewportManager) {
+            const QRectF caretBefore = m_renderPipeline->caretRect(m_cursorPosition);
+            const bool caretShown = !caretBefore.isNull() && caretBefore.bottom() > 0.0 &&
+                                    caretBefore.top() < static_cast<double>(height());
+            m_renderPipeline->setConfigViewMode(mode);
+            updateScrollBarRange();
+            // Placing the line can bring paragraphs with estimated heights into view, and
+            // laying them out moves it, so a few rounds
+            for (int round = 0; caretShown && round < MAX_CURSOR_PLACING_ROUNDS; ++round) {
+                m_renderPipeline->ensureVisibleLaidOut();
+                const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+                const double shift =
+                    (caret.top() - caretBefore.top()) / m_viewportManager->viewScale();
+                if (caret.isNull() || std::abs(shift) < 0.5) {
+                    break;
+                }
+                setScrollOffset(scrollOffset() + shift);
+            }
         }
         updateScrollBarRange();
         updatePageInfo();
 
-        // Ensure cursor is visible after view mode change
-        ensureCursorVisible();
+        // The view stays where the writer is: no jump to a cursor scrolled out of view
+        resetCursorBlink();
         update();
     }
 }
@@ -165,12 +182,6 @@ void BookEditor::setViewMode(ViewMode mode)
 // =============================================================================
 // Zoom Control
 // =============================================================================
-
-ZoomMode BookEditor::getZoomModeForViewMode() const {
-    // Pages zoom as a whole (their line breaks stay); the scroll modes lay the text out
-    // again at the zoomed font size, wrapped to the view
-    return m_viewMode == ViewMode::Page ? ZoomMode::PageScaling : ZoomMode::FontScaling;
-}
 
 double BookEditor::zoomFactor() const {
     if (m_renderPipeline) {
@@ -189,25 +200,22 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
         return;
     }
     factor = qBound(MIN_ZOOM_FACTOR, factor, MAX_ZOOM_FACTOR);
-    const ZoomMode mode = getZoomModeForViewMode();
     const QPointF docPoint = m_renderPipeline->widgetToDocument(fixedPoint);
 
-    // Font scaling wraps only the visible paragraphs before the next paint (scroll
-    // anchoring keeps the text at the top of the view), page scaling only changes the
-    // painter scale
-    m_renderPipeline->setConfigZoom(factor, mode);
+    // Every view zooms the page as a whole: only the painter scale changes, the line breaks
+    // stay
+    m_renderPipeline->setConfigZoom(factor);
     updateScrollBarRange();
 
-    if (mode == ZoomMode::PageScaling) {
-        // The document point under fixedPoint stays there
-        const RenderContext& ctx = m_renderPipeline->context();
-        const double scale = ctx.computed.viewScale;
-        m_renderPipeline->setConfigScrollX(
-            (ctx.pageMode.pageSpacing + ctx.computed.marginLeft + docPoint.x()) * scale -
-            fixedPoint.x());
-        setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
-        updateHorizontalScrollBar();
-    }
+    // The document point under fixedPoint stays there
+    const RenderContext& ctx = m_renderPipeline->context();
+    const double scale = ctx.computed.viewScale;
+    m_renderPipeline->setConfigScrollX(
+        (ctx.pageMode.pageSpacing + ctx.computed.marginLeft + docPoint.x()) * scale -
+        fixedPoint.x());
+    setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
+    updateHorizontalScrollBar();
+
     // Typewriter scrolling keeps the cursor line at the focus height instead
     updateTypewriterScroll(false);
     update();
@@ -299,12 +307,10 @@ void BookEditor::setPaperScale(double scale)
         return;
     }
     m_renderPipeline->setConfigPaperScale(scale);
-    if (m_viewMode == ViewMode::Page) {
-        updateScrollBarRange();
-        updateHorizontalScrollBar();
-        updateTypewriterScroll(false);
-        update();
-    }
+    updateScrollBarRange();
+    updateHorizontalScrollBar();
+    updateTypewriterScroll(false);
+    update();
 }
 
 double BookEditor::paperScale() const
@@ -331,10 +337,11 @@ double BookEditor::paperScaleFor(double physicalDpi, double logicalDpi)
 
 void BookEditor::zoomToPageWidth()
 {
-    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+    if (!m_renderPipeline) {
         return;
     }
-    // The page with the gap on both sides fills the width left of the scroll bar
+    // The page (or the endless page) with the gap on both sides fills the width left of
+    // the scroll bar
     const RenderContext& ctx = m_renderPipeline->context();
     const double pagesWidth =
         (ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing) * ctx.paperScale;
@@ -346,10 +353,11 @@ void BookEditor::zoomToPageWidth()
 
 void BookEditor::zoomToWholePage()
 {
-    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+    if (!m_renderPipeline) {
         return;
     }
-    // The page with the gaps around it fits the view; the cursor's page is shown
+    // The page with the gaps around it fits the view; the page view shows the cursor's
+    // page, the continuous views take the same zoom around the middle of the view
     const RenderContext& ctx = m_renderPipeline->context();
     const double gaps = 2.0 * ctx.pageMode.pageSpacing;
     const double pageWidth = (ctx.computed.pageWidthPixels + gaps) * ctx.paperScale;
@@ -400,7 +408,7 @@ void BookEditor::wheelEvent(QWheelEvent* event)
 {
     QPoint angleDelta = event->angleDelta();
     if (!angleDelta.isNull()) {
-        // Ctrl+scroll = zoom, applied at every notch; pages zoom around the mouse pointer
+        // Ctrl+scroll = zoom, applied at every notch, around the mouse pointer
         if (event->modifiers() & Qt::ControlModifier) {
             if (angleDelta.y() != 0) {
                 const qreal zoomDelta = angleDelta.y() > 0 ? ZOOM_STEP : (1.0 / ZOOM_STEP);
@@ -410,7 +418,7 @@ void BookEditor::wheelEvent(QWheelEvent* event)
             return;
         }
 
-        // Sideways (a horizontal wheel, or Shift with a vertical one): pages wider than
+        // Sideways (a horizontal wheel, or Shift with a vertical one): a page wider than
         // the view
         const int sideways = angleDelta.x() != 0 ? angleDelta.x()
                              : (event->modifiers() & Qt::ShiftModifier) ? angleDelta.y()
@@ -425,7 +433,7 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         }
 
         // Standard wheel scroll: 1 notch = 15 degrees, a fixed number of view pixels
-        // (document units divide by the view scale: page mode zooms)
+        // (document units divide by the view scale)
         const qreal scale = m_viewportManager ? m_viewportManager->viewScale() : 1.0;
         const qreal delta = -angleDelta.y() / 8.0 / 15.0 * WHEEL_PIXELS_PER_NOTCH / scale;
         setScrollOffset(scrollOffset() + delta);
@@ -481,12 +489,12 @@ void BookEditor::setupScrollBar()
     connect(m_verticalScrollBar, &QScrollBar::valueChanged,
             this, &BookEditor::onScrollBarValueChanged);
 
-    // The pages keep clear of the scroll bar over the right edge
+    // The page keeps clear of the scroll bar over the right edge
     if (m_renderPipeline) {
         m_renderPipeline->setConfigScrollBarWidth(m_verticalScrollBar->sizeHint().width());
     }
 
-    // Horizontal scrollbar: page mode, while the zoomed pages are wider than the view
+    // Horizontal scrollbar: while the zoomed page is wider than the view
     m_horizontalScrollBar = new QScrollBar(Qt::Horizontal, this);
     m_horizontalScrollBar->setCursor(Qt::ArrowCursor);
     m_horizontalScrollBar->setRange(0, 0);
@@ -507,7 +515,7 @@ void BookEditor::updateScrollBarRange()
         return;
     }
 
-    // Scroll range in document units: page mode shows height / zoom of the document
+    // Scroll range in document units: the view shows height / zoom of the document
     double maxOffset = 0.0;
     double pageStep = static_cast<double>(height());
     if (m_viewportManager) {
@@ -544,9 +552,9 @@ void BookEditor::updateHorizontalScrollBar()
         return;
     }
 
-    // Shown while the zoomed pages are wider than the view
+    // Shown while the zoomed page is wider than the view
     const double maxX = m_renderPipeline->maxScrollX();
-    const bool needed = m_viewMode == ViewMode::Page && maxX >= 1.0;
+    const bool needed = maxX >= 1.0;
     m_updatingScrollBar = true;
     m_horizontalScrollBar->setRange(0, needed ? static_cast<int>(std::ceil(maxX)) : 0);
     m_horizontalScrollBar->setPageStep(std::max(1, width()));
@@ -562,7 +570,7 @@ void BookEditor::updateHorizontalScrollBar()
 
 void BookEditor::setHorizontalScrollOffset(double x)
 {
-    if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
+    if (!m_renderPipeline) {
         return;
     }
     const double oldX = m_renderPipeline->context().scrollX;
@@ -717,7 +725,7 @@ void BookEditor::updateTypewriterScroll(bool animate)
     // A jump may land among paragraphs with estimated heights: once the view there is laid
     // out, the line is placed again. Placing it can bring more of them into view, so a few
     // rounds.
-    for (int round = 0; round < MAX_TYPEWRITER_ROUNDS; ++round) {
+    for (int round = 0; round < MAX_CURSOR_PLACING_ROUNDS; ++round) {
         m_renderPipeline->ensureVisibleLaidOut();
         const std::optional<double> corrected = targetScroll();
         if (!corrected || std::abs(*corrected - scrollOffset()) < 0.5) {

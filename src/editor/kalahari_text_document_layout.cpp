@@ -120,8 +120,8 @@ void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
     if (normalized == m_pageFlow) {
         return;
     }
-    // Line breaks change too (design metrics with page flow), so every block is laid out
-    // again rather than only placed on new pages
+    // The line breaks stay (design metrics in every view), but the lines of each block are
+    // placed anew: on the pages, or one under another
     m_pageFlow = normalized;
     invalidateAll();
 }
@@ -509,11 +509,10 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal spa
     QTextOption textOption;
     textOption.setAlignment(alignment);
     textOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    // Pages are zoomed by a scaled painter: with the font's design metrics the glyph
+    // Every view is zoomed by a scaled painter: with the font's design metrics the glyph
     // advances scale linearly, so lines break the same way and letters stay evenly
-    // spaced at every zoom. The continuous view lays out at the zoomed font size, where
-    // the screen metrics (hinted to whole pixels) are the sharper choice.
-    textOption.setUseDesignMetrics(m_pageFlow.enabled);
+    // spaced at every zoom, in the pages and in the endless page alike
+    textOption.setUseDesignMetrics(true);
     layout->setTextOption(textOption);
 
     // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again

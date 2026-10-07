@@ -290,21 +290,38 @@ TEST_CASE("Stage1 find and replace: replacing text is reported as a content chan
 // Scrolling after a zoom
 // =============================================================================
 
-TEST_CASE("Stage1 scrolling: the scroll range follows the document height after a zoom",
+TEST_CASE("Stage1 scrolling: the scroll range follows the zoom and the document height",
           "[editor][stage1][layout]") {
     // Regression: the scroll range was refreshed on content changes only, so after a zoom
-    // (or a delayed width change) re-wrapped the text, the end of the chapter could not be
+    // or a width change that re-wrapped the text, the end of the chapter could not be
     // reached, or the scroll bar ran past it.
     BookEditor editor;
     resizeWidget(editor, QSize(600, 300));
     editor.fromKml(kmlOf(longParagraphs(30)));
     const int maxBefore = editor.verticalScrollBar()->maximum();
+    const int stepBefore = editor.verticalScrollBar()->pageStep();
     const qreal heightBefore = documentHeight(editor);
 
-    editor.setZoomFactor(2.0);
-    REQUIRE(documentHeight(editor) > heightBefore * 1.5);
-    CHECK(editor.verticalScrollBar()->maximum() - maxBefore ==
-          Approx(documentHeight(editor) - heightBefore).margin(1.0));
+    SECTION("a zoom shows less of the same lines") {
+        // The zoom scales the page with the painter: the text keeps its lines, and the
+        // range grows by the part of the text the view no longer shows
+        editor.setZoomFactor(2.0);
+        CHECK(documentHeight(editor) == Approx(heightBefore));
+        const int stepAfter = editor.verticalScrollBar()->pageStep();
+        CHECK(stepAfter == Approx(stepBefore / 2.0).margin(1.0));
+        CHECK(editor.verticalScrollBar()->maximum() - maxBefore ==
+              Approx(stepBefore - stepAfter).margin(2.0));
+    }
+
+    SECTION("wider page margins re-wrap the text") {
+        EditorAppearance appearance = editor.appearance();
+        appearance.pageMargins.left += 40.0;
+        appearance.pageMargins.right += 40.0;
+        editor.setAppearance(appearance);
+        REQUIRE(documentHeight(editor) > heightBefore * 1.5);
+        CHECK(editor.verticalScrollBar()->maximum() - maxBefore ==
+              Approx(documentHeight(editor) - heightBefore).margin(1.0));
+    }
 }
 
 // =============================================================================
@@ -324,7 +341,8 @@ TEST_CASE("Stage1 KML: font settings and zoom are not saved into the chapter",
     editor.setAppearance(appearance);
     editor.setZoomFactor(1.5);
     CHECK_FALSE(editor.canUndo());
-    CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(17.0 * 1.5));
+    // The zoom scales the painter, never the font
+    CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(17.0));
 
     editor.setCursorPosition({1, 6});
     editor.insertText(QStringLiteral(" typed"));
@@ -496,6 +514,7 @@ TEST_CASE("Stage1 DPI: the text size depends on the font and zoom, not on the sc
           "[editor][stage1][dpi]") {
     // Regression: the font was scaled by the physical DPI over 96 (1.48 on a laptop
     // screen at 125%), on top of Qt's own conversion of points with the logical DPI.
+    // The zoom scales the painter in every view; the text keeps the font of the settings.
     EditorRenderPipeline pipeline;
     RenderContext context;
     context.font = QFont(QStringLiteral("Arial"), 12);
@@ -503,18 +522,20 @@ TEST_CASE("Stage1 DPI: the text size depends on the font and zoom, not on the sc
     for (double dpi : {72.0, 96.0, 142.4}) {
         context.screenDpi = dpi;
         pipeline.configure(context);
-        CHECK(pipeline.context().computed.effectiveFont.pointSizeF() == Approx(12.0));
+        CHECK(pipeline.context().computed.viewScale == Approx(1.0));
     }
 
     context.zoomFactor = 1.5;
     pipeline.configure(context);
-    CHECK(pipeline.context().computed.effectiveFont.pointSizeF() == Approx(18.0));
+    CHECK(pipeline.context().computed.viewScale == Approx(1.5));
 
-    SECTION("the editor's document gets the font size from the settings") {
+    SECTION("the editor's document gets the font size from the settings, at every zoom") {
         BookEditor editor;
         editor.fromKml(QStringLiteral("<kml><p>Text</p></kml>"));
-        CHECK(editor.textDocument()->defaultFont().pointSizeF() ==
-              Approx(editor.appearance().typography.textFont.pointSizeF()));
+        const qreal settingsSize = editor.appearance().typography.textFont.pointSizeF();
+        CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(settingsSize));
+        editor.setZoomFactor(1.5);
+        CHECK(editor.textDocument()->defaultFont().pointSizeF() == Approx(settingsSize));
     }
 }
 
