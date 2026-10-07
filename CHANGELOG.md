@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     removed. Info panel and Dashboard colors are stored per theme and survive a restart.
   - The log panel buffer size from the settings is used from startup, not only after
     changing it. "UI Font Size" is greyed out until it does something.
+  - Themes can define any number of editor colors in an "editor" section; the user's
+    value is stored per theme (`ThemeManager::editorColor()`), ready for the colors of
+    comment, TODO and note markers.
 - **Settings: faster and lighter Apply/OK** - 2026-10-07
   - No "Applying settings..." overlay: Apply writes only the options that changed and
     saves once (about 1 ms for an ordinary option in a Linux Release build, was about

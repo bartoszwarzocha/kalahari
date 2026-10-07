@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <map>
 #include <string>
 #include <QColor>
 #include <QPalette>
@@ -82,6 +83,12 @@ struct Theme {
         QColor critical;   ///< CRITICAL message color (red, same as error)
         QColor background; ///< Log panel background color
     } log;
+
+    /// @brief Editor colors by name, from the theme file's "editor" section
+    ///
+    /// Open-ended: a new editor color needs only an entry in each theme file.
+    /// The user's value is stored per theme as themes.<name>.editor.<key>.
+    std::map<std::string, QColor> editor;
 
     /// @brief Load Theme from JSON object
     /// @param json JSON object from theme file
