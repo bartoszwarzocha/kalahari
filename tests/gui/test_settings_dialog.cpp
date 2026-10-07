@@ -4,10 +4,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/utils/layout_utils.h"
 
 #include <QApplication>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QLayout>
 #include <QPushButton>
 #include <QScrollArea>
@@ -124,4 +127,22 @@ TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settin
 
     SettingsDialog dialog(nullptr, current);
     CHECK(dialog.collectSettings().editorFontFamily == QStringLiteral("Kalahari Missing Font"));
+}
+
+TEST_CASE("clearLayout hides the widgets it removes", "[gui][settings]") {
+    // Regression: the Settings icon preview is rebuilt with clearLayout while the modal
+    // dialog runs, where deleteLater waits until the dialog closes; the removed icons
+    // stayed visible and were drawn over the preview's top-left corner
+    QWidget preview;
+    auto* layout = new QHBoxLayout(&preview);
+    auto* icon = new QLabel(QStringLiteral("icon"));
+    layout->addWidget(icon);
+    preview.show();
+    QApplication::processEvents();
+    REQUIRE(icon->isVisible());
+
+    kalahari::gui::utils::clearLayout(layout);
+
+    CHECK(layout->count() == 0);
+    CHECK(icon->isHidden());
 }

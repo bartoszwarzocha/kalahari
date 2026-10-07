@@ -592,7 +592,7 @@ std::pair<std::string, std::string> PluginManager::parseEntryPoint(const std::st
 }
 
 bool PluginManager::allowUnsignedPlugins() const {
-    return SettingsManager::getInstance().get<bool>("plugins.allowUnsigned", false);
+    return SettingsManager::getInstance().get<bool>("plugins.allowUnsigned");
 }
 
 } // namespace core

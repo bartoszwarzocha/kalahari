@@ -3,6 +3,7 @@
 
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <algorithm>
 #include <fstream>
 #include <cstdlib>  // std::getenv
 #include <vector>   // std::vector for log color keys
@@ -14,6 +15,11 @@
 
 namespace kalahari {
 namespace core {
+
+namespace {
+/// Version written by createDefaults() and reached by migrateIfNeeded()
+constexpr const char* CURRENT_SETTINGS_VERSION = "1.2";
+}
 
 // =============================================================================
 // Singleton instance
@@ -54,13 +60,16 @@ bool SettingsManager::load() {
     }
 
     try {
-        std::ifstream file(m_filePath);
-        if (!file.is_open()) {
-            Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
-            return false;
+        {
+            // Closed before the migration below saves: on Windows a file still open
+            // for reading cannot be replaced, and the migrated settings were lost
+            std::ifstream file(m_filePath);
+            if (!file.is_open()) {
+                Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
+                return false;
+            }
+            m_settings = nlohmann::json::parse(file);
         }
-
-        m_settings = nlohmann::json::parse(file);
         Logger::getInstance().info("Settings loaded successfully from: {}", m_filePath.string());
 
         // Migrate settings if needed (unlock for migration to call set())
@@ -101,14 +110,24 @@ bool SettingsManager::save() {
             Logger::getInstance().info("Created settings directory: {}", dir.string());
         }
 
-        // Write JSON to file (pretty-print with 4-space indent)
-        std::ofstream file(m_filePath);
-        if (!file.is_open()) {
-            Logger::getInstance().error("Failed to open settings file for writing: {}", m_filePath.string());
-            return false;
+        // Write to a temporary file and rename it over settings.json, so an
+        // interrupted save never leaves a truncated settings file behind
+        std::filesystem::path tempPath = m_filePath;
+        tempPath += ".tmp";
+        {
+            std::ofstream file(tempPath, std::ios::trunc);
+            if (!file.is_open()) {
+                Logger::getInstance().error("Failed to open settings file for writing: {}", tempPath.string());
+                return false;
+            }
+            file << m_settings.dump(4);  // Pretty-print with indent
+            file.flush();
+            if (!file) {
+                Logger::getInstance().error("Failed to write settings file: {}", tempPath.string());
+                return false;
+            }
         }
-
-        file << m_settings.dump(4);  // Pretty-print with indent
+        std::filesystem::rename(tempPath, m_filePath);
         Logger::getInstance().info("Settings saved successfully to: {}", m_filePath.string());
         return true;
 
@@ -141,8 +160,8 @@ void SettingsManager::resetToDefaults() {
 // =============================================================================
 
 QSize SettingsManager::getWindowSize() const {
-    int width = get<int>("window.width", 1280);
-    int height = get<int>("window.height", 800);
+    int width = get<int>("window.width");
+    int height = get<int>("window.height");
     return QSize(width, height);
 }
 
@@ -152,8 +171,8 @@ void SettingsManager::setWindowSize(const QSize& size) {
 }
 
 QPoint SettingsManager::getWindowPosition() const {
-    int x = get<int>("window.x", 100);
-    int y = get<int>("window.y", 100);
+    int x = get<int>("window.x");
+    int y = get<int>("window.y");
     return QPoint(x, y);
 }
 
@@ -163,7 +182,7 @@ void SettingsManager::setWindowPosition(const QPoint& pos) {
 }
 
 bool SettingsManager::isWindowMaximized() const {
-    return get<bool>("window.maximized", false);
+    return get<bool>("window.maximized");
 }
 
 void SettingsManager::setWindowMaximized(bool maximized) {
@@ -171,7 +190,7 @@ void SettingsManager::setWindowMaximized(bool maximized) {
 }
 
 std::string SettingsManager::getLanguage() const {
-    return get<std::string>("ui.language", "en");
+    return get<std::string>("ui.language");
 }
 
 void SettingsManager::setLanguage(const std::string& lang) {
@@ -179,27 +198,11 @@ void SettingsManager::setLanguage(const std::string& lang) {
 }
 
 std::string SettingsManager::getTheme() const {
-    return get<std::string>("appearance.theme", "Light");
+    return get<std::string>("appearance.theme");
 }
 
 void SettingsManager::setTheme(const std::string& theme) {
     set("appearance.theme", theme);
-}
-
-std::string SettingsManager::getIconColorPrimary() const {
-    return get<std::string>("icons.colorPrimary", "#333333");
-}
-
-void SettingsManager::setIconColorPrimary(const std::string& color) {
-    set("icons.colorPrimary", color);
-}
-
-std::string SettingsManager::getIconColorSecondary() const {
-    return get<std::string>("icons.colorSecondary", "#999999");
-}
-
-void SettingsManager::setIconColorSecondary(const std::string& color) {
-    set("icons.colorSecondary", color);
 }
 
 // =============================================================================
@@ -478,49 +481,11 @@ std::filesystem::path SettingsManager::getSettingsDirectoryPath() const {
 }
 
 void SettingsManager::createDefaults() {
+    // Default values live in settings_schema; the file stores only what differs
+    // or was set explicitly
     m_settings = nlohmann::json{
-        {"version", "1.0"},
-        {"window", {
-            {"width", 1280},
-            {"height", 800},
-            {"x", 100},
-            {"y", 100},
-            {"maximized", false}
-        }},
-        {"ui", {
-            {"language", "en"},
-            {"font_size", 12}
-        }},
-        {"appearance", {
-            {"theme", "Light"},
-            {"uiFontSize", 12},
-            {"iconTheme", "twotone"},
-            {"toolbarIconSize", 24},
-            {"menuIconSize", 16},
-            {"treeViewIconSize", 16},
-            {"tabBarIconSize", 16},
-            {"statusBarIconSize", 16},
-            {"buttonIconSize", 20},
-            {"comboBoxIconSize", 16}
-        }},
-        {"log", {
-            {"bufferSize", 500},
-            {"fontSize", 10}
-        }},
-        {"session", {
-            {"auto_save_interval", 300},
-            {"backup_enabled", true}
-        }},
-        {"recent_files", nlohmann::json::array()},
-        {"dashboard", {
-            {"maxItems", 5},
-            {"iconSize", 48},
-            {"showKalahariNews", true},
-            {"showRecentFiles", true}
-        }},
-        {"startup", {
-            {"autoLoadLastProject", false}
-        }}
+        {"version", CURRENT_SETTINGS_VERSION},
+        {"recent_files", nlohmann::json::array()}
     };
 
     Logger::getInstance().info("Default settings created");
@@ -552,74 +517,46 @@ bool SettingsManager::hasKey(const std::string& key) const {
 }
 
 void SettingsManager::removeKey(const std::string& key) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    bool removed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    try {
+        // Find the parent object and erase the child ("ui.theme" -> erase "theme" in "ui")
         std::string pointer = keyToJsonPointer(key);
-        // For removing nested keys, we need to access parent and erase child
-        // Example: "ui.theme" -> find "ui" object and erase "theme" key
-
         size_t lastSlash = pointer.rfind('/');
-        if (lastSlash == 0) {
-            // Top-level key like "/version"
-            std::string topKey = pointer.substr(1);
-            if (m_settings.contains(topKey)) {
-                m_settings.erase(topKey);
-                Logger::getInstance().debug("Removed setting key: {}", key);
-            }
-        } else {
-            // Nested key like "/ui/theme"
-            std::string parentPointer = pointer.substr(0, lastSlash);
-            std::string childKey = pointer.substr(lastSlash + 1);
+        std::string childKey = pointer.substr(lastSlash + 1);
+        nlohmann::json::json_pointer parentPtr(pointer.substr(0, lastSlash));
 
-            // Check if parent path exists before accessing
-            nlohmann::json::json_pointer parentPtr(parentPointer);
-            if (!m_settings.contains(parentPtr)) {
-                // Parent doesn't exist, nothing to remove - silently ignore
-                return;
-            }
-
+        if (m_settings.contains(parentPtr)) {
             nlohmann::json& parent = m_settings.at(parentPtr);
-            if (parent.is_object() && parent.contains(childKey)) {
-                parent.erase(childKey);
+            if (parent.is_object() && parent.erase(childKey) > 0) {
+                removed = true;
                 Logger::getInstance().debug("Removed setting key: {}", key);
             }
         }
-    } catch (const nlohmann::json::exception&) {
-        // Silently ignore - key doesn't exist, which is fine for removeKey
-        Logger::getInstance().debug("Key '{}' not found (nothing to remove)", key);
+    }
+
+    if (removed) {
+        notifyChanged(key);
     }
 }
 
 void SettingsManager::migrateIfNeeded() {
-    // Check current version (no mutex needed, called from load() which already holds lock)
     std::string version = get<std::string>("version", "0.0");
 
     Logger::getInstance().debug("Checking settings version: {}", version);
 
-    if (version == "1.0") {
-        Logger::getInstance().info("Migrating settings from 1.0 to 1.1...");
-        migrateFrom_1_0_to_1_1();
-        set("version", "1.1");
+    if (version != CURRENT_SETTINGS_VERSION) {
+        Logger::getInstance().info("Migrating settings from {} to {}...", version, CURRENT_SETTINGS_VERSION);
+        migrateToCurrentVersion();
+        set("version", std::string(CURRENT_SETTINGS_VERSION));
         save();  // Save migrated settings immediately
-        Logger::getInstance().info("Settings migration complete: 1.0 -> 1.1");
+        Logger::getInstance().info("Settings migration complete");
     }
-
-    // Future migrations here:
-    // if (version == "1.1") { migrateFrom_1_1_to_1_2(); ... }
 }
 
-void SettingsManager::migrateFrom_1_0_to_1_1() {
-    // =========================================================================
-    // Migration 1.0 -> 1.1 (Task #00020 - Appearance Settings)
-    // =========================================================================
-    //
-    // Changes:
-    // 1. Move ui.theme -> appearance.theme
-    // 2. Add appearance.iconSize (default: 24)
-    // =========================================================================
-
-    // 1. Migrate ui.theme -> appearance.theme (only if appearance.theme doesn't exist)
+void SettingsManager::migrateToCurrentVersion() {
+    // 1.0: ui.theme moved to appearance.theme
     if (hasKey("ui.theme")) {
         std::string theme = get<std::string>("ui.theme", "Light");
         if (!hasKey("appearance.theme")) {
@@ -628,28 +565,83 @@ void SettingsManager::migrateFrom_1_0_to_1_1() {
         removeKey("ui.theme");
         Logger::getInstance().info("Migrated ui.theme='{}' (removed legacy key)", theme);
     }
-    // Note: appearance.theme default is now in createDefaultSettings(), no need to create here
 
-    // 2. Add appearance.iconSize if not exists
-    if (!hasKey("appearance.iconSize")) {
-        set("appearance.iconSize", 24);
-        Logger::getInstance().debug("Added appearance.iconSize=24");
+    // 1.0 and 1.1 wrote keys that nothing reads
+    static const char* const obsoleteKeys[] = {
+        "ui.font_size",
+        "appearance.iconSize",
+        "appearance.toolbarIconSize",
+        "appearance.menuIconSize",
+        "appearance.treeViewIconSize",
+        "appearance.tabBarIconSize",
+        "appearance.statusBarIconSize",
+        "appearance.buttonIconSize",
+        "appearance.comboBoxIconSize",
+        "log.fontSize",
+        "log.backgroundColor",
+        "log.textColor",
+        "session",
+        "dashboard.autoLoadLastProject",  // duplicate of startup.autoLoadLastProject
+        "icons.colorPrimary",             // icon colors are stored per theme
+        "icons.colorSecondary",
+        "icons.theme",                    // second copy of appearance.theme
+    };
+    for (const char* key : obsoleteKeys) {
+        removeKey(key);
     }
 
-    // Add default Log settings if not exist (Phase 1)
-    if (!hasKey("log.bufferSize")) {
-        set("log.bufferSize", 500);
-        set("log.backgroundColor.r", 60);
-        set("log.backgroundColor.g", 60);
-        set("log.backgroundColor.b", 60);
-        set("log.textColor.r", 255);
-        set("log.textColor.g", 255);
-        set("log.textColor.b", 255);
-        set("log.fontSize", 11);
-        Logger::getInstance().debug("Added default log settings");
+    // Old per-theme copies of the icon colors (icons.themes.<name> holds them)
+    std::vector<std::string> themeNames;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_settings.contains("themes") && m_settings["themes"].is_object()) {
+            for (const auto& entry : m_settings["themes"].items()) {
+                themeNames.push_back(entry.key());
+            }
+        }
     }
+    for (const std::string& themeName : themeNames) {
+        removeKey("themes." + themeName + ".colors.primary");
+        removeKey("themes." + themeName + ".colors.secondary");
+    }
+}
 
-    Logger::getInstance().info("Migration 1.0 -> 1.1 complete");
+// =============================================================================
+// Change notification
+// =============================================================================
+
+int SettingsManager::subscribe(ChangeListener listener) {
+    std::lock_guard<std::mutex> lock(m_listenersMutex);
+    int id = m_nextListenerId++;
+    m_listeners.emplace(id, std::move(listener));
+    return id;
+}
+
+void SettingsManager::unsubscribe(int id) {
+    std::lock_guard<std::mutex> lock(m_listenersMutex);
+    m_listeners.erase(id);
+}
+
+void SettingsManager::notifyChanged(const std::string& key) {
+    std::string normalized = key;
+    std::replace(normalized.begin(), normalized.end(), '/', '.');
+
+    // Copy, so a listener may subscribe or unsubscribe while being called
+    std::vector<ChangeListener> listeners;
+    {
+        std::lock_guard<std::mutex> lock(m_listenersMutex);
+        listeners.reserve(m_listeners.size());
+        for (const auto& entry : m_listeners) {
+            listeners.push_back(entry.second);
+        }
+    }
+    for (const auto& listener : listeners) {
+        listener(normalized);
+    }
+}
+
+void SettingsManager::warnMissingDefault(const std::string& key) const {
+    Logger::getInstance().warn("SettingsManager: '{}' has no default in settings_schema", key);
 }
 
 } // namespace core

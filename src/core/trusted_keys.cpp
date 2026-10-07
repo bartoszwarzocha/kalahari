@@ -167,7 +167,7 @@ void TrustedKeys::loadUserKeys() {
     // User keys are stored as JSON array in settings
     // Format: plugins.trustedKeys = [{"id": "...", "name": "...", "publicKey": "base64..."}]
     try {
-        std::string keysJson = settings.get<std::string>("plugins.trustedKeys", "[]");
+        std::string keysJson = settings.get<std::string>("plugins.trustedKeys");
         auto userKeys = nlohmann::json::parse(keysJson);
 
         int loadedCount = 0;

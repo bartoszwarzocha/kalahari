@@ -207,6 +207,15 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.log.background = isDark ? QColor("#252525") : QColor("#f5f5f5");
     }
 
+    // Editor colors (open-ended list)
+    if (json.contains("editor") && json["editor"].is_object()) {
+        for (const auto& entry : json["editor"].items()) {
+            if (entry.value().is_string()) {
+                theme.editor[entry.key()] = parseColor(entry.value().get<std::string>());
+            }
+        }
+    }
+
     return theme;
 }
 
@@ -274,6 +283,13 @@ nlohmann::json Theme::toJson() const {
         {"critical", colorToHex(log.critical)},
         {"background", colorToHex(log.background)}
     };
+
+    if (!editor.empty()) {
+        json["editor"] = nlohmann::json::object();
+        for (const auto& [key, color] : editor) {
+            json["editor"][key] = colorToHex(color);
+        }
+    }
 
     return json;
 }

@@ -106,7 +106,7 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
 
     // Appearance/General
     settingsData.language = QString::fromStdString(settings.getLanguage());
-    settingsData.uiFontSize = settings.get<int>("appearance.uiFontSize", 12);
+    settingsData.uiFontSize = settings.get<int>("appearance.uiFontSize");
 
     // Appearance/Theme
     settingsData.theme = QString::fromStdString(settings.getTheme());
@@ -125,7 +125,7 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.infoPrimaryColor = theme.colors.infoPrimary;
 
     // Appearance/Icons
-    settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme", "twotone"));
+    settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme"));
     const auto& sizes = iconRegistry.getSizes();
     settingsData.iconSizes[core::IconContext::Toolbar] = sizes.toolbar;
     settingsData.iconSizes[core::IconContext::Menu] = sizes.menu;
@@ -136,73 +136,73 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.iconSizes[core::IconContext::ComboBox] = sizes.comboBox;
 
     // Editor/General
-    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily", editor::DEFAULT_TEXT_FONT_FAMILY));
-    settingsData.editorFontSize = settings.get<int>("editor.fontSize", editor::DEFAULT_TEXT_FONT_SIZE);
-    settingsData.tabSize = settings.get<int>("editor.tabSize", 4);
-    settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers", true);
-    settingsData.wordWrap = settings.get<bool>("editor.wordWrap", false);
-    settingsData.lineHeight = settings.get<double>("editor.lineHeight", 1.6);
-    settingsData.paragraphSpacing = settings.get<double>("editor.paragraphSpacing", 12.0);
-    settingsData.firstLineIndent = settings.get<bool>("editor.firstLineIndent", true);
-    settingsData.indentSize = settings.get<double>("editor.indentSize", 24.0);
+    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily"));
+    settingsData.editorFontSize = settings.get<int>("editor.fontSize");
+    settingsData.tabSize = settings.get<int>("editor.tabSize");
+    settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers");
+    settingsData.wordWrap = settings.get<bool>("editor.wordWrap");
+    settingsData.lineHeight = settings.get<double>("editor.lineHeight");
+    settingsData.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
+    settingsData.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
+    settingsData.indentSize = settings.get<double>("editor.indentSize");
 
     // Editor/Colors
-    settingsData.editorDarkMode = settings.get<bool>("editor.darkMode", true);
+    settingsData.editorDarkMode = settings.get<bool>("editor.darkMode");
     settingsData.editorBackgroundLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.backgroundLight", "#ffffff")));
+        settings.get<std::string>("editor.colors.backgroundLight")));
     settingsData.editorTextLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.textLight", "#1e1e1e")));
+        settings.get<std::string>("editor.colors.textLight")));
     settingsData.editorInactiveLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.inactiveLight", "#aaaaaa")));
+        settings.get<std::string>("editor.colors.inactiveLight")));
     settingsData.editorBackgroundDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.backgroundDark", "#232328")));
+        settings.get<std::string>("editor.colors.backgroundDark")));
     settingsData.editorTextDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.textDark", "#e0e0e0")));
+        settings.get<std::string>("editor.colors.textDark")));
     settingsData.editorInactiveDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.inactiveDark", "#78787d")));
+        settings.get<std::string>("editor.colors.inactiveDark")));
 
     // Editor/Cursor
-    int cursorStyleInt = settings.get<int>("editor.cursor.style", 0);  // 0 = Line
+    int cursorStyleInt = settings.get<int>("editor.cursor.style");  // 0 = Line
     settingsData.cursorStyle = static_cast<editor::CursorStyle>(cursorStyleInt);
-    settingsData.cursorUseCustomColor = settings.get<bool>("editor.cursor.useCustomColor", false);
+    settingsData.cursorUseCustomColor = settings.get<bool>("editor.cursor.useCustomColor");
     settingsData.cursorCustomColor = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.cursor.customColor", "#ffffff")));
-    settingsData.cursorBlinking = settings.get<bool>("editor.cursor.blinking", true);
-    settingsData.cursorBlinkInterval = settings.get<int>("editor.cursor.blinkInterval", 500);
-    settingsData.cursorLineWidth = settings.get<int>("editor.cursor.lineWidth", 2);
+        settings.get<std::string>("editor.cursor.customColor")));
+    settingsData.cursorBlinking = settings.get<bool>("editor.cursor.blinking");
+    settingsData.cursorBlinkInterval = settings.get<int>("editor.cursor.blinkInterval");
+    settingsData.cursorLineWidth = settings.get<int>("editor.cursor.lineWidth");
 
     // Editor/Margins
-    settingsData.viewMarginHorizontal = static_cast<int>(settings.get<double>("editor.margins.viewHorizontal", 50.0));
-    settingsData.viewMarginVertical = static_cast<int>(settings.get<double>("editor.margins.viewVertical", 30.0));
-    settingsData.pageMarginTop = settings.get<double>("editor.margins.pageTop", 25.4);
-    settingsData.pageMarginBottom = settings.get<double>("editor.margins.pageBottom", 25.4);
-    settingsData.pageMarginLeft = settings.get<double>("editor.margins.pageLeft", 25.4);
-    settingsData.pageMarginRight = settings.get<double>("editor.margins.pageRight", 25.4);
-    settingsData.pageMirrorMarginsEnabled = settings.get<bool>("editor.margins.mirrorEnabled", false);
-    settingsData.pageMarginInner = settings.get<double>("editor.margins.pageInner", 30.0);
-    settingsData.pageMarginOuter = settings.get<double>("editor.margins.pageOuter", 20.0);
+    settingsData.viewMarginHorizontal = static_cast<int>(settings.get<double>("editor.margins.viewHorizontal"));
+    settingsData.viewMarginVertical = static_cast<int>(settings.get<double>("editor.margins.viewVertical"));
+    settingsData.pageMarginTop = settings.get<double>("editor.margins.pageTop");
+    settingsData.pageMarginBottom = settings.get<double>("editor.margins.pageBottom");
+    settingsData.pageMarginLeft = settings.get<double>("editor.margins.pageLeft");
+    settingsData.pageMarginRight = settings.get<double>("editor.margins.pageRight");
+    settingsData.pageMirrorMarginsEnabled = settings.get<bool>("editor.margins.mirrorEnabled");
+    settingsData.pageMarginInner = settings.get<double>("editor.margins.pageInner");
+    settingsData.pageMarginOuter = settings.get<double>("editor.margins.pageOuter");
 
     // Editor/Page and Typewriter
-    settingsData.pageSize = settings.get<std::string>("editor.page.size", "A4");
-    settingsData.pageCustomWidth = settings.get<double>("editor.page.customWidth", 210.0);
-    settingsData.pageCustomHeight = settings.get<double>("editor.page.customHeight", 297.0);
-    settingsData.pageGap = settings.get<int>("editor.page.gap", 20);
-    settingsData.pageShowNumbers = settings.get<bool>("editor.page.showNumbers", true);
+    settingsData.pageSize = settings.get<std::string>("editor.page.size");
+    settingsData.pageCustomWidth = settings.get<double>("editor.page.customWidth");
+    settingsData.pageCustomHeight = settings.get<double>("editor.page.customHeight");
+    settingsData.pageGap = settings.get<int>("editor.page.gap");
+    settingsData.pageShowNumbers = settings.get<bool>("editor.page.showNumbers");
     settingsData.typewriterFocusPercent = static_cast<int>(
-        std::lround(settings.get<double>("editor.typewriter.focusPosition", 0.5) * 100.0));
-    settingsData.typewriterSmoothScroll = settings.get<bool>("editor.typewriter.smoothScroll", true);
+        std::lround(settings.get<double>("editor.typewriter.focusPosition") * 100.0));
+    settingsData.typewriterSmoothScroll = settings.get<bool>("editor.typewriter.smoothScroll");
 
     // Editor/Text Frame Border
-    settingsData.textFrameBorderShow = settings.get<bool>("editor.textFrameBorder.show", false);
+    settingsData.textFrameBorderShow = settings.get<bool>("editor.textFrameBorder.show");
     settingsData.textFrameBorderColor = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.textFrameBorder.color", "#b4b4b4")));
-    settingsData.textFrameBorderWidth = settings.get<int>("editor.textFrameBorder.width", 1);
+        settings.get<std::string>("editor.textFrameBorder.color")));
+    settingsData.textFrameBorderWidth = settings.get<int>("editor.textFrameBorder.width");
 
     // Advanced/General - use callback to get diagnostic mode
     settingsData.diagnosticMode = m_diagnosticModeGetter();
 
     // Advanced/Log
-    settingsData.logBufferSize = settings.get<int>("log.bufferSize", 500);
+    settingsData.logBufferSize = settings.get<int>("log.bufferSize");
 
     // UI Colors (Task #00028)
     // Load per-theme colors with theme-appropriate defaults
@@ -357,11 +357,11 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     }
 
     // Dashboard settings (OpenSpec #00036)
-    settingsData.showKalahariNews = settings.get<bool>("dashboard.showKalahariNews", true);
-    settingsData.showRecentFiles = settings.get<bool>("dashboard.showRecentFiles", true);
-    settingsData.autoLoadLastProject = settings.get<bool>("startup.autoLoadLastProject", false);
-    settingsData.dashboardMaxItems = settings.get<int>("dashboard.maxItems", 5);
-    settingsData.dashboardIconSize = settings.get<int>("dashboard.iconSize", 48);
+    settingsData.showKalahariNews = settings.get<bool>("dashboard.showKalahariNews");
+    settingsData.showRecentFiles = settings.get<bool>("dashboard.showRecentFiles");
+    settingsData.autoLoadLastProject = settings.get<bool>("startup.autoLoadLastProject");
+    settingsData.dashboardMaxItems = settings.get<int>("dashboard.maxItems");
+    settingsData.dashboardIconSize = settings.get<int>("dashboard.iconSize");
 
     logger.debug("SettingsCoordinator: Settings collected");
     return settingsData;
