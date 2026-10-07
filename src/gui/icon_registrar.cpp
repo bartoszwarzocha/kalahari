@@ -238,6 +238,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.print", "resources/icons/twotone/print.svg", "Print");
     iconRegistry.registerIcon("common.share", "resources/icons/twotone/share.svg", "Share");
     iconRegistry.registerIcon("common.attachFile", "resources/icons/twotone/attach_file.svg", "Attach File");
+    iconRegistry.registerIcon("common.file", "resources/icons/twotone/description.svg", "File");
     iconRegistry.registerIcon("common.filePresent", "resources/icons/twotone/file_present.svg", "File Present");
     iconRegistry.registerIcon("common.folder", "resources/icons/twotone/folder.svg", "Folder");
     iconRegistry.registerIcon("common.createNewFolder", "resources/icons/twotone/create_new_folder.svg", "Create Folder");

@@ -12,6 +12,7 @@
 #include <QTextCharFormat>
 #include <QFont>
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/text_highlight.h>
 #include <vector>
 #include <memory>
 
@@ -56,6 +57,12 @@ public:
     /// @brief Get total character count
     /// @return Total characters in document
     virtual size_t characterCount() const = 0;
+
+    /// @brief Highlighted ranges of a paragraph: the results of the checks made for its
+    ///        current text
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without checks have none
+    virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const { return {}; }
 
     // =========================================================================
     // Layout Access
@@ -163,6 +170,7 @@ public:
     size_t paragraphLength(size_t index) const override;
     QString plainText() const override;
     size_t characterCount() const override;
+    std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
 
     QTextLayout* layout(size_t index) const override;
     bool hasLayout(size_t index) const override;

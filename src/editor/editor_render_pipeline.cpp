@@ -5,13 +5,12 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
-#include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/core/logger.h>
 #include <QPainter>
+#include <QPainterPath>
 #include <QTextLayout>
 #include <QTextLine>
 #include <QTextBlock>
-#include <QTextFragment>
 #include <algorithm>
 #include <cmath>
 
@@ -779,6 +778,25 @@ void EditorRenderPipeline::setSearchEngine(SearchEngine* engine) {
     m_searchEngine = engine;
 }
 
+void EditorRenderPipeline::setSpokenWord(int paragraph, int offset, int length) {
+    std::optional<ParagraphHighlight> word;
+    if (paragraph >= 0 && length > 0) {
+        word = ParagraphHighlight{static_cast<size_t>(paragraph),
+                                  TextHighlight{offset, length, HighlightKind::SpokenWord}};
+    }
+    if (m_spokenWord == word) {
+        return;
+    }
+    // Repaint the old and the new word's paragraph
+    if (m_spokenWord) {
+        markParagraphDirty(m_spokenWord->first);
+    }
+    m_spokenWord = word;
+    if (m_spokenWord) {
+        markParagraphDirty(m_spokenWord->first);
+    }
+}
+
 // =============================================================================
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
@@ -821,10 +839,6 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
         renderTextFrameBorder(painter);
     }
     renderText(painter, clipRect);
-
-    // Overlays (work in all modes, already viewport-culled)
-    renderCommentHighlights(painter, clipRect);
-    renderMarkerHighlights(painter, clipRect);
     renderFocusOverlay(painter, clipRect);
 
     painter->restore();
@@ -1000,64 +1014,145 @@ void EditorRenderPipeline::renderParagraphSelection(QPainter* painter, size_t pa
                   true);
 }
 
+std::vector<EditorRenderPipeline::LinePiece> EditorRenderPipeline::linePieces(
+    size_t paraIndex, int startOffset, int endOffset) const {
+    std::vector<LinePiece> pieces;
+    QTextLayout* layout = m_textSource ? m_textSource->layout(paraIndex) : nullptr;
+    if (!layout) return pieces;
+
+    for (int i = 0; i < layout->lineCount(); ++i) {
+        const QTextLine line = layout->lineAt(i);
+        const int lineStart = line.textStart();
+        const int lineEnd = lineStart + line.textLength();
+        if (startOffset >= lineEnd || endOffset <= lineStart) continue;
+
+        qreal x1 = line.cursorToX(std::max(startOffset, lineStart));
+        qreal x2 = line.cursorToX(std::min(endOffset, lineEnd));
+        if (x1 > x2) std::swap(x1, x2);
+        pieces.push_back({line, x1, x2});
+    }
+    return pieces;
+}
+
 void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, int startOffset,
                                          int endOffset, double widgetY, const QColor& color,
                                          bool lineBoxes) {
-    QTextLayout* layout = m_textSource->layout(paraIndex);
-    if (!layout) return;
-
-    // Find lines containing the range
-    for (int i = 0; i < layout->lineCount(); ++i) {
-        QTextLine line = layout->lineAt(i);
-        int lineStart = line.textStart();
-        int lineEnd = lineStart + line.textLength();
-
-        // Check if the range intersects this line
-        if (startOffset < lineEnd && endOffset > lineStart) {
-            int selStart = std::max(startOffset, lineStart);
-            int selEnd = std::min(endOffset, lineEnd);
-
-            qreal x1 = line.cursorToX(selStart);
-            qreal x2 = line.cursorToX(selEnd);
-            if (x1 > x2) std::swap(x1, x2);
-
-            // Convert to widget coordinates - Phase 14: use computed values
-            const QRectF band = lineBoxes ? lineBox(line)
-                                          : QRectF(line.x(), line.y(), line.width(), line.height());
-            double wx1 = m_context.computed.originX + x1 * m_context.computed.viewScale;
-            double wx2 = m_context.computed.originX + x2 * m_context.computed.viewScale;
-            double wy = widgetY + band.y() * m_context.computed.viewScale;
-            double wh = band.height() * m_context.computed.viewScale;
-
-            painter->fillRect(QRectF(wx1, wy, wx2 - wx1, wh), color);
-        }
+    const double scale = m_context.computed.viewScale;
+    for (const LinePiece& piece : linePieces(paraIndex, startOffset, endOffset)) {
+        const QRectF band = lineBoxes ? lineBox(piece.line)
+                                      : QRectF(piece.line.x(), piece.line.y(), piece.line.width(),
+                                               piece.line.height());
+        const double x1 = m_context.computed.originX + piece.x1 * scale;
+        const double x2 = m_context.computed.originX + piece.x2 * scale;
+        painter->fillRect(QRectF(x1, widgetY + band.y() * scale, x2 - x1, band.height() * scale),
+                          color);
     }
 }
 
-void EditorRenderPipeline::renderSearchHighlights(QPainter* painter) {
-    if (!m_searchEngine || !m_searchEngine->isActive() || !m_textSource) return;
+std::vector<EditorRenderPipeline::ParagraphHighlight> EditorRenderPipeline::visibleHighlights(
+    const QRect& clipRect) const {
+    std::vector<ParagraphHighlight> highlights;
+    if (!m_textSource) return highlights;
 
-    // Matches are sorted by position, so the ones in the visible paragraphs (the same
-    // range the text is drawn for) are found by binary search instead of measuring all.
-    const auto& matches = m_searchEngine->matches();
-    const int firstVisible = static_cast<int>(m_context.computed.firstVisibleParagraph);
-    const int lastVisible = static_cast<int>(m_context.computed.lastVisibleParagraph);
-    const auto firstMatch = std::lower_bound(
-        matches.begin(), matches.end(), firstVisible,
-        [](const SearchMatch& match, int paragraph) { return match.paragraph < paragraph; });
-    const int currentIdx = m_searchEngine->currentMatchIndex();
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = m_context.computed.lastVisibleParagraph;
+    const size_t count = m_textSource->paragraphCount();
 
-    for (auto it = firstMatch; it != matches.end() && it->paragraph <= lastVisible; ++it) {
-        const QColor& color = (static_cast<int>(it - matches.begin()) == currentIdx)
-                                  ? m_context.colors.currentMatch
-                                  : m_context.colors.searchHighlight;
+    // Check results of the paragraphs in the clip rect (a cursor blink repaints one line)
+    const double scale = m_context.computed.viewScale;
+    for (size_t paragraph = first; paragraph <= last && paragraph < count; ++paragraph) {
+        const QRectF paragraphRect(0.0, paragraphWidgetY(paragraph), m_context.viewportSize.width(),
+                                   m_textSource->paragraphHeight(paragraph) * scale);
+        if (!paragraphRect.intersects(clipRect)) continue;
+        for (const TextHighlight& highlight : m_textSource->paragraphHighlights(paragraph)) {
+            highlights.emplace_back(paragraph, highlight);
+        }
+    }
 
-        // A match is within one paragraph, but may wrap onto the next line
-        const auto paragraph = static_cast<size_t>(it->paragraph);
-        fillTextRange(painter, paragraph, it->paragraphOffset,
-                      it->paragraphOffset + static_cast<int>(it->length),
+    // Search matches. They are sorted by position, so the ones in the visible paragraphs
+    // are found by binary search instead of measuring all.
+    if (m_searchEngine && m_searchEngine->isActive()) {
+        const auto& matches = m_searchEngine->matches();
+        const auto firstMatch = std::lower_bound(
+            matches.begin(), matches.end(), static_cast<int>(first),
+            [](const SearchMatch& match, int paragraph) { return match.paragraph < paragraph; });
+        const int currentIdx = m_searchEngine->currentMatchIndex();
+        for (auto it = firstMatch; it != matches.end() && it->paragraph <= static_cast<int>(last);
+             ++it) {
+            // A match is within one paragraph, but may wrap onto the next line
+            const HighlightKind kind = static_cast<int>(it - matches.begin()) == currentIdx
+                                           ? HighlightKind::CurrentSearchMatch
+                                           : HighlightKind::SearchMatch;
+            highlights.emplace_back(static_cast<size_t>(it->paragraph),
+                                    TextHighlight{it->paragraphOffset,
+                                                  static_cast<int>(it->length), kind});
+        }
+    }
+
+    if (m_spokenWord && m_spokenWord->first >= first && m_spokenWord->first <= last &&
+        m_spokenWord->first < count) {
+        highlights.push_back(*m_spokenWord);
+    }
+    return highlights;
+}
+
+void EditorRenderPipeline::renderHighlightBackgrounds(
+    QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
+    const RenderColors& colors = m_context.colors;
+    for (const auto& [paragraph, highlight] : highlights) {
+        QColor color;
+        switch (highlight.kind) {
+            case HighlightKind::SearchMatch: color = colors.searchHighlight; break;
+            case HighlightKind::CurrentSearchMatch: color = colors.currentMatch; break;
+            case HighlightKind::SpokenWord: color = colors.spokenWord; break;
+            // Drawn as marks only
+            case HighlightKind::Spelling:
+            case HighlightKind::Grammar: continue;
+        }
+        fillTextRange(painter, paragraph, highlight.start, highlight.start + highlight.length,
                       paragraphWidgetY(paragraph), color, false);
     }
+}
+
+void EditorRenderPipeline::renderHighlightMarks(
+    QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
+    const RenderColors& colors = m_context.colors;
+    const double scale = m_context.computed.viewScale;
+    const double originX = m_context.computed.originX;
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    for (const auto& [paragraph, highlight] : highlights) {
+        if (highlight.kind != HighlightKind::Spelling && highlight.kind != HighlightKind::Grammar) {
+            continue;  // backgrounds only
+        }
+        const auto pieces =
+            linePieces(paragraph, highlight.start, highlight.start + highlight.length);
+        if (pieces.empty()) continue;
+
+        // A wave under the baseline
+        const double widgetY = paragraphWidgetY(paragraph);
+        const double amplitude = std::max(1.0, 1.5 * scale);
+        const double step = 2.0 * amplitude;
+        painter->setPen(QPen(highlight.kind == HighlightKind::Spelling ? colors.spellError
+                                                                       : colors.grammarWarning,
+                             std::max(1.0, scale)));
+        painter->setBrush(Qt::NoBrush);
+        for (const LinePiece& piece : pieces) {
+            const double x1 = originX + piece.x1 * scale;
+            const double x2 = originX + piece.x2 * scale;
+            const double y =
+                widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
+            QPainterPath wave(QPointF(x1, y));
+            const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
+            for (int i = 1; i <= steps; ++i) {
+                wave.lineTo(QPointF(std::min(x1 + i * step, x2),
+                                    i % 2 == 1 ? y - amplitude : y + amplitude));
+            }
+            painter->drawPath(wave);
+        }
+    }
+    painter->restore();
 }
 
 QRectF EditorRenderPipeline::cursorPaintRect() const {
@@ -1130,161 +1225,6 @@ void EditorRenderPipeline::renderFocusOverlay([[maybe_unused]] QPainter* painter
     // This method can be extended for more complex focus effects
 }
 
-void EditorRenderPipeline::renderMarkerHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_textSource) return;
-
-    // Get visible paragraph range - Phase 14: use computed values
-    size_t firstPara = m_context.computed.firstVisibleParagraph;
-    size_t lastPara = m_context.computed.lastVisibleParagraph;
-    size_t count = m_textSource->paragraphCount();
-
-    // Check each visible paragraph for TODO/NOTE markers
-    for (size_t para = firstPara; para <= lastPara && para < count; ++para) {
-        // Check if paragraph has TODO marker in first fragment
-        // Markers are stored in QTextCharFormat properties via KmlPropTodo
-        bool hasTodo = false;
-        bool isCompleted = false;
-        bool isNote = false;
-
-        // Get paragraph text to check for TODO/NOTE markers
-        QString text = m_textSource->paragraphText(para);
-
-        // Simple marker detection: look for [TODO], [NOTE], [DONE] at start
-        if (text.startsWith("[TODO]") || text.startsWith("TODO:")) {
-            hasTodo = true;
-        } else if (text.startsWith("[DONE]") || text.startsWith("[x]")) {
-            hasTodo = true;
-            isCompleted = true;
-        } else if (text.startsWith("[NOTE]") || text.startsWith("NOTE:")) {
-            isNote = true;
-            hasTodo = true;  // Treat as marker
-        }
-
-        if (!hasTodo) continue;
-
-        // The paragraph across the text column (the whole view, or the page)
-        double widgetY = paragraphWidgetY(para);
-        double height = m_textSource->paragraphHeight(para) * m_context.computed.viewScale;
-        const auto [columnLeft, columnRight] = columnExtent();
-
-        QRectF lineRect(columnLeft, widgetY, columnRight - columnLeft, height);
-
-        if (!lineRect.toRect().intersects(clipRect)) continue;
-
-        // Choose color based on type and completion state
-        QColor highlightColor;
-        if (!isNote) {
-            highlightColor = isCompleted ? m_context.colors.completedTodo
-                                        : m_context.colors.todoHighlight;
-        } else {
-            highlightColor = m_context.colors.noteHighlight;
-        }
-
-        // Draw small indicator in left margin - Phase 14: use computed values
-        qreal iconSize = 8.0 * m_context.computed.viewScale;
-        qreal marginX = lineRect.left() + 2;
-        qreal centerY = lineRect.center().y();
-
-        QRectF iconRect(marginX, centerY - iconSize / 2, iconSize, iconSize);
-
-        painter->save();
-        painter->setRenderHint(QPainter::Antialiasing);
-
-        if (!isNote) {
-            // Draw checkbox for TODO
-            QPen pen(highlightColor.darker(150));
-            pen.setWidth(1);
-            painter->setPen(pen);
-            painter->setBrush(isCompleted ? highlightColor : Qt::NoBrush);
-            painter->drawRect(iconRect);
-
-            if (isCompleted) {
-                // Draw checkmark
-                painter->setPen(QPen(Qt::white, 1.5));
-                painter->drawLine(
-                    QPointF(iconRect.left() + 2, iconRect.center().y()),
-                    QPointF(iconRect.center().x(), iconRect.bottom() - 2));
-                painter->drawLine(
-                    QPointF(iconRect.center().x(), iconRect.bottom() - 2),
-                    QPointF(iconRect.right() - 1, iconRect.top() + 2));
-            }
-        } else {
-            // Draw info circle for NOTE
-            painter->setPen(Qt::NoPen);
-            painter->setBrush(highlightColor);
-            painter->drawEllipse(iconRect);
-
-            // Draw 'i' in center
-            painter->setPen(QPen(highlightColor.darker(200), 1));
-            QFont font = painter->font();
-            font.setPixelSize(static_cast<int>(iconSize - 2));
-            font.setBold(true);
-            painter->setFont(font);
-            painter->drawText(iconRect, Qt::AlignCenter, "i");
-        }
-
-        painter->restore();
-
-        // Draw subtle line highlight
-        QColor lineHighlight = highlightColor;
-        lineHighlight.setAlpha(30);
-        painter->fillRect(lineRect, lineHighlight);
-    }
-}
-
-void EditorRenderPipeline::renderCommentHighlights(QPainter* painter, const QRect& clipRect) {
-    if (!m_textSource) return;
-
-    // Get visible paragraph range - Phase 14: use computed values
-    size_t firstPara = m_context.computed.firstVisibleParagraph;
-    size_t lastPara = m_context.computed.lastVisibleParagraph;
-    size_t count = m_textSource->paragraphCount();
-
-    // Comment detection is based on KML format properties
-    // For now, we scan for comment patterns in text
-    for (size_t para = firstPara; para <= lastPara && para < count; ++para) {
-        QString text = m_textSource->paragraphText(para);
-
-        // Look for comment markers: /* ... */ or <!-- ... -->
-        int commentStart = -1;
-        int commentEnd = -1;
-
-        // HTML-style comments
-        int htmlStart = text.indexOf("<!--");
-        if (htmlStart >= 0) {
-            commentStart = htmlStart;
-            int htmlEnd = text.indexOf("-->", htmlStart + 4);
-            commentEnd = (htmlEnd >= 0) ? htmlEnd + 3 : text.length();
-        }
-
-        // C-style comments
-        int cStart = text.indexOf("/*");
-        if (cStart >= 0 && (commentStart < 0 || cStart < commentStart)) {
-            commentStart = cStart;
-            int cEnd = text.indexOf("*/", cStart + 2);
-            commentEnd = (cEnd >= 0) ? cEnd + 2 : text.length();
-        }
-
-        if (commentStart < 0) continue;
-
-        // Get visual rectangle for comment range
-        QRectF commentRect = getTextRect(para, commentStart, commentEnd - commentStart);
-
-        if (!commentRect.isEmpty() && commentRect.toRect().intersects(clipRect)) {
-            // Fill background
-            painter->fillRect(commentRect, m_context.colors.commentHighlight);
-
-            // Draw underline
-            QPen pen(m_context.colors.commentBorder);
-            pen.setWidth(2);
-            painter->setPen(pen);
-            painter->drawLine(
-                QPointF(commentRect.left(), commentRect.bottom() - 1),
-                QPointF(commentRect.right(), commentRect.bottom() - 1));
-        }
-    }
-}
-
 // =============================================================================
 // Text and Pages
 // =============================================================================
@@ -1320,11 +1260,14 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
         }
     }
 
-    // Search matches, under the text like the selection
-    renderSearchHighlights(painter);
+    // Highlights: the backgrounds under the text like the selection, the marks over it
+    const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
+    renderHighlightBackgrounds(painter, highlights);
 
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);
+
+    renderHighlightMarks(painter, highlights);
 
     // Cursor and drop caret (only if their paragraph is in visible range)
     const auto isVisible = [this](int paragraph) {
@@ -1419,15 +1362,6 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
     }
 }
 
-std::pair<double, double> EditorRenderPipeline::columnExtent() const {
-    // The view margins span the whole view in the scroll modes; in page mode the margins
-    // are the page's, so the column is the sheet of paper
-    const auto& computed = m_context.computed;
-    const double scale = computed.viewScale;
-    return {computed.originX - computed.marginLeft * scale,
-            computed.originX + (computed.textWidth + computed.marginRight) * scale};
-}
-
 // =============================================================================
 // Layout Helpers
 // =============================================================================
@@ -1468,30 +1402,6 @@ QRectF EditorRenderPipeline::lineBox(const QTextLine& line) const {
 double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
     const double docY = m_textSource ? m_textSource->paragraphY(index) : 0.0;
     return documentToWidget(QPointF(0.0, docY)).y();
-}
-
-QRectF EditorRenderPipeline::getTextRect(size_t paraIndex, int offset, int length) const {
-    if (!m_textSource) return QRectF();
-
-    QTextLayout* layout = m_textSource->layout(paraIndex);
-    if (!layout || layout->lineCount() == 0) return QRectF();
-
-    // Find line containing offset - O(log n) using Qt's binary search
-    QTextLine line = layout->lineForTextPosition(offset);
-    if (!line.isValid()) {
-        line = layout->lineAt(layout->lineCount() - 1);  // Use last line if offset is beyond
-    }
-    if (!line.isValid()) return QRectF();
-
-    // Get x positions
-    qreal x1 = line.cursorToX(offset);
-    qreal x2 = line.cursorToX(offset + length);
-    if (x1 > x2) std::swap(x1, x2);
-
-    const double scale = m_context.computed.viewScale;
-    const double docY = m_textSource->paragraphY(paraIndex) + line.y();
-    return QRectF(documentToWidget(QPointF(x1, docY)),
-                  QSizeF((x2 - x1) * scale, line.height() * scale));
 }
 
 // =============================================================================

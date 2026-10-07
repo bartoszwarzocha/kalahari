@@ -160,7 +160,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // "save changes?" prompt on close/switch with no real edit). The standalone-file
     // path already connects after setContent for exactly this reason.
     logElapsed("Before setContent");
-    newEditor->setContent(content);
+    const bool complete = newEditor->setContent(content);
     logElapsed("After setContent");
 
     // Connect contentChanged signal for per-chapter dirty tracking (AFTER load, so
@@ -209,6 +209,10 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 
     logger.info("Opened chapter: {} ({})", elementTitle.toStdString(), elementId.toStdString());
     m_statusBar->showMessage(tr("Opened: %1").arg(elementTitle), 2000);
+
+    if (!complete) {
+        EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle);
+    }
 }
 
 void NavigatorCoordinator::onRequestRename(const QString& elementId, const QString& currentTitle) {

@@ -23,6 +23,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/standalone_file.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QMainWindow>
@@ -38,8 +39,44 @@
 #include <QApplication>
 #include <map>
 
+Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
+
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// What an editor tab shows, which decides how it is saved
+enum class EditorKind {
+    ProjectChapter,  ///< Chapter of the open project (saved with the project)
+    StandaloneFile,  ///< Chapter or text file opened outside the project (saved on its own)
+    SingleDocument   ///< Phase 0 single-file document
+};
+
+EditorKind editorKind(const EditorPanel* editor) {
+    if (!editor->property("elementId").toString().isEmpty()
+        && core::ProjectManager::getInstance().isProjectOpen()) {
+        return EditorKind::ProjectChapter;
+    }
+    if (editor->property("isStandaloneFile").toBool()) {
+        return EditorKind::StandaloneFile;
+    }
+    return EditorKind::SingleDocument;
+}
+
+/// File of a standalone file tab
+core::StandaloneFile standaloneFileOf(const EditorPanel* editor) {
+    return editor->property("standaloneFile").value<core::StandaloneFile>();
+}
+
+/// Icon of a standalone file's tab
+QString standaloneIconId(const QString& path) {
+    return core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::Chapter
+        ? QStringLiteral("template.chapter")
+        : QStringLiteral("common.file");
+}
+
+}  // anonymous namespace
 
 DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
                                            QTabWidget* centralTabs,
@@ -70,6 +107,22 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     , m_currentDocument(std::nullopt)
     , m_currentFilePath("")
 {
+    // Files opened outside the project: the info bar shows the file of the current tab,
+    // and the navigator's "Other Files" open, add and drop them
+    connect(m_centralTabs, &QTabWidget::currentChanged,
+            this, &DocumentCoordinator::updateStandaloneInfoBar);
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed, this, [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->setProperty("infoBarDismissed", true);  // closed for this tab
+        }
+    });
+    connect(m_navigatorPanel, &NavigatorPanel::standaloneFileSelected,
+            this, &DocumentCoordinator::openStandaloneFile);
+    connect(m_navigatorPanel, &NavigatorPanel::requestAddToProject,
+            this, &DocumentCoordinator::addToProject);
+    connect(m_navigatorPanel, &NavigatorPanel::requestRemoveStandaloneFile,
+            this, &DocumentCoordinator::removeStandaloneFile);
+
     auto& logger = core::Logger::getInstance();
     logger.debug("DocumentCoordinator created");
 }
@@ -80,9 +133,8 @@ bool DocumentCoordinator::maybeSave() {
         return true;
     }
 
-    QString filename = m_currentFilePath.empty()
-        ? tr("Untitled")
-        : QString::fromStdString(m_currentFilePath.filename().string());
+    const QStringList names = unsavedDocumentNames();
+    const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
 
     auto reply = QMessageBox::question(
         m_mainWindow,
@@ -93,8 +145,7 @@ bool DocumentCoordinator::maybeSave() {
     );
 
     if (reply == QMessageBox::Save) {
-        onSaveDocument();  // In project mode this delegates to onSaveAll()
-        return !m_hasUnsavedChanges();  // True only if everything is now saved
+        return saveAllChanges();  // True only if everything is now saved
     } else if (reply == QMessageBox::Cancel) {
         return false;
     }
@@ -174,8 +225,7 @@ void DocumentCoordinator::onNewDocument() {
         );
 
         if (reply == QMessageBox::Save) {
-            onSaveDocument();
-            if (m_hasUnsavedChanges()) return;  // Save was cancelled or failed
+            if (!saveAllChanges()) return;  // Save was cancelled or failed
         } else if (reply == QMessageBox::Cancel) {
             return;
         }
@@ -515,6 +565,13 @@ void DocumentCoordinator::onSaveDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save Document");
 
+    // A file opened outside the project is saved on its own, also with a project open
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
+        saveEditor(editor);
+        return;
+    }
+
     // Check if we're in project mode - delegate to Save All for project saves
     auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen()) {
@@ -524,14 +581,13 @@ void DocumentCoordinator::onSaveDocument() {
         return;
     }
 
-    EditorPanel* editor = getCurrentEditor();
     if (!editor) {
         logger.debug("No editor tab active - cannot save");
         m_statusBar->showMessage(tr("No document to save"), 2000);
         return;
     }
 
-    // Phase 0: single file document (a standalone file tab says it cannot be saved)
+    // Phase 0: single file document
     saveEditor(editor);
 }
 
@@ -547,6 +603,10 @@ void DocumentCoordinator::onSaveAsDocument() {
         return;
     }
 
+    if (editorKind(editor) == EditorKind::StandaloneFile) {
+        saveStandaloneFileAs(editor);
+        return;
+    }
     saveSingleDocument(editor, true);
 }
 
@@ -615,28 +675,6 @@ bool DocumentCoordinator::saveSingleDocument(EditorPanel* editor, bool askForPat
 // Per-editor save state
 // =============================================================================
 
-namespace {
-
-/// What an editor tab shows, which decides how it is saved
-enum class EditorKind {
-    ProjectChapter,  ///< Chapter of the open project (saved with the project)
-    StandaloneFile,  ///< File opened outside the project (no save yet)
-    SingleDocument   ///< Phase 0 single-file document
-};
-
-EditorKind editorKind(const EditorPanel* editor) {
-    if (!editor->property("elementId").toString().isEmpty()
-        && core::ProjectManager::getInstance().isProjectOpen()) {
-        return EditorKind::ProjectChapter;
-    }
-    if (editor->property("isStandaloneFile").toBool()) {
-        return EditorKind::StandaloneFile;
-    }
-    return EditorKind::SingleDocument;
-}
-
-}  // anonymous namespace
-
 bool DocumentCoordinator::isEditorDirty(const EditorPanel* editor) const {
     if (!editor) {
         return false;
@@ -664,18 +702,8 @@ bool DocumentCoordinator::saveEditor(EditorPanel* editor) {
         // once its content is written
         onSaveAll();
         return !isEditorDirty(editor);
-    case EditorKind::StandaloneFile: {
-        // A standalone file is loaded as KML whatever its format, so writing it back
-        // could destroy the original (e.g. an RTF file): it has no save path yet
-        const QString path = editor->property("standaloneFilePath").toString();
-        QMessageBox::warning(
-            m_mainWindow,
-            tr("Cannot Save File"),
-            tr("Changes to '%1' cannot be saved: saving files that are not part of a book "
-               "is not available yet.").arg(QFileInfo(path).fileName())
-        );
-        return false;
-    }
+    case EditorKind::StandaloneFile:
+        return writeStandaloneFile(editor, standaloneFileOf(editor).path());
     case EditorKind::SingleDocument:
         return saveSingleDocument(editor, false);
     }
@@ -721,6 +749,39 @@ bool DocumentCoordinator::saveAllChanges() {
         }
     }
     return !m_hasUnsavedChanges();
+}
+
+QStringList DocumentCoordinator::unsavedDocumentNames() const {
+    QStringList names;
+
+    // Chapters and structure are saved together, as the book
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        bool bookChanged = pm.isDirty();
+        if (m_navigatorCoordinator) {
+            for (const bool dirty : m_navigatorCoordinator->dirtyChapters()) {
+                bookChanged = bookChanged || dirty;
+            }
+        }
+        const core::Document* doc = pm.getDocument();
+        if (bookChanged && doc) {
+            names << QString::fromStdString(doc->getTitle());
+        }
+    }
+
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor)) {
+            QString name = m_centralTabs->tabText(i);
+            if (name.startsWith(QLatin1Char('*'))) {
+                name.remove(0, 1);
+            }
+            names << name;
+        }
+    }
+
+    names.removeDuplicates();
+    return names;
 }
 
 void DocumentCoordinator::onSaveAll() {
@@ -814,6 +875,7 @@ void DocumentCoordinator::onCloseDocument() {
 
     // Clear UI
     m_navigatorPanel->clearDocument();
+    relistStandaloneFiles();
     m_updateWindowTitle();
 
     logger.info("Document closed");
@@ -834,7 +896,8 @@ void DocumentCoordinator::onOpenStandaloneFile() {
         m_mainWindow,
         tr("Open File"),
         QString(),
-        tr("Kalahari Files (*.rtf *.kmap *.ktl);;Rich Text Format (*.rtf);;Mind Maps (*.kmap);;Timelines (*.ktl);;All Files (*.*)")
+        tr("Chapters and Text Files (*.kchapter *.txt);;Chapters (*.kchapter);;"
+           "Text Files (*.txt);;All Files (*)")
     );
 
     if (filename.isEmpty()) {
@@ -849,6 +912,12 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     auto& logger = core::Logger::getInstance();
     logger.info("Opening standalone file: {}", path.toStdString());
 
+    // A file open in a tab is shown there, not opened twice
+    if (EditorPanel* openEditor = findStandaloneEditor(path)) {
+        m_centralTabs->setCurrentWidget(openEditor);
+        return;
+    }
+
     // Check if file exists
     QFileInfo fileInfo(path);
     if (!fileInfo.exists()) {
@@ -861,42 +930,45 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
         return;
     }
 
-    // Read file content
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    // Read the file in its own format
+    const core::StandaloneFile::Type type = core::StandaloneFile::typeOf(path);
+    if (type == core::StandaloneFile::Type::Unsupported) {
+        QMessageBox::information(
+            m_mainWindow,
+            tr("Unsupported File"),
+            tr("Kalahari cannot open '%1'.\n\nIt opens chapters (*.kchapter) and text files (*.txt).")
+                .arg(fileInfo.fileName())
+        );
+        logger.warn("Unsupported standalone file: {}", path.toStdString());
+        return;
+    }
+    QString content;
+    QString error;
+    const auto file = core::StandaloneFile::open(path, content, &error);
+    if (!file) {
         QMessageBox::critical(
             m_mainWindow,
             tr("Open Error"),
-            tr("Failed to open file: %1\n\n%2").arg(path, file.errorString())
+            tr("Failed to open file: %1\n\n%2").arg(
+                path, type == core::StandaloneFile::Type::Chapter
+                          ? tr("It is not a Kalahari chapter, or it cannot be read.")
+                          : error)
         );
-        logger.error("Failed to open standalone file: {} ({})",
-                     path.toStdString(), file.errorString().toStdString());
+        logger.error("Failed to open standalone file: {}", path.toStdString());
         return;
     }
 
-    QString content = QString::fromUtf8(file.readAll());
-    file.close();
-
-    // Create new editor tab with icon based on file extension
+    // Create new editor tab with icon based on file type
     EditorPanel* newEditor = new EditorPanel(m_mainWindow);
     QString tabTitle = fileInfo.fileName();
-    QString suffix = fileInfo.suffix().toLower();
-    QString iconId;
-    if (suffix == "rtf") {
-        iconId = "template.chapter";
-    } else if (suffix == "kmap") {
-        iconId = "book.newMindMap";
-    } else if (suffix == "ktl") {
-        iconId = "book.newTimeline";
-    } else {
-        iconId = "common.file";
-    }
+    const QString iconId = standaloneIconId(path);
     QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
     int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
     newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
 
-    // Store file path for this tab
+    // Store file for this tab
+    newEditor->setProperty("standaloneFile", QVariant::fromValue(*file));
     newEditor->setProperty("standaloneFilePath", path);
     newEditor->setProperty("isStandaloneFile", true);
     // Per-tab content-dirty flag, seeded clean. Set true on genuine edits below and
@@ -904,7 +976,7 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     newEditor->setProperty("dirty", false);
 
     // Set content
-    newEditor->setContent(content);
+    const bool complete = newEditor->setContent(content);
 
     // Add to standalone files list
     if (!m_standaloneFilePaths.contains(path)) {
@@ -915,19 +987,13 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     m_navigatorPanel->addStandaloneFile(path);
 
     // Show info bar for standalone files with context-aware message
-    m_standaloneInfoBar->setFilePath(path);
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
-        m_standaloneInfoBar->setMessage(tr("This file is not part of the current project."));
-    } else {
-        m_standaloneInfoBar->setMessage(tr("This file is not part of a project. Limited features available."));
-    }
-    m_standaloneInfoBar->show();
+    updateStandaloneInfoBar();
 
     // Connect contentChanged signal for dirty tracking.
     // Connected AFTER setContent() above so merely opening a file does not mark it
     // dirty (same rationale as the project-chapter path in NavigatorCoordinator).
     connect(newEditor, &EditorPanel::contentChanged,
-            this, [this, path, newEditor]() {
+            this, [this, newEditor]() {
                 // Real per-tab dirty flag (source of truth for standalone tabs).
                 newEditor->setProperty("dirty", true);
 
@@ -943,9 +1009,132 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
 
     logger.info("Standalone file opened: {}", path.toStdString());
     m_statusBar->showMessage(tr("Opened: %1").arg(tabTitle), 2000);
+
+    if (!complete) {
+        EditorPanel::warnDamagedChapter(m_mainWindow, tabTitle);
+    }
+}
+
+EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) const {
+    const QFileInfo fileInfo(path);
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editor->property("isStandaloneFile").toBool()
+            && QFileInfo(editor->property("standaloneFilePath").toString()) == fileInfo) {
+            return editor;
+        }
+    }
+    return nullptr;
+}
+
+void DocumentCoordinator::updateStandaloneInfoBar() {
+    EditorPanel* editor = getCurrentEditor();
+    if (!editor || editorKind(editor) != EditorKind::StandaloneFile
+        || editor->property("infoBarDismissed").toBool()) {
+        m_standaloneInfoBar->hide();
+        return;
+    }
+
+    m_standaloneInfoBar->setFilePath(editor->property("standaloneFilePath").toString());
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        m_standaloneInfoBar->setMessage(tr("This file is not part of the current project."));
+    } else {
+        m_standaloneInfoBar->setMessage(tr("This file is not part of a project. Limited features available."));
+    }
+    m_standaloneInfoBar->show();
+}
+
+void DocumentCoordinator::relistStandaloneFiles() {
+    for (const QString& path : std::as_const(m_standaloneFilePaths)) {
+        m_navigatorPanel->addStandaloneFile(path);
+    }
+}
+
+bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString& path) {
+    auto& logger = core::Logger::getInstance();
+
+    core::StandaloneFile file = standaloneFileOf(editor);
+    const QString oldPath = file.path();
+    QString error;
+    if (!file.saveAs(path, editor->getContent(), editor->getText(), &error)) {
+        QMessageBox::critical(
+            m_mainWindow,
+            tr("Save Error"),
+            error.isEmpty() ? tr("Failed to save file: %1").arg(path)
+                            : tr("Failed to save file: %1\n\n%2").arg(path, error)
+        );
+        logger.error("Failed to save standalone file: {}", path.toStdString());
+        return false;
+    }
+    editor->setProperty("standaloneFile", QVariant::fromValue(file));
+    editor->setProperty("dirty", false);
+
+    const int index = m_centralTabs->indexOf(editor);
+    if (path != oldPath) {
+        // The tab, the "Other Files" list and the info bar follow the file to its new name
+        editor->setProperty("standaloneFilePath", path);
+        const QString iconId = standaloneIconId(path);
+        editor->setProperty("tabIconId", iconId);
+        if (index >= 0) {
+            m_centralTabs->setTabIcon(index, core::ArtProvider::getInstance().getIcon(iconId));
+        }
+        m_standaloneFilePaths.removeAll(oldPath);
+        m_standaloneFilePaths.append(path);
+        m_navigatorPanel->removeStandaloneFile(oldPath);
+        m_navigatorPanel->addStandaloneFile(path);
+        updateStandaloneInfoBar();
+    }
+    if (index >= 0) {
+        m_centralTabs->setTabText(index, QFileInfo(path).fileName());  // without the "*"
+    }
+
+    logger.info("Standalone file saved: {}", path.toStdString());
+    m_statusBar->showMessage(tr("Saved: %1").arg(QFileInfo(path).fileName()), 2000);
+    return true;
+}
+
+bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
+    const QString oldPath = standaloneFileOf(editor).path();
+    const QString chapters = tr("Chapters (*.kchapter)");
+    const QString textFiles = tr("Text Files (*.txt)");
+    QString selectedFilter =
+        core::StandaloneFile::typeOf(oldPath) == core::StandaloneFile::Type::PlainText
+            ? textFiles : chapters;
+    QString path = QFileDialog::getSaveFileName(
+        m_mainWindow,
+        tr("Save File As"),
+        oldPath,
+        chapters + QStringLiteral(";;") + textFiles,
+        &selectedFilter
+    );
+    if (path.isEmpty()) {
+        return false;
+    }
+
+    // A name without one of the two extensions gets the one of the chosen type
+    if (core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::Unsupported) {
+        path += selectedFilter == textFiles ? QStringLiteral(".txt") : QStringLiteral(".kchapter");
+    }
+
+    // One file is edited in one tab
+    EditorPanel* other = findStandaloneEditor(path);
+    if (other && other != editor) {
+        QMessageBox::warning(
+            m_mainWindow,
+            tr("Save Error"),
+            tr("'%1' is open in another tab.").arg(QFileInfo(path).fileName())
+        );
+        return false;
+    }
+    return writeStandaloneFile(editor, path);
 }
 
 void DocumentCoordinator::onAddToProject() {
+    // The info bar shows the file of the current tab
+    addToProject(m_standaloneInfoBar->filePath());
+}
+
+void DocumentCoordinator::addToProject(const QString& filePath) {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Add to Project");
 
@@ -963,10 +1152,14 @@ void DocumentCoordinator::onAddToProject() {
         return;
     }
 
-    // Get current standalone file path from info bar
-    QString filePath = m_standaloneInfoBar->filePath();
     if (filePath.isEmpty()) {
-        logger.warn("Add to Project: No file path in info bar");
+        logger.warn("Add to Project: No file path");
+        return;
+    }
+
+    // The project gets the file with the changes made in its tab
+    EditorPanel* fileEditor = findStandaloneEditor(filePath);
+    if (fileEditor && isEditorDirty(fileEditor) && !saveEditor(fileEditor)) {
         return;
     }
 
@@ -985,22 +1178,18 @@ void DocumentCoordinator::onAddToProject() {
         );
 
         if (!elementId.isEmpty()) {
-            // Success - hide info bar and remove from standalone files
-            m_standaloneInfoBar->hide();
+            // Success - the file leaves the "Other Files" list, and the chapter takes the
+            // place of its tab
             m_navigatorPanel->removeStandaloneFile(filePath);
-
-            // Remove standalone file tab if exists
-            for (int i = 0; i < m_centralTabs->count(); ++i) {
-                EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-                if (editor && editor->property("standaloneFilePath").toString() == filePath) {
-                    m_centralTabs->removeTab(i);
-                    editor->deleteLater();
-                    break;
+            m_standaloneFilePaths.removeAll(filePath);
+            if (fileEditor) {
+                m_centralTabs->removeTab(m_centralTabs->indexOf(fileEditor));
+                fileEditor->deleteLater();
+                if (m_navigatorCoordinator) {
+                    m_navigatorCoordinator->onElementSelected(elementId, result.newTitle);
                 }
             }
-
-            // Remove from standalone files list
-            m_standaloneFilePaths.removeAll(filePath);
+            updateStandaloneInfoBar();
 
             m_statusBar->showMessage(
                 tr("File added to project: %1").arg(result.newTitle), 3000);
@@ -1014,6 +1203,12 @@ void DocumentCoordinator::onAddToProject() {
     } else {
         logger.info("Add to Project: User cancelled");
     }
+}
+
+void DocumentCoordinator::removeStandaloneFile(const QString& path) {
+    // Only the list entry goes: a tab with the file stays open
+    m_navigatorPanel->removeStandaloneFile(path);
+    m_standaloneFilePaths.removeAll(path);
 }
 
 // =============================================================================
@@ -1235,6 +1430,7 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
     // Log and status bar
     logger.info("Project opened: {}", projectPath.toStdString());
     m_statusBar->showMessage(tr("Book opened: %1").arg(projectPath), 3000);
+    updateStandaloneInfoBar();  // its message names the open project
     emit documentOpened();
 }
 
@@ -1273,9 +1469,19 @@ void DocumentCoordinator::onProjectClosed() {
         m_styleResolver->invalidateCache();
     }
 
+    // The book's chapters close with it; their changes were saved or discarded before
+    for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
+        QWidget* widget = m_centralTabs->widget(i);
+        if (qobject_cast<EditorPanel*>(widget) && !widget->property("elementId").toString().isEmpty()) {
+            m_centralTabs->removeTab(i);
+            widget->deleteLater();
+        }
+    }
+
     // Clear Navigator panel
     m_navigatorPanel->clearAllModifiedIndicators();  // Clear modified indicators first (OpenSpec #00042 Phase 7.5)
     m_navigatorPanel->clearDocument();
+    relistStandaloneFiles();  // they stay open without the book
 
     // Reset window title
     emit windowTitleChanged("Kalahari");
@@ -1289,6 +1495,7 @@ void DocumentCoordinator::onProjectClosed() {
     // Log and status bar
     logger.info("Project closed");
     m_statusBar->showMessage(tr("Book closed"), 2000);
+    updateStandaloneInfoBar();
     emit documentClosed();
 }
 

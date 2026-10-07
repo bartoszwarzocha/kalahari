@@ -85,16 +85,12 @@ struct RenderColors {
     QColor searchHighlight{255, 214, 0, 96};   ///< Search match background
     QColor currentMatch{255, 140, 0, 140};     ///< Current search match background
 
-    /// @brief Marker colors
-    QColor commentHighlight{255, 255, 200};    ///< Comment annotation background
-    QColor commentBorder{200, 180, 100};       ///< Comment annotation border
-    QColor todoHighlight{255, 220, 100};       ///< TODO marker background
-    QColor noteHighlight{100, 200, 255};       ///< NOTE marker background
-    QColor completedTodo{200, 255, 200};       ///< Completed TODO background
-
     /// @brief Spell/grammar check colors
     QColor spellError{255, 0, 0};              ///< Spelling error underline
     QColor grammarWarning{0, 100, 255};        ///< Grammar warning underline
+
+    /// @brief Word being read aloud (background)
+    QColor spokenWord{0, 190, 170, 96};
 
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
@@ -107,13 +103,9 @@ struct RenderColors {
                lineHighlight == other.lineHighlight &&
                searchHighlight == other.searchHighlight &&
                currentMatch == other.currentMatch &&
-               commentHighlight == other.commentHighlight &&
-               commentBorder == other.commentBorder &&
-               todoHighlight == other.todoHighlight &&
-               noteHighlight == other.noteHighlight &&
-               completedTodo == other.completedTodo &&
                spellError == other.spellError &&
-               grammarWarning == other.grammarWarning;
+               grammarWarning == other.grammarWarning &&
+               spokenWord == other.spokenWord;
     }
 
     bool operator!=(const RenderColors& other) const {

@@ -542,7 +542,7 @@ QString NavigatorPanel::getIconIdForFile(const QString& path) const {
     QString extension = fileInfo.suffix().toLower();
 
     // Map extensions to icon IDs
-    if (extension == "rtf") {
+    if (extension == "kchapter" || extension == "rtf") {
         return "template.chapter";
     } else if (extension == "kmap") {
         return "book.newMindMap";
@@ -1083,6 +1083,10 @@ void NavigatorPanel::onContextMenuOpen() {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel::onContextMenuOpen() - ID: {}", elementId.toStdString());
 
+    if (m_contextMenuItem->data(0, Qt::UserRole + 1).toString() == "standalone_file") {
+        emit standaloneFileSelected(elementId);  // its ID is the path
+        return;
+    }
     emit elementSelected(elementId, elementTitle);
 }
 
@@ -1305,7 +1309,12 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
                  elementType.toStdString(),
                  elementId.toStdString());
 
-    // Only emit for leaf elements (chapters, frontmatter items, backmatter items, standalone files)
+    if (elementType == "standalone_file") {
+        emit standaloneFileSelected(elementId);  // its ID is the path
+        return;
+    }
+
+    // Only emit for leaf elements (chapters, frontmatter items, backmatter items)
     // Skip section headers and part containers - same logic as itemDoubleClicked
     if (!elementId.isEmpty() &&
         elementType != "section" &&

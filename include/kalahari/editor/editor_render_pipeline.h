@@ -16,10 +16,13 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/text_highlight.h>
 #include <QObject>
 #include <QRect>
 #include <memory>
 #include <optional>
+#include <utility>
+#include <vector>
 
 class QPainter;
 class QTextDocument;
@@ -313,9 +316,21 @@ public:
     /// @param engine SearchEngine instance (not owned)
     void setSearchEngine(SearchEngine* engine);
 
+    /// @brief Highlight the word being read aloud
+    /// @param paragraph Paragraph of the word
+    /// @param offset First character of the word in the paragraph
+    /// @param length Length of the word; 0 clears the highlight
+    void setSpokenWord(int paragraph, int offset, int length);
+
     // =========================================================================
     // Main Render Entry Point (Stage 3+4)
     // =========================================================================
+
+    /// @brief Lay out the paragraphs in view (the others keep estimated heights)
+    ///
+    /// The scroll position may move while it runs: scroll anchoring keeps the text at the
+    /// top of the view in place.
+    void ensureVisibleLaidOut();
 
     /// @brief Render the document
     /// @param painter QPainter to draw with
@@ -325,18 +340,11 @@ public:
     /// Pipeline stages:
     /// 1. Get visible paragraph range
     /// 2. Ensure layouts exist for visible paragraphs
-    /// 3. Render background
-    /// 4. Render paragraphs (text with formatting)
-    /// 5. Render selection highlights
-    /// 6. Render search highlights
+    /// 3. Render background (and the pages in page mode)
+    /// 4. Render the selection and the highlight backgrounds (search matches, spoken word)
+    /// 5. Render paragraphs (text with formatting)
+    /// 6. Render the highlight marks (spelling and grammar waves)
     /// 7. Render cursor
-    /// 8. Render overlays (focus mode, markers)
-    /// @brief Lay out the paragraphs in view (the others keep estimated heights)
-    ///
-    /// The scroll position may move while it runs: scroll anchoring keeps the text at the
-    /// top of the view in place.
-    void ensureVisibleLaidOut();
-
     void render(QPainter* painter, const QRect& clipRect);
 
     // =========================================================================
@@ -429,13 +437,36 @@ private:
     void renderParagraphSelection(QPainter* painter, size_t paraIndex,
                                    int startOffset, int endOffset, double widgetY);
 
+    /// @brief Part of a text range on one line: the line and the range's x extent on it
+    ///        (layout coordinates of the paragraph)
+    struct LinePiece {
+        QTextLine line;
+        qreal x1 = 0.0;
+        qreal x2 = 0.0;
+    };
+
+    /// @brief Parts of a text range of one paragraph, one per line it runs on
+    std::vector<LinePiece> linePieces(size_t paraIndex, int startOffset, int endOffset) const;
+
     /// @brief Fill the background of a text range of one paragraph, line by line
     /// @param lineBoxes Whole line boxes (lines join up) instead of the text height
     void fillTextRange(QPainter* painter, size_t paraIndex, int startOffset, int endOffset,
                        double widgetY, const QColor& color, bool lineBoxes);
 
-    /// @brief Render search highlights of the visible paragraphs (under the text)
-    void renderSearchHighlights(QPainter* painter);
+    /// @brief Highlight of a paragraph (paragraph index, highlighted range)
+    using ParagraphHighlight = std::pair<size_t, TextHighlight>;
+
+    /// @brief Highlights of the visible paragraphs: the text source's check results (of the
+    ///        paragraphs in the clip rect), search matches, spoken word
+    std::vector<ParagraphHighlight> visibleHighlights(const QRect& clipRect) const;
+
+    /// @brief Fill the highlight backgrounds (under the text)
+    void renderHighlightBackgrounds(QPainter* painter,
+                                    const std::vector<ParagraphHighlight>& highlights);
+
+    /// @brief Draw the highlight marks (over the text): spelling and grammar waves
+    void renderHighlightMarks(QPainter* painter,
+                              const std::vector<ParagraphHighlight>& highlights);
 
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
@@ -443,23 +474,13 @@ private:
     /// @brief Render focus mode overlay
     void renderFocusOverlay(QPainter* painter, const QRect& clipRect);
 
-    /// @brief Render marker highlights (comments, TODOs, notes)
-    void renderMarkerHighlights(QPainter* painter, const QRect& clipRect);
-
-    /// @brief Render comment highlights
-    void renderCommentHighlights(QPainter* painter, const QRect& clipRect);
-
-    /// @brief Render the visible text: selection, search matches, paragraphs, cursor and
-    ///        drop caret (only the visible paragraphs: O(visible), not O(n))
+    /// @brief Render the visible text: selection, highlights, paragraphs, cursor and drop
+    ///        caret (only the visible paragraphs: O(visible), not O(n))
     void renderText(QPainter* painter, const QRect& clipRect);
 
     /// @brief Render the sheets of the pages in the clip rect: shadow, paper, border,
     ///        text frame and page number (page mode)
     void renderPages(QPainter* painter, const QRect& clipRect);
-
-    /// @brief Horizontal extent of the text column in widget coordinates: the page in
-    ///        page mode, the whole view otherwise
-    std::pair<double, double> columnExtent() const;
 
     /// @brief Width of the character at a position, in layout units
     ///
@@ -477,9 +498,6 @@ private:
     /// @brief Get widget Y coordinate for paragraph
     double paragraphWidgetY(size_t index) const;
 
-    /// @brief Get text rectangle for character range
-    QRectF getTextRect(size_t paraIndex, int offset, int length) const;
-
     // =========================================================================
     // State
     // =========================================================================
@@ -491,6 +509,7 @@ private:
     CursorPosition m_cursorPosition;             ///< Current cursor position
     SelectionRange m_selection;                  ///< Current selection
     std::optional<CursorPosition> m_dropCaret;   ///< Drop point of dragged text
+    std::optional<ParagraphHighlight> m_spokenWord;  ///< Word being read aloud
 
     // External components (not owned)
     ViewportManager* m_viewportManager = nullptr;

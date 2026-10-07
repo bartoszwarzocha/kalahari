@@ -11,12 +11,18 @@
 /// the defect is fixed the tags go and a "Regression" comment says what used to go wrong.
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include "editor_test_utils.h"
+#include <QDir>
+#include <QDirIterator>
+#include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextDocument>
+
+#include <utility>
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -335,4 +341,68 @@ TEST_CASE("Stage0 KML: loading does not leave an undoable step or a dirty docume
     editor.fromKml(QStringLiteral("<kml><p>Alpha</p><p>Beta</p></kml>"));
     CHECK_FALSE(editor.canUndo());
     CHECK_FALSE(editor.canRedo());
+}
+
+// =============================================================================
+// Reference files: the chapters of the example project
+// =============================================================================
+
+namespace {
+
+/// The KML the editor writes for @p kml: the synonyms of the formatting tags become their
+/// short form (docs/kml_format.md, "Inline formatting"); nothing else changes.
+QString writtenForm(QString kml) {
+    static const std::pair<const char*, const char*> synonyms[] = {
+        {"bold", "b"},       {"strong", "b"},       {"italic", "i"},
+        {"em", "i"},         {"underline", "u"},    {"strikethrough", "s"},
+        {"strike", "s"},     {"subscript", "sub"},  {"superscript", "sup"},
+    };
+    for (const auto& [synonym, tag] : synonyms) {
+        const QRegularExpression element(QStringLiteral("<(/?)%1(?=[\\s>/])")
+                                             .arg(QLatin1String(synonym)));
+        kml.replace(element, QStringLiteral("<\\1%1").arg(QLatin1String(tag)));
+    }
+    return kml;
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage0 KML: the chapters of the example project are saved unchanged",
+          "[editor][stage0][kml][examples]") {
+    const QString examples = QStringLiteral(KALAHARI_SOURCE_DIR "/examples");
+    QStringList chapters;
+    QDirIterator it(examples, {QStringLiteral("*.kchapter")}, QDir::Files,
+                    QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        chapters << it.next();
+    }
+    chapters.sort();
+    REQUIRE(chapters.size() >= 4);
+
+    for (const QString& path : chapters) {
+        DYNAMIC_SECTION(QDir(examples).relativeFilePath(path).toStdString()) {
+            const auto chapter = kalahari::core::ChapterDocument::load(path);
+            REQUIRE(chapter.has_value());
+            REQUIRE(chapter->hasContent());
+
+            BookEditor editor;
+            editor.fromKml(chapter->kml());
+
+            // The saved chapter is the file as it is, apart from the synonyms
+            const QString saved = editor.toKml();
+            CHECK(saved == writtenForm(chapter->kml()));
+
+            // The editor reads the text as the chapter's own reader does. (Not the plainText
+            // stored in these files: older versions wrote it with other paragraph breaks,
+            // and ChapterDocument writes it anew on save.)
+            const QString text = kalahari::core::ChapterDocument::kmlToPlainText(chapter->kml());
+            CHECK(editor.plainText() == text);
+            CHECK(kalahari::core::ChapterDocument::kmlToPlainText(saved) == text);
+
+            // A second save writes the same KML
+            BookEditor reloaded;
+            reloaded.fromKml(saved);
+            CHECK(reloaded.toKml() == saved);
+        }
+    }
 }

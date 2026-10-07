@@ -303,7 +303,13 @@ QString ClipboardHandler::textToKml(const QString& text)
     // Split text into paragraphs by newlines
     QStringList paragraphs = text.split('\n');
 
-    for (const QString& para : paragraphs) {
+    for (QString& para : paragraphs) {
+        // XML has no place for control characters other than tab, and a CR left by a CR LF
+        // line end would come back as one more paragraph break
+        para.removeIf([](QChar ch) {
+            return (ch.unicode() < 0x20 && ch != u'\t') || ch.unicode() == 0xFFFE ||
+                   ch.unicode() == 0xFFFF;
+        });
         writer.writeStartElement("p");
         writer.writeStartElement("text");
         writer.writeCharacters(para);
