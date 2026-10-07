@@ -19,6 +19,7 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/viewport_manager.h>
 #include "editor_test_utils.h"
+#include <QScreen>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -426,7 +427,7 @@ TEST_CASE("Stage0 layout: BookEditor new page margins lay out every block once",
     resizeWidget(editor, QSize(500, 400));
     editor.fromKml(kmlOf(longParagraphs(15)));
     layoutOf(editor)->layoutPendingBlocks();
-    const qreal heightBefore = editor.textDocument()->documentLayout()->documentSize().height();
+    const qreal widthBefore = editor.textDocument()->textWidth();
 
     EditorAppearance appearance = editor.appearance();
     appearance.pageMargins.left += 20.0;
@@ -436,5 +437,10 @@ TEST_CASE("Stage0 layout: BookEditor new page margins lay out every block once",
     layoutOf(editor)->layoutPendingBlocks();
     CHECK(laidOut.count() == 15);
     CHECK(mismatchCount(geometryOf(editor.textDocument()), editorReference(editor)) == 0);
-    CHECK(editor.textDocument()->documentLayout()->documentSize().height() > heightBefore);
+
+    // The text is 20 mm narrower. Whether that adds lines depends on the font, so the
+    // width is checked rather than the height (the reference above holds the lines).
+    const double dpi = editor.screen() != nullptr ? editor.screen()->logicalDotsPerInch() : 96.0;
+    CHECK(editor.textDocument()->textWidth() ==
+          Approx(widthBefore - 20.0 / 25.4 * dpi).margin(1.0));
 }

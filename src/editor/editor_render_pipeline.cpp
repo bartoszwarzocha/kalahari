@@ -1193,10 +1193,14 @@ void EditorRenderPipeline::renderEndlessPage(QPainter* painter, const QRect& cli
     // below it
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
+    // A page, longer by as much as the text is longer than a page's text area: a chapter
+    // shorter than a page has the very sheet of the page view (the text area is in whole
+    // pixels, the page is not)
     const double textHeight = m_textSource ? m_textSource->totalHeight() : 0.0;
+    const double sheetHeight =
+        computed.pageHeightPixels + std::max(0.0, textHeight - computed.textAreaHeight);
     QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, -computed.marginTop)),
-                 QSizeF(computed.pageWidthPixels * scale,
-                        (computed.marginTop + textHeight + computed.marginBottom) * scale));
+                 QSizeF(computed.pageWidthPixels * scale, sheetHeight * scale));
 
     // A chapter's sheet is far taller than the view: it is cut to the clip rect, with room
     // for the shadow, so the coordinates stay small and the cut edges are not painted

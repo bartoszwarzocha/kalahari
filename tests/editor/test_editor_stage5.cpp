@@ -645,8 +645,10 @@ TEST_CASE("Stage5 continuous view: switching views leaves a view scrolled away f
 
 TEST_CASE("Stage5 continuous view: a page wider than the view scrolls sideways to the cursor",
           "[editor][stage5][continuous]") {
-    // A window narrower than the page at 100%: the horizontal scroll bar
+    // A window far narrower than the page at 100% (at 72 dpi too, as on macOS): the
+    // horizontal scroll bar
     auto editor = editorWith(kmlOf(longParagraphs(1)));
+    resizeWidget(*editor, QSize(300, 400));
     QScrollBar* sideways = scrollBar(*editor, Qt::Horizontal);
     REQUIRE(sideways != nullptr);
     REQUIRE_FALSE(sideways->isHidden());
