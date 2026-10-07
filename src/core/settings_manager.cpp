@@ -18,7 +18,7 @@ namespace core {
 
 namespace {
 /// Version written by createDefaults() and reached by migrateIfNeeded()
-constexpr const char* CURRENT_SETTINGS_VERSION = "1.2";
+constexpr const char* CURRENT_SETTINGS_VERSION = "1.3";
 }
 
 // =============================================================================
@@ -566,7 +566,7 @@ void SettingsManager::migrateToCurrentVersion() {
         Logger::getInstance().info("Migrated ui.theme='{}' (removed legacy key)", theme);
     }
 
-    // 1.0 and 1.1 wrote keys that nothing reads
+    // Versions before 1.3 wrote keys that nothing reads
     static const char* const obsoleteKeys[] = {
         "ui.font_size",
         "appearance.iconSize",
@@ -585,6 +585,8 @@ void SettingsManager::migrateToCurrentVersion() {
         "icons.colorPrimary",             // icon colors are stored per theme
         "icons.colorSecondary",
         "icons.theme",                    // second copy of appearance.theme
+        "editor.margins.viewHorizontal",  // the continuous views use the page margins
+        "editor.margins.viewVertical",
     };
     for (const char* key : obsoleteKeys) {
         removeKey(key);

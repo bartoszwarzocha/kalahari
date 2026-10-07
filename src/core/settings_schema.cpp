@@ -91,8 +91,6 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.lineWidth", 2},
 
         // Editor: margins (view margins in pixels, page margins in millimetres)
-        {"editor.margins.viewHorizontal", 50.0},
-        {"editor.margins.viewVertical", 30.0},
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},

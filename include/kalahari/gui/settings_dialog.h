@@ -280,8 +280,6 @@ private:
     // ========================================================================
 
     // View margins (Continuous/Focus views)
-    QSpinBox* m_viewMarginHorizontalSpinBox;
-    QSpinBox* m_viewMarginVerticalSpinBox;
 
     // Page format (Page Layout view)
     QComboBox* m_pageSizeComboBox = nullptr;

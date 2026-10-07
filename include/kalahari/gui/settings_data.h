@@ -97,10 +97,6 @@ struct SettingsData {
     // Editor / Margins
     // ========================================================================
 
-    // View margins (for Continuous/Focus views) - in pixels
-    int viewMarginHorizontal = 50;               ///< Horizontal margin in pixels
-    int viewMarginVertical = 30;                 ///< Vertical margin in pixels
-
     // Page margins (for Page/Typewriter views) - in mm
     double pageMarginTop = 25.4;                 ///< Top margin in mm
     double pageMarginBottom = 25.4;              ///< Bottom margin in mm
@@ -275,8 +271,6 @@ struct SettingsData {
                cursorBlinking != other.cursorBlinking ||
                cursorBlinkInterval != other.cursorBlinkInterval ||
                cursorLineWidth != other.cursorLineWidth ||
-               viewMarginHorizontal != other.viewMarginHorizontal ||
-               viewMarginVertical != other.viewMarginVertical ||
                pageMarginTop != other.pageMarginTop ||
                pageMarginBottom != other.pageMarginBottom ||
                pageMarginLeft != other.pageMarginLeft ||
@@ -359,8 +353,6 @@ struct SettingsData {
                cursorBlinkInterval != other.cursorBlinkInterval ||
                cursorLineWidth != other.cursorLineWidth ||
                // Margin settings
-               viewMarginHorizontal != other.viewMarginHorizontal ||
-               viewMarginVertical != other.viewMarginVertical ||
                pageMarginTop != other.pageMarginTop ||
                pageMarginBottom != other.pageMarginBottom ||
                pageMarginLeft != other.pageMarginLeft ||
@@ -460,8 +452,6 @@ struct SettingsData {
                cursorBlinkInterval != other.cursorBlinkInterval ||
                cursorLineWidth != other.cursorLineWidth ||
                // Margin settings
-               viewMarginHorizontal != other.viewMarginHorizontal ||
-               viewMarginVertical != other.viewMarginVertical ||
                pageMarginTop != other.pageMarginTop ||
                pageMarginBottom != other.pageMarginBottom ||
                pageMarginLeft != other.pageMarginLeft ||
