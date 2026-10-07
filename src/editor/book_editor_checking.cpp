@@ -100,9 +100,9 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
 {
     const QTextBlock block = m_textBuffer ? m_textBuffer->findBlockByNumber(paraIndex)
                                           : QTextBlock();
-    if (const ParagraphData* data = ParagraphData::find(block)) {
+    if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
         const QString text = block.text();
-        if (const auto* issues = data->spelling.issuesFor(text)) {
+        if (const auto* issues = paragraphData->spelling.issuesFor(text)) {
             for (const TextHighlight& issue : *issues) {
                 if (offset >= issue.start && offset < issue.start + issue.length) {
                     return {text.mid(issue.start, issue.length), issue.start,
