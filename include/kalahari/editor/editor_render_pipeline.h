@@ -341,10 +341,9 @@ public:
     /// 1. Get visible paragraph range
     /// 2. Ensure layouts exist for visible paragraphs
     /// 3. Render background (and the pages in page mode)
-    /// 4. Render the selection and the highlight backgrounds (search matches, annotations,
-    ///    spoken word)
+    /// 4. Render the selection and the highlight backgrounds (search matches, spoken word)
     /// 5. Render paragraphs (text with formatting)
-    /// 6. Render the highlight marks (underlines, waves, marker icons)
+    /// 6. Render the highlight marks (spelling and grammar waves)
     /// 7. Render cursor
     void render(QPainter* painter, const QRect& clipRect);
 
@@ -457,16 +456,15 @@ private:
     /// @brief Highlight of a paragraph (paragraph index, highlighted range)
     using ParagraphHighlight = std::pair<size_t, TextHighlight>;
 
-    /// @brief Highlights of the visible paragraphs: the text source's annotations and check
-    ///        results (of the paragraphs in the clip rect), search matches, spoken word
+    /// @brief Highlights of the visible paragraphs: the text source's check results (of the
+    ///        paragraphs in the clip rect), search matches, spoken word
     std::vector<ParagraphHighlight> visibleHighlights(const QRect& clipRect) const;
 
     /// @brief Fill the highlight backgrounds (under the text)
     void renderHighlightBackgrounds(QPainter* painter,
                                     const std::vector<ParagraphHighlight>& highlights);
 
-    /// @brief Draw the highlight marks (over the text): comment underlines, spelling and
-    ///        grammar waves, marker icons in the margin
+    /// @brief Draw the highlight marks (over the text): spelling and grammar waves
     void renderHighlightMarks(QPainter* painter,
                               const std::vector<ParagraphHighlight>& highlights);
 

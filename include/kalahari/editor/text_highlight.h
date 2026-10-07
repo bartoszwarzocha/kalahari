@@ -1,5 +1,5 @@
 /// @file text_highlight.h
-/// @brief Highlighted ranges of a paragraph's text (search matches, annotations, checks)
+/// @brief Highlighted ranges of a paragraph's text (search matches, checks, the word read aloud)
 
 #pragma once
 
@@ -8,15 +8,10 @@ namespace kalahari::editor {
 /// @brief What a highlighted range of text is
 ///
 /// The render pipeline draws every kind in one layer: the backgrounds under the text, the
-/// underlines, waves and margin icons over it.
+/// waves over it.
 enum class HighlightKind {
     SearchMatch,         ///< Match of the search
     CurrentSearchMatch,  ///< Current match of the search
-    Comment,             ///< Text with a comment (KML <comment>)
-    ResolvedComment,     ///< Text with a resolved comment
-    Todo,                ///< TODO marker (KML <todo>)
-    CompletedTodo,       ///< Completed TODO marker
-    Note,                ///< Note marker (KML <todo type="note">)
     Spelling,            ///< Misspelled word
     Grammar,             ///< Grammar or style issue
     SpokenWord           ///< Word being read aloud
