@@ -113,10 +113,13 @@ jobs:
         CC: cl
         CXX: cl
 
-    # Saved once per run (Release job only, both jobs produce the same ports) so the
-    # next run starts from the newest set of binaries; old entries age out of the cache.
+    # Saved only by pushes to main (Release job only, both jobs produce the same ports)
+    # so the next run starts from the newest set of binaries. Pull requests read main's
+    # cache but do not save their own: each copy is ~600 MB, and copies saved by pull
+    # requests pushed main's out of the 10 GB repository limit, so main and every new
+    # pull request rebuilt Qt for about 2 hours. Old entries age out of the cache.
     - name: Save vcpkg binary cache
-      if: matrix.build_type == 'Release'
+      if: matrix.build_type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/cache/save@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
