@@ -176,6 +176,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cursor.
 - **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
   same panel switches.
+- **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
+  and the View toolbar keep every open panel checked, also when its tab lies under
+  another panel's tab. A switch closes an open panel and opens a closed one with its tab
+  on top.
+- **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
+  (for example Ctrl+4 twice) unchecked it; the mode in use now stays checked.
 - **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
   paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
   "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO

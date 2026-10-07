@@ -761,6 +761,8 @@ void MainWindow::onViewModeContinuous() {
         editor->getBookEditor()->setViewMode(editor::ViewMode::Continuous);
         statusBar()->showMessage(tr("View mode: Continuous"), 2000);
     }
+    // Choosing the mode in use unchecks its action, but the mode stays: check again
+    updateEditorActionStates();
 }
 
 void MainWindow::onViewModePage() {
@@ -772,6 +774,8 @@ void MainWindow::onViewModePage() {
         editor->getBookEditor()->setViewMode(editor::ViewMode::Page);
         statusBar()->showMessage(tr("View mode: Page Layout"), 2000);
     }
+    // Choosing the mode in use unchecks its action, but the mode stays: check again
+    updateEditorActionStates();
 }
 
 void MainWindow::onTypewriterToggle() {
@@ -804,6 +808,8 @@ void MainWindow::onViewModeFocus() {
         editor->getBookEditor()->setViewMode(editor::ViewMode::Focus);
         statusBar()->showMessage(tr("View mode: Focus"), 2000);
     }
+    // Choosing the mode in use unchecks its action, but the mode stays: check again
+    updateEditorActionStates();
 }
 
 void MainWindow::onViewModeDistFree() {
@@ -815,6 +821,8 @@ void MainWindow::onViewModeDistFree() {
         editor->getBookEditor()->setViewMode(editor::ViewMode::DistractionFree);
         statusBar()->showMessage(tr("View mode: Distraction-Free"), 2000);
     }
+    // Choosing the mode in use unchecks its action, but the mode stays: check again
+    updateEditorActionStates();
 }
 
 void MainWindow::updateEditorActionStates() {
