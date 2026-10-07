@@ -154,7 +154,6 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/main_window.cpp
     gui/menu_builder.cpp
-    gui/busy_indicator.cpp
     gui/settings_dialog.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
@@ -211,7 +210,6 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h # LogPanelSink with Q_OBJECT (OpenSpec #00024)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/busy_indicator.h  # BusyIndicator with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)
