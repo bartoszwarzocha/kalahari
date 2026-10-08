@@ -73,6 +73,12 @@ std::map<std::string, json> buildDefaults() {
         {"editor.firstLineIndent", true},
         {"editor.indentSize", 24.0},
 
+        // Editor: spelling. An empty language follows the book's language
+        {"editor.spellCheck.language", ""},
+
+        // Editor: grammar. The address of the user's LanguageTool server; empty: off
+        {"editor.grammarCheck.serverUrl", ""},
+
         // Editor: colors
         {"editor.darkMode", true},
         {"editor.colors.backgroundLight", "#ffffff"},

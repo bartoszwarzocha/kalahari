@@ -230,6 +230,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
 
+### Hunspell - MPL 1.1 / GPL 2.0 / LGPL 2.1
+
+**Homepage:** https://hunspell.github.io/
+**License:** Mozilla Public License 1.1, GNU GPL 2.0 or GNU LGPL 2.1 (tri-license);
+Kalahari uses it under the MPL 1.1, linked dynamically
+**Usage:** Spell checking
+
+---
+
+### Spelling dictionaries
+
+**Location:** `resources/dictionaries/` (licenses and sources in its `README.md`)
+**Usage:** Polish and English (US) spell checking
+
+- **Polish (pl_PL)** - word list of the sjp.pl project, copyright Marek Futrega, from
+  the LibreOffice dictionaries. Offered under GPL, LGPL, MPL, Apache 2.0 or Creative
+  Commons ShareAlike; Kalahari uses it under the **Apache License 2.0**
+  (`LICENSE_pl_PL.txt`). Converted from ISO 8859-2 to UTF-8, otherwise unchanged.
+- **English (en_US)** - SCOWL by Kevin Atkinson and contributors, under the SCOWL
+  license, a permissive BSD-like license (`LICENSE_en_US.txt`). Unchanged.
+
+---
+
 ## Summary of Licenses
 
 | Dependency | License | Type | Commercial Use |
@@ -242,6 +265,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 | Catch2 | BSL-1.0 | Permissive | ✅ Allowed |
 | Python 3.11 | PSF | Permissive | ✅ Allowed |
 | pybind11 | BSD 3-Clause | Permissive | ✅ Allowed |
+| Hunspell | MPL 1.1 / GPL 2.0 / LGPL 2.1 | Weak Copyleft (MPL) | ✅ Allowed (dynamic linking) |
+| Polish dictionary (pl_PL) | Apache 2.0 (chosen of five) | Permissive | ✅ Allowed |
+| English dictionary (en_US) | SCOWL (BSD-like) | Permissive | ✅ Allowed |
 
 **All dependencies use permissive or weak copyleft licenses compatible with commercial use.**
 

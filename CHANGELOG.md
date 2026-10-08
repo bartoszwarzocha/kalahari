@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
+  service had the public api.languagetool.org built in, so the text of a book would have
+  gone to the internet. Now it sends text only to the server set in
+  `editor.grammarCheck.serverUrl` (for example `http://localhost:8081`); empty, the
+  default, means no grammar check and nothing sent.
 - **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
   the translations and the CI work are ticked off; text styles, statistics, perspectives and
   DOCX/Markdown export move to 0.4.x releases.
@@ -203,6 +208,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spelling dictionaries** - 2026-10-08. Kalahari ships Polish (pl_PL) and English (en_US)
+  Hunspell dictionaries in `resources/dictionaries`, so spell checking needs no
+  dictionary installed on the computer (Windows has none). The Polish dictionary is
+  converted to UTF-8, so words with Polish letters are checked correctly. The setting
+  `editor.spellCheck.language` (empty: the book's language) is ready for the spell check
+  in the editor. Licenses are listed in Help > About Kalahari and in LICENSE.
 - **Views toolbar** - 2026-10-07
   - A toolbar in the second row switches the view (Continuous, Page Layout), turns
     Distraction-Free, Focus, Typewriter Scrolling and Dark Paper on and off, and zooms
