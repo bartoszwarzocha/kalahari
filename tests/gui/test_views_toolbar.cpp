@@ -29,6 +29,31 @@ QToolBar* toolbarOf(const QMainWindow& window, const QString& id) {
     return window.findChild<QToolBar*>(id);
 }
 
+const QColor PRIMARY(QStringLiteral("#333333"));
+const QColor SECONDARY(QStringLiteral("#999999"));
+
+/// The icon @p name of the icon theme @p theme drawn at its size, in the colors above
+QImage renderIcon(const char* theme, const char* name) {
+    QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/icons/%1/%2.svg")
+                   .arg(QLatin1String(theme), QLatin1String(name)));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    QString svg = QString::fromUtf8(file.readAll());
+    svg.replace(QStringLiteral("{COLOR_PRIMARY}"), PRIMARY.name());
+    svg.replace(QStringLiteral("{COLOR_SECONDARY}"), SECONDARY.name());
+    QSvgRenderer renderer(svg.toUtf8());
+    if (!renderer.isValid()) {
+        return {};
+    }
+    QImage image(24, 24, QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    renderer.render(&painter);
+    painter.end();
+    return image;
+}
+
 /// The layout of the toolbars that a window saved before the Views toolbar existed
 QByteArray layoutWithoutViewsToolbar() {
     QMainWindow window;
@@ -70,11 +95,11 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 11);
+    REQUIRE(actions.size() == 13);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
-    CHECK(actions[2] == registry.getAction(std::string("view.mode.distraction-free")));
-    CHECK(actions[3]->isSeparator());
+    CHECK(actions[2]->isSeparator());
+    CHECK(actions[3] == registry.getAction(std::string("view.mode.distraction-free")));
     CHECK(actions[4] == registry.getAction(std::string("view.focus")));
     CHECK(actions[5] == registry.getAction(std::string("view.typewriter")));
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
@@ -82,12 +107,15 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
     CHECK(actions[8] == registry.getAction(std::string("view.zoomOut")));
     CHECK(actions[9] == registry.getAction(std::string("view.zoomIn")));
     CHECK(actions[10] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[11] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[12] == registry.getAction(std::string("view.zoomWholePage")));
 
     // Every button has an icon of the icon theme
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper", "view.zoomOut",
-                           "view.zoomIn", "view.resetZoom"}) {
+                           "view.zoomIn", "view.resetZoom", "view.zoomPageWidth",
+                           "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
     }
@@ -95,34 +123,53 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
 
 TEST_CASE("Views toolbar: the paper icon is a square halved corner to corner in every icon theme",
           "[gui][toolbar]") {
-    const QColor primary(QStringLiteral("#333333"));
-    const QColor secondary(QStringLiteral("#999999"));
     for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
         INFO(theme);
-        QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/icons/%1/contrast_square.svg")
-                       .arg(QLatin1String(theme)));
-        REQUIRE(file.open(QIODevice::ReadOnly));
-        QString svg = QString::fromUtf8(file.readAll());
-        svg.replace(QStringLiteral("{COLOR_PRIMARY}"), primary.name());
-        svg.replace(QStringLiteral("{COLOR_SECONDARY}"), secondary.name());
-        QSvgRenderer renderer(svg.toUtf8());
-        REQUIRE(renderer.isValid());
-
-        QImage image(24, 24, QImage::Format_ARGB32);
-        image.fill(Qt::transparent);
-        QPainter painter(&image);
-        renderer.render(&painter);
-        painter.end();
+        const QImage image = renderIcon(theme, "contrast_square");
+        REQUIRE_FALSE(image.isNull());
 
         // A frame, the lower right half filled and the upper left half empty (in two tones:
         // the second color)
-        CHECK(image.pixelColor(4, 12) == primary);
-        CHECK(image.pixelColor(12, 4) == primary);
-        CHECK(image.pixelColor(16, 16) == primary);
+        CHECK(image.pixelColor(4, 12) == PRIMARY);
+        CHECK(image.pixelColor(12, 4) == PRIMARY);
+        CHECK(image.pixelColor(16, 16) == PRIMARY);
         if (QLatin1String(theme) == QLatin1String("twotone")) {
-            CHECK(image.pixelColor(8, 8) == secondary);
+            CHECK(image.pixelColor(8, 8) == SECONDARY);
         } else {
             CHECK(image.pixelColor(8, 8).alpha() == 0);
+        }
+    }
+}
+
+TEST_CASE("Views toolbar: the Page Width and Whole Page icons are a page with a double arrow "
+          "across or down it in every icon theme",
+          "[gui][toolbar]") {
+    for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
+        INFO(theme);
+        const QImage width = renderIcon(theme, "fit_page_width");
+        const QImage whole = renderIcon(theme, "fit_page");
+        REQUIRE_FALSE(width.isNull());
+        REQUIRE_FALSE(whole.isNull());
+
+        // The left side of the page, and the middle of the arrow
+        for (const QImage& image : {width, whole}) {
+            CHECK(image.pixelColor(5, 12) == PRIMARY);
+            CHECK(image.pixelColor(12, 12) == PRIMARY);
+        }
+        // Page Width: the arrow goes to the sides; Whole Page: to the top and bottom
+        CHECK(width.pixelColor(14, 12) == PRIMARY);
+        CHECK(width.pixelColor(12, 15) != PRIMARY);
+        CHECK(whole.pixelColor(12, 15) == PRIMARY);
+        CHECK(whole.pixelColor(14, 12) != PRIMARY);
+
+        // Inside the page, away from the arrow (above it, beside its shaft): empty (in two
+        // tones: the second color)
+        if (QLatin1String(theme) == QLatin1String("twotone")) {
+            CHECK(width.pixelColor(8, 6) == SECONDARY);
+            CHECK(whole.pixelColor(8, 11) == SECONDARY);
+        } else {
+            CHECK(width.pixelColor(8, 6).alpha() == 0);
+            CHECK(whole.pixelColor(8, 11).alpha() == 0);
         }
     }
 }

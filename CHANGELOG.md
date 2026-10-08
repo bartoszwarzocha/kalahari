@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: Distraction-Free is a switch** - 2026-10-08
+  - View > Distraction-Free (Shift+F11, or its button on the Views toolbar) works on top
+    of the current view, like Focus: the Page Layout view keeps its pages. The window
+    fills the screen and hides the menu bar, the toolbars, the panels, the chapter tabs,
+    the status bar and the editor's scroll bars (the mouse wheel and the keys still
+    scroll). The sides of the editor darken (in the color of the pages' shadow), and the
+    word count, a hint how to leave and the clock (if turned on) show at the edges in the
+    paper's dimmed text color and fade out; they come back when the mouse nears an edge.
+  - Esc, Shift+F11 or the Full Screen shortcut (F11 on Windows) bring the window back as
+    it was: its size, the toolbars and panels in their places and tabs, the chapter tabs
+    and the status bar. Esc goes first to an open find bar. The shortcuts of the menu
+    commands keep working meanwhile.
+  - Distraction-Free is not remembered: closing the program during it saves the window
+    as it was before.
+
 - **Settings: no view margins for the continuous views** - 2026-10-07. The continuous views
   show one endless page with the page margins, so the "View Margins (Continuous/Focus)"
   group is gone from Settings > Pages and Margins, and the "Page" and "Page Margins" groups
@@ -20,12 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the 1.7 s theme switch in a Windows Debug build. Tooltips take their colors from the
   theme palette and get their thin frame from the application style. Light to Dark in a
   Linux Release build: about 75 ms, was about 330 ms.
-- **Editor: the continuous views are one endless page** - 2026-10-07
-  - The Continuous and Distraction-Free views show the text on one endless page as wide
-    as the pages, with the page's margins and the desk on both sides. The lines break
-    as on the pages and in print, in every view and at every zoom: switching to the Page
-    Layout view only adds the page breaks. A chapter shorter than a page is on a whole
-    page, as in the Page Layout view.
+- **Editor: the Continuous view is one endless page** - 2026-10-07
+  - The Continuous view shows the text on one endless page as wide as the pages, with
+    the page's margins and the desk on both sides. The lines break as on the pages and in
+    print, in every view and at every zoom: switching to the Page Layout view only adds
+    the page breaks. A chapter shorter than a page is on a whole page, as in the Page
+    Layout view.
   - The zoom scales the page as in the Page Layout view: 100% is the page's size on paper,
     View > Zoom > Page Width and Whole Page fit it to the window, and a page wider than the
     window scrolls sideways, following the cursor while you type.
@@ -168,11 +183,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Views toolbar** - 2026-10-07
-  - A toolbar in the second row switches the view (Continuous, Page Layout,
-    Distraction-Free), turns Focus, Typewriter Scrolling and Dark Paper on and off, and
-    zooms (Zoom Out, Zoom In, Zoom 100%). Its buttons are the View menu's commands, so a
-    button is checked when its menu item is. It shows up also for a window layout saved
-    before it existed, and View > Toolbars hides it.
+  - A toolbar in the second row switches the view (Continuous, Page Layout), turns
+    Distraction-Free, Focus, Typewriter Scrolling and Dark Paper on and off, and zooms
+    (Zoom Out, Zoom In, Zoom 100%, Page Width, Whole Page). Its buttons are the View
+    menu's commands, so a button is checked when its menu item is. It shows up also for a
+    window layout saved before it existed, and View > Toolbars hides it.
+  - Page Width and Whole Page have icons of their own: a page with a double arrow across
+    it or from its top to its bottom (in the four icon themes).
   - View > Dark Paper switches the paper of every editor between light and dark, like the
     editor's context menu, and is remembered; its icon is a square halved corner to corner.
     The check mark follows the paper however it changes (the context menu, the Settings
@@ -180,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The toolbar of panel toggles (hidden by default) is called Panels Toolbar; the
     toolbar names in View > Toolbars and in the Toolbar Manager are translated.
   - Tools > Focus Mode is gone: its three commands did nothing and repeated View > Focus
-    and the Distraction-Free view.
+    and View > Distraction-Free.
 
 - **UI translations** - 2026-10-06
   - The language chosen in Settings (English or Polski) is applied at the next start.

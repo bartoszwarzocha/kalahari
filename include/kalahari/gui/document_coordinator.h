@@ -123,6 +123,12 @@ public:
     /// @brief Get the files of the navigator's "Other Files" (opened outside the project)
     [[nodiscard]] const QStringList& standaloneFilePaths() const { return m_standaloneFilePaths; }
 
+    /// @brief Let the info bar of a standalone file show, or keep it hidden
+    ///
+    /// Distraction-Free writing keeps it hidden with the window's other bars.
+    /// @param allowed false to hide it until it is allowed again
+    void setInfoBarAllowed(bool allowed);
+
     // =========================================================================
     // Per-editor save state
     // =========================================================================
@@ -323,6 +329,7 @@ private:
     DashboardPanel* m_dashboardPanel;
     NavigatorCoordinator* m_navigatorCoordinator;
     StandaloneInfoBar* m_standaloneInfoBar;
+    bool m_infoBarAllowed{true};    ///< The info bar may show (not in Distraction-Free)
     QStatusBar* m_statusBar;
 
     DirtyStateGetter m_isDirty;

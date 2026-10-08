@@ -54,6 +54,9 @@ class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
+namespace utils {
+class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
+}
 
 /// @brief Main application window
 ///
@@ -276,8 +279,11 @@ private slots:
     /// @brief Give every editor the light or dark paper chosen in one editor's context menu
     void onEditorColorModeChanged(editor::EditorColorMode mode);
 
-    /// @brief Set editor view mode to Distraction-Free
-    void onViewModeDistFree();
+    /// @brief Turn Distraction-Free writing on or off (the view mode stays)
+    void onDistractionFreeToggle();
+
+    /// @brief Give every editor Distraction-Free, or take it back, as the window lays out
+    void onDistractionFreeChanged(bool enabled);
 
     /// @brief Update action states based on editor state
     ///
@@ -355,6 +361,15 @@ private:
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
+
+    // Distraction-Free writing: full screen with the bars, panels and tabs hidden
+    utils::DistractionFreeLayout* m_distractionFreeLayout{nullptr};
+
+    /// @brief Whether Distraction-Free writing is on
+    [[nodiscard]] bool isDistractionFree() const;
+
+    /// @brief The line Distraction-Free shows at the top of the editor
+    [[nodiscard]] QString distractionFreeHint() const;
 
     // Status bar statistics labels (OpenSpec #00042 Task 6.13)
     QLabel* m_wordCountLabel{nullptr};                ///< Word count display

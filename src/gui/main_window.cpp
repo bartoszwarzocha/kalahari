@@ -27,6 +27,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
+#include "kalahari/gui/utils/distraction_free_layout.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
@@ -193,6 +194,12 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
 
+    // Distraction-Free writing hides the window's bars, panels and tabs and brings them
+    // back (also with Esc); the editors and the commands follow it
+    m_distractionFreeLayout = new utils::DistractionFreeLayout(this);
+    connect(m_distractionFreeLayout, &utils::DistractionFreeLayout::activeChanged,
+            this, &MainWindow::onDistractionFreeChanged);
+
     // Connect StatisticsCollector for status bar updates (OpenSpec #00042 Task 6.13)
     connect(m_documentCoordinator, &DocumentCoordinator::documentOpened,
             this, [this]() {
@@ -350,7 +357,7 @@ void MainWindow::registerCommands() {
     callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
-    callbacks.onViewModeDistFree = [this]() { onViewModeDistFree(); };
+    callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
 
     // Zoom commands act on the editor in front
     const auto onEditor = [this](void (editor::BookEditor::*action)()) {
@@ -411,6 +418,11 @@ void MainWindow::registerCommands() {
     if (auto* fsCmd = registry.getCommand("view.fullScreen")) {
         fsCmd->execute = [this]() { toggleFullScreen(); };
         fsCmd->isChecked = [this]() { return isFullScreen(); };
+    }
+
+    // Distraction-Free belongs to the window, not to an editor: on also over the Dashboard
+    if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
+        dfCmd->isChecked = [this]() { return isDistractionFree(); };
     }
 
     // The paper of every editor is a setting: its toggle shows it also before an editor
@@ -850,17 +862,48 @@ void MainWindow::onEditorColorModeChanged(editor::EditorColorMode mode) {
     }
 }
 
-void MainWindow::onViewModeDistFree() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: View Mode Distraction-Free");
+bool MainWindow::isDistractionFree() const {
+    return m_distractionFreeLayout != nullptr && m_distractionFreeLayout->isActive();
+}
 
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->setViewMode(editor::ViewMode::DistractionFree);
-        statusBar()->showMessage(tr("View mode: Distraction-Free"), 2000);
+QString MainWindow::distractionFreeHint() const {
+    return tr("Press Esc to leave Distraction-Free");
+}
+
+void MainWindow::onDistractionFreeToggle() {
+    auto& logger = core::Logger::getInstance();
+    const bool enabled = !isDistractionFree();
+    logger.info("Action triggered: Distraction-Free {}", enabled ? "on" : "off");
+
+    // The chapter tabs hide with the window's bars and panels
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    QList<QWidget*> alsoHidden;
+    if (centralTabs) {
+        alsoHidden.append(centralTabs->tabBar());
     }
-    // Choosing the mode in use unchecks its action, but the mode stays: check again
-    updateEditorActionStates();
+    m_distractionFreeLayout->setActive(enabled, alsoHidden);
+}
+
+void MainWindow::onDistractionFreeChanged(bool enabled) {
+    // The info bar of a file outside the project comes back with the other bars
+    m_documentCoordinator->setInfoBarAllowed(!enabled);
+
+    // Every editor darkens the sides of its view and shows the word count; an editor
+    // opened meanwhile gets it when it comes to the front
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->setDistractionFree(enabled, distractionFreeHint());
+        }
+    }
+    if (EditorPanel* editor = getCurrentEditor(); editor && editor->getBookEditor()) {
+        editor->getBookEditor()->setFocus();
+    }
+
+    auto& registry = CommandRegistry::getInstance();
+    registry.updateActionState("view.mode.distraction-free");
+    registry.updateActionState("view.fullScreen");
 }
 
 void MainWindow::updateEditorActionStates() {
@@ -952,10 +995,6 @@ void MainWindow::updateEditorActionStates() {
         const bool focus = bookEditor->isFocusModeEnabled();
         focusCmd->isChecked = [focus]() { return focus; };
         registry.updateActionState("view.focus");
-    }
-    if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
-        dfCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::DistractionFree; };
-        registry.updateActionState("view.mode.distraction-free");
     }
 
     // Update alignment action checked states
@@ -1151,6 +1190,9 @@ void MainWindow::createDocks() {
                 // The paper chosen in the editor's context menu goes to every editor
                 connect(bookEditor, &editor::BookEditor::editorColorModeChanged,
                         this, &MainWindow::onEditorColorModeChanged);
+
+                // Also an editor opened during Distraction-Free writing
+                bookEditor->setDistractionFree(isDistractionFree(), distractionFreeHint());
             }
             updatePageStatus();
 
@@ -1312,6 +1354,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         }
     }
 
+    // The window's bars, panels and size from before Distraction-Free are the ones to keep
+    if (isDistractionFree()) {
+        m_distractionFreeLayout->setActive(false);
+    }
+
     // Save perspective (existing code)
     logger.debug("Saving window perspective");
 
@@ -1359,12 +1406,20 @@ void MainWindow::updateWindowTitle() {
 void MainWindow::toggleFullScreen() {
     auto& logger = core::Logger::getInstance();
 
-    if (isFullScreen()) {
-        // Exit fullscreen
-        logger.debug("MainWindow: Exiting fullscreen mode");
-        showNormal();
-        if (!m_savedGeometryBeforeFullscreen.isEmpty()) {
-            restoreGeometry(m_savedGeometryBeforeFullscreen);
+    // Distraction-Free fills the screen, so leaving the full screen leaves it too
+    const bool leave = isFullScreen() || isDistractionFree();
+    if (isDistractionFree()) {
+        m_distractionFreeLayout->setActive(false);
+    }
+
+    if (leave) {
+        // Exit fullscreen (still on if it was on before Distraction-Free)
+        if (isFullScreen()) {
+            logger.debug("MainWindow: Exiting fullscreen mode");
+            showNormal();
+            if (!m_savedGeometryBeforeFullscreen.isEmpty()) {
+                restoreGeometry(m_savedGeometryBeforeFullscreen);
+            }
         }
     } else {
         // Enter fullscreen

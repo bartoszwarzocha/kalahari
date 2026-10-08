@@ -1027,9 +1027,14 @@ EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) cons
     return nullptr;
 }
 
+void DocumentCoordinator::setInfoBarAllowed(bool allowed) {
+    m_infoBarAllowed = allowed;
+    updateStandaloneInfoBar();
+}
+
 void DocumentCoordinator::updateStandaloneInfoBar() {
     EditorPanel* editor = getCurrentEditor();
-    if (!editor || editorKind(editor) != EditorKind::StandaloneFile
+    if (!m_infoBarAllowed || !editor || editorKind(editor) != EditorKind::StandaloneFile
         || editor->property("infoBarDismissed").toBool()) {
         m_standaloneInfoBar->hide();
         return;

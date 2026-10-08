@@ -83,7 +83,7 @@ struct CommandCallbacks {
     std::function<void()> onTypewriterToggle;   ///< View > Typewriter Scrolling
     std::function<void()> onFocusToggle;        ///< View > Focus
     std::function<void()> onDarkPaperToggle;    ///< View > Dark Paper
-    std::function<void()> onViewModeDistFree;   ///< View > View Mode > Distraction-Free
+    std::function<void()> onDistractionFreeToggle;  ///< View > Distraction-Free
 
     // Zoom (the editor in front)
     std::function<void()> onZoomIn;             ///< View > Zoom > Zoom In

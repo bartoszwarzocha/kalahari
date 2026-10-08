@@ -436,8 +436,8 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     // The mouse places the cursor: typewriter scrolling leaves the view where it is
     const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
 
-    // In Distraction-Free mode, show UI on mouse movement
-    if (m_viewMode == ViewMode::DistractionFree) {
+    // In Distraction-Free, the texts at the edges come back when the mouse nears an edge
+    if (m_distractionFree) {
         // Check if mouse is near edges for fade trigger
         QPointF pos = event->position();
         qreal edgeThreshold = 50.0;  // Pixels from edge

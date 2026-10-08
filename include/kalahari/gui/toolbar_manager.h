@@ -86,8 +86,8 @@ public:
     /// - File: New, Open, Save, SaveAs, Close
     /// - Edit: Undo, Redo, [SEP], Cut, Copy, Paste, SelectAll
     /// - Book: NewChapter, NewCharacter, NewLocation, BookProperties
-    /// - Views: Continuous, Page Layout, Distraction-Free, [SEP], Focus, Typewriter Scrolling,
-    ///   Dark Paper, [SEP], Zoom Out, Zoom In, Zoom 100%
+    /// - Views: Continuous, Page Layout, [SEP], Distraction-Free, Focus, Typewriter Scrolling,
+    ///   Dark Paper, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width, Whole Page
     /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
     /// - Tools: Spellcheck, WordCount
     ///

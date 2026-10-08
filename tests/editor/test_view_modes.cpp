@@ -10,6 +10,7 @@
 #include <QTemporaryFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QList>
 #include <memory>
 
 using namespace kalahari::editor;
@@ -556,17 +557,21 @@ TEST_CASE("BookEditor setViewMode changes mode", "[editor][viewmodes]") {
         REQUIRE(editor.viewMode() == ViewMode::Continuous);
     }
 
-    SECTION("Can set to DistractionFree mode") {
-        editor.setViewMode(ViewMode::DistractionFree);
-        REQUIRE(editor.viewMode() == ViewMode::DistractionFree);
+    SECTION("Distraction-Free is independent of the view mode") {
+        editor.setViewMode(ViewMode::Page);
+        editor.setDistractionFree(true);
+        REQUIRE(editor.viewMode() == ViewMode::Page);
+        REQUIRE(editor.isDistractionFree());
+        editor.setViewMode(ViewMode::Continuous);
+        REQUIRE(editor.isDistractionFree());
+        editor.setDistractionFree(false);
+        REQUIRE_FALSE(editor.isDistractionFree());
+        REQUIRE(editor.viewMode() == ViewMode::Continuous);
     }
 
     SECTION("Can switch between modes") {
         editor.setViewMode(ViewMode::Page);
         REQUIRE(editor.viewMode() == ViewMode::Page);
-
-        editor.setViewMode(ViewMode::DistractionFree);
-        REQUIRE(editor.viewMode() == ViewMode::DistractionFree);
 
         editor.setViewMode(ViewMode::Continuous);
         REQUIRE(editor.viewMode() == ViewMode::Continuous);
@@ -598,10 +603,30 @@ TEST_CASE("BookEditor setViewMode emits signal", "[editor][viewmodes][signals]")
     SECTION("Multiple changes emit multiple signals") {
         editor.setViewMode(ViewMode::Page);
         editor.setViewMode(ViewMode::Continuous);
-        editor.setViewMode(ViewMode::DistractionFree);
+        editor.setViewMode(ViewMode::Page);
         REQUIRE(signalCount == 3);
-        REQUIRE(lastEmittedMode == ViewMode::DistractionFree);
+        REQUIRE(lastEmittedMode == ViewMode::Page);
     }
+
+    SECTION("Distraction-Free leaves the view mode") {
+        editor.setDistractionFree(true);
+        editor.setDistractionFree(false);
+        REQUIRE(signalCount == 0);
+    }
+}
+
+TEST_CASE("BookEditor setDistractionFree emits a signal once per change", "[editor][viewmodes][signals]") {
+    BookEditor editor;
+
+    QList<bool> emitted;
+    QObject::connect(&editor, &BookEditor::distractionFreeModeChanged,
+                     [&emitted](bool enabled) { emitted.append(enabled); });
+
+    editor.setDistractionFree(true);
+    editor.setDistractionFree(true, QStringLiteral("Press Esc"));  // only the hint changes
+    editor.setDistractionFree(false);
+    editor.setDistractionFree(false);
+    REQUIRE(emitted == QList<bool>{true, false});
 }
 
 TEST_CASE("BookEditor default appearance has valid colors", "[editor][appearance]") {
