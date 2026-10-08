@@ -610,14 +610,14 @@ public:
     ///
     /// A toggle on top of the view mode, like Focus: the view mode, its pages and the
     /// layout stay as they are. While it is on, the scroll bars are hidden, the sides of
-    /// the view darken toward its edges, and the word count, the hint and the clock (if
-    /// appearance() shows it) appear at the edges of the view: at first and whenever the
-    /// mouse comes near an edge, fading out after appearance().distractionFree.uiFadeTimeout.
+    /// the view darken toward its edges, and the word count and the clock (if appearance()
+    /// shows them) appear at the edges of the view: at first and whenever the mouse comes
+    /// near an edge, fading out after appearance().distractionFree.uiFadeTimeout. The
+    /// middle of the top edge stays free for the window's menus.
     /// The window around the editor hides its own parts.
     /// Emits distractionFreeModeChanged if the state changes.
     /// @param enabled true to turn it on
-    /// @param hint A line shown at the top of the view (e.g. how to leave); empty for none
-    void setDistractionFree(bool enabled, const QString& hint = QString());
+    void setDistractionFree(bool enabled);
 
     // =======================================================================
     // Zoom Control
@@ -653,6 +653,16 @@ public:
     /// @brief Zoom so that a whole page fits the view: the Page Layout view shows the
     ///        cursor's page, the continuous views take the same zoom
     void zoomToWholePage();
+
+    /// @brief Zoom out to the page's width when the editor is first shown, if the page is
+    ///        wider than the view
+    ///
+    /// A page that fits the width of the view keeps the zoom of the settings
+    /// (appearance().pageLayout.zoomLevel, 100%); a wider one takes the zoom of
+    /// zoomToPageWidth(). Until the editor is first painted, a new size, text, appearance
+    /// or paper scale applies it again; after that, or once a zoom is asked for, the zoom
+    /// changes only when asked for.
+    void shrinkToPageWidthOnFirstShow();
 
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
@@ -1121,6 +1131,13 @@ private:
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
     void applyZoom(double factor, const QPointF& fixedPoint);
 
+    /// @brief The zoom at which the page with the gap on both sides fills the width left
+    ///        of the scroll bar; 0 while the page has no size
+    double pageWidthZoom() const;
+
+    /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
+    void applyFirstShowShrink();
+
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
 
@@ -1318,6 +1335,8 @@ private:
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
     bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
+    bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
+                                                            ///< for the first paint
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position
@@ -1385,7 +1404,6 @@ private:
 
     // Distraction-Free writing (a toggle on top of the view mode)
     bool m_distractionFree{false};                          ///< Distraction-Free is on
-    QString m_distractionFreeHint;                          ///< Line at the top of the view
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 
