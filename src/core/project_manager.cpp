@@ -819,8 +819,15 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         return true;  // Nothing to save
     }
 
-    // A chapter without a file of its own gets one in its section's folder
+    // A chapter without a file of its own gets one in its section's folder; it keeps the
+    // old file until the text is saved and the manifest names the new one
+    const std::filesystem::path oldFile = element->getFile();
     const bool newFile = giveOwnChapterFile(*element);
+    auto keepOldFile = [&]() {
+        if (newFile) {
+            keepOldChapterFile(*element, oldFile);
+        }
+    };
 
     // Resolve path - always use .kchapter extension
     const std::filesystem::path relPath = chapterFileOf(element->getFile());
@@ -836,6 +843,7 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         if (!std::filesystem::create_directories(parentDir, ec)) {
             Logger::getInstance().error("saveChapterContent: Failed to create directory: {} ({})",
                                         parentDir.string(), ec.message());
+            keepOldFile();
             return false;
         }
     }
@@ -864,18 +872,20 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
     if (!doc.save(filePathStr)) {
         Logger::getInstance().error("saveChapterContent: Failed to save .kchapter: {}",
                                     filePath.string());
+        keepOldFile();
         return false;
     }
-
-    element->setDirty(false);
-    element->touch();  // Update modified timestamp
 
     // The manifest names the new file at once, so the text is found again
     if (newFile && !saveManifest()) {
         Logger::getInstance().error("saveChapterContent: The manifest does not name the new file {}",
                                     filePath.string());
+        keepOldFile();
         return false;
     }
+
+    element->setDirty(false);
+    element->touch();  // Update modified timestamp
 
     Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
                                 elementId.toStdString(), doc.wordCount());
@@ -1219,6 +1229,27 @@ bool ProjectManager::createChapterFile(BookElement& element, const QString& sect
     return true;
 }
 
+std::optional<QString> ProjectManager::damagedChapterText(const QString& elementId) {
+    BookElement* element = findElement(elementId);
+    if (!element || element->getFile().empty() || isOwnChapterFile(element->getFile())) {
+        return std::nullopt;
+    }
+
+    const std::filesystem::path backup = m_projectPath / ".kchapter.bak";
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(backup, ec)) {
+        return std::nullopt;
+    }
+
+    auto doc = ChapterDocument::load(QString::fromStdWString(backup.wstring()));
+    if (!doc) {
+        Logger::getInstance().warn("damagedChapterText: {} is not a chapter file",
+                                   backup.string());
+        return std::nullopt;
+    }
+    return doc->kml();
+}
+
 std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
                                                      const QString& partId,
                                                      const std::string& elementType) {
@@ -1329,6 +1360,15 @@ bool ProjectManager::giveOwnChapterFile(BookElement& element) {
     return true;
 }
 
+void ProjectManager::keepOldChapterFile(BookElement& element,
+                                        const std::filesystem::path& oldFile) {
+    std::error_code ec;
+    std::filesystem::remove(m_projectPath / element.getFile(), ec);
+    Logger::getInstance().warn("keepOldChapterFile: '{}' keeps its file ({})",
+                               element.getTitle(), oldFile.string());
+    element.setFile(oldFile);
+}
+
 // =============================================================================
 // Reordering Operations (OpenSpec #00034 Phase D)
 // =============================================================================
@@ -1402,9 +1442,11 @@ bool ProjectManager::saveChapterMetadata(const QString& elementId) {
 
     // A chapter without a file of its own gets one in its section's folder, which the
     // manifest names at once
+    const std::filesystem::path oldFile = element->getFile();
     if (giveOwnChapterFile(*element) && !saveManifest()) {
         logger.error("saveChapterMetadata: The manifest does not name the new file of {}",
                      elementId.toStdString());
+        keepOldChapterFile(*element, oldFile);
         return false;
     }
 

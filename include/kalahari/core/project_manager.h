@@ -32,6 +32,7 @@
 #include <QJsonObject>
 #include <memory>
 #include <filesystem>
+#include <optional>
 #include <vector>
 #include <functional>
 #include <map>
@@ -362,6 +363,19 @@ public:
     bool createChapterFile(BookElement& element, const QString& sectionType,
                            const QString& partId = QString());
 
+    /// @brief The text a chapter damaged when it was opened may have in a backup
+    /// @param elementId A chapter
+    /// @return The KML of ".kchapter.bak" in the project's folder when the chapter's file
+    ///         has no name of its own (such as ".kchapter") and the backup is a chapter
+    ///         file; nothing otherwise
+    ///
+    /// A chapter added in the Navigator had no file of its own and was saved as
+    /// ".kchapter" in the project's folder. Opened again, that file was converted as an
+    /// old RTF file and renamed to ".kchapter.bak", so its text is only there. All the
+    /// chapters added that way were saved under that one name: the backup holds the text
+    /// saved last by any of them. The backup is only read.
+    std::optional<QString> damagedChapterText(const QString& elementId);
+
     // =========================================================================
     // Reordering Operations (OpenSpec #00034 Phase D)
     // =========================================================================
@@ -447,6 +461,13 @@ private:
     /// @param element A chapter of the book
     /// @return true when the chapter's file changed (the manifest is to be saved)
     bool giveOwnChapterFile(BookElement& element);
+
+    /// @brief Undo giveOwnChapterFile() when the chapter or the manifest was not saved
+    /// @param element The chapter
+    /// @param oldFile The chapter's file before giveOwnChapterFile()
+    ///
+    /// The new file is removed and the chapter keeps the file the manifest names.
+    void keepOldChapterFile(BookElement& element, const std::filesystem::path& oldFile);
 
     /// @brief Validate existing project folder structure
     /// @param projectPath Root path of the project

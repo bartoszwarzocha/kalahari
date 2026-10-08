@@ -195,6 +195,16 @@ private:
     /// @brief Refresh navigator with current document
     void refreshNavigator();
 
+    /// @brief Mark an open chapter as changed: a "*" in its tab and in the Navigator
+    /// @param elementId The chapter
+    /// @param editor The chapter's tab
+    void markChapterModified(const QString& elementId, EditorPanel* editor);
+
+    /// @brief Ask whether to load the text of a damaged chapter from its backup
+    /// @param chapterTitle The chapter's title
+    /// @return true when the user chose to load it
+    bool askToRecoverChapterText(const QString& chapterTitle) const;
+
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
