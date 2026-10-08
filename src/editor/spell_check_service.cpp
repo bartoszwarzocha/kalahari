@@ -4,6 +4,7 @@
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/resource_paths.h>
 
 #include <hunspell/hunspell.hxx>
 
@@ -168,6 +169,36 @@ QStringList SpellCheckService::availableDictionaries() const
 
     dictionaries.sort();
     return dictionaries;
+}
+
+QString SpellCheckService::dictionaryFor(const QString& language) const
+{
+    const QStringList dictionaries = availableDictionaries();
+    QString code = language.trimmed();
+    code.replace('-', '_');
+    if (code.isEmpty()) {
+        return QString();
+    }
+
+    // A full code such as pl_PL or en_GB names the dictionary itself
+    for (const QString& dictionary : dictionaries) {
+        if (dictionary.compare(code, Qt::CaseInsensitive) == 0) {
+            return dictionary;
+        }
+    }
+
+    // A language such as "pl" or "en": its main dictionary (pl_PL, en_US), else any of it
+    const QString lang = code.section('_', 0, 0).toLower();
+    QString mainDictionary = lang + '_' + (lang == QLatin1String("en") ? QStringLiteral("US") : lang.toUpper());
+    if (dictionaries.contains(mainDictionary)) {
+        return mainDictionary;
+    }
+    for (const QString& dictionary : dictionaries) {
+        if (dictionary.section('_', 0, 0).compare(lang, Qt::CaseInsensitive) == 0) {
+            return dictionary;
+        }
+    }
+    return QString();
 }
 
 QString SpellCheckService::currentLanguage() const
@@ -438,6 +469,16 @@ bool SpellCheckService::initHunspell(const QString& affPath, const QString& dicP
                                           dicPath.toLocal8Bit().constData());
         m_hunspell = hunspell;
 
+        // Words go to Hunspell as UTF-8, so a dictionary in another encoding misses every
+        // word with a non-ASCII letter (the dictionaries shipped in resources are UTF-8)
+        const std::string encoding = hunspell->get_dict_encoding();
+        if (encoding != "UTF-8") {
+            core::Logger::getInstance().warn(
+                "SpellCheckService: Dictionary {} is in {}, not UTF-8; words with accented "
+                "letters will be reported as misspelled",
+                affPath.toStdString(), encoding);
+        }
+
         core::Logger::getInstance().debug("SpellCheckService: Hunspell initialized (aff: {}, dic: {})",
                                           affPath.toStdString(), dicPath.toStdString());
         return true;
@@ -480,7 +521,13 @@ QStringList SpellCheckService::getSystemDictionaryPaths() const
 {
     QStringList paths;
 
-    // 1. Application directory: ./dictionaries/
+    // 1. The dictionaries shipped with Kalahari, in its resources
+    const QString resourcesDir = core::ResourcePaths::getInstance().getResourcesDir();
+    if (!resourcesDir.isEmpty()) {
+        paths.append(resourcesDir + "/dictionaries");
+    }
+
+    // Application directory: ./dictionaries/
     QString appDir = QCoreApplication::applicationDirPath();
     paths.append(appDir + "/dictionaries");
     paths.append(appDir + "/resources/dictionaries");
