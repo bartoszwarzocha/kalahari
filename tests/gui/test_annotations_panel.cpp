@@ -15,10 +15,13 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QGuiApplication>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QTabWidget>
 #include <QTextDocument>
 #include <QTimeZone>
+#include <QVBoxLayout>
 
 #include <memory>
 #include <string>
@@ -287,6 +290,42 @@ TEST_CASE("Annotations panel: keys go through the cards and delete the selected 
     CHECK(panel.selectedKey() == entries[0].key());
 }
 
+TEST_CASE("Annotations panel: a card is edited on purpose, not when the focus passes by",
+          "[gui][annotations]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen");
+    }
+    // The panel, then a field, then a card: in the focus chain the card comes right after
+    // the field, as the cards listed after an editor was opened come after the editor
+    QWidget window;
+    auto* layout = new QVBoxLayout(&window);
+    auto* panel = new AnnotationsPanel(&window);
+    auto* field = new QLineEdit(&window);
+    layout->addWidget(field);
+    layout->addWidget(panel);
+    const AnnotationEntry entry =
+        entryOf(QStringLiteral("a"), AnnotationKind::Comment, QStringLiteral("One"));
+    panel->setEntries({entry});
+    window.show();
+    window.activateWindow();
+    REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    field->setFocus();
+    REQUIRE(field->hasFocus());
+    int started = 0;
+    QObject::connect(panel, &AnnotationsPanel::editingStarted,
+                     [&started](const AnnotationEntry&) { ++started; });
+
+    // As when another tab comes to the front: the focus goes on from the hidden field
+    field->hide();
+    CHECK(started == 0);
+    CHECK_FALSE(panel->card(entry.key())->isEditing());
+
+    // Asked for, the editing starts
+    panel->editAnnotation(entry.key());
+    CHECK(started == 1);
+    CHECK(panel->card(entry.key())->isEditing());
+}
+
 // =============================================================================
 // The commands and the panel with a document
 // =============================================================================
@@ -420,6 +459,37 @@ TEST_CASE("Annotations: the next and previous TODO, with their cards selected",
     CHECK_FALSE(desk.coordinator->goToNextTodo());
     REQUIRE(desk.coordinator->goToPreviousTodo());
     CHECK(desk.panel.selectedKey() == desk.entry(QStringLiteral("t1")).key());
+}
+
+TEST_CASE("Annotations: the tab of a chapter behind comes to the front for its annotation",
+          "[gui][annotations]") {
+    Desk desk(test::kmlOf({QStringLiteral("One two")}));
+    auto* chapter = new EditorPanel();
+    chapter->setContent(kmlWith(record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")),
+                                {QStringLiteral("Three <anchor ref=\"t1\">four</anchor>")}));
+    chapter->setProperty("elementId", QStringLiteral("ch-2"));
+    desk.tabs.addTab(chapter, QStringLiteral("Chapter Two"));
+    REQUIRE(desk.tabs.currentIndex() == 0);
+    editor::BookEditor& chapterEditor = *chapter->getBookEditor();
+
+    // Its entry as the list of the whole book has it
+    AnnotationEntry todo;
+    todo.annotation = chapterEditor.annotations().front().annotation;
+    todo.elementId = QStringLiteral("ch-2");
+
+    SECTION("gone to: its fragment is selected in front") {
+        emit desk.panel.annotationActivated(todo);
+        CHECK(desk.tabs.currentWidget() == chapter);
+        CHECK(chapterEditor.selection().normalized().start == editor::CursorPosition{0, 6});
+        CHECK(chapterEditor.selection().normalized().end == editor::CursorPosition{0, 10});
+    }
+
+    SECTION("changed: in front, where Ctrl+Z undoes the change") {
+        emit desk.panel.doneToggled(todo, true);
+        CHECK(desk.tabs.currentWidget() == chapter);
+        CHECK(chapterEditor.annotations().front().annotation.done);
+        CHECK(chapterEditor.canUndo());
+    }
 }
 
 TEST_CASE("Annotations: the commands work on the document in front", "[gui][annotations]") {

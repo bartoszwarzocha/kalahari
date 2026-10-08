@@ -40,8 +40,9 @@ class EditorPanel;
 /// Lists in the panel the annotations of the document in front, or of the whole book.
 /// What the writer does in the panel goes to the document: the text typed in a card,
 /// done or resolved, removing. Each of those is a step of the document's undo history, and
-/// the text typed in a card is one step. An annotation of a chapter that is not open is
-/// changed after its chapter is opened, so its undo history has the change.
+/// the text typed in a card is one step. An annotation of a chapter not in front is gone to
+/// or changed after its chapter's tab is brought to the front (the chapter opened when it is
+/// not): the writer sees the change, and Ctrl+Z undoes it in that chapter.
 class AnnotationsCoordinator : public QObject {
     Q_OBJECT
 
@@ -134,10 +135,13 @@ private:
     QString elementIdOf(const EditorPanel* panel) const;
     QString titleOf(const EditorPanel* panel) const;
 
+    /// @brief The panel of a chapter's open tab (empty id: the document in front)
+    EditorPanel* openPanel(const QString& elementId) const;
+
     /// @brief The editor of a chapter's open tab (empty id: the document in front)
     editor::BookEditor* openEditor(const QString& elementId) const;
 
-    /// @brief The editor of a chapter, opened when it is not
+    /// @brief The editor of a chapter, its tab brought to the front (opened when it is not)
     editor::BookEditor* editorFor(const QString& elementId);
 
     /// @brief The book's chapters in order, with their annotations

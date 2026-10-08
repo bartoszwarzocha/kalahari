@@ -387,22 +387,29 @@ QString AnnotationsCoordinator::titleOf(const EditorPanel* panel) const {
     return title;
 }
 
-editor::BookEditor* AnnotationsCoordinator::openEditor(const QString& elementId) const {
+EditorPanel* AnnotationsCoordinator::openPanel(const QString& elementId) const {
     if (elementId.isEmpty()) {
-        return currentEditor();
+        return currentEditorPanel();
     }
     for (int i = 0; i < m_centralTabs->count(); ++i) {
         auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
         if (panel != nullptr && elementIdOf(panel) == elementId) {
-            return panel->getBookEditor();
+            return panel;
         }
     }
     return nullptr;
 }
 
+editor::BookEditor* AnnotationsCoordinator::openEditor(const QString& elementId) const {
+    EditorPanel* panel = openPanel(elementId);
+    return panel != nullptr ? panel->getBookEditor() : nullptr;
+}
+
 editor::BookEditor* AnnotationsCoordinator::editorFor(const QString& elementId) {
-    if (editor::BookEditor* editor = openEditor(elementId)) {
-        return editor;
+    if (EditorPanel* panel = openPanel(elementId)) {
+        // Its tab in front: what is done there is seen, and Ctrl+Z undoes it there
+        m_centralTabs->setCurrentWidget(panel);
+        return panel->getBookEditor();
     }
     if (elementId.isEmpty() || !m_openChapter) {
         return nullptr;
@@ -541,9 +548,9 @@ void AnnotationsCoordinator::onEditingStarted(const AnnotationEntry& entry) {
     }
     finishSession();
 
-    // An annotation of a chapter not open is edited after its chapter is opened, so the
-    // chapter's undo history has the change
-    const bool open = openEditor(entry.elementId) != nullptr;
+    // An annotation of a chapter not in front is edited after its chapter is brought to the
+    // front (opened when it is not), so the chapter's undo history has the change
+    const editor::BookEditor* inFront = currentEditor();
     editor::BookEditor* editor = editorFor(entry.elementId);
     if (editor == nullptr) {
         return;
@@ -551,8 +558,8 @@ void AnnotationsCoordinator::onEditingStarted(const AnnotationEntry& entry) {
     editor->goToAnnotation(entry.annotation.id);
     startSession(key, entry.annotation.id, editor, false);
 
-    // Opening the chapter may have taken the keys from the card: they go back to it
-    if (!open) {
+    // Bringing the chapter to the front may have taken the keys from the card: they go back
+    if (editor != inFront) {
         QTimer::singleShot(0, this, [this, key]() {
             if (const AnnotationCard* card = m_panel->card(key);
                 card == nullptr || !card->isEditing()) {

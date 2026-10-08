@@ -112,6 +112,9 @@ AnnotationCard::AnnotationCard(QWidget* parent)
     m_textEdit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_textEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     m_textEdit->setTabChangesFocus(true);
+    // Edited when clicked or asked for (Enter on the card), not when the focus passes on to
+    // it, as from an editor whose tab goes behind another
+    m_textEdit->setFocusPolicy(Qt::ClickFocus);
     m_textEdit->viewport()->setAutoFillBackground(false);  // the card's background
     m_textEdit->document()->setDocumentMargin(0);
     m_textEdit->setPlaceholderText(tr("Type the annotation..."));
