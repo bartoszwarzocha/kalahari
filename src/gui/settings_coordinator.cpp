@@ -172,8 +172,6 @@ SettingsData SettingsCoordinator::collectCurrentSettings() const {
     settingsData.cursorLineWidth = settings.get<int>("editor.cursor.lineWidth");
 
     // Editor/Margins
-    settingsData.viewMarginHorizontal = static_cast<int>(settings.get<double>("editor.margins.viewHorizontal"));
-    settingsData.viewMarginVertical = static_cast<int>(settings.get<double>("editor.margins.viewVertical"));
     settingsData.pageMarginTop = settings.get<double>("editor.margins.pageTop");
     settingsData.pageMarginBottom = settings.get<double>("editor.margins.pageBottom");
     settingsData.pageMarginLeft = settings.get<double>("editor.margins.pageLeft");

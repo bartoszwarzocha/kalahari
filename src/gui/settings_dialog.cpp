@@ -135,8 +135,6 @@ SettingsDialog::SettingsDialog(QWidget* parent, const SettingsData& currentSetti
     , m_cursorLineWidthSpinBox(nullptr)
     , m_cursorLineWidthLabel(nullptr)
     // Margin settings
-    , m_viewMarginHorizontalSpinBox(nullptr)
-    , m_viewMarginVerticalSpinBox(nullptr)
     , m_pageMarginTopSpinBox(nullptr)
     , m_pageMarginBottomSpinBox(nullptr)
     , m_pageMarginLeftSpinBox(nullptr)
@@ -1281,44 +1279,15 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
 
     // Info label
     QLabel* infoLabel = new QLabel(
-        tr("Configure the page format, the margins of the editor views and the text frame border.")
+        tr("Configure the page format, the page margins and the text frame border.")
     );
     infoLabel->setWordWrap(true);
     layout->addWidget(infoLabel);
 
     // ========================================================================
-    // View Margins group (for Continuous/Focus views)
+    // Page group (every view: the continuous views show one endless page)
     // ========================================================================
-    QGroupBox* viewMarginsGroup = new QGroupBox(tr("View Margins (Continuous/Focus)"));
-    QGridLayout* viewMarginsGrid = new QGridLayout(viewMarginsGroup);
-
-    QLabel* viewMarginHorizontalLabel = new QLabel(tr("Horizontal:"));
-    viewMarginHorizontalLabel->setToolTip(tr("Left and right margin for continuous editor views"));
-    m_viewMarginHorizontalSpinBox = new QSpinBox();
-    m_viewMarginHorizontalSpinBox->setRange(0, 200);
-    m_viewMarginHorizontalSpinBox->setValue(50);
-    m_viewMarginHorizontalSpinBox->setSuffix(tr(" px"));
-    m_viewMarginHorizontalSpinBox->setToolTip(tr("Horizontal margin in pixels (0-200)"));
-    viewMarginsGrid->addWidget(viewMarginHorizontalLabel, 0, 0);
-    viewMarginsGrid->addWidget(m_viewMarginHorizontalSpinBox, 0, 1);
-
-    QLabel* viewMarginVerticalLabel = new QLabel(tr("Vertical:"));
-    viewMarginVerticalLabel->setToolTip(tr("Top and bottom margin for continuous editor views"));
-    m_viewMarginVerticalSpinBox = new QSpinBox();
-    m_viewMarginVerticalSpinBox->setRange(0, 200);
-    m_viewMarginVerticalSpinBox->setValue(30);
-    m_viewMarginVerticalSpinBox->setSuffix(tr(" px"));
-    m_viewMarginVerticalSpinBox->setToolTip(tr("Vertical margin in pixels (0-200)"));
-    viewMarginsGrid->addWidget(viewMarginVerticalLabel, 1, 0);
-    viewMarginsGrid->addWidget(m_viewMarginVerticalSpinBox, 1, 1);
-
-    viewMarginsGrid->setColumnStretch(1, 1);
-    layout->addWidget(viewMarginsGroup);
-
-    // ========================================================================
-    // Page group (Page Layout view)
-    // ========================================================================
-    QGroupBox* pageGroup = new QGroupBox(tr("Page (Page Layout)"));
+    QGroupBox* pageGroup = new QGroupBox(tr("Page"));
     QGridLayout* pageGrid = new QGridLayout(pageGroup);
 
     QLabel* pageSizeLabel = new QLabel(tr("Format:"));
@@ -1371,9 +1340,9 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
     layout->addWidget(pageGroup);
 
     // ========================================================================
-    // Page Margins group (Page Layout view)
+    // Page Margins group (every view)
     // ========================================================================
-    QGroupBox* pageMarginsGroup = new QGroupBox(tr("Page Margins (Page Layout)"));
+    QGroupBox* pageMarginsGroup = new QGroupBox(tr("Page Margins"));
     QGridLayout* pageMarginsGrid = new QGridLayout(pageMarginsGroup);
     int row = 0;
 
@@ -2098,8 +2067,6 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_cursorLineWidthSpinBox->setVisible(isLineStyle);
 
     // Editor/Margins
-    m_viewMarginHorizontalSpinBox->setValue(settings.viewMarginHorizontal);
-    m_viewMarginVerticalSpinBox->setValue(settings.viewMarginVertical);
     m_pageMarginTopSpinBox->setValue(settings.pageMarginTop);
     m_pageMarginBottomSpinBox->setValue(settings.pageMarginBottom);
     m_pageMarginLeftSpinBox->setValue(settings.pageMarginLeft);
@@ -2255,8 +2222,6 @@ SettingsData SettingsDialog::collectSettings() const {
     settingsData.cursorLineWidth = m_cursorLineWidthSpinBox->value();
 
     // Editor/Margins
-    settingsData.viewMarginHorizontal = m_viewMarginHorizontalSpinBox->value();
-    settingsData.viewMarginVertical = m_viewMarginVerticalSpinBox->value();
     settingsData.pageMarginTop = m_pageMarginTopSpinBox->value();
     settingsData.pageMarginBottom = m_pageMarginBottomSpinBox->value();
     settingsData.pageMarginLeft = m_pageMarginLeftSpinBox->value();
@@ -2482,10 +2447,6 @@ void SettingsDialog::applySettings(const SettingsData& settings) {
     setIfChanged("editor.cursor.lineWidth", settings.cursorLineWidth, original.cursorLineWidth);
 
     // Editor/Margins
-    setIfChanged("editor.margins.viewHorizontal", static_cast<double>(settings.viewMarginHorizontal),
-                 static_cast<double>(original.viewMarginHorizontal));
-    setIfChanged("editor.margins.viewVertical", static_cast<double>(settings.viewMarginVertical),
-                 static_cast<double>(original.viewMarginVertical));
     setIfChanged("editor.margins.pageTop", settings.pageMarginTop, original.pageMarginTop);
     setIfChanged("editor.margins.pageBottom", settings.pageMarginBottom, original.pageMarginBottom);
     setIfChanged("editor.margins.pageLeft", settings.pageMarginLeft, original.pageMarginLeft);

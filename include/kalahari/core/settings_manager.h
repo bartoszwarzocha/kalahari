@@ -324,7 +324,7 @@ private:
     /// @return JSON pointer like "/window/width"
     std::string keyToJsonPointer(const std::string& key) const;
 
-    /// @brief Bring settings from versions before 1.2 up to date
+    /// @brief Bring settings from versions before 1.3 up to date
     /// Moves ui.theme -> appearance.theme and removes keys nothing reads
     void migrateToCurrentVersion();
 
