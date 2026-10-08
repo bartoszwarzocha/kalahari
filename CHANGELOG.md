@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   settings.json with the other settings, not in a second store (the registry on Windows).
   The first start after the update moves the saved values over, so the window keeps its
   layout.
+- **CI: tests on the Qt version the program ships with** - 2026-10-08. The Linux build
+  and tests use Qt 6.9.1, like the Windows and macOS builds; the Sanitizers job keeps
+  Ubuntu's Qt 6.4, the oldest supported version (now declared as the minimum). The Linux
+  build also measures the editor on a 150k-word chapter and shows the table in the run's
+  summary, without failing the build.
 
 - **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
   Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
