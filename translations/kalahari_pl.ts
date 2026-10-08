@@ -469,7 +469,7 @@
     </message>
     <message>
         <source>Editor</source>
-        <translation>Edytor</translation>
+        <translation>Redaktor</translation>
     </message>
     <message>
         <source>Researcher</source>
