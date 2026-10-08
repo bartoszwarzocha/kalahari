@@ -563,6 +563,34 @@
         <source>About Kalahari</source>
         <translation>O programie Kalahari</translation>
     </message>
+    <message>
+        <source>Add Annotation...</source>
+        <translation>Dodaj uwagę...</translation>
+    </message>
+    <message>
+        <source>Add Comment</source>
+        <translation>Dodaj komentarz</translation>
+    </message>
+    <message>
+        <source>Add TODO</source>
+        <translation>Dodaj TODO</translation>
+    </message>
+    <message>
+        <source>Add Note</source>
+        <translation>Dodaj notatkę</translation>
+    </message>
+    <message>
+        <source>Next TODO</source>
+        <translation>Następne TODO</translation>
+    </message>
+    <message>
+        <source>Previous TODO</source>
+        <translation>Poprzednie TODO</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
+    </message>
 </context>
 <context>
     <name>QLineEdit</name>
@@ -824,6 +852,10 @@ Restart now?</source>
         <translation>Nowy język zacznie działać po ponownym uruchomieniu programu Kalahari.
 
 Uruchomić ponownie teraz?</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
     </message>
 </context>
 <context>
@@ -1566,6 +1598,167 @@ Use the log panel toolbar buttons to:
 • Copy log contents to clipboard
 • Clear the log panel display</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AnnotationCard</name>
+    <message>
+        <source>Done</source>
+        <translation>Zrobione</translation>
+    </message>
+    <message>
+        <source>More</source>
+        <translation>Więcej</translation>
+    </message>
+    <message>
+        <source>Type the annotation...</source>
+        <translation>Wpisz treść uwagi...</translation>
+    </message>
+    <message>
+        <source>Comment (resolved)</source>
+        <translation>Komentarz (rozwiązany)</translation>
+    </message>
+    <message>
+        <source>Comment</source>
+        <translation>Komentarz</translation>
+    </message>
+    <message>
+        <source>TODO</source>
+        <translation>TODO</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>dd.MM</source>
+        <translation>dd.MM</translation>
+    </message>
+    <message>
+        <source>dd.MM.yyyy</source>
+        <translation>dd.MM.yyyy</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Restore</source>
+        <translation>Przywróć</translation>
+    </message>
+    <message>
+        <source>Mark as Done</source>
+        <translation>Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>Mark as Resolved</source>
+        <translation>Oznacz jako rozwiązany</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AnnotationsCoordinator</name>
+    <message>
+        <source>&amp;Comment</source>
+        <translation>&amp;Komentarz</translation>
+    </message>
+    <message>
+        <source>&amp;TODO</source>
+        <translation>&amp;TODO</translation>
+    </message>
+    <message>
+        <source>&amp;Note</source>
+        <translation>&amp;Notatka</translation>
+    </message>
+    <message>
+        <source>No TODO after the cursor</source>
+        <translation>Brak TODO za kursorem</translation>
+    </message>
+    <message>
+        <source>No TODO before the cursor</source>
+        <translation>Brak TODO przed kursorem</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AnnotationsPanel</name>
+    <message>
+        <source>Search the annotations...</source>
+        <translation>Szukaj w uwagach...</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Otwarte</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Zrobione</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Chapter</source>
+        <translation>Rozdział</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Date: any</source>
+        <translation>Data: dowolna</translation>
+    </message>
+    <message>
+        <source>Date: today</source>
+        <translation>Data: dziś</translation>
+    </message>
+    <message>
+        <source>Date: last 7 days</source>
+        <translation>Data: ostatnie 7 dni</translation>
+    </message>
+    <message>
+        <source>Date: last 30 days</source>
+        <translation>Data: ostatnie 30 dni</translation>
+    </message>
+    <message>
+        <source>Sort: text order</source>
+        <translation>Kolejność: jak w tekście</translation>
+    </message>
+    <message>
+        <source>Sort: newest first</source>
+        <translation>Kolejność: od najnowszych</translation>
+    </message>
+    <message>
+        <source>Comments %1</source>
+        <translation>Komentarze %1</translation>
+    </message>
+    <message>
+        <source>TODO %1</source>
+        <translation>TODO %1</translation>
+    </message>
+    <message>
+        <source>Notes %1</source>
+        <translation>Notatki %1</translation>
+    </message>
+    <message>
+        <source>Open a chapter to see its annotations.</source>
+        <translation>Otwórz rozdział, aby zobaczyć jego uwagi.</translation>
+    </message>
+    <message>
+        <source>The book has no annotations.</source>
+        <translation>Książka nie ma uwag.</translation>
+    </message>
+    <message>
+        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a TODO or a note from the context menu.</source>
+        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, TODO lub notatkę z menu podręcznego.</translation>
+    </message>
+    <message>
+        <source>No annotation matches the filters.</source>
+        <translation>Żadna uwaga nie pasuje do filtrów.</translation>
     </message>
 </context>
 <context>
