@@ -75,7 +75,7 @@ struct GrammarError {
 /// @brief Grammar checking service using LanguageTool API
 ///
 /// Provides asynchronous grammar checking for KML documents using the
-/// LanguageTool REST API (public or local server). Integrates with the
+/// LanguageTool REST API of a server the user runs, usually a local one. Integrates with the
 /// document observer pattern for real-time checking as the user types.
 ///
 /// Usage:
@@ -89,10 +89,10 @@ struct GrammarError {
 ///         this, &MyEditor::onGrammarErrors);
 /// @endcode
 ///
-/// Rate Limiting:
-/// The public LanguageTool API has rate limits. This service implements
-/// request queuing and rate limiting to avoid API abuse. For high-volume
-/// usage, consider setting up a local LanguageTool server.
+/// Server:
+/// Nothing is checked until a server is set (setApiEndpoint() or the setting
+/// "editor.grammarCheck.serverUrl"); there is no built-in public address.
+/// Requests are queued and rate limited.
 class GrammarCheckService : public QObject {
     Q_OBJECT
 
@@ -125,9 +125,11 @@ public:
     /// @return Language code
     QString language() const;
 
-    /// @brief Set custom API endpoint (for local LanguageTool server)
-    /// @param url API endpoint URL (e.g., "http://localhost:8081/v2/check")
-    /// @note Default is "https://api.languagetool.org/v2/check"
+    /// @brief Set the LanguageTool server to send the text to
+    /// @param url The server ("http://localhost:8081") or its check endpoint
+    ///            ("http://localhost:8081/v2/check"); empty for none
+    /// @note There is no built-in server: the text of the book never leaves the computer
+    ///       unless the user sets one. The constructor reads "editor.grammarCheck.serverUrl".
     void setApiEndpoint(const QString& url);
 
     /// @brief Get current API endpoint
@@ -141,6 +143,12 @@ public:
     /// @brief Check if grammar checking is enabled
     /// @return true if enabled
     bool isEnabled() const;
+
+    /// @brief Whether a LanguageTool server is set (an http or https address)
+    bool isConfigured() const;
+
+    /// @brief Whether text is checked: enabled and a server is set
+    bool isActive() const;
 
     // =========================================================================
     // Checking
@@ -295,7 +303,7 @@ private:
     QNetworkAccessManager* m_networkManager{nullptr};
 
     QString m_language{"en-US"};
-    QString m_apiEndpoint{"https://api.languagetool.org/v2/check"};
+    QString m_apiEndpoint;  ///< Empty: no server, nothing is checked or sent
     bool m_enabled{true};
 
     // Debounce timer for background checking
