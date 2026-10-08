@@ -36,7 +36,8 @@ class EditorPanel;
 /// control, and persists toolbar state (positions and visibility) across sessions.
 ///
 /// Features:
-/// - Multiple toolbars (File, Edit, Book, View, Tools)
+/// - Multiple toolbars (Quick Actions, Edit, Format, Insert, Book, Styles, Views, Tools,
+///   Help, File, Panels)
 /// - Icon-based toolbar buttons (24x24 icons)
 /// - View menu integration (toggle visibility)
 /// - State persistence via QSettings
@@ -78,15 +79,17 @@ public:
 
     /// @brief Create all toolbars from configuration
     ///
-    /// Creates 6 toolbars (File, Edit, Book, View, Tools) and adds them to MainWindow.
+    /// Creates the built-in toolbars and the user toolbars and adds them to MainWindow.
     /// Each toolbar is configured with commands from CommandRegistry.
     ///
-    /// Toolbar structure:
+    /// Toolbar structure (built-in toolbars, among others):
     /// - File: New, Open, Save, SaveAs, Close
     /// - Edit: Undo, Redo, [SEP], Cut, Copy, Paste, SelectAll
     /// - Book: NewChapter, NewCharacter, NewLocation, BookProperties
-    /// - View: Navigator, Properties, Search, Assistant, Log (panel toggles)
-    /// - Tools: Spellcheck, WordCount, FocusMode
+    /// - Views: Continuous, Page Layout, Distraction-Free, [SEP], Focus, Typewriter Scrolling,
+    ///   Dark Paper, [SEP], Zoom Out, Zoom In, Zoom 100%
+    /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
+    /// - Tools: Spellcheck, WordCount
     ///
     /// @param registry CommandRegistry to retrieve commands from
     /// @note Must be called after CommandRegistry::registerCommand()
@@ -95,7 +98,7 @@ public:
 
     /// @brief Get toolbar by ID
     ///
-    /// @param id Toolbar ID ("file", "edit", "book", "view", "tools")
+    /// @param id Toolbar ID ("file", "edit", "book", "views", "view", "tools", ...)
     /// @return QToolBar pointer or nullptr if not found
     QToolBar* getToolbar(const std::string& id);
 

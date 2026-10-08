@@ -167,6 +167,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Views toolbar** - 2026-10-07
+  - A toolbar in the second row switches the view (Continuous, Page Layout,
+    Distraction-Free), turns Focus, Typewriter Scrolling and Dark Paper on and off, and
+    zooms (Zoom Out, Zoom In, Zoom 100%). Its buttons are the View menu's commands, so a
+    button is checked when its menu item is. It shows up also for a window layout saved
+    before it existed, and View > Toolbars hides it.
+  - View > Dark Paper switches the paper of every editor between light and dark, like the
+    editor's context menu, and is remembered; its icon is a square halved corner to corner.
+    The check mark follows the paper however it changes (the context menu, the Settings
+    dialog).
+  - The toolbar of panel toggles (hidden by default) is called Panels Toolbar; the
+    toolbar names in View > Toolbars and in the Toolbar Manager are translated.
+  - Tools > Focus Mode is gone: its three commands did nothing and repeated View > Focus
+    and the Distraction-Free view.
+
 - **UI translations** - 2026-10-06
   - The language chosen in Settings (English or Polski) is applied at the next start.
     Translations live in `translations/kalahari_pl.ts` and are embedded in the program.

@@ -82,6 +82,7 @@ struct CommandCallbacks {
     std::function<void()> onViewModePage;       ///< View > View Mode > Page Layout
     std::function<void()> onTypewriterToggle;   ///< View > Typewriter Scrolling
     std::function<void()> onFocusToggle;        ///< View > Focus
+    std::function<void()> onDarkPaperToggle;    ///< View > Dark Paper
     std::function<void()> onViewModeDistFree;   ///< View > View Mode > Distraction-Free
 
     // Zoom (the editor in front)

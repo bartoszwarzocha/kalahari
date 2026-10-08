@@ -51,7 +51,7 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
     // Initialize built-in toolbar IDs
     // OpenSpec #00037: Added quickActions, insert, styles, help toolbars
     m_builtInToolbarIds << "file" << "edit" << "book" << "quickActions"
-                        << "format" << "insert" << "styles" << "view" << "tools" << "help";
+                        << "format" << "insert" << "styles" << "views" << "view" << "tools" << "help";
 
     setupUI();
     createConnections();

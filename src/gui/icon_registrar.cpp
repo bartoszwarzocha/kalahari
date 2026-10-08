@@ -122,9 +122,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.stats.wordCount", "resources/icons/twotone/label.svg", "Word Count");
     iconRegistry.registerIcon("tools.spellcheck", "resources/icons/twotone/spellcheck.svg", "Spellcheck");
     iconRegistry.registerIcon("tools.grammar", "resources/icons/twotone/grading.svg", "Grammar Check");
-    iconRegistry.registerIcon("tools.focus.normal", "resources/icons/twotone/visibility.svg", "Normal Mode");
-    iconRegistry.registerIcon("tools.focus.focused", "resources/icons/twotone/center_focus_strong.svg", "Focus Mode");
-    iconRegistry.registerIcon("tools.focus.distractionFree", "resources/icons/twotone/fullscreen.svg", "Distraction Free");
     iconRegistry.registerIcon("tools.backupNow", "resources/icons/twotone/backup.svg", "Backup Now");
     iconRegistry.registerIcon("tools.autoSaveSettings", "resources/icons/twotone/sync.svg", "Auto-Save Settings");
     iconRegistry.registerIcon("tools.versionHistory", "resources/icons/twotone/history.svg", "Version History");
@@ -176,7 +173,12 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.resetZoom", "resources/icons/twotone/fit_screen.svg", "Reset Zoom");
     iconRegistry.registerIcon("view.zoomPageWidth", "resources/icons/twotone/swap_horiz.svg", "Page Width");
     iconRegistry.registerIcon("view.zoomWholePage", "resources/icons/twotone/zoom_out_map.svg", "Whole Page");
+    iconRegistry.registerIcon("view.mode.continuous", "resources/icons/twotone/view_headline.svg", "Continuous");
+    iconRegistry.registerIcon("view.mode.page", "resources/icons/twotone/text_snippet.svg", "Page Layout");
+    iconRegistry.registerIcon("view.mode.distraction-free", "resources/icons/twotone/edit_note.svg", "Distraction-Free");
+    iconRegistry.registerIcon("view.focus", "resources/icons/twotone/center_focus_strong.svg", "Focus");
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
+    iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
