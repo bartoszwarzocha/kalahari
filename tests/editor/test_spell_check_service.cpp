@@ -165,6 +165,58 @@ TEST_CASE("SpellCheckService dictionary loading", "[editor][spell_check]") {
 }
 
 // ============================================================================
+// Dictionaries shipped with Kalahari (resources/dictionaries)
+// ============================================================================
+
+TEST_CASE("SpellCheckService finds the shipped dictionaries", "[editor][spell_check]") {
+    SpellCheckService service;
+    const QStringList dicts = service.availableDictionaries();
+    REQUIRE(dicts.contains("pl_PL"));
+    REQUIRE(dicts.contains("en_US"));
+
+    SECTION("a language picks its main dictionary") {
+        REQUIRE(service.dictionaryFor("pl") == "pl_PL");
+        REQUIRE(service.dictionaryFor("en") == "en_US");
+        REQUIRE(service.dictionaryFor("pl-PL") == "pl_PL");
+        REQUIRE(service.dictionaryFor("en_US") == "en_US");
+    }
+
+    SECTION("a language without a dictionary has none") {
+        REQUIRE(service.dictionaryFor("xx").isEmpty());
+        REQUIRE(service.dictionaryFor("").isEmpty());
+    }
+}
+
+TEST_CASE("SpellCheckService checks Polish with the shipped dictionary", "[editor][spell_check]") {
+    SpellCheckService service;
+    REQUIRE(service.loadDictionary("pl_PL"));
+
+    // Words with Polish letters: the dictionary is UTF-8, like the text
+    REQUIRE(service.isCorrect(QStringLiteral("ksi\u0105\u017cka")));             // książka
+    REQUIRE(service.isCorrect(QStringLiteral("\u017b\u00f3\u0142w")));          // Żółw
+    REQUIRE(service.isCorrect(QStringLiteral("nies\u0142ychanie")));            // niesłychanie
+    REQUIRE_FALSE(service.isCorrect(QStringLiteral("ksi\u0105rzka")));          // książka misspelled
+
+    const QStringList suggestions = service.suggestions(QStringLiteral("ksi\u0105rzka"));
+    REQUIRE(suggestions.contains(QStringLiteral("ksi\u0105\u017cka")));
+
+    const auto errors = service.checkParagraph(
+        QStringLiteral("Ta ksi\u0105\u017cka ma b\u0142\u0105d: ksi\u0105rzka."));
+    REQUIRE(errors.size() == 1);
+    REQUIRE(errors.first().word == QStringLiteral("ksi\u0105rzka"));
+}
+
+TEST_CASE("SpellCheckService checks English with the shipped dictionary", "[editor][spell_check]") {
+    SpellCheckService service;
+    REQUIRE(service.loadDictionary("en_US"));
+
+    REQUIRE(service.isCorrect("writer"));
+    REQUIRE(service.isCorrect("chapter"));
+    REQUIRE_FALSE(service.isCorrect("chaptre"));
+    REQUIRE(service.suggestions("chaptre").contains("chapter"));
+}
+
+// ============================================================================
 // Checking without dictionary
 // ============================================================================
 
