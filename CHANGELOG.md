@@ -197,6 +197,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **The old comment and TODO elements** - 2026-10-08. The `<comment>` and `<todo>` elements
+  of the KML, the TODO and note marker functions and the comments panel, which nothing
+  created, gave way to annotations. A chapter with those elements opens with their text,
+  without them.
 - **Editor: the unused old architecture** - 2026-10-06. The editor holds a chapter in one
   QTextDocument; the second document mode (a read-only view before the first edit), the
   older KML object model and parser, the old paragraph and table layout, the height tree,
@@ -208,6 +212,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Annotations: comments, TODOs and notes in the chapter** - 2026-10-08. The chapter file
+  keeps the writer's annotations in an `<annotations>` section, and the text marks where
+  each of them is: on a fragment or on a place (`docs/kml_format.md`). Editing keeps them
+  where they were put: text typed inside a fragment joins it, typed next to it does not;
+  deleted or replaced text leaves its annotations on its place; a new paragraph does not
+  take them. Cut, pasted or dropped text takes its annotations along, a pasted copy gets
+  copies of them, and undo brings back what an edit took.
 - **Spelling dictionaries** - 2026-10-08. Kalahari ships Polish (pl_PL) and English (en_US)
   Hunspell dictionaries in `resources/dictionaries`, so spell checking needs no
   dictionary installed on the computer (Windows has none). The Polish dictionary is

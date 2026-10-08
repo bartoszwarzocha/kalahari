@@ -114,13 +114,17 @@ QRect marginOf(BookEditor& editor, int paragraph) {
 
 TEST_CASE("Stage5 highlights: annotations in the KML leave the text as it is",
           "[editor][stage5][highlight]") {
-    // Comments, TODO markers and notes stay in the chapter (see the Stage0 KML tests) but
-    // are not drawn until their look is designed: no tint, underline or margin icon
+    // Comments, TODOs and notes stay in the chapter (see the annotation tests) but are not
+    // drawn until their look is designed: no tint, underline or margin icon
     auto annotated = editorWith(QStringLiteral(
-        "<kml><p>Start <comment id=\"c1\" author=\"A\">noted <b>text</b></comment> and "
-        "<todo id=\"t1\">fix this</todo> now</p>"
-        "<p><todo id=\"t2\" completed=\"true\">done</todo> <todo id=\"n1\" type=\"note\">aside</todo> "
-        "<comment id=\"c2\" resolved=\"true\">old</comment></p></kml>"));
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"A\">C</annotation>"
+        "<annotation id=\"t1\" kind=\"todo\">T</annotation>"
+        "<annotation id=\"t2\" kind=\"todo\" done=\"true\">D</annotation>"
+        "<annotation id=\"n1\" kind=\"note\">N</annotation>"
+        "<annotation id=\"c2\" kind=\"comment\" done=\"true\">R</annotation></annotations>"
+        "<p>Start <anchor ref=\"c1\">noted <b>text</b></anchor> and "
+        "<anchor ref=\"t1\">fix this</anchor> now<anchor ref=\"n1\"/></p>"
+        "<p><anchor ref=\"t2\">done</anchor> aside <anchor ref=\"c2\">old</anchor></p></kml>"));
     auto plain = editorWith(kmlOf({QStringLiteral("Start noted <b>text</b> and fix this now"),
                                    QStringLiteral("done aside old")}));
     REQUIRE(annotated->plainText() == plain->plainText());
@@ -253,7 +257,8 @@ TEST_CASE("Stage5 highlights: the word read aloud is highlighted", "[editor][sta
 
 TEST_CASE("Stage5 replace: the new content is one undo step", "[editor][stage5][replace]") {
     const QString first = QStringLiteral(
-        "<kml><p align=\"center\">First <b>version</b></p><p>with <todo id=\"t1\">two</todo> "
+        "<kml><annotations><annotation id=\"t1\" kind=\"todo\">Check</annotation></annotations>"
+        "<p align=\"center\">First <b>version</b></p><p>with <anchor ref=\"t1\">two</anchor> "
         "paragraphs</p></kml>");
     const QString second = QStringLiteral(
         "<kml><p>Second <i>version</i></p><p align=\"right\">of the</p><p>chapter</p></kml>");

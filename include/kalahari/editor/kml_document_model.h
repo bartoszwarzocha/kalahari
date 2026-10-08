@@ -1,14 +1,17 @@
 /// @file kml_document_model.h
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
-/// KmlDocumentModel reads KML into paragraphs: plain text, format runs (formatting and
-/// metadata as QTextCharFormat) and alignment. BookEditor builds its QTextDocument from
-/// it, both when loading a chapter and when pasting Kalahari content.
+/// KmlDocumentModel reads KML into paragraphs: plain text, format runs (formatting,
+/// metadata and annotations as QTextCharFormat) and alignment. BookEditor builds its
+/// QTextDocument from it, both when loading a chapter and when pasting Kalahari content.
 
 #pragma once
 
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/format_run.h>
 
+#include <QHash>
+#include <QSet>
 #include <QString>
 #include <QTextCharFormat>
 
@@ -74,13 +77,25 @@ public:
     ///         DEFAULT_PARAGRAPH_ALIGNMENT) or if index is out of range
     Qt::Alignment paragraphAlignment(size_t index) const;
 
+    /// @brief The annotations on the place where the paragraph starts
+    /// @param index Paragraph index (0-based)
+    /// @return Annotations on a place (the annotations inside the paragraph are in its
+    ///         format runs); none if index is out of range
+    AnnotationList paragraphStartAnnotations(size_t index) const;
+
 private:
     /// @brief Internal paragraph storage
     struct Paragraph {
         QString text;                           ///< Plain text content
-        std::vector<FormatRun> formats;         ///< Format runs within paragraph
+        std::vector<FormatRun> formats;         ///< Format runs within paragraph, in text order
         Qt::Alignment alignment;                ///< Own alignment (none: the default)
+        AnnotationList startAnnotations;        ///< Annotations on the paragraph's start
     };
+
+    /// @brief Read the <annotations> section: the annotations the anchors refer to
+    /// @param reader XML reader positioned at the section's start element; on return it is
+    ///               positioned at its end element
+    void parseAnnotations(QXmlStreamReader& reader);
 
     /// @brief Parse a paragraph element
     /// @param reader XML reader positioned at the paragraph's start element; on return it
@@ -90,19 +105,22 @@ private:
 
     /// @brief Parse inline content recursively
     /// @param reader XML reader positioned at content
-    /// @param text Output plain text (accumulated)
-    /// @param formats Output format runs (accumulated)
+    /// @param para Output paragraph: its text and format runs (accumulated)
     /// @param currentFormat Current active format
-    /// @param currentPos Current position in text
     /// @param endTag Tag name to stop at
     void parseInlineContent(QXmlStreamReader& reader,
-                            QString& text,
-                            std::vector<FormatRun>& formats,
+                            Paragraph& para,
                             QTextCharFormat currentFormat,
-                            size_t& currentPos,
                             const QString& endTag);
 
+    /// @brief Anchor an annotation to the place after the paragraph's text read so far
+    ///
+    /// It goes on the last character read, or on the paragraph's start.
+    static void anchorAfterText(Paragraph& para, const Annotation& annotation);
+
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
+    QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id
+    QSet<QString> m_anchoredIds;            ///< Ids of the annotations anchored in the text
 
     static const std::vector<FormatRun> s_emptyFormats;  ///< Empty format vector
 };

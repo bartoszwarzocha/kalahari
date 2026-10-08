@@ -319,12 +319,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "Footnote"), "INSERT/Footnote", 40, false, 1);
     REG_CMD("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "Endnote"), "INSERT/Endnote", 50, false, 1);
 
-    // OpenSpec #00042 Phase 7.9: Insert Comment - DISABLED (backend stubs only)
-    // REG_CMD_TOOL_ICON("insert.comment", QT_TRANSLATE_NOOP("CommandRegistrar", "Comment"), "INSERT/Comment", 60, false, 0,
-    //                   KeyboardShortcut(Qt::Key_C, Qt::ControlModifier | Qt::AltModifier),
-    //                   IconSet(),
-    //                   callbacks.onInsertComment);
-
     REG_CMD("insert.annotation", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation"), "INSERT/Annotation", 70, true, 1);
 
     REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "Special Character..."), "INSERT/Special Character...", 80, false, 1);

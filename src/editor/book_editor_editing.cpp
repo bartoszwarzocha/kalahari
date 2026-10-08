@@ -4,6 +4,7 @@
 #include <kalahari/editor/book_editor.h>
 #include "book_editor_internal.h"
 #include <kalahari/core/logger.h>
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_document_model.h>
@@ -92,12 +93,30 @@ void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
     cursor.endEditBlock();
 }
 
+/// @brief Insert text with annotations at the cursor, replacing its selection, as one edit
+/// block
+///
+/// The annotations of the replaced selection stay on its place, and the text joins the
+/// fragments of the place; its annotations the document already has come in as copies.
+void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
+    QTextDocument& document = *cursor.document();
+    cursor.beginEditBlock();
+    prepareForInsertion(content, document, removeForReplacement(cursor));
+
+    // The annotations on the start of the first paragraph go on the place of the text
+    const AnnotationList startPlaces = annotationsOf(content.firstBlock().charFormat());
+    const int place = cursor.position();
+    insertDocument(cursor, content);
+    anchorToPlace(document, place, startPlaces);
+    cursor.endEditBlock();
+}
+
 /// @brief Insert MIME data at the cursor, replacing its selection, as one edit block
 ///
-/// Kalahari content (KML) is parsed like a chapter file, so formatting and alignment
-/// survive; text from other programs takes the formatting of the insertion point. Only the
-/// document changes: the editor's cursor and view follow once the outermost edit block has
-/// ended. The cursor ends after the inserted text.
+/// Kalahari content (KML) is parsed like a chapter file, so formatting, alignment and
+/// annotations survive; text from other programs takes the formatting of the insertion
+/// point. Only the document changes: the editor's cursor and view follow once the outermost
+/// edit block has ended. The cursor ends after the inserted text.
 void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
     if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
         KmlDocumentModel model;
@@ -107,14 +126,14 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
             content.setUndoRedoEnabled(false);
             QTextCursor contentCursor(&content);
             appendParagraphs(contentCursor, model);
-            insertDocument(cursor, content);
+            insertAnnotatedDocument(cursor, content);
             return;
         }
         core::Logger::getInstance().warn("BookEditor: unreadable KML, inserting the text");
     }
 
     cursor.beginEditBlock();  // the replaced selection and the text: one undo step
-    cursor.insertText(pastedPlainText(source.text()));
+    insertKeepingAnnotations(cursor, pastedPlainText(source.text()));
     cursor.endEditBlock();
 }
 
@@ -132,19 +151,15 @@ void BookEditor::insertText(const QString& text)
 
     ensureDocument();
 
-    // Direct QTextCursor edit — recorded by QTextDocument's native undo.
-    QTextCursor cursor(m_textBuffer.get());
+    // Direct QTextCursor edit - recorded by QTextDocument's native undo: the replaced
+    // selection with the text as one step, typed text with the text typed before it
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        SelectionRange sel = m_selection.normalized();
+        const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
-        cursor.beginEditBlock();  // one undo step for the replace (delete + insert)
-        cursor.insertText(text);  // replaces the selection
-        cursor.endEditBlock();
         clearSelection();
-    } else {
-        cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
-        cursor.insertText(text);
     }
+    insertKeepingAnnotations(cursor, text);
 
     // Mirror the resulting QTextCursor into the editor's cursor model.
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -159,6 +174,11 @@ void BookEditor::insertText(const QString& text)
 
 bool BookEditor::deleteSelectedText()
 {
+    return removeSelection(true);
+}
+
+bool BookEditor::removeSelection(bool keepAnnotations)
+{
     if (!hasSelection()) {
         return false;
     }
@@ -169,7 +189,11 @@ bool BookEditor::deleteSelectedText()
 
     // Direct QTextCursor delete — recorded by QTextDocument's native undo.
     QTextCursor cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    cursor.removeSelectedText();
+    if (keepAnnotations) {
+        removeKeepingAnnotations(cursor);
+    } else {
+        cursor.removeSelectedText();
+    }
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -186,18 +210,15 @@ void BookEditor::insertNewline()
 
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
     // QTextDocument's native undo, together with the replaced selection as one step.
-    // insertBlock() inherits the current block format (zero margins + alignment), so the
-    // new paragraph keeps the same layout.
+    // The new paragraph inherits the current block format (zero margins + alignment), so
+    // it keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    cursor.beginEditBlock();
-    cursor.removeSelectedText();
-    cursor.insertBlock();
-    cursor.endEditBlock();
+    insertParagraphKeepingAnnotations(cursor);
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -226,10 +247,10 @@ void BookEditor::deleteBackward()
     const int oldPara = m_cursorPosition.paragraph;
     const bool wasAtBlockStart = (m_cursorPosition.offset == 0);
 
-    // deletePreviousChar() removes the previous character, OR merges with the previous
-    // paragraph when at the start of a block. Recorded by QTextDocument's native undo.
+    // Removes the previous character, OR merges with the previous paragraph when at the
+    // start of a block. Recorded by QTextDocument's native undo.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
-    cursor.deletePreviousChar();
+    deleteCharacterKeepingAnnotations(cursor, true);
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -259,10 +280,10 @@ void BookEditor::deleteForward()
     const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
 
     if (!atBlockEnd || hasNextBlock) {
-        // deleteChar() removes the character at the cursor, OR merges with the next
-        // paragraph at the end of a block. Recorded by QTextDocument's native undo.
+        // Removes the character at the cursor, OR merges with the next paragraph at the
+        // end of a block. Recorded by QTextDocument's native undo.
         QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
-        cursor.deleteChar();
+        deleteCharacterKeepingAnnotations(cursor, false);
 
         m_cursorPosition.paragraph = cursor.blockNumber();
         m_cursorPosition.offset = cursor.positionInBlock();
@@ -364,8 +385,9 @@ void BookEditor::cut()
     // Copy first
     copy();
 
-    // Then delete selection (one undo step)
-    deleteSelectedText();
+    // Then delete selection (one undo step). The annotations go to the clipboard with
+    // the text: pasted, they come back.
+    removeSelection(false);
 }
 
 void BookEditor::paste()
@@ -437,8 +459,8 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     const SelectionRange moved = m_selection.normalized();
     clearSelection();
 
-    // One undo step: moved text leaves its place and lands at the drop point. Both
-    // cursors stay at the same text while the other one edits the document.
+    // One undo step: moved text leaves its place, with its annotations, and lands at the
+    // drop point. Both cursors stay at the same text while the other one edits the document.
     QTextCursor cursor = createCursor(m_textBuffer.get(), validateCursorPosition(position));
     QTextCursor oldPlace;
     cursor.beginEditBlock();

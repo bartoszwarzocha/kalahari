@@ -27,16 +27,6 @@ struct FormatRun {
                format.verticalAlignment() != QTextCharFormat::AlignNormal;
     }
 
-    /// @brief Check if this run has comment metadata
-    bool hasComment() const {
-        return format.hasProperty(KmlPropComment);
-    }
-
-    /// @brief Check if this run has TODO metadata
-    bool hasTodo() const {
-        return format.hasProperty(KmlPropTodo);
-    }
-
     /// @brief Check if this run has footnote metadata
     bool hasFootnote() const {
         return format.hasProperty(KmlPropFootnote);
@@ -44,7 +34,7 @@ struct FormatRun {
 
     /// @brief Check if this run has any metadata
     bool hasMetadata() const {
-        return hasComment() || hasTodo() || hasFootnote();
+        return hasFootnote();
     }
 
     /// @brief Get length of this run

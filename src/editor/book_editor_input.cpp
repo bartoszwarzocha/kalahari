@@ -272,12 +272,12 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         m_preeditString = preeditString;
         m_hasComposition = true;
 
-        // Insert preedit text using QTextCursor
+        // Insert preedit text using QTextCursor, with the format typed text gets
         QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
         if (block.isValid()) {
             QTextCursor cursor(m_textBuffer.get());
             cursor.setPosition(block.position() + m_cursorPosition.offset);
-            cursor.insertText(preeditString);
+            cursor.insertText(preeditString, insertionFormat(cursor));
         }
 
         // Move cursor to end of preedit

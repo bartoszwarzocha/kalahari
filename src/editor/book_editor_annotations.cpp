@@ -1,307 +1,118 @@
 /// @file book_editor_annotations.cpp
-/// @brief BookEditor: comments and TODO/note markers
+/// @brief BookEditor: comments, TODOs and notes anchored to the text
 
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/core/logger.h>
 #include <kalahari/editor/buffer_commands.h>
-#include <kalahari/editor/kml_comment.h>
 #include <QDateTime>
-#include <QInputDialog>
 
 namespace kalahari::editor {
 
-// =============================================================================
-// Comments (Phase 7.9)
-// =============================================================================
-
-void BookEditor::insertComment()
+std::vector<AnnotationPlace> BookEditor::annotations() const
 {
-    if (!m_textBuffer) {
-        return;
+    return m_textBuffer ? annotationsIn(*m_textBuffer) : std::vector<AnnotationPlace>();
+}
+
+Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
+                                     const QString& author)
+{
+    ensureDocument();
+
+    Annotation annotation;
+    annotation.kind = kind;
+    annotation.text = text;
+    annotation.author = author;
+    // Whole seconds: the chapter file keeps no more
+    annotation.created = QDateTime::currentDateTimeUtc();
+    annotation.created = annotation.created.addMSecs(-annotation.created.time().msec());
+
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
     }
+    annotation = editor::addAnnotation(cursor, annotation);
 
-    // Must have a selection to add a comment
-    if (!hasSelection()) {
-        core::Logger::getInstance().debug("BookEditor::insertComment() - no selection, cannot add comment");
-        return;
-    }
-
-    // Get the normalized selection range
-    SelectionRange sel = m_selection.normalized();
-
-    // Comments within a single paragraph are simpler
-    if (sel.start.paragraph != sel.end.paragraph) {
-        core::Logger::getInstance().debug("BookEditor::insertComment() - multi-paragraph selection not supported");
-        return;
-    }
-
-    // Show input dialog for comment text
-    bool ok = false;
-    QString commentText = QInputDialog::getMultiLineText(
-        this,
-        tr("Insert Comment"),
-        tr("Enter comment:"),
-        QString(),
-        &ok
-    );
-
-    if (!ok || commentText.isEmpty()) {
-        return;
-    }
-
-    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
-    // For now, stub out comment functionality
-    core::Logger::getInstance().debug("BookEditor::insertComment() - not implemented in Phase 11");
-    Q_UNUSED(commentText);
     update();
+    emit contentChanged();
+    return annotation;
 }
 
-void BookEditor::deleteComment(const QString& commentId)
+bool BookEditor::updateAnnotation(const Annotation& annotation)
 {
-    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
-    core::Logger::getInstance().debug("BookEditor::deleteComment() - not implemented in Phase 11");
-    Q_UNUSED(commentId);
+    if (!m_textBuffer || !editor::updateAnnotation(*m_textBuffer, annotation)) {
+        return false;
+    }
+    update();
+    emit contentChanged();
+    return true;
 }
 
-void BookEditor::editComment(const QString& commentId)
+bool BookEditor::removeAnnotation(const QString& id)
 {
-    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
-    core::Logger::getInstance().debug("BookEditor::editComment() - not implemented in Phase 11");
-    Q_UNUSED(commentId);
+    if (!m_textBuffer || !editor::removeAnnotation(*m_textBuffer, id)) {
+        return false;
+    }
+    update();
+    emit contentChanged();
+    return true;
 }
 
-QList<KmlComment> BookEditor::commentsInCurrentParagraph() const
+bool BookEditor::goToAnnotation(const QString& id)
 {
-    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
-    // For now, return empty list - comment feature requires Phase 12 implementation
-    Q_UNUSED(m_cursorPosition);
-    return {};
-}
-
-void BookEditor::navigateToComment(int paragraphIndex, const QString& commentId)
-{
-    // Phase 11: TODO - Comments need QTextCharFormat::UserProperty-based storage
-    // For now, just move cursor to paragraph start - full comment navigation requires Phase 12
     if (!m_textBuffer) {
-        return;
+        return false;
+    }
+    const std::optional<AnnotationPlace> place = findAnnotation(*m_textBuffer, id);
+    if (!place) {
+        return false;
     }
 
-    // Validate paragraph index
-    if (paragraphIndex < 0 || paragraphIndex >= m_textBuffer->blockCount()) {
-        return;
+    // A fragment is selected, with the cursor at its end; on a place the cursor goes there
+    const CursorPosition start = calculateCursorPosition(place->start);
+    const CursorPosition end = calculateCursorPosition(place->end);
+    clearSelection();
+    setCursorPosition(end);
+    if (start != end) {
+        m_selectionAnchor = start;
+        setSelection({start, end});
     }
-
-    // Move cursor to paragraph start (simplified - no comment offset without new storage)
-    CursorPosition newPos{paragraphIndex, 0};
-    setCursorPosition(newPos);
-
     ensureCursorVisible();
-    emit commentSelected(paragraphIndex, commentId);
-    Q_UNUSED(commentId);
+    return true;
 }
 
-// =============================================================================
-// TODO/Note Markers (Phase 9.12)
-// =============================================================================
-
-void BookEditor::addTodoAtCursor(const QString& text)
+bool BookEditor::goToNextTodo()
 {
-    // Phase 11.6: Markers stored in QTextCharFormat::UserProperty
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
+    if (!m_textBuffer) {
+        return false;
     }
-
-    // Calculate absolute position
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    TextMarker marker;
-    marker.id = TextMarker::generateId();
-    marker.position = absPos;
-    marker.length = 1;
-    marker.text = text.isEmpty() ? tr("TODO") : text;
-    marker.type = MarkerType::Todo;
-    marker.completed = false;
-    marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-    setMarkerInDocument(m_textBuffer.get(), marker);  // native undo records the char-format change
-
-    update();
-}
-
-void BookEditor::addNoteAtCursor(const QString& text)
-{
-    // Phase 11.6: Markers stored in QTextCharFormat::UserProperty
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    // Calculate absolute position
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    TextMarker marker;
-    marker.id = TextMarker::generateId();
-    marker.position = absPos;
-    marker.length = 1;
-    marker.text = text.isEmpty() ? tr("Note") : text;
-    marker.type = MarkerType::Note;
-    marker.completed = false;
-    marker.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-    setMarkerInDocument(m_textBuffer.get(), marker);  // native undo records the char-format change
-
-    update();
-}
-
-void BookEditor::removeMarkerAtCursor()
-{
-    // Phase 11.6: Use findAllMarkers from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    // Find all markers and filter by position
-    auto allMarkers = findAllMarkers(m_textBuffer.get(), std::nullopt);
-    for (const auto& marker : allMarkers) {
-        if (marker.position == absPos) {
-            // Remove the first marker at cursor position (native undo records it).
-            removeMarkerFromDocument(m_textBuffer.get(), marker.position, marker.length);
-            update();
-            return;
+    const int position = calculateAbsolutePosition(m_cursorPosition);
+    for (const AnnotationPlace& place : annotationsIn(*m_textBuffer)) {
+        if (place.annotation.kind == AnnotationKind::Todo && !place.annotation.done &&
+            place.start > position) {
+            return goToAnnotation(place.annotation.id);
         }
     }
+    return false;
 }
 
-void BookEditor::toggleTodoAtCursor()
+bool BookEditor::goToPreviousTodo()
 {
-    // Phase 11.6: Use findAllMarkers from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
+    if (!m_textBuffer) {
+        return false;
     }
 
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    // Find all markers and filter by position and type
-    auto allMarkers = findAllMarkers(m_textBuffer.get(), MarkerType::Todo);
-    for (const auto& marker : allMarkers) {
-        if (marker.position == absPos) {
-            // Toggle the TODO completion state directly (native undo records it).
-            TextMarker toggled = marker;
-            toggled.completed = !toggled.completed;
-            setMarkerInDocument(m_textBuffer.get(), toggled);
-            update();
-            return;
+    // Before the cursor, or before the selected fragment of the TODO the cursor is at
+    const int position = hasSelection()
+                             ? calculateAbsolutePosition(m_selection.normalized().start)
+                             : calculateAbsolutePosition(m_cursorPosition);
+    const std::vector<AnnotationPlace> places = annotationsIn(*m_textBuffer);
+    for (auto it = places.rbegin(); it != places.rend(); ++it) {
+        if (it->annotation.kind == AnnotationKind::Todo && !it->annotation.done &&
+            it->start < position) {
+            return goToAnnotation(it->annotation.id);
         }
     }
-}
-
-void BookEditor::goToNextTodo()
-{
-    // Phase 11.6: Use findNextMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto next = findNextMarker(m_textBuffer.get(), absPos, MarkerType::Todo);
-    if (next) {
-        CursorPosition newPos = calculateCursorPosition(next->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
-}
-
-void BookEditor::goToPreviousTodo()
-{
-    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, MarkerType::Todo);
-    if (prev) {
-        CursorPosition newPos = calculateCursorPosition(prev->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
-}
-
-void BookEditor::goToNextNote()
-{
-    // Phase 11.6: Use findNextMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto next = findNextMarker(m_textBuffer.get(), absPos, MarkerType::Note);
-    if (next) {
-        CursorPosition newPos = calculateCursorPosition(next->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
-}
-
-void BookEditor::goToPreviousNote()
-{
-    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, MarkerType::Note);
-    if (prev) {
-        CursorPosition newPos = calculateCursorPosition(prev->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
-}
-
-void BookEditor::goToNextMarker()
-{
-    // Phase 11.6: Use findNextMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto next = findNextMarker(m_textBuffer.get(), absPos, std::nullopt);  // Any type
-    if (next) {
-        CursorPosition newPos = calculateCursorPosition(next->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
-}
-
-void BookEditor::goToPreviousMarker()
-{
-    // Phase 11.6: Use findPreviousMarker from buffer_commands.h
-    if (!m_textBuffer || !m_textBuffer.get()) {
-        return;
-    }
-
-    int absPos = calculateAbsolutePosition(m_cursorPosition);
-
-    auto prev = findPreviousMarker(m_textBuffer.get(), absPos, std::nullopt);  // Any type
-    if (prev) {
-        CursorPosition newPos = calculateCursorPosition(prev->position);
-        m_cursorPosition = newPos;
-        ensureCursorVisible();
-        update();
-    }
+    return false;
 }
 
 }  // namespace kalahari::editor

@@ -348,9 +348,6 @@ void MainWindow::registerCommands() {
     callbacks.onAlignRight = [this]() { onAlignRight(); };
     callbacks.onAlignJustify = [this]() { onAlignJustify(); };
 
-    // Insert commands (OpenSpec #00042 Phase 7.9)
-    callbacks.onInsertComment = [this]() { onInsertComment(); };
-
     // View Mode commands (OpenSpec #00042 Phase 7.3)
     callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
     callbacks.onViewModePage = [this]() { onViewModePage(); };
@@ -749,20 +746,6 @@ void MainWindow::onAlignJustify() {
     EditorPanel* editor = getCurrentEditor();
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->setAlignJustify();
-    }
-}
-
-// =============================================================================
-// Insert Actions (OpenSpec #00042 Phase 7.9)
-// =============================================================================
-
-void MainWindow::onInsertComment() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Insert Comment");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->insertComment();
     }
 }
 

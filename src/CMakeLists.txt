@@ -9,7 +9,7 @@ set(KALAHARI_CORE_SOURCES
     editor/editor_types.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
-    editor/kml_comment.cpp  # Phase 7.8: Comments feature
+    editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -166,7 +166,6 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
-    gui/panels/comments_panel.cpp  # CommentsPanel - Comments panel (OpenSpec #00042 Phase 7.9)
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
@@ -185,7 +184,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_view.cpp
     editor/find_replace_bar.cpp  # Find/Replace bar of the editor
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
-    editor/buffer_commands.cpp  # Cursor position and marker helpers
+    editor/buffer_commands.cpp  # Cursor position helpers
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
@@ -237,7 +236,6 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/comments_panel.h  # CommentsPanel with Q_OBJECT (OpenSpec #00042 Phase 7.9)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)

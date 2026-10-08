@@ -613,9 +613,11 @@ TEST_CASE("Stage2 paste: the image after paste and undo is the image before",
 }
 
 TEST_CASE("Stage2 paste: KML becomes plain HTML for other programs", "[editor][stage2][paste]") {
+    // The annotations stay out, the text they are anchored to stays in
     CHECK(ClipboardHandler::kmlToHtml(QStringLiteral(
-              "<kml><p align=\"center\"><b font=\"Georgia\" size=\"14\">Big</b> "
-              "<comment id=\"c1\">noted</comment> <span color=\"#aa0000\">red</span></p>"
+              "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Hidden</annotation>"
+              "</annotations><p align=\"center\"><b font=\"Georgia\" size=\"14\">Big</b> "
+              "<anchor ref=\"c1\">noted</anchor> <span color=\"#aa0000\">red</span></p>"
               "<p></p><p>a &amp; b</p></kml>")) ==
           QStringLiteral("<p style=\"text-align:center\">"
                          "<b style=\"font-family:'Georgia';font-size:14pt\">Big</b> noted "
