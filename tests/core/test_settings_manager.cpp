@@ -412,6 +412,7 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
             "log": {"bufferSize": 800, "fontSize": 11,
                     "backgroundColor": {"r": 60, "g": 60, "b": 60}},
             "session": {"auto_save_interval": 300},
+            "editor": {"margins": {"viewHorizontal": 50.0, "viewVertical": 30.0, "pageTop": 25.4}},
             "dashboard": {"autoLoadLastProject": true, "maxItems": 4},
             "icons": {"colorPrimary": "#7a7a7a", "colorSecondary": "#dadada",
                       "theme": {"name": "Light"},
@@ -423,7 +424,7 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
 
     REQUIRE(settings.load());
 
-    REQUIRE(settings.get<std::string>("version", "") == "1.2");
+    REQUIRE(settings.get<std::string>("version", "") == "1.3");
     REQUIRE(settings.getLanguage() == "pl");
     REQUIRE(settings.getTheme() == "Dark");
     REQUIRE(settings.get<std::string>("appearance.iconTheme") == "filled");
@@ -435,6 +436,9 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
     REQUIRE_FALSE(settings.hasKey("log.fontSize"));
     REQUIRE_FALSE(settings.hasKey("log.backgroundColor"));
     REQUIRE_FALSE(settings.hasKey("session"));
+    REQUIRE_FALSE(settings.hasKey("editor.margins.viewHorizontal"));
+    REQUIRE_FALSE(settings.hasKey("editor.margins.viewVertical"));
+    REQUIRE(settings.get<double>("editor.margins.pageTop") == 25.4);
     REQUIRE_FALSE(settings.hasKey("dashboard.autoLoadLastProject"));
     REQUIRE(settings.get<int>("dashboard.maxItems") == 4);
     REQUIRE_FALSE(settings.hasKey("icons.colorPrimary"));
@@ -450,7 +454,7 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
     REQUIRE_FALSE(std::filesystem::exists(tempPath));
     {
         std::ifstream file(filePath);
-        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.2");
+        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.3");
     }
 
     settings.resetToDefaults();
