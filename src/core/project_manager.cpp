@@ -28,34 +28,12 @@
 #include <QTimeZone>
 #include <QUuid>
 
-#include <algorithm>
 #include <set>
 
 #include <zip.h>
 
 namespace kalahari {
 namespace core {
-
-namespace {
-
-/// Whether a chapter's file is one of its own: not missing, and not a name beginning with
-/// a dot - the ".kchapter" (later ".kchapter.kchapter") in the project's folder that a
-/// chapter added in the Navigator got, as its file had no name
-bool isOwnChapterFile(const std::filesystem::path& file) {
-    const std::filesystem::path::string_type name = file.filename().native();
-    return !name.empty() && name.front() != std::filesystem::path::value_type('.');
-}
-
-/// The chapter file (.kchapter) of a chapter's path. A name that already ends in .kchapter
-/// keeps it - also ".kchapter", which std::filesystem takes for a name without extension.
-std::filesystem::path chapterFileOf(std::filesystem::path path) {
-    if (path.extension() != ".kchapter" && path.filename() != ".kchapter") {
-        path.replace_extension(".kchapter");
-    }
-    return path;
-}
-
-}  // namespace
 
 // =============================================================================
 // Singleton Instance
@@ -721,18 +699,12 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
         return QString();
     }
 
-    // A chapter without a file has no text yet (its path would be the project's folder)
-    if (element->getFile().empty()) {
-        element->setContent(QString());
-        element->setDirty(false);
-        return QString();
-    }
-
     // Resolve relative path against project path
     std::filesystem::path rtfPath = m_projectPath / element->getFile();
     
     // Check for .kchapter file (new format)
-    const std::filesystem::path kchapterPath = chapterFileOf(rtfPath);
+    std::filesystem::path kchapterPath = rtfPath;
+    kchapterPath.replace_extension(".kchapter");
 
     QString kmlContent;
 
@@ -819,22 +791,18 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         return true;  // Nothing to save
     }
 
-    // A chapter without a file of its own gets one in its section's folder; it keeps the
-    // old file until the text is saved and the manifest names the new one
-    const std::filesystem::path oldFile = element->getFile();
-    const bool newFile = giveOwnChapterFile(*element);
-    auto keepOldFile = [&]() {
-        if (newFile) {
-            keepOldChapterFile(*element, oldFile);
-        }
-    };
-
     // Resolve path - always use .kchapter extension
-    const std::filesystem::path relPath = chapterFileOf(element->getFile());
-    if (relPath != element->getFile()) {
+    std::filesystem::path filePath = m_projectPath / element->getFile();
+    
+    // Ensure .kchapter extension
+    if (filePath.extension() != ".kchapter") {
+        filePath.replace_extension(".kchapter");
+        
+        // Update element file path
+        std::filesystem::path relPath = element->getFile();
+        relPath.replace_extension(".kchapter");
         element->setFile(relPath);
     }
-    const std::filesystem::path filePath = m_projectPath / relPath;
 
     // Create parent directories if needed
     std::filesystem::path parentDir = filePath.parent_path();
@@ -843,7 +811,6 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         if (!std::filesystem::create_directories(parentDir, ec)) {
             Logger::getInstance().error("saveChapterContent: Failed to create directory: {} ({})",
                                         parentDir.string(), ec.message());
-            keepOldFile();
             return false;
         }
     }
@@ -872,15 +839,6 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
     if (!doc.save(filePathStr)) {
         Logger::getInstance().error("saveChapterContent: Failed to save .kchapter: {}",
                                     filePath.string());
-        keepOldFile();
-        return false;
-    }
-
-    // The manifest names the new file at once, so the text is found again
-    if (newFile && !saveManifest()) {
-        Logger::getInstance().error("saveChapterContent: The manifest does not name the new file {}",
-                                    filePath.string());
-        keepOldFile();
         return false;
     }
 
@@ -1229,27 +1187,6 @@ bool ProjectManager::createChapterFile(BookElement& element, const QString& sect
     return true;
 }
 
-std::optional<QString> ProjectManager::damagedChapterText(const QString& elementId) {
-    BookElement* element = findElement(elementId);
-    if (!element || element->getFile().empty() || isOwnChapterFile(element->getFile())) {
-        return std::nullopt;
-    }
-
-    const std::filesystem::path backup = m_projectPath / ".kchapter.bak";
-    std::error_code ec;
-    if (!std::filesystem::is_regular_file(backup, ec)) {
-        return std::nullopt;
-    }
-
-    auto doc = ChapterDocument::load(QString::fromStdWString(backup.wstring()));
-    if (!doc) {
-        Logger::getInstance().warn("damagedChapterText: {} is not a chapter file",
-                                   backup.string());
-        return std::nullopt;
-    }
-    return doc->kml();
-}
-
 std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
                                                      const QString& partId,
                                                      const std::string& elementType) {
@@ -1272,7 +1209,7 @@ std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
                                   : QStringLiteral("content/body/") + partId;
         if (const Part* part = findPart(partId)) {
             for (const auto& chapter : part->getChapters()) {
-                if (isOwnChapterFile(chapter->getFile())) {
+                if (!chapter->getFile().empty()) {
                     folder = QString::fromStdWString(
                         chapter->getFile().parent_path().generic_wstring());
                 }
@@ -1286,7 +1223,7 @@ std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
         const Book& book = m_document->getBook();
         auto collect = [&used](const auto& elements) {
             for (const auto& element : elements) {
-                used.insert(chapterFileOf(element->getFile()).lexically_normal());
+                used.insert(element->getFile().lexically_normal());
             }
         };
         collect(book.getFrontMatter());
@@ -1308,65 +1245,6 @@ std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
             return file;
         }
     }
-}
-
-bool ProjectManager::giveOwnChapterFile(BookElement& element) {
-    namespace fs = std::filesystem;
-    if (isOwnChapterFile(element.getFile()) || !m_document) {
-        return false;
-    }
-
-    // The section and the part of the chapter
-    const Book& book = m_document->getBook();
-    auto holds = [&element](const auto& elements) {
-        return std::any_of(elements.begin(), elements.end(),
-                           [&element](const auto& other) { return other.get() == &element; });
-    };
-    QString sectionType = QStringLiteral("body");
-    QString partId;
-    if (holds(book.getFrontMatter())) {
-        sectionType = QStringLiteral("frontmatter");
-    } else if (holds(book.getBackMatter())) {
-        sectionType = QStringLiteral("backmatter");
-    } else {
-        for (const auto& part : book.getBody()) {
-            if (holds(part->getChapters())) {
-                partId = QString::fromStdString(part->getId());
-                break;
-            }
-        }
-    }
-
-    const fs::path file = newChapterFile(sectionType, partId, element.getType());
-
-    // The text saved under the name without a stem goes along (a copy: chapters added
-    // before could share that name); without the copy the chapter keeps that name
-    if (!element.getFile().empty()) {
-        const fs::path oldPath = chapterFileOf(m_projectPath / element.getFile());
-        std::error_code ec;
-        if (fs::is_regular_file(oldPath, ec)) {
-            fs::create_directories((m_projectPath / file).parent_path(), ec);
-            if (!fs::copy_file(oldPath, m_projectPath / file, ec)) {
-                Logger::getInstance().warn("giveOwnChapterFile: Failed to copy {} ({})",
-                                           oldPath.string(), ec.message());
-                return false;
-            }
-        }
-    }
-
-    Logger::getInstance().info("giveOwnChapterFile: '{}' had no file of its own ({}), now {}",
-                               element.getTitle(), element.getFile().string(), file.string());
-    element.setFile(file);
-    return true;
-}
-
-void ProjectManager::keepOldChapterFile(BookElement& element,
-                                        const std::filesystem::path& oldFile) {
-    std::error_code ec;
-    std::filesystem::remove(m_projectPath / element.getFile(), ec);
-    Logger::getInstance().warn("keepOldChapterFile: '{}' keeps its file ({})",
-                               element.getTitle(), oldFile.string());
-    element.setFile(oldFile);
 }
 
 // =============================================================================
@@ -1440,18 +1318,16 @@ bool ProjectManager::saveChapterMetadata(const QString& elementId) {
         return false;
     }
 
-    // A chapter without a file of its own gets one in its section's folder, which the
-    // manifest names at once
-    const std::filesystem::path oldFile = element->getFile();
-    if (giveOwnChapterFile(*element) && !saveManifest()) {
-        logger.error("saveChapterMetadata: The manifest does not name the new file of {}",
-                     elementId.toStdString());
-        keepOldChapterFile(*element, oldFile);
+    if (element->getFile().empty()) {
+        logger.warn("saveChapterMetadata: Element has no file: {}", elementId.toStdString());
         return false;
     }
 
     // Resolve path - ensure .kchapter extension
-    const std::filesystem::path filePath = chapterFileOf(m_projectPath / element->getFile());
+    std::filesystem::path filePath = m_projectPath / element->getFile();
+    if (filePath.extension() != ".kchapter") {
+        filePath.replace_extension(".kchapter");
+    }
     QString filePathStr = QString::fromStdWString(filePath.wstring());
 
     // Try to load existing .kchapter
@@ -1516,7 +1392,10 @@ void ProjectManager::loadAllChapterMetadata() {
         if (!element || element->getFile().empty()) return;
 
         // Resolve path - check for .kchapter file
-        const std::filesystem::path filePath = chapterFileOf(m_projectPath / element->getFile());
+        std::filesystem::path filePath = m_projectPath / element->getFile();
+        if (filePath.extension() != ".kchapter") {
+            filePath.replace_extension(".kchapter");
+        }
 
         if (!std::filesystem::exists(filePath)) {
             // No .kchapter file yet - use defaults

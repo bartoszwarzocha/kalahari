@@ -2615,18 +2615,6 @@ Tej operacji nie można cofnąć.</translation>
         <source>Add Item Failed</source>
         <translation>Nie udało się dodać elementu</translation>
     </message>
-    <message>
-        <source>Recover Chapter Text</source>
-        <translation>Odzyskiwanie tekstu rozdziału</translation>
-    </message>
-    <message>
-        <source>The text of &quot;%1&quot; may be in the backup made when the chapter was damaged (.kchapter.bak in the book&apos;s folder).
-
-Load the text from the backup into this chapter? Earlier versions saved all the chapters added in the Navigator under one name, so the text may belong to another of them. The backup stays as it is.</source>
-        <translation>Tekst rozdziału „%1” może być w kopii zapasowej utworzonej, gdy rozdział został uszkodzony (.kchapter.bak w folderze książki).
-
-Wczytać tekst z kopii do tego rozdziału? Wcześniejsze wersje zapisywały wszystkie rozdziały dodane w Nawigatorze pod jedną nazwą, więc tekst może należeć do innego z nich. Kopia zostaje bez zmian.</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>

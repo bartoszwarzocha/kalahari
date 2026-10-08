@@ -20,7 +20,6 @@
 #include <QUuid>
 
 #include <filesystem>
-#include <optional>
 
 using namespace kalahari::core;
 namespace fs = std::filesystem;
@@ -65,12 +64,6 @@ QStringList chapterFilesIn(const QString& manifest) {
         files << chapter.toObject()["file"].toString();
     }
     return files;
-}
-
-/// The bytes of a file
-QByteArray contentsOf(const QString& path) {
-    QFile file(path);
-    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
 }
 
 /// A chapter's KML with one paragraph
@@ -250,180 +243,31 @@ TEST_CASE("ProjectManager gives a new chapter a chapter file of its own", "[proj
     REQUIRE(pm.closeProject(false));
 }
 
-TEST_CASE("ProjectManager saves a chapter that has no chapter file of its own", "[project_manager]") {
+TEST_CASE("ProjectManager saves and opens again the text of a new chapter", "[project_manager]") {
     // Regression: a chapter added in the Navigator had no file. Saved, its text went to
     // ".kchapter" in the project's folder, and opened again it was read as an old RTF file
     // to convert - the chapter opened empty, with a message that it is damaged
     TempDir dir;
     auto& pm = ProjectManager::getInstance();
-    REQUIRE(pm.createProject(dir.path(), "Old Chapters", "Author", "en", true));
-    const QString manifest = QDir(pm.getProjectPath()).filePath("Old Chapters.klh");
+    REQUIRE(pm.createProject(dir.path(), "New Chapter", "Author", "en", true));
+    const QString manifest = QDir(pm.getProjectPath()).filePath("New Chapter.klh");
     const QDir project(pm.getProjectPath());
 
+    // As the Navigator adds it: the chapter's file first, then the chapter in its part
     auto part = std::make_shared<Part>("part-001", "Part One");
-    auto chapter = std::make_shared<BookElement>("chapter", "ch-003", "Chapter Three");
+    pm.getDocument()->getBook().addPart(part);
+    auto chapter = std::make_shared<BookElement>("chapter", "ch-new", "New Chapter");
+    REQUIRE(pm.createChapterFile(*chapter, "body", "part-001"));
     part->addChapter(chapter);
-    pm.getDocument()->getBook().addPart(part);
+    REQUIRE(pm.saveManifest());
 
-    SECTION("A chapter without a file") {
-        REQUIRE(pm.saveManifest());
-        CHECK(pm.loadChapterContent("ch-003").isEmpty());
-    }
-
-    SECTION("A chapter saved as .kchapter in the project's folder") {
-        chapter->setFile(".kchapter");
-        REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Saved before"), "Chapter Three")
-                    .save(project.filePath(".kchapter")));
-        REQUIRE(pm.saveManifest());
-        REQUIRE(pm.closeProject(false));
-        REQUIRE(pm.openProject(manifest));
-
-        // Read as the chapter file it is, not converted as an old RTF file
-        CHECK(pm.loadChapterContent("ch-003") == kmlWith("Saved before"));
-        CHECK(dotChapterFilesIn(project) == QStringList{QStringLiteral(".kchapter")});
-    }
-
-    // Saved, the chapter gets a file of its own, which the manifest names
-    BookElement* element = pm.findElement("ch-003");
-    REQUIRE(element != nullptr);
-    element->setContent(kmlWith("Copied text"));
-    REQUIRE(pm.saveChapterContent("ch-003"));
+    chapter->setContent(kmlWith("The new text"));
+    REQUIRE(pm.saveChapterContent("ch-new"));
     CHECK(chapterFilesIn(manifest) == QStringList{"content/body/part-001/chapter_001.kchapter"});
-    CHECK_FALSE(dotChapterFilesIn(project).contains(QStringLiteral(".kchapter.kchapter")));
 
     REQUIRE(pm.closeProject(false));
     REQUIRE(pm.openProject(manifest));
-    CHECK(pm.loadChapterContent("ch-003") == kmlWith("Copied text"));
-    REQUIRE(pm.closeProject(false));
-}
-
-TEST_CASE("ProjectManager gives each chapter saved as .kchapter a file of its own", "[project_manager]") {
-    // Every chapter added in the Navigator was saved as ".kchapter" in the project's
-    // folder: each of them opens with the text saved there last
-    TempDir dir;
-    auto& pm = ProjectManager::getInstance();
-    REQUIRE(pm.createProject(dir.path(), "Shared Chapters", "Author", "en", true));
-    const QString manifest = QDir(pm.getProjectPath()).filePath("Shared Chapters.klh");
-    const QDir project(pm.getProjectPath());
-
-    auto part = std::make_shared<Part>("part-001", "Part One");
-    part->addChapter(std::make_shared<BookElement>("chapter", "ch-001", "One", fs::path(".kchapter")));
-    part->addChapter(std::make_shared<BookElement>("chapter", "ch-002", "Two", fs::path(".kchapter")));
-    pm.getDocument()->getBook().addPart(part);
-    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Saved last"), "Two").save(project.filePath(".kchapter")));
-    REQUIRE(pm.saveManifest());
-    REQUIRE(pm.closeProject(false));
-    REQUIRE(pm.openProject(manifest));
-
-    CHECK(pm.loadChapterContent("ch-001") == kmlWith("Saved last"));
-    CHECK(pm.loadChapterContent("ch-002") == kmlWith("Saved last"));
-
-    // Saved, each chapter gets its own file; ".kchapter" stays for the chapters not saved
-    pm.findElement("ch-001")->setContent(kmlWith("Text of One"));
-    REQUIRE(pm.saveChapterContent("ch-001"));
-    CHECK(pm.loadChapterContent("ch-002") == kmlWith("Saved last"));
-    pm.findElement("ch-002")->setContent(kmlWith("Text of Two"));
-    REQUIRE(pm.saveChapterContent("ch-002"));
-
-    CHECK(chapterFilesIn(manifest) == QStringList{"content/body/part-001/chapter_001.kchapter",
-                                                  "content/body/part-001/chapter_002.kchapter"});
-    CHECK(dotChapterFilesIn(project) == QStringList{QStringLiteral(".kchapter")});
-
-    REQUIRE(pm.closeProject(false));
-    REQUIRE(pm.openProject(manifest));
-    CHECK(pm.loadChapterContent("ch-001") == kmlWith("Text of One"));
-    CHECK(pm.loadChapterContent("ch-002") == kmlWith("Text of Two"));
-    REQUIRE(pm.closeProject(false));
-}
-
-TEST_CASE("ProjectManager finds the text of a damaged chapter in its backup", "[project_manager]") {
-    // Opened by an earlier version, a chapter saved as ".kchapter" was taken for an old RTF
-    // file: the converted text went to ".kchapter.kchapter" and the chapter's own text to
-    // ".kchapter.bak", while the manifest still names ".kchapter"
-    TempDir dir;
-    auto& pm = ProjectManager::getInstance();
-    REQUIRE(pm.createProject(dir.path(), "Damaged Chapter", "Author", "en", true));
-    const QString manifest = QDir(pm.getProjectPath()).filePath("Damaged Chapter.klh");
-    const QDir project(pm.getProjectPath());
-
-    auto part = std::make_shared<Part>("part-001", "Part One");
-    part->addChapter(std::make_shared<BookElement>("chapter", "ch-003", "Chapter Three", fs::path(".kchapter")));
-    part->addChapter(std::make_shared<BookElement>("chapter", "ch-004", "Chapter Four"));
-    pm.getDocument()->getBook().addPart(part);
-    REQUIRE(pm.saveManifest());
-
-    // Without a backup there is nothing to offer
-    CHECK_FALSE(pm.damagedChapterText("ch-003").has_value());
-
-    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Converted"), "Chapter Three")
-                .save(project.filePath(".kchapter.kchapter")));
-    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Text of Three"), "Chapter Three")
-                .save(project.filePath(".kchapter.bak")));
-    const QByteArray backup = contentsOf(project.filePath(".kchapter.bak"));
-    REQUIRE(pm.closeProject(false));
-    REQUIRE(pm.openProject(manifest));
-
-    // The chapter opens empty; its text is offered from the backup, which stays as it is
-    CHECK(pm.loadChapterContent("ch-003").isEmpty());
-    const std::optional<QString> text = pm.damagedChapterText("ch-003");
-    REQUIRE(text.has_value());
-    CHECK(*text == kmlWith("Text of Three"));
-    CHECK(contentsOf(project.filePath(".kchapter.bak")) == backup);
-    CHECK(dotChapterFilesIn(project) ==
-          QStringList({QStringLiteral(".kchapter.bak"), QStringLiteral(".kchapter.kchapter")}));
-
-    // A chapter with no file or a file of its own has no such backup
-    CHECK_FALSE(pm.damagedChapterText("ch-004").has_value());
-
-    // Loaded and saved, the text gets the chapter's own file; the backup stays
-    pm.findElement("ch-003")->setContent(*text);
-    REQUIRE(pm.saveChapterContent("ch-003"));
-    CHECK(chapterFilesIn(manifest).value(0) == "content/body/part-001/chapter_001.kchapter");
-    CHECK_FALSE(pm.damagedChapterText("ch-003").has_value());
-    CHECK(contentsOf(project.filePath(".kchapter.bak")) == backup);
-
-    REQUIRE(pm.closeProject(false));
-    REQUIRE(pm.openProject(manifest));
-    CHECK(pm.loadChapterContent("ch-003") == kmlWith("Text of Three"));
-    REQUIRE(pm.closeProject(false));
-}
-
-TEST_CASE("ProjectManager keeps a chapter's file when the manifest cannot name a new one", "[project_manager]") {
-    TempDir dir;
-    auto& pm = ProjectManager::getInstance();
-    REQUIRE(pm.createProject(dir.path(), "Locked Manifest", "Author", "en", true));
-    const QString manifest = QDir(pm.getProjectPath()).filePath("Locked Manifest.klh");
-    QDir project(pm.getProjectPath());
-
-    auto part = std::make_shared<Part>("part-001", "Part One");
-    auto chapter = std::make_shared<BookElement>("chapter", "ch-003", "Chapter Three", fs::path(".kchapter"));
-    part->addChapter(chapter);
-    pm.getDocument()->getBook().addPart(part);
-    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Saved before"), "Chapter Three")
-                .save(project.filePath(".kchapter")));
-    REQUIRE(pm.saveManifest());
-
-    // A folder in place of the manifest: the manifest cannot be written
-    REQUIRE(project.rename("Locked Manifest.klh", "manifest.saved"));
-    REQUIRE(project.mkdir("Locked Manifest.klh"));
-
-    chapter->setContent(kmlWith("New text"));
-    CHECK_FALSE(pm.saveChapterContent("ch-003"));
-    CHECK(chapter->getFile() == fs::path(".kchapter"));
-    CHECK(chapter->isDirty());
-    CHECK_FALSE(QFile::exists(project.filePath("content/body/part-001/chapter_001.kchapter")));
-    CHECK(pm.loadChapterContent("ch-003") == kmlWith("Saved before"));
-
-    CHECK_FALSE(pm.saveChapterMetadata("ch-003"));
-    CHECK(chapter->getFile() == fs::path(".kchapter"));
-    CHECK_FALSE(QFile::exists(project.filePath("content/body/part-001/chapter_001.kchapter")));
-
-    // With the manifest back, the next save gives the chapter its own file
-    REQUIRE(project.rmdir("Locked Manifest.klh"));
-    REQUIRE(project.rename("manifest.saved", "Locked Manifest.klh"));
-    chapter->setContent(kmlWith("New text"));
-    REQUIRE(pm.saveChapterContent("ch-003"));
-    CHECK_FALSE(chapter->isDirty());
-    CHECK(chapterFilesIn(manifest) == QStringList{"content/body/part-001/chapter_001.kchapter"});
+    CHECK(pm.loadChapterContent("ch-new") == kmlWith("The new text"));
+    CHECK(dotChapterFilesIn(project).isEmpty());
     REQUIRE(pm.closeProject(false));
 }

@@ -269,11 +269,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opened empty with a message that it is damaged, and its text was left only in
   ".kchapter.bak". A new chapter now gets its own empty chapter file at once, next to
   the other chapters of its part (for example content/body/part_001/chapter_003.kchapter)
-  or in its section's folder. A chapter saved as ".kchapter" before opens with the text
-  saved last under that name (its own text only when it is the one chapter saved so),
-  and the next save gives it a file of its own. When ".kchapter.bak" is in the project's
-  folder, opening such a chapter offers to load the text from the backup; the backup
-  stays as it is.
+  or in its section's folder. Chapters damaged this way before are not repaired: their
+  text stays only in ".kchapter.bak".
 - **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
   every paragraph but the one with the cursor, and the bright paragraph follows the
   cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page

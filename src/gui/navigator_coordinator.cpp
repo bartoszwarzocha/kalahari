@@ -23,7 +23,6 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <chrono>
-#include <optional>
 
 namespace kalahari {
 namespace gui {
@@ -142,21 +141,6 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         // Still create tab but with empty content
     }
 
-    // A chapter saved before without a file of its own may have its text only in the
-    // backup made when that file was taken for an old RTF file. Loading it is up to the
-    // user: the backup holds the text saved last by any chapter saved that way.
-    bool recovered = false;
-    if (const std::optional<QString> backup = pm.damagedChapterText(elementId)) {
-        // The title from the model: elementTitle is the Navigator's text, with the status
-        const core::BookElement* element = pm.findElement(elementId);
-        if (askToRecoverChapterText(element ? QString::fromStdString(element->getTitle())
-                                            : elementTitle)) {
-            content = *backup;
-            recovered = true;
-            logger.info("Loaded the text of {} from .kchapter.bak", elementId.toStdString());
-        }
-    }
-
     // Create new editor tab with chapter icon
     logElapsed("Before new EditorPanel");
     EditorPanel* newEditor = new EditorPanel(m_centralTabs);
@@ -182,12 +166,35 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // Connect contentChanged signal for per-chapter dirty tracking (AFTER load, so
     // only genuine user edits mark the chapter dirty).
     connect(newEditor, &EditorPanel::contentChanged,
-            this, [this, elementId, newEditor]() { markChapterModified(elementId, newEditor); });
+            this, [this, elementId, elementTitle, newEditor]() {
+                auto& pm = core::ProjectManager::getInstance();
+                if (pm.isProjectOpen()) {
+                    // Mark chapter as dirty
+                    if (!m_dirtyChapters.value(elementId, false)) {
+                        m_dirtyChapters[elementId] = true;
+                        // Chapter CONTENT dirtiness is tracked per open tab here, set
+                        // ONLY on genuine edits (this slot is connected AFTER load).
+                        // Do NOT mark the model BookElement or the manifest/structure
+                        // dirty: tree-building/selection/properties can dirty the model
+                        // element with no user edit, which resurfaces as a spurious
+                        // save prompt that can never be cleared.
 
-    // The text from the backup is not in the chapter's file yet
-    if (recovered) {
-        markChapterModified(elementId, newEditor);
-    }
+                        // Update tab title with asterisk
+                        int currentIdx = m_centralTabs->indexOf(newEditor);
+                        if (currentIdx >= 0) {
+                            QString tabText = m_centralTabs->tabText(currentIdx);
+                            if (!tabText.startsWith("*")) {
+                                m_centralTabs->setTabText(currentIdx, "*" + tabText);
+                            }
+                        }
+
+                        // Notify NavigatorPanel about dirty state (OpenSpec #00042 Phase 7.5)
+                        emit chapterDirtyStateChanged(elementId, true);
+
+                        emit documentModified();
+                    }
+                }
+            });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -206,48 +213,6 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     if (!complete) {
         EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle);
     }
-}
-
-void NavigatorCoordinator::markChapterModified(const QString& elementId, EditorPanel* editor) {
-    auto& pm = core::ProjectManager::getInstance();
-    if (!pm.isProjectOpen() || m_dirtyChapters.value(elementId, false)) {
-        return;
-    }
-
-    m_dirtyChapters[elementId] = true;
-    // Chapter CONTENT dirtiness is tracked per open tab here, set ONLY on genuine edits
-    // (the contentChanged slot is connected AFTER load). Do NOT mark the model
-    // BookElement or the manifest/structure dirty: tree-building/selection/properties
-    // can dirty the model element with no user edit, which resurfaces as a spurious
-    // save prompt that can never be cleared.
-
-    // Update tab title with asterisk
-    int currentIdx = m_centralTabs->indexOf(editor);
-    if (currentIdx >= 0) {
-        QString tabText = m_centralTabs->tabText(currentIdx);
-        if (!tabText.startsWith("*")) {
-            m_centralTabs->setTabText(currentIdx, "*" + tabText);
-        }
-    }
-
-    // Notify NavigatorPanel about dirty state (OpenSpec #00042 Phase 7.5)
-    emit chapterDirtyStateChanged(elementId, true);
-
-    emit documentModified();
-}
-
-bool NavigatorCoordinator::askToRecoverChapterText(const QString& chapterTitle) const {
-    const QMessageBox::StandardButton answer = QMessageBox::question(
-        m_centralTabs->window(),
-        tr("Recover Chapter Text"),
-        tr("The text of \"%1\" may be in the backup made when the chapter was damaged "
-           "(.kchapter.bak in the book's folder).\n\n"
-           "Load the text from the backup into this chapter? Earlier versions saved all "
-           "the chapters added in the Navigator under one name, so the text may belong to "
-           "another of them. The backup stays as it is.").arg(chapterTitle),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::Yes);
-    return answer == QMessageBox::Yes;
 }
 
 void NavigatorCoordinator::onRequestRename(const QString& elementId, const QString& currentTitle) {
