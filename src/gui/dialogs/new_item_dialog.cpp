@@ -181,8 +181,8 @@ QWidget* NewItemDialog::createTemplateGrid() {
     m_templateList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_templateList->setFlow(QListView::LeftToRight);
     m_templateList->setWrapping(true);
-    m_templateList->setGridSize(QSize(100, 80));
-    m_templateList->setUniformItemSizes(true);
+    m_templateList->setGridSize(QSize(110, 96));
+    m_templateList->setWordWrap(true);  // Translated names may need two lines
     groupLayout->addWidget(m_templateList, 1);
 
     layout->addWidget(group);

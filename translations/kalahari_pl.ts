@@ -565,6 +565,37 @@
     </message>
 </context>
 <context>
+    <name>QLineEdit</name>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>Zaznacz wszystko</translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
         <source>Dashboard</source>
@@ -597,10 +628,6 @@
     <message>
         <source>Close</source>
         <translation>Zamknij</translation>
-    </message>
-    <message>
-        <source>&amp;View</source>
-        <translation>&amp;Widok</translation>
     </message>
     <message>
         <source>Panels</source>
@@ -791,58 +818,6 @@
         <translation>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Reguła: %3 (%4)&lt;/i&gt;</translation>
     </message>
     <message>
-        <source>Add TODO</source>
-        <translation>Dodaj TODO</translation>
-    </message>
-    <message>
-        <source>Add Note</source>
-        <translation>Dodaj notatkę</translation>
-    </message>
-    <message>
-        <source>Remove TODO</source>
-        <translation>Usuń TODO</translation>
-    </message>
-    <message>
-        <source>Remove Note</source>
-        <translation>Usuń notatkę</translation>
-    </message>
-    <message>
-        <source>Toggle TODO</source>
-        <translation>Przełącz TODO</translation>
-    </message>
-    <message>
-        <source>Insert Text</source>
-        <translation>Wstawienie tekstu</translation>
-    </message>
-    <message>
-        <source>Delete Text</source>
-        <translation>Usunięcie tekstu</translation>
-    </message>
-    <message>
-        <source>Split Paragraph</source>
-        <translation>Podział akapitu</translation>
-    </message>
-    <message>
-        <source>Merge Paragraphs</source>
-        <translation>Scalenie akapitów</translation>
-    </message>
-    <message>
-        <source>Apply Format</source>
-        <translation>Zastosowanie formatu</translation>
-    </message>
-    <message>
-        <source>Remove Format</source>
-        <translation>Usunięcie formatu</translation>
-    </message>
-    <message>
-        <source>Replace</source>
-        <translation>Zamień</translation>
-    </message>
-    <message>
-        <source>Replace All</source>
-        <translation>Zamień wszystko</translation>
-    </message>
-    <message>
         <source>Language Changed</source>
         <translation>Zmiana języka</translation>
     </message>
@@ -856,330 +831,429 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>QPlatformTheme</name>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Zapisz wszystko</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Yes</source>
+        <translation>&amp;Tak</translation>
+    </message>
+    <message>
+        <source>Yes to &amp;All</source>
+        <translation>Tak dla &amp;wszystkich</translation>
+    </message>
+    <message>
+        <source>&amp;No</source>
+        <translation>&amp;Nie</translation>
+    </message>
+    <message>
+        <source>N&amp;o to All</source>
+        <translation>N&amp;ie dla wszystkich</translation>
+    </message>
+    <message>
+        <source>Abort</source>
+        <translation>Przerwij</translation>
+    </message>
+    <message>
+        <source>Retry</source>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Pomiń</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Discard</source>
+        <translation>Odrzuć</translation>
+    </message>
+    <message>
+        <source>Help</source>
+        <translation>Pomoc</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Zastosuj</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>Resetuj</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+</context>
+<context>
     <name>TemplateRegistry</name>
     <message>
         <source>Novel</source>
-        <translation type="unfinished"></translation>
+        <translation>Powieść</translation>
     </message>
     <message>
         <source>A traditional novel structure with parts and chapters.
 
 Includes front matter (title page, dedication) and back matter (epilogue, acknowledgments). Perfect for fiction writing with a clear hierarchical organization.</source>
-        <translation type="unfinished"></translation>
+        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
+
+Zawiera część wstępną (strona tytułowa, dedykacja) i część końcową (epilog, podziękowania). Dobry do prozy o wyraźnym, wielopoziomowym układzie.</translation>
     </message>
     <message>
         <source>Part/Chapter structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Układ części i rozdziałów</translation>
     </message>
     <message>
         <source>Front matter (title, dedication)</source>
-        <translation type="unfinished"></translation>
+        <translation>Część wstępna (tytuł, dedykacja)</translation>
     </message>
     <message>
         <source>Back matter (epilogue, notes)</source>
-        <translation type="unfinished"></translation>
+        <translation>Część końcowa (epilog, przypisy)</translation>
     </message>
     <message>
         <source>Word count tracking</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczenie słów</translation>
     </message>
     <message>
         <source>Character &amp; location banks</source>
-        <translation type="unfinished"></translation>
+        <translation>Bank postaci i miejsc</translation>
     </message>
     <message>
         <source>Short Story Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>Zbiór opowiadań</translation>
     </message>
     <message>
         <source>A collection of independent short stories.
 
 Flat structure without parts - each story stands alone. Great for anthologies, collections, or episodic content.</source>
-        <translation type="unfinished"></translation>
+        <translation>Zbiór niezależnych opowiadań.
+
+Płaski układ bez części – każde opowiadanie jest osobną całością. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
     </message>
     <message>
         <source>Flat story structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Płaski układ opowiadań</translation>
     </message>
     <message>
         <source>Independent stories</source>
-        <translation type="unfinished"></translation>
+        <translation>Niezależne opowiadania</translation>
     </message>
     <message>
         <source>Per-story statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki każdego opowiadania</translation>
     </message>
     <message>
         <source>Easy reordering</source>
-        <translation type="unfinished"></translation>
+        <translation>Łatwa zmiana kolejności</translation>
     </message>
     <message>
         <source>Export individual stories</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksport pojedynczych opowiadań</translation>
     </message>
     <message>
         <source>Non-fiction</source>
-        <translation type="unfinished"></translation>
+        <translation>Literatura faktu</translation>
     </message>
     <message>
         <source>A non-fiction book with flat chapter structure.
 
 Designed for essays, guides, memoirs, and technical writing. Includes bibliography and index support.</source>
-        <translation type="unfinished"></translation>
+        <translation>Książka popularnonaukowa lub faktograficzna z płaskim układem rozdziałów.
+
+Do esejów, poradników, wspomnień i tekstów technicznych. Obsługuje bibliografię i indeks.</translation>
     </message>
     <message>
         <source>Flat chapter structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Płaski układ rozdziałów</translation>
     </message>
     <message>
         <source>Bibliography support</source>
-        <translation type="unfinished"></translation>
+        <translation>Bibliografia</translation>
     </message>
     <message>
         <source>Index generation</source>
-        <translation type="unfinished"></translation>
+        <translation>Tworzenie indeksu</translation>
     </message>
     <message>
         <source>Footnotes &amp; citations</source>
-        <translation type="unfinished"></translation>
+        <translation>Przypisy i cytowania</translation>
     </message>
     <message>
         <source>Research notes section</source>
-        <translation type="unfinished"></translation>
+        <translation>Notatki z researchu</translation>
     </message>
     <message>
         <source>Screenplay</source>
-        <translation type="unfinished"></translation>
+        <translation>Scenariusz</translation>
     </message>
     <message>
         <source>A screenplay or stage play structure.
 
 Organized by acts and scenes with proper screenplay formatting. Suitable for film, TV, or theater scripts.</source>
-        <translation type="unfinished"></translation>
+        <translation>Układ scenariusza filmowego lub sztuki teatralnej.
+
+Akty i sceny z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyjnych i teatralnych.</translation>
     </message>
     <message>
         <source>Act/Scene structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Układ aktów i scen</translation>
     </message>
     <message>
         <source>Screenplay formatting</source>
-        <translation type="unfinished"></translation>
+        <translation>Formatowanie scenariusza</translation>
     </message>
     <message>
         <source>Character list</source>
-        <translation type="unfinished"></translation>
+        <translation>Lista postaci</translation>
     </message>
     <message>
         <source>Scene descriptions</source>
-        <translation type="unfinished"></translation>
+        <translation>Opisy scen</translation>
     </message>
     <message>
         <source>Dialogue formatting</source>
-        <translation type="unfinished"></translation>
+        <translation>Formatowanie dialogów</translation>
     </message>
     <message>
         <source>Poetry Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>Tomik wierszy</translation>
     </message>
     <message>
         <source>A collection of poems organized by sections.
 
 Flexible structure for organizing poems into thematic sections. Supports various poetry formats and styles.</source>
-        <translation type="unfinished"></translation>
+        <translation>Zbiór wierszy podzielony na sekcje.
+
+Elastyczny układ do grupowania wierszy w sekcje tematyczne. Obsługuje różne formy i style poezji.</translation>
     </message>
     <message>
         <source>Section/Poem structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Układ sekcji i wierszy</translation>
     </message>
     <message>
         <source>Thematic grouping</source>
-        <translation type="unfinished"></translation>
+        <translation>Grupowanie tematyczne</translation>
     </message>
     <message>
         <source>Verse formatting</source>
-        <translation type="unfinished"></translation>
+        <translation>Formatowanie wersów</translation>
     </message>
     <message>
         <source>Line count tracking</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczenie wersów</translation>
     </message>
     <message>
         <source>Stanza support</source>
-        <translation type="unfinished"></translation>
+        <translation>Strofy</translation>
     </message>
     <message>
         <source>Empty Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Pusty projekt</translation>
     </message>
     <message>
         <source>A blank project with no predefined structure.
 
 Start from scratch and build your own structure. Recommended for advanced users who want full control.</source>
-        <translation type="unfinished"></translation>
+        <translation>Pusty projekt bez gotowego układu.
+
+Zacznij od zera i zbuduj własny układ. Dla zaawansowanych użytkowników, którzy chcą mieć pełną kontrolę.</translation>
     </message>
     <message>
         <source>No predefined structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Bez gotowego układu</translation>
     </message>
     <message>
         <source>Full customization</source>
-        <translation type="unfinished"></translation>
+        <translation>Pełna swoboda</translation>
     </message>
     <message>
         <source>Add elements manually</source>
-        <translation type="unfinished"></translation>
+        <translation>Elementy dodawane ręcznie</translation>
     </message>
     <message>
         <source>For advanced users</source>
-        <translation type="unfinished"></translation>
+        <translation>Dla zaawansowanych</translation>
     </message>
     <message>
         <source>Chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozdział</translation>
     </message>
     <message>
         <source>A new chapter for your book.
 
 Rich text document with formatting support. The primary content unit for writing.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy rozdział książki.
+
+Dokument tekstowy z formatowaniem. Podstawowa jednostka tekstu książki.</translation>
     </message>
     <message>
         <source>Rich text formatting</source>
-        <translation type="unfinished"></translation>
+        <translation>Formatowanie tekstu</translation>
     </message>
     <message>
         <source>Auto-save support</source>
-        <translation type="unfinished"></translation>
+        <translation>Automatyczny zapis</translation>
     </message>
     <message>
         <source>Export to RTF/DOCX/PDF</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksport do RTF, DOCX i PDF</translation>
     </message>
     <message>
         <source>Mind Map</source>
-        <translation type="unfinished"></translation>
+        <translation>Mapa myśli</translation>
     </message>
     <message>
         <source>A visual mind map for brainstorming.
 
 Organize ideas, plot points, and connections visually. Great for planning and outlining.</source>
-        <translation type="unfinished"></translation>
+        <translation>Mapa myśli do zbierania pomysłów.
+
+Porządkuj pomysły, wątki fabuły i powiązania na rysunku. Dobra do planowania i konspektu.</translation>
     </message>
     <message>
         <source>Visual node editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytor węzłów</translation>
     </message>
     <message>
         <source>Drag &amp; drop organization</source>
-        <translation type="unfinished"></translation>
+        <translation>Porządkowanie przez przeciąganie</translation>
     </message>
     <message>
         <source>Color coding</source>
-        <translation type="unfinished"></translation>
+        <translation>Oznaczanie kolorami</translation>
     </message>
     <message>
         <source>Export to image</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksport do obrazu</translation>
     </message>
     <message>
         <source>Timeline</source>
-        <translation type="unfinished"></translation>
+        <translation>Oś czasu</translation>
     </message>
     <message>
         <source>A chronological timeline for your story.
 
 Track events, character arcs, and plot progression. Visualize the temporal structure of your narrative.</source>
-        <translation type="unfinished"></translation>
+        <translation>Chronologiczna oś czasu opowieści.
+
+Śledź wydarzenia, przemiany postaci i rozwój fabuły. Zobacz, jak opowieść układa się w czasie.</translation>
     </message>
     <message>
         <source>Event tracking</source>
-        <translation type="unfinished"></translation>
+        <translation>Śledzenie wydarzeń</translation>
     </message>
     <message>
         <source>Multiple timelines</source>
-        <translation type="unfinished"></translation>
+        <translation>Wiele osi czasu</translation>
     </message>
     <message>
         <source>Character tracking</source>
-        <translation type="unfinished"></translation>
+        <translation>Śledzenie postaci</translation>
     </message>
     <message>
         <source>Date/time support</source>
-        <translation type="unfinished"></translation>
+        <translation>Daty i godziny</translation>
     </message>
     <message>
         <source>Note</source>
-        <translation type="unfinished"></translation>
+        <translation>Notatka</translation>
     </message>
     <message>
         <source>A quick note for ideas and research.
 
 Capture thoughts, research snippets, and reminders. Searchable and taggable.</source>
-        <translation type="unfinished"></translation>
+        <translation>Szybka notatka na pomysły i materiały.
+
+Zapisuj myśli, fragmenty materiałów i przypomnienia. Można je wyszukiwać i oznaczać tagami.</translation>
     </message>
     <message>
         <source>Quick capture</source>
-        <translation type="unfinished"></translation>
+        <translation>Szybkie zapisywanie</translation>
     </message>
     <message>
         <source>Tags and categories</source>
-        <translation type="unfinished"></translation>
+        <translation>Tagi i kategorie</translation>
     </message>
     <message>
         <source>Full-text search</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyszukiwanie pełnotekstowe</translation>
     </message>
     <message>
         <source>Link to chapters</source>
-        <translation type="unfinished"></translation>
+        <translation>Powiązania z rozdziałami</translation>
     </message>
     <message>
         <source>Character</source>
-        <translation type="unfinished"></translation>
+        <translation>Postać</translation>
     </message>
     <message>
         <source>A character profile sheet.
 
 Document your characters with structured fields for appearance, personality, backstory, and relationships.</source>
-        <translation type="unfinished"></translation>
+        <translation>Karta postaci.
+
+Opisz postać w polach na wygląd, osobowość, przeszłość i relacje z innymi.</translation>
     </message>
     <message>
         <source>Structured profile</source>
-        <translation type="unfinished"></translation>
+        <translation>Karta z polami</translation>
     </message>
     <message>
         <source>Image attachment</source>
-        <translation type="unfinished"></translation>
+        <translation>Załączony obraz</translation>
     </message>
     <message>
         <source>Relationship mapping</source>
-        <translation type="unfinished"></translation>
+        <translation>Mapa relacji</translation>
     </message>
     <message>
         <source>Scene references</source>
-        <translation type="unfinished"></translation>
+        <translation>Odwołania do scen</translation>
     </message>
     <message>
         <source>Location</source>
-        <translation type="unfinished"></translation>
+        <translation>Miejsce</translation>
     </message>
     <message>
         <source>A location or setting profile.
 
 Document places in your story with descriptions, maps, and associated scenes.</source>
-        <translation type="unfinished"></translation>
+        <translation>Karta miejsca akcji.
+
+Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     </message>
     <message>
         <source>Location details</source>
-        <translation type="unfinished"></translation>
+        <translation>Szczegóły miejsca</translation>
     </message>
     <message>
         <source>Image/map attachment</source>
-        <translation type="unfinished"></translation>
+        <translation>Załączony obraz lub mapa</translation>
     </message>
     <message>
         <source>Hierarchy support</source>
-        <translation type="unfinished"></translation>
+        <translation>Hierarchia miejsc</translation>
     </message>
 </context>
 <context>
@@ -1205,137 +1279,216 @@ Document places in your story with descriptions, maps, and associated scenes.</s
     </message>
     <message>
         <source>Insert Comment</source>
-        <translation type="unfinished"></translation>
+        <translation>Wstaw komentarz</translation>
     </message>
     <message>
         <source>Enter comment:</source>
-        <translation type="unfinished"></translation>
+        <translation>Treść komentarza:</translation>
     </message>
     <message>
         <source>Cut</source>
-        <translation type="unfinished"></translation>
+        <translation>Wytnij</translation>
     </message>
     <message>
         <source>Copy</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopiuj</translation>
     </message>
     <message>
         <source>Paste</source>
-        <translation type="unfinished"></translation>
+        <translation>Wklej</translation>
     </message>
     <message>
         <source>Select All</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaznacz wszystko</translation>
     </message>
     <message>
         <source>Switch to Dark Mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Przełącz na tryb ciemny</translation>
     </message>
     <message>
         <source>Switch to Light Mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Przełącz na tryb jasny</translation>
     </message>
     <message>
         <source>(No suggestions)</source>
-        <translation type="unfinished"></translation>
+        <translation>(Brak podpowiedzi)</translation>
     </message>
     <message>
         <source>Add to Dictionary</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj do słownika</translation>
     </message>
     <message>
         <source>Ignore</source>
-        <translation type="unfinished"></translation>
+        <translation>Pomiń</translation>
     </message>
     <message>
         <source>Error: &quot;%1&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd: „%1”</translation>
     </message>
     <message>
         <source>Explanation...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyjaśnienie...</translation>
     </message>
     <message>
         <source>Ignore this rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
         <source>TODO</source>
-        <translation type="unfinished"></translation>
+        <translation>TODO</translation>
     </message>
     <message>
         <source>Note</source>
-        <translation type="unfinished"></translation>
+        <translation>Notatka</translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
     <message>
         <source>Book Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytor książki</translation>
     </message>
     <message>
         <source>Text editor for writing and editing book content</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytor do pisania i poprawiania tekstu książki</translation>
     </message>
     <message>
         <source>Use arrow keys to navigate, Ctrl+Home/End for document start/end</source>
-        <translation type="unfinished"></translation>
+        <translation>Strzałki przesuwają kursor, Ctrl+Home i Ctrl+End – na początek i koniec dokumentu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::editor::FindReplaceBar</name>
+    <message>
+        <source>Find...</source>
+        <translation>Znajdź...</translation>
+    </message>
+    <message>
+        <source>Aa</source>
+        <translation>Aa</translation>
+    </message>
+    <message>
+        <source>Match Case (Alt+C)</source>
+        <translation>Uwzględniaj wielkość liter (Alt+C)</translation>
+    </message>
+    <message>
+        <source>W</source>
+        <translation>W</translation>
+    </message>
+    <message>
+        <source>Match Whole Word (Alt+W)</source>
+        <translation>Tylko całe wyrazy (Alt+W)</translation>
+    </message>
+    <message>
+        <source>.*</source>
+        <translation>.*</translation>
+    </message>
+    <message>
+        <source>Use Regular Expression (Alt+R)</source>
+        <translation>Wyrażenie regularne (Alt+R)</translation>
+    </message>
+    <message>
+        <source>Previous Match (Shift+Enter)</source>
+        <translation>Poprzednie wystąpienie (Shift+Enter)</translation>
+    </message>
+    <message>
+        <source>Next Match (Enter)</source>
+        <translation>Następne wystąpienie (Enter)</translation>
+    </message>
+    <message>
+        <source>No results</source>
+        <translation>Brak wyników</translation>
+    </message>
+    <message>
+        <source>Close (Escape)</source>
+        <translation>Zamknij (Esc)</translation>
+    </message>
+    <message>
+        <source>Replace...</source>
+        <translation>Zamień na...</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Zamień</translation>
+    </message>
+    <message>
+        <source>Replace Current Match</source>
+        <translation>Zamień bieżące wystąpienie</translation>
+    </message>
+    <message>
+        <source>Replace All</source>
+        <translation>Zamień wszystkie</translation>
+    </message>
+    <message>
+        <source>Replace All Matches</source>
+        <translation>Zamień wszystkie wystąpienia</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 z %2</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n result(s)</source>
+        <translation>
+            <numerusform>%n wynik</numerusform>
+            <numerusform>%n wyniki</numerusform>
+            <numerusform>%n wyników</numerusform>
+        </translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::QuickInsertPopup</name>
     <message>
         <source>No matches</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak dopasowań</translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::SnapshotManager</name>
     <message>
         <source>Auto-save %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Automatyczny zapis %1</translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::SpellCheckService</name>
     <message>
         <source>Dictionary not found for language: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono słownika dla języka: %1</translation>
     </message>
     <message>
         <source>Dictionary files missing for: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak plików słownika dla: %1</translation>
     </message>
     <message>
         <source>Failed to initialize Hunspell for: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się uruchomić Hunspella dla: %1</translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::StyleResolver</name>
     <message>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation>Domyślny</translation>
     </message>
 </context>
 <context>
     <name>kalahari::editor::TextToSpeechService</name>
     <message>
         <source>TTS engine error</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd syntezatora mowy</translation>
     </message>
     <message>
         <source>Text-to-Speech engine initialization failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się uruchomić syntezatora mowy</translation>
     </message>
     <message>
         <source>No Text-to-Speech engines available on this system</source>
-        <translation type="unfinished"></translation>
+        <translation>W tym systemie nie ma żadnego syntezatora mowy</translation>
     </message>
     <message>
         <source>Text-to-Speech not compiled in this build. Qt TextToSpeech module is required.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ta wersja programu nie ma czytania na głos. Potrzebny jest moduł Qt TextToSpeech.</translation>
     </message>
 </context>
 <context>
@@ -1344,7 +1497,9 @@ Document places in your story with descriptions, maps, and associated scenes.</s
         <source>Assistant Panel
 🦁
 (Placeholder - full implementation in Phase 2+)</source>
-        <translation type="unfinished"></translation>
+        <translation>Panel asystenta
+🦁
+(Wersja tymczasowa – pełna wersja od fazy 2)</translation>
     </message>
 </context>
 <context>
@@ -1369,308 +1524,315 @@ Document places in your story with descriptions, maps, and associated scenes.</s
     <name>kalahari::gui::CommentsPanel</name>
     <message>
         <source>No comments in document</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak komentarzy w dokumencie</translation>
     </message>
     <message>
         <source>Edit</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytuj</translation>
     </message>
     <message>
         <source>Edit selected comment</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytuj zaznaczony komentarz</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń</translation>
     </message>
     <message>
         <source>Delete selected comment</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń zaznaczony komentarz</translation>
     </message>
     <message>
         <source>&quot;%1&quot;
 on: &quot;%2&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>„%1”
+do: „%2”</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::DashboardPanel</name>
     <message>
         <source>Open last project on startup</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwieraj ostatni projekt przy starcie</translation>
     </message>
     <message>
         <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation type="unfinished"></translation>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
     </message>
     <message>
         <source>Logo</source>
-        <translation type="unfinished"></translation>
+        <translation>Logo</translation>
     </message>
     <message>
         <source>Welcome to Kalahari</source>
-        <translation type="unfinished"></translation>
+        <translation>Witaj w Kalahari</translation>
     </message>
     <message>
         <source>A Comprehensive Writer&apos;s IDE</source>
-        <translation type="unfinished"></translation>
+        <translation>Kompletne środowisko pracy pisarza</translation>
     </message>
     <message>
         <source>KEYBOARD SHORTCUTS</source>
-        <translation type="unfinished"></translation>
+        <translation>SKRÓTY KLAWISZOWE</translation>
     </message>
     <message>
         <source>New Book</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowa książka</translation>
     </message>
     <message>
         <source>Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz</translation>
     </message>
     <message>
         <source>New Chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy rozdział</translation>
     </message>
     <message>
         <source>Kalahari News</source>
-        <translation type="unfinished"></translation>
+        <translation>Wiadomości Kalahari</translation>
     </message>
     <message>
         <source>Recent Files</source>
-        <translation type="unfinished"></translation>
+        <translation>Ostatnie pliki</translation>
     </message>
     <message>
         <source>Unknown Author</source>
-        <translation type="unfinished"></translation>
+        <translation>Autor nieznany</translation>
     </message>
     <message>
         <source>Novel</source>
-        <translation type="unfinished"></translation>
+        <translation>Powieść</translation>
     </message>
     <message>
         <source>File not found</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono pliku</translation>
     </message>
     <message>
         <source>No recent projects yet.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie ma jeszcze ostatnich projektów.</translation>
     </message>
     <message>
         <source>No news yet.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie ma jeszcze wiadomości.</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::DiagnosticController</name>
     <message>
         <source>Diagnostic mode enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Włączono tryb diagnostyczny</translation>
     </message>
     <message>
         <source>Diagnostic mode disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyłączono tryb diagnostyczny</translation>
     </message>
     <message>
         <source>&amp;Diagnostics</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Diagnostyka</translation>
     </message>
     <message>
         <source>System Information</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje o systemie</translation>
     </message>
     <message>
         <source>Qt Environment</source>
-        <translation type="unfinished"></translation>
+        <translation>Środowisko Qt</translation>
     </message>
     <message>
         <source>File System Check</source>
-        <translation type="unfinished"></translation>
+        <translation>Sprawdzenie systemu plików</translation>
     </message>
     <message>
         <source>Settings Dump</source>
-        <translation type="unfinished"></translation>
+        <translation>Zrzut ustawień</translation>
     </message>
     <message>
         <source>Memory Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki pamięci</translation>
     </message>
     <message>
         <source>Open Documents Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki otwartych dokumentów</translation>
     </message>
     <message>
         <source>Logger Test</source>
-        <translation type="unfinished"></translation>
+        <translation>Test dziennika</translation>
     </message>
     <message>
         <source>Event Bus Test</source>
-        <translation type="unfinished"></translation>
+        <translation>Test szyny zdarzeń</translation>
     </message>
     <message>
         <source>Plugin Manager Check</source>
-        <translation type="unfinished"></translation>
+        <translation>Sprawdzenie menedżera wtyczek</translation>
     </message>
     <message>
         <source>Command Registry Dump</source>
-        <translation type="unfinished"></translation>
+        <translation>Zrzut rejestru poleceń</translation>
     </message>
     <message>
         <source>Python Environment</source>
-        <translation type="unfinished"></translation>
+        <translation>Środowisko Pythona</translation>
     </message>
     <message>
         <source>Python Import Test</source>
-        <translation type="unfinished"></translation>
+        <translation>Test importu Pythona</translation>
     </message>
     <message>
         <source>Python Memory Test</source>
-        <translation type="unfinished"></translation>
+        <translation>Test pamięci Pythona</translation>
     </message>
     <message>
         <source>Embedded Interpreter Status</source>
-        <translation type="unfinished"></translation>
+        <translation>Stan wbudowanego interpretera</translation>
     </message>
     <message>
         <source>Performance Benchmark</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności</translation>
     </message>
     <message>
         <source>Render Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki rysowania</translation>
     </message>
     <message>
         <source>Clear Log</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyczyść dziennik</translation>
     </message>
     <message>
         <source>Force Crash (Debug Only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Wymuś awarię (tylko wersja debug)</translation>
     </message>
     <message>
         <source>Memory Leak Test (Debug Only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wycieku pamięci (tylko wersja debug)</translation>
     </message>
     <message>
         <source>System information logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje o systemie zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Qt environment logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Środowisko Qt zapisano w dzienniku</translation>
     </message>
     <message>
         <source>File system check logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik sprawdzenia systemu plików zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Settings dumped to log</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustawienia zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Memory statistics logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki pamięci zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Document statistics logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki dokumentów zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Logger test complete</source>
-        <translation type="unfinished"></translation>
+        <translation>Test dziennika zakończony</translation>
     </message>
     <message>
         <source>Event Bus test logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik testu szyny zdarzeń zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Plugin check logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik sprawdzenia wtyczek zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Command Registry dump logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Rejestr poleceń zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Python environment check logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik sprawdzenia środowiska Pythona zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Python import test logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik testu importu Pythona zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Python memory test logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Wynik testu pamięci Pythona zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Interpreter status logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Stan interpretera zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Benchmark failed: No main window</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności nie powiódł się: brak okna głównego</translation>
     </message>
     <message>
         <source>Benchmark</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności</translation>
     </message>
     <message>
         <source>Please open a document before running the benchmark.</source>
-        <translation type="unfinished"></translation>
+        <translation>Przed testem wydajności otwórz dokument.</translation>
     </message>
     <message>
         <source>BookEditor not available.</source>
-        <translation type="unfinished"></translation>
+        <translation>Edytor książki jest niedostępny.</translation>
     </message>
     <message>
         <source>Editor Benchmark</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności edytora</translation>
     </message>
     <message>
         <source>This benchmark will temporarily modify the editor content.
 The original content will NOT be preserved.
 
 Do you want to continue?</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności zmieni treść w edytorze.
+Pierwotna treść NIE zostanie zachowana.
+
+Czy kontynuować?</translation>
     </message>
     <message>
         <source>Running Editor Benchmark...</source>
-        <translation type="unfinished"></translation>
+        <translation>Trwa test wydajności edytora...</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished"></translation>
+        <translation>Anuluj</translation>
     </message>
     <message>
         <source>Editor Benchmark Results
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Wyniki testu wydajności edytora
+
+</translation>
     </message>
     <message>
         <source>
 Details logged to Log Panel.</source>
-        <translation type="unfinished"></translation>
+        <translation>
+Szczegóły zapisano w panelu Dziennik.</translation>
     </message>
     <message>
         <source>Benchmark Complete</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności zakończony</translation>
     </message>
     <message>
         <source>Performance benchmark complete - see log</source>
-        <translation type="unfinished"></translation>
+        <translation>Test wydajności zakończony – wyniki w dzienniku</translation>
     </message>
     <message>
         <source>Render statistics logged</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki rysowania zapisano w dzienniku</translation>
     </message>
     <message>
         <source>Log cleared</source>
-        <translation type="unfinished"></translation>
+        <translation>Dziennik wyczyszczony</translation>
     </message>
     <message>
         <source>Force Crash</source>
-        <translation type="unfinished"></translation>
+        <translation>Wymuś awarię</translation>
     </message>
     <message>
         <source>This will IMMEDIATELY crash the application!
@@ -1678,479 +1840,470 @@ Details logged to Log Panel.</source>
 All unsaved work will be LOST.
 
 Are you sure you want to continue?</source>
-        <translation type="unfinished"></translation>
+        <translation>Program NATYCHMIAST ulegnie awarii!
+
+Cała niezapisana praca PRZEPADNIE.
+
+Czy na pewno kontynuować?</translation>
     </message>
     <message>
         <source>Crash cancelled</source>
-        <translation type="unfinished"></translation>
+        <translation>Awarię anulowano</translation>
     </message>
     <message>
         <source>Memory leak created (1 MB)</source>
-        <translation type="unfinished"></translation>
+        <translation>Utworzono wyciek pamięci (1 MB)</translation>
     </message>
     <message>
         <source>Dev mode enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Włączono tryb deweloperski</translation>
     </message>
     <message>
         <source>Dev mode disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyłączono tryb deweloperski</translation>
     </message>
     <message>
         <source>&amp;Dev Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Narzędzia deweloperskie</translation>
     </message>
     <message>
         <source>Icon Downloader</source>
-        <translation type="unfinished"></translation>
+        <translation>Pobieranie ikon</translation>
     </message>
     <message>
         <source>Download Material Design icons for the project</source>
-        <translation type="unfinished"></translation>
+        <translation>Pobiera ikony Material Design do projektu</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::DocumentCoordinator</name>
     <message>
         <source>Untitled</source>
-        <translation type="unfinished"></translation>
+        <translation>Bez tytułu</translation>
     </message>
     <message>
         <source>Unsaved Changes</source>
-        <translation type="unfinished"></translation>
+        <translation>Niezapisane zmiany</translation>
     </message>
     <message>
         <source>Do you want to save changes to %1?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy zapisać zmiany w %1?</translation>
     </message>
     <message>
         <source>Do you want to save changes to the current document?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy zapisać zmiany w bieżącym dokumencie?</translation>
     </message>
     <message>
         <source>New document created</source>
-        <translation type="unfinished"></translation>
+        <translation>Utworzono nowy dokument</translation>
     </message>
     <message>
         <source>Project created: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Utworzono projekt: %1</translation>
     </message>
     <message>
         <source>Project Creation Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się utworzyć projektu</translation>
     </message>
     <message>
         <source>Could not create project &apos;%1&apos;.
 
 Check that the location is writable and try again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się utworzyć projektu „%1”.
+
+Sprawdź, czy w wybranym miejscu można zapisywać pliki, i spróbuj ponownie.</translation>
     </message>
     <message>
         <source>Open Book</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz książkę</translation>
     </message>
     <message>
         <source>Kalahari Books (*.klh)</source>
-        <translation type="unfinished"></translation>
+        <translation>Książki Kalahari (*.klh)</translation>
     </message>
     <message>
         <source>current project</source>
-        <translation type="unfinished"></translation>
+        <translation>bieżącego projektu</translation>
     </message>
     <message>
         <source>Do you want to save changes to &apos;%1&apos; before opening the selected project?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy zapisać zmiany w „%1” przed otwarciem wybranego projektu?</translation>
     </message>
     <message>
         <source>Close Current Project?</source>
-        <translation type="unfinished"></translation>
+        <translation>Zamknąć bieżący projekt?</translation>
     </message>
     <message>
         <source>Do you want to close &apos;%1&apos; and open the selected project?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy zamknąć „%1” i otworzyć wybrany projekt?</translation>
     </message>
     <message>
         <source>Open Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd otwierania</translation>
     </message>
     <message>
         <source>Failed to open book: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się otworzyć książki: %1</translation>
     </message>
     <message>
         <source>File Not Found</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono pliku</translation>
     </message>
     <message>
         <source>The file &apos;%1&apos; no longer exists.</source>
-        <translation type="unfinished"></translation>
+        <translation>Plik „%1” już nie istnieje.</translation>
     </message>
     <message>
         <source>Failed to open project: %1
 
 The project may be corrupted, locked by another instance, or there may be a database error.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się otworzyć projektu: %1
+
+Projekt może być uszkodzony lub otwarty w innym oknie programu albo wystąpił błąd bazy danych.</translation>
     </message>
     <message>
         <source>Failed to open document: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się otworzyć dokumentu: %1</translation>
     </message>
     <message>
         <source>Document opened: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwarto dokument: %1</translation>
     </message>
     <message>
         <source>No document to save</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak dokumentu do zapisania</translation>
     </message>
     <message>
         <source>Save Document As</source>
-        <translation type="unfinished"></translation>
+        <translation>Zapisz dokument jako</translation>
     </message>
     <message>
         <source>Kalahari Files (*.klh)</source>
-        <translation type="unfinished"></translation>
+        <translation>Pliki Kalahari (*.klh)</translation>
     </message>
     <message>
         <source>Save Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd zapisu</translation>
     </message>
     <message>
         <source>Failed to save document: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się zapisać dokumentu: %1</translation>
     </message>
     <message>
         <source>Document saved as: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Zapisano dokument jako: %1</translation>
     </message>
     <message>
         <source>Document saved</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot Save File</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Changes to &apos;%1&apos; cannot be saved: saving files that are not part of a book is not available yet.</source>
-        <translation type="unfinished"></translation>
+        <translation>Zapisano dokument</translation>
     </message>
     <message>
         <source>No project open</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak otwartego projektu</translation>
     </message>
     <message>
         <source>All changes saved</source>
-        <translation type="unfinished"></translation>
+        <translation>Zapisano wszystkie zmiany</translation>
     </message>
     <message>
         <source>Error saving some chapters</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd zapisu niektórych rozdziałów</translation>
     </message>
     <message>
         <source>Save Warning</source>
-        <translation type="unfinished"></translation>
+        <translation>Ostrzeżenie o zapisie</translation>
     </message>
     <message>
         <source>Some chapters could not be saved. Check the log for details.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się zapisać niektórych rozdziałów. Szczegóły są w dzienniku.</translation>
     </message>
     <message>
         <source>Document closed</source>
-        <translation type="unfinished"></translation>
+        <translation>Zamknięto dokument</translation>
     </message>
     <message>
         <source>Open File</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Kalahari Files (*.rtf *.kmap *.ktl);;Rich Text Format (*.rtf);;Mind Maps (*.kmap);;Timelines (*.ktl);;All Files (*.*)</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz plik</translation>
     </message>
     <message>
         <source>The file &apos;%1&apos; does not exist.</source>
-        <translation type="unfinished"></translation>
+        <translation>Plik „%1” nie istnieje.</translation>
     </message>
     <message>
         <source>Failed to open file: %1
 
 %2</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się otworzyć pliku: %1
+
+%2</translation>
     </message>
     <message>
         <source>This file is not part of the current project.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ten plik nie należy do bieżącego projektu.</translation>
     </message>
     <message>
         <source>This file is not part of a project. Limited features available.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
     </message>
     <message>
         <source>Opened: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwarto: %1</translation>
     </message>
     <message>
         <source>No Project Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak otwartego projektu</translation>
     </message>
     <message>
         <source>Please open or create a book project first.
 
 Use File &gt; New Book... or File &gt; Open Book... to start.</source>
-        <translation type="unfinished"></translation>
+        <translation>Najpierw otwórz albo utwórz projekt książki.
+
+Użyj polecenia Plik → Nowa książka... lub Plik → Otwórz książkę....</translation>
     </message>
     <message>
         <source>File added to project: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodano plik do projektu: %1</translation>
     </message>
     <message>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd</translation>
     </message>
     <message>
         <source>Failed to add file to project. Check logs for details.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się dodać pliku do projektu. Szczegóły są w dzienniku.</translation>
     </message>
     <message>
         <source>Please open a project first before exporting.</source>
-        <translation type="unfinished"></translation>
+        <translation>Przed eksportem otwórz projekt.</translation>
     </message>
     <message>
         <source>Export Project Archive</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksportuj archiwum projektu</translation>
     </message>
     <message>
         <source>Kalahari Archive (*.klh.zip)</source>
-        <translation type="unfinished"></translation>
+        <translation>Archiwum Kalahari (*.klh.zip)</translation>
     </message>
     <message>
         <source>The project contains %1 file(s) that are not marked as final:</source>
-        <translation type="unfinished"></translation>
+        <translation>Pliki projektu nieoznaczone jako gotowe (%1):</translation>
     </message>
     <message>
         <source>Do you want to export anyway?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy mimo to wyeksportować?</translation>
     </message>
     <message>
         <source>Incomplete Files</source>
-        <translation type="unfinished"></translation>
+        <translation>Niegotowe pliki</translation>
     </message>
     <message>
         <source>Exporting project archive...</source>
-        <translation type="unfinished"></translation>
+        <translation>Trwa eksport archiwum projektu...</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished"></translation>
+        <translation>Anuluj</translation>
     </message>
     <message>
         <source>Export Complete</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksport zakończony</translation>
     </message>
     <message>
         <source>Project exported successfully to:
 %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyeksportowano projekt do:
+%1</translation>
     </message>
     <message>
         <source>Export Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Eksport nie powiódł się</translation>
     </message>
     <message>
         <source>Failed to export project archive.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się wyeksportować archiwum projektu.</translation>
     </message>
     <message>
         <source>Import Project Archive</source>
-        <translation type="unfinished"></translation>
+        <translation>Importuj archiwum projektu</translation>
     </message>
     <message>
         <source>Select Destination Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz folder docelowy</translation>
     </message>
     <message>
         <source>Folder Exists</source>
-        <translation type="unfinished"></translation>
+        <translation>Folder już istnieje</translation>
     </message>
     <message>
         <source>A folder named &apos;%1&apos; already exists in the destination.
 Do you want to choose a different location?</source>
-        <translation type="unfinished"></translation>
+        <translation>W wybranym miejscu jest już folder „%1”.
+Czy wybrać inne miejsce?</translation>
     </message>
     <message>
         <source>Importing project archive...</source>
-        <translation type="unfinished"></translation>
+        <translation>Trwa import archiwum projektu...</translation>
     </message>
     <message>
         <source>Import Complete</source>
-        <translation type="unfinished"></translation>
+        <translation>Import zakończony</translation>
     </message>
     <message>
         <source>Project imported and opened successfully.</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaimportowano i otwarto projekt.</translation>
     </message>
     <message>
         <source>Import Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Import nie powiódł się</translation>
     </message>
     <message>
         <source>Failed to import project archive.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się zaimportować archiwum projektu.</translation>
     </message>
     <message>
         <source>Book opened: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwarto książkę: %1</translation>
     </message>
     <message>
         <source>Book closed</source>
-        <translation type="unfinished"></translation>
+        <translation>Zamknięto książkę</translation>
+    </message>
+    <message>
+        <source>Chapters and Text Files (*.kchapter *.txt);;Chapters (*.kchapter);;Text Files (*.txt);;All Files (*)</source>
+        <translation>Rozdziały i pliki tekstowe (*.kchapter *.txt);;Rozdziały (*.kchapter);;Pliki tekstowe (*.txt);;Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Unsupported File</source>
+        <translation>Nieobsługiwany plik</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot open &apos;%1&apos;.
+
+It opens chapters (*.kchapter) and text files (*.txt).</source>
+        <translation>Kalahari nie może otworzyć „%1”.
+
+Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
+    </message>
+    <message>
+        <source>It is not a Kalahari chapter, or it cannot be read.</source>
+        <translation>To nie jest rozdział Kalahari albo nie da się go odczytać.</translation>
+    </message>
+    <message>
+        <source>Failed to save file: %1</source>
+        <translation>Nie udało się zapisać pliku: %1</translation>
+    </message>
+    <message>
+        <source>Failed to save file: %1
+
+%2</source>
+        <translation>Nie udało się zapisać pliku: %1
+
+%2</translation>
+    </message>
+    <message>
+        <source>Saved: %1</source>
+        <translation>Zapisano: %1</translation>
+    </message>
+    <message>
+        <source>Chapters (*.kchapter)</source>
+        <translation>Rozdziały (*.kchapter)</translation>
+    </message>
+    <message>
+        <source>Text Files (*.txt)</source>
+        <translation>Pliki tekstowe (*.txt)</translation>
+    </message>
+    <message>
+        <source>Save File As</source>
+        <translation>Zapisz plik jako</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is open in another tab.</source>
+        <translation>„%1” jest otwarty w innej karcie.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::editor::FindReplaceBar</name>
+    <name>kalahari::gui::EditorPanel</name>
     <message>
-        <source>Find...</source>
-        <translation type="unfinished"></translation>
+        <source>Damaged Chapter</source>
+        <translation>Uszkodzony rozdział</translation>
     </message>
     <message>
-        <source>Aa</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Match Case (Alt+C)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>W</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Match Whole Word (Alt+W)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>.*</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use Regular Expression (Alt+R)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Previous Match (Shift+Enter)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Next Match (Enter)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No results</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Close (Escape)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Replace...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Replace</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Replace Current Match</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Replace All</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Replace All Matches</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 of %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message numerus="yes">
-        <source>%n result(s)</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
-            <numerusform></numerusform>
-        </translation>
+        <source>The chapter &quot;%1&quot; is damaged, so only its text before the damaged place is shown.
+
+Saving the chapter keeps only this text. Close it without saving to leave the file as it is.</source>
+        <translation>Rozdział „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
+
+Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij rozdział bez zapisywania.</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::LogPanel</name>
     <message>
         <source>[%1] Log panel initialized</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1] Panel dziennika gotowy</translation>
     </message>
     <message>
         <source>[%1] Diagnostic mode: showing all log levels</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1] Tryb diagnostyczny: widoczne wszystkie poziomy</translation>
     </message>
     <message>
         <source>[%1] Normal mode: showing INFO and above</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1] Tryb zwykły: widoczne poziomy od INFO w górę</translation>
     </message>
     <message>
         <source>Open Log Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz folder dziennika</translation>
     </message>
     <message>
         <source>Log file not found:
 %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono pliku dziennika:
+%1</translation>
     </message>
     <message>
         <source>Copy to Clipboard</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopiuj do schowka</translation>
     </message>
     <message>
         <source>Copied %1 log lines to clipboard.</source>
-        <translation type="unfinished"></translation>
+        <translation>Skopiowano do schowka wiersze dziennika: %1.</translation>
     </message>
     <message>
         <source>[%1] Log cleared by user</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1] Dziennik wyczyszczony przez użytkownika</translation>
     </message>
     <message>
         <source>Options</source>
-        <translation type="unfinished"></translation>
+        <translation>Opcje</translation>
     </message>
     <message>
         <source>Open Log Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz ustawienia dziennika</translation>
     </message>
     <message>
         <source>Open Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz folder</translation>
     </message>
     <message>
         <source>Open log directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz folder dziennika</translation>
     </message>
     <message>
         <source>Copy</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopiuj</translation>
     </message>
     <message>
         <source>Copy log to clipboard</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopiuj dziennik do schowka</translation>
     </message>
     <message>
         <source>Clear</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyczyść</translation>
     </message>
     <message>
         <source>Clear log</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyczyść dziennik</translation>
     </message>
 </context>
 <context>
@@ -2283,679 +2436,685 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>%1%</source>
         <translation>%1%</translation>
     </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Bez tytułu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
     <message>
         <source>No project loaded</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie wczytano projektu</translation>
     </message>
     <message>
         <source>Opened: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwarto: %1</translation>
     </message>
     <message>
         <source>Rename</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień nazwę</translation>
     </message>
     <message>
         <source>New name:</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowa nazwa:</translation>
     </message>
     <message>
         <source>Renamed to &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmieniono nazwę na „%1”</translation>
     </message>
     <message>
         <source>Rename Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się zmienić nazwy</translation>
     </message>
     <message>
         <source>Failed to save changes.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się zapisać zmian.</translation>
     </message>
     <message>
         <source>chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>rozdział</translation>
     </message>
     <message>
         <source>part</source>
-        <translation type="unfinished"></translation>
+        <translation>część</translation>
     </message>
     <message>
         <source>title page</source>
-        <translation type="unfinished"></translation>
+        <translation>strona tytułowa</translation>
     </message>
     <message>
         <source>dedication</source>
-        <translation type="unfinished"></translation>
+        <translation>dedykacja</translation>
     </message>
     <message>
         <source>preface</source>
-        <translation type="unfinished"></translation>
+        <translation>przedmowa</translation>
     </message>
     <message>
         <source>epilogue</source>
-        <translation type="unfinished"></translation>
+        <translation>epilog</translation>
     </message>
     <message>
         <source>glossary</source>
-        <translation type="unfinished"></translation>
+        <translation>słowniczek</translation>
     </message>
     <message>
         <source>bibliography</source>
-        <translation type="unfinished"></translation>
+        <translation>bibliografia</translation>
     </message>
     <message>
         <source>about author</source>
-        <translation type="unfinished"></translation>
+        <translation>nota o autorze</translation>
     </message>
     <message>
         <source>Confirm Delete</source>
-        <translation type="unfinished"></translation>
+        <translation>Potwierdź usunięcie</translation>
     </message>
     <message>
         <source>Are you sure you want to delete this %1?
 
 This action cannot be undone.</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy na pewno usunąć ten element (%1)?
+
+Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Deleted successfully</source>
-        <translation type="unfinished"></translation>
+        <translation>Usunięto</translation>
     </message>
     <message>
         <source>Delete Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Błąd usuwania</translation>
     </message>
     <message>
         <source>Element was deleted but failed to save manifest.</source>
-        <translation type="unfinished"></translation>
+        <translation>Element usunięto, ale nie udało się zapisać pliku projektu.</translation>
     </message>
     <message>
         <source>Delete Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się usunąć</translation>
     </message>
     <message>
         <source>Could not find the element to delete.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono elementu do usunięcia.</translation>
     </message>
     <message>
         <source>Moved up</source>
-        <translation type="unfinished"></translation>
+        <translation>Przeniesiono w górę</translation>
     </message>
     <message>
         <source>Moved down</source>
-        <translation type="unfinished"></translation>
+        <translation>Przeniesiono w dół</translation>
     </message>
     <message>
         <source>Add Chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj rozdział</translation>
     </message>
     <message>
         <source>Chapter title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł rozdziału:</translation>
     </message>
     <message>
         <source>New Chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy rozdział</translation>
     </message>
     <message>
         <source>Add Chapter Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się dodać rozdziału</translation>
     </message>
     <message>
         <source>Part not found.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie znaleziono części.</translation>
     </message>
     <message>
         <source>Chapter added: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodano rozdział: %1</translation>
     </message>
     <message>
         <source>Add Part</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj część</translation>
     </message>
     <message>
         <source>Part title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł części:</translation>
     </message>
     <message>
         <source>New Part</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowa część</translation>
     </message>
     <message>
         <source>Part added: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodano część: %1</translation>
     </message>
     <message>
         <source>Add Part Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się dodać części</translation>
     </message>
     <message>
         <source>Add Front Matter Item</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj element części wstępnej</translation>
     </message>
     <message>
         <source>Add Back Matter Item</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj element części końcowej</translation>
     </message>
     <message>
         <source>Item title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł elementu:</translation>
     </message>
     <message>
         <source>New Item</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy element</translation>
     </message>
     <message>
         <source>Item added: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodano element: %1</translation>
     </message>
     <message>
         <source>Add Item Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Nie udało się dodać elementu</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
     <message>
         <source>All</source>
-        <translation type="unfinished"></translation>
+        <translation>Wszystko</translation>
     </message>
     <message>
         <source>Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst</translation>
     </message>
     <message>
         <source>Mind Maps</source>
-        <translation type="unfinished"></translation>
+        <translation>Mapy myśli</translation>
     </message>
     <message>
         <source>Timelines</source>
-        <translation type="unfinished"></translation>
+        <translation>Osie czasu</translation>
     </message>
     <message>
         <source>Other</source>
-        <translation type="unfinished"></translation>
+        <translation>Inne</translation>
     </message>
     <message>
         <source>Filter by document type</source>
-        <translation type="unfinished"></translation>
+        <translation>Filtruj według rodzaju dokumentu</translation>
     </message>
     <message>
         <source>Filter tree...</source>
-        <translation type="unfinished"></translation>
+        <translation>Filtruj drzewo...</translation>
     </message>
     <message>
         <source>Clear filter</source>
-        <translation type="unfinished"></translation>
+        <translation>Wyczyść filtr</translation>
     </message>
     <message>
         <source>Expand All</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozwiń wszystko</translation>
     </message>
     <message>
         <source>Collapse All</source>
-        <translation type="unfinished"></translation>
+        <translation>Zwiń wszystko</translation>
     </message>
     <message>
         <source>Project Structure (no document loaded)</source>
-        <translation type="unfinished"></translation>
+        <translation>Struktura projektu (brak dokumentu)</translation>
     </message>
     <message>
         <source>Project Structure</source>
-        <translation type="unfinished"></translation>
+        <translation>Struktura projektu</translation>
     </message>
     <message>
         <source>Front Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część wstępna</translation>
     </message>
     <message>
         <source>Body</source>
-        <translation type="unfinished"></translation>
+        <translation>Część główna</translation>
     </message>
     <message>
         <source>Back Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część końcowa</translation>
     </message>
     <message>
         <source>Files</source>
-        <translation type="unfinished"></translation>
+        <translation>Pliki</translation>
     </message>
     <message>
         <source>Other Files</source>
-        <translation type="unfinished"></translation>
+        <translation>Inne pliki</translation>
     </message>
     <message>
         <source>Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz</translation>
     </message>
     <message>
         <source>Rename...</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień nazwę...</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń</translation>
     </message>
     <message>
         <source>Move Up</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenieś w górę</translation>
     </message>
     <message>
         <source>Move Down</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenieś w dół</translation>
     </message>
     <message>
         <source>Set Status</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustaw stan</translation>
     </message>
     <message>
         <source>Draft</source>
-        <translation type="unfinished"></translation>
+        <translation>Szkic</translation>
     </message>
     <message>
         <source>Revision</source>
-        <translation type="unfinished"></translation>
+        <translation>Poprawki</translation>
     </message>
     <message>
         <source>Final</source>
-        <translation type="unfinished"></translation>
+        <translation>Gotowy</translation>
     </message>
     <message>
         <source>Properties...</source>
-        <translation type="unfinished"></translation>
+        <translation>Właściwości...</translation>
     </message>
     <message>
         <source>Add Chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj rozdział</translation>
     </message>
     <message>
         <source>Add Part</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj część</translation>
     </message>
     <message>
         <source>Add Item</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj element</translation>
     </message>
     <message>
         <source>Project Properties...</source>
-        <translation type="unfinished"></translation>
+        <translation>Właściwości projektu...</translation>
     </message>
     <message>
         <source>Add to Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj do projektu</translation>
     </message>
     <message>
         <source>Remove from List</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń z listy</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::PropertiesPanel</name>
     <message>
         <source>Open a project to see properties</source>
-        <translation type="unfinished"></translation>
+        <translation>Otwórz projekt, aby zobaczyć właściwości</translation>
     </message>
     <message>
         <source>Project Information</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje o projekcie</translation>
     </message>
     <message>
         <source>Project title</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł projektu</translation>
     </message>
     <message>
         <source>Enter project title</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz tytuł projektu</translation>
     </message>
     <message>
         <source>Title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł:</translation>
     </message>
     <message>
         <source>Author name</source>
-        <translation type="unfinished"></translation>
+        <translation>Imię i nazwisko autora</translation>
     </message>
     <message>
         <source>Enter author name</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz imię i nazwisko autora</translation>
     </message>
     <message>
         <source>Author:</source>
-        <translation type="unfinished"></translation>
+        <translation>Autor:</translation>
     </message>
     <message>
         <source>Project language</source>
-        <translation type="unfinished"></translation>
+        <translation>Język projektu</translation>
     </message>
     <message>
         <source>English</source>
-        <translation type="unfinished"></translation>
+        <translation>angielski</translation>
     </message>
     <message>
         <source>Polish</source>
-        <translation type="unfinished"></translation>
+        <translation>polski</translation>
     </message>
     <message>
         <source>German</source>
-        <translation type="unfinished"></translation>
+        <translation>niemiecki</translation>
     </message>
     <message>
         <source>French</source>
-        <translation type="unfinished"></translation>
+        <translation>francuski</translation>
     </message>
     <message>
         <source>Spanish</source>
-        <translation type="unfinished"></translation>
+        <translation>hiszpański</translation>
     </message>
     <message>
         <source>Italian</source>
-        <translation type="unfinished"></translation>
+        <translation>włoski</translation>
     </message>
     <message>
         <source>Portuguese</source>
-        <translation type="unfinished"></translation>
+        <translation>portugalski</translation>
     </message>
     <message>
         <source>Russian</source>
-        <translation type="unfinished"></translation>
+        <translation>rosyjski</translation>
     </message>
     <message>
         <source>Chinese</source>
-        <translation type="unfinished"></translation>
+        <translation>chiński</translation>
     </message>
     <message>
         <source>Japanese</source>
-        <translation type="unfinished"></translation>
+        <translation>japoński</translation>
     </message>
     <message>
         <source>Language:</source>
-        <translation type="unfinished"></translation>
+        <translation>Język:</translation>
     </message>
     <message>
         <source>Book genre (e.g., Fiction, Mystery, Romance)</source>
-        <translation type="unfinished"></translation>
+        <translation>Gatunek książki (np. powieść obyczajowa, kryminał, romans)</translation>
     </message>
     <message>
         <source>Enter genre</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz gatunek</translation>
     </message>
     <message>
         <source>Genre:</source>
-        <translation type="unfinished"></translation>
+        <translation>Gatunek:</translation>
     </message>
     <message>
         <source>Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki</translation>
     </message>
     <message>
         <source>Total number of chapters in the project</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba wszystkich rozdziałów projektu</translation>
     </message>
     <message>
         <source>Total Chapters:</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozdziały razem:</translation>
     </message>
     <message>
         <source>Total word count across all chapters</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów we wszystkich rozdziałach</translation>
     </message>
     <message>
         <source>Total Words:</source>
-        <translation type="unfinished"></translation>
+        <translation>Słowa razem:</translation>
     </message>
     <message>
         <source>Date when the project was created</source>
-        <translation type="unfinished"></translation>
+        <translation>Data utworzenia projektu</translation>
     </message>
     <message>
         <source>Created:</source>
-        <translation type="unfinished"></translation>
+        <translation>Utworzono:</translation>
     </message>
     <message>
         <source>Date when the project was last modified</source>
-        <translation type="unfinished"></translation>
+        <translation>Data ostatniej zmiany projektu</translation>
     </message>
     <message>
         <source>Modified:</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmieniono:</translation>
     </message>
     <message>
         <source>Status</source>
-        <translation type="unfinished"></translation>
+        <translation>Stan</translation>
     </message>
     <message>
         <source>Number of chapters with Draft status</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba rozdziałów w stanie „Szkic”</translation>
     </message>
     <message>
         <source>Draft:</source>
-        <translation type="unfinished"></translation>
+        <translation>Szkic:</translation>
     </message>
     <message>
         <source>Number of chapters with Revision status</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba rozdziałów w stanie „Poprawki”</translation>
     </message>
     <message>
         <source>Revision:</source>
-        <translation type="unfinished"></translation>
+        <translation>Poprawki:</translation>
     </message>
     <message>
         <source>Number of chapters with Final status</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba rozdziałów w stanie „Gotowy”</translation>
     </message>
     <message>
         <source>Final:</source>
-        <translation type="unfinished"></translation>
+        <translation>Gotowe:</translation>
     </message>
     <message>
         <source>Chapter Information</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje o rozdziale</translation>
     </message>
     <message>
         <source>Chapter title</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł rozdziału</translation>
     </message>
     <message>
         <source>Enter chapter title</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz tytuł rozdziału</translation>
     </message>
     <message>
         <source>Word count for this chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów w rozdziale</translation>
     </message>
     <message>
         <source>Word Count:</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów:</translation>
     </message>
     <message>
         <source>Chapter completion status</source>
-        <translation type="unfinished"></translation>
+        <translation>Stan ukończenia rozdziału</translation>
     </message>
     <message>
         <source>Draft</source>
-        <translation type="unfinished"></translation>
+        <translation>Szkic</translation>
     </message>
     <message>
         <source>Revision</source>
-        <translation type="unfinished"></translation>
+        <translation>Poprawki</translation>
     </message>
     <message>
         <source>Final</source>
-        <translation type="unfinished"></translation>
+        <translation>Gotowy</translation>
     </message>
     <message>
         <source>Status:</source>
-        <translation type="unfinished"></translation>
+        <translation>Stan:</translation>
     </message>
     <message>
         <source>Notes</source>
-        <translation type="unfinished"></translation>
+        <translation>Notatki</translation>
     </message>
     <message>
         <source>Notes and comments for this chapter</source>
-        <translation type="unfinished"></translation>
+        <translation>Notatki i uwagi do rozdziału</translation>
     </message>
     <message>
         <source>Enter notes...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz notatki...</translation>
     </message>
     <message>
         <source>Number of chapters in this section</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba rozdziałów w tej sekcji</translation>
     </message>
     <message>
         <source>Chapters:</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozdziały:</translation>
     </message>
     <message>
         <source>Total word count in this section</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów w tej sekcji</translation>
     </message>
     <message>
         <source>Status Breakdown</source>
-        <translation type="unfinished"></translation>
+        <translation>Podział według stanu</translation>
     </message>
     <message>
         <source>Number of chapters in this part</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba rozdziałów w tej części</translation>
     </message>
     <message>
         <source>Total word count in this part</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów w tej części</translation>
     </message>
     <message>
         <source>Document Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki dokumentu</translation>
     </message>
     <message>
         <source>Number of words</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba słów</translation>
     </message>
     <message>
         <source>Words:</source>
-        <translation type="unfinished"></translation>
+        <translation>Słowa:</translation>
     </message>
     <message>
         <source>Number of characters including spaces</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba znaków ze spacjami</translation>
     </message>
     <message>
         <source>Characters:</source>
-        <translation type="unfinished"></translation>
+        <translation>Znaki:</translation>
     </message>
     <message>
         <source>Number of characters excluding spaces</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba znaków bez spacji</translation>
     </message>
     <message>
         <source>Characters (no spaces):</source>
-        <translation type="unfinished"></translation>
+        <translation>Znaki (bez spacji):</translation>
     </message>
     <message>
         <source>Number of paragraphs</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba akapitów</translation>
     </message>
     <message>
         <source>Paragraphs:</source>
-        <translation type="unfinished"></translation>
+        <translation>Akapity:</translation>
     </message>
     <message>
         <source>Estimated reading time at 200 words per minute</source>
-        <translation type="unfinished"></translation>
+        <translation>Szacowany czas czytania przy 200 słowach na minutę</translation>
     </message>
     <message>
         <source>Reading time:</source>
-        <translation type="unfinished"></translation>
+        <translation>Czas czytania:</translation>
     </message>
     <message>
         <source>Paragraph Style</source>
-        <translation type="unfinished"></translation>
+        <translation>Styl akapitu</translation>
     </message>
     <message>
         <source>Current paragraph style at cursor position</source>
-        <translation type="unfinished"></translation>
+        <translation>Styl akapitu w miejscu kursora</translation>
     </message>
     <message>
         <source>Current:</source>
-        <translation type="unfinished"></translation>
+        <translation>Bieżący:</translation>
     </message>
     <message>
         <source>Change paragraph style</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień styl akapitu</translation>
     </message>
     <message>
         <source>Normal</source>
-        <translation type="unfinished"></translation>
+        <translation>Zwykły</translation>
     </message>
     <message>
         <source>Heading 1</source>
-        <translation type="unfinished"></translation>
+        <translation>Nagłówek 1</translation>
     </message>
     <message>
         <source>Heading 2</source>
-        <translation type="unfinished"></translation>
+        <translation>Nagłówek 2</translation>
     </message>
     <message>
         <source>Heading 3</source>
-        <translation type="unfinished"></translation>
+        <translation>Nagłówek 3</translation>
     </message>
     <message>
         <source>Block Quote</source>
-        <translation type="unfinished"></translation>
+        <translation>Cytat blokowy</translation>
     </message>
     <message>
         <source>Preformatted</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst preformatowany</translation>
     </message>
     <message>
         <source>Apply:</source>
-        <translation type="unfinished"></translation>
+        <translation>Zastosuj:</translation>
     </message>
     <message>
         <source>Front Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część wstępna</translation>
     </message>
     <message>
         <source>Body</source>
-        <translation type="unfinished"></translation>
+        <translation>Część główna</translation>
     </message>
     <message>
         <source>Back Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część końcowa</translation>
     </message>
     <message>
         <source>-</source>
-        <translation type="unfinished"></translation>
+        <translation>-</translation>
     </message>
     <message>
         <source>No Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak edytora</translation>
     </message>
     <message>
         <source>Selection Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Statystyki zaznaczenia</translation>
     </message>
     <message>
         <source>%1 min</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 min</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::SearchPanel</name>
     <message>
         <source>Search... (placeholder)</source>
-        <translation type="unfinished"></translation>
+        <translation>Szukaj... (wersja tymczasowa)</translation>
     </message>
     <message>
         <source>Search Panel (placeholder)</source>
-        <translation type="unfinished"></translation>
+        <translation>Panel wyszukiwania (wersja tymczasowa)</translation>
     </message>
     <message>
         <source>Full implementation in Phase 1</source>
-        <translation type="unfinished"></translation>
+        <translation>Pełna wersja w fazie 1</translation>
     </message>
 </context>
 <context>
@@ -2982,11 +3141,11 @@ This action cannot be undone.</source>
     </message>
     <message>
         <source>Dashboard</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Pulpit</translation>
     </message>
     <message>
         <source>Editor</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Redaktor</translation>
     </message>
     <message>
         <source>Colors</source>
@@ -3014,7 +3173,7 @@ This action cannot be undone.</source>
     </message>
     <message>
         <source>Files</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Pliki</translation>
     </message>
     <message>
         <source>Backup</source>
@@ -3046,7 +3205,7 @@ This action cannot be undone.</source>
     </message>
     <message>
         <source>Log</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Dziennik</translation>
     </message>
     <message>
         <source>Spelling settings will be available in a future version.
@@ -3128,11 +3287,11 @@ Planned features:
     </message>
     <message>
         <source>Open last project on startup</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Otwieraj ostatni projekt przy starcie</translation>
     </message>
     <message>
         <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
     </message>
     <message>
         <source>General Appearance</source>
@@ -3140,11 +3299,11 @@ Planned features:
     </message>
     <message>
         <source>Language:</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Język:</translation>
     </message>
     <message>
         <source>English</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">angielski</translation>
     </message>
     <message>
         <source>Polski</source>
@@ -3308,7 +3467,7 @@ Planned features:
     </message>
     <message>
         <source>Text</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Tekst</translation>
     </message>
     <message>
         <source>Text color for input fields and text editors</source>
@@ -3448,7 +3607,7 @@ Planned features:
     </message>
     <message>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Błąd</translation>
     </message>
     <message>
         <source>Color for ERROR level log messages</source>
@@ -3628,7 +3787,7 @@ Planned features:
     </message>
     <message>
         <source>Typewriter Scrolling</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Przewijanie jak w maszynie do pisania</translation>
     </message>
     <message>
         <source>View &gt; Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
@@ -3772,43 +3931,7 @@ When checked, cursor uses a custom color.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Configure the page format, the margins of the editor views and the text frame border.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>View Margins (Continuous/Focus)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Horizontal:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Left and right margin for continuous editor views</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source> px</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Horizontal margin in pixels (0-200)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Vertical:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Top and bottom margin for continuous editor views</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Vertical margin in pixels (0-200)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Page (Page Layout)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3865,10 +3988,6 @@ When checked, cursor uses a custom color.</source>
     </message>
     <message>
         <source>Show page numbers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Page Margins (Page Layout)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4060,7 +4179,19 @@ This exposes advanced debugging tools.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Applying settings...</source>
+        <source>Coming in future version</source>
+        <translation type="unfinished">Dostępne w przyszłej wersji</translation>
+    </message>
+    <message>
+        <source>Configure the page format, the page margins and the text frame border.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Page Margins</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4068,114 +4199,115 @@ This exposes advanced debugging tools.</source>
     <name>kalahari::gui::StandaloneInfoBar</name>
     <message>
         <source>This file is not part of a project. Limited features available.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
     </message>
     <message>
         <source>Add to Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj do projektu</translation>
     </message>
     <message>
         <source>Add this file to a project for full features</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
     </message>
     <message>
         <source>Dismiss this message</source>
-        <translation type="unfinished"></translation>
+        <translation>Ukryj ten komunikat</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::TagsPanel</name>
     <message>
         <source>Filter:</source>
-        <translation type="unfinished"></translation>
+        <translation>Filtr:</translation>
     </message>
     <message>
         <source>All Tags</source>
-        <translation type="unfinished"></translation>
+        <translation>Wszystkie tagi</translation>
     </message>
     <message>
         <source>TODO</source>
-        <translation type="unfinished"></translation>
+        <translation>TODO</translation>
     </message>
     <message>
         <source>FIX</source>
-        <translation type="unfinished"></translation>
+        <translation>FIX</translation>
     </message>
     <message>
         <source>CHECK</source>
-        <translation type="unfinished"></translation>
+        <translation>CHECK</translation>
     </message>
     <message>
         <source>NOTE</source>
-        <translation type="unfinished"></translation>
+        <translation>NOTE</translation>
     </message>
     <message>
         <source>WARNING</source>
-        <translation type="unfinished"></translation>
+        <translation>WARNING</translation>
     </message>
     <message>
         <source>0 tags</source>
-        <translation type="unfinished"></translation>
+        <translation>Tagi: 0</translation>
     </message>
     <message>
         <source>No tags found in document</source>
-        <translation type="unfinished"></translation>
+        <translation>Brak tagów w dokumencie</translation>
     </message>
     <message>
         <source>%1 tag(s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Tagi: %1</translation>
     </message>
     <message>
         <source>Line %1
 %2: %3</source>
-        <translation type="unfinished"></translation>
+        <translation>Wiersz %1
+%2: %3</translation>
     </message>
     <message>
         <source>(no description)</source>
-        <translation type="unfinished"></translation>
+        <translation>(bez opisu)</translation>
     </message>
     <message>
         <source>%1 (%2)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 (%2)</translation>
     </message>
     <message>
         <source>Line %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Wiersz %1</translation>
     </message>
     <message>
         <source>Line %1: %2</source>
-        <translation type="unfinished"></translation>
+        <translation>Wiersz %1: %2</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::AboutDialog</name>
     <message>
         <source>About Kalahari Writer&apos;s IDE</source>
-        <translation type="unfinished"></translation>
+        <translation>O programie Kalahari Writer&apos;s IDE</translation>
     </message>
     <message>
         <source>About</source>
-        <translation type="unfinished"></translation>
+        <translation>O programie</translation>
     </message>
     <message>
         <source>Third-Party Components</source>
-        <translation type="unfinished"></translation>
+        <translation>Składniki innych autorów</translation>
     </message>
     <message>
         <source>License</source>
-        <translation type="unfinished"></translation>
+        <translation>Licencja</translation>
     </message>
     <message>
         <source>Close</source>
-        <translation type="unfinished"></translation>
+        <translation>Zamknij</translation>
     </message>
     <message>
         <source>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</translation>
     </message>
     <message>
         <source>Cross-platform Writer&apos;s IDE for Windows, macOS, and Linux</source>
-        <translation type="unfinished"></translation>
+        <translation>Środowisko pracy pisarza dla systemów Windows, macOS i Linux</translation>
     </message>
     <message>
         <source>Kalahari is a modern writing environment designed for book authors.
@@ -4183,11 +4315,15 @@ Built with C++20 and Qt6 6.5.0+.
 
 A comprehensive writing toolkit with project management,
 statistics tracking, and powerful export capabilities.</source>
-        <translation type="unfinished"></translation>
+        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek.
+Napisane w C++20 i Qt6 6.5.0+.
+
+Kompletny zestaw narzędzi pisarza: zarządzanie projektem,
+statystyki i rozbudowany eksport.</translation>
     </message>
     <message>
         <source>Built with Qt %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Zbudowano z Qt %1</translation>
     </message>
     <message>
         <source>Kalahari Writer&apos;s IDE - Development Team
@@ -4205,629 +4341,696 @@ Special Thanks:
 Project Timeline:
   Start: 2025-11
   Target Release: Q2-Q3 2026 (Kalahari 1.0)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kalahari Writer&apos;s IDE – zespół
+
+Wizja i architektura projektu:
+  Bartosz Warzocha (bartosz.warzocha@gmail.com)
+Technologie:
+  C++20, Qt6 6.9+, CMake, vcpkg
+
+Podziękowania:
+  – Anthropic za pomoc Claude AI
+  – zespołowi Qt za świetną wieloplatformową bibliotekę interfejsu
+  – społeczności open source za znakomite biblioteki
+
+Harmonogram projektu:
+  Początek: 2025-11
+  Planowane wydanie: II–III kwartał 2026 (Kalahari 1.0)</translation>
     </message>
     <message>
         <source>Copyright (c) 2025 Kalahari Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Copyright (c) 2025 Kalahari Project</translation>
     </message>
     <message>
         <source>Kalahari uses the following third-party components:
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Kalahari korzysta z następujących składników innych autorów:
+
+</translation>
     </message>
     <message>
         <source>Qt6 6.5.0+ (www.qt.io)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Qt6 6.5.0+ (www.qt.io)
+</translation>
     </message>
     <message>
         <source>  Cross-platform GUI framework
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Wieloplatformowa biblioteka interfejsu
+</translation>
     </message>
     <message>
         <source>  License: LGPL v3 / Commercial
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: LGPL v3 / komercyjna
+
+</translation>
     </message>
     <message>
         <source>nlohmann_json (github.com/nlohmann/json)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>nlohmann_json (github.com/nlohmann/json)
+</translation>
     </message>
     <message>
         <source>  JSON for Modern C++
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  JSON dla nowoczesnego C++
+</translation>
     </message>
     <message>
         <source>  License: MIT License
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: MIT
+
+</translation>
     </message>
     <message>
         <source>spdlog (github.com/gabime/spdlog)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>spdlog (github.com/gabime/spdlog)
+</translation>
     </message>
     <message>
         <source>  Fast C++ logging library
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Szybka biblioteka dziennika dla C++
+</translation>
     </message>
     <message>
         <source>libzip (libzip.org)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>libzip (libzip.org)
+</translation>
     </message>
     <message>
         <source>  C library for reading, creating, and modifying zip archives
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Biblioteka C do odczytu, tworzenia i zmiany archiwów ZIP
+</translation>
     </message>
     <message>
         <source>  License: BSD 3-Clause License
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: BSD 3-Clause
+
+</translation>
     </message>
     <message>
         <source>Catch2 (github.com/catchorg/Catch2)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Catch2 (github.com/catchorg/Catch2)
+</translation>
     </message>
     <message>
         <source>  Modern C++ test framework
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Nowoczesna biblioteka testów dla C++
+</translation>
     </message>
     <message>
         <source>  License: Boost Software License 1.0
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: Boost Software License 1.0
+
+</translation>
     </message>
     <message>
         <source>pybind11 (github.com/pybind/pybind11)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>pybind11 (github.com/pybind/pybind11)
+</translation>
     </message>
     <message>
         <source>  Seamless C++/Python interoperability
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Łączenie C++ z Pythonem
+</translation>
     </message>
     <message>
         <source>Python 3.11 (www.python.org)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Python 3.11 (www.python.org)
+</translation>
     </message>
     <message>
         <source>  Embedded Python interpreter for plugins
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Wbudowany interpreter Pythona dla wtyczek
+</translation>
     </message>
     <message>
         <source>  License: Python Software Foundation License
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: Python Software Foundation License
+
+</translation>
     </message>
     <message>
         <source>vcpkg (github.com/microsoft/vcpkg)
 </source>
-        <translation type="unfinished"></translation>
+        <translation>vcpkg (github.com/microsoft/vcpkg)
+</translation>
     </message>
     <message>
         <source>  C++ package manager
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Menedżer pakietów C++
+</translation>
     </message>
     <message>
         <source>  License: MIT License
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  Licencja: MIT
+</translation>
     </message>
     <message>
         <source>MIT License
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Licencja MIT (oryginalny tekst)
+
+</translation>
     </message>
     <message>
         <source>Copyright (c) 2025 Kalahari Project
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Copyright (c) 2025 Kalahari Project
+
+</translation>
     </message>
     <message>
         <source>Permission is hereby granted, free of charge, to any person obtaining a copy
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Permission is hereby granted, free of charge, to any person obtaining a copy
+</translation>
     </message>
     <message>
         <source>of this software and associated documentation files (the &quot;Software&quot;), to deal
 </source>
-        <translation type="unfinished"></translation>
+        <translation>of this software and associated documentation files (the &quot;Software&quot;), to deal
+</translation>
     </message>
     <message>
         <source>in the Software without restriction, including without limitation the rights
 </source>
-        <translation type="unfinished"></translation>
+        <translation>in the Software without restriction, including without limitation the rights
+</translation>
     </message>
     <message>
         <source>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 </source>
-        <translation type="unfinished"></translation>
+        <translation>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+</translation>
     </message>
     <message>
         <source>copies of the Software, and to permit persons to whom the Software is
 </source>
-        <translation type="unfinished"></translation>
+        <translation>copies of the Software, and to permit persons to whom the Software is
+</translation>
     </message>
     <message>
         <source>furnished to do so, subject to the following conditions:
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>furnished to do so, subject to the following conditions:
+
+</translation>
     </message>
     <message>
         <source>The above copyright notice and this permission notice shall be included in all
 </source>
-        <translation type="unfinished"></translation>
+        <translation>The above copyright notice and this permission notice shall be included in all
+</translation>
     </message>
     <message>
         <source>copies or substantial portions of the Software.
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>copies or substantial portions of the Software.
+
+</translation>
     </message>
     <message>
         <source>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 </source>
-        <translation type="unfinished"></translation>
+        <translation>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+</translation>
     </message>
     <message>
         <source>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 </source>
-        <translation type="unfinished"></translation>
+        <translation>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+</translation>
     </message>
     <message>
         <source>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 </source>
-        <translation type="unfinished"></translation>
+        <translation>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+</translation>
     </message>
     <message>
         <source>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 </source>
-        <translation type="unfinished"></translation>
+        <translation>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+</translation>
     </message>
     <message>
         <source>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 </source>
-        <translation type="unfinished"></translation>
+        <translation>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+</translation>
     </message>
     <message>
         <source>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 </source>
-        <translation type="unfinished"></translation>
+        <translation>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+</translation>
     </message>
     <message>
         <source>SOFTWARE.
 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>SOFTWARE.
+
+</translation>
     </message>
     <message>
         <source>Note: The &quot;Kalahari&quot; name and branding are trademarked.</source>
-        <translation type="unfinished"></translation>
+        <translation>Uwaga: nazwa i znak „Kalahari” są znakami towarowymi.</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::AddToProjectDialog</name>
     <message>
         <source>Add File to Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj plik do projektu</translation>
     </message>
     <message>
         <source>File</source>
-        <translation type="unfinished"></translation>
+        <translation>Plik</translation>
     </message>
     <message>
         <source>Target Location</source>
-        <translation type="unfinished"></translation>
+        <translation>Miejsce docelowe</translation>
     </message>
     <message>
         <source>Select the project section where the file will be added</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz sekcję projektu, do której trafi plik</translation>
     </message>
     <message>
         <source>Section:</source>
-        <translation type="unfinished"></translation>
+        <translation>Sekcja:</translation>
     </message>
     <message>
         <source>Part:</source>
-        <translation type="unfinished"></translation>
+        <translation>Część:</translation>
     </message>
     <message>
         <source>Select the part where the file will be added (body section only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz część, do której trafi plik (tylko w części głównej)</translation>
     </message>
     <message>
         <source>Enter display title...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz wyświetlany tytuł...</translation>
     </message>
     <message>
         <source>The title that will be shown in the Navigator panel</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł widoczny w panelu Nawigator</translation>
     </message>
     <message>
         <source>Title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł:</translation>
     </message>
     <message>
         <source>Action</source>
-        <translation type="unfinished"></translation>
+        <translation>Działanie</translation>
     </message>
     <message>
         <source>Copy file to project</source>
-        <translation type="unfinished"></translation>
+        <translation>Skopiuj plik do projektu</translation>
     </message>
     <message>
         <source>Create a copy of the file in the project folder (original file remains unchanged)</source>
-        <translation type="unfinished"></translation>
+        <translation>Tworzy kopię pliku w folderze projektu (oryginał pozostaje bez zmian)</translation>
     </message>
     <message>
         <source>Move file to project</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenieś plik do projektu</translation>
     </message>
     <message>
         <source>Move the file into the project folder (original file will be deleted)</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenosi plik do folderu projektu (oryginał zostanie usunięty)</translation>
     </message>
     <message>
         <source>Add to Project</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj do projektu</translation>
     </message>
     <message>
         <source>Front Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część wstępna</translation>
     </message>
     <message>
         <source>Body</source>
-        <translation type="unfinished"></translation>
+        <translation>Część główna</translation>
     </message>
     <message>
         <source>Back Matter</source>
-        <translation type="unfinished"></translation>
+        <translation>Część końcowa</translation>
     </message>
     <message>
         <source>Mind Maps</source>
-        <translation type="unfinished"></translation>
+        <translation>Mapy myśli</translation>
     </message>
     <message>
         <source>Timelines</source>
-        <translation type="unfinished"></translation>
+        <translation>Osie czasu</translation>
     </message>
     <message>
         <source>(No parts available)</source>
-        <translation type="unfinished"></translation>
+        <translation>(Brak części)</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
     <message>
         <source>New Book</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowa książka</translation>
     </message>
     <message>
         <source>New File</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy plik</translation>
     </message>
     <message>
         <source>Create Book</source>
-        <translation type="unfinished"></translation>
+        <translation>Utwórz książkę</translation>
     </message>
     <message>
         <source>Create</source>
-        <translation type="unfinished"></translation>
+        <translation>Utwórz</translation>
     </message>
     <message>
         <source>Templates</source>
-        <translation type="unfinished"></translation>
+        <translation>Szablony</translation>
     </message>
     <message>
         <source>Search templates...</source>
-        <translation type="unfinished"></translation>
+        <translation>Szukaj szablonów...</translation>
     </message>
     <message>
         <source>Details</source>
-        <translation type="unfinished"></translation>
+        <translation>Szczegóły</translation>
     </message>
     <message>
         <source>Book Title:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł książki:</translation>
     </message>
     <message>
         <source>File Name:</source>
-        <translation type="unfinished"></translation>
+        <translation>Nazwa pliku:</translation>
     </message>
     <message>
         <source>Enter book title...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz tytuł książki...</translation>
     </message>
     <message>
         <source>Enter file name...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz nazwę pliku...</translation>
     </message>
     <message>
         <source>The title of your new book</source>
-        <translation type="unfinished"></translation>
+        <translation>Tytuł nowej książki</translation>
     </message>
     <message>
         <source>The name of the new file</source>
-        <translation type="unfinished"></translation>
+        <translation>Nazwa nowego pliku</translation>
     </message>
     <message>
         <source>Author:</source>
-        <translation type="unfinished"></translation>
+        <translation>Autor:</translation>
     </message>
     <message>
         <source>Enter author name...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wpisz imię i nazwisko autora...</translation>
     </message>
     <message>
         <source>The author name for the book metadata</source>
-        <translation type="unfinished"></translation>
+        <translation>Autor zapisany w danych książki</translation>
     </message>
     <message>
         <source>Language:</source>
-        <translation type="unfinished"></translation>
+        <translation>Język:</translation>
     </message>
     <message>
         <source>Primary language for the book content</source>
-        <translation type="unfinished"></translation>
+        <translation>Główny język tekstu książki</translation>
     </message>
     <message>
         <source>English</source>
-        <translation type="unfinished"></translation>
+        <translation>angielski</translation>
     </message>
     <message>
         <source>Polish</source>
-        <translation type="unfinished"></translation>
+        <translation>polski</translation>
     </message>
     <message>
         <source>German</source>
-        <translation type="unfinished"></translation>
+        <translation>niemiecki</translation>
     </message>
     <message>
         <source>French</source>
-        <translation type="unfinished"></translation>
+        <translation>francuski</translation>
     </message>
     <message>
         <source>Spanish</source>
-        <translation type="unfinished"></translation>
+        <translation>hiszpański</translation>
     </message>
     <message>
         <source>Italian</source>
-        <translation type="unfinished"></translation>
+        <translation>włoski</translation>
     </message>
     <message>
         <source>Portuguese</source>
-        <translation type="unfinished"></translation>
+        <translation>portugalski</translation>
     </message>
     <message>
         <source>Russian</source>
-        <translation type="unfinished"></translation>
+        <translation>rosyjski</translation>
     </message>
     <message>
         <source>Chinese</source>
-        <translation type="unfinished"></translation>
+        <translation>chiński</translation>
     </message>
     <message>
         <source>Japanese</source>
-        <translation type="unfinished"></translation>
+        <translation>japoński</translation>
     </message>
     <message>
         <source>Location:</source>
-        <translation type="unfinished"></translation>
+        <translation>Miejsce:</translation>
     </message>
     <message>
         <source>Select book folder...</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz folder książki...</translation>
     </message>
     <message>
         <source>The folder where the book will be created</source>
-        <translation type="unfinished"></translation>
+        <translation>Folder, w którym powstanie książka</translation>
     </message>
     <message>
         <source>Browse...</source>
-        <translation type="unfinished"></translation>
+        <translation>Przeglądaj...</translation>
     </message>
     <message>
         <source>Browse for book folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz folder książki</translation>
     </message>
     <message>
         <source>Create subfolder with book name</source>
-        <translation type="unfinished"></translation>
+        <translation>Utwórz podfolder z nazwą książki</translation>
     </message>
     <message>
         <source>When checked, creates a new folder named after the book inside the selected location</source>
-        <translation type="unfinished"></translation>
+        <translation>Tworzy w wybranym miejscu nowy folder nazwany tytułem książki</translation>
     </message>
     <message>
         <source>Features:</source>
-        <translation type="unfinished"></translation>
+        <translation>Cechy:</translation>
     </message>
     <message>
         <source>Select Book Location</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz miejsce książki</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ToolbarManagerDialog</name>
     <message>
         <source>Customize Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Dostosuj paski narzędzi</translation>
     </message>
     <message>
         <source>Reset to Defaults</source>
-        <translation type="unfinished"></translation>
+        <translation>Przywróć domyślne</translation>
     </message>
     <message>
         <source>Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Paski narzędzi</translation>
     </message>
     <message>
         <source>New...</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy...</translation>
     </message>
     <message>
         <source>Create a new user toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Utwórz nowy pasek użytkownika</translation>
     </message>
     <message>
         <source>Rename...</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień nazwę...</translation>
     </message>
     <message>
         <source>Rename the selected toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień nazwę zaznaczonego paska</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń</translation>
     </message>
     <message>
         <source>Delete the selected user toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń zaznaczony pasek użytkownika</translation>
     </message>
     <message>
         <source>Available Commands</source>
-        <translation type="unfinished"></translation>
+        <translation>Dostępne polecenia</translation>
     </message>
     <message>
         <source>Category:</source>
-        <translation type="unfinished"></translation>
+        <translation>Kategoria:</translation>
     </message>
     <message>
         <source>All Categories</source>
-        <translation type="unfinished"></translation>
+        <translation>Wszystkie kategorie</translation>
     </message>
     <message>
         <source>Search:</source>
-        <translation type="unfinished"></translation>
+        <translation>Szukaj:</translation>
     </message>
     <message>
         <source>Filter commands...</source>
-        <translation type="unfinished"></translation>
+        <translation>Filtruj polecenia...</translation>
     </message>
     <message>
         <source>Command</source>
-        <translation type="unfinished"></translation>
+        <translation>Polecenie</translation>
     </message>
     <message>
         <source>Shortcut</source>
-        <translation type="unfinished"></translation>
+        <translation>Skrót</translation>
     </message>
     <message>
         <source>Add to Toolbar &gt;&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj do paska &gt;&gt;</translation>
     </message>
     <message>
         <source>Add selected command to the current toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj zaznaczone polecenie do bieżącego paska</translation>
     </message>
     <message>
         <source>Current Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Bieżący pasek</translation>
     </message>
     <message>
         <source>Move Up</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenieś w górę</translation>
     </message>
     <message>
         <source>Move Down</source>
-        <translation type="unfinished"></translation>
+        <translation>Przenieś w dół</translation>
     </message>
     <message>
         <source>Remove from Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń z paska</translation>
     </message>
     <message>
         <source>---</source>
-        <translation type="unfinished"></translation>
+        <translation>---</translation>
     </message>
     <message>
         <source>Add Separator</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodaj separator</translation>
     </message>
     <message>
         <source>Built-in Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Paski wbudowane</translation>
     </message>
     <message>
         <source>User Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Paski użytkownika</translation>
     </message>
     <message>
         <source>Plugin Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Paski wtyczek</translation>
     </message>
     <message>
         <source>--- Separator ---</source>
-        <translation type="unfinished"></translation>
+        <translation>--- Separator ---</translation>
     </message>
     <message>
         <source>Font Family (dropdown)</source>
-        <translation type="unfinished"></translation>
+        <translation>Krój pisma (lista)</translation>
     </message>
     <message>
         <source>Font Size (spinner)</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar czcionki (pole liczbowe)</translation>
     </message>
     <message>
         <source> (not found)</source>
-        <translation type="unfinished"></translation>
+        <translation> (nie znaleziono)</translation>
     </message>
     <message>
         <source>New Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowy pasek</translation>
     </message>
     <message>
         <source>Enter toolbar name:</source>
-        <translation type="unfinished"></translation>
+        <translation>Nazwa paska:</translation>
     </message>
     <message>
         <source>Delete Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Usuń pasek</translation>
     </message>
     <message>
         <source>Are you sure you want to delete the toolbar &apos;%1&apos;?</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy na pewno usunąć pasek „%1”?</translation>
     </message>
     <message>
         <source>Rename Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation>Zmień nazwę paska</translation>
     </message>
     <message>
         <source>Enter new name:</source>
-        <translation type="unfinished"></translation>
+        <translation>Nowa nazwa:</translation>
     </message>
     <message>
         <source>Reset Toolbars</source>
-        <translation type="unfinished"></translation>
+        <translation>Przywróć paski narzędzi</translation>
     </message>
     <message>
         <source>Are you sure you want to reset all toolbars to their default configurations?
 
 This will remove all user-defined toolbars and restore built-in toolbars to defaults.</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy na pewno przywrócić domyślny układ wszystkich pasków narzędzi?
+
+Paski użytkownika zostaną usunięte, a paski wbudowane wrócą do ustawień domyślnych.</translation>
     </message>
 </context>
 </TS>
