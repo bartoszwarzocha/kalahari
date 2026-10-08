@@ -469,7 +469,7 @@
     </message>
     <message>
         <source>Editor</source>
-        <translation>Redaktor</translation>
+        <translation>Edytor</translation>
     </message>
     <message>
         <source>Researcher</source>
@@ -3732,7 +3732,7 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Editor</source>
-        <translation>Redaktor</translation>
+        <translation>Edytor</translation>
     </message>
     <message>
         <source>Colors</source>
