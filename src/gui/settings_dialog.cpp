@@ -9,10 +9,8 @@
 #include "kalahari/core/theme_manager.h"
 
 #include <QApplication>
-#include <QDialogButtonBox>
 #include <QElapsedTimer>
 #include <QLabel>
-#include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -25,13 +23,17 @@ namespace kalahari {
 namespace gui {
 
 SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_navTree(nullptr)
     , m_pageStack(nullptr)
-    , m_buttonBox(nullptr)
     , m_diagnosticMode(diagnosticMode)
 {
-    setWindowTitle(tr("Settings"));
+    setHeading(tr("Settings"),
+               tr("Choose a group on the left; Apply and OK save only the options you changed."));
+    setHeadingIcon(QStringLiteral("edit.settings"));
+    // A low heading leaves the room to the pages
+    setCompactHeading(true);
+    setApplyButtonVisible(true);
     setModal(true);
     // Tall enough for the longest editor page where the screen allows; a page that does
     // not fit scrolls
@@ -42,7 +44,6 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     resize(size);
     setMinimumSize(600, 400);
 
-    auto* mainLayout = new QVBoxLayout(this);
     auto* splitter = new QSplitter(Qt::Horizontal, this);
     m_navTree = new QTreeWidget(splitter);
     m_navTree->setHeaderHidden(true);
@@ -53,20 +54,13 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     splitter->addWidget(m_pageStack);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
-    mainLayout->addWidget(splitter, 1);
-
-    m_buttonBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Apply, this);
-    mainLayout->addWidget(m_buttonBox);
+    contentLayout()->addWidget(splitter, 1);
 
     createNavigationTree();
 
     connect(m_navTree, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem* current) { showPage(current); });
-    connect(m_buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onAccept);
-    connect(m_buttonBox, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
-    connect(m_buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
-            this, &SettingsDialog::onApply);
+    connect(this, &KalahariDialog::applyClicked, this, &SettingsDialog::onApply);
 
     m_navTree->setCurrentItem(m_navTree->topLevelItem(0));
 }
@@ -302,9 +296,9 @@ void SettingsDialog::onApply() {
     applyChanges();
 }
 
-void SettingsDialog::onAccept() {
+void SettingsDialog::accept() {
     applyChanges();
-    accept();
+    KalahariDialog::accept();
 }
 
 } // namespace gui

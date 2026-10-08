@@ -3860,6 +3860,10 @@ Tej operacji nie można cofnąć.</translation>
         <source>These settings will be available in a future version.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Choose a group on the left; Apply and OK save only the options you changed.</source>
+        <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>

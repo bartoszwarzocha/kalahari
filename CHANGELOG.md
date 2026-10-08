@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings window in the program's own style** - 2026-10-08. The Settings window has
+  the heading, colors and buttons of the program's other dialogs (Settings icon, title and
+  a sentence on what the window does; OK, Cancel and Apply at the bottom). It works as
+  before: Apply saves the changed options and keeps the window open, OK saves and closes.
+
 - **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
   first time it is opened, so the window opens faster. The theme colors that were never
   changed show the theme file's values (before, the window had its own copies, which

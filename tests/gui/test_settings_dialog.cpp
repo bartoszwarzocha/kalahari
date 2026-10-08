@@ -11,7 +11,6 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDialogButtonBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
@@ -50,9 +49,8 @@ void openPage(SettingsDialog& dialog, const QString& category, const QString& ti
 }
 
 QPushButton* applyButton(SettingsDialog& dialog) {
-    auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    REQUIRE(buttons != nullptr);
-    return buttons->button(QDialogButtonBox::Apply);
+    REQUIRE(dialog.applyButton()->isVisibleTo(&dialog));
+    return dialog.applyButton();
 }
 
 ColorConfigWidget* colorWidget(SettingsDialog& dialog, const QString& toolTip) {
@@ -168,6 +166,38 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     CHECK(appliedCount == 1);
 
     settings.setLanguage("en");
+}
+
+TEST_CASE("Settings dialog: OK writes the changes and closes, Apply keeps it open", "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.setLanguage("en");
+    SettingsDialog dialog(nullptr);
+    CHECK(dialog.windowTitle() == QStringLiteral("Settings"));
+    openAllPages(dialog);
+
+    QStringList applied;
+    QObject::connect(&dialog, &SettingsDialog::settingsApplied,
+                     [&applied](const QStringList& keys) { applied += keys; });
+    QComboBox* language = nullptr;
+    for (QComboBox* combo : dialog.findChildren<QComboBox*>()) {
+        if (combo->findData("pl") >= 0) {
+            language = combo;
+        }
+    }
+    REQUIRE(language != nullptr);
+
+    dialog.show();
+    language->setCurrentIndex(language->findData("pl"));
+    applyButton(dialog)->click();
+    CHECK(dialog.isVisible());
+    CHECK(applied == QStringList{QStringLiteral("ui.language")});
+
+    language->setCurrentIndex(language->findData("en"));
+    dialog.acceptButton()->click();
+    CHECK_FALSE(dialog.isVisible());
+    CHECK(dialog.result() == QDialog::Accepted);
+    CHECK(applied == (QStringList{QStringLiteral("ui.language"), QStringLiteral("ui.language")}));
+    CHECK(settings.getLanguage() == "en");
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {

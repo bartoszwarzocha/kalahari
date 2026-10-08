@@ -9,14 +9,14 @@
 
 #pragma once
 
-#include <QDialog>
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
+
 #include <QStringList>
 
 #include <functional>
 #include <map>
 #include <vector>
 
-class QDialogButtonBox;
 class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -36,7 +36,7 @@ class IconsPage;
 /// connect(&dialog, &SettingsDialog::settingsApplied, this, &MyCoordinator::onApplied);
 /// dialog.exec();
 /// @endcode
-class SettingsDialog : public QDialog {
+class SettingsDialog : public dialogs::KalahariDialog {
     Q_OBJECT
 
 public:
@@ -53,6 +53,10 @@ public:
     /// @brief Write the changed settings of all opened pages
     /// @return Keys of the settings written
     QStringList applyChanges();
+
+public slots:
+    /// @brief OK: write the changed settings, then close
+    void accept() override;
 
 signals:
     /// @brief Emitted after Apply/OK wrote changed settings
@@ -82,11 +86,9 @@ private:
     void connectPages();
 
     void onApply();
-    void onAccept();
 
     QTreeWidget* m_navTree;
     QStackedWidget* m_pageStack;
-    QDialogButtonBox* m_buttonBox;
     bool m_diagnosticMode;
 
     std::map<QTreeWidgetItem*, PageFactory> m_factories;
