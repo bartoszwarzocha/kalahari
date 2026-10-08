@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
+  first time it is opened, so the window opens faster. The theme colors that were never
+  changed show the theme file's values (before, the window had its own copies, which
+  differed from the theme files for some colors). Options that take effect only after a
+  restart (the language) say so under the option. Apply and OK write only the changed
+  options, as before; the diagnostic menu still lasts for the current session only.
+
 - **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
   the translations and the CI work are ticked off; text styles, statistics, perspectives and
   DOCX/Markdown export move to 0.4.x releases.

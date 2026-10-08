@@ -4,6 +4,7 @@
 #include <kalahari/core/settings_schema.h>
 
 #include <algorithm>
+#include <set>
 
 namespace kalahari {
 namespace core {
@@ -135,6 +136,15 @@ const nlohmann::json* defaultValue(const std::string& key) {
     const auto& table = defaults();
     auto it = table.find(normalized);
     return it != table.end() ? &it->second : nullptr;
+}
+
+bool requiresRestart(const std::string& key) {
+    // Read once at startup (main.cpp loads the translations before any window exists)
+    static const std::set<std::string> restartKeys = {"ui.language"};
+
+    std::string normalized = key;
+    std::replace(normalized.begin(), normalized.end(), '/', '.');
+    return restartKeys.count(normalized) > 0;
 }
 
 } // namespace settings_schema

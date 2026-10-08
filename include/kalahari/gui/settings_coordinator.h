@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 #include <functional>
 
 class QMainWindow;
@@ -15,7 +16,6 @@ class QStatusBar;
 namespace kalahari {
 namespace gui {
 
-struct SettingsData;
 class DashboardPanel;
 class LogPanel;
 class DockCoordinator;
@@ -24,8 +24,7 @@ class DockCoordinator;
 ///
 /// Manages:
 /// - Opening settings dialog
-/// - Collecting current settings
-/// - Applying changed settings
+/// - Refreshing the panels the changed settings affect
 /// - Emitting signals for diagnostic mode, log buffer, dashboard refresh
 ///
 /// Example usage:
@@ -54,19 +53,14 @@ public:
     /// @note Creates modal SettingsDialog, connects signals, handles OK/Cancel
     void openSettingsDialog();
 
-    /// @brief Collect current application settings into SettingsData
-    /// @return Current settings from SettingsManager and runtime state
-    [[nodiscard]] SettingsData collectCurrentSettings() const;
-
     /// @brief Set callback for checking diagnostic mode
     /// @param callback Function returning current diagnostic mode state
     void setDiagnosticModeGetter(std::function<bool()> callback);
 
 public slots:
     /// @brief React to settings applied by the dialog, refreshing only what changed
-    /// @param settings Applied settings
-    /// @param previous Settings before this apply
-    void onApplySettings(const SettingsData& settings, const SettingsData& previous);
+    /// @param changedKeys Keys of the settings written
+    void onApplySettings(const QStringList& changedKeys);
 
 signals:
     /// @brief Emitted when diagnostic mode should be enabled
