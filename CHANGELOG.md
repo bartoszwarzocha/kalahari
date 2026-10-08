@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
+  the translations and the CI work are ticked off; text styles, statistics, perspectives and
+  DOCX/Markdown export move to 0.4.x releases.
 - **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
   Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
   Toolbar Manager, About), the messages, the book templates and the standard buttons
