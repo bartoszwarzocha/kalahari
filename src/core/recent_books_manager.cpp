@@ -6,8 +6,9 @@
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/art_provider.h"
-#include <QSettings>
+#include "kalahari/core/settings_manager.h"
 #include <QFileInfo>
+#include <vector>
 #include <QAction>
 
 namespace kalahari {
@@ -129,8 +130,11 @@ void RecentBooksManager::createRecentBooksMenu(QMenu* parentMenu) {
 }
 
 void RecentBooksManager::loadRecentFiles() {
-    QSettings settings;
-    m_recentFiles = settings.value("recentFiles").toStringList();
+    m_recentFiles.clear();
+    const auto files = SettingsManager::getInstance().get<std::vector<std::string>>("recent_files");
+    for (const std::string& file : files) {
+        m_recentFiles.append(QString::fromStdString(file));
+    }
 
     // Validate paths - remove non-existent files
     QStringList validFiles;
@@ -147,8 +151,12 @@ void RecentBooksManager::loadRecentFiles() {
 }
 
 void RecentBooksManager::saveRecentFiles() {
-    QSettings settings;
-    settings.setValue("recentFiles", m_recentFiles);
+    std::vector<std::string> files;
+    files.reserve(static_cast<size_t>(m_recentFiles.size()));
+    for (const QString& file : m_recentFiles) {
+        files.push_back(file.toStdString());
+    }
+    SettingsManager::getInstance().set("recent_files", files);
 }
 
 void RecentBooksManager::updateMenu() {

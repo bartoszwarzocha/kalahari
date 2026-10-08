@@ -17,7 +17,6 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
-#include <QSettings>
 #include <QApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -274,7 +273,7 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
 
     // Create toolbar
     QToolBar* toolbar = new QToolBar(QObject::tr(config.label.c_str()), m_mainWindow);
-    toolbar->setObjectName(QString::fromStdString(config.id));  // For QSettings
+    toolbar->setObjectName(QString::fromStdString(config.id));  // For QMainWindow::saveState()
 
     // OpenSpec #00031 FIX: Use m_toolbarCommands (loaded from settings) instead of
     // config.commandIds (defaults). This ensures user customizations persist across restarts.
@@ -348,15 +347,12 @@ void ToolbarManager::saveState() {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Saving toolbar state");
 
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-    settings.beginGroup("Toolbars");
+    auto& settings = core::SettingsManager::getInstance();
 
     // Save visibility for each toolbar
     for (const auto& [id, toolbar] : m_toolbars) {
-        settings.setValue(QString::fromStdString(id + "/visible"), toolbar->isVisible());
+        settings.set("toolbars.visible." + id, toolbar->isVisible());
     }
-
-    settings.endGroup();
 
     logger.debug("ToolbarManager: Toolbar state saved");
 
@@ -368,14 +364,13 @@ void ToolbarManager::restoreState() {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Restoring toolbar state");
 
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-    settings.beginGroup("Toolbars");
+    auto& settings = core::SettingsManager::getInstance();
 
     // OpenSpec #00037: Check if we have any saved toolbar visibility settings
     // If not (first run or after clearSavedWindowState), use defaults and apply layout
     bool hasSavedSettings = false;
     for (const auto& [id, config] : m_configs) {
-        if (settings.contains(QString::fromStdString(id + "/visible"))) {
+        if (settings.hasKey("toolbars.visible." + id)) {
             hasSavedSettings = true;
             break;
         }
@@ -383,8 +378,6 @@ void ToolbarManager::restoreState() {
 
     // Restore visibility for each toolbar
     for (const auto& [id, toolbar] : m_toolbars) {
-        QString key = QString::fromStdString(id + "/visible");
-
         // Get default visibility from config
         bool defaultVisible = true;
         auto configIt = m_configs.find(id);
@@ -393,7 +386,8 @@ void ToolbarManager::restoreState() {
         }
 
         // If no saved settings, use defaults directly
-        bool visible = hasSavedSettings ? settings.value(key, defaultVisible).toBool() : defaultVisible;
+        bool visible = hasSavedSettings ? settings.get<bool>("toolbars.visible." + id, defaultVisible)
+                                        : defaultVisible;
         toolbar->setVisible(visible);
 
         // Update View menu action if exists
@@ -405,8 +399,6 @@ void ToolbarManager::restoreState() {
         logger.debug("ToolbarManager: Toolbar '{}' visibility set to {} (default: {}, hasSaved: {})",
                      id, visible, defaultVisible, hasSavedSettings);
     }
-
-    settings.endGroup();
 
     // OpenSpec #00037: Apply default layout if no saved settings
     // This ensures proper 2-row layout on first run or after config reset
@@ -1064,10 +1056,7 @@ void ToolbarManager::openToolbarManagerDialog() {
 }
 
 bool ToolbarManager::needsConfigReset() {
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-    settings.beginGroup("Toolbars");
-    int savedVersion = settings.value("configVersion", 0).toInt();
-    settings.endGroup();
+    int savedVersion = core::SettingsManager::getInstance().get<int>("toolbars.configVersion");
 
     return savedVersion < TOOLBAR_CONFIG_VERSION;
 }
@@ -1076,19 +1065,15 @@ void ToolbarManager::clearSavedWindowState() {
     auto& logger = core::Logger::getInstance();
     logger.info("ToolbarManager: Clearing saved window state for toolbar reset");
 
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
+    auto& settings = core::SettingsManager::getInstance();
 
-    // Clear windowState which contains toolbar positions/visibility
+    // Clear the window state, which contains toolbar positions/visibility
     // This forces QMainWindow to use default toolbar layout
-    settings.remove("windowState");
+    settings.removeKey("window.state");
 
     // Also clear individual toolbar visibility settings
-    settings.beginGroup("Toolbars");
-    settings.remove("");  // Remove all keys in group
-    settings.setValue("configVersion", TOOLBAR_CONFIG_VERSION);
-    settings.endGroup();
-
-    settings.sync();
+    settings.removeKey("toolbars.visible");
+    settings.set("toolbars.configVersion", TOOLBAR_CONFIG_VERSION);
 
     logger.info("ToolbarManager: Window state cleared, will use default toolbar layout");
 }
