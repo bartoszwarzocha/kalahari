@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Distraction-Free: the menus at the top edge** - 2026-10-08. In Distraction-Free the
+  menu bar shows over the top of the text when the mouse reaches the top edge of the
+  screen, and hides when the mouse moves away from it (not while one of its menus is open);
+  the text stays in its place. It takes the place of the hint how to leave, which no
+  longer shows at the top. A native menu bar (macOS) shows its menus by itself.
+
+- **Editor: the page fits a small screen** - 2026-10-08. A chapter (or file) opens
+  showing the page's whole width when the page at 100% is wider than the editor, as
+  View > Zoom > Page Width does; where it fits, it opens at 100%. Only the opening
+  changes: the zoom does not follow the window's size later, and a chapter already open
+  keeps its zoom.
+
 - **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
   first time it is opened, so the window opens faster. The theme colors that were never
   changed show the theme file's values (before, the window had its own copies, which
@@ -68,8 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     fills the screen and hides the menu bar, the toolbars, the panels, the chapter tabs,
     the status bar and the editor's scroll bars (the mouse wheel and the keys still
     scroll). The sides of the editor darken (in the color of the pages' shadow), and the
-    word count, a hint how to leave and the clock (if turned on) show at the edges in the
-    paper's dimmed text color and fade out; they come back when the mouse nears an edge.
+    word count and the clock (if turned on) show at the edges in the paper's dimmed text
+    color and fade out; they come back when the mouse nears an edge.
   - Esc, Shift+F11 or the Full Screen shortcut (F11 on Windows) bring the window back as
     it was: its size, the toolbars and panels in their places and tabs, the chapter tabs
     and the status bar. Esc goes first to an open find bar. The shortcuts of the menu
