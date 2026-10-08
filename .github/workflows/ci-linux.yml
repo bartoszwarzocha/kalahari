@@ -36,9 +36,16 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo apt-get update
+        # The archive mirror sometimes stops answering: each update attempt has a time limit
+        # and apt retries a download that stalls for 30 s. No limit on the whole step: a slow
+        # but working mirror can take over 20 minutes to deliver the packages
+        for attempt in 1 2 3; do
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break
+          if [ "$attempt" = 3 ]; then exit 1; fi
+          sleep 15
+        done
         # All dependencies from system packages - fast, reliable, no disk space issues
-        sudo apt-get install -y --no-install-recommends \
+        sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
           qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libglu1-mesa-dev \
@@ -125,8 +132,15 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
+        # The archive mirror sometimes stops answering: each update attempt has a time limit
+        # and apt retries a download that stalls for 30 s. No limit on the whole step: a slow
+        # but working mirror can take over 20 minutes to deliver the packages
+        for attempt in 1 2 3; do
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break
+          if [ "$attempt" = 3 ]; then exit 1; fi
+          sleep 15
+        done
+        sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config clang-tidy \
           qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libxkbcommon-dev \
