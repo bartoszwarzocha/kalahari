@@ -1,6 +1,7 @@
 /// @file test_distraction_free_layout.cpp
 /// @brief The main window's layout for Distraction-Free writing: the parts it hides and
-///        brings back, Esc, and the menu shortcuts while the menu bar is hidden
+///        brings back, Esc, the menu shortcuts while the menu bar is hidden, and the menus
+///        at the top edge
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/utils/distraction_free_layout.h"
@@ -15,6 +16,7 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMouseEvent>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
@@ -127,6 +129,34 @@ struct TestWindow {
 void press(QWidget* widget, int key, Qt::KeyboardModifiers modifiers = {}) {
     QKeyEvent event(QEvent::KeyPress, key, modifiers);
     QCoreApplication::sendEvent(widget, &event);
+}
+
+/// A mouse event at @p pos in @p window, sent to the widget there
+void sendMouse(QMainWindow& window, QEvent::Type type, const QPoint& pos, Qt::MouseButton button,
+               Qt::MouseButtons buttons) {
+    QWidget* target = window.childAt(pos);
+    if (target == nullptr) {
+        target = &window;
+    }
+    QMouseEvent event(type, target->mapFrom(&window, QPointF(pos)), window.mapToGlobal(QPointF(pos)),
+                      button, buttons, Qt::NoModifier);
+    QCoreApplication::sendEvent(target, &event);
+}
+
+/// The mouse moved to @p pos in @p window (with @p buttons held)
+void moveMouse(QMainWindow& window, const QPoint& pos, Qt::MouseButtons buttons = Qt::NoButton) {
+    sendMouse(window, QEvent::MouseMove, pos, Qt::NoButton, buttons);
+}
+
+/// A click at @p pos in @p window
+void clickMouse(QMainWindow& window, const QPoint& pos) {
+    sendMouse(window, QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton);
+    sendMouse(window, QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::NoButton);
+}
+
+/// The menus Distraction-Free shows at the top edge of @p window (none while it is off)
+QMenuBar* topMenus(const QMainWindow& window) {
+    return window.findChild<QMenuBar*>(QStringLiteral("distractionFreeMenuBar"));
 }
 
 /// Process events until @p done returns true or about two seconds pass
@@ -304,4 +334,114 @@ TEST_CASE("Distraction-Free layout: the menu shortcuts work while the menu bar i
     press(w.text, Qt::Key_Equal, Qt::ControlModifier);
     CHECK(saved == 2);
     CHECK(zoomed == 3);
+}
+
+TEST_CASE("Distraction-Free layout: the menus show over the text at the top edge",
+          "[gui][distraction-free]") {
+    TestWindow w;
+    w.window.show();
+    QApplication::processEvents();
+    DistractionFreeLayout layout(&w.window);
+    layout.setActive(true, {w.tabs->tabBar()}, false);
+    QApplication::processEvents();
+    const QRect text = w.tabs->geometry();
+
+    QMenuBar* menus = topMenus(w.window);
+    REQUIRE(menus != nullptr);
+    CHECK(menus->isHidden());
+
+    // The mouse over the text changes nothing
+    moveMouse(w.window, QPoint(320, 200));
+    CHECK(menus->isHidden());
+
+    // At the top edge the menus of the menu bar show over the text, as wide as the window;
+    // the text stays in its place
+    moveMouse(w.window, QPoint(320, 0));
+    REQUIRE_FALSE(menus->isHidden());
+    CHECK(menus->actions() == w.menuBar->actions());
+    CHECK(menus->geometry() == QRect(0, 0, w.window.width(), menus->sizeHint().height()));
+    CHECK(w.menuBar->isHidden());
+    QApplication::processEvents();
+    CHECK(w.tabs->geometry() == text);
+
+    // Over them and a little below them they stay
+    moveMouse(w.window, QPoint(100, menus->height() - 1));
+    moveMouse(w.window, QPoint(100, menus->height() + 5));
+    CHECK_FALSE(menus->isHidden());
+
+    // A window of another size: the menus as wide
+    w.window.resize(700, 500);
+    CHECK(waitFor([menus] { return menus->width() == 700; }));
+
+    // Away from them they hide
+    moveMouse(w.window, QPoint(320, 200));
+    CHECK(menus->isHidden());
+
+    // Also a click in the text hides them
+    moveMouse(w.window, QPoint(320, 0));
+    REQUIRE_FALSE(menus->isHidden());
+    clickMouse(w.window, QPoint(320, 200));
+    CHECK(menus->isHidden());
+    CHECK(layout.isActive());
+
+    // Not for a selection dragged to the top
+    moveMouse(w.window, QPoint(320, 0), Qt::LeftButton);
+    CHECK(menus->isHidden());
+
+    // Turned off, they are gone and the menu bar is back in its place
+    moveMouse(w.window, QPoint(320, 0));
+    REQUIRE_FALSE(menus->isHidden());
+    layout.setActive(false);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    CHECK(topMenus(w.window) == nullptr);
+    CHECK_FALSE(w.menuBar->isHidden());
+}
+
+TEST_CASE("Distraction-Free layout: an open menu keeps the menus at the top",
+          "[gui][distraction-free]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("opens a menu in an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
+    TestWindow w;
+    w.window.show();
+    w.window.activateWindow();
+    REQUIRE(waitFor([&w] { return QApplication::activeWindow() == &w.window; }));
+    w.text->setFocus();
+    DistractionFreeLayout layout(&w.window);
+    layout.setActive(true, {w.tabs->tabBar()}, false);
+    QApplication::processEvents();
+    moveMouse(w.window, QPoint(320, 0));
+    QMenuBar* menus = topMenus(w.window);
+    REQUIRE(menus != nullptr);
+    REQUIRE_FALSE(menus->isHidden());
+
+    // A click on File opens its menu, as on the menu bar
+    QAction* file = w.menuBar->actions().constFirst();
+    const QPoint onFile = menus->actionGeometry(file).center();
+    clickMouse(w.window, onFile);
+    REQUIRE(waitFor([file] { return QApplication::activePopupWidget() == file->menu(); }));
+
+    // The mouse far below the menus while File is open
+    moveMouse(w.window, QPoint(320, 200));
+    CHECK_FALSE(menus->isHidden());
+
+    SECTION("closed, the menus hide when the mouse moves away") {
+        file->menu()->hide();
+        REQUIRE(QApplication::activePopupWidget() == nullptr);
+        moveMouse(w.window, QPoint(320, 200));
+        CHECK(menus->isHidden());
+        CHECK(w.text->hasFocus());
+    }
+
+    SECTION("closed with Esc, the keys come back to the text when the mouse moves away") {
+        // The keys move through the menus after Esc closed one of them
+        press(file->menu(), Qt::Key_Escape);
+        REQUIRE(QApplication::activePopupWidget() == nullptr);
+        REQUIRE(menus->hasFocus());
+        moveMouse(w.window, QPoint(320, 200));
+        CHECK(menus->isHidden());
+        CHECK(w.text->hasFocus());
+        CHECK(layout.isActive());
+    }
 }
