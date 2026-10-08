@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
+  the translations and the CI work are ticked off; text styles, statistics, perspectives and
+  DOCX/Markdown export move to 0.4.x releases.
 - **CI: tests on the Qt version the program ships with** - 2026-10-08. The Linux build
   and tests use Qt 6.9.1, like the Windows and macOS builds; the Sanitizers job keeps
   Ubuntu's Qt 6.4, the oldest supported version (now declared as the minimum). The Linux
