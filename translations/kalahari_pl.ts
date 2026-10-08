@@ -4627,6 +4627,66 @@ Harmonogram projektu:
         <source>Note: The &quot;Kalahari&quot; name and branding are trademarked.</source>
         <translation>Uwaga: nazwa i znak „Kalahari” są znakami towarowymi.</translation>
     </message>
+    <message>
+        <source>Hunspell (hunspell.github.io)
+</source>
+        <translation>Hunspell (hunspell.github.io)
+</translation>
+    </message>
+    <message>
+        <source>  Spell checking library
+</source>
+        <translation>  Biblioteka do sprawdzania pisowni
+</translation>
+    </message>
+    <message>
+        <source>  License: MPL 1.1 / GPL 2.0 / LGPL 2.1
+
+</source>
+        <translation>  Licencja: MPL 1.1 / GPL 2.0 / LGPL 2.1
+
+</translation>
+    </message>
+    <message>
+        <source>Polish spelling dictionary (sjp.pl, Marek Futrega)
+</source>
+        <translation>Polski słownik ortograficzny (sjp.pl, Marek Futrega)
+</translation>
+    </message>
+    <message>
+        <source>  From the LibreOffice dictionaries
+</source>
+        <translation>  Ze słowników LibreOffice
+</translation>
+    </message>
+    <message>
+        <source>  License: Apache License 2.0
+
+</source>
+        <translation>  Licencja: Apache License 2.0
+
+</translation>
+    </message>
+    <message>
+        <source>English spelling dictionary (SCOWL, Kevin Atkinson)
+</source>
+        <translation>Angielski słownik ortograficzny (SCOWL, Kevin Atkinson)
+</translation>
+    </message>
+    <message>
+        <source>  Spell Checker Oriented Word Lists
+</source>
+        <translation>  Spell Checker Oriented Word Lists
+</translation>
+    </message>
+    <message>
+        <source>  License: SCOWL license (BSD-like)
+
+</source>
+        <translation>  Licencja: licencja SCOWL (podobna do BSD)
+
+</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::AddToProjectDialog</name>
