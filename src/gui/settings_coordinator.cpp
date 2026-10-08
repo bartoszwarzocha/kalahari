@@ -5,17 +5,15 @@
 
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
-#include "kalahari/gui/settings_data.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
-#include "kalahari/core/icon_registry.h"
-#include "kalahari/core/art_provider.h"
-#include "kalahari/core/theme_manager.h"
-#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
 #include <QApplication>
+#include <QStringList>
+
+#include <algorithm>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QStatusBar>
@@ -45,15 +43,16 @@ void SettingsCoordinator::openSettingsDialog() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Settings");
 
-    // Collect current settings to pass to dialog
-    SettingsData currentSettings = collectCurrentSettings();
-
-    // Create dialog with current settings
-    SettingsDialog dialog(m_mainWindow, currentSettings);
-
-    // Connect settings applied signal - coordinator reacts
+    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter());
     connect(&dialog, &SettingsDialog::settingsApplied,
             this, &SettingsCoordinator::onApplySettings);
+    connect(&dialog, &SettingsDialog::diagnosticModeChanged, this, [this](bool enabled) {
+        if (enabled) {
+            emit enableDiagnosticModeRequested();
+        } else {
+            emit disableDiagnosticModeRequested();
+        }
+    });
 
     m_languageChanged = false;
     int result = dialog.exec();
@@ -95,312 +94,33 @@ void SettingsCoordinator::offerRestartForLanguage() {
     }
 }
 
-SettingsData SettingsCoordinator::collectCurrentSettings() const {
+void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
     auto& logger = core::Logger::getInstance();
-    logger.debug("SettingsCoordinator: Collecting current settings");
+    logger.info("SettingsCoordinator: Reacting to {} applied settings", changedKeys.size());
 
-    auto& settings = core::SettingsManager::getInstance();
-    auto& iconRegistry = core::IconRegistry::getInstance();
+    const auto changed = [&changedKeys](const QString& prefix) {
+        return std::any_of(changedKeys.cbegin(), changedKeys.cend(),
+                           [&prefix](const QString& key) { return key.startsWith(prefix); });
+    };
 
-    SettingsData settingsData;
-
-    // Appearance/General
-    settingsData.language = QString::fromStdString(settings.getLanguage());
-    settingsData.uiFontSize = settings.get<int>("appearance.uiFontSize");
-
-    // Appearance/Theme
-    settingsData.theme = QString::fromStdString(settings.getTheme());
-    // Get colors from ArtProvider (which uses IconRegistry's current colors)
-    // This ensures we get the user's custom colors, not theme defaults
-    auto& artProvider = core::ArtProvider::getInstance();
-    settingsData.primaryColor = artProvider.getPrimaryColor();
-    settingsData.secondaryColor = artProvider.getSecondaryColor();
-
-    // Info header color from theme
-    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
-    settingsData.infoHeaderColor = theme.colors.infoHeader;
-    settingsData.dashboardSecondaryColor = theme.colors.dashboardSecondary;
-    settingsData.dashboardPrimaryColor = theme.colors.dashboardPrimary;
-    settingsData.infoSecondaryColor = theme.colors.infoSecondary;
-    settingsData.infoPrimaryColor = theme.colors.infoPrimary;
-
-    // Appearance/Icons
-    settingsData.iconTheme = QString::fromStdString(settings.get<std::string>("appearance.iconTheme"));
-    const auto& sizes = iconRegistry.getSizes();
-    settingsData.iconSizes[core::IconContext::Toolbar] = sizes.toolbar;
-    settingsData.iconSizes[core::IconContext::Menu] = sizes.menu;
-    settingsData.iconSizes[core::IconContext::TreeView] = sizes.treeView;
-    settingsData.iconSizes[core::IconContext::TabBar] = sizes.tabBar;
-    settingsData.iconSizes[core::IconContext::Button] = sizes.button;
-    settingsData.iconSizes[core::IconContext::StatusBar] = sizes.statusBar;
-    settingsData.iconSizes[core::IconContext::ComboBox] = sizes.comboBox;
-
-    // Editor/General
-    settingsData.editorFontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily"));
-    settingsData.editorFontSize = settings.get<int>("editor.fontSize");
-    settingsData.tabSize = settings.get<int>("editor.tabSize");
-    settingsData.showLineNumbers = settings.get<bool>("editor.lineNumbers");
-    settingsData.wordWrap = settings.get<bool>("editor.wordWrap");
-    settingsData.lineHeight = settings.get<double>("editor.lineHeight");
-    settingsData.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
-    settingsData.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
-    settingsData.indentSize = settings.get<double>("editor.indentSize");
-
-    // Editor/Colors
-    settingsData.editorDarkMode = settings.get<bool>("editor.darkMode");
-    settingsData.editorBackgroundLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.backgroundLight")));
-    settingsData.editorTextLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.textLight")));
-    settingsData.editorInactiveLight = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.inactiveLight")));
-    settingsData.editorBackgroundDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.backgroundDark")));
-    settingsData.editorTextDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.textDark")));
-    settingsData.editorInactiveDark = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.colors.inactiveDark")));
-
-    // Editor/Cursor
-    int cursorStyleInt = settings.get<int>("editor.cursor.style");  // 0 = Line
-    settingsData.cursorStyle = static_cast<editor::CursorStyle>(cursorStyleInt);
-    settingsData.cursorUseCustomColor = settings.get<bool>("editor.cursor.useCustomColor");
-    settingsData.cursorCustomColor = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.cursor.customColor")));
-    settingsData.cursorBlinking = settings.get<bool>("editor.cursor.blinking");
-    settingsData.cursorBlinkInterval = settings.get<int>("editor.cursor.blinkInterval");
-    settingsData.cursorLineWidth = settings.get<int>("editor.cursor.lineWidth");
-
-    // Editor/Margins
-    settingsData.pageMarginTop = settings.get<double>("editor.margins.pageTop");
-    settingsData.pageMarginBottom = settings.get<double>("editor.margins.pageBottom");
-    settingsData.pageMarginLeft = settings.get<double>("editor.margins.pageLeft");
-    settingsData.pageMarginRight = settings.get<double>("editor.margins.pageRight");
-    settingsData.pageMirrorMarginsEnabled = settings.get<bool>("editor.margins.mirrorEnabled");
-    settingsData.pageMarginInner = settings.get<double>("editor.margins.pageInner");
-    settingsData.pageMarginOuter = settings.get<double>("editor.margins.pageOuter");
-
-    // Editor/Page and Typewriter
-    settingsData.pageSize = settings.get<std::string>("editor.page.size");
-    settingsData.pageCustomWidth = settings.get<double>("editor.page.customWidth");
-    settingsData.pageCustomHeight = settings.get<double>("editor.page.customHeight");
-    settingsData.pageGap = settings.get<int>("editor.page.gap");
-    settingsData.pageShowNumbers = settings.get<bool>("editor.page.showNumbers");
-    settingsData.typewriterFocusPercent = static_cast<int>(
-        std::lround(settings.get<double>("editor.typewriter.focusPosition") * 100.0));
-    settingsData.typewriterSmoothScroll = settings.get<bool>("editor.typewriter.smoothScroll");
-
-    // Editor/Text Frame Border
-    settingsData.textFrameBorderShow = settings.get<bool>("editor.textFrameBorder.show");
-    settingsData.textFrameBorderColor = QColor(QString::fromStdString(
-        settings.get<std::string>("editor.textFrameBorder.color")));
-    settingsData.textFrameBorderWidth = settings.get<int>("editor.textFrameBorder.width");
-
-    // Advanced/General - use callback to get diagnostic mode
-    settingsData.diagnosticMode = m_diagnosticModeGetter();
-
-    // Advanced/Log
-    settingsData.logBufferSize = settings.get<int>("log.bufferSize");
-
-    // UI Colors (Task #00028)
-    // Load per-theme colors with theme-appropriate defaults
-    std::string themeName = settingsData.theme.toStdString();
-    bool isDark = (themeName == "Dark");
-
-    // Define UI color defaults (from theme.cpp)
-    std::string defToolTipBase = isDark ? "#3c3c3c" : "#ffffdc";
-    std::string defToolTipText = isDark ? "#e0e0e0" : "#000000";
-    std::string defPlaceholderText = isDark ? "#808080" : "#a0a0a0";
-    std::string defBrightText = "#ffffff";
-
-    if (settings.hasCustomUiColorsForTheme(themeName)) {
-        settingsData.tooltipBackgroundColor = QColor(QString::fromStdString(
-            settings.getUiColorForTheme(themeName, "toolTipBase", defToolTipBase)));
-        settingsData.tooltipTextColor = QColor(QString::fromStdString(
-            settings.getUiColorForTheme(themeName, "toolTipText", defToolTipText)));
-        settingsData.placeholderTextColor = QColor(QString::fromStdString(
-            settings.getUiColorForTheme(themeName, "placeholderText", defPlaceholderText)));
-        settingsData.brightTextColor = QColor(QString::fromStdString(
-            settings.getUiColorForTheme(themeName, "brightText", defBrightText)));
-    } else {
-        settingsData.tooltipBackgroundColor = QColor(QString::fromStdString(defToolTipBase));
-        settingsData.tooltipTextColor = QColor(QString::fromStdString(defToolTipText));
-        settingsData.placeholderTextColor = QColor(QString::fromStdString(defPlaceholderText));
-        settingsData.brightTextColor = QColor(QString::fromStdString(defBrightText));
-    }
-
-    // Log Panel Colors (Task #00027)
-    // Define theme defaults
-    std::string defTrace = isDark ? "#FF66FF" : "#CC00CC";
-    std::string defDebug = isDark ? "#FF66FF" : "#CC00CC";
-    std::string defInfo = isDark ? "#FFFFFF" : "#000000";
-    std::string defWarning = isDark ? "#FFA500" : "#FF8C00";
-    std::string defError = isDark ? "#FF4444" : "#CC0000";
-    std::string defCritical = isDark ? "#FF4444" : "#CC0000";
-    std::string defBackground = isDark ? "#252525" : "#F5F5F5";
-
-    // Check for corrupted log color settings (all #000000 due to previous bug)
-    bool useStoredLogColors = false;
-    if (settings.hasCustomLogColorsForTheme(themeName)) {
-        std::string storedTrace = settings.getLogColorForTheme(themeName, "trace", defTrace);
-        std::string storedWarning = settings.getLogColorForTheme(themeName, "warning", defWarning);
-        std::string storedError = settings.getLogColorForTheme(themeName, "error", defError);
-
-        // If trace, warning, AND error are all #000000, data is corrupted
-        bool corrupted = (storedTrace == "#000000" && storedWarning == "#000000" && storedError == "#000000");
-
-        if (corrupted) {
-            logger.warn("SettingsCoordinator: Detected corrupted log colors for theme '{}', clearing", themeName);
-            settings.clearCustomLogColorsForTheme(themeName);
-            useStoredLogColors = false;
-        } else {
-            useStoredLogColors = true;
-        }
-    }
-
-    if (useStoredLogColors) {
-        settingsData.logTraceColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "trace", defTrace)));
-        settingsData.logDebugColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "debug", defDebug)));
-        settingsData.logInfoColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "info", defInfo)));
-        settingsData.logWarningColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "warning", defWarning)));
-        settingsData.logErrorColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "error", defError)));
-        settingsData.logCriticalColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "critical", defCritical)));
-        settingsData.logBackgroundColor = QColor(QString::fromStdString(
-            settings.getLogColorForTheme(themeName, "background", defBackground)));
-    } else {
-        settingsData.logTraceColor = QColor(QString::fromStdString(defTrace));
-        settingsData.logDebugColor = QColor(QString::fromStdString(defDebug));
-        settingsData.logInfoColor = QColor(QString::fromStdString(defInfo));
-        settingsData.logWarningColor = QColor(QString::fromStdString(defWarning));
-        settingsData.logErrorColor = QColor(QString::fromStdString(defError));
-        settingsData.logCriticalColor = QColor(QString::fromStdString(defCritical));
-        settingsData.logBackgroundColor = QColor(QString::fromStdString(defBackground));
-    }
-
-    // Palette Colors (Task #00028)
-    // Define palette color defaults (from theme.cpp)
-    std::string defWindow = isDark ? "#2d2d2d" : "#f0f0f0";
-    std::string defWindowText = isDark ? "#e0e0e0" : "#000000";
-    std::string defBase = isDark ? "#252525" : "#ffffff";
-    std::string defAlternateBase = isDark ? "#323232" : "#f5f5f5";
-    std::string defTextPalette = isDark ? "#e0e0e0" : "#000000";
-    std::string defButton = isDark ? "#404040" : "#e0e0e0";
-    std::string defButtonText = isDark ? "#e0e0e0" : "#000000";
-    std::string defHighlight = "#0078d4";
-    std::string defHighlightedText = "#ffffff";
-    std::string defLight = isDark ? "#505050" : "#ffffff";
-    std::string defMidlight = isDark ? "#404040" : "#e0e0e0";
-    std::string defMid = isDark ? "#303030" : "#a0a0a0";
-    std::string defDark = isDark ? "#202020" : "#606060";
-    std::string defShadow = "#000000";
-    std::string defLink = isDark ? "#5eb3f0" : "#0078d4";
-    std::string defLinkVisited = isDark ? "#b48ade" : "#551a8b";
-
-    if (settings.hasCustomPaletteColorsForTheme(themeName)) {
-        settingsData.paletteWindowColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "window", defWindow)));
-        settingsData.paletteWindowTextColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "windowText", defWindowText)));
-        settingsData.paletteBaseColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "base", defBase)));
-        settingsData.paletteAlternateBaseColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "alternateBase", defAlternateBase)));
-        settingsData.paletteTextColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "text", defTextPalette)));
-        settingsData.paletteButtonColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "button", defButton)));
-        settingsData.paletteButtonTextColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "buttonText", defButtonText)));
-        settingsData.paletteHighlightColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "highlight", defHighlight)));
-        settingsData.paletteHighlightedTextColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "highlightedText", defHighlightedText)));
-        settingsData.paletteLightColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "light", defLight)));
-        settingsData.paletteMidlightColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "midlight", defMidlight)));
-        settingsData.paletteMidColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "mid", defMid)));
-        settingsData.paletteDarkColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "dark", defDark)));
-        settingsData.paletteShadowColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "shadow", defShadow)));
-        settingsData.paletteLinkColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "link", defLink)));
-        settingsData.paletteLinkVisitedColor = QColor(QString::fromStdString(
-            settings.getPaletteColorForTheme(themeName, "linkVisited", defLinkVisited)));
-    } else {
-        settingsData.paletteWindowColor = QColor(QString::fromStdString(defWindow));
-        settingsData.paletteWindowTextColor = QColor(QString::fromStdString(defWindowText));
-        settingsData.paletteBaseColor = QColor(QString::fromStdString(defBase));
-        settingsData.paletteAlternateBaseColor = QColor(QString::fromStdString(defAlternateBase));
-        settingsData.paletteTextColor = QColor(QString::fromStdString(defTextPalette));
-        settingsData.paletteButtonColor = QColor(QString::fromStdString(defButton));
-        settingsData.paletteButtonTextColor = QColor(QString::fromStdString(defButtonText));
-        settingsData.paletteHighlightColor = QColor(QString::fromStdString(defHighlight));
-        settingsData.paletteHighlightedTextColor = QColor(QString::fromStdString(defHighlightedText));
-        settingsData.paletteLightColor = QColor(QString::fromStdString(defLight));
-        settingsData.paletteMidlightColor = QColor(QString::fromStdString(defMidlight));
-        settingsData.paletteMidColor = QColor(QString::fromStdString(defMid));
-        settingsData.paletteDarkColor = QColor(QString::fromStdString(defDark));
-        settingsData.paletteShadowColor = QColor(QString::fromStdString(defShadow));
-        settingsData.paletteLinkColor = QColor(QString::fromStdString(defLink));
-        settingsData.paletteLinkVisitedColor = QColor(QString::fromStdString(defLinkVisited));
-    }
-
-    // Dashboard settings (OpenSpec #00036)
-    settingsData.showKalahariNews = settings.get<bool>("dashboard.showKalahariNews");
-    settingsData.showRecentFiles = settings.get<bool>("dashboard.showRecentFiles");
-    settingsData.autoLoadLastProject = settings.get<bool>("startup.autoLoadLastProject");
-    settingsData.dashboardMaxItems = settings.get<int>("dashboard.maxItems");
-    settingsData.dashboardIconSize = settings.get<int>("dashboard.iconSize");
-
-    logger.debug("SettingsCoordinator: Settings collected");
-    return settingsData;
-}
-
-void SettingsCoordinator::onApplySettings(const SettingsData& settings, const SettingsData& previous) {
-    auto& logger = core::Logger::getInstance();
-    logger.info("SettingsCoordinator: Reacting to settings applied");
-
-    if (settings.language != previous.language) {
+    if (changed(QStringLiteral("ui.language"))) {
         m_languageChanged = true;
     }
 
-    // Handle diagnostic mode change
-    bool currentDiagMode = m_diagnosticModeGetter();
-    if (settings.diagnosticMode != currentDiagMode) {
-        if (settings.diagnosticMode) {
-            emit enableDiagnosticModeRequested();
-        } else {
-            emit disableDiagnosticModeRequested();
-        }
-    }
-
-    // Log panel: buffer size and colors
+    // Log panel: buffer size and colors (theme switch or per-theme colors)
     LogPanel* logPanel = m_dockCoordinator->logPanel();
-    if (logPanel && static_cast<int>(logPanel->getMaxBufferSize()) != settings.logBufferSize) {
-        logPanel->setMaxBufferSize(static_cast<size_t>(settings.logBufferSize));
-        logger.info("SettingsCoordinator: Log buffer size updated to {}", settings.logBufferSize);
+    if (logPanel && changed(QStringLiteral("log.bufferSize"))) {
+        const int bufferSize = core::SettingsManager::getInstance().get<int>("log.bufferSize");
+        logPanel->setMaxBufferSize(static_cast<size_t>(bufferSize));
+        logger.info("SettingsCoordinator: Log buffer size updated to {}", bufferSize);
     }
-    const bool themeChanged = settings.theme != previous.theme;
-    if (logPanel && (themeChanged || settings.themeColorsDiffer(previous))) {
+    if (logPanel && (changed(QStringLiteral("appearance.theme")) || changed(QStringLiteral("themes.")))) {
         logPanel->applyThemeColors();
     }
 
     // Dashboard: only its own options (it follows theme changes by itself)
     DashboardPanel* dashboardPanel = m_dockCoordinator->dashboardPanel();
-    const bool dashboardChanged = settings.showKalahariNews != previous.showKalahariNews ||
-                                  settings.showRecentFiles != previous.showRecentFiles ||
-                                  settings.dashboardMaxItems != previous.dashboardMaxItems ||
-                                  settings.dashboardIconSize != previous.dashboardIconSize;
-    if (dashboardPanel && dashboardChanged) {
+    if (dashboardPanel && changed(QStringLiteral("dashboard."))) {
         dashboardPanel->onSettingsChanged();
     }
 

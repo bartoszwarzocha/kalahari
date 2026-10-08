@@ -22,7 +22,6 @@
 #include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
-#include "kalahari/gui/settings_data.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -356,9 +355,6 @@ private:
 
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;
-
-    /// @brief The line Distraction-Free shows at the top of the editor
-    [[nodiscard]] QString distractionFreeHint() const;
 
     // Status bar statistics labels (OpenSpec #00042 Task 6.13)
     QLabel* m_wordCountLabel{nullptr};                ///< Word count display
