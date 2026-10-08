@@ -103,8 +103,8 @@ if(USE_SYSTEM_PACKAGES)
     message(STATUS "Using system packages (apt) instead of vcpkg")
     message(STATUS "This mode is for Linux CI where all dependencies are installed via apt")
 
-    # Find Qt6 from system (Ubuntu 24.04 has Qt 6.4.2)
-    find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets Sql LinguistTools)
+    # Find Qt6 from the system or a Qt install (Ubuntu 24.04 has Qt 6.4.2, the oldest supported)
+    find_package(Qt6 6.4 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets Sql LinguistTools)
     message(STATUS "Qt6 LGPL v3 compliance: System Qt6 is always dynamically linked")
 
     set(CMAKE_AUTOMOC ON)
@@ -145,7 +145,7 @@ else()
 
     # Find dependencies (vcpkg will install these automatically)
     # Task #00020: Network for IconDownloader, Xml for SvgConverter, SvgWidgets for preview
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets Sql LinguistTools)
+    find_package(Qt6 6.4 REQUIRED COMPONENTS Core Widgets Gui Network Xml SvgWidgets Sql LinguistTools)
 
     # LGPL v3 Compliance Check - Verify Qt is dynamically linked
     # First check: triplet name (fast, catches obvious static triplets)
