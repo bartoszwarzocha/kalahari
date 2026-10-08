@@ -170,6 +170,18 @@ QWidget* AboutDialog::createComponentsTab() {
     components += tr("  Embedded Python interpreter for plugins\n");
     components += tr("  License: Python Software Foundation License\n\n");
 
+    components += tr("Hunspell (hunspell.github.io)\n");
+    components += tr("  Spell checking library\n");
+    components += tr("  License: MPL 1.1 / GPL 2.0 / LGPL 2.1\n\n");
+
+    components += tr("Polish spelling dictionary (sjp.pl, Marek Futrega)\n");
+    components += tr("  From the LibreOffice dictionaries\n");
+    components += tr("  License: Apache License 2.0\n\n");
+
+    components += tr("English spelling dictionary (SCOWL, Kevin Atkinson)\n");
+    components += tr("  Spell Checker Oriented Word Lists\n");
+    components += tr("  License: SCOWL license (BSD-like)\n\n");
+
     components += tr("vcpkg (github.com/microsoft/vcpkg)\n");
     components += tr("  C++ package manager\n");
     components += tr("  License: MIT License\n");

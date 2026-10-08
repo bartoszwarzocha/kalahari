@@ -44,3 +44,7 @@ LICENSE text eol=lf
 *.zip binary
 *.kplugin binary
 *.klh binary
+
+# Hunspell dictionaries: kept byte for byte
+*.aff -text
+*.dic -text
