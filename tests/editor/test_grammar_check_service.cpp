@@ -175,10 +175,14 @@ bool waitFor(Condition condition, int timeoutMs = 5000) {
 }
 
 /// Talks to localhost directly, whatever proxy the environment sets
+///
+/// Restores the default proxy without asking for the current one: asking makes Qt
+/// start libproxy, which leaks a few bytes the leak sanitizer reports.
 struct NoProxy {
-    QNetworkProxy previous = QNetworkProxy::applicationProxy();
     NoProxy() { QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy); }
-    ~NoProxy() { QNetworkProxy::setApplicationProxy(previous); }
+    ~NoProxy() { QNetworkProxy::setApplicationProxy(QNetworkProxy()); }
+    NoProxy(const NoProxy&) = delete;
+    NoProxy& operator=(const NoProxy&) = delete;
 };
 
 }  // namespace
