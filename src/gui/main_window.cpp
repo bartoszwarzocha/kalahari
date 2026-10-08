@@ -1362,9 +1362,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // Save perspective (existing code)
     logger.debug("Saving window perspective");
 
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-    settings.setValue("geometry", saveGeometry());
-    settings.setValue("windowState", saveState());
+    auto& settings = core::SettingsManager::getInstance();
+    settings.setBinary("window.geometry", saveGeometry());
+    settings.setBinary("window.state", saveState());
 
     // Task #00019: Save toolbar state (visibility)
     if (m_toolbarManager) {
@@ -1530,12 +1530,12 @@ void MainWindow::showEvent(QShowEvent* event) {
             ToolbarManager::clearSavedWindowState();
         }
 
-        QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-        restoreGeometry(settings.value("geometry").toByteArray());
+        auto& settings = core::SettingsManager::getInstance();
+        restoreGeometry(settings.getBinary("window.geometry"));
 
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
-        QByteArray windowState = settings.value("windowState").toByteArray();
+        QByteArray windowState = settings.getBinary("window.state");
         if (!windowState.isEmpty() && !toolbarResetNeeded) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);

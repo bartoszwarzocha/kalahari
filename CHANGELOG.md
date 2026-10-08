@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings: the window layout in settings.json** - 2026-10-08. The window's size and
+  position, the bars and panels, the toolbars shown and the recent books are saved in
+  settings.json with the other settings, not in a second store (the registry on Windows).
+  The first start after the update moves the saved values over, so the window keeps its
+  layout.
+
 - **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
   Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
   Toolbar Manager, About), the messages, the book templates and the standard buttons
