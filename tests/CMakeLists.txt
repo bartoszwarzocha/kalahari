@@ -100,6 +100,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp
     ${CMAKE_SOURCE_DIR}/src/core/database_schema_manager.cpp
@@ -193,6 +194,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h   # IconRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h # ProjectManager with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/recent_books_manager.h
     # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
