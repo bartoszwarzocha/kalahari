@@ -348,14 +348,6 @@
         <translation>Ocena czytelności</translation>
     </message>
     <message>
-        <source>Normal</source>
-        <translation>Normalny</translation>
-    </message>
-    <message>
-        <source>Focused</source>
-        <translation>Skupiony</translation>
-    </message>
-    <message>
         <source>Distraction-Free</source>
         <translation>Bez rozpraszania</translation>
     </message>
@@ -466,6 +458,10 @@
     <message>
         <source>Typewriter Scrolling</source>
         <translation>Przewijanie jak w maszynie do pisania</translation>
+    </message>
+    <message>
+        <source>Dark Paper</source>
+        <translation>Ciemny papier</translation>
     </message>
     <message>
         <source>Writer</source>
@@ -671,10 +667,6 @@
         <translation>Statystyki</translation>
     </message>
     <message>
-        <source>Focus Mode</source>
-        <translation>Tryb skupienia</translation>
-    </message>
-    <message>
         <source>Plugins</source>
         <translation>Wtyczki</translation>
     </message>
@@ -705,6 +697,50 @@
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
+    </message>
+    <message>
+        <source>File Toolbar</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Edit Toolbar</source>
+        <translation>Edycja</translation>
+    </message>
+    <message>
+        <source>Book Toolbar</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Panels Toolbar</source>
+        <translation>Panele</translation>
+    </message>
+    <message>
+        <source>Tools Toolbar</source>
+        <translation>Narzędzia</translation>
+    </message>
+    <message>
+        <source>Views Toolbar</source>
+        <translation>Widoki</translation>
+    </message>
+    <message>
+        <source>Format Toolbar</source>
+        <translation>Formatowanie</translation>
+    </message>
+    <message>
+        <source>Insert Toolbar</source>
+        <translation>Wstawianie</translation>
+    </message>
+    <message>
+        <source>Styles Toolbar</source>
+        <translation>Style</translation>
+    </message>
+    <message>
+        <source>Quick Actions</source>
+        <translation>Szybki dostęp</translation>
+    </message>
+    <message>
+        <source>Help Toolbar</source>
+        <translation>Pomoc</translation>
     </message>
     <message>
         <source>Toolbar Manager...</source>
@@ -2186,6 +2222,14 @@ Do you want to choose a different location?</source>
     <message>
         <source>Focus: off</source>
         <translation>Skupienie: wyłączone</translation>
+    </message>
+    <message>
+        <source>Dark paper: on</source>
+        <translation>Ciemny papier: włączony</translation>
+    </message>
+    <message>
+        <source>Dark paper: off</source>
+        <translation>Ciemny papier: wyłączony</translation>
     </message>
     <message>
         <source>View mode: Distraction-Free</source>

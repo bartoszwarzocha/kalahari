@@ -35,7 +35,6 @@ static QString translateMenuName(const std::string& technicalName) {
     if (technicalName == "Export") return QObject::tr("Export");
     if (technicalName == "Text Style") return QObject::tr("Text Style");
     if (technicalName == "Statistics") return QObject::tr("Statistics");
-    if (technicalName == "Focus Mode") return QObject::tr("Focus Mode");
     if (technicalName == "Plugins") return QObject::tr("Plugins");
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant Actions");
     if (technicalName == "View Mode") return QObject::tr("View Mode");

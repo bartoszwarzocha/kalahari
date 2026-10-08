@@ -270,6 +270,9 @@ private slots:
     /// @brief Turn Focus on or off in every editor (remembered; the view mode stays)
     void onFocusToggle();
 
+    /// @brief Turn the dark paper of every editor on or off (remembered)
+    void onDarkPaperToggle();
+
     /// @brief Give every editor the light or dark paper chosen in one editor's context menu
     void onEditorColorModeChanged(editor::EditorColorMode mode);
 

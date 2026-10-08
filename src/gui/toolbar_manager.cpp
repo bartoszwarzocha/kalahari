@@ -41,6 +41,9 @@ namespace gui {
 //   3: Fix toolbar visibility reset - force re-apply of default visibility
 //   4: Final toolbar fix - quickActions/edit/format/help visible, no addToolBarBreak
 //   5: Final layout - Row 1: Quick Actions, Edit, Format, Insert; Row 2: Book, Styles, Tools, Help; Hidden: File, View
+// A toolbar added later (Views) needs no new version: QMainWindow::restoreState() leaves a
+// toolbar the saved state does not know in its area, at the end of the last row, whereas a
+// new version would also discard the saved places of the panels.
 static constexpr int TOOLBAR_CONFIG_VERSION = 5;
 
 ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
@@ -71,7 +74,7 @@ void ToolbarManager::initializeConfigs() {
     // File Toolbar
     m_configs["file"] = {
         "file",
-        "File Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "File Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
         {"file.new", "file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
@@ -80,7 +83,7 @@ void ToolbarManager::initializeConfigs() {
     // Edit Toolbar
     m_configs["edit"] = {
         "edit",
-        "Edit Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Edit Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"edit.undo", "edit.redo", SEPARATOR_ID,
@@ -90,16 +93,16 @@ void ToolbarManager::initializeConfigs() {
     // Book Toolbar
     m_configs["book"] = {
         "book",
-        "Book Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Book Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
     };
 
-    // View Toolbar (panel toggles)
+    // Panels Toolbar (panel toggles)
     m_configs["view"] = {
         "view",
-        "View Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Panels Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via menu)
         {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.log"}
@@ -108,17 +111,29 @@ void ToolbarManager::initializeConfigs() {
     // Tools Toolbar
     m_configs["tools"] = {
         "tools",
-        "Tools Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Tools Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"tools.spellcheck", "tools.stats.wordCount", "tools.focus.normal"}
+        {"tools.spellcheck", "tools.stats.wordCount"}
+    };
+
+    // Views Toolbar: the view modes, the switches on top of them (and the paper) and the zoom,
+    // as in the View menu
+    m_configs["views"] = {
+        "views",
+        QT_TRANSLATE_NOOP("QObject", "Views Toolbar"),
+        Qt::TopToolBarArea,
+        true,  // visible by default (Row 2)
+        {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free", SEPARATOR_ID,
+         "view.focus", "view.typewriter", "view.darkPaper", SEPARATOR_ID,
+         "view.zoomOut", "view.zoomIn", "view.resetZoom"}
     };
 
     // Format Toolbar (text formatting - essential for writer's IDE)
     // Special widget IDs: WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID
     m_configs["format"] = {
         "format",
-        "Format Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Format Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID, SEPARATOR_ID,
@@ -131,7 +146,7 @@ void ToolbarManager::initializeConfigs() {
     // Insert Toolbar (quick access to insert elements)
     m_configs["insert"] = {
         "insert",
-        "Insert Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Insert Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
@@ -141,7 +156,7 @@ void ToolbarManager::initializeConfigs() {
     // Styles Toolbar (quick paragraph styles)
     m_configs["styles"] = {
         "styles",
-        "Styles Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Styles Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"format.style.heading1", "format.style.heading2", "format.style.heading3",
@@ -153,7 +168,7 @@ void ToolbarManager::initializeConfigs() {
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
-        "Quick Actions",
+        QT_TRANSLATE_NOOP("QObject", "Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", SEPARATOR_ID,
@@ -166,7 +181,7 @@ void ToolbarManager::initializeConfigs() {
     // Quick access to help resources, keyboard shortcuts, updates, and about info
     m_configs["help"] = {
         "help",
-        "Help Toolbar",
+        QT_TRANSLATE_NOOP("QObject", "Help Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"help.manual", "help.shortcuts", "help.checkUpdates", "help.about"}
@@ -179,8 +194,8 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 
     // OpenSpec #00037 Phase E: Multi-row toolbar layout
     // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
-    // Row 2: Book, Styles, Tools, Help (visible by default)
-    // Hidden: File, View
+    // Row 2: Book, Styles, Views, Tools, Help (visible by default)
+    // Hidden: File, Panels
 
     // Row 1 toolbars: Quick Actions, Edit, Format, Insert
     std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
@@ -196,8 +211,8 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
     // Add toolbar break between rows
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Tools, Help
-    std::vector<std::string> row2 = {"book", "styles", "tools", "help"};
+    // Row 2 toolbars: Book, Styles, Views, Tools, Help
+    std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help"};
     for (const std::string& id : row2) {
         auto it = m_configs.find(id);
         if (it != m_configs.end()) {
@@ -207,7 +222,7 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
         }
     }
 
-    // Hidden toolbars: File, View (create but don't show)
+    // Hidden toolbars: File, Panels (create but don't show)
     std::vector<std::string> hidden = {"file", "view"};
     for (const std::string& id : hidden) {
         auto it = m_configs.find(id);
@@ -419,7 +434,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // Create checkable action for each toolbar
     // OpenSpec #00037: Order matches layout - Row 1 visible, Row 2 visible, then hidden
-    std::vector<std::string> order = {"quickActions", "edit", "format", "insert", "book", "styles", "tools", "help", "file", "view"};
+    std::vector<std::string> order = {"quickActions", "edit", "format", "insert", "book", "styles", "views", "tools", "help", "file", "view"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -576,7 +591,7 @@ QString ToolbarManager::getToolbarName(const QString& toolbarId) const {
     std::string id = toolbarId.toStdString();
     auto it = m_configs.find(id);
     if (it != m_configs.end()) {
-        return QString::fromStdString(it->second.label);
+        return QObject::tr(it->second.label.c_str());
     }
 
     return toolbarId;
@@ -794,8 +809,8 @@ void ToolbarManager::applyDefaultLayout() {
 
     // OpenSpec #00037: Rearrange toolbars into 2 rows
     // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
-    // Row 2: Book, Styles, Tools, Help (visible by default)
-    // Hidden by default: File, View
+    // Row 2: Book, Styles, Views, Tools, Help (visible by default)
+    // Hidden by default: File, Panels
 
     // First, remove all toolbars from main window (but don't delete them)
     // NOTE: removeToolBar() also HIDES the toolbar, so we must restore visibility after adding
@@ -821,8 +836,8 @@ void ToolbarManager::applyDefaultLayout() {
     // Add toolbar break between Row 1 and Row 2
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Tools, Help
-    std::vector<std::string> row2 = {"book", "styles", "tools", "help"};
+    // Row 2 toolbars: Book, Styles, Views, Tools, Help
+    std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help"};
     for (const std::string& id : row2) {
         auto it = m_toolbars.find(id);
         if (it != m_toolbars.end() && it->second) {
@@ -830,7 +845,7 @@ void ToolbarManager::applyDefaultLayout() {
         }
     }
 
-    // Hidden toolbars: File, View
+    // Hidden toolbars: File, Panels
     std::vector<std::string> hidden = {"file", "view"};
     for (const std::string& id : hidden) {
         auto it = m_toolbars.find(id);

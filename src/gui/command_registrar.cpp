@@ -413,15 +413,6 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Grammar Check"), "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
-    // Focus Mode submenu
-    REG_CMD_TOOL_ICON("tools.focus.normal", QT_TRANSLATE_NOOP("CommandRegistrar", "Normal"), "TOOLS/Focus Mode/Normal", 70, false, 1,
-                      KeyboardShortcut(),
-                      IconSet(),
-                      nullptr);
-
-    REG_CMD("tools.focus.focused", QT_TRANSLATE_NOOP("CommandRegistrar", "Focused"), "TOOLS/Focus Mode/Focused", 80, false, 1);
-    REG_CMD("tools.focus.distractionFree", QT_TRANSLATE_NOOP("CommandRegistrar", "Distraction-Free"), "TOOLS/Focus Mode/Distraction-Free", 90, false, 1);
-
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, false, 1);
     REG_CMD("tools.versionHistory", QT_TRANSLATE_NOOP("CommandRegistrar", "Version History..."), "TOOLS/Version History...", 120, true, 2);
@@ -503,10 +494,14 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Typewriter Scrolling"), "VIEW/Typewriter Scrolling", 60, false, 0,
                    KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
                    callbacks.onTypewriterToggle);
-    REG_CMD_TOOL_ICON("view.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "Focus"), "VIEW/Focus", 61, true, 0,
+    REG_CMD_TOOL_ICON("view.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "Focus"), "VIEW/Focus", 61, false, 0,
                       KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFocusToggle);
+
+    // The light or dark paper of every editor, as in the editor's context menu
+    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dark Paper"), "VIEW/Dark Paper", 62, true, 0,
+               callbacks.onDarkPaperToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "Writer"), "VIEW/Perspectives/Writer", 70, false, 1);
