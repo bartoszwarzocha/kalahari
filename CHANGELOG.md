@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Polish translation of the Settings window** - 2026-10-08. All pages of the Settings
+  window are in Polish when the program runs in Polish, with the names the menus and
+  panels already use (Pulpit, Edytor, Dziennik, the view names).
+
 - **Settings: a length unit to choose** - 2026-10-08. Settings > General > Units sets the
   unit of the length fields of the Settings window: millimeters (the default),
   centimeters, inches, points or pixels. The margins, page sizes, spacing, indent, gap
