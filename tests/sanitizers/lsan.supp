@@ -5,3 +5,5 @@ leak:libpython3
 # pybind11 intentionally never frees its internals structures.
 leak:pybind11::detail::get_internals
 leak:pybind11::detail::get_local_internals
+# libproxy (Qt's system proxy lookup on Linux) keeps its factory state until exit.
+leak:px_proxy_factory_new

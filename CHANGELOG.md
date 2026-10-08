@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   settings.json with the other settings, not in a second store (the registry on Windows).
   The first start after the update moves the saved values over, so the window keeps its
   layout.
+- **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
+  service had the public api.languagetool.org built in, so the text of a book would have
+  gone to the internet. Now it sends text only to the server set in
+  `editor.grammarCheck.serverUrl` (for example `http://localhost:8081`); empty, the
+  default, means no grammar check and nothing sent.
 - **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
   the translations and the CI work are ticked off; text styles, statistics, perspectives and
   DOCX/Markdown export move to 0.4.x releases.
