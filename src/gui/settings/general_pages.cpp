@@ -29,6 +29,20 @@ GeneralPage::GeneralPage(QWidget* parent)
                                       "startup.autoLoadLastProject");
     autoLoad->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
 
+    QFormLayout* units = addGroup(tr("Units"));
+    auto* lengthUnit = new QComboBox();
+    lengthUnit->addItem(tr("Millimeters"), QStringLiteral("mm"));
+    lengthUnit->addItem(tr("Centimeters"), QStringLiteral("cm"));
+    lengthUnit->addItem(tr("Inches"), QStringLiteral("in"));
+    lengthUnit->addItem(tr("Points"), QStringLiteral("pt"));
+    lengthUnit->addItem(tr("Pixels"), QStringLiteral("px"));
+    lengthUnit->setToolTip(tr("Unit of the margins, page sizes, spacing and other lengths "
+                              "(icon and font sizes keep their own units)"));
+    addField(units, tr("Length unit:"), lengthUnit, "ui.lengthUnit");
+    connect(lengthUnit, &QComboBox::currentIndexChanged, this, [this, lengthUnit]() {
+        emit lengthUnitChanged(lengthUnit->currentData().toString());
+    });
+
     pageLayout()->addStretch();
 }
 

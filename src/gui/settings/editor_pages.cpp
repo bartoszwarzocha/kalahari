@@ -4,6 +4,7 @@
 /// The editors follow these settings by themselves (EditorPanel subscribes to them).
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/editor/editor_appearance.h"
 
@@ -52,14 +53,10 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     lineHeight->setDecimals(1);
     lineHeight->setToolTip(tr("Multiple of the font's line height (1.0 = single spacing)"));
     addField(typography, tr("Line Spacing:"), lineHeight, "editor.lineHeight");
-    auto* paragraphSpacing = new QSpinBox();
-    paragraphSpacing->setRange(0, 48);
-    paragraphSpacing->setSuffix(tr(" px"));
+    auto* paragraphSpacing = new LengthSpinBox(LengthUnit::Pixels, 0, 48);
     addField(typography, tr("Space After Paragraph:"), paragraphSpacing, "editor.paragraphSpacing");
     auto* indent = new QCheckBox(tr("Indent First Line:"));
-    auto* indentSize = new QSpinBox();
-    indentSize->setRange(0, 96);
-    indentSize->setSuffix(tr(" px"));
+    auto* indentSize = new LengthSpinBox(LengthUnit::Pixels, 0, 96);
     typography->addRow(indent, indentSize);
     bind(indent, "editor.firstLineIndent");
     bind(indentSize, "editor.indentSize");
@@ -135,10 +132,9 @@ EditorCursorPage::EditorCursorPage(QWidget* parent)
                          "- Block: rectangle on character\n"
                          "- Underline: line under character (_)"));
     addField(style, tr("Style:"), shape, "editor.cursor.style");
-    auto* lineWidth = new QSpinBox();
-    lineWidth->setRange(1, 5);
+    auto* lineWidth = new LengthSpinBox(LengthUnit::Pixels, 1, 5);
     lineWidth->setToolTip(tr("Width of the line cursor (1-5 pixels)"));
-    addField(style, tr("Cursor width (px):"), lineWidth, "editor.cursor.lineWidth");
+    addField(style, tr("Cursor width:"), lineWidth, "editor.cursor.lineWidth");
     // The width is used by the line cursor only
     const auto showWidth = [style, shape, lineWidth]() {
         style->setRowVisible(lineWidth,
@@ -198,14 +194,10 @@ EditorPagesPage::EditorPagesPage(QWidget* parent)
     format->addItem(tr("Custom"), QStringLiteral("Custom"));
     addField(page, tr("Format:"), format, "editor.page.size");
     const auto sizeField = []() {
-        auto* field = new QDoubleSpinBox();
-        field->setRange(50.0, 500.0);
-        field->setDecimals(1);
-        field->setSuffix(tr(" mm"));
-        return field;
+        return new LengthSpinBox(LengthUnit::Millimeters, 50.0, 500.0);
     };
-    QDoubleSpinBox* width = sizeField();
-    QDoubleSpinBox* height = sizeField();
+    LengthSpinBox* width = sizeField();
+    LengthSpinBox* height = sizeField();
     addField(page, tr("Width:"), width, "editor.page.customWidth");
     addField(page, tr("Height:"), height, "editor.page.customHeight");
     // The width and height are set for a custom format only
@@ -216,34 +208,29 @@ EditorPagesPage::EditorPagesPage(QWidget* parent)
     };
     connect(format, &QComboBox::currentIndexChanged, this, syncSize);
     whenLoaded(syncSize);
-    auto* gap = new QSpinBox();
-    gap->setRange(0, 100);
-    gap->setSuffix(tr(" px"));
+    auto* gap = new LengthSpinBox(LengthUnit::Pixels, 0, 100);
     gap->setToolTip(tr("Space between the pages and around them, at 100% zoom"));
     addField(page, tr("Gap between pages:"), gap, "editor.page.gap");
     addCheckBox(page, tr("Show page numbers"), "editor.page.showNumbers");
 
     const auto marginField = [](const QString& toolTip) {
-        auto* field = new QDoubleSpinBox();
-        field->setRange(0.0, 100.0);
-        field->setDecimals(1);
-        field->setSuffix(tr(" mm"));
+        auto* field = new LengthSpinBox(LengthUnit::Millimeters, 0.0, 100.0);
         field->setToolTip(toolTip);
         return field;
     };
     QFormLayout* margins = addGroup(tr("Page Margins"));
-    addField(margins, tr("Top:"), marginField(tr("Top margin in millimeters (0-100)")),
+    addField(margins, tr("Top:"), marginField(tr("Top margin of the page (up to 100 mm)")),
              "editor.margins.pageTop");
-    addField(margins, tr("Bottom:"), marginField(tr("Bottom margin in millimeters (0-100)")),
+    addField(margins, tr("Bottom:"), marginField(tr("Bottom margin of the page (up to 100 mm)")),
              "editor.margins.pageBottom");
-    addField(margins, tr("Left:"), marginField(tr("Left margin in millimeters (0-100)")),
+    addField(margins, tr("Left:"), marginField(tr("Left margin of the page (up to 100 mm)")),
              "editor.margins.pageLeft");
-    addField(margins, tr("Right:"), marginField(tr("Right margin in millimeters (0-100)")),
+    addField(margins, tr("Right:"), marginField(tr("Right margin of the page (up to 100 mm)")),
              "editor.margins.pageRight");
     // The pages do not use mirror margins yet: the inner and outer margins stay hidden
     markNotUsedYet(addCheckBox(margins, tr("Mirror margins (for book binding)"), "editor.margins.mirrorEnabled"));
-    QDoubleSpinBox* inner = marginField(tr("Inner margin in millimeters (0-100)"));
-    QDoubleSpinBox* outer = marginField(tr("Outer margin in millimeters (0-100)"));
+    LengthSpinBox* inner = marginField(tr("Inner margin of the page (up to 100 mm)"));
+    LengthSpinBox* outer = marginField(tr("Outer margin of the page (up to 100 mm)"));
     addField(margins, tr("Inner (binding):"), inner, "editor.margins.pageInner");
     addField(margins, tr("Outer (edge):"), outer, "editor.margins.pageOuter");
     margins->setRowVisible(inner, false);
@@ -257,10 +244,8 @@ EditorPagesPage::EditorPagesPage(QWidget* parent)
     frameColor->setToolTip(tr("Color of the text frame border"));
     frame->addRow(frameColor);
     bind(frameColor, "editor.textFrameBorder.color");
-    auto* frameWidth = new QSpinBox();
-    frameWidth->setRange(1, 5);
-    frameWidth->setSuffix(tr(" px"));
-    frameWidth->setToolTip(tr("Border width in pixels (1-5)"));
+    auto* frameWidth = new LengthSpinBox(LengthUnit::Pixels, 1, 5);
+    frameWidth->setToolTip(tr("Border width (1-5 pixels)"));
     QLabel* frameWidthLabel = addField(frame, tr("Border width:"), frameWidth, "editor.textFrameBorder.width");
     const auto syncFrame = [showFrame, frameColor, frameWidth, frameWidthLabel]() {
         const bool shown = showFrame->isChecked();

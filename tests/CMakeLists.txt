@@ -142,6 +142,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
@@ -179,6 +180,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT

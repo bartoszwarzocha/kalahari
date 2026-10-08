@@ -3732,7 +3732,7 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Editor</source>
-        <translation>Redaktor</translation>
+        <translation>Edytor</translation>
     </message>
     <message>
         <source>Colors</source>
@@ -3859,6 +3859,10 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>These settings will be available in a future version.</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a group on the left; Apply and OK save only the options you changed.</source>
+        <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
     </message>
 </context>
 <context>

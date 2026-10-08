@@ -59,7 +59,8 @@ protected:
     /// @brief Bind a check box, spin box, combo box, font combo box or color widget
     ///
     /// Combo boxes compare their item data with the stored value. Spin boxes store
-    /// shown / scale (e.g. 50 % shown for 0.5 stored with scale 100).
+    /// shown / scale (e.g. 50 % shown for 0.5 stored with scale 100). A LengthSpinBox
+    /// is compared and written in its stored unit, whatever unit it shows.
     /// @param field The control
     /// @param key Setting key
     /// @param scale Spin boxes only: shown value per stored unit

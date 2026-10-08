@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings: a length unit to choose** - 2026-10-08. Settings > General > Units sets the
+  unit of the length fields of the Settings window: millimeters (the default),
+  centimeters, inches, points or pixels. The margins, page sizes, spacing, indent, gap
+  between pages and the widths of the frame and the cursor show in it. Each setting is
+  still saved in its own unit, so choosing another unit changes no length. Icon sizes
+  stay in pixels and font sizes in points.
+
+- **Settings window in the program's own style** - 2026-10-08. The Settings window has
+  the heading, colors and buttons of the program's other dialogs (Settings icon, title and
+  a sentence on what the window does; OK, Cancel and Apply at the bottom). It works as
+  before: Apply saves the changed options and keeps the window open, OK saves and closes.
+
 - **Distraction-Free: the menus at the top edge** - 2026-10-08. In Distraction-Free the
   menu bar shows over the top of the text when the mouse reaches the top edge of the
   screen, and hides when the mouse moves away from it (not while one of its menus is open);

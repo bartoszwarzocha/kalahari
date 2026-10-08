@@ -9,14 +9,15 @@
 
 #pragma once
 
-#include <QDialog>
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
+
 #include <QStringList>
 
 #include <functional>
 #include <map>
 #include <vector>
 
-class QDialogButtonBox;
 class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -36,7 +37,7 @@ class IconsPage;
 /// connect(&dialog, &SettingsDialog::settingsApplied, this, &MyCoordinator::onApplied);
 /// dialog.exec();
 /// @endcode
-class SettingsDialog : public QDialog {
+class SettingsDialog : public dialogs::KalahariDialog {
     Q_OBJECT
 
 public:
@@ -53,6 +54,10 @@ public:
     /// @brief Write the changed settings of all opened pages
     /// @return Keys of the settings written
     QStringList applyChanges();
+
+public slots:
+    /// @brief OK: write the changed settings, then close
+    void accept() override;
 
 signals:
     /// @brief Emitted after Apply/OK wrote changed settings
@@ -81,13 +86,15 @@ private:
     /// @note Called once when the Theme or the Icons page is built
     void connectPages();
 
+    /// @brief Show the length fields of the built pages in another unit
+    void setLengthUnit(LengthUnit unit);
+
     void onApply();
-    void onAccept();
 
     QTreeWidget* m_navTree;
     QStackedWidget* m_pageStack;
-    QDialogButtonBox* m_buttonBox;
     bool m_diagnosticMode;
+    LengthUnit m_lengthUnit;  ///< Unit chosen on the General page, applied or not
 
     std::map<QTreeWidgetItem*, PageFactory> m_factories;
     std::map<QTreeWidgetItem*, QWidget*> m_builtPages;  ///< Page container in the stack
