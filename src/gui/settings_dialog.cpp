@@ -1029,7 +1029,7 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
     fontGrid->setColumnStretch(1, 1);
     layout->addWidget(fontGroup);
 
-    // Behavior group
+    // Behavior group (the editor does not use these options yet)
     QGroupBox* behaviorGroup = new QGroupBox(tr("Editor Behavior"));
     QGridLayout* behaviorGrid = new QGridLayout(behaviorGroup);
 
@@ -1037,13 +1037,20 @@ QWidget* SettingsDialog::createEditorGeneralPage() {
     m_tabSizeSpinBox = new QSpinBox();
     m_tabSizeSpinBox->setRange(2, 8);
     m_tabSizeSpinBox->setSuffix(tr(" spaces"));
+    tabSizeLabel->setEnabled(false);
+    m_tabSizeSpinBox->setEnabled(false);
+    m_tabSizeSpinBox->setToolTip(tr("Coming in future version"));
     behaviorGrid->addWidget(tabSizeLabel, 0, 0);
     behaviorGrid->addWidget(m_tabSizeSpinBox, 0, 1);
 
     m_lineNumbersCheckBox = new QCheckBox(tr("Show Line Numbers"));
+    m_lineNumbersCheckBox->setEnabled(false);
+    m_lineNumbersCheckBox->setToolTip(tr("Coming in future version"));
     behaviorGrid->addWidget(m_lineNumbersCheckBox, 1, 0, 1, 2);
 
     m_wordWrapCheckBox = new QCheckBox(tr("Enable Word Wrap"));
+    m_wordWrapCheckBox->setEnabled(false);
+    m_wordWrapCheckBox->setToolTip(tr("Coming in future version"));
     behaviorGrid->addWidget(m_wordWrapCheckBox, 2, 0, 1, 2);
 
     behaviorGrid->setColumnStretch(1, 1);
@@ -1398,16 +1405,15 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
     pageMarginsGrid->addWidget(m_pageMarginRightSpinBox, row, 1);
     row++;
 
-    // Mirror margins checkbox
+    // Mirror margins checkbox (the pages do not use them yet: the inner and outer margins
+    // stay hidden)
     m_pageMirrorMarginsCheckBox = new QCheckBox(tr("Mirror margins (for book binding)"));
-    m_pageMirrorMarginsCheckBox->setToolTip(
-        tr("Enable mirror margins for book binding.\n"
-           "When enabled, uses inner/outer margins instead of left/right.\n"
-           "Inner margin is the binding side, outer is the edge."));
+    m_pageMirrorMarginsCheckBox->setEnabled(false);
+    m_pageMirrorMarginsCheckBox->setToolTip(tr("Coming in future version"));
     pageMarginsGrid->addWidget(m_pageMirrorMarginsCheckBox, row, 0, 1, 2);
     row++;
 
-    // Inner margin (only visible when mirror is enabled)
+    // Inner margin (for mirror margins)
     m_pageMarginInnerLabel = new QLabel(tr("Inner (binding):"));
     m_pageMarginInnerLabel->setToolTip(tr("Inner margin (binding side) for book layout"));
     m_pageMarginInnerSpinBox = new QDoubleSpinBox();
@@ -1422,7 +1428,7 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
     pageMarginsGrid->addWidget(m_pageMarginInnerSpinBox, row, 1);
     row++;
 
-    // Outer margin (only visible when mirror is enabled)
+    // Outer margin (for mirror margins)
     m_pageMarginOuterLabel = new QLabel(tr("Outer (edge):"));
     m_pageMarginOuterLabel->setToolTip(tr("Outer margin (edge side) for book layout"));
     m_pageMarginOuterSpinBox = new QDoubleSpinBox();
@@ -1435,20 +1441,6 @@ QWidget* SettingsDialog::createEditorMarginsPage() {
     m_pageMarginOuterSpinBox->setVisible(false);
     pageMarginsGrid->addWidget(m_pageMarginOuterLabel, row, 0);
     pageMarginsGrid->addWidget(m_pageMarginOuterSpinBox, row, 1);
-
-    // Connect mirror checkbox to show/hide inner/outer vs left/right
-    connect(m_pageMirrorMarginsCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
-        // Show/hide left/right
-        m_pageMarginLeftLabel->setVisible(!checked);
-        m_pageMarginLeftSpinBox->setVisible(!checked);
-        m_pageMarginRightLabel->setVisible(!checked);
-        m_pageMarginRightSpinBox->setVisible(!checked);
-        // Show/hide inner/outer
-        m_pageMarginInnerLabel->setVisible(checked);
-        m_pageMarginInnerSpinBox->setVisible(checked);
-        m_pageMarginOuterLabel->setVisible(checked);
-        m_pageMarginOuterSpinBox->setVisible(checked);
-    });
 
     pageMarginsGrid->setColumnStretch(1, 1);
     layout->addWidget(pageMarginsGroup);
@@ -2074,16 +2066,6 @@ void SettingsDialog::populateFromSettings(const SettingsData& settings) {
     m_pageMirrorMarginsCheckBox->setChecked(settings.pageMirrorMarginsEnabled);
     m_pageMarginInnerSpinBox->setValue(settings.pageMarginInner);
     m_pageMarginOuterSpinBox->setValue(settings.pageMarginOuter);
-    // Show/hide left/right vs inner/outer based on mirror state
-    bool mirrorEnabled = settings.pageMirrorMarginsEnabled;
-    m_pageMarginLeftLabel->setVisible(!mirrorEnabled);
-    m_pageMarginLeftSpinBox->setVisible(!mirrorEnabled);
-    m_pageMarginRightLabel->setVisible(!mirrorEnabled);
-    m_pageMarginRightSpinBox->setVisible(!mirrorEnabled);
-    m_pageMarginInnerLabel->setVisible(mirrorEnabled);
-    m_pageMarginInnerSpinBox->setVisible(mirrorEnabled);
-    m_pageMarginOuterLabel->setVisible(mirrorEnabled);
-    m_pageMarginOuterSpinBox->setVisible(mirrorEnabled);
 
     // Page format and typewriter scrolling
     const int pageSizeIndex =
