@@ -18,9 +18,8 @@ namespace utils {
 /// changes it: the toggle itself, the Settings dialog or an editor's context menu.
 /// The action stops following the setting when it is destroyed.
 /// @param action The toggle
-/// @param key The setting (e.g. "editor.darkMode")
-/// @param fallback The value while the setting is missing
-void followSetting(QAction* action, const std::string& key, bool fallback);
+/// @param key The setting (e.g. "editor.darkMode"), with its default in the settings schema
+void followSetting(QAction* action, const std::string& key);
 
 } // namespace utils
 } // namespace gui

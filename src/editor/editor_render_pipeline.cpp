@@ -430,6 +430,16 @@ void EditorRenderPipeline::setConfigFocus(bool enabled) {
     markRepaintOnly();
 }
 
+void EditorRenderPipeline::setConfigTextFrameBorder(bool show, const QColor& color, int width) {
+    if (m_context.showTextFrameBorder == show && m_context.textFrameBorderColor == color &&
+        m_context.textFrameBorderWidth == width) return;
+
+    m_context.showTextFrameBorder = show;
+    m_context.textFrameBorderColor = color;
+    m_context.textFrameBorderWidth = width;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigScrollX(double x) {
     const double oldScrollX = m_context.scrollX;
     m_context.scrollX = x;
@@ -702,7 +712,7 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
         renderPages(painter, clipRect);
     } else {
         renderEndlessPage(painter, clipRect);
-        renderTextFrameBorder(painter);
+        renderTextFrameBorder(painter, clipRect);
     }
     renderText(painter, clipRect);
 
@@ -774,22 +784,35 @@ void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clip
                                                         : paper.lighter(DESK_LIGHTER_FACTOR));
 }
 
-void EditorRenderPipeline::renderTextFrameBorder(QPainter* painter) {
-    if (!m_context.showTextFrameBorder || !m_textSource) return;
+void EditorRenderPipeline::renderTextFrameBorder(QPainter* painter, const QRect& clipRect) {
+    if (!m_context.showTextFrameBorder) return;
 
-    // Calculate text area rectangle based on document content (not viewport)
-    double docHeight = m_textSource->totalHeight();
-    if (docHeight <= 0) return;
+    // The text area of the endless page: as tall as the text, and at least as a page's
+    // text area, as the sheet around it (renderEndlessPage())
+    const auto& computed = m_context.computed;
+    const double textHeight = m_textSource ? m_textSource->totalHeight() : 0.0;
+    const double scale = computed.viewScale;
+    const QRectF frame(documentToWidget(QPointF(0.0, 0.0)),
+                       QSizeF(computed.textWidth * scale,
+                              std::max(textHeight, computed.textAreaHeight) * scale));
 
-    // Frame surrounds the document content, scrolling with it
-    const double scale = m_context.computed.viewScale;
-    const QRectF textFrame(documentToWidget(QPointF(0.0, 0.0)),
-                           QSizeF(m_context.computed.textWidth * scale, docHeight * scale));
+    // A chapter's frame is far taller than the view: its sides are cut to the clip rect,
+    // so the coordinates stay small, and its top and bottom are drawn only where they are
+    const double room = m_context.textFrameBorderWidth + 1.0;
+    const double top = std::max(frame.top(), clipRect.top() - room);
+    const double bottom = std::min(frame.bottom(), clipRect.bottom() + 1.0 + room);
+    if (top > bottom) return;
 
     painter->save();
     painter->setPen(QPen(m_context.textFrameBorderColor, m_context.textFrameBorderWidth));
-    painter->setBrush(Qt::NoBrush);
-    painter->drawRect(textFrame);
+    painter->drawLine(QPointF(frame.left(), top), QPointF(frame.left(), bottom));
+    painter->drawLine(QPointF(frame.right(), top), QPointF(frame.right(), bottom));
+    if (top == frame.top()) {
+        painter->drawLine(frame.topLeft(), frame.topRight());
+    }
+    if (bottom == frame.bottom()) {
+        painter->drawLine(frame.bottomLeft(), frame.bottomRight());
+    }
     painter->restore();
 }
 

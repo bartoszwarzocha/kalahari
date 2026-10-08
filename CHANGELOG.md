@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes: the zoom does not follow the window's size later, and a chapter already open
   keeps its zoom.
 
+- **Settings: the window layout in settings.json** - 2026-10-08. The window's size and
+  position, the bars and panels, the toolbars shown and the recent books are saved in
+  settings.json with the other settings, not in a second store (the registry on Windows).
+  The first start after the update moves the saved values over, so the window keeps its
+  layout.
 - **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
   service had the public api.languagetool.org built in, so the text of a book would have
   gone to the internet. Now it sends text only to the server set in
@@ -31,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
   the translations and the CI work are ticked off; text styles, statistics, perspectives and
   DOCX/Markdown export move to 0.4.x releases.
+
+- **Editor: every open chapter follows the editor settings** - 2026-10-08. A changed
+  editor setting reaches every open chapter at once, wherever it is changed: the Settings
+  window, the View menu, the Views toolbar or the paper in an editor's context menu
+  (many changes at once in one go). View > Typewriter Scrolling, Focus and Dark Paper show
+  the setting, also before a chapter opens. The text frame border (Settings > Editor >
+  Pages and Margins) is drawn: around the text of every page in the Page Layout view, and
+  around the text in the continuous views, at least as tall as a page's text. Tab Size,
+  Show Line Numbers, Enable Word Wrap and Mirror margins are greyed out ("Coming in future
+  version"), as the editor does not use them yet; the pages keep their left and right
+  margins.
+
 - **CI: tests on the Qt version the program ships with** - 2026-10-08. The Linux build
   and tests use Qt 6.9.1, like the Windows and macOS builds; the Sanitizers job keeps
   Ubuntu's Qt 6.4, the oldest supported version (now declared as the minimum). The Linux
@@ -285,6 +302,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
+  Item in the front or back matter) made a chapter without a file, so its text was saved
+  as ".kchapter" in the project's folder - one name for all the chapters added that way.
+  Opened again, that file was taken for an old RTF file and converted: the chapter
+  opened empty with a message that it is damaged, and its text was left only in
+  ".kchapter.bak". A new chapter now gets its own empty chapter file at once, next to
+  the other chapters of its part (for example content/body/part_001/chapter_003.kchapter)
+  or in its section's folder. Chapters damaged this way before are not repaired: their
+  text stays only in ".kchapter.bak".
 - **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
   every paragraph but the one with the cursor, and the bright paragraph follows the
   cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page

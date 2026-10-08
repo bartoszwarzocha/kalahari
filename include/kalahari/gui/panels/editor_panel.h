@@ -8,6 +8,7 @@
 
 #include <QWidget>
 #include <QString>
+#include <atomic>
 #include <memory>
 
 namespace kalahari::editor {
@@ -91,11 +92,11 @@ public:
     /// @return Pointer to StatisticsCollector, or nullptr if not set
     editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
 
-    /// @brief Apply settings from SettingsManager
+    /// @brief Give the editor the editor settings ("editor." keys, with the defaults of the
+    ///        settings schema)
     ///
-    /// Reads and applies editor appearance settings.
-    /// Called on construction and when settings change.
-    /// @note Public to allow MainWindow to apply settings after dialog changes
+    /// The one place that reads them. Runs when the panel is created and, once the event
+    /// loop runs, after any change of an editor setting.
     void applySettings();
 
 signals:
@@ -109,11 +110,23 @@ protected:
     ///        another screen
     bool event(QEvent* event) override;
 
+private slots:
+    /// @brief Apply the settings changed since scheduleSettings() (which queues this call)
+    void applyScheduledSettings();
+
 private:
     /// @brief Set the editor's paper scale from the screen the panel is on
     void applyPaperScale();
 
+    /// @brief Run applySettings() once the event loop runs, once for all the settings
+    ///        changed until then
+    /// @note Safe to call from any thread
+    void scheduleSettings();
+
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
+    int m_settingsListener{0};                            ///< SettingsManager::subscribe() id
+    std::atomic<bool> m_settingsPending{false};           ///< scheduleSettings() waits for the
+                                                          ///< event loop
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};

@@ -417,6 +417,101 @@ TEST_CASE("Stage5 focus: the appearance turns Focus on", "[editor][stage5][focus
 }
 
 // =============================================================================
+// The text frame border
+// =============================================================================
+
+namespace {
+
+/// Columns of an image row where the frame is drawn: the pixels it turned red
+std::vector<int> frameColumns(const QImage& plain, const QImage& framed, int row) {
+    std::vector<int> columns;
+    for (int x = 0; x < framed.width(); ++x) {
+        const QRgb pixel = framed.pixel(x, row);
+        if (pixel != plain.pixel(x, row) && qRed(pixel) > qGreen(pixel) + 60 &&
+            qRed(pixel) > qBlue(pixel) + 60) {
+            columns.push_back(x);
+        }
+    }
+    return columns;
+}
+
+/// Rows of an image where the frame draws a line at least @p length pixels long
+int frameEdges(const QImage& plain, const QImage& framed, int length) {
+    int edges = 0;
+    for (int y = 0; y < framed.height(); ++y) {
+        if (static_cast<int>(frameColumns(plain, framed, y).size()) >= length) {
+            ++edges;
+        }
+    }
+    return edges;
+}
+
+/// The appearance with a red frame around the text area
+EditorAppearance withRedFrame(EditorAppearance appearance) {
+    appearance.textFrameBorder.show = true;
+    appearance.textFrameBorder.color = QColor(255, 0, 0);
+    appearance.textFrameBorder.width = 1;
+    return appearance;
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage5 text frame: the appearance draws the frame of the text area in both views",
+          "[editor][stage5][frame][render]") {
+    // The settings reach the editor through its appearance (editor.textFrameBorder.*)
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(1000, 500));  // the whole page width in the view
+    editor->fromKml(kmlOf({QStringLiteral("First paragraph"), QStringLiteral("Second paragraph")}));
+    const EditorAppearance plainAppearance = editor->appearance();
+    const double textWidth = editor->textDocument()->textWidth();
+
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        editor->setViewMode(mode);
+        const QImage plain = editorImage(*editor);
+
+        editor->setAppearance(withRedFrame(plainAppearance));
+        const QImage framed = editorImage(*editor);
+        // Far below the two paragraphs: a short chapter's frame is as tall as a page's text
+        // area, as the paper around it
+        const auto sides = frameColumns(plain, framed, framed.height() - 40);
+        REQUIRE(sides.size() >= 2);
+        CHECK(sides.size() <= 6);
+        CHECK(sides.back() - sides.front() == Approx(textWidth).margin(3));
+        // And its top edge, as wide as the text
+        CHECK(frameEdges(plain, framed, static_cast<int>(textWidth / 2)) >= 1);
+
+        editor->setAppearance(plainAppearance);
+        CHECK(differingPixels(plain, editorImage(*editor), editor->rect()) == 0);
+    }
+}
+
+TEST_CASE("Stage5 text frame: a long chapter's frame has its sides wherever it is scrolled",
+          "[editor][stage5][frame][render]") {
+    QStringList paragraphs;
+    for (int i = 0; i < 120; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1, one short line").arg(i);
+    }
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(1000, 500));
+    editor->fromKml(kmlOf(paragraphs));
+    const EditorAppearance plainAppearance = editor->appearance();
+    editor->setScrollOffset(1.0e9);  // clamped to the end
+    REQUIRE(editor->scrollOffset() > 2000.0);
+    editor->setScrollOffset(editor->scrollOffset() / 2.0);
+    const QImage plain = editorImage(*editor);
+
+    editor->setAppearance(withRedFrame(plainAppearance));
+    const QImage framed = editorImage(*editor);
+    for (int row : {0, framed.height() / 2, framed.height() - 1}) {
+        CAPTURE(row);
+        CHECK(frameColumns(plain, framed, row).size() >= 2);
+    }
+    // Neither its top nor its bottom edge in the middle of the chapter
+    CHECK(frameEdges(plain, framed, 20) == 0);
+}
+
+// =============================================================================
 // The continuous views: one endless page
 // =============================================================================
 

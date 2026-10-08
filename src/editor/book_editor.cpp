@@ -271,6 +271,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
         m_renderPipeline->setConfigColors(colors);
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
+        m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
+                                                   m_appearance.textFrameBorder.color,
+                                                   m_appearance.textFrameBorder.width);
 
         // The page's size and margins, in every view
         applyPageLayout();

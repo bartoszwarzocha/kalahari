@@ -29,8 +29,11 @@
 #include <nlohmann/json.hpp>
 #include <kalahari/core/settings_schema.h>
 #include <QSize>
+#include <QByteArray>
 #include <QPoint>
 #include <QTimer>
+
+class QSettings;
 
 namespace kalahari {
 namespace core {
@@ -140,6 +143,16 @@ public:
     /// @brief Set window maximized state
     /// @param maximized true to maximize
     void setWindowMaximized(bool maximized);
+
+    /// @brief Get a binary value stored as base64 text
+    /// @param key Dot-separated path (e.g., "window.geometry")
+    /// @return Decoded bytes, empty if the key is missing
+    QByteArray getBinary(const std::string& key) const;
+
+    /// @brief Store a binary value as base64 text
+    /// @param key Dot-separated path (e.g., "window.geometry")
+    /// @param value Bytes to store
+    void setBinary(const std::string& key, const QByteArray& value);
 
     /// @brief Get UI language
     /// @return Language code (default: "en")
@@ -312,12 +325,23 @@ public:
     /// Called automatically by load()
     void migrateIfNeeded();
 
+    /// @brief Move what versions before 1.4 kept in QSettings into settings.json
+    ///
+    /// Window geometry and state, toolbar visibility and the recent books were
+    /// stored by QSettings (the registry on Windows). The values are copied and
+    /// removed from @p legacy. Called by migrateIfNeeded() outside test mode.
+    /// @param legacy The old QSettings store
+    void migrateLegacyQSettings(QSettings& legacy);
+
 private:
     /// @brief Private constructor (singleton)
     SettingsManager();
 
     /// @brief Destructor (saves settings automatically)
     ~SettingsManager();
+
+    /// @brief True when KALAHARI_TEST_MODE is set (tests keep away from user files)
+    static bool isTestMode();
 
     /// @brief Get platform-specific settings directory path
     /// @return Path to settings directory (e.g., ~/.config/kalahari/)

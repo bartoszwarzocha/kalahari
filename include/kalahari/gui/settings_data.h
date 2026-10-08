@@ -246,50 +246,6 @@ struct SettingsData {
                logBackgroundColor != other.logBackgroundColor;
     }
 
-    /// @brief Check whether any editor setting (font, typography, colors, cursor,
-    /// margins, page, typewriter, text frame) differs
-    bool editorSettingsDiffer(const SettingsData& other) const {
-        return editorFontFamily != other.editorFontFamily ||
-               editorFontSize != other.editorFontSize ||
-               tabSize != other.tabSize ||
-               showLineNumbers != other.showLineNumbers ||
-               wordWrap != other.wordWrap ||
-               lineHeight != other.lineHeight ||
-               paragraphSpacing != other.paragraphSpacing ||
-               firstLineIndent != other.firstLineIndent ||
-               indentSize != other.indentSize ||
-               editorDarkMode != other.editorDarkMode ||
-               editorBackgroundLight != other.editorBackgroundLight ||
-               editorTextLight != other.editorTextLight ||
-               editorInactiveLight != other.editorInactiveLight ||
-               editorBackgroundDark != other.editorBackgroundDark ||
-               editorTextDark != other.editorTextDark ||
-               editorInactiveDark != other.editorInactiveDark ||
-               cursorStyle != other.cursorStyle ||
-               cursorUseCustomColor != other.cursorUseCustomColor ||
-               cursorCustomColor != other.cursorCustomColor ||
-               cursorBlinking != other.cursorBlinking ||
-               cursorBlinkInterval != other.cursorBlinkInterval ||
-               cursorLineWidth != other.cursorLineWidth ||
-               pageMarginTop != other.pageMarginTop ||
-               pageMarginBottom != other.pageMarginBottom ||
-               pageMarginLeft != other.pageMarginLeft ||
-               pageMarginRight != other.pageMarginRight ||
-               pageMirrorMarginsEnabled != other.pageMirrorMarginsEnabled ||
-               pageMarginInner != other.pageMarginInner ||
-               pageMarginOuter != other.pageMarginOuter ||
-               pageSize != other.pageSize ||
-               pageCustomWidth != other.pageCustomWidth ||
-               pageCustomHeight != other.pageCustomHeight ||
-               pageShowNumbers != other.pageShowNumbers ||
-               pageGap != other.pageGap ||
-               typewriterFocusPercent != other.typewriterFocusPercent ||
-               typewriterSmoothScroll != other.typewriterSmoothScroll ||
-               textFrameBorderShow != other.textFrameBorderShow ||
-               textFrameBorderColor != other.textFrameBorderColor ||
-               textFrameBorderWidth != other.textFrameBorderWidth;
-    }
-
     bool requiresVisualRefresh(const SettingsData& other) const {
         return theme != other.theme ||
                iconTheme != other.iconTheme ||

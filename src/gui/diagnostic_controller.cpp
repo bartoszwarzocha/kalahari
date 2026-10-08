@@ -12,6 +12,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/settings_schema.h"
 
 #include <QMainWindow>
 #include <QMenuBar>
@@ -290,11 +291,12 @@ void DiagnosticController::onDiagSettingsDump() {
     auto& settings = core::SettingsManager::getInstance();
     logger.info("Theme: {}", settings.getTheme());
     logger.info("Language: {}", settings.getLanguage());
-    logger.info("Editor Font: {}", settings.get<std::string>("editor.fontFamily", "N/A"));
-    logger.info("Editor Font Size: {}", settings.get<int>("editor.fontSize", 0));
-    logger.info("Tab Size: {}", settings.get<int>("editor.tabSize", 0));
-    logger.info("Line Numbers: {}", settings.get<bool>("editor.lineNumbers", false));
-    logger.info("Word Wrap: {}", settings.get<bool>("editor.wordWrap", false));
+    // Every editor setting: stored, or the default of the settings schema
+    for (const auto& [key, defaultValue] : core::settings_schema::defaults()) {
+        if (key.rfind("editor.", 0) == 0) {
+            logger.info("{}: {}", key, settings.get<nlohmann::json>(key, defaultValue).dump());
+        }
+    }
     if (m_statusBar) {
         m_statusBar->showMessage(tr("Settings dumped to log"), 2000);
     }

@@ -625,13 +625,21 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
     QString chapterId = QString("ch-%1").arg(
         QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
 
-    // Create new chapter element
+    // Create new chapter element, with a chapter file of its own next to the part's chapters
     auto chapter = std::make_shared<core::BookElement>(
         "chapter",
         chapterId.toStdString(),
         title.toStdString(),
-        ""  // Content path will be set by ProjectManager when saving
+        ""
     );
+    if (!pm.createChapterFile(*chapter, QStringLiteral("body"), partId)) {
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Chapter Failed"),
+            tr("Failed to save changes.")
+        );
+        return;
+    }
 
     // Add to part
     part->addChapter(chapter);
@@ -747,13 +755,22 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
     // Determine element type based on section
     QString elementType = sectionType == "front_matter" ? "preface" : "epilogue";
 
-    // Create new element
+    // Create new element, with a chapter file of its own in its section's folder
     auto element = std::make_shared<core::BookElement>(
         elementType.toStdString(),
         itemId.toStdString(),
         title.toStdString(),
-        ""  // Content path will be set by ProjectManager when saving
+        ""
     );
+    if (!pm.createChapterFile(*element, sectionType == "front_matter" ? QStringLiteral("frontmatter")
+                                                                       : QStringLiteral("backmatter"))) {
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Add Item Failed"),
+            tr("Failed to save changes.")
+        );
+        return;
+    }
 
     // Add to appropriate section
     core::Book& book = doc->getBook();
