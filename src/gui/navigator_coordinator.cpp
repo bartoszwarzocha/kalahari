@@ -4,6 +4,8 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/dialogs/new_element_dialog.h"
+#include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -19,7 +21,6 @@
 #include <QStatusBar>
 #include <QDockWidget>
 #include <QTextEdit>
-#include <QInputDialog>
 #include <QMessageBox>
 #include <QDateTime>
 #include <chrono>
@@ -241,19 +242,16 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
         ? QString::fromStdString(element->getTitle())
         : QString::fromStdString(part->getTitle());
 
-    // Show input dialog for new name (pre-filled with the clean title)
-    bool ok = false;
-    QString newTitle = QInputDialog::getText(
-        qobject_cast<QWidget*>(parent()),
-        tr("Rename"),
-        tr("New name:"),
-        QLineEdit::Normal,
-        cleanTitle,
-        &ok
-    );
-
-    if (!ok || newTitle.isEmpty() || newTitle == cleanTitle) {
-        return;  // Cancelled or no change
+    // Ask for the new name (it starts as the clean title)
+    dialogs::RenameElementDialog dialog(
+        cleanTitle, part ? QStringLiteral("structure.part") : QStringLiteral("template.chapter"),
+        qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const QString newTitle = dialog.name();
+    if (newTitle.isEmpty() || newTitle == cleanTitle) {
+        return;  // No change
     }
 
     if (element) {
@@ -594,22 +592,7 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
         return;
     }
 
-    // Get new chapter title from user
-    bool ok;
-    QString title = QInputDialog::getText(
-        qobject_cast<QWidget*>(parent()),
-        tr("Add Chapter"),
-        tr("Chapter title:"),
-        QLineEdit::Normal,
-        tr("New Chapter"),
-        &ok
-    );
-
-    if (!ok || title.isEmpty()) {
-        return;  // User cancelled
-    }
-
-    // Find the part and add chapter to it
+    // Find the part the chapter goes to
     core::Part* part = pm.findPart(partId);
     if (!part) {
         logger.error("NavigatorCoordinator: Part not found: {}", partId.toStdString());
@@ -620,6 +603,15 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
         );
         return;
     }
+
+    // Ask for the chapter's title
+    dialogs::NewElementDialog dialog(dialogs::NewElementKind::Chapter,
+                                     QString::fromStdString(part->getTitle()),
+                                     qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const QString title = dialog.title();
 
     // Generate unique chapter ID
     QString chapterId = QString("ch-%1").arg(
@@ -668,20 +660,13 @@ void NavigatorCoordinator::onRequestAddPart() {
         return;
     }
 
-    // Get new part title from user
-    bool ok;
-    QString title = QInputDialog::getText(
-        qobject_cast<QWidget*>(parent()),
-        tr("Add Part"),
-        tr("Part title:"),
-        QLineEdit::Normal,
-        tr("New Part"),
-        &ok
-    );
-
-    if (!ok || title.isEmpty()) {
-        return;  // User cancelled
+    // Ask for the part's title
+    dialogs::NewElementDialog dialog(dialogs::NewElementKind::Part, QString(),
+                                     qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
     }
+    const QString title = dialog.title();
 
     // Generate unique part ID
     QString partId = QString("part-%1").arg(
@@ -725,27 +710,22 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
         return;
     }
 
-    // Show dialog to select item type and title
-    bool ok;
-    QString title = QInputDialog::getText(
-        qobject_cast<QWidget*>(parent()),
-        sectionType == "front_matter" ? tr("Add Front Matter Item") : tr("Add Back Matter Item"),
-        tr("Item title:"),
-        QLineEdit::Normal,
-        tr("New Item"),
-        &ok
-    );
-
-    if (!ok || title.isEmpty()) {
-        return;  // User cancelled
+    // Ask for the item's type and title
+    dialogs::NewElementDialog dialog(sectionType == "front_matter"
+                                         ? dialogs::NewElementKind::FrontMatterItem
+                                         : dialogs::NewElementKind::BackMatterItem,
+                                     QString(), qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
     }
+    const QString title = dialog.title();
 
     // Generate unique item ID
     QString itemId = QString("item-%1").arg(
         QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
 
-    // Determine element type based on section
-    QString elementType = sectionType == "front_matter" ? "preface" : "epilogue";
+    // The type the writer chose
+    const QString elementType = dialog.elementType();
 
     // Create new element
     auto element = std::make_shared<core::BookElement>(
