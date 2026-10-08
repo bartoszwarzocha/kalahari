@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
+  Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
+  Toolbar Manager, About), the messages, the book templates and the standard buttons
+  (Cancel, Yes, No) are in Polish when the program runs in Polish. Only the Settings
+  window is still in English: it is translated after its rebuild. In the New Book dialog
+  template names wrap to two lines instead of being cut.
+
 - **Settings: saved right after a change** - 2026-10-08. A changed setting is written to
   the settings file half a second later (several changes in a row in one write), not only
   when the Settings window closes or the program exits, so a crash no longer loses it.
