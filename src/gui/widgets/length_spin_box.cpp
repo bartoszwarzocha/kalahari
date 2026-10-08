@@ -25,11 +25,14 @@ double millimetersPer(LengthUnit unit) {
 
 int decimalsOf(LengthUnit unit) {
     switch (unit) {
-    case LengthUnit::Pixels:      return 0;
-    case LengthUnit::Millimeters: return 1;
-    case LengthUnit::Points:      return 1;
-    case LengthUnit::Centimeters: return 2;
-    case LengthUnit::Inches:      return 2;
+    case LengthUnit::Pixels:
+        return 0;
+    case LengthUnit::Millimeters:
+    case LengthUnit::Points:
+        return 1;
+    case LengthUnit::Centimeters:
+    case LengthUnit::Inches:
+        return 2;
     }
     return 1;
 }
