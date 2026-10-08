@@ -95,6 +95,14 @@ public:
     /// @return List of language codes (e.g., "pl_PL", "en_US")
     QStringList availableDictionaries() const;
 
+    /// @brief The available dictionary for a language
+    /// @param language A dictionary code (pl_PL, en-GB) or a language (pl, en)
+    /// @return The dictionary's name for loadDictionary(), or empty when none is available
+    ///
+    /// A language picks its main dictionary (pl_PL for "pl", en_US for "en"), else
+    /// any dictionary of that language.
+    QString dictionaryFor(const QString& language) const;
+
     /// @brief Get currently loaded language
     /// @return Language code or empty string if no dictionary loaded
     QString currentLanguage() const;
