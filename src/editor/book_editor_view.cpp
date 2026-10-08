@@ -588,15 +588,13 @@ void BookEditor::applyPageLayout()
         return;
     }
 
-    // Page size in points, margins in millimetres. With mirror margins every page has the
-    // first page's margins for now: the layout gives all pages one text width.
+    // Page size in points, margins in millimetres
     const QSizeF sizeMm = m_appearance.pageLayout.pageSizeMm();
     const QSizeF sizePoints(sizeMm.width() * POINTS_PER_INCH / MM_PER_INCH,
                             sizeMm.height() * POINTS_PER_INCH / MM_PER_INCH);
     const PageMarginsConfig& margins = m_appearance.pageMargins;
     m_renderPipeline->setConfigPageLayout(
-        sizePoints,
-        QMarginsF(margins.effectiveLeft(1), margins.top, margins.effectiveRight(1), margins.bottom),
+        sizePoints, QMarginsF(margins.left, margins.top, margins.right, margins.bottom),
         m_appearance.pageLayout.pageGap);
     m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
 }

@@ -17,7 +17,7 @@ TEST_CASE("Setting toggles: checked while the setting is on, whatever changes it
     settings.set<bool>("editor.darkMode", true);
 
     QAction toggle(QStringLiteral("Dark Paper"));
-    gui::utils::followSetting(&toggle, "editor.darkMode", true);
+    gui::utils::followSetting(&toggle, "editor.darkMode");
     CHECK(toggle.isCheckable());
     CHECK(toggle.isChecked());
 
@@ -52,7 +52,7 @@ TEST_CASE("Setting toggles: a deleted toggle no longer follows its setting", "[g
     const bool darkBefore = settings.get<bool>("editor.darkMode", true);
 
     auto toggle = std::make_unique<QAction>(QStringLiteral("Dark Paper"));
-    gui::utils::followSetting(toggle.get(), "editor.darkMode", true);
+    gui::utils::followSetting(toggle.get(), "editor.darkMode");
     toggle.reset();
 
     // Would reach the deleted action if it still followed the setting

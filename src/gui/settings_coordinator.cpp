@@ -404,11 +404,7 @@ void SettingsCoordinator::onApplySettings(const SettingsData& settings, const Se
         dashboardPanel->onSettingsChanged();
     }
 
-    // Editors re-layout their documents, which is slow for long chapters: only when an
-    // editor option or the theme changed
-    if (themeChanged || settings.editorSettingsDiffer(previous)) {
-        emit editorSettingsChanged();
-    }
+    // The editors follow the editor settings by themselves (EditorPanel)
 }
 
 } // namespace gui
