@@ -9,11 +9,13 @@
 #include <kalahari/core/part.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
+#include <kalahari/core/recent_books_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -270,4 +272,26 @@ TEST_CASE("ProjectManager saves and opens again the text of a new chapter", "[pr
     CHECK(pm.loadChapterContent("ch-new") == kmlWith("The new text"));
     CHECK(dotChapterFilesIn(project).isEmpty());
     REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("A new book is added to the recent books", "[project_manager]") {
+    // Regression: only opening a book added it to the recent books, so the Dashboard
+    // did not show a book just created
+    TempDir dir;
+    auto& recent = RecentBooksManager::getInstance();
+    auto& pm = ProjectManager::getInstance();
+    int changes = 0;
+    auto connection = QObject::connect(&recent, &RecentBooksManager::recentFilesChanged,
+                                       [&changes]() { ++changes; });
+
+    REQUIRE(pm.createProject(dir.path(), "Recent Test", "Author", "en", true));
+    const QString manifest = QFileInfo(pm.getManifestPath()).absoluteFilePath();
+    QObject::disconnect(connection);
+
+    CHECK(changes >= 1);
+    REQUIRE_FALSE(recent.getRecentFiles().isEmpty());
+    CHECK(recent.getRecentFiles().first() == manifest);
+
+    REQUIRE(pm.closeProject(false));
+    recent.removeRecentFile(manifest);
 }
