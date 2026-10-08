@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: the first page fits a small screen** - 2026-10-08. The first chapter (or
+  file) opened after starting Kalahari shows the page's whole width when the page at 100%
+  is wider than the editor, as View > Zoom > Page Width does; where it fits, it opens at
+  100%. Only this first view changes: the zoom does not follow the window's size later,
+  and chapters opened afterwards open at 100%.
+
 - **Editor: Distraction-Free is a switch** - 2026-10-08
   - View > Distraction-Free (Shift+F11, or its button on the Views toolbar) works on top
     of the current view, like Focus: the Page Layout view keeps its pages. The window

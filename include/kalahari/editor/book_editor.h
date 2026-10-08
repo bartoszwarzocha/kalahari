@@ -654,6 +654,16 @@ public:
     ///        cursor's page, the continuous views take the same zoom
     void zoomToWholePage();
 
+    /// @brief Zoom out to the page's width when the editor is first shown, if the page is
+    ///        wider than the view
+    ///
+    /// A page that fits the width of the view keeps the zoom of the settings
+    /// (appearance().pageLayout.zoomLevel, 100%); a wider one takes the zoom of
+    /// zoomToPageWidth(). Until the editor is first painted, a new size, text, appearance
+    /// or paper scale applies it again; after that, or once a zoom is asked for, the zoom
+    /// changes only when asked for.
+    void shrinkToPageWidthOnFirstShow();
+
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
 
@@ -1121,6 +1131,13 @@ private:
     /// @brief Zoom to a factor, keeping the document point under a widget point in place
     void applyZoom(double factor, const QPointF& fixedPoint);
 
+    /// @brief The zoom at which the page with the gap on both sides fills the width left
+    ///        of the scroll bar; 0 while the page has no size
+    double pageWidthZoom() const;
+
+    /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
+    void applyFirstShowShrink();
+
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
 
@@ -1318,6 +1335,8 @@ private:
     int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
     bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
+    bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
+                                                            ///< for the first paint
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position
