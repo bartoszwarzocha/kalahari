@@ -4,6 +4,7 @@
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/settings_manager.h>
 
 #include <QNetworkRequest>
 #include <QUrl>
@@ -39,6 +40,10 @@ GrammarCheckService::GrammarCheckService(QObject* parent)
     // Connect network manager
     connect(m_networkManager, &QNetworkAccessManager::finished,
             this, &GrammarCheckService::onNetworkReply);
+
+    // The LanguageTool server the user runs; none by default, so no text leaves the computer
+    setApiEndpoint(QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+        "editor.grammarCheck.serverUrl")));
 
     core::Logger::getInstance().debug("GrammarCheckService created");
 }
@@ -87,7 +92,7 @@ void GrammarCheckService::setBookEditor(BookEditor* editor)
                 this, &GrammarCheckService::onParagraphRemoved);
 
         // Mark all paragraphs for initial check
-        if (m_enabled) {
+        if (isActive()) {
             for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
                 m_pendingParagraphs.insert(static_cast<int>(i));
             }
@@ -107,7 +112,7 @@ void GrammarCheckService::setLanguage(const QString& language)
                                      language.toStdString());
 
     // Re-check document with new language
-    if (m_editor && m_enabled) {
+    if (m_editor && isActive()) {
         checkDocumentAsync();
     }
 }
@@ -119,13 +124,36 @@ QString GrammarCheckService::language() const
 
 void GrammarCheckService::setApiEndpoint(const QString& url)
 {
-    if (m_apiEndpoint == url) {
+    // A server address alone ("http://localhost:8081") means its check endpoint
+    QString endpoint = url.trimmed();
+    if (!endpoint.isEmpty()) {
+        QUrl parsed(endpoint);
+        if (parsed.path().isEmpty() || parsed.path() == QLatin1String("/")) {
+            parsed.setPath(QStringLiteral("/v2/check"));
+            endpoint = parsed.toString();
+        }
+    }
+
+    if (m_apiEndpoint == endpoint) {
         return;
     }
 
-    m_apiEndpoint = url;
-    core::Logger::getInstance().info("GrammarCheckService: API endpoint set to '{}'",
-                                     url.toStdString());
+    m_apiEndpoint = endpoint;
+    core::Logger::getInstance().info("GrammarCheckService: LanguageTool server set to '{}'",
+                                     endpoint.toStdString());
+
+    if (!isConfigured()) {
+        // No server: nothing is sent anywhere, and earlier results are cleared
+        cancelPendingChecks();
+        m_paragraphErrors.clear();
+        if (m_editor) {
+            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
+                emit paragraphChecked(static_cast<int>(i), QList<GrammarError>());
+            }
+        }
+    } else if (m_editor && m_enabled) {
+        checkDocumentAsync();
+    }
 }
 
 QString GrammarCheckService::apiEndpoint() const
@@ -163,13 +191,28 @@ bool GrammarCheckService::isEnabled() const
     return m_enabled;
 }
 
+bool GrammarCheckService::isConfigured() const
+{
+    if (m_apiEndpoint.isEmpty()) {
+        return false;
+    }
+    const QUrl url(m_apiEndpoint);
+    return url.isValid() && !url.host().isEmpty() &&
+           (url.scheme() == QLatin1String("http") || url.scheme() == QLatin1String("https"));
+}
+
+bool GrammarCheckService::isActive() const
+{
+    return m_enabled && isConfigured();
+}
+
 // =============================================================================
 // Checking
 // =============================================================================
 
 void GrammarCheckService::checkTextAsync(const QString& text, int paragraphIndex)
 {
-    if (!m_enabled || text.trimmed().isEmpty()) {
+    if (!isActive() || text.trimmed().isEmpty()) {
         // No text to check, emit empty result
         emit paragraphChecked(paragraphIndex, QList<GrammarError>());
         return;
@@ -186,7 +229,7 @@ void GrammarCheckService::checkTextAsync(const QString& text, int paragraphIndex
 
 void GrammarCheckService::checkDocumentAsync()
 {
-    if (!m_editor || !m_enabled) {
+    if (!m_editor || !isActive()) {
         emit documentCheckComplete();
         return;
     }
@@ -274,7 +317,7 @@ void GrammarCheckService::ignoreRule(const QString& ruleId)
                                       ruleId.toStdString());
 
     // Re-check document to update UI
-    if (m_editor && m_enabled) {
+    if (m_editor && isActive()) {
         checkDocumentAsync();
     }
 }
@@ -294,7 +337,7 @@ void GrammarCheckService::clearIgnoredRules()
     m_ignoredRules.clear();
 
     // Re-check document to update UI
-    if (m_editor && m_enabled) {
+    if (m_editor && isActive()) {
         checkDocumentAsync();
     }
 }
@@ -378,7 +421,7 @@ void GrammarCheckService::onNetworkReply(QNetworkReply* reply)
 
 void GrammarCheckService::onDebounceTimeout()
 {
-    if (!m_editor || !m_enabled) {
+    if (!m_editor || !isActive()) {
         m_pendingParagraphs.clear();
         return;
     }
@@ -417,7 +460,7 @@ void GrammarCheckService::onDebounceTimeout()
 
 void GrammarCheckService::onParagraphModified(int paragraphIndex)
 {
-    if (m_enabled) {
+    if (isActive()) {
         m_pendingParagraphs.insert(paragraphIndex);
         m_debounceTimer->start();
     }
@@ -425,7 +468,7 @@ void GrammarCheckService::onParagraphModified(int paragraphIndex)
 
 void GrammarCheckService::onParagraphInserted(int paragraphIndex)
 {
-    if (m_enabled) {
+    if (isActive()) {
         m_pendingParagraphs.insert(paragraphIndex);
         m_debounceTimer->start();
     }

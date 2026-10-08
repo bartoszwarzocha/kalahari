@@ -3,6 +3,11 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QNetworkProxy>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QUrlQuery>
 
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/book_editor.h"
@@ -19,7 +24,10 @@ TEST_CASE("GrammarCheckService construction", "[editor][grammar_check]") {
     SECTION("initial state") {
         REQUIRE(service.isEnabled());
         REQUIRE(service.language() == "en-US");
-        REQUIRE(service.apiEndpoint() == "https://api.languagetool.org/v2/check");
+        // No built-in server: nothing is sent until the user sets one
+        REQUIRE(service.apiEndpoint().isEmpty());
+        REQUIRE_FALSE(service.isConfigured());
+        REQUIRE_FALSE(service.isActive());
         REQUIRE_FALSE(service.hasPendingRequests());
         REQUIRE(service.ignoredRules().isEmpty());
     }
@@ -82,6 +90,159 @@ TEST_CASE("GrammarCheckService API endpoint", "[editor][grammar_check]") {
         service.setApiEndpoint("");
         REQUIRE(service.apiEndpoint().isEmpty());
     }
+
+    SECTION("a server address alone means its check endpoint") {
+        service.setApiEndpoint("http://localhost:8081");
+        REQUIRE(service.apiEndpoint() == "http://localhost:8081/v2/check");
+        service.setApiEndpoint(" http://127.0.0.1:8010/ ");
+        REQUIRE(service.apiEndpoint() == "http://127.0.0.1:8010/v2/check");
+        REQUIRE(service.isConfigured());
+        REQUIRE(service.isActive());
+    }
+
+    SECTION("an address that is not http or https is not a server") {
+        service.setApiEndpoint("localhost");
+        REQUIRE_FALSE(service.isConfigured());
+        service.setApiEndpoint("ftp://localhost:8081");
+        REQUIRE_FALSE(service.isConfigured());
+    }
+}
+
+// ============================================================================
+// Checking against a LanguageTool server (a fake one on localhost)
+// ============================================================================
+
+namespace {
+
+/// A LanguageTool stand-in: answers every request with one match and keeps the request
+class FakeLanguageTool {
+public:
+    FakeLanguageTool() {
+        REQUIRE(m_server.listen(QHostAddress::LocalHost));
+        QObject::connect(&m_server, &QTcpServer::newConnection, [this]() {
+            QTcpSocket* socket = m_server.nextPendingConnection();
+            QObject::connect(socket, &QTcpSocket::readyRead, socket, [this, socket]() {
+                m_request += socket->readAll();
+                const qsizetype headerEnd = m_request.indexOf("\r\n\r\n");
+                if (headerEnd < 0) {
+                    return;
+                }
+                const QByteArray lengthKey = "content-length:";
+                const QByteArray headers = m_request.left(headerEnd).toLower();
+                const qsizetype keyPos = headers.indexOf(lengthKey);
+                const qsizetype lineEnd = headers.indexOf("\r\n", keyPos);
+                const int length =
+                    headers.mid(keyPos + lengthKey.size(), lineEnd - keyPos - lengthKey.size())
+                        .trimmed()
+                        .toInt();
+                if (m_request.size() < headerEnd + 4 + length) {
+                    return;
+                }
+                m_body = m_request.mid(headerEnd + 4, length);
+                ++m_requests;
+                const QByteArray json =
+                    R"({"matches":[{"message":"Possible typo","shortMessage":"Typo",)"
+                    R"("offset":4,"length":3,"replacements":[{"value":"cat"}],)"
+                    R"("rule":{"id":"TEST_RULE","category":{"id":"GRAMMAR","name":"Grammar"}}}]})";
+                socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                              "Content-Length: " + QByteArray::number(json.size()) +
+                              "\r\nConnection: close\r\n\r\n" + json);
+                socket->disconnectFromHost();
+            });
+        });
+    }
+
+    QString url() const { return QString("http://127.0.0.1:%1").arg(m_server.serverPort()); }
+    int requests() const { return m_requests; }
+    QUrlQuery body() const { return QUrlQuery(QString::fromUtf8(m_body)); }
+
+private:
+    QTcpServer m_server;
+    QByteArray m_request;
+    QByteArray m_body;
+    int m_requests{0};
+};
+
+/// Runs the event loop until the condition holds or the time is up
+template <typename Condition>
+bool waitFor(Condition condition, int timeoutMs = 5000) {
+    QElapsedTimer timer;
+    timer.start();
+    while (!condition() && timer.elapsed() < timeoutMs) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    return condition();
+}
+
+/// Talks to localhost directly, whatever proxy the environment sets
+struct NoProxy {
+    QNetworkProxy previous = QNetworkProxy::applicationProxy();
+    NoProxy() { QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy); }
+    ~NoProxy() { QNetworkProxy::setApplicationProxy(previous); }
+};
+
+}  // namespace
+
+TEST_CASE("GrammarCheckService checks text on the server it is given",
+          "[editor][grammar_check]") {
+    NoProxy noProxy;
+    FakeLanguageTool server;
+    GrammarCheckService service;
+    service.setLanguage("en-US");
+    service.setApiEndpoint(server.url());
+
+    QList<GrammarError> result;
+    int checkedIndex = -2;
+    QObject::connect(&service, &GrammarCheckService::paragraphChecked,
+                     [&](int index, const QList<GrammarError>& errors) {
+                         checkedIndex = index;
+                         result = errors;
+                     });
+
+    service.checkTextAsync("The kat sat.", 3);
+    REQUIRE(waitFor([&]() { return checkedIndex == 3; }));
+
+    REQUIRE(server.requests() == 1);
+    REQUIRE(server.body().queryItemValue("text", QUrl::FullyDecoded) == "The kat sat.");
+    REQUIRE(server.body().queryItemValue("language") == "en-US");
+
+    REQUIRE(result.size() == 1);
+    REQUIRE(result.first().startPos == 4);
+    REQUIRE(result.first().length == 3);
+    REQUIRE(result.first().ruleId == "TEST_RULE");
+    REQUIRE(result.first().suggestions == QStringList{"cat"});
+}
+
+TEST_CASE("GrammarCheckService sends nothing without a server", "[editor][grammar_check]") {
+    GrammarCheckService service;
+    REQUIRE_FALSE(service.isConfigured());
+
+    bool checked = false;
+    QList<GrammarError> result{GrammarError(0, 1, "x")};
+    QObject::connect(&service, &GrammarCheckService::paragraphChecked,
+                     [&](int, const QList<GrammarError>& errors) {
+                         checked = true;
+                         result = errors;
+                     });
+
+    service.checkTextAsync("The kat sat.", 0);
+    REQUIRE(checked);
+    REQUIRE(result.isEmpty());
+    REQUIRE_FALSE(service.hasPendingRequests());
+}
+
+TEST_CASE("GrammarCheckService stops sending when the server is removed",
+          "[editor][grammar_check]") {
+    NoProxy noProxy;
+    FakeLanguageTool server;
+    GrammarCheckService service;
+    service.setApiEndpoint(server.url());
+    service.setApiEndpoint("");
+
+    service.checkTextAsync("The kat sat.", 0);
+    QCoreApplication::processEvents();
+    REQUIRE_FALSE(service.hasPendingRequests());
+    REQUIRE(server.requests() == 0);
 }
 
 // ============================================================================
