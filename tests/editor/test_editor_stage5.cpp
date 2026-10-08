@@ -4,7 +4,7 @@
 ///        replacing the content as one undo step; what files outside a project need from
 ///        the editor; Focus dims the paragraphs other than the cursor's, in any view; the
 ///        continuous view is one endless page; Distraction-Free darkens the sides of any
-///        view
+///        view; the first show zooms a page wider than the view out to its width
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -22,7 +22,9 @@
 #include <QScrollBar>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QWheelEvent>
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -796,7 +798,7 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
     int changes = 0;
     QObject::connect(editor.get(), &BookEditor::distractionFreeModeChanged,
                      [&changes](bool) { ++changes; });
-    editor->setDistractionFree(true, QStringLiteral("Press Esc"));
+    editor->setDistractionFree(true);
     CHECK(changes == 1);
     CHECK(editor->viewMode() == ViewMode::Page);
     CHECK(editor->totalPages() == pages);
@@ -813,10 +815,11 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
     REQUIRE(middle.contains(first));
     CHECK(differingPixels(page, dark, middle) == 0);
 
-    // The hint at the top and the word count at the bottom, at first
+    // The word count at the bottom, at first; the middle of the top edge stays free for
+    // the window's menus
     const QRect top(viewWidth / 4, 0, viewWidth / 2, 60);
     const QRect bottom(viewWidth / 4, editor->height() - 60, viewWidth / 2, 60);
-    CHECK(differingPixels(page, dark, top) > 0);
+    CHECK(differingPixels(page, dark, top) == 0);
     CHECK(differingPixels(page, dark, bottom) > 0);
 
     SECTION("the texts at the edges fade out and come back when the mouse nears an edge") {
@@ -830,7 +833,7 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
         QMouseEvent move(QEvent::MouseMove, nearTop, editor->mapToGlobal(nearTop), Qt::NoButton,
                          Qt::NoButton, Qt::NoModifier);
         QCoreApplication::sendEvent(editor.get(), &move);
-        CHECK(differingPixels(page, editorImage(*editor), top) > 0);
+        CHECK(differingPixels(page, editorImage(*editor), bottom) > 0);
     }
 
     SECTION("turning it off shows the view as before") {
@@ -839,5 +842,110 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
         CHECK(editor->viewMode() == ViewMode::Page);
         CHECK_FALSE(scrollBar(*editor, Qt::Vertical)->isHidden());
         CHECK(differingPixels(page, editorImage(*editor), editor->rect()) == 0);
+    }
+}
+
+// =============================================================================
+// Zoom of the first show
+// =============================================================================
+
+namespace {
+
+/// The zoom at which the page with the gap on both sides fills the view left of the
+/// vertical scroll bar (View > Zoom > Page Width)
+double pageWidthZoomOf(BookEditor& editor) {
+    const EditorAppearance& appearance = editor.appearance();
+    const double dpi = editor.screen() != nullptr ? editor.screen()->logicalDotsPerInch() : 96.0;
+    const double pageWidth = appearance.pageLayout.pageSizeMm().width() / 25.4 * dpi;
+    const double viewWidth = editor.width() - scrollBar(editor, Qt::Vertical)->width();
+    return viewWidth / ((pageWidth + 2.0 * appearance.pageLayout.pageGap) * editor.paperScale());
+}
+
+void sendCtrlWheel(BookEditor& editor) {
+    QWheelEvent wheel(QPointF(100, 100), QPointF(100, 100), QPoint(), QPoint(0, 120),
+                      Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QCoreApplication::sendEvent(&editor, &wheel);
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage5 first show: a page wider than the view shrinks to its width",
+          "[editor][stage5][zoom]") {
+    auto editor = editorWith(kmlOf(longParagraphs(30)));
+    REQUIRE(pageWidthZoomOf(*editor) < 1.0);
+    CHECK(editor->zoomFactor() == 1.0);  // an editor not asked to: the zoom of the settings
+
+    editor->shrinkToPageWidthOnFirstShow();
+    CHECK(editor->zoomFactor() == Approx(pageWidthZoomOf(*editor)));
+    CHECK(scrollBar(*editor, Qt::Horizontal)->isHidden());
+    CHECK(editor->scrollOffset() == Approx(0.0).margin(0.5));  // the start of the text
+
+    SECTION("a page that fits the view keeps 100%") {
+        resizeWidget(*editor, QSize(1200, 500));
+        REQUIRE(pageWidthZoomOf(*editor) > 1.0);
+        CHECK(editor->zoomFactor() == 1.0);
+    }
+}
+
+TEST_CASE("Stage5 first show: the view's size counts until the first paint",
+          "[editor][stage5][zoom]") {
+    // The window and the panels take their size before the editor shows
+    auto editor = editorWith(kmlOf(longParagraphs(30)));
+    editor->shrinkToPageWidthOnFirstShow();
+    const double narrow = editor->zoomFactor();
+    REQUIRE(narrow < 1.0);
+    resizeWidget(*editor, QSize(1200, 500));
+    CHECK(editor->zoomFactor() == 1.0);
+    resizeWidget(*editor, QSize(600, 400));
+    CHECK(editor->zoomFactor() == Approx(narrow));
+
+    // Shown, the zoom no longer follows the size
+    editorImage(*editor);  // the first paint
+    for (const QSize& size : {QSize(1200, 500), QSize(450, 300)}) {
+        CAPTURE(size.width());
+        resizeWidget(*editor, size);
+        CHECK(editor->zoomFactor() == Approx(narrow));
+    }
+}
+
+TEST_CASE("Stage5 first show: a new text, paper scale or page size before it keeps the shrink",
+          "[editor][stage5][zoom]") {
+    auto editor = editorWith(kmlOf(longParagraphs(5)));
+    editor->shrinkToPageWidthOnFirstShow();
+
+    // The chapter's text comes after: it does not bring back 100%
+    editor->fromKml(kmlOf(longParagraphs(30)));
+    CHECK(editor->zoomFactor() == Approx(pageWidthZoomOf(*editor)));
+
+    // Pages at their size on paper: a wider page, a smaller zoom
+    const double before = editor->zoomFactor();
+    editor->setPaperScale(1.5);
+    CHECK(editor->zoomFactor() == Approx(pageWidthZoomOf(*editor)));
+    CHECK(editor->zoomFactor() < before);
+
+    EditorAppearance appearance = editor->appearance();
+    appearance.pageLayout.pageSize = PageLayout::PageSize::A5;
+    editor->setAppearance(appearance);
+    CHECK(editor->zoomFactor() == Approx(pageWidthZoomOf(*editor)));
+}
+
+TEST_CASE("Stage5 first show: a zoom asked for stays", "[editor][stage5][zoom]") {
+    const std::vector<std::pair<const char*, std::function<void(BookEditor&)>>> zooms = {
+        {"Zoom In", [](BookEditor& editor) { editor.zoomIn(); }},
+        {"Zoom 100%", [](BookEditor& editor) { editor.zoomReset(); }},
+        {"Page Width", [](BookEditor& editor) { editor.zoomToPageWidth(); }},
+        {"Whole Page", [](BookEditor& editor) { editor.zoomToWholePage(); }},
+        {"Ctrl+wheel", [](BookEditor& editor) { sendCtrlWheel(editor); }},
+    };
+    for (const auto& zoom : zooms) {
+        CAPTURE(zoom.first);
+        auto editor = editorWith(kmlOf(longParagraphs(10)));
+        editor->shrinkToPageWidthOnFirstShow();
+        zoom.second(*editor);
+        const double asked = editor->zoomFactor();
+
+        // Before the first paint: a smaller view would shrink the page again
+        resizeWidget(*editor, QSize(450, 300));
+        CHECK(editor->zoomFactor() == asked);
     }
 }
