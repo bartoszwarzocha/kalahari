@@ -14,8 +14,11 @@
 #include <kalahari/core/settings_schema.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <nlohmann/json.hpp>
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QEventLoop>
+#include <QSettings>
+#include <QStringList>
 #include <QTimer>
 #include <atomic>
 #include <filesystem>
@@ -436,7 +439,7 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
 
     REQUIRE(settings.load());
 
-    REQUIRE(settings.get<std::string>("version", "") == "1.3");
+    REQUIRE(settings.get<std::string>("version", "") == "1.4");
     REQUIRE(settings.getLanguage() == "pl");
     REQUIRE(settings.getTheme() == "Dark");
     REQUIRE(settings.get<std::string>("appearance.iconTheme") == "filled");
@@ -466,7 +469,7 @@ TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]"
     REQUIRE_FALSE(std::filesystem::exists(tempPath));
     {
         std::ifstream file(filePath);
-        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.3");
+        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.4");
     }
 
     settings.resetToDefaults();
@@ -534,5 +537,53 @@ TEST_CASE("SettingsManager saves changes shortly after they are made", "[setting
         REQUIRE_FALSE(std::filesystem::exists(filePath));
     }
 
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager stores binary values as base64", "[settings][api]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+
+    const QByteArray bytes("\x01\x00\xff layout", 10);
+    settings.setBinary("window.state", bytes);
+    REQUIRE(settings.getBinary("window.state") == bytes);
+    REQUIRE(settings.get<std::string>("window.state") == bytes.toBase64().toStdString());
+    REQUIRE(settings.getBinary("window.geometry").isEmpty());
+
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager moves the old QSettings values into settings.json", "[settings][migration]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+
+    const char* const POLISH_PATH = "/books/za\xc5\xbc\xc3\xb3\xc5\x82\xc4\x87.klh";  // UTF-8
+    const std::filesystem::path iniPath =
+        std::filesystem::temp_directory_path() / "kalahari_legacy_settings.ini";
+    std::filesystem::remove(iniPath);
+    {
+        QSettings legacy(QString::fromStdString(iniPath.string()), QSettings::IniFormat);
+        legacy.setValue("geometry", QByteArray("geometry-bytes"));
+        legacy.setValue("windowState", QByteArray("state-bytes"));
+        legacy.setValue("Toolbars/configVersion", 5);
+        legacy.setValue("Toolbars/file/visible", true);
+        legacy.setValue("Toolbars/format/visible", false);
+        legacy.setValue("recentFiles", QStringList{"/books/a.klh", QString::fromUtf8(POLISH_PATH)});
+        legacy.setValue("other", 1);  // not Kalahari's layout: stays
+
+        settings.migrateLegacyQSettings(legacy);
+
+        REQUIRE(legacy.allKeys() == QStringList{"other"});
+    }
+
+    REQUIRE(settings.getBinary("window.geometry") == QByteArray("geometry-bytes"));
+    REQUIRE(settings.getBinary("window.state") == QByteArray("state-bytes"));
+    REQUIRE(settings.get<int>("toolbars.configVersion") == 5);
+    REQUIRE(settings.get<bool>("toolbars.visible.file", false));
+    REQUIRE_FALSE(settings.get<bool>("toolbars.visible.format", true));
+    REQUIRE(settings.get<std::vector<std::string>>("recent_files")
+            == std::vector<std::string>{"/books/a.klh", POLISH_PATH});
+
+    std::filesystem::remove(iniPath);
     settings.resetToDefaults();
 }
