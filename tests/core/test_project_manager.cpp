@@ -2,8 +2,11 @@
 /// @brief Unit tests for ProjectManager project lifecycle
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book.h>
 #include <kalahari/core/book_element.h>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/core/document.h>
+#include <kalahari/core/part.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/editor/kml_document_model.h>
@@ -11,6 +14,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUuid>
@@ -40,6 +44,27 @@ public:
 private:
     fs::path m_path;
 };
+
+/// The chapter files in a folder whose names begin with ".kchapter"
+QStringList dotChapterFilesIn(const QDir& folder) {
+    return folder.entryList({QStringLiteral(".kchapter*")}, QDir::Files | QDir::Hidden);
+}
+
+/// The file the manifest names for the first chapter of the first part
+QString firstChapterFileIn(const QString& manifest) {
+    QFile file(manifest);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QString();
+    }
+    const QJsonObject structure = QJsonDocument::fromJson(file.readAll()).object()["structure"].toObject();
+    const QJsonObject part = structure["body"].toArray().first().toObject();
+    return part["chapters"].toArray().first().toObject()["file"].toString();
+}
+
+/// A chapter's KML with one paragraph
+QString kmlWith(const QString& text) {
+    return QStringLiteral("<kml><p>%1</p></kml>").arg(text);
+}
 
 } // namespace
 
@@ -151,5 +176,111 @@ TEST_CASE("ProjectManager makes a chapter of a text file added to the project", 
         CHECK(pm.loadChapterContent(id).contains("Second &amp; last"));
     }
 
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager gives a new chapter a chapter file of its own", "[project_manager]") {
+    TempDir dir;
+    auto& pm = ProjectManager::getInstance();
+    REQUIRE(pm.createProject(dir.path(), "New Chapters", "Author", "en", true));
+    const QDir project(pm.getProjectPath());
+    Book& book = pm.getDocument()->getBook();
+
+    // The part's chapters are in content/body/part_001, where a file no chapter names
+    // takes chapter_002.kchapter
+    auto part = std::make_shared<Part>("part-001", "Part One");
+    part->addChapter(std::make_shared<BookElement>(
+        "chapter", "ch-001", "One", fs::path("content/body/part_001/chapter_001.kchapter")));
+    book.addPart(part);
+    REQUIRE(project.mkpath("content/body/part_001"));
+    {
+        QFile taken(project.filePath("content/body/part_001/chapter_002.kchapter"));
+        REQUIRE(taken.open(QIODevice::WriteOnly));
+    }
+
+    SECTION("A chapter goes next to the chapters of its part") {
+        BookElement chapter("chapter", "ch-new", "New Chapter");
+        REQUIRE(pm.createChapterFile(chapter, "body", "part-001"));
+        // The manifest gets "/" between the folders on every system
+        CHECK(QString::fromStdWString(chapter.getFile().wstring()) ==
+              "content/body/part_001/chapter_003.kchapter");
+
+        const auto saved =
+            ChapterDocument::load(project.filePath("content/body/part_001/chapter_003.kchapter"));
+        REQUIRE(saved.has_value());
+        CHECK(saved->title() == "New Chapter");
+        CHECK(saved->kml().isEmpty());
+    }
+
+    SECTION("A chapter of a part without chapters goes to the part's folder") {
+        book.addPart(std::make_shared<Part>("part-002", "Part Two"));
+        BookElement chapter("chapter", "ch-new", "New Chapter");
+        REQUIRE(pm.createChapterFile(chapter, "body", "part-002"));
+        CHECK(QString::fromStdWString(chapter.getFile().wstring()) ==
+              "content/body/part-002/chapter_001.kchapter");
+        CHECK(QFile::exists(project.filePath("content/body/part-002/chapter_001.kchapter")));
+    }
+
+    SECTION("Front and back matter go to the folders of their sections") {
+        BookElement preface("preface", "fm-new", "Preface");
+        REQUIRE(pm.createChapterFile(preface, "frontmatter"));
+        CHECK(QString::fromStdWString(preface.getFile().wstring()) ==
+              "content/frontmatter/preface_001.kchapter");
+
+        // A type that is no plain name does not name the file
+        BookElement notes("closing notes", "bm-new", "Notes");
+        REQUIRE(pm.createChapterFile(notes, "backmatter"));
+        CHECK(QString::fromStdWString(notes.getFile().wstring()) ==
+              "content/backmatter/chapter_001.kchapter");
+    }
+
+    CHECK(dotChapterFilesIn(project).isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager saves a chapter that has no chapter file of its own", "[project_manager]") {
+    // Regression: a chapter added in the Navigator had no file. Saved, its text went to
+    // ".kchapter" in the project's folder, and opened again it was read as an old RTF file
+    // to convert - the chapter opened empty, with a message that it is damaged
+    TempDir dir;
+    auto& pm = ProjectManager::getInstance();
+    REQUIRE(pm.createProject(dir.path(), "Old Chapters", "Author", "en", true));
+    const QString manifest = QDir(pm.getProjectPath()).filePath("Old Chapters.klh");
+    const QDir project(pm.getProjectPath());
+
+    auto part = std::make_shared<Part>("part-001", "Part One");
+    auto chapter = std::make_shared<BookElement>("chapter", "ch-003", "Chapter Three");
+    part->addChapter(chapter);
+    pm.getDocument()->getBook().addPart(part);
+
+    SECTION("A chapter without a file") {
+        REQUIRE(pm.saveManifest());
+        CHECK(pm.loadChapterContent("ch-003").isEmpty());
+    }
+
+    SECTION("A chapter saved as .kchapter in the project's folder") {
+        chapter->setFile(".kchapter");
+        REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Saved before"), "Chapter Three")
+                    .save(project.filePath(".kchapter")));
+        REQUIRE(pm.saveManifest());
+        REQUIRE(pm.closeProject(false));
+        REQUIRE(pm.openProject(manifest));
+
+        // Read as the chapter file it is, not converted as an old RTF file
+        CHECK(pm.loadChapterContent("ch-003") == kmlWith("Saved before"));
+        CHECK(dotChapterFilesIn(project) == QStringList{QStringLiteral(".kchapter")});
+    }
+
+    // Saved, the chapter gets a file of its own, which the manifest names
+    BookElement* element = pm.findElement("ch-003");
+    REQUIRE(element != nullptr);
+    element->setContent(kmlWith("Copied text"));
+    REQUIRE(pm.saveChapterContent("ch-003"));
+    CHECK(firstChapterFileIn(manifest) == "content/body/part-001/chapter_001.kchapter");
+    CHECK_FALSE(dotChapterFilesIn(project).contains(QStringLiteral(".kchapter.kchapter")));
+
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.loadChapterContent("ch-003") == kmlWith("Copied text"));
     REQUIRE(pm.closeProject(false));
 }

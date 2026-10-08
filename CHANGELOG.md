@@ -253,6 +253,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
+  Item in the front or back matter) made a chapter without a file, so its text was saved
+  as ".kchapter" in the project's folder; opened again, that file was taken for an old
+  RTF file and converted, and the chapter opened empty with a message that it is
+  damaged. A new chapter now gets its own empty chapter file at once, next to the other
+  chapters of its part (for example content/body/part_001/chapter_003.kchapter) or in
+  its section's folder. A chapter saved as ".kchapter" before opens with its text, and
+  the next save gives it a file of its own.
 - **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
   every paragraph but the one with the cursor, and the bright paragraph follows the
   cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
