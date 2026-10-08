@@ -171,8 +171,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.zoomIn", "resources/icons/twotone/zoom_in.svg", "Zoom In");
     iconRegistry.registerIcon("view.zoomOut", "resources/icons/twotone/zoom_out.svg", "Zoom Out");
     iconRegistry.registerIcon("view.resetZoom", "resources/icons/twotone/fit_screen.svg", "Reset Zoom");
-    iconRegistry.registerIcon("view.zoomPageWidth", "resources/icons/twotone/swap_horiz.svg", "Page Width");
-    iconRegistry.registerIcon("view.zoomWholePage", "resources/icons/twotone/zoom_out_map.svg", "Whole Page");
+    iconRegistry.registerIcon("view.zoomPageWidth", "resources/icons/twotone/fit_page_width.svg", "Page Width");
+    iconRegistry.registerIcon("view.zoomWholePage", "resources/icons/twotone/fit_page.svg", "Whole Page");
     iconRegistry.registerIcon("view.mode.continuous", "resources/icons/twotone/view_headline.svg", "Continuous");
     iconRegistry.registerIcon("view.mode.page", "resources/icons/twotone/text_snippet.svg", "Page Layout");
     iconRegistry.registerIcon("view.mode.distraction-free", "resources/icons/twotone/edit_note.svg", "Distraction-Free");

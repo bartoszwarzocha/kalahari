@@ -181,9 +181,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Views toolbar** - 2026-10-07
   - A toolbar in the second row switches the view (Continuous, Page Layout), turns
     Distraction-Free, Focus, Typewriter Scrolling and Dark Paper on and off, and zooms
-    (Zoom Out, Zoom In, Zoom 100%). Its buttons are the View menu's commands, so a
-    button is checked when its menu item is. It shows up also for a window layout saved
-    before it existed, and View > Toolbars hides it.
+    (Zoom Out, Zoom In, Zoom 100%, Page Width, Whole Page). Its buttons are the View
+    menu's commands, so a button is checked when its menu item is. It shows up also for a
+    window layout saved before it existed, and View > Toolbars hides it.
+  - Page Width and Whole Page have icons of their own: a page with a double arrow across
+    it or from its top to its bottom (in the four icon themes).
   - View > Dark Paper switches the paper of every editor between light and dark, like the
     editor's context menu, and is remembered; its icon is a square halved corner to corner.
     The check mark follows the paper however it changes (the context menu, the Settings

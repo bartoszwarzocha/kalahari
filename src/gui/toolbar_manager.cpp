@@ -126,7 +126,7 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper", SEPARATOR_ID,
-         "view.zoomOut", "view.zoomIn", "view.resetZoom"}
+         "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 
     // Format Toolbar (text formatting - essential for writer's IDE)
