@@ -356,9 +356,6 @@ private:
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;
 
-    /// @brief The line Distraction-Free shows at the top of the editor
-    [[nodiscard]] QString distractionFreeHint() const;
-
     // Status bar statistics labels (OpenSpec #00042 Task 6.13)
     QLabel* m_wordCountLabel{nullptr};                ///< Word count display
     QLabel* m_charCountLabel{nullptr};                ///< Character count display
