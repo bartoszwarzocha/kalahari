@@ -1,12 +1,15 @@
 /// @file test_settings_dialog.cpp
-/// @brief The settings dialog: page layout and what Apply writes
+/// @brief The settings dialog: lazily built pages, their layout and what Apply writes
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
+#include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/core/theme_manager.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QHBoxLayout>
@@ -14,22 +17,88 @@
 #include <QLayout>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QSpinBox>
 #include <QStackedWidget>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 
 using namespace kalahari::gui;
+
+namespace {
+
+/// Open every page of the dialog (pages are built when first opened)
+void openAllPages(SettingsDialog& dialog) {
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        tree->setCurrentItem(*it);
+    }
+}
+
+/// Open the page with a title under a category ("" for a top-level page)
+void openPage(SettingsDialog& dialog, const QString& category, const QString& title) {
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        QTreeWidgetItem* parent = (*it)->parent();
+        if ((*it)->text(0) == title && (parent ? parent->text(0) : QString()) == category) {
+            tree->setCurrentItem(*it);
+            return;
+        }
+    }
+    FAIL("No page " << title.toStdString());
+}
+
+QPushButton* applyButton(SettingsDialog& dialog) {
+    auto* buttons = dialog.findChild<QDialogButtonBox*>();
+    REQUIRE(buttons != nullptr);
+    return buttons->button(QDialogButtonBox::Apply);
+}
+
+ColorConfigWidget* colorWidget(SettingsDialog& dialog, const QString& toolTip) {
+    for (ColorConfigWidget* widget : dialog.findChildren<ColorConfigWidget*>()) {
+        if (widget->toolTip() == toolTip) {
+            return widget;
+        }
+    }
+    return nullptr;
+}
+
+void clearThemeColors(const std::string& theme) {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.clearCustomPaletteColorsForTheme(theme);
+    settings.clearCustomLogColorsForTheme(theme);
+    settings.clearCustomUiColorsForTheme(theme);
+    settings.clearCustomIconColorsForTheme(theme);
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]") {
+    SettingsDialog dialog(nullptr);
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    CHECK(stack->count() == 1);  // The page shown first
+
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Cursor"));
+    CHECK(stack->count() == 2);
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Cursor"));
+    CHECK(stack->count() == 2);
+}
 
 TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
     // Regression: the dialog kept its size whatever a page needed, so the groups of
     // Editor > Pages and Margins were squeezed until their fields overlapped, and the
     // description of Editor > General > Typewriter Scrolling was cut off
-    SettingsDialog dialog(nullptr, SettingsData{});
+    SettingsDialog dialog(nullptr);
     dialog.resize(dialog.minimumSize());
     dialog.show();
+    openAllPages(dialog);
     QApplication::processEvents();
 
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
-    REQUIRE(stack->count() > 0);
+    REQUIRE(stack->count() > 10);
 
     for (int index = 0; index < stack->count(); ++index) {
         stack->setCurrentIndex(index);
@@ -58,30 +127,20 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     // Regression: Apply wrote every option, including all theme colors, so the theme's
     // own colors were frozen into the settings file and later theme fixes never showed
     auto& settings = kalahari::core::SettingsManager::getInstance();
-
-    // What the dialog shows for the current settings, as the coordinator passes it
-    SettingsData current;
-    {
-        SettingsDialog probe(nullptr, SettingsData{});
-        current = probe.collectSettings();
-    }
-    const std::string theme = current.theme.toStdString();
-    settings.clearCustomPaletteColorsForTheme(theme);
-    settings.clearCustomLogColorsForTheme(theme);
-    settings.clearCustomUiColorsForTheme(theme);
-    settings.clearCustomIconColorsForTheme(theme);
+    const std::string theme = settings.getTheme();
+    clearThemeColors(theme);
     settings.setLanguage("en");
 
-    SettingsDialog dialog(nullptr, current);
-    SettingsData applied;
-    SettingsData previous;
+    SettingsDialog dialog(nullptr);
+    openAllPages(dialog);
+    CHECK_FALSE(dialog.hasChanges());
+
+    QStringList applied;
     int appliedCount = 0;
-    QObject::connect(&dialog, &SettingsDialog::settingsApplied,
-                     [&](const SettingsData& now, const SettingsData& before) {
-                         applied = now;
-                         previous = before;
-                         ++appliedCount;
-                     });
+    QObject::connect(&dialog, &SettingsDialog::settingsApplied, [&](const QStringList& keys) {
+        applied = keys;
+        ++appliedCount;
+    });
 
     // Change only the language
     QComboBox* language = nullptr;
@@ -92,16 +151,11 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     }
     REQUIRE(language != nullptr);
     language->setCurrentIndex(language->findData("pl"));
-
-    auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    REQUIRE(buttons != nullptr);
-    QPushButton* apply = buttons->button(QDialogButtonBox::Apply);
-    REQUIRE(apply != nullptr);
-    apply->click();
+    CHECK(dialog.hasChanges());
+    applyButton(dialog)->click();
 
     CHECK(appliedCount == 1);
-    CHECK(applied.language == "pl");
-    CHECK(previous.language == "en");
+    CHECK(applied == QStringList{QStringLiteral("ui.language")});
     CHECK(settings.getLanguage() == "pl");
     CHECK_FALSE(settings.hasCustomPaletteColorsForTheme(theme));
     CHECK_FALSE(settings.hasCustomLogColorsForTheme(theme));
@@ -109,24 +163,108 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     CHECK_FALSE(settings.hasCustomIconColorsForTheme(theme));
 
     // Nothing changed since the last Apply: nothing is applied again
-    apply->click();
+    CHECK_FALSE(dialog.hasChanges());
+    applyButton(dialog)->click();
     CHECK(appliedCount == 1);
 
     settings.setLanguage("en");
 }
 
+TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string theme = settings.getTheme();
+    clearThemeColors(theme);
+    const kalahari::core::Theme themeFile =
+        kalahari::core::ThemeManager::getInstance().loadTheme(QString::fromStdString(theme));
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+    ColorConfigWidget* window = colorWidget(dialog, QStringLiteral("General background color for windows and panels"));
+    ColorConfigWidget* logInfo = colorWidget(dialog, QStringLiteral("Color for INFO level log messages"));
+    REQUIRE(window != nullptr);
+    REQUIRE(logInfo != nullptr);
+    CHECK(window->color() == themeFile.palette.window);
+    CHECK(logInfo->color() == themeFile.log.info);
+
+    // An edited color is stored for this theme only, the others still follow the file
+    const QColor edited(QStringLiteral("#123456"));
+    window->setColor(edited);
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromStdString("themes." + theme + ".palette.window")});
+    CHECK(settings.getPaletteColorForTheme(theme, "window", "") == "#123456");
+    CHECK_FALSE(settings.hasKey("themes." + theme + ".log.info"));
+
+    clearThemeColors(theme);
+    kalahari::core::ThemeManager::getInstance().reloadTheme(QString::fromStdString(theme));
+}
+
+TEST_CASE("Settings dialog: options that need a restart are marked", "[gui][settings]") {
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("General"));
+
+    QComboBox* language = nullptr;
+    for (QComboBox* combo : dialog.findChildren<QComboBox*>()) {
+        if (combo->findData("pl") >= 0) {
+            language = combo;
+        }
+    }
+    REQUIRE(language != nullptr);
+    CHECK(language->toolTip().contains(QStringLiteral("restarting")));
+
+    bool noteShown = false;
+    for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+        noteShown = noteShown || label->text() == QStringLiteral("Takes effect after restarting Kalahari.");
+    }
+    CHECK(noteShown);
+}
+
 TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settings]") {
     // Regression: a font missing on this system was shown as its substitute, and the
     // substitute's name was saved on the next Apply as if the user had chosen it
-    SettingsData current;
-    {
-        SettingsDialog probe(nullptr, SettingsData{});
-        current = probe.collectSettings();
-    }
-    current.editorFontFamily = QStringLiteral("Kalahari Missing Font");
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string family = settings.get<std::string>("editor.fontFamily");
+    const int size = settings.get<int>("editor.fontSize");
+    settings.set<std::string>("editor.fontFamily", "Kalahari Missing Font");
 
-    SettingsDialog dialog(nullptr, current);
-    CHECK(dialog.collectSettings().editorFontFamily == QStringLiteral("Kalahari Missing Font"));
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("General"));
+    CHECK_FALSE(dialog.hasChanges());
+
+    // Another option of the page changes: the font name stays
+    QSpinBox* fontSize = nullptr;
+    for (QSpinBox* spin : dialog.findChildren<QSpinBox*>()) {
+        if (spin->suffix() == QStringLiteral(" pt") && spin->isEnabled()) {
+            fontSize = spin;
+        }
+    }
+    REQUIRE(fontSize != nullptr);
+    fontSize->setValue(size == 20 ? 21 : 20);
+    CHECK(dialog.applyChanges() == QStringList{QStringLiteral("editor.fontSize")});
+    CHECK(settings.get<std::string>("editor.fontFamily") == "Kalahari Missing Font");
+
+    settings.set<std::string>("editor.fontFamily", family);
+    settings.set<int>("editor.fontSize", size);
+}
+
+TEST_CASE("Settings dialog: the diagnostic menu is not stored", "[gui][settings]") {
+    SettingsDialog dialog(nullptr, true);
+    openPage(dialog, QStringLiteral("Advanced"), QStringLiteral("General"));
+
+    QCheckBox* diagnostic = nullptr;
+    for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
+        if (box->text() == QStringLiteral("Enable Diagnostic Menu")) {
+            diagnostic = box;
+        }
+    }
+    REQUIRE(diagnostic != nullptr);
+    CHECK(diagnostic->isChecked());
+
+    int turnedOff = 0;
+    QObject::connect(&dialog, &SettingsDialog::diagnosticModeChanged,
+                     [&turnedOff](bool enabled) { turnedOff += enabled ? 0 : 1; });
+    diagnostic->setChecked(false);
+    CHECK(dialog.applyChanges().isEmpty());
+    CHECK(turnedOff == 1);
 }
 
 TEST_CASE("clearLayout hides the widgets it removes", "[gui][settings]") {

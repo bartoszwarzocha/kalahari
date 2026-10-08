@@ -12,6 +12,8 @@
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
 #include <QSpinBox>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 
 #include <initializer_list>
 #include <map>
@@ -146,9 +148,14 @@ TEST_CASE("Editor settings: a closed editor no longer follows the settings",
 TEST_CASE("Settings dialog: the editor options the editor does not use yet are greyed out",
           "[gui][settings]") {
     // Tab size, line numbers, word wrap and mirror margins change nothing in the editor yet
-    gui::SettingsData data;
-    data.pageMirrorMarginsEnabled = true;
-    const gui::SettingsDialog dialog(nullptr, data);
+    const auto before = valuesOf({"editor.margins.mirrorEnabled"});
+    core::SettingsManager::getInstance().set<bool>("editor.margins.mirrorEnabled", true);
+    gui::SettingsDialog dialog(nullptr);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        tree->setCurrentItem(*it);  // Pages are built when first opened
+    }
 
     for (const QString& text : {QStringLiteral("Show Line Numbers"),
                                 QStringLiteral("Enable Word Wrap"),
@@ -180,4 +187,6 @@ TEST_CASE("Settings dialog: the editor options the editor does not use yet are g
     CHECK_FALSE(left->isHidden());
     CHECK(inner->isHidden());
     CHECK(outer->isHidden());
+
+    restore(before);
 }

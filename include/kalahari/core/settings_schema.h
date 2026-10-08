@@ -24,6 +24,10 @@ const nlohmann::json* defaultValue(const std::string& key);
 /// @brief All listed settings (key with '.' separators -> default value)
 const std::map<std::string, nlohmann::json>& defaults();
 
+/// @brief Whether a changed setting takes effect only after restarting Kalahari
+/// @param key Setting key; '.' and '/' both separate levels
+bool requiresRestart(const std::string& key);
+
 } // namespace settings_schema
 } // namespace core
 } // namespace kalahari

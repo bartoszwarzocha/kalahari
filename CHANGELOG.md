@@ -23,11 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes: the zoom does not follow the window's size later, and a chapter already open
   keeps its zoom.
 
+- **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
+  first time it is opened, so the window opens faster. The theme colors that were never
+  changed show the theme file's values (before, the window had its own copies, which
+  differed from the theme files for some colors). Options that take effect only after a
+  restart (the language) say so under the option. Apply and OK write only the changed
+  options, as before; the diagnostic menu still lasts for the current session only.
+
 - **Settings: the window layout in settings.json** - 2026-10-08. The window's size and
   position, the bars and panels, the toolbars shown and the recent books are saved in
   settings.json with the other settings, not in a second store (the registry on Windows).
   The first start after the update moves the saved values over, so the window keeps its
   layout.
+
 - **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
   service had the public api.languagetool.org built in, so the text of a book would have
   gone to the internet. Now it sends text only to the server set in

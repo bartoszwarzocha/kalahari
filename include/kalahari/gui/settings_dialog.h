@@ -1,63 +1,39 @@
 /// @file settings_dialog.h
 /// @brief Settings dialog for Kalahari application
 ///
-/// Architecture:
-/// - SettingsDialog collects and validates settings (data collection)
-/// - On Apply/OK the dialog writes the changed settings and emits settingsApplied
-/// - SettingsCoordinator refreshes the parts of the window the change affects
-/// - SettingsData transfers data between dialog and main window
-///
-/// Flow:
-/// 1. User edits settings in dialog
-/// 2. On Apply/OK, dialog writes only the changed values and saves once
-/// 3. Dialog emits settingsApplied(new, previous); the coordinator reacts
-/// 4. Dialog stays open (Apply) or closes (OK)
+/// The dialog shows a tree of pages (gui/settings/settings_pages.h). A page is built
+/// the first time it is opened; each page reads and writes its own settings.
+/// Apply/OK writes only the changed settings and emits settingsApplied with their
+/// keys, and SettingsCoordinator refreshes the parts of the window they affect. The
+/// editors and most panels follow the settings by themselves.
 
 #pragma once
 
 #include <QDialog>
-#include <QMap>
-#include "kalahari/gui/settings_data.h"
-#include "kalahari/editor/editor_appearance.h"  // For CursorStyle enum
+#include <QStringList>
 
+#include <functional>
+#include <map>
+#include <vector>
+
+class QDialogButtonBox;
+class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
-class QStackedWidget;
-class QScrollArea;
-class QDialogButtonBox;
-class QComboBox;
-class QSpinBox;
-class QDoubleSpinBox;
-class QFontComboBox;
-class QCheckBox;
-class QPushButton;
-class QLabel;
-class QHBoxLayout;
 
 namespace kalahari {
 namespace gui {
-class ColorConfigWidget;
-}
-}
 
-namespace kalahari {
-namespace gui {
+class SettingsPage;
+class ThemePage;
+class IconsPage;
 
 /// @brief Settings dialog with hierarchical tree navigation
 ///
-/// Modal dialog for configuring Kalahari application settings.
-/// Uses QTreeWidget for category navigation and QStackedWidget
-/// for displaying settings panels.
-///
-/// This dialog only collects data - it does NOT apply settings directly.
-/// Instead, it emits settingsApplyRequested signal with SettingsData.
-/// MainWindow is responsible for applying settings with proper UI feedback.
-///
 /// Example usage:
 /// @code
-/// SettingsDialog dialog(this);
-/// connect(&dialog, &SettingsDialog::settingsApplyRequested,
-///         this, &MainWindow::onApplySettings);
+/// SettingsDialog dialog(this, diagnosticMode);
+/// connect(&dialog, &SettingsDialog::settingsApplied, this, &MyCoordinator::onApplied);
 /// dialog.exec();
 /// @endcode
 class SettingsDialog : public QDialog {
@@ -66,295 +42,58 @@ class SettingsDialog : public QDialog {
 public:
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)
-    /// @param currentSettings Current application settings
-    explicit SettingsDialog(QWidget* parent, const SettingsData& currentSettings);
+    /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
+    explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false);
 
-    /// @brief Destructor
     ~SettingsDialog() override = default;
 
-    /// @brief Collect current settings from UI controls
-    /// @return SettingsData structure with all current values
-    SettingsData collectSettings() const;
+    /// @brief Whether any opened page has changes not applied yet
+    [[nodiscard]] bool hasChanges() const;
+
+    /// @brief Write the changed settings of all opened pages
+    /// @return Keys of the settings written
+    QStringList applyChanges();
 
 signals:
-    /// @brief Emitted AFTER settings have been applied successfully
-    /// @param settings Applied settings data
-    /// @param previous Settings before this apply (to react only to what changed)
-    void settingsApplied(const SettingsData& settings, const SettingsData& previous);
+    /// @brief Emitted after Apply/OK wrote changed settings
+    /// @param changedKeys Keys of the settings written
+    void settingsApplied(const QStringList& changedKeys);
 
-private slots:
-    /// @brief Tree item selection changed
-    void onTreeItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* previous);
-
-    /// @brief Apply button clicked - emit signal, keep dialog open
-    void onApply();
-
-    /// @brief OK button clicked - emit signal, close dialog
-    void onAccept();
-
-    /// @brief Cancel button clicked - close without saving
-    void onReject();
-
-    /// @brief Diagnostic mode checkbox toggled
-    void onDiagModeCheckboxToggled(bool checked);
-
-    /// @brief Theme combo box changed - update color widgets
-    void onThemeComboChanged(int index);
-
-    /// @brief Icon theme combo box changed - update preview
-    void onIconThemeComboChanged(int index);
+    /// @brief The diagnostic menu was turned on or off (this session only)
+    void diagnosticModeChanged(bool enabled);
 
 private:
-    // ========================================================================
-    // UI Creation
-    // ========================================================================
+    /// @brief Builds the widget of one page
+    using PageFactory = std::function<QWidget*()>;
 
-    void createUI();
     void createNavigationTree();
-    void createSettingsPages();
-    QWidget* createGeneralPage();
-    QWidget* createAppearanceGeneralPage();
-    QWidget* createAppearanceThemePage();
-    QWidget* createAppearanceIconsPage();
-    QWidget* createAppearanceDashboardPage();
-    QWidget* createEditorGeneralPage();
-    QWidget* createEditorColorsPage();
-    QWidget* createEditorCursorPage();
-    QWidget* createEditorMarginsPage();
-    QWidget* createAdvancedGeneralPage();
-    QWidget* createAdvancedLogPage();
-    QWidget* createPlaceholderPage(const QString& title, const QString& description);
 
-    // ========================================================================
-    // Settings Management
-    // ========================================================================
+    /// @brief Add a page to the tree; it is built when first opened
+    QTreeWidgetItem* addPage(QTreeWidgetItem* parent, const QString& title, PageFactory factory);
 
-    /// @brief Populate UI controls from settings data
-    void populateFromSettings(const SettingsData& settings);
+    /// @brief Add a greyed-out page for planned options
+    void addPlannedPage(QTreeWidgetItem* parent, const QString& title, const QString& description);
 
-    /// @brief Update icon preview with current theme and colors
-    void updateIconPreview();
+    /// @brief Show a page, building it on first use
+    void showPage(QTreeWidgetItem* item);
 
-    /// @brief Write the changed settings, apply theme/icon changes, save once
-    /// @param settings Settings to apply
-    /// @note Emits settingsApplied when done
-    void applySettings(const SettingsData& settings);
+    /// @brief Connect pages that depend on each other (theme colors -> icon preview)
+    /// @note Called once when the Theme or the Icons page is built
+    void connectPages();
 
-    // ========================================================================
-    // Member Variables - Navigation
-    // ========================================================================
+    void onApply();
+    void onAccept();
 
     QTreeWidget* m_navTree;
     QStackedWidget* m_pageStack;
     QDialogButtonBox* m_buttonBox;
-    QMap<QTreeWidgetItem*, int> m_itemToPage;
+    bool m_diagnosticMode;
 
-    // ========================================================================
-    // Member Variables - Appearance/General
-    // ========================================================================
-
-    QComboBox* m_languageComboBox;
-    QSpinBox* m_uiFontSizeSpinBox;
-
-    // ========================================================================
-    // Member Variables - Appearance/Theme
-    // ========================================================================
-
-    QComboBox* m_themeComboBox;
-    ColorConfigWidget* m_primaryColorWidget;
-    ColorConfigWidget* m_secondaryColorWidget;
-    ColorConfigWidget* m_infoHeaderColorWidget;
-    ColorConfigWidget* m_dashboardSecondaryColorWidget;
-    ColorConfigWidget* m_dashboardPrimaryColorWidget;
-    ColorConfigWidget* m_infoSecondaryColorWidget;
-    ColorConfigWidget* m_infoPrimaryColorWidget;
-
-    // UI Colors (QPalette roles)
-    ColorConfigWidget* m_tooltipBackgroundColorWidget;
-    ColorConfigWidget* m_tooltipTextColorWidget;
-    ColorConfigWidget* m_placeholderTextColorWidget;
-    ColorConfigWidget* m_brightTextColorWidget;
-
-    // Palette Colors (all 16 QPalette roles)
-    // Basic Colors
-    ColorConfigWidget* m_paletteWindowColorWidget;
-    ColorConfigWidget* m_paletteWindowTextColorWidget;
-    ColorConfigWidget* m_paletteBaseColorWidget;
-    ColorConfigWidget* m_paletteAlternateBaseColorWidget;
-    ColorConfigWidget* m_paletteTextColorWidget;
-    // Button Colors
-    ColorConfigWidget* m_paletteButtonColorWidget;
-    ColorConfigWidget* m_paletteButtonTextColorWidget;
-    // Selection Colors
-    ColorConfigWidget* m_paletteHighlightColorWidget;
-    ColorConfigWidget* m_paletteHighlightedTextColorWidget;
-    // 3D Effect Colors
-    ColorConfigWidget* m_paletteLightColorWidget;
-    ColorConfigWidget* m_paletteMidlightColorWidget;
-    ColorConfigWidget* m_paletteMidColorWidget;
-    ColorConfigWidget* m_paletteDarkColorWidget;
-    ColorConfigWidget* m_paletteShadowColorWidget;
-    // Link Colors
-    ColorConfigWidget* m_paletteLinkColorWidget;
-    ColorConfigWidget* m_paletteLinkVisitedColorWidget;
-
-    // Log Panel Colors
-    ColorConfigWidget* m_logTraceColorWidget;
-    ColorConfigWidget* m_logDebugColorWidget;
-    ColorConfigWidget* m_logInfoColorWidget;
-    ColorConfigWidget* m_logWarningColorWidget;
-    ColorConfigWidget* m_logErrorColorWidget;
-    ColorConfigWidget* m_logCriticalColorWidget;
-    ColorConfigWidget* m_logBackgroundColorWidget;
-    QLabel* m_themePreviewLabel;
-
-    // ========================================================================
-    // Member Variables - Appearance/Icons
-    // ========================================================================
-
-    QComboBox* m_iconThemeComboBox;
-    QSpinBox* m_toolbarIconSizeSpinBox;
-    QSpinBox* m_menuIconSizeSpinBox;
-    QSpinBox* m_treeViewIconSizeSpinBox;
-    QSpinBox* m_tabBarIconSizeSpinBox;
-    QSpinBox* m_statusBarIconSizeSpinBox;
-    QSpinBox* m_buttonIconSizeSpinBox;
-    QSpinBox* m_comboBoxIconSizeSpinBox;
-    QLabel* m_iconPreviewLabel;
-    QHBoxLayout* m_iconPreviewLayout;
-
-    // ========================================================================
-    // Member Variables - Appearance/Dashboard
-    // ========================================================================
-
-    QCheckBox* m_showKalahariNewsCheckBox;
-    QCheckBox* m_showRecentFilesCheckBox;
-    QCheckBox* m_autoLoadLastProjectCheckBox;
-    QSpinBox* m_dashboardMaxItemsSpinBox;
-    QSpinBox* m_dashboardIconSizeSpinBox;
-
-    // ========================================================================
-    // Member Variables - Editor/General
-    // ========================================================================
-
-    QFontComboBox* m_fontFamilyComboBox;
-    QString m_storedFontFamily;  ///< Editor font name from the settings
-    QString m_shownFontFamily;   ///< Font the combo shows for it (a substitute if missing)
-    QSpinBox* m_editorFontSizeSpinBox;
-    QSpinBox* m_tabSizeSpinBox;
-    QCheckBox* m_lineNumbersCheckBox;
-    QCheckBox* m_wordWrapCheckBox;
-    QDoubleSpinBox* m_lineHeightSpinBox;
-    QSpinBox* m_paragraphSpacingSpinBox;
-    QCheckBox* m_firstLineIndentCheckBox;
-    QSpinBox* m_indentSizeSpinBox;
-    QSpinBox* m_typewriterFocusSpinBox = nullptr;
-    QCheckBox* m_typewriterSmoothCheckBox = nullptr;
-
-    // ========================================================================
-    // Member Variables - Editor/Colors
-    // ========================================================================
-
-    QCheckBox* m_editorDarkModeCheckBox;
-    ColorConfigWidget* m_editorBackgroundLightWidget;
-    ColorConfigWidget* m_editorTextLightWidget;
-    ColorConfigWidget* m_editorInactiveLightWidget;
-    ColorConfigWidget* m_editorBackgroundDarkWidget;
-    ColorConfigWidget* m_editorTextDarkWidget;
-    ColorConfigWidget* m_editorInactiveDarkWidget;
-
-    // ========================================================================
-    // Member Variables - Editor/Cursor
-    // ========================================================================
-
-    QComboBox* m_cursorStyleComboBox;
-    QCheckBox* m_cursorUseCustomColorCheckBox;
-    ColorConfigWidget* m_cursorColorWidget;
-    QCheckBox* m_cursorBlinkingCheckBox;
-    QSpinBox* m_cursorBlinkIntervalSpinBox;
-    QSpinBox* m_cursorLineWidthSpinBox;
-    QLabel* m_cursorLineWidthLabel;
-
-    // ========================================================================
-    // Member Variables - Editor/Margins
-    // ========================================================================
-
-    // View margins (Continuous/Focus views)
-
-    // Page format (Page Layout view)
-    QComboBox* m_pageSizeComboBox = nullptr;
-    QDoubleSpinBox* m_pageCustomWidthSpinBox = nullptr;
-    QDoubleSpinBox* m_pageCustomHeightSpinBox = nullptr;
-    QSpinBox* m_pageGapSpinBox = nullptr;
-    QCheckBox* m_pageShowNumbersCheckBox = nullptr;
-
-    // Page margins (Page Layout view)
-    QDoubleSpinBox* m_pageMarginTopSpinBox;
-    QDoubleSpinBox* m_pageMarginBottomSpinBox;
-    QDoubleSpinBox* m_pageMarginLeftSpinBox;
-    QDoubleSpinBox* m_pageMarginRightSpinBox;
-
-    // Mirror margins
-    QCheckBox* m_pageMirrorMarginsCheckBox;
-    QDoubleSpinBox* m_pageMarginInnerSpinBox;
-    QDoubleSpinBox* m_pageMarginOuterSpinBox;
-    QLabel* m_pageMarginLeftLabel;
-    QLabel* m_pageMarginRightLabel;
-    QLabel* m_pageMarginInnerLabel;
-    QLabel* m_pageMarginOuterLabel;
-
-    // Text frame border
-    QCheckBox* m_textFrameBorderShowCheckBox;
-    ColorConfigWidget* m_textFrameBorderColorWidget;
-    QSpinBox* m_textFrameBorderWidthSpinBox;
-
-    // ========================================================================
-    // Member Variables - Advanced/General
-    // ========================================================================
-
-    QCheckBox* m_diagModeCheckbox;
-
-    // ========================================================================
-    // Member Variables - Advanced/Log
-    // ========================================================================
-
-    QSpinBox* m_logBufferSizeSpinBox;
-
-    // ========================================================================
-    // Original settings (for comparison)
-    // ========================================================================
-
-    SettingsData m_originalSettings;
-
-    /// Theme colors as shown for the selected theme before user edits (stored custom
-    /// colors or theme defaults); a theme color is saved only when it differs from these
-    SettingsData m_themeColorBaseline;
-
-    // ========================================================================
-    // Page Indices (for QStackedWidget)
-    // ========================================================================
-
-    enum PageIndex {
-        PAGE_GENERAL = 0,
-        PAGE_APPEARANCE_GENERAL = 1,
-        PAGE_APPEARANCE_THEME = 2,
-        PAGE_APPEARANCE_ICONS = 3,
-        PAGE_APPEARANCE_DASHBOARD = 4,
-        PAGE_EDITOR_GENERAL = 5,
-        PAGE_EDITOR_COLORS = 6,
-        PAGE_EDITOR_CURSOR = 7,
-        PAGE_EDITOR_MARGINS = 8,
-        PAGE_EDITOR_SPELLING = 9,
-        PAGE_EDITOR_AUTOCORRECT = 10,
-        PAGE_EDITOR_COMPLETION = 11,
-        PAGE_FILES_BACKUP = 12,
-        PAGE_FILES_AUTOSAVE = 13,
-        PAGE_FILES_IMPORT_EXPORT = 14,
-        PAGE_NETWORK_UPDATES = 15,
-        PAGE_ADVANCED_GENERAL = 16,
-        PAGE_ADVANCED_PERFORMANCE = 17,
-        PAGE_ADVANCED_LOG = 18
-    };
+    std::map<QTreeWidgetItem*, PageFactory> m_factories;
+    std::map<QTreeWidgetItem*, QWidget*> m_builtPages;  ///< Page container in the stack
+    std::vector<SettingsPage*> m_pages;                  ///< Built pages with settings
+    ThemePage* m_themePage = nullptr;
+    IconsPage* m_iconsPage = nullptr;
 };
 
 } // namespace gui
