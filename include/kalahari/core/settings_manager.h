@@ -12,13 +12,14 @@
 /// settings.load();  // Load from disk
 ///
 /// int width = settings.get<int>("window.width");  // default from settings_schema
-/// settings.set("window.width", 1600);
+/// settings.set("window.width", 1600);  // written to disk shortly after
 ///
-/// settings.save();  // Save to disk
+/// settings.save();  // Save to disk now
 /// @endcode
 
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <filesystem>
 #include <functional>
@@ -29,6 +30,7 @@
 #include <kalahari/core/settings_schema.h>
 #include <QSize>
 #include <QPoint>
+#include <QTimer>
 
 namespace kalahari {
 namespace core {
@@ -43,6 +45,7 @@ namespace core {
 /// Features:
 /// - Type-safe get/set API; defaults come from settings_schema
 /// - Change notification (subscribe())
+/// - Changes saved automatically, several changes in a row in one write
 /// - Thread-safe access (std::mutex)
 /// - Automatic directory creation
 /// - Graceful error handling (corrupted JSON → defaults)
@@ -63,7 +66,11 @@ public:
     /// @return true on success, false if file doesn't exist or is corrupted (uses defaults)
     bool load();
 
-    /// @brief Save settings to disk
+    /// @brief Save settings to disk now
+    ///
+    /// Not needed after set(): changed settings are saved automatically shortly
+    /// after the change. The file is replaced in one step, so an interrupted
+    /// save leaves the previous file intact.
     /// @return true on success, false on I/O error
     bool save();
 
@@ -335,8 +342,14 @@ private:
     /// @brief Report a get() of a key that has no default in settings_schema
     void warnMissingDefault(const std::string& key) const;
 
-    /// @brief Call change listeners (must be called without m_mutex held)
+    /// @brief Call change listeners and schedule a save (must be called without m_mutex held)
     void notifyChanged(const std::string& key);
+
+    /// @brief Save once, SAVE_DELAY_MS after the first of several changes
+    ///
+    /// Runs the save on the thread that created the manager. Without a
+    /// QCoreApplication nothing is scheduled; the destructor still saves.
+    void requestSave();
 
     /// In-memory settings (nlohmann::json)
     nlohmann::json m_settings;
@@ -345,6 +358,12 @@ private:
     std::map<int, ChangeListener> m_listeners;
     int m_nextListenerId = 1;
     mutable std::mutex m_listenersMutex;
+
+    /// A save is scheduled and has not run yet
+    std::atomic<bool> m_savePending{false};
+
+    /// Runs the scheduled save on the thread that created the manager (the application thread)
+    QTimer m_saveTimer;
 
     /// Path to settings.json file
     std::filesystem::path m_filePath;

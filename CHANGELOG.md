@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes: the zoom does not follow the window's size later, and a chapter already open
   keeps its zoom.
 
+- **Settings: saved right after a change** - 2026-10-08. A changed setting is written to
+  the settings file half a second later (several changes in a row in one write), not only
+  when the Settings window closes or the program exits, so a crash no longer loses it.
+  The file is still replaced in one step, now also flushed to the disk first.
+
 - **Editor: Distraction-Free is a switch** - 2026-10-08
   - View > Distraction-Free (Shift+F11, or its button on the Views toolbar) works on top
     of the current view, like Focus: the Page Layout view keeps its pages. The window
