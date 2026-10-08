@@ -623,7 +623,7 @@ TEST_CASE("BookEditor setDistractionFree emits a signal once per change", "[edit
                      [&emitted](bool enabled) { emitted.append(enabled); });
 
     editor.setDistractionFree(true);
-    editor.setDistractionFree(true, QStringLiteral("Press Esc"));  // only the hint changes
+    editor.setDistractionFree(true);
     editor.setDistractionFree(false);
     editor.setDistractionFree(false);
     REQUIRE(emitted == QList<bool>{true, false});

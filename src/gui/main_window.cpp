@@ -866,10 +866,6 @@ bool MainWindow::isDistractionFree() const {
     return m_distractionFreeLayout != nullptr && m_distractionFreeLayout->isActive();
 }
 
-QString MainWindow::distractionFreeHint() const {
-    return tr("Press Esc to leave Distraction-Free");
-}
-
 void MainWindow::onDistractionFreeToggle() {
     auto& logger = core::Logger::getInstance();
     const bool enabled = !isDistractionFree();
@@ -894,7 +890,7 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
     for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
         auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
         if (editor && editor->getBookEditor()) {
-            editor->getBookEditor()->setDistractionFree(enabled, distractionFreeHint());
+            editor->getBookEditor()->setDistractionFree(enabled);
         }
     }
     if (EditorPanel* editor = getCurrentEditor(); editor && editor->getBookEditor()) {
@@ -1192,7 +1188,7 @@ void MainWindow::createDocks() {
                         this, &MainWindow::onEditorColorModeChanged);
 
                 // Also an editor opened during Distraction-Free writing
-                bookEditor->setDistractionFree(isDistractionFree(), distractionFreeHint());
+                bookEditor->setDistractionFree(isDistractionFree());
 
                 // The first document of the run shows the page's whole width when the page
                 // at 100% is wider than the editor (a small screen); the documents opened

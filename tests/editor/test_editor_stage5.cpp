@@ -698,7 +698,7 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
     int changes = 0;
     QObject::connect(editor.get(), &BookEditor::distractionFreeModeChanged,
                      [&changes](bool) { ++changes; });
-    editor->setDistractionFree(true, QStringLiteral("Press Esc"));
+    editor->setDistractionFree(true);
     CHECK(changes == 1);
     CHECK(editor->viewMode() == ViewMode::Page);
     CHECK(editor->totalPages() == pages);
@@ -715,10 +715,11 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
     REQUIRE(middle.contains(first));
     CHECK(differingPixels(page, dark, middle) == 0);
 
-    // The hint at the top and the word count at the bottom, at first
+    // The word count at the bottom, at first; the middle of the top edge stays free for
+    // the window's menus
     const QRect top(viewWidth / 4, 0, viewWidth / 2, 60);
     const QRect bottom(viewWidth / 4, editor->height() - 60, viewWidth / 2, 60);
-    CHECK(differingPixels(page, dark, top) > 0);
+    CHECK(differingPixels(page, dark, top) == 0);
     CHECK(differingPixels(page, dark, bottom) > 0);
 
     SECTION("the texts at the edges fade out and come back when the mouse nears an edge") {
@@ -732,7 +733,7 @@ TEST_CASE("Stage5 distraction-free: a toggle that keeps the pages and darkens th
         QMouseEvent move(QEvent::MouseMove, nearTop, editor->mapToGlobal(nearTop), Qt::NoButton,
                          Qt::NoButton, Qt::NoModifier);
         QCoreApplication::sendEvent(editor.get(), &move);
-        CHECK(differingPixels(page, editorImage(*editor), top) > 0);
+        CHECK(differingPixels(page, editorImage(*editor), bottom) > 0);
     }
 
     SECTION("turning it off shows the view as before") {

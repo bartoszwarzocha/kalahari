@@ -823,11 +823,9 @@ bool BookEditor::isDistractionFree() const
     return m_distractionFree;
 }
 
-void BookEditor::setDistractionFree(bool enabled, const QString& hint)
+void BookEditor::setDistractionFree(bool enabled)
 {
-    m_distractionFreeHint = hint;
     if (m_distractionFree == enabled) {
-        update();
         return;
     }
     m_distractionFree = enabled;
@@ -911,9 +909,6 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
     if (m_appearance.distractionFree.showWordCount) {
         painter.drawText(area, Qt::AlignHCenter | Qt::AlignBottom,
                          tr("Words: %1").arg(wordCount()));
-    }
-    if (!m_distractionFreeHint.isEmpty()) {
-        painter.drawText(area, Qt::AlignHCenter | Qt::AlignTop, m_distractionFreeHint);
     }
     if (m_appearance.distractionFree.showClock) {
         painter.drawText(area, Qt::AlignRight | Qt::AlignTop,

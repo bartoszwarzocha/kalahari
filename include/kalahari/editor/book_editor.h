@@ -610,14 +610,14 @@ public:
     ///
     /// A toggle on top of the view mode, like Focus: the view mode, its pages and the
     /// layout stay as they are. While it is on, the scroll bars are hidden, the sides of
-    /// the view darken toward its edges, and the word count, the hint and the clock (if
-    /// appearance() shows it) appear at the edges of the view: at first and whenever the
-    /// mouse comes near an edge, fading out after appearance().distractionFree.uiFadeTimeout.
+    /// the view darken toward its edges, and the word count and the clock (if appearance()
+    /// shows them) appear at the edges of the view: at first and whenever the mouse comes
+    /// near an edge, fading out after appearance().distractionFree.uiFadeTimeout. The
+    /// middle of the top edge stays free for the window's menus.
     /// The window around the editor hides its own parts.
     /// Emits distractionFreeModeChanged if the state changes.
     /// @param enabled true to turn it on
-    /// @param hint A line shown at the top of the view (e.g. how to leave); empty for none
-    void setDistractionFree(bool enabled, const QString& hint = QString());
+    void setDistractionFree(bool enabled);
 
     // =======================================================================
     // Zoom Control
@@ -1404,7 +1404,6 @@ private:
 
     // Distraction-Free writing (a toggle on top of the view mode)
     bool m_distractionFree{false};                          ///< Distraction-Free is on
-    QString m_distractionFreeHint;                          ///< Line at the top of the view
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 
