@@ -344,9 +344,6 @@ private:
     // First show flag (for geometry restore)
     bool m_firstShow;
 
-    // The first document of the run: a page wider than its editor shows its whole width
-    bool m_firstDocumentShown{false};  ///< A document's editor has been shown
-
     // Diagnostic/Dev mode controller (OpenSpec #00038)
     DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus
 

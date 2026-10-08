@@ -1189,14 +1189,6 @@ void MainWindow::createDocks() {
 
                 // Also an editor opened during Distraction-Free writing
                 bookEditor->setDistractionFree(isDistractionFree());
-
-                // The first document of the run shows the page's whole width when the page
-                // at 100% is wider than the editor (a small screen); the documents opened
-                // later open at 100%
-                if (!m_firstDocumentShown) {
-                    m_firstDocumentShown = true;
-                    bookEditor->shrinkToPageWidthOnFirstShow();
-                }
             }
             updatePageStatus();
 

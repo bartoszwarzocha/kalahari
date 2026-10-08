@@ -49,6 +49,11 @@ EditorPanel::EditorPanel(QWidget* parent)
     // Apply settings (font, appearance)
     applySettings();
 
+    // Every chapter or file opens at the zoom of the settings (100%), or at the page's
+    // width when the page is wider than the editor (a small screen); after that the zoom
+    // changes only when asked for, not with the size of the window
+    m_bookEditor->shrinkToPageWidthOnFirstShow();
+
     logger.debug("EditorPanel initialized with BookEditor (new architecture)");
 }
 
