@@ -181,6 +181,8 @@ double BookEditor::zoomFactor() const {
 }
 
 void BookEditor::setZoomFactor(double factor) {
+    // A zoom asked for stays (see shrinkToPageWidthOnFirstShow())
+    m_shrinkOnFirstShow = false;
     // Zooming keeps the middle of the view on the same text
     applyZoom(factor, QPointF(width() / 2.0, height() / 2.0));
 }
@@ -300,6 +302,7 @@ void BookEditor::setPaperScale(double scale)
     updateScrollBarRange();
     updateHorizontalScrollBar();
     updateTypewriterScroll(false);
+    applyFirstShowShrink();  // the page's new width, until the first paint
     update();
 }
 
@@ -325,19 +328,50 @@ double BookEditor::paperScaleFor(double physicalDpi, double logicalDpi)
     return ratio >= 0.5 && ratio <= 3.0 ? ratio : 1.0;
 }
 
-void BookEditor::zoomToPageWidth()
+double BookEditor::pageWidthZoom() const
 {
-    if (!m_renderPipeline) {
-        return;
-    }
     // The page (or the endless page) with the gap on both sides fills the width left of
     // the scroll bar
     const RenderContext& ctx = m_renderPipeline->context();
     const double pagesWidth =
         (ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing) * ctx.paperScale;
-    if (pagesWidth > 0.0) {
-        applyZoom((width() - ctx.scrollBarWidth) / pagesWidth,
-                  QPointF(width() / 2.0, height() / 2.0));
+    return pagesWidth > 0.0 ? std::max(0.0, width() - ctx.scrollBarWidth) / pagesWidth : 0.0;
+}
+
+void BookEditor::zoomToPageWidth()
+{
+    if (!m_renderPipeline) {
+        return;
+    }
+    m_shrinkOnFirstShow = false;
+    const double zoom = pageWidthZoom();
+    if (zoom > 0.0) {
+        applyZoom(zoom, QPointF(width() / 2.0, height() / 2.0));
+    }
+}
+
+void BookEditor::shrinkToPageWidthOnFirstShow()
+{
+    m_shrinkOnFirstShow = true;
+    applyFirstShowShrink();
+}
+
+void BookEditor::applyFirstShowShrink()
+{
+    if (!m_shrinkOnFirstShow || !m_renderPipeline) {
+        return;
+    }
+    const double widthZoom = pageWidthZoom();
+    if (widthZoom <= 0.0) {
+        return;
+    }
+    // At most the zoom of the settings: a page that fits the view keeps it
+    const double factor = qBound(MIN_ZOOM_FACTOR,
+                                 std::min(m_appearance.pageLayout.zoomLevel, widthZoom),
+                                 MAX_ZOOM_FACTOR);
+    if (std::abs(factor - zoomFactor()) >= 0.001) {
+        // The text at the top of the view stays there: the start of a new text
+        applyZoom(factor, QPointF(width() / 2.0, 0.0));
     }
 }
 
@@ -346,6 +380,7 @@ void BookEditor::zoomToWholePage()
     if (!m_renderPipeline) {
         return;
     }
+    m_shrinkOnFirstShow = false;
     // The page with the gaps around it fits the view; the page view shows the cursor's
     // page, the continuous views take the same zoom around the middle of the view
     const RenderContext& ctx = m_renderPipeline->context();
@@ -402,6 +437,7 @@ void BookEditor::wheelEvent(QWheelEvent* event)
         if (event->modifiers() & Qt::ControlModifier) {
             if (angleDelta.y() != 0) {
                 const qreal zoomDelta = angleDelta.y() > 0 ? ZOOM_STEP : (1.0 / ZOOM_STEP);
+                m_shrinkOnFirstShow = false;
                 applyZoom(zoomFactor() * zoomDelta, event->position());
             }
             event->accept();
@@ -588,15 +624,13 @@ void BookEditor::applyPageLayout()
         return;
     }
 
-    // Page size in points, margins in millimetres. With mirror margins every page has the
-    // first page's margins for now: the layout gives all pages one text width.
+    // Page size in points, margins in millimetres
     const QSizeF sizeMm = m_appearance.pageLayout.pageSizeMm();
     const QSizeF sizePoints(sizeMm.width() * POINTS_PER_INCH / MM_PER_INCH,
                             sizeMm.height() * POINTS_PER_INCH / MM_PER_INCH);
     const PageMarginsConfig& margins = m_appearance.pageMargins;
     m_renderPipeline->setConfigPageLayout(
-        sizePoints,
-        QMarginsF(margins.effectiveLeft(1), margins.top, margins.effectiveRight(1), margins.bottom),
+        sizePoints, QMarginsF(margins.left, margins.top, margins.right, margins.bottom),
         m_appearance.pageLayout.pageGap);
     m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
 }
@@ -787,11 +821,9 @@ bool BookEditor::isDistractionFree() const
     return m_distractionFree;
 }
 
-void BookEditor::setDistractionFree(bool enabled, const QString& hint)
+void BookEditor::setDistractionFree(bool enabled)
 {
-    m_distractionFreeHint = hint;
     if (m_distractionFree == enabled) {
-        update();
         return;
     }
     m_distractionFree = enabled;
@@ -875,9 +907,6 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
     if (m_appearance.distractionFree.showWordCount) {
         painter.drawText(area, Qt::AlignHCenter | Qt::AlignBottom,
                          tr("Words: %1").arg(wordCount()));
-    }
-    if (!m_distractionFreeHint.isEmpty()) {
-        painter.drawText(area, Qt::AlignHCenter | Qt::AlignTop, m_distractionFreeHint);
     }
     if (m_appearance.distractionFree.showClock) {
         painter.drawText(area, Qt::AlignRight | Qt::AlignTop,

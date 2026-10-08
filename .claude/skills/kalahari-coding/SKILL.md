@@ -112,7 +112,7 @@ python scripts/add_theme_color.py <color_name> <dark_value> <light_value> -d "de
 - `include/kalahari/core/theme.h` - QColor member in Theme struct
 - `src/core/theme.cpp` - fromJson/toJson serialization
 - `src/core/theme_manager.cpp` - fallback, applyColorOverrides, setColorOverride
-- (with `-s`): `settings_data.h`, `settings_dialog.h`, `settings_dialog.cpp`, `main_window.cpp`
+- (with `-s`): `settings/settings_page.h`, `settings_dialog.h`, `settings_dialog.cpp`, `main_window.cpp`
 
 **Example:**
 ```bash

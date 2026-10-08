@@ -271,6 +271,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
         m_renderPipeline->setConfigColors(colors);
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
+        m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
+                                                   m_appearance.textFrameBorder.color,
+                                                   m_appearance.textFrameBorder.width);
 
         // The page's size and margins, in every view
         applyPageLayout();
@@ -281,6 +284,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     updateScrollBarRange();
     applyTypewriter();
     updatePageInfo();
+    applyFirstShowShrink();  // the page's new size, until the first paint
     update();
 }
 
@@ -331,6 +335,9 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
+    // The zoom is on the screen now: from here on it changes only when asked for
+    m_shrinkOnFirstShow = false;
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -369,6 +376,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     if (m_renderPipeline) {
         m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
+    applyFirstShowShrink();  // the view's new width, until the first paint
 
     updateScrollBarRange();
     update();
@@ -792,6 +800,9 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     }
 
     updateViewport();
+
+    // The new text has the zoom of the settings (syncPipelineState())
+    applyFirstShowShrink();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);

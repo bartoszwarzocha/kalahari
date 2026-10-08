@@ -158,6 +158,10 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/settings_dialog.cpp
+    gui/settings/settings_page.cpp
+    gui/settings/general_pages.cpp
+    gui/settings/appearance_pages.cpp
+    gui/settings/editor_pages.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/toolbar_builder.cpp
@@ -232,6 +236,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT (OpenSpec #00038 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT

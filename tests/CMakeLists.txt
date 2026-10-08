@@ -66,6 +66,7 @@ set(TEST_SOURCES
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
+    gui/test_editor_settings.cpp                 # Editors follow the editor settings
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -135,6 +136,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/command.cpp                 # Sub-Project C WS4.1: Command/KeyboardShortcut for CommandRegistry
     ${CMAKE_SOURCE_DIR}/src/gui/command_registrar.cpp       # Editor Stage 3: the application's commands, for shortcut checks
     ${CMAKE_SOURCE_DIR}/src/gui/settings_dialog.cpp         # Editor Stage 4: settings dialog layout checks
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/settings_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/general_pages.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
@@ -170,6 +175,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_render_pipeline.h  # EditorRenderPipeline with Q_OBJECT (OpenSpec #00043 Phase 12.1)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT

@@ -22,7 +22,6 @@
 #include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
-#include "kalahari/gui/settings_data.h"
 
 class QDockWidget;
 class QCloseEvent;
@@ -33,10 +32,6 @@ namespace kalahari {
 
 namespace core {
     struct Theme;  // Forward declaration for Theme (Task #00023)
-}
-
-namespace editor {
-    enum class EditorColorMode;  // Light or dark paper of the editors
 }
 
 namespace gui {
@@ -110,10 +105,6 @@ public:
     /// @return true if dev mode is active, false otherwise
     /// @note Delegates to DiagnosticController (OpenSpec #00038)
     [[nodiscard]] bool isDevMode() const;
-
-    /// @brief Apply editor settings to all open EditorPanels
-    /// @note Called when editor font, colors, or other settings change
-    void applyEditorSettingsToAllPanels();
 
     /// @brief Get current active editor panel
     /// @return Active EditorPanel if current tab is an editor, nullptr otherwise
@@ -276,9 +267,6 @@ private slots:
     /// @brief Turn the dark paper of every editor on or off (remembered)
     void onDarkPaperToggle();
 
-    /// @brief Give every editor the light or dark paper chosen in one editor's context menu
-    void onEditorColorModeChanged(editor::EditorColorMode mode);
-
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
 
@@ -367,9 +355,6 @@ private:
 
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;
-
-    /// @brief The line Distraction-Free shows at the top of the editor
-    [[nodiscard]] QString distractionFreeHint() const;
 
     // Status bar statistics labels (OpenSpec #00042 Task 6.13)
     QLabel* m_wordCountLabel{nullptr};                ///< Word count display

@@ -9,6 +9,8 @@
 #include <vector>   // std::vector for log color keys
 #include <QCoreApplication>
 #include <QSaveFile>
+#include <QSettings>
+#include <QStringList>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -20,7 +22,7 @@ namespace core {
 
 namespace {
 /// Version written by createDefaults() and reached by migrateIfNeeded()
-constexpr const char* CURRENT_SETTINGS_VERSION = "1.3";
+constexpr const char* CURRENT_SETTINGS_VERSION = "1.4";
 
 /// Changes made within this time after the first one are saved together
 constexpr int SAVE_DELAY_MS = 500;
@@ -200,6 +202,14 @@ bool SettingsManager::isWindowMaximized() const {
 
 void SettingsManager::setWindowMaximized(bool maximized) {
     set("window.maximized", maximized);
+}
+
+QByteArray SettingsManager::getBinary(const std::string& key) const {
+    return QByteArray::fromBase64(QByteArray::fromStdString(get<std::string>(key, std::string())));
+}
+
+void SettingsManager::setBinary(const std::string& key, const QByteArray& value) {
+    set(key, value.toBase64().toStdString());
 }
 
 std::string SettingsManager::getLanguage() const {
@@ -424,22 +434,26 @@ std::filesystem::path SettingsManager::getSettingsFilePath() const {
 // Private helpers
 // =============================================================================
 
-std::filesystem::path SettingsManager::getSettingsDirectoryPath() const {
-    // TEST MODE: Use temp directory instead of user directory
-    // This prevents tests from polluting real user settings
+bool SettingsManager::isTestMode() {
 #ifdef _WIN32
     char* testMode = nullptr;
     size_t testLen = 0;
     if (_dupenv_s(&testMode, &testLen, "KALAHARI_TEST_MODE") == 0 && testMode != nullptr) {
         free(testMode);
-        return std::filesystem::temp_directory_path() / "kalahari_test";
+        return true;
     }
+    return false;
 #else
-    const char* testMode = std::getenv("KALAHARI_TEST_MODE");
-    if (testMode) {
+    return std::getenv("KALAHARI_TEST_MODE") != nullptr;
+#endif
+}
+
+std::filesystem::path SettingsManager::getSettingsDirectoryPath() const {
+    // TEST MODE: Use temp directory instead of user directory
+    // This prevents tests from polluting real user settings
+    if (isTestMode()) {
         return std::filesystem::temp_directory_path() / "kalahari_test";
     }
-#endif
 
 #ifdef _WIN32
     // Windows: %APPDATA%\Kalahari
@@ -562,6 +576,10 @@ void SettingsManager::migrateIfNeeded() {
     if (version != CURRENT_SETTINGS_VERSION) {
         Logger::getInstance().info("Migrating settings from {} to {}...", version, CURRENT_SETTINGS_VERSION);
         migrateToCurrentVersion();
+        if (!isTestMode()) {
+            QSettings legacy("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
+            migrateLegacyQSettings(legacy);
+        }
         set("version", std::string(CURRENT_SETTINGS_VERSION));
         save();  // Save migrated settings immediately
         Logger::getInstance().info("Settings migration complete");
@@ -619,6 +637,41 @@ void SettingsManager::migrateToCurrentVersion() {
         removeKey("themes." + themeName + ".colors.primary");
         removeKey("themes." + themeName + ".colors.secondary");
     }
+}
+
+void SettingsManager::migrateLegacyQSettings(QSettings& legacy) {
+    // 1.4: the window layout and the recent books moved from QSettings to settings.json
+    if (legacy.contains("geometry")) {
+        setBinary("window.geometry", legacy.value("geometry").toByteArray());
+    }
+    if (legacy.contains("windowState")) {
+        setBinary("window.state", legacy.value("windowState").toByteArray());
+    }
+
+    legacy.beginGroup("Toolbars");
+    if (legacy.contains("configVersion")) {
+        set("toolbars.configVersion", legacy.value("configVersion").toInt());
+    }
+    for (const QString& id : legacy.childGroups()) {
+        const QString visibleKey = id + "/visible";
+        if (legacy.contains(visibleKey)) {
+            set("toolbars.visible." + id.toStdString(), legacy.value(visibleKey).toBool());
+        }
+    }
+    legacy.endGroup();
+
+    if (legacy.contains("recentFiles")) {
+        std::vector<std::string> files;
+        for (const QString& file : legacy.value("recentFiles").toStringList()) {
+            files.push_back(file.toStdString());
+        }
+        set("recent_files", files);
+    }
+
+    for (const char* key : {"geometry", "windowState", "Toolbars", "recentFiles"}) {
+        legacy.remove(key);
+    }
+    Logger::getInstance().info("Moved the window layout and recent books from QSettings to settings.json");
 }
 
 // =============================================================================

@@ -4,6 +4,7 @@
 #include <kalahari/core/settings_schema.h>
 
 #include <algorithm>
+#include <set>
 
 namespace kalahari {
 namespace core {
@@ -21,6 +22,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.x", 100},
         {"window.y", 100},
         {"window.maximized", false},
+        {"window.geometry", ""},  // QMainWindow::saveGeometry() as base64
+        {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
+        {"recent_files", json::array()},
 
         // Interface
         {"ui.language", "en"},
@@ -42,6 +46,7 @@ std::map<std::string, json> buildDefaults() {
         // Toolbars
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},
+        {"toolbars.configVersion", 0},
 
         // Log panel
         {"log.bufferSize", 500},
@@ -141,6 +146,15 @@ const nlohmann::json* defaultValue(const std::string& key) {
     const auto& table = defaults();
     auto it = table.find(normalized);
     return it != table.end() ? &it->second : nullptr;
+}
+
+bool requiresRestart(const std::string& key) {
+    // Read once at startup (main.cpp loads the translations before any window exists)
+    static const std::set<std::string> restartKeys = {"ui.language"};
+
+    std::string normalized = key;
+    std::replace(normalized.begin(), normalized.end(), '/', '.');
+    return restartKeys.count(normalized) > 0;
 }
 
 } // namespace settings_schema

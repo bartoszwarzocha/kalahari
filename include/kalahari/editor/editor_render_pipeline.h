@@ -191,6 +191,12 @@ public:
     /// @brief Turn Focus on or off: every paragraph but the cursor's is dimmed (repaint only)
     void setConfigFocus(bool enabled);
 
+    /// @brief Show or hide the frame around the text area of the pages (repaint only)
+    /// @param show Whether the frame is drawn
+    /// @param color Its color
+    /// @param width Its width in pixels of the screen, at any zoom
+    void setConfigTextFrameBorder(bool show, const QColor& color, int width);
+
     /// @brief Set the horizontal scroll offset in pixels (zoomed page wider than the view;
     ///        clamped to [0, maxScrollX()])
     void setConfigScrollX(double x);
@@ -400,7 +406,7 @@ private:
     void renderBackground(QPainter* painter, const QRect& clipRect);
 
     /// @brief Render text frame border
-    void renderTextFrameBorder(QPainter* painter);
+    void renderTextFrameBorder(QPainter* painter, const QRect& clipRect);
 
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);
