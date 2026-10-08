@@ -24,8 +24,11 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDateTime>
+#include <QRegularExpression>
 #include <QTimeZone>
 #include <QUuid>
+
+#include <set>
 
 #include <zip.h>
 
@@ -1157,6 +1160,91 @@ QString ProjectManager::addChapterToSection(const QString& sectionType,
     emit projectOpened(QString::fromStdWString(m_projectPath.wstring()));
 
     return elementId;
+}
+
+bool ProjectManager::createChapterFile(BookElement& element, const QString& sectionType,
+                                       const QString& partId) {
+    auto& logger = Logger::getInstance();
+    if (!isProjectOpen() || !m_document) {
+        logger.error("createChapterFile: No project open");
+        return false;
+    }
+
+    const std::filesystem::path file = newChapterFile(sectionType, partId, element.getType());
+    const std::filesystem::path path = m_projectPath / file;
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(), ec);
+
+    ChapterDocument chapter;
+    chapter.setTitle(QString::fromStdString(element.getTitle()));
+    if (!chapter.save(QString::fromStdWString(path.wstring()))) {
+        logger.error("createChapterFile: Failed to write {}", path.string());
+        return false;
+    }
+
+    element.setFile(file);
+    logger.info("createChapterFile: '{}' has the file {}", element.getTitle(), file.string());
+    return true;
+}
+
+std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
+                                                     const QString& partId,
+                                                     const std::string& elementType) {
+    namespace fs = std::filesystem;
+
+    // The folder with "/" between its names on every system, as the manifest keeps it
+    QString folder;
+    QString name = QStringLiteral("chapter");
+    if (sectionType == QLatin1String("frontmatter") || sectionType == QLatin1String("backmatter")) {
+        folder = QStringLiteral("content/") + sectionType;
+        // The type names a front or back matter file, as in title_page.kchapter
+        static const QRegularExpression plainName(QStringLiteral("^[A-Za-z0-9_]+$"));
+        const QString type = QString::fromStdString(elementType);
+        if (plainName.match(type).hasMatch()) {
+            name = type;
+        }
+    } else {
+        // Next to the other chapters of the part, or in a folder of the part
+        folder = partId.isEmpty() ? QStringLiteral("content/body")
+                                  : QStringLiteral("content/body/") + partId;
+        if (const Part* part = findPart(partId)) {
+            for (const auto& chapter : part->getChapters()) {
+                if (!chapter->getFile().empty()) {
+                    folder = QString::fromStdWString(
+                        chapter->getFile().parent_path().generic_wstring());
+                }
+            }
+        }
+    }
+
+    // The files of the book's chapters
+    std::set<fs::path> used;
+    if (m_document) {
+        const Book& book = m_document->getBook();
+        auto collect = [&used](const auto& elements) {
+            for (const auto& element : elements) {
+                used.insert(element->getFile().lexically_normal());
+            }
+        };
+        collect(book.getFrontMatter());
+        for (const auto& part : book.getBody()) {
+            collect(part->getChapters());
+        }
+        collect(book.getBackMatter());
+    }
+
+    // The first name no chapter and no file has: chapter_001, chapter_002, ...
+    for (int number = 1;; ++number) {
+        QString relative =
+            QStringLiteral("%1_%2.kchapter").arg(name).arg(number, 3, 10, QLatin1Char('0'));
+        if (!folder.isEmpty()) {
+            relative.prepend(folder + QLatin1Char('/'));
+        }
+        const fs::path file(relative.toStdWString());
+        if (!used.contains(file.lexically_normal()) && !fs::exists(m_projectPath / file)) {
+            return file;
+        }
+    }
 }
 
 // =============================================================================
