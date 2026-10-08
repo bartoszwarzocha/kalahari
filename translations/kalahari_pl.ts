@@ -722,10 +722,6 @@
         <translation>Ostatnie książki</translation>
     </message>
     <message>
-        <source>Coming in future version</source>
-        <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
         <source>File Toolbar</source>
         <translation>Plik</translation>
     </message>
@@ -1492,6 +1488,106 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::AdvancedGeneralPage</name>
+    <message>
+        <source>Warning: These settings are for advanced users and developers.
+Incorrect configuration may affect application stability.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Diagnostic Tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable Diagnostic Menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shows additional menu with debugging tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When enabled, a &apos;Diagnostic&apos; menu appears in the menu bar with:
+- System information
+- Log viewer
+- Component status
+
+The menu stays for this session only.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Are you sure you want to enable diagnostic menu?
+
+This exposes advanced debugging tools.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AdvancedLogPage</name>
+    <message>
+        <source>Log Panel Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> lines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Higher values use more memory but keep more history</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Buffer Size (lines):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maximum number of log entries to keep in memory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The log panel displays application messages in real-time.
+
+Buffer size determines how many log entries are kept in memory.
+When the buffer is full, oldest entries are removed.
+
+Note: Log files are always saved to disk regardless of this setting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log files are stored in the application directory:
+• kalahari.log - Current session log
+
+Use the log panel toolbar buttons to:
+• Open log folder in file explorer
+• Copy log contents to clipboard
+• Clear the log panel display</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AppearanceGeneralPage</name>
+    <message>
+        <source>General Appearance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>UI Font Size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::AssistantPanel</name>
     <message>
         <source>Assistant Panel
@@ -1547,6 +1643,49 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 on: &quot;%2&quot;</source>
         <translation>„%1”
 do: „%2”</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::DashboardPage</name>
+    <message>
+        <source>Dashboard Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Kalahari News</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display news and updates section on Dashboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Recent Files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display recently opened projects on Dashboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Number of items to show in News and Recent Files sections (3-9)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maximum items per section:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size of icons in Dashboard panels (24-64 pixels)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon size:</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2223,6 +2362,372 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorColorsPage</name>
+    <message>
+        <source>Configure editor colors for light and dark mode.
+Editor color mode is independent from the application theme.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use dark mode for editor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Toggle between light and dark editor colors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Light Mode Colors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>Inactive (Focus mode)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dark Mode Colors</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorCursorPage</name>
+    <message>
+        <source>Configure the appearance of the text cursor in the editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cursor Style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Line (|)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Underline (_)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select the cursor shape:
+- Line: vertical bar (|)
+- Block: rectangle on character
+- Underline: line under character (_)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Style:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width of the line cursor (1-5 pixels)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cursor width (px):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cursor Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use custom color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When unchecked, cursor uses the text color.
+When checked, cursor uses a custom color.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom cursor color (only used when &apos;Use custom color&apos; is checked)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blinking</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable cursor blinking</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable or disable cursor blinking animation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blink interval (100-2000 ms)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blink interval (ms):</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorGeneralPage</name>
+    <message>
+        <source>Editor Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Font Family:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Font Size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Editor Behavior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> spaces</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tab Size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Line Numbers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable Word Wrap</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Typography</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Multiple of the font&apos;s line height (1.0 = single spacing)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Line Spacing:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Space After Paragraph:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Indent First Line:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Typewriter Scrolling</source>
+        <translation>Przewijanie jak w maszynie do pisania</translation>
+    </message>
+    <message>
+        <source>View &gt; Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> % from the top</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Where the line with the cursor stays (50% = middle)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cursor Line Height:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Smooth scrolling</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Glide to the next line instead of jumping</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorPagesPage</name>
+    <message>
+        <source>Configure the page format, the page margins and the text frame border.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>6 x 9 in (152 x 229 mm)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 in)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 in)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Format:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> mm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Height:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Space between the pages and around them, at 100% zoom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Gap between pages:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show page numbers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Page Margins</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Top:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Top margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bottom:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bottom margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Left:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Left margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Right:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Right margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mirror margins (for book binding)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Inner margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Outer margin in millimeters (0-100)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Inner (binding):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Outer (edge):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Text Frame Border</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show text frame border</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display a visible border around the text content area.
+Useful for visualizing margin boundaries.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Border color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color of the text frame border</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Border width in pixels (1-5)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Border width:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorPanel</name>
     <message>
         <source>Damaged Chapter</source>
@@ -2235,6 +2740,88 @@ Saving the chapter keeps only this text. Close it without saving to leave the fi
         <translation>Rozdział „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
 
 Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij rozdział bez zapisywania.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::GeneralPage</name>
+    <message>
+        <source>Startup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open last project on startup</source>
+        <translation>Otwieraj ostatni projekt przy starcie</translation>
+    </message>
+    <message>
+        <source>Automatically open the most recently used project when Kalahari starts</source>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::IconsPage</name>
+    <message>
+        <source>Icon Style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Two-tone (Default)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Outlined</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rounded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon Style:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon Sizes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Toolbar:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Menu:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Navigator/Tree:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tab Bar:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Buttons:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Status Bar:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combo Boxes:</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3141,11 +3728,11 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Dashboard</source>
-        <translation type="unfinished">Pulpit</translation>
+        <translation>Pulpit</translation>
     </message>
     <message>
         <source>Editor</source>
-        <translation type="unfinished">Redaktor</translation>
+        <translation>Redaktor</translation>
     </message>
     <message>
         <source>Colors</source>
@@ -3173,7 +3760,7 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Files</source>
-        <translation type="unfinished">Pliki</translation>
+        <translation>Pliki</translation>
     </message>
     <message>
         <source>Backup</source>
@@ -3205,39 +3792,35 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Log</source>
-        <translation type="unfinished">Dziennik</translation>
+        <translation>Dziennik</translation>
     </message>
     <message>
-        <source>Spelling settings will be available in a future version.
-
-Planned features:
+        <source>Coming in future version</source>
+        <translation>Dostępne w przyszłej wersji</translation>
+    </message>
+    <message>
+        <source>Planned features:
 - Spell check language selection
 - Custom dictionary management
 - Ignore rules for technical terms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Auto-correct settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Automatic capitalization
 - Common typo corrections
 - Custom replacement rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Completion settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Word completion suggestions
 - Character name completion
 - Location name completion</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Backup settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Automatic backup frequency
 - Backup location selection
 - Number of backup copies to keep
@@ -3245,36 +3828,28 @@ Planned features:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Auto-save settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Auto-save interval
 - Auto-save on focus loss
 - Session recovery options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Import/Export settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Default export format
 - Import source preferences
 - Encoding settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Update settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Automatic update checks
 - Update channel (stable/beta)
 - Plugin updates</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Performance settings will be available in a future version.
-
-Planned features:
+        <source>Planned features:
 - Memory usage limits
 - Thread pool configuration
 - Cache settings
@@ -3282,41 +3857,107 @@ Planned features:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Startup</source>
+        <source>These settings will be available in a future version.</source>
         <translation type="unfinished"></translation>
     </message>
+</context>
+<context>
+    <name>kalahari::gui::SettingsPage</name>
     <message>
-        <source>Open last project on startup</source>
-        <translation type="unfinished">Otwieraj ostatni projekt przy starcie</translation>
+        <source>Coming in future version</source>
+        <translation>Dostępne w przyszłej wersji</translation>
     </message>
     <message>
-        <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation type="unfinished">Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
+        <source>Takes effect after restarting Kalahari.</source>
+        <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StandaloneInfoBar</name>
+    <message>
+        <source>This file is not part of a project. Limited features available.</source>
+        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
     </message>
     <message>
-        <source>General Appearance</source>
-        <translation type="unfinished"></translation>
+        <source>Add to Project</source>
+        <translation>Dodaj do projektu</translation>
     </message>
     <message>
-        <source>Language:</source>
-        <translation type="unfinished">Język:</translation>
+        <source>Add this file to a project for full features</source>
+        <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
     </message>
     <message>
-        <source>English</source>
-        <translation type="unfinished">angielski</translation>
+        <source>Dismiss this message</source>
+        <translation>Ukryj ten komunikat</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::TagsPanel</name>
+    <message>
+        <source>Filter:</source>
+        <translation>Filtr:</translation>
     </message>
     <message>
-        <source>Polski</source>
-        <translation type="unfinished"></translation>
+        <source>All Tags</source>
+        <translation>Wszystkie tagi</translation>
     </message>
     <message>
-        <source>UI Font Size:</source>
-        <translation type="unfinished"></translation>
+        <source>TODO</source>
+        <translation>TODO</translation>
     </message>
     <message>
-        <source>A language change takes effect after restarting Kalahari.</source>
-        <translation type="unfinished"></translation>
+        <source>FIX</source>
+        <translation>FIX</translation>
     </message>
+    <message>
+        <source>CHECK</source>
+        <translation>CHECK</translation>
+    </message>
+    <message>
+        <source>NOTE</source>
+        <translation>NOTE</translation>
+    </message>
+    <message>
+        <source>WARNING</source>
+        <translation>WARNING</translation>
+    </message>
+    <message>
+        <source>0 tags</source>
+        <translation>Tagi: 0</translation>
+    </message>
+    <message>
+        <source>No tags found in document</source>
+        <translation>Brak tagów w dokumencie</translation>
+    </message>
+    <message>
+        <source>%1 tag(s)</source>
+        <translation>Tagi: %1</translation>
+    </message>
+    <message>
+        <source>Line %1
+%2: %3</source>
+        <translation>Wiersz %1
+%2: %3</translation>
+    </message>
+    <message>
+        <source>(no description)</source>
+        <translation>(bez opisu)</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Line %1</source>
+        <translation>Wiersz %1</translation>
+    </message>
+    <message>
+        <source>Line %1: %2</source>
+        <translation>Wiersz %1: %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ThemePage</name>
     <message>
         <source>Theme:</source>
         <translation type="unfinished"></translation>
@@ -3467,7 +4108,7 @@ Planned features:
     </message>
     <message>
         <source>Text</source>
-        <translation type="unfinished">Tekst</translation>
+        <translation>Tekst</translation>
     </message>
     <message>
         <source>Text color for input fields and text editors</source>
@@ -3607,7 +4248,7 @@ Planned features:
     </message>
     <message>
         <source>Error</source>
-        <translation type="unfinished">Błąd</translation>
+        <translation>Błąd</translation>
     </message>
     <message>
         <source>Color for ERROR level log messages</source>
@@ -3636,647 +4277,6 @@ Planned features:
     <message>
         <source>Reset all colors to the default values for the selected theme</source>
         <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Icon Style</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Icon Style:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Two-tone (Default)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Filled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Outlined</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Rounded</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Preview:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Icon Sizes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Toolbar:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Menu:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Navigator/Tree:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Tab Bar:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Buttons:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Status Bar:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Combo Boxes:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Dashboard Content</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show Kalahari News</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Display news and updates section on Dashboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show Recent Files</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Display recently opened projects on Dashboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Maximum items per section:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Number of items to show in News and Recent Files sections (3-9)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Icon size:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Size of icons in Dashboard panels (24-64 pixels)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Editor Font</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Font Family:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Font Size:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Editor Behavior</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Tab Size:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> spaces</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show Line Numbers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable Word Wrap</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Typography</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Line Spacing:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Multiple of the font&apos;s line height (1.0 = single spacing)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Space After Paragraph:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Indent First Line:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Typewriter Scrolling</source>
-        <translation type="unfinished">Przewijanie jak w maszynie do pisania</translation>
-    </message>
-    <message>
-        <source>View &gt; Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cursor Line Height:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> % from the top</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Where the line with the cursor stays (50% = middle)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Smooth scrolling</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Glide to the next line instead of jumping</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Configure editor colors for light and dark mode.
-Editor color mode is independent from the application theme.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use dark mode for editor</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Toggle between light and dark editor colors</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Light Mode Colors</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inactive (Focus mode)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Dark Mode Colors</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Configure the appearance of the text cursor in the editor.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cursor Style</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Style:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select the cursor shape</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Line (|)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Block</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Underline (_)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select the cursor shape:
-- Line: vertical bar (|)
-- Block: rectangle on character
-- Underline: line under character (_)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cursor width (px):</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Width of the line cursor in pixels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Width of the line cursor (1-5 pixels)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cursor Color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use custom color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>When unchecked, cursor uses the text color.
-When checked, cursor uses a custom color.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Custom Color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Custom cursor color (only used when &apos;Use custom color&apos; is checked)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Blinking</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable cursor blinking</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable or disable cursor blinking animation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Blink interval (ms):</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Time between cursor blink states in milliseconds</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Blink interval (100-2000 ms)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> px</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Format:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A4 (210 x 297 mm)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A5 (148 x 210 mm)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>B5 (176 x 250 mm)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>6 x 9 in (152 x 229 mm)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Letter (8.5 x 11 in)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Legal (8.5 x 14 in)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Custom</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Width:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> mm</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Height:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Gap between pages:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Space between the pages and around them, at 100% zoom</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show page numbers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Top:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Top margin of the page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Top margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bottom:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bottom margin of the page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bottom margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Left:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Left margin of the page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Left margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Right:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Right margin of the page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Right margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Mirror margins (for book binding)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable mirror margins for book binding.
-When enabled, uses inner/outer margins instead of left/right.
-Inner margin is the binding side, outer is the edge.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inner (binding):</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inner margin (binding side) for book layout</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inner margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Outer (edge):</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Outer margin (edge side) for book layout</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Outer margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Text Frame Border</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show text frame border</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Display a visible border around the text content area.
-Useful for visualizing margin boundaries.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Border color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Color of the text frame border</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Border width:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Width of the text frame border in pixels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Border width in pixels (1-5)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Warning: These settings are for advanced users and developers.
-Incorrect configuration may affect application stability.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Diagnostic Tools</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable Diagnostic Menu</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Shows additional menu with debugging tools</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>When enabled, a &apos;Diagnostic&apos; menu appears in the menu bar with:
-- System information
-- Log viewer
-- Component status</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log Panel Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Buffer Size (lines):</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Maximum number of log entries to keep in memory</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> lines</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Higher values use more memory but keep more history</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The log panel displays application messages in real-time.
-
-Buffer size determines how many log entries are kept in memory.
-When the buffer is full, oldest entries are removed.
-
-Note: Log files are always saved to disk regardless of this setting.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log File</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log files are stored in the application directory:
-• kalahari.log - Current session log
-
-Use the log panel toolbar buttons to:
-• Open log folder in file explorer
-• Copy log contents to clipboard
-• Clear the log panel display</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Are you sure you want to enable diagnostic menu?
-
-This exposes advanced debugging tools.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Coming in future version</source>
-        <translation type="unfinished">Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Configure the page format, the page margins and the text frame border.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Page Margins</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::StandaloneInfoBar</name>
-    <message>
-        <source>This file is not part of a project. Limited features available.</source>
-        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
-    </message>
-    <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
-    </message>
-    <message>
-        <source>Add this file to a project for full features</source>
-        <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
-    </message>
-    <message>
-        <source>Dismiss this message</source>
-        <translation>Ukryj ten komunikat</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::TagsPanel</name>
-    <message>
-        <source>Filter:</source>
-        <translation>Filtr:</translation>
-    </message>
-    <message>
-        <source>All Tags</source>
-        <translation>Wszystkie tagi</translation>
-    </message>
-    <message>
-        <source>TODO</source>
-        <translation>TODO</translation>
-    </message>
-    <message>
-        <source>FIX</source>
-        <translation>FIX</translation>
-    </message>
-    <message>
-        <source>CHECK</source>
-        <translation>CHECK</translation>
-    </message>
-    <message>
-        <source>NOTE</source>
-        <translation>NOTE</translation>
-    </message>
-    <message>
-        <source>WARNING</source>
-        <translation>WARNING</translation>
-    </message>
-    <message>
-        <source>0 tags</source>
-        <translation>Tagi: 0</translation>
-    </message>
-    <message>
-        <source>No tags found in document</source>
-        <translation>Brak tagów w dokumencie</translation>
-    </message>
-    <message>
-        <source>%1 tag(s)</source>
-        <translation>Tagi: %1</translation>
-    </message>
-    <message>
-        <source>Line %1
-%2: %3</source>
-        <translation>Wiersz %1
-%2: %3</translation>
-    </message>
-    <message>
-        <source>(no description)</source>
-        <translation>(bez opisu)</translation>
-    </message>
-    <message>
-        <source>%1 (%2)</source>
-        <translation>%1 (%2)</translation>
-    </message>
-    <message>
-        <source>Line %1</source>
-        <translation>Wiersz %1</translation>
-    </message>
-    <message>
-        <source>Line %1: %2</source>
-        <translation>Wiersz %1: %2</translation>
     </message>
 </context>
 <context>

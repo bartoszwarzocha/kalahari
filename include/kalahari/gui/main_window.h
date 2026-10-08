@@ -22,7 +22,6 @@
 #include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
-#include "kalahari/gui/settings_data.h"
 
 class QDockWidget;
 class QCloseEvent;

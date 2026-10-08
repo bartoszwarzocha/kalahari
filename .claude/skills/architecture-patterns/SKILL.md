@@ -81,7 +81,7 @@ include/kalahari/
     │   dock_coordinator, document_coordinator, navigator_coordinator,
     │   diagnostic_controller, settings_coordinator)
     ├── command_registry.h, menu_builder.h, toolbar_builder.h, toolbar_manager.h
-    ├── settings_dialog.h, settings_data.h
+    ├── settings_dialog.h, settings/ (Settings pages)
     ├── dialogs/    # about, new item, add to project, toolbar manager, ...
     ├── panels/     # editor, navigator, log, properties, search, tags, comments, ...
     ├── widgets/    # color_config_widget, standalone_info_bar
