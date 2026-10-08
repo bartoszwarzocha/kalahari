@@ -33,6 +33,7 @@
 #include <optional>
 #include <vector>
 
+class QAction;
 class QDragEnterEvent;
 class QDragLeaveEvent;
 class QDragMoveEvent;
@@ -394,6 +395,12 @@ public:
     /// @brief Redo the last undone command
     void redo();
 
+    /// @brief Undo the last step for good: it cannot be redone
+    ///
+    /// For a step the writer did not mean to make, e.g. an annotation added and left
+    /// without text.
+    void undoWithoutRedo();
+
     /// @brief Clear the undo stack
     void clearUndoStack();
 
@@ -547,8 +554,11 @@ public:
     Annotation addAnnotation(AnnotationKind kind, const QString& text, const QString& author);
 
     /// @brief Give an annotation new data (kind, text, state...), one undo step
+    /// @param annotation The annotation's new data; its id says which one it is
+    /// @param joinPreviousStep true: the change joins the last undo step instead of making
+    ///        its own (typing an annotation's text makes one step of it all)
     /// @return false when the chapter has no annotation with its id
-    bool updateAnnotation(const Annotation& annotation);
+    bool updateAnnotation(const Annotation& annotation, bool joinPreviousStep = false);
 
     /// @brief Take an annotation off the text, one undo step
     /// @return false when the chapter has no annotation with this id
@@ -559,12 +569,18 @@ public:
     bool goToAnnotation(const QString& id);
 
     /// @brief Go to the next TODO not done yet, after the cursor
-    /// @return false when there is none after the cursor
-    bool goToNextTodo();
+    /// @return Its id; empty when there is none after the cursor
+    QString goToNextTodo();
 
     /// @brief Go to the previous TODO not done yet, before the cursor
-    /// @return false when there is none before the cursor
-    bool goToPreviousTodo();
+    /// @return Its id; empty when there is none before the cursor
+    QString goToPreviousTodo();
+
+    /// @brief Actions the text's context menu offers after the editing ones
+    ///
+    /// The application's commands, e.g. adding a comment; the editor only shows them.
+    /// Null entries are left out.
+    void setContextMenuActions(const QList<QAction*>& actions);
 
     // =========================================================================
     // View Mode (Phase 5.1)
@@ -1033,9 +1049,16 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
-    /// @brief Put back the cursor and selection a paragraph format step just undone or
-    /// redone was made with
+    /// @brief Put back the cursor and selection a step that changes no text (a paragraph
+    /// format step, a step of annotations) just undone or redone was made with
     void restoreStepCursor();
+
+    /// @brief Start an undo step of annotations, or join the last undo step
+    ///
+    /// Such a step changes no text: undoing or redoing it brings back the cursor and
+    /// selection it was made with (see restoreStepCursor()). End it with
+    /// QTextCursor::endEditBlock().
+    void beginAnnotationStep(QTextCursor& step, bool joinPreviousStep);
 
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
@@ -1310,6 +1333,7 @@ private:
     QPointF m_autoScrollPos;            ///< Last mouse position for automatic scrolling
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
+    QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
@@ -1386,14 +1410,14 @@ private:
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
 
-    /// @brief Cursor and selection a paragraph format step was made with
+    /// @brief Cursor and selection a step that changes no text was made with
     struct StepCursor {
         CursorPosition cursor;
         SelectionRange selection;
     };
 
-    /// @brief Set by the undo item of a paragraph format step being undone or redone
-    /// (see setParagraphAlignment())
+    /// @brief Set by the undo item of a step that changes no text being undone or redone
+    /// (see setParagraphAlignment() and beginAnnotationStep())
     std::optional<StepCursor> m_stepCursor;
 
     /// @brief Create the document with the given content and connect it to the view

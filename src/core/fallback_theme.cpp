@@ -11,6 +11,20 @@ namespace kalahari::core {
 // Static member initialization
 bool FallbackTheme::s_usingFallback = true;
 
+namespace {
+
+/// @brief The colors of the annotation kinds on light and dark paper (as in the theme files)
+void setAnnotationColors(Theme& theme) {
+    theme.editor["annotationCommentLightPaper"] = QColor("#D98E04");
+    theme.editor["annotationCommentDarkPaper"] = QColor("#F2A93B");
+    theme.editor["annotationTodoLightPaper"] = QColor("#7B61FF");
+    theme.editor["annotationTodoDarkPaper"] = QColor("#A08CFF");
+    theme.editor["annotationNoteLightPaper"] = QColor("#1E88E5");
+    theme.editor["annotationNoteDarkPaper"] = QColor("#4DA3F0");
+}
+
+} // namespace
+
 Theme FallbackTheme::getLightTheme() {
     Theme theme;
 
@@ -32,6 +46,8 @@ Theme FallbackTheme::getLightTheme() {
     theme.log.info = QColor("#000000");
     theme.log.debug = QColor("#666666");
     theme.log.background = QColor("#F8F9FA");
+
+    setAnnotationColors(theme);
 
     Logger::getInstance().debug("FallbackTheme: Created Light fallback theme");
     return theme;
@@ -58,6 +74,8 @@ Theme FallbackTheme::getDarkTheme() {
     theme.log.info = QColor("#FFFFFF");
     theme.log.debug = QColor("#808080");
     theme.log.background = QColor("#252526");
+
+    setAnnotationColors(theme);
 
     Logger::getInstance().debug("FallbackTheme: Created Dark fallback theme");
     return theme;

@@ -7,6 +7,7 @@
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -214,6 +215,23 @@ MainWindow::MainWindow(QWidget* parent)
     });
     logger.debug("MainWindow: DocumentCoordinator created");
 
+    // The annotation commands and the Annotations panel; a chapter is opened as from the
+    // Navigator
+    m_annotationsCoordinator = new AnnotationsCoordinator(
+        m_dockCoordinator->annotationsPanel(),
+        m_dockCoordinator->annotationsDock(),
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::BookElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(
+                    elementId, QString::fromStdString(element->getTitle()));
+            }
+        },
+        statusBar(),
+        this);
+    m_annotationsCoordinator->connectCommands();
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -277,6 +295,9 @@ MainWindow::~MainWindow() {
     }
     if (m_navigatorCoordinator) {
         disconnect(m_navigatorCoordinator, nullptr, this, nullptr);
+    }
+    if (m_annotationsCoordinator) {
+        disconnect(m_annotationsCoordinator, nullptr, this, nullptr);
     }
 
     // Block signals to prevent any delivery during child destruction
@@ -847,6 +868,11 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
     }
     if (EditorPanel* editor = getCurrentEditor(); editor && editor->getBookEditor()) {
         editor->getBookEditor()->setFocus();
+    }
+
+    // A new annotation's text is typed in the Annotations panel, which is hidden now
+    if (m_annotationsCoordinator) {
+        m_annotationsCoordinator->setAddingAvailable(!enabled);
     }
 
     auto& registry = CommandRegistry::getInstance();

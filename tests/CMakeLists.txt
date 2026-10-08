@@ -68,6 +68,7 @@ set(TEST_SOURCES
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
+    gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -148,6 +149,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_entry.cpp  # Annotations panel: filters and orders
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_card.cpp   # Annotations panel: cards
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
+    ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
@@ -182,6 +187,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT

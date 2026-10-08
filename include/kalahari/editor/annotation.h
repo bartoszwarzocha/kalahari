@@ -26,6 +26,7 @@
 #include <QTextCharFormat>
 
 #include <optional>
+#include <string>
 #include <vector>
 
 class QTextCursor;
@@ -77,6 +78,14 @@ QString annotationKindName(AnnotationKind kind);
 /// @brief The kind a KML name stands for (std::nullopt for an unknown name)
 std::optional<AnnotationKind> annotationKindFromName(QStringView name);
 
+/// @brief The theme's editor color of a kind (the "editor" section of a theme file)
+///
+/// Each kind has a color for the light and one for the dark paper, e.g.
+/// "annotationCommentLightPaper"; ThemeManager::editorColor() reads it.
+/// @param kind The kind
+/// @param darkPaper true: the color on dark paper (and on a dark panel)
+std::string annotationColorKey(AnnotationKind kind, bool darkPaper);
+
 /// @brief A new annotation id, unique in every book
 QString newAnnotationId();
 
@@ -113,8 +122,13 @@ Annotation addAnnotation(const QTextCursor& cursor, Annotation annotation);
 /// @brief Give an annotation new data (kind, text, state...) wherever it is, as one undo step
 ///
 /// Its anchor stays: whether it is on a fragment or on a place.
+/// @param document The document
+/// @param annotation The annotation's new data; its id says which one it is
+/// @param joinPreviousStep true: the change joins the document's last undo step instead of
+///        making its own (typing an annotation's text makes one step of it all)
 /// @return false when the document has no annotation with this id
-bool updateAnnotation(QTextDocument& document, const Annotation& annotation);
+bool updateAnnotation(QTextDocument& document, const Annotation& annotation,
+                      bool joinPreviousStep = false);
 
 /// @brief Take an annotation off the text, as one undo step
 /// @return false when the document has no annotation with this id

@@ -83,6 +83,18 @@ public:
     ///         format runs); none if index is out of range
     AnnotationList paragraphStartAnnotations(size_t index) const;
 
+    // =========================================================================
+    // Annotations of a chapter
+    // =========================================================================
+
+    /// @brief The annotations of a chapter's KML, without reading its paragraphs
+    ///
+    /// They come from the <annotations> section before the paragraphs, in its order: the
+    /// order of their anchors in the text. An annotation without an id or with an unknown
+    /// kind is left out, and so is a repeated id.
+    /// @param kml KML markup string
+    static AnnotationList readAnnotations(const QString& kml);
+
 private:
     /// @brief Internal paragraph storage
     struct Paragraph {

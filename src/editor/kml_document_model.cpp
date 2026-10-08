@@ -11,6 +11,8 @@
 #include <QTimeZone>
 #include <QXmlStreamReader>
 
+#include <optional>
+
 namespace kalahari {
 namespace editor {
 
@@ -24,6 +26,49 @@ QDateTime timeFromKml(const QString& value)
         return QDateTime(time.date(), time.time(), QTimeZone::utc());
     }
     return time;
+}
+
+/// @brief Read an <annotation> element of the <annotations> section
+/// @param reader XML reader positioned at the element's start; on return it is positioned
+///               at its end element
+/// @return The annotation; std::nullopt when it has no id or an unknown kind
+std::optional<Annotation> readAnnotationElement(QXmlStreamReader& reader)
+{
+    Annotation annotation;
+    QString kindName;
+    const QXmlStreamAttributes attributes = reader.attributes();
+    for (const QXmlStreamAttribute& attribute : attributes) {
+        const QString name = attribute.name().toString();
+        const QString value = attribute.value().toString();
+        if (name == QStringLiteral("id")) {
+            annotation.id = value;
+        } else if (name == QStringLiteral("kind")) {
+            kindName = value;
+        } else if (name == QStringLiteral("author")) {
+            annotation.author = value;
+        } else if (name == QStringLiteral("done")) {
+            const QString flag = value.toLower();
+            annotation.done = flag == QStringLiteral("true") || flag == QStringLiteral("1");
+        } else if (name == QStringLiteral("created")) {
+            annotation.created = timeFromKml(value);
+            if (!annotation.created.isValid()) {
+                annotation.otherAttributes.insert(name, value);  // kept as it is
+            }
+        } else {
+            annotation.otherAttributes.insert(name, value);
+        }
+    }
+    annotation.text = reader.readElementText(QXmlStreamReader::SkipChildElements);
+
+    const std::optional<AnnotationKind> kind = annotationKindFromName(kindName);
+    if (annotation.id.isEmpty() || !kind) {
+        core::Logger::getInstance().warn("KmlDocumentModel: annotation '{}' of kind '{}' left "
+                                         "out (no id or an unknown kind)",
+                                         annotation.id.toStdString(), kindName.toStdString());
+        return std::nullopt;
+    }
+    annotation.kind = *kind;
+    return annotation;
 }
 
 }  // anonymous namespace
@@ -118,6 +163,47 @@ void KmlDocumentModel::clear()
     m_anchoredIds.clear();
 }
 
+AnnotationList KmlDocumentModel::readAnnotations(const QString& kml)
+{
+    AnnotationList annotations;
+    if (kml.isEmpty()) {
+        return annotations;
+    }
+
+    QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
+    if (!reader.readNextStartElement()) {
+        return annotations;  // no root element
+    }
+
+    // The section comes before the paragraphs (KmlSerializer writes it there): without one
+    // before the first paragraph the chapter has no annotations
+    while (reader.readNextStartElement()) {
+        const QStringView tag = reader.name();
+        if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+            break;
+        }
+        if (tag != QStringLiteral("annotations")) {
+            reader.skipCurrentElement();
+            continue;
+        }
+
+        QSet<QString> ids;
+        while (reader.readNextStartElement()) {
+            if (reader.name() != QStringLiteral("annotation")) {
+                reader.skipCurrentElement();
+                continue;
+            }
+            const std::optional<Annotation> annotation = readAnnotationElement(reader);
+            if (annotation && !ids.contains(annotation->id)) {
+                ids.insert(annotation->id);
+                annotations.append(*annotation);
+            }
+        }
+        break;
+    }
+    return annotations;
+}
+
 bool KmlDocumentModel::isEmpty() const
 {
     return m_paragraphs.empty();
@@ -170,48 +256,23 @@ AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
 
 void KmlDocumentModel::parseAnnotations(QXmlStreamReader& reader)
 {
-    auto& logger = core::Logger::getInstance();
     while (reader.readNextStartElement()) {
         if (reader.name() != QStringLiteral("annotation")) {
             reader.skipCurrentElement();
             continue;
         }
 
-        Annotation annotation;
-        QString kindName;
-        const QXmlStreamAttributes attributes = reader.attributes();
-        for (const QXmlStreamAttribute& attribute : attributes) {
-            const QString name = attribute.name().toString();
-            const QString value = attribute.value().toString();
-            if (name == QStringLiteral("id")) {
-                annotation.id = value;
-            } else if (name == QStringLiteral("kind")) {
-                kindName = value;
-            } else if (name == QStringLiteral("author")) {
-                annotation.author = value;
-            } else if (name == QStringLiteral("done")) {
-                const QString flag = value.toLower();
-                annotation.done = flag == QStringLiteral("true") || flag == QStringLiteral("1");
-            } else if (name == QStringLiteral("created")) {
-                annotation.created = timeFromKml(value);
-                if (!annotation.created.isValid()) {
-                    annotation.otherAttributes.insert(name, value);  // kept as it is
-                }
-            } else {
-                annotation.otherAttributes.insert(name, value);
-            }
-        }
-        annotation.text = reader.readElementText(QXmlStreamReader::SkipChildElements);
-
-        const std::optional<AnnotationKind> kind = annotationKindFromName(kindName);
-        if (annotation.id.isEmpty() || !kind || m_annotations.contains(annotation.id)) {
-            logger.warn("KmlDocumentModel::loadKml: annotation '{}' of kind '{}' left out "
-                        "(no id, an unknown kind or a repeated id)",
-                        annotation.id.toStdString(), kindName.toStdString());
+        const std::optional<Annotation> annotation = readAnnotationElement(reader);
+        if (!annotation) {
             continue;
         }
-        annotation.kind = *kind;
-        m_annotations.insert(annotation.id, annotation);
+        if (m_annotations.contains(annotation->id)) {
+            core::Logger::getInstance().warn("KmlDocumentModel::loadKml: annotation '{}' left "
+                                             "out (a repeated id)",
+                                             annotation->id.toStdString());
+            continue;
+        }
+        m_annotations.insert(annotation->id, *annotation);
     }
 }
 

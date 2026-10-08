@@ -236,6 +236,68 @@ TEST_CASE("Annotations: changed and taken off wherever they are", "[editor][anno
     CHECK(annotationOf(*editor, QStringLiteral("c1")).text == QStringLiteral("Text"));
 }
 
+TEST_CASE("Annotations: undone and redone, a step of them brings back its cursor and selection",
+          "[editor][annotations]") {
+    // "First paragraph" 0-15, the paragraph break 15, "One two three" 16-29
+    auto editor = editorWith(kmlWith(record(QStringLiteral("c1")),
+                                     {QStringLiteral("First paragraph"),
+                                      QStringLiteral("One <anchor ref=\"c1\">two</anchor> three")}));
+    REQUIRE(places(*editor) == QStringLiteral("c1 20-23"));
+
+    SECTION("a change") {
+        editor->setCursorPosition({1, 9});
+        Annotation comment = annotationOf(*editor, QStringLiteral("c1"));
+        comment.text = QStringLiteral("New");
+        REQUIRE(editor->updateAnnotation(comment));
+
+        editor->setCursorPosition({0, 2});  // the writer went on elsewhere
+        editor->undo();
+        CHECK(annotationOf(*editor, QStringLiteral("c1")).text == QStringLiteral("Text"));
+        CHECK(editor->cursorPosition() == CursorPosition{1, 9});
+        CHECK_FALSE(editor->hasSelection());
+        editor->setCursorPosition({0, 2});
+        editor->redo();
+        CHECK(annotationOf(*editor, QStringLiteral("c1")).text == QStringLiteral("New"));
+        CHECK(editor->cursorPosition() == CursorPosition{1, 9});
+    }
+
+    SECTION("a new one with its text typed after it, in one step") {
+        editor->setSelection({{1, 8}, {1, 13}});
+        Annotation typed = editor->addAnnotation(AnnotationKind::Todo, QString(), QString());
+        typed.text = QStringLiteral("Check");
+        REQUIRE(editor->updateAnnotation(typed, true));
+
+        editor->setCursorPosition({0, 2});
+        editor->undo();
+        CHECK(places(*editor) == QStringLiteral("c1 20-23"));
+        CHECK(editor->selection().normalized().start == CursorPosition{1, 8});
+        CHECK(editor->selection().normalized().end == CursorPosition{1, 13});
+    }
+
+    SECTION("a removal") {
+        editor->setCursorPosition({1, 2});
+        REQUIRE(editor->removeAnnotation(QStringLiteral("c1")));
+        editor->setCursorPosition({0, 2});
+        editor->undo();
+        CHECK(places(*editor) == QStringLiteral("c1 20-23"));
+        CHECK(editor->cursorPosition() == CursorPosition{1, 2});
+    }
+
+    SECTION("nothing to change, no step") {
+        const QString text = editor->plainText();
+        editor->setCursorPosition({0, 5});
+        editor->insertText(QStringLiteral("x"));
+        Annotation none;
+        none.id = QStringLiteral("none");
+        CHECK_FALSE(editor->updateAnnotation(none, true));
+        CHECK_FALSE(editor->removeAnnotation(QStringLiteral("none")));
+
+        editor->undo();  // the typing, no more
+        CHECK(editor->plainText() == text);
+        CHECK_FALSE(editor->canUndo());
+    }
+}
+
 TEST_CASE("Annotations: going to one, to the next and to the previous TODO",
           "[editor][annotations]") {
     // "One two three four five"
@@ -264,13 +326,13 @@ TEST_CASE("Annotations: going to one, to the next and to the previous TODO",
 
     SECTION("TODOs not done yet, in both directions") {
         editor->setCursorPosition({0, 2});
-        REQUIRE(editor->goToNextTodo());  // past the comment and the TODO done
+        CHECK(editor->goToNextTodo() == QStringLiteral("t3"));  // past the comment and the TODO done
         CHECK(editor->cursorPosition() == CursorPosition{0, 23});
-        CHECK_FALSE(editor->goToNextTodo());
-        REQUIRE(editor->goToPreviousTodo());  // before the selected one
+        CHECK(editor->goToNextTodo().isEmpty());
+        CHECK(editor->goToPreviousTodo() == QStringLiteral("t1"));  // before the selected one
         CHECK(editor->cursorPosition() == CursorPosition{0, 3});
         CHECK(editor->selection().normalized().start == CursorPosition{0, 0});
-        CHECK_FALSE(editor->goToPreviousTodo());
+        CHECK(editor->goToPreviousTodo().isEmpty());
     }
 }
 

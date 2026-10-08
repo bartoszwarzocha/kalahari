@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
+#include "book_editor_internal.h"
 #include <QDateTime>
 
 namespace kalahari::editor {
@@ -30,18 +31,27 @@ Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
     }
+    QTextCursor step(m_textBuffer.get());
+    beginAnnotationStep(step, false);
     annotation = editor::addAnnotation(cursor, annotation);
+    step.endEditBlock();
 
     update();
     emit contentChanged();
     return annotation;
 }
 
-bool BookEditor::updateAnnotation(const Annotation& annotation)
+bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)
 {
-    if (!m_textBuffer || !editor::updateAnnotation(*m_textBuffer, annotation)) {
+    // A step only for a change: one with nothing but the cursor in it would be undone too
+    if (!m_textBuffer || !findAnnotation(*m_textBuffer, annotation.id)) {
         return false;
     }
+    QTextCursor step(m_textBuffer.get());
+    beginAnnotationStep(step, joinPreviousStep);
+    editor::updateAnnotation(*m_textBuffer, annotation);
+    step.endEditBlock();
+
     update();
     emit contentChanged();
     return true;
@@ -49,12 +59,30 @@ bool BookEditor::updateAnnotation(const Annotation& annotation)
 
 bool BookEditor::removeAnnotation(const QString& id)
 {
-    if (!m_textBuffer || !editor::removeAnnotation(*m_textBuffer, id)) {
+    if (!m_textBuffer || !findAnnotation(*m_textBuffer, id)) {
         return false;
     }
+    QTextCursor step(m_textBuffer.get());
+    beginAnnotationStep(step, false);
+    editor::removeAnnotation(*m_textBuffer, id);
+    step.endEditBlock();
+
     update();
     emit contentChanged();
     return true;
+}
+
+void BookEditor::beginAnnotationStep(QTextCursor& step, bool joinPreviousStep)
+{
+    // Without its cursor, undoing the step would put the cursor where its edit block began:
+    // at the start of the text
+    if (joinPreviousStep) {
+        step.joinPreviousEditBlock();
+    } else {
+        step.beginEditBlock();
+    }
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
 }
 
 bool BookEditor::goToAnnotation(const QString& id)
@@ -80,25 +108,26 @@ bool BookEditor::goToAnnotation(const QString& id)
     return true;
 }
 
-bool BookEditor::goToNextTodo()
+QString BookEditor::goToNextTodo()
 {
     if (!m_textBuffer) {
-        return false;
+        return {};
     }
     const int position = calculateAbsolutePosition(m_cursorPosition);
     for (const AnnotationPlace& place : annotationsIn(*m_textBuffer)) {
         if (place.annotation.kind == AnnotationKind::Todo && !place.annotation.done &&
             place.start > position) {
-            return goToAnnotation(place.annotation.id);
+            goToAnnotation(place.annotation.id);
+            return place.annotation.id;
         }
     }
-    return false;
+    return {};
 }
 
-bool BookEditor::goToPreviousTodo()
+QString BookEditor::goToPreviousTodo()
 {
     if (!m_textBuffer) {
-        return false;
+        return {};
     }
 
     // Before the cursor, or before the selected fragment of the TODO the cursor is at
@@ -109,10 +138,11 @@ bool BookEditor::goToPreviousTodo()
     for (auto it = places.rbegin(); it != places.rend(); ++it) {
         if (it->annotation.kind == AnnotationKind::Todo && !it->annotation.done &&
             it->start < position) {
-            return goToAnnotation(it->annotation.id);
+            goToAnnotation(it->annotation.id);
+            return it->annotation.id;
         }
     }
-    return false;
+    return {};
 }
 
 }  // namespace kalahari::editor

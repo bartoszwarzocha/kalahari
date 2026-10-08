@@ -58,6 +58,10 @@ std::map<std::string, json> buildDefaults() {
         {"dashboard.showRecentFiles", true},
         {"startup.autoLoadLastProject", false},
 
+        // Annotations: the name they are made with. Empty: the book's author, else the
+        // system user's name
+        {"annotations.author", ""},
+
         // New projects
         {"project.defaultAuthor", ""},
         {"project.defaultLanguage", "en"},

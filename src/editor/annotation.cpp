@@ -103,12 +103,17 @@ std::vector<FormatPiece> annotatedPieces(const QTextDocument& document, int from
 ///
 /// The format of a piece is replaced as a whole: the new one is the piece's format with
 /// other annotations, so nothing else changes.
-void applyPieces(QTextDocument& document, const std::vector<FormatPiece>& pieces) {
+void applyPieces(QTextDocument& document, const std::vector<FormatPiece>& pieces,
+                 bool joinPreviousStep = false) {
     if (pieces.empty()) {
         return;
     }
     QTextCursor cursor(&document);
-    cursor.beginEditBlock();
+    if (joinPreviousStep) {
+        cursor.joinPreviousEditBlock();
+    } else {
+        cursor.beginEditBlock();
+    }
     for (const FormatPiece& piece : pieces) {
         cursor.setPosition(piece.start);
         if (piece.isParagraph()) {
@@ -204,6 +209,22 @@ std::optional<AnnotationKind> annotationKindFromName(QStringView name) {
         }
     }
     return std::nullopt;
+}
+
+std::string annotationColorKey(AnnotationKind kind, bool darkPaper) {
+    std::string key;
+    switch (kind) {
+    case AnnotationKind::Comment:
+        key = "annotationComment";
+        break;
+    case AnnotationKind::Todo:
+        key = "annotationTodo";
+        break;
+    case AnnotationKind::Note:
+        key = "annotationNote";
+        break;
+    }
+    return key + (darkPaper ? "DarkPaper" : "LightPaper");
 }
 
 QString newAnnotationId() {
@@ -328,7 +349,8 @@ Annotation addAnnotation(const QTextCursor& cursor, Annotation annotation) {
     return annotation;
 }
 
-bool updateAnnotation(QTextDocument& document, const Annotation& annotation) {
+bool updateAnnotation(QTextDocument& document, const Annotation& annotation,
+                      bool joinPreviousStep) {
     const std::vector<FormatPiece> pieces = changedPieces(
         document, annotation.id, [&annotation](const Annotation& old, const AnnotationList& list) {
             Annotation updated = annotation;
@@ -338,7 +360,7 @@ bool updateAnnotation(QTextDocument& document, const Annotation& annotation) {
     if (pieces.empty()) {
         return false;
     }
-    applyPieces(document, pieces);
+    applyPieces(document, pieces, joinPreviousStep);
     return true;
 }
 

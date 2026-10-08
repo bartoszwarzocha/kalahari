@@ -4,6 +4,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <QAbstractTextDocumentLayout>
+#include <QAction>
 #include <QApplication>
 #include <QContextMenuEvent>
 #include <QDrag>
@@ -19,6 +20,7 @@
 #include <QScopedValueRollback>
 #include <QTimer>
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -745,6 +747,11 @@ void BookEditor::onAutoScrollTimeout()
     }
 }
 
+void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
+{
+    m_contextMenuActions = actions;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -780,6 +787,15 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
+    // A right click outside the selection puts the cursor there, as a click does, so what
+    // the menu does (pasting, adding an annotation) happens where the writer clicked
+    if (event->reason() == QContextMenuEvent::Mouse && !isInSelection(pos)) {
+        const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+        clearSelection();
+        m_selectionAnchor = pos;
+        setCursorPosition(pos);
+    }
+
     // Default context menu
     QMenu menu(this);
 
@@ -792,6 +808,19 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
     if (hasSelection()) {
         menu.addSeparator();
         menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
+    }
+
+    // The application's commands for the text (adding annotations)
+    bool separated = false;
+    for (QAction* action : std::as_const(m_contextMenuActions)) {
+        if (action == nullptr) {
+            continue;
+        }
+        if (!separated) {
+            menu.addSeparator();
+            separated = true;
+        }
+        menu.addAction(action);
     }
 
     // Color mode toggle

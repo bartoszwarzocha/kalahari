@@ -155,6 +155,7 @@ set(KALAHARI_SOURCES
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
+    gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/settings_dialog.cpp
@@ -166,6 +167,9 @@ set(KALAHARI_SOURCES
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/toolbar_builder.cpp
     gui/toolbar_manager.cpp
+    gui/panels/annotation_card.cpp
+    gui/panels/annotation_entry.cpp
+    gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
     gui/panels/editor_panel.cpp
@@ -234,6 +238,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_coordinator.h  # SettingsCoordinator with Q_OBJECT (OpenSpec #00038 Phase 5)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT (OpenSpec #00038 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
@@ -241,6 +246,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h

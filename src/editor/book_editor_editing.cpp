@@ -358,6 +358,15 @@ void BookEditor::redo()
     emit cursorPositionChanged(m_cursorPosition);
 }
 
+void BookEditor::undoWithoutRedo()
+{
+    if (!m_textBuffer || !m_textBuffer->isUndoAvailable()) {
+        return;
+    }
+    undo();
+    m_textBuffer->clearUndoRedoStacks(QTextDocument::RedoStack);
+}
+
 void BookEditor::clearUndoStack()
 {
     if (m_textBuffer) {
