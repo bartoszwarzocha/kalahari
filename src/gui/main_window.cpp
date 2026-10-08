@@ -1136,6 +1136,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::currentPageChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::contentChanged, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1145,6 +1146,13 @@ void MainWindow::createDocks() {
                         this, [this](const editor::CursorPosition&) {
                     if (m_actionStateDebounceTimer) {
                         m_actionStateDebounceTimer->start();  // Restart timer on each move
+                    }
+                });
+                // Also a change with the cursor where it was, such as one made in the
+                // Annotations panel: Undo is to be enabled for it
+                connect(bookEditor, &editor::BookEditor::contentChanged, this, [this]() {
+                    if (m_actionStateDebounceTimer) {
+                        m_actionStateDebounceTimer->start();
                     }
                 });
                 connect(bookEditor, &editor::BookEditor::viewModeChanged,
