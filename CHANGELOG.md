@@ -334,6 +334,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
+  (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
+  front: its command is greyed out without one, and it goes off when the Dashboard or no
+  tab comes to the front (for example when the book is closed).
 - **Dashboard: a new book shows in the recent books** - 2026-10-08. Only opening a book
   put it on the list of recent books, so a book just created was missing from the
   Dashboard and the Recent Books menu until it was opened again. Every book opened or

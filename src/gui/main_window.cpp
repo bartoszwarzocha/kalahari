@@ -417,9 +417,13 @@ void MainWindow::registerCommands() {
         fsCmd->isChecked = [this]() { return isFullScreen(); };
     }
 
-    // Distraction-Free belongs to the window, not to an editor: on also over the Dashboard
+    // Distraction-Free is for writing in the document in front: without one (the Dashboard,
+    // no tab) it cannot be turned on, and it goes off (see createDocks())
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
+        dfCmd->isEnabled = [this]() {
+            return isDistractionFree() || (m_dockCoordinator != nullptr && getCurrentEditor() != nullptr);
+        };
     }
 
     // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
@@ -1083,6 +1087,13 @@ void MainWindow::createDocks() {
     connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
+
+        // Distraction-Free needs a document in front: it goes off over the Dashboard or
+        // without a tab, and its command waits for a document
+        if (isDistractionFree() && getCurrentEditor() == nullptr) {
+            m_distractionFreeLayout->setActive(false);
+        }
+        CommandRegistry::getInstance().updateActionState("view.mode.distraction-free");
 
         if (index < 0) {
             navigatorPanel->clearHighlight();
