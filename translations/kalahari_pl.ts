@@ -4780,6 +4780,108 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::KalahariDialog</name>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Zastosuj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NewElementDialog</name>
+    <message>
+        <source>Add Chapter</source>
+        <translation>Dodaj rozdział</translation>
+    </message>
+    <message>
+        <source>The chapter is added as the last one in the part &quot;%1&quot;.</source>
+        <translation>Rozdział zostanie dodany jako ostatni w części „%1”.</translation>
+    </message>
+    <message>
+        <source>New Chapter</source>
+        <translation>Nowy rozdział</translation>
+    </message>
+    <message>
+        <source>Add Part</source>
+        <translation>Dodaj część</translation>
+    </message>
+    <message>
+        <source>The part is added as the last one in the book.</source>
+        <translation>Część zostanie dodana jako ostatnia w książce.</translation>
+    </message>
+    <message>
+        <source>New Part</source>
+        <translation>Nowa część</translation>
+    </message>
+    <message>
+        <source>Add Front Matter Item</source>
+        <translation>Dodaj element części wstępnej</translation>
+    </message>
+    <message>
+        <source>The item is added as the last one in the front matter.</source>
+        <translation>Element zostanie dodany jako ostatni w części wstępnej.</translation>
+    </message>
+    <message>
+        <source>Add Back Matter Item</source>
+        <translation>Dodaj element części końcowej</translation>
+    </message>
+    <message>
+        <source>The item is added as the last one in the back matter.</source>
+        <translation>Element zostanie dodany jako ostatni w części końcowej.</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Title Page</source>
+        <translation>Strona tytułowa</translation>
+    </message>
+    <message>
+        <source>Copyright Page</source>
+        <translation>Strona redakcyjna</translation>
+    </message>
+    <message>
+        <source>Dedication</source>
+        <translation>Dedykacja</translation>
+    </message>
+    <message>
+        <source>Preface</source>
+        <translation>Przedmowa</translation>
+    </message>
+    <message>
+        <source>Epilogue</source>
+        <translation>Epilog</translation>
+    </message>
+    <message>
+        <source>Glossary</source>
+        <translation>Słowniczek</translation>
+    </message>
+    <message>
+        <source>Bibliography</source>
+        <translation>Bibliografia</translation>
+    </message>
+    <message>
+        <source>About the Author</source>
+        <translation>Nota o autorze</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
     <message>
         <source>New Book</source>
@@ -4928,6 +5030,21 @@ Harmonogram projektu:
     <message>
         <source>Select Book Location</source>
         <translation>Wybierz miejsce książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RenameElementDialog</name>
+    <message>
+        <source>Rename</source>
+        <translation>Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>Current name: %1</source>
+        <translation>Obecna nazwa: %1</translation>
+    </message>
+    <message>
+        <source>New name</source>
+        <translation>Nowa nazwa</translation>
     </message>
 </context>
 <context>

@@ -6,6 +6,7 @@
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include <QFileInfo>
 #include <vector>
@@ -25,6 +26,13 @@ RecentBooksManager::RecentBooksManager()
     , m_clearAction(nullptr)
 {
     loadRecentFiles();
+
+    // Every book opened or just created goes to the top of the list (the Dashboard and
+    // the Recent Books menu follow recentFilesChanged)
+    auto& projectManager = ProjectManager::getInstance();
+    connect(&projectManager, &ProjectManager::projectOpened, this, [this, &projectManager]() {
+        addRecentFile(projectManager.getManifestPath());
+    });
 }
 
 void RecentBooksManager::addRecentFile(const QString& filePath) {

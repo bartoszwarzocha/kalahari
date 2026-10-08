@@ -245,6 +245,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The program's own dialogs, starting with the Navigator's** - 2026-10-08
+  - A common base for the program's own dialogs: a heading with the dialog's icon, its
+    title and a sentence about what it does, then the dialog's content and the buttons,
+    the first one named after what it does ("Add", "Rename"). It can also show Apply and
+    a low heading, and it can be resized, so the Settings window can be built on it.
+  - The Navigator asks in dialogs of its own instead of the system's text box: Add
+    Chapter (it names the part the chapter goes to), Add Part, Add Front Matter Item,
+    Add Back Matter Item and Rename (it shows the current name).
+  - A new front or back matter item gets the type the writer picks (Title Page,
+    Copyright Page, Dedication, Preface; Epilogue, Glossary, Bibliography, About the
+    Author), and its title starts as the type's name. Before, every new front matter
+    item was a preface and every back matter item an epilogue.
 - **Spelling dictionaries** - 2026-10-08. Kalahari ships Polish (pl_PL) and English (en_US)
   Hunspell dictionaries in `resources/dictionaries`, so spell checking needs no
   dictionary installed on the computer (Windows has none). The Polish dictionary is
@@ -314,6 +326,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
   front: its command is greyed out without one, and it goes off when the Dashboard or no
   tab comes to the front (for example when the book is closed).
+- **Dashboard: a new book shows in the recent books** - 2026-10-08. Only opening a book
+  put it on the list of recent books, so a book just created was missing from the
+  Dashboard and the Recent Books menu until it was opened again. Every book opened or
+  created now goes to the top of the list.
+
 - **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
   Item in the front or back matter) made a chapter without a file, so its text was saved
   as ".kchapter" in the project's folder - one name for all the chapters added that way.
