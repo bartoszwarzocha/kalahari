@@ -21,6 +21,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.x", 100},
         {"window.y", 100},
         {"window.maximized", false},
+        {"window.geometry", ""},  // QMainWindow::saveGeometry() as base64
+        {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
+        {"recent_files", json::array()},
 
         // Interface
         {"ui.language", "en"},
@@ -42,6 +45,7 @@ std::map<std::string, json> buildDefaults() {
         // Toolbars
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},
+        {"toolbars.configVersion", 0},
 
         // Log panel
         {"log.bufferSize", 500},

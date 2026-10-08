@@ -1,9 +1,10 @@
 /// @file editor_appearance.h
 /// @brief Visual appearance configuration for BookEditor (OpenSpec #00042 Phase 5)
 ///
-/// EditorAppearance provides a centralized, configurable system for all visual
-/// aspects of the text editor. Designed for easy customization and future
-/// extensibility (themes, presets, user preferences).
+/// EditorAppearance holds what the editor shows the way the settings say: colors, the
+/// text's font and typography, the page, the cursor and the writing modes. EditorPanel
+/// fills it from the editor settings; the defaults here are those of an editor without
+/// settings and match the settings schema.
 ///
 /// Philosophy: "Pisarz, szklanka whisky, zanurzenie w procesie twórczym"
 /// The visual environment should support deep focus and creative flow.
@@ -12,10 +13,8 @@
 
 #include <QColor>
 #include <QFont>
-#include <QMarginsF>
+#include <QSizeF>
 #include <QString>
-#include <QJsonObject>
-#include <memory>
 
 namespace kalahari::editor {
 
@@ -38,51 +37,12 @@ enum class EditorColorMode {
 // Color Palette
 // =============================================================================
 
-/// @brief Complete color configuration for the editor
-///
-/// All colors are configurable. The structure is designed to support:
-/// - Light/dark themes
-/// - Custom user themes
-/// - Per-mode color overrides (e.g., sepia for focus mode)
+/// @brief Colors of the editor, for the light and the dark paper
 struct EditorColors {
-    // Background colors
-    QColor editorBackground{35, 35, 40};      ///< Main editor area background
-    QColor pageBackground{255, 255, 255};      ///< Page/paper color
-    QColor pageShadow{0, 0, 0, 60};            ///< Page drop shadow
-    QColor marginArea{245, 245, 245};          ///< Margin/gutter area
-
-    // Text colors
-    QColor text{30, 30, 30};                   ///< Default text color
-    QColor textSecondary{100, 100, 100};       ///< Secondary text (line numbers, etc.)
-    QColor textDimmed{150, 150, 150};          ///< Dimmed text (focus mode inactive)
-
-    // Selection & cursor
     QColor selection{66, 133, 244, 80};        ///< Selection highlight
-    QColor selectionBorder{66, 133, 244};      ///< Selection border (optional)
-    QColor cursor{30, 30, 30};                 ///< Cursor/caret color
-    QColor cursorLine{0, 0, 0, 15};            ///< Current line highlight
+    QColor pageShadow{0, 0, 0, 60};            ///< Shade of the view's sides in Distraction-Free
 
-    // UI elements
-    QColor ruler{200, 200, 200};               ///< Ruler/guide lines
-    QColor rulerMarker{150, 150, 150};         ///< Ruler markers (tabs, margins)
-    QColor scrollbar{180, 180, 180};           ///< Scrollbar color
-    QColor scrollbarHover{140, 140, 140};      ///< Scrollbar on hover
-
-    // Accents
-    QColor accent{66, 133, 244};               ///< Primary accent color
-    QColor accentSecondary{52, 168, 83};       ///< Secondary accent
-    QColor warning{251, 188, 4};               ///< Warning/attention color
-    QColor error{234, 67, 53};                 ///< Error color
-
-    // Focus mode specific
-    QColor focusHighlight{255, 250, 230};      ///< Focused paragraph background
-    QColor focusDimOverlay{255, 255, 255, 180}; ///< Overlay for dimmed paragraphs
-
-    // =========================================================================
-    // Dual-mode colors (Light/Dark mode toggle - independent from app theme)
-    // =========================================================================
-
-    /// @brief Continuous View colors (and base for other views)
+    /// @brief The paper and its text
     struct ContinuousColors {
         // Light mode
         QColor backgroundLight{255, 255, 255};   ///< Background - light mode
@@ -92,7 +52,7 @@ struct EditorColors {
         QColor textDark{224, 224, 224};          ///< Text - dark mode
     } continuous;
 
-    /// @brief Focus View colors (extends Continuous)
+    /// @brief The paragraphs Focus dims
     struct FocusColors {
         // Inactive paragraph colors - must be between background and text for visibility
         // Light mode: text is dark (30), inactive should be lighter gray
@@ -100,10 +60,6 @@ struct EditorColors {
         QColor inactiveLight{170, 170, 170};     ///< Inactive text - light mode
         QColor inactiveDark{120, 120, 125};      ///< Inactive text - dark mode (visible on dark bg)
     } focus;
-
-    // =========================================================================
-    // Helper methods for color mode
-    // =========================================================================
 
     /// @brief Get background color for current mode
     QColor background(EditorColorMode mode) const {
@@ -125,67 +81,6 @@ struct EditorColors {
             ? focus.inactiveLight
             : focus.inactiveDark;
     }
-
-    /// @brief Create default light theme colors
-    static EditorColors lightTheme();
-
-    /// @brief Create default dark theme colors
-    static EditorColors darkTheme();
-
-    /// @brief Create sepia/warm theme colors (good for focus)
-    static EditorColors sepiaTheme();
-
-    /// @brief Load colors from JSON
-    static EditorColors fromJson(const QJsonObject& json);
-
-    /// @brief Save colors to JSON
-    QJsonObject toJson() const;
-};
-
-// =============================================================================
-// Visual Elements Configuration
-// =============================================================================
-
-/// @brief Configuration for visual elements (rulers, margins, guides)
-struct VisualElements {
-    // Rulers
-    bool showHorizontalRuler{false};           ///< Show ruler at top
-    bool showVerticalRuler{false};             ///< Show ruler on left (line numbers area)
-    int rulerHeight{24};                       ///< Horizontal ruler height in pixels
-    int rulerWidth{48};                        ///< Vertical ruler width in pixels
-
-    // Line numbers
-    bool showLineNumbers{false};               ///< Show line numbers in gutter
-    bool relativeLineNumbers{false};           ///< Relative line numbers from cursor
-
-    // Guides
-    bool showMarginGuide{false};               ///< Show margin guide line
-    int marginGuideColumn{80};                 ///< Column position for margin guide
-    bool showIndentGuides{false};              ///< Show vertical indent guides
-
-    // Current line
-    bool highlightCurrentLine{true};           ///< Subtle highlight on cursor line
-    bool highlightCurrentParagraph{false};     ///< Highlight entire paragraph
-
-    // Page elements (Page Mode)
-    bool showPageShadows{true};                ///< Drop shadows under pages
-    bool showPageBorders{false};               ///< Thin border around pages
-    bool showPageNumbers{true};                ///< Page numbers in Page Mode
-
-    // Scrollbar
-    bool showScrollbar{true};                  ///< Show scrollbar
-    bool autoHideScrollbar{true};              ///< Auto-hide when not scrolling
-    int scrollbarWidth{12};                    ///< Scrollbar width in pixels
-
-    // Minimap (future)
-    bool showMinimap{false};                   ///< Show document minimap
-    int minimapWidth{100};                     ///< Minimap width in pixels
-
-    /// @brief Load from JSON
-    static VisualElements fromJson(const QJsonObject& json);
-
-    /// @brief Save to JSON
-    QJsonObject toJson() const;
 };
 
 // =============================================================================
@@ -211,22 +106,14 @@ struct EditorTypography {
     bool firstLineIndent{true};                ///< Indent first line of paragraphs
     qreal indentSize{24.0};                    ///< First line indent in pixels
 
-    // UI fonts
-    QFont uiFont{"Segoe UI", 10};              ///< Font for UI elements
-    QFont monospaceFont{"Consolas", 12};       ///< Monospace font (code, etc.)
-
-    /// @brief Load from JSON
-    static EditorTypography fromJson(const QJsonObject& json);
-
-    /// @brief Save to JSON
-    QJsonObject toJson() const;
+    QFont uiFont{"Segoe UI", 10};              ///< Font of the Distraction-Free texts (word count)
 };
 
 // =============================================================================
 // Page Layout Configuration
 // =============================================================================
 
-/// @brief Page layout settings for Page Mode
+/// @brief The page: its format, the gap around it and its numbers
 struct PageLayout {
     // Page size
     enum class PageSize {
@@ -243,17 +130,10 @@ struct PageLayout {
     qreal customWidth{210.0};                  ///< Custom width in mm
     qreal customHeight{297.0};                 ///< Custom height in mm
 
-    // Margins (in mm)
-    QMarginsF margins{25.4, 25.4, 25.4, 25.4}; ///< Page margins (1 inch default)
-
     // Display
-    qreal zoomLevel{1.0};                      ///< Zoom level (1.0 = 100%)
+    qreal zoomLevel{1.0};                      ///< Zoom of a newly opened document (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
-    bool centerPages{true};                    ///< Center pages horizontally
     bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
-
-    // DPI correction factor (user calibration)
-    qreal pageScaleFactor{1.0};                ///< Page size correction factor (1.0 = 100%)
 
     /// @brief Page dimensions in millimetres
     QSizeF pageSizeMm() const;
@@ -262,20 +142,8 @@ struct PageLayout {
     ///        A4 for an unknown id
     static PageSize pageSizeFromId(const QString& id);
 
-    /// @brief Id of a page size, as saved in settings and JSON
+    /// @brief Id of a page size, as saved in the settings
     static QString pageSizeId(PageSize size);
-
-    /// @brief Get page dimensions in pixels at given DPI
-    QSizeF pageSizePixels(qreal dpi = 96.0) const;
-
-    /// @brief Get text area dimensions (page minus margins)
-    QSizeF textAreaPixels(qreal dpi = 96.0) const;
-
-    /// @brief Load from JSON
-    static PageLayout fromJson(const QJsonObject& json);
-
-    /// @brief Save to JSON
-    QJsonObject toJson() const;
 };
 
 // =============================================================================
@@ -290,48 +158,27 @@ struct TypewriterSettings {
     int scrollDuration{150};                   ///< Scroll animation duration in ms
 };
 
-/// @brief Settings specific to Focus Mode
+/// @brief Focus: every paragraph but the cursor's is dimmed (a toggle in every view mode)
 struct FocusModeSettings {
     bool enabled{false};                       ///< Focus mode active
-
-    enum class FocusScope {
-        Paragraph,                             ///< Focus on current paragraph
-        Sentence,                              ///< Focus on current sentence
-        Line                                   ///< Focus on current line
-    };
-
-    FocusScope scope{FocusScope::Paragraph};
-    qreal dimOpacity{0.3};                     ///< Opacity of dimmed content (0-1)
-    bool highlightBackground{false};           ///< Highlight focused area background
-    bool fadeTransition{true};                 ///< Smooth fade transition
-    int transitionDuration{200};               ///< Transition duration in ms
 };
 
-/// @brief Settings for Distraction-Free Mode
+/// @brief What Distraction-Free writing shows at the edges of the view
 struct DistractionFreeSettings {
-    bool enabled{false};                       ///< Distraction-free mode active
-    bool fullscreen{true};                     ///< Use fullscreen
-    bool hideAllUI{true};                      ///< Hide all UI elements
     bool showWordCount{true};                  ///< Show word count at bottom
     bool showClock{false};                     ///< Show clock
-    qreal textWidth{0.6};                      ///< Text width as fraction of screen (0-1)
+    qreal textWidth{0.6};                      ///< Width of the undarkened middle (0-1 of the view)
     int uiFadeTimeout{2000};                   ///< UI fade timeout in ms
     bool fadeOnMouseMove{true};                ///< Show UI on mouse move to edges
 };
 
 /// @brief Text frame border settings
 ///
-/// Configures a visible border around the text content area to visualize
-/// margin boundaries. Useful for layout visualization and debugging.
+/// A frame around the text area of the pages, to show where the margins are.
 struct TextFrameBorder {
     bool show = false;              ///< Show border around text area
     QColor color{180, 180, 180};    ///< Border color
     int width = 1;                  ///< Border width in pixels
-
-    bool operator==(const TextFrameBorder& other) const {
-        return show == other.show && color == other.color && width == other.width;
-    }
-    bool operator!=(const TextFrameBorder& other) const { return !(*this == other); }
 };
 
 /// @brief Cursor style enumeration
@@ -356,73 +203,27 @@ struct CursorSettings {
 // =============================================================================
 
 /// @brief Page margins configuration (every view: the continuous views are an endless page)
-/// Supports mirror margins for book binding
 struct PageMarginsConfig {
     double top = 25.4;           ///< Top margin in mm (default 1 inch)
     double bottom = 25.4;        ///< Bottom margin in mm
-    double left = 25.4;          ///< Left margin in mm (when mirror disabled)
-    double right = 25.4;         ///< Right margin in mm (when mirror disabled)
-
-    // Mirror margins for book binding
-    bool mirrorEnabled = false;  ///< Enable mirror margins (inner/outer)
-    double inner = 30.0;         ///< Inner margin (binding side) in mm
-    double outer = 20.0;         ///< Outer margin in mm
-
-    /// @brief Get effective left margin for given page number
-    /// @param pageNumber 1-based page number
-    /// @return Left margin in mm (considers mirror if enabled)
-    double effectiveLeft(int pageNumber) const {
-        if (!mirrorEnabled) return left;
-        // Odd pages: inner on left (binding), outer on right
-        // Even pages: outer on left, inner on right (binding)
-        return (pageNumber % 2 == 1) ? inner : outer;
-    }
-
-    /// @brief Get effective right margin for given page number
-    /// @param pageNumber 1-based page number
-    /// @return Right margin in mm (considers mirror if enabled)
-    double effectiveRight(int pageNumber) const {
-        if (!mirrorEnabled) return right;
-        return (pageNumber % 2 == 1) ? outer : inner;
-    }
-
-    bool operator==(const PageMarginsConfig& other) const {
-        return top == other.top && bottom == other.bottom &&
-               left == other.left && right == other.right &&
-               mirrorEnabled == other.mirrorEnabled &&
-               inner == other.inner && outer == other.outer;
-    }
-    bool operator!=(const PageMarginsConfig& other) const { return !(*this == other); }
+    double left = 25.4;          ///< Left margin in mm
+    double right = 25.4;         ///< Right margin in mm
 };
 
 // =============================================================================
 // Editor Appearance (Main Class)
 // =============================================================================
 
-/// @brief Central configuration for all visual aspects of the editor
-///
-/// EditorAppearance aggregates all visual settings and provides:
-/// - Easy serialization (load/save to JSON)
-/// - Theme presets
-/// - Per-mode overrides
-/// - Future: live preview, undo/redo for settings
+/// @brief Everything the editor shows the way the settings say
 ///
 /// Usage:
 /// @code
-/// EditorAppearance appearance;
-/// appearance.colors = EditorColors::darkTheme();
+/// EditorAppearance appearance = editor->appearance();
 /// appearance.typography.textFont = QFont("Literata", 16);
 /// editor->setAppearance(appearance);
 /// @endcode
 class EditorAppearance {
 public:
-    EditorAppearance() = default;
-    ~EditorAppearance() = default;
-
-    // =========================================================================
-    // Editor Color Mode (independent from app theme)
-    // =========================================================================
-
     /// @brief Current editor color mode (light/dark toggle)
     ///
     /// This is independent from the application theme. User can have:
@@ -430,24 +231,7 @@ public:
     /// - Light app theme with dark editor
     EditorColorMode colorMode{EditorColorMode::Dark};
 
-    /// @brief Toggle between light and dark editor mode
-    void toggleColorMode() {
-        colorMode = (colorMode == EditorColorMode::Light)
-            ? EditorColorMode::Dark
-            : EditorColorMode::Light;
-    }
-
-    /// @brief Check if editor is in dark mode
-    bool isDarkMode() const {
-        return colorMode == EditorColorMode::Dark;
-    }
-
-    // =========================================================================
-    // Configuration Sections
-    // =========================================================================
-
     EditorColors colors;                       ///< Color palette
-    VisualElements elements;                   ///< Visual elements configuration
     EditorTypography typography;               ///< Typography settings
     PageLayout pageLayout;                     ///< Page mode layout
     TypewriterSettings typewriter;             ///< Typewriter mode settings
@@ -455,65 +239,7 @@ public:
     DistractionFreeSettings distractionFree;   ///< Distraction-free mode settings
     CursorSettings cursor;                     ///< Cursor appearance settings
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
-
-    // Margins configuration
     PageMarginsConfig pageMargins;             ///< The page's margins, in every view
-
-    // =========================================================================
-    // Presets
-    // =========================================================================
-
-    /// @brief Create default appearance (light theme)
-    static EditorAppearance defaultAppearance();
-
-    /// @brief Create dark theme appearance
-    static EditorAppearance darkAppearance();
-
-    /// @brief Create sepia/warm appearance (good for long writing sessions)
-    static EditorAppearance sepiaAppearance();
-
-    /// @brief Create minimal appearance (no visual clutter)
-    static EditorAppearance minimalAppearance();
-
-    /// @brief Create typewriter appearance (classic feel)
-    static EditorAppearance typewriterAppearance();
-
-    /// @brief Create high contrast appearance (accessibility)
-    static EditorAppearance highContrastAppearance();
-
-    /// @brief Check if system high-contrast mode is enabled
-    static bool isSystemHighContrastEnabled();
-
-    /// @brief Get appearance adjusted for system settings
-    static EditorAppearance systemAwareAppearance();
-
-    // =========================================================================
-    // Serialization
-    // =========================================================================
-
-    /// @brief Load appearance from JSON
-    static EditorAppearance fromJson(const QJsonObject& json);
-
-    /// @brief Save appearance to JSON
-    QJsonObject toJson() const;
-
-    /// @brief Load from file
-    static EditorAppearance loadFromFile(const QString& path);
-
-    /// @brief Save to file
-    bool saveToFile(const QString& path) const;
-
-    // =========================================================================
-    // Utilities
-    // =========================================================================
-
-    /// @brief Create a copy with modifications
-    EditorAppearance with(std::function<void(EditorAppearance&)> modifier) const;
-
-    /// @brief Interpolate between two appearances (for transitions)
-    static EditorAppearance lerp(const EditorAppearance& a,
-                                  const EditorAppearance& b,
-                                  qreal t);
 };
 
 }  // namespace kalahari::editor

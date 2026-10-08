@@ -350,6 +350,18 @@ public:
                                const QString& sourceFilePath,
                                bool copyFile = true);
 
+    /// @brief Give a new chapter its own, empty chapter file
+    /// @param element The new chapter (not in the book yet)
+    /// @param sectionType "frontmatter", "body" or "backmatter"
+    /// @param partId The part of a body chapter
+    /// @return true when the file is written and the chapter refers to it
+    ///
+    /// The file goes to the folder of the section - a body chapter next to the other
+    /// chapters of its part - under a name no other chapter has, such as
+    /// chapter_003.kchapter.
+    bool createChapterFile(BookElement& element, const QString& sectionType,
+                           const QString& partId = QString());
+
     // =========================================================================
     // Reordering Operations (OpenSpec #00034 Phase D)
     // =========================================================================
@@ -423,6 +435,13 @@ private:
     /// @param projectPath Root path of the project
     /// @return true if all folders created successfully
     bool createFolderStructure(const std::filesystem::path& projectPath);
+
+    /// @brief A free path for a new chapter file, relative to the project
+    /// @param sectionType "frontmatter", "body" or "backmatter"
+    /// @param partId The part of a body chapter
+    /// @param elementType The chapter's type: the name of a front or back matter file
+    std::filesystem::path newChapterFile(const QString& sectionType, const QString& partId,
+                                         const std::string& elementType);
 
     /// @brief Validate existing project folder structure
     /// @param projectPath Root path of the project

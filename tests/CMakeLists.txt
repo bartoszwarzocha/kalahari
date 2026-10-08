@@ -66,6 +66,7 @@ set(TEST_SOURCES
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
+    gui/test_editor_settings.cpp                 # Editors follow the editor settings
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)

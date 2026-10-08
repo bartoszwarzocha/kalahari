@@ -126,9 +126,6 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::enableDiagnosticMode);
     connect(m_settingsCoordinator, &SettingsCoordinator::disableDiagnosticModeRequested,
             this, &MainWindow::disableDiagnosticMode);
-    // Connect editor settings changed signal to apply to all panels
-    connect(m_settingsCoordinator, &SettingsCoordinator::editorSettingsChanged,
-            this, &MainWindow::applyEditorSettingsToAllPanels);
     logger.debug("MainWindow: SettingsCoordinator created");
 
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
@@ -422,9 +419,13 @@ void MainWindow::registerCommands() {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
     }
 
-    // The paper of every editor is a setting: its toggle shows it also before an editor
-    // opens, and follows the editor's context menu and the Settings dialog
-    utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode", true);
+    // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
+    // show them also before an editor opens, and follow the editor's context menu and the
+    // Settings dialog
+    utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode");
+    utils::followSetting(registry.getAction(std::string("view.typewriter")),
+                         "editor.typewriter.enabled");
+    utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -780,69 +781,37 @@ void MainWindow::onViewModePage() {
 }
 
 void MainWindow::onTypewriterToggle() {
-    auto& logger = core::Logger::getInstance();
     auto& settings = core::SettingsManager::getInstance();
 
-    // A setting of all editors, kept between sessions
-    const bool enabled = !settings.get<bool>("editor.typewriter.enabled", false);
+    // A setting of all editors, kept between sessions: every editor follows it
+    const bool enabled = !settings.get<bool>("editor.typewriter.enabled");
     settings.set<bool>("editor.typewriter.enabled", enabled);
-    logger.info("Action triggered: Typewriter Scrolling {}", enabled ? "on" : "off");
-
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
-        if (editor && editor->getBookEditor()) {
-            editor->getBookEditor()->setTypewriterEnabled(enabled);
-        }
-    }
-    updateEditorActionStates();
+    core::Logger::getInstance().info("Action triggered: Typewriter Scrolling {}",
+                                     enabled ? "on" : "off");
     statusBar()->showMessage(enabled ? tr("Typewriter scrolling: on")
                                      : tr("Typewriter scrolling: off"), 2000);
 }
 
 void MainWindow::onFocusToggle() {
-    auto& logger = core::Logger::getInstance();
     auto& settings = core::SettingsManager::getInstance();
 
-    // A setting of all editors, kept between sessions; the view mode stays
-    const bool enabled = !settings.get<bool>("editor.focus.enabled", false);
+    // A setting of all editors, kept between sessions: every editor follows it, the view
+    // mode stays
+    const bool enabled = !settings.get<bool>("editor.focus.enabled");
     settings.set<bool>("editor.focus.enabled", enabled);
-    logger.info("Action triggered: Focus {}", enabled ? "on" : "off");
-
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
-        if (editor && editor->getBookEditor()) {
-            editor->getBookEditor()->setFocusModeEnabled(enabled);
-        }
-    }
-    updateEditorActionStates();
+    core::Logger::getInstance().info("Action triggered: Focus {}", enabled ? "on" : "off");
     statusBar()->showMessage(enabled ? tr("Focus: on") : tr("Focus: off"), 2000);
 }
 
 void MainWindow::onDarkPaperToggle() {
-    auto& logger = core::Logger::getInstance();
     auto& settings = core::SettingsManager::getInstance();
 
-    // A setting of all editors, kept between sessions, as in the editor's context menu
-    const bool dark = !settings.get<bool>("editor.darkMode", true);
+    // A setting of all editors, kept between sessions, as in the editor's context menu:
+    // every editor follows it
+    const bool dark = !settings.get<bool>("editor.darkMode");
     settings.set<bool>("editor.darkMode", dark);
-    logger.info("Action triggered: Dark Paper {}", dark ? "on" : "off");
-
-    onEditorColorModeChanged(dark ? editor::EditorColorMode::Dark : editor::EditorColorMode::Light);
+    core::Logger::getInstance().info("Action triggered: Dark Paper {}", dark ? "on" : "off");
     statusBar()->showMessage(dark ? tr("Dark paper: on") : tr("Dark paper: off"), 2000);
-}
-
-void MainWindow::onEditorColorModeChanged(editor::EditorColorMode mode) {
-    // One paper for all editors (the editor panel keeps it in the settings). An editor
-    // signals only a change, so the editors already switched end the round.
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
-        if (editor && editor->getBookEditor()) {
-            editor->getBookEditor()->setEditorColorMode(mode);
-        }
-    }
 }
 
 bool MainWindow::isDistractionFree() const {
@@ -968,16 +937,6 @@ void MainWindow::updateEditorActionStates() {
     if (auto* pageCmd = registry.getCommand("view.mode.page")) {
         pageCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Page; };
         registry.updateActionState("view.mode.page");
-    }
-    if (auto* typeCmd = registry.getCommand("view.typewriter")) {
-        const bool typewriter = bookEditor->isTypewriterEnabled();
-        typeCmd->isChecked = [typewriter]() { return typewriter; };
-        registry.updateActionState("view.typewriter");
-    }
-    if (auto* focusCmd = registry.getCommand("view.focus")) {
-        const bool focus = bookEditor->isFocusModeEnabled();
-        focusCmd->isChecked = [focus]() { return focus; };
-        registry.updateActionState("view.focus");
     }
 
     // Update alignment action checked states
@@ -1144,7 +1103,6 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::currentPageChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
-                disconnect(bookEditor, &editor::BookEditor::editorColorModeChanged, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1169,10 +1127,6 @@ void MainWindow::createDocks() {
                         this, [this](int) { updatePageStatus(); });
                 connect(bookEditor, &editor::BookEditor::zoomChanged,
                         this, [this](double) { updatePageStatus(); });
-
-                // The paper chosen in the editor's context menu goes to every editor
-                connect(bookEditor, &editor::BookEditor::editorColorModeChanged,
-                        this, &MainWindow::onEditorColorModeChanged);
 
                 // Also an editor opened during Distraction-Free writing
                 bookEditor->setDistractionFree(isDistractionFree(), distractionFreeHint());
@@ -1345,9 +1299,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // Save perspective (existing code)
     logger.debug("Saving window perspective");
 
-    QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-    settings.setValue("geometry", saveGeometry());
-    settings.setValue("windowState", saveState());
+    auto& settings = core::SettingsManager::getInstance();
+    settings.setBinary("window.geometry", saveGeometry());
+    settings.setBinary("window.state", saveState());
 
     // Task #00019: Save toolbar state (visibility)
     if (m_toolbarManager) {
@@ -1513,12 +1467,12 @@ void MainWindow::showEvent(QShowEvent* event) {
             ToolbarManager::clearSavedWindowState();
         }
 
-        QSettings settings("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-        restoreGeometry(settings.value("geometry").toByteArray());
+        auto& settings = core::SettingsManager::getInstance();
+        restoreGeometry(settings.getBinary("window.geometry"));
 
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
-        QByteArray windowState = settings.value("windowState").toByteArray();
+        QByteArray windowState = settings.getBinary("window.state");
         if (!windowState.isEmpty() && !toolbarResetNeeded) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
@@ -1625,28 +1579,6 @@ void MainWindow::updatePageStatus() {
     }
     m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
     m_zoomLabel->show();
-}
-
-void MainWindow::applyEditorSettingsToAllPanels() {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("MainWindow: Applying editor settings to all panels");
-
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    if (!centralTabs) {
-        logger.warn("MainWindow: No central tabs available");
-        return;
-    }
-
-    int count = 0;
-    for (int i = 0; i < centralTabs->count(); ++i) {
-        EditorPanel* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
-        if (editor) {
-            editor->applySettings();
-            ++count;
-        }
-    }
-
-    logger.debug("MainWindow: Applied settings to {} EditorPanels", count);
 }
 
 } // namespace gui
