@@ -42,7 +42,7 @@ Kalahari • Okavango • Zambezi
 ## 🛠️ Tech Stack
 
 - **Language:** C++20 (GCC 10+, Clang 10+, MSVC 2019+)
-- **GUI:** Qt6 6.5+ (Widgets, native cross-platform, automatic DPI scaling)
+- **GUI:** Qt6 6.4+, builds use 6.9 (Widgets, native cross-platform, automatic DPI scaling)
 - **Build:** CMake 3.21+ with vcpkg (manifest mode)
 - **Plugins:** Python 3.11 (embedded) + pybind11
 - **Testing:** Catch2 v3 (BDD style)
