@@ -9,6 +9,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 
 #include <algorithm>
+#include <memory>
 
 using namespace kalahari;
 using Catch::Approx;
@@ -55,17 +56,30 @@ TEST_CASE("Editor panel: every document opens at 100%, or at the page's width wh
           "[gui][editor]") {
     // Regression: only the first chapter of the run fitted a small screen; a chapter
     // opened after it opened at 100%, wider than the editor
+    const auto open = [](int editorWidth) {
+        auto panel = std::make_unique<gui::EditorPanel>();
+        test::resizeWidget(*panel, QSize(editorWidth, 600));  // the size of its tab
+        editor::BookEditor* bookEditor = panel->getBookEditor();
+        test::resizeWidget(*bookEditor, panel->size());  // all of the panel
+        bookEditor->fromKml(test::kmlOf({QStringLiteral("A chapter")}));
+        return panel;
+    };
+
+    // The width of the page at 100%, as Page Width counts it: the screen's resolution and
+    // the paper's scale make it differ between the systems
+    const auto probe = open(1000);
+    probe->getBookEditor()->zoomToPageWidth();
+    const double pageAt100 = 1000.0 / probe->getBookEditor()->zoomFactor();
+
     struct Opened {
-        int editorWidth;
+        double editorPerPage;  ///< The editor's width for the page's width at 100%
         bool pageWiderThanEditor;
     };
-    for (const Opened& document : {Opened{450, true}, Opened{450, true}, Opened{1600, false}}) {
-        CAPTURE(document.editorWidth);
-        gui::EditorPanel panel;
-        test::resizeWidget(panel, QSize(document.editorWidth, 600));  // the size of its tab
-        editor::BookEditor* bookEditor = panel.getBookEditor();
-        test::resizeWidget(*bookEditor, panel.size());  // all of the panel
-        bookEditor->fromKml(test::kmlOf({QStringLiteral("A chapter")}));
+    for (const Opened& document : {Opened{0.6, true}, Opened{0.6, true}, Opened{1.5, false}}) {
+        const int editorWidth = static_cast<int>(document.editorPerPage * pageAt100);
+        CAPTURE(editorWidth);
+        const auto panel = open(editorWidth);
+        editor::BookEditor* bookEditor = panel->getBookEditor();
         const double opened = bookEditor->zoomFactor();
 
         bookEditor->zoomToPageWidth();
