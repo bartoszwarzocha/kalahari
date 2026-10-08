@@ -4,7 +4,7 @@
 ## Project
 - Name: Kalahari (Writer's IDE), version 0.3.x-alpha
 - Type: Desktop Application
-- Stack: C++20 + Qt6 6.5.0+, CMake + vcpkg, Python plugins (pybind11), Catch2 v3 tests
+- Stack: C++20 + Qt6 6.4+ (builds use 6.9), CMake + vcpkg, Python plugins (pybind11), Catch2 v3 tests
 - Phase: Phase 1 - Core Editor (in progress); see ROADMAP.md
 
 ## Build & Test
