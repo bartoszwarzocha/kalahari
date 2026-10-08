@@ -27,6 +27,7 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     , m_navTree(nullptr)
     , m_pageStack(nullptr)
     , m_diagnosticMode(diagnosticMode)
+    , m_lengthUnit(currentLengthUnit())
 {
     setHeading(tr("Settings"),
                tr("Choose a group on the left; Apply and OK save only the options you changed."));
@@ -72,7 +73,12 @@ void SettingsDialog::createNavigationTree() {
         item->setExpanded(true);
         return item;
     };
-    addPage(nullptr, tr("General"), []() { return new GeneralPage(); });
+    addPage(nullptr, tr("General"), [this]() {
+        auto* generalPage = new GeneralPage();
+        connect(generalPage, &GeneralPage::lengthUnitChanged, this,
+                [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
+        return generalPage;
+    });
 
     QTreeWidgetItem* appearance = category(tr("Appearance"));
     addPage(appearance, tr("General"), []() { return new AppearanceGeneralPage(); });
@@ -193,6 +199,10 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
         QElapsedTimer timer;
         timer.start();
         QWidget* content = factory->second();
+        // A unit chosen but not applied yet holds for the pages opened after it too
+        for (LengthSpinBox* length : content->findChildren<LengthSpinBox*>()) {
+            length->setDisplayUnit(m_lengthUnit);
+        }
         if (auto* page = qobject_cast<SettingsPage*>(content)) {
             page->load();
             m_pages.push_back(page);
@@ -216,6 +226,13 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
                                           item->text(0).toStdString(), timer.elapsed());
     }
     m_pageStack->setCurrentWidget(built->second);
+}
+
+void SettingsDialog::setLengthUnit(LengthUnit unit) {
+    m_lengthUnit = unit;
+    for (LengthSpinBox* length : m_pageStack->findChildren<LengthSpinBox*>()) {
+        length->setDisplayUnit(unit);
+    }
 }
 
 void SettingsDialog::connectPages() {

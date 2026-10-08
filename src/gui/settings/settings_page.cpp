@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
 #include "kalahari/core/theme_manager.h"
@@ -154,6 +155,14 @@ SettingsPage::Binding& SettingsPage::bind(QWidget* field, const std::string& key
         binding.show = [spin, scale](const json& value) {
             if (value.is_number()) {
                 spin->setValue(static_cast<int>(std::lround(value.get<double>() * scale)));
+            }
+        };
+    } else if (auto* length = qobject_cast<LengthSpinBox*>(field)) {
+        // Compared and written in the stored unit, whatever unit it is shown in
+        binding.shown = [length, like]() { return spinValue(length->storedValue(), 1.0, like); };
+        binding.show = [length](const json& value) {
+            if (value.is_number()) {
+                length->setStoredValue(value.get<double>());
             }
         };
     } else if (auto* doubleSpin = qobject_cast<QDoubleSpinBox*>(field)) {

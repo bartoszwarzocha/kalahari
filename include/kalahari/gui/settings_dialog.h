@@ -10,6 +10,7 @@
 #pragma once
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 
 #include <QStringList>
 
@@ -85,11 +86,15 @@ private:
     /// @note Called once when the Theme or the Icons page is built
     void connectPages();
 
+    /// @brief Show the length fields of the built pages in another unit
+    void setLengthUnit(LengthUnit unit);
+
     void onApply();
 
     QTreeWidget* m_navTree;
     QStackedWidget* m_pageStack;
     bool m_diagnosticMode;
+    LengthUnit m_lengthUnit;  ///< Unit chosen on the General page, applied or not
 
     std::map<QTreeWidgetItem*, PageFactory> m_factories;
     std::map<QTreeWidgetItem*, QWidget*> m_builtPages;  ///< Page container in the stack
