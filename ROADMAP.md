@@ -101,8 +101,8 @@ document is positive.
 - [x] Sanitizer job (ASan/UBSan), coverage report and clang-tidy on changed files in CI
 - [x] KML round-trip tests, including the chapters of the example project
 - [x] Package installation in CI that survives a stalled mirror
-- [ ] One Qt version (6.9) on all platforms, with 6.4 as the minimum in CMake
-- [ ] Editor benchmark run in CI, with the results in the job summary
+- [x] One Qt version (6.9) on all platforms, with 6.4 as the minimum in CMake
+- [x] Editor benchmark run in CI, with the results in the job summary
 
 ### Release
 
