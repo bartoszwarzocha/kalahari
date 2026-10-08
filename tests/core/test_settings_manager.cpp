@@ -14,6 +14,9 @@
 #include <kalahari/core/settings_schema.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <nlohmann/json.hpp>
+#include <QCoreApplication>
+#include <QEventLoop>
+#include <QTimer>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -21,6 +24,15 @@
 #include <vector>
 
 using namespace kalahari::core;
+
+namespace {
+/// Run the event loop, so a scheduled save can happen
+void runEventLoop(int milliseconds) {
+    QEventLoop loop;
+    QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
+    loop.exec();
+}
+}  // namespace
 
 // =============================================================================
 // Test Helper: Create temporary settings file
@@ -467,15 +479,60 @@ TEST_CASE("SettingsManager save replaces the file in one step", "[settings][pers
 
     REQUIRE(settings.save());
 
+    // Only settings.json is left: no temporary file next to it
     std::filesystem::path filePath = settings.getSettingsFilePath();
-    std::filesystem::path tempPath = filePath;
-    tempPath += ".tmp";
     REQUIRE(std::filesystem::exists(filePath));
-    REQUIRE_FALSE(std::filesystem::exists(tempPath));
+    for (const auto& entry : std::filesystem::directory_iterator(filePath.parent_path())) {
+        const std::string name = entry.path().filename().string();
+        if (name.rfind("settings.json", 0) == 0) {
+            REQUIRE(name == "settings.json");
+        }
+    }
 
     settings.set("dashboard.maxItems", 3);
     REQUIRE(settings.load());
     REQUIRE(settings.get<int>("dashboard.maxItems") == 6);
+
+    settings.resetToDefaults();
+}
+
+TEST_CASE("SettingsManager saves changes shortly after they are made", "[settings][persistence]") {
+    REQUIRE(QCoreApplication::instance() != nullptr);
+    auto& settings = SettingsManager::getInstance();
+    settings.resetToDefaults();
+    const std::filesystem::path filePath = settings.getSettingsFilePath();
+
+    SECTION("Several changes are written together") {
+        settings.set("dashboard.maxItems", 7);
+        settings.set("dashboard.iconSize", 32);
+        REQUIRE_FALSE(std::filesystem::exists(filePath));  // not at once
+
+        runEventLoop(1500);
+        REQUIRE(std::filesystem::exists(filePath));
+        std::ifstream file(filePath);
+        nlohmann::json saved = nlohmann::json::parse(file);
+        REQUIRE(saved["dashboard"]["maxItems"] == 7);
+        REQUIRE(saved["dashboard"]["iconSize"] == 32);
+    }
+
+    SECTION("A change from another thread is saved too") {
+        std::thread worker([&settings] { settings.set("dashboard.maxItems", 4); });
+        worker.join();
+
+        runEventLoop(1500);
+        REQUIRE(std::filesystem::exists(filePath));
+        settings.set("dashboard.maxItems", 1);  // in memory only, until the next save
+        REQUIRE(settings.load());
+        REQUIRE(settings.get<int>("dashboard.maxItems") == 4);
+    }
+
+    SECTION("A reset cancels the scheduled save") {
+        settings.set("dashboard.maxItems", 7);
+        settings.resetToDefaults();
+
+        runEventLoop(1500);
+        REQUIRE_FALSE(std::filesystem::exists(filePath));
+    }
 
     settings.resetToDefaults();
 }

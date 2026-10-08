@@ -7,6 +7,8 @@
 #include <fstream>
 #include <cstdlib>  // std::getenv
 #include <vector>   // std::vector for log color keys
+#include <QCoreApplication>
+#include <QSaveFile>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -19,6 +21,9 @@ namespace core {
 namespace {
 /// Version written by createDefaults() and reached by migrateIfNeeded()
 constexpr const char* CURRENT_SETTINGS_VERSION = "1.3";
+
+/// Changes made within this time after the first one are saved together
+constexpr int SAVE_DELAY_MS = 500;
 }
 
 // =============================================================================
@@ -37,6 +42,14 @@ SettingsManager& SettingsManager::getInstance() {
 SettingsManager::SettingsManager() {
     m_filePath = getSettingsDirectoryPath() / "settings.json";
     createDefaults();
+
+    m_saveTimer.setSingleShot(true);
+    m_saveTimer.setInterval(SAVE_DELAY_MS);
+    QObject::connect(&m_saveTimer, &QTimer::timeout, [this] {
+        if (m_savePending) {
+            save();
+        }
+    });
     Logger::getInstance().info("SettingsManager initialized (file: {})", m_filePath.string());
 }
 
@@ -110,24 +123,23 @@ bool SettingsManager::save() {
             Logger::getInstance().info("Created settings directory: {}", dir.string());
         }
 
-        // Write to a temporary file and rename it over settings.json, so an
-        // interrupted save never leaves a truncated settings file behind
-        std::filesystem::path tempPath = m_filePath;
-        tempPath += ".tmp";
-        {
-            std::ofstream file(tempPath, std::ios::trunc);
-            if (!file.is_open()) {
-                Logger::getInstance().error("Failed to open settings file for writing: {}", tempPath.string());
-                return false;
-            }
-            file << m_settings.dump(4);  // Pretty-print with indent
-            file.flush();
-            if (!file) {
-                Logger::getInstance().error("Failed to write settings file: {}", tempPath.string());
-                return false;
-            }
+        // QSaveFile writes a temporary file and renames it over settings.json,
+        // so an interrupted save never leaves a truncated settings file behind
+        m_savePending = false;
+        QSaveFile file(QString::fromStdU16String(m_filePath.u16string()));
+        if (!file.open(QIODevice::WriteOnly)) {
+            Logger::getInstance().error("Failed to open settings file for writing: {}",
+                                        file.errorString().toStdString());
+            return false;
         }
-        std::filesystem::rename(tempPath, m_filePath);
+        const std::string content = m_settings.dump(4);  // Pretty-print with indent
+        if (file.write(content.data(), static_cast<qint64>(content.size()))
+                != static_cast<qint64>(content.size())
+            || !file.commit()) {
+            Logger::getInstance().error("Failed to write settings file: {}",
+                                        file.errorString().toStdString());
+            return false;
+        }
         Logger::getInstance().info("Settings saved successfully to: {}", m_filePath.string());
         return true;
 
@@ -150,7 +162,8 @@ void SettingsManager::resetToDefaults() {
         }
     }
 
-    // Reset to defaults in memory
+    // Reset to defaults in memory; a scheduled save would bring the file back
+    m_savePending = false;
     createDefaults();
     Logger::getInstance().info("Settings reset to defaults");
 }
@@ -640,6 +653,16 @@ void SettingsManager::notifyChanged(const std::string& key) {
     for (const auto& listener : listeners) {
         listener(normalized);
     }
+
+    requestSave();
+}
+
+void SettingsManager::requestSave() {
+    if (QCoreApplication::instance() == nullptr || m_savePending.exchange(true)) {
+        return;  // No event loop to run the save, or one is already scheduled
+    }
+    // Queued: set() may be called from any thread, the timer lives on the application thread
+    QMetaObject::invokeMethod(&m_saveTimer, "start", Qt::QueuedConnection);
 }
 
 void SettingsManager::warnMissingDefault(const std::string& key) const {
