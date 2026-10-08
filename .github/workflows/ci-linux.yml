@@ -32,6 +32,18 @@ jobs:
     - name: Install Python dependencies
       run: pip install jinja2
 
+    # The same Qt version as the Windows and macOS builds (vcpkg), so the tests check the
+    # Qt the program ships with. The Sanitizers job below keeps Ubuntu's Qt 6.4 and so
+    # checks the oldest supported version
+    - name: Install Qt 6.9.1
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.9.1'
+        host: linux
+        target: desktop
+        arch: linux_gcc_64
+        cache: true
+
     - name: Install all dependencies from apt (no vcpkg)
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -47,7 +59,6 @@ jobs:
         # All dependencies from system packages - fast, reliable, no disk space issues
         sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config \
-          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
           libgl1-mesa-dev libglu1-mesa-dev \
           libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
           libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev \
@@ -67,7 +78,8 @@ jobs:
           python3-dev pybind11-dev \
           xvfb
         echo "=== Installed versions ==="
-        pkg-config --modversion Qt6Core Qt6Widgets Qt6Svg spdlog nlohmann_json libzip libcurl 2>/dev/null || true
+        pkg-config --modversion spdlog nlohmann_json libzip libcurl 2>/dev/null || true
+        echo "Qt: $QT_ROOT_DIR"
 
     - name: Verify build tools
       run: |
@@ -83,6 +95,7 @@ jobs:
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DUSE_SYSTEM_PACKAGES=ON \
+          -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
           -DCMAKE_C_COMPILER=gcc \
           -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
@@ -97,6 +110,28 @@ jobs:
       run: |
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }} --parallel 4
+
+    # Editor speed on a 150k-word chapter, as a report: shared runners vary by 10-20 %,
+    # so the numbers are for comparing runs by eye and never fail the build
+    - name: Editor benchmark (report only)
+      continue-on-error: true
+      env:
+        QT_QPA_PLATFORM: offscreen
+        KALAHARI_TEST_MODE: 1
+        KALAHARI_BENCH_OUT: ${{ github.workspace }}/build/editor_benchmark.md
+      run: |
+        ./build/bin/kalahari-tests "[benchmark][stage0]"
+        echo '### Editor benchmark (150k words, Release, Qt 6.9.1)' >> "$GITHUB_STEP_SUMMARY"
+        cat build/editor_benchmark.md >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload editor benchmark
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: editor-benchmark
+        path: build/editor_benchmark.md
+        if-no-files-found: ignore
+        retention-days: 30
 
     - name: Upload binaries (Release only)
       if: matrix.build_type == 'Release'
