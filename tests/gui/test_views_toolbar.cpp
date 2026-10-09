@@ -16,6 +16,7 @@
 #include <QImage>
 #include <QLabel>
 #include <QMainWindow>
+#include <QMenu>
 #include <QPainter>
 #include <QSvgRenderer>
 #include <QToolBar>
@@ -202,4 +203,38 @@ TEST_CASE("Views toolbar: shown in the second row of a layout saved before it ex
     CHECK(views->isVisible());
     CHECK(views->y() == book->y());
     CHECK(views->y() > edit->y());
+}
+
+TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive no menu",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    QToolBar* toolbar = manager.getToolbar("views");
+    REQUIRE(toolbar != nullptr);
+
+    auto* viewMenu = new QMenu(&window);
+    manager.createViewMenuActions(viewMenu);
+    QAction* item = nullptr;
+    for (QAction* action : viewMenu->findChildren<QAction*>()) {
+        if (action->data().toString() == QStringLiteral("views")) {
+            item = action;
+        }
+    }
+    REQUIRE(item != nullptr);
+
+    window.show();
+    toolbar->setVisible(false);
+    CHECK_FALSE(item->isChecked());
+    toolbar->setVisible(true);
+    CHECK(item->isChecked());
+
+    // A toolbar shown or hidden after its menu is gone no longer reaches the deleted item
+    delete viewMenu;
+    toolbar->setVisible(false);
+    toolbar->setVisible(true);
+    CHECK(toolbar->isVisible());
 }
