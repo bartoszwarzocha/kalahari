@@ -42,9 +42,10 @@ class EditorPanel;
 /// An annotation's text is written in a frame at its place in the text: a new one's (on
 /// the selection, or on the cursor's place), and one's edited again (from its card, or with
 /// a click on its mark). Saving the frame is one step of the document's undo history - the
-/// new annotation, or its new text; dropping it (Esc) changes nothing. One frame is open at
-/// a time: opening another keeps the text of the open one, and so do saving and closing
-/// documents (finishWriting()).
+/// new annotation, or its new text; dropping it (Esc) changes nothing. Its X and a click in
+/// the text beside it close it, the text kept. One frame is open at a time: opening another
+/// keeps the text of the open one, and so do saving and closing documents
+/// (finishWriting()).
 ///
 /// Lists in the panel the annotations of the document in front, or of the whole book.
 /// What the writer does in the panel goes to the document: done or resolved, removing,

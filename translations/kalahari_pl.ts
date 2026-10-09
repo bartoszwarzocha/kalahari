@@ -1700,6 +1700,14 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Save (%1)</source>
         <translation>Zapisz (%1)</translation>
     </message>
+    <message>
+        <source>Close (the text is kept)</source>
+        <translation>Zamknij (tekst zostanie zapisany)</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsCoordinator</name>

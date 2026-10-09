@@ -18,6 +18,7 @@
 #include <QTextDocument>
 #include <QTextEdit>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -85,13 +86,30 @@ AnnotationFrame::AnnotationFrame(QWidget* editor)
     m_kindLabel->setFont(kindFont);
     header->addWidget(m_kindLabel);
 
+    // Its room stays when no one is shown: the X stays in the corner
     m_authorLabel = new QLabel(this);
     m_authorLabel->setObjectName(QStringLiteral("annotationFrameAuthor"));
     m_authorLabel->setFont(kindFont);
     m_authorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    m_authorLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    QSizePolicy authorPolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    authorPolicy.setRetainSizeWhenHidden(true);
+    m_authorLabel->setSizePolicy(authorPolicy);
     m_authorLabel->hide();
     header->addWidget(m_authorLabel, 1);
+
+    // The X closes the frame for the mouse, the text kept; the keys have Esc and Ctrl+Enter
+    m_closeButton = new QToolButton(this);
+    m_closeButton->setObjectName(QStringLiteral("annotationFrameClose"));
+    m_closeButton->setText(QString(QChar(0x00D7)));  // the multiplication sign: an X
+    QFont closeFont = font();
+    closeFont.setPointSizeF(closeFont.pointSizeF() * 1.2);
+    m_closeButton->setFont(closeFont);
+    m_closeButton->setToolTip(tr("Close (the text is kept)"));
+    m_closeButton->setAccessibleName(tr("Close"));
+    m_closeButton->setFocusPolicy(Qt::NoFocus);
+    m_closeButton->setAutoRaise(true);
+    connect(m_closeButton, &QToolButton::clicked, this, &AnnotationFrame::closeRequested);
+    header->addWidget(m_closeButton);
     layout->addLayout(header);
 
     // Enter starts a new line; Tab goes to the button
@@ -284,6 +302,10 @@ bool AnnotationFrame::eventFilter(QObject* watched, QEvent* event) {
     if (watched == parentWidget()) {
         if (event->type() == QEvent::Paint || event->type() == QEvent::Resize) {
             schedulePlacement();
+        } else if (event->type() == QEvent::MouseButtonPress && !isHidden()) {
+            // A click in the editor beside the frame closes it; the click goes on to the
+            // editor
+            emit closeRequested();
         }
         return false;
     }
@@ -370,7 +392,12 @@ void AnnotationFrame::updateStyle() {
                                  " border: 1px solid %1; border-radius: 4px; padding: 3px 14px; }"
                                  "QPushButton:hover { background: %5; }"
                                  "QPushButton:focus { border: 2px solid %1; }"
-                                 "QPushButton:disabled { color: %6; border-color: %6; }")
+                                 "QPushButton:disabled { color: %6; border-color: %6; }"
+                                 "QToolButton#annotationFrameClose { color: %2; background:"
+                                 " transparent; border: none; border-radius: 4px;"
+                                 " padding: 0px 4px; }"
+                                 "QToolButton#annotationFrameClose:hover { color: %3;"
+                                 " background: %5; }")
                       .arg(m_colors.kindName.name(), m_colors.secondary.name(),
                            m_colors.text.name(), fieldBorder.name(), hover.name(),
                            disabled.name()));

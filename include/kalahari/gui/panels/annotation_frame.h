@@ -14,6 +14,7 @@
 class QLabel;
 class QPushButton;
 class QTextEdit;
+class QToolButton;
 
 namespace kalahari::gui {
 
@@ -22,9 +23,10 @@ namespace kalahari::gui {
 /// Looks like a card of the Annotations panel and lies over the editor, under the place
 /// of the annotation (above it when there is no room below), within the text column. Enter
 /// starts a new line; Ctrl+Enter or Save keeps the text, Esc drops it - the frame says so.
-/// While it has the keys, the window's shortcuts do nothing (bold, the annotation
-/// commands... would change the text under it), except saving, closing and quitting; no
-/// key and no click goes through it to the editor.
+/// Its X in the corner and a click in the editor beside it close it, the text kept. While
+/// it has the keys, the window's shortcuts do nothing (bold, the annotation commands...
+/// would change the text under it), except saving, closing and quitting; no key and no
+/// click goes through it to the editor.
 class AnnotationFrame : public QFrame {
     Q_OBJECT
 
@@ -87,6 +89,9 @@ signals:
     /// @brief Esc: drop the text
     void cancelRequested();
 
+    /// @brief Its X, or a click in the editor beside it: close it, the text kept
+    void closeRequested();
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
@@ -120,6 +125,7 @@ private:
     QTextEdit* m_textEdit{nullptr};
     QLabel* m_hintLabel{nullptr};
     QPushButton* m_saveButton{nullptr};
+    QToolButton* m_closeButton{nullptr};
 };
 
 }  // namespace kalahari::gui

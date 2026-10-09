@@ -28,6 +28,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMainWindow>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
@@ -129,6 +130,29 @@ struct KeyCounter : QObject {
         return QObject::eventFilter(watched, event);
     }
 };
+
+/// Counts the presses of a mouse button that reach a widget
+struct PressCounter : QObject {
+    int presses = 0;
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonPress) {
+            ++presses;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
+/// A click of the left mouse button on a widget (and on to its parents, as long as none
+/// takes it)
+void click(QWidget* widget, const QPointF& pos) {
+    const QPointF globalPos = widget->mapToGlobal(pos);
+    QMouseEvent press(QEvent::MouseButtonPress, pos, globalPos, Qt::LeftButton, Qt::LeftButton,
+                      Qt::NoModifier);
+    QApplication::sendEvent(widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, Qt::LeftButton, Qt::NoButton,
+                        Qt::NoModifier);
+    QApplication::sendEvent(widget, &release);
+}
 
 /// A document outside the book in a tab, the Annotations panel and their coordinator
 struct Desk {
@@ -648,6 +672,50 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK(counter.keys == 0);
 }
 
+TEST_CASE("Annotations frame: its X and a click in the editor beside it close it, the text "
+          "kept",
+          "[gui][annotations]") {
+    QWidget editor;
+    editor.resize(800, 600);
+    PressCounter counter;
+    editor.installEventFilter(&counter);  // before the frame's: it counts what the frame lets go
+    auto* frame = new AnnotationFrame(&editor);
+    frame->setText(QStringLiteral("Note"));
+    frame->show();
+    int closed = 0;
+    int saved = 0;
+    int cancelled = 0;
+    QObject::connect(frame, &AnnotationFrame::closeRequested, [&closed]() { ++closed; });
+    QObject::connect(frame, &AnnotationFrame::saveRequested, [&saved]() { ++saved; });
+    QObject::connect(frame, &AnnotationFrame::cancelRequested, [&cancelled]() { ++cancelled; });
+
+    // The X in its corner is for the mouse: the keys stay in the text
+    auto* close = frame->findChild<QToolButton*>(QStringLiteral("annotationFrameClose"));
+    REQUIRE(close != nullptr);
+    CHECK(close->focusPolicy() == Qt::NoFocus);
+    CHECK_FALSE(close->toolTip().isEmpty());
+    close->click();
+    CHECK(closed == 1);
+
+    // A click in the editor beside it goes on to the editor
+    click(&editor, QPointF(20, 20));
+    CHECK(closed == 2);
+    CHECK(counter.presses == 1);
+
+    // A click on the frame does not close it and does not reach the editor
+    click(frame, QPointF(10, 10));
+    CHECK(closed == 2);
+    CHECK(counter.presses == 1);
+
+    // A closed frame is not closed again
+    frame->hide();
+    click(&editor, QPointF(20, 20));
+    CHECK(closed == 2);
+    CHECK(counter.presses == 2);
+    CHECK(saved == 0);
+    CHECK(cancelled == 0);
+}
+
 TEST_CASE("Annotations frame: under its place within the text column, above it without room "
           "below",
           "[gui][annotations]") {
@@ -864,6 +932,53 @@ TEST_CASE("Annotations: one frame at a time; the text of the open one is kept",
     CHECK(desk.editor().annotations().front().annotation.text == QStringLiteral("First"));
     CHECK(desk.coordinator->isWriting());
     CHECK(desk.coordinator->frame()->text().isEmpty());
+}
+
+TEST_CASE("Annotations: the X of the frame and a click in the text beside it keep what was "
+          "written",
+          "[gui][annotations]") {
+    Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("Old")),
+                      {QStringLiteral("One two <anchor ref=\"c1\">three</anchor>")}));
+    PressCounter counter;
+    desk.editor().installEventFilter(&counter);  // before the frame's: it counts what goes on
+
+    SECTION("a click beside it: the new text in a step of its own; the click goes on to the "
+            "text") {
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        click(&desk.editor(), QPointF(5, 5));
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.coordinator->frame() == nullptr);
+        CHECK(counter.presses == 1);
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Newer"));
+        desk.editor().undo();
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
+    }
+
+    SECTION("its X: a new annotation is added with its text") {
+        desk.editor().setSelection({{0, 0}, {0, 3}});
+        REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Todo));
+        desk.frameText()->setPlainText(QStringLiteral("Check"));
+        auto* close = desk.coordinator->frame()->findChild<QToolButton*>(
+            QStringLiteral("annotationFrameClose"));
+        REQUIRE(close != nullptr);
+        close->click();
+        CHECK_FALSE(desk.coordinator->isWriting());
+        REQUIRE(desk.editor().annotations().size() == 2);
+        const editor::AnnotationPlace added = desk.editor().annotations().front();
+        CHECK(added.start == 0);
+        CHECK(added.annotation.kind == AnnotationKind::Todo);
+        CHECK(added.annotation.text == QStringLiteral("Check"));
+    }
+
+    SECTION("a new one left empty: nothing is added") {
+        desk.editor().setCursorPosition({0, 3});
+        REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Note));
+        click(&desk.editor(), QPointF(5, 5));
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.editor().annotations().size() == 1);
+        CHECK_FALSE(desk.editor().canUndo());
+    }
 }
 
 TEST_CASE("Annotations: a click on a mark opens its annotation; the cursor stays",

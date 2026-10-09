@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Annotations: the frame closes with a click beside it or with its X** - 2026-10-09. A
+  click in the text beside the frame of an annotation, or on the X in its top right
+  corner, closes it and keeps what was written, as Ctrl+Enter does; a new annotation left
+  empty is not added. Esc still drops what was written.
+
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
   0.3.1, 0.3.0 and the README 0.3.2.
