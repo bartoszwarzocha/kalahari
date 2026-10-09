@@ -343,6 +343,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
+
 - **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
   toolbar context menu were connected without an owner, so a toolbar shown or hidden after
   its menu item was deleted reached freed memory. Each connection now ends with its menu
