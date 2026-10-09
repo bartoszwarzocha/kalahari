@@ -1,39 +1,92 @@
 /// @file project_manager.cpp
-/// @brief Implementation of ProjectManager for Solution-like architecture
-///
-/// OpenSpec #00033: Project File System
+/// @brief Implementation of ProjectManager: the book project open in the program
 
 #include <kalahari/core/project_manager.h>
-#include <kalahari/core/document.h>
-#include <kalahari/core/book.h>
-#include <kalahari/core/part.h>
-#include <kalahari/core/book_element.h>
-#include <kalahari/core/book_constants.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/resource_paths.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/editor/clipboard_handler.h>
 
+#include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QTextStream>
-#include <QDir>
-#include <QDirIterator>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QDateTime>
 #include <QRegularExpression>
 #include <QTimeZone>
 #include <QUuid>
 
-#include <set>
+#include <algorithm>
 
 #include <zip.h>
 
 namespace kalahari {
 namespace core {
+
+namespace {
+
+/// Package whose kinds a user project starts with
+constexpr const char* BASE_PACKAGE = "kalahari.base";
+
+/// Statuses of text elements, from the first draft to the final text
+const QStringList& textStatuses() {
+    static const QStringList statuses{QStringLiteral("draft"), QStringLiteral("revision"),
+                                      QStringLiteral("final")};
+    return statuses;
+}
+
+QString toQString(const std::filesystem::path& path) {
+    return QString::fromStdWString(path.wstring());
+}
+
+/// @p title as a file or folder name: characters that file systems do not allow become "_"
+QString safeFileName(const QString& title) {
+    static const QRegularExpression invalid(QStringLiteral("[<>:\"/\\\\|?*]"));
+    QString name = title.trimmed();
+    name.replace(invalid, QStringLiteral("_"));
+    return name;
+}
+
+void appendAll(const QList<ProjectElement>& elements, QList<const ProjectElement*>& all) {
+    for (const ProjectElement& element : elements) {
+        all.append(&element);
+        appendAll(element.elements, all);
+    }
+}
+
+/// Every element of @p project: of the books in reading order, then of the Workshop
+QList<const ProjectElement*> allElements(const BookProject& project) {
+    QList<const ProjectElement*> all;
+    for (qsizetype book = 0; book < project.books.size(); ++book) {
+        all.append(project.readingOrder(book));
+    }
+    appendAll(project.workshop.elements, all);
+    return all;
+}
+
+/// Elements of @p kind in @p project
+qsizetype countOf(const BookTypeRegistry& registry, const BookProject& project,
+                  const KindRef& kind) {
+    const QList<const ProjectElement*> all = allElements(project);
+    return std::count_if(all.cbegin(), all.cend(),
+                         [&registry, &kind](const ProjectElement* element) {
+                             return BookProject::kindOf(registry, *element).kind == kind.kind;
+                         });
+}
+
+/// Whether the elements of @p kind in @p project reached the kind's limit
+bool limitReached(const BookTypeRegistry& registry, const BookProject& project,
+                  const KindRef& kind) {
+    return kind.kind->limit > 0 && countOf(registry, project, kind) >= kind.kind->limit;
+}
+
+/// Seconds since 1970 in UTC, as the .klh file keeps them
+QDateTime now() {
+    return QDateTime::fromSecsSinceEpoch(QDateTime::currentSecsSinceEpoch(), QTimeZone::utc());
+}
+
+}  // namespace
 
 // =============================================================================
 // Singleton Instance
@@ -51,7 +104,6 @@ ProjectManager& ProjectManager::getInstance() {
 ProjectManager::ProjectManager()
     : QObject(nullptr)
     , m_workMode(WorkMode::NoDocument)
-    , m_document(nullptr)
     , m_isDirty(false)
 {
     Logger::getInstance().info("ProjectManager initialized");
@@ -59,7 +111,7 @@ ProjectManager::ProjectManager()
 
 ProjectManager::~ProjectManager() {
     // Auto-save on destruction if dirty
-    if (m_isDirty && m_document) {
+    if (m_isDirty && m_project) {
         saveManifest();
     }
     Logger::getInstance().info("ProjectManager destroyed");
@@ -73,213 +125,173 @@ bool ProjectManager::createProject(const QString& parentDir,
                                    const QString& title,
                                    const QString& author,
                                    const QString& language,
-                                   bool createSubfolder) {
-    // Close any existing project first
-    if (isProjectOpen()) {
-        if (!closeProject(true)) {
-            Logger::getInstance().warn("createProject: Failed to close existing project");
+                                   bool createSubfolder,
+                                   const QString& typeId) {
+    auto& logger = Logger::getInstance();
+
+    const QString fileName = safeFileName(title);
+    if (fileName.isEmpty()) {
+        logger.error("createProject: The book has no title");
+        return false;
+    }
+
+    // The type before anything is written
+    const BookTypePackage* type = nullptr;
+    if (!typeId.isEmpty()) {
+        type = bookTypes().package(typeId);
+        if (!type || type->role != PackageRole::Type) {
+            logger.error("createProject: The book type {} is not installed", typeId.toStdString());
             return false;
         }
     }
 
-    // Determine project path
-    std::filesystem::path projectPath;
-    if (createSubfolder) {
-        // Sanitize title for folder name (replace invalid chars)
-        QString safeFolderName = title;
-        safeFolderName.replace(QRegularExpression("[<>:\"/\\\\|?*]"), "_");
-        projectPath = std::filesystem::path(parentDir.toStdWString()) / safeFolderName.toStdWString();
+    // Close any existing project first
+    if (isProjectOpen() && !closeProject(true)) {
+        logger.warn("createProject: Failed to close existing project");
+        return false;
+    }
+
+    // The project's folder must be new or empty
+    const QString projectDir =
+        QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
+    const bool folderExisted = QFileInfo(projectDir).exists();
+    if (folderExisted && (!QFileInfo(projectDir).isDir() || !QDir(projectDir).isEmpty())) {
+        logger.error("createProject: {} exists and is not an empty folder",
+                     projectDir.toStdString());
+        return false;
+    }
+    if (!QDir().mkpath(projectDir)) {
+        logger.error("createProject: Cannot make the folder {}", projectDir.toStdString());
+        return false;
+    }
+
+    BookProject project;
+    project.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    project.created = now();
+    project.modified = project.created;
+    if (type) {
+        project.type = ProjectType{type->id, type->version, {}};
     } else {
-        projectPath = std::filesystem::path(parentDir.toStdWString());
+        // A user project starts with the kinds of the base package
+        for (const KindRef& kind : bookTypes().allKinds()) {
+            if (kind.package->id == QLatin1String(BASE_PACKAGE)) {
+                project.kinds.append(KindReference{kind.package->id, kind.kind->id});
+            }
+        }
     }
 
-    Logger::getInstance().info("Creating project at: {}", projectPath.string());
+    ProjectBook book;
+    book.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    book.title = title.trimmed();
+    book.author = author;
+    book.language = language;
+    book.partsLayer = type ? type->partsLayer : false;
+    book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
+    project.books.append(book);
 
-    // Check if path already exists
-    if (std::filesystem::exists(projectPath)) {
-        Logger::getInstance().error("Project path already exists: {}", projectPath.string());
+    const QString manifestPath =
+        QDir(projectDir).filePath(fileName + QLatin1String(BookProject::FILE_EXTENSION));
+    logger.info("Creating project at: {}", manifestPath.toStdString());
+
+    // The folder goes back to how it was when the project cannot be made
+    const auto undo = [&projectDir, folderExisted]() {
+        QDir(projectDir).removeRecursively();
+        if (folderExisted) {
+            QDir().mkpath(projectDir);
+        }
+    };
+
+    if (!project.save(manifestPath)) {
+        undo();
         return false;
     }
 
-    // Create folder structure
-    if (!createFolderStructure(projectPath)) {
-        Logger::getInstance().error("Failed to create folder structure");
+    QStringList problems;
+    if (!openProject(manifestPath, &problems)) {
+        logger.error("createProject: The new project cannot be opened");
+        undo();
         return false;
     }
 
-    // Create Document object
-    m_document = std::make_unique<Document>(
-        title.toStdString(),
-        author.toStdString(),
-        language.toStdString()
-    );
-
-    // Set paths
-    m_projectPath = projectPath;
-    QString manifestFileName = title;
-    manifestFileName.replace(QRegularExpression("[<>:\"/\\\\|?*]"), "_");
-    m_manifestPath = projectPath / (manifestFileName.toStdWString() + L".klh");
-
-    // Save manifest
-    if (!saveManifest()) {
-        Logger::getInstance().error("Failed to save initial manifest");
-        // Cleanup: remove created folders
-        std::error_code ec;
-        std::filesystem::remove_all(projectPath, ec);
-        m_document.reset();
-        m_projectPath.clear();
-        m_manifestPath.clear();
-        return false;
-    }
-
-    // Set state
-    m_isDirty = false;
-    setWorkMode(WorkMode::ProjectMode);
-
-    Logger::getInstance().info("Project created successfully: {}", m_manifestPath.string());
-    emit projectOpened(QString::fromStdWString(m_projectPath.wstring()));
-
+    logger.info("Project created successfully: {}", manifestPath.toStdString());
     return true;
 }
 
-bool ProjectManager::openProject(const QString& manifestPath) {
-    std::filesystem::path path(manifestPath.toStdWString());
+bool ProjectManager::openProject(const QString& manifestPath, QStringList* problems) {
+    auto& logger = Logger::getInstance();
+    const QFileInfo manifestInfo(manifestPath);
 
-    // Validate manifest path
-    if (!std::filesystem::exists(path)) {
-        Logger::getInstance().error("Manifest file not found: {}", path.string());
+    QStringList found;
+    const auto fail = [&logger, &found, problems](const QString& problem) {
+        if (!problem.isEmpty()) {
+            found.append(problem);
+        }
+        for (const QString& line : found) {
+            logger.error("openProject: {}", line.toStdString());
+        }
+        if (problems) {
+            problems->append(found);
+        }
         return false;
+    };
+
+    if (!manifestInfo.isFile()) {
+        return fail(QStringLiteral("%1: the file does not exist").arg(manifestInfo.fileName()));
     }
-
-    if (path.extension() != ".klh") {
-        Logger::getInstance().error("Invalid manifest file (not .klh): {}", path.string());
-        return false;
+    if (manifestInfo.suffix().compare(QStringLiteral("klh"), Qt::CaseInsensitive) != 0) {
+        return fail(QStringLiteral("%1: not a .klh file").arg(manifestInfo.fileName()));
     }
 
     // Close any existing project first
-    if (isProjectOpen()) {
-        if (!closeProject(true)) {
-            Logger::getInstance().warn("openProject: Failed to close existing project");
-            return false;
-        }
+    if (isProjectOpen() && !closeProject(true)) {
+        return fail(QStringLiteral("the open project cannot be closed"));
+    }
+
+    logger.info("Opening project: {}", manifestPath.toStdString());
+    std::optional<BookProject> project = BookProject::load(manifestPath, found);
+    if (!project) {
+        return fail(QString());
     }
 
     // OpenSpec #00041: Acquire project lock
-    QString projectDir = QString::fromStdWString(path.parent_path().wstring());
+    const QString projectDir = manifestInfo.absolutePath();
     m_projectLock = std::make_unique<ProjectLock>(projectDir);
     if (!m_projectLock->tryAcquire()) {
-        Logger::getInstance().error("Project is already open in another instance");
         m_projectLock.reset();
-        return false;
+        return fail(QStringLiteral("%1: the book is open in another window of Kalahari")
+                        .arg(manifestInfo.fileName()));
     }
-
-    Logger::getInstance().info("Opening project: {}", path.string());
-
-    // Read manifest JSON
-    QFile file(manifestPath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        Logger::getInstance().error("Failed to open manifest file: {}", path.string());
-        return false;
-    }
-
-    QByteArray jsonData = file.readAll();
-    file.close();
-
-    // Parse JSON
-    QJsonParseError parseError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-    if (parseError.error != QJsonParseError::NoError) {
-        Logger::getInstance().error("Failed to parse manifest JSON: {}",
-                                    parseError.errorString().toStdString());
-        return false;
-    }
-
-    if (!jsonDoc.isObject()) {
-        Logger::getInstance().error("Manifest is not a JSON object");
-        return false;
-    }
-
-    QJsonObject root = jsonDoc.object();
-
-    // Validate required sections
-    if (!root.contains("kalahari") || !root.contains("document")) {
-        Logger::getInstance().error("Manifest missing required sections (kalahari, document)");
-        return false;
-    }
-
-    // Extract document metadata
-    QJsonObject kalahariSection = root["kalahari"].toObject();
-    QJsonObject documentSection = root["document"].toObject();
-
-    QString version = kalahariSection["version"].toString("1.0");
-    QString minVersion = kalahariSection["minVersion"].toString("0.4.0");
-
-    QString docId = documentSection["id"].toString();
-    QString title = documentSection["title"].toString();
-    QString author = documentSection["author"].toString();
-    QString language = documentSection["language"].toString("en");
-    QString genre = documentSection["genre"].toString();
-
-    Logger::getInstance().debug("Loading project: '{}' by {} (v{})",
-                                title.toStdString(), author.toStdString(), version.toStdString());
-
-    // Create Document from loaded data
-    m_document = std::make_unique<Document>(
-        title.toStdString(),
-        author.toStdString(),
-        language.toStdString()
-    );
-    m_document->setGenre(genre.toStdString());
-
-    // Keep the document identity: the constructor generates a new id and creation time
-    QDateTime created = QDateTime::fromString(documentSection["created"].toString(), Qt::ISODate);
-    if (!docId.isEmpty() && created.isValid()) {
-        m_document->restoreIdentity(
-            docId.toStdString(),
-            std::chrono::system_clock::time_point(
-                std::chrono::milliseconds(created.toMSecsSinceEpoch())));
-    } else {
-        Logger::getInstance().warn("Manifest has no valid id or created timestamp, keeping new ones");
-    }
-    m_manifest = root;
-
-    // Set paths
-    m_manifestPath = path;
-    m_projectPath = path.parent_path();
 
     // OpenSpec #00041: Open project database
     m_database = std::make_unique<ProjectDatabase>();
     if (!m_database->open(projectDir)) {
-        Logger::getInstance().error("Failed to open project database");
-        m_document.reset();
-        m_manifest = QJsonObject();
-        m_projectLock.reset();
         m_database.reset();
-        return false;
+        m_projectLock->release();
+        m_projectLock.reset();
+        return fail(QStringLiteral("project.db: the database of the book cannot be opened"));
     }
     m_backupManager = std::make_unique<BackupManager>(projectDir);
 
-    // Load book structure from manifest
-    if (root.contains("structure")) {
-        QJsonObject structureSection = root["structure"].toObject();
-        if (!loadStructureFromManifest(structureSection)) {
-            Logger::getInstance().warn("Failed to load book structure from manifest");
-        }
+    m_project = std::make_unique<BookProject>(std::move(*project));
+    m_manifestPath = std::filesystem::path(manifestInfo.absoluteFilePath().toStdWString());
+    m_projectPath = m_manifestPath.parent_path();
+
+    // The elements of packages that are not installed stay in the book
+    const QStringList missing = m_project->missingPackages(bookTypes());
+    if (!missing.isEmpty()) {
+        logger.warn("The book uses packages that are not installed: {}",
+                    missing.join(QStringLiteral(", ")).toStdString());
     }
 
-    // Validate folder structure (warn if missing, but continue)
-    if (!validateFolderStructure(m_projectPath)) {
-        Logger::getInstance().warn("Project folder structure is incomplete");
-        // Create missing folders
-        createFolderStructure(m_projectPath);
-    }
+    loadElementStates();
 
     // Set state
     m_isDirty = false;
     setWorkMode(WorkMode::ProjectMode);
 
-    Logger::getInstance().info("Project opened successfully: {}", title.toStdString());
-    emit projectOpened(QString::fromStdWString(m_projectPath.wstring()));
+    logger.info("Project opened successfully: {}",
+                book() ? book()->title.toStdString() : std::string());
+    emit projectOpened(toQString(m_projectPath));
 
     return true;
 }
@@ -315,10 +327,10 @@ bool ProjectManager::closeProject(bool promptSave) {
     }
 
     // Clear state
-    m_document.reset();
+    m_project.reset();
+    m_elementStates.clear();
     m_projectPath.clear();
     m_manifestPath.clear();
-    m_manifest = QJsonObject();
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
@@ -328,152 +340,48 @@ bool ProjectManager::closeProject(bool promptSave) {
 }
 
 bool ProjectManager::saveManifest() {
-    if (!m_document || m_manifestPath.empty()) {
-        Logger::getInstance().error("saveManifest: No document or manifest path");
+    if (!m_project || m_manifestPath.empty()) {
+        Logger::getInstance().error("saveManifest: No project open");
         return false;
     }
 
     Logger::getInstance().debug("Saving manifest to: {}", m_manifestPath.string());
 
-    // Build manifest JSON on top of the one read from disk, so fields this
-    // version does not manage survive a save
-    QJsonObject root = m_manifest;
-
-    // Kalahari section
-    QJsonObject kalahariSection;
-    kalahariSection["version"] = "1.0";
-    kalahariSection["minVersion"] = "0.4.0";
-    root["kalahari"] = kalahariSection;
-
-    // Document section
-    QJsonObject documentSection = root["document"].toObject();
-    documentSection["id"] = QString::fromStdString(m_document->getId());
-    documentSection["title"] = QString::fromStdString(m_document->getTitle());
-    documentSection["author"] = QString::fromStdString(m_document->getAuthor());
-    documentSection["language"] = QString::fromStdString(m_document->getLanguage());
-    documentSection["genre"] = QString::fromStdString(m_document->getGenre());
-
-    // Preserve 'created' timestamp from Document, only update 'modified'
-    auto createdTime = m_document->getCreated();
-    auto createdMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-        createdTime.time_since_epoch()).count();
-    QDateTime createdDt = QDateTime::fromMSecsSinceEpoch(createdMs, QTimeZone::utc());
-    documentSection["created"] = createdDt.toString(Qt::ISODate);
-    documentSection["modified"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-    root["document"] = documentSection;
-
-    // Structure section - serialize book structure
-    root["structure"] = saveStructureToManifest();
-
-    // Statistics and settings sections: defaults only for a new manifest
-    if (!root.contains("statistics")) {
-        QJsonObject statisticsSection;
-        statisticsSection["totalWords"] = 0;
-        statisticsSection["totalChapters"] = 0;
-        statisticsSection["lastEdited"] = "";
-        root["statistics"] = statisticsSection;
-    }
-    if (!root.contains("settings")) {
-        QJsonObject settingsSection;
-        settingsSection["defaultPerspective"] = "writer";
-        settingsSection["autoSaveInterval"] = 300;
-        root["settings"] = settingsSection;
-    }
-
-    // Write to file
-    QJsonDocument jsonDoc(root);
-    QFile file(QString::fromStdWString(m_manifestPath.wstring()));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        Logger::getInstance().error("Failed to open manifest for writing: {}", m_manifestPath.string());
+    const QDateTime previous = m_project->modified;
+    m_project->modified = now();
+    if (!m_project->save(getManifestPath())) {
+        m_project->modified = previous;
         return false;
     }
 
-    file.write(jsonDoc.toJson(QJsonDocument::Indented));
-    file.close();
-
-    m_isDirty = false;
-    emit dirtyStateChanged(false);
-
+    setDirty(false);
     Logger::getInstance().info("Manifest saved successfully");
     return true;
 }
 
 bool ProjectManager::isProjectOpen() const {
-    return m_workMode == WorkMode::ProjectMode && m_document != nullptr;
+    return m_workMode == WorkMode::ProjectMode && m_project != nullptr;
 }
 
 // =============================================================================
-// Path Helpers
+// Paths
 // =============================================================================
 
 QString ProjectManager::getProjectPath() const {
     if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString(m_projectPath.wstring());
+    return toQString(m_projectPath);
 }
 
 QString ProjectManager::getManifestPath() const {
     if (m_manifestPath.empty()) return QString();
-    return QString::fromStdWString(m_manifestPath.wstring());
+    return toQString(m_manifestPath);
 }
 
-QString ProjectManager::getContentPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "content").wstring());
-}
-
-QString ProjectManager::getFrontmatterPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "content" / "frontmatter").wstring());
-}
-
-QString ProjectManager::getBodyPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "content" / "body").wstring());
-}
-
-QString ProjectManager::getBackmatterPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "content" / "backmatter").wstring());
-}
-
-QString ProjectManager::getMetadataPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "metadata").wstring());
-}
-
-QString ProjectManager::getMindmapsPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "mindmaps").wstring());
-}
-
-QString ProjectManager::getTimelinesPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "timelines").wstring());
-}
-
-QString ProjectManager::getResourcesPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / "resources").wstring());
-}
-
-QString ProjectManager::getKalahariPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / ".kalahari").wstring());
-}
-
-QString ProjectManager::getCachePath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / ".kalahari" / "cache").wstring());
-}
-
-QString ProjectManager::getBackupPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / ".kalahari" / "backup").wstring());
-}
-
-QString ProjectManager::getRecoveryPath() const {
-    if (m_projectPath.empty()) return QString();
-    return QString::fromStdWString((m_projectPath / ".kalahari" / "recovery").wstring());
+QString ProjectManager::filePathOf(const ProjectElement& element) const {
+    if (element.file.isEmpty() || m_projectPath.empty()) {
+        return QString();
+    }
+    return QDir::cleanPath(QDir(getProjectPath()).filePath(element.file));
 }
 
 // =============================================================================
@@ -484,12 +392,20 @@ WorkMode ProjectManager::getWorkMode() const {
     return m_workMode;
 }
 
-Document* ProjectManager::getDocument() {
-    return m_document.get();
+BookProject* ProjectManager::project() {
+    return m_project.get();
 }
 
-const Document* ProjectManager::getDocument() const {
-    return m_document.get();
+const BookProject* ProjectManager::project() const {
+    return m_project.get();
+}
+
+ProjectBook* ProjectManager::book() {
+    return m_project && !m_project->books.isEmpty() ? &m_project->books.first() : nullptr;
+}
+
+const ProjectBook* ProjectManager::book() const {
+    return m_project && !m_project->books.isEmpty() ? &m_project->books.first() : nullptr;
 }
 
 bool ProjectManager::isDirty() const {
@@ -504,435 +420,442 @@ void ProjectManager::setDirty(bool dirty) {
 }
 
 // =============================================================================
-// Book Structure Management
+// Book Types
 // =============================================================================
 
-bool ProjectManager::loadStructureFromManifest(const QJsonObject& structureObj) {
-    if (!m_document) {
-        Logger::getInstance().error("loadStructureFromManifest: No document loaded");
-        return false;
+const BookTypeRegistry& ProjectManager::bookTypes() const {
+    if (!m_bookTypesLoaded) {
+        m_bookTypesLoaded = true;
+        const QString folder = ResourcePaths::getInstance().getBookTypesDir();
+        if (folder.isEmpty()) {
+            Logger::getInstance().warn("Book types: the resources folder was not found");
+        }
+        m_bookTypes.load(folder.isEmpty() ? QStringList{} : QStringList{folder});
     }
+    return m_bookTypes;
+}
 
-    Book& book = m_document->getBook();
+void ProjectManager::loadBookTypes(const QStringList& folders) {
+    m_bookTypes.load(folders);
+    m_bookTypesLoaded = true;
+}
 
-    // Clear existing structure
-    book.clearAll();
+KindRef ProjectManager::kindOf(const ProjectElement& element) const {
+    return BookProject::kindOf(bookTypes(), element);
+}
 
-    // Parse frontmatter array
-    if (structureObj.contains("frontmatter")) {
-        QJsonArray frontmatterArray = structureObj["frontmatter"].toArray();
-        for (const QJsonValue& val : frontmatterArray) {
-            QJsonObject elemObj = val.toObject();
-            QString id = elemObj["id"].toString();
-            QString title = elemObj["title"].toString();
-            QString file = elemObj["file"].toString();
-            QString type = elemObj["type"].toString(TYPE_PREFACE);
+ElementForm ProjectManager::formOf(const ProjectElement& element) const {
+    return BookProject::formOf(bookTypes(), element);
+}
 
-            auto element = std::make_shared<BookElement>(
-                type.toStdString(),
-                id.toStdString(),
-                title.toStdString(),
-                std::filesystem::path(file.toStdWString())
-            );
+QString ProjectManager::statusOf(const ProjectElement& element) {
+    return element.status.isEmpty() ? QStringLiteral("draft") : element.status;
+}
 
-            // Note: status, notes, wordCount are loaded from .kchapter files
-            // via loadAllChapterMetadata() called at the end of this function
-
-            book.addFrontMatter(element);
-
-            Logger::getInstance().debug("Loaded frontmatter: {} ({})",
-                                        title.toStdString(), id.toStdString());
+QList<KindRef> ProjectManager::kindsFor(BookPlace place, const QString& groupId) const {
+    QList<KindRef> kinds;
+    if (!m_project) {
+        return kinds;
+    }
+    const BookTypeRegistry& registry = bookTypes();
+    QList<KindRef> offered;
+    if (groupId.isEmpty()) {
+        offered = m_project->kindsIn(registry, place);
+    } else if (const ProjectElement* group = m_project->findElement(groupId)) {
+        offered = m_project->kindsInside(registry, group->kind.kindId);
+    }
+    for (const KindRef& kind : offered) {
+        if (kind && !limitReached(registry, *m_project, kind)) {
+            kinds.append(kind);
         }
     }
+    return kinds;
+}
 
-    // Parse body array (parts with chapters)
-    if (structureObj.contains("body")) {
-        QJsonArray bodyArray = structureObj["body"].toArray();
-        for (const QJsonValue& partVal : bodyArray) {
-            QJsonObject partObj = partVal.toObject();
-            QString partId = partObj["id"].toString();
-            QString partTitle = partObj["title"].toString();
+QList<KindRef> ProjectManager::textKindsFor(BookPlace place, const QString& groupId) const {
+    QList<KindRef> kinds = kindsFor(place, groupId);
+    kinds.removeIf([](const KindRef& kind) { return kind.kind->form != ElementForm::Text; });
+    return kinds;
+}
 
-            auto part = std::make_shared<Part>(
-                partId.toStdString(),
-                partTitle.toStdString()
-            );
-
-            // Parse chapters within this part
-            if (partObj.contains("chapters")) {
-                QJsonArray chaptersArray = partObj["chapters"].toArray();
-                for (const QJsonValue& chapVal : chaptersArray) {
-                    QJsonObject chapObj = chapVal.toObject();
-                    QString chapId = chapObj["id"].toString();
-                    QString chapTitle = chapObj["title"].toString();
-                    QString chapFile = chapObj["file"].toString();
-
-                    auto chapter = std::make_shared<BookElement>(
-                        TYPE_CHAPTER,
-                        chapId.toStdString(),
-                        chapTitle.toStdString(),
-                        std::filesystem::path(chapFile.toStdWString())
-                    );
-
-                    // Note: status, notes, wordCount are loaded from .kchapter files
-                    // via loadAllChapterMetadata() called at the end of this function
-
-                    part->addChapter(chapter);
-
-                    Logger::getInstance().debug("Loaded chapter: {} ({})",
-                                                chapTitle.toStdString(), chapId.toStdString());
+KindRef ProjectManager::chapterKindFor(BookPlace place, const QString& groupId) const {
+    const QList<KindRef> kinds = textKindsFor(place, groupId);
+    if (kinds.isEmpty()) {
+        return {};
+    }
+    const std::optional<ProjectType> projectType = m_project ? m_project->type : std::nullopt;
+    if (projectType) {
+        const BookTypeRegistry& registry = bookTypes();
+        if (const BookTypePackage* type = registry.package(projectType->id)) {
+            const KindRef primary = registry.findKind(type->id, type->primaryKind);
+            for (const KindRef& kind : kinds) {
+                if (kind.kind == primary.kind) {
+                    return kind;
                 }
             }
+        }
+    }
+    return kinds.first();
+}
 
-            book.addPart(part);
-            Logger::getInstance().debug("Loaded part: {} with {} chapters",
-                                        partTitle.toStdString(), part->getChapterCount());
+KindRef ProjectManager::partKind() const {
+    for (const KindRef& kind : kindsFor(BookPlace::Main)) {
+        if (kind.kind->form == ElementForm::Group) {
+            return kind;
+        }
+    }
+    return {};
+}
+
+QString ProjectManager::defaultTitle(const KindRef& kind) const {
+    if (!m_project || !kind) {
+        return QString();
+    }
+    const ProjectBook* first = book();
+    const int number = static_cast<int>(countOf(bookTypes(), *m_project, kind)) + 1;
+    return kind.kind->defaultTitle(first ? first->language : QString(), number);
+}
+
+// =============================================================================
+// Elements
+// =============================================================================
+
+ProjectElement* ProjectManager::findElement(const QString& elementId) {
+    return m_project ? m_project->findElement(elementId) : nullptr;
+}
+
+const ProjectElement* ProjectManager::findElement(const QString& elementId) const {
+    return m_project ? m_project->findElement(elementId) : nullptr;
+}
+
+QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
+                                   const QString& groupId) {
+    auto& logger = Logger::getInstance();
+    QList<ProjectElement>* list = listForNew(kind, place, groupId);
+    if (!list) {
+        return QString();
+    }
+    if (kind.kind->form == ElementForm::Window) {
+        logger.error("addElement: Elements of {} open in a window that the program does not "
+                     "have yet",
+                     kind.reference().toStdString());
+        return QString();
+    }
+
+    ProjectElement element;
+    element.id = m_project->newElementId();
+    element.kind = KindReference{kind.package->id, kind.kind->id};
+    element.title = title;
+    if (kind.kind->form == ElementForm::Text) {
+        element.file = newChapterFile(kind, place);
+        element.status = QStringLiteral("draft");
+        if (!writeChapterFile(element, QString())) {
+            m_elementStates.remove(element.id);
+            return QString();
         }
     }
 
-    // Parse backmatter array
-    if (structureObj.contains("backmatter")) {
-        QJsonArray backmatterArray = structureObj["backmatter"].toArray();
-        for (const QJsonValue& val : backmatterArray) {
-            QJsonObject elemObj = val.toObject();
-            QString id = elemObj["id"].toString();
-            QString title = elemObj["title"].toString();
-            QString file = elemObj["file"].toString();
-            QString type = elemObj["type"].toString(TYPE_EPILOGUE);
+    list->append(element);
+    if (!saveManifest()) {
+        list->removeLast();
+        if (!element.file.isEmpty()) {
+            QFile::remove(filePathOf(element));
+        }
+        m_elementStates.remove(element.id);
+        return QString();
+    }
 
-            auto element = std::make_shared<BookElement>(
-                type.toStdString(),
-                id.toStdString(),
-                title.toStdString(),
-                std::filesystem::path(file.toStdWString())
-            );
+    logger.info("addElement: Added '{}' ({}, id: {})", title.toStdString(),
+                kind.reference().toStdString(), element.id.toStdString());
+    return element.id;
+}
 
-            // Note: status, notes, wordCount are loaded from .kchapter files
-            // via loadAllChapterMetadata() called at the end of this function
+QString ProjectManager::addFile(const QString& sourcePath, bool copy, const KindRef& kind,
+                                const QString& title, BookPlace place, const QString& groupId) {
+    auto& logger = Logger::getInstance();
+    QList<ProjectElement>* list = listForNew(kind, place, groupId);
+    if (!list) {
+        return QString();
+    }
+    if (kind.kind->form != ElementForm::Text) {
+        logger.error("addFile: {} is not a kind of text", kind.reference().toStdString());
+        return QString();
+    }
+    const StandaloneFile::Type fileType = StandaloneFile::typeOf(sourcePath);
+    if (fileType == StandaloneFile::Type::Unsupported) {
+        logger.error("addFile: {} is neither a chapter nor a text file",
+                     sourcePath.toStdString());
+        return QString();
+    }
 
-            book.addBackMatter(element);
+    ProjectElement element;
+    element.id = m_project->newElementId();
+    element.kind = KindReference{kind.package->id, kind.kind->id};
+    element.title = title;
+    element.file = newChapterFile(kind, place);
+    element.status = QStringLiteral("draft");
+    const QString target = filePathOf(element);
 
-            Logger::getInstance().debug("Loaded backmatter: {} ({})",
-                                        title.toStdString(), id.toStdString());
+    bool written = false;
+    if (fileType == StandaloneFile::Type::PlainText) {
+        // Its lines become the chapter's paragraphs
+        if (std::optional<TextFileContent> content = readTextFile(sourcePath)) {
+            // The line end of the last line is no empty paragraph
+            if (content->text.endsWith(QLatin1Char('\n'))) {
+                content->text.chop(1);
+            }
+            written = writeChapterFile(element, editor::ClipboardHandler::textToKml(content->text));
+        }
+    } else if (QDir().mkpath(QFileInfo(target).absolutePath()) &&
+               QFile::copy(sourcePath, target)) {
+        // The chapter keeps its notes and its status
+        if (std::optional<ChapterDocument> chapter = ChapterDocument::load(target)) {
+            m_elementStates[element.id].notes = chapter->notes();
+            if (textStatuses().contains(chapter->status())) {
+                element.status = chapter->status();
+            }
+            written = writeChapterFile(element, std::nullopt);
         }
     }
 
-    Logger::getInstance().info("Book structure loaded: {} frontmatter, {} parts, {} backmatter",
-                               book.getFrontMatter().size(),
-                               book.getPartCount(),
-                               book.getBackMatter().size());
+    if (written) {
+        list->append(element);
+        if (!saveManifest()) {
+            list->removeLast();
+            written = false;
+        }
+    }
+    if (!written) {
+        logger.error("addFile: Cannot add {} as {}", sourcePath.toStdString(),
+                     target.toStdString());
+        QFile::remove(target);
+        m_elementStates.remove(element.id);
+        return QString();
+    }
 
-    // Load metadata (status, notes, wordCount) from .kchapter files
-    loadAllChapterMetadata();
+    // Moving the file leaves only the chapter
+    if (!copy && !QFile::remove(sourcePath)) {
+        logger.warn("addFile: The chapter was added, but {} could not be removed",
+                    sourcePath.toStdString());
+    }
 
+    logger.info("addFile: Added {} as '{}' ({}, id: {})", sourcePath.toStdString(),
+                title.toStdString(), kind.reference().toStdString(), element.id.toStdString());
+    return element.id;
+}
+
+bool ProjectManager::renameElement(const QString& elementId, const QString& title) {
+    ProjectElement* element = findElement(elementId);
+    if (!element) {
+        Logger::getInstance().warn("renameElement: Element not found: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    const QString previous = element->title;
+    element->title = title;
+    if (!saveManifest()) {
+        element->title = previous;
+        return false;
+    }
+    // The chapter file has the title too
+    if (stateOf(elementId) && !writeChapterFile(*element, std::nullopt)) {
+        Logger::getInstance().warn("renameElement: The title of {} is not in its chapter file",
+                                   elementId.toStdString());
+    }
     return true;
 }
 
-QJsonObject ProjectManager::saveStructureToManifest() const {
-    QJsonObject structureObj;
-
-    if (!m_document) {
-        // Return empty structure if no document
-        structureObj["frontmatter"] = QJsonArray();
-        structureObj["body"] = QJsonArray();
-        structureObj["backmatter"] = QJsonArray();
-        return structureObj;
+std::optional<ProjectElement> ProjectManager::removeElement(const QString& elementId) {
+    if (!m_project) {
+        return std::nullopt;
+    }
+    qsizetype index = -1;
+    QList<ProjectElement>* list = m_project->listOf(elementId, &index);
+    if (!list) {
+        Logger::getInstance().warn("removeElement: Element not found: {}",
+                                   elementId.toStdString());
+        return std::nullopt;
+    }
+    ProjectElement element = list->takeAt(index);
+    if (!saveManifest()) {
+        list->insert(index, element);
+        return std::nullopt;
     }
 
-    const Book& book = m_document->getBook();
-
-    // Serialize frontmatter
-    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
-    QJsonArray frontmatterArray;
-    for (const auto& element : book.getFrontMatter()) {
-        QJsonObject elemObj;
-        elemObj["id"] = QString::fromStdString(element->getId());
-        elemObj["title"] = QString::fromStdString(element->getTitle());
-        elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
-        elemObj["type"] = QString::fromStdString(element->getType());
-        frontmatterArray.append(elemObj);
+    // The program forgets the element and the elements inside it; their files stay
+    QList<const ProjectElement*> removed{&element};
+    appendAll(element.elements, removed);
+    for (const ProjectElement* gone : removed) {
+        m_elementStates.remove(gone->id);
     }
-    structureObj["frontmatter"] = frontmatterArray;
-
-    // Serialize body (parts with chapters)
-    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
-    QJsonArray bodyArray;
-    for (const auto& part : book.getBody()) {
-        QJsonObject partObj;
-        partObj["id"] = QString::fromStdString(part->getId());
-        partObj["title"] = QString::fromStdString(part->getTitle());
-
-        QJsonArray chaptersArray;
-        for (const auto& chapter : part->getChapters()) {
-            QJsonObject chapObj;
-            chapObj["id"] = QString::fromStdString(chapter->getId());
-            chapObj["title"] = QString::fromStdString(chapter->getTitle());
-            chapObj["file"] = QString::fromStdWString(chapter->getFile().wstring());
-            chaptersArray.append(chapObj);
-        }
-        partObj["chapters"] = chaptersArray;
-        bodyArray.append(partObj);
-    }
-    structureObj["body"] = bodyArray;
-
-    // Serialize backmatter
-    // Note: status, notes, wordCount are stored in .kchapter files, not manifest
-    QJsonArray backmatterArray;
-    for (const auto& element : book.getBackMatter()) {
-        QJsonObject elemObj;
-        elemObj["id"] = QString::fromStdString(element->getId());
-        elemObj["title"] = QString::fromStdString(element->getTitle());
-        elemObj["file"] = QString::fromStdWString(element->getFile().wstring());
-        elemObj["type"] = QString::fromStdString(element->getType());
-        backmatterArray.append(elemObj);
-    }
-    structureObj["backmatter"] = backmatterArray;
-
-    return structureObj;
+    Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
+                               element.title.toStdString(), elementId.toStdString());
+    return element;
 }
 
-QString ProjectManager::loadChapterContent(const QString& elementId) {
-    BookElement* element = findElement(elementId);
-    if (!element) {
-        Logger::getInstance().warn("loadChapterContent: Element not found: {}",
+bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {
+    if (!m_project) {
+        return false;
+    }
+    qsizetype from = -1;
+    QList<ProjectElement>* list = m_project->listOf(elementId, &from);
+    if (!list || index < 0 || index >= list->size()) {
+        Logger::getInstance().warn("moveElement: Cannot move {} to place {}",
+                                   elementId.toStdString(), index);
+        return false;
+    }
+    if (from == index) {
+        return true;
+    }
+    list->move(from, index);
+    if (!saveManifest()) {
+        list->move(index, from);
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setStatus(const QString& elementId, const QString& status) {
+    ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId) || !textStatuses().contains(status)) {
+        Logger::getInstance().warn("setStatus: Cannot set the status {} of {}",
+                                   status.toStdString(), elementId.toStdString());
+        return false;
+    }
+    const QString previous = element->status;
+    element->status = status;
+    if (!saveManifest()) {
+        element->status = previous;
+        return false;
+    }
+    // The .klh file has the status; the chapter file keeps a copy
+    if (!writeChapterFile(*element, std::nullopt)) {
+        Logger::getInstance().warn("setStatus: The status of {} is not in its chapter file",
                                    elementId.toStdString());
+    }
+    return true;
+}
+
+QString ProjectManager::notes(const QString& elementId) const {
+    return m_elementStates.value(elementId).notes;
+}
+
+bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId)) {
+        Logger::getInstance().warn("setNotes: Not a text element: {}", elementId.toStdString());
+        return false;
+    }
+    const QString previous = m_elementStates.value(elementId).notes;
+    if (previous == notes) {
+        return true;
+    }
+    m_elementStates[elementId].notes = notes;
+    if (!writeChapterFile(*element, std::nullopt)) {
+        m_elementStates[elementId].notes = previous;
+        return false;
+    }
+    return true;
+}
+
+int ProjectManager::wordCount(const QString& elementId) const {
+    return m_elementStates.value(elementId).wordCount;
+}
+
+TextStatistics ProjectManager::statisticsOf(const QList<ProjectElement>& elements) const {
+    QList<const ProjectElement*> all;
+    appendAll(elements, all);
+
+    TextStatistics statistics;
+    for (const ProjectElement* element : all) {
+        if (formOf(*element) == ElementForm::Text) {
+            ++statistics.elements;
+            statistics.words += wordCount(element->id);
+            ++statistics.statuses[statusOf(*element)];
+        }
+    }
+    return statistics;
+}
+
+// =============================================================================
+// Text of Chapters
+// =============================================================================
+
+QString ProjectManager::loadChapterContent(const QString& elementId) {
+    auto& logger = Logger::getInstance();
+    const ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId)) {
+        logger.warn("loadChapterContent: Not a text element with a file: {}",
+                    elementId.toStdString());
         return QString();
     }
 
-    // Resolve relative path against project path
-    std::filesystem::path rtfPath = m_projectPath / element->getFile();
-    
-    // Check for .kchapter file (new format)
-    std::filesystem::path kchapterPath = rtfPath;
-    kchapterPath.replace_extension(".kchapter");
-
-    QString kmlContent;
-
-    if (std::filesystem::exists(kchapterPath)) {
-        // Load from .kchapter format (preferred)
-        QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
-        auto doc = ChapterDocument::load(kchapterPathStr);
-        if (doc.has_value()) {
-            kmlContent = doc->kml();
-            Logger::getInstance().debug("Loaded .kchapter for element: {} ({} chars)",
-                                        elementId.toStdString(), kmlContent.length());
-        } else {
-            Logger::getInstance().error("loadChapterContent: Failed to load .kchapter: {}",
-                                       kchapterPath.string());
-            return QString();
-        }
-    } else if (std::filesystem::exists(rtfPath)) {
-        // Legacy RTF file - migrate to .kchapter
-        Logger::getInstance().info("Migrating RTF to .kchapter: {}", rtfPath.string());
-
-        QFile rtfFile(QString::fromStdWString(rtfPath.wstring()));
-        if (!rtfFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            Logger::getInstance().warn("loadChapterContent: Failed to open RTF: {}",
-                                       rtfPath.string());
-            return QString();
-        }
-
-        QTextStream in(&rtfFile);
-        in.setEncoding(QStringConverter::Utf8);
-        kmlContent = in.readAll();
-        rtfFile.close();
-
-        // Create .kchapter from content (treating legacy content as KML)
-        ChapterDocument doc = ChapterDocument::fromKmlContent(
-            kmlContent, QString::fromStdString(element->getTitle()));
-        
-        QString kchapterPathStr = QString::fromStdWString(kchapterPath.wstring());
-        if (doc.save(kchapterPathStr)) {
-            // Backup RTF file
-            std::filesystem::path backupPath = rtfPath;
-            backupPath += ".bak";
-            std::error_code ec;
-            std::filesystem::rename(rtfPath, backupPath, ec);
-            if (ec) {
-                Logger::getInstance().warn("Failed to backup RTF: {} ({})",
-                                          rtfPath.string(), ec.message());
-            }
-            
-            // Update element file path to .kchapter
-            std::filesystem::path relPath = element->getFile();
-            relPath.replace_extension(".kchapter");
-            element->setFile(relPath);
-            
-            Logger::getInstance().info("Migration complete: {} -> {}",
-                                      rtfPath.string(), kchapterPath.string());
-        } else {
-            Logger::getInstance().error("Failed to save migrated .kchapter: {}",
-                                       kchapterPath.string());
-        }
-    } else {
-        Logger::getInstance().warn("loadChapterContent: No file found: {}",
-                                   rtfPath.string());
+    const QString path = filePathOf(*element);
+    std::optional<ChapterDocument> chapter = ChapterDocument::load(path);
+    if (!chapter) {
+        logger.error("loadChapterContent: Cannot read {}", path.toStdString());
         return QString();
     }
 
-    // Cache content in element
-    element->setContent(kmlContent);
-    element->setDirty(false);  // Just loaded, not dirty
+    ElementState& state = m_elementStates[elementId];
+    state.content = chapter->kml();
+    state.loaded = true;
+    state.dirty = false;
+    state.wordCount = chapter->wordCount();
+    state.notes = chapter->notes();
+    logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
+                 state.content.length());
+    return state.content;
+}
 
-    return kmlContent;
+void ProjectManager::setChapterContent(const QString& elementId, const QString& kml) {
+    if (ElementState* state = stateOf(elementId)) {
+        state->content = kml;
+        state->loaded = true;
+        state->dirty = true;
+    }
+}
+
+void ProjectManager::discardChapterContent(const QString& elementId) {
+    if (ElementState* state = stateOf(elementId)) {
+        state->content.clear();
+        state->loaded = false;
+        state->dirty = false;
+    }
 }
 
 bool ProjectManager::saveChapterContent(const QString& elementId) {
-    BookElement* element = findElement(elementId);
-    if (!element) {
-        Logger::getInstance().warn("saveChapterContent: Element not found: {}",
+    const ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId)) {
+        Logger::getInstance().warn("saveChapterContent: Not a text element with a file: {}",
                                    elementId.toStdString());
         return false;
     }
 
-    if (!element->isContentLoaded()) {
-        Logger::getInstance().debug("saveChapterContent: No content loaded for: {}",
-                                    elementId.toStdString());
+    const ElementState state = m_elementStates.value(elementId);
+    if (!state.loaded || !state.dirty) {
         return true;  // Nothing to save
     }
-
-    // Resolve path - always use .kchapter extension
-    std::filesystem::path filePath = m_projectPath / element->getFile();
-    
-    // Ensure .kchapter extension
-    if (filePath.extension() != ".kchapter") {
-        filePath.replace_extension(".kchapter");
-        
-        // Update element file path
-        std::filesystem::path relPath = element->getFile();
-        relPath.replace_extension(".kchapter");
-        element->setFile(relPath);
-    }
-
-    // Create parent directories if needed
-    std::filesystem::path parentDir = filePath.parent_path();
-    if (!std::filesystem::exists(parentDir)) {
-        std::error_code ec;
-        if (!std::filesystem::create_directories(parentDir, ec)) {
-            Logger::getInstance().error("saveChapterContent: Failed to create directory: {} ({})",
-                                        parentDir.string(), ec.message());
-            return false;
-        }
-    }
-
-    // Create ChapterDocument from KML content
-    ChapterDocument doc = ChapterDocument::fromKmlContent(
-        element->getContent(),
-        QString::fromStdString(element->getTitle()));
-    
-    // Copy metadata from element if available
-    auto status = element->getMetadata("status");
-    if (status.has_value()) {
-        doc.setStatus(QString::fromStdString(status.value()));
-    }
-    
-    auto notes = element->getMetadata("notes");
-    if (notes.has_value()) {
-        doc.setNotes(QString::fromStdString(notes.value()));
-    }
-    
-    // Update word count in element
-    element->setWordCount(doc.wordCount());
-
-    // Save to .kchapter file
-    QString filePathStr = QString::fromStdWString(filePath.wstring());
-    if (!doc.save(filePathStr)) {
-        Logger::getInstance().error("saveChapterContent: Failed to save .kchapter: {}",
-                                    filePath.string());
+    if (!writeChapterFile(*element, state.content)) {
         return false;
     }
-
-    element->setDirty(false);
-    element->touch();  // Update modified timestamp
+    m_elementStates[elementId].dirty = false;
 
     Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
-                                elementId.toStdString(), doc.wordCount());
+                                elementId.toStdString(), wordCount(elementId));
     return true;
-}
-
-BookElement* ProjectManager::findElement(const QString& elementId) {
-    if (!m_document) {
-        return nullptr;
-    }
-
-    std::string id = elementId.toStdString();
-    Book& book = m_document->getBook();
-
-    // Search frontmatter
-    for (auto& element : book.getFrontMatter()) {
-        if (element->getId() == id) {
-            return element.get();
-        }
-    }
-
-    // Search body (parts and chapters)
-    for (auto& part : book.getBody()) {
-        for (const auto& chapter : part->getChapters()) {
-            if (chapter->getId() == id) {
-                return chapter.get();
-            }
-        }
-    }
-
-    // Search backmatter
-    for (auto& element : book.getBackMatter()) {
-        if (element->getId() == id) {
-            return element.get();
-        }
-    }
-
-    return nullptr;
-}
-
-Part* ProjectManager::findPart(const QString& partId) {
-    if (!m_document) {
-        return nullptr;
-    }
-
-    std::string id = partId.toStdString();
-    Book& book = m_document->getBook();
-
-    for (auto& part : book.getBody()) {
-        if (part->getId() == id) {
-            return part.get();
-        }
-    }
-
-    return nullptr;
 }
 
 std::vector<QString> ProjectManager::getDirtyElements() const {
     std::vector<QString> dirtyIds;
-
-    if (!m_document) {
+    if (!m_project) {
         return dirtyIds;
     }
-
-    const Book& book = m_document->getBook();
-
-    // Check frontmatter
-    for (const auto& element : book.getFrontMatter()) {
-        if (element->isDirty()) {
-            dirtyIds.push_back(QString::fromStdString(element->getId()));
+    for (const ProjectElement* element : allElements(*m_project)) {
+        if (m_elementStates.value(element->id).dirty) {
+            dirtyIds.push_back(element->id);
         }
     }
-
-    // Check body (chapters)
-    for (const auto& part : book.getBody()) {
-        for (const auto& chapter : part->getChapters()) {
-            if (chapter->isDirty()) {
-                dirtyIds.push_back(QString::fromStdString(chapter->getId()));
-            }
-        }
-    }
-
-    // Check backmatter
-    for (const auto& element : book.getBackMatter()) {
-        if (element->isDirty()) {
-            dirtyIds.push_back(QString::fromStdString(element->getId()));
-        }
-    }
-
     return dirtyIds;
 }
 
@@ -959,577 +882,34 @@ bool ProjectManager::saveAllDirty() {
 
 std::vector<std::pair<QString, QString>> ProjectManager::getIncompleteElements() const {
     std::vector<std::pair<QString, QString>> result;
-    
-    if (!m_document) {
+    if (!m_project) {
         return result;
     }
-    
-    const Book& book = m_document->getBook();
-    
-    auto checkElement = [&result](const BookElement* element) {
-        auto status = element->getMetadata("status");
-        QString statusStr = status.has_value() 
-            ? QString::fromStdString(status.value()).toLower()
-            : "draft";  // Default to draft if no status
-        
-        if (statusStr != "final") {
-            result.emplace_back(
-                QString::fromStdString(element->getId()),
-                statusStr
-            );
-        }
-    };
-    
-    // Check frontmatter
-    for (const auto& element : book.getFrontMatter()) {
-        checkElement(element.get());
-    }
-    
-    // Check body chapters
-    for (const auto& part : book.getBody()) {
-        for (const auto& chapter : part->getChapters()) {
-            checkElement(chapter.get());
+    for (const ProjectElement* element : m_project->readingOrder()) {
+        const QString status = statusOf(*element);
+        if (formOf(*element) == ElementForm::Text && status != QLatin1String("final")) {
+            result.emplace_back(element->id, status);
         }
     }
-    
-    // Check backmatter
-    for (const auto& element : book.getBackMatter()) {
-        checkElement(element.get());
-    }
-    
     return result;
 }
 
 std::map<QString, int> ProjectManager::getStatusStatistics() const {
-    std::map<QString, int> stats;
-    
-    if (!m_document) {
-        return stats;
+    std::map<QString, int> statistics;
+    if (!m_project) {
+        return statistics;
     }
-    
-    const Book& book = m_document->getBook();
-    
-    auto countElement = [&stats](const BookElement* element) {
-        auto status = element->getMetadata("status");
-        QString statusStr = status.has_value() 
-            ? QString::fromStdString(status.value()).toLower()
-            : "draft";  // Default to draft if no status
-        
-        stats[statusStr]++;
-    };
-    
-    // Count frontmatter
-    for (const auto& element : book.getFrontMatter()) {
-        countElement(element.get());
-    }
-    
-    // Count body chapters
-    for (const auto& part : book.getBody()) {
-        for (const auto& chapter : part->getChapters()) {
-            countElement(chapter.get());
+    for (const ProjectElement* element : m_project->readingOrder()) {
+        if (formOf(*element) == ElementForm::Text) {
+            ++statistics[statusOf(*element)];
         }
     }
-    
-    // Count backmatter
-    for (const auto& element : book.getBackMatter()) {
-        countElement(element.get());
-    }
-    
-    return stats;
-}
-
-QString ProjectManager::addChapterToSection(const QString& sectionType,
-                                           const QString& partId,
-                                           const QString& title,
-                                           const QString& sourceFilePath,
-                                           bool copyFile) {
-    auto& logger = Logger::getInstance();
-
-    if (!isProjectOpen() || !m_document) {
-        logger.error("addChapterToSection: No project open");
-        return QString();
-    }
-
-    Book& book = m_document->getBook();
-
-    // Generate unique element ID
-    QString elementId = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
-
-    // Determine target directory and file path
-    QString targetDir;
-    if (sectionType == "frontmatter") {
-        targetDir = getFrontmatterPath();
-    } else if (sectionType == "body") {
-        targetDir = getBodyPath() + "/" + partId;
-    } else if (sectionType == "backmatter") {
-        targetDir = getBackmatterPath();
-    } else {
-        logger.error("addChapterToSection: Invalid section type: {}", sectionType.toStdString());
-        return QString();
-    }
-
-    // Create target directory if needed
-    QDir().mkpath(targetDir);
-
-    // A text file becomes a chapter file; other files keep their extension (or get .rtf)
-    QFileInfo sourceInfo(sourceFilePath);
-    const bool textFile = StandaloneFile::typeOf(sourceFilePath) == StandaloneFile::Type::PlainText;
-    QString extension = textFile ? QStringLiteral("kchapter")
-                                 : (sourceInfo.suffix().isEmpty() ? QStringLiteral("rtf") : sourceInfo.suffix());
-    QString targetFileName = elementId + "." + extension;
-    QString targetFilePath = targetDir + "/" + targetFileName;
-
-    // Copy or move file
-    QFile sourceFile(sourceFilePath);
-    bool fileOk = false;
-    if (textFile) {
-        // Its lines become the chapter's paragraphs; moving it leaves only the chapter
-        if (auto content = readTextFile(sourceFilePath)) {
-            // The line end of the last line is no empty paragraph
-            if (content->text.endsWith(QLatin1Char('\n'))) {
-                content->text.chop(1);
-            }
-            const QString kml = editor::ClipboardHandler::textToKml(content->text);
-            fileOk = ChapterDocument::fromKmlContent(kml, title).save(targetFilePath);
-        }
-        if (fileOk && !copyFile && !sourceFile.remove()) {
-            logger.warn("addChapterToSection: The chapter was made, but {} could not be removed",
-                        sourceFilePath.toStdString());
-        }
-    } else if (copyFile) {
-        fileOk = sourceFile.copy(targetFilePath);
-    } else {
-        fileOk = sourceFile.rename(targetFilePath);
-    }
-
-    if (!fileOk) {
-        logger.error("addChapterToSection: Failed to {} file from {} to {}",
-                    copyFile ? "copy" : "move",
-                    sourceFilePath.toStdString(),
-                    targetFilePath.toStdString());
-        return QString();
-    }
-
-    // Determine element type based on section
-    std::string elementType;
-    if (sectionType == "frontmatter") {
-        elementType = TYPE_PREFACE;  // Default for front matter
-    } else if (sectionType == "body") {
-        elementType = TYPE_CHAPTER;
-    } else {
-        elementType = TYPE_EPILOGUE;  // Default for back matter
-    }
-
-    // Create relative path from project root
-    QString relativePath = QDir(QString::fromStdString(m_projectPath.string())).relativeFilePath(targetFilePath);
-
-    // Create new BookElement
-    auto element = std::make_shared<BookElement>(
-        elementType,
-        elementId.toStdString(),
-        title.toStdString(),
-        std::filesystem::path(relativePath.toStdWString())
-    );
-
-    // Add to book structure
-    if (sectionType == "frontmatter") {
-        book.addFrontMatter(element);
-    } else if (sectionType == "body") {
-        Part* part = findPart(partId);
-        if (part) {
-            part->addChapter(element);
-        } else {
-            logger.error("addChapterToSection: Part not found: {}", partId.toStdString());
-            // Cleanup copied file
-            QFile::remove(targetFilePath);
-            return QString();
-        }
-    } else if (sectionType == "backmatter") {
-        book.addBackMatter(element);
-    }
-
-    // Save manifest
-    saveManifest();
-    setDirty(false);
-
-    logger.info("addChapterToSection: Added '{}' to {} (part: {}, id: {})",
-               title.toStdString(), sectionType.toStdString(),
-               partId.toStdString(), elementId.toStdString());
-
-    // Emit signal to refresh UI
-    emit projectOpened(QString::fromStdWString(m_projectPath.wstring()));
-
-    return elementId;
-}
-
-bool ProjectManager::createChapterFile(BookElement& element, const QString& sectionType,
-                                       const QString& partId) {
-    auto& logger = Logger::getInstance();
-    if (!isProjectOpen() || !m_document) {
-        logger.error("createChapterFile: No project open");
-        return false;
-    }
-
-    const std::filesystem::path file = newChapterFile(sectionType, partId, element.getType());
-    const std::filesystem::path path = m_projectPath / file;
-    std::error_code ec;
-    std::filesystem::create_directories(path.parent_path(), ec);
-
-    ChapterDocument chapter;
-    chapter.setTitle(QString::fromStdString(element.getTitle()));
-    if (!chapter.save(QString::fromStdWString(path.wstring()))) {
-        logger.error("createChapterFile: Failed to write {}", path.string());
-        return false;
-    }
-
-    element.setFile(file);
-    logger.info("createChapterFile: '{}' has the file {}", element.getTitle(), file.string());
-    return true;
-}
-
-std::filesystem::path ProjectManager::newChapterFile(const QString& sectionType,
-                                                     const QString& partId,
-                                                     const std::string& elementType) {
-    namespace fs = std::filesystem;
-
-    // The folder with "/" between its names on every system, as the manifest keeps it
-    QString folder;
-    QString name = QStringLiteral("chapter");
-    if (sectionType == QLatin1String("frontmatter") || sectionType == QLatin1String("backmatter")) {
-        folder = QStringLiteral("content/") + sectionType;
-        // The type names a front or back matter file, as in title_page.kchapter
-        static const QRegularExpression plainName(QStringLiteral("^[A-Za-z0-9_]+$"));
-        const QString type = QString::fromStdString(elementType);
-        if (plainName.match(type).hasMatch()) {
-            name = type;
-        }
-    } else {
-        // Next to the other chapters of the part, or in a folder of the part
-        folder = partId.isEmpty() ? QStringLiteral("content/body")
-                                  : QStringLiteral("content/body/") + partId;
-        if (const Part* part = findPart(partId)) {
-            for (const auto& chapter : part->getChapters()) {
-                if (!chapter->getFile().empty()) {
-                    folder = QString::fromStdWString(
-                        chapter->getFile().parent_path().generic_wstring());
-                }
-            }
-        }
-    }
-
-    // The files of the book's chapters
-    std::set<fs::path> used;
-    if (m_document) {
-        const Book& book = m_document->getBook();
-        auto collect = [&used](const auto& elements) {
-            for (const auto& element : elements) {
-                used.insert(element->getFile().lexically_normal());
-            }
-        };
-        collect(book.getFrontMatter());
-        for (const auto& part : book.getBody()) {
-            collect(part->getChapters());
-        }
-        collect(book.getBackMatter());
-    }
-
-    // The first name no chapter and no file has: chapter_001, chapter_002, ...
-    for (int number = 1;; ++number) {
-        QString relative =
-            QStringLiteral("%1_%2.kchapter").arg(name).arg(number, 3, 10, QLatin1Char('0'));
-        if (!folder.isEmpty()) {
-            relative.prepend(folder + QLatin1Char('/'));
-        }
-        const fs::path file(relative.toStdWString());
-        if (!used.contains(file.lexically_normal()) && !fs::exists(m_projectPath / file)) {
-            return file;
-        }
-    }
-}
-
-// =============================================================================
-// Reordering Operations (OpenSpec #00034 Phase D)
-// =============================================================================
-
-bool ProjectManager::reorderChapter(const QString& partId, int fromIndex, int toIndex) {
-    auto& logger = Logger::getInstance();
-
-    if (!isProjectOpen() || !m_document) {
-        logger.error("reorderChapter: No project open");
-        return false;
-    }
-
-    Part* part = findPart(partId);
-    if (!part) {
-        logger.error("reorderChapter: Part not found: {}", partId.toStdString());
-        return false;
-    }
-
-    if (fromIndex < 0 || toIndex < 0) {
-        logger.error("reorderChapter: Invalid indices: from={}, to={}", fromIndex, toIndex);
-        return false;
-    }
-
-    bool success = part->moveChapter(static_cast<size_t>(fromIndex), static_cast<size_t>(toIndex));
-
-    if (success) {
-        logger.info("reorderChapter: Moved chapter in part '{}' from index {} to {}",
-                   partId.toStdString(), fromIndex, toIndex);
-        saveManifest();
-    }
-
-    return success;
-}
-
-bool ProjectManager::reorderPart(int fromIndex, int toIndex) {
-    auto& logger = Logger::getInstance();
-
-    if (!isProjectOpen() || !m_document) {
-        logger.error("reorderPart: No project open");
-        return false;
-    }
-
-    if (fromIndex < 0 || toIndex < 0) {
-        logger.error("reorderPart: Invalid indices: from={}, to={}", fromIndex, toIndex);
-        return false;
-    }
-
-    Book& book = m_document->getBook();
-    bool success = book.movePart(static_cast<size_t>(fromIndex), static_cast<size_t>(toIndex));
-
-    if (success) {
-        logger.info("reorderPart: Moved part from index {} to {}", fromIndex, toIndex);
-        saveManifest();
-    }
-
-    return success;
-}
-
-// =============================================================================
-// Chapter Metadata (status, notes, wordCount stored in .kchapter files)
-// =============================================================================
-
-bool ProjectManager::saveChapterMetadata(const QString& elementId) {
-    auto& logger = Logger::getInstance();
-
-    BookElement* element = findElement(elementId);
-    if (!element) {
-        logger.warn("saveChapterMetadata: Element not found: {}", elementId.toStdString());
-        return false;
-    }
-
-    if (element->getFile().empty()) {
-        logger.warn("saveChapterMetadata: Element has no file: {}", elementId.toStdString());
-        return false;
-    }
-
-    // Resolve path - ensure .kchapter extension
-    std::filesystem::path filePath = m_projectPath / element->getFile();
-    if (filePath.extension() != ".kchapter") {
-        filePath.replace_extension(".kchapter");
-    }
-    QString filePathStr = QString::fromStdWString(filePath.wstring());
-
-    // Try to load existing .kchapter
-    auto doc = ChapterDocument::load(filePathStr);
-
-    if (!doc.has_value()) {
-        // File doesn't exist yet - create minimal document
-        logger.debug("saveChapterMetadata: Creating new .kchapter for: {}", elementId.toStdString());
-
-        // Create parent directories if needed
-        std::filesystem::path parentDir = filePath.parent_path();
-        if (!std::filesystem::exists(parentDir)) {
-            std::error_code ec;
-            if (!std::filesystem::create_directories(parentDir, ec)) {
-                logger.error("saveChapterMetadata: Failed to create directory: {} ({})",
-                            parentDir.string(), ec.message());
-                return false;
-            }
-        }
-
-        ChapterDocument newDoc;
-        auto status = element->getMetadata("status");
-        auto notes = element->getMetadata("notes");
-        newDoc.setStatus(QString::fromStdString(status.value_or("draft")));
-        newDoc.setNotes(QString::fromStdString(notes.value_or("")));
-
-        if (!newDoc.save(filePathStr)) {
-            logger.error("saveChapterMetadata: Failed to save new .kchapter: {}", filePath.string());
-            return false;
-        }
-
-        logger.debug("saveChapterMetadata: Created new .kchapter: {}", filePath.string());
-        return true;
-    }
-
-    // Update metadata section only
-    auto status = element->getMetadata("status");
-    auto notes = element->getMetadata("notes");
-    doc->setStatus(QString::fromStdString(status.value_or("draft")));
-    doc->setNotes(QString::fromStdString(notes.value_or("")));
-
-    if (!doc->save(filePathStr)) {
-        logger.error("saveChapterMetadata: Failed to save .kchapter: {}", filePath.string());
-        return false;
-    }
-
-    logger.debug("saveChapterMetadata: Updated metadata for: {}", elementId.toStdString());
-    return true;
-}
-
-void ProjectManager::loadAllChapterMetadata() {
-    auto& logger = Logger::getInstance();
-
-    if (!m_document) {
-        logger.warn("loadAllChapterMetadata: No document loaded");
-        return;
-    }
-
-    Book& book = m_document->getBook();
-
-    auto loadMetadataForElement = [this, &logger](BookElement* element) {
-        if (!element || element->getFile().empty()) return;
-
-        // Resolve path - check for .kchapter file
-        std::filesystem::path filePath = m_projectPath / element->getFile();
-        if (filePath.extension() != ".kchapter") {
-            filePath.replace_extension(".kchapter");
-        }
-
-        if (!std::filesystem::exists(filePath)) {
-            // No .kchapter file yet - use defaults
-            logger.debug("loadAllChapterMetadata: No .kchapter for element {}, using defaults",
-                        element->getId());
-            element->setMetadata("status", "draft");
-            return;
-        }
-
-        QString filePathStr = QString::fromStdWString(filePath.wstring());
-        auto doc = ChapterDocument::load(filePathStr);
-        if (doc.has_value()) {
-            element->setMetadata("status", doc->status().toStdString());
-            element->setMetadata("notes", doc->notes().toStdString());
-            element->setWordCount(doc->wordCount());
-
-            logger.debug("loadAllChapterMetadata: Loaded metadata for {} (status={}, wordCount={})",
-                        element->getId(), doc->status().toStdString(), doc->wordCount());
-        } else {
-            logger.warn("loadAllChapterMetadata: Failed to load .kchapter: {}", filePath.string());
-            element->setMetadata("status", "draft");
-        }
-    };
-
-    // Load for frontmatter
-    for (auto& elem : book.getFrontMatter()) {
-        loadMetadataForElement(elem.get());
-    }
-
-    // Load for body (parts and chapters)
-    for (auto& part : book.getBody()) {
-        for (auto& chapter : part->getChapters()) {
-            loadMetadataForElement(chapter.get());
-        }
-    }
-
-    // Load for backmatter
-    for (auto& elem : book.getBackMatter()) {
-        loadMetadataForElement(elem.get());
-    }
-
-    logger.info("loadAllChapterMetadata: Finished loading metadata from .kchapter files");
+    return statistics;
 }
 
 // =============================================================================
 // Private Helpers
 // =============================================================================
-
-bool ProjectManager::createFolderStructure(const std::filesystem::path& projectPath) {
-    std::error_code ec;
-
-    // List of folders to create
-    std::vector<std::filesystem::path> folders = {
-        projectPath,
-        projectPath / "content",
-        projectPath / "content" / "frontmatter",
-        projectPath / "content" / "body",
-        projectPath / "content" / "backmatter",
-        projectPath / "metadata",
-        projectPath / "mindmaps",
-        projectPath / "timelines",
-        projectPath / "resources",
-        projectPath / "resources" / "images",
-        projectPath / "resources" / "research",
-        projectPath / ".kalahari",
-        projectPath / ".kalahari" / "cache",
-        projectPath / ".kalahari" / "backup",
-        projectPath / ".kalahari" / "recovery"
-    };
-
-    for (const auto& folder : folders) {
-        if (!std::filesystem::exists(folder)) {
-            if (!std::filesystem::create_directories(folder, ec)) {
-                Logger::getInstance().error("Failed to create folder: {} ({})",
-                                            folder.string(), ec.message());
-                return false;
-            }
-            Logger::getInstance().debug("Created folder: {}", folder.string());
-        }
-    }
-
-    // Create .gitignore in .kalahari folder
-    std::filesystem::path gitignorePath = projectPath / ".kalahari" / ".gitignore";
-    if (!std::filesystem::exists(gitignorePath)) {
-        QFile gitignore(QString::fromStdWString(gitignorePath.wstring()));
-        if (gitignore.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            gitignore.write("# Kalahari IDE files - not for version control\n");
-            gitignore.write("*\n");
-            gitignore.close();
-        }
-    }
-
-    // Create empty placeholder files in metadata folder
-    std::vector<std::pair<std::string, std::string>> placeholders = {
-        {"characters.json", "[]"},
-        {"locations.json", "[]"},
-        {"notes.json", "[]"}
-    };
-
-    for (const auto& [filename, content] : placeholders) {
-        std::filesystem::path filePath = projectPath / "metadata" / filename;
-        if (!std::filesystem::exists(filePath)) {
-            QFile file(QString::fromStdWString(filePath.wstring()));
-            if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                file.write(content.c_str());
-                file.close();
-            }
-        }
-    }
-
-    Logger::getInstance().info("Folder structure created successfully");
-    return true;
-}
-
-bool ProjectManager::validateFolderStructure(const std::filesystem::path& projectPath) {
-    // Check for required folders
-    std::vector<std::filesystem::path> requiredFolders = {
-        projectPath / "content",
-        projectPath / "content" / "frontmatter",
-        projectPath / "content" / "body",
-        projectPath / "content" / "backmatter",
-        projectPath / "metadata"
-    };
-
-    for (const auto& folder : requiredFolders) {
-        if (!std::filesystem::exists(folder)) {
-            Logger::getInstance().debug("Missing required folder: {}", folder.string());
-            return false;
-        }
-    }
-
-    return true;
-}
-
 
 void ProjectManager::setWorkMode(WorkMode mode) {
     if (m_workMode != mode) {
@@ -1539,6 +919,132 @@ void ProjectManager::setWorkMode(WorkMode mode) {
                                     mode == WorkMode::ProjectMode ? "ProjectMode" : "StandaloneMode");
         emit workModeChanged(mode);
     }
+}
+
+void ProjectManager::loadElementStates() {
+    auto& logger = Logger::getInstance();
+    m_elementStates.clear();
+    if (!m_project) {
+        return;
+    }
+    for (const ProjectElement* element : allElements(*m_project)) {
+        if (element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+            continue;
+        }
+        ElementState state;
+        const QString path = filePathOf(*element);
+        if (!QFileInfo::exists(path)) {
+            logger.warn("The chapter file of '{}' is missing: {}", element->title.toStdString(),
+                        path.toStdString());
+        } else if (std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
+            state.wordCount = chapter->wordCount();
+            state.notes = chapter->notes();
+        }
+        m_elementStates.insert(element->id, state);
+    }
+    logger.debug("Read the word counts and notes of {} chapter files", m_elementStates.size());
+}
+
+ProjectManager::ElementState* ProjectManager::stateOf(const QString& elementId) {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return nullptr;
+    }
+    return &m_elementStates[elementId];
+}
+
+bool ProjectManager::writeChapterFile(const ProjectElement& element,
+                                      const std::optional<QString>& kml) {
+    auto& logger = Logger::getInstance();
+    const QString path = filePathOf(element);
+    if (path.isEmpty()) {
+        logger.error("writeChapterFile: '{}' has no file", element.title.toStdString());
+        return false;
+    }
+
+    // The file keeps what the program does not change here: comments, highlights, color...
+    ChapterDocument chapter;
+    if (QFileInfo::exists(path)) {
+        if (std::optional<ChapterDocument> existing = ChapterDocument::load(path)) {
+            chapter = std::move(*existing);
+        } else if (!kml) {
+            logger.error("writeChapterFile: {} cannot be read, so it is not changed",
+                         path.toStdString());
+            return false;
+        }
+    } else if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
+        logger.error("writeChapterFile: Cannot make the folder of {}", path.toStdString());
+        return false;
+    }
+
+    if (kml) {
+        chapter.setKml(*kml);
+    }
+    chapter.setTitle(element.title);
+    chapter.setStatus(statusOf(element));
+    chapter.setNotes(m_elementStates.value(element.id).notes);
+    if (!chapter.save(path)) {
+        logger.error("writeChapterFile: Cannot write {}", path.toStdString());
+        return false;
+    }
+    m_elementStates[element.id].wordCount = chapter.wordCount();
+    return true;
+}
+
+QString ProjectManager::newChapterFile(const KindRef& kind, BookPlace place) const {
+    QString folder = QString::fromLatin1(BookProject::WORKSHOP_FOLDER);
+    if (place != BookPlace::Workshop) {
+        folder = book() && !book()->folder.isEmpty() ? book()->folder
+                                                     : QString::fromLatin1(BookProject::BOOK_FOLDER);
+    }
+    static const QRegularExpression notPlain(QStringLiteral("[^A-Za-z0-9_]"));
+    QString name = kind ? kind.kind->id : QStringLiteral("chapter");
+    name.replace(notPlain, QStringLiteral("_"));
+
+    // The first name no element and no file has: chapter_001, chapter_002, ...
+    const QDir projectDir(getProjectPath());
+    for (int number = 1;; ++number) {
+        const QString file = QStringLiteral("%1/%2_%3.kchapter")
+                                 .arg(folder, name)
+                                 .arg(number, 3, 10, QLatin1Char('0'));
+        if (!m_project->hasFile(file) && !QFileInfo::exists(projectDir.filePath(file))) {
+            return file;
+        }
+    }
+}
+
+QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace place,
+                                                  const QString& groupId) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.error("No project is open");
+        return nullptr;
+    }
+    if (!kind) {
+        logger.error("A new element needs a kind");
+        return nullptr;
+    }
+
+    QList<ProjectElement>* list = nullptr;
+    if (groupId.isEmpty()) {
+        list = &m_project->elementsIn(place);
+    } else {
+        ProjectElement* group = m_project->findElement(groupId);
+        if (!group || formOf(*group) != ElementForm::Group) {
+            logger.error("The project has no group {}", groupId.toStdString());
+            return nullptr;
+        }
+        list = &group->elements;
+    }
+
+    // Kinds the project offers there, below their limits
+    const QList<KindRef> kinds = kindsFor(place, groupId);
+    if (std::none_of(kinds.cbegin(), kinds.cend(),
+                     [&kind](const KindRef& offered) { return offered.kind == kind.kind; })) {
+        logger.error("An element of {} cannot be added there", kind.reference().toStdString());
+        return nullptr;
+    }
+    return list;
 }
 
 void ProjectManager::collectFilesForArchive(const std::filesystem::path& dir,

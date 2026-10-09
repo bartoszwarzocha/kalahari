@@ -1,60 +1,66 @@
 {
-    "document": {
-        "author": "Test Author",
-        "created": "2026-02-16T05:57:37+00:00",
-        "genre": "fiction",
-        "id": "1771221457515-61aa",
-        "language": "en",
-        "modified": "2026-02-16T05:59:59Z",
-        "title": "Example Novel"
-    },
-    "kalahari": {
-        "minVersion": "0.4.0",
+    "books": [
+        {
+            "author": "Test Author",
+            "back": [],
+            "folder": "book",
+            "front": [
+                {
+                    "file": "book/title_page_001.kchapter",
+                    "id": "fm-title",
+                    "kind": "kalahari.base:title_page",
+                    "status": "final",
+                    "title": "Title Page"
+                }
+            ],
+            "genre": "fiction",
+            "id": "book-001",
+            "language": "en",
+            "main": [
+                {
+                    "elements": [
+                        {
+                            "file": "book/chapter_001.kchapter",
+                            "id": "ch-001",
+                            "kind": "kalahari.base:chapter",
+                            "status": "revision",
+                            "title": "Chapter One: The Beginning"
+                        },
+                        {
+                            "file": "book/chapter_002.kchapter",
+                            "id": "ch-002",
+                            "kind": "kalahari.base:chapter",
+                            "status": "draft",
+                            "title": "Chapter Two: The Discovery"
+                        }
+                    ],
+                    "id": "part-001",
+                    "kind": "kalahari.base:part",
+                    "title": "Part One: Beginnings"
+                },
+                {
+                    "file": "book/epilogue_001.kchapter",
+                    "id": "epilogue",
+                    "kind": "kalahari.novel:epilogue",
+                    "status": "draft",
+                    "title": "Epilogue"
+                }
+            ],
+            "partsLayer": true,
+            "title": "Example Novel"
+        }
+    ],
+    "created": "2026-02-16T05:57:37Z",
+    "format": 2,
+    "id": "1771221457515-61aa",
+    "kinds": [],
+    "modified": "2026-02-16T05:59:59Z",
+    "type": {
+        "id": "kalahari.novel",
         "version": "1.0"
     },
-    "settings": {
-        "autoSaveInterval": 300,
-        "defaultPerspective": "writer"
-    },
-    "statistics": {
-        "lastEdited": "",
-        "totalChapters": 0,
-        "totalWords": 0
-    },
-    "structure": {
-        "backmatter": [
-            {
-                "file": "content/backmatter/epilogue.kchapter",
-                "id": "bm-epilogue",
-                "title": "Epilogue",
-                "type": "epilogue"
-            }
-        ],
-        "body": [
-            {
-                "chapters": [
-                    {
-                        "file": "content/body/part_001/chapter_001.kchapter",
-                        "id": "ch-001",
-                        "title": "Chapter One: The Beginning"
-                    },
-                    {
-                        "file": "content/body/part_001/chapter_002.kchapter",
-                        "id": "ch-002",
-                        "title": "Chapter Two: The Discovery"
-                    }
-                ],
-                "id": "part-001",
-                "title": "Part One: Beginnings"
-            }
-        ],
-        "frontmatter": [
-            {
-                "file": "content/frontmatter/title_page.kchapter",
-                "id": "fm-title",
-                "title": "Title Page",
-                "type": "title_page"
-            }
-        ]
+    "workshop": {
+        "elements": [],
+        "grouped": false
     }
 }

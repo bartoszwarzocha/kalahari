@@ -12,10 +12,6 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_types.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
 #include "kalahari/core/text_statistics.h"
 #include <QLabel>
 #include <QLineEdit>
@@ -28,9 +24,8 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QEvent>
-#include <iomanip>
-#include <sstream>
-#include <ctime>
+#include <QDateTime>
+#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
@@ -764,20 +759,19 @@ void PropertiesPanel::onProjectTitleChanged() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::Document* doc = pm.getDocument();
-    if (!doc) return;
+    core::ProjectBook* book = pm.book();
+    if (!book) return;
 
     QString newTitle = m_projectTitleEdit->text().trimmed();
     if (newTitle.isEmpty()) {
         // Restore original value
-        m_projectTitleEdit->setText(QString::fromStdString(doc->getTitle()));
+        m_projectTitleEdit->setText(book->title);
         return;
     }
+    if (newTitle == book->title) return;
 
     logger.info("PropertiesPanel: Project title changed to: {}", newTitle.toStdString());
-    doc->setTitle(newTitle.toStdString());
+    book->title = newTitle;
     pm.setDirty(true);
 }
 
@@ -787,14 +781,14 @@ void PropertiesPanel::onProjectAuthorChanged() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::Document* doc = pm.getDocument();
-    if (!doc) return;
+    core::ProjectBook* book = pm.book();
+    if (!book) return;
 
     QString newAuthor = m_projectAuthorEdit->text().trimmed();
+    if (newAuthor == book->author) return;
+
     logger.info("PropertiesPanel: Project author changed to: {}", newAuthor.toStdString());
-    doc->setAuthor(newAuthor.toStdString());
+    book->author = newAuthor;
     pm.setDirty(true);
 }
 
@@ -804,14 +798,14 @@ void PropertiesPanel::onProjectLanguageChanged(int index) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::Document* doc = pm.getDocument();
-    if (!doc) return;
+    core::ProjectBook* book = pm.book();
+    if (!book) return;
 
     QString langCode = m_projectLanguageCombo->itemData(index).toString();
+    if (langCode == book->language) return;
+
     logger.info("PropertiesPanel: Project language changed to: {}", langCode.toStdString());
-    doc->setLanguage(langCode.toStdString());
+    book->language = langCode;
     pm.setDirty(true);
 }
 
@@ -821,14 +815,14 @@ void PropertiesPanel::onProjectGenreChanged() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::Document* doc = pm.getDocument();
-    if (!doc) return;
+    core::ProjectBook* book = pm.book();
+    if (!book) return;
 
     QString newGenre = m_projectGenreEdit->text().trimmed();
+    if (newGenre == book->genre) return;
+
     logger.info("PropertiesPanel: Project genre changed to: {}", newGenre.toStdString());
-    doc->setGenre(newGenre.toStdString());
+    book->genre = newGenre;
     pm.setDirty(true);
 }
 
@@ -839,21 +833,29 @@ void PropertiesPanel::onChapterTitleChanged() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::BookElement* element = pm.findElement(m_currentChapterId);
+    const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
+    const QString previousTitle = element->title;
 
     QString newTitle = m_chapterTitleEdit->text().trimmed();
     if (newTitle.isEmpty()) {
         // Restore original value
-        m_chapterTitleEdit->setText(QString::fromStdString(element->getTitle()));
+        m_chapterTitleEdit->setText(previousTitle);
+        return;
+    }
+    if (newTitle == previousTitle) return;
+
+    logger.info("PropertiesPanel: Chapter title changed to: {}", newTitle.toStdString());
+
+    // ProjectManager saves the project at once, and the title to the .kchapter file
+    if (!pm.renameElement(m_currentChapterId, newTitle)) {
+        m_chapterTitleEdit->setText(previousTitle);
+        QMessageBox::warning(this, tr("Rename Failed"), tr("Failed to save changes."));
         return;
     }
 
-    logger.info("PropertiesPanel: Chapter title changed to: {}", newTitle.toStdString());
-    element->setTitle(newTitle.toStdString());
-    pm.setDirty(true);
+    // Notify Navigator to refresh the item's display title
+    emit chapterStatusChanged(m_currentChapterId);
 }
 
 void PropertiesPanel::onChapterStatusChanged(int index) {
@@ -863,17 +865,18 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::BookElement* element = pm.findElement(m_currentChapterId);
+    const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
 
     QString statusCode = m_chapterStatusCombo->itemData(index).toString();
     logger.info("PropertiesPanel: Chapter status changed to: {}", statusCode.toStdString());
-    element->setMetadata("status", statusCode.toStdString());
 
-    // Save to .kchapter file immediately (NOT manifest)
-    pm.saveChapterMetadata(m_currentChapterId);
+    // ProjectManager saves the project at once, and a copy of the status to the .kchapter file
+    if (!pm.setStatus(m_currentChapterId, statusCode)) {
+        selectChapterStatus(core::ProjectManager::statusOf(*element));
+        QMessageBox::warning(this, tr("Status Change Failed"), tr("Failed to save changes."));
+        return;
+    }
 
     // Notify Navigator to refresh the item's display title (status suffix)
     emit chapterStatusChanged(m_currentChapterId);
@@ -885,16 +888,10 @@ void PropertiesPanel::onChapterNotesChanged() {
 
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) return;
-
-    core::BookElement* element = pm.findElement(m_currentChapterId);
-    if (!element) return;
-
-    QString notes = m_chapterNotesEdit->toPlainText();
-    element->setMetadata("notes", notes.toStdString());
+    if (!pm.findElement(m_currentChapterId)) return;
 
     // Save to .kchapter file (called on focus lost via eventFilter)
-    pm.saveChapterMetadata(m_currentChapterId);
+    pm.setNotes(m_currentChapterId, m_chapterNotesEdit->toPlainText());
 }
 
 bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
@@ -910,14 +907,10 @@ void PropertiesPanel::populateProjectFields() {
 
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) {
+    const core::BookProject* project = pm.project();
+    const core::ProjectBook* book = pm.book();
+    if (!project || !book) {
         logger.warn("PropertiesPanel: No project open, cannot populate fields");
-        return;
-    }
-
-    const core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.warn("PropertiesPanel: Document is null");
         return;
     }
 
@@ -925,26 +918,25 @@ void PropertiesPanel::populateProjectFields() {
     m_isUpdating = true;
 
     // Populate fields
-    m_projectTitleEdit->setText(QString::fromStdString(doc->getTitle()));
-    m_projectAuthorEdit->setText(QString::fromStdString(doc->getAuthor()));
+    m_projectTitleEdit->setText(book->title);
+    m_projectAuthorEdit->setText(book->author);
 
     // Set language combo
-    QString langCode = QString::fromStdString(doc->getLanguage());
-    int langIndex = m_projectLanguageCombo->findData(langCode);
+    int langIndex = m_projectLanguageCombo->findData(book->language);
     if (langIndex >= 0) {
         m_projectLanguageCombo->setCurrentIndex(langIndex);
     } else {
         m_projectLanguageCombo->setCurrentIndex(0);  // Default to English
     }
 
-    m_projectGenreEdit->setText(QString::fromStdString(doc->getGenre()));
+    m_projectGenreEdit->setText(book->genre);
 
     // Update statistics
     updateProjectStatistics();
 
     // Update dates
-    m_projectCreatedLabel->setText(formatDate(doc->getCreated()));
-    m_projectModifiedLabel->setText(formatDate(doc->getModified()));
+    m_projectCreatedLabel->setText(formatDate(project->created));
+    m_projectModifiedLabel->setText(formatDate(project->modified));
 
     m_isUpdating = false;
 
@@ -962,7 +954,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         return;
     }
 
-    core::BookElement* element = pm.findElement(elementId);
+    const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         logger.warn("PropertiesPanel: Element not found: {}", elementId.toStdString());
         return;
@@ -972,28 +964,56 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_isUpdating = true;
 
     // Populate fields
-    m_chapterTitleEdit->setText(QString::fromStdString(element->getTitle()));
-    m_chapterWordCountLabel->setText(QString::number(element->getWordCount()));
-
-    // Set status combo
-    auto statusOpt = element->getMetadata("status");
-    QString statusCode = statusOpt ? QString::fromStdString(*statusOpt) : "draft";
-    int statusIndex = m_chapterStatusCombo->findData(statusCode);
-    if (statusIndex >= 0) {
-        m_chapterStatusCombo->setCurrentIndex(statusIndex);
-    } else {
-        m_chapterStatusCombo->setCurrentIndex(0);  // Default to Draft
-    }
-
-    // Set notes
-    auto notesOpt = element->getMetadata("notes");
-    QString notes = notesOpt ? QString::fromStdString(*notesOpt) : "";
-    m_chapterNotesEdit->setPlainText(notes);
+    m_chapterTitleEdit->setText(element->title);
+    m_chapterWordCountLabel->setText(QString::number(pm.wordCount(elementId)));
+    selectChapterStatus(core::ProjectManager::statusOf(*element));
+    m_chapterNotesEdit->setPlainText(pm.notes(elementId));
 
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Chapter fields populated");
 }
+
+void PropertiesPanel::selectChapterStatus(const QString& status) {
+    const bool wasUpdating = m_isUpdating;
+    m_isUpdating = true;
+    int statusIndex = m_chapterStatusCombo->findData(status);
+    if (statusIndex >= 0) {
+        m_chapterStatusCombo->setCurrentIndex(statusIndex);
+    } else {
+        m_chapterStatusCombo->setCurrentIndex(0);  // Default to Draft
+    }
+    m_isUpdating = wasUpdating;
+}
+
+namespace {
+
+/// @brief Show @p statistics in the labels of the book, a section or a part; an unknown status
+/// counts as a draft
+void showStatistics(const core::TextStatistics& statistics, QLabel* elementsLabel,
+                    QLabel* wordsLabel, QLabel* draftLabel, QLabel* revisionLabel,
+                    QLabel* finalLabel) {
+    int draftCount = 0;
+    int revisionCount = 0;
+    int finalCount = 0;
+    for (const auto& [status, count] : statistics.statuses) {
+        if (status == QLatin1String("revision")) {
+            revisionCount += count;
+        } else if (status == QLatin1String("final")) {
+            finalCount += count;
+        } else {
+            draftCount += count;
+        }
+    }
+
+    elementsLabel->setText(QString::number(statistics.elements));
+    wordsLabel->setText(QString::number(statistics.words));
+    draftLabel->setText(QString::number(draftCount));
+    revisionLabel->setText(QString::number(revisionCount));
+    finalLabel->setText(QString::number(finalCount));
+}
+
+}  // namespace
 
 void PropertiesPanel::updateProjectStatistics() {
     auto& logger = core::Logger::getInstance();
@@ -1001,7 +1021,8 @@ void PropertiesPanel::updateProjectStatistics() {
 
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) {
+    const core::ProjectBook* book = pm.book();
+    if (!book) {
         m_projectChaptersLabel->setText("0");
         m_projectWordsLabel->setText("0");
         m_projectDraftCountLabel->setText("0");
@@ -1010,33 +1031,20 @@ void PropertiesPanel::updateProjectStatistics() {
         return;
     }
 
-    const core::Document* doc = pm.getDocument();
-    if (!doc) {
-        m_projectChaptersLabel->setText("0");
-        m_projectWordsLabel->setText("0");
-        m_projectDraftCountLabel->setText("0");
-        m_projectRevisionCountLabel->setText("0");
-        m_projectFinalCountLabel->setText("0");
-        return;
-    }
+    // Chapters and words of the body only (not front/back matter) - industry standard for
+    // novel word counts
+    const core::TextStatistics body = pm.statisticsOf(book->mainElements);
+    m_projectChaptersLabel->setText(QString::number(body.elements));
+    m_projectWordsLabel->setText(QString::number(body.words));
 
-    const core::Book& book = doc->getBook();
-
-    // Get chapter count and word count
-    size_t chapterCount = book.getChapterCount();
-    size_t wordCount = book.getWordCount();
-
-    m_projectChaptersLabel->setText(QString::number(chapterCount));
-    m_projectWordsLabel->setText(QString::number(wordCount));
-
-    // Get status statistics
+    // Get status statistics of the whole book
     auto statusStats = pm.getStatusStatistics();
     m_projectDraftCountLabel->setText(QString::number(statusStats["draft"]));
     m_projectRevisionCountLabel->setText(QString::number(statusStats["revision"]));
     m_projectFinalCountLabel->setText(QString::number(statusStats["final"]));
 
     logger.debug("PropertiesPanel: Statistics - {} chapters, {} words, draft={}, revision={}, final={}",
-                 chapterCount, wordCount,
+                 body.elements, body.words,
                  statusStats["draft"], statusStats["revision"], statusStats["final"]);
 }
 
@@ -1046,32 +1054,25 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
 
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) {
+    const core::ProjectBook* book = pm.book();
+    if (!book) {
         logger.warn("PropertiesPanel: No project open, cannot populate section fields");
         return;
     }
 
-    const core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.warn("PropertiesPanel: Document is null");
-        return;
-    }
-
-    const core::Book& book = doc->getBook();
-
     // Determine section name and get elements
     QString sectionName;
-    const std::vector<std::shared_ptr<core::BookElement>>* elements = nullptr;
+    const QList<core::ProjectElement>* elements = nullptr;
 
     if (sectionType == "section_frontmatter") {
         sectionName = tr("Front Matter");
-        elements = &book.getFrontMatter();
+        elements = &book->frontElements;
     } else if (sectionType == "section_body") {
         sectionName = tr("Body");
-        // For body, we need to iterate all parts - handled below
+        elements = &book->mainElements;
     } else if (sectionType == "section_backmatter") {
         sectionName = tr("Back Matter");
-        elements = &book.getBackMatter();
+        elements = &book->backElements;
     } else {
         logger.warn("PropertiesPanel: Unknown section type: {}", sectionType.toStdString());
         return;
@@ -1079,56 +1080,14 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
 
     m_sectionTitleLabel->setText(sectionName);
 
-    // Calculate statistics
-    int chapterCount = 0;
-    int wordCount = 0;
-    int draftCount = 0;
-    int revisionCount = 0;
-    int finalCount = 0;
-
-    auto countElement = [&](const core::BookElement* element) {
-        chapterCount++;
-        wordCount += element->getWordCount();
-
-        auto status = element->getMetadata("status");
-        QString statusStr = status.has_value()
-            ? QString::fromStdString(status.value()).toLower()
-            : "draft";
-
-        if (statusStr == "draft") {
-            draftCount++;
-        } else if (statusStr == "revision") {
-            revisionCount++;
-        } else if (statusStr == "final") {
-            finalCount++;
-        } else {
-            draftCount++;  // Unknown status counts as draft
-        }
-    };
-
-    if (sectionType == "section_body") {
-        // Body: iterate all parts
-        for (const auto& part : book.getBody()) {
-            for (const auto& chapter : part->getChapters()) {
-                countElement(chapter.get());
-            }
-        }
-    } else if (elements) {
-        // Front matter or back matter
-        for (const auto& element : *elements) {
-            countElement(element.get());
-        }
-    }
-
-    // Update labels
-    m_sectionChapterCountLabel->setText(QString::number(chapterCount));
-    m_sectionWordCountLabel->setText(QString::number(wordCount));
-    m_sectionDraftCountLabel->setText(QString::number(draftCount));
-    m_sectionRevisionCountLabel->setText(QString::number(revisionCount));
-    m_sectionFinalCountLabel->setText(QString::number(finalCount));
+    // Text elements of the section, with those in its parts
+    const core::TextStatistics statistics = pm.statisticsOf(*elements);
+    showStatistics(statistics, m_sectionChapterCountLabel, m_sectionWordCountLabel,
+                   m_sectionDraftCountLabel, m_sectionRevisionCountLabel,
+                   m_sectionFinalCountLabel);
 
     logger.debug("PropertiesPanel: Section fields populated - {} chapters, {} words",
-                 chapterCount, wordCount);
+                 statistics.elements, statistics.words);
 }
 
 void PropertiesPanel::populatePartFields(const QString& partId) {
@@ -1142,71 +1101,30 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
         return;
     }
 
-    core::Part* part = pm.findPart(partId);
+    const core::ProjectElement* part = pm.findElement(partId);
     if (!part) {
         logger.warn("PropertiesPanel: Part not found: {}", partId.toStdString());
         return;
     }
 
     // Set part title
-    m_partTitleLabel->setText(QString::fromStdString(part->getTitle()));
+    m_partTitleLabel->setText(part->title);
 
-    // Calculate statistics
-    int chapterCount = 0;
-    int wordCount = 0;
-    int draftCount = 0;
-    int revisionCount = 0;
-    int finalCount = 0;
-
-    for (const auto& chapter : part->getChapters()) {
-        chapterCount++;
-        wordCount += chapter->getWordCount();
-
-        auto status = chapter->getMetadata("status");
-        QString statusStr = status.has_value()
-            ? QString::fromStdString(status.value()).toLower()
-            : "draft";
-
-        if (statusStr == "draft") {
-            draftCount++;
-        } else if (statusStr == "revision") {
-            revisionCount++;
-        } else if (statusStr == "final") {
-            finalCount++;
-        } else {
-            draftCount++;  // Unknown status counts as draft
-        }
-    }
-
-    // Update labels
-    m_partChapterCountLabel->setText(QString::number(chapterCount));
-    m_partWordCountLabel->setText(QString::number(wordCount));
-    m_partDraftCountLabel->setText(QString::number(draftCount));
-    m_partRevisionCountLabel->setText(QString::number(revisionCount));
-    m_partFinalCountLabel->setText(QString::number(finalCount));
+    // Text elements of the part
+    const core::TextStatistics statistics = pm.statisticsOf(part->elements);
+    showStatistics(statistics, m_partChapterCountLabel, m_partWordCountLabel,
+                   m_partDraftCountLabel, m_partRevisionCountLabel, m_partFinalCountLabel);
 
     logger.debug("PropertiesPanel: Part fields populated - {} chapters, {} words",
-                 chapterCount, wordCount);
+                 statistics.elements, statistics.words);
 }
 
-QString PropertiesPanel::formatDate(const std::chrono::system_clock::time_point& timePoint) const {
-    auto time = std::chrono::system_clock::to_time_t(timePoint);
-
-    // Handle epoch time (uninitialized)
-    if (time <= 0) {
+QString PropertiesPanel::formatDate(const QDateTime& dateTime) const {
+    // Handle an unknown date
+    if (!dateTime.isValid()) {
         return tr("-");
     }
-
-    std::tm tm{};
-#ifdef _WIN32
-    localtime_s(&tm, &time);
-#else
-    localtime_r(&time, &tm);
-#endif
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M");
-    return QString::fromStdString(oss.str());
+    return dateTime.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
 }
 
 // =============================================================================

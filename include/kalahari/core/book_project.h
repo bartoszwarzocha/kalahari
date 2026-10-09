@@ -122,8 +122,8 @@ struct ProjectType {
 
 /// @brief Book project as its .klh file saves it
 ///
-/// The kinds of the project come from the packages of a BookTypeRegistry. The program does not
-/// use this model yet: ProjectManager still opens and saves projects.
+/// The kinds of the project come from the packages of a BookTypeRegistry. ProjectManager opens,
+/// changes and saves the project open in the program.
 struct BookProject {
     static constexpr int FORMAT = 2;  ///< Version of the .klh format this program reads
     static constexpr const char* FILE_EXTENSION = ".klh";
@@ -189,6 +189,10 @@ struct BookProject {
     /// @brief Kind of @p element, also when the project no longer offers it; none when
     /// @p registry does not have it
     static KindRef kindOf(const BookTypeRegistry& registry, const ProjectElement& element);
+
+    /// @brief Form of @p element: of its kind, or, when @p registry does not have its kind, a
+    /// text element for a chapter file, a group for no file and a window element for other files
+    static ElementForm formOf(const BookTypeRegistry& registry, const ProjectElement& element);
 
     /// @brief Packages of the type, the kinds and the elements that @p registry does not have
     QStringList missingPackages(const BookTypeRegistry& registry) const;

@@ -3,33 +3,37 @@
 /// back matter item
 
 #include "kalahari/gui/dialogs/new_element_dialog.h"
-#include "kalahari/core/book_constants.h"
+#include "kalahari/core/settings_manager.h"
 
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
 
+#include <utility>
+
 namespace kalahari {
 namespace gui {
 namespace dialogs {
 
-NewElementDialog::NewElementDialog(NewElementKind kind, const QString& partTitle, QWidget* parent)
+NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementChoice>& choices,
+                                   int current, const QString& groupTitle, QWidget* parent)
     : KalahariDialog(parent)
-    , m_kind(kind)
+    , m_choices(choices)
+    , m_current(choices.isEmpty() ? -1 : qBound(0, current, static_cast<int>(choices.size()) - 1))
 {
-    QString title;
     switch (kind) {
     case NewElementKind::Chapter:
         setHeading(tr("Add Chapter"),
-                   tr("The chapter is added as the last one in the part \"%1\".").arg(partTitle));
+                   groupTitle.isEmpty()
+                       ? tr("The chapter is added as the last one in the body of the book.")
+                       : tr("The chapter is added as the last one in the part \"%1\".")
+                             .arg(groupTitle));
         setHeadingIcon(QStringLiteral("template.chapter"));
-        title = tr("New Chapter");
         break;
     case NewElementKind::Part:
         setHeading(tr("Add Part"), tr("The part is added as the last one in the book."));
         setHeadingIcon(QStringLiteral("structure.part"));
-        title = tr("New Part");
         break;
     case NewElementKind::FrontMatterItem:
         setHeading(tr("Add Front Matter Item"),
@@ -43,19 +47,20 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QString& partTitle
         break;
     }
 
-    // An item has a type, and its title starts as the name of the type
-    const QStringList types = elementTypes(kind);
-    if (kind == NewElementKind::FrontMatterItem || kind == NewElementKind::BackMatterItem) {
-        m_typeBox = new QComboBox(this);
-        for (const QString& type : types) {
-            m_typeBox->addItem(typeName(type), type);
+    // With more than one kind the writer chooses it; kinds are named in the program's language
+    if (m_choices.size() > 1) {
+        const QString language =
+            QString::fromStdString(core::SettingsManager::getInstance().getLanguage());
+        m_kindBox = new QComboBox(this);
+        for (const NewElementChoice& choice : std::as_const(m_choices)) {
+            m_kindBox->addItem(choice.kind ? choice.kind.kind->name.text(language) : QString());
         }
-        addField(tr("Type"), m_typeBox);
-        title = typeName(types.first());
-        connect(m_typeBox, &QComboBox::currentIndexChanged, this, &NewElementDialog::onTypeChanged);
+        m_kindBox->setCurrentIndex(m_current);
+        addField(tr("Kind"), m_kindBox);
+        connect(m_kindBox, &QComboBox::currentIndexChanged, this, &NewElementDialog::onKindChanged);
     }
 
-    m_titleEdit = new QLineEdit(title, this);
+    m_titleEdit = new QLineEdit(m_current >= 0 ? m_choices.at(m_current).title : QString(), this);
     m_titleEdit->selectAll();
     addField(tr("Title"), m_titleEdit);
     contentLayout()->addStretch(1);
@@ -65,35 +70,17 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QString& partTitle
     setAcceptText(tr("Add"));
     updateAcceptButton();
 
-    // The writer starts with what the element is: its type, or straight away its title
-    if (m_typeBox) {
-        m_typeBox->setFocus();
+    // The writer starts with what the element is: its kind, or straight away its title
+    if (m_kindBox) {
+        m_kindBox->setFocus();
     } else {
         m_titleEdit->setFocus();
     }
 }
 
-QStringList NewElementDialog::elementTypes(NewElementKind kind)
+core::KindRef NewElementDialog::kind() const
 {
-    switch (kind) {
-    case NewElementKind::Chapter:
-        return {QString::fromLatin1(core::TYPE_CHAPTER)};
-    case NewElementKind::Part:
-        return {QStringLiteral("part")};
-    case NewElementKind::FrontMatterItem:
-        return {QString::fromLatin1(core::TYPE_TITLE_PAGE), QString::fromLatin1(core::TYPE_COPYRIGHT),
-                QString::fromLatin1(core::TYPE_DEDICATION), QString::fromLatin1(core::TYPE_PREFACE)};
-    case NewElementKind::BackMatterItem:
-        return {QString::fromLatin1(core::TYPE_EPILOGUE), QString::fromLatin1(core::TYPE_GLOSSARY),
-                QString::fromLatin1(core::TYPE_BIBLIOGRAPHY),
-                QString::fromLatin1(core::TYPE_ABOUT_AUTHOR)};
-    }
-    return {};
-}
-
-QString NewElementDialog::elementType() const
-{
-    return m_typeBox ? m_typeBox->currentData().toString() : elementTypes(m_kind).first();
+    return m_current >= 0 ? m_choices.at(m_current).kind : core::KindRef{};
 }
 
 QString NewElementDialog::title() const
@@ -101,45 +88,17 @@ QString NewElementDialog::title() const
     return m_titleEdit->text().trimmed();
 }
 
-QString NewElementDialog::typeName(const QString& type)
+void NewElementDialog::onKindChanged()
 {
-    if (type == QLatin1String(core::TYPE_TITLE_PAGE)) {
-        return tr("Title Page");
-    }
-    if (type == QLatin1String(core::TYPE_COPYRIGHT)) {
-        return tr("Copyright Page");
-    }
-    if (type == QLatin1String(core::TYPE_DEDICATION)) {
-        return tr("Dedication");
-    }
-    if (type == QLatin1String(core::TYPE_PREFACE)) {
-        return tr("Preface");
-    }
-    if (type == QLatin1String(core::TYPE_EPILOGUE)) {
-        return tr("Epilogue");
-    }
-    if (type == QLatin1String(core::TYPE_GLOSSARY)) {
-        return tr("Glossary");
-    }
-    if (type == QLatin1String(core::TYPE_BIBLIOGRAPHY)) {
-        return tr("Bibliography");
-    }
-    if (type == QLatin1String(core::TYPE_ABOUT_AUTHOR)) {
-        return tr("About the Author");
-    }
-    return type;
-}
-
-void NewElementDialog::onTypeChanged()
-{
-    if (!m_titleChanged) {
-        m_titleEdit->setText(typeName(elementType()));
+    m_current = m_kindBox->currentIndex();
+    if (!m_titleChanged && m_current >= 0) {
+        m_titleEdit->setText(m_choices.at(m_current).title);
     }
 }
 
 void NewElementDialog::updateAcceptButton()
 {
-    acceptButton()->setEnabled(!title().isEmpty());
+    acceptButton()->setEnabled(!title().isEmpty() && kind());
 }
 
 } // namespace dialogs

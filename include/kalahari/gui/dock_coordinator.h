@@ -204,22 +204,16 @@ signals:
     /// @brief Emitted when info bar is dismissed
     void infoBarDismissed();
 
-    /// @brief Emitted when chapter is reordered via drag & drop
-    /// @param partId Part ID containing the chapter
-    /// @param fromIndex Original position
-    /// @param toIndex New position
-    void chapterReordered(const QString& partId, int fromIndex, int toIndex);
-
-    /// @brief Emitted when part is reordered via drag & drop
-    /// @param fromIndex Original position
-    /// @param toIndex New position
-    void partReordered(int fromIndex, int toIndex);
+    /// @brief Emitted when an element is dragged to another place of its list in the navigator
+    /// @param elementId Element ID
+    /// @param index Its new index in its list
+    void elementMoved(const QString& elementId, int index);
 
     /// @brief Emitted when rename is requested from navigator
     void navigatorRequestRename(const QString& elementId, const QString& currentTitle);
 
     /// @brief Emitted when delete is requested from navigator
-    void navigatorRequestDelete(const QString& elementId, const QString& elementType);
+    void navigatorRequestDelete(const QString& elementId);
 
     /// @brief Emitted when move is requested from navigator
     void navigatorRequestMove(const QString& elementId, int direction);
@@ -237,7 +231,7 @@ signals:
     /// @param index New current tab index
     void currentTabChanged(int index);
 
-    /// @brief Emitted when chapter status changes
+    /// @brief Emitted when the title or status of a chapter changes in the properties panel
     /// @param elementId Chapter element ID
     void chapterStatusChanged(const QString& elementId);
 
@@ -245,8 +239,8 @@ signals:
     void openSettingsRequested();
 
     /// @brief Emitted when add chapter is requested from navigator context menu
-    /// @param partId Part ID to add chapter to
-    void requestAddChapter(const QString& partId);
+    /// @param groupId Group (part) to add the chapter to; empty: the body of the book
+    void requestAddChapter(const QString& groupId);
 
     /// @brief Emitted when add part is requested from navigator context menu
     void requestAddPart();

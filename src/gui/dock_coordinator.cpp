@@ -157,11 +157,9 @@ void DockCoordinator::createNavigatorDock() {
     connect(m_navigatorPanel, &NavigatorPanel::elementSelected,
             this, &DockCoordinator::navigatorElementSelected);
 
-    // Connect Navigator drag & drop reorder signals
-    connect(m_navigatorPanel, &NavigatorPanel::chapterReordered,
-            this, &DockCoordinator::chapterReordered);
-    connect(m_navigatorPanel, &NavigatorPanel::partReordered,
-            this, &DockCoordinator::partReordered);
+    // Connect Navigator drag & drop signal
+    connect(m_navigatorPanel, &NavigatorPanel::elementMoved,
+            this, &DockCoordinator::elementMoved);
 
     // Connect Navigator context menu signals
     connect(m_navigatorPanel, &NavigatorPanel::requestRename,

@@ -1,41 +1,46 @@
 /// @file project_manager.h
-/// @brief Project management system for Solution-like architecture
+/// @brief The book project open in the program: its .klh file, its files and their state
 ///
-/// ProjectManager is a singleton that manages the project lifecycle,
-/// including creating project folder structures, loading/saving .klh manifests,
-/// and tracking work modes (Project vs Standalone).
-///
-/// OpenSpec #00033: Project File System - Solution-like Architecture
+/// ProjectManager is a singleton that creates, opens, saves and closes book projects. The
+/// project is a BookProject (book_project.h): the .klh file with the type, the books and the
+/// Workshop. The text of each element is in a chapter file of its own (.kchapter) in the
+/// book's folder; the program keeps the text of open chapters, their word counts and notes
+/// while it works, and saves them to these files.
 ///
 /// @example
 /// @code
 /// auto& pm = ProjectManager::getInstance();
 ///
-/// // Create new project
-/// pm.createProject("E:/Books/MyNovel", "My Novel", "John Doe", "en");
+/// // Create a new novel and open it
+/// pm.createProject("E:/Books", "My Novel", "John Doe", "en", true, "kalahari.novel");
 ///
-/// // Open existing project
-/// pm.openProject("E:/Books/MyNovel/MyNovel.klh");
+/// // Open an existing project
+/// pm.openProject("E:/Books/My Novel/My Novel.klh");
 ///
-/// // Get paths
-/// QString contentPath = pm.getContentPath();
-/// QString metadataPath = pm.getMetadataPath();
+/// // Add a chapter and save its text
+/// const QString id = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1",
+///                                  BookPlace::Main);
+/// pm.setChapterContent(id, kml);
+/// pm.saveChapterContent(id);
 ///
-/// // Close project
 /// pm.closeProject();
 /// @endcode
 
 #pragma once
 
+#include <QHash>
 #include <QObject>
 #include <QString>
-#include <QJsonObject>
-#include <memory>
+#include <QStringList>
 #include <filesystem>
-#include <vector>
 #include <functional>
 #include <map>
+#include <memory>
+#include <optional>
+#include <vector>
 
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
@@ -43,12 +48,6 @@
 
 namespace kalahari {
 namespace core {
-
-// Forward declarations
-class Document;
-class Book;
-class Part;
-class BookElement;
 
 /// @brief Work mode enumeration for application state
 ///
@@ -62,16 +61,17 @@ enum class WorkMode {
     StandaloneMode   ///< Single file without project - limited features
 };
 
-/// @brief Singleton project manager for Solution-like architecture
-///
-/// Manages the project lifecycle:
-/// - Creating new projects (folder structure + manifest)
-/// - Opening existing projects (reading .klh JSON manifest)
-/// - Closing projects (cleanup, save prompts)
-/// - Path resolution (content/, metadata/, .kalahari/)
+/// @brief Words and statuses of the text elements of a list, with those inside its groups
+struct TextStatistics {
+    int elements = 0;                 ///< Text elements (chapters, prefaces, poems...)
+    int words = 0;                    ///< Their words
+    std::map<QString, int> statuses;  ///< Status ("draft", "revision", "final") -> elements
+};
+
+/// @brief Singleton manager of the book project open in the program
 ///
 /// Signals:
-/// - projectOpened: Emitted when project is successfully opened
+/// - projectOpened: Emitted when project is successfully opened (also a new one)
 /// - projectAboutToClose: Emitted before the project database is closed
 /// - projectClosed: Emitted when project is closed
 /// - workModeChanged: Emitted when work mode changes
@@ -94,44 +94,39 @@ public:
     // Project Lifecycle
     // =========================================================================
 
-    /// @brief Create a new project with folder structure
-    /// @param parentDir Parent directory where project folder will be created
-    /// @param title Project/book title (used for folder and manifest name)
-    /// @param author Author name
-    /// @param language ISO 639-1 language code (e.g., "en", "pl")
-    /// @param createSubfolder If true, creates title subfolder in parentDir
-    /// @return true if project created successfully, false otherwise
+    /// @brief Create a new project and open it
+    /// @param parentDir Folder of the project, or the folder it is made in (createSubfolder)
+    /// @param title Title of the book; it also names the folder and the .klh file
+    /// @param author Author of the book
+    /// @param language Language code of the text (e.g., "en", "pl")
+    /// @param createSubfolder Make the project's folder, named after the title, in parentDir
+    /// @param typeId Package of the book type, e.g. "kalahari.novel"; empty: a user project
+    ///        with the kinds of the base package
+    /// @return false when the folder exists, the type is not installed or a file cannot be
+    ///         written
     ///
-    /// Creates folder structure:
-    /// - content/frontmatter/, content/body/, content/backmatter/
-    /// - metadata/
-    /// - mindmaps/, timelines/, resources/
-    /// - .kalahari/cache/, .kalahari/backup/, .kalahari/recovery/
-    /// - ProjectName.klh (JSON manifest)
+    /// The project starts as the folder and its .klh file; the folders of the files are made
+    /// when they are needed.
     bool createProject(const QString& parentDir,
                        const QString& title,
                        const QString& author,
                        const QString& language,
-                       bool createSubfolder = true);
+                       bool createSubfolder = true,
+                       const QString& typeId = QString());
 
-    /// @brief Open an existing project from .klh manifest
-    /// @param manifestPath Path to the .klh manifest file
+    /// @brief Open an existing project from its .klh file
+    /// @param manifestPath Path to the .klh file
+    /// @param problems Gets what is wrong when the project cannot be opened, one line each
     /// @return true if project opened successfully, false otherwise
-    ///
-    /// Reads JSON manifest, validates structure, sets work mode to ProjectMode.
-    bool openProject(const QString& manifestPath);
+    bool openProject(const QString& manifestPath, QStringList* problems = nullptr);
 
     /// @brief Close the current project
-    /// @param promptSave If true, prompts user to save unsaved changes
+    /// @param promptSave If true, saves the .klh file when it has unsaved changes
     /// @return true if project closed (or no project open), false if user cancelled
-    ///
-    /// Clears project state, sets work mode to NoDocument.
     bool closeProject(bool promptSave = true);
 
-    /// @brief Save the project manifest to .klh file
-    /// @return true if manifest saved successfully, false otherwise
-    ///
-    /// Writes Document::toJson() to the .klh file.
+    /// @brief Save the project to its .klh file
+    /// @return true if the file was written
     bool saveManifest();
 
     /// @brief Check if a project is currently open
@@ -139,7 +134,7 @@ public:
     bool isProjectOpen() const;
 
     // =========================================================================
-    // Path Helpers
+    // Paths
     // =========================================================================
 
     /// @brief Get project root path
@@ -150,53 +145,8 @@ public:
     /// @return Absolute path to manifest file, empty if no project open
     QString getManifestPath() const;
 
-    /// @brief Get path to content folder
-    /// @return Absolute path to content/, empty if no project open
-    QString getContentPath() const;
-
-    /// @brief Get path to frontmatter folder
-    /// @return Absolute path to content/frontmatter/, empty if no project open
-    QString getFrontmatterPath() const;
-
-    /// @brief Get path to body folder
-    /// @return Absolute path to content/body/, empty if no project open
-    QString getBodyPath() const;
-
-    /// @brief Get path to backmatter folder
-    /// @return Absolute path to content/backmatter/, empty if no project open
-    QString getBackmatterPath() const;
-
-    /// @brief Get path to metadata folder
-    /// @return Absolute path to metadata/, empty if no project open
-    QString getMetadataPath() const;
-
-    /// @brief Get path to mindmaps folder
-    /// @return Absolute path to mindmaps/, empty if no project open
-    QString getMindmapsPath() const;
-
-    /// @brief Get path to timelines folder
-    /// @return Absolute path to timelines/, empty if no project open
-    QString getTimelinesPath() const;
-
-    /// @brief Get path to resources folder
-    /// @return Absolute path to resources/, empty if no project open
-    QString getResourcesPath() const;
-
-    /// @brief Get path to .kalahari IDE folder
-    /// @return Absolute path to .kalahari/, empty if no project open
-    QString getKalahariPath() const;
-
-    /// @brief Get path to cache folder
-    /// @return Absolute path to .kalahari/cache/, empty if no project open
-    QString getCachePath() const;
-
-    /// @brief Get path to backup folder
-    /// @return Absolute path to .kalahari/backup/, empty if no project open
-    QString getBackupPath() const;
-
-    /// @brief Get path to recovery folder
-    /// @return Absolute path to .kalahari/recovery/, empty if no project open
-    QString getRecoveryPath() const;
+    /// @brief Absolute path of the file of @p element; empty when it has none
+    QString filePathOf(const ProjectElement& element) const;
 
     // =========================================================================
     // State Accessors
@@ -206,105 +156,162 @@ public:
     /// @return Current WorkMode (NoDocument, ProjectMode, StandaloneMode)
     WorkMode getWorkMode() const;
 
-    /// @brief Get current document
-    /// @return Pointer to current Document, nullptr if no document open
-    Document* getDocument();
+    /// @brief The open project, or nullptr
+    BookProject* project();
+    const BookProject* project() const;
 
-    /// @brief Get current document (const)
-    /// @return Const pointer to current Document, nullptr if no document open
-    const Document* getDocument() const;
+    /// @brief The first book of the open project, or nullptr
+    ProjectBook* book();
+    const ProjectBook* book() const;
 
-    /// @brief Check if the project STRUCTURE / manifest has unsaved changes
-    /// @return true if the manifest is dirty, false otherwise
+    /// @brief Check if the project's .klh file has unsaved changes
     ///
-    /// This tracks manifest/structure dirtiness ONLY (add/rename/move/delete of
-    /// elements and metadata changes). It is intentionally reset by saveManifest().
-    /// Per-element CONTENT dirtiness is tracked separately on each BookElement and
-    /// aggregated via hasDirtyElements() / getDirtyElements().
+    /// This tracks the structure and the data of the project ONLY (add/rename/move/delete
+    /// of elements and changes of the book's data). It is reset by saveManifest(). Unsaved
+    /// text of chapters is tracked per element (getDirtyElements()).
     bool isDirty() const;
 
-    /// @brief Set the STRUCTURE / manifest dirty state
-    /// @param dirty true to mark manifest as dirty, false to mark as clean
-    ///
-    /// Use for structural operations (add/rename/move/delete) and metadata changes.
-    /// Do NOT use for chapter content edits - use markElementDirty() instead so the
-    /// single per-element content-dirty source of truth stays coherent.
+    /// @brief Set the dirty state of the .klh file
+    /// @param dirty true to mark it as dirty, false to mark it as clean
     void setDirty(bool dirty);
 
     // =========================================================================
-    // Book Structure Management
+    // Book Types
     // =========================================================================
 
-    /// @brief Load book structure from manifest JSON
-    /// @param structureObj The "structure" object from manifest
-    /// @return true if successful
+    /// @brief Packages of book types and kinds the program has
     ///
-    /// Parses the structure section of manifest:
-    /// - "frontmatter" array -> BookElements in Book::frontMatter
-    /// - "body" array -> Parts with chapters in Book::body
-    /// - "backmatter" array -> BookElements in Book::backMatter
-    bool loadStructureFromManifest(const QJsonObject& structureObj);
+    /// The built-in packages of the resources folder, loaded the first time they are needed.
+    const BookTypeRegistry& bookTypes() const;
 
-    /// @brief Serialize book structure to manifest JSON
-    /// @return "structure" QJsonObject for manifest
+    /// @brief Load the packages in @p folders instead of the built-in ones
     ///
-    /// Creates JSON structure:
-    /// - "frontmatter": array of element objects
-    /// - "body": array of part objects with chapters
-    /// - "backmatter": array of element objects
-    QJsonObject saveStructureToManifest() const;
+    /// Kinds of the packages loaded before (KindRef) are no longer valid.
+    void loadBookTypes(const QStringList& folders);
 
-    /// @brief Load chapter content from RTF file
-    /// @param elementId Chapter/element ID
-    /// @return Content string, empty if failed
+    /// @brief Kind of @p element; none when its package is not installed
+    KindRef kindOf(const ProjectElement& element) const;
+
+    /// @brief Form of @p element: of its kind, or, when its package is not installed, a text
+    /// element for a chapter file, a group for no file and a window element for other files
+    ElementForm formOf(const ProjectElement& element) const;
+
+    /// @brief Status of @p element, "draft" when it has none
+    static QString statusOf(const ProjectElement& element);
+
+    /// @brief Kinds that can be added to @p place of the book, or inside group @p groupId
     ///
-    /// Loads RTF content from the file specified in element's file path.
-    /// Uses project path to resolve relative paths.
+    /// The kinds the project offers there, without those whose elements reached the kind's
+    /// limit in the book.
+    QList<KindRef> kindsFor(BookPlace place, const QString& groupId = QString()) const;
+
+    /// @brief Text kinds of kindsFor()
+    QList<KindRef> textKindsFor(BookPlace place, const QString& groupId = QString()) const;
+
+    /// @brief Kind of a new chapter in @p place, or inside group @p groupId: the main text kind
+    /// of the type when it can be there, else the first of textKindsFor()
+    KindRef chapterKindFor(BookPlace place, const QString& groupId = QString()) const;
+
+    /// @brief Kind of a new part: the first group kind the project offers in the main part
+    KindRef partKind() const;
+
+    /// @brief Title of a new element of @p kind: its default title in the language of the
+    /// book, numbered after the elements of the kind the project has
+    QString defaultTitle(const KindRef& kind) const;
+
+    // =========================================================================
+    // Elements
+    // =========================================================================
+
+    /// @brief Element @p elementId of the project, or nullptr
+    ProjectElement* findElement(const QString& elementId);
+    const ProjectElement* findElement(const QString& elementId) const;
+
+    /// @brief Add a new element of @p kind with @p title at the end of @p place of the book,
+    /// or of group @p groupId
+    ///
+    /// A text element gets an empty chapter file of its own in the book's folder and the
+    /// status "draft". Saves the .klh file.
+    /// @return The new element's id; empty when the kind cannot be there or is a window kind,
+    ///         the project has no group @p groupId, or a file cannot be written
+    QString addElement(const KindRef& kind, const QString& title, BookPlace place,
+                       const QString& groupId = QString());
+
+    /// @brief Add a chapter or text file as a new text element of @p kind
+    ///
+    /// The file goes to the book's folder, named after its kind and a number; a text file
+    /// (.txt) becomes a chapter, its lines the paragraphs. Saves the .klh file.
+    /// @param sourcePath The chapter (.kchapter) or text file
+    /// @param copy true to copy the file, false to move it
+    /// @return The new element's id; empty when it cannot be added
+    QString addFile(const QString& sourcePath, bool copy, const KindRef& kind,
+                    const QString& title, BookPlace place, const QString& groupId = QString());
+
+    /// @brief Give element @p elementId the title @p title and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written
+    bool renameElement(const QString& elementId, const QString& title);
+
+    /// @brief Take element @p elementId, with the elements inside it, out of the project and
+    /// save the .klh file
+    ///
+    /// Their files stay in the project's folder.
+    /// @return The element; nullopt when the project has no such element or the file cannot be
+    ///         written
+    std::optional<ProjectElement> removeElement(const QString& elementId);
+
+    /// @brief Move element @p elementId to place @p index of its list and save the .klh file
+    /// @return false when the element or the place does not exist or the file cannot be written
+    bool moveElement(const QString& elementId, qsizetype index);
+
+    /// @brief Set the status of a text element ("draft", "revision" or "final")
+    ///
+    /// Saves the .klh file and writes the status to the element's chapter file.
+    bool setStatus(const QString& elementId, const QString& status);
+
+    /// @brief Notes of a text element, from its chapter file
+    QString notes(const QString& elementId) const;
+
+    /// @brief Set the notes of a text element and write them to its chapter file
+    bool setNotes(const QString& elementId, const QString& notes);
+
+    /// @brief Words of a text element, as its chapter file counts them
+    int wordCount(const QString& elementId) const;
+
+    /// @brief Words and statuses of the text elements of @p elements and of their groups
+    TextStatistics statisticsOf(const QList<ProjectElement>& elements) const;
+
+    // =========================================================================
+    // Text of Chapters
+    // =========================================================================
+
+    /// @brief Read the text (KML) of a text element from its chapter file
+    /// @return The text; empty when the element or its file cannot be read
     QString loadChapterContent(const QString& elementId);
 
-    /// @brief Save chapter content to RTF file
-    /// @param elementId Chapter/element ID
-    /// @return true if saved successfully
-    ///
-    /// Saves element's cached content to RTF file.
-    /// Creates parent directories if needed.
+    /// @brief Keep @p kml as the unsaved text of a text element
+    void setChapterContent(const QString& elementId, const QString& kml);
+
+    /// @brief Forget the unsaved text of a text element; it is read from its file again
+    void discardChapterContent(const QString& elementId);
+
+    /// @brief Write the unsaved text of a text element to its chapter file
+    /// @return true when it is written or there is nothing to write
     bool saveChapterContent(const QString& elementId);
 
-    /// @brief Find element by ID across all sections
-    /// @param elementId Element ID to find
-    /// @return Pointer to element, nullptr if not found
-    ///
-    /// Searches frontmatter, body (all parts), and backmatter.
-    BookElement* findElement(const QString& elementId);
-
-    /// @brief Find part by ID
-    /// @param partId Part ID to find
-    /// @return Pointer to part, nullptr if not found
-    Part* findPart(const QString& partId);
-
     /// @brief Get all dirty elements
-    /// @return Vector of IDs of elements with unsaved changes
-    ///
-    /// Returns IDs of all elements where isDirty() == true.
+    /// @return IDs of the text elements whose text is not saved
     std::vector<QString> getDirtyElements() const;
 
     /// @brief Save all dirty elements
     /// @return true if all saved successfully
-    ///
-    /// Iterates all dirty elements and calls saveChapterContent().
     bool saveAllDirty();
 
-    /// @brief Get elements with incomplete status (not "final")
-    /// @return Vector of pairs (element ID, status string)
-    ///
-    /// Used for export warnings - returns all elements where status != "final".
-    /// Returns empty vector if all elements are final or have no status.
+    /// @brief Get text elements whose status is not "final"
+    /// @return Pairs (element ID, status), in the reading order of the book
     std::vector<std::pair<QString, QString>> getIncompleteElements() const;
 
-    /// @brief Get statistics by status
+    /// @brief Get the text elements of the book by status
     /// @return Map of status -> count
-    ///
-    /// Returns count of elements for each status (draft, revision, final, etc.)
     std::map<QString, int> getStatusStatistics() const;
 
     // =========================================================================
@@ -333,76 +340,6 @@ public:
                        const QString& targetDir,
                        std::function<void(int)> progressCallback = nullptr);
 
-    /// @brief Add a new chapter to a section
-    /// @param sectionType "frontmatter", "body", or "backmatter"
-    /// @param partId Part ID (only used if sectionType is "body")
-    /// @param title Chapter title
-    /// @param sourceFilePath Source file to copy/move
-    /// @param copyFile true to copy, false to move
-    /// @return Element ID if successful, empty string if failed
-    ///
-    /// Copies/moves the source file to the appropriate project folder,
-    /// creates a BookElement, adds it to the book structure, and saves manifest.
-    /// A plain text file (.txt) becomes a chapter file, its lines the paragraphs.
-    QString addChapterToSection(const QString& sectionType,
-                               const QString& partId,
-                               const QString& title,
-                               const QString& sourceFilePath,
-                               bool copyFile = true);
-
-    /// @brief Give a new chapter its own, empty chapter file
-    /// @param element The new chapter (not in the book yet)
-    /// @param sectionType "frontmatter", "body" or "backmatter"
-    /// @param partId The part of a body chapter
-    /// @return true when the file is written and the chapter refers to it
-    ///
-    /// The file goes to the folder of the section - a body chapter next to the other
-    /// chapters of its part - under a name no other chapter has, such as
-    /// chapter_003.kchapter.
-    bool createChapterFile(BookElement& element, const QString& sectionType,
-                           const QString& partId = QString());
-
-    // =========================================================================
-    // Reordering Operations (OpenSpec #00034 Phase D)
-    // =========================================================================
-
-    /// @brief Reorder a chapter within a part
-    /// @param partId Part ID containing the chapter
-    /// @param fromIndex Current index of the chapter
-    /// @param toIndex New index for the chapter
-    /// @return true if reorder succeeded
-    ///
-    /// Used for drag-and-drop reordering in NavigatorPanel.
-    /// Saves manifest after successful reorder.
-    bool reorderChapter(const QString& partId, int fromIndex, int toIndex);
-
-    /// @brief Reorder a part within the body section
-    /// @param fromIndex Current index of the part
-    /// @param toIndex New index for the part
-    /// @return true if reorder succeeded
-    ///
-    /// Used for drag-and-drop reordering in NavigatorPanel.
-    /// Saves manifest after successful reorder.
-    bool reorderPart(int fromIndex, int toIndex);
-
-    // =========================================================================
-    // Chapter Metadata Operations
-    // =========================================================================
-
-    /// @brief Save only metadata (status, notes) to .kchapter file
-    /// @param elementId Element ID
-    /// @return true if save succeeded
-    ///
-    /// Used when status or notes change in PropertiesPanel.
-    /// Creates .kchapter file if it doesn't exist.
-    bool saveChapterMetadata(const QString& elementId);
-
-    /// @brief Load metadata from all .kchapter files
-    ///
-    /// Called after loading structure from manifest.
-    /// Loads status, notes, and wordCount from each .kchapter file.
-    void loadAllChapterMetadata();
-
 signals:
     /// @brief Emitted when a project is successfully opened
     /// @param projectPath Absolute path to the project folder
@@ -425,32 +362,43 @@ signals:
     void dirtyStateChanged(bool dirty);
 
 private:
+    /// @brief What the program keeps of a text element while it works, outside the .klh file
+    struct ElementState {
+        QString content;       ///< Text (KML) read from the file or set by the editor
+        bool loaded = false;   ///< content holds the text
+        bool dirty = false;    ///< content is not saved
+        int wordCount = 0;     ///< Words, as the chapter file counts them
+        QString notes;         ///< Notes of the chapter file
+    };
+
     /// @brief Private constructor (singleton)
     ProjectManager();
 
     /// @brief Private destructor
     ~ProjectManager();
 
-    /// @brief Create folder structure for new project
-    /// @param projectPath Root path of the project
-    /// @return true if all folders created successfully
-    bool createFolderStructure(const std::filesystem::path& projectPath);
-
-    /// @brief A free path for a new chapter file, relative to the project
-    /// @param sectionType "frontmatter", "body" or "backmatter"
-    /// @param partId The part of a body chapter
-    /// @param elementType The chapter's type: the name of a front or back matter file
-    std::filesystem::path newChapterFile(const QString& sectionType, const QString& partId,
-                                         const std::string& elementType);
-
-    /// @brief Validate existing project folder structure
-    /// @param projectPath Root path of the project
-    /// @return true if structure is valid
-    bool validateFolderStructure(const std::filesystem::path& projectPath);
-
     /// @brief Set work mode and emit signal
     /// @param mode New work mode
     void setWorkMode(WorkMode mode);
+
+    /// @brief Read the word counts and notes of the text elements from their chapter files
+    void loadElementStates();
+
+    /// @brief State of text element @p elementId; nullptr when it is not one
+    ElementState* stateOf(const QString& elementId);
+
+    /// @brief Write the title, status and notes of @p element to its chapter file, and
+    /// @p kml when given; the file keeps its other data
+    bool writeChapterFile(const ProjectElement& element, const std::optional<QString>& kml);
+
+    /// @brief A free chapter file for a new element of @p kind in @p place, relative to the
+    /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter
+    QString newChapterFile(const KindRef& kind, BookPlace place) const;
+
+    /// @brief List that a new element of @p kind goes to: @p place of the book, or group
+    /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there
+    QList<ProjectElement>* listForNew(const KindRef& kind, BookPlace place,
+                                      const QString& groupId);
 
     /// @brief Collect files recursively for archive export
     /// @param dir Directory to scan
@@ -464,12 +412,15 @@ private:
     // Member Variables
     // =========================================================================
 
-    WorkMode m_workMode;                      ///< Current work mode
-    std::unique_ptr<Document> m_document;     ///< Current document
-    std::filesystem::path m_projectPath;      ///< Project root folder path
-    std::filesystem::path m_manifestPath;     ///< Path to .klh manifest file
-    QJsonObject m_manifest;                   ///< Manifest as read, so saving keeps unknown fields
-    bool m_isDirty;                           ///< Has unsaved changes
+    WorkMode m_workMode;                          ///< Current work mode
+    std::unique_ptr<BookProject> m_project;       ///< Open project
+    QHash<QString, ElementState> m_elementStates; ///< Text element id -> its state
+    std::filesystem::path m_projectPath;          ///< Project root folder path
+    std::filesystem::path m_manifestPath;         ///< Path to .klh manifest file
+    bool m_isDirty;                               ///< The .klh file has unsaved changes
+
+    mutable BookTypeRegistry m_bookTypes;         ///< Packages of book types and kinds
+    mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded
 
     // OpenSpec #00041: SQLite Project Database
     std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)

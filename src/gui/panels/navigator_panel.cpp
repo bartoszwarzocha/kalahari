@@ -9,9 +9,7 @@
 
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
@@ -25,45 +23,90 @@
 #include <QToolButton>
 #include <QComboBox>
 #include <QTimer>
-#include <QCoreApplication>
 #include <QMenu>
 #include <QActionGroup>
 #include <QPalette>
 #include <QBrush>
+#include <QDropEvent>
+#include <QMessageBox>
 #include <functional>
 
 
 namespace {
-// Helper: Get display title with status suffix
-// Final status = no suffix, others show [Status] in the program's language, with the names
-// of the "Set Status" menu
-QString getDisplayTitle(const kalahari::core::BookElement* element, bool isModified = false) {
-    QString title = QString::fromStdString(element->getTitle());
-    auto status = element->getMetadata("status");
-    if (status.has_value()) {
-        const QString statusCode = QString::fromStdString(status.value()).toLower();
-        QString statusName;
-        if (statusCode == "draft") {
-            statusName = QCoreApplication::translate("kalahari::gui::NavigatorPanel", "Draft");
-        } else if (statusCode == "revision") {
-            statusName = QCoreApplication::translate("kalahari::gui::NavigatorPanel", "Revision");
-        } else if (statusCode != "final" && !statusCode.isEmpty()) {
-            // An unknown code is shown as it is, capitalized
-            statusName = statusCode;
-            statusName[0] = statusName[0].toUpper();
-        }
-        if (!statusName.isEmpty()) {
-            title += QString(" [%1]").arg(statusName);
-        }
-    }
-    // The "*" modified indicator is part of the canonical display text so it survives
-    // every tree rebuild / refreshItem (instead of being string-spliced on separately,
-    // which broke on refresh and leaked into renames).
-    if (isModified) {
-        title.prepend('*');
-    }
-    return title;
+
+/// Icon id of ArtProvider for the item (elements; other items take theirs from their type)
+constexpr int ICON_ROLE = Qt::UserRole + 2;
+/// Kind of an element with the package that defines it, e.g. "kalahari.base:chapter"
+constexpr int KIND_ROLE = Qt::UserRole + 3;
+/// Title of an element, without the status and modified marks
+constexpr int TITLE_ROLE = Qt::UserRole + 4;
+
+/// Whether an item of @p type holds other items: the document, its sections, groups...
+bool isContainerType(const QString& type) {
+    return type == QLatin1String("document") || type == QLatin1String("root") ||
+           type == QLatin1String("section_frontmatter") || type == QLatin1String("section_body") ||
+           type == QLatin1String("section_backmatter") || type == QLatin1String("group_element") ||
+           type == QLatin1String("other_files");
 }
+
+/// Tree of the Navigator. An element is dragged only to another place of its list (a part of
+/// the book or a group); the drop does not change the tree, it asks for the move, and the tree
+/// shows the new order once it is loaded again.
+class NavigatorTree : public QTreeWidget {
+public:
+    using QTreeWidget::QTreeWidget;
+
+    /// Called after a drop with the dragged element and its new index in its list
+    std::function<void(const QString& elementId, int index)> onMove;
+
+protected:
+    void dragMoveEvent(QDragMoveEvent* event) override {
+        QTreeWidget::dragMoveEvent(event);
+        if (event->isAccepted() && dropIndex(event->position().toPoint()) < 0) {
+            event->ignore();
+        }
+    }
+
+    void dropEvent(QDropEvent* event) override {
+        const int index = dropIndex(event->position().toPoint());
+        const QTreeWidgetItem* dragged = selectedItems().value(0);
+        const QString elementId = dragged ? dragged->data(0, Qt::UserRole).toString() : QString();
+
+        // Ignored, so that the view neither moves nor removes the dragged item
+        event->ignore();
+        stopAutoScroll();
+        setState(NoState);
+        viewport()->update();
+
+        if (index >= 0 && !elementId.isEmpty() && onMove) {
+            // After the drag has ended: the move loads the tree again
+            QTimer::singleShot(0, this, [this, elementId, index]() { onMove(elementId, index); });
+        }
+    }
+
+private:
+    /// New index of the dragged element in its list when it is dropped at @p pos; -1 when it
+    /// cannot go there or stays where it is
+    int dropIndex(const QPoint& pos) const {
+        QTreeWidgetItem* dragged = selectedItems().value(0);
+        QTreeWidgetItem* target = itemAt(pos);
+        if (!dragged || !target || target == dragged || !dragged->parent() ||
+            target->parent() != dragged->parent()) {
+            return -1;
+        }
+        const QTreeWidgetItem* list = dragged->parent();
+        switch (dropIndicatorPosition()) {
+        case AboveItem:
+        case BelowItem:
+            return kalahari::gui::NavigatorPanel::dropIndex(list->indexOfChild(dragged),
+                                                            list->indexOfChild(target),
+                                                            dropIndicatorPosition() == BelowItem);
+        default:  // On the item or beside the items: not a place in the list
+            return -1;
+        }
+    }
+};
+
 } // anonymous namespace
 
 namespace kalahari {
@@ -161,7 +204,13 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     connect(m_clearButton, &QToolButton::clicked, this, &NavigatorPanel::clearFilter);
 
     // Create tree widget
-    m_treeWidget = new QTreeWidget(this);
+    auto* tree = new NavigatorTree(this);
+    tree->onMove = [this](const QString& elementId, int index) {
+        core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {}",
+                                         elementId.toStdString(), index);
+        emit elementMoved(elementId, index);
+    };
+    m_treeWidget = tree;
 
     // Connect expand/collapse all buttons (after tree widget creation)
     connect(m_expandAllButton, &QToolButton::clicked, m_treeWidget, &QTreeWidget::expandAll);
@@ -173,7 +222,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_treeWidget->setIconSize(QSize(m_currentIconSize, m_currentIconSize));
     logger.debug("NavigatorPanel: Initial icon size set to {}px", m_currentIconSize);
 
-    // No document loaded yet - tree will be populated via loadDocument()
+    // No project loaded yet - tree will be populated via loadProject()
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 
     // Enable drag & drop for reordering (OpenSpec #00034 Phase D)
@@ -182,69 +231,6 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_treeWidget->setDropIndicatorShown(true);
     m_treeWidget->setDragDropMode(QAbstractItemView::InternalMove);
     m_treeWidget->setDefaultDropAction(Qt::MoveAction);
-
-    // Connect to model's rowsMoved signal to detect drag & drop completion
-    connect(m_treeWidget->model(), &QAbstractItemModel::rowsMoved,
-            this, [this](const QModelIndex& sourceParent, int sourceStart, int sourceEnd,
-                         const QModelIndex& destParent, int destRow) {
-        Q_UNUSED(sourceEnd)
-        auto& logger = core::Logger::getInstance();
-        logger.debug("NavigatorPanel: rowsMoved signal - sourceStart={}, destRow={}",
-                     sourceStart, destRow);
-
-        // Get source item (after move, it's at destRow)
-        QTreeWidgetItem* parentItem = nullptr;
-        if (destParent.isValid()) {
-            parentItem = m_treeWidget->itemFromIndex(destParent);
-        }
-
-        if (!parentItem) {
-            logger.debug("NavigatorPanel: rowsMoved - no valid parent item");
-            return;
-        }
-
-        // Get the moved item
-        QTreeWidgetItem* movedItem = parentItem->child(destRow);
-        if (!movedItem) {
-            logger.debug("NavigatorPanel: rowsMoved - no valid moved item");
-            return;
-        }
-
-        QString elementType = movedItem->data(0, Qt::UserRole + 1).toString();
-        QString elementId = movedItem->data(0, Qt::UserRole).toString();
-
-        logger.debug("NavigatorPanel: Moved item type='{}', id='{}'",
-                     elementType.toStdString(), elementId.toStdString());
-
-        // Validate and emit appropriate signal
-        QString parentType = parentItem->data(0, Qt::UserRole + 1).toString();
-        QString parentId = parentItem->data(0, Qt::UserRole).toString();
-
-        // Calculate original index (sourceStart is the index before move)
-        int fromIndex = sourceStart;
-        int toIndex = destRow;
-
-        // Adjust toIndex if moving down (Qt reports destination differently)
-        if (sourceParent == destParent && fromIndex < destRow) {
-            // Moving down within same parent, Qt already adjusted
-        }
-
-        if (elementType == "chapter" && parentType == "part") {
-            // Chapter moved within a part
-            logger.info("NavigatorPanel: Chapter reordered in part '{}': {} -> {}",
-                       parentId.toStdString(), fromIndex, toIndex);
-            emit chapterReordered(parentId, fromIndex, toIndex);
-        } else if (elementType == "part" && parentType == "section_body") {
-            // Part moved within body section
-            logger.info("NavigatorPanel: Part reordered: {} -> {}", fromIndex, toIndex);
-            emit partReordered(fromIndex, toIndex);
-        } else {
-            // Invalid move - items should not be movable here
-            // In theory Qt shouldn't allow this with proper flags, but log it
-            logger.warn("NavigatorPanel: Invalid drag & drop: type='{}' to parent type='{}'",
-                       elementType.toStdString(), parentType.toStdString());
-        }
-    });
 
     // Enable context menu
     m_treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -274,18 +260,17 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // Emit requestProperties for all elements
                 // Document root uses empty ID to show project properties
-                // Sections and parts emit with their type for aggregate statistics
+                // Sections and groups emit with their type for aggregate statistics
                 if (elementType == "document") {
                     emit requestProperties("");  // Project properties
                 } else if (elementType == "section_frontmatter" ||
                            elementType == "section_body" ||
                            elementType == "section_backmatter") {
                     emit requestSectionProperties(elementType);
-                } else if (elementType == "part") {
+                } else if (elementType == "group_element") {
                     emit requestPartProperties(elementId);
-                } else if (!elementId.isEmpty()) {
+                } else if (elementType == "text_element") {
                     emit requestProperties(elementId);
                 }
             });
@@ -317,28 +302,35 @@ void NavigatorPanel::clearDocument() {
 
     m_treeWidget->clear();
     m_otherFilesItem = nullptr;
+    m_highlightedItem = nullptr;
     m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 }
 
-void NavigatorPanel::loadDocument(const core::Document& document) {
+void NavigatorPanel::loadProject(const core::BookProject& project,
+                                 const core::BookTypeRegistry& registry) {
     auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::loadDocument() - Document: {}", document.getTitle());
+    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
+    logger.debug("NavigatorPanel::loadProject() - Book: {}",
+                 book ? book->title.toStdString() : std::string());
 
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Save standalone files to re-add after clearing
+    // Save standalone files and the highlighted element to restore them after clearing
     QStringList standaloneFilePaths = m_standaloneFiles.keys();
+    const QString highlightedId =
+        m_highlightedItem ? m_highlightedItem->data(0, Qt::UserRole).toString() : QString();
 
     // Clear existing items (this clears tree and standalone file tracking)
     m_treeWidget->clear();
     m_otherFilesItem = nullptr;
+    m_highlightedItem = nullptr;
     m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure"));
 
-    // Create root item: Document title
+    // Create root item: the title of the book
     QTreeWidgetItem* rootItem = new QTreeWidgetItem(m_treeWidget);
-    rootItem->setText(0, QString::fromStdString(document.getTitle()));
+    rootItem->setText(0, book ? book->title : QString());
     rootItem->setData(0, Qt::UserRole, QString());  // No ID for root
     rootItem->setData(0, Qt::UserRole + 1, "document");
     rootItem->setIcon(0, artProvider.getIcon("project.book", core::IconContext::TreeView));
@@ -346,103 +338,146 @@ void NavigatorPanel::loadDocument(const core::Document& document) {
     // Document is not draggable or droppable
     rootItem->setFlags(rootItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
 
-    // Get book structure
-    const auto& book = document.getBook();
+    // The three parts of the book, also when empty, so that elements can be added to them.
+    // Elements are dragged only within their section or group, which therefore take drops.
+    QTreeWidgetItem* frontMatterItem =
+        addSectionItem(rootItem, tr("Front Matter"), QStringLiteral("section_frontmatter"));
+    QTreeWidgetItem* bodyItem =
+        addSectionItem(rootItem, tr("Body"), QStringLiteral("section_body"));
+    QTreeWidgetItem* backMatterItem =
+        addSectionItem(rootItem, tr("Back Matter"), QStringLiteral("section_backmatter"));
 
-    // Add Front Matter section
-    const auto& frontMatter = book.getFrontMatter();
-    if (!frontMatter.empty()) {
-        QTreeWidgetItem* frontMatterItem = new QTreeWidgetItem(rootItem);
-        frontMatterItem->setText(0, tr("Front Matter"));
-        frontMatterItem->setData(0, Qt::UserRole, QString());  // Section has no ID
-        frontMatterItem->setData(0, Qt::UserRole + 1, "section_frontmatter");
-        frontMatterItem->setIcon(0, artProvider.getIcon("structure.frontmatter", core::IconContext::TreeView));
-        // Section is not draggable, but can receive drops (for future feature)
-        frontMatterItem->setFlags(frontMatterItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
-
-        for (const auto& element : frontMatter) {
-            QTreeWidgetItem* item = new QTreeWidgetItem(frontMatterItem);
-            item->setText(0, getDisplayTitle(element.get(),
-            m_modifiedElements.contains(QString::fromStdString(element->getId()))));
-            item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
-            item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
-            item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
-            // Front matter items are not draggable (no reordering support yet)
-            item->setFlags(item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
-        }
-
-        frontMatterItem->setExpanded(false);  // Collapsed by default
+    if (book) {
+        addElementItems(frontMatterItem, book->frontElements, registry);
+        addElementItems(bodyItem, book->mainElements, registry);
+        addElementItems(backMatterItem, book->backElements, registry);
     }
 
-    // Add Body section (Parts -> Chapters)
-    const auto& body = book.getBody();
-    if (!body.empty()) {
-        QTreeWidgetItem* bodyItem = new QTreeWidgetItem(rootItem);
-        bodyItem->setText(0, tr("Body"));
-        bodyItem->setData(0, Qt::UserRole, QString());  // Section has no ID
-        bodyItem->setData(0, Qt::UserRole + 1, "section_body");
-        bodyItem->setIcon(0, artProvider.getIcon("structure.body", core::IconContext::TreeView));
-        // Body section is not draggable, but accepts parts as drops
-        bodyItem->setFlags((bodyItem->flags() & ~Qt::ItemIsDragEnabled) | Qt::ItemIsDropEnabled);
-
-        for (const auto& part : body) {
-            QTreeWidgetItem* partItem = new QTreeWidgetItem(bodyItem);
-            partItem->setText(0, QString::fromStdString(part->getTitle()));
-            partItem->setData(0, Qt::UserRole, QString::fromStdString(part->getId()));
-            partItem->setData(0, Qt::UserRole + 1, "part");
-            partItem->setIcon(0, artProvider.getIcon("structure.part", core::IconContext::TreeView));
-            // Parts are draggable within Body section and accept chapter drops
-            partItem->setFlags(partItem->flags() | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
-
-            const auto& chapters = part->getChapters();
-            for (const auto& chapter : chapters) {
-                QTreeWidgetItem* chapterItem = new QTreeWidgetItem(partItem);
-                chapterItem->setText(0, getDisplayTitle(chapter.get(),
-                    m_modifiedElements.contains(QString::fromStdString(chapter->getId()))));
-                chapterItem->setData(0, Qt::UserRole, QString::fromStdString(chapter->getId()));
-                chapterItem->setData(0, Qt::UserRole + 1, QString::fromStdString(chapter->getType()));
-                chapterItem->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
-                // Chapters are draggable within their parent part only
-                chapterItem->setFlags(chapterItem->flags() | Qt::ItemIsDragEnabled);
-            }
-
-            partItem->setExpanded(true);  // Expand parts by default
-        }
-
-        bodyItem->setExpanded(true);  // Expand body by default
-    }
-
-    // Add Back Matter section
-    const auto& backMatter = book.getBackMatter();
-    if (!backMatter.empty()) {
-        QTreeWidgetItem* backMatterItem = new QTreeWidgetItem(rootItem);
-        backMatterItem->setText(0, tr("Back Matter"));
-        backMatterItem->setData(0, Qt::UserRole, QString());  // Section has no ID
-        backMatterItem->setData(0, Qt::UserRole + 1, "section_backmatter");
-        backMatterItem->setIcon(0, artProvider.getIcon("structure.backmatter", core::IconContext::TreeView));
-        // Section is not draggable
-        backMatterItem->setFlags(backMatterItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
-
-        for (const auto& element : backMatter) {
-            QTreeWidgetItem* item = new QTreeWidgetItem(backMatterItem);
-            item->setText(0, getDisplayTitle(element.get(),
-            m_modifiedElements.contains(QString::fromStdString(element->getId()))));
-            item->setData(0, Qt::UserRole, QString::fromStdString(element->getId()));
-            item->setData(0, Qt::UserRole + 1, QString::fromStdString(element->getType()));
-            item->setIcon(0, artProvider.getIcon("template.chapter", core::IconContext::TreeView));
-            // Back matter items are not draggable (no reordering support yet)
-            item->setFlags(item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
-        }
-
-        backMatterItem->setExpanded(false);  // Collapsed by default
-    }
+    frontMatterItem->setExpanded(false);  // Collapsed by default
+    bodyItem->setExpanded(true);          // Expand body by default
+    backMatterItem->setExpanded(false);   // Collapsed by default
 
     // Re-add standalone files (they were saved before clearing)
     for (const QString& path : standaloneFilePaths) {
         addStandaloneFile(path);
     }
 
-    logger.debug("NavigatorPanel::loadDocument() complete");
+    // The element open in the editor stays highlighted
+    if (QTreeWidgetItem* item = findItemByElementId(highlightedId)) {
+        m_highlightedItem = item;
+        item->setBackground(0, QBrush(m_highlightColor));
+    }
+
+    logger.debug("NavigatorPanel::loadProject() complete");
+}
+
+QTreeWidgetItem* NavigatorPanel::addSectionItem(QTreeWidgetItem* parent, const QString& title,
+                                                const QString& sectionType) {
+    QTreeWidgetItem* item = new QTreeWidgetItem(parent);
+    item->setText(0, title);
+    item->setData(0, Qt::UserRole, QString());  // Section has no ID
+    item->setData(0, Qt::UserRole + 1, sectionType);
+    item->setIcon(0, core::ArtProvider::getInstance().getIcon(getIconIdForType(sectionType),
+                                                             core::IconContext::TreeView));
+    // Sections are not draggable, but take the drops of their elements
+    item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled) | Qt::ItemIsDropEnabled);
+    return item;
+}
+
+int NavigatorPanel::dropIndex(int from, int target, bool below) {
+    int to = below ? target + 1 : target;
+    if (from < to) {
+        --to;  // The places after the element move up when it leaves its place
+    }
+    return to == from ? -1 : to;
+}
+
+QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
+                                 const core::ProjectElement& element) {
+    const core::KindRef kind = core::BookProject::kindOf(registry, element);
+    if (kind && !kind.kind->icon.isEmpty()) {
+        return kind.kind->icon;
+    }
+    switch (core::BookProject::formOf(registry, element)) {
+    case core::ElementForm::Group:
+        return QStringLiteral("structure.part");
+    case core::ElementForm::Window:
+        return QStringLiteral("common.file");
+    case core::ElementForm::Text:
+        break;
+    }
+    return QStringLiteral("template.chapter");
+}
+
+void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
+                                     const QList<core::ProjectElement>& elements,
+                                     const core::BookTypeRegistry& registry) {
+    auto& artProvider = core::ArtProvider::getInstance();
+
+    for (const core::ProjectElement& element : elements) {
+        const core::ElementForm form = core::BookProject::formOf(registry, element);
+        const QString iconId = iconIdOf(registry, element);
+
+        QString itemType;
+        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
+        switch (form) {
+        case core::ElementForm::Text:
+            itemType = QStringLiteral("text_element");
+            break;
+        case core::ElementForm::Group:
+            itemType = QStringLiteral("group_element");
+            flags |= Qt::ItemIsDropEnabled;  // Takes the drops of its elements
+            break;
+        case core::ElementForm::Window:
+            itemType = QStringLiteral("window_element");
+            break;
+        }
+
+        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
+        item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text,
+                                         m_modifiedElements.contains(element.id)));
+        item->setData(0, Qt::UserRole, element.id);
+        item->setData(0, Qt::UserRole + 1, itemType);
+        item->setData(0, ICON_ROLE, iconId);
+        item->setData(0, KIND_ROLE, element.kind.toString());
+        item->setData(0, TITLE_ROLE, element.title);
+        item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
+        item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
+
+        if (form == core::ElementForm::Group) {
+            addElementItems(item, element.elements, registry);
+            item->setExpanded(true);  // Expand groups by default
+        }
+    }
+}
+
+QString NavigatorPanel::getDisplayTitle(const core::ProjectElement& element, bool isText,
+                                        bool isModified) {
+    QString title = element.title;
+    // Final status = no suffix, others show [Status] with the names of the "Set Status" menu
+    if (isText) {
+        const QString status = core::ProjectManager::statusOf(element);
+        QString statusName;
+        if (status == QLatin1String("draft")) {
+            statusName = tr("Draft");
+        } else if (status == QLatin1String("revision")) {
+            statusName = tr("Revision");
+        } else if (status != QLatin1String("final")) {
+            // An unknown status is shown as it is, capitalized
+            statusName = status;
+            statusName[0] = statusName[0].toUpper();
+        }
+        if (!statusName.isEmpty()) {
+            title += QStringLiteral(" [%1]").arg(statusName);
+        }
+    }
+    // The "*" modified indicator is part of the canonical display text so it survives
+    // every tree rebuild / refreshItem (instead of being string-spliced on separately,
+    // which broke on refresh and leaked into renames).
+    if (isModified) {
+        title.prepend('*');
+    }
+    return title;
 }
 
 void NavigatorPanel::refreshIcons() {
@@ -480,14 +515,16 @@ void NavigatorPanel::refreshItemIcons(QTreeWidgetItem* item) {
     // Get element type from stored data
     QString elementType = item->data(0, Qt::UserRole + 1).toString();
 
-    // Get appropriate icon ID and set the icon
-    QString iconId;
-    if (elementType == "standalone_file") {
-        // For standalone files, use file path to determine icon
-        QString path = item->data(0, Qt::UserRole).toString();
-        iconId = getIconIdForFile(path);
-    } else {
-        iconId = getIconIdForType(elementType);
+    // Get appropriate icon ID and set the icon: an element keeps the icon of its kind
+    QString iconId = item->data(0, ICON_ROLE).toString();
+    if (iconId.isEmpty()) {
+        if (elementType == "standalone_file") {
+            // For standalone files, use file path to determine icon
+            QString path = item->data(0, Qt::UserRole).toString();
+            iconId = getIconIdForFile(path);
+        } else {
+            iconId = getIconIdForType(elementType);
+        }
     }
 
     if (!iconId.isEmpty()) {
@@ -511,39 +548,19 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
         return "structure.body";
     } else if (elementType == "section_backmatter") {
         return "structure.backmatter";
-    } else if (elementType == "part") {
+    } else if (elementType == "group_element") {
         return "structure.part";
     } else if (elementType == "other_files") {
         return "structure.otherfiles";
-    } else if (elementType == "section" || elementType == "root") {
-        // Legacy fallback for generic sections
+    } else if (elementType == "root") {
         return "common.folder";
-    } else if (elementType == "standalone_file") {
-        // Standalone files use getIconIdForFile() based on extension
-        // This shouldn't be reached normally, but return generic file icon
+    } else if (elementType == "standalone_file" || elementType == "window_element") {
+        // Standalone files use getIconIdForFile() and elements the icon of their kind;
+        // this shouldn't be reached normally, but return generic file icon
         return "common.file";
-    } else if (elementType == "chapter" ||
-               elementType == "title_page" ||
-               elementType == "copyright" ||
-               elementType == "dedication" ||
-               elementType == "epigraph" ||
-               elementType == "foreword" ||
-               elementType == "preface" ||
-               elementType == "introduction" ||
-               elementType == "prologue" ||
-               elementType == "epilogue" ||
-               elementType == "afterword" ||
-               elementType == "acknowledgments" ||
-               elementType == "appendix" ||
-               elementType == "glossary" ||
-               elementType == "bibliography" ||
-               elementType == "index" ||
-               elementType == "colophon" ||
-               elementType == "about_author") {
-        return "template.chapter";
     }
 
-    // Default: use chapter icon for unknown types
+    // Default: use chapter icon for text elements and unknown types
     return "template.chapter";
 }
 
@@ -724,52 +741,34 @@ bool NavigatorPanel::matchesTypeFilter(QTreeWidgetItem* item) const {
 
     QString elementType = item->data(0, Qt::UserRole + 1).toString();
     QString elementId = item->data(0, Qt::UserRole).toString();
+    // Id of the element's kind, without its package: "mindmap"
+    const QString kindId = item->data(0, KIND_ROLE).toString().section(':', -1);
 
-    // Section headers always match (to show their children)
-    if (elementType == "document" || elementType == "root" ||
-        elementType == "section" || elementType == "section_frontmatter" ||
-        elementType == "section_body" || elementType == "section_backmatter" ||
-        elementType == "part" || elementType == "other_files") {
+    // Section headers and groups always match (to show their children)
+    if (isContainerType(elementType)) {
         return true;
     }
 
     switch (m_currentFilterType) {
     case FilterType::TextFiles:
-        // Text files: chapters and all frontmatter/backmatter item types
-        return (elementType == "chapter" ||
-                elementType == "title_page" ||
-                elementType == "copyright" ||
-                elementType == "dedication" ||
-                elementType == "epigraph" ||
-                elementType == "foreword" ||
-                elementType == "preface" ||
-                elementType == "introduction" ||
-                elementType == "prologue" ||
-                elementType == "epilogue" ||
-                elementType == "afterword" ||
-                elementType == "acknowledgments" ||
-                elementType == "appendix" ||
-                elementType == "glossary" ||
-                elementType == "bibliography" ||
-                elementType == "index" ||
-                elementType == "colophon" ||
-                elementType == "about_author");
+        // Text files: chapters and all front/back matter items with text
+        return elementType == "text_element";
 
     case FilterType::MindMaps:
-        // Mind maps: standalone files with .kmap extension or mindmap type
+        // Mind maps: standalone files with .kmap extension or mind map elements
         if (elementType == "standalone_file") {
             QString path = elementId;  // For standalone files, ID is the path
             return path.toLower().endsWith(".kmap");
         }
-        return elementType.toLower().contains("mindmap");
+        return kindId == "mindmap";
 
     case FilterType::Timelines:
-        // Timelines: standalone files with .ktl extension or timeline type
+        // Timelines: standalone files with .ktl extension or timeline elements
         if (elementType == "standalone_file") {
             QString path = elementId;  // For standalone files, ID is the path
             return path.toLower().endsWith(".ktl");
         }
-        return elementType.toLower().contains("timeline");
+        return kindId == "timeline";
 
     case FilterType::OtherFiles:
         // Other files: only items in "Other Files" section (standalone files)
@@ -792,11 +791,8 @@ bool NavigatorPanel::processFilterItem(QTreeWidgetItem* item, const QString& fil
     bool textMatches = filterText.isEmpty() || item->text(0).toLower().contains(filterText);
     bool typeMatches = matchesTypeFilter(item);
 
-    // For container types (sections, parts), we need to check children too
-    bool isContainer = (elementType == "document" || elementType == "root" ||
-                        elementType == "section" || elementType == "section_frontmatter" ||
-                        elementType == "section_body" || elementType == "section_backmatter" ||
-                        elementType == "part" || elementType == "other_files");
+    // For container types (sections, groups), we need to check children too
+    bool isContainer = isContainerType(elementType);
 
     // Process all children recursively
     bool hasMatchingChild = false;
@@ -864,37 +860,11 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     // Create context menu
     QMenu menu(this);
 
-    // Build menu based on element type
-    if (elementType == "chapter" || elementType == "title_page" ||
-        elementType == "copyright" || elementType == "dedication" ||
-        elementType == "epigraph" || elementType == "foreword" ||
-        elementType == "preface" || elementType == "introduction" ||
-        elementType == "prologue" || elementType == "epilogue" ||
-        elementType == "afterword" || elementType == "acknowledgments" ||
-        elementType == "appendix" || elementType == "glossary" ||
-        elementType == "bibliography" || elementType == "index" ||
-        elementType == "colophon" || elementType == "about_author") {
-        // Leaf elements (chapters, front/back matter items)
-        QAction* openAction = menu.addAction(
-            artProvider.getIcon("file.open", core::IconContext::Menu),
-            tr("Open"));
-        connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
+    auto& pm = core::ProjectManager::getInstance();
+    const bool projectOpen = pm.isProjectOpen();
 
-        menu.addSeparator();
-
-        QAction* renameAction = menu.addAction(
-            artProvider.getIcon("edit.rename", core::IconContext::Menu),
-            tr("Rename..."));
-        connect(renameAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRename);
-
-        QAction* deleteAction = menu.addAction(
-            artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("Delete"));
-        connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
-
-        menu.addSeparator();
-
-        // Move Up/Down - check if enabled
+    // Move Up/Down within the element's list
+    const auto addMoveActions = [&]() {
         QTreeWidgetItem* parent = item->parent();
         int index = parent ? parent->indexOfChild(item) : -1;
         int siblingCount = parent ? parent->childCount() : 0;
@@ -910,10 +880,47 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             tr("Move Down"));
         connect(moveDownAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveDown);
         moveDownAction->setEnabled(index >= 0 && index < siblingCount - 1);
+    };
+
+    const auto addRenameDeleteActions = [&]() {
+        QAction* renameAction = menu.addAction(
+            artProvider.getIcon("edit.rename", core::IconContext::Menu),
+            tr("Rename..."));
+        connect(renameAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRename);
+
+        QAction* deleteAction = menu.addAction(
+            artProvider.getIcon("edit.delete", core::IconContext::Menu),
+            tr("Delete"));
+        connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
+    };
+
+    const auto addExpandCollapseActions = [&]() {
+        QAction* expandAllAction = menu.addAction(
+            artProvider.getIcon("common.expand", core::IconContext::Menu),
+            tr("Expand All"));
+        connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
+
+        QAction* collapseAllAction = menu.addAction(
+            artProvider.getIcon("common.collapse", core::IconContext::Menu),
+            tr("Collapse All"));
+        connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
+    };
+
+    // Build menu based on element type
+    if (elementType == "text_element") {
+        // Text elements (chapters, front/back matter items)
+        QAction* openAction = menu.addAction(
+            artProvider.getIcon("file.open", core::IconContext::Menu),
+            tr("Open"));
+        connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
 
         menu.addSeparator();
+        addRenameDeleteActions();
+        menu.addSeparator();
+        addMoveActions();
+        menu.addSeparator();
 
-        // Add "Set Status" submenu for chapter-type elements
+        // Add "Set Status" submenu for text elements
         QMenu* statusMenu = menu.addMenu(tr("Set Status"));
 
         QActionGroup* statusGroup = new QActionGroup(statusMenu);
@@ -921,12 +928,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         // Get current status
         QString currentStatus = "draft";
-        auto& pm = core::ProjectManager::getInstance();
-        if (auto* element = pm.findElement(elementId)) {
-            auto status = element->getMetadata("status");
-            if (status.has_value()) {
-                currentStatus = QString::fromStdString(status.value()).toLower();
-            }
+        if (const core::ProjectElement* element = pm.findElement(elementId)) {
+            currentStatus = core::ProjectManager::statusOf(*element);
         }
 
         // Create radio actions
@@ -958,79 +961,60 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             tr("Properties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
 
-    } else if (elementType == "part") {
-        // Part container
+    } else if (elementType == "group_element") {
+        // Group (part): chapters are added inside it
         QAction* addChapterAction = menu.addAction(
             artProvider.getIcon("template.chapter", core::IconContext::Menu),
             tr("Add Chapter"));
         connect(addChapterAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddChapter);
+        addChapterAction->setEnabled(
+            projectOpen && pm.chapterKindFor(core::BookPlace::Main, elementId));
 
         menu.addSeparator();
-
-        QAction* renameAction = menu.addAction(
-            artProvider.getIcon("edit.rename", core::IconContext::Menu),
-            tr("Rename..."));
-        connect(renameAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRename);
-
-        QAction* deleteAction = menu.addAction(
-            artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("Delete"));
-        connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
-
+        addRenameDeleteActions();
         menu.addSeparator();
+        addMoveActions();
+        menu.addSeparator();
+        addExpandCollapseActions();
 
-        QAction* expandAllAction = menu.addAction(
-            artProvider.getIcon("common.expand", core::IconContext::Menu),
-            tr("Expand All"));
-        connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
+    } else if (elementType == "window_element") {
+        // Element that opens in a window of its own; the program has none of them yet
+        addRenameDeleteActions();
+        menu.addSeparator();
+        addMoveActions();
 
-        QAction* collapseAllAction = menu.addAction(
-            artProvider.getIcon("common.collapse", core::IconContext::Menu),
-            tr("Collapse All"));
-        connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
-
-    } else if (elementType == "section" || elementType == "section_frontmatter" ||
-               elementType == "section_body" || elementType == "section_backmatter") {
+    } else if (elementType == "section_frontmatter" || elementType == "section_body" ||
+               elementType == "section_backmatter") {
         // Section (Front Matter, Body, Back Matter)
         if (elementType == "section_body") {
-            // Body section - can add parts
+            // Body section - can add parts and chapters
             QAction* addPartAction = menu.addAction(
                 artProvider.getIcon("structure.part", core::IconContext::Menu),
                 tr("Add Part"));
             connect(addPartAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddPart);
-        } else if (elementType == "section_frontmatter" || elementType == "section_backmatter") {
+            addPartAction->setEnabled(projectOpen && pm.partKind());
+
+            QAction* addChapterAction = menu.addAction(
+                artProvider.getIcon("template.chapter", core::IconContext::Menu),
+                tr("Add Chapter"));
+            connect(addChapterAction, &QAction::triggered, this,
+                    &NavigatorPanel::onContextMenuAddChapter);
+            addChapterAction->setEnabled(projectOpen &&
+                                         pm.chapterKindFor(core::BookPlace::Main));
+        } else {
             // Front/Back Matter - can add items
+            const core::BookPlace place = elementType == "section_frontmatter"
+                                              ? core::BookPlace::Front
+                                              : core::BookPlace::Back;
             QAction* addItemAction = menu.addAction(
                 artProvider.getIcon("template.chapter", core::IconContext::Menu),
                 tr("Add Item"));
             connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
-        } else {
-            // Legacy "section" fallback - use text to determine type
-            QString sectionName = item->text(0);
-            if (sectionName == tr("Body")) {
-                QAction* addPartAction = menu.addAction(
-                    artProvider.getIcon("structure.part", core::IconContext::Menu),
-                    tr("Add Part"));
-                connect(addPartAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddPart);
-            } else {
-                QAction* addItemAction = menu.addAction(
-                    artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                    tr("Add Item"));
-                connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
-            }
+            addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
         }
 
         menu.addSeparator();
-
-        QAction* expandAllAction = menu.addAction(
-            artProvider.getIcon("common.expand", core::IconContext::Menu),
-            tr("Expand All"));
-        connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
-
-        QAction* collapseAllAction = menu.addAction(
-            artProvider.getIcon("common.collapse", core::IconContext::Menu),
-            tr("Collapse All"));
-        connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
+        addExpandCollapseActions();
 
     } else if (elementType == "document") {
         // Document root
@@ -1060,15 +1044,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     } else if (elementType == "other_files") {
         // Other Files header - only expand/collapse
-        QAction* expandAllAction = menu.addAction(
-            artProvider.getIcon("common.expand", core::IconContext::Menu),
-            tr("Expand All"));
-        connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
-
-        QAction* collapseAllAction = menu.addAction(
-            artProvider.getIcon("common.collapse", core::IconContext::Menu),
-            tr("Collapse All"));
-        connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
+        addExpandCollapseActions();
 
     } else {
         // Unknown type - no menu
@@ -1088,7 +1064,7 @@ void NavigatorPanel::onContextMenuOpen() {
     if (!m_contextMenuItem) return;
 
     QString elementId = m_contextMenuItem->data(0, Qt::UserRole).toString();
-    QString elementTitle = m_contextMenuItem->text(0);
+    QString elementTitle = m_contextMenuItem->data(0, TITLE_ROLE).toString();
 
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel::onContextMenuOpen() - ID: {}", elementId.toStdString());
@@ -1104,7 +1080,7 @@ void NavigatorPanel::onContextMenuRename() {
     if (!m_contextMenuItem) return;
 
     QString elementId = m_contextMenuItem->data(0, Qt::UserRole).toString();
-    QString currentTitle = m_contextMenuItem->text(0);
+    QString currentTitle = m_contextMenuItem->data(0, TITLE_ROLE).toString();
 
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel::onContextMenuRename() - ID: {}", elementId.toStdString());
@@ -1116,12 +1092,11 @@ void NavigatorPanel::onContextMenuDelete() {
     if (!m_contextMenuItem) return;
 
     QString elementId = m_contextMenuItem->data(0, Qt::UserRole).toString();
-    QString elementType = m_contextMenuItem->data(0, Qt::UserRole + 1).toString();
 
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel::onContextMenuDelete() - ID: {}", elementId.toStdString());
 
-    emit requestDelete(elementId, elementType);
+    emit requestDelete(elementId);
 }
 
 void NavigatorPanel::onContextMenuMoveUp() {
@@ -1149,12 +1124,13 @@ void NavigatorPanel::onContextMenuMoveDown() {
 void NavigatorPanel::onContextMenuAddChapter() {
     if (!m_contextMenuItem) return;
 
-    QString partId = m_contextMenuItem->data(0, Qt::UserRole).toString();
+    // A group, or the body of the book (no ID)
+    QString groupId = m_contextMenuItem->data(0, Qt::UserRole).toString();
 
     auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::onContextMenuAddChapter() - Part ID: {}", partId.toStdString());
+    logger.debug("NavigatorPanel::onContextMenuAddChapter() - Group ID: {}", groupId.toStdString());
 
-    emit requestAddChapter(partId);
+    emit requestAddChapter(groupId);
 }
 
 void NavigatorPanel::onContextMenuAddPart() {
@@ -1176,15 +1152,7 @@ void NavigatorPanel::onContextMenuAddItem() {
     } else if (elementType == "section_backmatter") {
         sectionType = "back_matter";
     } else {
-        // Legacy fallback: determine from text
-        QString sectionName = m_contextMenuItem->text(0);
-        if (sectionName == tr("Front Matter")) {
-            sectionType = "front_matter";
-        } else if (sectionName == tr("Back Matter")) {
-            sectionType = "back_matter";
-        } else {
-            sectionType = "unknown";
-        }
+        return;
     }
 
     auto& logger = core::Logger::getInstance();
@@ -1285,18 +1253,18 @@ void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetI
                  elementType.toStdString(),
                  elementId.toStdString());
 
-    // Emit requestProperties for all elements (same logic as itemClicked)
+    // Same logic as itemClicked
     // Document root uses empty ID to show project properties
-    // Sections and parts emit with their type for aggregate statistics
+    // Sections and groups emit with their type for aggregate statistics
     if (elementType == "document") {
         emit requestProperties("");  // Project properties
     } else if (elementType == "section_frontmatter" ||
                elementType == "section_body" ||
                elementType == "section_backmatter") {
         emit requestSectionProperties(elementType);
-    } else if (elementType == "part") {
+    } else if (elementType == "group_element") {
         emit requestPartProperties(elementId);
-    } else if (!elementId.isEmpty()) {
+    } else if (elementType == "text_element") {
         emit requestProperties(elementId);
     }
 }
@@ -1324,17 +1292,9 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
-    // Only emit for leaf elements (chapters, frontmatter items, backmatter items)
-    // Skip section headers and part containers - same logic as itemDoubleClicked
-    if (!elementId.isEmpty() &&
-        elementType != "section" &&
-        elementType != "section_frontmatter" &&
-        elementType != "section_body" &&
-        elementType != "section_backmatter" &&
-        elementType != "part" &&
-        elementType != "document" &&
-        elementType != "other_files") {
-        emit elementSelected(elementId, elementTitle);
+    // Only text elements open in the editor; sections, groups and window elements do not
+    if (elementType == "text_element") {
+        emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     }
 }
 
@@ -1359,15 +1319,17 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
 
     // Get element from ProjectManager and update display text
     auto& pm = core::ProjectManager::getInstance();
-    core::BookElement* element = pm.findElement(elementId);
+    const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         logger.warn("NavigatorPanel: Element not found in ProjectManager: {}", elementId.toStdString());
         return;
     }
 
-    // Update display title using the same helper function used in loadDocument().
+    // Update display title using the same helper function used in loadProject().
     // Pass the modified state so the "*" indicator is re-applied on every refresh.
-    item->setText(0, getDisplayTitle(element, m_modifiedElements.contains(elementId)));
+    item->setText(0, getDisplayTitle(*element, pm.formOf(*element) == core::ElementForm::Text,
+                                     m_modifiedElements.contains(elementId)));
+    item->setData(0, TITLE_ROLE, element->title);
 
     logger.debug("NavigatorPanel: Refreshed item text to: {}", item->text(0).toStdString());
 }
@@ -1654,15 +1616,16 @@ void NavigatorPanel::onContextMenuSetStatus(QAction* action) {
     logger.debug("NavigatorPanel::onContextMenuSetStatus() - ID: {}, Status: {}",
                  elementId.toStdString(), newStatus.toStdString());
 
+    // ProjectManager saves the project at once
     auto& pm = core::ProjectManager::getInstance();
-    if (auto* element = pm.findElement(elementId)) {
-        element->setMetadata("status", newStatus.toStdString());
-        pm.saveChapterMetadata(QString::fromStdString(element->getId()));
-        refreshItem(elementId);
-
-        // Also emit requestProperties to update Properties panel if visible
-        emit requestProperties(elementId);
+    if (!pm.setStatus(elementId, newStatus)) {
+        QMessageBox::warning(this, tr("Status Change Failed"), tr("Failed to save changes."));
+        return;
     }
+    refreshItem(elementId);
+
+    // Also emit requestProperties to update Properties panel if visible
+    emit requestProperties(elementId);
 }
 
 // =============================================================================

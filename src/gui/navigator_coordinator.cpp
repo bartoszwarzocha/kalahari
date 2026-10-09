@@ -10,19 +10,15 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QDockWidget>
-#include <QTextEdit>
 #include <QMessageBox>
-#include <QDateTime>
 #include <chrono>
 
 namespace kalahari {
@@ -59,12 +55,9 @@ void NavigatorCoordinator::clearDirtyChapters() {
 
 void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
 
-    // Clear the model element dirty flag (single source of truth)
-    if (core::BookElement* element = pm.findElement(elementId)) {
-        element->setDirty(false);
-    }
+    // Forget the unsaved text ProjectManager keeps (single source of truth)
+    core::ProjectManager::getInstance().discardChapterContent(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -86,13 +79,30 @@ EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
 
 void NavigatorCoordinator::refreshNavigator() {
     auto& pm = core::ProjectManager::getInstance();
-    if (pm.getDocument()) {
+    if (const core::BookProject* project = pm.project()) {
         // Rebuilding the tree resets expansion to defaults, so keep the user's state
         const QStringList expandedIds = m_navigatorPanel->expandedItemIds();
-        m_navigatorPanel->loadDocument(*pm.getDocument());
+        m_navigatorPanel->loadProject(*project, pm.bookTypes());
         m_navigatorPanel->setExpandedItemIds(expandedIds);
     }
     emit refreshNavigatorRequested();
+}
+
+void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
+    const core::ProjectElement* element =
+        core::ProjectManager::getInstance().findElement(elementId);
+    if (!element) {
+        return;
+    }
+    // The "*" dirty indicator stays
+    const QString title =
+        m_dirtyChapters.value(elementId, false) ? "*" + element->title : element->title;
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        QWidget* widget = m_centralTabs->widget(i);
+        if (widget && widget->property("elementId").toString() == elementId) {
+            m_centralTabs->setTabText(i, title);
+        }
+    }
 }
 
 void NavigatorCoordinator::onElementSelected(const QString& elementId, const QString& elementTitle) {
@@ -142,13 +152,16 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         // Still create tab but with empty content
     }
 
-    // Create new editor tab with chapter icon
+    // Create new editor tab with the element's icon, as in the navigator
     logElapsed("Before new EditorPanel");
     EditorPanel* newEditor = new EditorPanel(m_centralTabs);
     logElapsed("After new EditorPanel");
-    QIcon chapterIcon = core::ArtProvider::getInstance().getIcon("template.chapter");
+    const core::ProjectElement* element = pm.findElement(elementId);
+    const QString iconId = element ? NavigatorPanel::iconIdOf(pm.bookTypes(), *element)
+                                   : QStringLiteral("template.chapter");
+    QIcon chapterIcon = core::ArtProvider::getInstance().getIcon(iconId);
     int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
-    newEditor->setProperty("tabIconId", "template.chapter");
+    newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
 
     // Store element ID for save operations
@@ -175,10 +188,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                         m_dirtyChapters[elementId] = true;
                         // Chapter CONTENT dirtiness is tracked per open tab here, set
                         // ONLY on genuine edits (this slot is connected AFTER load).
-                        // Do NOT mark the model BookElement or the manifest/structure
-                        // dirty: tree-building/selection/properties can dirty the model
-                        // element with no user edit, which resurfaces as a spurious
-                        // save prompt that can never be cleared.
+                        // Do NOT mark the project (.klh) dirty: its structure and data
+                        // have not changed, and a dirty project resurfaces as a spurious
+                        // save prompt.
 
                         // Update tab title with asterisk
                         int currentIdx = m_centralTabs->indexOf(newEditor);
@@ -231,21 +243,18 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
     // currentTitle is the tree item's DISPLAY text, which carries decorations (the
     // "*" dirty indicator and a " [Status]" suffix); using it would leak those into
     // the renamed title (e.g. a doubled "[Draft]").
-    core::BookElement* element = pm.findElement(elementId);
-    core::Part* part = element ? nullptr : pm.findPart(elementId);
-    if (!element && !part) {
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
         logger.warn("NavigatorCoordinator: Element not found for rename: {}",
                     elementId.toStdString());
         return;
     }
-    const QString cleanTitle = element
-        ? QString::fromStdString(element->getTitle())
-        : QString::fromStdString(part->getTitle());
+    const QString cleanTitle = element->title;
 
     // Ask for the new name (it starts as the clean title)
-    dialogs::RenameElementDialog dialog(
-        cleanTitle, part ? QStringLiteral("structure.part") : QStringLiteral("template.chapter"),
-        qobject_cast<QWidget*>(parent()));
+    dialogs::RenameElementDialog dialog(cleanTitle,
+                                        NavigatorPanel::iconIdOf(pm.bookTypes(), *element),
+                                        qobject_cast<QWidget*>(parent()));
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
@@ -254,65 +263,28 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
         return;  // No change
     }
 
-    if (element) {
-        element->setTitle(newTitle.toStdString());
-        element->touch();  // Update modified timestamp
-        pm.setDirty(true);
-
-        // Save manifest to persist the change
-        if (pm.saveManifest()) {
-            logger.info("NavigatorCoordinator: Renamed element '{}' to '{}'",
-                        elementId.toStdString(), newTitle.toStdString());
-
-            // Refresh navigator to show new name
-            refreshNavigator();
-
-            // Update the open tab's title, preserving the "*" dirty indicator.
-            for (int i = 0; i < m_centralTabs->count(); ++i) {
-                QWidget* widget = m_centralTabs->widget(i);
-                if (widget->property("elementId").toString() == elementId) {
-                    const QString tabTitle = m_dirtyChapters.value(elementId, false)
-                        ? "*" + newTitle : newTitle;
-                    m_centralTabs->setTabText(i, tabTitle);
-                    break;
-                }
-            }
-
-            m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
-            emit documentModified();
-        } else {
-            logger.error("NavigatorCoordinator: Failed to save manifest after rename");
-            QMessageBox::warning(
-                qobject_cast<QWidget*>(parent()),
-                tr("Rename Failed"),
-                tr("Failed to save changes.")
-            );
-        }
-        return;
-    }
-
-    // Otherwise it is a Part (resolved above).
-    part->setTitle(newTitle.toStdString());
-    pm.setDirty(true);
-
-    if (pm.saveManifest()) {
-        logger.info("NavigatorCoordinator: Renamed part '{}' to '{}'",
-                    elementId.toStdString(), newTitle.toStdString());
-
-        refreshNavigator();
-        m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
-        emit documentModified();
-    } else {
-        logger.error("NavigatorCoordinator: Failed to save manifest after part rename");
+    // ProjectManager saves the project at once
+    if (!pm.renameElement(elementId, newTitle)) {
+        logger.error("NavigatorCoordinator: Failed to save the project after rename");
         QMessageBox::warning(
             qobject_cast<QWidget*>(parent()),
             tr("Rename Failed"),
             tr("Failed to save changes.")
         );
+        return;
     }
+    logger.info("NavigatorCoordinator: Renamed element '{}' to '{}'",
+                elementId.toStdString(), newTitle.toStdString());
+
+    // Refresh navigator and the open tab to show new name
+    refreshNavigator();
+    refreshTabTitle(elementId);
+
+    m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
+    emit documentModified();
 }
 
-void NavigatorCoordinator::onRequestDelete(const QString& elementId, const QString& elementType) {
+void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
@@ -321,29 +293,31 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId, const QStri
         return;
     }
 
-    core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.error("NavigatorCoordinator: No document available for delete");
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        logger.warn("NavigatorCoordinator: Element not found for delete: {}", elementId.toStdString());
+        QMessageBox::warning(
+            qobject_cast<QWidget*>(parent()),
+            tr("Delete Failed"),
+            tr("Could not find the element to delete.")
+        );
         return;
     }
 
-    // Confirm deletion
-    QString typeDisplayName = elementType;
-    if (elementType == "chapter") typeDisplayName = tr("chapter");
-    else if (elementType == "part") typeDisplayName = tr("part");
-    else if (elementType == "title_page") typeDisplayName = tr("title page");
-    else if (elementType == "dedication") typeDisplayName = tr("dedication");
-    else if (elementType == "preface") typeDisplayName = tr("preface");
-    else if (elementType == "epilogue") typeDisplayName = tr("epilogue");
-    else if (elementType == "glossary") typeDisplayName = tr("glossary");
-    else if (elementType == "bibliography") typeDisplayName = tr("bibliography");
-    else if (elementType == "about_author") typeDisplayName = tr("about author");
+    // Confirm deletion, naming the element's kind in the program's language ("chapter"); a
+    // kind of a package that is not installed is named by its id ("title page")
+    const core::KindRef kind = pm.kindOf(*element);
+    const QString kindName = kind
+        ? kind.kind->name
+              .text(QString::fromStdString(core::SettingsManager::getInstance().getLanguage()))
+              .toLower()
+        : QString(element->kind.kindId).replace(QLatin1Char('_'), QLatin1Char(' '));
 
     auto reply = QMessageBox::question(
         qobject_cast<QWidget*>(parent()),
         tr("Confirm Delete"),
         tr("Are you sure you want to delete this %1?\n\nThis action cannot be undone.")
-            .arg(typeDisplayName),
+            .arg(kindName),
         QMessageBox::Yes | QMessageBox::No
     );
 
@@ -351,63 +325,45 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId, const QStri
         return;
     }
 
-    bool deleted = false;
-    core::Book& book = doc->getBook();
-
-    // Close tab if element is open
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        QWidget* widget = m_centralTabs->widget(i);
-        if (widget->property("elementId").toString() == elementId) {
-            m_centralTabs->removeTab(i);
-            widget->deleteLater();
-            break;
-        }
-    }
-
-    // Try to delete from different sections
-    if (book.removeFrontMatter(elementId.toStdString())) {
-        deleted = true;
-        logger.info("NavigatorCoordinator: Deleted front matter element: {}", elementId.toStdString());
-    } else if (book.removeBackMatter(elementId.toStdString())) {
-        deleted = true;
-        logger.info("NavigatorCoordinator: Deleted back matter element: {}", elementId.toStdString());
-    } else if (elementType == "part" && book.removePart(elementId.toStdString())) {
-        deleted = true;
-        logger.info("NavigatorCoordinator: Deleted part: {}", elementId.toStdString());
-    } else {
-        // Try to find chapter in any part
-        for (auto& part : book.getBody()) {
-            if (part->removeChapter(elementId.toStdString())) {
-                deleted = true;
-                logger.info("NavigatorCoordinator: Deleted chapter: {} from part: {}",
-                            elementId.toStdString(), part->getId());
-                break;
-            }
-        }
-    }
-
-    if (deleted) {
-        pm.setDirty(true);
-        if (pm.saveManifest()) {
-            // Refresh navigator
-            refreshNavigator();
-            m_statusBar->showMessage(tr("Deleted successfully"), 2000);
-            emit documentModified();
-        } else {
-            logger.error("NavigatorCoordinator: Failed to save manifest after delete");
-            QMessageBox::warning(
-                qobject_cast<QWidget*>(parent()),
-                tr("Delete Error"),
-                tr("Element was deleted but failed to save manifest.")
-            );
-        }
-    } else {
-        logger.warn("NavigatorCoordinator: Element not found for delete: {}", elementId.toStdString());
+    // ProjectManager takes the element, with the elements inside it, out of the project and
+    // saves it at once; their files stay in the project's folder
+    const std::optional<core::ProjectElement> removed = pm.removeElement(elementId);
+    if (!removed) {
+        logger.error("NavigatorCoordinator: Failed to save the project after delete");
         QMessageBox::warning(
             qobject_cast<QWidget*>(parent()),
             tr("Delete Failed"),
-            tr("Could not find the element to delete.")
+            tr("Failed to save changes.")
         );
+        return;
+    }
+    logger.info("NavigatorCoordinator: Deleted element: {}", elementId.toStdString());
+
+    closeTabsOf(*removed);
+    refreshNavigator();
+    m_statusBar->showMessage(tr("Deleted successfully"), 2000);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
+    for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
+        QWidget* widget = m_centralTabs->widget(i);
+        if (widget && widget->property("elementId").toString() == element.id) {
+            m_centralTabs->removeTab(i);
+            widget->deleteLater();
+        }
+    }
+
+    // Its unsaved changes went with it
+    if (m_dirtyChapters.take(element.id)) {
+        emit chapterDirtyStateChanged(element.id, false);
+    }
+    if (m_currentElementId == element.id) {
+        m_currentElementId.clear();
+    }
+
+    for (const core::ProjectElement& inner : element.elements) {
+        closeTabsOf(inner);
     }
 }
 
@@ -415,69 +371,38 @@ void NavigatorCoordinator::onRequestMove(const QString& elementId, int direction
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) {
+    core::BookProject* project = pm.project();
+    if (!project) {
         logger.warn("NavigatorCoordinator: Move requested but no project open");
         return;
     }
 
-    core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.error("NavigatorCoordinator: No document available for move");
+    // An element moves within its list: a section of the book or a part
+    qsizetype index = -1;
+    const QList<core::ProjectElement>* list = project->listOf(elementId, &index);
+    if (!list) {
+        logger.warn("NavigatorCoordinator: Element not found for move: {}",
+                    elementId.toStdString());
+        return;
+    }
+    const qsizetype newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= list->size()) {
+        logger.debug("NavigatorCoordinator: Could not move element: {} (at boundary)",
+                     elementId.toStdString());
         return;
     }
 
-    core::Book& book = doc->getBook();
-    bool moved = false;
-
-    // Try to find and move the element
-    // Check if it's a Part
-    auto& body = book.getBody();
-    for (size_t i = 0; i < body.size(); ++i) {
-        if (body[i]->getId() == elementId.toStdString()) {
-            // It's a part - move it
-            int newIndex = static_cast<int>(i) + direction;
-            if (newIndex >= 0 && newIndex < static_cast<int>(body.size())) {
-                if (book.movePart(i, static_cast<size_t>(newIndex))) {
-                    moved = true;
-                    logger.info("NavigatorCoordinator: Moved part from {} to {}", i, newIndex);
-                }
-            }
-            break;
-        }
-
-        // Check chapters within this part
-        auto& chapters = body[i]->getChapters();
-        for (size_t j = 0; j < chapters.size(); ++j) {
-            if (chapters[j]->getId() == elementId.toStdString()) {
-                int newIndex = static_cast<int>(j) + direction;
-                if (newIndex >= 0 && newIndex < static_cast<int>(chapters.size())) {
-                    if (body[i]->moveChapter(j, static_cast<size_t>(newIndex))) {
-                        moved = true;
-                        logger.info("NavigatorCoordinator: Moved chapter from {} to {} in part {}",
-                                    j, newIndex, body[i]->getId());
-                    }
-                }
-                break;
-            }
-        }
-        if (moved) break;
+    // ProjectManager saves the project at once
+    if (!pm.moveElement(elementId, newIndex)) {
+        logger.error("NavigatorCoordinator: Failed to save the project after move");
+        return;
     }
+    logger.info("NavigatorCoordinator: Moved element {} from {} to {}",
+                elementId.toStdString(), index, newIndex);
 
-    // TODO: Add support for moving front matter and back matter elements
-
-    if (moved) {
-        pm.setDirty(true);
-        if (pm.saveManifest()) {
-            refreshNavigator();
-            m_statusBar->showMessage(direction < 0 ? tr("Moved up") : tr("Moved down"), 2000);
-            emit documentModified();
-        } else {
-            logger.error("NavigatorCoordinator: Failed to save manifest after move");
-        }
-    } else {
-        logger.debug("NavigatorCoordinator: Could not move element: {} (at boundary or not found)",
-                     elementId.toStdString());
-    }
+    refreshNavigator();
+    m_statusBar->showMessage(direction < 0 ? tr("Moved up") : tr("Moved down"), 2000);
+    emit documentModified();
 }
 
 void NavigatorCoordinator::onRequestProperties(const QString& elementId) {
@@ -544,32 +469,21 @@ void NavigatorCoordinator::onRequestPartProperties(const QString& partId) {
     m_propertiesPanel->showPartProperties(partId);
 }
 
-void NavigatorCoordinator::onChapterReordered(const QString& partId, int fromIndex, int toIndex) {
+void NavigatorCoordinator::onElementMoved(const QString& elementId, int index) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    if (pm.reorderChapter(partId, fromIndex, toIndex)) {
-        logger.info("NavigatorCoordinator: Chapter reordered successfully");
+    // ProjectManager saves the project at once
+    if (pm.moveElement(elementId, index)) {
+        logger.info("NavigatorCoordinator: Moved element {} to place {}",
+                    elementId.toStdString(), index);
         emit documentModified();
     } else {
-        logger.error("NavigatorCoordinator: Failed to reorder chapter");
-        // Refresh navigator to restore correct order
-        refreshNavigator();
+        logger.error("NavigatorCoordinator: Failed to move element {}", elementId.toStdString());
     }
-}
 
-void NavigatorCoordinator::onPartReordered(int fromIndex, int toIndex) {
-    auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
-
-    if (pm.reorderPart(fromIndex, toIndex)) {
-        logger.info("NavigatorCoordinator: Part reordered successfully");
-        emit documentModified();
-    } else {
-        logger.error("NavigatorCoordinator: Failed to reorder part");
-        // Refresh navigator to restore correct order
-        refreshNavigator();
-    }
+    // The tree shows the order of the project, also when the move failed
+    refreshNavigator();
 }
 
 
@@ -577,7 +491,7 @@ void NavigatorCoordinator::onPartReordered(int fromIndex, int toIndex) {
 // Add Chapter/Part/Item Handlers (OpenSpec #00042 Task 7.19 Issue #1)
 // =============================================================================
 
-void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
+void NavigatorCoordinator::onRequestAddChapter(const QString& groupId) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
@@ -586,71 +500,28 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& partId) {
         return;
     }
 
-    core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.error("NavigatorCoordinator: No document available for add chapter");
-        return;
+    // The chapter goes to a part, or to the body of the book
+    QString groupTitle;
+    if (!groupId.isEmpty()) {
+        const core::ProjectElement* group = pm.findElement(groupId);
+        if (!group) {
+            logger.error("NavigatorCoordinator: Part not found: {}", groupId.toStdString());
+            QMessageBox::warning(
+                qobject_cast<QWidget*>(parent()),
+                tr("Add Chapter Failed"),
+                tr("Part not found.")
+            );
+            return;
+        }
+        groupTitle = group->title;
     }
 
-    // Find the part the chapter goes to
-    core::Part* part = pm.findPart(partId);
-    if (!part) {
-        logger.error("NavigatorCoordinator: Part not found: {}", partId.toStdString());
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Chapter Failed"),
-            tr("Part not found.")
-        );
-        return;
-    }
-
-    // Ask for the chapter's title
-    dialogs::NewElementDialog dialog(dialogs::NewElementKind::Chapter,
-                                     QString::fromStdString(part->getTitle()),
-                                     qobject_cast<QWidget*>(parent()));
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-    const QString title = dialog.title();
-
-    // Generate unique chapter ID
-    QString chapterId = QString("ch-%1").arg(
-        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
-
-    // Create new chapter element, with a chapter file of its own next to the part's chapters
-    auto chapter = std::make_shared<core::BookElement>(
-        "chapter",
-        chapterId.toStdString(),
-        title.toStdString(),
-        ""
-    );
-    if (!pm.createChapterFile(*chapter, QStringLiteral("body"), partId)) {
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Chapter Failed"),
-            tr("Failed to save changes.")
-        );
-        return;
-    }
-
-    // Add to part
-    part->addChapter(chapter);
-    pm.setDirty(true);
-
-    if (pm.saveManifest()) {
-        logger.info("NavigatorCoordinator: Added chapter '{}' to part '{}' (id={})",
-                    title.toStdString(), partId.toStdString(), chapterId.toStdString());
-        refreshNavigator();
-        m_statusBar->showMessage(tr("Chapter added: %1").arg(title), 2000);
-        emit documentModified();
-    } else {
-        logger.error("NavigatorCoordinator: Failed to save manifest after adding chapter");
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Chapter Failed"),
-            tr("Failed to save changes.")
-        );
-    }
+    // A chapter can be of any text kind there (a prologue, a chapter...); the type's main one
+    // is chosen at the start
+    addElement(dialogs::NewElementKind::Chapter,
+               pm.textKindsFor(core::BookPlace::Main, groupId),
+               pm.chapterKindFor(core::BookPlace::Main, groupId), core::BookPlace::Main, groupId,
+               groupTitle);
 }
 
 void NavigatorCoordinator::onRequestAddPart() {
@@ -662,45 +533,13 @@ void NavigatorCoordinator::onRequestAddPart() {
         return;
     }
 
-    core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.error("NavigatorCoordinator: No document available for add part");
-        return;
-    }
-
-    // Ask for the part's title
-    dialogs::NewElementDialog dialog(dialogs::NewElementKind::Part, QString(),
-                                     qobject_cast<QWidget*>(parent()));
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-    const QString title = dialog.title();
-
-    // Generate unique part ID
-    QString partId = QString("part-%1").arg(
-        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
-
-    // Create new part
-    auto part = std::make_shared<core::Part>(partId.toStdString(), title.toStdString());
-
-    // Add to book body
-    doc->getBook().addPart(part);
-    pm.setDirty(true);
-
-    if (pm.saveManifest()) {
-        logger.info("NavigatorCoordinator: Added part '{}' (id={})",
-                    title.toStdString(), partId.toStdString());
-        refreshNavigator();
-        m_statusBar->showMessage(tr("Part added: %1").arg(title), 2000);
-        emit documentModified();
-    } else {
-        logger.error("NavigatorCoordinator: Failed to save manifest after adding part");
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Part Failed"),
-            tr("Failed to save changes.")
-        );
-    }
+    // A part can be of any group kind of the body (a part, a cycle...)
+    QList<core::KindRef> kinds = pm.kindsFor(core::BookPlace::Main);
+    kinds.removeIf([](const core::KindRef& kind) {
+        return kind.kind->form != core::ElementForm::Group;
+    });
+    addElement(dialogs::NewElementKind::Part, kinds, pm.partKind(), core::BookPlace::Main,
+               QString(), QString());
 }
 
 void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
@@ -712,69 +551,70 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
         return;
     }
 
-    core::Document* doc = pm.getDocument();
-    if (!doc) {
-        logger.error("NavigatorCoordinator: No document available for add item");
+    // An item can be of any text kind of its section (a dedication, a preface...)
+    const bool front = sectionType == QLatin1String("front_matter");
+    const core::BookPlace place = front ? core::BookPlace::Front : core::BookPlace::Back;
+    addElement(front ? dialogs::NewElementKind::FrontMatterItem
+                     : dialogs::NewElementKind::BackMatterItem,
+               pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
+}
+
+void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
+                                      const QList<core::KindRef>& kinds,
+                                      const core::KindRef& current, core::BookPlace place,
+                                      const QString& groupId, const QString& groupTitle) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    // The navigator offers the command only when a kind can be added there
+    if (kinds.isEmpty()) {
+        logger.warn("NavigatorCoordinator: No kind can be added there");
         return;
     }
 
-    // Ask for the item's type and title
-    dialogs::NewElementDialog dialog(sectionType == "front_matter"
-                                         ? dialogs::NewElementKind::FrontMatterItem
-                                         : dialogs::NewElementKind::BackMatterItem,
-                                     QString(), qobject_cast<QWidget*>(parent()));
+    // Each kind with the title its new element starts with ("Chapter 3")
+    QList<dialogs::NewElementChoice> choices;
+    int currentIndex = 0;
+    for (const core::KindRef& kind : kinds) {
+        if (kind.kind == current.kind) {
+            currentIndex = static_cast<int>(choices.size());
+        }
+        choices.append({kind, pm.defaultTitle(kind)});
+    }
+
+    dialogs::NewElementDialog dialog(dialogKind, choices, currentIndex, groupTitle,
+                                     qobject_cast<QWidget*>(parent()));
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     const QString title = dialog.title();
 
-    // Generate unique item ID
-    QString itemId = QString("item-%1").arg(
-        QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
-
-    // The type the writer chose
-    const QString elementType = dialog.elementType();
-
-    // Create new element, with a chapter file of its own in its section's folder
-    auto element = std::make_shared<core::BookElement>(
-        elementType.toStdString(),
-        itemId.toStdString(),
-        title.toStdString(),
-        ""
-    );
-    if (!pm.createChapterFile(*element, sectionType == "front_matter" ? QStringLiteral("frontmatter")
-                                                                       : QStringLiteral("backmatter"))) {
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Item Failed"),
-            tr("Failed to save changes.")
-        );
+    // ProjectManager makes the chapter file of a text element and saves the project at once
+    const QString elementId = pm.addElement(dialog.kind(), title, place, groupId);
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
+        QString failedTitle = tr("Add Item Failed");
+        if (dialogKind == dialogs::NewElementKind::Chapter) {
+            failedTitle = tr("Add Chapter Failed");
+        } else if (dialogKind == dialogs::NewElementKind::Part) {
+            failedTitle = tr("Add Part Failed");
+        }
+        QMessageBox::warning(qobject_cast<QWidget*>(parent()), failedTitle,
+                             tr("Failed to save changes."));
         return;
     }
+    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
+                elementId.toStdString());
 
-    // Add to appropriate section
-    core::Book& book = doc->getBook();
-    if (sectionType == "front_matter") {
-        book.addFrontMatter(element);
+    refreshNavigator();
+    if (dialogKind == dialogs::NewElementKind::Chapter) {
+        m_statusBar->showMessage(tr("Chapter added: %1").arg(title), 2000);
+    } else if (dialogKind == dialogs::NewElementKind::Part) {
+        m_statusBar->showMessage(tr("Part added: %1").arg(title), 2000);
     } else {
-        book.addBackMatter(element);
-    }
-    pm.setDirty(true);
-
-    if (pm.saveManifest()) {
-        logger.info("NavigatorCoordinator: Added {} item '{}' (id={})",
-                    sectionType.toStdString(), title.toStdString(), itemId.toStdString());
-        refreshNavigator();
         m_statusBar->showMessage(tr("Item added: %1").arg(title), 2000);
-        emit documentModified();
-    } else {
-        logger.error("NavigatorCoordinator: Failed to save manifest after adding item");
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Add Item Failed"),
-            tr("Failed to save changes.")
-        );
     }
+    emit documentModified();
 }
 
 } // namespace gui

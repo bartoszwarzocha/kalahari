@@ -2,7 +2,8 @@
 /// @brief The program's own dialogs: their common base and the Navigator's dialogs
 
 #include <catch2/catch_test_macros.hpp>
-#include "kalahari/core/book_constants.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
@@ -17,6 +18,7 @@
 #include <QPushButton>
 
 using namespace kalahari::gui::dialogs;
+using kalahari::core::KindRef;
 
 namespace {
 
@@ -34,6 +36,16 @@ bool showsText(const QDialog& dialog, const QString& text) {
 void type(QLineEdit* field, const QString& letter) {
     QKeyEvent press(QEvent::KeyPress, Qt::Key_A, Qt::NoModifier, letter);
     QApplication::sendEvent(field, &press);
+}
+
+/// @brief Kind @p id of the base package of the resources folder
+KindRef baseKind(const QString& id) {
+    static const kalahari::core::BookTypeRegistry registry = [] {
+        kalahari::core::BookTypeRegistry loaded;
+        loaded.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+        return loaded;
+    }();
+    return registry.findKind(QStringLiteral("kalahari.base"), id);
 }
 
 } // anonymous namespace
@@ -107,15 +119,18 @@ TEST_CASE("Own dialogs: a dialog opens as high as its content needs", "[gui][dia
 }
 
 TEST_CASE("Navigator: the new chapter dialog asks for a title", "[gui][dialogs]") {
-    NewElementDialog dialog(NewElementKind::Chapter, QStringLiteral("Part One"));
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    NewElementDialog dialog(NewElementKind::Chapter, {{chapter, QStringLiteral("Chapter 3")}}, 0,
+                            QStringLiteral("Part One"));
 
-    CHECK(dialog.elementType() == QLatin1String(kalahari::core::TYPE_CHAPTER));
-    CHECK(dialog.findChild<QComboBox*>() == nullptr);
+    CHECK(dialog.kind().kind == chapter.kind);
+    CHECK(dialog.findChild<QComboBox*>() == nullptr);  // one kind: nothing to choose
     CHECK(showsText(dialog, QStringLiteral("Part One")));  // the part it goes to
 
     auto* title = dialog.findChild<QLineEdit*>();
     REQUIRE(title != nullptr);
-    CHECK(title->text() == QStringLiteral("New Chapter"));
+    CHECK(title->text() == QStringLiteral("Chapter 3"));
     CHECK(title->selectedText() == title->text());  // typing replaces it
     CHECK(dialog.acceptButton()->isEnabled());
 
@@ -127,57 +142,73 @@ TEST_CASE("Navigator: the new chapter dialog asks for a title", "[gui][dialogs]"
     CHECK(dialog.title() == QStringLiteral("The Storm"));
 }
 
-TEST_CASE("Navigator: the new part dialog asks for a title", "[gui][dialogs]") {
-    NewElementDialog dialog(NewElementKind::Part);
+TEST_CASE("Navigator: a new chapter without a part goes to the body", "[gui][dialogs]") {
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    NewElementDialog dialog(NewElementKind::Chapter, {{chapter, QStringLiteral("Chapter 1")}});
 
-    CHECK(dialog.elementType() == QStringLiteral("part"));
-    CHECK(dialog.findChild<QComboBox*>() == nullptr);
-    CHECK(dialog.title() == QStringLiteral("New Part"));
+    CHECK(showsText(dialog, QStringLiteral("body of the book")));
+    CHECK(dialog.title() == QStringLiteral("Chapter 1"));
 }
 
-TEST_CASE("Navigator: a new item gets a type and the type's name as its title",
+TEST_CASE("Navigator: the new part dialog asks for a title", "[gui][dialogs]") {
+    const KindRef part = baseKind(QStringLiteral("part"));
+    REQUIRE(part);
+    NewElementDialog dialog(NewElementKind::Part, {{part, QStringLiteral("Part 2")}});
+
+    CHECK(dialog.kind().kind == part.kind);
+    CHECK(dialog.findChild<QComboBox*>() == nullptr);
+    CHECK(dialog.title() == QStringLiteral("Part 2"));
+}
+
+TEST_CASE("Navigator: a new element of more than one kind gets the title of its kind",
           "[gui][dialogs]") {
-    // Regression: every new front matter item was a preface and every back matter
-    // item an epilogue, whatever the writer wanted
-    SECTION("Front matter") {
-        NewElementDialog dialog(NewElementKind::FrontMatterItem);
-        auto* types = dialog.findChild<QComboBox*>();
+    const KindRef titlePage = baseKind(QStringLiteral("title_page"));
+    const KindRef dedication = baseKind(QStringLiteral("dedication"));
+    const KindRef preface = baseKind(QStringLiteral("preface"));
+    REQUIRE(titlePage);
+    REQUIRE(dedication);
+    REQUIRE(preface);
+    const QList<NewElementChoice> choices = {{titlePage, QStringLiteral("Title Page")},
+                                             {dedication, QStringLiteral("Dedication")},
+                                             {preface, QStringLiteral("Preface")}};
+
+    SECTION("The writer chooses the kind") {
+        NewElementDialog dialog(NewElementKind::FrontMatterItem, choices);
+        auto* kinds = dialog.findChild<QComboBox*>();
         auto* title = dialog.findChild<QLineEdit*>();
-        REQUIRE(types != nullptr);
+        REQUIRE(kinds != nullptr);
         REQUIRE(title != nullptr);
 
-        const QStringList expected = {QLatin1String(kalahari::core::TYPE_TITLE_PAGE),
-                                      QLatin1String(kalahari::core::TYPE_COPYRIGHT),
-                                      QLatin1String(kalahari::core::TYPE_DEDICATION),
-                                      QLatin1String(kalahari::core::TYPE_PREFACE)};
-        CHECK(NewElementDialog::elementTypes(NewElementKind::FrontMatterItem) == expected);
-        REQUIRE(types->count() == expected.size());
-        CHECK(dialog.elementType() == expected.first());
+        // Kinds are named in the language of the program
+        const QString language =
+            QString::fromStdString(kalahari::core::SettingsManager::getInstance().getLanguage());
+        REQUIRE(kinds->count() == 3);
+        CHECK(kinds->itemText(1) == dedication.kind->name.text(language));
+        CHECK(dialog.kind().kind == titlePage.kind);
         CHECK(dialog.title() == QStringLiteral("Title Page"));
 
-        types->setCurrentIndex(2);
-        CHECK(dialog.elementType() == QLatin1String(kalahari::core::TYPE_DEDICATION));
+        kinds->setCurrentIndex(1);
+        CHECK(dialog.kind().kind == dedication.kind);
         CHECK(dialog.title() == QStringLiteral("Dedication"));
 
-        // A title the writer typed stays when the type changes
+        // A title the writer typed stays when the kind changes
         title->setText(QStringLiteral("For "));
         title->end(false);
         type(title, QStringLiteral("M"));
         REQUIRE(dialog.title() == QStringLiteral("For M"));
-        types->setCurrentIndex(3);
-        CHECK(dialog.elementType() == QLatin1String(kalahari::core::TYPE_PREFACE));
+        kinds->setCurrentIndex(2);
+        CHECK(dialog.kind().kind == preface.kind);
         CHECK(dialog.title() == QStringLiteral("For M"));
     }
 
-    SECTION("Back matter") {
-        NewElementDialog dialog(NewElementKind::BackMatterItem);
-        const QStringList expected = {QLatin1String(kalahari::core::TYPE_EPILOGUE),
-                                      QLatin1String(kalahari::core::TYPE_GLOSSARY),
-                                      QLatin1String(kalahari::core::TYPE_BIBLIOGRAPHY),
-                                      QLatin1String(kalahari::core::TYPE_ABOUT_AUTHOR)};
-        CHECK(NewElementDialog::elementTypes(NewElementKind::BackMatterItem) == expected);
-        CHECK(dialog.elementType() == expected.first());
-        CHECK(dialog.title() == QStringLiteral("Epilogue"));
+    SECTION("The dialog starts with the given kind") {
+        NewElementDialog dialog(NewElementKind::BackMatterItem, choices, 2);
+        auto* kinds = dialog.findChild<QComboBox*>();
+        REQUIRE(kinds != nullptr);
+        CHECK(kinds->currentIndex() == 2);
+        CHECK(dialog.kind().kind == preface.kind);
+        CHECK(dialog.title() == QStringLiteral("Preface"));
     }
 }
 

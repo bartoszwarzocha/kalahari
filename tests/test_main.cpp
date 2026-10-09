@@ -121,6 +121,10 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("kalahari-tests");
 
+    // Dialogs that tests answer are the program's own widgets, also where the platform has
+    // native ones (file dialogs on Windows and macOS, message boxes on macOS)
+    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+
     // Initialize Catch2
     Catch::Session session;
 

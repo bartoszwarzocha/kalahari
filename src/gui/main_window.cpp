@@ -38,11 +38,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/theme.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/document_archive.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QActionGroup>
@@ -156,10 +152,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestSectionProperties);
     connect(m_dockCoordinator, &DockCoordinator::navigatorRequestPartProperties,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestPartProperties);
-    connect(m_dockCoordinator, &DockCoordinator::chapterReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onChapterReordered);
-    connect(m_dockCoordinator, &DockCoordinator::partReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onPartReordered);
+    connect(m_dockCoordinator, &DockCoordinator::elementMoved,
+            m_navigatorCoordinator, &NavigatorCoordinator::onElementMoved);
+    // A chapter title changed in the Properties panel shows on its tab too
+    connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
     // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
     connect(m_dockCoordinator, &DockCoordinator::requestAddChapter,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddChapter);
@@ -229,10 +226,9 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->annotationsDock(),
         m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
-            if (const core::BookElement* element =
+            if (const core::ProjectElement* element =
                     core::ProjectManager::getInstance().findElement(elementId)) {
-                m_navigatorCoordinator->onElementSelected(
-                    elementId, QString::fromStdString(element->getTitle()));
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
         statusBar(),
@@ -1276,12 +1272,10 @@ bool MainWindow::hasUnsavedChanges() const {
 
     // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
     // set only on genuine edits because the slot is connected AFTER load. We do NOT
-    // consult the model BookElement dirty flag here: building the project tree,
-    // selecting an element, or populating the properties panel can mark an element
-    // dirty with no user edit (setContent/setMetadata set it), and such a flag can
-    // never be cleared (saveChapterContent no-ops for unloaded content) — that was
-    // the spurious "save on project open" prompt. Structure/metadata dirtiness
-    // (add/rename/move/delete + properties) is the separate pm.isDirty() axis.
+    // consult the unsaved text ProjectManager keeps (getDirtyElements()) here: it is set
+    // only when the tabs' text is handed over for saving. Book data dirtiness (the
+    // properties of the book) is the separate pm.isDirty() axis; add/rename/move/delete
+    // are saved at once.
     if (m_navigatorCoordinator) {
         const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
         for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {

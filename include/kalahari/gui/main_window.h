@@ -19,7 +19,6 @@
 #include <QMap>
 #include <optional>
 #include <filesystem>
-#include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
@@ -114,7 +113,7 @@ public:
     EditorPanel* getCurrentEditor();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
-    /// @param elementId Element ID to open (from BookElement::getId())
+    /// @param elementId Element ID to open (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
     void openChapter(const QString& elementId, const QString& elementTitle);
@@ -287,7 +286,7 @@ private slots:
     void onAboutQt();
 
     /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
-    /// @param elementId Unique ID of the selected element (BookElement::getId())
+    /// @param elementId Unique ID of the selected element (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Delegates to NavigatorCoordinator (OpenSpec #00038 Phase 6)
     void onNavigatorElementSelected(const QString& elementId, const QString& elementTitle);

@@ -26,16 +26,23 @@ class QComboBox;
 
 namespace kalahari {
 namespace core {
-    class Document;  // Forward declaration
+    struct BookProject;
+    struct ProjectElement;
+    class BookTypeRegistry;
 }
 
 namespace gui {
 
 /// @brief Navigator panel showing project structure tree
 ///
-/// Displays a QTreeWidget for project structure (chapters/scenes).
-/// Supports icons, element selection, and automatic theme refresh.
+/// Displays a QTreeWidget for the book of the project: its front, main and back parts with
+/// their elements, and the elements inside groups (parts). Supports icons, element selection,
+/// and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
+///
+/// Item data: Qt::UserRole holds the element ID (the path of a standalone file), Qt::UserRole + 1
+/// the item type: "document", "section_frontmatter", "section_body", "section_backmatter",
+/// "text_element", "group_element", "window_element", "other_files" or "standalone_file".
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -45,7 +52,7 @@ public:
     explicit NavigatorPanel(QWidget* parent = nullptr);
 
     /// @brief Highlight element in tree by ID (OpenSpec #00034 Phase C)
-    /// @param elementId Element ID to highlight (from BookElement::getId())
+    /// @param elementId Element ID to highlight
     /// @note Scrolls to the item and expands parent nodes
     /// @note Uses theme-aware highlight color (QPalette::Highlight with alpha)
     void highlightElement(const QString& elementId);
@@ -53,9 +60,20 @@ public:
     /// @brief Clear current highlight (OpenSpec #00034 Phase C)
     void clearHighlight();
 
-    /// @brief Load document structure into tree
-    /// @param document Document to display
-    void loadDocument(const core::Document& document);
+    /// @brief Load the first book of a project into the tree
+    /// @param project Project to display
+    /// @param registry Packages whose kinds give the elements their form and icon
+    void loadProject(const core::BookProject& project, const core::BookTypeRegistry& registry);
+
+    /// @brief ArtProvider id of the icon of @p element: of its kind or, when @p registry does
+    /// not have its kind, of its form
+    static QString iconIdOf(const core::BookTypeRegistry& registry,
+                            const core::ProjectElement& element);
+
+    /// @brief New index of the element at @p from of a list when it is dropped above the
+    /// element at @p target of the list, or below it (@p below)
+    /// @return The index; -1 when the element stays where it is
+    static int dropIndex(int from, int target, bool below);
 
     /// @brief Clear tree (when no document is loaded)
     void clearDocument();
@@ -85,7 +103,7 @@ public:
 
     /// @brief Restore expansion state for a project (OpenSpec #00034 Phase F)
     /// @param projectId Unique identifier for the project
-    /// @note Call after loadDocument() to restore tree expansion state
+    /// @note Call after loadProject() to restore tree expansion state
     void restoreExpansionState(const QString& projectId);
 
     /// @brief Get IDs of all expanded items
@@ -117,10 +135,10 @@ public:
 
 signals:
     /// @brief Emitted when user double-clicks a selectable element in tree
-    /// @param elementId Unique ID of the element (from BookElement::getId())
-    /// @param elementTitle Display title of the element
-    /// @note Only emitted for leaf elements (chapters, frontmatter items, backmatter items)
-    /// @note Section headers (Front Matter, Body, Back Matter) and Parts do not emit this signal
+    /// @param elementId Unique ID of the element
+    /// @param elementTitle Title of the element, without the status and modified marks
+    /// @note Only emitted for text elements (chapters, front and back matter items)
+    /// @note Sections, groups (parts) and window elements do not emit this signal
     void elementSelected(const QString& elementId, const QString& elementTitle);
 
     /// @brief Request to rename an element
@@ -130,12 +148,11 @@ signals:
 
     /// @brief Request to delete an element
     /// @param elementId Element ID
-    /// @param elementType Type of element (for confirmation message)
-    void requestDelete(const QString& elementId, const QString& elementType);
+    void requestDelete(const QString& elementId);
 
-    /// @brief Request to add a chapter to a part
-    /// @param partId Part ID to add chapter to
-    void requestAddChapter(const QString& partId);
+    /// @brief Request to add a chapter to a group (part) or to the body of the book
+    /// @param groupId Group ID to add chapter to; empty: the body of the book
+    void requestAddChapter(const QString& groupId);
 
     /// @brief Request to add a new part to the body
     void requestAddPart();
@@ -149,16 +166,11 @@ signals:
     /// @param direction -1 for up, +1 for down
     void requestMoveElement(const QString& elementId, int direction);
 
-    /// @brief Emitted when chapter is reordered via drag & drop (OpenSpec #00034 Phase D)
-    /// @param partId Part ID containing the chapter
-    /// @param fromIndex Original index of the chapter
-    /// @param toIndex New index of the chapter
-    void chapterReordered(const QString& partId, int fromIndex, int toIndex);
-
-    /// @brief Emitted when part is reordered via drag & drop (OpenSpec #00034 Phase D)
-    /// @param fromIndex Original index of the part
-    /// @param toIndex New index of the part
-    void partReordered(int fromIndex, int toIndex);
+    /// @brief Emitted when an element is dragged to another place of its list
+    /// @param elementId Element ID
+    /// @param index Its new index in its list (a part of the book or a group)
+    /// @note The tree does not change; it shows the new order once it is loaded again
+    void elementMoved(const QString& elementId, int index);
 
     /// @brief Request to show properties dialog
     /// @param elementId Element ID (empty for document properties)
@@ -169,7 +181,7 @@ signals:
     void requestSectionProperties(const QString& sectionType);
 
     /// @brief Request to show part properties (aggregate statistics)
-    /// @param partId Part ID
+    /// @param partId Group (part) ID
     void requestPartProperties(const QString& partId);
 
     /// @brief Emitted when a file of the "Other Files" section is opened
@@ -237,10 +249,23 @@ private:
     /// @param item Starting item (nullptr for root)
     void refreshItemIcons(QTreeWidgetItem* item);
 
-    /// @brief Get icon ID for element type
+    /// @brief Get icon ID for item type
     /// @param elementType Type string stored in Qt::UserRole + 1
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
     QString getIconIdForType(const QString& elementType) const;
+
+    /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
+    void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
+                         const core::BookTypeRegistry& registry);
+
+    /// @brief Title of an element as the tree shows it: "*" when it has unsaved changes, and
+    /// for a text element its status when it is not final ("Chapter 1 [Draft]")
+    static QString getDisplayTitle(const core::ProjectElement& element, bool isText,
+                                   bool isModified);
+
+    /// @brief Add a section of the book (front, body, back) under @p parent
+    QTreeWidgetItem* addSectionItem(QTreeWidgetItem* parent, const QString& title,
+                                    const QString& sectionType);
 
     /// @brief Get icon ID for file based on extension
     /// @param path File path
@@ -300,34 +325,12 @@ private:
                                                      const QString& elementType,
                                                      const QString& text) const;
 
-    /// @brief Handle drop event for drag & drop reordering (OpenSpec #00034 Phase D)
-    /// @param item The item being dropped
-    /// @param dropTarget The target item/position
-    /// @param dropIndicator Position indicator (above/below/on)
-    void handleDropEvent(QTreeWidgetItem* item, QTreeWidgetItem* dropTarget, int dropIndicator);
-
-    /// @brief Check if drag operation is valid (OpenSpec #00034 Phase D)
-    /// @param sourceItem Item being dragged
-    /// @param targetItem Target drop location
-    /// @return true if drop is allowed
-    bool isDragDropValid(QTreeWidgetItem* sourceItem, QTreeWidgetItem* targetItem) const;
-
-    /// @brief Get part ID for a chapter item (OpenSpec #00034 Phase D)
-    /// @param chapterItem Tree item of type "chapter"
-    /// @return Part ID or empty string if not found
-    QString getPartIdForChapter(QTreeWidgetItem* chapterItem) const;
-
-    /// @brief Get index of item within its parent (OpenSpec #00034 Phase D)
-    /// @param item Tree item
-    /// @return Index within parent, or -1 if no parent
-    int getItemIndex(QTreeWidgetItem* item) const;
-
     /// @brief Document type filter options
     enum class FilterType {
         All,          ///< Show all items
-        TextFiles,    ///< Show chapters, frontmatter, backmatter items
-        MindMaps,     ///< Show mind map files (.kmap)
-        Timelines,    ///< Show timeline files (.ktl)
+        TextFiles,    ///< Show text elements: chapters, front and back matter items
+        MindMaps,     ///< Show mind maps (elements and .kmap files)
+        Timelines,    ///< Show timelines (elements and .ktl files)
         OtherFiles    ///< Show items in "Other Files" section
     };
 

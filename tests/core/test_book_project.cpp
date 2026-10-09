@@ -1,9 +1,10 @@
 /// @file test_book_project.cpp
 /// @brief Book project and its .klh file: every field, kinds of other types and of packages
-/// that are not installed, and files with problems
+/// that are not installed, files with problems and the example project
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/chapter_document.h>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -538,11 +539,13 @@ TEST_CASE("Book project: kinds of packages that are not installed", "[core][book
     CHECK(references(project.kindsIn(registry, BookPlace::Main)) == "kalahari.base:chapter");
     CHECK(project.kindsIn(registry, BookPlace::Workshop).isEmpty());
 
-    // ...the elements of the missing kinds stay, without a kind...
+    // ...the elements of the missing kinds stay, without a kind, in the form of their file...
     const QList<ProjectElement>& main = project.books.at(0).mainElements;
     CHECK_FALSE(BookProject::kindOf(registry, main.at(0)));
     CHECK(BookProject::kindOf(registry, main.at(1)));
     CHECK_FALSE(BookProject::kindOf(registry, project.workshop.elements.at(0)));
+    CHECK(BookProject::formOf(registry, main.at(0)) == ElementForm::Text);
+    CHECK(BookProject::formOf(registry, project.workshop.elements.at(0)) == ElementForm::Window);
 
     // ...and saving keeps them
     CHECK(project.toJson() == jsonOf(text));
@@ -742,4 +745,39 @@ TEST_CASE("Book project: saving to a folder that does not exist fails", "[core][
     const QString path = directory.filePath(QStringLiteral("missing/My Novel.klh"));
     CHECK_FALSE(fullProject().save(path));
     CHECK_FALSE(QFile::exists(path));
+}
+
+// =============================================================================
+// The example project
+// =============================================================================
+
+TEST_CASE("Book project: the example project is in the format of this version",
+          "[core][bookproject][examples]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+
+    const QDir folder(QStringLiteral(KALAHARI_SOURCE_DIR "/examples/ExampleNovel"));
+    QStringList problems;
+    const std::optional<BookProject> project =
+        BookProject::load(folder.filePath(QStringLiteral("ExampleNovel.klh")), problems);
+    INFO(joined(problems));
+    REQUIRE(project.has_value());
+    CHECK(project->missingPackages(registry).isEmpty());
+
+    // Every element has its kind, and every text element a chapter file with its title and
+    // status
+    int texts = 0;
+    for (const ProjectElement* element : project->readingOrder()) {
+        INFO(element->id.toStdString());
+        CHECK(BookProject::kindOf(registry, *element));
+        if (BookProject::formOf(registry, *element) == ElementForm::Text) {
+            ++texts;
+            const std::optional<ChapterDocument> chapter =
+                ChapterDocument::load(folder.filePath(element->file));
+            REQUIRE(chapter.has_value());
+            CHECK(chapter->title() == element->title);
+            CHECK(chapter->status() == element->status);
+        }
+    }
+    CHECK(texts == 4);
 }

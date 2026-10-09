@@ -220,10 +220,6 @@
         <translation>Przypis końcowy</translation>
     </message>
     <message>
-        <source>Annotation</source>
-        <translation>Adnotacja</translation>
-    </message>
-    <message>
         <source>Special Character...</source>
         <translation>Znak specjalny...</translation>
     </message>
@@ -1306,14 +1302,6 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Słowa: %1</translation>
     </message>
     <message>
-        <source>Insert Comment</source>
-        <translation>Wstaw komentarz</translation>
-    </message>
-    <message>
-        <source>Enter comment:</source>
-        <translation>Treść komentarza:</translation>
-    </message>
-    <message>
         <source>Cut</source>
         <translation>Wytnij</translation>
     </message>
@@ -1360,14 +1348,6 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     <message>
         <source>Ignore this rule</source>
         <translation>Pomijaj tę regułę</translation>
-    </message>
-    <message>
-        <source>TODO</source>
-        <translation>TODO</translation>
-    </message>
-    <message>
-        <source>Note</source>
-        <translation>Notatka</translation>
     </message>
 </context>
 <context>
@@ -1869,35 +1849,6 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>%1 (not available yet)</source>
         <translation>%1 (jeszcze niedostępne)</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::CommentsPanel</name>
-    <message>
-        <source>No comments in document</source>
-        <translation>Brak komentarzy w dokumencie</translation>
-    </message>
-    <message>
-        <source>Edit</source>
-        <translation>Edytuj</translation>
-    </message>
-    <message>
-        <source>Edit selected comment</source>
-        <translation>Edytuj zaznaczony komentarz</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Delete selected comment</source>
-        <translation>Usuń zaznaczony komentarz</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot;
-on: &quot;%2&quot;</source>
-        <translation>„%1”
-do: „%2”</translation>
     </message>
 </context>
 <context>
@@ -3292,10 +3243,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Ciemny papier: wyłączony</translation>
     </message>
     <message>
-        <source>Press Esc to leave Distraction-Free</source>
-        <translation>Naciśnij Esc, aby wyjść z trybu bez rozpraszania</translation>
-    </message>
-    <message>
         <source>About Qt</source>
         <translation>O Qt</translation>
     </message>
@@ -3371,42 +3318,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
     <message>
-        <source>chapter</source>
-        <translation>rozdział</translation>
-    </message>
-    <message>
-        <source>part</source>
-        <translation>część</translation>
-    </message>
-    <message>
-        <source>title page</source>
-        <translation>strona tytułowa</translation>
-    </message>
-    <message>
-        <source>dedication</source>
-        <translation>dedykacja</translation>
-    </message>
-    <message>
-        <source>preface</source>
-        <translation>przedmowa</translation>
-    </message>
-    <message>
-        <source>epilogue</source>
-        <translation>epilog</translation>
-    </message>
-    <message>
-        <source>glossary</source>
-        <translation>słowniczek</translation>
-    </message>
-    <message>
-        <source>bibliography</source>
-        <translation>bibliografia</translation>
-    </message>
-    <message>
-        <source>about author</source>
-        <translation>nota o autorze</translation>
-    </message>
-    <message>
         <source>Confirm Delete</source>
         <translation>Potwierdź usunięcie</translation>
     </message>
@@ -3421,14 +3332,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Deleted successfully</source>
         <translation>Usunięto</translation>
-    </message>
-    <message>
-        <source>Delete Error</source>
-        <translation>Błąd usuwania</translation>
-    </message>
-    <message>
-        <source>Element was deleted but failed to save manifest.</source>
-        <translation>Element usunięto, ale nie udało się zapisać pliku projektu.</translation>
     </message>
     <message>
         <source>Delete Failed</source>
@@ -3608,6 +3511,14 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Remove from List</source>
         <translation>Usuń z listy</translation>
+    </message>
+    <message>
+        <source>Status Change Failed</source>
+        <translation>Nie udało się zmienić stanu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
     </message>
 </context>
 <context>
@@ -3959,6 +3870,18 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>%1 min</source>
         <translation>%1 min</translation>
+    </message>
+    <message>
+        <source>Rename Failed</source>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Status Change Failed</source>
+        <translation>Nie udało się zmienić stanu</translation>
     </message>
 </context>
 <context>
@@ -5069,16 +4992,12 @@ Harmonogram projektu:
         <translation>Część końcowa</translation>
     </message>
     <message>
-        <source>Mind Maps</source>
-        <translation>Mapy myśli</translation>
+        <source>Kind:</source>
+        <translation>Rodzaj:</translation>
     </message>
     <message>
-        <source>Timelines</source>
-        <translation>Osie czasu</translation>
-    </message>
-    <message>
-        <source>(No parts available)</source>
-        <translation>(Brak części)</translation>
+        <source>(No part)</source>
+        <translation>(Bez części)</translation>
     </message>
 </context>
 <context>
@@ -5107,20 +5026,12 @@ Harmonogram projektu:
         <translation>Rozdział zostanie dodany jako ostatni w części „%1”.</translation>
     </message>
     <message>
-        <source>New Chapter</source>
-        <translation>Nowy rozdział</translation>
-    </message>
-    <message>
         <source>Add Part</source>
         <translation>Dodaj część</translation>
     </message>
     <message>
         <source>The part is added as the last one in the book.</source>
         <translation>Część zostanie dodana jako ostatnia w książce.</translation>
-    </message>
-    <message>
-        <source>New Part</source>
-        <translation>Nowa część</translation>
     </message>
     <message>
         <source>Add Front Matter Item</source>
@@ -5139,10 +5050,6 @@ Harmonogram projektu:
         <translation>Element zostanie dodany jako ostatni w części końcowej.</translation>
     </message>
     <message>
-        <source>Type</source>
-        <translation>Rodzaj</translation>
-    </message>
-    <message>
         <source>Title</source>
         <translation>Tytuł</translation>
     </message>
@@ -5151,36 +5058,12 @@ Harmonogram projektu:
         <translation>Dodaj</translation>
     </message>
     <message>
-        <source>Title Page</source>
-        <translation>Strona tytułowa</translation>
+        <source>The chapter is added as the last one in the body of the book.</source>
+        <translation>Rozdział zostanie dodany jako ostatni w części głównej książki.</translation>
     </message>
     <message>
-        <source>Copyright Page</source>
-        <translation>Strona redakcyjna</translation>
-    </message>
-    <message>
-        <source>Dedication</source>
-        <translation>Dedykacja</translation>
-    </message>
-    <message>
-        <source>Preface</source>
-        <translation>Przedmowa</translation>
-    </message>
-    <message>
-        <source>Epilogue</source>
-        <translation>Epilog</translation>
-    </message>
-    <message>
-        <source>Glossary</source>
-        <translation>Słowniczek</translation>
-    </message>
-    <message>
-        <source>Bibliography</source>
-        <translation>Bibliografia</translation>
-    </message>
-    <message>
-        <source>About the Author</source>
-        <translation>Nota o autorze</translation>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
     </message>
 </context>
 <context>

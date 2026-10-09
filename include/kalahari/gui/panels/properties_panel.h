@@ -14,6 +14,7 @@
 #include <QWidget>
 #include <QString>
 
+class QDateTime;
 class QStackedWidget;
 class QLabel;
 class QLineEdit;
@@ -161,7 +162,7 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 signals:
-    /// @brief Emitted when chapter status is changed via combo box
+    /// @brief Emitted when chapter title or status is changed in the panel
     /// @param elementId Element ID of the chapter
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
@@ -222,9 +223,12 @@ private:
     void updateProjectStatistics();
 
     /// @brief Format date for display
-    /// @param timePoint Chrono time point
-    /// @return Formatted date string
-    QString formatDate(const std::chrono::system_clock::time_point& timePoint) const;
+    /// @param dateTime Date and time; invalid when unknown
+    /// @return Formatted date string, in local time
+    QString formatDate(const QDateTime& dateTime) const;
+
+    /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
+    void selectChapterStatus(const QString& status);
 
     // Main widget
     QStackedWidget* m_stackedWidget;

@@ -574,6 +574,19 @@ KindRef BookProject::kindOf(const BookTypeRegistry& registry, const ProjectEleme
     return registry.findKind(element.kind.packageId, element.kind.kindId);
 }
 
+ElementForm BookProject::formOf(const BookTypeRegistry& registry, const ProjectElement& element) {
+    if (const KindRef kind = kindOf(registry, element)) {
+        return kind.kind->form;
+    }
+    // A kind of a package that is not installed: its file tells
+    if (element.file.isEmpty()) {
+        return ElementForm::Group;
+    }
+    return element.file.endsWith(QStringLiteral(".kchapter"), Qt::CaseInsensitive)
+               ? ElementForm::Text
+               : ElementForm::Window;
+}
+
 QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
     QStringList missing;
     const auto note = [&registry, &missing](const QString& packageId) {

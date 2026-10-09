@@ -13,6 +13,7 @@
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/document_archive.h"
@@ -37,6 +38,7 @@
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QApplication>
+#include <QHash>
 #include <map>
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
@@ -67,6 +69,26 @@ EditorKind editorKind(const EditorPanel* editor) {
 /// File of a standalone file tab
 core::StandaloneFile standaloneFileOf(const EditorPanel* editor) {
     return editor->property("standaloneFile").value<core::StandaloneFile>();
+}
+
+/// Package of the book type of a template of the New Book window; empty for the empty
+/// project, which is a user project
+QString bookTypeOf(const QString& templateId) {
+    static const QHash<QString, QString> types{
+        {QStringLiteral("template.novel"), QStringLiteral("kalahari.novel")},
+        {QStringLiteral("template.shortStories"), QStringLiteral("kalahari.short_stories")},
+        {QStringLiteral("template.nonfiction"), QStringLiteral("kalahari.nonfiction")},
+        {QStringLiteral("template.screenplay"), QStringLiteral("kalahari.screenplay")},
+        {QStringLiteral("template.poetry"), QStringLiteral("kalahari.poetry")},
+    };
+    return types.value(templateId);
+}
+
+/// @p message with what is wrong below it, one problem per line
+QString withProblems(const QString& message, const QStringList& problems) {
+    return problems.isEmpty()
+        ? message
+        : message + QStringLiteral("\n\n") + problems.join(QLatin1Char('\n'));
 }
 
 /// Icon of a standalone file's tab
@@ -254,9 +276,6 @@ void DocumentCoordinator::onNewDocument() {
     newEditor->setContent("");  // Ensure content is properly initialized
     m_setDirty(false);
 
-    // Update navigator panel
-    m_navigatorPanel->loadDocument(m_currentDocument.value());
-
     logger.info("New document created in new tab");
     m_statusBar->showMessage(tr("New document created"), 2000);
     emit documentOpened();
@@ -271,24 +290,16 @@ void DocumentCoordinator::onNewProject() {
     if (dialog.exec() == QDialog::Accepted) {
         auto result = dialog.result();
 
-        // Create project folder path
-        QString projectPath = result.location;
-        if (result.createSubfolder) {
-            projectPath = QDir(result.location).filePath(result.title);
-        }
-
-        // Use ProjectManager to create project
+        // Use ProjectManager to create project of the template's book type; it opens the
+        // project, and onProjectOpened() shows it
         auto& pm = core::ProjectManager::getInstance();
-        if (pm.createProject(projectPath, result.title, result.author, result.language, false)) {
+        if (pm.createProject(result.location, result.title, result.author, result.language,
+                             result.createSubfolder, bookTypeOf(result.templateId))) {
             // Project created successfully - update UI
             m_updateWindowTitle();
 
-            // Update navigator if document available
-            if (pm.getDocument()) {
-                m_navigatorPanel->loadDocument(*pm.getDocument());
-            }
-
-            logger.info("Project created: {} at {}", result.title.toStdString(), projectPath.toStdString());
+            logger.info("Project created: {} in {}", result.title.toStdString(),
+                        result.location.toStdString());
             m_statusBar->showMessage(tr("Project created: %1").arg(result.title), 3000);
             emit documentOpened();
         } else {
@@ -375,11 +386,12 @@ void DocumentCoordinator::onOpenDocument() {
         prepareForProjectClose();
     }
 
-    if (!pm.openProject(filename)) {
+    QStringList problems;
+    if (!pm.openProject(filename, &problems)) {
         QMessageBox::critical(
             m_mainWindow,
             tr("Open Error"),
-            tr("Failed to open book: %1").arg(filename)
+            withProblems(tr("Failed to open book: %1").arg(filename), problems)
         );
         return;
     }
@@ -487,7 +499,8 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
             prepareForProjectClose();
         }
 
-        if (pm.openProject(filePath)) {
+        QStringList problems;
+        if (pm.openProject(filePath, &problems)) {
             // Successfully opened as project
             logger.info("Opened .klh file as project: {}", filePath.toStdString());
             // Add to recent files so it's remembered as last opened
@@ -502,9 +515,11 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         QMessageBox::warning(
             m_mainWindow,
             tr("Open Error"),
-            tr("Failed to open project: %1\n\n"
-               "The project may be corrupted, locked by another instance, "
-               "or there may be a database error.").arg(QFileInfo(filePath).fileName())
+            withProblems(tr("Failed to open project: %1\n\n"
+                            "The project may be corrupted, locked by another instance, "
+                            "or there may be a database error.")
+                             .arg(QFileInfo(filePath).fileName()),
+                         problems)
         );
         // Do NOT remove from recent files - the project might be recoverable
         return;
@@ -548,9 +563,6 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
     QString content = getPhase0Content(m_currentDocument.value());
     newEditor->setText(content);
     m_setDirty(false);
-
-    // Update navigator panel
-    m_navigatorPanel->loadDocument(m_currentDocument.value());
 
     // Move to top of recent files
     core::RecentBooksManager::getInstance().addRecentFile(filePath);
@@ -763,9 +775,9 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
                 bookChanged = bookChanged || dirty;
             }
         }
-        const core::Document* doc = pm.getDocument();
-        if (bookChanged && doc) {
-            names << QString::fromStdString(doc->getTitle());
+        const core::ProjectBook* book = pm.book();
+        if (bookChanged && book) {
+            names << book->title;
         }
     }
 
@@ -795,7 +807,7 @@ void DocumentCoordinator::onSaveAll() {
         return;
     }
 
-    // First, update content cache for all dirty chapters from open tabs
+    // First, give ProjectManager the text of all dirty chapters from open tabs
     const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
     for (int i = 0; i < m_centralTabs->count(); ++i) {
         EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
@@ -805,18 +817,15 @@ void DocumentCoordinator::onSaveAll() {
         if (elemId.isEmpty()) continue;
 
         if (dirtyChapters.value(elemId, false)) {
-            core::BookElement* element = pm.findElement(elemId);
-            if (element) {
-                element->setContent(editor->getContent());
-                logger.debug("Updated content cache for: {}", elemId.toStdString());
-            }
+            pm.setChapterContent(elemId, editor->getContent());
+            logger.debug("Updated content cache for: {}", elemId.toStdString());
         }
     }
 
     // Save all dirty elements via ProjectManager
     bool success = pm.saveAllDirty();
 
-    // Also save the manifest to persist metadata changes (notes, status, etc.)
+    // Also save the .klh file to persist the changes of the book's data (title, author...)
     bool manifestSaved = pm.saveManifest();
 
     if (success && manifestSaved) {
@@ -1173,18 +1182,16 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
     if (dialog.exec() == QDialog::Accepted) {
         auto result = dialog.result();
 
-        // Add file to project using ProjectManager
-        QString elementId = pm.addChapterToSection(
-            result.targetSection,
-            result.targetPart,
-            result.newTitle,
-            filePath,
-            result.copyFile
-        );
+        // Add file to project using ProjectManager (it saves the project at once)
+        QString elementId = pm.addFile(filePath, result.copyFile, result.kind, result.newTitle,
+                                       result.place, result.groupId);
 
         if (!elementId.isEmpty()) {
-            // Success - the file leaves the "Other Files" list, and the chapter takes the
-            // place of its tab
+            // Success - the navigator shows the new element, the file leaves the "Other
+            // Files" list, and the chapter takes the place of its tab
+            if (m_navigatorCoordinator) {
+                m_navigatorCoordinator->refreshNavigator();
+            }
             m_navigatorPanel->removeStandaloneFile(filePath);
             m_standaloneFilePaths.removeAll(filePath);
             if (fileEditor) {
@@ -1231,8 +1238,7 @@ void DocumentCoordinator::onExportArchive() {
     }
 
     // Get project title for default filename
-    QString defaultName = pm.getDocument() ?
-        QString::fromStdString(pm.getDocument()->getTitle()) : "project";
+    QString defaultName = pm.book() ? pm.book()->title : QStringLiteral("project");
 
     QString outputPath = QFileDialog::getSaveFileName(
         m_mainWindow,
@@ -1252,8 +1258,8 @@ void DocumentCoordinator::onExportArchive() {
         // Group by status
         std::map<QString, QStringList> byStatus;
         for (const auto& [id, status] : incompleteElements) {
-            auto* element = pm.findElement(id);
-            QString title = element ? QString::fromStdString(element->getTitle()) : id;
+            const core::ProjectElement* element = pm.findElement(id);
+            QString title = element ? element->title : id;
             byStatus[status].append(title);
         }
 
@@ -1363,10 +1369,10 @@ void DocumentCoordinator::onImportArchive() {
 void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
-    const core::Document* doc = pm.getDocument();
+    const core::BookProject* project = pm.project();
 
-    if (!doc) {
-        logger.error("onProjectOpened: Document is null");
+    if (!project) {
+        logger.error("onProjectOpened: No project");
         return;
     }
 
@@ -1416,8 +1422,8 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
         logger.warn("Project database not available for StyleResolver/StatisticsCollector");
     }
 
-    // Update Navigator panel with document structure
-    m_navigatorPanel->loadDocument(*doc);
+    // Update Navigator panel with the book's structure
+    m_navigatorPanel->loadProject(*project, pm.bookTypes());
 
     // Restore Navigator expansion state
     QFileInfo pathInfo(projectPath);
@@ -1430,7 +1436,7 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
     logger.debug("Restored expansion state for project: {}", projectId.toStdString());
 
     // Update window title with book title
-    emit windowTitleChanged(QString::fromStdString(doc->getTitle()) + " - Kalahari");
+    emit windowTitleChanged((pm.book() ? pm.book()->title : QString()) + " - Kalahari");
 
     // Log and status bar
     logger.info("Project opened: {}", projectPath.toStdString());
