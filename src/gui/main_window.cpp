@@ -9,6 +9,7 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -248,6 +249,13 @@ MainWindow::MainWindow(QWidget* parent)
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
 
+    // Grammar as you type, on the writer's LanguageTool server, in the spelling's language
+    m_grammarCoordinator =
+        new GrammarCoordinator(m_dockCoordinator->centralTabs(), statusBar(), this);
+    m_grammarCoordinator->connectCommands();
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
+            m_grammarCoordinator, &GrammarCoordinator::updateChecking);
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -317,6 +325,9 @@ MainWindow::~MainWindow() {
     }
     if (m_spellingCoordinator) {
         disconnect(m_spellingCoordinator, nullptr, this, nullptr);
+    }
+    if (m_grammarCoordinator) {
+        disconnect(m_grammarCoordinator, nullptr, this, nullptr);
     }
 
     // Block signals to prevent any delivery during child destruction

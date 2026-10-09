@@ -94,6 +94,7 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
     addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
+    addPage(editor, tr("Grammar"), []() { return new EditorGrammarPage(); });
     addPlannedPage(editor, tr("Auto-correct"),
                    tr("Planned features:\n"
                       "- Automatic capitalization\n"

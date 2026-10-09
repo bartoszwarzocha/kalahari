@@ -10,7 +10,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
-#include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
@@ -321,56 +320,8 @@ TEST_CASE("Stage5 highlights: typed TODO and comment patterns are plain text",
 }
 
 // =============================================================================
-// Check results kept with the paragraphs
+// Check results
 // =============================================================================
-
-TEST_CASE("Stage5 highlights: check results apply while the paragraph keeps its text",
-          "[editor][stage5][highlight]") {
-    // The grammar check's results; the spelling waves move with the edits instead
-    // (test_spelling.cpp)
-    auto editor = editorWith(kmlOf({QStringLiteral("Teh cat sat"), QStringLiteral("Other line")}));
-    GrammarCheckService grammar;
-    grammar.setEnabled(false);  // no initial check of the document
-    editor->setGrammarCheckService(&grammar);
-
-    emit grammar.paragraphChecked(0, {GrammarError(0, 3, QStringLiteral("Teh")),
-                                      GrammarError(4, 7, QStringLiteral("cat sat"))});
-    const std::vector<TextHighlight> checked{{0, 3, HighlightKind::Grammar},
-                                             {4, 7, HighlightKind::Grammar}};
-    CHECK(highlightsOf(*editor, 0) == checked);
-    CHECK(highlightsOf(*editor, 1).empty());
-
-    SECTION("an edit of the paragraph makes them stale") {
-        editor->setCursorPosition({0, 11});
-        editor->insertText(QStringLiteral("!"));
-        CHECK(highlightsOf(*editor, 0).empty());
-
-        // Back to the text they were made for
-        editor->undo();
-        CHECK(highlightsOf(*editor, 0) == checked);
-    }
-
-    SECTION("an edit of another paragraph keeps them") {
-        editor->setCursorPosition({1, 0});
-        editor->insertText(QStringLiteral("An "));
-        CHECK(highlightsOf(*editor, 0) == checked);
-    }
-
-    SECTION("a new check replaces them") {
-        emit grammar.paragraphChecked(0, {GrammarError(4, 7, QStringLiteral("cat sat"))});
-        CHECK(highlightsOf(*editor, 0) ==
-              std::vector<TextHighlight>{{4, 7, HighlightKind::Grammar}});
-    }
-
-    SECTION("results for text the paragraph no longer has are dropped") {
-        // Made before "sat" became "Teh"...: the words are not at their places any more
-        emit grammar.paragraphChecked(0, {GrammarError(8, 3, QStringLiteral("set")),
-                                          GrammarError(0, 3, QStringLiteral("Teh")),
-                                          GrammarError(4, 7, QStringLiteral("cat sat")),
-                                          GrammarError(9, 5, QStringLiteral("sat"))});
-        CHECK(highlightsOf(*editor, 0) == checked);
-    }
-}
 
 TEST_CASE("Stage5 highlights: spelling and grammar issues are drawn as waves",
           "[editor][stage5][highlight]") {

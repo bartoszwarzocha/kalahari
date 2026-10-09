@@ -88,7 +88,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.spellCheck.enabled", true},
         {"editor.spellCheck.language", ""},
 
-        // Editor: grammar. The address of the user's LanguageTool server; empty: off
+        // Editor: grammar as you type, on the user's LanguageTool server (its address;
+        // empty: nothing is checked or sent)
+        {"editor.grammarCheck.enabled", true},
         {"editor.grammarCheck.serverUrl", ""},
 
         // Editor: colors

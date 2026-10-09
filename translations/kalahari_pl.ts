@@ -344,8 +344,8 @@
         <translation>Następny błąd pisowni</translation>
     </message>
     <message>
-        <source>Grammar Check</source>
-        <translation>Sprawdzanie gramatyki</translation>
+        <source>Check Grammar as You Type</source>
+        <translation>Sprawdzaj gramatykę podczas pisania</translation>
     </message>
     <message>
         <source>Readability Score</source>
@@ -836,14 +836,6 @@
     <message>
         <source>Toolbar Manager</source>
         <translation>Menedżer pasków narzędzi</translation>
-    </message>
-    <message>
-        <source>Grammar Issue</source>
-        <translation>Problem gramatyczny</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Rule: %3 (%4)&lt;/i&gt;</source>
-        <translation>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Reguła: %3 (%4)&lt;/i&gt;</translation>
     </message>
     <message>
         <source>Language Changed</source>
@@ -1354,15 +1346,7 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Pomijaj to słowo</translation>
     </message>
     <message>
-        <source>Error: &quot;%1&quot;</source>
-        <translation>Błąd: „%1”</translation>
-    </message>
-    <message>
-        <source>Explanation...</source>
-        <translation>Wyjaśnienie...</translation>
-    </message>
-    <message>
-        <source>Ignore this rule</source>
+        <source>Ignore This Rule</source>
         <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
@@ -2859,6 +2843,49 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorGrammarPage</name>
+    <message>
+        <source>Grammar as You Type</source>
+        <translation>Sprawdzanie gramatyki podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check grammar as you type</source>
+        <translation>Sprawdzaj gramatykę podczas pisania</translation>
+    </message>
+    <message>
+        <source>LanguageTool server</source>
+        <translation>Serwer LanguageTool</translation>
+    </message>
+    <message>
+        <source>Test</source>
+        <translation>Sprawdź</translation>
+    </message>
+    <message>
+        <source>LanguageTool server:</source>
+        <translation>Serwer LanguageTool:</translation>
+    </message>
+    <message>
+        <source>Grammar, style and punctuation are checked by LanguageTool, a free program that runs on your computer. The text of the book is sent only to the server given here; without one, the grammar is not checked. The language is the one of the spelling.</source>
+        <translation>Gramatykę, styl i interpunkcję sprawdza LanguageTool – bezpłatny program działający na Twoim komputerze. Tekst książki trafia tylko do podanego tu serwera; bez niego gramatyka nie jest sprawdzana. Gramatyka jest sprawdzana w tym samym języku co pisownia.</translation>
+    </message>
+    <message>
+        <source>This is not the address of a server.</source>
+        <translation>To nie jest adres serwera.</translation>
+    </message>
+    <message>
+        <source>The server checks the text.</source>
+        <translation>Serwer sprawdza tekst.</translation>
+    </message>
+    <message>
+        <source>The server did not check the text: %1</source>
+        <translation>Serwer nie sprawdził tekstu: %1</translation>
+    </message>
+    <message>
+        <source>Connecting...</source>
+        <translation>Łączenie...</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorPagesPage</name>
     <message>
         <source>Configure the page format, the page margins and the text frame border.</source>
@@ -3118,6 +3145,21 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Length unit:</source>
         <translation>Jednostka długości:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::GrammarCoordinator</name>
+    <message>
+        <source>The LanguageTool server at %1 did not check the text: %2</source>
+        <translation>Serwer LanguageTool pod adresem %1 nie sprawdził tekstu: %2</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: on</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: off</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: wyłączone</translation>
     </message>
 </context>
 <context>
@@ -4087,6 +4129,10 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Spelling</source>
         <translation>Pisownia</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
     </message>
     <message>
         <source>Auto-correct</source>

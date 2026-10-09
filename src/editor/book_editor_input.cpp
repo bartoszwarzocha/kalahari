@@ -847,19 +847,11 @@ void BookEditor::showContextMenuAtCursor()
 void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
                                  bool fromMouse)
 {
-    // A misspelled word: the words to put in its place, on top of the usual menu
+    // A misspelled word or a grammar issue: what to put in its place, on top of the usual
+    // menu (the spelling first, where both are)
     const auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
-
-    // Check if position is in a grammar error (Phase 6.17)
-    auto grammarError = word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset)
-                                       : std::nullopt;
-    if (grammarError.has_value()) {
-        // Create grammar check context menu
-        QMenu* menu = createGrammarContextMenu(*grammarError, pos.paragraph);
-        menu->exec(globalPos);
-        delete menu;
-        return;
-    }
+    const std::optional<GrammarError> grammarError =
+        word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset) : std::nullopt;
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
@@ -874,6 +866,8 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     QMenu menu(this);
     if (!word.isEmpty()) {
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
+    } else if (grammarError.has_value()) {
+        addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
     if (hasSelection()) {

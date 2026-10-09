@@ -17,7 +17,7 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
-#include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
+#include <kalahari/editor/grammar_error.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -27,7 +27,9 @@
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QElapsedTimer>
 #include <QList>
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -792,25 +794,29 @@ public:
     bool goToNextMisspelling();
 
     // =========================================================================
-    // Grammar Check Integration (Phase 6.17)
+    // Grammar
     // =========================================================================
 
-    /// @brief Set the grammar check service to use
-    /// @param service Pointer to GrammarCheckService (not owned, must outlive editor)
+    /// @brief Check the text's grammar on the writer's LanguageTool server
     ///
-    /// Connects the service's paragraphChecked signal to update paragraph layouts
-    /// with grammar error underlines. Pass nullptr to disable grammar checking.
+    /// While it is shown, the editor sends the paragraphs in view and a few around them:
+    /// when its text is shown or scrolled, and a moment after the writer stops typing. An
+    /// issue gets a wave under it, but one that applies only to a finished sentence while
+    /// its sentence is unfinished. The waves an edit leaves untouched stay until the
+    /// paragraph is checked again.
+    /// @param service The checking (not owned); nullptr, or one not active: no waves
     void setGrammarCheckService(GrammarCheckService* service);
 
-    /// @brief Get the current grammar check service
-    /// @return Pointer to the service, or nullptr if not set
+    /// @brief The checking of the grammar, or nullptr
     GrammarCheckService* grammarCheckService() const;
 
-    /// @brief Request grammar check for entire document
+    /// @brief Check the grammar of the paragraphs again
     ///
-    /// Triggers asynchronous grammar checking of all paragraphs.
-    /// Results are received via paragraphChecked signal and rendered automatically.
+    /// The waves stay until their paragraphs are checked.
     void requestGrammarCheck();
+
+    /// @brief Whether the grammar check has paragraphs to send or answers to wait for
+    bool isGrammarCheckPending() const;
 
     // =========================================================================
     // Reading Aloud
@@ -991,7 +997,7 @@ protected:
     /// Triggers repaint to hide cursor when editor loses focus.
     void focusOutEvent(QFocusEvent* event) override;
 
-    /// @brief The spelling check, which waits while the editor is hidden, goes on
+    /// @brief The spelling and grammar checks, which wait while the editor is hidden, go on
     void showEvent(QShowEvent* event) override;
 
     /// @brief Mouse wheel event handler
@@ -1073,11 +1079,6 @@ private slots:
     /// @brief Handle scrollbar value change
     /// @param value New scrollbar value
     void onScrollBarValueChanged(int value);
-
-    /// @brief Handle grammar check results for a paragraph (Phase 6.17)
-    /// @param paragraphIndex The paragraph index
-    /// @param errors List of grammar errors found
-    void onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors);
 
     /// @brief Handle scroll animation value change
     /// @param value Current animation value
@@ -1484,20 +1485,63 @@ private:
     /// @param replacement Replacement text
     void replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement);
 
-    // Grammar Check (Phase 6.17)
-    GrammarCheckService* m_grammarCheckService{nullptr};    ///< Grammar check service (not owned)
+    // Grammar
+    GrammarCheckService* m_grammarCheckService{nullptr};  ///< The checking (not owned)
+    QTimer* m_grammarTimer{nullptr};                      ///< Sends the paragraphs due
+    QElapsedTimer m_grammarEditClock;                     ///< Since the last edit
 
-    /// @brief Find grammar error at given position
+    /// @brief A paragraph sent to be checked
+    struct GrammarRequest {
+        QTextCursor place;  ///< At the paragraph, moved with the edits
+        QString text;       ///< Its text as sent
+    };
+    std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
+
+    /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
+    void scheduleGrammarCheck(int delayMs);
+
+    /// @brief Send the paragraphs due around the view, those in view first, while fewer
+    ///        than a few wait for their answers (not while the writer is typing)
+    void runGrammarCheck();
+
+    /// @brief Keep the issues of a paragraph checked, if it still has the text sent
+    void onGrammarChecked(quint64 request, const QList<GrammarError>& errors);
+
+    /// @brief A paragraph sent was not checked: it is sent again when the server is back
+    void onGrammarNotChecked(quint64 request);
+
+    /// @brief Another server or language, or the checking turned on or off: the waves go
+    ///        and the paragraphs are checked anew
+    void onGrammarCheckingChanged();
+
+    /// @brief The issues of a rule are not reported any more: their waves go
+    void onGrammarRuleIgnored(const QString& ruleId);
+
+    /// @brief The checking of the grammar was destroyed
+    void onGrammarCheckServiceDestroyed();
+
+    /// @brief The view moved: the paragraphs that came into it are sent
+    void onGrammarViewChanged();
+
+    /// @brief Keep the grammar waves an edit left untouched, moved with the text; the
+    ///        paragraphs it changed are due a moment after the writer stops typing
+    void adjustGrammarToEdit(int from, int charsRemoved, int charsAdded);
+
+    /// @brief Drop the requests not answered yet
+    void dropGrammarRequests();
+
+    /// @brief Drop every grammar result
+    void clearGrammar();
+
+    /// @brief The grammar issue at a place of a paragraph
     /// @param paraIndex Paragraph index
-    /// @param offset Character offset within paragraph
-    /// @return The grammar error info if found, or nullopt if no error at position
+    /// @param offset Character offset within paragraph (also right after the issue)
+    /// @return The issue, or nullopt when there is none
     std::optional<GrammarError> getGrammarErrorAt(int paraIndex, int offset) const;
 
-    /// @brief Create context menu for grammar check
-    /// @param error The grammar error
-    /// @param paraIndex Paragraph index
-    /// @return Context menu with suggestions and explanation
-    QMenu* createGrammarContextMenu(const GrammarError& error, int paraIndex);
+    /// @brief Put on the context menu what is offered for a grammar issue: what is
+    ///        wrong, what to put in its place, Ignore This Rule
+    void addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex);
 
     // =========================================================================
     // Document, viewport and rendering

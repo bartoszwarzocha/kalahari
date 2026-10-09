@@ -25,6 +25,7 @@ namespace core {
 struct Theme;
 }
 namespace editor {
+class GrammarCheckService;
 class SpellCheckService;
 }
 namespace gui {
@@ -176,6 +177,22 @@ private:
     QLineEdit* m_newWord = nullptr;   ///< A word to add
     QPushButton* m_add = nullptr;
     QPushButton* m_remove = nullptr;
+};
+
+/// @brief Editor > Grammar: checking as you type on the writer's LanguageTool server
+class EditorGrammarPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorGrammarPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief Ask the server in the field to check a text, and say how it went
+    void testServer();
+
+    QLineEdit* m_server = nullptr;    ///< The address of the server
+    QPushButton* m_test = nullptr;    ///< Tests the server
+    QLabel* m_testResult = nullptr;   ///< How the test went
+    editor::GrammarCheckService* m_tester = nullptr;  ///< Checks the test's text
 };
 
 /// @brief Editor > Pages and Margins

@@ -2,18 +2,19 @@
 /// @brief BookEditor: spelling and grammar checks, the word read aloud
 
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/core/logger.h>
+#include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <QAction>
 #include <QElapsedTimer>
 #include <QFont>
+#include <QFontMetrics>
 #include <QMenu>
-#include <QMessageBox>
 #include <QShowEvent>
 #include <QStringView>
 #include <QTextBlock>
 #include <QTimer>
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -29,6 +30,23 @@ constexpr int SPELL_EDIT_DELAY_MS = 150;
 
 /// @brief How many words the context menu offers in place of a misspelled one
 constexpr int MAX_SUGGESTIONS = 5;
+
+/// @brief How long after the last edit the paragraphs are sent to the grammar check (ms):
+///        not while the writer is typing
+constexpr int GRAMMAR_EDIT_DELAY_MS = 1000;
+
+/// @brief How long after the view moved the paragraphs in it are sent (ms)
+constexpr int GRAMMAR_VIEW_DELAY_MS = 250;
+
+/// @brief How many paragraphs of an editor wait for their grammar at most
+constexpr std::size_t MAX_GRAMMAR_REQUESTS = 4;
+
+/// @brief How many paragraphs before and after the view are checked with it
+constexpr int GRAMMAR_PARAGRAPHS_BEFORE_VIEW = 5;
+constexpr int GRAMMAR_PARAGRAPHS_AFTER_VIEW = 20;
+
+/// @brief How wide the message of a grammar issue is on the context menu (characters)
+constexpr int GRAMMAR_MESSAGE_CHARS = 60;
 
 /// @brief Whether the character at @p i of a text goes on a word from the side of @p step:
 ///        a letter, a digit or an accent, or an apostrophe or a hyphen with a letter after it
@@ -105,36 +123,98 @@ void moveSpellingWaves(const QTextBlock& first, int offset, int charsRemoved,
     }
 }
 
-/// @brief Keep the results of a check with the paragraph they were made for
+/// @brief Move the grammar waves of a paragraph with an edit made in it
 ///
-/// Results can arrive after the paragraph was edited: an issue is kept only while the
-/// text it is about is still at its place (an empty text skips that test), and the results
-/// apply while the paragraph keeps its current text (ParagraphCheck).
-/// @param found Issues with the text each is about
-void storeCheckResults(const QTextDocument* doc, int paragraph,
-                       ParagraphCheck ParagraphData::*check,
-                       const std::vector<std::pair<TextHighlight, QString>>& found) {
-    const QTextBlock block = doc ? doc->findBlockByNumber(paragraph) : QTextBlock();
-    if (!block.isValid()) {
-        return;
-    }
-    ParagraphCheck results;
-    results.text = block.text();
-    for (const auto& [issue, issueText] : found) {
-        const bool inText = issue.start >= 0 && issue.length > 0 &&
-                            issue.start + issue.length <= results.text.length();
-        if (inText && (issueText.isEmpty() ||
-                       QStringView(results.text).mid(issue.start, issue.length) == issueText)) {
-            results.issues.push_back(issue);
+/// The waves before the edit stay where they are, those after it go with the text after
+/// it (see moveSpellingWaves()). A wave the edit touches goes: its issue may be gone.
+/// @param first The paragraph (with waves for its text before the edit)
+/// @param offset Where the edit starts in it
+/// @param charsRemoved How much text the edit removed
+/// @param last The paragraph holding the end of the edit
+void moveGrammarWaves(const QTextBlock& first, int offset, int charsRemoved,
+                      const QTextBlock& last) {
+    ParagraphData* paragraphData = ParagraphData::find(first);
+    ParagraphCheck& check = paragraphData->grammar;
+    const QString old = std::exchange(check.text, QString());
+    const std::vector<TextHighlight> issues = std::exchange(check.issues, {});
+    const std::vector<GrammarError> errors = std::exchange(paragraphData->grammarErrors, {});
+    const QString text = first.text();
+    const QString lastText = last == first ? text : last.text();
+
+    const int removedEnd = offset + charsRemoved;
+    const bool endKept = removedEnd <= old.size();
+    const int shift = static_cast<int>(lastText.size() - old.size());
+
+    std::vector<TextHighlight> lastWaves;
+    std::vector<GrammarError> lastErrors;
+    for (std::size_t i = 0; i < issues.size() && i < errors.size(); ++i) {
+        const TextHighlight& issue = issues[i];
+        if (issue.start + issue.length < offset) {
+            check.issues.push_back(issue);
+            paragraphData->grammarErrors.push_back(errors[i]);
+        } else if (issue.start > removedEnd && endKept) {
+            const TextHighlight moved{issue.start + shift, issue.length, issue.kind};
+            GrammarError error = errors[i];
+            error.startPos = moved.start;
+            if (last == first) {
+                check.issues.push_back(moved);
+                paragraphData->grammarErrors.push_back(std::move(error));
+            } else {
+                lastWaves.push_back(moved);
+                lastErrors.push_back(std::move(error));
+            }
         }
     }
-    if (results.issues.empty()) {
-        if (ParagraphData* data = ParagraphData::find(block)) {
-            data->*check = ParagraphCheck{};
-        }
-    } else if (ParagraphData* data = ParagraphData::of(block)) {
-        data->*check = std::move(results);
+    if (!check.issues.empty()) {
+        check.text = text;
     }
+    if (!lastWaves.empty()) {
+        ParagraphData* lastData = ParagraphData::of(last);
+        if (lastData->grammar.issuesFor(lastText) == nullptr) {
+            lastData->grammar.issues = std::move(lastWaves);
+            lastData->grammar.text = lastText;
+            lastData->grammar.current = false;
+            lastData->grammarErrors = std::move(lastErrors);
+        }
+    }
+}
+
+/// @brief Whether the sentence holding a place of a text is unfinished: no end of a
+///        sentence follows it
+bool sentenceUnfinished(const QString& text, int from) {
+    for (qsizetype i = from; i < text.size(); ++i) {
+        const QChar c = text[i];
+        if (c == QLatin1Char('.') || c == QLatin1Char('!') || c == QLatin1Char('?') ||
+            c == QChar(0x2026)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// @brief Keep the grammar issues found in a paragraph, but those that apply only to a
+///        finished sentence while their sentence is unfinished
+/// @return Whether its waves changed
+bool keepGrammarIssues(const QTextBlock& block, const QList<GrammarError>& errors) {
+    ParagraphData* paragraphData = ParagraphData::of(block);
+    const QString text = block.text();
+    std::vector<TextHighlight> issues;
+    std::vector<GrammarError> kept;
+    for (const GrammarError& error : errors) {
+        if (error.ignoreForIncompleteSentence &&
+            sentenceUnfinished(text, error.startPos + error.length)) {
+            continue;
+        }
+        issues.push_back({error.startPos, error.length, HighlightKind::Grammar});
+        kept.push_back(error);
+    }
+    const std::vector<TextHighlight>* before = paragraphData->grammar.issuesFor(text);
+    const bool changed = before != nullptr ? *before != issues : !issues.empty();
+    paragraphData->grammar.issues = std::move(issues);
+    paragraphData->grammar.text = paragraphData->grammar.issues.empty() ? QString() : text;
+    paragraphData->grammar.current = true;
+    paragraphData->grammarErrors = std::move(kept);
+    return changed;
 }
 
 }  // anonymous namespace
@@ -489,6 +569,9 @@ void BookEditor::showEvent(QShowEvent* event)
     if (m_spellCheckService != nullptr && m_spellCheckService->isActive()) {
         scheduleSpellCheck(0);
     }
+    if (m_grammarCheckService != nullptr && m_grammarCheckService->isActive()) {
+        scheduleGrammarCheck(0);
+    }
 }
 
 std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
@@ -569,29 +652,38 @@ void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, cons
 }
 
 // =============================================================================
-// Grammar Check Integration (Phase 6.17)
+// Grammar
 // =============================================================================
 
 void BookEditor::setGrammarCheckService(GrammarCheckService* service)
 {
-    // Disconnect from previous service
-    if (m_grammarCheckService) {
+    if (m_grammarCheckService == service) {
+        return;
+    }
+    if (m_grammarCheckService != nullptr) {
+        dropGrammarRequests();
         disconnect(m_grammarCheckService, nullptr, this, nullptr);
-        m_grammarCheckService->setBookEditor(nullptr);
     }
-
     m_grammarCheckService = service;
-
-    // Connect to new service
-    if (m_grammarCheckService) {
-        connect(m_grammarCheckService, &GrammarCheckService::paragraphChecked,
-                this, &BookEditor::onGrammarCheckParagraph);
-
-        // Connect service to this BookEditor for paragraph signals
-        m_grammarCheckService->setBookEditor(this);
-
-        core::Logger::getInstance().debug("BookEditor: Grammar check service connected");
+    if (m_grammarCheckService != nullptr) {
+        connect(m_grammarCheckService, &GrammarCheckService::textChecked, this,
+                &BookEditor::onGrammarChecked);
+        connect(m_grammarCheckService, &GrammarCheckService::textNotChecked, this,
+                &BookEditor::onGrammarNotChecked);
+        connect(m_grammarCheckService, &GrammarCheckService::checkingChanged, this,
+                &BookEditor::onGrammarCheckingChanged);
+        connect(m_grammarCheckService, &GrammarCheckService::available, this,
+                [this]() { scheduleGrammarCheck(0); });
+        connect(m_grammarCheckService, &GrammarCheckService::ruleIgnored, this,
+                &BookEditor::onGrammarRuleIgnored);
+        connect(m_grammarCheckService, &QObject::destroyed, this,
+                &BookEditor::onGrammarCheckServiceDestroyed);
+        if (m_viewportManager) {
+            connect(m_viewportManager.get(), &ViewportManager::viewportChanged, this,
+                    &BookEditor::onGrammarViewChanged, Qt::UniqueConnection);
+        }
     }
+    onGrammarCheckingChanged();
 }
 
 GrammarCheckService* BookEditor::grammarCheckService() const
@@ -601,99 +693,323 @@ GrammarCheckService* BookEditor::grammarCheckService() const
 
 void BookEditor::requestGrammarCheck()
 {
-    if (m_grammarCheckService && m_textBuffer) {
-        m_grammarCheckService->checkDocumentAsync();
+    if (!m_textBuffer || m_grammarCheckService == nullptr ||
+        !m_grammarCheckService->isActive()) {
+        return;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            paragraphData->grammar.current = false;
+        }
+    }
+    scheduleGrammarCheck(0);
+}
+
+bool BookEditor::isGrammarCheckPending() const
+{
+    return (m_grammarTimer != nullptr && m_grammarTimer->isActive()) ||
+           !m_grammarRequests.empty();
+}
+
+void BookEditor::scheduleGrammarCheck(int delayMs)
+{
+    if (m_grammarTimer == nullptr) {
+        m_grammarTimer = new QTimer(this);
+        m_grammarTimer->setSingleShot(true);
+        connect(m_grammarTimer, &QTimer::timeout, this, &BookEditor::runGrammarCheck);
+    }
+    // A turn due sooner stays
+    if (!m_grammarTimer->isActive() || m_grammarTimer->remainingTime() > delayMs) {
+        m_grammarTimer->start(delayMs);
     }
 }
 
-void BookEditor::onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors)
+void BookEditor::runGrammarCheck()
 {
-    // Kept with the paragraph; the render pipeline draws them as waves
-    std::vector<std::pair<TextHighlight, QString>> found;
-    found.reserve(static_cast<size_t>(errors.size()));
-    for (const GrammarError& error : errors) {
-        found.emplace_back(TextHighlight{error.startPos, error.length, HighlightKind::Grammar},
-                           error.text);
+    if (!m_textBuffer || m_grammarCheckService == nullptr ||
+        !m_grammarCheckService->isActive() || !isVisible()) {
+        return;  // shown: showEvent(); the server back: GrammarCheckService::available()
     }
-    storeCheckResults(m_textBuffer.get(), paragraphIndex, &ParagraphData::grammar, found);
-    update();
+
+    // Not while the writer is typing
+    if (m_grammarEditClock.isValid() && !m_grammarEditClock.hasExpired(GRAMMAR_EDIT_DELAY_MS)) {
+        scheduleGrammarCheck(
+            static_cast<int>(GRAMMAR_EDIT_DELAY_MS - m_grammarEditClock.elapsed()));
+        return;
+    }
+
+    // Sends a paragraph that is due; false when no more can be sent now
+    const auto send = [this](int number) {
+        if (m_grammarRequests.size() >= MAX_GRAMMAR_REQUESTS) {
+            return false;
+        }
+        const QTextBlock block = m_textBuffer->findBlockByNumber(number);
+        const ParagraphData* paragraphData = ParagraphData::find(block);
+        const bool beingChecked = std::any_of(
+            m_grammarRequests.begin(), m_grammarRequests.end(),
+            [&block](const auto& request) { return request.second.place.block() == block; });
+        if ((paragraphData != nullptr && paragraphData->grammar.current) || beingChecked) {
+            return true;
+        }
+        const QString text = block.text();
+        if (text.trimmed().isEmpty()) {
+            keepGrammarIssues(block, {});  // nothing to check
+            return true;
+        }
+        const quint64 request = m_grammarCheckService->check(text);
+        if (request == 0) {
+            return false;
+        }
+        m_grammarRequests.emplace(request, GrammarRequest{QTextCursor(block), text});
+        return true;
+    };
+
+    // The paragraphs in view, then those after them and before them
+    const auto [firstInView, lastInView] =
+        m_viewportManager ? m_viewportManager->visibleRange() : std::pair<size_t, size_t>{0, 0};
+    const int last = m_textBuffer->blockCount() - 1;
+    const int viewFirst = std::min(static_cast<int>(firstInView), last);
+    const int viewLast = std::min(static_cast<int>(lastInView), last);
+    for (int number = viewFirst; number <= viewLast; ++number) {
+        if (!send(number)) {
+            return;
+        }
+    }
+    for (int number = viewLast + 1;
+         number <= std::min(last, viewLast + GRAMMAR_PARAGRAPHS_AFTER_VIEW); ++number) {
+        if (!send(number)) {
+            return;
+        }
+    }
+    for (int number = viewFirst - 1;
+         number >= std::max(0, viewFirst - GRAMMAR_PARAGRAPHS_BEFORE_VIEW); --number) {
+        if (!send(number)) {
+            return;
+        }
+    }
 }
+
+void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& errors)
+{
+    const auto found = m_grammarRequests.find(request);
+    if (found == m_grammarRequests.end()) {
+        return;  // another editor's request, or one dropped
+    }
+    const GrammarRequest sent = std::move(found->second);
+    m_grammarRequests.erase(found);
+
+    // The issues apply while the paragraph has the text sent
+    const QTextBlock block = sent.place.block();
+    if (block.isValid() && block.text() == sent.text && keepGrammarIssues(block, errors)) {
+        update();
+    }
+    scheduleGrammarCheck(0);
+}
+
+void BookEditor::onGrammarNotChecked(quint64 request)
+{
+    m_grammarRequests.erase(request);
+}
+
+void BookEditor::onGrammarCheckingChanged()
+{
+    m_grammarRequests.clear();  // the checking dropped them
+    clearGrammar();
+    if (m_grammarCheckService != nullptr && m_grammarCheckService->isActive()) {
+        scheduleGrammarCheck(0);
+    }
+}
+
+void BookEditor::onGrammarRuleIgnored(const QString& ruleId)
+{
+    if (!m_textBuffer) {
+        return;
+    }
+    bool changed = false;
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        ParagraphData* paragraphData = ParagraphData::find(block);
+        if (paragraphData == nullptr || paragraphData->grammarErrors.empty()) {
+            continue;
+        }
+        std::vector<TextHighlight> issues;
+        std::vector<GrammarError> kept;
+        const std::size_t count =
+            std::min(paragraphData->grammarErrors.size(), paragraphData->grammar.issues.size());
+        for (std::size_t i = 0; i < count; ++i) {
+            if (paragraphData->grammarErrors[i].ruleId != ruleId) {
+                issues.push_back(paragraphData->grammar.issues[i]);
+                kept.push_back(paragraphData->grammarErrors[i]);
+            }
+        }
+        if (kept.size() != paragraphData->grammarErrors.size()) {
+            changed = true;
+            paragraphData->grammar.issues = std::move(issues);
+            if (paragraphData->grammar.issues.empty()) {
+                paragraphData->grammar.text.clear();
+            }
+            paragraphData->grammarErrors = std::move(kept);
+        }
+    }
+    if (changed) {
+        update();
+    }
+}
+
+void BookEditor::onGrammarCheckServiceDestroyed()
+{
+    m_grammarCheckService = nullptr;
+    m_grammarRequests.clear();
+    clearGrammar();
+}
+
+void BookEditor::onGrammarViewChanged()
+{
+    if (m_grammarCheckService != nullptr && m_grammarCheckService->isActive()) {
+        scheduleGrammarCheck(GRAMMAR_VIEW_DELAY_MS);
+    }
+}
+
+void BookEditor::adjustGrammarToEdit(int from, int charsRemoved, int charsAdded)
+{
+    if (!m_textBuffer || m_grammarCheckService == nullptr) {
+        return;
+    }
+    const QTextBlock first = m_textBuffer->findBlock(from);
+    const QTextBlock last = m_textBuffer->findBlock(from + charsAdded);
+    if (!first.isValid()) {
+        return;
+    }
+
+    // The answers for the paragraphs edited would not apply
+    const int firstNumber = first.blockNumber();
+    const int lastNumber = last.isValid() ? last.blockNumber() : firstNumber;
+    for (auto request = m_grammarRequests.begin(); request != m_grammarRequests.end();) {
+        const int number = request->second.place.block().blockNumber();
+        if (number >= firstNumber && number <= lastNumber) {
+            m_grammarCheckService->cancel(request->first);
+            request = m_grammarRequests.erase(request);
+        } else {
+            ++request;
+        }
+    }
+
+    for (QTextBlock block = first; block.isValid(); block = block.next()) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            ParagraphCheck& check = paragraphData->grammar;
+            const QString text = block.text();
+            // A paragraph with the text its waves were found in keeps them (a new format)
+            if (check.issues.empty() || check.text != text) {
+                check.current = false;
+                if (block == first && !check.issues.empty()) {
+                    moveGrammarWaves(block, from - block.position(), charsRemoved, last);
+                } else {
+                    check.issues.clear();
+                    check.text.clear();
+                    paragraphData->grammarErrors.clear();
+                }
+            }
+        }
+        if (block == last) {
+            break;
+        }
+    }
+
+    // The paragraphs go when the writer stops typing
+    m_grammarEditClock.restart();
+    scheduleGrammarCheck(GRAMMAR_EDIT_DELAY_MS);
+}
+
+void BookEditor::dropGrammarRequests()
+{
+    const auto requests = std::exchange(m_grammarRequests, {});
+    if (m_grammarCheckService != nullptr) {
+        for (const auto& [request, sent] : requests) {
+            m_grammarCheckService->cancel(request);
+        }
+    }
+}
+
+void BookEditor::clearGrammar()
+{
+    if (m_grammarTimer != nullptr) {
+        m_grammarTimer->stop();
+    }
+    dropGrammarRequests();
+    if (!m_textBuffer) {
+        return;
+    }
+    bool hadWaves = false;
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            hadWaves = hadWaves || !paragraphData->grammar.issues.empty();
+            paragraphData->grammar = ParagraphCheck{};
+            paragraphData->grammarErrors.clear();
+        }
+    }
+    if (hadWaves) {
+        update();
+    }
+}
+
+std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int offset) const
+{
+    const QTextBlock block = m_textBuffer ? m_textBuffer->findBlockByNumber(paraIndex)
+                                          : QTextBlock();
+    const ParagraphData* paragraphData = ParagraphData::find(block);
+    if (paragraphData == nullptr || paragraphData->grammar.issuesFor(block.text()) == nullptr) {
+        return std::nullopt;
+    }
+    for (const GrammarError& error : paragraphData->grammarErrors) {
+        if (offset >= error.startPos && offset <= error.startPos + error.length) {
+            return error;
+        }
+    }
+    return std::nullopt;
+}
+
+void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex)
+{
+    // What is wrong, cut to the menu's width; the whole message in its tool tip
+    QString message = error.message.isEmpty() ? error.shortMessage : error.message;
+    message.replace(QLatin1Char('\n'), QLatin1Char(' '));
+    const QFontMetrics metrics(menu.font());
+    QAction* what = menu.addAction(metrics.elidedText(
+        message, Qt::ElideRight, metrics.averageCharWidth() * GRAMMAR_MESSAGE_CHARS));
+    what->setEnabled(false);
+    what->setToolTip(message);
+    menu.setToolTipsVisible(true);
+
+    // What to put in its place, in bold as the words for a misspelled one
+    for (const QString& suggestion : error.suggestions) {
+        QAction* action = menu.addAction(suggestion);
+        QFont bold = action->font();
+        bold.setBold(true);
+        action->setFont(bold);
+        connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
+            replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
+        });
+    }
+    menu.addSeparator();
+
+    // The rule is not reported again, in any document (until the application closes)
+    QAction* ignore = menu.addAction(tr("Ignore This Rule"));
+    connect(ignore, &QAction::triggered, this, [this, ruleId = error.ruleId]() {
+        if (m_grammarCheckService != nullptr) {
+            m_grammarCheckService->ignoreRule(ruleId);
+        }
+    });
+    menu.addSeparator();
+}
+
+// =============================================================================
+// Reading aloud
+// =============================================================================
 
 void BookEditor::setSpokenWord(int paragraph, int offset, int length)
 {
     if (m_renderPipeline) {
         m_renderPipeline->setSpokenWord(paragraph, offset, length);
     }
-}
-
-std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int offset) const
-{
-    if (!m_grammarCheckService) {
-        return std::nullopt;
-    }
-
-    // Get cached errors for the paragraph
-    QList<GrammarError> errors = m_grammarCheckService->errorsForParagraph(paraIndex);
-
-    for (const GrammarError& error : errors) {
-        if (offset >= error.startPos && offset < error.startPos + error.length) {
-            return error;
-        }
-    }
-
-    return std::nullopt;
-}
-
-QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraIndex)
-{
-    QMenu* menu = new QMenu(this);
-
-    // Show the error message as a disabled item (header)
-    QAction* headerAction = menu->addAction(error.shortMessage.isEmpty() ? error.message : error.shortMessage);
-    headerAction->setEnabled(false);
-
-    // Show the problematic text
-    if (!error.text.isEmpty()) {
-        QAction* textAction = menu->addAction(tr("Error: \"%1\"").arg(error.text));
-        textAction->setEnabled(false);
-    }
-
-    menu->addSeparator();
-
-    // Add suggestions
-    if (!error.suggestions.isEmpty()) {
-        for (const QString& suggestion : error.suggestions) {
-            QAction* action = menu->addAction(suggestion);
-            connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
-                replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
-            });
-        }
-        menu->addSeparator();
-    }
-
-    // Show full explanation if different from short message
-    if (!error.message.isEmpty() && error.message != error.shortMessage) {
-        QAction* explainAction = menu->addAction(tr("Explanation..."));
-        connect(explainAction, &QAction::triggered, this, [error]() {
-            QMessageBox::information(nullptr, QObject::tr("Grammar Issue"),
-                QObject::tr("<b>%1</b><br><br>%2<br><br><i>Rule: %3 (%4)</i>")
-                    .arg(error.shortMessage.isEmpty() ? error.text : error.shortMessage)
-                    .arg(error.message)
-                    .arg(error.ruleId)
-                    .arg(error.category));
-        });
-    }
-
-    // Ignore rule option
-    QAction* ignoreAction = menu->addAction(tr("Ignore this rule"));
-    connect(ignoreAction, &QAction::triggered, this, [this, error]() {
-        if (m_grammarCheckService) {
-            m_grammarCheckService->ignoreRule(error.ruleId);
-            requestGrammarCheck();
-        }
-    });
-
-    return menu;
 }
 
 }  // namespace kalahari::editor

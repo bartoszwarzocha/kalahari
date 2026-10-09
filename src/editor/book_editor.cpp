@@ -213,6 +213,9 @@ BookEditor::BookEditor(QWidget* parent)
 
 BookEditor::~BookEditor()
 {
+    // The checking of the grammar outlives the editor: its requests are dropped
+    dropGrammarRequests();
+
     // Stop timers before destruction to prevent callbacks during cleanup
     if (m_cursorBlinkTimer != nullptr) {
         m_cursorBlinkTimer->stop();
@@ -709,6 +712,7 @@ bool BookEditor::fromKml(const QString& kml)
         m_searchEngine->setDocument(nullptr);
     }
     m_textCursor = QTextCursor();
+    dropGrammarRequests();  // their places are in the old document
     m_textBuffer.reset();
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
@@ -826,6 +830,11 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
+    // The grammar of the paragraphs edited is checked when the writer stops typing (the
+    // content put in above is not an edit: it is checked at once)
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            &BookEditor::adjustGrammarToEdit);
+
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
@@ -848,8 +857,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // The new text has the zoom of the settings (syncPipelineState())
     applyFirstShowShrink();
 
-    // Its spelling is checked from the paragraphs in view
+    // Its spelling and grammar are checked from the paragraphs in view
     requestSpellCheck();
+    m_grammarEditClock.invalidate();
+    requestGrammarCheck();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);
