@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book (before, the move was lost). Add to Project asks for the kind of the new element and
   can add a chapter to the body itself.
 
+- **One version number** - 2026-10-09. The About window, the program and the command
+  line show the version from the project definition (0.3.0-alpha); before, they showed
+  0.3.1, 0.3.0 and the README 0.3.2.
+
 - **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
   screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
   the current paragraph and the selection. After an edit they get the new text, not the

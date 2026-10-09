@@ -4550,8 +4550,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Zamknij</translation>
     </message>
     <message>
-        <source>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</source>
-        <translation>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</translation>
+        <source>Kalahari Writer&apos;s IDE %1</source>
+        <translation>Kalahari Writer&apos;s IDE %1</translation>
     </message>
     <message>
         <source>Cross-platform Writer&apos;s IDE for Windows, macOS, and Linux</source>

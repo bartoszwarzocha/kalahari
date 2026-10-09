@@ -316,11 +316,6 @@ target_include_directories(kalahari PRIVATE
     ${CMAKE_BINARY_DIR}/include
 )
 
-# Compile definitions
-target_compile_definitions(kalahari PRIVATE
-    KALAHARI_VERSION="${PROJECT_VERSION}"
-)
-
 # Link libraries (Qt6 Hello World - Task #00001)
 # Task #00020: Added SvgWidgets for IconDownloaderDialog preview
 # OpenSpec #00042: Added Hunspell for spell checking (via pkg-config)

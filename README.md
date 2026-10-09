@@ -20,7 +20,7 @@
 
 **Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (Core Editor, about half done)
 
-**Current Version:** 0.3.2-alpha
+**Current Version:** 0.3.0-alpha
 **Next Release:** 0.4.0-alpha (Phase 1 complete)
 **Last Updated:** 2026-10-03
 
