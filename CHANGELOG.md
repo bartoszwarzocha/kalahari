@@ -400,6 +400,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
+
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to
   150% in the Windows settings) or the screen's resolution changed while the program ran,
