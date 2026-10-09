@@ -7,6 +7,12 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+# A new push to a pull request cancels the pull request's runs still in progress;
+# every run on main and develop runs to the end
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     name: macOS Build & Test
@@ -14,7 +20,10 @@ jobs:
     # (qyieldcpu.h: implicit declaration of __yield). Unpin after the vcpkg
     # baseline brings a Qt version with the upstream fix.
     runs-on: macos-15
-    timeout-minutes: 90  # Prevent runaway builds
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
 
     strategy:
       matrix:
@@ -65,16 +74,21 @@ jobs:
       run: |
         brew install cmake ninja autoconf autoconf-archive automake libtool python@3.11
 
-    - name: Cache vcpkg
-      uses: actions/cache@v4
+    # vcpkg binary cache: zipped build results of every port, shared by the Debug
+    # and Release jobs (the triplet builds both configurations). Ports whose ABI did
+    # not change (same baseline, compiler and flags) are restored from it instead of
+    # being rebuilt.
+    - name: Prepare vcpkg binary cache directory
+      run: mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+
+    - name: Restore vcpkg binary cache
+      uses: actions/cache/restore@v4
       with:
-        path: |
-          vcpkg
-          build/vcpkg_installed
-        key: macos-clang-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: macos-clang-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
         restore-keys: |
-          macos-clang-vcpkg-v3-${{ hashFiles('vcpkg.json') }}-
-          macos-clang-vcpkg-v3-
+          macos-clang-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-
+          macos-clang-vcpkg-binary-v1-
 
     - name: Bootstrap vcpkg
       run: |
@@ -83,7 +97,7 @@ jobs:
           cd vcpkg
           ./bootstrap-vcpkg.sh
         else
-          echo "vcpkg already bootstrapped (from cache or previous run)"
+          echo "vcpkg already bootstrapped"
           vcpkg/vcpkg version
         fi
 
@@ -93,6 +107,18 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -G Ninja
+
+    # Saved only by pushes to main (Release job only, both jobs produce the same ports),
+    # as on Windows. Pull requests read main's cache but do not save their own: the
+    # former cache of the whole vcpkg tree (~4 GB) was saved again by every pull request
+    # and pushed the other caches out of the 10 GB repository limit, so the Windows jobs
+    # rebuilt Qt for about 1.5 hours.
+    - name: Save vcpkg binary cache
+      if: matrix.build_type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: macos-clang-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
