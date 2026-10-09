@@ -184,17 +184,19 @@ struct Navigator {
     std::string itemsInSection(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
-        for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        const QTreeWidgetItem* section = nullptr;
+        for (QTreeWidgetItemIterator it(tree); *it && !section; ++it) {
             if ((*it)->data(0, Qt::UserRole + 1).toString() == type) {
-                QStringList texts;
-                for (int i = 0; i < (*it)->childCount(); ++i) {
-                    texts << (*it)->child(i)->text(0);
-                }
-                return texts.join(QStringLiteral(", ")).toStdString();
+                section = *it;
             }
         }
-        FAIL("No section " << type.toStdString());
-        return {};
+        INFO("Section " << type.toStdString());
+        REQUIRE(section != nullptr);
+        QStringList texts;
+        for (int i = 0; i < section->childCount(); ++i) {
+            texts << section->child(i)->text(0);
+        }
+        return texts.join(QStringLiteral(", ")).toStdString();
     }
 };
 
