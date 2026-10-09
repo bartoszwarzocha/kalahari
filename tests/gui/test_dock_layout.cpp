@@ -53,6 +53,9 @@ struct OpenBook {
 
 /// The panels of the main window, with the Navigator's requests handled as in MainWindow
 struct Panels {
+    // Not the window's own: Qt 6.9.1 crashes destroying a main window that has a status bar but
+    // no toolbar once its panels were laid out again (QTBUG-137524). MainWindow has toolbars.
+    QStatusBar statusBar;
     QMainWindow window;
     DockCoordinator* docks = nullptr;  // owned by the window, as in MainWindow
 
@@ -62,7 +65,7 @@ struct Panels {
         docks->createDocks();
         auto* navigator =
             new NavigatorCoordinator(docks->navigatorPanel(), docks->propertiesPanel(),
-                                     docks->centralTabs(), window.statusBar(), &window);
+                                     docks->centralTabs(), &statusBar, &window);
         QObject::connect(docks, &DockCoordinator::navigatorRequestProperties, navigator,
                          &NavigatorCoordinator::onRequestProperties);
         QObject::connect(docks, &DockCoordinator::navigatorRequestSectionProperties, navigator,
