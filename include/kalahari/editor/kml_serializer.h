@@ -7,22 +7,29 @@
 /// Key design principles (Phase 11 Architecture Correction):
 /// - Direct QTextDocument -> KML serialization
 /// - Standard formatting via QTextCharFormat (bold, italic, underline, strikethrough)
-/// - Metadata (comments, todos, footnotes) via QTextFormat::UserProperty
+/// - Metadata (footnotes, references) and annotations via QTextFormat::UserProperty
 ///
 /// Output KML structure:
 /// @code
 /// <kml>
+///   <annotations>
+///     <annotation id="a1" kind="comment" author="Ann">Check the date.</annotation>
+///   </annotations>
 ///   <p>Paragraph with <b>bold</b> and <i>italic</i> text.</p>
 ///   <p>Formula: H<sub>2</sub>O and x<sup>2</sup></p>
-///   <p>Text with <comment id="c1">annotated</comment> word.</p>
+///   <p>Text with <anchor ref="a1">annotated</anchor> word.</p>
 /// </kml>
 /// @endcode
 
 #pragma once
 
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId and format functions
 #include <QString>
 #include <QTextCharFormat>
+
+#include <utility>
+#include <vector>
 
 class QTextDocument;
 class QTextBlock;
@@ -33,8 +40,8 @@ namespace editor {
 /// @brief Serializer for converting QTextDocument to KML format
 ///
 /// Converts QTextDocument content back to KML markup. Uses QTextCharFormat
-/// properties for both formatting (bold, italic, etc.) and metadata
-/// (comments, todos, footnotes).
+/// properties for formatting (bold, italic, etc.), metadata (footnotes, references) and
+/// annotations (comments, TODOs, notes: the <annotations> section and the anchors).
 ///
 /// Example usage:
 /// @code
@@ -68,7 +75,8 @@ public:
     ///
     /// Every paragraph the range touches becomes a <p> with its block attributes and its
     /// content cut to the range. A range ending at the start of a paragraph ends with an
-    /// empty <p> - the paragraph break before it is part of the range.
+    /// empty <p> - the paragraph break before it is part of the range. The annotations
+    /// anchored in the range come first, in the <annotations> section.
     /// @param document The document to serialize
     /// @param from First document position of the range
     /// @param to Document position after the range
@@ -77,7 +85,8 @@ public:
 
     /// @brief Serialize a single block (paragraph) to KML
     /// @param block The text block to serialize
-    /// @return KML paragraph content (without <p> wrapper)
+    /// @return KML paragraph content (without <p> wrapper), with the anchors of its
+    ///         annotations but not the annotations themselves
     QString blockToKml(const QTextBlock& block) const;
 
     // =========================================================================
@@ -106,15 +115,23 @@ private:
     /// @param block The text block to serialize
     /// @param from First document position to include
     /// @param to Document position after the last one to include
+    /// @param annotations Collects the annotations anchored in the content (may be null)
     /// @return KML markup for the block content
-    QString serializeBlockContent(const QTextBlock& block, int from, int to) const;
+    QString serializeBlockContent(const QTextBlock& block, int from, int to,
+                                  AnnotationList* annotations) const;
+
+    /// @brief Annotations on places inside a run: after how many characters of its text
+    using RunPlaces = std::vector<std::pair<qsizetype, AnnotationList>>;
 
     /// @brief Serialize a run of text with its format
     /// @param text The text of the run
-    /// @param format The character format of the run
+    /// @param format The character format of the run (with annotations on a fragment only)
+    /// @param places Annotations on places inside the run, in text order
+    /// @param annotations Collects the annotations anchored in the run (may be null)
     /// @return KML markup for the run
     /// @note Uses KmlFormatRegistry for format serialization
-    QString serializeRun(const QString& text, const QTextCharFormat& format) const;
+    QString serializeRun(const QString& text, const QTextCharFormat& format,
+                         const RunPlaces& places, AnnotationList* annotations) const;
 
     /// @brief Build inline style attributes string from character format
     /// @param format The character format to extract style from

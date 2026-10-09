@@ -32,6 +32,31 @@ constexpr double SHEET_SHADOW_OFFSET = 4.0;
 constexpr double SHEET_SHADOW_BLUR = 8.0;
 constexpr int SHEET_SHADOW_PASSES = 4;
 
+/// The marks of the annotations: a small triangle, its tip up, just under the line's
+/// baseline. Its height as a share of the line's ascent, its width to its height, the
+/// gap under the baseline as a share of the line's descent, and the room between marks
+/// on one place as a share of their width.
+constexpr double MARK_HEIGHT_SHARE = 0.36;
+constexpr double MARK_WIDTH_RATIO = 1.3;
+constexpr double MARK_GAP_SHARE = 0.15;
+constexpr double MARK_SPACING = 1.2;
+
+/// The marks of the paragraphs Focus dims are dimmed as much
+constexpr double DIMMED_MARK_OPACITY = 0.45;
+
+/// The area around a mark a click or the mouse finds it in, in pixels of the screen
+constexpr double MARK_HIT_SIZE = 14.0;
+
+/// The line a place is on: of the character before it for a place after text (the end of
+/// a wrapped line belongs to that line, not to the next one)
+QTextLine placeLine(const QTextLayout& layout, int offset, bool afterText) {
+    QTextLine line = layout.lineForTextPosition(afterText && offset > 0 ? offset - 1 : offset);
+    if (!line.isValid()) {
+        line = layout.lineAt(layout.lineCount() - 1);
+    }
+    return line;
+}
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -430,6 +455,13 @@ void EditorRenderPipeline::setConfigFocus(bool enabled) {
     markRepaintOnly();
 }
 
+void EditorRenderPipeline::setConfigAnnotationMarkScale(double scale) {
+    if (m_context.annotationMarkScale == scale) return;
+
+    m_context.annotationMarkScale = scale;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigTextFrameBorder(bool show, const QColor& color, int width) {
     if (m_context.showTextFrameBorder == show && m_context.textFrameBorderColor == color &&
         m_context.textFrameBorderWidth == width) return;
@@ -639,6 +671,128 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     const double docY = m_textSource->paragraphY(static_cast<size_t>(paraIndex)) + line.y();
     return QRectF(documentToWidget(QPointF(cursorX, docY)),
                   QSizeF(m_context.cursor.width, line.height() * scale));
+}
+
+QRectF EditorRenderPipeline::placeRect(const CursorPosition& position, bool afterText) const {
+    if (!m_textSource || position.paragraph < 0 ||
+        static_cast<size_t>(position.paragraph) >= m_textSource->paragraphCount()) {
+        return QRectF();
+    }
+    const auto paragraph = static_cast<size_t>(position.paragraph);
+    QTextLayout* layout = m_textSource->layout(paragraph);
+    if (!layout || layout->lineCount() == 0) {
+        return caretRect(position);
+    }
+    const QTextLine line = placeLine(*layout, position.offset, afterText);
+    const double docY = m_textSource->paragraphY(paragraph) + line.y();
+    return QRectF(documentToWidget(QPointF(line.cursorToX(position.offset), docY)),
+                  QSizeF(m_context.cursor.width, line.height() * m_context.computed.viewScale));
+}
+
+QString EditorRenderPipeline::annotationMarkAt(const QPointF& point) const {
+    const std::optional<AnnotationMarkShape> shape = annotationMarkShapeAt(point);
+    return shape ? shape->mark.id : QString();
+}
+
+QString EditorRenderPipeline::annotationMarkTextAt(const QPointF& point) const {
+    const std::optional<AnnotationMarkShape> shape = annotationMarkShapeAt(point);
+    return shape ? shape->mark.text : QString();
+}
+
+std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::annotationMarkShapes(
+    size_t paragraph) const {
+    std::vector<AnnotationMarkShape> shapes;
+    if (!m_textSource || paragraph >= m_textSource->paragraphCount()) return shapes;
+    const std::vector<AnnotationMark> marks = m_textSource->paragraphAnnotationMarks(paragraph);
+    if (marks.empty()) return shapes;
+    QTextLayout* layout = m_textSource->layout(paragraph);
+    if (!layout || layout->lineCount() == 0) return shapes;
+
+    const double scale = m_context.computed.viewScale;
+    const double originX = m_context.computed.originX;
+    const double widgetY = paragraphWidgetY(paragraph);
+    const auto toWidget = [scale, originX, widgetY](double x, double y) {
+        return QPointF(originX + x * scale, widgetY + y * scale);
+    };
+
+    int samePlace = 0;  // marks before this one on the same place: they stand side by side
+    for (size_t i = 0; i < marks.size(); ++i) {
+        const AnnotationMark& mark = marks[i];
+        samePlace = i > 0 && marks[i - 1].offset == mark.offset ? samePlace + 1 : 0;
+
+        // A place after text (a fragment's end) is on the line of the character before it
+        const QTextLine line = placeLine(*layout, mark.offset, mark.offset > 0);
+        const double height = line.ascent() * MARK_HEIGHT_SHARE * m_context.annotationMarkScale;
+        const double width = height * MARK_WIDTH_RATIO;
+        const double x = line.cursorToX(mark.offset) + samePlace * width * MARK_SPACING;
+        const double top = line.y() + line.ascent() + line.descent() * MARK_GAP_SHARE;
+
+        AnnotationMarkShape shape;
+        shape.mark = mark;
+        shape.triangle << toWidget(x, top) << toWidget(x + width / 2.0, top + height)
+                       << toWidget(x - width / 2.0, top + height);
+        const QRectF bounds = shape.triangle.boundingRect();
+        const double growX = std::max(0.0, (MARK_HIT_SIZE - bounds.width()) / 2.0);
+        const double growY = std::max(0.0, (MARK_HIT_SIZE - bounds.height()) / 2.0);
+        shape.hitArea = bounds.adjusted(-growX, -growY, growX, growY);
+        shapes.push_back(std::move(shape));
+    }
+    return shapes;
+}
+
+std::optional<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::annotationMarkShapeAt(
+    const QPointF& point) const {
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    if (count == 0) return std::nullopt;
+    const size_t last = std::min(m_context.computed.lastVisibleParagraph, count - 1);
+    for (size_t paragraph = m_context.computed.firstVisibleParagraph; paragraph <= last;
+         ++paragraph) {
+        // The mark drawn last (on top) first
+        const std::vector<AnnotationMarkShape> shapes = annotationMarkShapes(paragraph);
+        for (auto it = shapes.rbegin(); it != shapes.rend(); ++it) {
+            if (it->hitArea.contains(point)) {
+                return *it;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+void EditorRenderPipeline::renderAnnotationMarks(QPainter* painter, const QRect& clipRect) {
+    if (!m_textSource) return;
+
+    const RenderColors& colors = m_context.colors;
+    const auto colorOf = [&colors](AnnotationKind kind) {
+        QColor color;
+        switch (kind) {
+            case AnnotationKind::Comment: color = colors.annotationComment; break;
+            case AnnotationKind::Todo: color = colors.annotationTodo; break;
+            case AnnotationKind::Note: color = colors.annotationNote; break;
+        }
+        return color.isValid() ? color : colors.text;
+    };
+
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = m_context.computed.lastVisibleParagraph;
+    const size_t count = m_textSource->paragraphCount();
+    const double scale = m_context.computed.viewScale;
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    for (size_t paragraph = first; paragraph <= last && paragraph < count; ++paragraph) {
+        const QRectF paragraphRect(0.0, paragraphWidgetY(paragraph), m_context.viewportSize.width(),
+                                   m_textSource->paragraphHeight(paragraph) * scale);
+        if (!paragraphRect.intersects(clipRect)) continue;
+        const bool dimmed =
+            m_context.focus && static_cast<int>(paragraph) != m_cursorPosition.paragraph;
+        painter->setOpacity(dimmed ? DIMMED_MARK_OPACITY : 1.0);
+        for (const AnnotationMarkShape& shape : annotationMarkShapes(paragraph)) {
+            painter->setBrush(colorOf(shape.mark.kind));
+            painter->drawPolygon(shape.triangle);
+        }
+    }
+    painter->restore();
 }
 
 // =============================================================================
@@ -1137,6 +1291,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Highlights: the backgrounds under the text like the selection, the marks over it
     const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
     renderHighlightBackgrounds(painter, highlights);
+
+    // The annotations' marks, under the text: the letters stay readable
+    renderAnnotationMarks(painter, clipRect);
 
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);

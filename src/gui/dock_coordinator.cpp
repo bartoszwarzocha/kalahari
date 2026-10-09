@@ -12,6 +12,7 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/assistant_panel.h"
+#include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
@@ -57,10 +58,12 @@ void DockCoordinator::createDocks() {
     createLogDock();
     createSearchDock();
     createAssistantDock();
+    createAnnotationsDock();
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
+    m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
 
     // Raise Properties tab (default visible)
     m_propertiesDock->raise();
@@ -252,6 +255,19 @@ void DockCoordinator::createAssistantDock() {
     logger.debug("DockCoordinator: Assistant dock created");
 }
 
+void DockCoordinator::createAnnotationsDock() {
+    auto& logger = core::Logger::getInstance();
+
+    m_annotationsPanel = new AnnotationsPanel(m_mainWindow);
+    m_annotationsDock = new QDockWidget(QObject::tr("Annotations"), m_mainWindow);
+    m_annotationsDock->setWidget(m_annotationsPanel);
+    m_annotationsDock->setObjectName("AnnotationsDock");
+    setupDockTitleBar(m_annotationsDock, "view.annotations", QObject::tr("Annotations"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
+
+    logger.debug("DockCoordinator: Annotations dock created");
+}
+
 void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title) {
     auto& artProvider = core::ArtProvider::getInstance();
 
@@ -367,6 +383,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.log", m_logDock);
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
+    connectPanelCommand("view.annotations", m_annotationsDock);
 
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
@@ -375,6 +392,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewLogAction = createPanelAction("view.log", m_logDock);
     m_viewSearchAction = createPanelAction("view.search", m_searchDock);
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
+    m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
@@ -424,6 +442,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_logDock);
     m_mainWindow->removeDockWidget(m_searchDock);
     m_mainWindow->removeDockWidget(m_assistantDock);
+    m_mainWindow->removeDockWidget(m_annotationsDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
@@ -431,10 +450,12 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
+    m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
 
     // Raise Properties tab
     m_propertiesDock->raise();
@@ -445,6 +466,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_logDock->setVisible(diagnosticMode || devMode);
     m_searchDock->show();
     m_assistantDock->show();
+    m_annotationsDock->show();
 
     // Set default column proportions: 20% | 60% | 20%
     int totalWidth = m_mainWindow->width();

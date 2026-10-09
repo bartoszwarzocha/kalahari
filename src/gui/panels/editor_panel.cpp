@@ -4,6 +4,8 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
+#include "kalahari/editor/annotation.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -12,10 +14,19 @@
 #include <QMessageBox>
 #include <QScreen>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// @brief The smallest and the largest size of the annotations' marks (1 = 100%)
+constexpr double MIN_MARK_SCALE = 0.5;
+constexpr double MAX_MARK_SCALE = 3.0;
+
+}  // namespace
 
 EditorPanel::EditorPanel(QWidget* parent)
     : QWidget(parent)
@@ -54,6 +65,10 @@ EditorPanel::EditorPanel(QWidget* parent)
                 scheduleSettings();
             }
         });
+
+    // The theme gives the annotations' marks their colors
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            [this]() { scheduleSettings(); });
 
     // Apply settings (font, appearance)
     applySettings();
@@ -209,6 +224,24 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show");
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
+
+    // The annotations' marks: the theme's colors for each paper, at the size of the setting
+    const auto& themes = core::ThemeManager::getInstance();
+    const auto markColors = [&themes](bool darkPaper) {
+        const auto kindColor = [&themes, darkPaper](editor::AnnotationKind kind) {
+            return themes.editorColor(editor::annotationColorKey(kind, darkPaper), QColor());
+        };
+        editor::EditorColors::AnnotationColors colors;
+        colors.comment = kindColor(editor::AnnotationKind::Comment);
+        colors.todo = kindColor(editor::AnnotationKind::Todo);
+        colors.note = kindColor(editor::AnnotationKind::Note);
+        return colors;
+    };
+    appearance.colors.annotationsLight = markColors(false);
+    appearance.colors.annotationsDark = markColors(true);
+    appearance.annotationMarkScale =
+        std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
+                   MAX_MARK_SCALE);
 
     m_bookEditor->setAppearance(appearance);
     applyPaperScale();

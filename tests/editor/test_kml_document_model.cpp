@@ -5,11 +5,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/format_run.h>
 #include <kalahari/editor/kml_format_registry.h>
 
 #include <QFont>
+#include <algorithm>
 #include <chrono>
 
 using namespace kalahari::editor;
@@ -33,7 +35,8 @@ const QString multiParagraphKml = R"(<kml>
 </kml>)";
 
 const QString metadataKml = R"(<kml>
-<p>Text with <comment id="c1">commented</comment> word.</p>
+<annotations><annotation id="c1" kind="comment">Why?</annotation></annotations>
+<p>Text with <anchor ref="c1">commented</anchor> word.</p>
 </kml>)";
 
 const QString nestedFormattingKml = R"(<kml>
@@ -41,13 +44,15 @@ const QString nestedFormattingKml = R"(<kml>
 </kml>)";
 
 const QString todoKml = R"(<kml>
-<p>Text with <todo id="t1">todo item</todo> here.</p>
+<annotations><annotation id="t1" kind="todo">Check</annotation></annotations>
+<p>Text with todo item<anchor ref="t1"/> here.</p>
 </kml>)";
 
 const QString complexKml = R"(<kml>
 <p>This is <bold>bold</bold>, <italic>italic</italic>, and <underline>underlined</underline>.</p>
 <p>Multiple <bold><italic>nested</italic></bold> formats.</p>
-<p>With <comment id="note1">annotated</comment> text.</p>
+<annotations><annotation id="note1" kind="note">Mine</annotation></annotations>
+<p>With <anchor ref="note1">annotated</anchor> text.</p>
 </kml>)";
 
 /// @brief Generate KML document with N paragraphs
@@ -281,50 +286,42 @@ TEST_CASE("KmlDocumentModel - Nested Formatting", "[editor][KmlDocumentModel]") 
     }
 }
 
-TEST_CASE("KmlDocumentModel - Metadata (Comment)", "[editor][KmlDocumentModel]") {
-    SECTION("Comment creates FormatRun with KmlPropComment") {
-        KmlDocumentModel model;
-        model.loadKml(metadataKml);
+TEST_CASE("KmlDocumentModel - Annotation on a fragment", "[editor][KmlDocumentModel]") {
+    KmlDocumentModel model;
+    model.loadKml(metadataKml);
 
-        const auto& formats = model.paragraphFormats(0);
-
-        // Should have format run with comment property
-        bool foundComment = false;
-        for (const auto& run : formats) {
-            if (run.hasComment()) {
-                foundComment = true;
-                QString text = model.paragraphText(0).mid(
-                    static_cast<int>(run.start),
-                    static_cast<int>(run.end - run.start));
-                REQUIRE(text == QStringLiteral("commented"));
-                break;
-            }
-        }
-        REQUIRE(foundComment);
-    }
+    // The annotated text has a run of its own, which carries the annotation
+    const auto& formats = model.paragraphFormats(0);
+    const auto run = std::find_if(formats.begin(), formats.end(), [](const FormatRun& r) {
+        return !annotationsOf(r.format).isEmpty();
+    });
+    REQUIRE(run != formats.end());
+    CHECK(model.paragraphText(0).mid(static_cast<qsizetype>(run->start),
+                                     static_cast<qsizetype>(run->length())) ==
+          QStringLiteral("commented"));
+    const AnnotationList annotations = annotationsOf(run->format);
+    REQUIRE(annotations.size() == 1);
+    CHECK(annotations[0].id == QStringLiteral("c1"));
+    CHECK(annotations[0].text == QStringLiteral("Why?"));
+    CHECK_FALSE(annotations[0].point);
 }
 
-TEST_CASE("KmlDocumentModel - Metadata (Todo)", "[editor][KmlDocumentModel]") {
-    SECTION("TODO creates FormatRun with KmlPropTodo") {
-        KmlDocumentModel model;
-        model.loadKml(todoKml);
+TEST_CASE("KmlDocumentModel - Annotation on a place", "[editor][KmlDocumentModel]") {
+    KmlDocumentModel model;
+    model.loadKml(todoKml);
 
-        const auto& formats = model.paragraphFormats(0);
-
-        // Should have format run with todo property
-        bool foundTodo = false;
-        for (const auto& run : formats) {
-            if (run.hasTodo()) {
-                foundTodo = true;
-                QString text = model.paragraphText(0).mid(
-                    static_cast<int>(run.start),
-                    static_cast<int>(run.end - run.start));
-                REQUIRE(text == QStringLiteral("todo item"));
-                break;
-            }
-        }
-        REQUIRE(foundTodo);
-    }
+    // The character before the place carries it
+    const auto& formats = model.paragraphFormats(0);
+    REQUIRE(formats.size() == 1);
+    CHECK(model.paragraphText(0).mid(static_cast<qsizetype>(formats[0].start),
+                                     static_cast<qsizetype>(formats[0].length())) ==
+          QStringLiteral("m"));
+    const AnnotationList annotations = annotationsOf(formats[0].format);
+    REQUIRE(annotations.size() == 1);
+    CHECK(annotations[0].id == QStringLiteral("t1"));
+    CHECK(annotations[0].kind == AnnotationKind::Todo);
+    CHECK(annotations[0].point);
+    CHECK(model.paragraphStartAnnotations(0).isEmpty());
 }
 
 TEST_CASE("KmlDocumentModel - Complex Formatting", "[editor][KmlDocumentModel]") {
@@ -342,16 +339,11 @@ TEST_CASE("KmlDocumentModel - Complex Formatting", "[editor][KmlDocumentModel]")
         const auto& formats1 = model.paragraphFormats(1);
         REQUIRE_FALSE(formats1.empty());
 
-        // Third paragraph should have comment metadata
+        // Third paragraph should have the annotation
         const auto& formats2 = model.paragraphFormats(2);
-        bool hasComment = false;
-        for (const auto& run : formats2) {
-            if (run.hasComment()) {
-                hasComment = true;
-                break;
-            }
-        }
-        REQUIRE(hasComment);
+        REQUIRE(std::any_of(formats2.begin(), formats2.end(), [](const FormatRun& run) {
+            return !annotationsOf(run.format).isEmpty();
+        }));
     }
 }
 

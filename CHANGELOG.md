@@ -255,6 +255,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **The old comment and TODO elements** - 2026-10-08. The `<comment>` and `<todo>` elements
+  of the KML, the TODO and note marker functions and the comments panel, which nothing
+  created, gave way to annotations. A chapter with those elements opens with their text,
+  without them.
 - **Editor: the unused old architecture** - 2026-10-06. The editor holds a chapter in one
   QTextDocument; the second document mode (a read-only view before the first edit), the
   older KML object model and parser, the old paragraph and table layout, the height tree,
@@ -272,6 +276,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offers in each part of the book and in the Workshop, what a new book starts with, and its
   styles. A registry in core loads and checks them. Nothing uses it yet, so the program
   works as before; the New Book and Add Element windows will use it in later stages.
+- **Annotations: their marks, the frame they are written in, the Annotations panel and the
+  commands for them** - 2026-10-08
+  - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
+    frame at the selection, or at the cursor's place without one, where the annotation's
+    text is written: Enter starts a new line, Ctrl+Enter or Save keeps the text (the frame
+    says so), Esc drops it. The annotation is added with its text when it is kept; a frame
+    left empty adds nothing. Add Annotation (Ctrl+Shift+M) opens a small menu of the three
+    kinds at the cursor.
+  - Each annotation not done has a small mark in its kind's color under the end of its
+    fragment, or under its place. The mark's tooltip is the annotation's text, and a click
+    on it opens the annotation's frame, the cursor staying where it was. Mark Size in
+    Settings > Editor > General sets the size of the marks (100% fits the text's font).
+  - The Annotations panel (View > Panels > Annotations), a tab next to Properties, Search
+    and Assistant, lists the annotations of the chapter in front or of the whole book as
+    cards tinted with their kind's color: the kind, the chapter, the date, the text and,
+    for a to-do, whether it is done. A search field, filters by kind, state (open, done,
+    all) and date, and three orders: as in the text, the newest first, or by kind. Its
+    texts keep a contrast of at least 4.5:1 in the light and the dark theme.
+  - Everything is at hand from the keyboard. F9 goes to the panel, with the card of the
+    annotation at the cursor selected, and back to the text. In the list, Up, Down, Home
+    and End select a card and go to its annotation in the text, opening its chapter when
+    needed; Enter or F2 opens its frame; Space marks a to-do done or a comment resolved;
+    Delete removes it; the menu key or Shift+F10 opens its menu; Esc goes back to the text.
+    A to-do done or a comment resolved leaves the open ones and shows under Done, where
+    Restore brings it back.
+  - What is done to annotations is undone with Ctrl+Z like the text: a new annotation with
+    its text, a new text, done and deleted are each one step. Undo and redo bring back the
+    cursor and selection the step was made with.
+  - Saving or closing a chapter, the book or the program first keeps the text of an open
+    frame, so nothing written is lost.
+  - Edit > Next To Do and Previous To Do (Alt+Down, Alt+Up) go to the next or the previous
+    to-do not done yet; while the panel lists the whole book, also in the other chapters.
+    The status bar says when there is no further one.
+  - New annotations are by the name in the setting `annotations.author`; without it by the
+    book's author, and without one by the computer's user.
+- **Annotations: comments, TODOs and notes in the chapter** - 2026-10-08. The chapter file
+  keeps the writer's annotations in an `<annotations>` section, and the text marks where
+  each of them is: on a fragment or on a place (`docs/kml_format.md`). Editing keeps them
+  where they were put: text typed inside a fragment joins it, typed next to it does not;
+  deleted or replaced text leaves its annotations on its place; a new paragraph does not
+  take them. Cut, pasted or dropped text takes its annotations along, a pasted copy gets
+  copies of them, and undo brings back what an edit took.
 - **The program's own dialogs, starting with the Navigator's** - 2026-10-08
   - A common base for the program's own dialogs: a heading with the dialog's icon, its
     title and a sentence about what it does, then the dialog's content and the buttons,

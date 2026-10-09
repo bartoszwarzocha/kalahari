@@ -71,6 +71,13 @@ TEST_CASE("ClipboardHandler kmlToText conversion", "[editor][clipboard]") {
         QString result = ClipboardHandler::kmlToText("<p><text>Line 1</text><br/><text>Line 2</text></p>");
         REQUIRE(result.contains("\n"));
     }
+
+    SECTION("Annotations left out, the text they are anchored to kept") {
+        QString result = ClipboardHandler::kmlToText(
+            "<kml><annotations><annotation id=\"a\" kind=\"note\">Hidden</annotation></annotations>"
+            "<p>One <anchor ref=\"a\">two</anchor></p></kml>");
+        REQUIRE(result == "One two");
+    }
 }
 
 TEST_CASE("ClipboardHandler htmlToKml conversion", "[editor][clipboard]") {
