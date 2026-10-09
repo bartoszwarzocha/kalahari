@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 
@@ -76,6 +77,15 @@ inline QTextCharFormat formatOfFragmentContaining(const QTextBlock& block, const
 /// Metadata map stored under a KML metadata property
 inline QVariantMap metadataOf(const QTextCharFormat& format, int property) {
     return format.property(property).toMap();
+}
+
+/// Ids of the annotations a format carries, in their order
+inline QStringList annotationIds(const QTextFormat& format) {
+    QStringList ids;
+    for (const editor::Annotation& annotation : editor::annotationsOf(format)) {
+        ids << annotation.id;
+    }
+    return ids;
 }
 
 /// Counts the blocks the editor's document layout lays out while the counter is alive

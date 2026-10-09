@@ -6,12 +6,15 @@
 /// the tests used; they now pin down the reader the application uses.
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <QDateTime>
 #include <QFont>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTimeZone>
 #include <QVariantMap>
 
 using namespace kalahari::editor;
@@ -197,26 +200,42 @@ TEST_CASE("KML load: paragraph alignment", "[editor][kml][load]") {
 // Metadata
 // =============================================================================
 
-TEST_CASE("KML load: comment, todo and footnote metadata", "[editor][kml][load]") {
-    SECTION("Comment") {
+TEST_CASE("KML load: annotations and footnotes", "[editor][kml][load]") {
+    SECTION("An annotation on a fragment") {
         Loaded loaded(QStringLiteral(
-            "<p>Text <comment id=\"c1\" author=\"Jan\" resolved=\"true\">annotated</comment> text</p>"));
+            "<annotations><annotation id=\"c1\" kind=\"comment\" author=\"Jan\" done=\"true\">"
+            "Line one\nLine two</annotation></annotations>"
+            "<p>Text <anchor ref=\"c1\">annotated</anchor> text</p>"));
         REQUIRE(loaded.text() == QStringLiteral("Text annotated text"));
-        const QVariantMap metadata = loaded.formatAt(5).property(KmlPropComment).toMap();
-        CHECK(metadata.value(QStringLiteral("id")).toString() == QStringLiteral("c1"));
-        CHECK(metadata.value(QStringLiteral("author")).toString() == QStringLiteral("Jan"));
-        CHECK(metadata.value(QStringLiteral("resolved")).toBool());
-        CHECK_FALSE(loaded.formatAt(4).hasProperty(KmlPropComment));
+        const AnnotationList annotations = annotationsOf(loaded.formatAt(5));
+        REQUIRE(annotations.size() == 1);
+        CHECK(annotations[0].id == QStringLiteral("c1"));
+        CHECK(annotations[0].kind == AnnotationKind::Comment);
+        CHECK(annotations[0].author == QStringLiteral("Jan"));
+        CHECK(annotations[0].done);
+        CHECK(annotations[0].text == QStringLiteral("Line one\nLine two"));
+        CHECK_FALSE(annotations[0].point);
+        CHECK(annotationsOf(loaded.formatAt(13)) == annotations);
+        CHECK(annotationsOf(loaded.formatAt(4)).isEmpty());
+        CHECK(annotationsOf(loaded.formatAt(14)).isEmpty());
     }
 
-    SECTION("Todo") {
+    SECTION("An annotation on a place, with an attribute the editor does not know") {
         Loaded loaded(QStringLiteral(
-            "<p><todo id=\"t2\" completed=\"true\" priority=\"high\">done task</todo></p>"));
+            "<annotations><annotation id=\"t2\" kind=\"todo\" created=\"2026-10-08T12:30:00Z\" "
+            "priority=\"high\">Check</annotation></annotations>"
+            "<p>done<anchor ref=\"t2\"/> task</p>"));
         REQUIRE(loaded.text() == QStringLiteral("done task"));
-        const QVariantMap metadata = loaded.formatAt(0).property(KmlPropTodo).toMap();
-        CHECK(metadata.value(QStringLiteral("id")).toString() == QStringLiteral("t2"));
-        CHECK(metadata.value(QStringLiteral("completed")).toBool());
-        CHECK(metadata.value(QStringLiteral("priority")).toString() == QStringLiteral("high"));
+        const AnnotationList annotations = annotationsOf(loaded.formatAt(3));  // before the place
+        REQUIRE(annotations.size() == 1);
+        CHECK(annotations[0].point);
+        CHECK(annotations[0].kind == AnnotationKind::Todo);
+        CHECK(annotations[0].created ==
+              QDateTime(QDate(2026, 10, 8), QTime(12, 30), QTimeZone::utc()));
+        CHECK(annotations[0].otherAttributes ==
+              QMap<QString, QString>{{QStringLiteral("priority"), QStringLiteral("high")}});
+        CHECK(annotationsOf(loaded.formatAt(2)).isEmpty());
+        CHECK(annotationsOf(loaded.formatAt(4)).isEmpty());
     }
 
     SECTION("Footnote") {
@@ -228,10 +247,12 @@ TEST_CASE("KML load: comment, todo and footnote metadata", "[editor][kml][load]"
         CHECK(metadata.value(QStringLiteral("number")).toInt() == 1);
     }
 
-    SECTION("Metadata and formatting in one document") {
+    SECTION("Annotations and formatting in one document") {
         Loaded loaded(QStringLiteral(
-            "<doc><p>Text with <comment id=\"c1\" author=\"Test\">comment</comment> here</p>"
-            "<p><b>Bold</b> and <todo id=\"t1\">todo item</todo></p></doc>"));
+            "<doc><annotations><annotation id=\"c1\" kind=\"comment\">C</annotation>"
+            "<annotation id=\"t1\" kind=\"todo\">T</annotation></annotations>"
+            "<p>Text with <anchor ref=\"c1\">comment</anchor> here</p>"
+            "<p><b>Bold</b> and <anchor ref=\"t1\">todo item</anchor></p></doc>"));
         REQUIRE(loaded.blockCount() == 2);
         CHECK(loaded.blockText(1) == QStringLiteral("Bold and todo item"));
     }
@@ -347,19 +368,29 @@ TEST_CASE("KML load: unsupported elements are not kept", "[editor][kml][load][un
 
 TEST_CASE("KML load: the example of docs/kml_format.md is written back unchanged",
           "[editor][kml][load]") {
-    const QStringList paragraphs = {
-        QStringLiteral("<p align=\"center\"><b>Chapter One</b></p>"),
-        QStringLiteral("<p>Plain text, <i>italic</i>, <b><i>bold italic</i></b> and "
+    // The example, line by line as in the document; the editor writes it without the line
+    // breaks and the indentation
+    const QStringList lines = {
+        QStringLiteral("<kml>"),
+        QStringLiteral("  <annotations>"),
+        QStringLiteral("    <annotation id=\"a1\" kind=\"comment\" author=\"Bartosz\" "
+                       "created=\"2026-10-08T12:00:00Z\" done=\"true\">Check the date.</annotation>"),
+        QStringLiteral("    <annotation id=\"a2\" kind=\"todo\">Describe the weather.</annotation>"),
+        QStringLiteral("  </annotations>"),
+        QStringLiteral("  <p align=\"center\"><b>Chapter One</b></p>"),
+        QStringLiteral("  <p>Plain text, <i>italic</i>, <b><i>bold italic</i></b> and "
                        "<span color=\"#aa0000\">red</span>.</p>"),
-        QStringLiteral("<p>She met <charref id=\"r1\" target=\"anna\">Anna</charref> in "
-                       "<locref id=\"r2\" target=\"krakow\">Kraków</locref>.</p>"),
-        QStringLiteral("<p><comment id=\"c1\" author=\"Bartosz\" resolved=\"true\">"
-                       "Check the date.</comment></p>")};
+        QStringLiteral("  <p>She met <charref id=\"r1\" target=\"anna\">Anna</charref> in "
+                       "<locref id=\"r2\" target=\"krakow\">Kraków</locref> "
+                       "<anchor ref=\"a1\">on a Tuesday</anchor>.<anchor ref=\"a2\"/></p>"),
+        QStringLiteral("</kml>")};
 
     BookEditor editor;
-    editor.fromKml(QStringLiteral("<kml>\n  ") + paragraphs.join(QStringLiteral("\n  ")) +
-                   QStringLiteral("\n</kml>"));
-    REQUIRE(editor.paragraphCount() == 4);
-    REQUIRE(editor.toKml() == QStringLiteral("<kml>") + paragraphs.join(QString()) +
-                                  QStringLiteral("</kml>"));
+    editor.fromKml(lines.join(u'\n'));
+    REQUIRE(editor.paragraphCount() == 3);
+    QString written;
+    for (const QString& line : lines) {
+        written += line.trimmed();
+    }
+    REQUIRE(editor.toKml() == written);
 }

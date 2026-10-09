@@ -68,6 +68,10 @@ std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index
     return highlights;
 }
 
+std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t index) const {
+    return annotationMarksIn(blockAt(index));
+}
+
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
     // The pipeline also reads blocks outside the viewport (the cursor's, the pages'):
     // one waiting for layout gets its lines now

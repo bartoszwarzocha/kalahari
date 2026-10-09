@@ -57,6 +57,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.findNext", "resources/icons/twotone/navigate_next.svg", "Find Next");
     iconRegistry.registerIcon("edit.findPrevious", "resources/icons/twotone/navigate_before.svg", "Find Previous");
     iconRegistry.registerIcon("edit.findReplace", "resources/icons/twotone/find_replace.svg", "Find & Replace");
+    iconRegistry.registerIcon("edit.nextTodo", "resources/icons/twotone/navigate_next.svg", "Next To Do");
+    iconRegistry.registerIcon("edit.previousTodo", "resources/icons/twotone/navigate_before.svg", "Previous To Do");
     iconRegistry.registerIcon("edit.preferences", "resources/icons/twotone/settings.svg", "Preferences");
     iconRegistry.registerIcon("edit.settings", "resources/icons/twotone/settings.svg", "Settings");
 
@@ -82,8 +84,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.link", "resources/icons/twotone/link.svg", "Insert Link");
     iconRegistry.registerIcon("insert.footnote", "resources/icons/twotone/short_text.svg", "Insert Footnote");
     iconRegistry.registerIcon("insert.endnote", "resources/icons/twotone/notes.svg", "Insert Endnote");
-    iconRegistry.registerIcon("insert.comment", "resources/icons/twotone/add_comment.svg", "Insert Comment");
-    iconRegistry.registerIcon("insert.annotation", "resources/icons/twotone/edit_note.svg", "Insert Annotation");
+    iconRegistry.registerIcon("insert.annotation", "resources/icons/twotone/edit_note.svg", "Add Annotation");
+    iconRegistry.registerIcon("insert.comment", "resources/icons/twotone/add_comment.svg", "Add Comment");
+    iconRegistry.registerIcon("insert.todo", "resources/icons/twotone/check_circle.svg", "Add To Do");
+    iconRegistry.registerIcon("insert.note", "resources/icons/twotone/sticky_note_2.svg", "Add Note");
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
@@ -155,6 +159,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
+    iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");

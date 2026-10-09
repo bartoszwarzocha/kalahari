@@ -18,17 +18,13 @@ namespace editor {
 
 /// @brief Custom property IDs for KML metadata in QTextCharFormat
 ///
-/// These properties allow storing KML-specific data (comments, todos, etc.)
+/// These properties allow storing KML-specific data (annotations, references, etc.)
 /// inline with the text formatting, enabling round-trip serialization.
 /// Property IDs start at QTextFormat::UserProperty + 100 to avoid conflicts.
-///
-/// @note Names use "Prop" prefix to avoid conflict with existing KmlComment class
 enum KmlPropertyId {
-    /// @brief Comment annotation attached to text range
-    KmlPropComment = QTextFormat::UserProperty + 100,
-
-    /// @brief TODO marker at text position
-    KmlPropTodo = QTextFormat::UserProperty + 101,
+    /// @brief Annotations (comments, TODOs, notes) anchored to the text: an AnnotationList
+    /// (see annotation.h)
+    KmlPropAnnotations = QTextFormat::UserProperty + 100,
 
     /// @brief Footnote reference
     KmlPropFootnote = QTextFormat::UserProperty + 102,
@@ -42,7 +38,7 @@ enum KmlPropertyId {
 
 /// @brief Metadata tag definition
 struct MetadataTagDef {
-    QString tagName;              ///< Tag name in KML (e.g., "comment", "todo")
+    QString tagName;              ///< Tag name in KML (e.g., "footnote", "charref")
     KmlPropertyId propertyId;     ///< QTextFormat property ID
     QStringList knownAttributes;  ///< Known attributes for this tag
 };
@@ -91,7 +87,7 @@ QString formatToCloseTags(const QTextCharFormat& format);
 // =============================================================================
 
 /// @brief Check if tag is a known metadata tag
-/// @param tag The tag name (e.g., "comment", "todo", "footnote")
+/// @param tag The tag name (e.g., "footnote", "charref")
 /// @return true if tag is a recognized metadata tag
 bool isMetadataTag(const QString& tag);
 
@@ -111,9 +107,8 @@ const MetadataTagDef* getMetadataTagDefByProperty(KmlPropertyId propId);
 
 /// @brief Read a metadata tag's XML attributes into the map stored under its property
 ///
-/// Flag attributes (resolved, completed) become bool and numeric ones (number) int;
-/// every other attribute is kept as a string, so unknown attributes survive a
-/// load/save cycle.
+/// Numeric attributes (number) become int; every other attribute is kept as a string,
+/// so unknown attributes survive a load/save cycle.
 /// @param attrs XML attributes of the metadata start element
 /// @return Map of attribute name to value
 QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs);
@@ -121,7 +116,7 @@ QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs);
 /// @brief Serialize a metadata map as XML attributes, e.g. ` id="c1" resolved="true"`
 ///
 /// The tag's known attributes come first, in definition order, then any other keys.
-/// False flags and empty values are omitted; values are XML-escaped.
+/// Empty values are omitted; values are XML-escaped.
 /// @param tag The metadata tag name
 /// @param metadata Map stored under the tag's property
 /// @return Attribute string, each attribute preceded by a space
@@ -151,8 +146,9 @@ QString withRootElement(const QString& kml);
 
 /// @brief Check if an element inside a paragraph contributes its text
 ///
-/// True for formatting tags, metadata tags and text runs (<t>, <text>). The editor
-/// skips any other element inside a paragraph together with everything in it.
+/// True for formatting tags, metadata tags, annotation anchors (<anchor>) and text runs
+/// (<t>, <text>). The editor skips any other element inside a paragraph together with
+/// everything in it.
 /// @param tag The tag name
 /// @return true if the element's text belongs to the paragraph
 bool isInlineTextTag(const QString& tag);

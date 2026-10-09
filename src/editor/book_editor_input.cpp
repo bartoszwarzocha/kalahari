@@ -4,6 +4,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <QAbstractTextDocumentLayout>
+#include <QAction>
 #include <QApplication>
 #include <QContextMenuEvent>
 #include <QDrag>
@@ -19,6 +20,7 @@
 #include <QScopedValueRollback>
 #include <QTimer>
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -272,12 +274,12 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         m_preeditString = preeditString;
         m_hasComposition = true;
 
-        // Insert preedit text using QTextCursor
+        // Insert preedit text using QTextCursor, with the format typed text gets
         QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
         if (block.isValid()) {
             QTextCursor cursor(m_textBuffer.get());
             cursor.setPosition(block.position() + m_cursorPosition.offset);
-            cursor.insertText(preeditString);
+            cursor.insertText(preeditString, insertionFormat(cursor));
         }
 
         // Move cursor to end of preedit
@@ -359,6 +361,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
     if (event->button() != Qt::LeftButton) {
         QWidget::mousePressEvent(event);
         return;
+    }
+
+    // A click on an annotation's mark opens the annotation; the cursor stays
+    if (!(event->modifiers() & Qt::ShiftModifier)) {
+        const QString markId = annotationMarkAt(event->position());
+        if (!markId.isEmpty()) {
+            emit annotationMarkClicked(markId);
+            event->accept();
+            return;
+        }
     }
 
     // Set focus on click
@@ -459,8 +471,14 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // An arrow over the selected text, which can be dragged; an I-beam elsewhere
-        const Qt::CursorShape shape = isOverSelectedText(pos) ? Qt::ArrowCursor : Qt::IBeamCursor;
+        // A hand over an annotation's mark, which opens it; an arrow over the selected text,
+        // which can be dragged; an I-beam elsewhere
+        Qt::CursorShape shape = Qt::IBeamCursor;
+        if (!annotationMarkAt(pos).isEmpty()) {
+            shape = Qt::PointingHandCursor;
+        } else if (isOverSelectedText(pos)) {
+            shape = Qt::ArrowCursor;
+        }
         if (cursor().shape() != shape) {
             setCursor(shape);
         }
@@ -745,6 +763,11 @@ void BookEditor::onAutoScrollTimeout()
     }
 }
 
+void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
+{
+    m_contextMenuActions = actions;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -780,6 +803,15 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
+    // A right click outside the selection puts the cursor there, as a click does, so what
+    // the menu does (pasting, adding an annotation) happens where the writer clicked
+    if (event->reason() == QContextMenuEvent::Mouse && !isInSelection(pos)) {
+        const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+        clearSelection();
+        m_selectionAnchor = pos;
+        setCursorPosition(pos);
+    }
+
     // Default context menu
     QMenu menu(this);
 
@@ -792,6 +824,19 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
     if (hasSelection()) {
         menu.addSeparator();
         menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
+    }
+
+    // The application's commands for the text (adding annotations)
+    bool separated = false;
+    for (QAction* action : std::as_const(m_contextMenuActions)) {
+        if (action == nullptr) {
+            continue;
+        }
+        if (!separated) {
+            menu.addSeparator();
+            separated = true;
+        }
+        menu.addAction(action);
     }
 
     // Color mode toggle

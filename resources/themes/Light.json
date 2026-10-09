@@ -47,5 +47,13 @@
     "error": "#CC0000",
     "critical": "#CC0000",
     "background": "#F5F5F5"
+  },
+  "editor": {
+    "annotationCommentLightPaper": "#D98E04",
+    "annotationCommentDarkPaper": "#F2A93B",
+    "annotationTodoLightPaper": "#7B61FF",
+    "annotationTodoDarkPaper": "#A08CFF",
+    "annotationNoteLightPaper": "#1E88E5",
+    "annotationNoteDarkPaper": "#4DA3F0"
   }
 }

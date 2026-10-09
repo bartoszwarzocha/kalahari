@@ -7,6 +7,7 @@
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -184,7 +185,13 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return m_isDirty; },
         [this](bool dirty) { setDirty(dirty); },
         [this]() { updateWindowTitle(); },
-        [this]() { return hasUnsavedChanges(); },
+        [this]() {
+            // An annotation being written is kept before the documents are saved or closed
+            if (m_annotationsCoordinator) {
+                m_annotationsCoordinator->finishWriting();
+            }
+            return hasUnsavedChanges();
+        },
         this
     );
     // Connect DocumentCoordinator signals
@@ -213,6 +220,23 @@ MainWindow::MainWindow(QWidget* parent)
         core::Logger::getInstance().debug("MainWindow: Reset status bar statistics on document close");
     });
     logger.debug("MainWindow: DocumentCoordinator created");
+
+    // The annotation commands and the Annotations panel; a chapter is opened as from the
+    // Navigator
+    m_annotationsCoordinator = new AnnotationsCoordinator(
+        m_dockCoordinator->annotationsPanel(),
+        m_dockCoordinator->annotationsDock(),
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::BookElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(
+                    elementId, QString::fromStdString(element->getTitle()));
+            }
+        },
+        statusBar(),
+        this);
+    m_annotationsCoordinator->connectCommands();
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
@@ -278,6 +302,9 @@ MainWindow::~MainWindow() {
     if (m_navigatorCoordinator) {
         disconnect(m_navigatorCoordinator, nullptr, this, nullptr);
     }
+    if (m_annotationsCoordinator) {
+        disconnect(m_annotationsCoordinator, nullptr, this, nullptr);
+    }
 
     // Block signals to prevent any delivery during child destruction
     blockSignals(true);
@@ -313,8 +340,15 @@ void MainWindow::registerCommands() {
     callbacks.onNewProject = [this]() { if (m_documentCoordinator) m_documentCoordinator->onNewProject(); };
     callbacks.onOpenDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenDocument(); };
     callbacks.onOpenStandaloneFile = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenStandaloneFile(); };
-    callbacks.onSaveDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onSaveDocument(); };
-    callbacks.onSaveAsDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument(); };
+    // An annotation being written is saved with the document
+    callbacks.onSaveDocument = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
+    };
+    callbacks.onSaveAsDocument = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument();
+    };
     callbacks.onCloseDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onCloseDocument(); };
     callbacks.onImportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onImportArchive(); };
     callbacks.onExportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onExportArchive(); };
@@ -344,9 +378,6 @@ void MainWindow::registerCommands() {
     callbacks.onAlignCenter = [this]() { onAlignCenter(); };
     callbacks.onAlignRight = [this]() { onAlignRight(); };
     callbacks.onAlignJustify = [this]() { onAlignJustify(); };
-
-    // Insert commands (OpenSpec #00042 Phase 7.9)
-    callbacks.onInsertComment = [this]() { onInsertComment(); };
 
     // View Mode commands (OpenSpec #00042 Phase 7.3)
     callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
@@ -758,20 +789,6 @@ void MainWindow::onAlignJustify() {
 }
 
 // =============================================================================
-// Insert Actions (OpenSpec #00042 Phase 7.9)
-// =============================================================================
-
-void MainWindow::onInsertComment() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Insert Comment");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->insertComment();
-    }
-}
-
-// =============================================================================
 // View Mode Actions (OpenSpec #00042 Phase 7.3)
 // =============================================================================
 
@@ -869,6 +886,7 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
     if (EditorPanel* editor = getCurrentEditor(); editor && editor->getBookEditor()) {
         editor->getBookEditor()->setFocus();
     }
+
 
     auto& registry = CommandRegistry::getInstance();
     registry.updateActionState("view.mode.distraction-free");
@@ -1049,6 +1067,11 @@ void MainWindow::createDocks() {
         QWidget* widget = centralTabs->widget(index);
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
+        // An annotation being written in this tab is kept first
+        if (editor && m_annotationsCoordinator) {
+            m_annotationsCoordinator->finishWriting(editor->getBookEditor());
+        }
+
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
         if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
             auto reply = QMessageBox::question(
@@ -1127,6 +1150,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::currentPageChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::contentChanged, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1136,6 +1160,13 @@ void MainWindow::createDocks() {
                         this, [this](const editor::CursorPosition&) {
                     if (m_actionStateDebounceTimer) {
                         m_actionStateDebounceTimer->start();  // Restart timer on each move
+                    }
+                });
+                // Also a change with the cursor where it was, such as one made in the
+                // Annotations panel: Undo is to be enabled for it
+                connect(bookEditor, &editor::BookEditor::contentChanged, this, [this]() {
+                    if (m_actionStateDebounceTimer) {
+                        m_actionStateDebounceTimer->start();
                     }
                 });
                 connect(bookEditor, &editor::BookEditor::viewModeChanged,
@@ -1269,6 +1300,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // Single source of truth for all unsaved-changes prompts (content + structure
     // + standalone tabs). Fixes Bug#3 - previously divergent OR of competing flags.
     auto& pm = core::ProjectManager::getInstance();
+
+    // An annotation being written is kept first
+    if (m_annotationsCoordinator) {
+        m_annotationsCoordinator->finishWriting();
+    }
 
     if (hasUnsavedChanges()) {
         const QStringList names = m_documentCoordinator
