@@ -1,0 +1,41 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "action",
+      "name": { "pl": "Akcja", "en": "Action" },
+      "properties": { "fontFamily": "Courier New", "fontSize": 12, "lineHeight": 1.0,
+                      "alignment": "left", "firstLineIndent": 0, "spaceBefore": 12,
+                      "spaceAfter": 0 }
+    },
+    {
+      "id": "scene_heading",
+      "name": { "pl": "Nagłówek sceny", "en": "Scene heading" },
+      "base_style": "action", "next_style": "action",
+      "properties": { "spaceBefore": 24 }
+    },
+    {
+      "id": "character_cue",
+      "name": { "pl": "Postać", "en": "Character" },
+      "base_style": "action", "next_style": "dialogue",
+      "properties": { "leftMargin": 158 }
+    },
+    {
+      "id": "parenthetical",
+      "name": { "pl": "Wtrącenie", "en": "Parenthetical" },
+      "base_style": "action", "next_style": "dialogue",
+      "properties": { "leftMargin": 115, "rightMargin": 137, "spaceBefore": 0 }
+    },
+    {
+      "id": "dialogue",
+      "name": { "pl": "Dialog", "en": "Dialogue" },
+      "base_style": "action", "next_style": "action",
+      "properties": { "leftMargin": 72, "rightMargin": 108, "spaceBefore": 0 }
+    },
+    {
+      "id": "transition",
+      "name": { "pl": "Przejście", "en": "Transition" },
+      "base_style": "action", "next_style": "scene_heading",
+      "properties": { "alignment": "right" }
+    }
+  ]
+}

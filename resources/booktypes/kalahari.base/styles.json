@@ -1,0 +1,53 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "normal",
+      "name": { "pl": "Normalny", "en": "Normal" },
+      "properties": { "fontSize": 12, "lineHeight": 1.5, "alignment": "justify",
+                      "firstLineIndent": 18 }
+    },
+    {
+      "id": "heading_1",
+      "name": { "pl": "Nagłówek 1", "en": "Heading 1" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "fontSize": 20, "bold": true, "alignment": "left", "firstLineIndent": 0,
+                      "lineHeight": 1.2, "spaceBefore": 24, "spaceAfter": 12 }
+    },
+    {
+      "id": "heading_2",
+      "name": { "pl": "Nagłówek 2", "en": "Heading 2" },
+      "base_style": "heading_1", "next_style": "normal",
+      "properties": { "fontSize": 16, "spaceBefore": 18, "spaceAfter": 9 }
+    },
+    {
+      "id": "heading_3",
+      "name": { "pl": "Nagłówek 3", "en": "Heading 3" },
+      "base_style": "heading_1", "next_style": "normal",
+      "properties": { "fontSize": 14, "spaceBefore": 12, "spaceAfter": 6 }
+    },
+    {
+      "id": "quote",
+      "name": { "pl": "Cytat", "en": "Quote" },
+      "base_style": "normal",
+      "properties": { "italic": true, "firstLineIndent": 0, "leftMargin": 36, "rightMargin": 36,
+                      "spaceBefore": 6, "spaceAfter": 6 }
+    },
+    {
+      "id": "dialogue",
+      "name": { "pl": "Dialog", "en": "Dialogue" },
+      "base_style": "normal"
+    }
+  ],
+  "character_styles": [
+    {
+      "id": "emphasis",
+      "name": { "pl": "Wyróżnienie", "en": "Emphasis" },
+      "properties": { "italic": true }
+    },
+    {
+      "id": "strong",
+      "name": { "pl": "Mocne wyróżnienie", "en": "Strong emphasis" },
+      "properties": { "bold": true }
+    }
+  ]
+}

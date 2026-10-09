@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "id": "kalahari.base",
+  "version": "1.0",
+  "role": "shared",
+  "name": { "pl": "Podstawa", "en": "Base" },
+  "description": {
+    "pl": "Wspólne rodzaje elementów i podstawowe style, z których korzystają typy książek.",
+    "en": "Common element kinds and basic styles that book types build on."
+  },
+  "icon": "project.book",
+  "kinds": {
+    "title_page": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Strona tytułowa", "en": "Title page" },
+      "plural": { "pl": "Strony tytułowe", "en": "Title pages" }
+    },
+    "copyright": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Strona redakcyjna", "en": "Copyright page" },
+      "plural": { "pl": "Strony redakcyjne", "en": "Copyright pages" }
+    },
+    "dedication": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Dedykacja", "en": "Dedication" },
+      "plural": { "pl": "Dedykacje", "en": "Dedications" }
+    },
+    "motto": {
+      "form": "text", "places": ["front", "part"], "icon": "format.style.quote",
+      "name": { "pl": "Motto", "en": "Epigraph" },
+      "plural": { "pl": "Motta", "en": "Epigraphs" }
+    },
+    "toc": {
+      "form": "window", "editor": "toc", "generated": true,
+      "places": ["front", "back"], "limit": 1, "icon": "format.numbering",
+      "name": { "pl": "Spis treści", "en": "Table of contents" },
+      "plural": { "pl": "Spisy treści", "en": "Tables of contents" }
+    },
+    "preface": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Przedmowa", "en": "Preface" },
+      "plural": { "pl": "Przedmowy", "en": "Prefaces" }
+    },
+    "introduction": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Wstęp", "en": "Introduction" },
+      "plural": { "pl": "Wstępy", "en": "Introductions" }
+    },
+    "chapter": {
+      "form": "text", "places": ["main", "part"], "icon": "template.chapter",
+      "name": { "pl": "Rozdział", "en": "Chapter" },
+      "plural": { "pl": "Rozdziały", "en": "Chapters" },
+      "title": { "pl": "Rozdział %n", "en": "Chapter %n" }
+    },
+    "part": {
+      "form": "group", "places": ["main"], "icon": "structure.part",
+      "name": { "pl": "Część", "en": "Part" },
+      "plural": { "pl": "Części", "en": "Parts" },
+      "title": { "pl": "Część %n", "en": "Part %n" }, "numbering": "roman"
+    },
+    "afterword": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Posłowie", "en": "Afterword" },
+      "plural": { "pl": "Posłowia", "en": "Afterwords" }
+    },
+    "acknowledgments": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Podziękowania", "en": "Acknowledgments" },
+      "plural": { "pl": "Podziękowania", "en": "Acknowledgments" }
+    },
+    "glossary": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Słowniczek", "en": "Glossary" },
+      "plural": { "pl": "Słowniczki", "en": "Glossaries" }
+    },
+    "about_author": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Nota o autorze", "en": "About the author" },
+      "plural": { "pl": "Noty o autorze", "en": "About the author" }
+    },
+    "work_note": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Notatka robocza", "en": "Working note" },
+      "plural": { "pl": "Notatki robocze", "en": "Working notes" },
+      "title": { "pl": "Notatka %n", "en": "Note %n" }
+    },
+    "mindmap": {
+      "form": "window", "editor": "mindmap", "places": ["workshop"], "icon": "template.mindmap",
+      "name": { "pl": "Mapa myśli", "en": "Mind map" },
+      "plural": { "pl": "Mapy myśli", "en": "Mind maps" },
+      "title": { "pl": "Mapa myśli %n", "en": "Mind map %n" }
+    },
+    "timeline": {
+      "form": "window", "editor": "timeline", "places": ["workshop"], "icon": "template.timeline",
+      "name": { "pl": "Oś czasu", "en": "Timeline" },
+      "plural": { "pl": "Osie czasu", "en": "Timelines" },
+      "title": { "pl": "Oś czasu %n", "en": "Timeline %n" }
+    },
+    "character": {
+      "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.character",
+      "name": { "pl": "Postać", "en": "Character" },
+      "plural": { "pl": "Postacie", "en": "Characters" },
+      "title": { "pl": "Postać %n", "en": "Character %n" }
+    },
+    "location": {
+      "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.location",
+      "name": { "pl": "Miejsce", "en": "Location" },
+      "plural": { "pl": "Miejsca", "en": "Locations" },
+      "title": { "pl": "Miejsce %n", "en": "Location %n" }
+    },
+    "item": {
+      "form": "window", "editor": "card", "places": ["workshop"], "icon": "book.newItem",
+      "name": { "pl": "Przedmiot", "en": "Item" },
+      "plural": { "pl": "Przedmioty", "en": "Items" },
+      "title": { "pl": "Przedmiot %n", "en": "Item %n" }
+    },
+    "material": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.attachFile",
+      "name": { "pl": "Materiał", "en": "Material" },
+      "plural": { "pl": "Materiały", "en": "Materials" }
+    }
+  },
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
+  "main":     ["chapter", "part"],
+  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
+  "workshop": ["work_note", "mindmap", "timeline", "character", "location", "item", "material"],
+  "primary":  "chapter",
+  "styles":   "styles.json"
+}
