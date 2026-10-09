@@ -38,7 +38,7 @@ QColor(255, 0, 0)  // hardcoded color in UI code
 Theme::instance().getColor()  // DOES NOT EXIST!
 ```
 Literal colors are allowed only where theme defaults are defined (`resources/themes/*.json`,
-`fallback_theme.cpp`, `theme.cpp`).
+`theme.cpp`, `theme_manager.cpp`).
 
 ## 3. Configuration
 

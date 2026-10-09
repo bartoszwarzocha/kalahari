@@ -23,7 +23,7 @@ description: Code review quality checklist. Use before commits and during code r
 ### Colors
 - [ ] Colors via `core::ArtProvider::getInstance().getPrimaryColor()`?
 - [ ] Or via `core::ThemeManager::getInstance().getCurrentTheme()`?
-- [ ] NO hardcoded `QColor(r, g, b)` outside theme defaults (`fallback_theme.cpp`, `theme.cpp`, theme JSON)?
+- [ ] NO hardcoded `QColor(r, g, b)` outside theme defaults (`theme.cpp`, `theme_manager.cpp`, theme JSON)?
 
 ### Logging
 - [ ] Using `core::Logger::getInstance().info/debug/error()`?

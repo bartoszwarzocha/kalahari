@@ -83,7 +83,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_schema.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cmd_line_parser.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/diagnostic_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/extension_points.cpp
     ${CMAKE_SOURCE_DIR}/src/core/event_bus.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_manager.cpp
