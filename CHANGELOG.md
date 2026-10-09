@@ -389,6 +389,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
+  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
+  to the end of the File menu. It now finds Close Book by its command; the submenu itself
+  moved from the core to the GUI (the core keeps only the list of books).
+
 - **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
   toolbar context menu were connected without an owner, so a toolbar shown or hidden after
   its menu item was deleted reached freed memory. Each connection now ends with its menu
