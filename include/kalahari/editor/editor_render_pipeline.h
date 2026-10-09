@@ -289,8 +289,9 @@ public:
     /// @return Its id; empty when no mark is there
     QString annotationMarkAt(const QPointF& point) const;
 
-    /// @brief The text of the annotation whose mark is at a widget point (empty: none)
-    QString annotationMarkTextAt(const QPointF& point) const;
+    /// @brief The mark at a widget point, with its annotation's text and author
+    /// @return std::nullopt when no mark is there
+    std::optional<AnnotationMark> annotationMarkDetailsAt(const QPointF& point) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
     ///

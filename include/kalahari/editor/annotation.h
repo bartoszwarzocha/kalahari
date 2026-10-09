@@ -76,6 +76,7 @@ struct AnnotationMark {
     AnnotationKind kind = AnnotationKind::Comment;  ///< The annotation's kind
     QString id;                                     ///< The annotation's id
     QString text;                                   ///< The annotation's text
+    QString author;                                 ///< Who made the annotation
 
     bool operator==(const AnnotationMark& other) const = default;
 };

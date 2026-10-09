@@ -24,6 +24,11 @@ constexpr qreal CORNER_RADIUS = 8.0;    ///< The rounded corners of the card
 constexpr int OUTLINE_WIDTH = 2;        ///< The outline of the selected card
 constexpr int QUIET_OUTLINE_WIDTH = 1;  ///< Its outline while the keys are elsewhere
 
+/// @brief Show a text in a label, shortened to the room the label has
+void setElidedText(QLabel* label, const QString& text) {
+    label->setText(label->fontMetrics().elidedText(text, Qt::ElideRight, label->width()));
+}
+
 }  // namespace
 
 AnnotationCard::AnnotationCard(QWidget* parent)
@@ -79,6 +84,13 @@ AnnotationCard::AnnotationCard(QWidget* parent)
     header->addWidget(m_menuButton);
 
     layout->addLayout(header);
+
+    // Who made it, above the text, as comments in a word processor show it
+    m_authorLabel = new QLabel(this);
+    m_authorLabel->setObjectName(QStringLiteral("annotationAuthor"));
+    m_authorLabel->setFont(kindFont);
+    m_authorLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    layout->addWidget(m_authorLabel);
 
     // The text, as it was written
     m_textLabel = new QLabel(this);
@@ -158,25 +170,37 @@ void AnnotationCard::updateContent() {
         m_doneBox->setChecked(todo && annotation.done);
     }
 
-    // Day and month (with the year when it is not this one); the time in the tooltip
+    // Day and month (with the year when it is not this one). The tooltip says who made it
+    // and when, and the chapter's whole title: the same wherever the card is pointed at
+    const QString author = annotation.author.trimmed();
     QString date;
-    QString toolTip = annotation.author;
+    QString made = author;
     if (annotation.created.isValid()) {
         const QDateTime local = annotation.created.toLocalTime();
         const QLocale locale;
         const bool thisYear = local.date().year() == QDate::currentDate().year();
         date = locale.toString(local.date(), thisYear ? tr("dd.MM") : tr("dd.MM.yyyy"));
         const QString when = locale.toString(local, QLocale::ShortFormat);
-        toolTip = toolTip.isEmpty() ? when : tr("%1, %2").arg(toolTip, when);
+        made = made.isEmpty() ? when : tr("%1, %2").arg(made, when);
     }
     m_dateLabel->setText(date);
-    setToolTip(toolTip);
+    QStringList toolTip;
+    if (!made.isEmpty()) {
+        toolTip << made;
+    }
+    if (!m_entry.chapterTitle.isEmpty()) {
+        toolTip << m_entry.chapterTitle;
+    }
+    setToolTip(toolTip.join(QLatin1Char('\n')));
+
+    // The author's line only when there is one
+    m_authorLabel->setVisible(!author.isEmpty());
 
     // One without text says so
     m_textLabel->setText(annotation.text.trimmed().isEmpty() ? tr("(no text)") : annotation.text);
 
     updateTextColors();
-    updateChapterLabel();
+    updateElidedLabels();
 }
 
 void AnnotationCard::updateTextColors() {
@@ -187,7 +211,8 @@ void AnnotationCard::updateTextColors() {
     // In a style sheet, the colors stay through every polish of the panel's style
     const QString style = QStringLiteral("QLabel#annotationKind { color: %1; }"
                                          "QLabel#annotationMeta { color: %2; }"
-                                         "QLabel#annotationText { color: %3; }")
+                                         "QLabel#annotationAuthor, QLabel#annotationText"
+                                         " { color: %3; }")
                               .arg(m_colors.kindName.name(), m_colors.secondary.name(),
                                    textColor().name());
     if (style != m_appliedStyle) {
@@ -196,11 +221,9 @@ void AnnotationCard::updateTextColors() {
     }
 }
 
-void AnnotationCard::updateChapterLabel() {
-    const QString title = m_entry.chapterTitle;
-    m_chapterLabel->setText(
-        m_chapterLabel->fontMetrics().elidedText(title, Qt::ElideRight, m_chapterLabel->width()));
-    m_chapterLabel->setToolTip(title);
+void AnnotationCard::updateElidedLabels() {
+    setElidedText(m_chapterLabel, m_entry.chapterTitle);
+    setElidedText(m_authorLabel, m_entry.annotation.author.trimmed());
 }
 
 void AnnotationCard::showMenu() {
@@ -283,7 +306,7 @@ void AnnotationCard::mouseDoubleClickEvent(QMouseEvent* event) {
 
 void AnnotationCard::resizeEvent(QResizeEvent* event) {
     QFrame::resizeEvent(event);
-    updateChapterLabel();
+    updateElidedLabels();
 }
 
 }  // namespace kalahari::gui

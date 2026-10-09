@@ -184,6 +184,11 @@ signals:
     /// @param partId Group (part) ID
     void requestPartProperties(const QString& partId);
 
+    /// @brief Request to bring the Properties panel to the front
+    /// @note Only the Properties command of the context menu asks for it. Choosing an
+    ///       element only fills the panel, so the tab on top of its group stays there.
+    void requestPropertiesPanel();
+
     /// @brief Emitted when a file of the "Other Files" section is opened
     /// @param filePath Absolute file path
     void standaloneFileSelected(const QString& filePath);

@@ -13,7 +13,6 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
-#include <QDockWidget>
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -151,9 +150,8 @@ struct Navigator {
     gui::NavigatorPanel* panel = new gui::NavigatorPanel(&window);
     gui::PropertiesPanel* properties = new gui::PropertiesPanel(&window);
     QTabWidget* tabs = new QTabWidget(&window);
-    QDockWidget* dock = new QDockWidget(&window);
     QStatusBar* statusBar = new QStatusBar(&window);
-    gui::NavigatorCoordinator coordinator{panel, properties, tabs, dock, statusBar, &window};
+    gui::NavigatorCoordinator coordinator{panel, properties, tabs, statusBar, &window};
 
     Navigator() { coordinator.refreshNavigator(); }
 

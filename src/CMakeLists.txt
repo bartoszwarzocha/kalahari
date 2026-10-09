@@ -167,6 +167,7 @@ set(KALAHARI_SOURCES
     gui/settings/general_pages.cpp
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
+    gui/settings/annotations_page.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)

@@ -65,8 +65,8 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
 
-    // Raise Properties tab (default visible)
-    m_propertiesDock->raise();
+    // The Annotations tab is on top by default
+    m_annotationsDock->raise();
 
     // Setup VIEW menu panel actions
     setupViewMenuActions();
@@ -174,6 +174,13 @@ void DockCoordinator::createNavigatorDock() {
             this, &DockCoordinator::navigatorRequestSectionProperties);
     connect(m_navigatorPanel, &NavigatorPanel::requestPartProperties,
             this, &DockCoordinator::navigatorRequestPartProperties);
+
+    // Only the Properties command brings the panel to the front; choosing an element
+    // only fills it, so a panel on top of the same tab group (Annotations) stays there
+    connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesPanel, this, [this]() {
+        m_propertiesDock->show();
+        m_propertiesDock->raise();
+    });
 
     // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
     connect(m_navigatorPanel, &NavigatorPanel::requestAddChapter,
@@ -455,9 +462,6 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
 
-    // Raise Properties tab
-    m_propertiesDock->raise();
-
     // Show docks (LogDock only in diagnostic/dev mode)
     m_navigatorDock->show();
     m_propertiesDock->show();
@@ -465,6 +469,9 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_searchDock->show();
     m_assistantDock->show();
     m_annotationsDock->show();
+
+    // The Annotations tab is on top, as at the first start
+    m_annotationsDock->raise();
 
     // Set default column proportions: 20% | 60% | 20%
     int totalWidth = m_mainWindow->width();

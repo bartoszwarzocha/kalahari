@@ -104,7 +104,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "Panels Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via menu)
-        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.log"}
+        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.annotations", "view.log"}
     };
 
     // Tools Toolbar

@@ -238,3 +238,28 @@ TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive 
     toolbar->setVisible(true);
     CHECK(toolbar->isVisible());
 }
+
+TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", "[gui][toolbar]") {
+    // The user's test: the Annotations panel (F9) had no button on the Panels toolbar
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+    QToolBar* toolbar = manager.getToolbar("view");
+    REQUIRE(toolbar != nullptr);
+
+    // The very actions of View > Panels, so a button is checked with its menu item
+    const QList<QAction*> actions = toolbar->actions();
+    for (const char* id : {"view.navigator", "view.properties", "view.search", "view.assistant",
+                           "view.annotations", "view.log"}) {
+        INFO(id);
+        CHECK(actions.contains(registry.getAction(std::string(id))));
+        CHECK(kalahari::core::IconRegistry::getInstance().hasIcon(QString::fromLatin1(id)));
+    }
+    // Next to the Assistant panel, with which it shares the tabs on the right
+    CHECK(actions.indexOf(registry.getAction(std::string("view.annotations"))) ==
+          actions.indexOf(registry.getAction(std::string("view.assistant"))) + 1);
+}
