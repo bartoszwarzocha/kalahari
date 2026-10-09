@@ -3,6 +3,7 @@
 
 #include <kalahari/core/cmd_line_parser.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/version.h>
 #include <QCommandLineOption>
 #include <QCoreApplication>
 #include <algorithm>
@@ -32,7 +33,7 @@ CmdLineParser::CmdLineParser(int argc, wchar_t** argv)
 
 void CmdLineParser::setApplicationDescription(const QString& appName, const QString& appDescription) {
     QCoreApplication::setApplicationName(appName);
-    QCoreApplication::setApplicationVersion("0.3.0-alpha");
+    QCoreApplication::setApplicationVersion(QString::fromLatin1(VERSION_STRING));
     m_parser.setApplicationDescription(appDescription);
     Logger::getInstance().debug("Set application description: {}", appName.toStdString());
 }

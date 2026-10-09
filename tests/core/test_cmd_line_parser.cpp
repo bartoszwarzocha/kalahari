@@ -3,6 +3,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/cmd_line_parser.h>
+#include <kalahari/version.h>
+
+#include <QCoreApplication>
+#include <QString>
 
 using namespace kalahari::core;
 
@@ -111,4 +115,15 @@ TEST_CASE("CmdLineParser edge cases", "[cmdline]") {
     // SECTION "Switch not added to parser" REMOVED
     // Reason: parse() failure triggers wxMessageBox on Windows due to wxCMD_LINE_OPTION_HELP flag
     // This shows GUI dialog during tests, which breaks console-only CI/CD execution
+}
+
+TEST_CASE("The program version comes from the project version", "[cmdline][version]") {
+    // One source: project(VERSION) in CMakeLists.txt, plus the release stage
+    const QString shown = QString::fromLatin1(kalahari::VERSION_STRING);
+    REQUIRE(shown.startsWith(QString::fromLatin1(kalahari::VERSION)));
+
+    char* argv[] = { const_cast<char*>("kalahari") };
+    CmdLineParser parser(1, argv);
+    parser.setApplicationDescription("Kalahari", "Writer's IDE");
+    REQUIRE(QCoreApplication::applicationVersion() == shown);
 }
