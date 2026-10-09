@@ -178,9 +178,9 @@ TEST_CASE("Settings dialog: the editor options the editor does not use yet are g
     CHECK(tabSize->toolTip() == QStringLiteral("Coming in future version"));
 
     // The pages keep their left and right margins, whatever the mirror margins setting says
-    const QDoubleSpinBox* left = marginOf(dialog, QStringLiteral("Left margin in millimeters (0-100)"));
-    const QDoubleSpinBox* inner = marginOf(dialog, QStringLiteral("Inner margin in millimeters (0-100)"));
-    const QDoubleSpinBox* outer = marginOf(dialog, QStringLiteral("Outer margin in millimeters (0-100)"));
+    const QDoubleSpinBox* left = marginOf(dialog, QStringLiteral("Left margin of the page (up to 100 mm)"));
+    const QDoubleSpinBox* inner = marginOf(dialog, QStringLiteral("Inner margin of the page (up to 100 mm)"));
+    const QDoubleSpinBox* outer = marginOf(dialog, QStringLiteral("Outer margin of the page (up to 100 mm)"));
     REQUIRE(left != nullptr);
     REQUIRE(inner != nullptr);
     REQUIRE(outer != nullptr);

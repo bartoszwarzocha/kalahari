@@ -1524,19 +1524,20 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     <message>
         <source>Warning: These settings are for advanced users and developers.
 Incorrect configuration may affect application stability.</source>
-        <translation type="unfinished"></translation>
+        <translation>Uwaga: te ustawienia są przeznaczone dla zaawansowanych użytkowników i programistów.
+Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translation>
     </message>
     <message>
         <source>Diagnostic Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>Narzędzia diagnostyczne</translation>
     </message>
     <message>
         <source>Enable Diagnostic Menu</source>
-        <translation type="unfinished"></translation>
+        <translation>Włącz menu diagnostyczne</translation>
     </message>
     <message>
         <source>Shows additional menu with debugging tools</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuje dodatkowe menu z narzędziami do debugowania</translation>
     </message>
     <message>
         <source>When enabled, a &apos;Diagnostic&apos; menu appears in the menu bar with:
@@ -1545,36 +1546,43 @@ Incorrect configuration may affect application stability.</source>
 - Component status
 
 The menu stays for this session only.</source>
-        <translation type="unfinished"></translation>
+        <translation>Po włączeniu na pasku menu pojawia się menu „Diagnostyka” z:
+- informacjami o systemie
+- podglądem dziennika
+- stanem składników
+
+Menu zostaje tylko do końca tej sesji.</translation>
     </message>
     <message>
         <source>Are you sure you want to enable diagnostic menu?
 
 This exposes advanced debugging tools.</source>
-        <translation type="unfinished"></translation>
+        <translation>Czy na pewno włączyć menu diagnostyczne?
+
+Udostępnia ono zaawansowane narzędzia do debugowania.</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::AdvancedLogPage</name>
     <message>
         <source>Log Panel Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustawienia panelu dziennika</translation>
     </message>
     <message>
         <source> lines</source>
-        <translation type="unfinished"></translation>
+        <translation> wierszy</translation>
     </message>
     <message>
         <source>Higher values use more memory but keep more history</source>
-        <translation type="unfinished"></translation>
+        <translation>Większa wartość zajmuje więcej pamięci, ale zachowuje dłuższą historię</translation>
     </message>
     <message>
         <source>Buffer Size (lines):</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar bufora (wiersze):</translation>
     </message>
     <message>
         <source>Maximum number of log entries to keep in memory</source>
-        <translation type="unfinished"></translation>
+        <translation>Największa liczba wpisów dziennika przechowywanych w pamięci</translation>
     </message>
     <message>
         <source>The log panel displays application messages in real-time.
@@ -1583,11 +1591,16 @@ Buffer size determines how many log entries are kept in memory.
 When the buffer is full, oldest entries are removed.
 
 Note: Log files are always saved to disk regardless of this setting.</source>
-        <translation type="unfinished"></translation>
+        <translation>Panel dziennika pokazuje komunikaty programu na bieżąco.
+
+Rozmiar bufora określa, ile wpisów dziennika jest przechowywanych w pamięci.
+Gdy bufor się zapełni, najstarsze wpisy są usuwane.
+
+Uwaga: pliki dziennika są zawsze zapisywane na dysku, niezależnie od tego ustawienia.</translation>
     </message>
     <message>
         <source>Log File</source>
-        <translation type="unfinished"></translation>
+        <translation>Plik dziennika</translation>
     </message>
     <message>
         <source>Log files are stored in the application directory:
@@ -1597,7 +1610,13 @@ Use the log panel toolbar buttons to:
 • Open log folder in file explorer
 • Copy log contents to clipboard
 • Clear the log panel display</source>
-        <translation type="unfinished"></translation>
+        <translation>Pliki dziennika są przechowywane w folderze programu:
+• kalahari.log – dziennik bieżącej sesji
+
+Przyciski na pasku panelu dziennika pozwalają:
+• otworzyć folder dziennika w menedżerze plików
+• skopiować zawartość dziennika do schowka
+• wyczyścić panel dziennika</translation>
     </message>
 </context>
 <context>
@@ -1765,7 +1784,7 @@ Use the log panel toolbar buttons to:
     <name>kalahari::gui::AppearanceGeneralPage</name>
     <message>
         <source>General Appearance</source>
-        <translation type="unfinished"></translation>
+        <translation>Wygląd ogólny</translation>
     </message>
     <message>
         <source>Language:</source>
@@ -1773,11 +1792,11 @@ Use the log panel toolbar buttons to:
     </message>
     <message>
         <source> pt</source>
-        <translation type="unfinished"></translation>
+        <translation> pt</translation>
     </message>
     <message>
         <source>UI Font Size:</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar czcionki interfejsu:</translation>
     </message>
 </context>
 <context>
@@ -1795,11 +1814,11 @@ Use the log panel toolbar buttons to:
     <name>kalahari::gui::ColorConfigWidget</name>
     <message>
         <source>Click to select color</source>
-        <translation type="unfinished"></translation>
+        <translation>Kliknij, aby wybrać kolor</translation>
     </message>
     <message>
         <source>Select Color</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz kolor</translation>
     </message>
 </context>
 <context>
@@ -1842,43 +1861,43 @@ do: „%2”</translation>
     <name>kalahari::gui::DashboardPage</name>
     <message>
         <source>Dashboard Content</source>
-        <translation type="unfinished"></translation>
+        <translation>Zawartość Pulpitu</translation>
     </message>
     <message>
         <source>Show Kalahari News</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuj wiadomości o Kalahari</translation>
     </message>
     <message>
         <source>Display news and updates section on Dashboard</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuje na Pulpicie sekcję wiadomości i aktualizacji</translation>
     </message>
     <message>
         <source>Show Recent Files</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuj ostatnie pliki</translation>
     </message>
     <message>
         <source>Display recently opened projects on Dashboard</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuje na Pulpicie ostatnio otwierane projekty</translation>
     </message>
     <message>
         <source>Number of items to show in News and Recent Files sections (3-9)</source>
-        <translation type="unfinished"></translation>
+        <translation>Liczba pozycji w sekcjach wiadomości i ostatnich plików (3–9)</translation>
     </message>
     <message>
         <source>Maximum items per section:</source>
-        <translation type="unfinished"></translation>
+        <translation>Najwięcej pozycji w sekcji:</translation>
     </message>
     <message>
         <source> px</source>
-        <translation type="unfinished"></translation>
+        <translation> px</translation>
     </message>
     <message>
         <source>Size of icons in Dashboard panels (24-64 pixels)</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar ikon w panelach Pulpitu (24–64 piksele)</translation>
     </message>
     <message>
         <source>Icon size:</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar ikon:</translation>
     </message>
 </context>
 <context>
@@ -2559,23 +2578,24 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     <message>
         <source>Configure editor colors for light and dark mode.
 Editor color mode is independent from the application theme.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustaw kolory edytora w trybie jasnym i ciemnym.
+Tryb kolorów edytora nie zależy od motywu programu.</translation>
     </message>
     <message>
         <source>Use dark mode for editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Ciemny tryb edytora</translation>
     </message>
     <message>
         <source>Toggle between light and dark editor colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Przełącza między jasnymi a ciemnymi kolorami edytora</translation>
     </message>
     <message>
         <source>Light Mode Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory trybu jasnego</translation>
     </message>
     <message>
         <source>Background</source>
-        <translation type="unfinished"></translation>
+        <translation>Tło</translation>
     </message>
     <message>
         <source>Text</source>
@@ -2583,157 +2603,157 @@ Editor color mode is independent from the application theme.</source>
     </message>
     <message>
         <source>Inactive (Focus mode)</source>
-        <translation type="unfinished"></translation>
+        <translation>Nieaktywny tekst (tryb skupienia)</translation>
     </message>
     <message>
         <source>Dark Mode Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory trybu ciemnego</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
     <message>
         <source>Configure the appearance of the text cursor in the editor.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustaw wygląd kursora tekstu w edytorze.</translation>
     </message>
     <message>
         <source>Cursor Style</source>
-        <translation type="unfinished"></translation>
+        <translation>Kształt kursora</translation>
     </message>
     <message>
         <source>Line (|)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kreska (|)</translation>
     </message>
     <message>
         <source>Block</source>
-        <translation type="unfinished"></translation>
+        <translation>Blok</translation>
     </message>
     <message>
         <source>Underline (_)</source>
-        <translation type="unfinished"></translation>
+        <translation>Podkreślenie (_)</translation>
     </message>
     <message>
         <source>Select the cursor shape:
 - Line: vertical bar (|)
 - Block: rectangle on character
 - Underline: line under character (_)</source>
-        <translation type="unfinished"></translation>
+        <translation>Wybierz kształt kursora:
+- Kreska: pionowa kreska (|)
+- Blok: prostokąt na znaku
+- Podkreślenie: linia pod znakiem (_)</translation>
     </message>
     <message>
         <source>Style:</source>
-        <translation type="unfinished"></translation>
+        <translation>Kształt:</translation>
     </message>
     <message>
         <source>Width of the line cursor (1-5 pixels)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cursor width (px):</source>
-        <translation type="unfinished"></translation>
+        <translation>Szerokość kursora w kształcie kreski (1–5 pikseli)</translation>
     </message>
     <message>
         <source>Cursor Color</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor kursora</translation>
     </message>
     <message>
         <source>Use custom color</source>
-        <translation type="unfinished"></translation>
+        <translation>Własny kolor</translation>
     </message>
     <message>
         <source>When unchecked, cursor uses the text color.
 When checked, cursor uses a custom color.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bez zaznaczenia kursor ma kolor tekstu.
+Po zaznaczeniu kursor ma wybrany kolor.</translation>
     </message>
     <message>
         <source>Custom Color</source>
-        <translation type="unfinished"></translation>
+        <translation>Własny kolor</translation>
     </message>
     <message>
         <source>Custom cursor color (only used when &apos;Use custom color&apos; is checked)</source>
-        <translation type="unfinished"></translation>
+        <translation>Własny kolor kursora (działa tylko po zaznaczeniu opcji „Własny kolor”)</translation>
     </message>
     <message>
         <source>Blinking</source>
-        <translation type="unfinished"></translation>
+        <translation>Miganie</translation>
     </message>
     <message>
         <source>Enable cursor blinking</source>
-        <translation type="unfinished"></translation>
+        <translation>Migający kursor</translation>
     </message>
     <message>
         <source>Enable or disable cursor blinking animation</source>
-        <translation type="unfinished"></translation>
+        <translation>Włącza lub wyłącza miganie kursora</translation>
     </message>
     <message>
         <source>Blink interval (100-2000 ms)</source>
-        <translation type="unfinished"></translation>
+        <translation>Czas mignięcia (100–2000 ms)</translation>
     </message>
     <message>
         <source>Blink interval (ms):</source>
-        <translation type="unfinished"></translation>
+        <translation>Czas mignięcia (ms):</translation>
+    </message>
+    <message>
+        <source>Cursor width:</source>
+        <translation>Szerokość kursora:</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::EditorGeneralPage</name>
     <message>
         <source>Editor Font</source>
-        <translation type="unfinished"></translation>
+        <translation>Czcionka edytora</translation>
     </message>
     <message>
         <source>Font Family:</source>
-        <translation type="unfinished"></translation>
+        <translation>Krój czcionki:</translation>
     </message>
     <message>
         <source> pt</source>
-        <translation type="unfinished"></translation>
+        <translation> pt</translation>
     </message>
     <message>
         <source>Font Size:</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiar czcionki:</translation>
     </message>
     <message>
         <source>Editor Behavior</source>
-        <translation type="unfinished"></translation>
+        <translation>Działanie edytora</translation>
     </message>
     <message>
         <source> spaces</source>
-        <translation type="unfinished"></translation>
+        <translation> spacji</translation>
     </message>
     <message>
         <source>Tab Size:</source>
-        <translation type="unfinished"></translation>
+        <translation>Szerokość tabulatora:</translation>
     </message>
     <message>
         <source>Show Line Numbers</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuj numery wierszy</translation>
     </message>
     <message>
         <source>Enable Word Wrap</source>
-        <translation type="unfinished"></translation>
+        <translation>Zawijaj wiersze</translation>
     </message>
     <message>
         <source>Typography</source>
-        <translation type="unfinished"></translation>
+        <translation>Typografia</translation>
     </message>
     <message>
         <source>Multiple of the font&apos;s line height (1.0 = single spacing)</source>
-        <translation type="unfinished"></translation>
+        <translation>Wielokrotność wysokości wiersza czcionki (1,0 = pojedyncza interlinia)</translation>
     </message>
     <message>
         <source>Line Spacing:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> px</source>
-        <translation type="unfinished"></translation>
+        <translation>Interlinia:</translation>
     </message>
     <message>
         <source>Space After Paragraph:</source>
-        <translation type="unfinished"></translation>
+        <translation>Odstęp po akapicie:</translation>
     </message>
     <message>
         <source>Indent First Line:</source>
-        <translation type="unfinished"></translation>
+        <translation>Wcięcie pierwszego wiersza:</translation>
     </message>
     <message>
         <source>Typewriter Scrolling</source>
@@ -2741,183 +2761,176 @@ When checked, cursor uses a custom color.</source>
     </message>
     <message>
         <source>View &gt; Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
-        <translation type="unfinished"></translation>
+        <translation>Widok &gt; Przewijanie jak w maszynie do pisania (Ctrl+3) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
     </message>
     <message>
         <source> % from the top</source>
-        <translation type="unfinished"></translation>
+        <translation> % od góry</translation>
     </message>
     <message>
         <source>Where the line with the cursor stays (50% = middle)</source>
-        <translation type="unfinished"></translation>
+        <translation>Gdzie zostaje wiersz z kursorem (50% = środek)</translation>
     </message>
     <message>
         <source>Cursor Line Height:</source>
-        <translation type="unfinished"></translation>
+        <translation>Wysokość wiersza z kursorem:</translation>
     </message>
     <message>
         <source>Smooth scrolling</source>
-        <translation type="unfinished"></translation>
+        <translation>Płynne przewijanie</translation>
     </message>
     <message>
         <source>Glide to the next line instead of jumping</source>
-        <translation type="unfinished"></translation>
+        <translation>Płynne przejście do następnego wiersza zamiast skoku</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
     <message>
         <source>Configure the page format, the page margins and the text frame border.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustaw format strony, marginesy i ramkę tekstu.</translation>
     </message>
     <message>
         <source>Page</source>
-        <translation type="unfinished"></translation>
+        <translation>Strona</translation>
     </message>
     <message>
         <source>A4 (210 x 297 mm)</source>
-        <translation type="unfinished"></translation>
+        <translation>A4 (210 × 297 mm)</translation>
     </message>
     <message>
         <source>A5 (148 x 210 mm)</source>
-        <translation type="unfinished"></translation>
+        <translation>A5 (148 × 210 mm)</translation>
     </message>
     <message>
         <source>B5 (176 x 250 mm)</source>
-        <translation type="unfinished"></translation>
+        <translation>B5 (176 × 250 mm)</translation>
     </message>
     <message>
         <source>6 x 9 in (152 x 229 mm)</source>
-        <translation type="unfinished"></translation>
+        <translation>6 × 9 cali (152 × 229 mm)</translation>
     </message>
     <message>
         <source>Letter (8.5 x 11 in)</source>
-        <translation type="unfinished"></translation>
+        <translation>Letter (8,5 × 11 cali)</translation>
     </message>
     <message>
         <source>Legal (8.5 x 14 in)</source>
-        <translation type="unfinished"></translation>
+        <translation>Legal (8,5 × 14 cali)</translation>
     </message>
     <message>
         <source>Custom</source>
-        <translation type="unfinished"></translation>
+        <translation>Własny</translation>
     </message>
     <message>
         <source>Format:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> mm</source>
-        <translation type="unfinished"></translation>
+        <translation>Format:</translation>
     </message>
     <message>
         <source>Width:</source>
-        <translation type="unfinished"></translation>
+        <translation>Szerokość:</translation>
     </message>
     <message>
         <source>Height:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> px</source>
-        <translation type="unfinished"></translation>
+        <translation>Wysokość:</translation>
     </message>
     <message>
         <source>Space between the pages and around them, at 100% zoom</source>
-        <translation type="unfinished"></translation>
+        <translation>Odstęp między stronami i wokół nich przy powiększeniu 100%</translation>
     </message>
     <message>
         <source>Gap between pages:</source>
-        <translation type="unfinished"></translation>
+        <translation>Odstęp między stronami:</translation>
     </message>
     <message>
         <source>Show page numbers</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuj numery stron</translation>
     </message>
     <message>
         <source>Page Margins</source>
-        <translation type="unfinished"></translation>
+        <translation>Marginesy strony</translation>
     </message>
     <message>
         <source>Top:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Top margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
+        <translation>Górny:</translation>
     </message>
     <message>
         <source>Bottom:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bottom margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
+        <translation>Dolny:</translation>
     </message>
     <message>
         <source>Left:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Left margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
+        <translation>Lewy:</translation>
     </message>
     <message>
         <source>Right:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Right margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
+        <translation>Prawy:</translation>
     </message>
     <message>
         <source>Mirror margins (for book binding)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inner margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Outer margin in millimeters (0-100)</source>
-        <translation type="unfinished"></translation>
+        <translation>Marginesy lustrzane (do oprawy książki)</translation>
     </message>
     <message>
         <source>Inner (binding):</source>
-        <translation type="unfinished"></translation>
+        <translation>Wewnętrzny (od grzbietu):</translation>
     </message>
     <message>
         <source>Outer (edge):</source>
-        <translation type="unfinished"></translation>
+        <translation>Zewnętrzny (od krawędzi):</translation>
     </message>
     <message>
         <source>Text Frame Border</source>
-        <translation type="unfinished"></translation>
+        <translation>Ramka tekstu</translation>
     </message>
     <message>
         <source>Show text frame border</source>
-        <translation type="unfinished"></translation>
+        <translation>Pokazuj ramkę tekstu</translation>
     </message>
     <message>
         <source>Display a visible border around the text content area.
 Useful for visualizing margin boundaries.</source>
-        <translation type="unfinished"></translation>
+        <translation>Rysuje ramkę wokół obszaru tekstu.
+Pomaga zobaczyć granice marginesów.</translation>
     </message>
     <message>
         <source>Border color</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor ramki</translation>
     </message>
     <message>
         <source>Color of the text frame border</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Border width in pixels (1-5)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor ramki tekstu</translation>
     </message>
     <message>
         <source>Border width:</source>
-        <translation type="unfinished"></translation>
+        <translation>Grubość ramki:</translation>
+    </message>
+    <message>
+        <source>Top margin of the page (up to 100 mm)</source>
+        <translation>Górny margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Bottom margin of the page (up to 100 mm)</source>
+        <translation>Dolny margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Left margin of the page (up to 100 mm)</source>
+        <translation>Lewy margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Right margin of the page (up to 100 mm)</source>
+        <translation>Prawy margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Inner margin of the page (up to 100 mm)</source>
+        <translation>Wewnętrzny margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Outer margin of the page (up to 100 mm)</source>
+        <translation>Zewnętrzny margines strony (do 100 mm)</translation>
+    </message>
+    <message>
+        <source>Border width (1-5 pixels)</source>
+        <translation>Grubość ramki (1–5 pikseli)</translation>
     </message>
 </context>
 <context>
@@ -2939,7 +2952,7 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <name>kalahari::gui::GeneralPage</name>
     <message>
         <source>Startup</source>
-        <translation type="unfinished"></translation>
+        <translation>Uruchamianie</translation>
     </message>
     <message>
         <source>Open last project on startup</source>
@@ -2949,72 +2962,127 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <source>Automatically open the most recently used project when Kalahari starts</source>
         <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
     </message>
+    <message>
+        <source>Units</source>
+        <translation>Jednostki</translation>
+    </message>
+    <message>
+        <source>Millimeters</source>
+        <translation>Milimetry</translation>
+    </message>
+    <message>
+        <source>Centimeters</source>
+        <translation>Centymetry</translation>
+    </message>
+    <message>
+        <source>Inches</source>
+        <translation>Cale</translation>
+    </message>
+    <message>
+        <source>Points</source>
+        <translation>Punkty</translation>
+    </message>
+    <message>
+        <source>Pixels</source>
+        <translation>Piksele</translation>
+    </message>
+    <message>
+        <source>Unit of the margins, page sizes, spacing and other lengths (icon and font sizes keep their own units)</source>
+        <translation>Jednostka marginesów, wymiarów strony, odstępów i innych długości (rozmiary ikon i czcionek mają własne jednostki)</translation>
+    </message>
+    <message>
+        <source>Length unit:</source>
+        <translation>Jednostka długości:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::IconsPage</name>
     <message>
         <source>Icon Style</source>
-        <translation type="unfinished"></translation>
+        <translation>Styl ikon</translation>
     </message>
     <message>
         <source>Two-tone (Default)</source>
-        <translation type="unfinished"></translation>
+        <translation>Dwukolorowe (domyślne)</translation>
     </message>
     <message>
         <source>Filled</source>
-        <translation type="unfinished"></translation>
+        <translation>Wypełnione</translation>
     </message>
     <message>
         <source>Outlined</source>
-        <translation type="unfinished"></translation>
+        <translation>Konturowe</translation>
     </message>
     <message>
         <source>Rounded</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaokrąglone</translation>
     </message>
     <message>
         <source>Icon Style:</source>
-        <translation type="unfinished"></translation>
+        <translation>Styl ikon:</translation>
     </message>
     <message>
         <source>Preview:</source>
-        <translation type="unfinished"></translation>
+        <translation>Podgląd:</translation>
     </message>
     <message>
         <source>Icon Sizes</source>
-        <translation type="unfinished"></translation>
+        <translation>Rozmiary ikon</translation>
     </message>
     <message>
         <source> px</source>
-        <translation type="unfinished"></translation>
+        <translation> px</translation>
     </message>
     <message>
         <source>Toolbar:</source>
-        <translation type="unfinished"></translation>
+        <translation>Pasek narzędzi:</translation>
     </message>
     <message>
         <source>Menu:</source>
-        <translation type="unfinished"></translation>
+        <translation>Menu:</translation>
     </message>
     <message>
         <source>Navigator/Tree:</source>
-        <translation type="unfinished"></translation>
+        <translation>Nawigator i drzewa:</translation>
     </message>
     <message>
         <source>Tab Bar:</source>
-        <translation type="unfinished"></translation>
+        <translation>Pasek kart:</translation>
     </message>
     <message>
         <source>Buttons:</source>
-        <translation type="unfinished"></translation>
+        <translation>Przyciski:</translation>
     </message>
     <message>
         <source>Status Bar:</source>
-        <translation type="unfinished"></translation>
+        <translation>Pasek stanu:</translation>
     </message>
     <message>
         <source>Combo Boxes:</source>
-        <translation type="unfinished"></translation>
+        <translation>Listy rozwijane:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::LengthSpinBox</name>
+    <message>
+        <source> px</source>
+        <translation> px</translation>
+    </message>
+    <message>
+        <source> mm</source>
+        <translation> mm</translation>
+    </message>
+    <message>
+        <source> cm</source>
+        <translation> cm</translation>
+    </message>
+    <message>
+        <source> in</source>
+        <translation> in</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <translation> pt</translation>
     </message>
 </context>
 <context>
@@ -3232,14 +3300,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Otwarto: %1</translation>
     </message>
     <message>
-        <source>Rename</source>
-        <translation>Zmień nazwę</translation>
-    </message>
-    <message>
-        <source>New name:</source>
-        <translation>Nowa nazwa:</translation>
-    </message>
-    <message>
         <source>Renamed to &apos;%1&apos;</source>
         <translation>Zmieniono nazwę na „%1”</translation>
     </message>
@@ -3328,18 +3388,6 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Przeniesiono w dół</translation>
     </message>
     <message>
-        <source>Add Chapter</source>
-        <translation>Dodaj rozdział</translation>
-    </message>
-    <message>
-        <source>Chapter title:</source>
-        <translation>Tytuł rozdziału:</translation>
-    </message>
-    <message>
-        <source>New Chapter</source>
-        <translation>Nowy rozdział</translation>
-    </message>
-    <message>
         <source>Add Chapter Failed</source>
         <translation>Nie udało się dodać rozdziału</translation>
     </message>
@@ -3352,40 +3400,12 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Dodano rozdział: %1</translation>
     </message>
     <message>
-        <source>Add Part</source>
-        <translation>Dodaj część</translation>
-    </message>
-    <message>
-        <source>Part title:</source>
-        <translation>Tytuł części:</translation>
-    </message>
-    <message>
-        <source>New Part</source>
-        <translation>Nowa część</translation>
-    </message>
-    <message>
         <source>Part added: %1</source>
         <translation>Dodano część: %1</translation>
     </message>
     <message>
         <source>Add Part Failed</source>
         <translation>Nie udało się dodać części</translation>
-    </message>
-    <message>
-        <source>Add Front Matter Item</source>
-        <translation>Dodaj element części wstępnej</translation>
-    </message>
-    <message>
-        <source>Add Back Matter Item</source>
-        <translation>Dodaj element części końcowej</translation>
-    </message>
-    <message>
-        <source>Item title:</source>
-        <translation>Tytuł elementu:</translation>
-    </message>
-    <message>
-        <source>New Item</source>
-        <translation>Nowy element</translation>
     </message>
     <message>
         <source>Item added: %1</source>
@@ -3901,23 +3921,23 @@ Tej operacji nie można cofnąć.</translation>
     <name>kalahari::gui::SettingsDialog</name>
     <message>
         <source>Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Ustawienia</translation>
     </message>
     <message>
         <source>General</source>
-        <translation type="unfinished"></translation>
+        <translation>Ogólne</translation>
     </message>
     <message>
         <source>Appearance</source>
-        <translation type="unfinished"></translation>
+        <translation>Wygląd</translation>
     </message>
     <message>
         <source>Theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Motyw</translation>
     </message>
     <message>
         <source>Icons</source>
-        <translation type="unfinished"></translation>
+        <translation>Ikony</translation>
     </message>
     <message>
         <source>Dashboard</source>
@@ -3925,31 +3945,31 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Editor</source>
-        <translation>Redaktor</translation>
+        <translation>Edytor</translation>
     </message>
     <message>
         <source>Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory</translation>
     </message>
     <message>
         <source>Cursor</source>
-        <translation type="unfinished"></translation>
+        <translation>Kursor</translation>
     </message>
     <message>
         <source>Pages and Margins</source>
-        <translation type="unfinished"></translation>
+        <translation>Strony i marginesy</translation>
     </message>
     <message>
         <source>Spelling</source>
-        <translation type="unfinished"></translation>
+        <translation>Pisownia</translation>
     </message>
     <message>
         <source>Auto-correct</source>
-        <translation type="unfinished"></translation>
+        <translation>Autokorekta</translation>
     </message>
     <message>
         <source>Completion</source>
-        <translation type="unfinished"></translation>
+        <translation>Uzupełnianie</translation>
     </message>
     <message>
         <source>Files</source>
@@ -3957,31 +3977,31 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Backup</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopie zapasowe</translation>
     </message>
     <message>
         <source>Auto-save</source>
-        <translation type="unfinished"></translation>
+        <translation>Autozapis</translation>
     </message>
     <message>
         <source>Import/Export</source>
-        <translation type="unfinished"></translation>
+        <translation>Import i eksport</translation>
     </message>
     <message>
         <source>Network</source>
-        <translation type="unfinished"></translation>
+        <translation>Sieć</translation>
     </message>
     <message>
         <source>Updates</source>
-        <translation type="unfinished"></translation>
+        <translation>Aktualizacje</translation>
     </message>
     <message>
         <source>Advanced</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaawansowane</translation>
     </message>
     <message>
         <source>Performance</source>
-        <translation type="unfinished"></translation>
+        <translation>Wydajność</translation>
     </message>
     <message>
         <source>Log</source>
@@ -3996,21 +4016,30 @@ Tej operacji nie można cofnąć.</translation>
 - Spell check language selection
 - Custom dictionary management
 - Ignore rules for technical terms</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- wybór języka sprawdzania pisowni
+- zarządzanie własnym słownikiem
+- reguły pomijania terminów technicznych</translation>
     </message>
     <message>
         <source>Planned features:
 - Automatic capitalization
 - Common typo corrections
 - Custom replacement rules</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- automatyczne wielkie litery
+- poprawianie częstych literówek
+- własne reguły zamiany</translation>
     </message>
     <message>
         <source>Planned features:
 - Word completion suggestions
 - Character name completion
 - Location name completion</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- podpowiedzi uzupełniania słów
+- uzupełnianie imion postaci
+- uzupełnianie nazw miejsc</translation>
     </message>
     <message>
         <source>Planned features:
@@ -4018,28 +4047,41 @@ Tej operacji nie można cofnąć.</translation>
 - Backup location selection
 - Number of backup copies to keep
 - Restore from backup</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- częstotliwość automatycznych kopii zapasowych
+- wybór miejsca kopii zapasowych
+- liczba przechowywanych kopii
+- przywracanie z kopii zapasowej</translation>
     </message>
     <message>
         <source>Planned features:
 - Auto-save interval
 - Auto-save on focus loss
 - Session recovery options</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- odstęp czasu autozapisu
+- autozapis po przejściu do innego okna
+- opcje przywracania sesji</translation>
     </message>
     <message>
         <source>Planned features:
 - Default export format
 - Import source preferences
 - Encoding settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- domyślny format eksportu
+- preferowane źródła importu
+- ustawienia kodowania znaków</translation>
     </message>
     <message>
         <source>Planned features:
 - Automatic update checks
 - Update channel (stable/beta)
 - Plugin updates</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- automatyczne sprawdzanie aktualizacji
+- kanał aktualizacji (stabilny lub beta)
+- aktualizacje wtyczek</translation>
     </message>
     <message>
         <source>Planned features:
@@ -4047,11 +4089,19 @@ Tej operacji nie można cofnąć.</translation>
 - Thread pool configuration
 - Cache settings
 - Hardware acceleration</source>
-        <translation type="unfinished"></translation>
+        <translation>Planowane funkcje:
+- limity zużycia pamięci
+- konfiguracja puli wątków
+- ustawienia pamięci podręcznej
+- akceleracja sprzętowa</translation>
     </message>
     <message>
         <source>These settings will be available in a future version.</source>
-        <translation type="unfinished"></translation>
+        <translation>Te ustawienia będą dostępne w jednej z następnych wersji.</translation>
+    </message>
+    <message>
+        <source>Choose a group on the left; Apply and OK save only the options you changed.</source>
+        <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
     </message>
 </context>
 <context>
@@ -4153,151 +4203,151 @@ Tej operacji nie można cofnąć.</translation>
     <name>kalahari::gui::ThemePage</name>
     <message>
         <source>Theme:</source>
-        <translation type="unfinished"></translation>
+        <translation>Motyw:</translation>
     </message>
     <message>
         <source>Light</source>
-        <translation type="unfinished"></translation>
+        <translation>Jasny</translation>
     </message>
     <message>
         <source>Dark</source>
-        <translation type="unfinished"></translation>
+        <translation>Ciemny</translation>
     </message>
     <message>
         <source>Icon Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory ikon</translation>
     </message>
     <message>
         <source>Primary</source>
-        <translation type="unfinished"></translation>
+        <translation>Główny</translation>
     </message>
     <message>
         <source>Primary icon color used for main icon elements</source>
-        <translation type="unfinished"></translation>
+        <translation>Główny kolor ikon, używany w ich głównych elementach</translation>
     </message>
     <message>
         <source>Secondary</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodatkowy</translation>
     </message>
     <message>
         <source>Secondary icon color used for icon accents</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodatkowy kolor ikon, używany w ich akcentach</translation>
     </message>
     <message>
         <source>UI Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory interfejsu</translation>
     </message>
     <message>
         <source>Tooltip Background</source>
-        <translation type="unfinished"></translation>
+        <translation>Tło podpowiedzi</translation>
     </message>
     <message>
         <source>Background color for tooltips</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła podpowiedzi</translation>
     </message>
     <message>
         <source>Tooltip Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst podpowiedzi</translation>
     </message>
     <message>
         <source>Text color for tooltips</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tekstu podpowiedzi</translation>
     </message>
     <message>
         <source>Placeholder Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst zastępczy</translation>
     </message>
     <message>
         <source>Color for placeholder text in input fields</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tekstu zastępczego w polach do wpisywania</translation>
     </message>
     <message>
         <source>Bright Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Jasny tekst</translation>
     </message>
     <message>
         <source>High contrast text color for dark backgrounds</source>
-        <translation type="unfinished"></translation>
+        <translation>Kontrastowy kolor tekstu na ciemnym tle</translation>
     </message>
     <message>
         <source>Info Header</source>
-        <translation type="unfinished"></translation>
+        <translation>Nagłówek informacji</translation>
     </message>
     <message>
         <source>Color for information panel headers</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor nagłówków paneli informacyjnych</translation>
     </message>
     <message>
         <source>Dashboard Secondary</source>
-        <translation type="unfinished"></translation>
+        <translation>Pulpit – dodatkowy</translation>
     </message>
     <message>
         <source>Secondary dashboard accent color</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodatkowy kolor akcentów Pulpitu</translation>
     </message>
     <message>
         <source>Dashboard Primary</source>
-        <translation type="unfinished"></translation>
+        <translation>Pulpit – główny</translation>
     </message>
     <message>
         <source>Primary dashboard accent color</source>
-        <translation type="unfinished"></translation>
+        <translation>Główny kolor akcentów Pulpitu</translation>
     </message>
     <message>
         <source>Info Primary</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje – główny</translation>
     </message>
     <message>
         <source>Primary color for info panels</source>
-        <translation type="unfinished"></translation>
+        <translation>Główny kolor paneli informacyjnych</translation>
     </message>
     <message>
         <source>Info Secondary</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacje – dodatkowy</translation>
     </message>
     <message>
         <source>Secondary color for info panels</source>
-        <translation type="unfinished"></translation>
+        <translation>Dodatkowy kolor paneli informacyjnych</translation>
     </message>
     <message>
         <source>Palette Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory palety</translation>
     </message>
     <message>
         <source>Basic Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory podstawowe</translation>
     </message>
     <message>
         <source>Window</source>
-        <translation type="unfinished"></translation>
+        <translation>Okno</translation>
     </message>
     <message>
         <source>General background color for windows and panels</source>
-        <translation type="unfinished"></translation>
+        <translation>Ogólny kolor tła okien i paneli</translation>
     </message>
     <message>
         <source>Window Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst okna</translation>
     </message>
     <message>
         <source>General text color used throughout the interface</source>
-        <translation type="unfinished"></translation>
+        <translation>Ogólny kolor tekstu w całym interfejsie</translation>
     </message>
     <message>
         <source>Base</source>
-        <translation type="unfinished"></translation>
+        <translation>Tło pól</translation>
     </message>
     <message>
         <source>Background color for input fields and text editors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła pól do wpisywania i edytorów tekstu</translation>
     </message>
     <message>
         <source>Alternate Base</source>
-        <translation type="unfinished"></translation>
+        <translation>Tło naprzemienne</translation>
     </message>
     <message>
         <source>Alternating row background color in lists and tables</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła co drugiego wiersza w listach i tabelach</translation>
     </message>
     <message>
         <source>Text</source>
@@ -4305,139 +4355,139 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Text color for input fields and text editors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tekstu w polach do wpisywania i edytorach tekstu</translation>
     </message>
     <message>
         <source>Button Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory przycisków</translation>
     </message>
     <message>
         <source>Button</source>
-        <translation type="unfinished"></translation>
+        <translation>Przycisk</translation>
     </message>
     <message>
         <source>Background color for buttons</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła przycisków</translation>
     </message>
     <message>
         <source>Button Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Tekst przycisku</translation>
     </message>
     <message>
         <source>Text color for buttons</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tekstu przycisków</translation>
     </message>
     <message>
         <source>Selection Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory zaznaczenia</translation>
     </message>
     <message>
         <source>Highlight</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaznaczenie</translation>
     </message>
     <message>
         <source>Background color for selected items</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła zaznaczonych elementów</translation>
     </message>
     <message>
         <source>Highlighted Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Zaznaczony tekst</translation>
     </message>
     <message>
         <source>Text color for selected items</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tekstu zaznaczonych elementów</translation>
     </message>
     <message>
         <source>3D Effect Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory efektów trójwymiarowych</translation>
     </message>
     <message>
         <source>Lightest color for 3D effects (bevels, shadows)</source>
-        <translation type="unfinished"></translation>
+        <translation>Najjaśniejszy kolor efektów trójwymiarowych (fazy, cienie)</translation>
     </message>
     <message>
         <source>Midlight</source>
-        <translation type="unfinished"></translation>
+        <translation>Półjasny</translation>
     </message>
     <message>
         <source>Color between Light and Button for 3D effects</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor między jasnym a kolorem przycisku w efektach trójwymiarowych</translation>
     </message>
     <message>
         <source>Mid</source>
-        <translation type="unfinished"></translation>
+        <translation>Średni</translation>
     </message>
     <message>
         <source>Medium color for borders and dividers</source>
-        <translation type="unfinished"></translation>
+        <translation>Średni kolor obramowań i linii podziału</translation>
     </message>
     <message>
         <source>Darker color for 3D effects</source>
-        <translation type="unfinished"></translation>
+        <translation>Ciemniejszy kolor efektów trójwymiarowych</translation>
     </message>
     <message>
         <source>Shadow</source>
-        <translation type="unfinished"></translation>
+        <translation>Cień</translation>
     </message>
     <message>
         <source>Darkest color for shadows</source>
-        <translation type="unfinished"></translation>
+        <translation>Najciemniejszy kolor cieni</translation>
     </message>
     <message>
         <source>Link Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory odnośników</translation>
     </message>
     <message>
         <source>Link</source>
-        <translation type="unfinished"></translation>
+        <translation>Odnośnik</translation>
     </message>
     <message>
         <source>Color for hyperlinks</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor odnośników</translation>
     </message>
     <message>
         <source>Link Visited</source>
-        <translation type="unfinished"></translation>
+        <translation>Odwiedzony odnośnik</translation>
     </message>
     <message>
         <source>Color for visited hyperlinks</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor odwiedzonych odnośników</translation>
     </message>
     <message>
         <source>Log Panel Colors</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolory panelu dziennika</translation>
     </message>
     <message>
         <source>Trace</source>
-        <translation type="unfinished"></translation>
+        <translation>Śledzenie</translation>
     </message>
     <message>
         <source>Color for TRACE level log messages (diagnostic mode only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu TRACE (tylko w trybie diagnostycznym)</translation>
     </message>
     <message>
         <source>Debug</source>
-        <translation type="unfinished"></translation>
+        <translation>Debugowanie</translation>
     </message>
     <message>
         <source>Color for DEBUG level log messages (diagnostic mode only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu DEBUG (tylko w trybie diagnostycznym)</translation>
     </message>
     <message>
         <source>Info</source>
-        <translation type="unfinished"></translation>
+        <translation>Informacja</translation>
     </message>
     <message>
         <source>Color for INFO level log messages</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu INFO</translation>
     </message>
     <message>
         <source>Warning</source>
-        <translation type="unfinished"></translation>
+        <translation>Ostrzeżenie</translation>
     </message>
     <message>
         <source>Color for WARNING level log messages</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu WARNING</translation>
     </message>
     <message>
         <source>Error</source>
@@ -4445,31 +4495,31 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Color for ERROR level log messages</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu ERROR</translation>
     </message>
     <message>
         <source>Critical</source>
-        <translation type="unfinished"></translation>
+        <translation>Krytyczny</translation>
     </message>
     <message>
         <source>Color for CRITICAL level log messages</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor komunikatów poziomu CRITICAL</translation>
     </message>
     <message>
         <source>Background</source>
-        <translation type="unfinished"></translation>
+        <translation>Tło</translation>
     </message>
     <message>
         <source>Background color of the log panel</source>
-        <translation type="unfinished"></translation>
+        <translation>Kolor tła panelu dziennika</translation>
     </message>
     <message>
         <source>Reset to Theme Defaults</source>
-        <translation type="unfinished"></translation>
+        <translation>Przywróć kolory motywu</translation>
     </message>
     <message>
         <source>Reset all colors to the default values for the selected theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
     </message>
 </context>
 <context>

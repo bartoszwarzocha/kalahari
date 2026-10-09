@@ -2,16 +2,17 @@
 /// @brief The settings dialog: lazily built pages, their layout and what Apply writes
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDialogButtonBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
@@ -50,9 +51,8 @@ void openPage(SettingsDialog& dialog, const QString& category, const QString& ti
 }
 
 QPushButton* applyButton(SettingsDialog& dialog) {
-    auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    REQUIRE(buttons != nullptr);
-    return buttons->button(QDialogButtonBox::Apply);
+    REQUIRE(dialog.applyButton()->isVisibleTo(&dialog));
+    return dialog.applyButton();
 }
 
 ColorConfigWidget* colorWidget(SettingsDialog& dialog, const QString& toolTip) {
@@ -170,6 +170,38 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     settings.setLanguage("en");
 }
 
+TEST_CASE("Settings dialog: OK writes the changes and closes, Apply keeps it open", "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.setLanguage("en");
+    SettingsDialog dialog(nullptr);
+    CHECK(dialog.windowTitle() == QStringLiteral("Settings"));
+    openAllPages(dialog);
+
+    QStringList applied;
+    QObject::connect(&dialog, &SettingsDialog::settingsApplied,
+                     [&applied](const QStringList& keys) { applied += keys; });
+    QComboBox* language = nullptr;
+    for (QComboBox* combo : dialog.findChildren<QComboBox*>()) {
+        if (combo->findData("pl") >= 0) {
+            language = combo;
+        }
+    }
+    REQUIRE(language != nullptr);
+
+    dialog.show();
+    language->setCurrentIndex(language->findData("pl"));
+    applyButton(dialog)->click();
+    CHECK(dialog.isVisible());
+    CHECK(applied == QStringList{QStringLiteral("ui.language")});
+
+    language->setCurrentIndex(language->findData("en"));
+    dialog.acceptButton()->click();
+    CHECK_FALSE(dialog.isVisible());
+    CHECK(dialog.result() == QDialog::Accepted);
+    CHECK(applied == (QStringList{QStringLiteral("ui.language"), QStringLiteral("ui.language")}));
+    CHECK(settings.getLanguage() == "en");
+}
+
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string theme = settings.getTheme();
@@ -265,6 +297,70 @@ TEST_CASE("Settings dialog: the diagnostic menu is not stored", "[gui][settings]
     diagnostic->setChecked(false);
     CHECK(dialog.applyChanges().isEmpty());
     CHECK(turnedOff == 1);
+}
+
+TEST_CASE("Lengths convert between units", "[gui][settings]") {
+    using kalahari::gui::LengthUnit;
+    using kalahari::gui::convertLength;
+    using Catch::Approx;
+    CHECK(convertLength(25.4, LengthUnit::Millimeters, LengthUnit::Inches) == Approx(1.0));
+    CHECK(convertLength(1.0, LengthUnit::Inches, LengthUnit::Pixels) == Approx(96.0));
+    CHECK(convertLength(1.0, LengthUnit::Inches, LengthUnit::Points) == Approx(72.0));
+    CHECK(convertLength(2.5, LengthUnit::Centimeters, LengthUnit::Millimeters) == Approx(25.0));
+    CHECK(kalahari::gui::lengthUnitFromName(QStringLiteral("cm")) == LengthUnit::Centimeters);
+    CHECK(kalahari::gui::lengthUnitFromName(QStringLiteral("unknown")) == LengthUnit::Millimeters);
+}
+
+TEST_CASE("A length field keeps its stored value in any unit", "[gui][settings]") {
+    using kalahari::gui::LengthUnit;
+    kalahari::gui::LengthSpinBox field(LengthUnit::Millimeters, 0.0, 100.0);
+    field.setDisplayUnit(LengthUnit::Millimeters);
+    field.setStoredValue(25.0);
+    CHECK(field.value() == Catch::Approx(25.0));
+
+    // Shown rounded, stored as it was
+    field.setDisplayUnit(LengthUnit::Pixels);
+    CHECK(field.value() == Catch::Approx(94.0));
+    field.setDisplayUnit(LengthUnit::Inches);
+    CHECK(field.value() == Catch::Approx(0.98));
+    field.setDisplayUnit(LengthUnit::Millimeters);
+    CHECK(field.storedValue() == Catch::Approx(25.0));
+
+    // An edit in another unit is stored in the field's own unit
+    field.setDisplayUnit(LengthUnit::Centimeters);
+    field.setValue(3.0);
+    CHECK(field.storedValue() == Catch::Approx(30.0));
+}
+
+TEST_CASE("Settings dialog: the length unit changes the fields, not the lengths", "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<std::string>("ui.lengthUnit", "mm");
+    SettingsDialog dialog(nullptr);
+    openAllPages(dialog);
+    REQUIRE_FALSE(dialog.hasChanges());
+
+    QComboBox* unit = nullptr;
+    for (QComboBox* combo : dialog.findChildren<QComboBox*>()) {
+        if (combo->findData("in") >= 0) {
+            unit = combo;
+        }
+    }
+    REQUIRE(unit != nullptr);
+    const auto lengths = dialog.findChildren<kalahari::gui::LengthSpinBox*>();
+    REQUIRE_FALSE(lengths.isEmpty());
+
+    QStringList applied;
+    QObject::connect(&dialog, &SettingsDialog::settingsApplied,
+                     [&applied](const QStringList& keys) { applied = keys; });
+    unit->setCurrentIndex(unit->findData("in"));
+    for (const auto* length : lengths) {
+        CHECK(length->displayUnit() == kalahari::gui::LengthUnit::Inches);
+    }
+    dialog.applyChanges();
+    CHECK(applied == QStringList{QStringLiteral("ui.lengthUnit")});
+    CHECK(settings.get<std::string>("ui.lengthUnit", "") == "in");
+
+    settings.set<std::string>("ui.lengthUnit", "mm");
 }
 
 TEST_CASE("clearLayout hides the widgets it removes", "[gui][settings]") {

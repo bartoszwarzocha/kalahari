@@ -28,6 +28,8 @@ std::map<std::string, json> buildDefaults() {
 
         // Interface
         {"ui.language", "en"},
+        // Unit the length fields show (px, mm, cm, in, pt); each setting keeps its own
+        {"ui.lengthUnit", "mm"},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},

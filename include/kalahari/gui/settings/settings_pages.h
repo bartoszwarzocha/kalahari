@@ -30,6 +30,12 @@ class GeneralPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit GeneralPage(QWidget* parent = nullptr);
+
+signals:
+    /// @brief Another length unit was chosen (not applied yet): the length fields of
+    ///        the open pages show it at once
+    /// @param unit Name of the unit (ui.lengthUnit)
+    void lengthUnitChanged(const QString& unit);
 };
 
 /// @brief Appearance > General: language and interface font
