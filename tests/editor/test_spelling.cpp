@@ -10,6 +10,7 @@
 #include "editor_test_utils.h"
 #include "../benchmarks/test_document_generator.h"
 
+#include <QContextMenuEvent>
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QTextBlock>
@@ -283,6 +284,118 @@ TEST_CASE("Spelling: the paragraphs in view are checked first", "[editor][spelli
     CHECK(wavyWords(*editor, 0) == QStringList{"mistakke"});
     CHECK(wavyWords(*editor, 4000) == QStringList{"mistakke"});
     CHECK(wavyWords(*editor, 5999) == QStringList{"mistakke"});
+}
+
+// =============================================================================
+// From the keyboard
+// =============================================================================
+
+TEST_CASE("Spelling: Next Misspelling selects the misspelled words in turn, round the text",
+          "[editor][spelling]") {
+    auto spelling = englishService();
+    auto editor = shownEditor({QStringLiteral("The speling is bad."),
+                               QStringLiteral("All good here."),
+                               QStringLiteral("Another mistakke, and anothr.")},
+                              spelling.get());
+
+    SECTION("in turn, the paragraphs not checked yet checked on the way") {
+        editor->setCursorPosition({0, 0});
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("speling"));
+        CHECK(editor->cursorPosition() == CursorPosition{0, 11});
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("anothr"));
+
+        // After the last one, from the start of the text
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("speling"));
+    }
+
+    SECTION("the word the cursor is in comes first") {
+        editor->setCursorPosition({2, 10});
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+    }
+
+    SECTION("before the cursor in its paragraph when back at it") {
+        editor->setCursorPosition({2, 18});
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("anothr"));
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("speling"));
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+    }
+
+    SECTION("the word just typed counts") {
+        editor->setCursorPosition({1, 14});
+        type(*editor, QStringLiteral(" Erorr"));
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("Erorr"));
+        CHECK(wavyWords(*editor, 1) == QStringList{"Erorr"});
+    }
+
+    SECTION("a word put right is passed over") {
+        editor->setCursorPosition({0, 0});
+        REQUIRE(editor->goToNextMisspelling());
+        editor->insertText(QStringLiteral("spelling"));
+        REQUIRE(editor->goToNextMisspelling());
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+    }
+
+    SECTION("none in a text without misspelled words, or while the spelling is off") {
+        editor->fromKml(kmlOf({QStringLiteral("All good here.")}));
+        CHECK_FALSE(editor->goToNextMisspelling());
+        CHECK_FALSE(editor->hasSelection());
+
+        editor->fromKml(kmlOf({QStringLiteral("One mistakke.")}));
+        spelling->setEnabled(false);
+        CHECK_FALSE(editor->goToNextMisspelling());
+        CHECK_FALSE(editor->hasSelection());
+    }
+}
+
+TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of the word at "
+          "the cursor",
+          "[editor][spelling]") {
+    auto spelling = englishService();
+    auto editor = shownEditor({QStringLiteral("The speling is bad.")}, spelling.get());
+    REQUIRE(checked(*editor));
+    editor->setCursorPosition({0, 11});  // right after the word
+
+    const auto offered = [](const QStringList& texts) {
+        return texts.contains(QStringLiteral("spelling")) &&
+               texts.contains(QStringLiteral("Ignore All")) &&
+               texts.contains(QStringLiteral("Add to Dictionary")) &&
+               texts.contains(QStringLiteral("Paste"));
+    };
+
+    SECTION("the menu key") {
+        const QStringList texts = runPopupMenu([&editor]() {
+            QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+            QCoreApplication::sendEvent(editor.get(), &event);
+        });
+        CHECK(offered(texts));
+    }
+
+    SECTION("Shift+F10, choosing a word") {
+        const QStringList texts = runPopupMenu(
+            [&editor]() {
+                QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
+                QCoreApplication::sendEvent(editor.get(), &press);
+            },
+            QStringLiteral("spelling"));
+        CHECK(offered(texts));
+        CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
+              QStringLiteral("The spelling is bad."));
+    }
+
+    SECTION("F10 alone opens no menu") {
+        const QStringList texts = runPopupMenu([&editor]() { pressKey(*editor, Qt::Key_F10); });
+        CHECK(texts.isEmpty());
+    }
 }
 
 // =============================================================================

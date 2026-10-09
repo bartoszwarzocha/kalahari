@@ -316,6 +316,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A right click on a misspelled word offers up to five words to put in its place,
     Ignore All (the word is right until the program closes) and Add to Dictionary (right
     for good), above the usual commands.
+  - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
+    from the cursor round the chapter, and opens the same menu under it; the menu key and
+    Shift+F10 open it for the word at the cursor.
   - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
     chapters, and remembers it. Settings > Editor > Spelling has the same switch, the
     language and the list of the writer's own words, which can be added and removed there;

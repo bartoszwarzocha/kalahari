@@ -33,12 +33,19 @@ constexpr const char* LANGUAGE_KEY = "editor.spellCheck.language";
 /// @brief The command that turns the checking on and off
 constexpr const char* COMMAND_ID = "tools.spellcheck";
 
+/// @brief The command that selects the next misspelled word
+constexpr const char* NEXT_COMMAND_ID = "tools.nextMisspelling";
+
 /// @brief How long the message of the command stays in the status bar (ms), as the
 ///        messages of the other switches
 constexpr int TOGGLE_MESSAGE_MS = 2000;
 
 /// @brief How long a message about a missing dictionary stays in the status bar (ms)
 constexpr int DICTIONARY_MESSAGE_MS = 5000;
+
+/// @brief How long the message that there is no misspelled word stays in the status bar
+///        (ms), as the message that there is no to-do
+constexpr int NEXT_MESSAGE_MS = 3000;
 
 /// @brief The name of a language in that language (Deutsch), else its code
 QString languageName(const QString& language) {
@@ -60,10 +67,13 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
     connect(m_service, &editor::SpellCheckService::dictionaryError, this,
             [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
 
-    // The editor of a document checks with the dictionary from the time its tab is shown
+    // The editor of a document checks with the dictionary from the time its tab is shown;
+    // Next Misspelling is for the document in front
     if (m_centralTabs != nullptr) {
-        connect(m_centralTabs, &QTabWidget::currentChanged, this,
-                &SpellingCoordinator::attachEditors);
+        connect(m_centralTabs, &QTabWidget::currentChanged, this, [this]() {
+            attachEditors();
+            CommandRegistry::getInstance().updateActionState(NEXT_COMMAND_ID);
+        });
     }
 
     // Another book can be in another language
@@ -88,6 +98,15 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
 
 SpellingCoordinator::~SpellingCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
+
+    // The commands outlive the coordinator
+    auto& registry = CommandRegistry::getInstance();
+    for (const char* id : {COMMAND_ID, NEXT_COMMAND_ID}) {
+        if (Command* command = registry.getCommand(id)) {
+            command->execute = nullptr;
+            command->isEnabled = nullptr;
+        }
+    }
 }
 
 void SpellingCoordinator::connectCommands() {
@@ -99,6 +118,32 @@ void SpellingCoordinator::connectCommands() {
 
     // Checked while the spelling is checked, also after the Settings dialog changes it
     utils::followSetting(registry.getAction(std::string(COMMAND_ID)), ENABLED_KEY);
+
+    if (Command* next = registry.getCommand(NEXT_COMMAND_ID)) {
+        next->execute = [this]() { goToNextMisspelling(); };
+        next->isEnabled = [this]() { return currentEditor() != nullptr; };
+        registry.updateActionState(NEXT_COMMAND_ID);
+    }
+}
+
+bool SpellingCoordinator::goToNextMisspelling() {
+    editor::BookEditor* bookEditor = currentEditor();
+    if (bookEditor == nullptr) {
+        return false;
+    }
+    if (!m_service->isActive()) {
+        showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
+        return false;
+    }
+    if (!bookEditor->goToNextMisspelling()) {
+        showMessage(tr("No misspelled words"), NEXT_MESSAGE_MS);
+        return false;
+    }
+
+    // What to put in its place, under the word, as the menu key shows it
+    bookEditor->setFocus();
+    bookEditor->showContextMenuAtCursor();
+    return true;
 }
 
 QString SpellingCoordinator::wantedLanguage() {
@@ -166,6 +211,13 @@ void SpellingCoordinator::attachEditors() {
             panel->getBookEditor()->setSpellCheckService(m_service);
         }
     }
+}
+
+editor::BookEditor* SpellingCoordinator::currentEditor() const {
+    auto* panel = m_centralTabs != nullptr
+                      ? qobject_cast<EditorPanel*>(m_centralTabs->currentWidget())
+                      : nullptr;
+    return panel != nullptr ? panel->getBookEditor() : nullptr;
 }
 
 void SpellingCoordinator::toggle() {

@@ -7,8 +7,11 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 
+#include <QAction>
+#include <QApplication>
 #include <QCoreApplication>
 #include <QEventLoop>
+#include <QMenu>
 #include <QResizeEvent>
 #include <QStringList>
 #include <QTextBlock>
@@ -60,6 +63,43 @@ inline bool waitUntil(const std::function<bool()>& done, int timeoutMs = 2000) {
     QTimer::singleShot(timeoutMs, &loop, &QEventLoop::quit);
     loop.exec();
     return done();
+}
+
+/// Run @p open, which shows a popup menu and waits for it (QMenu::exec()), as the writer
+/// would: note the texts of the menu's entries, choose the one with the text @p choice
+/// (empty: none) and close the menu. Returns the texts; none when no menu was shown.
+inline QStringList runPopupMenu(const std::function<void()>& open,
+                                const QString& choice = QString()) {
+    QStringList texts;
+    QTimer watcher;
+    int tries = 0;
+    QObject::connect(&watcher, &QTimer::timeout, [&watcher, &texts, &tries, &choice]() {
+        auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+        if (menu == nullptr) {
+            if (++tries > 1000) {
+                watcher.stop();
+            }
+            return;
+        }
+        watcher.stop();
+        QAction* chosen = nullptr;
+        for (QAction* action : menu->actions()) {
+            if (!action->isSeparator()) {
+                texts.append(action->text());
+                if (!choice.isEmpty() && action->text() == choice && chosen == nullptr) {
+                    chosen = action;
+                }
+            }
+        }
+        if (chosen != nullptr) {
+            chosen->trigger();
+        }
+        menu->close();
+    });
+    watcher.start(5);
+    open();
+    watcher.stop();
+    return texts;
 }
 
 /// Char format of the first fragment of @p block whose text contains @p needle.

@@ -10,6 +10,7 @@ class QStatusBar;
 class QTabWidget;
 
 namespace kalahari::editor {
+class BookEditor;
 class SpellCheckService;
 }
 
@@ -24,7 +25,9 @@ namespace kalahari::gui {
 /// own words are kept in the file user_dictionary.txt next to the settings.
 ///
 /// Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off: the
-/// setting editor.spellCheck.enabled, also in the Settings dialog.
+/// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Misspelling
+/// (F7) selects the next misspelled word of the document in front and opens its context
+/// menu, so it is put right from the keyboard.
 class SpellingCoordinator : public QObject {
     Q_OBJECT
 
@@ -36,15 +39,21 @@ public:
     SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
                         QObject* parent = nullptr);
 
-    /// @brief Destructor
+    /// @brief Destructor: the commands have no callbacks any more
     ~SpellingCoordinator() override;
 
     SpellingCoordinator(const SpellingCoordinator&) = delete;
     SpellingCoordinator& operator=(const SpellingCoordinator&) = delete;
 
-    /// @brief Give the command Check Spelling as You Type its callback and check mark
+    /// @brief Give the commands Check Spelling as You Type (with its check mark) and Next
+    ///        Misspelling their callbacks
     /// @note Call after the commands are registered
     void connectCommands();
+
+    /// @brief Select the next misspelled word of the document in front and open its context
+    ///        menu (the command Next Misspelling); the status bar says when there is none
+    /// @return false when no word was selected
+    bool goToNextMisspelling();
 
     /// @brief The dictionary of the editors
     editor::SpellCheckService* service() const { return m_service; }
@@ -64,6 +73,9 @@ public slots:
 private:
     /// @brief Give the dictionary to the editors of the documents
     void attachEditors();
+
+    /// @brief The editor of the document in front, or nullptr
+    editor::BookEditor* currentEditor() const;
 
     /// @brief Turn the checking on or off (the command)
     void toggle();

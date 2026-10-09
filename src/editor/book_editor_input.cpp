@@ -208,6 +208,15 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
             handled = true;
             break;
 
+        case Qt::Key_F10:
+            // Shift+F10 opens the context menu, as the menu key does, also where the system
+            // does not make a context menu event of it
+            if (event->modifiers() == Qt::ShiftModifier) {
+                showContextMenuAtCursor();
+                handled = true;
+            }
+            break;
+
         default:
             break;
     }
@@ -803,22 +812,40 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
-    // From the keyboard (the menu key, Shift+F10) the menu is for the cursor's place and
-    // opens under it
-    const bool fromKeyboard = event->reason() == QContextMenuEvent::Keyboard;
-    const CursorPosition pos = fromKeyboard ? m_cursorPosition : positionFromPoint(event->pos());
+    // From the keyboard (the menu key, Shift+F10) the menu is for the cursor's place
+    if (event->reason() == QContextMenuEvent::Keyboard) {
+        showContextMenuAtCursor();
+        return;
+    }
+
+    const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
         return;
     }
-    QPoint menuPos = event->globalPos();
-    if (fromKeyboard && m_renderPipeline) {
+    showContextMenu(pos, event->globalPos(), event->reason() == QContextMenuEvent::Mouse);
+}
+
+void BookEditor::showContextMenuAtCursor()
+{
+    if (!m_textBuffer || m_cursorPosition.paragraph < 0) {
+        return;
+    }
+
+    // Under the cursor, so the word the menu is for stays in sight
+    QPoint menuPos = mapToGlobal(rect().center());
+    if (m_renderPipeline) {
         const QRectF caret = m_renderPipeline->cursorRect();
         if (!caret.isEmpty()) {
             menuPos = mapToGlobal(caret.bottomLeft().toPoint());
         }
     }
+    showContextMenu(m_cursorPosition, menuPos, false);
+}
 
+void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
+                                 bool fromMouse)
+{
     // A misspelled word: the words to put in its place, on top of the usual menu
     const auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
 
@@ -828,14 +855,14 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
     if (grammarError.has_value()) {
         // Create grammar check context menu
         QMenu* menu = createGrammarContextMenu(*grammarError, pos.paragraph);
-        menu->exec(menuPos);
+        menu->exec(globalPos);
         delete menu;
         return;
     }
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
-    if (event->reason() == QContextMenuEvent::Mouse && !isInSelection(pos)) {
+    if (fromMouse && !isInSelection(pos)) {
         const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
         clearSelection();
         m_selectionAnchor = pos;
@@ -879,7 +906,7 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         : tr("Switch to Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
-    menu.exec(menuPos);
+    menu.exec(globalPos);
 }
 
 }  // namespace kalahari::editor

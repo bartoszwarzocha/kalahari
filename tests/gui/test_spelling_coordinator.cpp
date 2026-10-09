@@ -292,6 +292,79 @@ TEST_CASE("Spelling coordinator: Check Spelling as You Type turns the checking o
     registry.clear();
 }
 
+TEST_CASE("Spelling coordinator: Next Misspelling selects the next misspelled word and opens "
+          "its menu",
+          "[gui][spelling][command]") {
+    KeptSpellingSettings kept;
+    auto& settings = KeptSpellingSettings::settings();
+    settings.set<bool>(ENABLED_KEY, true);
+    settings.set<std::string>(LANGUAGE_KEY, "en_US");
+
+    registerAllCommands(CommandCallbacks{});
+    auto& registry = CommandRegistry::getInstance();
+    QStatusBar statusBar;
+    QTabWidget tabs;
+    {
+        SpellingCoordinator coordinator(&tabs, &statusBar);
+        coordinator.connectCommands();
+        QAction* action = registry.getAction(std::string("tools.nextMisspelling"));
+        REQUIRE(action != nullptr);
+        CHECK(action->shortcut() == QKeySequence(Qt::Key_F7));
+        CHECK_FALSE(action->isEnabled());  // no document
+
+        auto* panel = new EditorPanel();
+        panel->setContent(kmlOf({QStringLiteral("One mistakke and anothr.")}));
+        tabs.setCurrentIndex(tabs.addTab(panel, QStringLiteral("One")));
+        tabs.resize(700, 500);
+        tabs.show();
+        REQUIRE(checksWith(coordinator, QStringLiteral("en_US")));
+        CHECK(action->isEnabled());
+        editor::BookEditor* bookEditor = panel->getBookEditor();
+        bookEditor->setCursorPosition({0, 0});
+
+        // The word is selected and its menu offers what to put in its place
+        QStringList texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+        CHECK(bookEditor->selectedText() == QStringLiteral("mistakke"));
+        CHECK(texts.contains(QStringLiteral("mistake")));
+        CHECK(texts.contains(QStringLiteral("Add to Dictionary")));
+
+        // The next one, and a word chosen from the menu
+        texts = kalahari::test::runPopupMenu([action]() { action->trigger(); },
+                                             QStringLiteral("another"));
+        CHECK(texts.contains(QStringLiteral("another")));
+        CHECK(bookEditor->textDocument()->findBlockByNumber(0).text() ==
+              QStringLiteral("One mistakke and another."));
+
+        SECTION("the status bar says when there is none") {
+            bookEditor->fromKml(kmlOf({QStringLiteral("All good here.")}));
+            texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+            CHECK(texts.isEmpty());
+            CHECK(statusBar.currentMessage() == QStringLiteral("No misspelled words"));
+        }
+
+        SECTION("the status bar says when the spelling is not checked") {
+            settings.set<bool>(ENABLED_KEY, false);
+            const editor::SpellCheckService* service = coordinator.service();
+            REQUIRE(waitUntil([service]() { return !service->isEnabled(); }));
+            texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+            CHECK(texts.isEmpty());
+            CHECK(statusBar.currentMessage() == QStringLiteral("The spelling is not checked"));
+        }
+
+        SECTION("greyed out again without a document") {
+            tabs.removeTab(0);
+            delete panel;
+            CHECK_FALSE(action->isEnabled());
+        }
+    }
+
+    // The coordinator that is gone gave its callbacks back
+    Command* command = registry.getCommand(std::string("tools.nextMisspelling"));
+    REQUIRE(command != nullptr);
+    CHECK_FALSE(static_cast<bool>(command->execute));
+    registry.clear();
+}
+
 TEST_CASE("Spelling settings: the language and the writer's own words",
           "[gui][spelling][settings]") {
     KeptSpellingSettings kept;

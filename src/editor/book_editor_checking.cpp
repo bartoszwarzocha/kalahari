@@ -186,6 +186,75 @@ bool BookEditor::isSpellCheckPending() const
     return m_spellTimer != nullptr && m_spellTimer->isActive();
 }
 
+bool BookEditor::goToNextMisspelling()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        return false;
+    }
+
+    // The writer has stopped typing: the word typed last counts too
+    if (m_spellTyping >= 0) {
+        endSpellingTyping();
+    }
+
+    // After the selection (the word gone to before), else from the cursor: the word the
+    // cursor is in, or right after, comes first
+    const bool afterSelection = hasSelection();
+    const CursorPosition from = afterSelection ? m_selection.normalized().end : m_cursorPosition;
+    const auto afterFrom = [afterSelection, &from](const TextHighlight& issue) {
+        return afterSelection ? issue.start >= from.offset
+                              : issue.start + issue.length >= from.offset;
+    };
+
+    // Round the text from the paragraph of the cursor back to it, checking on the way the
+    // paragraphs not checked yet
+    bool wavesChanged = false;
+    const int count = m_textBuffer->blockCount();
+    QTextBlock block = m_textBuffer->findBlockByNumber(from.paragraph);
+    for (int visited = 0; visited <= count; ++visited) {
+        if (!block.isValid()) {
+            block = m_textBuffer->begin();
+        }
+        const ParagraphData* known = ParagraphData::find(block);
+        if (known == nullptr || !known->spelling.current) {
+            wavesChanged = checkSpelling(block) || wavesChanged;
+        }
+
+        const TextHighlight* first = nullptr;
+        if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
+            for (const TextHighlight& issue : paragraphData->spelling.issues) {
+                // The paragraph of the cursor: after it first, before it when back at it
+                bool wanted = true;
+                if (visited == 0) {
+                    wanted = afterFrom(issue);
+                } else if (visited == count) {
+                    wanted = !afterFrom(issue);
+                }
+                if (wanted && (first == nullptr || issue.start < first->start)) {
+                    first = &issue;
+                }
+            }
+        }
+        if (first != nullptr) {
+            const int paragraph = block.blockNumber();
+            const CursorPosition start{paragraph, first->start};
+            const CursorPosition end{paragraph, first->start + first->length};
+            clearSelection();
+            setCursorPosition(end);
+            m_selectionAnchor = start;
+            setSelection({start, end});
+            ensureCursorVisible();
+            update();
+            return true;
+        }
+        block = block.next();
+    }
+    if (wavesChanged) {
+        update();
+    }
+    return false;
+}
+
 void BookEditor::onSpellingWordsChanged()
 {
     if (m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {

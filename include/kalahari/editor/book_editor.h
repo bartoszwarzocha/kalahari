@@ -614,6 +614,10 @@ public:
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
 
+    /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
+    ///        do: for a misspelled word at the cursor it offers what to put in its place
+    void showContextMenuAtCursor();
+
     // =========================================================================
     // View Mode (Phase 5.1)
     // =========================================================================
@@ -778,6 +782,14 @@ public:
 
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
+
+    /// @brief Select the next misspelled word: the one the cursor is in or the first after
+    ///        it (after the selection, when there is one), from the start of the text after
+    ///        its end
+    ///
+    /// The paragraphs not checked yet are checked on the way; the word being typed counts.
+    /// @return false when the text has no misspelled word or the spelling is not checked
+    bool goToNextMisspelling();
 
     // =========================================================================
     // Grammar Check Integration (Phase 6.17)
@@ -1039,7 +1051,8 @@ protected:
     /// @param event The context menu event
     ///
     /// Shows context menu with spell check suggestions if over a misspelled word,
-    /// otherwise shows default editing menu.
+    /// otherwise shows default editing menu. From the keyboard it is the menu of the
+    /// cursor's place (showContextMenuAtCursor()).
     void contextMenuEvent(QContextMenuEvent* event) override;
 
     /// @brief Input method event handler (Phase 4.5/4.6)
@@ -1441,6 +1454,12 @@ private:
 
     /// @brief Drop every spelling result
     void clearSpelling();
+
+    /// @brief Show the context menu of a place of the text
+    /// @param pos The place: what is offered is for the misspelled word there
+    /// @param globalPos Where the menu opens, on the screen
+    /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
+    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse);
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
