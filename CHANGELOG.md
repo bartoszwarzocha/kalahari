@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
+  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
+  the current paragraph and the selection. After an edit they get the new text, not the
+  text read before.
+
 - **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
   settings files of older versions nor moves the window layout and recent books from the
   old QSettings store (the registry on Windows); while Kalahari has a single user, old
@@ -410,6 +415,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seemed to disappear, for example after the book was closed and opened again. The
   Navigator now only fills the Properties panel; its context menu item Properties... still
   brings the panel to the front.
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to

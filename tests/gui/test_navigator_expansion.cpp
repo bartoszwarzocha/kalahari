@@ -1,5 +1,6 @@
 /// @file test_navigator_expansion.cpp
-/// @brief Navigator tree expansion state survives closing and reopening a book
+/// @brief Navigator tree expansion state survives closing and reopening a book; the
+///        elements' status shows in the program's language
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/gui/panels/navigator_panel.h>
@@ -8,6 +9,8 @@
 #include <kalahari/core/part.h>
 #include <kalahari/core/book_element.h>
 
+#include <QCoreApplication>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
@@ -104,4 +107,61 @@ TEST_CASE("Navigator keeps defaults when no state was saved", "[gui][navigator]"
 
     CHECK(findItem(tree, "part-001")->isExpanded());
     CHECK_FALSE(findSection(tree, "section_frontmatter")->isExpanded());
+}
+
+namespace {
+
+// Stands in for the Polish translation of the status names
+class StatusTranslator : public QTranslator {
+public:
+    QString translate(const char* context, const char* sourceText, const char* /*disambiguation*/,
+                      int /*n*/) const override {
+        if (QString::fromLatin1(context) != QLatin1String("kalahari::gui::NavigatorPanel")) {
+            return {};
+        }
+        const QString source = QString::fromLatin1(sourceText);
+        if (source == QLatin1String("Draft")) {
+            return QStringLiteral("Szkic");
+        }
+        if (source == QLatin1String("Revision")) {
+            return QStringLiteral("Poprawki");
+        }
+        return {};
+    }
+    bool isEmpty() const override { return false; }
+};
+
+} // namespace
+
+TEST_CASE("Navigator shows the elements' status in the program's language", "[gui][navigator]") {
+    // Regression: the tree showed the stored code, e.g. "Chapter 1 [Draft]" in the Polish
+    // program, while the "Set Status" menu named the same status "Szkic"
+    core::Document doc("Test Book", "Author", "pl");
+    auto part = std::make_shared<core::Part>("part-001", "Part 1");
+    auto draft = std::make_shared<core::BookElement>("chapter", "ch-001", "Chapter 1");
+    draft->setMetadata("status", "draft");
+    auto revision = std::make_shared<core::BookElement>("chapter", "ch-002", "Chapter 2");
+    revision->setMetadata("status", "revision");
+    auto finished = std::make_shared<core::BookElement>("chapter", "ch-003", "Chapter 3");
+    finished->setMetadata("status", "final");
+    part->addChapter(draft);
+    part->addChapter(revision);
+    part->addChapter(finished);
+    doc.getBook().addPart(part);
+
+    StatusTranslator translator;
+    QCoreApplication::installTranslator(&translator);
+    struct RemoveTranslator {
+        QTranslator* translator;
+        ~RemoveTranslator() { QCoreApplication::removeTranslator(translator); }
+    } removeTranslator{&translator};
+
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadDocument(doc);
+
+    CHECK(findItem(tree, "ch-001")->text(0) == QStringLiteral("Chapter 1 [Szkic]"));
+    CHECK(findItem(tree, "ch-002")->text(0) == QStringLiteral("Chapter 2 [Poprawki]"));
+    CHECK(findItem(tree, "ch-003")->text(0) == QStringLiteral("Chapter 3"));
 }

@@ -389,27 +389,19 @@ void BookEditorAccessible::fromAbsoluteOffset(int absoluteOffset, int& paragraph
 
 QString BookEditorAccessible::documentText() const
 {
-    if (m_cacheValid) {
-        return m_cachedText;
-    }
-
     BookEditor* editor = bookEditor();
-    auto* doc = editor ? editor->textDocument() : nullptr;
+    const QTextDocument* doc = editor ? editor->textDocument() : nullptr;
     if (!doc) {
         return QString();
     }
 
-    // Phase 11: use QTextDocument::toPlainText()
-    m_cachedText = doc->toPlainText();
-    m_cacheValid = true;
-
+    // Every edit raises revision(), so the text is read again only after a change
+    if (doc != m_cachedDocument || doc->revision() != m_cachedRevision) {
+        m_cachedText = doc->toPlainText();
+        m_cachedDocument = doc;
+        m_cachedRevision = doc->revision();
+    }
     return m_cachedText;
-}
-
-void BookEditorAccessible::invalidateCache()
-{
-    m_cacheValid = false;
-    m_cachedText.clear();
 }
 
 // =========================================================================
