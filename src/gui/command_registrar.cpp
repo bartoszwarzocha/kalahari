@@ -412,8 +412,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       nullptr);
 
-    REG_CMD_TOOL_ICON("tools.spellcheck", QT_TRANSLATE_NOOP("CommandRegistrar", "Spellchecker"), "TOOLS/Spellchecker", 40, false, 2,
-                      KeyboardShortcut(),
+    // Turns the spelling as you type on and off (SpellingCoordinator gives it its callback)
+    REG_CMD_TOOL_ICON("tools.spellcheck", QT_TRANSLATE_NOOP("CommandRegistrar", "Check Spelling as You Type"), "TOOLS/Check Spelling as You Type", 40, false, 0,
+                      KeyboardShortcut(Qt::Key_F7, Qt::ShiftModifier),
                       IconSet(),
                       nullptr);
 

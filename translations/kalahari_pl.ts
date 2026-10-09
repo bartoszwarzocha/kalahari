@@ -336,8 +336,8 @@
         <translation>Liczba słów</translation>
     </message>
     <message>
-        <source>Spellchecker</source>
-        <translation>Sprawdzanie pisowni</translation>
+        <source>Check Spelling as You Type</source>
+        <translation>Sprawdzaj pisownię podczas pisania</translation>
     </message>
     <message>
         <source>Grammar Check</source>
@@ -1346,8 +1346,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Dodaj do słownika</translation>
     </message>
     <message>
-        <source>Ignore</source>
-        <translation>Pomiń</translation>
+        <source>Ignore All</source>
+        <translation>Pomijaj to słowo</translation>
     </message>
     <message>
         <source>Error: &quot;%1&quot;</source>
@@ -1481,16 +1481,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 <context>
     <name>kalahari::editor::SpellCheckService</name>
     <message>
-        <source>Dictionary not found for language: %1</source>
-        <translation>Nie znaleziono słownika dla języka: %1</translation>
-    </message>
-    <message>
-        <source>Dictionary files missing for: %1</source>
-        <translation>Brak plików słownika dla: %1</translation>
-    </message>
-    <message>
-        <source>Failed to initialize Hunspell for: %1</source>
-        <translation>Nie udało się uruchomić Hunspella dla: %1</translation>
+        <source>No dictionary %1 was found</source>
+        <translation>Nie znaleziono słownika %1</translation>
     </message>
 </context>
 <context>
@@ -3008,6 +3000,57 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorSpellingPage</name>
+    <message>
+        <source>Spelling as You Type</source>
+        <translation>Sprawdzanie pisowni podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check spelling as you type</source>
+        <translation>Sprawdzaj pisownię podczas pisania</translation>
+    </message>
+    <message>
+        <source>Language of the book</source>
+        <translation>Język książki</translation>
+    </message>
+    <message>
+        <source>%1 (no dictionary)</source>
+        <translation>%1 (brak słownika)</translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source>A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
+        <translation>Błędnie zapisane słowo jest podkreślone falistą linią; po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
+    </message>
+    <message>
+        <source>Your Words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>Your words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says; Add to Dictionary in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem Dodaj do słownika z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::GeneralPage</name>
     <message>
         <source>Startup</source>
@@ -4072,16 +4115,6 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Planned features:
-- Spell check language selection
-- Custom dictionary management
-- Ignore rules for technical terms</source>
-        <translation>Planowane funkcje:
-- wybór języka sprawdzania pisowni
-- zarządzanie własnym słownikiem
-- reguły pomijania terminów technicznych</translation>
-    </message>
-    <message>
-        <source>Planned features:
 - Automatic capitalization
 - Common typo corrections
 - Custom replacement rules</source>
@@ -4172,6 +4205,21 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingCoordinator</name>
+    <message>
+        <source>No spelling dictionary for %1: the spelling is not checked</source>
+        <translation>Brak słownika dla języka %1: pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: on</source>
+        <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: off</source>
+        <translation>Sprawdzanie pisowni podczas pisania: wyłączone</translation>
     </message>
 </context>
 <context>

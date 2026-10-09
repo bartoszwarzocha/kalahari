@@ -1,273 +1,373 @@
 /// @file test_spell_check_service.cpp
-/// @brief Unit tests for SpellCheckService (OpenSpec #00042 Phase 6.4-6.9)
+/// @brief The spelling dictionary: loading (also in the background), what is checked and
+///        the writer's own words
 
 #include <catch2/catch_test_macros.hpp>
-#include <QCoreApplication>
 
 #include "kalahari/editor/spell_check_service.h"
-#include "kalahari/editor/book_editor.h"
+#include "editor_test_utils.h"
+
+#include <QFile>
+#include <QTemporaryDir>
+#include <QTextStream>
+
+#include <memory>
 
 using namespace kalahari::editor;
+using kalahari::test::runEventLoop;
+using kalahari::test::waitUntil;
+
+namespace {
+
+/// What a service tells: changes of the words, dictionaries loaded and errors
+class ServiceSignals {
+public:
+    explicit ServiceSignals(const SpellCheckService& service) {
+        QObject::connect(&service, &SpellCheckService::wordsChanged, &m_context,
+                         [this]() { ++changed; });
+        QObject::connect(&service, &SpellCheckService::dictionaryLoaded, &m_context,
+                         [this](const QString& dictionary) { loaded.append(dictionary); });
+        QObject::connect(&service, &SpellCheckService::dictionaryError, &m_context,
+                         [this](const QString& error) { errors.append(error); });
+    }
+
+    int changed = 0;
+    QStringList loaded;
+    QStringList errors;
+
+private:
+    QObject m_context;  ///< Gone first: no signal reaches the counts after them
+};
+
+/// The misspelled words of a text, as written
+QStringList misspelled(const SpellCheckService& service, const QString& text) {
+    QStringList words;
+    for (const SpellErrorInfo& error : service.checkParagraph(text)) {
+        CHECK(text.mid(error.startPos, error.length) == error.word);
+        words.append(error.word);
+    }
+    return words;
+}
+
+/// A service checking with the shipped English dictionary
+std::unique_ptr<SpellCheckService> english() {
+    auto service = std::make_unique<SpellCheckService>();
+    REQUIRE(service->loadDictionary(QStringLiteral("en_US")));
+    return service;
+}
+
+/// The lines of a text file, as UTF-8
+QStringList linesOf(const QString& path) {
+    QFile file(path);
+    REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QStringList lines;
+    while (!in.atEnd()) {
+        lines.append(in.readLine());
+    }
+    return lines;
+}
+
+}  // namespace
 
 // ============================================================================
-// Construction and Basic State
+// Dictionaries
 // ============================================================================
 
-TEST_CASE("SpellCheckService construction", "[editor][spell_check]") {
+TEST_CASE("SpellCheckService: without a dictionary every word is right", "[editor][spell_check]") {
     SpellCheckService service;
+    CHECK(service.isEnabled());
+    CHECK_FALSE(service.isDictionaryLoaded());
+    CHECK_FALSE(service.isActive());
+    CHECK_FALSE(service.isLoading());
+    CHECK(service.currentDictionary().isEmpty());
 
-    SECTION("initial state") {
-        REQUIRE(service.isEnabled());
-        REQUIRE_FALSE(service.isDictionaryLoaded());
-        REQUIRE(service.currentLanguage().isEmpty());
-        // Note: userDictionaryWords may not be empty if persisted from previous runs
+    CHECK(service.isCorrect(QStringLiteral("errrors")));
+    CHECK(service.suggestions(QStringLiteral("errrors")).isEmpty());
+    CHECK(service.checkParagraph(QStringLiteral("This is a tset with errrors.")).isEmpty());
+}
+
+TEST_CASE("SpellCheckService: the shipped dictionaries", "[editor][spell_check]") {
+    const QStringList dictionaries = SpellCheckService::availableDictionaries();
+    REQUIRE(dictionaries.contains(QStringLiteral("pl_PL")));
+    REQUIRE(dictionaries.contains(QStringLiteral("en_US")));
+
+    // A language picks its main dictionary
+    CHECK(SpellCheckService::dictionaryFor(QStringLiteral("pl")) == QStringLiteral("pl_PL"));
+    CHECK(SpellCheckService::dictionaryFor(QStringLiteral("en")) == QStringLiteral("en_US"));
+    CHECK(SpellCheckService::dictionaryFor(QStringLiteral("pl-PL")) == QStringLiteral("pl_PL"));
+    CHECK(SpellCheckService::dictionaryFor(QStringLiteral(" en_US ")) == QStringLiteral("en_US"));
+
+    // A language without a dictionary has none
+    CHECK(SpellCheckService::dictionaryFor(QStringLiteral("xx")).isEmpty());
+    CHECK(SpellCheckService::dictionaryFor(QString()).isEmpty());
+}
+
+TEST_CASE("SpellCheckService: a dictionary loaded now", "[editor][spell_check]") {
+    SpellCheckService service;
+    const ServiceSignals told(service);
+
+    REQUIRE(service.loadDictionary(QStringLiteral("en_US")));
+    CHECK(service.isDictionaryLoaded());
+    CHECK(service.isActive());
+    CHECK(service.currentDictionary() == QStringLiteral("en_US"));
+    CHECK(told.loaded == QStringList{"en_US"});
+    CHECK(told.changed == 1);
+
+    // A dictionary that is not there: the one loaded before stays
+    CHECK_FALSE(service.loadDictionary(QStringLiteral("xx_YY")));
+    CHECK(told.errors.size() == 1);
+    CHECK(service.currentDictionary() == QStringLiteral("en_US"));
+    CHECK(told.changed == 1);
+}
+
+TEST_CASE("SpellCheckService: a dictionary loaded in the background", "[editor][spell_check]") {
+    SpellCheckService service;
+    const ServiceSignals told(service);
+
+    service.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    CHECK(service.isLoading());
+    CHECK_FALSE(service.isDictionaryLoaded());
+    REQUIRE(waitUntil([&told]() { return !told.loaded.isEmpty(); }, 20000));
+    CHECK_FALSE(service.isLoading());
+    CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
+    CHECK(told.loaded == QStringList{"pl_PL"});
+    CHECK(told.changed == 1);
+    CHECK(misspelled(service, QStringLiteral("Ta ksi\u0105\u017cka ma b\u0142\u0105d: "
+                                             "ksi\u0105rzka.")) ==
+          QStringList{QStringLiteral("ksi\u0105rzka")});
+
+    SECTION("the last dictionary asked for is the one loaded") {
+        // The Polish one checks the words until another is ready; asked for again while
+        // the English one loads, it stays and the English one is dropped
+        service.loadDictionaryInBackground(QStringLiteral("en_US"));
+        CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
+        service.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+        REQUIRE(waitUntil([&service]() { return !service.isLoading(); }, 20000));
+        CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
+        CHECK(told.loaded == QStringList{"pl_PL"});
+        CHECK(told.changed == 1);
+
+        service.loadDictionaryInBackground(QStringLiteral("en_US"));
+        REQUIRE(waitUntil([&told]() { return told.loaded.size() == 2; }, 20000));
+        CHECK(service.currentDictionary() == QStringLiteral("en_US"));
+        CHECK(told.changed == 2);
+    }
+
+    SECTION("a language without a dictionary checks nothing") {
+        service.unloadDictionary();
+        CHECK_FALSE(service.isDictionaryLoaded());
+        CHECK(service.currentDictionary().isEmpty());
+        CHECK(told.changed == 2);
+        CHECK(service.checkParagraph(QStringLiteral("ksi\u0105rzka")).isEmpty());
+
+        // The dictionary kept is checked with again at once
+        service.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+        CHECK_FALSE(service.isLoading());
+        CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
+        CHECK(told.changed == 3);
     }
 }
 
-TEST_CASE("SpellCheckService enable/disable", "[editor][spell_check]") {
-    SpellCheckService service;
+TEST_CASE("SpellCheckService: closed while a dictionary loads", "[editor][spell_check]") {
+    // The loading thread is waited for: nothing is left behind (sanitizers)
+    auto service = std::make_unique<SpellCheckService>();
+    service->loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    CHECK(service->isLoading());
+    service.reset();
 
-    SECTION("disable") {
-        service.setEnabled(false);
-        REQUIRE_FALSE(service.isEnabled());
+    // And a dictionary loaded now drops the one loading
+    SpellCheckService other;
+    other.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    REQUIRE(other.loadDictionary(QStringLiteral("en_US")));
+    CHECK_FALSE(other.isLoading());
+    runEventLoop(50);
+    CHECK(other.currentDictionary() == QStringLiteral("en_US"));
+}
+
+TEST_CASE("SpellCheckService: turning the checking off", "[editor][spell_check]") {
+    auto service = english();
+    const ServiceSignals told(*service);
+
+    service->setEnabled(false);
+    CHECK_FALSE(service->isActive());
+    CHECK(service->checkParagraph(QStringLiteral("errrors")).isEmpty());
+    CHECK(told.changed == 1);
+    service->setEnabled(false);
+    CHECK(told.changed == 1);
+
+    service->setEnabled(true);
+    CHECK(service->isActive());
+    CHECK(misspelled(*service, QStringLiteral("errrors")) == QStringList{"errrors"});
+    CHECK(told.changed == 2);
+}
+
+// ============================================================================
+// What is checked
+// ============================================================================
+
+TEST_CASE("SpellCheckService: the words checked", "[editor][spell_check]") {
+    auto service = english();
+
+    SECTION("misspelled words where they are") {
+        const QString text = QStringLiteral("The chaptre is reddy.");
+        const QList<SpellErrorInfo> errors = service->checkParagraph(text);
+        REQUIRE(errors.size() == 2);
+        CHECK(errors[0] == SpellErrorInfo(4, 7, QStringLiteral("chaptre")));
+        CHECK(errors[1] == SpellErrorInfo(15, 5, QStringLiteral("reddy")));
+        CHECK(service->suggestions(QStringLiteral("chaptre")).contains("chapter"));
     }
 
-    SECTION("enable") {
-        service.setEnabled(false);
-        service.setEnabled(true);
-        REQUIRE(service.isEnabled());
+    SECTION("apostrophes, also the typographic one") {
+        CHECK(misspelled(*service, QStringLiteral("Don't stop, it isn\u2019t over.")).isEmpty());
+        CHECK(misspelled(*service, QStringLiteral("It isn\u2019tt over.")) ==
+              QStringList{QStringLiteral("isn\u2019tt")});
+    }
+
+    SECTION("a hyphenated word by its wrong parts") {
+        CHECK(misspelled(*service, QStringLiteral("A well-known self-aware writer.")).isEmpty());
+        const QString text = QStringLiteral("A well-knwon writer.");
+        const QList<SpellErrorInfo> errors = service->checkParagraph(text);
+        REQUIRE(errors.size() == 1);
+        CHECK(errors[0] == SpellErrorInfo(7, 5, QStringLiteral("knwon")));
+    }
+
+    SECTION("words left out") {
+        // One letter, capitals, words touching digits or underscores, addresses
+        CHECK(misspelled(*service, QStringLiteral("x y z q")).isEmpty());
+        CHECK(misspelled(*service, QStringLiteral("NATO XYZZY QWRT")).isEmpty());
+        CHECK(misspelled(*service, QStringLiteral("abc123 x2y 3rd v1_beta snake_cse")).isEmpty());
+        CHECK(misspelled(*service, QStringLiteral("See https://exampel.com/pathh, "
+                                                  "www.exampel.org or jhon@exampel.com."))
+                  .isEmpty());
+        // But not the words around them
+        CHECK(misspelled(*service, QStringLiteral("Errror at www.exampel.org")) ==
+              QStringList{"Errror"});
+    }
+
+    SECTION("Polish") {
+        SpellCheckService polish;
+        REQUIRE(polish.loadDictionary(QStringLiteral("pl_PL")));
+        // Words with Polish letters: the dictionary is UTF-8, like the text
+        CHECK(polish.isCorrect(QStringLiteral("ksi\u0105\u017cka")));
+        CHECK(polish.isCorrect(QStringLiteral("\u017b\u00f3\u0142w")));
+        CHECK_FALSE(polish.isCorrect(QStringLiteral("ksi\u0105rzka")));
+        CHECK(polish.suggestions(QStringLiteral("ksi\u0105rzka"))
+                  .contains(QStringLiteral("ksi\u0105\u017cka")));
+        CHECK(misspelled(polish, QStringLiteral("Bia\u0142o-czerwona flaga, \u017c\u00f3\u0142w i "
+                                                "\u017c\u00f3\u0142f.")) ==
+              QStringList{QStringLiteral("\u017c\u00f3\u0142f")});
     }
 }
 
 // ============================================================================
-// User Dictionary Operations (no Hunspell required)
+// The writer's own words
 // ============================================================================
 
-TEST_CASE("SpellCheckService user dictionary", "[editor][spell_check]") {
-    SpellCheckService service;
+TEST_CASE("SpellCheckService: the writer's own words", "[editor][spell_check]") {
+    auto service = english();
+    const ServiceSignals told(*service);
 
-    SECTION("add to user dictionary") {
-        service.addToUserDictionary("customword");
-        REQUIRE(service.isInUserDictionary("customword"));
-        REQUIRE(service.userDictionaryWords().contains("customword"));
+    SECTION("a word in lower case is right in any case, also with an ending") {
+        REQUIRE(misspelled(*service, QStringLiteral("glorptik")) == QStringList{"glorptik"});
+        service->addToUserDictionary(QStringLiteral(" glorptik "));
+        CHECK(service->isInUserDictionary(QStringLiteral("glorptik")));
+        CHECK(told.changed == 1);
+        CHECK(misspelled(*service, QStringLiteral("glorptik Glorptik Glorptik's "
+                                                  "Glorptik\u2019s")).isEmpty());
+
+        // Added twice: nothing changes
+        service->addToUserDictionary(QStringLiteral("glorptik"));
+        CHECK(told.changed == 1);
+        CHECK(service->userDictionaryWords() == QStringList{"glorptik"});
+
+        service->removeFromUserDictionary(QStringLiteral("glorptik"));
+        CHECK(told.changed == 2);
+        CHECK(misspelled(*service, QStringLiteral("Glorptik")) == QStringList{"Glorptik"});
     }
 
-    SECTION("remove from user dictionary") {
-        service.addToUserDictionary("tempword");
-        REQUIRE(service.isInUserDictionary("tempword"));
-        service.removeFromUserDictionary("tempword");
-        REQUIRE_FALSE(service.isInUserDictionary("tempword"));
+    SECTION("a word with capitals is right only with them") {
+        REQUIRE(misspelled(*service, QStringLiteral("McGlorp")) == QStringList{"McGlorp"});
+        service->addToUserDictionary(QStringLiteral("McGlorp"));
+        CHECK(misspelled(*service, QStringLiteral("McGlorp McGlorp's mcglorp")) ==
+              QStringList{"mcglorp"});
     }
 
-    SECTION("case sensitivity") {
-        service.addToUserDictionary("MixedCase");
-        // User dictionary should preserve case
-        REQUIRE(service.isInUserDictionary("MixedCase"));
+    SECTION("ignored words, until the application closes") {
+        service->ignoreWord(QStringLiteral("Zorblax"));
+        CHECK(service->isIgnored(QStringLiteral("Zorblax")));
+        CHECK_FALSE(service->isInUserDictionary(QStringLiteral("Zorblax")));
+        CHECK(told.changed == 1);
+        CHECK(misspelled(*service, QStringLiteral("Zorblax zorblax")) == QStringList{"zorblax"});
+        service->ignoreWord(QStringLiteral("Zorblax"));
+        CHECK(told.changed == 1);
     }
 
-    SECTION("multiple words") {
-        // Get initial count (may have persisted words from previous runs)
-        int initialCount = service.userDictionaryWords().size();
-
-        service.addToUserDictionary("testword1_unique");
-        service.addToUserDictionary("testword2_unique");
-        service.addToUserDictionary("testword3_unique");
-        auto words = service.userDictionaryWords();
-        REQUIRE(words.size() == initialCount + 3);
-        REQUIRE(words.contains("testword1_unique"));
-        REQUIRE(words.contains("testword2_unique"));
-        REQUIRE(words.contains("testword3_unique"));
-
-        // Cleanup
-        service.removeFromUserDictionary("testword1_unique");
-        service.removeFromUserDictionary("testword2_unique");
-        service.removeFromUserDictionary("testword3_unique");
-    }
-
-    SECTION("duplicate add is no-op") {
-        int initialCount = service.userDictionaryWords().size();
-        service.addToUserDictionary("duplicate_unique_test");
-        service.addToUserDictionary("duplicate_unique_test");
-        REQUIRE(service.userDictionaryWords().size() == initialCount + 1);
-        REQUIRE(service.userDictionaryWords().count("duplicate_unique_test") == 1);
-
-        // Cleanup
-        service.removeFromUserDictionary("duplicate_unique_test");
+    SECTION("all the words at once") {
+        service->setUserDictionaryWords({QStringLiteral("zorblax"), QStringLiteral(" "),
+                                         QStringLiteral("Quuxly")});
+        CHECK(service->userDictionaryWords() == QStringList({"Quuxly", "zorblax"}));
+        CHECK(told.changed == 1);
+        service->setUserDictionaryWords({QStringLiteral("Quuxly"), QStringLiteral("zorblax")});
+        CHECK(told.changed == 1);
+        service->setUserDictionaryWords({});
+        CHECK(service->userDictionaryWords().isEmpty());
+        CHECK(told.changed == 2);
     }
 }
 
-// ============================================================================
-// Ignore Word (Session Only)
-// ============================================================================
+TEST_CASE("SpellCheckService: the user dictionary is kept in a file", "[editor][spell_check]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    // In a folder that is not there yet
+    const QString path = folder.filePath(QStringLiteral("settings/user_dictionary.txt"));
 
-TEST_CASE("SpellCheckService ignore word", "[editor][spell_check]") {
-    SpellCheckService service;
-
-    SECTION("ignore word") {
-        // Ignored words are session-only, not in user dictionary
-        service.ignoreWord("ignoreme");
-        // Note: ignoreWord doesn't add to user dictionary
-        REQUIRE_FALSE(service.isInUserDictionary("ignoreme"));
-    }
-}
-
-// ============================================================================
-// BookEditor Integration
-// ============================================================================
-
-TEST_CASE("SpellCheckService BookEditor integration", "[editor][spell_check]") {
-    // Note: Service must be declared AFTER editor to ensure correct destruction order
-    // (editor destroyed after service disconnects from it)
-
-    SECTION("set editor") {
-        BookEditor editor;
+    {
         SpellCheckService service;
-        service.setBookEditor(&editor);
-        service.setBookEditor(nullptr);  // Disconnect before editor is destroyed
+        const ServiceSignals told(service);
+        service.setUserDictionaryFile(path);
+        CHECK(service.userDictionaryFile() == path);
+        CHECK(told.changed == 0);
+
+        service.addToUserDictionary(QStringLiteral("\u017b\u00f3\u0142wik"));
+        service.addToUserDictionary(QStringLiteral("kalahari"));
+        const QStringList lines = linesOf(path);
+        REQUIRE(lines.size() == 3);
+        CHECK(lines[0].startsWith(QLatin1Char('#')));
+        CHECK(lines.mid(1) == QStringList({"kalahari", QStringLiteral("\u017b\u00f3\u0142wik")}));
     }
 
-    SECTION("set null editor") {
-        BookEditor editor;
-        SpellCheckService service;
-        service.setBookEditor(&editor);
-        service.setBookEditor(nullptr);
-        // Should not crash
+    // Read by the next session, comments and empty lines left out
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::Append | QIODevice::Text));
+        file.write("\n# a comment\n  Quuxly  \n");
     }
-
-    SECTION("change editor") {
-        BookEditor editor1;
-        BookEditor editor2;
-        SpellCheckService service;
-        service.setBookEditor(&editor1);
-        service.setBookEditor(&editor2);
-        service.setBookEditor(nullptr);  // Disconnect before editors are destroyed
-    }
-}
-
-// ============================================================================
-// Dictionary Loading (may fail if no dictionaries installed)
-// ============================================================================
-
-TEST_CASE("SpellCheckService dictionary loading", "[editor][spell_check]") {
     SpellCheckService service;
+    const ServiceSignals told(service);
+    service.setUserDictionaryFile(path);
+    CHECK(told.changed == 1);
+    CHECK(service.userDictionaryWords() ==
+          QStringList({"Quuxly", "kalahari", QStringLiteral("\u017b\u00f3\u0142wik")}));
 
-    SECTION("available dictionaries returns list") {
-        auto dicts = service.availableDictionaries();
-        // List may be empty if no dictionaries installed, but should not crash
-        REQUIRE(dicts.size() >= 0);
-    }
-
-    SECTION("load nonexistent dictionary returns false") {
-        bool result = service.loadDictionary("xx_YY_NONEXISTENT");
-        REQUIRE_FALSE(result);
-        REQUIRE_FALSE(service.isDictionaryLoaded());
-    }
+    // Without a file the words are kept only while the application runs
+    service.setUserDictionaryFile(QString());
+    CHECK(service.userDictionaryWords().isEmpty());
+    service.addToUserDictionary(QStringLiteral("zorblax"));
+    CHECK(linesOf(path).size() == 6);
 }
 
-// ============================================================================
-// Dictionaries shipped with Kalahari (resources/dictionaries)
-// ============================================================================
+TEST_CASE("SpellErrorInfo", "[editor][spell_check]") {
+    const SpellErrorInfo empty;
+    CHECK(empty.startPos == 0);
+    CHECK(empty.length == 0);
+    CHECK(empty.word.isEmpty());
 
-TEST_CASE("SpellCheckService finds the shipped dictionaries", "[editor][spell_check]") {
-    SpellCheckService service;
-    const QStringList dicts = service.availableDictionaries();
-    REQUIRE(dicts.contains("pl_PL"));
-    REQUIRE(dicts.contains("en_US"));
-
-    SECTION("a language picks its main dictionary") {
-        REQUIRE(service.dictionaryFor("pl") == "pl_PL");
-        REQUIRE(service.dictionaryFor("en") == "en_US");
-        REQUIRE(service.dictionaryFor("pl-PL") == "pl_PL");
-        REQUIRE(service.dictionaryFor("en_US") == "en_US");
-    }
-
-    SECTION("a language without a dictionary has none") {
-        REQUIRE(service.dictionaryFor("xx").isEmpty());
-        REQUIRE(service.dictionaryFor("").isEmpty());
-    }
+    const SpellErrorInfo info(5, 7, QStringLiteral("misspel"));
+    CHECK(info.startPos == 5);
+    CHECK(info.length == 7);
+    CHECK(info.word == QStringLiteral("misspel"));
+    CHECK(info == SpellErrorInfo(5, 7, QStringLiteral("misspel")));
+    CHECK_FALSE(info == SpellErrorInfo(6, 7, QStringLiteral("misspel")));
 }
-
-TEST_CASE("SpellCheckService checks Polish with the shipped dictionary", "[editor][spell_check]") {
-    SpellCheckService service;
-    REQUIRE(service.loadDictionary("pl_PL"));
-
-    // Words with Polish letters: the dictionary is UTF-8, like the text
-    REQUIRE(service.isCorrect(QStringLiteral("ksi\u0105\u017cka")));             // książka
-    REQUIRE(service.isCorrect(QStringLiteral("\u017b\u00f3\u0142w")));          // Żółw
-    REQUIRE(service.isCorrect(QStringLiteral("nies\u0142ychanie")));            // niesłychanie
-    REQUIRE_FALSE(service.isCorrect(QStringLiteral("ksi\u0105rzka")));          // książka misspelled
-
-    const QStringList suggestions = service.suggestions(QStringLiteral("ksi\u0105rzka"));
-    REQUIRE(suggestions.contains(QStringLiteral("ksi\u0105\u017cka")));
-
-    const auto errors = service.checkParagraph(
-        QStringLiteral("Ta ksi\u0105\u017cka ma b\u0142\u0105d: ksi\u0105rzka."));
-    REQUIRE(errors.size() == 1);
-    REQUIRE(errors.first().word == QStringLiteral("ksi\u0105rzka"));
-}
-
-TEST_CASE("SpellCheckService checks English with the shipped dictionary", "[editor][spell_check]") {
-    SpellCheckService service;
-    REQUIRE(service.loadDictionary("en_US"));
-
-    REQUIRE(service.isCorrect("writer"));
-    REQUIRE(service.isCorrect("chapter"));
-    REQUIRE_FALSE(service.isCorrect("chaptre"));
-    REQUIRE(service.suggestions("chaptre").contains("chapter"));
-}
-
-// ============================================================================
-// Checking without dictionary
-// ============================================================================
-
-TEST_CASE("SpellCheckService checking without dictionary", "[editor][spell_check]") {
-    SpellCheckService service;
-    // No dictionary loaded
-
-    SECTION("isCorrect returns true when no dictionary") {
-        // Without dictionary, all words are considered correct
-        bool result = service.isCorrect("anyword");
-        REQUIRE(result);
-    }
-
-    SECTION("suggestions returns empty when no dictionary") {
-        auto suggestions = service.suggestions("misspeled");
-        REQUIRE(suggestions.isEmpty());
-    }
-
-    SECTION("checkParagraph returns empty when no dictionary") {
-        auto errors = service.checkParagraph("This is a tset with errrors.");
-        REQUIRE(errors.isEmpty());
-    }
-}
-
-// ============================================================================
-// SpellErrorInfo struct
-// ============================================================================
-
-TEST_CASE("SpellErrorInfo struct", "[editor][spell_check]") {
-    SECTION("default construction") {
-        SpellErrorInfo info;
-        REQUIRE(info.startPos == 0);
-        REQUIRE(info.length == 0);
-        REQUIRE(info.word.isEmpty());
-        REQUIRE(info.suggestions.isEmpty());
-    }
-
-    SECTION("parameterized construction") {
-        SpellErrorInfo info(5, 7, "misspel");
-        REQUIRE(info.startPos == 5);
-        REQUIRE(info.length == 7);
-        REQUIRE(info.word == "misspel");
-    }
-
-    SECTION("equality comparison") {
-        SpellErrorInfo info1(5, 7, "word");
-        SpellErrorInfo info2(5, 7, "word");
-        SpellErrorInfo info3(6, 7, "word");
-
-        REQUIRE(info1 == info2);
-        REQUIRE_FALSE(info1 == info3);
-    }
-}
-

@@ -17,7 +17,6 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
-#include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -43,6 +42,8 @@ class QKeyEvent;
 class QMouseEvent;
 class QVariantAnimation;
 class QScreen;
+class QShowEvent;
+class QTextBlock;
 class QScrollBar;
 class QTimer;
 class QMenu;
@@ -754,25 +755,29 @@ public:
     const EditorAppearance& appearance() const;
 
     // =========================================================================
-    // Spell Check Integration (Phase 6.9)
+    // Spelling
     // =========================================================================
 
-    /// @brief Set the spell check service to use
-    /// @param service Pointer to SpellCheckService (not owned, must outlive editor)
+    /// @brief Check the text's spelling with a dictionary
     ///
-    /// Connects the service's paragraphChecked signal to update paragraph layouts
-    /// with spell error underlines. Pass nullptr to disable spell checking.
+    /// The editor checks its paragraphs itself, in short turns while it is shown: those in
+    /// view first, then the others. A paragraph is checked again after it is edited, and
+    /// every one after the dictionary changes (SpellCheckService::wordsChanged()). A
+    /// misspelled word gets a wave under it, but the word being typed: it gets one when the
+    /// cursor leaves it.
+    /// @param service The dictionary (not owned); nullptr, or one not active: no waves
     void setSpellCheckService(SpellCheckService* service);
 
-    /// @brief Get the current spell check service
-    /// @return Pointer to the service, or nullptr if not set
+    /// @brief The dictionary the spelling is checked with, or nullptr
     SpellCheckService* spellCheckService() const;
 
-    /// @brief Request spell check for entire document
+    /// @brief Check the spelling of every paragraph again
     ///
-    /// Triggers asynchronous spell checking of all paragraphs.
-    /// Results are received via paragraphChecked signal and rendered automatically.
+    /// The waves stay until their paragraphs are checked.
     void requestSpellCheck();
+
+    /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
+    bool isSpellCheckPending() const;
 
     // =========================================================================
     // Grammar Check Integration (Phase 6.17)
@@ -974,6 +979,9 @@ protected:
     /// Triggers repaint to hide cursor when editor loses focus.
     void focusOutEvent(QFocusEvent* event) override;
 
+    /// @brief The spelling check, which waits while the editor is hidden, goes on
+    void showEvent(QShowEvent* event) override;
+
     /// @brief Mouse wheel event handler
     /// @param event The wheel event
     ///
@@ -1052,11 +1060,6 @@ private slots:
     /// @brief Handle scrollbar value change
     /// @param value New scrollbar value
     void onScrollBarValueChanged(int value);
-
-    /// @brief Handle spell check results for a paragraph (Phase 6.9)
-    /// @param paragraphIndex The paragraph index
-    /// @param errors List of spelling errors found
-    void onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors);
 
     /// @brief Handle grammar check results for a paragraph (Phase 6.17)
     /// @param paragraphIndex The paragraph index
@@ -1398,22 +1401,57 @@ private:
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 
-    // Spell Check (Phase 6.9)
-    SpellCheckService* m_spellCheckService{nullptr};        ///< Spell check service (not owned)
+    // Spelling
+    SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
+    QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
+    int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
+    int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
+    bool m_spellTypingEdit{false};  ///< The writer is typing (a character, Backspace, Delete)
+
+    /// @brief Run a turn of the spelling check after @p delayMs, unless one is due sooner
+    void scheduleSpellCheck(int delayMs);
+
+    /// @brief A turn of the spelling check: the paragraphs due, those in view first, for a
+    ///        few milliseconds; another turn follows while any is due
+    void runSpellCheck();
+
+    /// @brief Check a paragraph's spelling
+    /// @return Whether its waves changed
+    bool checkSpelling(const QTextBlock& block);
+
+    /// @brief Keep the spelling results of the words an edit left as they were, moved with
+    ///        the text; the paragraphs it changed are due to be checked
+    void adjustSpellingToEdit(int from, int charsRemoved, int charsAdded);
+
+    /// @brief The dictionary changed or went: check every paragraph again, or drop the waves
+    void onSpellingWordsChanged();
+
+    /// @brief The dictionary was destroyed
+    void onSpellCheckServiceDestroyed();
+
+    /// @brief The cursor moved: when it left the place it was typing at, the word typed
+    ///        there is checked
+    void onSpellingCursorMoved();
+
+    /// @brief Note where typing left the cursor (after an edit while m_spellTypingEdit)
+    void noteSpellingTyping();
+
+    /// @brief The writer stopped typing: the word typed is checked
+    void endSpellingTyping();
+
+    /// @brief Drop every spelling result
+    void clearSpelling();
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
-    /// @param offset Character offset within paragraph
+    /// @param offset Character offset within paragraph (also right after the word)
     /// @return The misspelled word and its range, or empty if no error at position
     std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
 
-    /// @brief Create context menu for spell check
-    /// @param word The misspelled word
-    /// @param paraIndex Paragraph index
-    /// @param startOffset Start position of word
-    /// @param endOffset End position of word
-    /// @return Context menu with suggestions
-    QMenu* createSpellCheckContextMenu(const QString& word, int paraIndex, int startOffset, int endOffset);
+    /// @brief Put on the context menu what is offered for a misspelled word: the words to
+    ///        put in its place, Ignore All, Add to Dictionary
+    void addSpellingActions(QMenu& menu, const QString& word, int paraIndex, int startOffset,
+                            int endOffset);
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index

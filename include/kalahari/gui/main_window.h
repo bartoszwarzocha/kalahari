@@ -50,6 +50,7 @@ class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class SpellingCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -340,6 +341,7 @@ private:
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
+    SpellingCoordinator* m_spellingCoordinator{nullptr};
 
     // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
     bool m_isDirty;                                   ///< Unsaved changes flag

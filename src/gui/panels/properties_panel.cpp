@@ -813,6 +813,7 @@ void PropertiesPanel::onProjectLanguageChanged(int index) {
     logger.info("PropertiesPanel: Project language changed to: {}", langCode.toStdString());
     doc->setLanguage(langCode.toStdString());
     pm.setDirty(true);
+    emit bookLanguageChanged(langCode);
 }
 
 void PropertiesPanel::onProjectGenreChanged() {

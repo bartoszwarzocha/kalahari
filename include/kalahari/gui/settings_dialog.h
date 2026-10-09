@@ -23,6 +23,9 @@ class QTreeWidget;
 class QTreeWidgetItem;
 
 namespace kalahari {
+namespace editor {
+class SpellCheckService;
+}
 namespace gui {
 
 class SettingsPage;
@@ -44,7 +47,10 @@ public:
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)
     /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
-    explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false);
+    /// @param spelling The dictionary of the editors, whose own words the Spelling page
+    ///        edits (none: the page does not list them)
+    explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false,
+                            editor::SpellCheckService* spelling = nullptr);
 
     ~SettingsDialog() override = default;
 
@@ -94,6 +100,7 @@ private:
     QTreeWidget* m_navTree;
     QStackedWidget* m_pageStack;
     bool m_diagnosticMode;
+    editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)
     LengthUnit m_lengthUnit;  ///< Unit chosen on the General page, applied or not
 
     std::map<QTreeWidgetItem*, PageFactory> m_factories;
