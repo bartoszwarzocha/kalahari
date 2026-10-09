@@ -154,21 +154,21 @@ struct BookProject {
     /// @brief Elements of book @p book in reading order, each group before the elements inside it
     QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
 
-    /// @brief Element @p id of a book or of the Workshop, or nullptr
-    ProjectElement* findElement(const QString& id);
-    const ProjectElement* findElement(const QString& id) const;
+    /// @brief Element @p elementId of a book or of the Workshop, or nullptr
+    ProjectElement* findElement(const QString& elementId);
+    const ProjectElement* findElement(const QString& elementId) const;
 
-    /// @brief List that holds element @p id: a part of a book, a group or the Workshop
+    /// @brief List that holds element @p elementId: a part of a book, a group or the Workshop
     /// @param index Gets the index of the element in the list
-    /// @return The list, or nullptr when the project has no element @p id
-    QList<ProjectElement>* listOf(const QString& id, qsizetype* index = nullptr);
+    /// @return The list, or nullptr when the project has no element @p elementId
+    QList<ProjectElement>* listOf(const QString& elementId, qsizetype* index = nullptr);
 
-    /// @brief Take element @p id, with the elements inside it, out of the project
-    std::optional<ProjectElement> takeElement(const QString& id);
+    /// @brief Take element @p elementId, with the elements inside it, out of the project
+    std::optional<ProjectElement> takeElement(const QString& elementId);
 
-    /// @brief Move element @p id to place @p index of its list
-    /// @return false when the project has no element @p id or its list no place @p index
-    bool moveElement(const QString& id, qsizetype index);
+    /// @brief Move element @p elementId to place @p index of its list
+    /// @return false when the project has no element @p elementId or its list no place @p index
+    bool moveElement(const QString& elementId, qsizetype index);
 
     /// @brief Whether an element of the project has the file @p file
     bool hasFile(const QString& file) const;

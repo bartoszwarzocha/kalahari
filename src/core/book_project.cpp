@@ -484,39 +484,39 @@ QList<const ProjectElement*> BookProject::readingOrder(qsizetype book) const {
     return order;
 }
 
-ProjectElement* BookProject::findElement(const QString& id) {
+ProjectElement* BookProject::findElement(const QString& elementId) {
     qsizetype index = -1;
-    QList<ProjectElement>* list = findList(*this, id, index);
+    QList<ProjectElement>* list = findList(*this, elementId, index);
     return list ? &(*list)[index] : nullptr;
 }
 
-const ProjectElement* BookProject::findElement(const QString& id) const {
+const ProjectElement* BookProject::findElement(const QString& elementId) const {
     qsizetype index = -1;
-    const QList<ProjectElement>* list = findList(*this, id, index);
+    const QList<ProjectElement>* list = findList(*this, elementId, index);
     return list ? &list->at(index) : nullptr;
 }
 
-QList<ProjectElement>* BookProject::listOf(const QString& id, qsizetype* index) {
+QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* index) {
     qsizetype found = -1;
-    QList<ProjectElement>* list = findList(*this, id, found);
+    QList<ProjectElement>* list = findList(*this, elementId, found);
     if (list && index) {
         *index = found;
     }
     return list;
 }
 
-std::optional<ProjectElement> BookProject::takeElement(const QString& id) {
+std::optional<ProjectElement> BookProject::takeElement(const QString& elementId) {
     qsizetype index = -1;
-    QList<ProjectElement>* list = findList(*this, id, index);
+    QList<ProjectElement>* list = findList(*this, elementId, index);
     if (!list) {
         return std::nullopt;
     }
     return list->takeAt(index);
 }
 
-bool BookProject::moveElement(const QString& id, qsizetype index) {
+bool BookProject::moveElement(const QString& elementId, qsizetype index) {
     qsizetype from = -1;
-    QList<ProjectElement>* list = findList(*this, id, from);
+    QList<ProjectElement>* list = findList(*this, elementId, from);
     if (!list || index < 0 || index >= list->size()) {
         return false;
     }
@@ -535,11 +535,11 @@ bool BookProject::hasFile(const QString& file) const {
 }
 
 QString BookProject::newElementId() const {
-    QString id;
+    QString newId;
     do {
-        id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    } while (findElement(id) != nullptr);
-    return id;
+        newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    } while (findElement(newId) != nullptr);
+    return newId;
 }
 
 // =============================================================================
