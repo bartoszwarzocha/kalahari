@@ -13,6 +13,7 @@
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QFocusEvent>
+#include <QHelpEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
@@ -20,6 +21,7 @@
 #include <QScreen>
 #include <QScrollBar>
 #include <QTimer>
+#include <QToolTip>
 #include <QVariantAnimation>
 #include <algorithm>
 #include <chrono>
@@ -33,7 +35,26 @@ constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
 // Default cursor blink interval in milliseconds
 constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
+// The longest text of an annotation its mark's tooltip shows
+constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
+
 namespace {
+
+/// @brief The colors the render pipeline draws with, on the paper of a mode
+RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode mode) {
+    RenderColors colors;
+    colors.text = appearance.colors.textColor(mode);
+    colors.background = appearance.colors.background(mode);
+    colors.cursor = appearance.cursor.useCustomColor ? appearance.cursor.customColor
+                                                     : appearance.colors.textColor(mode);
+    colors.selection = appearance.colors.selection;
+    colors.inactiveText = appearance.colors.focusInactiveColor(mode);
+    const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
+    colors.annotationComment = annotations.comment;
+    colors.annotationTodo = annotations.todo;
+    colors.annotationNote = annotations.note;
+    return colors;
+}
 
 /// @brief Typography settings as the layout applies them (pixels at 100% zoom)
 LayoutTypography layoutTypography(const EditorTypography& typography) {
@@ -261,16 +282,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
 
     // Phase 15: granular setters for appearance changes
     if (m_renderPipeline) {
-        RenderColors colors;
-        colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
-        colors.background = m_appearance.colors.background(m_appearance.colorMode);
-        colors.cursor = m_appearance.cursor.useCustomColor
-            ? m_appearance.cursor.customColor
-            : m_appearance.colors.textColor(m_appearance.colorMode);
-        colors.selection = m_appearance.colors.selection;
-        colors.inactiveText = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
-        m_renderPipeline->setConfigColors(colors);
+        m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, m_appearance.colorMode));
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
+        m_renderPipeline->setConfigAnnotationMarkScale(m_appearance.annotationMarkScale);
         m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
                                                    m_appearance.textFrameBorder.color,
                                                    m_appearance.textFrameBorder.width);
@@ -314,15 +328,7 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
         // Phase 15: granular setter for color change only
         if (m_renderPipeline) {
-            RenderColors colors;
-            colors.text = m_appearance.colors.textColor(mode);
-            colors.background = m_appearance.colors.background(mode);
-            colors.cursor = m_appearance.cursor.useCustomColor
-                ? m_appearance.cursor.customColor
-                : m_appearance.colors.textColor(mode);
-            colors.selection = m_appearance.colors.selection;
-            colors.inactiveText = m_appearance.colors.focusInactiveColor(mode);
-            m_renderPipeline->setConfigColors(colors);
+            m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
         }
 
         update();
@@ -332,6 +338,29 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 // =============================================================================
 // Event Handlers
 // =============================================================================
+
+bool BookEditor::event(QEvent* event)
+{
+    // The tooltip of an annotation's mark: the annotation's text, as it is written
+    if (event->type() == QEvent::ToolTip && m_renderPipeline) {
+        const auto* help = static_cast<QHelpEvent*>(event);
+        QString text = m_renderPipeline->annotationMarkTextAt(QPointF(help->pos()));
+        if (text.trimmed().isEmpty()) {
+            QToolTip::hideText();
+            event->ignore();
+            return true;
+        }
+        if (text.size() > MARK_TOOLTIP_LENGTH) {
+            text = text.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
+        }
+        QToolTip::showText(help->globalPos(),
+                           QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+                               .arg(text.toHtmlEscaped()),
+                           this);
+        return true;
+    }
+    return QWidget::event(event);
+}
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {

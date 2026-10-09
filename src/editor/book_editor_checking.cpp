@@ -175,9 +175,12 @@ void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, cons
     range.end = CursorPosition{paraIndex, endOffset};
     m_selection = range;
 
-    // Delete selection and insert replacement
-    deleteSelectedText();
-    insertText(replacement);
+    // Replace the word, as one undo step; its annotations stay
+    if (replacement.isEmpty()) {
+        deleteSelectedText();
+    } else {
+        insertText(replacement);
+    }
 
     // Get text for debug log using QTextDocument
     QString replacedText;

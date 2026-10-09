@@ -170,13 +170,17 @@ TEST_CASE("Stage1 word count: cached counts follow every kind of edit",
 TEST_CASE("Stage1 word count: a saved chapter reports the editor's count",
           "[editor][stage1][statistics]") {
     // Formatting inside a word, entities, metadata anchors and dialogue dashes: the
-    // chapter file (ChapterDocument, from KML) and the editor must agree.
+    // chapter file (ChapterDocument, from KML) and the editor must agree. The text of the
+    // annotations is not part of the chapter's text.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
-        "<kml><p>Nie<i>zwykle</i> ważne: Tom &amp; Jerry</p>"
-        "<p>– Tak – <comment id=\"c1\">powiedział</comment> cicho.</p>"
-        "<p></p><p>Przypis<footnote id=\"f1\">1</footnote> i <todo id=\"t1\">zadanie</todo>.</p>"
-        "</kml>"));
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Not counted</annotation>"
+        "<annotation id=\"t1\" kind=\"todo\">Not counted either</annotation>"
+        "<annotation id=\"n1\" kind=\"note\">Nor this</annotation></annotations>"
+        "<p>Nie<i>zwykle</i> ważne: Tom &amp; Jerry</p>"
+        "<p>– Tak – <anchor ref=\"c1\">powiedział</anchor> cicho.</p>"
+        "<p></p><p>Przypis<footnote id=\"f1\">1</footnote> i <anchor ref=\"t1\">zadanie</anchor>"
+        ".<anchor ref=\"n1\"/></p></kml>"));
 
     const core::ChapterDocument chapter(editor.toKml());
     CHECK(editor.wordCount() == 10);
@@ -372,11 +376,12 @@ TEST_CASE("Stage1 KML: an unknown inline element does not cut off the rest of th
 TEST_CASE("Stage1 KML: character and location references survive load and save",
           "[editor][stage1][kml]") {
     // Regression: loading kept the text of <charref>/<locref> but dropped the elements.
-    // Unknown attributes of metadata elements are kept too.
+    // Unknown attributes of metadata elements and of annotations are kept too.
     const QString kml = QStringLiteral(
-        "<kml><p>Spotkał <charref id=\"r1\" target=\"anna\">Annę</charref> w "
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" thread=\"t9\">Where?</annotation>"
+        "</annotations><p>Spotkał <charref id=\"r1\" target=\"anna\">Annę</charref> w "
         "<locref id=\"r2\" target=\"krakow\">Krakowie</locref>"
-        "<comment id=\"c1\" thread=\"t9\">.</comment></p></kml>");
+        "<anchor ref=\"c1\">.</anchor></p></kml>");
 
     BookEditor editor;
     editor.fromKml(kml);
@@ -385,39 +390,43 @@ TEST_CASE("Stage1 KML: character and location references survive load and save",
 
 TEST_CASE("Stage1 KML: a TODO inside a comment keeps both on save", "[editor][stage1][kml]") {
     // Regression: the serializer wrote only the first metadata element of a run, so a TODO
-    // anchored inside a comment lost its <todo> when the chapter was saved.
+    // anchored inside a comment lost its anchor when the chapter was saved.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
-        "<kml><p><comment id=\"c1\">abc <todo id=\"t1\">def</todo></comment> ghi</p></kml>"));
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\">C</annotation>"
+        "<annotation id=\"t1\" kind=\"todo\">T</annotation></annotations>"
+        "<p><anchor ref=\"c1\">abc <anchor ref=\"t1\">def</anchor></anchor> ghi</p></kml>"));
     const QString saved = editor.toKml();
 
     BookEditor reloaded;
     reloaded.fromKml(saved);
     REQUIRE(reloaded.textDocument() != nullptr);
     const QTextBlock block = reloaded.textDocument()->begin();
-    const QTextCharFormat inner = formatOfFragmentContaining(block, QStringLiteral("def"));
-    CHECK(metadataOf(inner, KmlPropComment).value(QStringLiteral("id")) == QStringLiteral("c1"));
-    CHECK(metadataOf(inner, KmlPropTodo).value(QStringLiteral("id")) == QStringLiteral("t1"));
-
-    const QTextCharFormat outer = formatOfFragmentContaining(block, QStringLiteral("abc"));
-    CHECK(metadataOf(outer, KmlPropComment).value(QStringLiteral("id")) == QStringLiteral("c1"));
-    CHECK_FALSE(outer.hasProperty(KmlPropTodo));
-    CHECK_FALSE(formatOfFragmentContaining(block, QStringLiteral("ghi")).hasProperty(KmlPropComment));
+    CHECK(annotationIds(formatOfFragmentContaining(block, QStringLiteral("def"))) ==
+          QStringList{QStringLiteral("c1"), QStringLiteral("t1")});
+    CHECK(annotationIds(formatOfFragmentContaining(block, QStringLiteral("abc"))) ==
+          QStringList{QStringLiteral("c1")});
+    CHECK(annotationIds(formatOfFragmentContaining(block, QStringLiteral("ghi"))).isEmpty());
 
     CHECK(reloaded.plainText() == QStringLiteral("abc def ghi"));
     CHECK(reloaded.toKml() == saved);  // stable from the first save on
 }
 
-TEST_CASE("Stage1 KML: toggling a TODO keeps its other attributes", "[editor][stage1][kml]") {
-    // Regression: a toggled marker was written back with only the attributes TextMarker
+TEST_CASE("Stage1 KML: marking a TODO done keeps its other attributes", "[editor][stage1][kml]") {
+    // Regression: a toggled marker was written back with only the attributes the editor
     // has fields for, so the next save dropped the rest
     BookEditor editor;
-    editor.fromKml(QStringLiteral("<kml><p><todo id=\"t1\" owner=\"Ann\">text</todo> rest</p></kml>"));
-    editor.setCursorPosition({0, 0});
-    editor.toggleTodoAtCursor();
+    editor.fromKml(QStringLiteral(
+        "<kml><annotations><annotation id=\"t1\" kind=\"todo\" owner=\"Ann\">Do</annotation>"
+        "</annotations><p><anchor ref=\"t1\">text</anchor> rest</p></kml>"));
+    REQUIRE(editor.annotations().size() == 1);
+    Annotation todo = editor.annotations().front().annotation;
+    todo.done = true;
+    REQUIRE(editor.updateAnnotation(todo));
     CHECK(editor.toKml() ==
-          QStringLiteral("<kml><p><todo id=\"t1\" completed=\"true\" owner=\"Ann\">text</todo>"
-                         " rest</p></kml>"));
+          QStringLiteral("<kml><annotations><annotation id=\"t1\" kind=\"todo\" done=\"true\" "
+                         "owner=\"Ann\">Do</annotation></annotations>"
+                         "<p><anchor ref=\"t1\">text</anchor> rest</p></kml>"));
 }
 
 // =============================================================================

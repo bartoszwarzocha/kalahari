@@ -18,6 +18,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/text_highlight.h>
 #include <QObject>
+#include <QPolygonF>
 #include <QRect>
 #include <memory>
 #include <optional>
@@ -191,6 +192,10 @@ public:
     /// @brief Turn Focus on or off: every paragraph but the cursor's is dimmed (repaint only)
     void setConfigFocus(bool enabled);
 
+    /// @brief Set the size of the annotations' marks (repaint only)
+    /// @param scale 1: as the text's font asks; 2: twice as big
+    void setConfigAnnotationMarkScale(double scale);
+
     /// @brief Show or hide the frame around the text area of the pages (repaint only)
     /// @param show Whether the frame is drawn
     /// @param color Its color
@@ -273,6 +278,19 @@ public:
 
     /// @brief Rectangle of a caret line at a position, in widget coordinates
     QRectF caretRect(const CursorPosition& position) const;
+
+    /// @brief Rectangle of a place of the text, as tall as its line, in widget coordinates
+    /// @param position The place
+    /// @param afterText true: the place ends the text before it (as a fragment's end): at
+    ///        the end of a wrapped line it is there, not at the start of the next line
+    QRectF placeRect(const CursorPosition& position, bool afterText) const;
+
+    /// @brief The annotation whose mark is at a widget point (the visible paragraphs)
+    /// @return Its id; empty when no mark is there
+    QString annotationMarkAt(const QPointF& point) const;
+
+    /// @brief The text of the annotation whose mark is at a widget point (empty: none)
+    QString annotationMarkTextAt(const QPointF& point) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
     ///
@@ -451,6 +469,22 @@ private:
     /// @brief Draw the highlight marks (over the text): spelling and grammar waves
     void renderHighlightMarks(QPainter* painter,
                               const std::vector<ParagraphHighlight>& highlights);
+
+    /// @brief An annotation's mark on the screen
+    struct AnnotationMarkShape {
+        AnnotationMark mark;  ///< Whose mark it is
+        QPolygonF triangle;   ///< The mark (widget coordinates)
+        QRectF hitArea;       ///< Where a click or the mouse finds it, larger than the mark
+    };
+
+    /// @brief The marks of the annotations of a paragraph, as they are drawn
+    std::vector<AnnotationMarkShape> annotationMarkShapes(size_t paragraph) const;
+
+    /// @brief The mark at a widget point (std::nullopt: none)
+    std::optional<AnnotationMarkShape> annotationMarkShapeAt(const QPointF& point) const;
+
+    /// @brief Draw the marks of the annotations (under the text, which stays readable)
+    void renderAnnotationMarks(QPainter* painter, const QRect& clipRect);
 
     /// @brief Render cursor
     void renderCursor(QPainter* painter);

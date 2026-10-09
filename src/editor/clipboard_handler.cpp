@@ -147,8 +147,9 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
     }
 
     // Plain HTML that other programs paste: paragraphs with their alignment, the basic
-    // formatting tags and the explicit inline styles. Metadata (comments, TODO markers,
-    // footnotes), text runs and unknown elements keep only their text.
+    // formatting tags and the explicit inline styles. Metadata (annotation anchors,
+    // footnotes), text runs and unknown elements keep only their text; the annotations
+    // themselves stay out.
     struct OpenElement {
         bool written = false;    ///< The element wrote an HTML element to close
         bool paragraph = false;  ///< The element is a paragraph
@@ -164,6 +165,10 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
         switch (reader.readNext()) {
             case QXmlStreamReader::StartElement: {
                 const QString tag = reader.name().toString();
+                if (tag == QStringLiteral("annotations")) {
+                    reader.skipCurrentElement();
+                    break;
+                }
                 const QXmlStreamAttributes attrs = reader.attributes();
                 OpenElement element;
                 if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
@@ -340,7 +345,9 @@ QString ClipboardHandler::kmlToText(const QString& kml)
             case QXmlStreamReader::StartElement: {
                 const QString tagName = reader.name().toString();
                 // Add newline before new paragraphs (except first)
-                if (tagName == "p") {
+                if (tagName == "annotations") {
+                    reader.skipCurrentElement();  // Not part of the text
+                } else if (tagName == "p") {
                     if (!firstParagraph) {
                         text += '\n';
                     }
