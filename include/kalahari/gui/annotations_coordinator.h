@@ -77,10 +77,9 @@ public:
     /// @note Call after the commands are registered and the panel's dock is created
     void connectCommands();
 
-    /// @brief Who new annotations are by
+    /// @brief Who new annotations are by: the setting annotations.author
     ///
-    /// The setting annotations.author; without it the book's author, and without one the
-    /// name of the computer's user.
+    /// Empty: they are by no one named, and nothing shows an author for them.
     static QString author();
 
     /// @brief Write a new annotation in the document in front, in a frame at its place
@@ -154,6 +153,7 @@ private:
         QString elementId;     ///< Its chapter; empty: a document outside the book
         QString annotationId;  ///< The one edited; empty: a new one
         editor::AnnotationKind kind = editor::AnnotationKind::Comment;
+        QString author;          ///< Who it is by: a new one by author(), as the frame shows
         QTextCursor range;       ///< Its fragment or place; follows the edits of the text
         bool fromPanel = false;  ///< The keys go back to the panel, else to the text
     };

@@ -1824,6 +1824,41 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::AnnotationsPage</name>
+    <message>
+        <source>New Annotations</source>
+        <translation>Nowe uwagi</translation>
+    </message>
+    <message>
+        <source>Your name or pen name</source>
+        <translation>Twoje imię lub pseudonim</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>The name shown on new annotations. Without it, they have no author.</source>
+        <translation>Imię widoczne na nowych uwagach. Bez niego uwagi nie mają autora.</translation>
+    </message>
+    <message>
+        <source>Marks in the Text</source>
+        <translation>Znaczniki w tekście</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
+        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
+    </message>
+    <message>
+        <source>Mark Size:</source>
+        <translation>Wielkość znaczników:</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::AppearanceGeneralPage</name>
     <message>
         <source>General Appearance</source>
@@ -2797,22 +2832,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Indent First Line:</source>
         <translation>Wcięcie pierwszego wiersza:</translation>
-    </message>
-    <message>
-        <source>Annotations</source>
-        <translation>Uwagi</translation>
-    </message>
-    <message>
-        <source> %</source>
-        <translation> %</translation>
-    </message>
-    <message>
-        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
-        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
-    </message>
-    <message>
-        <source>Mark Size:</source>
-        <translation>Wielkość znaczników:</translation>
     </message>
     <message>
         <source>Typewriter Scrolling</source>
@@ -4029,6 +4048,10 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Completion</source>
         <translation>Uzupełnianie</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
     </message>
     <message>
         <source>Files</source>

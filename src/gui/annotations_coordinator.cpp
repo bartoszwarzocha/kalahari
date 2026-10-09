@@ -191,26 +191,9 @@ void AnnotationsCoordinator::connectCommands() {
 }
 
 QString AnnotationsCoordinator::author() {
-    QString name = QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
-                                              "annotations.author", std::string()))
-                       .trimmed();
-    if (!name.isEmpty()) {
-        return name;
-    }
-
-    auto& projects = core::ProjectManager::getInstance();
-    if (const core::Document* document = projects.isProjectOpen() ? projects.getDocument() : nullptr) {
-        name = QString::fromStdString(document->getAuthor()).trimmed();
-        if (!name.isEmpty()) {
-            return name;
-        }
-    }
-
-    name = qEnvironmentVariable("USERNAME");  // Windows
-    if (name.isEmpty()) {
-        name = qEnvironmentVariable("USER");
-    }
-    return name.trimmed();
+    const std::string setting = core::SettingsManager::getInstance().get<std::string>(
+        "annotations.author", std::string());
+    return QString::fromStdString(setting).trimmed();
 }
 
 bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
@@ -241,6 +224,7 @@ bool AnnotationsCoordinator::addAnnotation(editor::AnnotationKind kind) {
     writing.editor = editor;
     writing.elementId = elementIdOf(panel);
     writing.kind = kind;
+    writing.author = author();
     writing.range =
         rangeCursor(selection.document(), selection.selectionStart(), selection.selectionEnd());
     openFrame(writing, QString());
@@ -293,6 +277,7 @@ bool AnnotationsCoordinator::editAnnotation(const QString& elementId, const QStr
     writing.elementId = elementId;
     writing.annotationId = annotationId;
     writing.kind = place->annotation.kind;
+    writing.author = place->annotation.author;
     writing.range = rangeCursor(editor->textDocument(), place->start, place->end);
     writing.fromPanel = fromPanel;
     openFrame(writing, place->annotation.text);
@@ -698,6 +683,7 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     auto* frame = new AnnotationFrame(writing.editor);
     m_frame = frame;
     frame->setKind(writing.kind);
+    frame->setAuthor(writing.author);
     frame->setText(text);
     connect(frame, &AnnotationFrame::saveRequested, this, &AnnotationsCoordinator::saveWriting);
     connect(frame, &AnnotationFrame::cancelRequested, this, &AnnotationsCoordinator::cancelWriting);
@@ -753,7 +739,7 @@ void AnnotationsCoordinator::saveWriting() {
                                         selection.selectionEnd() == range.selectionEnd();
             annotationId = editor
                                ->addAnnotation(range.selectionStart(), range.selectionEnd(),
-                                               writing.kind, text, author())
+                                               writing.kind, text, writing.author)
                                .id;
 
             // The writer goes on after the fragment: typing does not replace it

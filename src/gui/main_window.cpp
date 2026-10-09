@@ -136,7 +136,6 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->navigatorPanel(),
         m_dockCoordinator->propertiesPanel(),
         m_dockCoordinator->centralTabs(),
-        m_dockCoordinator->propertiesDock(),
         statusBar(),
         this
     );

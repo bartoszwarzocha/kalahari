@@ -56,7 +56,7 @@ protected:
         nlohmann::json loaded;                                 ///< Value shown after filling
     };
 
-    /// @brief Bind a check box, spin box, combo box, font combo box or color widget
+    /// @brief Bind a check box, spin box, combo box, font combo box, line edit or color widget
     ///
     /// Combo boxes compare their item data with the stored value. Spin boxes store
     /// shown / scale (e.g. 50 % shown for 0.5 stored with scale 100). A LengthSpinBox

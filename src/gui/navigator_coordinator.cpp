@@ -19,7 +19,6 @@
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
-#include <QDockWidget>
 #include <QTextEdit>
 #include <QMessageBox>
 #include <QDateTime>
@@ -31,14 +30,12 @@ namespace gui {
 NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
                                              PropertiesPanel* propertiesPanel,
                                              QTabWidget* centralTabs,
-                                             QDockWidget* propertiesDock,
                                              QStatusBar* statusBar,
                                              QObject* parent)
     : QObject(parent)
     , m_navigatorPanel(navigatorPanel)
     , m_propertiesPanel(propertiesPanel)
     , m_centralTabs(centralTabs)
-    , m_propertiesDock(propertiesDock)
     , m_statusBar(statusBar)
 {
     auto& logger = core::Logger::getInstance();
@@ -489,12 +486,6 @@ void NavigatorCoordinator::onRequestProperties(const QString& elementId) {
         return;
     }
 
-    // Make sure Properties dock is visible
-    if (m_propertiesDock) {
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
-    }
-
     if (elementId.isEmpty() || elementId == "document") {
         // Show project properties
         logger.debug("NavigatorCoordinator: Showing project properties");
@@ -515,12 +506,6 @@ void NavigatorCoordinator::onRequestSectionProperties(const QString& sectionType
         return;
     }
 
-    // Make sure Properties dock is visible
-    if (m_propertiesDock) {
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
-    }
-
     logger.debug("NavigatorCoordinator: Showing section properties: {}", sectionType.toStdString());
     m_propertiesPanel->showSectionProperties(sectionType);
 }
@@ -532,12 +517,6 @@ void NavigatorCoordinator::onRequestPartProperties(const QString& partId) {
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Part properties requested but no project open");
         return;
-    }
-
-    // Make sure Properties dock is visible
-    if (m_propertiesDock) {
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
     }
 
     logger.debug("NavigatorCoordinator: Showing part properties: {}", partId.toStdString());

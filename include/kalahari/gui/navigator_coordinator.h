@@ -14,7 +14,6 @@
 
 class QTabWidget;
 class QStatusBar;
-class QDockWidget;
 
 namespace kalahari {
 namespace core {
@@ -43,8 +42,7 @@ class EditorPanel;
 /// Example usage:
 /// @code
 /// auto coordinator = new NavigatorCoordinator(
-///     navigatorPanel, propertiesPanel, centralTabs,
-///     propertiesDock, statusBar, this);
+///     navigatorPanel, propertiesPanel, centralTabs, statusBar, this);
 /// connect(coordinator, &NavigatorCoordinator::documentModified,
 ///         this, &MainWindow::onDocumentModified);
 /// @endcode
@@ -56,13 +54,11 @@ public:
     /// @param navigatorPanel Navigator panel instance
     /// @param propertiesPanel Properties panel instance
     /// @param centralTabs Central tab widget for editor tabs
-    /// @param propertiesDock Properties dock widget (for show/raise)
     /// @param statusBar Status bar for feedback messages
     /// @param parent Parent QObject
     explicit NavigatorCoordinator(NavigatorPanel* navigatorPanel,
                                    PropertiesPanel* propertiesPanel,
                                    QTabWidget* centralTabs,
-                                   QDockWidget* propertiesDock,
                                    QStatusBar* statusBar,
                                    QObject* parent = nullptr);
 
@@ -198,7 +194,6 @@ private:
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
-    QDockWidget* m_propertiesDock;
     QStatusBar* m_statusBar;
 
     /// @brief Tracks dirty state per chapter elementId
