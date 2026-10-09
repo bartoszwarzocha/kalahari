@@ -265,6 +265,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    callbacks.onFindReplace);
     REG_CMD("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in Book..."), "EDIT/Find in Book...", 150, true, 1);
 
+    // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
+    REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Next To Do"), "EDIT/Next To Do", 152, false, 0,
+                KeyboardShortcut(Qt::Key_Down, Qt::AltModifier));
+    REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previous To Do"), "EDIT/Previous To Do", 154, true, 0,
+                KeyboardShortcut(Qt::Key_Up, Qt::AltModifier));
+
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Preferences..."), "EDIT/Preferences...", 160, false, 0,
                callbacks.onSettings);
 
@@ -319,13 +325,14 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "Footnote"), "INSERT/Footnote", 40, false, 1);
     REG_CMD("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "Endnote"), "INSERT/Endnote", 50, false, 1);
 
-    // OpenSpec #00042 Phase 7.9: Insert Comment - DISABLED (backend stubs only)
-    // REG_CMD_TOOL_ICON("insert.comment", QT_TRANSLATE_NOOP("CommandRegistrar", "Comment"), "INSERT/Comment", 60, false, 0,
-    //                   KeyboardShortcut(Qt::Key_C, Qt::ControlModifier | Qt::AltModifier),
-    //                   IconSet(),
-    //                   callbacks.onInsertComment);
-
-    REG_CMD("insert.annotation", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation"), "INSERT/Annotation", 70, true, 1);
+    // Annotations on the text; AnnotationsCoordinator gives them their callbacks. Add
+    // Annotation opens a small menu of the kinds at the cursor. Not Ctrl+M (it minimizes
+    // the window on macOS), nor Ctrl+Alt+letter (AltGr on Polish keyboards).
+    REG_CMD_KEY("insert.annotation", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Annotation..."), "INSERT/Add Annotation...", 70, false, 0,
+                KeyboardShortcut(Qt::Key_M, Qt::ControlModifier | Qt::ShiftModifier));
+    REG_CMD("insert.comment", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Comment"), "INSERT/Add Comment", 71, false, 0);
+    REG_CMD("insert.todo", QT_TRANSLATE_NOOP("CommandRegistrar", "Add To Do"), "INSERT/Add To Do", 72, false, 0);
+    REG_CMD("insert.note", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Note"), "INSERT/Add Note", 73, true, 0);
 
     REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "Special Character..."), "INSERT/Special Character...", 80, false, 1);
     REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date & Time"), "INSERT/Date & Time", 90, false, 1);
@@ -473,6 +480,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "Assistant"), "VIEW/Panels/Assistant", 50, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
+
+    // F9: F7 stays for spelling
+    REG_CMD_KEY("view.annotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotations"), "VIEW/Panels/Annotations", 60, false, 0,
+                KeyboardShortcut(Qt::Key_F9, Qt::NoModifier));
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

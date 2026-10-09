@@ -16,7 +16,7 @@
 
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
-#include <kalahari/editor/kml_comment.h>
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
@@ -33,6 +33,7 @@
 #include <optional>
 #include <vector>
 
+class QAction;
 class QDragEnterEvent;
 class QDragLeaveEvent;
 class QDragMoveEvent;
@@ -352,7 +353,8 @@ public:
     /// @brief Delete the currently selected text
     /// @return true if text was deleted, false if no selection
     ///
-    /// After deletion, the cursor is positioned at the start of the former selection.
+    /// After deletion, the cursor is positioned at the start of the former selection. The
+    /// annotations of the deleted text stay on its place.
     bool deleteSelectedText();
 
     /// @brief Insert a newline, splitting the paragraph at cursor position
@@ -392,6 +394,12 @@ public:
 
     /// @brief Redo the last undone command
     void redo();
+
+    /// @brief Undo the last step for good: it cannot be redone
+    ///
+    /// For a step the writer did not mean to make, e.g. an annotation added and left
+    /// without text.
+    void undoWithoutRedo();
 
     /// @brief Clear the undo stack
     void clearUndoStack();
@@ -530,38 +538,80 @@ public:
     Qt::Alignment currentAlignment() const;
 
     // =========================================================================
-    // Comments (Phase 7.9)
+    // Annotations: comments, TODOs and notes
     // =========================================================================
 
-    /// @brief Insert a comment at the current selection
-    ///
-    /// Opens a dialog to enter comment text, then creates a KmlComment
-    /// attached to the selected text range. Does nothing if no selection.
-    void insertComment();
+    /// @brief The annotations of the chapter, in text order (by where they end)
+    std::vector<AnnotationPlace> annotations() const;
 
-    /// @brief Delete a comment by ID
-    /// @param commentId The ID of the comment to delete
+    /// @brief Anchor a new annotation to the selection, or to the cursor's place without one
     ///
-    /// Searches all paragraphs for the comment and removes it.
-    void deleteComment(const QString& commentId);
+    /// One undo step. The selection stays.
+    /// @param kind What it is
+    /// @param text Its text
+    /// @param author Who makes it
+    /// @return The new annotation, with its id and the time it was made
+    Annotation addAnnotation(AnnotationKind kind, const QString& text, const QString& author);
 
-    /// @brief Edit an existing comment's text
-    /// @param commentId The ID of the comment to edit
+    /// @brief Anchor a new annotation to a range of the text, or to a place when it is empty
     ///
-    /// Opens a dialog to edit the comment text.
-    void editComment(const QString& commentId);
+    /// One undo step; the cursor and the selection stay.
+    /// @param from Where the range starts (a position in the document)
+    /// @param to Where it ends
+    /// @param kind What it is
+    /// @param text Its text
+    /// @param author Who makes it
+    /// @return The new annotation, with its id and the time it was made
+    Annotation addAnnotation(int from, int to, AnnotationKind kind, const QString& text,
+                             const QString& author);
 
-    /// @brief Get all comments in the current paragraph
-    /// @return List of comments in the paragraph containing the cursor
-    QList<KmlComment> commentsInCurrentParagraph() const;
+    /// @brief The selection, or the cursor's place without one, as a cursor of the document
+    /// (a null cursor without a document)
+    QTextCursor selectionCursor() const;
 
-    /// @brief Navigate to a specific comment
-    /// @param paragraphIndex Paragraph containing the comment
-    /// @param commentId ID of the comment to navigate to
+    /// @brief Where a place of the text is in the editor: a caret's rectangle, as tall as
+    /// the place's line
+    /// @param position The place (a position in the document)
+    /// @param afterText true: the place ends the text before it (as a fragment's end): at
+    ///        the end of a wrapped line it is there, not at the start of the next line
+    QRectF placeRect(int position, bool afterText) const;
+
+    /// @brief The text column in the editor: from the text's left edge to its right edge,
+    /// as tall as the editor
+    QRectF textColumnRect() const;
+
+    /// @brief The annotation whose mark is at a point of the editor
+    /// @return Its id; empty when no mark is there
+    QString annotationMarkAt(const QPointF& point) const;
+
+    /// @brief Give an annotation new data (kind, text, state...), one undo step
+    /// @param annotation The annotation's new data; its id says which one it is
+    /// @param joinPreviousStep true: the change joins the last undo step instead of making
+    ///        its own (typing an annotation's text makes one step of it all)
+    /// @return false when the chapter has no annotation with its id
+    bool updateAnnotation(const Annotation& annotation, bool joinPreviousStep = false);
+
+    /// @brief Take an annotation off the text, one undo step
+    /// @return false when the chapter has no annotation with this id
+    bool removeAnnotation(const QString& id);
+
+    /// @brief Go to an annotation: select its fragment, or put the cursor on its place
+    /// @return false when the chapter has no annotation with this id
+    bool goToAnnotation(const QString& id);
+
+    /// @brief Go to the next TODO not done yet, after the cursor
+    /// @return Its id; empty when there is none after the cursor
+    QString goToNextTodo();
+
+    /// @brief Go to the previous TODO not done yet, before the cursor
+    /// @return Its id; empty when there is none before the cursor
+    QString goToPreviousTodo();
+
+    /// @brief Actions the text's context menu offers after the editing ones
     ///
-    /// Moves cursor to the start of the commented text and scrolls
-    /// to make it visible.
-    void navigateToComment(int paragraphIndex, const QString& commentId);
+    /// The application's commands, e.g. adding a comment; the editor only shows them.
+    /// Null entries are left out.
+    void setContextMenuActions(const QList<QAction*>& actions);
 
     // =========================================================================
     // View Mode (Phase 5.1)
@@ -782,72 +832,6 @@ public:
     /// @brief Hide the find/replace bar and clear search highlights
     void hideFindReplace();
 
-    // =========================================================================
-    // TODO/Note Markers (Phase 9.12)
-    // =========================================================================
-
-    /// @brief Add a TODO marker at the current cursor position
-    /// @param text Optional text for the TODO marker
-    ///
-    /// Creates a TODO marker with the specified text (or default "TODO")
-    /// at the cursor position. The operation is undoable.
-    void addTodoAtCursor(const QString& text = QString());
-
-    /// @brief Add a Note marker at the current cursor position
-    /// @param text Optional text for the Note marker
-    ///
-    /// Creates a Note marker with the specified text (or default "Note")
-    /// at the cursor position. The operation is undoable.
-    void addNoteAtCursor(const QString& text = QString());
-
-    /// @brief Remove the marker at the current cursor position
-    ///
-    /// Removes the first marker found at the cursor position.
-    /// The operation is undoable.
-    void removeMarkerAtCursor();
-
-    /// @brief Toggle the completion state of a TODO at cursor position
-    ///
-    /// If a TODO marker is at the cursor position, toggles its
-    /// completed flag. Notes are ignored. The operation is undoable.
-    void toggleTodoAtCursor();
-
-    /// @brief Navigate to the next TODO marker
-    ///
-    /// Moves cursor to the next TODO marker after the current position.
-    /// Does nothing if no TODO markers exist after the cursor.
-    void goToNextTodo();
-
-    /// @brief Navigate to the previous TODO marker
-    ///
-    /// Moves cursor to the previous TODO marker before the current position.
-    /// Does nothing if no TODO markers exist before the cursor.
-    void goToPreviousTodo();
-
-    /// @brief Navigate to the next Note marker
-    ///
-    /// Moves cursor to the next Note marker after the current position.
-    /// Does nothing if no Note markers exist after the cursor.
-    void goToNextNote();
-
-    /// @brief Navigate to the previous Note marker
-    ///
-    /// Moves cursor to the previous Note marker before the current position.
-    /// Does nothing if no Note markers exist before the cursor.
-    void goToPreviousNote();
-
-    /// @brief Navigate to the next marker (TODO or Note)
-    ///
-    /// Moves cursor to the next marker of any type after the current position.
-    /// Does nothing if no markers exist after the cursor.
-    void goToNextMarker();
-
-    /// @brief Navigate to the previous marker (TODO or Note)
-    ///
-    /// Moves cursor to the previous marker of any type before the current position.
-    /// Does nothing if no markers exist before the cursor.
-    void goToPreviousMarker();
-
     /// @brief Set the appearance settings
     /// @param appearance The new appearance configuration
     ///
@@ -941,19 +925,9 @@ signals:
     /// @param enabled true if it is now on
     void distractionFreeModeChanged(bool enabled);
 
-    /// @brief Emitted when a comment is added to the document
-    /// @param paragraphIndex Index of the paragraph containing the new comment
-    void commentAdded(int paragraphIndex);
-
-    /// @brief Emitted when a comment is removed from the document
-    /// @param paragraphIndex Index of the paragraph from which comment was removed
-    /// @param commentId ID of the removed comment
-    void commentRemoved(int paragraphIndex, const QString& commentId);
-
-    /// @brief Emitted when a comment is selected (e.g., by clicking in margin)
-    /// @param paragraphIndex Index of the paragraph containing the comment
-    /// @param commentId ID of the selected comment
-    void commentSelected(int paragraphIndex, const QString& commentId);
+    /// @brief Emitted when the mark of an annotation is clicked (the cursor stays)
+    /// @param id The annotation's id
+    void annotationMarkClicked(const QString& id);
 
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
@@ -971,6 +945,9 @@ protected:
     // =========================================================================
     // Event Handlers
     // =========================================================================
+
+    /// @brief Shows the text of an annotation as the tooltip of its mark
+    bool event(QEvent* event) override;
 
     /// @brief Paint event handler
     /// @param event The paint event
@@ -1101,12 +1078,25 @@ private:
     /// report the change
     void finishEdit(const QTextCursor& cursor);
 
+    /// @brief Remove the selected text
+    /// @param keepAnnotations true: its annotations stay on its place; false: they go with
+    ///        it (to the clipboard)
+    /// @return false without a selection
+    bool removeSelection(bool keepAnnotations);
+
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
-    /// @brief Put back the cursor and selection a paragraph format step just undone or
-    /// redone was made with
+    /// @brief Put back the cursor and selection a step that changes no text (a paragraph
+    /// format step, a step of annotations) just undone or redone was made with
     void restoreStepCursor();
+
+    /// @brief Start an undo step of annotations, or join the last undo step
+    ///
+    /// Such a step changes no text: undoing or redoing it brings back the cursor and
+    /// selection it was made with (see restoreStepCursor()). End it with
+    /// QTextCursor::endEditBlock().
+    void beginAnnotationStep(QTextCursor& step, bool joinPreviousStep);
 
     /// @brief Update scroll manager viewport from widget size
     void updateViewport();
@@ -1381,6 +1371,7 @@ private:
     QPointF m_autoScrollPos;            ///< Last mouse position for automatic scrolling
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
+    QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
@@ -1457,14 +1448,14 @@ private:
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
 
-    /// @brief Cursor and selection a paragraph format step was made with
+    /// @brief Cursor and selection a step that changes no text was made with
     struct StepCursor {
         CursorPosition cursor;
         SelectionRange selection;
     };
 
-    /// @brief Set by the undo item of a paragraph format step being undone or redone
-    /// (see setParagraphAlignment())
+    /// @brief Set by the undo item of a step that changes no text being undone or redone
+    /// (see setParagraphAlignment() and beginAnnotationStep())
     std::optional<StepCursor> m_stepCursor;
 
     /// @brief Create the document with the given content and connect it to the view
@@ -1483,9 +1474,6 @@ private:
 
     /// @brief Render pipeline: draws the view in every view mode
     std::unique_ptr<EditorRenderPipeline> m_renderPipeline;
-
-    // Phase 11.6: Removed MetadataLayer - markers stored in QTextCharFormat::UserProperty
-    // Use findAllMarkers/findNextMarker/findPreviousMarker from buffer_commands.h
 
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)

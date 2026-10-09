@@ -6,8 +6,10 @@
 /// goes through BookEditor::fromKml(), the path a chapter takes when it is opened.
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <QDateTime>
 #include <QTextDocument>
 #include <QTextCursor>
 #include <QTextBlock>
@@ -15,6 +17,7 @@
 #include <QFont>
 #include <QBrush>
 #include <QColor>
+#include <QTimeZone>
 #include <QVariantMap>
 #include <memory>
 
@@ -341,81 +344,67 @@ TEST_CASE("KmlSerializer - Mixed content", "[editor][kml_serializer][formatting]
 // Metadata Serialization Tests
 // =============================================================================
 
-TEST_CASE("KmlSerializer - Comment metadata", "[editor][kml_serializer][metadata]") {
+TEST_CASE("KmlSerializer - Annotations", "[editor][kml_serializer][metadata]") {
     KmlSerializer serializer;
 
-    SECTION("Comment with id and author") {
+    Annotation comment;
+    comment.id = QStringLiteral("c1");
+    comment.kind = AnnotationKind::Comment;
+    comment.text = QStringLiteral("Check & fix");
+    comment.author = QStringLiteral("Jan");
+
+    SECTION("An annotation on a fragment: the section first, the anchor around the text") {
         QTextDocument doc;
         QTextCursor cursor(&doc);
-
+        cursor.insertText(QStringLiteral("Plain "));
         QTextCharFormat fmt;
-        QVariantMap commentData;
-        commentData["id"] = "c1";
-        commentData["author"] = "Jan";
-        fmt.setProperty(KmlPropComment, commentData);
+        setAnnotations(fmt, {comment});
+        cursor.insertText(QStringLiteral("annotated"), fmt);
 
-        cursor.insertText("annotated", fmt);
-
-        QString kml = serializer.toKml(&doc);
-        REQUIRE(kml.contains("<comment"));
-        REQUIRE(kml.contains("id=\"c1\""));
-        REQUIRE(kml.contains("author=\"Jan\""));
-        REQUIRE(kml.contains(">annotated</comment>"));
+        CHECK(serializer.toKml(&doc) ==
+              QStringLiteral("<kml><annotations><annotation id=\"c1\" kind=\"comment\" "
+                             "author=\"Jan\">Check &amp; fix</annotation></annotations>"
+                             "<p>Plain <anchor ref=\"c1\">annotated</anchor></p></kml>"));
     }
 
-    SECTION("Comment with resolved attribute") {
+    SECTION("An annotation on a place: an empty anchor after its character") {
+        Annotation todo;
+        todo.id = QStringLiteral("t1");
+        todo.kind = AnnotationKind::Todo;
+        todo.done = true;
+        todo.point = true;
+        todo.created = QDateTime(QDate(2026, 10, 8), QTime(12, 0), QTimeZone::utc());
+
         QTextDocument doc;
         QTextCursor cursor(&doc);
-
+        cursor.insertText(QStringLiteral("Do"));
         QTextCharFormat fmt;
-        QVariantMap commentData;
-        commentData["id"] = "c2";
-        commentData["resolved"] = true;
-        fmt.setProperty(KmlPropComment, commentData);
+        setAnnotations(fmt, {todo});
+        cursor.insertText(QStringLiteral("e"), fmt);
+        cursor.insertText(QStringLiteral(" now"), QTextCharFormat());
 
-        cursor.insertText("done", fmt);
-
-        QString kml = serializer.toKml(&doc);
-        REQUIRE(kml.contains("resolved=\"true\""));
-    }
-}
-
-TEST_CASE("KmlSerializer - Todo metadata", "[editor][kml_serializer][metadata]") {
-    KmlSerializer serializer;
-
-    SECTION("Todo with id") {
-        QTextDocument doc;
-        QTextCursor cursor(&doc);
-
-        QTextCharFormat fmt;
-        QVariantMap todoData;
-        todoData["id"] = "t1";
-        fmt.setProperty(KmlPropTodo, todoData);
-
-        cursor.insertText("task item", fmt);
-
-        QString kml = serializer.toKml(&doc);
-        REQUIRE(kml.contains("<todo"));
-        REQUIRE(kml.contains("id=\"t1\""));
-        REQUIRE(kml.contains(">task item</todo>"));
+        CHECK(serializer.toKml(&doc) ==
+              QStringLiteral("<kml><annotations><annotation id=\"t1\" kind=\"todo\" "
+                             "created=\"2026-10-08T12:00:00Z\" done=\"true\"></annotation>"
+                             "</annotations><p>Doe<anchor ref=\"t1\"/> now</p></kml>"));
     }
 
-    SECTION("Todo with completed and priority") {
+    SECTION("The anchor encloses the formatting") {
         QTextDocument doc;
         QTextCursor cursor(&doc);
-
         QTextCharFormat fmt;
-        QVariantMap todoData;
-        todoData["id"] = "t2";
-        todoData["completed"] = true;
-        todoData["priority"] = "high";
-        fmt.setProperty(KmlPropTodo, todoData);
+        fmt.setFontWeight(QFont::Bold);
+        setAnnotations(fmt, {comment});
+        cursor.insertText(QStringLiteral("bold"), fmt);
 
-        cursor.insertText("done task", fmt);
+        CHECK(serializer.toKml(&doc).contains(
+            QStringLiteral("<p><anchor ref=\"c1\"><b>bold</b></anchor></p>")));
+    }
 
-        QString kml = serializer.toKml(&doc);
-        REQUIRE(kml.contains("completed=\"true\""));
-        REQUIRE(kml.contains("priority=\"high\""));
+    SECTION("A text without annotations has no section") {
+        QTextDocument doc;
+        QTextCursor(&doc).insertText(QStringLiteral("Plain"));
+        CHECK(serializer.toKml(&doc) == QStringLiteral("<kml><p>Plain</p></kml>"));
     }
 }
 
@@ -609,47 +598,24 @@ TEST_CASE("KmlSerializer - Round trip complex document", "[editor][kml_serialize
 TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][roundtrip]") {
     KmlSerializer serializer;
 
-    SECTION("Comment round-trip") {
-        QString originalKml = R"(<kml><p>Text <comment id="c1" author="Jan">annotated</comment> text</p></kml>)";
+    SECTION("Annotation round-trip") {
+        QString originalKml = R"(<kml><annotations><annotation id="c1" kind="comment" author="Jan">Why?</annotation><annotation id="t1" kind="todo" done="true">Do</annotation></annotations><p>Text <anchor ref="c1">annotated</anchor> text<anchor ref="t1"/></p></kml>)";
 
         const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
 
         QString serializedKml = serializer.toKml(doc.get());
+        CHECK(serializedKml == originalKml);
 
         const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
-
         REQUIRE(getPlainText(doc.get()) == getPlainText(doc2.get()));
 
-        // Check comment metadata preserved (position 5 = "annotated")
-        QTextCharFormat fmt = getFormatAt(doc2.get(), 5);
-        QVariant commentData = fmt.property(KmlPropComment);
-        REQUIRE(commentData.isValid());
-
-        QVariantMap meta = commentData.toMap();
-        REQUIRE(meta["id"].toString() == "c1");
-        REQUIRE(meta["author"].toString() == "Jan");
-    }
-
-    SECTION("Todo round-trip") {
-        QString originalKml = R"(<kml><p><todo id="t1" completed="true">done task</todo></p></kml>)";
-
-        const LoadedKml doc = loadKml(originalKml);
-        REQUIRE(doc != nullptr);
-
-        QString serializedKml = serializer.toKml(doc.get());
-
-        const LoadedKml doc2 = loadKml(serializedKml);
-        REQUIRE(doc2 != nullptr);
-
-        QTextCharFormat fmt = getFormatAt(doc2.get(), 0);
-        QVariant todoData = fmt.property(KmlPropTodo);
-        REQUIRE(todoData.isValid());
-
-        QVariantMap meta = todoData.toMap();
-        REQUIRE(meta["id"].toString() == "t1");
-        REQUIRE(meta["completed"].toBool() == true);
+        // "annotated" starts at position 5
+        const AnnotationList annotations = annotationsOf(getFormatAt(doc2.get(), 5));
+        REQUIRE(annotations.size() == 1);
+        CHECK(annotations[0].id == QStringLiteral("c1"));
+        CHECK(annotations[0].author == QStringLiteral("Jan"));
     }
 
     SECTION("Footnote round-trip") {

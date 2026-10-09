@@ -47,8 +47,6 @@ const QSet<QString>& formattingTagSet()
 const QSet<QString>& metadataTagSet()
 {
     static const QSet<QString> tags = {
-        QStringLiteral("comment"),
-        QStringLiteral("todo"),
         QStringLiteral("footnote"),
         QStringLiteral("charref"),
         QStringLiteral("locref")
@@ -60,19 +58,6 @@ const QSet<QString>& metadataTagSet()
 const QVector<MetadataTagDef>& metadataDefinitions()
 {
     static const QVector<MetadataTagDef> defs = {
-        {
-            QStringLiteral("comment"),
-            KmlPropComment,
-            {QStringLiteral("id"), QStringLiteral("author"),
-             QStringLiteral("created"), QStringLiteral("resolved")}
-        },
-        {
-            QStringLiteral("todo"),
-            KmlPropTodo,
-            {QStringLiteral("id"), QStringLiteral("completed"),
-             QStringLiteral("priority"), QStringLiteral("text"),
-             QStringLiteral("type"), QStringLiteral("created")}
-        },
         {
             QStringLiteral("footnote"),
             KmlPropFootnote,
@@ -90,12 +75,6 @@ const QVector<MetadataTagDef>& metadataDefinitions()
         }
     };
     return defs;
-}
-
-/// @brief Metadata attributes stored as bool ("true"/"1" when set)
-bool isFlagAttribute(const QString& name)
-{
-    return name == QStringLiteral("resolved") || name == QStringLiteral("completed");
 }
 
 /// @brief Metadata attributes stored as int
@@ -342,10 +321,7 @@ QVariantMap readMetadataAttributes(const QXmlStreamAttributes& attrs)
     for (const QXmlStreamAttribute& attr : attrs) {
         const QString name = attr.name().toString();
         const QString value = attr.value().toString();
-        if (isFlagAttribute(name)) {
-            const QString flag = value.toLower();
-            metadata[name] = (flag == QStringLiteral("true") || flag == QStringLiteral("1"));
-        } else if (isNumberAttribute(name)) {
+        if (isNumberAttribute(name)) {
             bool ok = false;
             const int number = value.toInt(&ok);
             metadata[name] = ok ? QVariant(number) : QVariant(value);
@@ -360,17 +336,9 @@ QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata)
 {
     QString result;
     auto write = [&result](const QString& name, const QVariant& value) {
-        QString text;
-        if (value.typeId() == QMetaType::Bool) {
-            if (!value.toBool()) {
-                return;
-            }
-            text = QStringLiteral("true");
-        } else {
-            text = value.toString();
-            if (text.isEmpty()) {
-                return;
-            }
+        const QString text = value.toString();
+        if (text.isEmpty()) {
+            return;
         }
         result += QLatin1Char(' ') + name + QStringLiteral("=\"") + escapeXml(text) +
                   QLatin1Char('"');
@@ -410,7 +378,7 @@ QString withRootElement(const QString& kml)
 
 bool isInlineTextTag(const QString& tag)
 {
-    return isFormattingTag(tag) || isMetadataTag(tag) ||
+    return isFormattingTag(tag) || isMetadataTag(tag) || tag == QStringLiteral("anchor") ||
            tag == QStringLiteral("t") || tag == QStringLiteral("text");
 }
 

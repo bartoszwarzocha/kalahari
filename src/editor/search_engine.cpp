@@ -2,6 +2,7 @@
 /// @brief Search engine implementation for Find/Replace operations (OpenSpec #00044 Task 9.4)
 
 #include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/annotation.h>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QRegularExpression>
@@ -246,11 +247,12 @@ bool SearchEngine::replaceCurrent() {
     // A copy: the edit below updates m_matches
     const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
-    // A direct edit, recorded by the document's native undo
+    // A direct edit, recorded by the document's native undo; the annotations of the
+    // replaced text stay
     QTextCursor cursor(m_document);
     cursor.setPosition(static_cast<int>(match.start));
     cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-    cursor.insertText(m_replaceText);
+    insertKeepingAnnotations(cursor, m_replaceText);
 
     // The matches have followed the edit (searched again here if the document reports
     // no edited ranges); go on with the match after the replaced text
@@ -289,7 +291,7 @@ int SearchEngine::replaceAll() {
         const SearchMatch& match = *it;
         cursor.setPosition(static_cast<int>(match.start));
         cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-        cursor.insertText(m_replaceText);
+        insertKeepingAnnotations(cursor, m_replaceText);
     }
     cursor.endEditBlock();
 
