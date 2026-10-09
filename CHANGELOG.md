@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
+  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
+  the current paragraph and the selection. After an edit they get the new text, not the
+  text read before.
+
 - **Polish translation of the Settings window** - 2026-10-08. All pages of the Settings
   window are in Polish when the program runs in Polish, with the names the menus and
   panels already use (Pulpit, Edytor, Dziennik, the view names).

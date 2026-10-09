@@ -10,6 +10,8 @@
 #include <QAccessibleWidget>
 #include <QAccessibleTextInterface>
 
+class QTextDocument;
+
 namespace kalahari::editor {
 
 class BookEditor;
@@ -147,15 +149,13 @@ private:
     /// @param charOffset [out] Character offset within paragraph
     void fromAbsoluteOffset(int absoluteOffset, int& paragraphIndex, int& charOffset) const;
 
-    /// @brief Get full document text (cached)
-    /// @return Concatenated document text
+    /// @brief Get full document text
+    /// @return Concatenated document text, cached until the document changes
     QString documentText() const;
 
-    /// @brief Invalidate cached document text
-    void invalidateCache();
-
-    mutable QString m_cachedText;       ///< Cached full document text
-    mutable bool m_cacheValid{false};   ///< Is cache valid?
+    mutable QString m_cachedText;                     ///< Text of m_cachedDocument
+    mutable const QTextDocument* m_cachedDocument{nullptr};  ///< Document the text came from
+    mutable int m_cachedRevision{-1};                 ///< Its revision() at that time
 };
 
 /// @brief Install accessibility interface factory for BookEditor
