@@ -141,6 +141,8 @@ struct KindReference {
 
     /// @brief "kalahari.nonfiction:bibliography", or the kind id alone without a package
     QString toString() const;
+
+    bool operator==(const KindReference&) const = default;
 };
 
 /// @brief Kind of element (rodzaj): chapter, dedication, act, poem, mind map...
@@ -230,6 +232,9 @@ struct BookTypePackage {
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
     /// @return The package, or nullopt when it has problems
     static std::optional<BookTypePackage> read(const QString& directory, QStringList& problems);
+
+    /// @brief Whether @p text can be the id of a package: lowercase words joined by dots
+    static bool isId(const QString& text);
 };
 
 }  // namespace kalahari::core

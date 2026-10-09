@@ -842,4 +842,8 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     return package;
 }
 
+bool BookTypePackage::isId(const QString& text) {
+    return isPackageId(text);
+}
+
 }  // namespace kalahari::core

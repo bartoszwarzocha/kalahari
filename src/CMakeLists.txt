@@ -37,6 +37,7 @@ set(KALAHARI_CORE_SOURCES
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
+    core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
     core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
