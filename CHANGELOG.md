@@ -281,12 +281,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
     frame at the selection, or at the cursor's place without one, where the annotation's
     text is written: Enter starts a new line, Ctrl+Enter or Save keeps the text (the frame
-    says so), Esc drops it. The frame's header shows the kind and who the annotation is by.
+    says so), Esc drops it. The frame's header shows the kind and, for someone else's
+    annotation, who it is by.
     The annotation is added with its text when it is kept; a frame left empty adds nothing.
     Add Annotation (Ctrl+Shift+M) opens a small menu of the three kinds at the cursor.
   - Each annotation not done has a small mark in its kind's color under the end of its
-    fragment, or under its place. The mark's tooltip is who made the annotation and its
-    text, and a click on it opens the annotation's frame, the cursor staying where it was.
+    fragment, or under its place. The mark's tooltip is the annotation's text, under the
+    name of who made it when it is someone else, and a click on it opens the annotation's
+    frame, the cursor staying where it was.
     Mark Size in Settings > Annotations sets the size of the marks (100% fits the text's
     font).
   - The Annotations panel (View > Panels > Annotations, also a button on the Panels
@@ -294,7 +296,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     annotations of the chapter in front or of the whole book as cards tinted with their
     kind's color: the kind, the chapter, the date, who made it (above the text, as comments
     in a word processor show it), the text and, for a to-do, whether it is done. The
-    card's tooltip says who made it and when, and the chapter's whole title. A search
+    card's tooltip says who made it and when, and the chapter's whole title. The writer's
+    own annotations (by the author new ones get) do not name their author; after another
+    name is set, the ones made before show the name they were made with. A search
     field, filters by kind, state (open, done, all) and date, and three
     orders: as in the text, the newest first, or by kind. Its texts keep a contrast of at
     least 4.5:1 in the light and the dark theme.

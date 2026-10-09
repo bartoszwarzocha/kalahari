@@ -116,10 +116,11 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &AnnotationsCoordinator::onCurrentTabChanged);
 
-    // Another book: other chapters, other files
+    // Another book: other chapters, other files, maybe another author
     auto& projects = core::ProjectManager::getInstance();
     const auto bookChanged = [this]() {
         m_fileCache.clear();
+        applyOwnAuthor();
         updateCommandStates();
         scheduleRefresh();
     };
@@ -137,6 +138,16 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
             &AnnotationsCoordinator::onEditorFocusRequested);
     connect(m_panel, &AnnotationsPanel::scopeChanged, this, &AnnotationsCoordinator::refresh);
 
+    // Another author in the settings: the annotations of the one before name their author.
+    // A listener runs on the thread that changed the setting; the slot called by name runs
+    // on the coordinator's own one
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == "annotations.author") {
+                QMetaObject::invokeMethod(this, "onAuthorSettingChanged", Qt::QueuedConnection);
+            }
+        });
+
     // The list is made while the panel can be seen; one made old meanwhile is made again
     // when it comes into view
     if (m_dock != nullptr) {
@@ -151,6 +162,7 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
 }
 
 AnnotationsCoordinator::~AnnotationsCoordinator() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
     if (m_frame != nullptr) {
         m_frame->disconnect(this);  // the frame goes with its editor
@@ -211,6 +223,25 @@ QString AnnotationsCoordinator::defaultAuthor() {
         name = qEnvironmentVariable("USER");
     }
     return name.trimmed();
+}
+
+void AnnotationsCoordinator::applyOwnAuthor() {
+    const QString own = author();
+    if (own == m_ownAuthor) {
+        return;
+    }
+    m_ownAuthor = own;
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr) {
+            editor->setOwnAnnotationAuthor(own);
+        }
+    }
+}
+
+void AnnotationsCoordinator::onAuthorSettingChanged() {
+    applyOwnAuthor();
+    scheduleRefresh();
 }
 
 bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
@@ -422,12 +453,17 @@ void AnnotationsCoordinator::refresh() {
     m_panel->setDocumentAvailable(editor != nullptr);
     m_stale = false;
 
+    // The cards of the writer's own annotations do not name their author (the book's
+    // author, when it is the writer, may have changed since)
+    applyOwnAuthor();
     std::vector<AnnotationEntry> entries;
-    const auto addEntries = [&entries](const QString& elementId, const QString& title,
-                                       int chapterOrder, const editor::AnnotationList& list) {
+    const auto addEntries = [this, &entries](const QString& elementId, const QString& title,
+                                             int chapterOrder,
+                                             const editor::AnnotationList& list) {
         int textOrder = 0;
         for (const editor::Annotation& annotation : list) {
-            entries.push_back({annotation, elementId, title, chapterOrder, textOrder++});
+            entries.push_back({annotation, elementId, title, chapterOrder, textOrder++,
+                               annotation.author.trimmed() != m_ownAuthor});
         }
     };
     if (m_panel->scope() == AnnotationScope::Book && bookOpen) {
@@ -604,7 +640,9 @@ QString AnnotationsCoordinator::keyAtCursor() const {
 // =============================================================================
 
 void AnnotationsCoordinator::onCurrentTabChanged() {
+    applyOwnAuthor();
     if (editor::BookEditor* editor = currentEditor()) {
+        editor->setOwnAnnotationAuthor(m_ownAuthor);
         auto& registry = CommandRegistry::getInstance();
         editor->setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                        registry.getAction(QStringLiteral("insert.todo")),
@@ -700,7 +738,8 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     auto* frame = new AnnotationFrame(writing.editor);
     m_frame = frame;
     frame->setKind(writing.kind);
-    frame->setAuthor(writing.author);
+    applyOwnAuthor();
+    frame->setAuthor(writing.author.trimmed() == m_ownAuthor ? QString() : writing.author);
     frame->setText(text);
     connect(frame, &AnnotationFrame::saveRequested, this, &AnnotationsCoordinator::saveWriting);
     connect(frame, &AnnotationFrame::cancelRequested, this, &AnnotationsCoordinator::cancelWriting);

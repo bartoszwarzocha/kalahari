@@ -86,6 +86,11 @@ QString BookEditor::annotationMarkAt(const QPointF& point) const
     return m_renderPipeline ? m_renderPipeline->annotationMarkAt(point) : QString();
 }
 
+void BookEditor::setOwnAnnotationAuthor(const QString& author)
+{
+    m_ownAnnotationAuthor = author.trimmed();
+}
+
 bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)
 {
     // A step only for a change: one with nothing but the cursor in it would be undone too

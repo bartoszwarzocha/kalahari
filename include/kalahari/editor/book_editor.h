@@ -584,6 +584,15 @@ public:
     /// @return Its id; empty when no mark is there
     QString annotationMarkAt(const QPointF& point) const;
 
+    /// @brief Who the writer's own annotations are by
+    ///
+    /// The tooltip of a mark names who made its annotation only when it is someone else.
+    /// Empty: every author is named.
+    void setOwnAnnotationAuthor(const QString& author);
+
+    /// @brief Who the writer's own annotations are by, as set (trimmed)
+    const QString& ownAnnotationAuthor() const { return m_ownAnnotationAuthor; }
+
     /// @brief Give an annotation new data (kind, text, state...), one undo step
     /// @param annotation The annotation's new data; its id says which one it is
     /// @param joinPreviousStep true: the change joins the last undo step instead of making
@@ -1372,6 +1381,7 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    QString m_ownAnnotationAuthor;         ///< Who the writer's own annotations are by (not named)
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string

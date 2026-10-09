@@ -77,9 +77,11 @@ public:
     /// @note Call after the commands are registered and the panel's dock is created
     void connectCommands();
 
-    /// @brief Who new annotations are by
+    /// @brief Who new annotations are by: the writer
     ///
-    /// The setting annotations.author; without it defaultAuthor().
+    /// The setting annotations.author; without it defaultAuthor(). The writer's own
+    /// annotations do not name their author: not on their cards, in the frame or in the
+    /// tooltips of their marks; those of anyone else do.
     static QString author();
 
     /// @brief Who new annotations are by without the setting annotations.author
@@ -151,6 +153,10 @@ protected:
     /// @brief F9 (the shortcut of Annotations): togglePanelFocus()
     bool eventFilter(QObject* watched, QEvent* event) override;
 
+private slots:
+    /// @brief Another author in the settings (queued from the setting's listener)
+    void onAuthorSettingChanged();
+
 private:
     /// @brief An annotation whose text is written in the frame
     struct Writing {
@@ -158,7 +164,7 @@ private:
         QString elementId;     ///< Its chapter; empty: a document outside the book
         QString annotationId;  ///< The one edited; empty: a new one
         editor::AnnotationKind kind = editor::AnnotationKind::Comment;
-        QString author;          ///< Who it is by: a new one by author(), as the frame shows
+        QString author;          ///< Who it is by: a new one by author()
         QTextCursor range;       ///< Its fragment or place; follows the edits of the text
         bool fromPanel = false;  ///< The keys go back to the panel, else to the text
     };
@@ -204,6 +210,9 @@ private:
     /// on, else the last one before it, else the first one after it (empty: none)
     QString keyAtCursor() const;
 
+    /// @brief Who the writer's own annotations are by now (author()), to the open editors
+    void applyOwnAuthor();
+
     // The panel
     void onCurrentTabChanged();
     void onEditorContentChanged();
@@ -242,6 +251,8 @@ private:
     bool m_stale = false;             ///< The panel's list is old: refresh when it is shown
     QTimer* m_refreshTimer{nullptr};  ///< Lists the annotations again after edits
     QHash<QString, CachedFile> m_fileCache;  ///< By the files' paths
+    QString m_ownAuthor;                     ///< Who the writer's own annotations are by
+    int m_settingsListener = -1;             ///< Follows the setting annotations.author
 };
 
 }  // namespace kalahari::gui

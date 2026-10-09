@@ -278,6 +278,15 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
         const QString todoTip = toolTipAt(todoMark);  // by no one known
         CHECK(todoTip.contains(QStringLiteral("Fix &lt;it&gt;")));
         CHECK_FALSE(todoTip.contains(QStringLiteral("<b>")));
+
+        // The writer's own annotations do not name their author; someone else's do
+        annotated->setOwnAnnotationAuthor(QStringLiteral(" Anna Nowak "));
+        CHECK(annotated->ownAnnotationAuthor() == QStringLiteral("Anna Nowak"));
+        const QString ownTip = toolTipAt(middleOf(comment));
+        CHECK(ownTip.contains(QStringLiteral(">C</p>")));
+        CHECK_FALSE(ownTip.contains(QStringLiteral("Anna Nowak")));
+        annotated->setOwnAnnotationAuthor(QStringLiteral("Jan Kowalski"));
+        CHECK(toolTipAt(middleOf(comment)).contains(QStringLiteral("<b>Anna Nowak</b><br>C")));
     }
 
     SECTION("the size of the marks follows the appearance") {
