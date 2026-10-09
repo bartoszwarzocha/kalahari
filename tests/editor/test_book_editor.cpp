@@ -4,6 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/book_editor_accessible.h>
+#include <QAccessible>
 #include <QApplication>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -352,4 +354,29 @@ TEST_CASE("BookEditor paragraph access", "[editor][book_editor]") {
     SECTION("Character count is positive for non-empty doc") {
         REQUIRE(editor.characterCount() > 0);
     }
+}
+
+TEST_CASE("BookEditor is editable text for screen readers", "[editor][book_editor][accessibility]") {
+    static const bool installed = [] {
+        installBookEditorAccessibility();
+        return true;
+    }();
+    REQUIRE(installed);
+
+    BookEditor editor;
+    editor.fromKml(QStringLiteral("<kml><p>Ala ma kota</p><p>Drugi</p></kml>"));
+
+    QAccessibleInterface* iface = QAccessible::queryAccessibleInterface(&editor);
+    REQUIRE(iface != nullptr);
+    CHECK(iface->role() == QAccessible::EditableText);
+    QAccessibleTextInterface* text = iface->textInterface();
+    REQUIRE(text != nullptr);
+    CHECK(text->text(0, 3) == QStringLiteral("Ala"));
+    CHECK(text->characterCount() == editor.plainText().length());
+
+    // After an edit the screen reader gets the new text, not the text read before
+    editor.setCursorPosition(CursorPosition{0, 0});
+    editor.insertText(QStringLiteral("X"));
+    CHECK(text->text(0, 4) == QStringLiteral("XAla"));
+    CHECK(text->characterCount() == editor.plainText().length());
 }
