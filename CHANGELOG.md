@@ -275,6 +275,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and
+  writes the project file (`.klh`, format 2): the book type or, in a user project, the kinds
+  chosen from the palette; the kinds taken from other types; a list of books (one for now,
+  more in a series) with their data, settings and the elements of their front, main and
+  back parts; and the Workshop the books share. Each element names its kind with the
+  package that defines it, so it stays in the book when its kind is taken out of the project
+  or its package is not installed. Fields the program does not know are kept. The model also
+  finds, moves and takes out elements. Nothing uses it yet, so the program opens and saves
+  projects as before.
+
 - **Book types: Workshop groups, the parts layer and kinds of other packages** - 2026-10-09.
   A kind of the Workshop says which group it goes to when the Workshop is grouped (cards go
   to Libraries, materials to Resources), and a type says whether a new book shows its front,
