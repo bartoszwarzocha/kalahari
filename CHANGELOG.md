@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
+  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
+  the current paragraph and the selection. After an edit they get the new text, not the
+  text read before.
+
 - **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
   settings files of older versions nor moves the window layout and recent books from the
   old QSettings store (the registry on Windows); while Kalahari has a single user, old
@@ -270,6 +275,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
+  short story collection, non-fiction, screenplay, poetry collection) are data packages in
+  `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
+  offers in each part of the book and in the Workshop, what a new book starts with, and its
+  styles. A registry in core loads and checks them. Nothing uses it yet, so the program
+  works as before; the New Book and Add Element windows will use it in later stages.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
@@ -393,6 +404,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
   to the end of the File menu. It now finds Close Book by its command; the submenu itself
   moved from the core to the GUI (the core keeps only the list of books).
+
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to

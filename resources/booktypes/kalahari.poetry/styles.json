@@ -1,0 +1,41 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "poem_title",
+      "name": { "pl": "Tytuł wiersza", "en": "Poem title" },
+      "base_style": "heading_2", "next_style": "verse",
+      "properties": { "spaceBefore": 36, "spaceAfter": 18 }
+    },
+    {
+      "id": "verse",
+      "name": { "pl": "Wers", "en": "Verse" },
+      "base_style": "normal",
+      "properties": { "alignment": "left", "firstLineIndent": 0, "lineHeight": 1.2,
+                      "spaceBefore": 0, "spaceAfter": 0 }
+    },
+    {
+      "id": "verse_indented",
+      "name": { "pl": "Wers wcięty", "en": "Indented verse" },
+      "base_style": "verse", "next_style": "verse",
+      "properties": { "leftMargin": 36 }
+    },
+    {
+      "id": "stanza_break",
+      "name": { "pl": "Odstęp między strofami", "en": "Stanza break" },
+      "base_style": "verse", "next_style": "verse",
+      "properties": { "lineHeight": 1.0 }
+    },
+    {
+      "id": "poem_motto",
+      "name": { "pl": "Motto wiersza", "en": "Poem epigraph" },
+      "base_style": "verse", "next_style": "verse",
+      "properties": { "italic": true, "fontSize": 11, "alignment": "right", "spaceAfter": 12 }
+    },
+    {
+      "id": "poem_dedication",
+      "name": { "pl": "Dedykacja wiersza", "en": "Poem dedication" },
+      "base_style": "verse", "next_style": "verse",
+      "properties": { "italic": true, "fontSize": 11, "spaceAfter": 12 }
+    }
+  ]
+}

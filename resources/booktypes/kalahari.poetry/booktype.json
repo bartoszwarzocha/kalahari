@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "id": "kalahari.poetry",
+  "version": "1.0",
+  "role": "type",
+  "name": { "pl": "Tomik wierszy", "en": "Poetry Collection" },
+  "description": {
+    "pl": "Wiersze, które można łączyć w cykle.",
+    "en": "Poems, which can be grouped into cycles."
+  },
+  "icon": "template.poetry",
+  "uses": ["kalahari.base"],
+  "kinds": {
+    "poem": {
+      "form": "text", "places": ["main", "cycle"], "icon": "template.chapter",
+      "name": { "pl": "Wiersz", "en": "Poem" },
+      "plural": { "pl": "Wiersze", "en": "Poems" },
+      "title": { "pl": "Wiersz %n", "en": "Poem %n" }
+    },
+    "cycle": {
+      "form": "group", "places": ["main"], "icon": "structure.part",
+      "name": { "pl": "Cykl", "en": "Cycle" },
+      "plural": { "pl": "Cykle", "en": "Cycles" },
+      "title": { "pl": "Cykl %n", "en": "Cycle %n" }, "numbering": "roman"
+    },
+    "explanatory_notes": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Objaśnienia", "en": "Notes" },
+      "plural": { "pl": "Objaśnienia", "en": "Notes" }
+    },
+    "first_lines": {
+      "form": "window", "editor": "first_lines", "generated": true,
+      "places": ["back"], "limit": 1, "icon": "common.sort",
+      "name": { "pl": "Indeks pierwszych wersów", "en": "Index of first lines" },
+      "plural": { "pl": "Indeksy pierwszych wersów", "en": "Indexes of first lines" }
+    },
+    "publisher_note": {
+      "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Nota wydawnicza", "en": "Publisher's note" },
+      "plural": { "pl": "Noty wydawnicze", "en": "Publisher's notes" }
+    },
+    "draft": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Brudnopis", "en": "Draft" },
+      "plural": { "pl": "Brudnopisy", "en": "Drafts" },
+      "title": { "pl": "Brudnopis %n", "en": "Draft %n" }
+    }
+  },
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],
+  "main":     ["cycle", "poem"],
+  "back":     ["explanatory_notes", "about_author", "first_lines", "publisher_note", "toc"],
+  "workshop": ["draft", "work_note", "mindmap", "material"],
+  "primary":  "poem",
+  "start":    ["title_page", "poem"],
+  "styles":   "styles.json"
+}

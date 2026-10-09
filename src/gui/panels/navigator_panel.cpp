@@ -25,6 +25,7 @@
 #include <QToolButton>
 #include <QComboBox>
 #include <QTimer>
+#include <QCoreApplication>
 #include <QMenu>
 #include <QActionGroup>
 #include <QPalette>
@@ -34,16 +35,25 @@
 
 namespace {
 // Helper: Get display title with status suffix
-// Final status = no suffix, others show [STATUS]
+// Final status = no suffix, others show [Status] in the program's language, with the names
+// of the "Set Status" menu
 QString getDisplayTitle(const kalahari::core::BookElement* element, bool isModified = false) {
     QString title = QString::fromStdString(element->getTitle());
     auto status = element->getMetadata("status");
     if (status.has_value()) {
-        QString statusStr = QString::fromStdString(status.value()).toLower();
-        if (statusStr != "final" && !statusStr.isEmpty()) {
-            // Capitalize first letter
-            statusStr[0] = statusStr[0].toUpper();
-            title += QString(" [%1]").arg(statusStr);
+        const QString statusCode = QString::fromStdString(status.value()).toLower();
+        QString statusName;
+        if (statusCode == "draft") {
+            statusName = QCoreApplication::translate("kalahari::gui::NavigatorPanel", "Draft");
+        } else if (statusCode == "revision") {
+            statusName = QCoreApplication::translate("kalahari::gui::NavigatorPanel", "Revision");
+        } else if (statusCode != "final" && !statusCode.isEmpty()) {
+            // An unknown code is shown as it is, capitalized
+            statusName = statusCode;
+            statusName[0] = statusName[0].toUpper();
+        }
+        if (!statusName.isEmpty()) {
+            title += QString(" [%1]").arg(statusName);
         }
     }
     // The "*" modified indicator is part of the canonical display text so it survives

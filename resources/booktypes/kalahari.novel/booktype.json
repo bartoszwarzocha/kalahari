@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "id": "kalahari.novel",
+  "version": "1.0",
+  "role": "type",
+  "name": { "pl": "Powieść", "en": "Novel" },
+  "description": {
+    "pl": "Proza fabularna w rozdziałach, które można łączyć w części.",
+    "en": "Fiction in chapters, which can be grouped into parts."
+  },
+  "icon": "template.novel",
+  "uses": ["kalahari.base"],
+  "kinds": {
+    "prologue": {
+      "form": "text", "places": ["main"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Prolog", "en": "Prologue" },
+      "plural": { "pl": "Prologi", "en": "Prologues" }
+    },
+    "epilogue": {
+      "form": "text", "places": ["main"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Epilog", "en": "Epilogue" },
+      "plural": { "pl": "Epilogi", "en": "Epilogues" }
+    }
+  },
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface"],
+  "main":     ["prologue", "part", "chapter", "epilogue"],
+  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
+  "workshop": ["work_note", "mindmap", "timeline", "character", "location", "item", "material"],
+  "primary":  "chapter",
+  "start":    ["title_page", "chapter"],
+  "styles":   "styles.json"
+}
