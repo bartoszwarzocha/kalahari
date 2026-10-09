@@ -1,0 +1,32 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "block_quote",
+      "name": { "pl": "Cytat blokowy", "en": "Block quote" },
+      "base_style": "normal",
+      "properties": { "fontSize": 11, "lineHeight": 1.3, "firstLineIndent": 0,
+                      "leftMargin": 36, "rightMargin": 36, "spaceBefore": 6, "spaceAfter": 6 }
+    },
+    {
+      "id": "footnote",
+      "name": { "pl": "Przypis", "en": "Footnote" },
+      "base_style": "normal",
+      "properties": { "fontSize": 10, "lineHeight": 1.2, "alignment": "left",
+                      "firstLineIndent": 0 }
+    },
+    {
+      "id": "caption",
+      "name": { "pl": "Podpis ilustracji", "en": "Caption" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "fontSize": 10, "italic": true, "lineHeight": 1.2, "alignment": "center",
+                      "firstLineIndent": 0, "spaceBefore": 6, "spaceAfter": 12 }
+    },
+    {
+      "id": "box",
+      "name": { "pl": "Ramka", "en": "Box" },
+      "base_style": "normal",
+      "properties": { "fontSize": 11, "lineHeight": 1.3, "firstLineIndent": 0,
+                      "leftMargin": 18, "rightMargin": 18, "spaceBefore": 12, "spaceAfter": 12 }
+    }
+  ]
+}

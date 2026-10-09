@@ -1,0 +1,42 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "part_title",
+      "name": { "pl": "Tytuł części", "en": "Part title" },
+      "base_style": "heading_1", "next_style": "normal",
+      "properties": { "fontSize": 24, "alignment": "center", "spaceBefore": 72,
+                      "spaceAfter": 36 }
+    },
+    {
+      "id": "chapter_title",
+      "name": { "pl": "Tytuł rozdziału", "en": "Chapter title" },
+      "base_style": "heading_1", "next_style": "normal",
+      "properties": { "alignment": "center", "spaceBefore": 48, "spaceAfter": 24 }
+    },
+    {
+      "id": "motto",
+      "name": { "pl": "Motto", "en": "Epigraph" },
+      "base_style": "normal",
+      "properties": { "italic": true, "alignment": "right", "firstLineIndent": 0,
+                      "leftMargin": 144, "lineHeight": 1.2, "spaceAfter": 12 }
+    },
+    {
+      "id": "letter",
+      "name": { "pl": "List", "en": "Letter" },
+      "base_style": "normal",
+      "properties": { "firstLineIndent": 0, "leftMargin": 24, "rightMargin": 24,
+                      "spaceBefore": 6, "spaceAfter": 6 }
+    }
+  ],
+  "character_styles": [
+    {
+      "id": "thought",
+      "name": { "pl": "Myśl bohatera", "en": "Character's thought" },
+      "properties": { "italic": true }
+    },
+    {
+      "id": "proper_name",
+      "name": { "pl": "Nazwa własna", "en": "Proper name" }
+    }
+  ]
+}

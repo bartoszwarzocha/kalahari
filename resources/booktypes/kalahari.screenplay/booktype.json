@@ -1,0 +1,55 @@
+{
+  "format": 1,
+  "id": "kalahari.screenplay",
+  "version": "1.0",
+  "role": "type",
+  "name": { "pl": "Scenariusz", "en": "Screenplay" },
+  "description": {
+    "pl": "Scenariusz filmu albo serialu; akty serialu można łączyć w odcinki.",
+    "en": "A screenplay for a film or a series; acts of a series can be grouped into episodes."
+  },
+  "icon": "template.screenplay",
+  "uses": ["kalahari.base"],
+  "kinds": {
+    "act": {
+      "form": "text", "places": ["main", "episode"], "icon": "template.chapter",
+      "name": { "pl": "Akt", "en": "Act" },
+      "plural": { "pl": "Akty", "en": "Acts" },
+      "title": { "pl": "Akt %n", "en": "Act %n" }, "numbering": "roman"
+    },
+    "episode": {
+      "form": "group", "places": ["main"], "icon": "structure.part",
+      "name": { "pl": "Odcinek", "en": "Episode" },
+      "plural": { "pl": "Odcinki", "en": "Episodes" },
+      "title": { "pl": "Odcinek %n", "en": "Episode %n" }
+    },
+    "logline": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Logline", "en": "Logline" },
+      "plural": { "pl": "Logline", "en": "Loglines" }
+    },
+    "synopsis": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Streszczenie", "en": "Synopsis" },
+      "plural": { "pl": "Streszczenia", "en": "Synopses" }
+    },
+    "treatment": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Treatment", "en": "Treatment" },
+      "plural": { "pl": "Treatmenty", "en": "Treatments" }
+    },
+    "step_outline": {
+      "form": "text", "places": ["workshop"], "icon": "template.note",
+      "name": { "pl": "Drabinka scen", "en": "Step outline" },
+      "plural": { "pl": "Drabinki scen", "en": "Step outlines" }
+    }
+  },
+  "front":    ["title_page"],
+  "main":     ["act", "episode"],
+  "back":     [],
+  "workshop": ["logline", "synopsis", "treatment", "step_outline", "character", "location",
+               "work_note", "material"],
+  "primary":  "act",
+  "start":    ["title_page", "act"],
+  "styles":   "styles.json"
+}

@@ -1,0 +1,23 @@
+{
+  "paragraph_styles": [
+    {
+      "id": "story_title",
+      "name": { "pl": "Tytuł opowiadania", "en": "Story title" },
+      "base_style": "heading_1", "next_style": "normal",
+      "properties": { "alignment": "center", "spaceBefore": 48, "spaceAfter": 6 }
+    },
+    {
+      "id": "story_subtitle",
+      "name": { "pl": "Podtytuł opowiadania", "en": "Story subtitle" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "italic": true, "alignment": "center", "firstLineIndent": 0,
+                      "spaceAfter": 6 }
+    },
+    {
+      "id": "story_author",
+      "name": { "pl": "Autor opowiadania", "en": "Story author" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "alignment": "center", "firstLineIndent": 0, "spaceAfter": 24 }
+    }
+  ]
+}
