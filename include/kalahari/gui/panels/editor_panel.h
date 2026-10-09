@@ -116,6 +116,9 @@ private slots:
 
 private:
     /// @brief Set the editor's paper scale from the screen the panel is on
+    ///
+    /// Runs when the panel is shown or moves to another screen, and when a screen's display
+    /// scaling or resolution changes.
     void applyPaperScale();
 
     /// @brief Run applySettings() once the event loop runs, once for all the settings

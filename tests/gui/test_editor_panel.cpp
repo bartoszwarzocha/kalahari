@@ -8,6 +8,8 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
+#include <QScreen>
+
 #include <algorithm>
 #include <memory>
 
@@ -87,4 +89,28 @@ TEST_CASE("Editor panel: every document opens at 100%, or at the page's width wh
         REQUIRE((pageWidth < 1.0) == document.pageWiderThanEditor);
         CHECK(opened == Approx(std::min(1.0, pageWidth)));
     }
+}
+
+TEST_CASE("Editor panel: the pages keep their size on paper when the screen's scaling changes",
+          "[gui][editor]") {
+    // Regression: another display scaling (125% to 150% on Windows) while the program ran
+    // left the pages at the old scale, so zoom 100% no longer showed their size on paper
+    // until the next start
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    QScreen* screen = panel.screen();
+    REQUIRE(screen != nullptr);
+    const double onPaper = editor::BookEditor::paperScaleOf(screen);
+
+    // The scale from the screen before the change
+    bookEditor->setPaperScale(onPaper + 0.25);
+    REQUIRE(bookEditor->paperScale() == Approx(onPaper + 0.25));
+
+    SECTION("another display scaling or resolution: the screen's size in pixels changes") {
+        emit screen->physicalDotsPerInchChanged(screen->physicalDotsPerInch());
+    }
+    SECTION("another logical resolution of the screen") {
+        emit screen->logicalDotsPerInchChanged(screen->logicalDotsPerInch());
+    }
+    CHECK(bookEditor->paperScale() == Approx(onPaper));
 }
