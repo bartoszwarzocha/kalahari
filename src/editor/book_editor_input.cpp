@@ -831,6 +831,7 @@ void BookEditor::showContextMenuAtCursor()
     if (!m_textBuffer || m_cursorPosition.paragraph < 0) {
         return;
     }
+    checkSpellingAtCursor();  // also the word just typed, without its wave yet
 
     // Under the cursor, so the word the menu is for stays in sight
     QPoint menuPos = mapToGlobal(rect().center());

@@ -1452,6 +1452,11 @@ private:
     /// @brief The writer stopped typing: the word typed is checked
     void endSpellingTyping();
 
+    /// @brief The word typed last counts and the paragraph of the cursor is checked now when
+    ///        it is due: the menu asked for from the keyboard knows a misspelled word at the
+    ///        cursor before its wave shows
+    void checkSpellingAtCursor();
+
     /// @brief Drop every spelling result
     void clearSpelling();
 

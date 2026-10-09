@@ -467,6 +467,22 @@ void BookEditor::endSpellingTyping()
     }
 }
 
+void BookEditor::checkSpellingAtCursor()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        return;
+    }
+    if (m_spellTyping >= 0) {
+        endSpellingTyping();
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const ParagraphData* known = ParagraphData::find(block);
+    if (block.isValid() && (known == nullptr || !known->spelling.current) &&
+        checkSpelling(block)) {
+        update();
+    }
+}
+
 void BookEditor::showEvent(QShowEvent* event)
 {
     QWidget::showEvent(event);

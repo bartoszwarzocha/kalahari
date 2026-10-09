@@ -392,6 +392,20 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
               QStringLiteral("The spelling is bad."));
     }
 
+    SECTION("the word just typed, before its wave") {
+        editor->setCursorPosition({0, 19});
+        type(*editor, QStringLiteral(" Erorr"));
+        const QStringList texts = runPopupMenu(
+            [&editor]() {
+                QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
+                QCoreApplication::sendEvent(editor.get(), &press);
+            },
+            QStringLiteral("Error"));
+        CHECK(texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
+              QStringLiteral("The speling is bad. Error"));
+    }
+
     SECTION("F10 alone opens no menu") {
         const QStringList texts = runPopupMenu([&editor]() { pressKey(*editor, Qt::Key_F10); });
         CHECK(texts.isEmpty());
