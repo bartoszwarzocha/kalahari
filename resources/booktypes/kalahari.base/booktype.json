@@ -98,24 +98,28 @@
     },
     "character": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.character",
+      "workshopGroup": "libraries",
       "name": { "pl": "Postać", "en": "Character" },
       "plural": { "pl": "Postacie", "en": "Characters" },
       "title": { "pl": "Postać %n", "en": "Character %n" }
     },
     "location": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.location",
+      "workshopGroup": "libraries",
       "name": { "pl": "Miejsce", "en": "Location" },
       "plural": { "pl": "Miejsca", "en": "Locations" },
       "title": { "pl": "Miejsce %n", "en": "Location %n" }
     },
     "item": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "book.newItem",
+      "workshopGroup": "libraries",
       "name": { "pl": "Przedmiot", "en": "Item" },
       "plural": { "pl": "Przedmioty", "en": "Items" },
       "title": { "pl": "Przedmiot %n", "en": "Item %n" }
     },
     "material": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.attachFile",
+      "workshopGroup": "resources",
       "name": { "pl": "Materiał", "en": "Material" },
       "plural": { "pl": "Materiały", "en": "Materials" }
     }
