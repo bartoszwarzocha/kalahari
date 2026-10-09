@@ -378,7 +378,7 @@ TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][anno
     AnnotationEntry entry =
         entryOf(QStringLiteral("c"), AnnotationKind::Comment, QStringLiteral("Too long"), 1, 0);
     entry.annotation.author = QStringLiteral(" Anna Nowak ");
-    entry.annotation.created = QDateTime(QDate(2026, 10, 9), QTime(11, 57), QTimeZone::UTC);
+    entry.annotation.created = QDateTime(QDate(2026, 10, 9), QTime(11, 57), QTimeZone::utc());
     card.setEntry(entry);
     card.resize(400, card.sizeHint().height());
     card.show();
@@ -1080,18 +1080,8 @@ TEST_CASE("Annotations: who the new annotations are by", "[gui][annotations]") {
 }
 
 TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annotations]") {
-    /// The setting for the test; empty again after it
-    struct AuthorSetting {
-        AuthorSetting() {
-            core::SettingsManager::getInstance().set<std::string>("annotations.author",
-                                                                  "Anna Nowak");
-        }
-        ~AuthorSetting() {
-            core::SettingsManager::getInstance().set<std::string>("annotations.author", "");
-        }
-        AuthorSetting(const AuthorSetting&) = delete;
-        AuthorSetting& operator=(const AuthorSetting&) = delete;
-    } setting;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("annotations.author", "Anna Nowak");
     Desk desk(kmlWith(QStringLiteral("<annotation id=\"c1\" kind=\"comment\" "
                                      "author=\"Jan Kowalski\">Old</annotation>"),
                       {QStringLiteral("<anchor ref=\"c1\">One</anchor> two three")}));
@@ -1115,4 +1105,5 @@ TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annota
         CHECK(desk.coordinator->frame()->author() == QStringLiteral("Jan Kowalski"));
         desk.coordinator->cancelWriting();
     }
+    settings.set<std::string>("annotations.author", "");
 }
