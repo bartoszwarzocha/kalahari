@@ -19,6 +19,10 @@ struct KindRef {
     const ElementKind* kind = nullptr;         ///< The kind; nullptr when there is none
 
     explicit operator bool() const { return kind != nullptr; }
+
+    /// @brief "kalahari.base:chapter": the kind with the package that defines it; empty when
+    /// there is no kind
+    QString reference() const;
 };
 
 /// @brief Element that a new book of a type starts with
@@ -51,9 +55,10 @@ public:
     /// @brief Load the packages in @p directories, replacing the packages loaded before
     ///
     /// Not loaded, with their problems in problems() and in the log: a package with problems,
-    /// a package that uses a package which is missing or has problems, and a package with the
-    /// id of a package loaded before it. Pointers to packages and kinds stay valid until the
-    /// next load().
+    /// a package that uses a package which is missing or has problems, a package that names a
+    /// kind of such a package, and a package with the id of a package loaded before it. Two
+    /// packages can name each other's kinds, but not use each other. Pointers to packages and
+    /// kinds stay valid until the next load().
     void load(const QStringList& directories);
 
     /// @brief Problems found by the last load()
@@ -71,7 +76,8 @@ public:
     /// @brief Kind @p kindId as package @p packageId sees it
     ///
     /// The package's own kind, else one of the packages it uses. A package comes before the
-    /// packages it uses, and of two packages in "uses" the later one comes first.
+    /// packages it uses, and of two packages in "uses" the later one comes first. A kind of
+    /// another package, "kalahari.nonfiction:bibliography", is the kind as that package sees it.
     KindRef findKind(const QString& packageId, const QString& kindId) const;
 
     /// @brief Kinds that package @p packageId offers in @p place, in its order
@@ -104,9 +110,14 @@ private:
 
     /// Package and the packages it uses, each before the packages it uses
     QList<const BookTypePackage*> lineage(const BookTypePackage& package) const;
-    KindRef findKind(const BookTypePackage& package, const QString& kindId) const;
+    KindRef findKind(const BookTypePackage& package, const QString& kindName) const;
+    /// Whether one of @p kindNames, as @p package sees it, is @p kind
+    bool namesKind(const BookTypePackage& package, const QStringList& kindNames,
+                   const ElementKind* kind) const;
     QList<KindRef> kindsInside(const BookTypePackage& package, const QString& groupKindId) const;
     bool validate(const BookTypePackage& package, QHash<QString, CheckState>& states);
+    /// Drop the packages that use or name kinds of packages which were not loaded
+    void dropDependents(QHash<QString, CheckState>& states);
     QStringList check(const BookTypePackage& package) const;
 
     std::vector<std::unique_ptr<BookTypePackage>> m_packages;

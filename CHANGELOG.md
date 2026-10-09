@@ -275,6 +275,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types: Workshop groups, the parts layer and kinds of other packages** - 2026-10-09.
+  A kind of the Workshop says which group it goes to when the Workshop is grouped (cards go
+  to Libraries, materials to Resources), and a type says whether a new book shows its front,
+  main and back parts (a screenplay does not). A type can also offer a kind of a package it
+  does not use, named with that package (`kalahari.nonfiction:bibliography`), and two
+  packages can offer each other's kinds. Nothing uses these fields yet, so the program works
+  as before.
+
 - **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
   short story collection, non-fiction, screenplay, poetry collection) are data packages in
   `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
@@ -399,6 +407,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
+  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
+  to the end of the File menu. It now finds Close Book by its command; the submenu itself
+  moved from the core to the GUI (the core keeps only the list of books).
+
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to

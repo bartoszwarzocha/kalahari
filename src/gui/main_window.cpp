@@ -18,6 +18,7 @@
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
@@ -482,12 +483,12 @@ void MainWindow::createMenus() {
 
     // OpenSpec #00030: Add Recent Books submenu to FILE menu
     if (m_fileMenu) {
-        auto& recentBooks = core::RecentBooksManager::getInstance();
-        recentBooks.createRecentBooksMenu(m_fileMenu);
+        auto* recentBooks = new RecentBooksMenu(m_fileMenu);
+        recentBooks->insertInto(m_fileMenu);
 
-        // Connect signal to open recent file via DocumentCoordinator
+        // Open the chosen book via DocumentCoordinator
         // Note: DocumentCoordinator is created later, but signal connections are deferred
-        connect(&recentBooks, &core::RecentBooksManager::recentFileClicked,
+        connect(recentBooks, &RecentBooksMenu::bookChosen,
                 this, [this](const QString& path) {
                     if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(path);
                 });
