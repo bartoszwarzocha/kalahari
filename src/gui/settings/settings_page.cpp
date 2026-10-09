@@ -15,6 +15,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QLineEdit>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -171,6 +172,11 @@ SettingsPage::Binding& SettingsPage::bind(QWidget* field, const std::string& key
             if (value.is_number()) {
                 doubleSpin->setValue(value.get<double>() * scale);
             }
+        };
+    } else if (auto* line = qobject_cast<QLineEdit*>(field)) {
+        binding.shown = [line]() { return json(line->text().toStdString()); };
+        binding.show = [line](const json& value) {
+            line->setText(QString::fromStdString(value.is_string() ? value.get<std::string>() : ""));
         };
     } else if (auto* color = qobject_cast<ColorConfigWidget*>(field)) {
         binding.shown = [color]() { return json(color->color().name().toStdString()); };

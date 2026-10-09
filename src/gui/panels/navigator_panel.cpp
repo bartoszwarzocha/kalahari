@@ -1239,6 +1239,7 @@ void NavigatorPanel::onContextMenuProperties() {
     logger.debug("NavigatorPanel::onContextMenuProperties() - ID: {}", elementId.toStdString());
 
     emit requestProperties(elementId);
+    emit requestPropertiesPanel();
 }
 
 void NavigatorPanel::onContextMenuAddToProject() {

@@ -49,6 +49,12 @@ public:
     /// @brief The annotation's kind (the frame's header)
     void setKind(editor::AnnotationKind kind);
 
+    /// @brief Who the annotation is by (on the right of the header; empty: no one shown)
+    void setAuthor(const QString& author);
+
+    /// @brief Who the annotation is by, as set
+    const QString& author() const { return m_author; }
+
     /// @brief The text to start with (an annotation edited again)
     void setText(const QString& text);
 
@@ -83,6 +89,7 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -95,6 +102,9 @@ private:
     /// @brief The text box as high as its text, between a few lines and a limit
     void updateTextHeight();
 
+    /// @brief The author, shortened to the room the header has
+    void updateAuthorLabel();
+
     /// @brief The colors of the texts and the button
     void updateStyle();
 
@@ -104,7 +114,9 @@ private:
     AnnotationCardColors m_colors;
     PlacementProvider m_placement;
     bool m_placementPending = false;
+    QString m_author;
     QLabel* m_kindLabel{nullptr};
+    QLabel* m_authorLabel{nullptr};
     QTextEdit* m_textEdit{nullptr};
     QLabel* m_hintLabel{nullptr};
     QPushButton* m_saveButton{nullptr};

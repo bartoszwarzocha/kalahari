@@ -74,13 +74,25 @@ AnnotationFrame::AnnotationFrame(QWidget* editor)
     layout->setContentsMargins(BAR_WIDTH + 8, 6, 8, 8);
     layout->setSpacing(4);
 
+    // Header: the kind, and who the annotation is by on the right
+    auto* header = new QHBoxLayout();
+    header->setSpacing(8);
     QFont kindFont = font();
     kindFont.setPointSizeF(kindFont.pointSizeF() * 0.9);
     kindFont.setBold(true);
     m_kindLabel = new QLabel(this);
     m_kindLabel->setObjectName(QStringLiteral("annotationFrameKind"));
     m_kindLabel->setFont(kindFont);
-    layout->addWidget(m_kindLabel);
+    header->addWidget(m_kindLabel);
+
+    m_authorLabel = new QLabel(this);
+    m_authorLabel->setObjectName(QStringLiteral("annotationFrameAuthor"));
+    m_authorLabel->setFont(kindFont);
+    m_authorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_authorLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    m_authorLabel->hide();
+    header->addWidget(m_authorLabel, 1);
+    layout->addLayout(header);
 
     // Enter starts a new line; Tab goes to the button
     m_textEdit = new QTextEdit(this);
@@ -131,6 +143,12 @@ void AnnotationFrame::setKind(editor::AnnotationKind kind) {
     const QString title = AnnotationCard::kindTitle(kind);
     m_kindLabel->setText(title);
     m_textEdit->setAccessibleName(title);
+}
+
+void AnnotationFrame::setAuthor(const QString& author) {
+    m_author = author.trimmed();
+    m_authorLabel->setVisible(!m_author.isEmpty());
+    updateAuthorLabel();
 }
 
 void AnnotationFrame::setText(const QString& text) {
@@ -244,6 +262,11 @@ void AnnotationFrame::paintEvent(QPaintEvent* event) {
     painter.drawPath(shape);
 }
 
+void AnnotationFrame::resizeEvent(QResizeEvent* event) {
+    QFrame::resizeEvent(event);
+    updateAuthorLabel();
+}
+
 void AnnotationFrame::keyPressEvent(QKeyEvent* event) {
     if (isCancelKey(event)) {
         emit cancelRequested();
@@ -321,6 +344,12 @@ void AnnotationFrame::updateTextHeight() {
                                           heightOf(metrics.lineSpacing() * MAX_LINES)));
 }
 
+void AnnotationFrame::updateAuthorLabel() {
+    m_authorLabel->setText(m_authorLabel->fontMetrics().elidedText(m_author, Qt::ElideRight,
+                                                                   m_authorLabel->width()));
+    m_authorLabel->setToolTip(m_authorLabel->text() != m_author ? m_author : QString());
+}
+
 void AnnotationFrame::updateStyle() {
     if (!m_colors.text.isValid()) {
         return;
@@ -333,6 +362,7 @@ void AnnotationFrame::updateStyle() {
     const QColor disabled = mixedColor(m_colors.background, m_colors.secondary, 0.6);
     setStyleSheet(QStringLiteral("QLabel#annotationFrameKind { color: %1; }"
                                  "QLabel#annotationFrameHint { color: %2; }"
+                                 "QLabel#annotationFrameAuthor { color: %3; }"
                                  "QTextEdit { color: %3; background: transparent;"
                                  " border: 1px solid %4; border-radius: 4px; }"
                                  "QTextEdit:focus { border: 1px solid %1; }"

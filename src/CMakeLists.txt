@@ -37,6 +37,7 @@ set(KALAHARI_CORE_SOURCES
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
+    core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
     core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
@@ -161,12 +162,14 @@ set(KALAHARI_SOURCES
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/main_window.cpp
     gui/menu_builder.cpp
+    gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
     gui/settings/general_pages.cpp
     gui/settings/spelling_page.cpp
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
+    gui/settings/annotations_page.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
@@ -230,6 +233,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h  # ProjectManager with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h # LogPanelSink with Q_OBJECT (OpenSpec #00024)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
@@ -313,11 +317,6 @@ set_target_properties(kalahari PROPERTIES
 target_include_directories(kalahari PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
-)
-
-# Compile definitions
-target_compile_definitions(kalahari PRIVATE
-    KALAHARI_VERSION="${PROJECT_VERSION}"
 )
 
 # Link libraries (Qt6 Hello World - Task #00001)

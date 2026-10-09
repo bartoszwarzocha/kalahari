@@ -21,6 +21,7 @@ set(TEST_SOURCES
     core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
+    core/test_book_project.cpp        # Book project and its .klh file
     core/test_project_manager.cpp
     core/test_logger.cpp
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
@@ -63,6 +64,7 @@ set(TEST_SOURCES
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
+    gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
@@ -72,6 +74,7 @@ set(TEST_SOURCES
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
+    gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -105,6 +108,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
@@ -138,6 +142,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_source_adapter.cpp      # OpenSpec #00043 Phase 12.1: Text source adapters
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel.cpp  # Navigator expansion state tests
+    ${CMAKE_SOURCE_DIR}/src/gui/recent_books_menu.cpp       # File > Recent Books submenu
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
@@ -149,6 +154,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/spelling_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
@@ -163,6 +169,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_frame.cpp  # Annotations: the frame text is written in
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
+    ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
+    ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
@@ -197,12 +212,22 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT

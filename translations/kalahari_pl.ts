@@ -1285,7 +1285,7 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::core::RecentBooksManager</name>
+    <name>kalahari::gui::RecentBooksMenu</name>
     <message>
         <source>Recent Books</source>
         <translation>Ostatnie książki</translation>
@@ -1813,6 +1813,41 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Next</source>
         <translation>Następna</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AnnotationsPage</name>
+    <message>
+        <source>New Annotations</source>
+        <translation>Nowe uwagi</translation>
+    </message>
+    <message>
+        <source>Your name or pen name</source>
+        <translation>Twoje imię lub pseudonim</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>The name shown on new annotations. Without it, they have no author.</source>
+        <translation>Imię widoczne na nowych uwagach. Bez niego uwagi nie mają autora.</translation>
+    </message>
+    <message>
+        <source>Marks in the Text</source>
+        <translation>Znaczniki w tekście</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
+        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
+    </message>
+    <message>
+        <source>Mark Size:</source>
+        <translation>Wielkość znaczników:</translation>
     </message>
 </context>
 <context>
@@ -2789,22 +2824,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Indent First Line:</source>
         <translation>Wcięcie pierwszego wiersza:</translation>
-    </message>
-    <message>
-        <source>Annotations</source>
-        <translation>Uwagi</translation>
-    </message>
-    <message>
-        <source> %</source>
-        <translation> %</translation>
-    </message>
-    <message>
-        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
-        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
-    </message>
-    <message>
-        <source>Mark Size:</source>
-        <translation>Wielkość znaczników:</translation>
     </message>
     <message>
         <source>Typewriter Scrolling</source>
@@ -4074,6 +4093,10 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Uzupełnianie</translation>
     </message>
     <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
+    </message>
+    <message>
         <source>Files</source>
         <translation>Pliki</translation>
     </message>
@@ -4652,8 +4675,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Zamknij</translation>
     </message>
     <message>
-        <source>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</source>
-        <translation>Kalahari Writer&apos;s IDE 0.3.1-alpha (Qt6)</translation>
+        <source>Kalahari Writer&apos;s IDE %1</source>
+        <translation>Kalahari Writer&apos;s IDE %1</translation>
     </message>
     <message>
         <source>Cross-platform Writer&apos;s IDE for Windows, macOS, and Linux</source>

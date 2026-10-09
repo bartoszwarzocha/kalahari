@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One version number** - 2026-10-09. The About window, the program and the command
+  line show the version from the project definition (0.3.0-alpha); before, they showed
+  0.3.1, 0.3.0 and the README 0.3.2.
+
 - **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
   screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
   the current paragraph and the selection. After an edit they get the new text, not the
@@ -275,6 +279,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and
+  writes the project file (`.klh`, format 2): the book type or, in a user project, the kinds
+  chosen from the palette; the kinds taken from other types; a list of books (one for now,
+  more in a series) with their data, settings and the elements of their front, main and
+  back parts; and the Workshop the books share. Each element names its kind with the
+  package that defines it, so it stays in the book when its kind is taken out of the project
+  or its package is not installed. Fields the program does not know are kept. The model also
+  finds, moves and takes out elements. Nothing uses it yet, so the program opens and saves
+  projects as before.
+
+- **Book types: Workshop groups, the parts layer and kinds of other packages** - 2026-10-09.
+  A kind of the Workshop says which group it goes to when the Workshop is grouped (cards go
+  to Libraries, materials to Resources), and a type says whether a new book shows its front,
+  main and back parts (a screenplay does not). A type can also offer a kind of a package it
+  does not use, named with that package (`kalahari.nonfiction:bibliography`), and two
+  packages can offer each other's kinds. Nothing uses these fields yet, so the program works
+  as before.
+
 - **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
   short story collection, non-fiction, screenplay, poetry collection) are data packages in
   `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
@@ -305,19 +327,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
     frame at the selection, or at the cursor's place without one, where the annotation's
     text is written: Enter starts a new line, Ctrl+Enter or Save keeps the text (the frame
-    says so), Esc drops it. The annotation is added with its text when it is kept; a frame
-    left empty adds nothing. Add Annotation (Ctrl+Shift+M) opens a small menu of the three
-    kinds at the cursor.
+    says so), Esc drops it. The frame's header shows the kind and who the annotation is by.
+    The annotation is added with its text when it is kept; a frame left empty adds nothing.
+    Add Annotation (Ctrl+Shift+M) opens a small menu of the three kinds at the cursor.
   - Each annotation not done has a small mark in its kind's color under the end of its
-    fragment, or under its place. The mark's tooltip is the annotation's text, and a click
-    on it opens the annotation's frame, the cursor staying where it was. Mark Size in
-    Settings > Editor > General sets the size of the marks (100% fits the text's font).
-  - The Annotations panel (View > Panels > Annotations), a tab next to Properties, Search
-    and Assistant, lists the annotations of the chapter in front or of the whole book as
-    cards tinted with their kind's color: the kind, the chapter, the date, the text and,
-    for a to-do, whether it is done. A search field, filters by kind, state (open, done,
-    all) and date, and three orders: as in the text, the newest first, or by kind. Its
-    texts keep a contrast of at least 4.5:1 in the light and the dark theme.
+    fragment, or under its place. The mark's tooltip is who made the annotation and its
+    text, and a click on it opens the annotation's frame, the cursor staying where it was.
+    Mark Size in Settings > Annotations sets the size of the marks (100% fits the text's
+    font).
+  - The Annotations panel (View > Panels > Annotations, also a button on the Panels
+    toolbar), by default the tab in front of Properties, Search and Assistant, lists the
+    annotations of the chapter in front or of the whole book as cards tinted with their
+    kind's color: the kind, the chapter, the date, who made it (above the text, as comments
+    in a word processor show it), the text and, for a to-do, whether it is done. The
+    card's tooltip says who made it and when, and the chapter's whole title. A search
+    field, filters by kind, state (open, done, all) and date, and three
+    orders: as in the text, the newest first, or by kind. Its texts keep a contrast of at
+    least 4.5:1 in the light and the dark theme.
   - Everything is at hand from the keyboard. F9 goes to the panel, with the card of the
     annotation at the cursor selected, and back to the text. In the list, Up, Down, Home
     and End select a card and go to its annotation in the text, opening its chapter when
@@ -333,8 +359,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Edit > Next To Do and Previous To Do (Alt+Down, Alt+Up) go to the next or the previous
     to-do not done yet; while the panel lists the whole book, also in the other chapters.
     The status bar says when there is no further one.
-  - New annotations are by the name in the setting `annotations.author`; without it by the
-    book's author, and without one by the computer's user.
+  - New annotations are by the name in Settings > Annotations > Author, empty at first (the
+    field says what goes in it). Without a name they are by no one: no other name is put in
+    its place, and their cards, frame and tooltips show no author.
 - **Annotations: comments, TODOs and notes in the chapter** - 2026-10-08. The chapter file
   keeps the writer's annotations in an `<annotations>` section, and the text marks where
   each of them is: on a fragment or on a place (`docs/kml_format.md`). Editing keeps them
@@ -418,6 +445,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
+  element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
+  brought the Properties panel to the front of its tab group, so the Annotations panel
+  seemed to disappear, for example after the book was closed and opened again. The
+  Navigator now only fills the Properties panel; its context menu item Properties... still
+  brings the panel to the front.
+
+- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
+  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
+  to the end of the File menu. It now finds Close Book by its command; the submenu itself
+  moved from the core to the GUI (the core keeps only the list of books).
 
 - **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
   the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names

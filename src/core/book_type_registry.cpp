@@ -36,6 +36,35 @@ QStringList listedKinds(const BookTypePackage& package, const BookPlace (&order)
     return kinds;
 }
 
+/// Packages whose kinds @p package names in its lists, "primary" and "start", each with the
+/// first field that names one of its kinds
+QList<std::pair<QString, QString>> namedPackages(const BookTypePackage& package) {
+    QList<std::pair<QString, QString>> named;
+    const auto add = [&named, &package](const QString& field, const QString& kindName) {
+        const std::optional<KindReference> reference = KindReference::parse(kindName);
+        if (!reference || reference->packageId.isEmpty() || reference->packageId == package.id) {
+            return;
+        }
+        const bool known =
+            std::any_of(named.cbegin(), named.cend(), [&reference](const auto& entry) {
+                return entry.second == reference->packageId;
+            });
+        if (!known) {
+            named.append({field, reference->packageId});
+        }
+    };
+    for (const BookPlace place : ALL_PLACES) {
+        for (const QString& kindName : package.kindsIn(place)) {
+            add(bookPlaceName(place), kindName);
+        }
+    }
+    add(QStringLiteral("primary"), package.primaryKind);
+    for (const QString& kindName : package.startKinds) {
+        add(QStringLiteral("start"), kindName);
+    }
+    return named;
+}
+
 /// Styles of @p lineage (most specific package first): the most general first, a style of a
 /// more specific package replacing one of its id where it stands
 template <typename Style>
@@ -59,6 +88,10 @@ QList<Style> mergeStyles(const QList<const BookTypePackage*>& lineage,
 }
 
 }  // namespace
+
+QString KindRef::reference() const {
+    return package && kind ? KindReference{package->id, kind->id}.toString() : QString();
+}
 
 // =============================================================================
 // Loading
@@ -110,6 +143,7 @@ void BookTypeRegistry::load(const QStringList& directories) {
     for (const auto& package : m_packages) {
         validate(*package, states);
     }
+    dropDependents(states);
     m_packages.erase(std::remove_if(m_packages.begin(), m_packages.end(),
                                     [&states](const std::unique_ptr<BookTypePackage>& package) {
                                         return states.value(package->id) != CheckState::Valid;
@@ -162,10 +196,54 @@ bool BookTypeRegistry::validate(const BookTypePackage& package,
     return problems.isEmpty();
 }
 
+void BookTypeRegistry::dropDependents(QHash<QString, CheckState>& states) {
+    // A package that names kinds of another one is checked without waiting for it, so that
+    // two packages can name each other's kinds. Dropping a package can take down others, so
+    // this goes on until nothing changes.
+    for (bool dropped = true; dropped;) {
+        dropped = false;
+        for (const auto& package : m_packages) {
+            if (states.value(package->id) != CheckState::Valid) {
+                continue;
+            }
+            QStringList problems;
+            for (const QString& usedId : package->uses) {
+                if (states.value(usedId) != CheckState::Valid) {
+                    problems << QStringLiteral("uses: package '%1' has problems").arg(usedId);
+                }
+            }
+            for (const auto& [field, packageId] : namedPackages(*package)) {
+                if (states.value(packageId) != CheckState::Valid) {
+                    problems
+                        << QStringLiteral("%1: package '%2' has problems").arg(field, packageId);
+                }
+            }
+            if (!problems.isEmpty()) {
+                for (const QString& message : problems) {
+                    m_problems.append({package->directory, message});
+                }
+                states.insert(package->id, CheckState::Invalid);
+                dropped = true;
+            }
+        }
+    }
+}
+
 QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
     QStringList problems;
     const auto add = [&problems](const QString& field, const QString& message) {
         problems << field + QStringLiteral(": ") + message;
+    };
+    // Why a named kind was not found: no such kind, or no such package
+    const auto notFound = [this](const QString& kindName) {
+        const std::optional<KindReference> reference = KindReference::parse(kindName);
+        if (reference && !reference->packageId.isEmpty() &&
+            !m_packagesById.contains(reference->packageId)) {
+            return QStringLiteral("kind '%1' is in package '%2', which is not installed or could "
+                                  "not be loaded")
+                .arg(kindName, reference->packageId);
+        }
+        return QStringLiteral("unknown kind '%1'").arg(kindName);
     };
 
     // Groups that the package's own kinds can be inside
@@ -190,12 +268,20 @@ QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
     // Lists of the places
     for (const BookPlace place : ALL_PLACES) {
         const QString field = bookPlaceName(place);
+        QList<const ElementKind*> listed;
         for (const QString& kindId : package.kindsIn(place)) {
             const KindRef entry = findKind(package, kindId);
             if (!entry) {
-                add(field, QStringLiteral("unknown kind '%1'").arg(kindId));
+                add(field, notFound(kindId));
                 continue;
             }
+            // "chapter" and "kalahari.base:chapter" can name one kind
+            if (listed.contains(entry.kind)) {
+                add(field,
+                    QStringLiteral("'%1' is a kind that is already in the list").arg(kindId));
+                continue;
+            }
+            listed << entry.kind;
             if (!entry.kind->allows(place)) {
                 add(field, QStringLiteral("kind '%1' cannot be here; its places are: %2")
                                .arg(kindId, entry.kind->places.join(QStringLiteral(", "))));
@@ -210,7 +296,8 @@ QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
                                    .arg(kindId, groupId));
                 }
             }
-            if (entry.kind->form == ElementForm::Group && kindsInside(package, kindId).isEmpty()) {
+            if (entry.kind->form == ElementForm::Group &&
+                kindsInside(package, entry.kind->id).isEmpty()) {
                 add(field, QStringLiteral("no kind of this package can be inside group '%1'")
                                .arg(kindId));
             }
@@ -221,12 +308,11 @@ QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
     if (!package.primaryKind.isEmpty()) {
         const KindRef primary = findKind(package, package.primaryKind);
         if (!primary) {
-            add(QStringLiteral("primary"),
-                QStringLiteral("unknown kind '%1'").arg(package.primaryKind));
+            add(QStringLiteral("primary"), notFound(package.primaryKind));
         } else if (primary.kind->form != ElementForm::Text) {
             add(QStringLiteral("primary"),
                 QStringLiteral("'%1' is not a text kind").arg(package.primaryKind));
-        } else if (!package.mainKinds.contains(package.primaryKind)) {
+        } else if (!namesKind(package, package.mainKinds, primary.kind)) {
             add(QStringLiteral("primary"),
                 QStringLiteral("'%1' is not in the list of the main part")
                     .arg(package.primaryKind));
@@ -235,12 +321,12 @@ QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
 
     // Elements a new book starts with
     const QStringList listed = listedKinds(package, ALL_PLACES);
-    QHash<QString, int> counts;
+    QHash<const ElementKind*, int> counts;
     for (const QString& kindId : package.startKinds) {
         const KindRef start = findKind(package, kindId);
         if (!start) {
-            add(QStringLiteral("start"), QStringLiteral("unknown kind '%1'").arg(kindId));
-        } else if (!listed.contains(kindId)) {
+            add(QStringLiteral("start"), notFound(kindId));
+        } else if (!namesKind(package, listed, start.kind)) {
             add(QStringLiteral("start"),
                 QStringLiteral("kind '%1' is in none of the lists front, main, back, workshop")
                     .arg(kindId));
@@ -248,7 +334,7 @@ QStringList BookTypeRegistry::check(const BookTypePackage& package) const {
             add(QStringLiteral("start"),
                 QStringLiteral("'%1' is a group; a group appears with its first element")
                     .arg(kindId));
-        } else if (start.kind->limit > 0 && ++counts[kindId] == start.kind->limit + 1) {
+        } else if (start.kind->limit > 0 && ++counts[start.kind] == start.kind->limit + 1) {
             add(QStringLiteral("start"),
                 QStringLiteral("more elements of kind '%1' than its limit of %2")
                     .arg(kindId)
@@ -321,13 +407,32 @@ QList<const BookTypePackage*> BookTypeRegistry::lineage(const BookTypePackage& p
     return order;
 }
 
-KindRef BookTypeRegistry::findKind(const BookTypePackage& package, const QString& kindId) const {
-    for (const BookTypePackage* candidate : lineage(package)) {
-        if (const ElementKind* kind = candidate->ownKind(kindId)) {
+KindRef BookTypeRegistry::findKind(const BookTypePackage& package,
+                                   const QString& kindName) const {
+    const std::optional<KindReference> reference = KindReference::parse(kindName);
+    if (!reference) {
+        return {};
+    }
+    const BookTypePackage* owner = &package;
+    if (!reference->packageId.isEmpty() && reference->packageId != package.id) {
+        owner = m_packagesById.value(reference->packageId);
+        if (!owner) {
+            return {};
+        }
+    }
+    for (const BookTypePackage* candidate : lineage(*owner)) {
+        if (const ElementKind* kind = candidate->ownKind(reference->kindId)) {
             return {candidate, kind};
         }
     }
     return {};
+}
+
+bool BookTypeRegistry::namesKind(const BookTypePackage& package, const QStringList& kindNames,
+                                 const ElementKind* kind) const {
+    return std::any_of(kindNames.cbegin(), kindNames.cend(), [&](const QString& kindName) {
+        return findKind(package, kindName).kind == kind;
+    });
 }
 
 QList<KindRef> BookTypeRegistry::kindsInside(const BookTypePackage& package,
@@ -399,8 +504,9 @@ QList<StartElement> BookTypeRegistry::startElements(const QString& packageId) co
         StartElement element;
         element.kind = findKind(*found, kindId);
         const auto* place = std::find_if(std::begin(ALL_PLACES), std::end(ALL_PLACES),
-                                         [found, &kindId](BookPlace candidate) {
-                                             return found->kindsIn(candidate).contains(kindId);
+                                         [this, found, &element](BookPlace candidate) {
+                                             return namesKind(*found, found->kindsIn(candidate),
+                                                              element.kind.kind);
                                          });
         if (place != std::end(ALL_PLACES)) {
             element.place = *place;
@@ -413,19 +519,20 @@ QList<StartElement> BookTypeRegistry::startElements(const QString& packageId) co
 QList<KindRef> BookTypeRegistry::allKinds() const {
     QList<KindRef> kinds;
     for (const auto& package : m_packages) {
-        QStringList order;
-        for (const QString& kindId : listedKinds(*package, ALL_PLACES)) {
-            if (package->ownKind(kindId)) {
-                order << kindId;
+        QList<const ElementKind*> order;
+        for (const QString& kindName : listedKinds(*package, ALL_PLACES)) {
+            const KindRef listed = findKind(*package, kindName);
+            if (listed.package == package.get() && !order.contains(listed.kind)) {
+                order << listed.kind;
             }
         }
         for (const ElementKind& kind : package->kinds) {
-            if (!order.contains(kind.id)) {
-                order << kind.id;
+            if (!order.contains(&kind)) {
+                order << &kind;
             }
         }
-        for (const QString& kindId : order) {
-            kinds.append({package.get(), package->ownKind(kindId)});
+        for (const ElementKind* kind : order) {
+            kinds.append({package.get(), kind});
         }
     }
     return kinds;

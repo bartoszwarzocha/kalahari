@@ -341,11 +341,15 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 bool BookEditor::event(QEvent* event)
 {
-    // The tooltip of an annotation's mark: the annotation's text, as it is written
+    // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
+    // as it is written
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
-        QString text = m_renderPipeline->annotationMarkTextAt(QPointF(help->pos()));
-        if (text.trimmed().isEmpty()) {
+        const std::optional<AnnotationMark> mark =
+            m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
+        QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
+        const QString author = mark ? mark->author.trimmed() : QString();
+        if (text.isEmpty() && author.isEmpty()) {
             QToolTip::hideText();
             event->ignore();
             return true;
@@ -353,9 +357,16 @@ bool BookEditor::event(QEvent* event)
         if (text.size() > MARK_TOOLTIP_LENGTH) {
             text = text.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
         }
+        QStringList lines;
+        if (!author.isEmpty()) {
+            lines << QStringLiteral("<b>%1</b>").arg(author.toHtmlEscaped());
+        }
+        if (!text.isEmpty()) {
+            lines << text.toHtmlEscaped();
+        }
         QToolTip::showText(help->globalPos(),
                            QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                               .arg(text.toHtmlEscaped()),
+                               .arg(lines.join(QStringLiteral("<br>"))),
                            this);
         return true;
     }

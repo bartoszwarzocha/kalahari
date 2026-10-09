@@ -140,6 +140,28 @@ QJsonObject testType() {
     })");
 }
 
+/// A type "test.other" with an appendix and a style of its own
+QJsonObject otherType() {
+    return jsonOf(R"({
+      "format": 1, "id": "test.other", "version": "1.0", "role": "type",
+      "name": { "en": "Other type" },
+      "uses": ["test.base"],
+      "kinds": {
+        "appendix": { "form": "text", "places": ["back"],
+                      "name": { "en": "Appendix" }, "plural": { "en": "Appendices" } }
+      },
+      "main": ["chapter"], "back": ["appendix"], "primary": "chapter", "styles": "styles.json"
+    })");
+}
+
+QJsonObject otherTypeStyles() {
+    return jsonOf(R"({
+      "paragraph_styles": [
+        { "id": "appendix_title", "name": { "en": "Appendix title" }, "base_style": "heading" }
+      ]
+    })");
+}
+
 /// Set the value at a path such as "kinds.prologue.places"; an undefined value removes it
 void setAt(QJsonObject& object, const QString& path, const QJsonValue& value) {
     const qsizetype dot = path.indexOf(QLatin1Char('.'));
@@ -180,6 +202,12 @@ public:
         write(QStringLiteral("test.base"), QStringLiteral("booktype.json"), testBase());
         write(QStringLiteral("test.base"), QStringLiteral("styles.json"), testBaseStyles());
         write(QStringLiteral("test.type"), QStringLiteral("booktype.json"), type);
+    }
+
+    /// The other test type with its styles
+    void writeOtherType(const QJsonObject& other = otherType()) {
+        write(QStringLiteral("test.other"), QStringLiteral("booktype.json"), other);
+        write(QStringLiteral("test.other"), QStringLiteral("styles.json"), otherTypeStyles());
     }
 
 private:
@@ -397,6 +425,44 @@ TEST_CASE("Built-in book types: the palette offers every kind of every package",
     // A package's kinds in the order of its lists
     CHECK(qualified.indexOf(QStringLiteral("kalahari.base/title_page")) <
           qualified.indexOf(QStringLiteral("kalahari.base/chapter")));
+}
+
+TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
+          "[core][booktypes]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+
+    // Kinds of the Workshop, each with the group it goes to when the Workshop is grouped
+    const auto groups = [&registry](const char* type) {
+        QStringList kinds;
+        for (const KindRef& ref :
+             registry.kindsIn(QString::fromLatin1(type), BookPlace::Workshop)) {
+            const QString group = workshopGroupName(ref.kind->workshopGroup);
+            kinds << (group.isEmpty() ? ref.kind->id : ref.kind->id + QLatin1Char('/') + group);
+        }
+        return joined(kinds);
+    };
+    CHECK(groups("kalahari.novel") ==
+          "work_note, mindmap, timeline, character/libraries, location/libraries, item/libraries, "
+          "material/resources");
+    CHECK(groups("kalahari.nonfiction") ==
+          "source/libraries, work_note, timeline, mindmap, material/resources");
+    CHECK(groups("kalahari.screenplay") ==
+          "logline, synopsis, treatment, step_outline, character/libraries, location/libraries, "
+          "work_note, material/resources");
+    CHECK(workshopGroupFromName(QStringLiteral("libraries")) == WorkshopGroup::Libraries);
+    CHECK_FALSE(workshopGroupFromName(QStringLiteral("archive")));
+    CHECK(workshopGroupName(WorkshopGroup::None).isEmpty());
+
+    // A screenplay starts without the front, main and back parts; the other types with them
+    QStringList withParts;
+    for (const BookTypePackage* type : registry.bookTypes()) {
+        if (type->partsLayer) {
+            withParts << type->id;
+        }
+    }
+    CHECK(joined(withParts) ==
+          "kalahari.nonfiction, kalahari.novel, kalahari.poetry, kalahari.short_stories");
 }
 
 TEST_CASE("Built-in book types: default titles", "[core][booktypes]") {
@@ -658,6 +724,84 @@ TEST_CASE("Book type packages: of two used packages, the later one in \"uses\" c
     CHECK(chapter.package->id == QStringLiteral("test.extra"));
 }
 
+TEST_CASE("Book type packages: a kind named with its package", "[core][booktypes]") {
+    // Package and kind, "-" for text that is not a kind name
+    const auto parsed = [](const char* text) {
+        const std::optional<KindReference> reference =
+            KindReference::parse(QString::fromLatin1(text));
+        return reference ? (reference->packageId + QLatin1Char('|') + reference->kindId)
+                               .toStdString()
+                         : std::string("-");
+    };
+    CHECK(parsed("chapter") == "|chapter");
+    CHECK(parsed("kalahari.nonfiction:bibliography") == "kalahari.nonfiction|bibliography");
+    for (const char* text : {"", ":", "chapter:", ":chapter", "nonfiction:bibliography",
+                             "Kalahari.nonfiction:bibliography", "kalahari.nonfiction:Bibliography",
+                             "kalahari.nonfiction:bibliography:index"}) {
+        INFO(text);
+        CHECK(parsed(text) == "-");
+    }
+    CHECK(KindReference{QStringLiteral("kalahari.base"), QStringLiteral("chapter")}.toString() ==
+          QStringLiteral("kalahari.base:chapter"));
+    CHECK(KindReference{QString(), QStringLiteral("chapter")}.toString() ==
+          QStringLiteral("chapter"));
+    CHECK(KindRef{}.reference().isEmpty());
+}
+
+TEST_CASE("Book type packages: a type takes kinds of a package it does not use",
+          "[core][booktypes]") {
+    PackageFolder folder;
+    QJsonObject type = testType();
+    type.insert(QStringLiteral("back"), QJsonArray{QStringLiteral("test.other:appendix")});
+    type.insert(QStringLiteral("start"),
+                QJsonArray{QStringLiteral("title_page"), QStringLiteral("test.base:chapter"),
+                           QStringLiteral("test.other:appendix")});
+    folder.writeTestPackages(type);
+    // Two packages can take each other's kinds
+    QJsonObject other = otherType();
+    other.insert(QStringLiteral("main"),
+                 QJsonArray{QStringLiteral("chapter"), QStringLiteral("test.type:prologue")});
+    folder.writeOtherType(other);
+
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    REQUIRE(registry.problems().isEmpty());
+
+    const QList<KindRef> back = registry.kindsIn(QStringLiteral("test.type"), BookPlace::Back);
+    REQUIRE(back.size() == 1);
+    CHECK(back.first().reference() == QStringLiteral("test.other:appendix"));
+    CHECK(registry.findKind(QStringLiteral("test.type"), QStringLiteral("test.other:appendix"))
+              .reference() == QStringLiteral("test.other:appendix"));
+    CHECK(kindIds(registry.kindsIn(QStringLiteral("test.other"), BookPlace::Main)) ==
+          "chapter, prologue");
+    // A kind as the other package sees it
+    CHECK(registry.findKind(QStringLiteral("test.type"), QStringLiteral("test.other:chapter"))
+              .reference() == QStringLiteral("test.base:chapter"));
+    // The kind alone: neither the other kinds of its package nor its styles
+    CHECK_FALSE(registry.findKind(QStringLiteral("test.type"), QStringLiteral("appendix")));
+    CHECK(styleIds(registry.paragraphStyles(QStringLiteral("test.type"))) == "normal, heading");
+    CHECK(styleIds(registry.paragraphStyles(QStringLiteral("test.other"))) ==
+          "normal, heading, appendix_title");
+
+    // Elements to start with, named either way, in the place of the list that has them
+    QStringList start;
+    for (const StartElement& element : registry.startElements(QStringLiteral("test.type"))) {
+        start << element.kind.reference() + QLatin1Char('/') + bookPlaceName(element.place);
+    }
+    CHECK(joined(start) ==
+          "test.base:title_page/front, test.base:chapter/main, test.other:appendix/back");
+
+    // The palette has each kind once, with the package that defines it
+    QStringList palette;
+    for (const KindRef& ref : registry.allKinds()) {
+        palette << ref.reference();
+    }
+    CHECK(joined(palette) ==
+          "test.base:title_page, test.base:chapter, test.base:part, test.base:note, "
+          "test.base:mindmap, test.other:appendix, test.type:prologue");
+}
+
 TEST_CASE("Book type packages: a template file of the package", "[core][booktypes]") {
     PackageFolder folder;
     QJsonObject type = testType();
@@ -762,6 +906,30 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          "kinds.prologue.generated: only a window kind can be made by a tool"},
         {"settings of a text kind", set("kinds.prologue.settings", QJsonObject()),
          "kinds.prologue.settings: only a window kind has settings"},
+        {"an unknown group of the Workshop",
+         set("kinds.notebook",
+             jsonValue(R"({ "form": "text", "places": ["workshop"], "workshopGroup": "archive",
+                       "name": { "en": "Notebook" }, "plural": { "en": "Notebooks" } })")),
+         "kinds.notebook.workshopGroup: must be \"libraries\" or \"resources\""},
+        {"a group of the Workshop for a kind outside it",
+         set("kinds.prologue.workshopGroup", "libraries"),
+         "kinds.prologue.workshopGroup: only a kind of the Workshop goes to a group of the "
+         "Workshop"},
+        {"a parts layer that is not true or false", set("partsLayer", "yes"),
+         "partsLayer: must be true or false"},
+        {"a kind name that is not one", set("main", list({"prologue", "chapter", "test.base:"})),
+         "main: 'test.base:' is not a kind id"},
+        {"a kind of a package that is not there", set("back", list({"test.missing:appendix"})),
+         "back: kind 'test.missing:appendix' is in package 'test.missing', which is not "
+         "installed"},
+        {"an unknown kind of another package", set("back", list({"test.base:appendix"})),
+         "back: unknown kind 'test.base:appendix'"},
+        {"one kind named in two ways",
+         set("main", list({"prologue", "chapter", "test.base:chapter"})),
+         "main: 'test.base:chapter' is a kind that is already in the list"},
+        {"a main text kind of another package outside the main part",
+         set("primary", "test.base:note"),
+         "primary: 'test.base:note' is not in the list of the main part"},
         {"an unknown kind in a list", set("main", list({"prologue", "chapter", "epilogue"})),
          "main: unknown kind 'epilogue'"},
         {"a kind listed twice", set("main", list({"chapter", "chapter"})),
@@ -931,6 +1099,60 @@ TEST_CASE("Book type packages: a package with a problem takes down the packages 
         CHECK(hasProblem(registry, QStringLiteral("test.type"),
                          QStringLiteral("uses: package 'test.base' has problems")));
     }
+}
+
+TEST_CASE("Book type packages: a package with a problem takes down the packages that take its "
+          "kinds",
+          "[core][booktypes]") {
+    PackageFolder folder;
+    QJsonObject type = testType();
+    type.insert(QStringLiteral("back"), QJsonArray{QStringLiteral("test.other:appendix")});
+    folder.writeTestPackages(type);
+    QJsonObject other = otherType();
+    other.insert(QStringLiteral("primary"), QStringLiteral("appendix"));
+    folder.writeOtherType(other);
+    // And the packages that use a package taken down
+    folder.write(QStringLiteral("test.third"), QStringLiteral("booktype.json"), jsonOf(R"({
+      "format": 1, "id": "test.third", "version": "1.0", "role": "type",
+      "name": { "en": "Third type" }, "uses": ["test.type"],
+      "main": ["chapter"], "primary": "chapter"
+    })"));
+
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    CHECK(registry.packages().size() == 1);
+    CHECK(registry.package(QStringLiteral("test.base")) != nullptr);
+    CHECK(hasProblem(registry, QStringLiteral("test.other"),
+                     QStringLiteral("primary: 'appendix' is not in the list of the main part")));
+    CHECK(hasProblem(registry, QStringLiteral("test.type"),
+                     QStringLiteral("back: package 'test.other' has problems")));
+    CHECK(hasProblem(registry, QStringLiteral("test.third"),
+                     QStringLiteral("uses: package 'test.type' has problems")));
+}
+
+TEST_CASE("Book type packages: only a book type says whether a new book shows its parts",
+          "[core][booktypes]") {
+    PackageFolder folder;
+    folder.writeTestPackages();
+    QJsonObject base = testBase();
+    base.insert(QStringLiteral("partsLayer"), false);
+    folder.write(QStringLiteral("test.base"), QStringLiteral("booktype.json"), base);
+
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    CHECK(registry.packages().isEmpty());
+    CHECK(hasProblem(registry, QStringLiteral("test.base"),
+                     QStringLiteral("partsLayer: only a book type says whether a new book shows "
+                                    "its parts")));
+
+    // A type without the field shows them
+    PackageFolder valid;
+    valid.writeTestPackages();
+    registry.load({valid.path()});
+    REQUIRE(registry.package(QStringLiteral("test.type")) != nullptr);
+    CHECK(registry.package(QStringLiteral("test.type"))->partsLayer);
 }
 
 TEST_CASE("Book type packages: packages that use each other are not loaded",

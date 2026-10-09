@@ -352,7 +352,7 @@ TEST_CASE("Annotations: a mark at the end of each open one, in the paragraph it 
     // from "three" to "four"
     auto editor = editorWith(kmlWith(
         record(QStringLiteral("s"), QStringLiteral("note")) +
-            record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")) +
+            QStringLiteral("<annotation id=\"t1\" kind=\"todo\" author=\"Anna\">Fix</annotation>") +
             record(QStringLiteral("a")) + record(QStringLiteral("n1"), QStringLiteral("note")) +
             record(QStringLiteral("n2"), QStringLiteral("note")) +
             QStringLiteral("<annotation id=\"t2\" kind=\"todo\" done=\"true\">Done</annotation>"
@@ -375,12 +375,12 @@ TEST_CASE("Annotations: a mark at the end of each open one, in the paragraph it 
     CHECK(marksOf(*editor, 3).isEmpty());
     CHECK(annotationMarksIn(QTextBlock()).empty());
 
-    // A mark tells whose it is
+    // A mark tells whose it is, with the annotation's text and author
     const std::vector<AnnotationMark> marks =
         annotationMarksIn(editor->textDocument()->firstBlock());
     REQUIRE(marks.size() == 2);
     CHECK(marks[1] == AnnotationMark{7, AnnotationKind::Todo, QStringLiteral("t1"),
-                                     QStringLiteral("Fix")});
+                                     QStringLiteral("Fix"), QStringLiteral("Anna")});
 
     SECTION("the mark follows the end of its fragment") {
         editor->setCursorPosition({0, 5});

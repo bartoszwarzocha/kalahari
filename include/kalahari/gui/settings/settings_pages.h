@@ -185,6 +185,13 @@ public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
 };
 
+/// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text
+class AnnotationsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit AnnotationsPage(QWidget* parent = nullptr);
+};
+
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)
 class AdvancedGeneralPage : public SettingsPage {
     Q_OBJECT

@@ -25,6 +25,7 @@
 #include <QTextLayout>
 #include <QToolTip>
 #include <QWheelEvent>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <functional>
@@ -122,7 +123,8 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
     // The fragments of comments, to-dos and notes are neither tinted nor underlined: each
     // one not done has a small mark in its kind's color under its end, or under its place
     auto annotated = editorWith(QStringLiteral(
-        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"A\">C</annotation>"
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"Anna Nowak\">C"
+        "</annotation>"
         "<annotation id=\"t1\" kind=\"todo\">Fix &lt;it&gt;</annotation>"
         "<annotation id=\"t2\" kind=\"todo\" done=\"true\">D</annotation>"
         "<annotation id=\"n1\" kind=\"note\">N</annotation>"
@@ -219,6 +221,22 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
     const QRectF start = annotated->placeRect(2, true);
     CHECK(annotated->annotationMarkAt(start.center()).isEmpty());
 
+    // At the size of 100% a mark is almost half as high as its line: a third of it was too
+    // small to notice in the user's test
+    int markTop = todo.bottom();
+    int markBottom = todo.top();
+    for (int y = todo.top(); y <= todo.bottom(); ++y) {
+        for (int x = todo.left(); x <= todo.right(); ++x) {
+            if (marked.pixel(x, y) != text.pixel(x, y)) {
+                markTop = std::min(markTop, y);
+                markBottom = std::max(markBottom, y);
+            }
+        }
+    }
+    const double lineHeight = annotated->placeRect(29, true).height();
+    INFO("mark height " << markBottom - markTop + 1 << " px, line height " << lineHeight);
+    CHECK(markBottom - markTop + 1 > 0.37 * lineHeight);
+
     SECTION("a click on a mark opens its annotation; the cursor stays") {
         annotated->setCursorPosition({0, 2});
         QStringList clicked;
@@ -247,12 +265,19 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
         CHECK(annotated->cursor().shape() == Qt::IBeamCursor);
     }
 
-    SECTION("the tooltip of a mark is its annotation's text") {
-        QHelpEvent help(QEvent::ToolTip, todoMark.toPoint(),
-                        annotated->mapToGlobal(todoMark.toPoint()));
-        QCoreApplication::sendEvent(annotated.get(), &help);
-        CHECK(QToolTip::text().contains(QStringLiteral("Fix &lt;it&gt;")));
-        QToolTip::hideText();
+    SECTION("the tooltip of a mark is who made its annotation, then the annotation's text") {
+        const auto toolTipAt = [&annotated](const QPointF& point) {
+            QHelpEvent help(QEvent::ToolTip, point.toPoint(),
+                            annotated->mapToGlobal(point.toPoint()));
+            QCoreApplication::sendEvent(annotated.get(), &help);
+            const QString tip = QToolTip::text();
+            QToolTip::hideText();
+            return tip;
+        };
+        CHECK(toolTipAt(middleOf(comment)).contains(QStringLiteral("<b>Anna Nowak</b><br>C")));
+        const QString todoTip = toolTipAt(todoMark);  // by no one known
+        CHECK(todoTip.contains(QStringLiteral("Fix &lt;it&gt;")));
+        CHECK_FALSE(todoTip.contains(QStringLiteral("<b>")));
     }
 
     SECTION("the size of the marks follows the appearance") {

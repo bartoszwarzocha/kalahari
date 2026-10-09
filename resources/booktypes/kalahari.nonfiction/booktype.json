@@ -53,6 +53,7 @@
     },
     "source": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "common.filePresent",
+      "workshopGroup": "libraries",
       "name": { "pl": "Źródło", "en": "Source" },
       "plural": { "pl": "Źródła", "en": "Sources" },
       "title": { "pl": "Źródło %n", "en": "Source %n" }
