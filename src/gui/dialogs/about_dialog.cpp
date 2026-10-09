@@ -2,6 +2,7 @@
 /// @brief Implementation of AboutDialog
 
 #include "kalahari/gui/dialogs/about_dialog.h"
+#include "kalahari/version.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTabWidget>
@@ -63,7 +64,8 @@ QWidget* AboutDialog::createAboutTab() {
     QVBoxLayout* layout = new QVBoxLayout(widget);
 
     // Application name and version
-    QLabel* appName = new QLabel(tr("Kalahari Writer's IDE 0.3.1-alpha (Qt6)"), widget);
+    QLabel* appName = new QLabel(
+        tr("Kalahari Writer's IDE %1").arg(QString::fromLatin1(kalahari::VERSION_STRING)), widget);
     QFont nameFont = appName->font();
     nameFont.setPointSize(14);
     nameFont.setBold(true);

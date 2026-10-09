@@ -233,7 +233,13 @@ else()
     endif()
 endif()
 
-# Project version accessible in code
+# Project version accessible in code; the suffix marks the release stage (empty for a final release)
+set(KALAHARI_VERSION_SUFFIX "alpha")
+if(KALAHARI_VERSION_SUFFIX)
+    set(KALAHARI_VERSION_STRING "${PROJECT_VERSION}-${KALAHARI_VERSION_SUFFIX}")
+else()
+    set(KALAHARI_VERSION_STRING "${PROJECT_VERSION}")
+endif()
 configure_file(
     ${CMAKE_SOURCE_DIR}/include/kalahari/version.h.in
     ${CMAKE_BINARY_DIR}/include/kalahari/version.h
@@ -303,7 +309,7 @@ add_subdirectory(tests)
 # Print configuration summary
 message(STATUS "")
 message(STATUS "========================================")
-message(STATUS "Kalahari ${PROJECT_VERSION} - Build Configuration")
+message(STATUS "Kalahari ${KALAHARI_VERSION_STRING} - Build Configuration")
 message(STATUS "========================================")
 message(STATUS "Build type:       ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ compiler:     ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")

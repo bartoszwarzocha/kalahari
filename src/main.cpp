@@ -17,6 +17,7 @@
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/art_provider.h"
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("Kalahari");
     app.setOrganizationName("Bartosz W. Warzocha & Kalahari Team");
-    app.setApplicationVersion("0.3.0-alpha");
+    app.setApplicationVersion(QString::fromLatin1(kalahari::VERSION_STRING));
 
     // Initialize core systems
     auto& logger = kalahari::core::Logger::getInstance();
