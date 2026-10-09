@@ -191,22 +191,22 @@ void AnnotationsCoordinator::connectCommands() {
 }
 
 QString AnnotationsCoordinator::author() {
-    QString name = QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
-                                              "annotations.author", std::string()))
-                       .trimmed();
-    if (!name.isEmpty()) {
-        return name;
-    }
+    const std::string setting = core::SettingsManager::getInstance().get<std::string>(
+        "annotations.author", std::string());
+    const QString name = QString::fromStdString(setting).trimmed();
+    return name.isEmpty() ? defaultAuthor() : name;
+}
 
+QString AnnotationsCoordinator::defaultAuthor() {
     auto& projects = core::ProjectManager::getInstance();
     if (const core::Document* document = projects.isProjectOpen() ? projects.getDocument() : nullptr) {
-        name = QString::fromStdString(document->getAuthor()).trimmed();
+        const QString name = QString::fromStdString(document->getAuthor()).trimmed();
         if (!name.isEmpty()) {
             return name;
         }
     }
 
-    name = qEnvironmentVariable("USERNAME");  // Windows
+    QString name = qEnvironmentVariable("USERNAME");  // Windows
     if (name.isEmpty()) {
         name = qEnvironmentVariable("USER");
     }

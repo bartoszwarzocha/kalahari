@@ -107,6 +107,8 @@ void SettingsDialog::createNavigationTree() {
                       "- Character name completion\n"
                       "- Location name completion"));
 
+    addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
+
     QTreeWidgetItem* files = category(tr("Files"));
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"

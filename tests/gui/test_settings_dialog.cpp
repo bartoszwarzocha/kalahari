@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
@@ -16,6 +17,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSpinBox>
@@ -200,6 +202,48 @@ TEST_CASE("Settings dialog: OK writes the changes and closes, Apply keeps it ope
     CHECK(dialog.result() == QDialog::Accepted);
     CHECK(applied == (QStringList{QStringLiteral("ui.language"), QStringLiteral("ui.language")}));
     CHECK(settings.getLanguage() == "en");
+}
+
+TEST_CASE("Settings dialog: the Annotations page has the author and the size of the marks",
+          "[gui][settings]") {
+    // The user's test: the size of the marks was lost in Editor > General. The annotations
+    // have a page of their own, with the author of new ones as well.
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<std::string>("annotations.author", "");
+    settings.set<int>("editor.annotationMarkSize", 100);
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Annotations"));
+    auto* author = dialog.findChild<QLineEdit*>(QStringLiteral("annotationsAuthor"));
+    auto* markSize = dialog.findChild<QSpinBox*>(QStringLiteral("annotationsMarkSize"));
+    REQUIRE(author != nullptr);
+    REQUIRE(markSize != nullptr);
+    CHECK(author->text().isEmpty());
+    // An empty field shows whom it stands for
+    CHECK(author->placeholderText() == AnnotationsCoordinator::defaultAuthor());
+    CHECK(markSize->value() == 100);
+    CHECK_FALSE(dialog.hasChanges());
+
+    QStringList applied;
+    QObject::connect(&dialog, &SettingsDialog::settingsApplied,
+                     [&applied](const QStringList& keys) { applied = keys; });
+    author->setText(QStringLiteral("Anna Nowak"));
+    markSize->setValue(150);
+    CHECK(dialog.hasChanges());
+    applyButton(dialog)->click();
+    CHECK(applied.contains(QStringLiteral("annotations.author")));
+    CHECK(applied.contains(QStringLiteral("editor.annotationMarkSize")));
+    CHECK(settings.get<std::string>("annotations.author") == "Anna Nowak");
+    CHECK(settings.get<int>("editor.annotationMarkSize") == 150);
+    CHECK(AnnotationsCoordinator::author() == QStringLiteral("Anna Nowak"));
+
+    // The size of the marks is no longer in Editor > General
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("General"));
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    for (const QSpinBox* spin : stack->currentWidget()->findChildren<QSpinBox*>()) {
+        CHECK(spin->suffix() != QStringLiteral(" %"));
+    }
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {

@@ -33,10 +33,10 @@ constexpr double SHEET_SHADOW_BLUR = 8.0;
 constexpr int SHEET_SHADOW_PASSES = 4;
 
 /// The marks of the annotations: a small triangle, its tip up, just under the line's
-/// baseline. Its height as a share of the line's ascent, its width to its height, the
-/// gap under the baseline as a share of the line's descent, and the room between marks
-/// on one place as a share of their width.
-constexpr double MARK_HEIGHT_SHARE = 0.36;
+/// baseline. Its height as a share of the line's ascent (at the mark size of 100%), its
+/// width to its height, the gap under the baseline as a share of the line's descent, and
+/// the room between marks on one place as a share of their width.
+constexpr double MARK_HEIGHT_SHARE = 0.54;
 constexpr double MARK_WIDTH_RATIO = 1.3;
 constexpr double MARK_GAP_SHARE = 0.15;
 constexpr double MARK_SPACING = 1.2;

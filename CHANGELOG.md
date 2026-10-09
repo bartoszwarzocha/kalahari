@@ -281,13 +281,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each annotation not done has a small mark in its kind's color under the end of its
     fragment, or under its place. The mark's tooltip is the annotation's text, and a click
     on it opens the annotation's frame, the cursor staying where it was. Mark Size in
-    Settings > Editor > General sets the size of the marks (100% fits the text's font).
-  - The Annotations panel (View > Panels > Annotations), a tab next to Properties, Search
-    and Assistant, lists the annotations of the chapter in front or of the whole book as
-    cards tinted with their kind's color: the kind, the chapter, the date, the text and,
-    for a to-do, whether it is done. A search field, filters by kind, state (open, done,
-    all) and date, and three orders: as in the text, the newest first, or by kind. Its
-    texts keep a contrast of at least 4.5:1 in the light and the dark theme.
+    Settings > Annotations sets the size of the marks (100% fits the text's font).
+  - The Annotations panel (View > Panels > Annotations, also a button on the Panels
+    toolbar), by default the tab in front of Properties, Search and Assistant, lists the
+    annotations of the chapter in front or of the whole book as cards tinted with their
+    kind's color: the kind, the chapter, the date, the text and, for a to-do, whether it is
+    done. A search field, filters by kind, state (open, done, all) and date, and three
+    orders: as in the text, the newest first, or by kind. Its texts keep a contrast of at
+    least 4.5:1 in the light and the dark theme.
   - Everything is at hand from the keyboard. F9 goes to the panel, with the card of the
     annotation at the cursor selected, and back to the text. In the list, Up, Down, Home
     and End select a card and go to its annotation in the text, opening its chapter when
@@ -303,8 +304,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Edit > Next To Do and Previous To Do (Alt+Down, Alt+Up) go to the next or the previous
     to-do not done yet; while the panel lists the whole book, also in the other chapters.
     The status bar says when there is no further one.
-  - New annotations are by the name in the setting `annotations.author`; without it by the
-    book's author, and without one by the computer's user.
+  - New annotations are by the name in Settings > Annotations > Author; without it by the
+    book's author, and without one by the computer's user (the empty field shows whom it
+    stands for).
 - **Annotations: comments, TODOs and notes in the chapter** - 2026-10-08. The chapter file
   keeps the writer's annotations in an `<annotations>` section, and the text marks where
   each of them is: on a fragment or on a place (`docs/kml_format.md`). Editing keeps them
@@ -388,6 +390,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
+  element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
+  brought the Properties panel to the front of its tab group, so the Annotations panel
+  seemed to disappear, for example after the book was closed and opened again. The
+  Navigator now only fills the Properties panel; its context menu item Properties... still
+  brings the panel to the front.
 
 - **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
   toolbar context menu were connected without an owner, so a toolbar shown or hidden after

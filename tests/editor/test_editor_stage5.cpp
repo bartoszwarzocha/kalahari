@@ -25,6 +25,7 @@
 #include <QTextLayout>
 #include <QToolTip>
 #include <QWheelEvent>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <functional>
@@ -218,6 +219,22 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
     CHECK(annotated->annotationMarkAt(middleOf(note)) == QStringLiteral("n1"));
     const QRectF start = annotated->placeRect(2, true);
     CHECK(annotated->annotationMarkAt(start.center()).isEmpty());
+
+    // At the size of 100% a mark is almost half as high as its line: a third of it was too
+    // small to notice in the user's test
+    int markTop = todo.bottom();
+    int markBottom = todo.top();
+    for (int y = todo.top(); y <= todo.bottom(); ++y) {
+        for (int x = todo.left(); x <= todo.right(); ++x) {
+            if (marked.pixel(x, y) != text.pixel(x, y)) {
+                markTop = std::min(markTop, y);
+                markBottom = std::max(markBottom, y);
+            }
+        }
+    }
+    const double lineHeight = annotated->placeRect(29, true).height();
+    INFO("mark height " << markBottom - markTop + 1 << " px, line height " << lineHeight);
+    CHECK(markBottom - markTop + 1 > 0.37 * lineHeight);
 
     SECTION("a click on a mark opens its annotation; the cursor stays") {
         annotated->setCursorPosition({0, 2});

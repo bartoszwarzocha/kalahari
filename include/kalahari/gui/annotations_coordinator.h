@@ -79,9 +79,13 @@ public:
 
     /// @brief Who new annotations are by
     ///
-    /// The setting annotations.author; without it the book's author, and without one the
-    /// name of the computer's user.
+    /// The setting annotations.author; without it defaultAuthor().
     static QString author();
+
+    /// @brief Who new annotations are by without the setting annotations.author
+    ///
+    /// The open book's author, and without one the name of the computer's user.
+    static QString defaultAuthor();
 
     /// @brief Write a new annotation in the document in front, in a frame at its place
     ///
