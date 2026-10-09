@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "id": "kalahari.nonfiction",
+  "version": "1.0",
+  "role": "type",
+  "name": { "pl": "Literatura faktu", "en": "Non-fiction" },
+  "description": {
+    "pl": "Książka popularnonaukowa, historyczna albo reportaż.",
+    "en": "Popular science, history or reportage."
+  },
+  "icon": "template.nonfiction",
+  "uses": ["kalahari.base"],
+  "kinds": {
+    "abbreviations": {
+      "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Wykaz skrótów", "en": "List of abbreviations" },
+      "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" }
+    },
+    "conclusion": {
+      "form": "text", "places": ["main"], "limit": 1, "icon": "template.chapter",
+      "name": { "pl": "Zakończenie", "en": "Conclusion" },
+      "plural": { "pl": "Zakończenia", "en": "Conclusions" }
+    },
+    "annex": {
+      "form": "text", "places": ["back"], "icon": "template.chapter",
+      "name": { "pl": "Aneks", "en": "Appendix" },
+      "plural": { "pl": "Aneksy", "en": "Appendices" },
+      "title": { "pl": "Aneks %n", "en": "Appendix %n" }
+    },
+    "endnotes": {
+      "form": "window", "editor": "endnotes", "generated": true,
+      "places": ["back"], "limit": 1, "icon": "insert.endnote",
+      "name": { "pl": "Przypisy końcowe", "en": "Endnotes" },
+      "plural": { "pl": "Przypisy końcowe", "en": "Endnotes" }
+    },
+    "bibliography": {
+      "form": "window", "editor": "bibliography", "generated": true,
+      "places": ["back"], "limit": 1, "icon": "format.bullets",
+      "name": { "pl": "Bibliografia", "en": "Bibliography" },
+      "plural": { "pl": "Bibliografie", "en": "Bibliographies" }
+    },
+    "index": {
+      "form": "window", "editor": "index", "generated": true,
+      "places": ["back"], "limit": 1, "icon": "common.sort",
+      "name": { "pl": "Indeks", "en": "Index" },
+      "plural": { "pl": "Indeksy", "en": "Indexes" }
+    },
+    "illustrations": {
+      "form": "window", "editor": "illustrations", "generated": true,
+      "places": ["back"], "limit": 1, "icon": "insert.image",
+      "name": { "pl": "Spis ilustracji", "en": "List of illustrations" },
+      "plural": { "pl": "Spisy ilustracji", "en": "Lists of illustrations" }
+    },
+    "source": {
+      "form": "window", "editor": "card", "places": ["workshop"], "icon": "common.filePresent",
+      "name": { "pl": "Źródło", "en": "Source" },
+      "plural": { "pl": "Źródła", "en": "Sources" },
+      "title": { "pl": "Źródło %n", "en": "Source %n" }
+    }
+  },
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction",
+               "abbreviations"],
+  "main":     ["part", "chapter", "conclusion"],
+  "back":     ["annex", "endnotes", "bibliography", "glossary", "index", "illustrations",
+               "acknowledgments", "about_author", "toc"],
+  "workshop": ["source", "work_note", "timeline", "mindmap", "material"],
+  "primary":  "chapter",
+  "start":    ["title_page", "introduction", "chapter"],
+  "styles":   "styles.json"
+}

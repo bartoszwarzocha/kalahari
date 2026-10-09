@@ -30,6 +30,7 @@
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/book_editor_accessible.h"
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/gui/kalahari_style.h"
 
@@ -69,6 +70,9 @@ int main(int argc, char *argv[]) {
     app.setApplicationName("Kalahari");
     app.setOrganizationName("Bartosz W. Warzocha & Kalahari Team");
     app.setApplicationVersion(QString::fromLatin1(kalahari::VERSION_STRING));
+
+    // Screen readers see the book editor as editable text
+    kalahari::editor::installBookEditorAccessibility();
 
     // Initialize core systems
     auto& logger = kalahari::core::Logger::getInstance();

@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   line show the version from the project definition (0.3.0-alpha); before, they showed
   0.3.1, 0.3.0 and the README 0.3.2.
 
+- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
+  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
+  the current paragraph and the selection. After an edit they get the new text, not the
+  text read before.
+
 - **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
   settings files of older versions nor moves the window layout and recent books from the
   old QSettings store (the registry on Windows); while Kalahari has a single user, old
@@ -274,6 +279,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
+  short story collection, non-fiction, screenplay, poetry collection) are data packages in
+  `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
+  offers in each part of the book and in the Workshop, what a new book starts with, and its
+  styles. A registry in core loads and checks them. Nothing uses it yet, so the program
+  works as before; the New Book and Add Element windows will use it in later stages.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
@@ -392,6 +403,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
+  shows the pages at their size on paper; when the display scaling (for example 125% to
+  150% in the Windows settings) or the screen's resolution changed while the program ran,
+  the pages kept the old scale until the next start. The editor now follows the change at
+  once.
 
 - **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
   toolbar context menu were connected without an owner, so a toolbar shown or hidden after
