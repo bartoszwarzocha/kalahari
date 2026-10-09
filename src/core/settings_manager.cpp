@@ -9,7 +9,6 @@
 #include <vector>   // std::vector for log color keys
 #include <QCoreApplication>
 #include <QSaveFile>
-#include <QSettings>
 #include <QStringList>
 
 #ifdef _WIN32
@@ -21,7 +20,7 @@ namespace kalahari {
 namespace core {
 
 namespace {
-/// Version written by createDefaults() and reached by migrateIfNeeded()
+/// Version of the settings format written by createDefaults() (old files are not converted)
 constexpr const char* CURRENT_SETTINGS_VERSION = "1.4";
 
 /// Changes made within this time after the first one are saved together
@@ -76,8 +75,8 @@ bool SettingsManager::load() {
 
     try {
         {
-            // Closed before the migration below saves: on Windows a file still open
-            // for reading cannot be replaced, and the migrated settings were lost
+            // Closed right after reading: on Windows a file still open for reading
+            // cannot be replaced by a later save
             std::ifstream file(m_filePath);
             if (!file.is_open()) {
                 Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
@@ -86,11 +85,6 @@ bool SettingsManager::load() {
             m_settings = nlohmann::json::parse(file);
         }
         Logger::getInstance().info("Settings loaded successfully from: {}", m_filePath.string());
-
-        // Migrate settings if needed (unlock for migration to call set())
-        m_mutex.unlock();
-        migrateIfNeeded();
-        m_mutex.lock();
 
         return true;
 
@@ -566,112 +560,6 @@ void SettingsManager::removeKey(const std::string& key) {
     if (removed) {
         notifyChanged(key);
     }
-}
-
-void SettingsManager::migrateIfNeeded() {
-    std::string version = get<std::string>("version", "0.0");
-
-    Logger::getInstance().debug("Checking settings version: {}", version);
-
-    if (version != CURRENT_SETTINGS_VERSION) {
-        Logger::getInstance().info("Migrating settings from {} to {}...", version, CURRENT_SETTINGS_VERSION);
-        migrateToCurrentVersion();
-        if (!isTestMode()) {
-            QSettings legacy("Bartosz W. Warzocha & Kalahari Team", "Kalahari");
-            migrateLegacyQSettings(legacy);
-        }
-        set("version", std::string(CURRENT_SETTINGS_VERSION));
-        save();  // Save migrated settings immediately
-        Logger::getInstance().info("Settings migration complete");
-    }
-}
-
-void SettingsManager::migrateToCurrentVersion() {
-    // 1.0: ui.theme moved to appearance.theme
-    if (hasKey("ui.theme")) {
-        std::string theme = get<std::string>("ui.theme", "Light");
-        if (!hasKey("appearance.theme")) {
-            set("appearance.theme", theme);
-        }
-        removeKey("ui.theme");
-        Logger::getInstance().info("Migrated ui.theme='{}' (removed legacy key)", theme);
-    }
-
-    // Versions before 1.3 wrote keys that nothing reads
-    static const char* const obsoleteKeys[] = {
-        "ui.font_size",
-        "appearance.iconSize",
-        "appearance.toolbarIconSize",
-        "appearance.menuIconSize",
-        "appearance.treeViewIconSize",
-        "appearance.tabBarIconSize",
-        "appearance.statusBarIconSize",
-        "appearance.buttonIconSize",
-        "appearance.comboBoxIconSize",
-        "log.fontSize",
-        "log.backgroundColor",
-        "log.textColor",
-        "session",
-        "dashboard.autoLoadLastProject",  // duplicate of startup.autoLoadLastProject
-        "icons.colorPrimary",             // icon colors are stored per theme
-        "icons.colorSecondary",
-        "icons.theme",                    // second copy of appearance.theme
-        "editor.margins.viewHorizontal",  // the continuous views use the page margins
-        "editor.margins.viewVertical",
-    };
-    for (const char* key : obsoleteKeys) {
-        removeKey(key);
-    }
-
-    // Old per-theme copies of the icon colors (icons.themes.<name> holds them)
-    std::vector<std::string> themeNames;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_settings.contains("themes") && m_settings["themes"].is_object()) {
-            for (const auto& entry : m_settings["themes"].items()) {
-                themeNames.push_back(entry.key());
-            }
-        }
-    }
-    for (const std::string& themeName : themeNames) {
-        removeKey("themes." + themeName + ".colors.primary");
-        removeKey("themes." + themeName + ".colors.secondary");
-    }
-}
-
-void SettingsManager::migrateLegacyQSettings(QSettings& legacy) {
-    // 1.4: the window layout and the recent books moved from QSettings to settings.json
-    if (legacy.contains("geometry")) {
-        setBinary("window.geometry", legacy.value("geometry").toByteArray());
-    }
-    if (legacy.contains("windowState")) {
-        setBinary("window.state", legacy.value("windowState").toByteArray());
-    }
-
-    legacy.beginGroup("Toolbars");
-    if (legacy.contains("configVersion")) {
-        set("toolbars.configVersion", legacy.value("configVersion").toInt());
-    }
-    for (const QString& id : legacy.childGroups()) {
-        const QString visibleKey = id + "/visible";
-        if (legacy.contains(visibleKey)) {
-            set("toolbars.visible." + id.toStdString(), legacy.value(visibleKey).toBool());
-        }
-    }
-    legacy.endGroup();
-
-    if (legacy.contains("recentFiles")) {
-        std::vector<std::string> files;
-        for (const QString& file : legacy.value("recentFiles").toStringList()) {
-            files.push_back(file.toStdString());
-        }
-        set("recent_files", files);
-    }
-
-    for (const char* key : {"geometry", "windowState", "Toolbars", "recentFiles"}) {
-        legacy.remove(key);
-    }
-    Logger::getInstance().info("Moved the window layout and recent books from QSettings to settings.json");
 }
 
 // =============================================================================
