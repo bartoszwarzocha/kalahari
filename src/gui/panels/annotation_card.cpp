@@ -29,11 +29,6 @@ void setElidedText(QLabel* label, const QString& text) {
     label->setText(label->fontMetrics().elidedText(text, Qt::ElideRight, label->width()));
 }
 
-/// @brief Who made the annotation, as its card names them (empty: not named)
-QString shownAuthorOf(const AnnotationEntry& entry) {
-    return entry.authorShown ? entry.annotation.author.trimmed() : QString();
-}
-
 }  // namespace
 
 AnnotationCard::AnnotationCard(QWidget* parent)
@@ -176,9 +171,8 @@ void AnnotationCard::updateContent() {
     }
 
     // Day and month (with the year when it is not this one). The tooltip says who made it
-    // (when it is not the writer) and when, and the chapter's whole title: the same wherever
-    // the card is pointed at
-    const QString author = shownAuthorOf(m_entry);
+    // and when, and the chapter's whole title: the same wherever the card is pointed at
+    const QString author = annotation.author.trimmed();
     QString date;
     QString made = author;
     if (annotation.created.isValid()) {
@@ -199,7 +193,7 @@ void AnnotationCard::updateContent() {
     }
     setToolTip(toolTip.join(QLatin1Char('\n')));
 
-    // The author's line only for someone else's annotation
+    // The author's line only when there is one
     m_authorLabel->setVisible(!author.isEmpty());
 
     // One without text says so
@@ -229,7 +223,7 @@ void AnnotationCard::updateTextColors() {
 
 void AnnotationCard::updateElidedLabels() {
     setElidedText(m_chapterLabel, m_entry.chapterTitle);
-    setElidedText(m_authorLabel, shownAuthorOf(m_entry));
+    setElidedText(m_authorLabel, m_entry.annotation.author.trimmed());
 }
 
 void AnnotationCard::showMenu() {

@@ -1830,12 +1830,16 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Nowe uwagi</translation>
     </message>
     <message>
+        <source>Your name or pen name</source>
+        <translation>Twoje imię lub pseudonim</translation>
+    </message>
+    <message>
         <source>Author:</source>
         <translation>Autor:</translation>
     </message>
     <message>
-        <source>Empty: the book&apos;s author, or your user name if the book has none.</source>
-        <translation>Puste pole: autor książki, a jeśli go nie podano – nazwa użytkownika w systemie.</translation>
+        <source>The name shown on new annotations. Without it, they have no author.</source>
+        <translation>Imię widoczne na nowych uwagach. Bez niego uwagi nie mają autora.</translation>
     </message>
     <message>
         <source>Marks in the Text</source>

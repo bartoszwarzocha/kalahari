@@ -407,19 +407,7 @@ TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][anno
     CHECK(QToolTip::text() == card.toolTip());
     QToolTip::hideText();
 
-    // The writer's own annotation does not name its author: no line for it, and the
-    // tooltip says only when it was made and the chapter
-    entry.authorShown = false;
-    card.setEntry(entry);
-    CHECK_FALSE(author->isVisibleTo(&card));
-    const QStringList ownTip = card.toolTip().split(QLatin1Char('\n'));
-    REQUIRE(ownTip.size() == 2);
-    CHECK_FALSE(ownTip[0].isEmpty());
-    CHECK_FALSE(ownTip[0].contains(QStringLiteral("Anna")));
-    CHECK(ownTip[1] == QStringLiteral("Chapter 1"));
-
     // Without an author, no line for one
-    entry.authorShown = true;
     entry.annotation.author.clear();
     card.setEntry(entry);
     CHECK_FALSE(author->isVisibleTo(&card));
@@ -1082,27 +1070,22 @@ TEST_CASE("Annotations: who the new annotations are by", "[gui][annotations]") {
     settings.set<std::string>("annotations.author", "  Anna Nowak ");
     CHECK(AnnotationsCoordinator::author() == QStringLiteral("Anna Nowak"));
 
-    // Without the setting and without a book: the computer's user
+    // Without the setting: by no one named, neither the book's author nor the computer's user
     settings.set<std::string>("annotations.author", "");
-    QString user = qEnvironmentVariable("USERNAME");
-    if (user.isEmpty()) {
-        user = qEnvironmentVariable("USER");
-    }
-    CHECK(AnnotationsCoordinator::author() == user.trimmed());
+    CHECK(AnnotationsCoordinator::author().isEmpty());
 }
 
-TEST_CASE("Annotations: the frame names who the annotation is by, when it is not the writer",
-          "[gui][annotations]") {
+TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annotations]") {
     auto& settings = core::SettingsManager::getInstance();
     settings.set<std::string>("annotations.author", "Anna Nowak");
     Desk desk(kmlWith(QStringLiteral("<annotation id=\"c1\" kind=\"comment\" "
                                      "author=\"Jan Kowalski\">Old</annotation>"),
                       {QStringLiteral("<anchor ref=\"c1\">One</anchor> two three")}));
 
-    SECTION("a new one: by the author of the settings, the writer; the frame does not name them") {
+    SECTION("a new one: by the author of the settings, as it is added") {
         desk.editor().setSelection({{0, 4}, {0, 7}});
         REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Note));
-        CHECK(desk.coordinator->frame()->author().isEmpty());
+        CHECK(desk.coordinator->frame()->author() == QStringLiteral("Anna Nowak"));
         desk.frameText()->setPlainText(QStringLiteral("New"));
         desk.coordinator->saveWriting();
         QString added;
@@ -1113,47 +1096,32 @@ TEST_CASE("Annotations: the frame names who the annotation is by, when it is not
         }
         CHECK(added == QStringLiteral("Anna Nowak"));
     }
+    SECTION("a new one without the setting: by no one named, the frame and the card show none") {
+        settings.set<std::string>("annotations.author", "");
+        desk.editor().setSelection({{0, 4}, {0, 7}});
+        REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Note));
+        CHECK(desk.coordinator->frame()->author().isEmpty());
+        desk.frameText()->setPlainText(QStringLiteral("Nameless"));
+        desk.coordinator->saveWriting();
+        QString id;
+        for (const editor::AnnotationPlace& place : desk.editor().annotations()) {
+            if (place.annotation.text == QStringLiteral("Nameless")) {
+                id = place.annotation.id;
+                CHECK(place.annotation.author.isEmpty());
+            }
+        }
+        REQUIRE_FALSE(id.isEmpty());
+        desk.coordinator->refresh();
+        const AnnotationCard* card = desk.panel.card(annotationKey(QString(), id));
+        REQUIRE(card != nullptr);
+        const auto* author = card->findChild<QLabel*>(QStringLiteral("annotationAuthor"));
+        REQUIRE(author != nullptr);
+        CHECK_FALSE(author->isVisibleTo(card));
+    }
     SECTION("one edited again: by whom it was made") {
         REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
         CHECK(desk.coordinator->frame()->author() == QStringLiteral("Jan Kowalski"));
         desk.coordinator->cancelWriting();
     }
-    settings.set<std::string>("annotations.author", "");
-}
-
-TEST_CASE("Annotations: the writer's own annotations do not name their author",
-          "[gui][annotations]") {
-    auto& settings = core::SettingsManager::getInstance();
-    settings.set<std::string>("annotations.author", "Anna Nowak");
-    Desk desk(kmlWith(QStringLiteral("<annotation id=\"c1\" kind=\"comment\" "
-                                     "author=\"Jan Kowalski\">His</annotation>"
-                                     "<annotation id=\"c2\" kind=\"comment\" "
-                                     "author=\"Anna Nowak\">Hers</annotation>"),
-                      {QStringLiteral("<anchor ref=\"c1\">One</anchor> two "
-                                      "<anchor ref=\"c2\">three</anchor>")}));
-
-    // The author's line of a card (empty: none)
-    const auto authorOnCard = [&desk](const QString& id) {
-        const AnnotationCard* card = desk.panel.card(annotationKey(QString(), id));
-        const auto* label = card != nullptr
-                                ? card->findChild<QLabel*>(QStringLiteral("annotationAuthor"))
-                                : nullptr;
-        return label != nullptr && label->isVisibleTo(card) ? label->text() : QString();
-    };
-    CHECK(authorOnCard(QStringLiteral("c1")) == QStringLiteral("Jan Kowalski"));
-    CHECK(authorOnCard(QStringLiteral("c2")).isEmpty());
-    CHECK(desk.editor().ownAnnotationAuthor() == QStringLiteral("Anna Nowak"));
-
-    // Another author in the settings: the annotations of the one before name their author
-    settings.set<std::string>("annotations.author", "Jan Kowalski");
-    REQUIRE(test::waitUntil([&authorOnCard]() {
-        return authorOnCard(QStringLiteral("c2")) == QStringLiteral("Anna Nowak");
-    }));
-    CHECK(authorOnCard(QStringLiteral("c1")).isEmpty());
-    CHECK(desk.editor().ownAnnotationAuthor() == QStringLiteral("Jan Kowalski"));
-    REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c2"), false));
-    CHECK(desk.coordinator->frame()->author() == QStringLiteral("Anna Nowak"));
-    desk.coordinator->cancelWriting();
-
     settings.set<std::string>("annotations.author", "");
 }

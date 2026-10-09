@@ -342,16 +342,13 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 bool BookEditor::event(QEvent* event)
 {
     // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
-    // as it is written. The writer's own annotations do not name their author
+    // as it is written
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
         const std::optional<AnnotationMark> mark =
             m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
-        QString author = mark ? mark->author.trimmed() : QString();
-        if (author == m_ownAnnotationAuthor) {
-            author.clear();
-        }
+        const QString author = mark ? mark->author.trimmed() : QString();
         if (text.isEmpty() && author.isEmpty()) {
             QToolTip::hideText();
             event->ignore();

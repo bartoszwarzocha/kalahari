@@ -5,7 +5,6 @@
 /// text are (the editors follow the size by themselves: EditorPanel subscribes to it).
 
 #include "kalahari/gui/settings/settings_pages.h"
-#include "kalahari/gui/annotations_coordinator.h"
 
 #include <QFormLayout>
 #include <QLineEdit>
@@ -22,9 +21,9 @@ AnnotationsPage::AnnotationsPage(QWidget* parent)
     QFormLayout* added = addGroup(tr("New Annotations"));
     auto* author = new QLineEdit();
     author->setObjectName(QStringLiteral("annotationsAuthor"));
-    author->setPlaceholderText(AnnotationsCoordinator::defaultAuthor());  // what empty stands for
+    author->setPlaceholderText(tr("Your name or pen name"));
     addField(added, tr("Author:"), author, "annotations.author");
-    addNote(added, tr("Empty: the book's author, or your user name if the book has none."));
+    addNote(added, tr("The name shown on new annotations. Without it, they have no author."));
 
     QFormLayout* marks = addGroup(tr("Marks in the Text"));
     auto* markSize = new QSpinBox();

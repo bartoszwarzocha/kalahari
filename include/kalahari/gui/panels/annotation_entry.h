@@ -25,7 +25,6 @@ struct AnnotationEntry {
     QString chapterTitle;           ///< The title of its chapter (or document)
     int chapterOrder = 0;           ///< Where its chapter is in the book
     int textOrder = 0;              ///< Where it is in its chapter's text
-    bool authorShown = true;        ///< Its card names its author: not the writer's own one
 
     bool operator==(const AnnotationEntry& other) const = default;
 

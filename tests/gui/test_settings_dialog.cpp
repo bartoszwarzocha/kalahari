@@ -219,8 +219,8 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     REQUIRE(author != nullptr);
     REQUIRE(markSize != nullptr);
     CHECK(author->text().isEmpty());
-    // An empty field shows whom it stands for
-    CHECK(author->placeholderText() == AnnotationsCoordinator::defaultAuthor());
+    // An empty field says what goes in it: no one is put in its place
+    CHECK(author->placeholderText() == QStringLiteral("Your name or pen name"));
     CHECK(markSize->value() == 100);
     CHECK_FALSE(dialog.hasChanges());
 
