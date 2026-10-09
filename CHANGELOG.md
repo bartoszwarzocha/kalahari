@@ -348,6 +348,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   150% in the Windows settings) or the screen's resolution changed while the program ran,
   the pages kept the old scale until the next start. The editor now follows the change at
   once.
+
+- **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
+  toolbar context menu were connected without an owner, so a toolbar shown or hidden after
+  its menu item was deleted reached freed memory. Each connection now ends with its menu
+  item, toolbar or window.
+
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
   front: its command is greyed out without one, and it goes off when the Dashboard or no
