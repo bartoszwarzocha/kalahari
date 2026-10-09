@@ -316,9 +316,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A right click on a misspelled word offers up to five words to put in its place,
     Ignore All (the word is right until the program closes) and Add to Dictionary (right
     for good), above the usual commands.
-  - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
-    from the cursor round the chapter, and opens the same menu under it; the menu key and
-    Shift+F10 open it for the word at the cursor.
+  - From the keyboard: Tools > Next Spelling or Grammar Issue (F7) selects the next
+    misspelled word, from the cursor round the chapter, and opens the same menu under it;
+    the menu key and Shift+F10 open it for the word at the cursor.
   - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
     chapters, and remembers it. Settings > Editor > Spelling has the same switch, the
     language and the list of the writer's own words, which can be added and removed there;
@@ -335,9 +335,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     writer stops typing. The lines of an issue move with the text edited around it and stay
     until its paragraph is checked again; an issue that applies only to finished sentences
     waits until its sentence is finished.
-  - A right click on an issue shows what is wrong (the whole message in its tool tip), up
-    to five replacements in bold and Ignore This Rule (until the program closes), above the
-    usual commands. Spelling issues are left to the dictionary.
+  - A right click on an issue shows what is wrong, whole, up to five replacements in bold
+    and Ignore This Rule (until the program closes), above the usual commands. Spelling
+    issues are left to the dictionary.
+  - From the keyboard: F7 goes to the grammar issues too, in the order of the text, and
+    opens the same menu; the menu key and Shift+F10 open it for the issue at the cursor.
   - Tools > Check Grammar as You Type turns the checking on and off for all chapters and
     remembers it; it is greyed out while no server is set. When the server does not answer,
     the status bar says so once and the paragraphs are sent again after a while.

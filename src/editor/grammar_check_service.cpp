@@ -126,7 +126,7 @@ QString GrammarCheckService::languageFor(const QString& language)
     QString code = language.trimmed();
     code.replace(QLatin1Char('_'), QLatin1Char('-'));
     const qsizetype dash = code.indexOf(QLatin1Char('-'));
-    const QString base = (dash < 0 ? code : code.left(dash)).toLower();
+    QString base = (dash < 0 ? code : code.left(dash)).toLower();
     if (dash < 0) {
         return base;
     }
@@ -361,7 +361,7 @@ QList<GrammarError> GrammarCheckService::parse(const QByteArray& json, const QSt
     QList<GrammarError> errors;
     const QJsonArray matches =
         QJsonDocument::fromJson(json).object().value(QLatin1String("matches")).toArray();
-    for (const QJsonValue& value : matches) {
+    for (const auto& value : matches) {
         const QJsonObject match = value.toObject();
         const QJsonObject rule = match.value(QLatin1String("rule")).toObject();
         const QJsonObject category = rule.value(QLatin1String("category")).toObject();
@@ -387,7 +387,7 @@ QList<GrammarError> GrammarCheckService::parse(const QByteArray& json, const QSt
         error.ignoreForIncompleteSentence =
             match.value(QLatin1String("ignoreForIncompleteSentence")).toBool();
         const QJsonArray replacements = match.value(QLatin1String("replacements")).toArray();
-        for (const QJsonValue& replacement : replacements) {
+        for (const auto& replacement : replacements) {
             const QString suggestion =
                 replacement.toObject().value(QLatin1String("value")).toString();
             if (!suggestion.isEmpty() && error.suggestions.size() < MAX_SUGGESTIONS) {

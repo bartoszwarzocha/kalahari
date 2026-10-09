@@ -26,8 +26,8 @@ class Answers {
 public:
     explicit Answers(GrammarCheckService& service) {
         QObject::connect(&service, &GrammarCheckService::textChecked, &m_context,
-                         [this](quint64 request, const QList<GrammarError>& errors) {
-                             checked[request] = errors;
+                         [this](quint64 request, const QList<GrammarError>& found) {
+                             checked[request] = found;
                          });
         QObject::connect(&service, &GrammarCheckService::textNotChecked, &m_context,
                          [this](quint64 request) { notChecked.append(request); });

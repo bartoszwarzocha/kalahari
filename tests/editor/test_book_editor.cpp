@@ -115,6 +115,18 @@ TEST_CASE("BookEditor changing content", "[editor][book_editor]") {
         editor.fromKml(createTestKml(10));
         REQUIRE(editor.paragraphCount() == 10);
     }
+
+    SECTION("A selection goes with the old content") {
+        editor.fromKml(createTestKml(5));
+        editor.setCursorPosition({3, 9});
+        editor.setSelection({{3, 0}, {3, 9}});
+        REQUIRE(editor.hasSelection());
+
+        editor.fromKml(createTestKml(2));
+        CHECK_FALSE(editor.hasSelection());
+        CHECK(editor.cursorPosition() == CursorPosition{0, 0});
+        CHECK(editor.paragraphCount() == 2);
+    }
 }
 
 // =============================================================================

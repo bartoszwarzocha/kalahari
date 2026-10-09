@@ -7,6 +7,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -68,7 +69,7 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
             [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
 
     // The editor of a document checks with the dictionary from the time its tab is shown;
-    // Next Misspelling is for the document in front
+    // Next Spelling or Grammar Issue is for the document in front
     if (m_centralTabs != nullptr) {
         connect(m_centralTabs, &QTabWidget::currentChanged, this, [this]() {
             attachEditors();
@@ -120,23 +121,34 @@ void SpellingCoordinator::connectCommands() {
     utils::followSetting(registry.getAction(std::string(COMMAND_ID)), ENABLED_KEY);
 
     if (Command* next = registry.getCommand(NEXT_COMMAND_ID)) {
-        next->execute = [this]() { goToNextMisspelling(); };
+        next->execute = [this]() { goToNextIssue(); };
         next->isEnabled = [this]() { return currentEditor() != nullptr; };
         registry.updateActionState(NEXT_COMMAND_ID);
     }
 }
 
-bool SpellingCoordinator::goToNextMisspelling() {
+bool SpellingCoordinator::goToNextIssue() {
     editor::BookEditor* bookEditor = currentEditor();
     if (bookEditor == nullptr) {
         return false;
     }
-    if (!m_service->isActive()) {
+
+    // The grammar counts when its checking is on, also while its server does not answer:
+    // the issues found stay
+    const editor::GrammarCheckService* grammarService = bookEditor->grammarCheckService();
+    const bool spelling = m_service->isActive();
+    const bool grammar = grammarService != nullptr && grammarService->isEnabled() &&
+                         grammarService->isConfigured();
+    if (!spelling && !grammar) {
         showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
         return false;
     }
-    if (!bookEditor->goToNextMisspelling()) {
-        showMessage(tr("No misspelled words"), NEXT_MESSAGE_MS);
+    if (!bookEditor->goToNextIssue()) {
+        QString none = tr("No misspelled words");
+        if (grammar) {
+            none = spelling ? tr("No misspelled words or grammar issues") : tr("No grammar issues");
+        }
+        showMessage(none, NEXT_MESSAGE_MS);
         return false;
     }
 

@@ -785,13 +785,16 @@ public:
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
 
-    /// @brief Select the next misspelled word: the one the cursor is in or the first after
-    ///        it (after the selection, when there is one), from the start of the text after
-    ///        its end
+    /// @brief Select the next misspelled word or grammar issue: the one the cursor is in or
+    ///        the first after it (with a selection, the first that starts after the
+    ///        selection's start), from the start of the text after its end
     ///
-    /// The paragraphs not checked yet are checked on the way; the word being typed counts.
-    /// @return false when the text has no misspelled word or the spelling is not checked
-    bool goToNextMisspelling();
+    /// The spelling of the paragraphs not checked yet is checked on the way and the word
+    /// being typed counts; the grammar issues are those found so far (the server is asked
+    /// about the paragraphs around the view). Where both start at one place, the misspelled
+    /// word comes first.
+    /// @return false when the text has neither, or neither is checked
+    bool goToNextIssue();
 
     // =========================================================================
     // Grammar

@@ -418,8 +418,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       nullptr);
 
-    // Selects the next misspelled word and offers what to put in its place (SpellingCoordinator)
-    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Next Misspelling"), "TOOLS/Next Misspelling", 45, false, 0,
+    // Selects the next misspelled word or grammar issue and offers what to put in its place
+    // (SpellingCoordinator)
+    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Next Spelling or Grammar Issue"), "TOOLS/Next Spelling or Grammar Issue", 45, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
     // Turns the grammar as you type on and off (GrammarCoordinator gives it its callbacks)

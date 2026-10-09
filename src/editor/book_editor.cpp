@@ -703,8 +703,11 @@ bool BookEditor::fromKml(const QString& kml)
 
     logElapsed("START");
 
-    // The text gets a new document. The pointers to the old one are cleared BEFORE it is
-    // destroyed, so none is left dangling.
+    // The text gets a new document. The selection goes while the old one is there (the
+    // cursor is drawn from it), and the pointers to it are cleared BEFORE it is destroyed,
+    // so none is left dangling.
+    m_cursorPosition = {0, 0};
+    clearSelection();
     if (m_viewportManager) {
         m_viewportManager->setDocument(nullptr);
     }
@@ -735,8 +738,6 @@ bool BookEditor::fromKml(const QString& kml)
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
-    m_cursorPosition = {0, 0};
-    clearSelection();
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
     }

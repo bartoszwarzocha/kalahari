@@ -6,10 +6,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "../editor/fake_language_tool.h"
 #include "kalahari/core/document.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/editor/text_source_adapter.h"
 #include "kalahari/gui/command_registrar.h"
@@ -33,6 +35,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <cstdio>
 #include <string>
 
@@ -92,6 +95,15 @@ QStringList wavyWords(const editor::BookEditor& bookEditor, int paragraph) {
         }
     }
     return words;
+}
+
+/// Whether the first paragraph has a grammar wave
+bool hasGrammarWave(const editor::BookEditor& bookEditor) {
+    const auto highlights =
+        editor::QTextDocumentSource(bookEditor.textDocument()).paragraphHighlights(0);
+    return std::any_of(highlights.begin(), highlights.end(), [](const auto& highlight) {
+        return highlight.kind == editor::HighlightKind::Grammar;
+    });
 }
 
 /// Open the page with a title under a category of the settings
@@ -292,8 +304,8 @@ TEST_CASE("Spelling coordinator: Check Spelling as You Type turns the checking o
     registry.clear();
 }
 
-TEST_CASE("Spelling coordinator: Next Misspelling selects the next misspelled word and opens "
-          "its menu",
+TEST_CASE("Spelling coordinator: Next Spelling or Grammar Issue selects the next issue and "
+          "opens its menu",
           "[gui][spelling][command]") {
     KeptSpellingSettings kept;
     auto& settings = KeptSpellingSettings::settings();
@@ -340,6 +352,38 @@ TEST_CASE("Spelling coordinator: Next Misspelling selects the next misspelled wo
             texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
             CHECK(texts.isEmpty());
             CHECK(statusBar.currentMessage() == QStringLiteral("No misspelled words"));
+        }
+
+        SECTION("with the grammar: its issues too, and the status bar says when there is none") {
+            kalahari::test::FakeLanguageTool server;
+            server.addIssue({QStringLiteral("kat"), QStringLiteral("RULE_A"),
+                             QStringLiteral("Did you mean a cat?")});
+            editor::GrammarCheckService grammar;
+            grammar.setServer(server.url());
+            bookEditor->setGrammarCheckService(&grammar);
+            bookEditor->fromKml(kmlOf({QStringLiteral("The kat is here.")}));
+            REQUIRE(waitUntil([bookEditor]() { return hasGrammarWave(*bookEditor); }, 20000));
+            bookEditor->setCursorPosition({0, 0});
+            texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+            CHECK(bookEditor->selectedText() == QStringLiteral("kat"));
+            CHECK(texts.contains(QStringLiteral("Ignore This Rule")));
+
+            bookEditor->fromKml(kmlOf({QStringLiteral("All good here.")}));
+            REQUIRE(waitUntil([bookEditor]() { return !bookEditor->isGrammarCheckPending(); },
+                              20000));
+            texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+            CHECK(texts.isEmpty());
+            CHECK(statusBar.currentMessage() ==
+                  QStringLiteral("No misspelled words or grammar issues"));
+
+            // The spelling off: the grammar alone
+            settings.set<bool>(ENABLED_KEY, false);
+            const editor::SpellCheckService* service = coordinator.service();
+            REQUIRE(waitUntil([service]() { return !service->isEnabled(); }));
+            texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
+            CHECK(texts.isEmpty());
+            CHECK(statusBar.currentMessage() == QStringLiteral("No grammar issues"));
+            bookEditor->setGrammarCheckService(nullptr);
         }
 
         SECTION("the status bar says when the spelling is not checked") {

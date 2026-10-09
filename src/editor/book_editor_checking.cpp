@@ -11,8 +11,11 @@
 #include <QFontMetrics>
 #include <QMenu>
 #include <QShowEvent>
+#include <QStringList>
 #include <QStringView>
 #include <QTextBlock>
+#include <QTextLayout>
+#include <QTextOption>
 #include <QTimer>
 #include <algorithm>
 #include <utility>
@@ -47,6 +50,27 @@ constexpr int GRAMMAR_PARAGRAPHS_AFTER_VIEW = 20;
 
 /// @brief How wide the message of a grammar issue is on the context menu (characters)
 constexpr int GRAMMAR_MESSAGE_CHARS = 60;
+
+/// @brief A text in lines no wider than @p width in a font, broken between words where it can
+QStringList textLines(const QString& text, const QFont& font, int width) {
+    QStringList lines;
+    QTextLayout layout(text, font);
+    QTextOption option;
+    option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    layout.setTextOption(option);
+    layout.beginLayout();
+    for (QTextLine line = layout.createLine(); line.isValid(); line = layout.createLine()) {
+        line.setLineWidth(width);
+        lines.append(text.mid(line.textStart(), line.textLength()).trimmed());
+    }
+    layout.endLayout();
+    return lines;
+}
+
+/// @brief A text shown as it is on a menu: an ampersand marks no key
+QString menuText(QString text) {
+    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
+}
 
 /// @brief Whether the character at @p i of a text goes on a word from the side of @p step:
 ///        a letter, a digit or an accent, or an apostrophe or a hyphen with a letter after it
@@ -266,28 +290,30 @@ bool BookEditor::isSpellCheckPending() const
     return m_spellTimer != nullptr && m_spellTimer->isActive();
 }
 
-bool BookEditor::goToNextMisspelling()
+bool BookEditor::goToNextIssue()
 {
-    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+    const bool spelling = m_spellCheckService != nullptr && m_spellCheckService->isActive();
+    if (!m_textBuffer || (!spelling && m_grammarCheckService == nullptr)) {
         return false;
     }
 
     // The writer has stopped typing: the word typed last counts too
-    if (m_spellTyping >= 0) {
+    if (spelling && m_spellTyping >= 0) {
         endSpellingTyping();
     }
 
-    // After the selection (the word gone to before), else from the cursor: the word the
-    // cursor is in, or right after, comes first
+    // With a selection (the issue gone to before), those that start after its start, so an
+    // issue in a longer one is not passed over; else from the cursor: the issue the cursor
+    // is in, or right after, comes first
     const bool afterSelection = hasSelection();
-    const CursorPosition from = afterSelection ? m_selection.normalized().end : m_cursorPosition;
+    const CursorPosition from = afterSelection ? m_selection.normalized().start : m_cursorPosition;
     const auto afterFrom = [afterSelection, &from](const TextHighlight& issue) {
-        return afterSelection ? issue.start >= from.offset
+        return afterSelection ? issue.start > from.offset
                               : issue.start + issue.length >= from.offset;
     };
 
-    // Round the text from the paragraph of the cursor back to it, checking on the way the
-    // paragraphs not checked yet
+    // Round the text from the paragraph of the cursor back to it, checking the spelling of
+    // the paragraphs not checked yet on the way
     bool wavesChanged = false;
     const int count = m_textBuffer->blockCount();
     QTextBlock block = m_textBuffer->findBlockByNumber(from.paragraph);
@@ -296,14 +322,16 @@ bool BookEditor::goToNextMisspelling()
             block = m_textBuffer->begin();
         }
         const ParagraphData* known = ParagraphData::find(block);
-        if (known == nullptr || !known->spelling.current) {
+        if (spelling && (known == nullptr || !known->spelling.current)) {
             wavesChanged = checkSpelling(block) || wavesChanged;
         }
 
+        // The first one wanted: the paragraph of the cursor after it first, before it when
+        // back at it; the misspelled words before the grammar issues at the same place
         const TextHighlight* first = nullptr;
-        if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
-            for (const TextHighlight& issue : paragraphData->spelling.issues) {
-                // The paragraph of the cursor: after it first, before it when back at it
+        const auto consider = [&first, &afterFrom, visited,
+                               count](const std::vector<TextHighlight>& issues) {
+            for (const TextHighlight& issue : issues) {
                 bool wanted = true;
                 if (visited == 0) {
                     wanted = afterFrom(issue);
@@ -313,6 +341,14 @@ bool BookEditor::goToNextMisspelling()
                 if (wanted && (first == nullptr || issue.start < first->start)) {
                     first = &issue;
                 }
+            }
+        };
+        if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
+            if (spelling) {
+                consider(paragraphData->spelling.issues);
+            }
+            if (const auto* grammarIssues = paragraphData->grammar.issuesFor(block.text())) {
+                consider(*grammarIssues);
             }
         }
         if (first != nullptr) {
@@ -959,29 +995,41 @@ std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int off
     if (paragraphData == nullptr || paragraphData->grammar.issuesFor(block.text()) == nullptr) {
         return std::nullopt;
     }
+    // Issues can lie in one another: the one selected (Next Spelling or Grammar Issue
+    // selects one) before the others there
+    const SelectionRange selected = m_selection.normalized();
+    std::optional<GrammarError> found;
     for (const GrammarError& error : paragraphData->grammarErrors) {
-        if (offset >= error.startPos && offset <= error.startPos + error.length) {
+        if (offset < error.startPos || offset > error.startPos + error.length) {
+            continue;
+        }
+        if (hasSelection() && selected.start == CursorPosition{paraIndex, error.startPos} &&
+            selected.end == CursorPosition{paraIndex, error.startPos + error.length}) {
             return error;
         }
+        if (!found.has_value()) {
+            found = error;
+        }
     }
-    return std::nullopt;
+    return found;
 }
 
 void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex)
 {
-    // What is wrong, cut to the menu's width; the whole message in its tool tip
-    QString message = error.message.isEmpty() ? error.shortMessage : error.message;
-    message.replace(QLatin1Char('\n'), QLatin1Char(' '));
+    // What is wrong, whole, in lines as wide as the menu allows: read also from the
+    // keyboard, which has no tool tip
+    const QString message =
+        (error.message.isEmpty() ? error.shortMessage : error.message).simplified();
     const QFontMetrics metrics(menu.font());
-    QAction* what = menu.addAction(metrics.elidedText(
-        message, Qt::ElideRight, metrics.averageCharWidth() * GRAMMAR_MESSAGE_CHARS));
-    what->setEnabled(false);
-    what->setToolTip(message);
-    menu.setToolTipsVisible(true);
+    for (const QString& line :
+         textLines(message, menu.font(), metrics.averageCharWidth() * GRAMMAR_MESSAGE_CHARS)) {
+        QAction* what = menu.addAction(menuText(line));
+        what->setEnabled(false);
+    }
 
     // What to put in its place, in bold as the words for a misspelled one
     for (const QString& suggestion : error.suggestions) {
-        QAction* action = menu.addAction(suggestion);
+        QAction* action = menu.addAction(menuText(suggestion));
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);

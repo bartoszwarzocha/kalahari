@@ -340,8 +340,8 @@
         <translation>Sprawdzaj pisownię podczas pisania</translation>
     </message>
     <message>
-        <source>Next Misspelling</source>
-        <translation>Następny błąd pisowni</translation>
+        <source>Next Spelling or Grammar Issue</source>
+        <translation>Następny błąd pisowni lub gramatyki</translation>
     </message>
     <message>
         <source>Check Grammar as You Type</source>
@@ -4301,6 +4301,14 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>No misspelled words</source>
         <translation>Brak błędów pisowni</translation>
+    </message>
+    <message>
+        <source>No misspelled words or grammar issues</source>
+        <translation>Brak błędów pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>No grammar issues</source>
+        <translation>Brak błędów gramatyki</translation>
     </message>
 </context>
 <context>

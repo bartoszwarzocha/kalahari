@@ -89,9 +89,8 @@ void pressKey(BookEditor& editor, int key) {
 
 /// What the context menu at the cursor offered
 struct MenuSeen {
-    QStringList texts;     ///< Its items ("-": a separator)
-    QStringList toolTips;  ///< Their tool tips
-    QList<bool> bold;      ///< Whether they are in bold
+    QStringList texts;  ///< Its items ("-": a separator)
+    QList<bool> bold;   ///< Whether they are in bold
 };
 
 /// Open the context menu at the cursor (as the menu key does) and choose an item of it
@@ -112,7 +111,6 @@ MenuSeen contextMenuAtCursor(BookEditor& editor, const QString& choice = QString
         QAction* chosen = nullptr;
         for (QAction* action : menu->actions()) {
             seen.texts << (action->isSeparator() ? QStringLiteral("-") : action->text());
-            seen.toolTips << action->toolTip();
             seen.bold << action->font().bold();
             if (!choice.isEmpty() && action->text() == choice) {
                 chosen = action;
@@ -393,12 +391,12 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         CHECK(grammarWaves(*editor, 0) == QStringList{"dogz"});
     }
 
-    SECTION("a long message is cut, its tool tip is whole") {
+    SECTION("a long message whole, in lines (a keyboard has no tool tip)") {
         editor->setCursorPosition({0, 17});
         const MenuSeen menu = contextMenuAtCursor(*editor);
-        REQUIRE_FALSE(menu.texts.isEmpty());
-        CHECK(menu.texts[0].size() < longMessage.size());
-        CHECK(menu.toolTips[0] == longMessage);
+        const QStringList lines = menu.texts.mid(0, menu.texts.indexOf(QStringLiteral("-")));
+        CHECK(lines.size() > 1);
+        CHECK(lines.join(QLatin1Char(' ')) == longMessage);
     }
 
     SECTION("a misspelled word in an issue: the spelling's menu") {
@@ -412,6 +410,101 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         CHECK_FALSE(menu.texts.contains(QStringLiteral("Ignore This Rule")));
         editor->setSpellCheckService(nullptr);
     }
+}
+
+TEST_CASE("Grammar: Next Spelling or Grammar Issue goes to the grammar issues too",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat"), QStringLiteral("RULE_A"),
+                     QStringLiteral("Did you mean a cat?"), {QStringLiteral("cat")}});
+    server.addIssue({QStringLiteral("dogz"), QStringLiteral("RULE_B"),
+                     QStringLiteral("Too many dogs.")});
+    auto grammar = serviceOn(server);
+    auto editor = shownEditor({QStringLiteral("The kat and the dogz."),
+                               QStringLiteral("A plain line."), QStringLiteral("One more kat.")},
+                              grammar.get());
+    REQUIRE(checked(*editor));
+    REQUIRE(grammarWaves(*editor, 2) == QStringList{"kat"});
+
+    SECTION("in turn, round the text") {
+        editor->setCursorPosition({0, 0});
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->selectedText() == QStringLiteral("kat"));
+        CHECK(editor->cursorPosition() == CursorPosition{0, 7});
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->selectedText() == QStringLiteral("dogz"));
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->cursorPosition() == CursorPosition{2, 12});
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->cursorPosition() == CursorPosition{0, 7});
+    }
+
+    SECTION("its menu: what is wrong and what to do") {
+        editor->setCursorPosition({0, 8});
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->selectedText() == QStringLiteral("dogz"));
+        const MenuSeen menu = contextMenuAtCursor(*editor);
+        CHECK(menu.texts.mid(0, 3) == QStringList({"Too many dogs.", "-", "Ignore This Rule"}));
+    }
+
+    SECTION("with the spelling: in the order of the text, at one place the misspelled word") {
+        SpellCheckService spelling;
+        REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
+        editor->setSpellCheckService(&spelling);
+        editor->setCursorPosition({0, 0});
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->selectedText() == QStringLiteral("kat"));  // a word of the dictionary
+        CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("Did you mean a cat?"));
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->selectedText() == QStringLiteral("dogz"));
+        const MenuSeen menu = contextMenuAtCursor(*editor);
+        CHECK(menu.texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK_FALSE(menu.texts.contains(QStringLiteral("Ignore This Rule")));
+
+        // Its grammar issue is passed over with it
+        REQUIRE(editor->goToNextIssue());
+        CHECK(editor->cursorPosition() == CursorPosition{2, 12});
+        editor->setSpellCheckService(nullptr);
+    }
+
+    SECTION("none in a text without issues") {
+        editor->fromKml(kmlOf({QStringLiteral("All good here.")}));
+        REQUIRE(checked(*editor));
+        CHECK_FALSE(editor->goToNextIssue());
+        CHECK_FALSE(editor->hasSelection());
+    }
+
+    SECTION("none while the checking is off") {
+        grammar->setEnabled(false);
+        CHECK_FALSE(editor->goToNextIssue());
+        CHECK_FALSE(editor->hasSelection());
+    }
+}
+
+TEST_CASE("Grammar: an issue in a longer one is gone to as well, with its own menu",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat and the dogz"), QStringLiteral("RULE_C"),
+                     QStringLiteral("A long one.")});
+    server.addIssue({QStringLiteral("dogz"), QStringLiteral("RULE_B"),
+                     QStringLiteral("A short one.")});
+    auto grammar = serviceOn(server);
+    auto editor = shownEditor({QStringLiteral("The kat and the dogz.")}, grammar.get());
+    REQUIRE(checked(*editor));
+    REQUIRE(grammarWaves(*editor, 0) == QStringList({"kat and the dogz", "dogz"}));
+
+    editor->setCursorPosition({0, 0});
+    REQUIRE(editor->goToNextIssue());
+    CHECK(editor->selectedText() == QStringLiteral("kat and the dogz"));
+    CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("A long one."));
+
+    // The cursor is at the end of both: the menu is the selected one's
+    REQUIRE(editor->goToNextIssue());
+    CHECK(editor->selectedText() == QStringLiteral("dogz"));
+    CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("A short one."));
+
+    REQUIRE(editor->goToNextIssue());
+    CHECK(editor->selectedText() == QStringLiteral("kat and the dogz"));
 }
 
 TEST_CASE("Grammar: the paragraphs around the view are checked", "[editor][grammar]") {
