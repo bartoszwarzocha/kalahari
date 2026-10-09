@@ -48,6 +48,6 @@ QColor(255, 0, 0)            // In UI code use ArtProvider/ThemeManager colors
 - **Constants:** named `constexpr` constants (`UPPER_SNAKE_CASE`) are fine for invariants
   (limits, protocol values). Values a user may want to change belong in SettingsManager.
 - **Colors:** literal colors are allowed only where theme defaults are defined
-  (`resources/themes/*.json`, `fallback_theme.cpp`, `theme.cpp`). Add new theme colors with
+  (`resources/themes/*.json`, `theme.cpp`, `theme_manager.cpp`). Add new theme colors with
   `scripts/add_theme_color.py`.
 - **TODO/FIXME:** do not add new ones without a reference to a tracked issue or plan.
