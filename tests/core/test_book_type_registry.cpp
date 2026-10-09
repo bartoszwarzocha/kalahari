@@ -245,7 +245,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
         return registry.package(QString::fromLatin1(type))->primaryKind.toStdString();
     };
 
-    SECTION("Base: what a book without a type offers, in its order") {
+    SECTION("Base: what a user project without configuration offers, in its order") {
         CHECK(places("kalahari.base") ==
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, preface, introduction",
@@ -369,7 +369,7 @@ TEST_CASE("Built-in book types: a kind comes from the type or from a package it 
     CHECK(toc.kind->allows(BookPlace::Back));
 }
 
-TEST_CASE("Built-in book types: a book without a type offers every kind of every package",
+TEST_CASE("Built-in book types: the palette offers every kind of every package",
           "[core][booktypes]") {
     BookTypeRegistry registry;
     loadBuiltIn(registry);
@@ -619,7 +619,7 @@ TEST_CASE("Book type packages: a type replaces a kind of a package it uses",
     REQUIRE(titlePage);
     CHECK(titlePage.package->id == QStringLiteral("test.type"));
     CHECK(titlePage.kind->name.text(QStringLiteral("en")) == QStringLiteral("Industry title page"));
-    // A book without a type offers both
+    // The palette offers both
     int titlePages = 0;
     for (const KindRef& ref : registry.allKinds()) {
         titlePages += ref.kind->id == QStringLiteral("title_page") ? 1 : 0;

@@ -85,7 +85,7 @@ public:
     /// @brief Elements that a new book of type @p packageId starts with
     QList<StartElement> startElements(const QString& packageId) const;
 
-    /// @brief Every kind of every package, which a book without a type offers
+    /// @brief Every kind of every package: the palette a project takes kinds from
     ///
     /// Kinds of the same id from different packages are different kinds. In the order of
     /// packages(); in a package, in the order of its lists, then the kinds it does not list.

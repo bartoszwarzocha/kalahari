@@ -266,6 +266,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
+  short story collection, non-fiction, screenplay, poetry collection) are data packages in
+  `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
+  offers in each part of the book and in the Workshop, what a new book starts with, and its
+  styles. A registry in core loads and checks them. Nothing uses it yet, so the program
+  works as before; the New Book and Add Element windows will use it in later stages.
 - **The program's own dialogs, starting with the Navigator's** - 2026-10-08
   - A common base for the program's own dialogs: a heading with the dialog's icon, its
     title and a sentence about what it does, then the dialog's content and the buttons,
