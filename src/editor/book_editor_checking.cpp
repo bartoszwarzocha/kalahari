@@ -174,8 +174,8 @@ void BookEditor::requestSpellCheck()
         return;
     }
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
-        if (ParagraphData* data = ParagraphData::find(block)) {
-            data->spelling.current = false;
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            paragraphData->spelling.current = false;
         }
     }
     scheduleSpellCheck(0);
@@ -212,9 +212,9 @@ void BookEditor::clearSpelling()
     }
     bool hadWaves = false;
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
-        if (ParagraphData* data = ParagraphData::find(block)) {
-            hadWaves = hadWaves || !data->spelling.issues.empty();
-            data->spelling = ParagraphCheck{};
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            hadWaves = hadWaves || !paragraphData->spelling.issues.empty();
+            paragraphData->spelling = ParagraphCheck{};
         }
     }
     if (hadWaves) {
@@ -246,8 +246,8 @@ void BookEditor::runSpellCheck()
     clock.start();
     const auto turnIsOver = [&clock]() { return clock.nsecsElapsed() >= SPELL_TURN_NS; };
     const auto due = [](const QTextBlock& block) {
-        const ParagraphData* data = ParagraphData::find(block);
-        return data == nullptr || !data->spelling.current;
+        const ParagraphData* paragraphData = ParagraphData::find(block);
+        return paragraphData == nullptr || !paragraphData->spelling.current;
     };
 
     // The paragraphs in view first; the view is painted again when their waves change
@@ -344,9 +344,9 @@ void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded
     }
 
     for (QTextBlock block = first; block.isValid(); block = block.next()) {
-        ParagraphData* data = ParagraphData::find(block);  // none: a new paragraph, due
-        if (data != nullptr) {
-            ParagraphCheck& check = data->spelling;
+        ParagraphData* paragraphData = ParagraphData::find(block);  // none: a new paragraph, due
+        if (paragraphData != nullptr) {
+            ParagraphCheck& check = paragraphData->spelling;
             const QString text = block.text();
             // A paragraph with the text its waves were found in keeps them (a new format)
             if (check.issues.empty() || check.text != text) {
@@ -390,8 +390,8 @@ void BookEditor::endSpellingTyping()
 {
     const QTextBlock typed = m_textBuffer ? m_textBuffer->findBlock(m_spellTyping) : QTextBlock();
     m_spellTyping = -1;
-    if (ParagraphData* data = ParagraphData::find(typed)) {
-        data->spelling.current = false;
+    if (ParagraphData* paragraphData = ParagraphData::find(typed)) {
+        paragraphData->spelling.current = false;
     }
     if (m_spellCheckService != nullptr && m_spellCheckService->isActive()) {
         scheduleSpellCheck(0);
