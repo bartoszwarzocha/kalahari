@@ -1285,7 +1285,7 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::core::RecentBooksManager</name>
+    <name>kalahari::gui::RecentBooksMenu</name>
     <message>
         <source>Recent Books</source>
         <translation>Ostatnie książki</translation>
