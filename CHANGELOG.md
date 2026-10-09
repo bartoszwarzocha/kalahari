@@ -343,6 +343,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
+  shows the pages at their size on paper; when the display scaling (for example 125% to
+  150% in the Windows settings) or the screen's resolution changed while the program ran,
+  the pages kept the old scale until the next start. The editor now follows the change at
+  once.
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
   front: its command is greyed out without one, and it goes off when the Dashboard or no

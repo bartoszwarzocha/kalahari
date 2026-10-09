@@ -9,6 +9,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
+#include <QGuiApplication>
 #include <QMessageBox>
 #include <QScreen>
 #include <QVBoxLayout>
@@ -45,6 +46,20 @@ EditorPanel::EditorPanel(QWidget* parent)
             });
 
     setLayout(layout);
+
+    // A screen's display scaling or resolution changed while the program runs: the pages
+    // keep their size on paper (every screen is watched, as the panel can move to any)
+    const auto followScreen = [this](QScreen* screen) {
+        connect(screen, &QScreen::physicalDotsPerInchChanged, this,
+                &EditorPanel::applyPaperScale);
+        connect(screen, &QScreen::logicalDotsPerInchChanged, this,
+                &EditorPanel::applyPaperScale);
+    };
+    const QList<QScreen*> screens = QGuiApplication::screens();
+    for (QScreen* screen : screens) {
+        followScreen(screen);
+    }
+    connect(qGuiApp, &QGuiApplication::screenAdded, this, followScreen);
 
     // A changed editor setting reaches the editor, wherever it was changed: the Settings
     // dialog, the View menu or the context menu of another editor
