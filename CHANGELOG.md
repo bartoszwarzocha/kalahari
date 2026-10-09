@@ -270,6 +270,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
+  short story collection, non-fiction, screenplay, poetry collection) are data packages in
+  `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
+  offers in each part of the book and in the Workshop, what a new book starts with, and its
+  styles. A registry in core loads and checks them. Nothing uses it yet, so the program
+  works as before; the New Book and Add Element windows will use it in later stages.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
