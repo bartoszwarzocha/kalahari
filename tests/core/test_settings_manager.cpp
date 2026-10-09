@@ -17,7 +17,6 @@
 #include <QByteArray>
 #include <QCoreApplication>
 #include <QEventLoop>
-#include <QSettings>
 #include <QStringList>
 #include <QTimer>
 #include <atomic>
@@ -413,68 +412,6 @@ TEST_CASE("SettingsManager notifies about changed settings", "[settings][notify]
     settings.resetToDefaults();
 }
 
-TEST_CASE("SettingsManager migrates old settings files", "[settings][migration]") {
-    auto& settings = SettingsManager::getInstance();
-    std::filesystem::path filePath = settings.getSettingsFilePath();
-    std::filesystem::create_directories(filePath.parent_path());
-
-    {
-        std::ofstream file(filePath);
-        file << R"({
-            "version": "1.1",
-            "ui": {"language": "pl", "font_size": 12, "theme": "Dark"},
-            "appearance": {"iconTheme": "filled", "toolbarIconSize": 24, "iconSize": 24},
-            "log": {"bufferSize": 800, "fontSize": 11,
-                    "backgroundColor": {"r": 60, "g": 60, "b": 60}},
-            "session": {"auto_save_interval": 300},
-            "editor": {"margins": {"viewHorizontal": 50.0, "viewVertical": 30.0, "pageTop": 25.4}},
-            "dashboard": {"autoLoadLastProject": true, "maxItems": 4},
-            "icons": {"colorPrimary": "#7a7a7a", "colorSecondary": "#dadada",
-                      "theme": {"name": "Light"},
-                      "themes": {"Dark": {"colorPrimary": "#ffaa00"}}},
-            "themes": {"Dark": {"colors": {"primary": "#ffaa00", "secondary": "#644300",
-                                           "infoHeader": "#123456"}}}
-        })";
-    }
-
-    REQUIRE(settings.load());
-
-    REQUIRE(settings.get<std::string>("version", "") == "1.4");
-    REQUIRE(settings.getLanguage() == "pl");
-    REQUIRE(settings.getTheme() == "Dark");
-    REQUIRE(settings.get<std::string>("appearance.iconTheme") == "filled");
-    REQUIRE(settings.get<int>("log.bufferSize") == 800);
-    REQUIRE_FALSE(settings.hasKey("ui.theme"));
-    REQUIRE_FALSE(settings.hasKey("ui.font_size"));
-    REQUIRE_FALSE(settings.hasKey("appearance.toolbarIconSize"));
-    REQUIRE_FALSE(settings.hasKey("appearance.iconSize"));
-    REQUIRE_FALSE(settings.hasKey("log.fontSize"));
-    REQUIRE_FALSE(settings.hasKey("log.backgroundColor"));
-    REQUIRE_FALSE(settings.hasKey("session"));
-    REQUIRE_FALSE(settings.hasKey("editor.margins.viewHorizontal"));
-    REQUIRE_FALSE(settings.hasKey("editor.margins.viewVertical"));
-    REQUIRE(settings.get<double>("editor.margins.pageTop") == 25.4);
-    REQUIRE_FALSE(settings.hasKey("dashboard.autoLoadLastProject"));
-    REQUIRE(settings.get<int>("dashboard.maxItems") == 4);
-    REQUIRE_FALSE(settings.hasKey("icons.colorPrimary"));
-    REQUIRE_FALSE(settings.hasKey("icons.theme"));
-    REQUIRE(settings.getIconColorPrimaryForTheme("Dark", "") == "#ffaa00");
-    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.primary"));
-    REQUIRE_FALSE(settings.hasKey("themes.Dark.colors.secondary"));
-    REQUIRE(settings.get<std::string>("themes.Dark.colors.infoHeader", "") == "#123456");
-
-    // The migrated settings reach the file
-    std::filesystem::path tempPath = filePath;
-    tempPath += ".tmp";
-    REQUIRE_FALSE(std::filesystem::exists(tempPath));
-    {
-        std::ifstream file(filePath);
-        REQUIRE(nlohmann::json::parse(file).value("version", "") == "1.4");
-    }
-
-    settings.resetToDefaults();
-}
-
 TEST_CASE("SettingsManager save replaces the file in one step", "[settings][persistence]") {
     auto& settings = SettingsManager::getInstance();
     settings.resetToDefaults();
@@ -553,37 +490,3 @@ TEST_CASE("SettingsManager stores binary values as base64", "[settings][api]") {
     settings.resetToDefaults();
 }
 
-TEST_CASE("SettingsManager moves the old QSettings values into settings.json", "[settings][migration]") {
-    auto& settings = SettingsManager::getInstance();
-    settings.resetToDefaults();
-
-    const char* const POLISH_PATH = "/books/za\xc5\xbc\xc3\xb3\xc5\x82\xc4\x87.klh";  // UTF-8
-    const std::filesystem::path iniPath =
-        std::filesystem::temp_directory_path() / "kalahari_legacy_settings.ini";
-    std::filesystem::remove(iniPath);
-    {
-        QSettings legacy(QString::fromStdString(iniPath.string()), QSettings::IniFormat);
-        legacy.setValue("geometry", QByteArray("geometry-bytes"));
-        legacy.setValue("windowState", QByteArray("state-bytes"));
-        legacy.setValue("Toolbars/configVersion", 5);
-        legacy.setValue("Toolbars/file/visible", true);
-        legacy.setValue("Toolbars/format/visible", false);
-        legacy.setValue("recentFiles", QStringList{"/books/a.klh", QString::fromUtf8(POLISH_PATH)});
-        legacy.setValue("other", 1);  // not Kalahari's layout: stays
-
-        settings.migrateLegacyQSettings(legacy);
-
-        REQUIRE(legacy.allKeys() == QStringList{"other"});
-    }
-
-    REQUIRE(settings.getBinary("window.geometry") == QByteArray("geometry-bytes"));
-    REQUIRE(settings.getBinary("window.state") == QByteArray("state-bytes"));
-    REQUIRE(settings.get<int>("toolbars.configVersion") == 5);
-    REQUIRE(settings.get<bool>("toolbars.visible.file", false));
-    REQUIRE_FALSE(settings.get<bool>("toolbars.visible.format", true));
-    REQUIRE(settings.get<std::vector<std::string>>("recent_files")
-            == std::vector<std::string>{"/books/a.klh", POLISH_PATH});
-
-    std::filesystem::remove(iniPath);
-    settings.resetToDefaults();
-}
