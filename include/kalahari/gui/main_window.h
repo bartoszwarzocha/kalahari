@@ -17,6 +17,7 @@
 #include <QTabWidget>
 #include <QLabel>
 #include <QMap>
+#include <memory>
 #include <optional>
 #include <filesystem>
 #include "kalahari/core/document.h"
@@ -140,7 +141,7 @@ private:
 
     /// @brief Create main toolbar from CommandRegistry
     ///
-    /// Uses ToolbarBuilder to dynamically build toolbar from registered commands.
+    /// Uses ToolbarManager to build the toolbars from registered commands.
     void createToolbars();
 
     /// @brief Create status bar
@@ -317,10 +318,10 @@ private:
     QMenu* m_helpMenu;
 
     // Toolbars (Task #00019)
-    ToolbarManager* m_toolbarManager;
+    std::unique_ptr<ToolbarManager> m_toolbarManager;
 
     // Menu builder (Task #00025 - centralized icon refresh)
-    MenuBuilder* m_menuBuilder;
+    std::unique_ptr<MenuBuilder> m_menuBuilder;
 
     // Dock/panel coordinator (OpenSpec #00038 Phase 4)
     DockCoordinator* m_dockCoordinator;  ///< Manages dock widgets and panels

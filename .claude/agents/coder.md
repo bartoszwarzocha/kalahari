@@ -27,7 +27,7 @@ hooks:
             3. Config: core::SettingsManager::getInstance().get<T>()/set<T>() — getValue()/setValue() do NOT exist
             4. UI strings: tr("...") — NOT hardcoded strings
             5. Colors: ArtProvider/ThemeManager colors — NOT hardcoded QColor(r,g,b)
-               (exception: theme defaults in fallback_theme.cpp / theme.cpp)
+               (exception: theme defaults in theme.cpp / theme_manager.cpp)
             6. Logging: core::Logger::getInstance() — NOT qDebug/cout
 
             UI PATTERNS (when writing widgets/dialogs/panels):
