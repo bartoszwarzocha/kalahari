@@ -40,8 +40,8 @@ enum class AnnotationScope {
 
 /// @brief Which annotations by their state
 enum class AnnotationStateFilter {
-    Open,  ///< Not done: open TODOs, unresolved comments and the notes
-    Done,  ///< Done TODOs and resolved comments
+    Open,  ///< Not done: open to-dos, unresolved comments and the notes
+    Done,  ///< Done to-dos and resolved comments
     All,   ///< Every one
 };
 
@@ -57,13 +57,14 @@ enum class AnnotationDateFilter {
 enum class AnnotationSort {
     TextOrder,  ///< As in the book: chapter by chapter, in the order of the text
     Newest,     ///< The newest first
+    ByKind,     ///< Comments, to-dos, then notes; each kind in the order of the text
 };
 
 /// @brief Which annotations the panel shows
 struct AnnotationFilter {
     QString text;                                               ///< Text they contain, in any case; empty: any
     bool comments = true;                                       ///< Comments are shown
-    bool todos = true;                                          ///< TODOs are shown
+    bool todos = true;                                          ///< To-dos are shown
     bool notes = true;                                          ///< Notes are shown
     AnnotationStateFilter state = AnnotationStateFilter::Open;  ///< By state
     AnnotationDateFilter date = AnnotationDateFilter::Any;      ///< By date

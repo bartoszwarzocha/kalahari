@@ -169,7 +169,9 @@ set(KALAHARI_SOURCES
     gui/toolbar_builder.cpp
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
+    gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
+    gui/panels/annotation_frame.cpp
     gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
@@ -249,6 +251,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h

@@ -73,6 +73,16 @@ void sortEntries(std::vector<AnnotationEntry>& entries, AnnotationSort sort) {
         std::stable_sort(entries.begin(), entries.end(), textOrder);
         return;
     }
+    if (sort == AnnotationSort::ByKind) {
+        // In the order of the kinds (comments, to-dos, notes), each in the order of the text
+        std::stable_sort(entries.begin(), entries.end(),
+                         [&textOrder](const AnnotationEntry& a, const AnnotationEntry& b) {
+                             const auto kindA = static_cast<int>(a.annotation.kind);
+                             const auto kindB = static_cast<int>(b.annotation.kind);
+                             return kindA != kindB ? kindA < kindB : textOrder(a, b);
+                         });
+        return;
+    }
 
     // The newest first; those made at an unknown time last, in the order of the text
     std::stable_sort(entries.begin(), entries.end(),

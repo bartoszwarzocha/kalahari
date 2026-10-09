@@ -1,5 +1,6 @@
 /// @file annotations_coordinator.cpp
-/// @brief The writer's annotations: the commands for them and the Annotations panel
+/// @brief The writer's annotations: the commands for them, the frame their text is written
+/// in and the Annotations panel
 
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/core/art_provider.h"
@@ -10,19 +11,25 @@
 #include "kalahari/core/part.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/gui/command_registry.h"
-#include "kalahari/gui/panels/annotation_card.h"
+#include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/panels/annotation_frame.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
+#include <QAction>
+#include <QApplication>
 #include <QDockWidget>
+#include <QEvent>
 #include <QFileInfo>
 #include <QMenu>
-#include <QScopedValueRollback>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTextBlock>
 #include <QTextDocument>
 #include <QTimer>
 
@@ -36,13 +43,10 @@ namespace kalahari::gui {
 
 namespace {
 
-/// @brief How long after the last key the typed text goes to the document (ms)
-constexpr int TEXT_DELAY_MS = 250;
-
 /// @brief How long after the last edit of the text the panel lists the annotations (ms)
 constexpr int REFRESH_DELAY_MS = 300;
 
-/// @brief How long the message that there is no further TODO stays (ms)
+/// @brief How long the message that there is no further to-do stays (ms)
 constexpr int MESSAGE_TIMEOUT_MS = 3000;
 
 /// @brief The commands of the annotations, whose state follows the document in front
@@ -68,9 +72,28 @@ std::optional<editor::AnnotationPlace> placeOf(const editor::BookEditor& editor,
     return editor::findAnnotation(*document, annotationId);
 }
 
-/// @brief A TODO not done yet
+/// @brief A to-do not done yet
 bool isOpenTodo(const editor::Annotation& annotation) {
     return annotation.kind == editor::AnnotationKind::Todo && !annotation.done;
+}
+
+/// @brief A cursor over a range of a document: it follows the edits of the text
+QTextCursor rangeCursor(QTextDocument* document, int start, int end) {
+    QTextCursor cursor(document);
+    cursor.setPosition(start);
+    cursor.setPosition(end, QTextCursor::KeepAnchor);
+    return cursor;
+}
+
+/// @brief Put the editor's cursor on a place of its document, with nothing selected
+void placeCursor(editor::BookEditor& editor, int position) {
+    const QTextDocument* document = editor.textDocument();
+    if (document == nullptr) {
+        return;
+    }
+    const QTextBlock block = document->findBlock(position);
+    editor.clearSelection();
+    editor.setCursorPosition({block.blockNumber(), position - block.position()});
 }
 
 }  // namespace
@@ -85,11 +108,6 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
     , m_openChapter(std::move(openChapter))
     , m_statusBar(statusBar)
 {
-    m_textTimer = new QTimer(this);
-    m_textTimer->setSingleShot(true);
-    m_textTimer->setInterval(TEXT_DELAY_MS);
-    connect(m_textTimer, &QTimer::timeout, this, &AnnotationsCoordinator::applyPendingText);
-
     m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
@@ -110,11 +128,8 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
 
     connect(m_panel, &AnnotationsPanel::annotationActivated, this,
             &AnnotationsCoordinator::onAnnotationActivated);
-    connect(m_panel, &AnnotationsPanel::editingStarted, this,
-            &AnnotationsCoordinator::onEditingStarted);
-    connect(m_panel, &AnnotationsPanel::textEdited, this, &AnnotationsCoordinator::onTextEdited);
-    connect(m_panel, &AnnotationsPanel::editingFinished, this,
-            &AnnotationsCoordinator::onEditingFinished);
+    connect(m_panel, &AnnotationsPanel::editRequested, this,
+            &AnnotationsCoordinator::onEditRequested);
     connect(m_panel, &AnnotationsPanel::doneToggled, this, &AnnotationsCoordinator::onDoneToggled);
     connect(m_panel, &AnnotationsPanel::deleteRequested, this,
             &AnnotationsCoordinator::onDeleteRequested);
@@ -137,6 +152,9 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
 
 AnnotationsCoordinator::~AnnotationsCoordinator() {
     disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
+    if (m_frame != nullptr) {
+        m_frame->disconnect(this);  // the frame goes with its editor
+    }
 }
 
 void AnnotationsCoordinator::connectCommands() {
@@ -150,24 +168,26 @@ void AnnotationsCoordinator::connectCommands() {
         }
     };
 
-    const auto canAdd = [this]() { return m_addingAvailable && currentEditor() != nullptr; };
     const auto hasDocument = [this]() { return currentEditor() != nullptr; };
-    connectCommand("insert.annotation", [this]() { showAddMenu(); }, canAdd);
+    connectCommand("insert.annotation", [this]() { showAddMenu(); }, hasDocument);
     connectCommand(
-        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, canAdd);
-    connectCommand("insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, canAdd);
-    connectCommand("insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, canAdd);
+        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, hasDocument);
+    connectCommand(
+        "insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, hasDocument);
+    connectCommand(
+        "insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, hasDocument);
     connectCommand("edit.nextTodo", [this]() { goToNextTodo(); }, hasDocument);
     connectCommand("edit.previousTodo", [this]() { goToPreviousTodo(); }, hasDocument);
+
+    // F9 goes to the panel and back; Annotations in the menu shows or hides the panel
+    m_panelAction = registry.getAction(QStringLiteral("view.annotations"));
+    if (m_panelAction != nullptr) {
+        m_panelAction->installEventFilter(this);
+    }
 
     m_panel->setTodoActions(registry.getAction(QStringLiteral("edit.previousTodo")),
                             registry.getAction(QStringLiteral("edit.nextTodo")));
     onCurrentTabChanged();  // the context menu of the document in front
-}
-
-void AnnotationsCoordinator::setAddingAvailable(bool available) {
-    m_addingAvailable = available;
-    updateCommandStates();
 }
 
 QString AnnotationsCoordinator::author() {
@@ -193,6 +213,14 @@ QString AnnotationsCoordinator::author() {
     return name.trimmed();
 }
 
+bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_panelAction && event->type() == QEvent::Shortcut) {
+        togglePanelFocus();
+        return true;
+    }
+    return QObject::eventFilter(watched, event);
+}
+
 // =============================================================================
 // Commands
 // =============================================================================
@@ -200,39 +228,35 @@ QString AnnotationsCoordinator::author() {
 bool AnnotationsCoordinator::addAnnotation(editor::AnnotationKind kind) {
     EditorPanel* panel = currentEditorPanel();
     editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr;
-    if (editor == nullptr || !m_addingAvailable) {
+    if (editor == nullptr) {
         return false;
     }
-    finishSession();  // the text of another one was being edited
-
-    editor::Annotation added;
-    {
-        const QScopedValueRollback<bool> applying(m_applying, true);
-        added = editor->addAnnotation(kind, QString(), author());
+    finishWriting();  // the text of the open frame is kept
+    const QTextCursor selection = editor->selectionCursor();
+    if (selection.isNull()) {
+        return false;
     }
 
-    // Its text is typed in its card
-    if (m_dock != nullptr) {
-        m_dock->show();
-        m_dock->raise();
-    }
-    refresh();
-    const QString key = annotationKey(elementIdOf(panel), added.id);
-    startSession(key, added.id, editor, true);
-    m_panel->editAnnotation(key);
+    Writing writing;
+    writing.editor = editor;
+    writing.elementId = elementIdOf(panel);
+    writing.kind = kind;
+    writing.range =
+        rangeCursor(selection.document(), selection.selectionStart(), selection.selectionEnd());
+    openFrame(writing, QString());
     return true;
 }
 
 void AnnotationsCoordinator::showAddMenu() {
     editor::BookEditor* editor = currentEditor();
-    if (editor == nullptr || !m_addingAvailable) {
+    if (editor == nullptr) {
         return;
     }
 
     auto& art = core::ArtProvider::getInstance();
     QMenu menu(editor);
     QAction* comment = menu.addAction(art.getIcon("insert.comment"), tr("&Comment"));
-    QAction* todo = menu.addAction(art.getIcon("insert.todo"), tr("&TODO"));
+    QAction* todo = menu.addAction(art.getIcon("insert.todo"), tr("&To do"));
     QAction* note = menu.addAction(art.getIcon("insert.note"), tr("&Note"));
 
     // Under the cursor
@@ -245,6 +269,45 @@ void AnnotationsCoordinator::showAddMenu() {
     } else if (chosen == note) {
         addAnnotation(editor::AnnotationKind::Note);
     }
+}
+
+bool AnnotationsCoordinator::editAnnotation(const QString& elementId, const QString& annotationId,
+                                            bool fromPanel) {
+    finishWriting();  // the text of the open frame is kept
+
+    // An annotation of a chapter not in front is edited after its chapter is brought to the
+    // front (opened when it is not), so the chapter's undo history has the change
+    const editor::BookEditor* inFront = currentEditor();
+    editor::BookEditor* editor = editorFor(elementId);
+    const std::optional<editor::AnnotationPlace> place =
+        editor != nullptr ? placeOf(*editor, annotationId) : std::nullopt;
+    if (!place) {
+        return false;
+    }
+    if (fromPanel) {
+        editor->goToAnnotation(annotationId);  // the text shows its place
+    }
+
+    Writing writing;
+    writing.editor = editor;
+    writing.elementId = elementId;
+    writing.annotationId = annotationId;
+    writing.kind = place->annotation.kind;
+    writing.range = rangeCursor(editor->textDocument(), place->start, place->end);
+    writing.fromPanel = fromPanel;
+    openFrame(writing, place->annotation.text);
+
+    // Bringing the chapter to the front may take the keys from the frame: they go back
+    if (editor != inFront) {
+        AnnotationFrame* frame = m_frame;
+        QTimer::singleShot(0, frame, [frame]() {
+            const QWidget* focus = QApplication::focusWidget();
+            if (focus == nullptr || !frame->isAncestorOf(focus)) {
+                frame->startTyping();
+            }
+        });
+    }
+    return true;
 }
 
 bool AnnotationsCoordinator::goToNextTodo() {
@@ -272,8 +335,8 @@ bool AnnotationsCoordinator::goToTodo(bool next) {
     }
 
     if (m_statusBar != nullptr) {
-        m_statusBar->showMessage(next ? tr("No TODO after the cursor")
-                                      : tr("No TODO before the cursor"),
+        m_statusBar->showMessage(next ? tr("No to-do after the cursor")
+                                      : tr("No to-do before the cursor"),
                                  MESSAGE_TIMEOUT_MS);
     }
     return false;
@@ -292,7 +355,7 @@ bool AnnotationsCoordinator::goToTodoInOtherChapter(bool next) {
         return false;
     }
 
-    // The first TODO of a chapter after it, or the last one of a chapter before it
+    // The first to-do of a chapter after it, or the last one of a chapter before it
     if (next) {
         for (auto chapter = std::next(current); chapter != chapters.cend(); ++chapter) {
             const auto todo = std::find_if(chapter->annotations.cbegin(),
@@ -321,6 +384,29 @@ bool AnnotationsCoordinator::goToAnnotation(const QString& elementId,
     }
     m_panel->selectAnnotation(annotationKey(elementId, annotationId));
     return true;
+}
+
+void AnnotationsCoordinator::togglePanelFocus() {
+    if (m_dock == nullptr) {
+        return;
+    }
+
+    // From the panel: it goes, and the keys go back to the text
+    if (m_panel->hasFocusInside()) {
+        m_dock->hide();
+        if (editor::BookEditor* editor = currentEditor()) {
+            editor->setFocus(Qt::ShortcutFocusReason);
+        }
+        return;
+    }
+
+    // To the panel, with the card of the annotation at the cursor
+    m_dock->show();
+    m_dock->raise();
+    if (m_stale) {
+        refresh();
+    }
+    m_panel->focusList(keyAtCursor());
 }
 
 void AnnotationsCoordinator::refresh() {
@@ -485,6 +571,32 @@ editor::AnnotationList AnnotationsCoordinator::fileAnnotations(const QString& el
     return annotations;
 }
 
+QString AnnotationsCoordinator::keyAtCursor() const {
+    EditorPanel* panel = currentEditorPanel();
+    const editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr;
+    if (editor == nullptr) {
+        return {};
+    }
+    const int position = editor->selectionCursor().selectionStart();
+    const std::vector<editor::AnnotationPlace> places = editor->annotations();  // by their ends
+
+    // The one the cursor is in or on, else the last one before it, else the first one after
+    const editor::AnnotationPlace* found = nullptr;
+    for (const editor::AnnotationPlace& place : places) {
+        if (place.start <= position && position <= place.end) {
+            found = &place;
+            break;
+        }
+        if (place.end <= position) {
+            found = &place;
+        }
+    }
+    if (found == nullptr && !places.empty()) {
+        found = &places.front();
+    }
+    return found != nullptr ? annotationKey(elementIdOf(panel), found->annotation.id) : QString();
+}
+
 // =============================================================================
 // The panel
 // =============================================================================
@@ -497,6 +609,8 @@ void AnnotationsCoordinator::onCurrentTabChanged() {
                                        registry.getAction(QStringLiteral("insert.note"))});
         connect(editor, &editor::BookEditor::contentChanged, this,
                 &AnnotationsCoordinator::onEditorContentChanged, Qt::UniqueConnection);
+        connect(editor, &editor::BookEditor::annotationMarkClicked, this,
+                &AnnotationsCoordinator::onMarkClicked, Qt::UniqueConnection);
     }
     updateCommandStates();
     if (m_panel->isVisible()) {
@@ -507,19 +621,13 @@ void AnnotationsCoordinator::onCurrentTabChanged() {
 }
 
 void AnnotationsCoordinator::onEditorContentChanged() {
-    // The writer changed the document: the next change of the edited annotation's text is
-    // a step of its own
-    if (!m_applying && m_session && m_session->editor == sender()) {
-        m_session->joinable = false;
+    // An annotation edited in the frame and taken off the text meanwhile (Ctrl+Z): nothing
+    // to write its text to
+    if (m_writing && m_writing->editor == sender() && !m_writing->annotationId.isEmpty() &&
+        !placeOf(*m_writing->editor, m_writing->annotationId)) {
+        cancelWriting();
     }
     scheduleRefresh();
-}
-
-void AnnotationsCoordinator::onEditorDestroyed(QObject* editor) {
-    if (m_session && m_session->editor == editor) {
-        m_textTimer->stop();
-        m_session.reset();
-    }
 }
 
 void AnnotationsCoordinator::scheduleRefresh() {
@@ -541,52 +649,11 @@ void AnnotationsCoordinator::onAnnotationActivated(const AnnotationEntry& entry)
     goToAnnotation(entry.elementId, entry.annotation.id);
 }
 
-void AnnotationsCoordinator::onEditingStarted(const AnnotationEntry& entry) {
-    const QString key = entry.key();
-    if (m_session && m_session->key == key) {
-        return;  // a new one: its editing started when it was added
-    }
-    finishSession();
-
-    // An annotation of a chapter not in front is edited after its chapter is brought to the
-    // front (opened when it is not), so the chapter's undo history has the change
-    const editor::BookEditor* inFront = currentEditor();
-    editor::BookEditor* editor = editorFor(entry.elementId);
-    if (editor == nullptr) {
-        return;
-    }
-    editor->goToAnnotation(entry.annotation.id);
-    startSession(key, entry.annotation.id, editor, false);
-
-    // Bringing the chapter to the front may have taken the keys from the card: they go back
-    if (editor != inFront) {
-        QTimer::singleShot(0, this, [this, key]() {
-            if (const AnnotationCard* card = m_panel->card(key);
-                card == nullptr || !card->isEditing()) {
-                m_panel->editAnnotation(key);
-            }
-        });
-    }
-}
-
-void AnnotationsCoordinator::onTextEdited(const AnnotationEntry& entry, const QString& text) {
-    if (m_session && m_session->key == entry.key()) {
-        m_session->pendingText = text;
-        m_textTimer->start();
-    }
-}
-
-void AnnotationsCoordinator::onEditingFinished(const AnnotationEntry& entry) {
-    if (m_session && m_session->key == entry.key()) {
-        finishSession();
-    }
+void AnnotationsCoordinator::onEditRequested(const AnnotationEntry& entry) {
+    editAnnotation(entry.elementId, entry.annotation.id, true);
 }
 
 void AnnotationsCoordinator::onDoneToggled(const AnnotationEntry& entry, bool done) {
-    if (m_session && m_session->key == entry.key()) {
-        applyPendingText();  // the text typed so far first
-    }
-
     editor::BookEditor* editor = editorFor(entry.elementId);
     const std::optional<editor::AnnotationPlace> place =
         editor != nullptr ? placeOf(*editor, entry.annotation.id) : std::nullopt;
@@ -599,20 +666,11 @@ void AnnotationsCoordinator::onDoneToggled(const AnnotationEntry& entry, bool do
 }
 
 void AnnotationsCoordinator::onDeleteRequested(const AnnotationEntry& entry) {
-    // Its text being typed no longer matters
-    if (m_session && m_session->key == entry.key()) {
-        const EditSession session = *m_session;
-        m_textTimer->stop();
-        m_session.reset();
-        if (session.isNew && session.joinable) {
-            // Just added and nothing else done since: as if it was never added
-            const QScopedValueRollback<bool> applying(m_applying, true);
-            session.editor->undoWithoutRedo();
-            refresh();
-            return;
-        }
+    // Its frame has nothing to write to any more
+    if (m_writing && m_writing->annotationId == entry.annotation.id &&
+        m_writing->elementId == entry.elementId) {
+        cancelWriting();
     }
-
     if (editor::BookEditor* editor = editorFor(entry.elementId)) {
         editor->removeAnnotation(entry.annotation.id);
     }
@@ -622,72 +680,172 @@ void AnnotationsCoordinator::onDeleteRequested(const AnnotationEntry& entry) {
 void AnnotationsCoordinator::onEditorFocusRequested() {
     if (editor::BookEditor* editor = currentEditor()) {
         editor->setFocus(Qt::OtherFocusReason);
-    } else {
-        m_panel->focusList();  // the editing ends all the same
     }
 }
 
 // =============================================================================
-// Editing an annotation's text
+// The frame
 // =============================================================================
 
-void AnnotationsCoordinator::startSession(const QString& key, const QString& annotationId,
-                                          editor::BookEditor* editor, bool isNew) {
-    // A new one's text joins the step that added it
-    m_session = EditSession{key, annotationId, editor, isNew, isNew, std::nullopt};
-    connect(editor, &QObject::destroyed, this, &AnnotationsCoordinator::onEditorDestroyed,
-            Qt::UniqueConnection);
+void AnnotationsCoordinator::onMarkClicked(const QString& annotationId) {
+    if (sender() == currentEditor()) {
+        editAnnotation(elementIdOf(currentEditorPanel()), annotationId, false);
+    }
 }
 
-void AnnotationsCoordinator::applyPendingText() {
-    m_textTimer->stop();
-    if (!m_session || !m_session->pendingText) {
-        return;
-    }
-    const QString text = *m_session->pendingText;
-    m_session->pendingText.reset();
+void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& text) {
+    m_writing = writing;
+    auto* frame = new AnnotationFrame(writing.editor);
+    m_frame = frame;
+    frame->setKind(writing.kind);
+    frame->setText(text);
+    connect(frame, &AnnotationFrame::saveRequested, this, &AnnotationsCoordinator::saveWriting);
+    connect(frame, &AnnotationFrame::cancelRequested, this, &AnnotationsCoordinator::cancelWriting);
 
-    editor::BookEditor* editor = m_session->editor;
-    const std::optional<editor::AnnotationPlace> place = placeOf(*editor, m_session->annotationId);
-    if (!place) {
-        m_session.reset();  // undone or removed meanwhile
-        return;
-    }
-    if (place->annotation.text == text) {
-        return;
-    }
+    // A closed tab takes the frame with its editor: nothing is left to write
+    connect(frame, &QObject::destroyed, this, [this]() {
+        m_frame = nullptr;
+        m_writing.reset();
+    });
 
-    editor::Annotation changed = place->annotation;
-    changed.text = text;
-    {
-        const QScopedValueRollback<bool> applying(m_applying, true);
-        editor->updateAnnotation(changed, m_session->joinable);
+    // In the colors of the paper, also when the paper or the theme changes
+    connect(writing.editor, &editor::BookEditor::appearanceChanged, frame,
+            [this]() { colorFrame(); });
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, frame,
+            [this]() { colorFrame(); });
+    colorFrame();
+
+    // At the end of its fragment, or on its place, as the text moves
+    frame->setPlacement([this]() {
+        AnnotationFrame::Placement placement;
+        if (m_writing && !m_writing->range.isNull()) {
+            const QTextCursor& range = m_writing->range;
+            placement.place = m_writing->editor->placeRect(range.selectionEnd(), range.hasSelection());
+            placement.column = m_writing->editor->textColumnRect();
+        }
+        return placement;
+    });
+    frame->show();
+    frame->raise();
+    frame->startTyping();
+
+    if (!writing.annotationId.isEmpty()) {
+        m_panel->selectAnnotation(annotationKey(writing.elementId, writing.annotationId));
     }
-    m_session->joinable = true;  // the rest of the typing joins this step
 }
 
-void AnnotationsCoordinator::finishSession() {
-    applyPendingText();
-    if (!m_session) {
+void AnnotationsCoordinator::saveWriting() {
+    if (!m_writing || m_frame == nullptr || !m_frame->canSave()) {
         return;
     }
-    const EditSession session = *m_session;
-    m_session.reset();
+    const QString text = m_frame->text();
+    const Writing writing = *m_writing;
+    editor::BookEditor* editor = writing.editor;
+    QString annotationId = writing.annotationId;
 
-    // A new one left without text goes away
-    if (session.isNew) {
-        const std::optional<editor::AnnotationPlace> place =
-            placeOf(*session.editor, session.annotationId);
-        if (place && place->annotation.text.trimmed().isEmpty()) {
-            const QScopedValueRollback<bool> applying(m_applying, true);
-            if (session.joinable) {
-                session.editor->undoWithoutRedo();  // nothing else done since it was added
-            } else {
-                session.editor->removeAnnotation(session.annotationId);
+    if (annotationId.isEmpty()) {
+        // A new one, on the text it was written for (or its place, when it went meanwhile)
+        const QTextCursor& range = writing.range;
+        if (!range.isNull() && range.document() == editor->textDocument()) {
+            const QTextCursor selection = editor->selectionCursor();
+            const bool selectionStays = range.hasSelection() &&
+                                        selection.selectionStart() == range.selectionStart() &&
+                                        selection.selectionEnd() == range.selectionEnd();
+            annotationId = editor
+                               ->addAnnotation(range.selectionStart(), range.selectionEnd(),
+                                               writing.kind, text, author())
+                               .id;
+
+            // The writer goes on after the fragment: typing does not replace it
+            if (selectionStays) {
+                placeCursor(*editor, range.selectionEnd());
             }
         }
+    } else if (const std::optional<editor::AnnotationPlace> place = placeOf(*editor, annotationId)) {
+        if (place->annotation.text != text) {
+            editor::Annotation changed = place->annotation;
+            changed.text = text;
+            editor->updateAnnotation(changed);  // one step
+        }
+    } else {
+        annotationId.clear();  // taken off the text meanwhile
     }
-    scheduleRefresh();
+
+    closeFrame();
+    refresh();
+    if (!annotationId.isEmpty()) {
+        m_panel->selectAnnotation(annotationKey(writing.elementId, annotationId));
+    }
+}
+
+void AnnotationsCoordinator::cancelWriting() {
+    closeFrame();
+}
+
+void AnnotationsCoordinator::finishWriting(const editor::BookEditor* editor) {
+    if (!m_writing || (editor != nullptr && m_writing->editor != editor)) {
+        return;
+    }
+    if (m_frame != nullptr && m_frame->canSave()) {
+        saveWriting();
+    } else {
+        cancelWriting();
+    }
+}
+
+void AnnotationsCoordinator::closeFrame() {
+    AnnotationFrame* frame = m_frame;
+    const std::optional<Writing> writing = m_writing;
+    m_frame = nullptr;
+    m_writing.reset();
+    if (frame == nullptr) {
+        return;
+    }
+    frame->disconnect(this);  // its going tells nothing any more
+
+    // The keys go back where the writing came from, before the frame goes
+    const QWidget* focus = QApplication::focusWidget();
+    if (writing && focus != nullptr && (focus == frame || frame->isAncestorOf(focus))) {
+        const QString key = annotationKey(writing->elementId, writing->annotationId);
+        if (writing->fromPanel && m_panel->isVisible()) {
+            m_panel->focusList(key);
+        } else {
+            writing->editor->setFocus(Qt::OtherFocusReason);
+        }
+    }
+    frame->hide();
+    frame->deleteLater();
+}
+
+void AnnotationsCoordinator::colorFrame() {
+    if (m_frame == nullptr || !m_writing) {
+        return;
+    }
+
+    // The kind's color on this paper: the one its marks have
+    const editor::EditorAppearance& appearance = m_writing->editor->appearance();
+    const editor::EditorColorMode mode = appearance.colorMode;
+    const QColor paper = appearance.colors.background(mode);
+    const QColor text = appearance.colors.textColor(mode);
+    const editor::EditorColors::AnnotationColors& kinds = appearance.colors.annotations(mode);
+    QColor kind;
+    switch (m_writing->kind) {
+    case editor::AnnotationKind::Comment:
+        kind = kinds.comment;
+        break;
+    case editor::AnnotationKind::Todo:
+        kind = kinds.todo;
+        break;
+    case editor::AnnotationKind::Note:
+        kind = kinds.note;
+        break;
+    }
+    if (!kind.isValid()) {
+        kind = core::ThemeManager::getInstance().editorColor(
+            editor::annotationColorKey(m_writing->kind, mode == editor::EditorColorMode::Dark),
+            text);
+    }
+    m_frame->setColors(annotationCardColors(kind, paper, text));
 }
 
 }  // namespace kalahari::gui

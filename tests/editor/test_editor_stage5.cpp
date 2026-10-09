@@ -16,14 +16,17 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include "editor_test_utils.h"
 
+#include <QHelpEvent>
 #include <QImage>
 #include <QMouseEvent>
 #include <QScreen>
 #include <QScrollBar>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QToolTip>
 #include <QWheelEvent>
 #include <cmath>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -114,27 +117,151 @@ QRect marginOf(BookEditor& editor, int paragraph) {
 // Annotations and typed patterns are plain text
 // =============================================================================
 
-TEST_CASE("Stage5 highlights: annotations in the KML leave the text as it is",
+TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark at each open one",
           "[editor][stage5][highlight]") {
-    // Comments, TODOs and notes stay in the chapter (see the annotation tests) but are not
-    // drawn until their look is designed: no tint, underline or margin icon
+    // The fragments of comments, to-dos and notes are neither tinted nor underlined: each
+    // one not done has a small mark in its kind's color under its end, or under its place
     auto annotated = editorWith(QStringLiteral(
         "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"A\">C</annotation>"
-        "<annotation id=\"t1\" kind=\"todo\">T</annotation>"
+        "<annotation id=\"t1\" kind=\"todo\">Fix &lt;it&gt;</annotation>"
         "<annotation id=\"t2\" kind=\"todo\" done=\"true\">D</annotation>"
         "<annotation id=\"n1\" kind=\"note\">N</annotation>"
         "<annotation id=\"c2\" kind=\"comment\" done=\"true\">R</annotation></annotations>"
         "<p>Start <anchor ref=\"c1\">noted <b>text</b></anchor> and "
-        "<anchor ref=\"t1\">fix this</anchor> now<anchor ref=\"n1\"/></p>"
+        "<anchor ref=\"t1\">fix this</anchor> now<anchor ref=\"n1\"/></p><p></p>"
         "<p><anchor ref=\"t2\">done</anchor> aside <anchor ref=\"c2\">old</anchor></p></kml>"));
     auto plain = editorWith(kmlOf({QStringLiteral("Start noted <b>text</b> and fix this now"),
-                                   QStringLiteral("done aside old")}));
+                                   QString(), QStringLiteral("done aside old")}));
     REQUIRE(annotated->plainText() == plain->plainText());
-
     CHECK(highlightsOf(*annotated, 0).empty());
-    CHECK(highlightsOf(*annotated, 1).empty());
+    CHECK(highlightsOf(*annotated, 2).empty());
+
+    EditorAppearance appearance = annotated->appearance();
+    for (EditorColors::AnnotationColors* colors :
+         {&appearance.colors.annotationsLight, &appearance.colors.annotationsDark}) {
+        colors->comment = QColor(255, 0, 0);
+        colors->todo = QColor(0, 200, 0);
+        colors->note = QColor(0, 0, 255);
+    }
+    annotated->setAppearance(appearance);
     plain->setCursorPosition(annotated->cursorPosition());  // the caret at the same place
-    CHECK(differingPixels(editorImage(*annotated), editorImage(*plain), annotated->rect()) == 0);
+    const QImage marked = editorImage(*annotated);
+    const QImage text = editorImage(*plain);
+
+    // Where a mark may be: around its place, from the top of its line to a little under it
+    const auto markArea = [&annotated](int position, int size) {
+        const QRect line = annotated->placeRect(position, true).toAlignedRect();
+        return QRect(line.left() - size, line.top(), 2 * size, line.height() + size);
+    };
+    // After "noted text", "fix this" and "now"; the to-do done and the resolved comment
+    // after "done" and "old" in the last paragraph
+    const QRect comment = markArea(16, 12);
+    const QRect todo = markArea(29, 12);
+    const QRect note = markArea(33, 12);
+    const std::vector<QRect> open{comment, todo, note};
+    const std::vector<QRect> done{markArea(39, 12), markArea(49, 12)};
+    for (size_t i = 0; i < open.size(); ++i) {
+        for (size_t j = i + 1; j < open.size(); ++j) {
+            REQUIRE_FALSE(open[i].intersects(open[j]));
+        }
+        for (const QRect& area : done) {
+            REQUIRE_FALSE(open[i].intersects(area));
+        }
+    }
+
+    // Each open one has its mark; the text and the done ones have none
+    const int commentPixels = differingPixels(marked, text, comment);
+    const int todoPixels = differingPixels(marked, text, todo);
+    const int notePixels = differingPixels(marked, text, note);
+    CHECK(commentPixels > 0);
+    CHECK(todoPixels > 0);
+    CHECK(notePixels > 0);
+    CHECK(differingPixels(marked, text, annotated->rect()) ==
+          commentPixels + todoPixels + notePixels);
+
+    // In the colors of their kinds
+    const auto pixelsOf = [&marked](const QRect& area, const QColor& color) {
+        int count = 0;
+        for (int y = area.top(); y <= area.bottom(); ++y) {
+            for (int x = area.left(); x <= area.right(); ++x) {
+                const QColor pixel = QColor::fromRgb(marked.pixel(x, y));
+                if (std::abs(pixel.red() - color.red()) + std::abs(pixel.green() - color.green()) +
+                        std::abs(pixel.blue() - color.blue()) < 60) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    };
+    CHECK(pixelsOf(comment, QColor(255, 0, 0)) > 0);
+    CHECK(pixelsOf(todo, QColor(0, 200, 0)) > 0);
+    CHECK(pixelsOf(note, QColor(0, 0, 255)) > 0);
+    CHECK(pixelsOf(todo, QColor(255, 0, 0)) == 0);
+
+    // The middle of a mark: where the mouse finds it
+    const auto middleOf = [&marked, &text](const QRect& area) {
+        QPointF sum;
+        int count = 0;
+        for (int y = area.top(); y <= area.bottom(); ++y) {
+            for (int x = area.left(); x <= area.right(); ++x) {
+                if (marked.pixel(x, y) != text.pixel(x, y)) {
+                    sum += QPointF(x + 0.5, y + 0.5);
+                    ++count;
+                }
+            }
+        }
+        return count > 0 ? sum / count : QPointF();
+    };
+    const QPointF todoMark = middleOf(todo);
+    CHECK(annotated->annotationMarkAt(middleOf(comment)) == QStringLiteral("c1"));
+    CHECK(annotated->annotationMarkAt(todoMark) == QStringLiteral("t1"));
+    CHECK(annotated->annotationMarkAt(middleOf(note)) == QStringLiteral("n1"));
+    const QRectF start = annotated->placeRect(2, true);
+    CHECK(annotated->annotationMarkAt(start.center()).isEmpty());
+
+    SECTION("a click on a mark opens its annotation; the cursor stays") {
+        annotated->setCursorPosition({0, 2});
+        QStringList clicked;
+        QObject::connect(annotated.get(), &BookEditor::annotationMarkClicked,
+                         [&clicked](const QString& id) { clicked << id; });
+        QMouseEvent press(QEvent::MouseButtonPress, todoMark, annotated->mapToGlobal(todoMark),
+                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(annotated.get(), &press);
+        QMouseEvent release(QEvent::MouseButtonRelease, todoMark, annotated->mapToGlobal(todoMark),
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(annotated.get(), &release);
+        CHECK(clicked == QStringList{QStringLiteral("t1")});
+        CHECK(annotated->cursorPosition() == CursorPosition{0, 2});
+        CHECK_FALSE(annotated->hasSelection());
+    }
+
+    SECTION("the pointer is a hand over a mark") {
+        QMouseEvent overMark(QEvent::MouseMove, todoMark, annotated->mapToGlobal(todoMark),
+                             Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(annotated.get(), &overMark);
+        CHECK(annotated->cursor().shape() == Qt::PointingHandCursor);
+        QMouseEvent overText(QEvent::MouseMove, start.center(),
+                             annotated->mapToGlobal(start.center()), Qt::NoButton, Qt::NoButton,
+                             Qt::NoModifier);
+        QCoreApplication::sendEvent(annotated.get(), &overText);
+        CHECK(annotated->cursor().shape() == Qt::IBeamCursor);
+    }
+
+    SECTION("the tooltip of a mark is its annotation's text") {
+        QHelpEvent help(QEvent::ToolTip, todoMark.toPoint(),
+                        annotated->mapToGlobal(todoMark.toPoint()));
+        QCoreApplication::sendEvent(annotated.get(), &help);
+        CHECK(QToolTip::text().contains(QStringLiteral("Fix &lt;it&gt;")));
+        QToolTip::hideText();
+    }
+
+    SECTION("the size of the marks follows the appearance") {
+        appearance.annotationMarkScale = 2.0;
+        annotated->setAppearance(appearance);
+        const QImage larger = editorImage(*annotated);
+        CHECK(differingPixels(larger, text, markArea(29, 24)) > 3 * todoPixels);
+        CHECK(annotated->annotationMarkAt(todoMark) == QStringLiteral("t1"));
+    }
 }
 
 TEST_CASE("Stage5 highlights: typed TODO and comment patterns are plain text",

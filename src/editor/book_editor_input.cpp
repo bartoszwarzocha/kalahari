@@ -363,6 +363,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
+    // A click on an annotation's mark opens the annotation; the cursor stays
+    if (!(event->modifiers() & Qt::ShiftModifier)) {
+        const QString markId = annotationMarkAt(event->position());
+        if (!markId.isEmpty()) {
+            emit annotationMarkClicked(markId);
+            event->accept();
+            return;
+        }
+    }
+
     // Set focus on click
     setFocus();
 
@@ -461,8 +471,14 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // An arrow over the selected text, which can be dragged; an I-beam elsewhere
-        const Qt::CursorShape shape = isOverSelectedText(pos) ? Qt::ArrowCursor : Qt::IBeamCursor;
+        // A hand over an annotation's mark, which opens it; an arrow over the selected text,
+        // which can be dragged; an I-beam elsewhere
+        Qt::CursorShape shape = Qt::IBeamCursor;
+        if (!annotationMarkAt(pos).isEmpty()) {
+            shape = Qt::PointingHandCursor;
+        } else if (isOverSelectedText(pos)) {
+            shape = Qt::ArrowCursor;
+        }
         if (cursor().shape() != shape) {
             setCursor(shape);
         }

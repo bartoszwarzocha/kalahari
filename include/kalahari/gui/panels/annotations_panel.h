@@ -1,20 +1,23 @@
 /// @file annotations_panel.h
-/// @brief The Annotations panel: the comments, TODOs and notes of a chapter or the book
+/// @brief The Annotations panel: the comments, to-dos and notes of a chapter or the book
 
 #pragma once
 
+#include <kalahari/gui/panels/annotation_colors.h>
 #include <kalahari/gui/panels/annotation_entry.h>
 
 #include <QHash>
 #include <QWidget>
 
 #include <array>
+#include <functional>
 #include <vector>
 
 class QAbstractButton;
 class QAction;
 class QButtonGroup;
 class QComboBox;
+class QContextMenuEvent;
 class QLabel;
 class QLineEdit;
 class QScrollArea;
@@ -33,12 +36,16 @@ class AnnotationCard;
 ///
 /// Lists the annotations it is given as cards, with a search in their text, filters of
 /// kind, state and date, the scope (the chapter in front or the whole book) and the
-/// order. A card is selected by a click, which also asks to go to its place; its text is
-/// edited in place. The panel changes no annotation itself: it reports what the writer
-/// does, and the cards show the annotations it is given next.
+/// order. The panel is for looking through the annotations: a click on a card selects it
+/// and asks to go to its place; editing one is asked for, and its text is written in the
+/// frame at its place in the text. The panel changes no annotation itself: it reports what
+/// the writer does, and the cards show the annotations it is given next.
 ///
-/// Keys in the panel: Up and Down select the previous or next card, Enter edits the
-/// selected one, Delete removes it and Esc goes back to the text.
+/// Keys in the list: Up and Down select the previous or next card (and go to its place),
+/// Home and End the first or last one, Enter or F2 edits the selected one, Space marks it
+/// done (or brings it back), Delete removes it, the menu key or Shift+F10 opens its menu.
+/// Esc goes back to the text from anywhere in the panel; Down in the search goes to the
+/// list.
 class AnnotationsPanel : public QWidget {
     Q_OBJECT
 
@@ -47,13 +54,9 @@ public:
     /// @param parent Parent widget
     explicit AnnotationsPanel(QWidget* parent = nullptr);
 
-    /// @brief Destructor
-    ~AnnotationsPanel() override;
-
     /// @brief The annotations to list (the panel filters and orders them)
     ///
-    /// Cards stay for annotations listed again; the one being edited stays even when the
-    /// filters would hide it now.
+    /// Cards stay for annotations listed again.
     void setEntries(const std::vector<AnnotationEntry>& entries);
 
     /// @brief The annotations it was given
@@ -86,41 +89,41 @@ public:
     /// @brief Use another order
     void setSort(AnnotationSort sort);
 
-    /// @brief The buttons under the list: previous and next TODO
+    /// @brief The buttons under the list: previous and next to-do
     void setTodoActions(QAction* previous, QAction* next);
 
     /// @brief Select a card, scrolled into view (none: no card is selected)
     void selectAnnotation(const QString& key);
 
+    /// @brief Select an annotation's card, easing the filters that would hide it
+    void revealAnnotation(const QString& key);
+
     /// @brief The key of the selected card (empty: none)
     QString selectedKey() const { return m_selectedKey; }
-
-    /// @brief Edit the text of an annotation in its card
-    ///
-    /// Filters that would hide it are eased so that it shows.
-    void editAnnotation(const QString& key);
 
     /// @brief The card of an annotation (nullptr: not shown)
     AnnotationCard* card(const QString& key) const;
 
-    /// @brief Give the keys to the list of cards (Up, Down, Enter, Delete)
-    void focusList();
+    /// @brief Give the keys to the list of cards
+    /// @param preferredKey The card to select when it is shown; else the selected card stays,
+    ///        and without one the first card is selected
+    void focusList(const QString& preferredKey = QString());
 
-    /// @brief Take colors from a theme: the kinds' colors and the cards' backgrounds
+    /// @brief Whether the keys are in the panel
+    bool hasFocusInside() const;
+
+    /// @brief Take colors from a theme: the kinds' colors, the cards and the controls
     void applyTheme(const core::Theme& theme);
+
+    /// @brief The colors of the cards of a kind, on the current theme
+    const AnnotationCardColors& cardColors(editor::AnnotationKind kind) const;
 
 signals:
     /// @brief A card was clicked or selected with the keys: go to the annotation's place
     void annotationActivated(const AnnotationEntry& entry);
 
-    /// @brief Editing of an annotation's text started
-    void editingStarted(const AnnotationEntry& entry);
-
-    /// @brief An annotation's text changed while it is edited
-    void textEdited(const AnnotationEntry& entry, const QString& text);
-
-    /// @brief Editing of an annotation's text ended
-    void editingFinished(const AnnotationEntry& entry);
+    /// @brief Editing an annotation was asked for (Enter, F2, a double click, Edit)
+    void editRequested(const AnnotationEntry& entry);
 
     /// @brief An annotation was done (resolved) or brought back
     void doneToggled(const AnnotationEntry& entry, bool done);
@@ -136,6 +139,7 @@ signals:
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     /// @brief The cards for the entries that pass the filters, in order
@@ -153,8 +157,24 @@ private:
     /// @brief A new card, connected to the panel
     AnnotationCard* createCard();
 
-    /// @brief Select the card before or after the selected one
+    /// @brief Select the card before or after the selected one, or the first or last
     void selectNeighbour(int step);
+    void selectEdge(bool last);
+
+    /// @brief Do something to the selected card's annotation
+    ///
+    /// When its card goes (the annotation removed, or done and no longer shown), the card
+    /// after it is selected (before it, for the last one).
+    void actOnSelected(const std::function<void(const AnnotationEntry&)>& action);
+
+    /// @brief The keys of the list (see the class)
+    bool listKeyPressed(const QKeyEvent* event);
+
+    /// @brief Show on the cards whether the keys are in the list
+    void showListFocus(bool focused);
+
+    /// @brief The menu of a card: the one under the mouse, or the selected one for the keys
+    bool showCardMenu(const QContextMenuEvent* event);
 
     /// @brief The filters from the controls, then the cards again
     void readFilters();
@@ -168,13 +188,15 @@ private:
     bool m_documentAvailable = false;
     bool m_updatingControls = false;  ///< Controls set by the panel, not by the writer
 
-    // Kind colors from the theme (comment, TODO, note) and the cards' background
-    std::array<QColor, 3> m_kindColors;
-    QColor m_cardBase;
-    double m_cardTint = 0.06;
+    // Colors from the theme: the cards of each kind (comment, to-do, note), the controls
+    std::array<AnnotationCardColors, 3> m_cardColors;
+    QColor m_base;
+    QColor m_text;
+    QColor m_highlight;
+    QColor m_highlightedText;
 
     QLineEdit* m_searchEdit{nullptr};
-    std::array<QToolButton*, 3> m_kindButtons{};  ///< Comment, TODO, note
+    std::array<QToolButton*, 3> m_kindButtons{};  ///< Comment, to-do, note
     QButtonGroup* m_stateGroup{nullptr};
     QButtonGroup* m_scopeGroup{nullptr};
     QAbstractButton* m_bookScopeButton{nullptr};
@@ -184,6 +206,7 @@ private:
     QWidget* m_listWidget{nullptr};
     QVBoxLayout* m_listLayout{nullptr};
     QLabel* m_emptyLabel{nullptr};
+    QLabel* m_todoLabel{nullptr};
     QToolButton* m_previousTodoButton{nullptr};
     QToolButton* m_nextTodoButton{nullptr};
 };

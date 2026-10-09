@@ -6,6 +6,8 @@
 #include "book_editor_internal.h"
 #include <QDateTime>
 
+#include <algorithm>
+
 namespace kalahari::editor {
 
 std::vector<AnnotationPlace> BookEditor::annotations() const
@@ -14,6 +16,14 @@ std::vector<AnnotationPlace> BookEditor::annotations() const
 }
 
 Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
+                                     const QString& author)
+{
+    ensureDocument();
+    const QTextCursor selection = selectionCursor();
+    return addAnnotation(selection.selectionStart(), selection.selectionEnd(), kind, text, author);
+}
+
+Annotation BookEditor::addAnnotation(int from, int to, AnnotationKind kind, const QString& text,
                                      const QString& author)
 {
     ensureDocument();
@@ -26,11 +36,10 @@ Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
     annotation.created = QDateTime::currentDateTimeUtc();
     annotation.created = annotation.created.addMSecs(-annotation.created.time().msec());
 
-    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
-    if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    }
+    const int last = m_textBuffer->characterCount() - 1;
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.setPosition(std::clamp(from, 0, last));
+    cursor.setPosition(std::clamp(to, 0, last), QTextCursor::KeepAnchor);
     QTextCursor step(m_textBuffer.get());
     beginAnnotationStep(step, false);
     annotation = editor::addAnnotation(cursor, annotation);
@@ -39,6 +48,42 @@ Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
     update();
     emit contentChanged();
     return annotation;
+}
+
+QTextCursor BookEditor::selectionCursor() const
+{
+    if (!m_textBuffer) {
+        return QTextCursor();
+    }
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        return createCursor(m_textBuffer.get(), sel.start, sel.end);
+    }
+    return createCursor(m_textBuffer.get(), m_cursorPosition);
+}
+
+QRectF BookEditor::placeRect(int position, bool afterText) const
+{
+    if (!m_textBuffer || !m_renderPipeline) {
+        return QRectF();
+    }
+    const int last = m_textBuffer->characterCount() - 1;
+    return m_renderPipeline->placeRect(calculateCursorPosition(std::clamp(position, 0, last)),
+                                       afterText);
+}
+
+QRectF BookEditor::textColumnRect() const
+{
+    if (!m_renderPipeline) {
+        return QRectF(rect());
+    }
+    const auto& computed = m_renderPipeline->context().computed;
+    return QRectF(computed.originX, 0.0, computed.textWidth * computed.viewScale, height());
+}
+
+QString BookEditor::annotationMarkAt(const QPointF& point) const
+{
+    return m_renderPipeline ? m_renderPipeline->annotationMarkAt(point) : QString();
 }
 
 bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)

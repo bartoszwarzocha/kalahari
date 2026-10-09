@@ -135,6 +135,10 @@ std::map<std::string, json> buildDefaults() {
         {"editor.textFrameBorder.show", false},
         {"editor.textFrameBorder.color", "#b4b4b4"},
         {"editor.textFrameBorder.width", 1},
+
+        // Editor: the size of the annotations' marks in the text, in percent of the size
+        // the text's font gives them
+        {"editor.annotationMarkSize", 100},
     };
 }
 

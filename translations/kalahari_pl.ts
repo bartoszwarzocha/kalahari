@@ -572,20 +572,20 @@
         <translation>Dodaj komentarz</translation>
     </message>
     <message>
-        <source>Add TODO</source>
-        <translation>Dodaj TODO</translation>
+        <source>Add To Do</source>
+        <translation>Dodaj uwagę do zrobienia</translation>
     </message>
     <message>
         <source>Add Note</source>
         <translation>Dodaj notatkę</translation>
     </message>
     <message>
-        <source>Next TODO</source>
-        <translation>Następne TODO</translation>
+        <source>Next To Do</source>
+        <translation>Następna uwaga do zrobienia</translation>
     </message>
     <message>
-        <source>Previous TODO</source>
-        <translation>Poprzednie TODO</translation>
+        <source>Previous To Do</source>
+        <translation>Poprzednia uwaga do zrobienia</translation>
     </message>
     <message>
         <source>Annotations</source>
@@ -1630,10 +1630,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Więcej</translation>
     </message>
     <message>
-        <source>Type the annotation...</source>
-        <translation>Wpisz treść uwagi...</translation>
-    </message>
-    <message>
         <source>Comment (resolved)</source>
         <translation>Komentarz (rozwiązany)</translation>
     </message>
@@ -1642,8 +1638,8 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Komentarz</translation>
     </message>
     <message>
-        <source>TODO</source>
-        <translation>TODO</translation>
+        <source>To do</source>
+        <translation>Do zrobienia</translation>
     </message>
     <message>
         <source>Note</source>
@@ -1677,6 +1673,33 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Delete</source>
         <translation>Usuń</translation>
     </message>
+    <message>
+        <source>(no text)</source>
+        <translation>(bez treści)</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Edytuj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AnnotationFrame</name>
+    <message>
+        <source>Type the text of the annotation...</source>
+        <translation>Wpisz treść uwagi...</translation>
+    </message>
+    <message>
+        <source>%1 to save, Esc to cancel</source>
+        <translation>%1 – zapisz, Esc – anuluj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Save (%1)</source>
+        <translation>Zapisz (%1)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsCoordinator</name>
@@ -1685,20 +1708,20 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>&amp;Komentarz</translation>
     </message>
     <message>
-        <source>&amp;TODO</source>
-        <translation>&amp;TODO</translation>
+        <source>&amp;To do</source>
+        <translation>&amp;Do zrobienia</translation>
     </message>
     <message>
         <source>&amp;Note</source>
         <translation>&amp;Notatka</translation>
     </message>
     <message>
-        <source>No TODO after the cursor</source>
-        <translation>Brak TODO za kursorem</translation>
+        <source>No to-do after the cursor</source>
+        <translation>Za kursorem nie ma uwag do zrobienia</translation>
     </message>
     <message>
-        <source>No TODO before the cursor</source>
-        <translation>Brak TODO przed kursorem</translation>
+        <source>No to-do before the cursor</source>
+        <translation>Przed kursorem nie ma uwag do zrobienia</translation>
     </message>
 </context>
 <context>
@@ -1752,12 +1775,16 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Kolejność: od najnowszych</translation>
     </message>
     <message>
+        <source>Sort: by kind</source>
+        <translation>Kolejność: według rodzaju</translation>
+    </message>
+    <message>
         <source>Comments %1</source>
         <translation>Komentarze %1</translation>
     </message>
     <message>
-        <source>TODO %1</source>
-        <translation>TODO %1</translation>
+        <source>To do %1</source>
+        <translation>Do zrobienia %1</translation>
     </message>
     <message>
         <source>Notes %1</source>
@@ -1772,12 +1799,28 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Książka nie ma uwag.</translation>
     </message>
     <message>
-        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a TODO or a note from the context menu.</source>
-        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, TODO lub notatkę z menu podręcznego.</translation>
+        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
+        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
     </message>
     <message>
         <source>No annotation matches the filters.</source>
         <translation>Żadna uwaga nie pasuje do filtrów.</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>To do:</source>
+        <translation>Do zrobienia:</translation>
+    </message>
+    <message>
+        <source>Previous</source>
+        <translation>Poprzednia</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Następna</translation>
     </message>
 </context>
 <context>
@@ -2754,6 +2797,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Indent First Line:</source>
         <translation>Wcięcie pierwszego wiersza:</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
+        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
+    </message>
+    <message>
+        <source>Mark Size:</source>
+        <translation>Wielkość znaczników:</translation>
     </message>
     <message>
         <source>Typewriter Scrolling</source>

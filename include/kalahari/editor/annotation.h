@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+class QTextBlock;
 class QTextCursor;
 class QTextDocument;
 
@@ -66,6 +67,17 @@ struct AnnotationPlace {
     Annotation annotation;  ///< The annotation
     int start = 0;          ///< Where the fragment starts, or the place
     int end = 0;            ///< Where the fragment ends, or the place
+};
+
+/// @brief The mark of an annotation in its paragraph: after the last character of its
+/// fragment, or on its place
+struct AnnotationMark {
+    int offset = 0;                                 ///< Where, in the paragraph's text
+    AnnotationKind kind = AnnotationKind::Comment;  ///< The annotation's kind
+    QString id;                                     ///< The annotation's id
+    QString text;                                   ///< The annotation's text
+
+    bool operator==(const AnnotationMark& other) const = default;
 };
 
 // =============================================================================
@@ -110,6 +122,12 @@ std::optional<AnnotationPlace> findAnnotation(const QTextDocument& document, con
 
 /// @brief The ids of the annotations of a document
 QSet<QString> annotationIdsIn(const QTextDocument& document);
+
+/// @brief The marks a paragraph shows, in text order
+///
+/// One for each annotation not done that ends in the paragraph: a fragment that goes on
+/// into a later paragraph has its mark there. A to-do done or a resolved comment has none.
+std::vector<AnnotationMark> annotationMarksIn(const QTextBlock& block);
 
 /// @brief Anchor an annotation to the text, as one undo step
 ///

@@ -185,7 +185,13 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return m_isDirty; },
         [this](bool dirty) { setDirty(dirty); },
         [this]() { updateWindowTitle(); },
-        [this]() { return hasUnsavedChanges(); },
+        [this]() {
+            // An annotation being written is kept before the documents are saved or closed
+            if (m_annotationsCoordinator) {
+                m_annotationsCoordinator->finishWriting();
+            }
+            return hasUnsavedChanges();
+        },
         this
     );
     // Connect DocumentCoordinator signals
@@ -334,8 +340,15 @@ void MainWindow::registerCommands() {
     callbacks.onNewProject = [this]() { if (m_documentCoordinator) m_documentCoordinator->onNewProject(); };
     callbacks.onOpenDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenDocument(); };
     callbacks.onOpenStandaloneFile = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenStandaloneFile(); };
-    callbacks.onSaveDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onSaveDocument(); };
-    callbacks.onSaveAsDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument(); };
+    // An annotation being written is saved with the document
+    callbacks.onSaveDocument = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
+    };
+    callbacks.onSaveAsDocument = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument();
+    };
     callbacks.onCloseDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onCloseDocument(); };
     callbacks.onImportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onImportArchive(); };
     callbacks.onExportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onExportArchive(); };
@@ -874,10 +887,6 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
         editor->getBookEditor()->setFocus();
     }
 
-    // A new annotation's text is typed in the Annotations panel, which is hidden now
-    if (m_annotationsCoordinator) {
-        m_annotationsCoordinator->setAddingAvailable(!enabled);
-    }
 
     auto& registry = CommandRegistry::getInstance();
     registry.updateActionState("view.mode.distraction-free");
@@ -1057,6 +1066,11 @@ void MainWindow::createDocks() {
         auto& logger = core::Logger::getInstance();
         QWidget* widget = centralTabs->widget(index);
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
+
+        // An annotation being written in this tab is kept first
+        if (editor && m_annotationsCoordinator) {
+            m_annotationsCoordinator->finishWriting(editor->getBookEditor());
+        }
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
         if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
@@ -1286,6 +1300,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // Single source of truth for all unsaved-changes prompts (content + structure
     // + standalone tabs). Fixes Bug#3 - previously divergent OR of competing flags.
     auto& pm = core::ProjectManager::getInstance();
+
+    // An annotation being written is kept first
+    if (m_annotationsCoordinator) {
+        m_annotationsCoordinator->finishWriting();
+    }
 
     if (hasUnsavedChanges()) {
         const QStringList names = m_documentCoordinator

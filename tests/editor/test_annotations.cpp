@@ -73,6 +73,16 @@ QString kmlData(const QMimeData& data) {
     return QString::fromUtf8(data.data(QString::fromLatin1(MIME_KML)));
 }
 
+/// The marks a paragraph shows, in their order: "id offset"
+QString marksOf(const BookEditor& editor, int paragraph) {
+    QStringList list;
+    for (const AnnotationMark& mark :
+         annotationMarksIn(editor.textDocument()->findBlockByNumber(paragraph))) {
+        list << QStringLiteral("%1 %2").arg(mark.id).arg(mark.offset);
+    }
+    return list.join(QStringLiteral(", "));
+}
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -333,6 +343,58 @@ TEST_CASE("Annotations: going to one, to the next and to the previous TODO",
         CHECK(editor->cursorPosition() == CursorPosition{0, 3});
         CHECK(editor->selection().normalized().start == CursorPosition{0, 0});
         CHECK(editor->goToPreviousTodo().isEmpty());
+    }
+}
+
+TEST_CASE("Annotations: a mark at the end of each open one, in the paragraph it ends in",
+          "[editor][annotations]") {
+    // "One two three", "four five six", an empty paragraph, "seven"; the comment a goes
+    // from "three" to "four"
+    auto editor = editorWith(kmlWith(
+        record(QStringLiteral("s"), QStringLiteral("note")) +
+            record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")) +
+            record(QStringLiteral("a")) + record(QStringLiteral("n1"), QStringLiteral("note")) +
+            record(QStringLiteral("n2"), QStringLiteral("note")) +
+            QStringLiteral("<annotation id=\"t2\" kind=\"todo\" done=\"true\">Done</annotation>"
+                           "<annotation id=\"c2\" kind=\"comment\" done=\"true\">Old</annotation>") +
+            record(QStringLiteral("e"), QStringLiteral("todo")),
+        {QStringLiteral("<anchor ref=\"s\"/>One <anchor ref=\"t1\">two</anchor> "
+                        "<anchor ref=\"a\">three</anchor>"),
+         QStringLiteral("<anchor ref=\"a\">four</anchor> five<anchor ref=\"n1\"/><anchor ref=\"n2\"/> "
+                        "<anchor ref=\"t2\">six</anchor><anchor ref=\"c2\"/>"),
+         QStringLiteral("<anchor ref=\"e\"/>"), QStringLiteral("seven")}));
+    REQUIRE(places(*editor) ==
+            QStringLiteral("s @0, t1 4-7, a 8-18, n1 @23, n2 @23, t2 24-27, c2 @27, e @28"));
+
+    // A place at a paragraph's start has its mark there; a fragment over paragraphs has
+    // its mark in the last one; places side by side keep their order; a to-do done and a
+    // resolved comment have none
+    CHECK(marksOf(*editor, 0) == QStringLiteral("s 0, t1 7"));
+    CHECK(marksOf(*editor, 1) == QStringLiteral("a 4, n1 9, n2 9"));
+    CHECK(marksOf(*editor, 2) == QStringLiteral("e 0"));
+    CHECK(marksOf(*editor, 3).isEmpty());
+    CHECK(annotationMarksIn(QTextBlock()).empty());
+
+    // A mark tells whose it is
+    const std::vector<AnnotationMark> marks =
+        annotationMarksIn(editor->textDocument()->firstBlock());
+    REQUIRE(marks.size() == 2);
+    CHECK(marks[1] == AnnotationMark{7, AnnotationKind::Todo, QStringLiteral("t1"),
+                                     QStringLiteral("Fix")});
+
+    SECTION("the mark follows the end of its fragment") {
+        editor->setCursorPosition({0, 5});
+        editor->insertText(QStringLiteral("X"));
+        CHECK(marksOf(*editor, 0) == QStringLiteral("s 0, t1 8"));
+    }
+
+    SECTION("done, the mark goes; undone, it comes back") {
+        Annotation todo = annotationOf(*editor, QStringLiteral("t1"));
+        todo.done = true;
+        REQUIRE(editor->updateAnnotation(todo));
+        CHECK(marksOf(*editor, 0) == QStringLiteral("s 0"));
+        editor->undo();
+        CHECK(marksOf(*editor, 0) == QStringLiteral("s 0, t1 7"));
     }
 }
 

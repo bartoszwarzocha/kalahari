@@ -313,6 +313,60 @@ QSet<QString> annotationIdsIn(const QTextDocument& document) {
     return ids;
 }
 
+std::vector<AnnotationMark> annotationMarksIn(const QTextBlock& block) {
+    std::vector<AnnotationMark> marks;
+    if (!block.isValid()) {
+        return marks;
+    }
+    QHash<QString, size_t> markOf;  // id -> index in marks
+    const auto note = [&marks, &markOf](const Annotation& annotation, int offset) {
+        if (annotation.done) {
+            return;
+        }
+        const auto it = markOf.constFind(annotation.id);
+        if (it == markOf.cend()) {
+            markOf.insert(annotation.id, marks.size());
+            marks.push_back({offset, annotation.kind, annotation.id, annotation.text});
+        } else {
+            marks[*it].offset = std::max(marks[*it].offset, offset);
+        }
+    };
+
+    // A place at the paragraph's start is on the paragraph; every other mark is after the
+    // last character of its piece
+    for (const Annotation& annotation : annotationsOf(block.charFormat())) {
+        if (annotation.point) {
+            note(annotation, 0);
+        }
+    }
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        const int end = fragment.position() + fragment.length() - block.position();
+        for (const Annotation& annotation : annotationsOf(fragment.charFormat())) {
+            note(annotation, end);
+        }
+    }
+
+    // A fragment that goes on after the paragraph has its mark later
+    if (!marks.empty()) {
+        const int textLength = block.length() - 1;
+        const AnnotationList after =
+            annotationsOf(textFormatFrom(*block.document(), block.position() + block.length()));
+        marks.erase(std::remove_if(marks.begin(), marks.end(),
+                                   [textLength, &after](const AnnotationMark& mark) {
+                                       return mark.offset == textLength &&
+                                              hasFragment(after, mark.id);
+                                   }),
+                    marks.end());
+    }
+
+    std::stable_sort(marks.begin(), marks.end(),
+                     [](const AnnotationMark& a, const AnnotationMark& b) {
+                         return a.offset < b.offset;
+                     });
+    return marks;
+}
+
 Annotation addAnnotation(const QTextCursor& cursor, Annotation annotation) {
     QTextDocument& document = *cursor.document();
     if (annotation.id.isEmpty()) {

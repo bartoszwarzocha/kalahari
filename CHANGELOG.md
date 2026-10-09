@@ -265,29 +265,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Annotations: the Annotations panel and the commands for them** - 2026-10-08
-  - Insert > Add Comment, Add TODO and Add Note (also in the text's context menu) put an
-    annotation on the selection, or on the cursor's place without one; Add Annotation
-    (Ctrl+Shift+M) opens a small menu of the three kinds at the cursor. The new
-    annotation's text is typed in its card in the Annotations panel, which comes to the
-    front; one left without text goes away without a trace. Not in Distraction-Free,
-    where the panel is hidden.
-  - The Annotations panel (View > Panels > Annotations, F9), a tab next to Properties,
-    Search and Assistant, lists the annotations of the chapter in front or of the whole
-    book as cards: the kind in its color, the chapter, the date, the text and, for a
-    TODO, whether it is done. A search field, filters by kind, state (open, done, all) and
-    date, and two orders: as in the text, or the newest first.
-  - Clicking a card goes to its annotation in the text, opening its chapter when needed,
-    and selects its fragment; clicking its text edits it, and Esc ends the editing. A TODO
-    done or a comment resolved leaves the open ones and shows under Done, where Restore
-    brings it back. Delete is in the card's menu, and the Delete key removes the selected
-    card.
-  - What is done in the panel is undone with Ctrl+Z like the text: the text typed in a card
-    is one step (a new annotation's text joins the step that added it), done and deleted
-    are steps of their own. Undo and redo bring back the cursor and selection the step was
-    made with.
-  - Edit > Next TODO and Previous TODO (Alt+Down, Alt+Up) go to the next or the previous
-    TODO not done yet; while the panel lists the whole book, also in the other chapters.
+- **Annotations: their marks, the frame they are written in, the Annotations panel and the
+  commands for them** - 2026-10-08
+  - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
+    frame at the selection, or at the cursor's place without one, where the annotation's
+    text is written: Enter starts a new line, Ctrl+Enter or Save keeps the text (the frame
+    says so), Esc drops it. The annotation is added with its text when it is kept; a frame
+    left empty adds nothing. Add Annotation (Ctrl+Shift+M) opens a small menu of the three
+    kinds at the cursor.
+  - Each annotation not done has a small mark in its kind's color under the end of its
+    fragment, or under its place. The mark's tooltip is the annotation's text, and a click
+    on it opens the annotation's frame, the cursor staying where it was. Mark Size in
+    Settings > Editor > General sets the size of the marks (100% fits the text's font).
+  - The Annotations panel (View > Panels > Annotations), a tab next to Properties, Search
+    and Assistant, lists the annotations of the chapter in front or of the whole book as
+    cards tinted with their kind's color: the kind, the chapter, the date, the text and,
+    for a to-do, whether it is done. A search field, filters by kind, state (open, done,
+    all) and date, and three orders: as in the text, the newest first, or by kind. Its
+    texts keep a contrast of at least 4.5:1 in the light and the dark theme.
+  - Everything is at hand from the keyboard. F9 goes to the panel, with the card of the
+    annotation at the cursor selected, and back to the text. In the list, Up, Down, Home
+    and End select a card and go to its annotation in the text, opening its chapter when
+    needed; Enter or F2 opens its frame; Space marks a to-do done or a comment resolved;
+    Delete removes it; the menu key or Shift+F10 opens its menu; Esc goes back to the text.
+    A to-do done or a comment resolved leaves the open ones and shows under Done, where
+    Restore brings it back.
+  - What is done to annotations is undone with Ctrl+Z like the text: a new annotation with
+    its text, a new text, done and deleted are each one step. Undo and redo bring back the
+    cursor and selection the step was made with.
+  - Saving or closing a chapter, the book or the program first keeps the text of an open
+    frame, so nothing written is lost.
+  - Edit > Next To Do and Previous To Do (Alt+Down, Alt+Up) go to the next or the previous
+    to-do not done yet; while the panel lists the whole book, also in the other chapters.
     The status bar says when there is no further one.
   - New annotations are by the name in the setting `annotations.author`; without it by the
     book's author, and without one by the computer's user.

@@ -553,6 +553,37 @@ public:
     /// @return The new annotation, with its id and the time it was made
     Annotation addAnnotation(AnnotationKind kind, const QString& text, const QString& author);
 
+    /// @brief Anchor a new annotation to a range of the text, or to a place when it is empty
+    ///
+    /// One undo step; the cursor and the selection stay.
+    /// @param from Where the range starts (a position in the document)
+    /// @param to Where it ends
+    /// @param kind What it is
+    /// @param text Its text
+    /// @param author Who makes it
+    /// @return The new annotation, with its id and the time it was made
+    Annotation addAnnotation(int from, int to, AnnotationKind kind, const QString& text,
+                             const QString& author);
+
+    /// @brief The selection, or the cursor's place without one, as a cursor of the document
+    /// (a null cursor without a document)
+    QTextCursor selectionCursor() const;
+
+    /// @brief Where a place of the text is in the editor: a caret's rectangle, as tall as
+    /// the place's line
+    /// @param position The place (a position in the document)
+    /// @param afterText true: the place ends the text before it (as a fragment's end): at
+    ///        the end of a wrapped line it is there, not at the start of the next line
+    QRectF placeRect(int position, bool afterText) const;
+
+    /// @brief The text column in the editor: from the text's left edge to its right edge,
+    /// as tall as the editor
+    QRectF textColumnRect() const;
+
+    /// @brief The annotation whose mark is at a point of the editor
+    /// @return Its id; empty when no mark is there
+    QString annotationMarkAt(const QPointF& point) const;
+
     /// @brief Give an annotation new data (kind, text, state...), one undo step
     /// @param annotation The annotation's new data; its id says which one it is
     /// @param joinPreviousStep true: the change joins the last undo step instead of making
@@ -894,6 +925,10 @@ signals:
     /// @param enabled true if it is now on
     void distractionFreeModeChanged(bool enabled);
 
+    /// @brief Emitted when the mark of an annotation is clicked (the cursor stays)
+    /// @param id The annotation's id
+    void annotationMarkClicked(const QString& id);
+
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
     void paragraphModified(int paragraphIndex);
@@ -910,6 +945,9 @@ protected:
     // =========================================================================
     // Event Handlers
     // =========================================================================
+
+    /// @brief Shows the text of an annotation as the tooltip of its mark
+    bool event(QEvent* event) override;
 
     /// @brief Paint event handler
     /// @param event The paint event

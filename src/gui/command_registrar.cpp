@@ -265,10 +265,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    callbacks.onFindReplace);
     REG_CMD("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in Book..."), "EDIT/Find in Book...", 150, true, 1);
 
-    // The TODOs not done yet; AnnotationsCoordinator gives them their callbacks
-    REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Next TODO"), "EDIT/Next TODO", 152, false, 0,
+    // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
+    REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Next To Do"), "EDIT/Next To Do", 152, false, 0,
                 KeyboardShortcut(Qt::Key_Down, Qt::AltModifier));
-    REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previous TODO"), "EDIT/Previous TODO", 154, true, 0,
+    REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previous To Do"), "EDIT/Previous To Do", 154, true, 0,
                 KeyboardShortcut(Qt::Key_Up, Qt::AltModifier));
 
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Preferences..."), "EDIT/Preferences...", 160, false, 0,
@@ -331,7 +331,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("insert.annotation", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Annotation..."), "INSERT/Add Annotation...", 70, false, 0,
                 KeyboardShortcut(Qt::Key_M, Qt::ControlModifier | Qt::ShiftModifier));
     REG_CMD("insert.comment", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Comment"), "INSERT/Add Comment", 71, false, 0);
-    REG_CMD("insert.todo", QT_TRANSLATE_NOOP("CommandRegistrar", "Add TODO"), "INSERT/Add TODO", 72, false, 0);
+    REG_CMD("insert.todo", QT_TRANSLATE_NOOP("CommandRegistrar", "Add To Do"), "INSERT/Add To Do", 72, false, 0);
     REG_CMD("insert.note", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Note"), "INSERT/Add Note", 73, true, 0);
 
     REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "Special Character..."), "INSERT/Special Character...", 80, false, 1);
