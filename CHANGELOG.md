@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   line show the version from the project definition (0.3.0-alpha); before, they showed
   0.3.1, 0.3.0 and the README 0.3.2.
 
+- **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
+  settings files of older versions nor moves the window layout and recent books from the
+  old QSettings store (the registry on Windows); while Kalahari has a single user, old
+  formats are not kept up.
+
 - **Polish translation of the Settings window** - 2026-10-08. All pages of the Settings
   window are in Polish when the program runs in Polish, with the names the menus and
   panels already use (Pulpit, Edytor, Dziennik, the view names).

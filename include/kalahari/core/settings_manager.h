@@ -33,7 +33,6 @@
 #include <QPoint>
 #include <QTimer>
 
-class QSettings;
 
 namespace kalahari {
 namespace core {
@@ -321,18 +320,6 @@ public:
     /// @param key JSON pointer path (e.g., "ui.theme")
     void removeKey(const std::string& key);
 
-    /// @brief Migrate settings from older versions if needed
-    /// Called automatically by load()
-    void migrateIfNeeded();
-
-    /// @brief Move what versions before 1.4 kept in QSettings into settings.json
-    ///
-    /// Window geometry and state, toolbar visibility and the recent books were
-    /// stored by QSettings (the registry on Windows). The values are copied and
-    /// removed from @p legacy. Called by migrateIfNeeded() outside test mode.
-    /// @param legacy The old QSettings store
-    void migrateLegacyQSettings(QSettings& legacy);
-
 private:
     /// @brief Private constructor (singleton)
     SettingsManager();
@@ -354,10 +341,6 @@ private:
     /// @param key Key like "window.width"
     /// @return JSON pointer like "/window/width"
     std::string keyToJsonPointer(const std::string& key) const;
-
-    /// @brief Bring settings from versions before 1.3 up to date
-    /// Moves ui.theme -> appearance.theme and removes keys nothing reads
-    void migrateToCurrentVersion();
 
     /// @brief Convert a JSON value, or nullopt if it has another type
     template<typename T>
