@@ -13,7 +13,8 @@ The code that defines the format:
 | Tags, synonyms, metadata elements and their attributes | `KmlFormatRegistry` (`include/kalahari/editor/kml_format_registry.h`) |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp` |
+| Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp` |
 
 ## Where KML is stored
 
@@ -26,10 +27,13 @@ The code that defines the format:
 
 ```xml
 <kml>
+  <annotations>
+    <annotation id="a1" kind="comment" author="Bartosz" created="2026-10-08T12:00:00Z" done="true">Check the date.</annotation>
+    <annotation id="a2" kind="todo">Describe the weather.</annotation>
+  </annotations>
   <p align="center"><b>Chapter One</b></p>
   <p>Plain text, <i>italic</i>, <b><i>bold italic</i></b> and <span color="#aa0000">red</span>.</p>
-  <p>She met <charref id="r1" target="anna">Anna</charref> in <locref id="r2" target="krakow">Kraków</locref>.</p>
-  <p><comment id="c1" author="Bartosz" resolved="true">Check the date.</comment></p>
+  <p>She met <charref id="r1" target="anna">Anna</charref> in <locref id="r2" target="krakow">Kraków</locref> <anchor ref="a1">on a Tuesday</anchor>.<anchor ref="a2"/></p>
 </kml>
 ```
 
@@ -43,7 +47,9 @@ reading.
   wrapped in `<kml>`. Attributes of the root element are ignored. The editor writes `<kml>`
   without attributes.
 - **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading.
-  Any other element at this level is skipped together with everything inside it, and text
+- **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
+  a child of the root element before the paragraphs (see [Annotations](#annotations)).
+- Any other element at this level is skipped together with everything inside it, and text
   between paragraphs is ignored.
 
 ## Paragraph
@@ -97,15 +103,64 @@ with the same formatting gets its own elements, always in the order `<b><i><u><s
 On writing, the style attributes go on the first formatting element of the run, for example
 `<b font="Georgia"><i>text</i></b>`; a run without formatting elements gets a `<span>`.
 
-## Annotations and references
+## Annotations
+
+Comments, TODOs and notes are kept in the `<annotations>` section; the text says where each of
+them is with `<anchor>` elements.
+
+### The `<annotations>` section
+
+Each `<annotation>` element is one annotation; its content is the annotation's text, which may
+have several lines (child elements are skipped together with their text).
+
+| Attribute | Value | Meaning |
+|-----------|-------|---------|
+| `id` | Text, unique in the book | Required |
+| `kind` | `comment`, `todo` or `note` | Required |
+| `author` | Text | Who made it |
+| `created` | Date and time, ISO 8601 | When it was made. Written in UTC, as `2026-10-08T12:00:00Z`; a time without a time zone is read as UTC |
+| `done` | Flag | A TODO done, a comment resolved |
+
+- The editor writes the attributes in the order of the table, then the others – those it does
+  not know, and a `created` it cannot read – sorted by name, as they were read.
+- An annotation without an `id`, with another `kind`, or with an `id` used before in the
+  section is left out, and so is one that no anchor in the text refers to. Children of the
+  section other than `<annotation>` are skipped.
+- The section must come before the anchors that refer to its annotations; the editor writes it
+  first, with the annotations in the order of their anchors, and writes no section when the
+  text has no annotations.
+
+### Anchors
+
+| Written as | Meaning |
+|------------|---------|
+| `<anchor ref="a1">text</anchor>` | The annotation `a1` is about this text (a fragment) |
+| `<anchor ref="a2"/>` | The annotation `a2` is about this place in the text |
+
+- A fragment may go on in more anchors of the same annotation, in the same or the following
+  paragraphs: the editor writes one for each run of formatting, for example
+  `<anchor ref="a1">one </anchor><anchor ref="a1"><b>two</b></anchor>`. Anchors of different
+  annotations nest.
+- On writing, the anchors of a fragment enclose all other elements of its text; an anchor of a
+  place goes right after the character before the place, inside the elements of that character.
+- An anchor that refers to an annotation the section does not have is dropped; its text stays
+  as plain text.
+
+### Annotations on the clipboard
+
+Copied text carries the annotations anchored in it: the KML on the clipboard has its own
+`<annotations>` section. Pasted into a chapter that already has an annotation with the same
+`id`, the annotation comes in as a copy with a new `id` – unless the text is pasted inside the
+fragment of that annotation, which it then simply joins. The HTML and the plain text on the
+clipboard, for other programs, have no annotations.
+
+## References
 
 These elements mark a range of text. All of their attributes are kept, including ones the
 editor does not know, and written back.
 
 | Element | Known attributes | Meaning |
 |---------|------------------|---------|
-| `<comment>` | `id`, `author`, `created`, `resolved` (flag) | Comment on the range |
-| `<todo>` | `id`, `completed` (flag), `priority`, `text`, `type`, `created` | TODO marker |
 | `<footnote>` | `id`, `number` (integer) | Footnote reference |
 | `<charref>` | `id`, `target` | Reference to a character |
 | `<locref>` | `id`, `target` | Reference to a location |
@@ -114,8 +169,8 @@ editor does not know, and written back.
   when it is not set. Empty attributes are not written.
 - On writing, the known attributes come first, in the order of the table, then the others
   sorted by name.
-- Annotations enclose the formatting elements of their range. Several annotations on the same
-  range are nested in the order of the table: `<comment><todo><b>text</b></todo></comment>`.
+- References enclose the formatting elements of their range. Several references on the same
+  range are nested in the order of the table: `<footnote><charref><b>text</b></charref></footnote>`.
 
 ## Unreadable KML
 
@@ -130,12 +185,13 @@ Elements of the product specification that the editor does not read yet:
 - lists `<ul>`, `<ol>`, `<li>`,
 - images `<img>`,
 - tables `<table>`, `<tr>`, `<td>`, `<th>`,
-- annotations `<note>`, `<endnote>` and the references `<item-ref>`, `<cite>`,
+- the annotations `<endnote>` and the references `<item-ref>`, `<cite>`,
 - the paragraph attribute `style` (paragraph styles) and the root attributes `version` and
   `lang`.
 
 The specification names the character and location references `<char-ref>` and `<loc-ref>`;
-the editor uses `<charref>` and `<locref>`.
+the editor uses `<charref>` and `<locref>`. Its `<comment>`, `<todo>` and `<note>` elements are
+annotations of the `<annotations>` section, of the kinds `comment`, `todo` and `note`.
 
 The editor skips these elements, together with everything inside them, when it loads a
 chapter, and ignores the attributes. The next save writes the chapter without them, so a file

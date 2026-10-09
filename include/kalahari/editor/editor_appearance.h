@@ -81,6 +81,21 @@ struct EditorColors {
             ? focus.inactiveLight
             : focus.inactiveDark;
     }
+
+    /// @brief The marks of the annotations' kinds on one paper (the theme's colors; not
+    /// valid: the text's color)
+    struct AnnotationColors {
+        QColor comment;  ///< Comments
+        QColor todo;     ///< To-dos
+        QColor note;     ///< Notes
+    };
+    AnnotationColors annotationsLight;  ///< On the light paper
+    AnnotationColors annotationsDark;   ///< On the dark paper
+
+    /// @brief The marks' colors on the paper of a mode
+    const AnnotationColors& annotations(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? annotationsLight : annotationsDark;
+    }
 };
 
 // =============================================================================
@@ -240,6 +255,7 @@ public:
     CursorSettings cursor;                     ///< Cursor appearance settings
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
     PageMarginsConfig pageMargins;             ///< The page's margins, in every view
+    double annotationMarkScale{1.0};           ///< Size of the annotations' marks (1 = 100%)
 };
 
 }  // namespace kalahari::editor

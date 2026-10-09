@@ -13,7 +13,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/editor/book_editor.h>
-#include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include "editor_test_utils.h"
 #include <QDir>
@@ -158,54 +157,36 @@ TEST_CASE("Stage0 KML: formatting does not bleed into the next paragraph", "[edi
 }
 
 // =============================================================================
-// Metadata: comments, TODO, footnotes
+// Metadata: annotations, footnotes
 // =============================================================================
 
-TEST_CASE("Stage0 KML: comment anchor and id survive load and save", "[editor][stage0][kml]") {
+TEST_CASE("Stage0 KML: annotation anchor and id survive load and save", "[editor][stage0][kml]") {
     BookEditor editor;
     editor.fromKml(QStringLiteral(
-        "<kml><p>Before <comment id=\"c1\">anchored</comment> after</p></kml>"));
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Why?</annotation></annotations>"
+        "<p>Before <anchor ref=\"c1\">anchored</anchor> after</p></kml>"));
 
     const QTextCharFormat fmt =
         formatOfFragmentContaining(editor.textDocument()->begin(), QStringLiteral("anchored"));
-    REQUIRE(fmt.hasProperty(KmlPropComment));
-    CHECK(metadataOf(fmt, KmlPropComment).value(QStringLiteral("id")).toString() ==
-          QStringLiteral("c1"));
+    CHECK(annotationIds(fmt) == QStringList{QStringLiteral("c1")});
 
     const QString saved = editor.toKml();
-    CHECK(saved.contains(QStringLiteral("<comment id=\"c1\">anchored</comment>")));
+    CHECK(saved.contains(QStringLiteral("<anchor ref=\"c1\">anchored</anchor>")));
+    CHECK(saved.contains(
+        QStringLiteral("<annotation id=\"c1\" kind=\"comment\">Why?</annotation>")));
 }
 
-TEST_CASE("Stage0 KML: comment author/created/resolved survive load", "[editor][stage0][kml]") {
-    // Regression (fixed in Stage 1): loading used to keep only the "id" attribute of
-    // metadata tags, so author/created/resolved (and todo completed/priority, footnote
-    // number) were lost on the next save.
-    BookEditor editor;
-    editor.fromKml(QStringLiteral(
-        "<kml><p><comment id=\"c1\" author=\"Ann\" created=\"2026-01-02T03:04:05\" "
-        "resolved=\"true\">anchored</comment></p></kml>"));
-
-    const QString saved = editor.toKml();
-    CHECK(saved.contains(QStringLiteral("author=\"Ann\"")));
-    CHECK(saved.contains(QStringLiteral("created=\"2026-01-02T03:04:05\"")));
-    CHECK(saved.contains(QStringLiteral("resolved=\"true\"")));
-}
-
-TEST_CASE("Stage0 KML: todo anchor and id survive load and save", "[editor][stage0][kml]") {
-    BookEditor editor;
-    editor.fromKml(QStringLiteral("<kml><p>Do <todo id=\"t1\">this</todo> now</p></kml>"));
-
-    const QTextCharFormat fmt =
-        formatOfFragmentContaining(editor.textDocument()->begin(), QStringLiteral("this"));
-    REQUIRE(fmt.hasProperty(KmlPropTodo));
-    CHECK(editor.toKml().contains(QStringLiteral("<todo id=\"t1\">this</todo>")));
-}
-
-TEST_CASE("Stage0 KML: todo completed/priority survive load", "[editor][stage0][kml]") {
-    // Regression (fixed in Stage 1): same cause as the comment-attribute test above.
+TEST_CASE("Stage0 KML: annotation author/created/done and unknown attributes survive load",
+          "[editor][stage0][kml]") {
+    // Regression (fixed in Stage 1, for the comment and TODO elements of the time): loading
+    // kept only the "id" attribute, so the others were lost on the next save.
     const QString saved = roundTrip(QStringLiteral(
-        "<kml><p><todo id=\"t1\" completed=\"true\" priority=\"high\">x</todo></p></kml>"));
-    CHECK(saved.contains(QStringLiteral("completed=\"true\"")));
+        "<kml><annotations><annotation id=\"t1\" kind=\"todo\" author=\"Ann\" "
+        "created=\"2026-01-02T03:04:05Z\" done=\"true\" priority=\"high\">Do it</annotation>"
+        "</annotations><p><anchor ref=\"t1\">anchored</anchor></p></kml>"));
+    CHECK(saved.contains(QStringLiteral("author=\"Ann\"")));
+    CHECK(saved.contains(QStringLiteral("created=\"2026-01-02T03:04:05Z\"")));
+    CHECK(saved.contains(QStringLiteral("done=\"true\"")));
     CHECK(saved.contains(QStringLiteral("priority=\"high\"")));
 }
 
@@ -226,26 +207,21 @@ TEST_CASE("Stage0 KML: footnote number survives load", "[editor][stage0][kml]") 
     CHECK(saved.contains(QStringLiteral("number=\"7\"")));
 }
 
-TEST_CASE("Stage0 KML: TODO marker added in the editor survives save and reload",
+TEST_CASE("Stage0 KML: an annotation added in the editor survives save and reload",
           "[editor][stage0][kml]") {
-    // Regression (fixed in Stage 1): markers used to be stored as a JSON string under
-    // KmlPropTodo, while the serializer and the parser use an attribute map, so a marker
-    // was saved as a bare <todo> and was invisible to findAllMarkers() after reload.
     BookEditor editor;
     editor.fromKml(QStringLiteral("<kml><p>Some text here</p></kml>"));
     editor.setCursorPosition({0, 5});
-    editor.addTodoAtCursor(QStringLiteral("Check this"));
-
-    auto before = findAllMarkers(editor.textDocument());
-    REQUIRE(before.size() == 1);
-    REQUIRE(before.front().text == QStringLiteral("Check this"));
+    const Annotation added =
+        editor.addAnnotation(AnnotationKind::Todo, QStringLiteral("Check this"), QStringLiteral("Ann"));
 
     BookEditor reloaded;
     reloaded.fromKml(editor.toKml());
-    auto after = findAllMarkers(reloaded.textDocument());
+    const std::vector<AnnotationPlace> after = reloaded.annotations();
     REQUIRE(after.size() == 1);
-    CHECK(after.front().text == QStringLiteral("Check this"));
-    CHECK(after.front().id == before.front().id);
+    CHECK(after.front().annotation == added);
+    CHECK(after.front().start == 5);
+    CHECK(after.front().end == 5);
     CHECK(reloaded.plainText() == QStringLiteral("Some text here"));
 }
 
@@ -298,7 +274,9 @@ TEST_CASE("Stage0 KML: special characters in attribute values survive load",
     // & < or " produced malformed XML and the rest of the paragraph was lost.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
-        "<kml><p>One <comment id=\"a&amp;b &quot;q&quot; &lt;x&gt;\">anchored</comment> two</p>"
+        "<kml><annotations><annotation id=\"a&amp;b &quot;q&quot; &lt;x&gt;\" kind=\"note\" "
+        "author=\"A &amp; B\">x</annotation></annotations>"
+        "<p>One <anchor ref=\"a&amp;b &quot;q&quot; &lt;x&gt;\">anchored</anchor> two</p>"
         "<p>Next paragraph</p></kml>"));
 
     CHECK(editor.paragraphCount() == 2);
@@ -307,11 +285,14 @@ TEST_CASE("Stage0 KML: special characters in attribute values survive load",
 
     const QTextCharFormat fmt =
         formatOfFragmentContaining(editor.textDocument()->begin(), QStringLiteral("anchored"));
-    CHECK(metadataOf(fmt, KmlPropComment).value(QStringLiteral("id")).toString() ==
-          QStringLiteral("a&b \"q\" <x>"));
+    CHECK(annotationIds(fmt) == QStringList{QStringLiteral("a&b \"q\" <x>")});
+    CHECK(annotationsOf(fmt).value(0).author == QStringLiteral("A & B"));
 
-    // And the value is escaped again on save
-    CHECK(editor.toKml().contains(QStringLiteral("id=\"a&amp;b &quot;q&quot; &lt;x&gt;\"")));
+    // And the values are escaped again on save
+    const QString saved = editor.toKml();
+    CHECK(saved.contains(QStringLiteral("id=\"a&amp;b &quot;q&quot; &lt;x&gt;\"")));
+    CHECK(saved.contains(QStringLiteral("ref=\"a&amp;b &quot;q&quot; &lt;x&gt;\"")));
+    CHECK(saved.contains(QStringLiteral("author=\"A &amp; B\"")));
 }
 
 // =============================================================================
