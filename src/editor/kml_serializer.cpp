@@ -21,6 +21,83 @@
 namespace kalahari {
 namespace editor {
 
+namespace {
+
+/// @brief Text as XML can hold it: escaped, without the characters XML has no place for
+/// (control characters other than tab and line breaks, unpaired surrogates, U+FFFE, U+FFFF)
+QString xmlText(const QString& text)
+{
+    QString kept;
+    kept.reserve(text.size());
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        const QChar ch = text.at(i);
+        const char16_t code = ch.unicode();
+        if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
+            kept += ch;
+            kept += text.at(++i);
+        } else if ((code >= 0x20 || code == u'\t' || code == u'\n' || code == u'\r') &&
+                   !ch.isSurrogate() && code != 0xFFFE && code != 0xFFFF) {
+            kept += ch;
+        }
+    }
+    return KmlFormatRegistry::escapeXml(kept);
+}
+
+/// @brief An anchor of an annotation: its start tag, or the whole tag of an empty one
+QString anchorTag(const QString& id, bool empty)
+{
+    return QStringLiteral("<anchor ref=\"") + KmlFormatRegistry::escapeXml(id) +
+           (empty ? QStringLiteral("\"/>") : QStringLiteral("\">"));
+}
+
+/// @brief Remember an annotation anchored in the serialized text (once)
+void noteAnnotation(AnnotationList* annotations, const Annotation& annotation)
+{
+    if (annotations == nullptr) {
+        return;
+    }
+    const bool known = std::any_of(annotations->cbegin(), annotations->cend(),
+                                   [&annotation](const Annotation& a) { return a.id == annotation.id; });
+    if (!known) {
+        annotations->append(annotation);
+    }
+}
+
+/// @brief An annotation of the <annotations> section
+QString annotationElement(const Annotation& annotation)
+{
+    QString element = QStringLiteral("<annotation id=\"") +
+                      KmlFormatRegistry::escapeXml(annotation.id) + QStringLiteral("\" kind=\"") +
+                      annotationKindName(annotation.kind) + QLatin1Char('"');
+    auto attribute = [&element](const QString& name, const QString& value) {
+        element += QLatin1Char(' ') + name + QStringLiteral("=\"") + xmlText(value) +
+                   QLatin1Char('"');
+    };
+    if (!annotation.author.isEmpty()) {
+        attribute(QStringLiteral("author"), annotation.author);
+    }
+    if (annotation.created.isValid()) {
+        attribute(QStringLiteral("created"), annotation.created.toUTC().toString(Qt::ISODate));
+    }
+    if (annotation.done) {
+        attribute(QStringLiteral("done"), QStringLiteral("true"));
+    }
+    for (auto it = annotation.otherAttributes.cbegin(); it != annotation.otherAttributes.cend();
+         ++it) {
+        const bool known = it.key() == QStringLiteral("id") || it.key() == QStringLiteral("kind") ||
+                           it.key() == QStringLiteral("author") ||
+                           it.key() == QStringLiteral("done") ||
+                           (it.key() == QStringLiteral("created") && annotation.created.isValid());
+        if (!known) {
+            attribute(it.key(), it.value());
+        }
+    }
+    return element + QLatin1Char('>') + xmlText(annotation.text) +
+           QStringLiteral("</annotation>");
+}
+
+}  // anonymous namespace
+
 // =============================================================================
 // Constructor
 // =============================================================================
@@ -54,28 +131,36 @@ QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) co
     from = std::clamp(from, 0, end);
     to = std::clamp(to, from, end);
 
-    QString result;
     const QString newline = m_indented ? QStringLiteral("\n") : QString();
     const QString indent = m_indented ? QStringLiteral("  ") : QString();
 
-    // Start document
-    result += QStringLiteral("<kml>") + newline;
-
     // Every block (paragraph) from the one holding the range start to the one holding its end
+    QString paragraphs;
+    AnnotationList annotations;
     const QTextBlock last = document->findBlock(to);
     for (QTextBlock block = document->findBlock(from); block.isValid(); block = block.next()) {
-        result += indent + QStringLiteral("<p");
-        result += serializeBlockAttributes(block);
-        result += QStringLiteral(">");
-        result += serializeBlockContent(block, from, to);
-        result += QStringLiteral("</p>") + newline;
+        paragraphs += indent + QStringLiteral("<p");
+        paragraphs += serializeBlockAttributes(block);
+        paragraphs += QStringLiteral(">");
+        paragraphs += serializeBlockContent(block, from, to, &annotations);
+        paragraphs += QStringLiteral("</p>") + newline;
 
         if (block == last) {
             break;
         }
     }
 
-    // End document
+    // The annotations anchored in the paragraphs come first, so a reader knows them
+    // when it meets their anchors
+    QString result = QStringLiteral("<kml>") + newline;
+    if (!annotations.isEmpty()) {
+        result += indent + QStringLiteral("<annotations>") + newline;
+        for (const Annotation& annotation : annotations) {
+            result += indent + indent + annotationElement(annotation) + newline;
+        }
+        result += indent + QStringLiteral("</annotations>") + newline;
+    }
+    result += paragraphs;
     result += QStringLiteral("</kml>");
 
     return result;
@@ -87,7 +172,8 @@ QString KmlSerializer::blockToKml(const QTextBlock& block) const
         return QString();
     }
 
-    return serializeBlockContent(block, block.position(), block.position() + block.length() - 1);
+    return serializeBlockContent(block, block.position(), block.position() + block.length() - 1,
+                                 nullptr);
 }
 
 // =============================================================================
@@ -128,14 +214,32 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     return attrs;
 }
 
-QString KmlSerializer::serializeBlockContent(const QTextBlock& block, int from, int to) const
+QString KmlSerializer::serializeBlockContent(const QTextBlock& block, int from, int to,
+                                            AnnotationList* annotations) const
 {
     QString result;
 
+    // The annotations on the paragraph's start, when the range holds it
+    if (block.position() >= from) {
+        for (const Annotation& annotation : annotationsOf(block.charFormat())) {
+            if (annotation.point) {
+                result += anchorTag(annotation.id, true);
+                noteAnnotation(annotations, annotation);
+            }
+        }
+    }
+
     // Iterate through all fragments in the block, each cut to the range. Neighbouring
-    // fragments with the same format (an edit splits a run into several) make one run.
+    // fragments with the same format (an edit splits a run into several) make one run;
+    // so do those that differ only by annotations on places, written inside the run.
     QString runText;
     QTextCharFormat runFormat;
+    RunPlaces runPlaces;
+    auto flush = [&]() {
+        result += serializeRun(runText, runFormat, runPlaces, annotations);
+        runText.clear();
+        runPlaces.clear();
+    };
     for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
         const QTextFragment fragment = it.fragment();
         if (!fragment.isValid()) {
@@ -146,18 +250,32 @@ QString KmlSerializer::serializeBlockContent(const QTextBlock& block, int from, 
         if (start >= stop) {
             continue;
         }
-        const QTextCharFormat format = fragment.charFormat();
+
+        // An annotation on a place is on the character before it
+        QTextCharFormat format = fragment.charFormat();
+        AnnotationList fragmentAnnotations = annotationsOf(format);
+        AnnotationList places;
+        fragmentAnnotations.removeIf([&places](const Annotation& a) {
+            if (a.point) {
+                places.append(a);
+            }
+            return a.point;
+        });
+        setAnnotations(format, fragmentAnnotations);
+
         if (!runText.isEmpty() && format != runFormat) {
-            result += serializeRun(runText, runFormat);
-            runText.clear();
+            flush();
         }
         if (runText.isEmpty()) {
             runFormat = format;
         }
         runText += fragment.text().mid(start - fragment.position(), stop - start);
+        if (!places.isEmpty() && stop == fragment.position() + fragment.length()) {
+            runPlaces.emplace_back(runText.size(), places);
+        }
     }
     if (!runText.isEmpty()) {
-        result += serializeRun(runText, runFormat);
+        flush();
     }
 
     return result;
@@ -206,7 +324,8 @@ QString KmlSerializer::buildInlineStyleAttributes(const QTextCharFormat& format)
     return attrs;
 }
 
-QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& format) const
+QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& format,
+                                   const RunPlaces& places, AnnotationList* annotations) const
 {
     // Handle special case: paragraph separator (0x2029)
     // These are inserted by Qt between blocks - skip them
@@ -214,14 +333,35 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         return QString();
     }
 
-    // Escape XML special characters in text content
-    QString escapedText = KmlFormatRegistry::escapeXml(text);
+    // The fragments the run belongs to: their anchors enclose everything else
+    const AnnotationList fragments = annotationsOf(format);
+    for (const Annotation& annotation : fragments) {
+        noteAnnotation(annotations, annotation);
+    }
+
+    // Escape XML special characters in text content; the annotations on places inside the
+    // run go after their characters
+    QString escapedText;
+    qsizetype written = 0;
+    for (const auto& [offset, placeAnnotations] : places) {
+        escapedText += KmlFormatRegistry::escapeXml(text.mid(written, offset - written));
+        written = offset;
+        for (const Annotation& annotation : placeAnnotations) {
+            escapedText += anchorTag(annotation.id, true);
+            noteAnnotation(annotations, annotation);
+        }
+    }
+    escapedText += KmlFormatRegistry::escapeXml(text.mid(written));
 
     // Build inline style attributes (font, size, color, bg)
     QString inlineAttrs = buildInlineStyleAttributes(format);
 
     // Build the result with formatting tags
     QString result;
+
+    for (const Annotation& annotation : fragments) {
+        result += anchorTag(annotation.id, false);
+    }
 
     // Check for metadata first (wraps around formatting)
     bool hasMeta = hasMetadata(format);
@@ -259,6 +399,10 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         result += metadataToCloseTag(format);
     }
 
+    for (qsizetype i = 0; i < fragments.size(); ++i) {
+        result += QStringLiteral("</anchor>");
+    }
+
     return result;
 }
 
@@ -267,9 +411,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropComment).isValid() ||
-           format.property(KmlPropTodo).isValid() ||
-           format.property(KmlPropFootnote).isValid() ||
+    return format.property(KmlPropFootnote).isValid() ||
            format.property(KmlPropCharRef).isValid() ||
            format.property(KmlPropLocRef).isValid();
 }

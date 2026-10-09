@@ -64,6 +64,16 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     connect(indent, &QCheckBox::toggled, this, syncIndent);
     whenLoaded(syncIndent);
 
+    // The marks of the comments, to-dos and notes in the text
+    QFormLayout* annotations = addGroup(tr("Annotations"));
+    auto* markSize = new QSpinBox();
+    markSize->setRange(50, 300);
+    markSize->setSingleStep(10);
+    markSize->setSuffix(tr(" %"));
+    markSize->setToolTip(tr("Size of the marks of comments, to-dos and notes in the text "
+                            "(100% suits the text's font)"));
+    addField(annotations, tr("Mark Size:"), markSize, "editor.annotationMarkSize");
+
     // Turned on and off with View > Typewriter Scrolling
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
     addNote(typewriter, tr("View > Typewriter Scrolling (Ctrl+3) keeps the line you write at one "

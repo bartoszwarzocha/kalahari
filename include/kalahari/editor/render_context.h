@@ -65,6 +65,12 @@ struct RenderColors {
     /// @brief Word being read aloud (background)
     QColor spokenWord{0, 190, 170, 96};
 
+    /// @brief The marks of the annotations, by kind (the theme's colors for the paper; not
+    /// valid: the text color)
+    QColor annotationComment;
+    QColor annotationTodo;
+    QColor annotationNote;
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -78,7 +84,10 @@ struct RenderColors {
                currentMatch == other.currentMatch &&
                spellError == other.spellError &&
                grammarWarning == other.grammarWarning &&
-               spokenWord == other.spokenWord;
+               spokenWord == other.spokenWord &&
+               annotationComment == other.annotationComment &&
+               annotationTodo == other.annotationTodo &&
+               annotationNote == other.annotationNote;
     }
 
     bool operator!=(const RenderColors& other) const {
@@ -185,6 +194,8 @@ struct RenderContext {
     TypewriterConfig typewriter;               ///< Typewriter scrolling config
     bool focus = false;                        ///< Focus: every paragraph but the cursor's
                                                ///< is dimmed (in any view mode)
+    double annotationMarkScale = 1.0;          ///< Size of the annotations' marks (1 = as
+                                               ///< the text's font asks)
 
     // -------------------------------------------------------------------------
     // Text Frame Border

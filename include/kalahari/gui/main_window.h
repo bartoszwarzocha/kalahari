@@ -49,6 +49,7 @@ class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
+class AnnotationsCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -239,13 +240,6 @@ private slots:
     void onAlignJustify();
 
     // =========================================================================
-    // Insert Actions (OpenSpec #00042 Phase 7.9)
-    // =========================================================================
-
-    /// @brief Slot for Insert > Comment action
-    void onInsertComment();
-
-    // =========================================================================
     // View Mode Actions (OpenSpec #00042 Phase 7.3)
     // =========================================================================
 
@@ -343,6 +337,9 @@ private:
 
     // Document coordinator (OpenSpec #00038 Phase 7)
     DocumentCoordinator* m_documentCoordinator;  ///< Manages document lifecycle and file operations
+
+    /// @brief The annotation commands and the Annotations panel
+    AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
 
     // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
     bool m_isDirty;                                   ///< Unsaved changes flag

@@ -29,6 +29,7 @@ class LogPanel;
 class DashboardPanel;
 class SearchPanel;
 class AssistantPanel;
+class AnnotationsPanel;
 class StandaloneInfoBar;
 
 /// @brief Coordinates dock widgets and panel management
@@ -120,6 +121,9 @@ public:
     /// @brief Get Assistant panel
     [[nodiscard]] AssistantPanel* assistantPanel() const { return m_assistantPanel; }
 
+    /// @brief Get Annotations panel
+    [[nodiscard]] AnnotationsPanel* annotationsPanel() const { return m_annotationsPanel; }
+
     /// @brief Get Standalone info bar
     [[nodiscard]] StandaloneInfoBar* standaloneInfoBar() const { return m_standaloneInfoBar; }
 
@@ -141,6 +145,9 @@ public:
 
     /// @brief Get Assistant dock widget
     [[nodiscard]] QDockWidget* assistantDock() const { return m_assistantDock; }
+
+    /// @brief Get Annotations dock widget
+    [[nodiscard]] QDockWidget* annotationsDock() const { return m_annotationsDock; }
 
     // =========================================================================
     // Central widget accessors
@@ -170,6 +177,9 @@ public:
 
     /// @brief Get Assistant toggle action
     [[nodiscard]] QAction* viewAssistantAction() const { return m_viewAssistantAction; }
+
+    /// @brief Get Annotations toggle action
+    [[nodiscard]] QAction* viewAnnotationsAction() const { return m_viewAnnotationsAction; }
 
 signals:
     /// @brief Emitted when tab close is requested
@@ -261,6 +271,9 @@ private:
     /// @brief Create Assistant dock widget
     void createAssistantDock();
 
+    /// @brief Create Annotations dock widget
+    void createAnnotationsDock();
+
     /// @brief Create central tabbed workspace
     void createCentralWidget();
 
@@ -286,6 +299,7 @@ private:
     QDockWidget* m_logDock{nullptr};
     QDockWidget* m_searchDock{nullptr};
     QDockWidget* m_assistantDock{nullptr};
+    QDockWidget* m_annotationsDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -294,6 +308,7 @@ private:
     QPointer<DashboardPanel> m_dashboardPanel;  ///< QPointer: auto-nulls when panel is deleted by user
     SearchPanel* m_searchPanel{nullptr};
     AssistantPanel* m_assistantPanel{nullptr};
+    AnnotationsPanel* m_annotationsPanel{nullptr};
 
     // Central widget
     QTabWidget* m_centralTabs{nullptr};
@@ -306,6 +321,7 @@ private:
     QAction* m_viewLogAction{nullptr};
     QAction* m_viewSearchAction{nullptr};
     QAction* m_viewAssistantAction{nullptr};
+    QAction* m_viewAnnotationsAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;
