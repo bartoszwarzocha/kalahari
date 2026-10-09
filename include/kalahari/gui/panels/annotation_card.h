@@ -19,9 +19,10 @@ namespace kalahari::gui {
 ///
 /// A bar in the color of the annotation's kind on the left and a background tinted with
 /// it; a header with the kind, the chapter and the date (a to-do also has its check box)
-/// and a menu button; below it the annotation's text. The card only shows the
-/// annotation: a click on it selects it, a double click asks to edit it (in the frame at
-/// its place in the text).
+/// and a menu button; below it who made the annotation and its text. The tooltip says who
+/// made it and when, and the chapter's whole title. The card only shows the annotation: a
+/// click on it selects it, a double click asks to edit it (in the frame at its place in
+/// the text).
 class AnnotationCard : public QFrame {
     Q_OBJECT
 
@@ -88,14 +89,15 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
-    /// @brief Kind, state, chapter, date and text
+    /// @brief Kind, state, chapter, date, author and text
     void updateContent();
 
-    /// @brief The colors of the texts: the kind's name, the chapter and date, the text
+    /// @brief The colors of the texts: the kind's name, the chapter and date, the author and
+    /// the text
     void updateTextColors();
 
-    /// @brief The chapter's title, shortened to the room it has
-    void updateChapterLabel();
+    /// @brief The chapter's title and the author, shortened to the room they have
+    void updateElidedLabels();
 
     /// @brief The menu button's icon, in the colors of the icons
     void updateMenuIcon();
@@ -108,6 +110,7 @@ private:
     QLabel* m_chapterLabel{nullptr};
     QLabel* m_dateLabel{nullptr};
     QToolButton* m_menuButton{nullptr};
+    QLabel* m_authorLabel{nullptr};
     QLabel* m_textLabel{nullptr};
     bool m_selected = false;
     bool m_listFocused = false;

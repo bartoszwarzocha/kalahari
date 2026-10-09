@@ -123,7 +123,8 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
     // The fragments of comments, to-dos and notes are neither tinted nor underlined: each
     // one not done has a small mark in its kind's color under its end, or under its place
     auto annotated = editorWith(QStringLiteral(
-        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"A\">C</annotation>"
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\" author=\"Anna Nowak\">C"
+        "</annotation>"
         "<annotation id=\"t1\" kind=\"todo\">Fix &lt;it&gt;</annotation>"
         "<annotation id=\"t2\" kind=\"todo\" done=\"true\">D</annotation>"
         "<annotation id=\"n1\" kind=\"note\">N</annotation>"
@@ -264,12 +265,19 @@ TEST_CASE("Stage5 highlights: annotations leave the text as it is, with a mark a
         CHECK(annotated->cursor().shape() == Qt::IBeamCursor);
     }
 
-    SECTION("the tooltip of a mark is its annotation's text") {
-        QHelpEvent help(QEvent::ToolTip, todoMark.toPoint(),
-                        annotated->mapToGlobal(todoMark.toPoint()));
-        QCoreApplication::sendEvent(annotated.get(), &help);
-        CHECK(QToolTip::text().contains(QStringLiteral("Fix &lt;it&gt;")));
-        QToolTip::hideText();
+    SECTION("the tooltip of a mark is who made its annotation, then the annotation's text") {
+        const auto toolTipAt = [&annotated](const QPointF& point) {
+            QHelpEvent help(QEvent::ToolTip, point.toPoint(),
+                            annotated->mapToGlobal(point.toPoint()));
+            QCoreApplication::sendEvent(annotated.get(), &help);
+            const QString tip = QToolTip::text();
+            QToolTip::hideText();
+            return tip;
+        };
+        CHECK(toolTipAt(middleOf(comment)).contains(QStringLiteral("<b>Anna Nowak</b><br>C")));
+        const QString todoTip = toolTipAt(todoMark);  // by no one known
+        CHECK(todoTip.contains(QStringLiteral("Fix &lt;it&gt;")));
+        CHECK_FALSE(todoTip.contains(QStringLiteral("<b>")));
     }
 
     SECTION("the size of the marks follows the appearance") {

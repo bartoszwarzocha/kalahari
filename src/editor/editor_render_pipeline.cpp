@@ -694,9 +694,11 @@ QString EditorRenderPipeline::annotationMarkAt(const QPointF& point) const {
     return shape ? shape->mark.id : QString();
 }
 
-QString EditorRenderPipeline::annotationMarkTextAt(const QPointF& point) const {
+std::optional<AnnotationMark> EditorRenderPipeline::annotationMarkDetailsAt(
+    const QPointF& point) const {
     const std::optional<AnnotationMarkShape> shape = annotationMarkShapeAt(point);
-    return shape ? shape->mark.text : QString();
+    if (!shape) return std::nullopt;
+    return shape->mark;
 }
 
 std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::annotationMarkShapes(

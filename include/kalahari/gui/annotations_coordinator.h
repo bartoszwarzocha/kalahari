@@ -158,6 +158,7 @@ private:
         QString elementId;     ///< Its chapter; empty: a document outside the book
         QString annotationId;  ///< The one edited; empty: a new one
         editor::AnnotationKind kind = editor::AnnotationKind::Comment;
+        QString author;          ///< Who it is by: a new one by author(), as the frame shows
         QTextCursor range;       ///< Its fragment or place; follows the edits of the text
         bool fromPanel = false;  ///< The keys go back to the panel, else to the text
     };
