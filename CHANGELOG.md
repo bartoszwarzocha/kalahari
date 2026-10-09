@@ -408,6 +408,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
+  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
+  to the end of the File menu. It now finds Close Book by its command; the submenu itself
+  moved from the core to the GUI (the core keeps only the list of books).
+
 - **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
   the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
   it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
