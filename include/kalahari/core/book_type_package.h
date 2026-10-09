@@ -39,12 +39,18 @@
 /// - "front", "main", "back", "workshop": kinds offered in the front, main and back part of the
 ///   book and in the Workshop, in this order.
 /// - "primary": the main text kind (chapter, story, poem), "start": kinds a new book starts with.
+/// - "partsLayer" (types only, true when missing): whether a new book of the type shows its
+///   front, main and back parts; without them, the elements of all three are right in the book.
+/// - The lists, "primary" and "start" can name a kind of another package without using it:
+///   "kalahari.nonfiction:bibliography". Such a reference takes the kind alone; the styles of
+///   its package do not become styles of this package.
 ///
 /// A kind (rodzaj): "form" ("text", "group" or "window"), "name" and "plural", "icon",
 /// "places" (front, main, back, workshop or ids of group kinds it can be inside), "limit"
 /// (most elements of the kind in a book), "title" (default title, "%n" is the number) with
 /// "numbering" ("arabic" or "roman"), "template" (text kinds: a starting .kchapter file),
-/// "editor", "generated" and "settings" (window kinds).
+/// "editor", "generated" and "settings" (window kinds), "workshopGroup" (kinds of the
+/// Workshop: "libraries" or "resources", the group they go to when the Workshop is grouped).
 ///
 /// styles.json has the fields of the paragraph_styles and character_styles tables of
 /// project.db, with names in several languages and the style of the next paragraph:
@@ -111,6 +117,32 @@ enum class TitleNumbering {
     Roman    ///< "Act III"
 };
 
+/// @brief Group of the Workshop that a kind goes to when the Workshop is grouped
+enum class WorkshopGroup {
+    None,       ///< First level of the Workshop: working notes, mind maps, timelines...
+    Libraries,  ///< Cards: characters, locations, items, sources
+    Resources   ///< Materials
+};
+
+/// @brief Name of @p group in packages: "libraries" or "resources"; empty for None
+QString workshopGroupName(WorkshopGroup group);
+
+/// @brief Group named @p name in packages, or nullopt when it is not a group of the Workshop
+std::optional<WorkshopGroup> workshopGroupFromName(const QString& name);
+
+/// @brief Kind named in a package: by its id ("chapter"), or with the package whose kind it
+/// is ("kalahari.nonfiction:bibliography")
+struct KindReference {
+    QString packageId;  ///< Empty for a kind named by its id alone
+    QString kindId;     ///< Id of the kind, e.g. "bibliography"
+
+    /// @brief Reference written as @p text, or nullopt when @p text is not one
+    static std::optional<KindReference> parse(const QString& text);
+
+    /// @brief "kalahari.nonfiction:bibliography", or the kind id alone without a package
+    QString toString() const;
+};
+
 /// @brief Kind of element (rodzaj): chapter, dedication, act, poem, mind map...
 struct ElementKind {
     QString id;                          ///< Unique in its package, e.g. "chapter"
@@ -126,6 +158,7 @@ struct ElementKind {
     QString editor;                      ///< Window kinds: id of the window that opens the element
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window
+    WorkshopGroup workshopGroup = WorkshopGroup::None;  ///< Workshop kinds: group when grouped
 
     /// @brief Whether an element of this kind can be in @p place, outside groups
     bool allows(BookPlace place) const;
@@ -181,6 +214,7 @@ struct BookTypePackage {
     QStringList workshopKinds;        ///< Kinds offered in the Workshop, in order
     QString primaryKind;              ///< Main text kind; required for a type
     QStringList startKinds;           ///< Kinds a new book of the type starts with
+    bool partsLayer = true;           ///< Whether a new book shows its front, main and back parts
     QString stylesFile;               ///< Styles file, relative to the package folder
     QList<PackageParagraphStyle> paragraphStyles;  ///< Paragraph styles of the styles file
     QList<PackageCharacterStyle> characterStyles;  ///< Character styles of the styles file

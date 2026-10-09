@@ -51,5 +51,6 @@
                "work_note", "material"],
   "primary":  "act",
   "start":    ["title_page", "act"],
+  "partsLayer": false,
   "styles":   "styles.json"
 }

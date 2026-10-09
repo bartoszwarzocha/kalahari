@@ -22,6 +22,9 @@ namespace {
 
 const char* const PLACE_NAMES[] = {"front", "main", "back", "workshop"};
 
+/// Names of the groups of the Workshop, from WorkshopGroup::Libraries on
+const char* const WORKSHOP_GROUP_NAMES[] = {"libraries", "resources"};
+
 void addProblem(QStringList& problems, const QString& field, const QString& message) {
     problems << field + QStringLiteral(": ") + message;
 }
@@ -39,6 +42,11 @@ bool isIdentifier(const QString& text) {
 /// Package ids: "kalahari.novel"
 bool isPackageId(const QString& text) {
     return matches(text, "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$");
+}
+
+/// Kinds in the lists of a package: "chapter", or "kalahari.nonfiction:bibliography"
+bool isKindName(const QString& text) {
+    return KindReference::parse(text).has_value();
 }
 
 bool isVersion(const QString& text) {
@@ -215,7 +223,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
               {"form", "name", "plural", "icon", "places", "limit", "title", "numbering",
-               "template", "editor", "generated", "settings"},
+               "template", "editor", "generated", "settings", "workshopGroup"},
               problems);
 
     ElementKind kind;
@@ -345,6 +353,21 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                        QStringLiteral("only a window kind has settings"));
         } else {
             kind.settings = settings.toObject();
+        }
+    }
+
+    const QJsonValue workshopGroup = object.value(QStringLiteral("workshopGroup"));
+    if (!workshopGroup.isUndefined()) {
+        const auto group = workshopGroupFromName(workshopGroup.toString());
+        if (!workshopGroup.isString() || !group) {
+            addProblem(problems, field + QStringLiteral(".workshopGroup"),
+                       QStringLiteral("must be \"libraries\" or \"resources\""));
+        } else if (!kind.allows(BookPlace::Workshop)) {
+            addProblem(problems, field + QStringLiteral(".workshopGroup"),
+                       QStringLiteral("only a kind of the Workshop goes to a group of the "
+                                      "Workshop"));
+        } else {
+            kind.workshopGroup = *group;
         }
     }
 
@@ -600,6 +623,41 @@ std::optional<BookPlace> bookPlaceFromName(const QString& name) {
     return std::nullopt;
 }
 
+QString workshopGroupName(WorkshopGroup group) {
+    return group == WorkshopGroup::None
+               ? QString()
+               : QLatin1String(WORKSHOP_GROUP_NAMES[static_cast<int>(group) - 1]);
+}
+
+std::optional<WorkshopGroup> workshopGroupFromName(const QString& name) {
+    for (int i = 0; i < static_cast<int>(std::size(WORKSHOP_GROUP_NAMES)); ++i) {
+        if (name == QLatin1String(WORKSHOP_GROUP_NAMES[i])) {
+            return static_cast<WorkshopGroup>(i + 1);
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<KindReference> KindReference::parse(const QString& text) {
+    const qsizetype separator = text.indexOf(QLatin1Char(':'));
+    KindReference reference;
+    if (separator >= 0) {
+        reference.packageId = text.left(separator);
+        if (!isPackageId(reference.packageId)) {
+            return std::nullopt;
+        }
+    }
+    reference.kindId = text.mid(separator + 1);
+    if (!isIdentifier(reference.kindId)) {
+        return std::nullopt;
+    }
+    return reference;
+}
+
+QString KindReference::toString() const {
+    return packageId.isEmpty() ? kindId : packageId + QLatin1Char(':') + kindId;
+}
+
 bool ElementKind::allows(BookPlace place) const {
     return places.contains(bookPlaceName(place));
 }
@@ -661,7 +719,7 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     }
     checkKeys(*manifest, manifestFile,
               {"format", "id", "version", "role", "name", "description", "icon", "uses", "kinds",
-               "front", "main", "back", "workshop", "primary", "start", "styles"},
+               "front", "main", "back", "workshop", "primary", "start", "partsLayer", "styles"},
               problems);
 
     BookTypePackage package;
@@ -719,7 +777,7 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     for (const BookPlace place :
          {BookPlace::Front, BookPlace::Main, BookPlace::Back, BookPlace::Workshop}) {
         const QString placeName = bookPlaceName(place);
-        const QStringList list = readIdList(manifest->value(placeName), placeName, isIdentifier,
+        const QStringList list = readIdList(manifest->value(placeName), placeName, isKindName,
                                             QStringLiteral("kind id"), true, problems);
         switch (place) {
             case BookPlace::Front:
@@ -743,18 +801,31 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
             addProblem(problems, QStringLiteral("primary"),
                        QStringLiteral("a book type needs its main text kind, e.g. \"chapter\""));
         }
-    } else if (!primary.isString() || !isIdentifier(primary.toString())) {
+    } else if (!primary.isString() || !isKindName(primary.toString())) {
         addProblem(problems, QStringLiteral("primary"), QStringLiteral("must be a kind id"));
     } else {
         package.primaryKind = primary.toString();
     }
 
     package.startKinds = readIdList(manifest->value(QStringLiteral("start")),
-                                    QStringLiteral("start"), isIdentifier,
+                                    QStringLiteral("start"), isKindName,
                                     QStringLiteral("kind id"), false, problems);
     if (package.role == PackageRole::Shared && !package.startKinds.isEmpty()) {
         addProblem(problems, QStringLiteral("start"),
                    QStringLiteral("only a book type has elements to start with"));
+    }
+
+    const QJsonValue partsLayer = manifest->value(QStringLiteral("partsLayer"));
+    if (!partsLayer.isUndefined()) {
+        if (!partsLayer.isBool()) {
+            addProblem(problems, QStringLiteral("partsLayer"),
+                       QStringLiteral("must be true or false"));
+        } else if (package.role == PackageRole::Shared) {
+            addProblem(problems, QStringLiteral("partsLayer"),
+                       QStringLiteral("only a book type says whether a new book shows its parts"));
+        } else {
+            package.partsLayer = partsLayer.toBool();
+        }
     }
 
     const QJsonValue styles = manifest->value(QStringLiteral("styles"));

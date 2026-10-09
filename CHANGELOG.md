@@ -275,6 +275,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Book types: Workshop groups, the parts layer and kinds of other packages** - 2026-10-09.
+  A kind of the Workshop says which group it goes to when the Workshop is grouped (cards go
+  to Libraries, materials to Resources), and a type says whether a new book shows its front,
+  main and back parts (a screenplay does not). A type can also offer a kind of a package it
+  does not use, named with that package (`kalahari.nonfiction:bibliography`), and two
+  packages can offer each other's kinds. Nothing uses these fields yet, so the program works
+  as before.
+
 - **Book types as data** - 2026-10-09. The shared Base package and five book types (novel,
   short story collection, non-fiction, screenplay, poetry collection) are data packages in
   `resources/booktypes/`, with names in Polish and English: the kinds of elements a type
