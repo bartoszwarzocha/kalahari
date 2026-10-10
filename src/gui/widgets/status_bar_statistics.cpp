@@ -4,6 +4,7 @@
 #include "kalahari/gui/widgets/status_bar_statistics.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/utils/reading_time.h"
 
 #include <QLabel>
 #include <QLocale>
@@ -40,7 +41,8 @@ StatusBarStatistics::StatusBarStatistics(QStatusBar* statusBar, QObject* parent)
                                "document."));
     m_readingTime = addLabel(
         statusBar, 100,
-        tr("Reading time of the whole document at %1 words a minute").arg(WORDS_PER_MINUTE));
+        tr("Reading time of the whole document at %1 words a minute")
+            .arg(core::READING_WORDS_PER_MINUTE));
 
     m_timer->setSingleShot(true);
     m_timer->setInterval(INTERVAL_MS);
@@ -93,24 +95,7 @@ void StatusBarStatistics::update()
         m_characters->setText(tr("Characters: %1").arg(locale.toString(text.characters)));
     }
 
-    m_readingTime->setText(readingTimeText(text.words));
-}
-
-QString StatusBarStatistics::readingTimeText(int words)
-{
-    constexpr int MINUTES_PER_HOUR = 60;
-    // Rounded up: a minute begun is a minute
-    const int minutes = (words + WORDS_PER_MINUTE - 1) / WORDS_PER_MINUTE;
-    const QLocale locale;
-    if (minutes < MINUTES_PER_HOUR) {
-        return tr("Reading: %1 min").arg(locale.toString(minutes));
-    }
-    const int hours = minutes / MINUTES_PER_HOUR;
-    const int rest = minutes % MINUTES_PER_HOUR;
-    if (rest == 0) {
-        return tr("Reading: %1 h").arg(locale.toString(hours));
-    }
-    return tr("Reading: %1 h %2 min").arg(locale.toString(hours), locale.toString(rest));
+    m_readingTime->setText(tr("Reading: %1").arg(utils::readingTimeText(text.words)));
 }
 
 void StatusBarStatistics::schedule()

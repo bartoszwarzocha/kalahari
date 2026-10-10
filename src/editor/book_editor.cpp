@@ -70,6 +70,7 @@ void addCounts(core::TextCounts& total, const core::TextCounts& part) {
     total.words += part.words;
     total.characters += part.characters;
     total.nonSpaceCharacters += part.nonSpaceCharacters;
+    total.paragraphs += part.paragraphs;
 }
 
 /// @brief The counts of a paragraph, counted when its cached counts are stale
@@ -83,7 +84,8 @@ const core::TextCounts& paragraphCounts(const QTextBlock& block,
     return data->counts;
 }
 
-/// @brief Word and character counts of the whole document, from the paragraphs' counts
+/// @brief Word, character and paragraph counts of the whole document, from the paragraphs'
+///        counts
 ///
 /// Document statistics are sums of per-paragraph counts, so after an edit only the
 /// paragraphs it touched are counted again. A word never goes on past the end of its

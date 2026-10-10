@@ -25,6 +25,10 @@ int characters(const QString& text) {
     return countText(text, WordCountRules{}).characters;
 }
 
+int paragraphs(const QString& text) {
+    return countText(text, WordCountRules{}).paragraphs;
+}
+
 }  // anonymous namespace
 
 TEST_CASE("countText counts words", "[core][text_statistics]") {
@@ -125,6 +129,42 @@ TEST_CASE("countText counts characters with spaces, without line and paragraph b
     CHECK(characters(QStringLiteral("ab cd ef")) == 6);
     // A surrogate pair is one character
     CHECK(characters(QString::fromUcs4(U"a \U0001F600")) == 3);
+}
+
+TEST_CASE("countText counts the paragraphs with text", "[core][text_statistics]") {
+    CHECK(paragraphs(QString()) == 0);
+    CHECK(paragraphs(QStringLiteral("One")) == 1);
+    CHECK(paragraphs(QStringLiteral("One\nTwo")) == 2);
+
+    SECTION("Empty paragraphs are not paragraphs, as in Word and LibreOffice") {
+        // The line end at the end of a text file, empty lines, lines of spaces
+        CHECK(paragraphs(QStringLiteral("One\n")) == 1);
+        CHECK(paragraphs(QStringLiteral("One\n\n\nTwo\n")) == 2);
+        CHECK(paragraphs(QStringLiteral(" \t\n \n")) == 0);
+    }
+
+    SECTION("A paragraph without words is a paragraph") {
+        CHECK(paragraphs(QStringLiteral("One\n***\nTwo")) == 3);
+        CHECK(paragraphs(QStringLiteral("\u2013")) == 1);
+    }
+
+    SECTION("Every new line ends a paragraph, a line separator only breaks the line") {
+        // Windows and old Mac line ends, the next line, a page break, a paragraph separator
+        CHECK(paragraphs(QStringLiteral("One\r\nTwo\r\n")) == 2);
+        CHECK(paragraphs(QStringLiteral("One\rTwo")) == 2);
+        CHECK(paragraphs(QStringLiteral("One\u0085Two\fThree\u2029Four")) == 4);
+        // The line separator and the vertical tab (a line break in Word's plain text)
+        CHECK(paragraphs(QStringLiteral("One\u2028Two\vThree")) == 1);
+    }
+}
+
+TEST_CASE("readingMinutes counts a minute begun as a minute", "[core][text_statistics]") {
+    CHECK(readingMinutes(0) == 0);
+    CHECK(readingMinutes(1) == 1);
+    CHECK(readingMinutes(READING_WORDS_PER_MINUTE) == 1);
+    CHECK(readingMinutes(READING_WORDS_PER_MINUTE + 1) == 2);
+    // The long chapter of the example book
+    CHECK(readingMinutes(150017) == 751);
 }
 
 TEST_CASE("wordCountRules follow the setting", "[core][text_statistics]") {

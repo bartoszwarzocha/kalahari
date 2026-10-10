@@ -13,6 +13,7 @@
 
 #include <memory>
 
+using kalahari::core::READING_WORDS_PER_MINUTE;
 using kalahari::editor::BookEditor;
 using kalahari::gui::StatusBarStatistics;
 namespace test = kalahari::test;
@@ -38,6 +39,15 @@ bool allHidden(const StatusBarStatistics& statistics) {
 bool noneHidden(const StatusBarStatistics& statistics) {
     return !statistics.wordsLabel()->isHidden() && !statistics.charactersLabel()->isHidden() &&
            !statistics.readingTimeLabel()->isHidden();
+}
+
+/// One paragraph of @p count words
+QString wordsText(int count) {
+    QStringList text;
+    for (int i = 0; i < count; ++i) {
+        text << QStringLiteral("word");
+    }
+    return text.join(QLatin1Char(' '));
 }
 
 }  // anonymous namespace
@@ -90,12 +100,8 @@ TEST_CASE("Status bar counts: large numbers in the system's way, a minute begun 
     StatusBarStatistics statistics(&statusBar);
     BookEditor editor;
     // One word more than two minutes of reading
-    const int words = StatusBarStatistics::WORDS_PER_MINUTE * 2 + 1;
-    QStringList text;
-    for (int i = 0; i < words; ++i) {
-        text << QStringLiteral("word");
-    }
-    editor.fromKml(test::kmlOf({text.join(QLatin1Char(' '))}));
+    const int words = READING_WORDS_PER_MINUTE * 2 + 1;
+    editor.fromKml(test::kmlOf({wordsText(words)}));
 
     statistics.setEditor(&editor);
     CHECK(statistics.wordsLabel()->text() == QStringLiteral("Words: %1").arg(number(words)));
@@ -106,26 +112,14 @@ TEST_CASE("Status bar counts: large numbers in the system's way, a minute begun 
 
 TEST_CASE("Status bar counts: a reading time of an hour or more in hours and minutes",
           "[gui][statistics]") {
-    constexpr int perMinute = StatusBarStatistics::WORDS_PER_MINUTE;
-    CHECK(StatusBarStatistics::readingTimeText(0) == QStringLiteral("Reading: 0 min"));
-    CHECK(StatusBarStatistics::readingTimeText(1) == QStringLiteral("Reading: 1 min"));
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 59) ==
-          QStringLiteral("Reading: 59 min"));
-    // A minute begun is a minute, so the 60th minute makes an hour
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 59 + 1) ==
-          QStringLiteral("Reading: 1 h"));
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60) ==
-          QStringLiteral("Reading: 1 h"));
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60 + 1) ==
-          QStringLiteral("Reading: 1 h 1 min"));
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 120) ==
-          QStringLiteral("Reading: 2 h"));
-    // The long chapter of the example book
-    CHECK(StatusBarStatistics::readingTimeText(150017) ==
-          QStringLiteral("Reading: 12 h 31 min"));
-    // Large numbers of hours in the system's way
-    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60 * 1500) ==
-          QStringLiteral("Reading: %1 h").arg(number(1500)));
+    QStatusBar statusBar;
+    StatusBarStatistics statistics(&statusBar);
+    BookEditor editor;
+    // One word more than an hour of reading
+    editor.fromKml(test::kmlOf({wordsText(READING_WORDS_PER_MINUTE * 60 + 1)}));
+
+    statistics.setEditor(&editor);
+    CHECK(statistics.readingTimeLabel()->text() == QStringLiteral("Reading: 1 h 1 min"));
 }
 
 TEST_CASE("Status bar counts: with a selection, its counts out of the whole text",

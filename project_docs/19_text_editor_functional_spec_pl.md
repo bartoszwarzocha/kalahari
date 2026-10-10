@@ -643,8 +643,10 @@ character_styles (
 ## 8. Funkcje dedykowane pisarzom
 
 ### 8.1. Statystyki na bieżąco
-- Licznik: słowa, znaki (ze spacjami i bez), akapity
-- Przybliżony czas czytania
+- Licznik: słowa, znaki (ze spacjami i bez; końce akapitów nie są znakami), akapity z tekstem
+  (pustych się nie liczy, jak w Wordzie i LibreOffice)
+- Przybliżony czas czytania: 200 słów na minutę, od godziny w godzinach i minutach
+  („12 godz. 31 min”)
 - Licznik kontekstowy: całość dokumentu vs zaznaczenie
 - **Rozszerzone:**
   - Czytelność (indeks Flescha-Kincaida lub polski odpowiednik)

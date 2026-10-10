@@ -150,6 +150,15 @@ TEST_CASE("StatisticsCollector: Word counting", "[editor][statistics]") {
         REQUIRE(collector.paragraphCount() == 2);
         collector.setBookEditor(nullptr);
     }
+
+    SECTION("Only the paragraphs with text are paragraphs") {
+        BookEditor editor;
+        editor.fromKml(createKmlParagraphs({"First paragraph.", "", " ", "Second paragraph."}));
+        collector.setBookEditor(&editor);
+        REQUIRE(editor.paragraphCount() == 4);
+        REQUIRE(collector.paragraphCount() == 2);
+        collector.setBookEditor(nullptr);
+    }
 }
 
 // =============================================================================

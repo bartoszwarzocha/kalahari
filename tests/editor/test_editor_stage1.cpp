@@ -142,6 +142,7 @@ TEST_CASE("Stage1 word count: cached counts follow every kind of edit",
         CHECK(editor.characterCount() == static_cast<size_t>(expected.characters));
         CHECK(editor.characterCountNoSpaces() ==
               static_cast<size_t>(expected.nonSpaceCharacters));
+        CHECK(editor.textCounts().paragraphs == expected.paragraphs);
     };
 
     SECTION("typing within a paragraph") {
@@ -156,6 +157,20 @@ TEST_CASE("Stage1 word count: cached counts follow every kind of edit",
         editor.insertText(QStringLiteral("New a\nNew b c\nNew d "));
         CHECK(editor.paragraphCount() == 5);
         CHECK(editor.wordCount() == 14);
+        CHECK(editor.textCounts().paragraphs == 5);
+        checkAgainstScratch();
+    }
+
+    SECTION("an empty paragraph is no paragraph of the counts") {
+        editor.setCursorPosition({0, 13});
+        editor.insertText(QStringLiteral("\n"));
+        CHECK(editor.paragraphCount() == 4);
+        CHECK(editor.textCounts().paragraphs == 3);
+        checkAgainstScratch();
+        editor.insertText(QStringLiteral(" "));  // spaces are no text either
+        CHECK(editor.textCounts().paragraphs == 3);
+        editor.insertText(QStringLiteral("x"));
+        CHECK(editor.textCounts().paragraphs == 4);
         checkAgainstScratch();
     }
 
@@ -218,6 +233,7 @@ TEST_CASE("Stage1 word count: the counts of the selection", "[editor][stage1][st
         CHECK(counts.words == 0);
         CHECK(counts.characters == 0);
         CHECK(counts.nonSpaceCharacters == 0);
+        CHECK(counts.paragraphs == 0);
     }
 
     SECTION("a part of a paragraph: a word cut by the selection is a word") {
@@ -226,6 +242,7 @@ TEST_CASE("Stage1 word count: the counts of the selection", "[editor][stage1][st
         CHECK(counts.words == 3);
         CHECK(counts.characters == 7);
         CHECK(counts.nonSpaceCharacters == 5);
+        CHECK(counts.paragraphs == 1);
     }
 
     SECTION("across paragraphs, without their ends") {
@@ -234,6 +251,16 @@ TEST_CASE("Stage1 word count: the counts of the selection", "[editor][stage1][st
         CHECK(counts.words == 4);
         CHECK(counts.characters == 5 + 19 + 4);
         CHECK(counts.nonSpaceCharacters == 5 + 16 + 4);
+        CHECK(counts.paragraphs == 3);
+    }
+
+    SECTION("a paragraph without any of its text selected is no paragraph of the selection") {
+        // The end of the first paragraph, the second one, the start of the third
+        editor.setSelection({{0, 13}, {2, 0}});
+        CHECK(editor.selectionCounts().paragraphs == 1);
+        // Only a space of a paragraph
+        editor.setSelection({{1, 5}, {1, 6}});  // the space after "Tak"
+        CHECK(editor.selectionCounts().paragraphs == 0);
     }
 
     SECTION("selected backwards, the same counts") {
@@ -249,6 +276,7 @@ TEST_CASE("Stage1 word count: the counts of the selection", "[editor][stage1][st
         CHECK(selection.words == text.words);
         CHECK(selection.characters == text.characters);
         CHECK(selection.nonSpaceCharacters == text.nonSpaceCharacters);
+        CHECK(selection.paragraphs == text.paragraphs);
     }
 
     SECTION("by the editor's rules of counting") {

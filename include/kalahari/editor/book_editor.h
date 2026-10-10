@@ -149,13 +149,18 @@ public:
     /// @return Non-space character count, cached per paragraph like wordCount()
     size_t characterCountNoSpaces() const;
 
-    /// @brief The word and character counts of the whole text, in one pass over the
-    ///        paragraphs' cached counts
+    /// @brief The word, character and paragraph counts of the whole text, in one pass over
+    ///        the paragraphs' cached counts
+    ///
+    /// The paragraphs are those with text (core::countText()); paragraphCount() counts the
+    /// empty ones too.
     core::TextCounts textCounts() const;
 
-    /// @brief The word and character counts of the selected text (zeros without one)
+    /// @brief The word, character and paragraph counts of the selected text (zeros without
+    ///        one)
     ///
-    /// A word cut by an edge of the selection counts as a word, as in Word and LibreOffice.
+    /// A word cut by an edge of the selection counts as a word, and a paragraph as a
+    /// paragraph when the selection has some of its text, as in Word and LibreOffice.
     core::TextCounts selectionCounts() const;
 
     /// @brief Set what the counts take for a word (the settings' choice)

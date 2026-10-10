@@ -3888,8 +3888,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Akapity:</translation>
     </message>
     <message>
-        <source>Estimated reading time at 200 words per minute</source>
-        <translation>Szacowany czas czytania przy 200 słowach na minutę</translation>
+        <source>Estimated reading time at %1 words per minute</source>
+        <translation>Szacowany czas czytania w tempie %1 słów na minutę</translation>
     </message>
     <message>
         <source>Reading time:</source>
@@ -4205,6 +4205,21 @@ Tej operacji nie można cofnąć.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::utils::ReadingTime</name>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 godz.</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min</source>
+        <translation>%1 godz. %2 min</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::StatusBarStatistics</name>
     <message>
         <source>Words in the document. With a selection: words in the selection and in the whole document.</source>
@@ -4235,16 +4250,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Znaki: %1</translation>
     </message>
     <message>
-        <source>Reading: %1 min</source>
-        <translation>Czytanie: %1 min</translation>
-    </message>
-    <message>
-        <source>Reading: %1 h</source>
-        <translation>Czytanie: %1 godz.</translation>
-    </message>
-    <message>
-        <source>Reading: %1 h %2 min</source>
-        <translation>Czytanie: %1 godz. %2 min</translation>
+        <source>Reading: %1</source>
+        <translation>Czytanie: %1</translation>
     </message>
 </context>
 <context>

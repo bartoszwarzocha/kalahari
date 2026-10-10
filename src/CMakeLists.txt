@@ -183,6 +183,7 @@ set(KALAHARI_SOURCES
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
+    gui/utils/reading_time.cpp  # The reading time of a text as the program shows it
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations

@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/statistics_collector.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/logger.h>
@@ -107,18 +108,12 @@ int StatisticsCollector::characterCountNoSpaces() const
 
 int StatisticsCollector::paragraphCount() const
 {
-    return m_editor ? static_cast<int>(m_editor->paragraphCount()) : 0;
+    return m_paragraphCount;
 }
 
 int StatisticsCollector::estimatedReadingTime() const
 {
-    if (m_wordCount == 0) {
-        return 0;
-    }
-
-    // Reading time in minutes at WORDS_PER_MINUTE
-    // Round up to nearest minute
-    return (m_wordCount + WORDS_PER_MINUTE - 1) / WORDS_PER_MINUTE;
+    return core::readingMinutes(m_wordCount);
 }
 
 // =============================================================================
@@ -316,6 +311,7 @@ void StatisticsCollector::recalculateStats()
         m_wordCount = 0;
         m_characterCount = 0;
         m_characterCountNoSpaces = 0;
+        m_paragraphCount = 0;
         return;
     }
 
@@ -324,6 +320,7 @@ void StatisticsCollector::recalculateStats()
     m_wordCount = counts.words;
     m_characterCount = counts.characters;
     m_characterCountNoSpaces = counts.nonSpaceCharacters;
+    m_paragraphCount = counts.paragraphs;
 }
 
 void StatisticsCollector::updateHourlyStats(int wordsDelta)

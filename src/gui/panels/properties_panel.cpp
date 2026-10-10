@@ -5,6 +5,7 @@
 /// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
@@ -23,6 +24,7 @@
 #include <QTextEdit>
 #include <QStackedWidget>
 #include <QTimer>
+#include <QLocale>
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -492,27 +494,33 @@ QWidget* PropertiesPanel::createEditorPage() {
 
     // Word count
     m_editorWordCountLabel = new QLabel("0", statsGroup);
+    m_editorWordCountLabel->setObjectName(QStringLiteral("editorWordCount"));
     m_editorWordCountLabel->setToolTip(tr("Number of words"));
     statsLayout->addRow(tr("Words:"), m_editorWordCountLabel);
 
     // Character count (with spaces)
     m_editorCharCountLabel = new QLabel("0", statsGroup);
+    m_editorCharCountLabel->setObjectName(QStringLiteral("editorCharCount"));
     m_editorCharCountLabel->setToolTip(tr("Number of characters including spaces"));
     statsLayout->addRow(tr("Characters:"), m_editorCharCountLabel);
 
     // Character count (without spaces)
     m_editorCharNoSpaceLabel = new QLabel("0", statsGroup);
+    m_editorCharNoSpaceLabel->setObjectName(QStringLiteral("editorCharNoSpace"));
     m_editorCharNoSpaceLabel->setToolTip(tr("Number of characters excluding spaces"));
     statsLayout->addRow(tr("Characters (no spaces):"), m_editorCharNoSpaceLabel);
 
     // Paragraph count
     m_editorParagraphCountLabel = new QLabel("0", statsGroup);
+    m_editorParagraphCountLabel->setObjectName(QStringLiteral("editorParagraphCount"));
     m_editorParagraphCountLabel->setToolTip(tr("Number of paragraphs"));
     statsLayout->addRow(tr("Paragraphs:"), m_editorParagraphCountLabel);
 
     // Reading time
-    m_editorReadingTimeLabel = new QLabel("0 min", statsGroup);
-    m_editorReadingTimeLabel->setToolTip(tr("Estimated reading time at 200 words per minute"));
+    m_editorReadingTimeLabel = new QLabel(utils::readingTimeText(0), statsGroup);
+    m_editorReadingTimeLabel->setObjectName(QStringLiteral("editorReadingTime"));
+    m_editorReadingTimeLabel->setToolTip(tr("Estimated reading time at %1 words per minute")
+                                             .arg(core::READING_WORDS_PER_MINUTE));
     statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
 
     layout->addWidget(statsGroup);
@@ -1265,7 +1273,7 @@ void PropertiesPanel::updateEditorStatistics() {
         m_editorCharCountLabel->setText("0");
         m_editorCharNoSpaceLabel->setText("0");
         m_editorParagraphCountLabel->setText("0");
-        m_editorReadingTimeLabel->setText("0 min");
+        m_editorReadingTimeLabel->setText(utils::readingTimeText(0));
         m_editorStyleLabel->setText("-");
         return;
     }
@@ -1278,43 +1286,21 @@ void PropertiesPanel::updateEditorStatistics() {
 
     m_isUpdating = true;
 
-    int wordCount = 0;
-    int charCount = 0;
-    int charNoSpaceCount = 0;
-    int paragraphCount = 0;
+    // Counted and written as the status bar counts and writes them: only the paragraphs
+    // with text, as in Word and LibreOffice (the editor caches the counts per paragraph, so
+    // nothing is recounted here)
+    const bool selected = bookEditor->hasSelection();
+    const core::TextCounts counts =
+        selected ? bookEditor->selectionCounts() : bookEditor->textCounts();
+    m_editorTitleLabel->setText(selected ? tr("Selection Statistics")
+                                         : tr("Document Statistics"));
 
-    if (bookEditor->hasSelection()) {
-        // Counted as the status bar counts them
-        const core::TextCounts counts = bookEditor->selectionCounts();
-        wordCount = counts.words;
-        charCount = counts.characters;
-        charNoSpaceCount = counts.nonSpaceCharacters;
-        m_editorTitleLabel->setText(tr("Selection Statistics"));
-
-        // Count paragraphs in selection
-        auto selection = bookEditor->selection();
-        paragraphCount = selection.end.paragraph - selection.start.paragraph + 1;
-    } else {
-        // The editor caches counts per paragraph, so nothing is recounted here
-        wordCount = static_cast<int>(bookEditor->wordCount());
-        charCount = static_cast<int>(bookEditor->characterCount());
-        charNoSpaceCount = static_cast<int>(bookEditor->characterCountNoSpaces());
-        m_editorTitleLabel->setText(tr("Document Statistics"));
-        paragraphCount = static_cast<int>(bookEditor->paragraphCount());
-    }
-
-    // Calculate reading time (200 wpm)
-    int readingMinutes = wordCount / 200;
-    if (wordCount % 200 > 0 && wordCount > 0) {
-        readingMinutes++;  // Round up
-    }
-
-    // Update labels
-    m_editorWordCountLabel->setText(QString::number(wordCount));
-    m_editorCharCountLabel->setText(QString::number(charCount));
-    m_editorCharNoSpaceLabel->setText(QString::number(charNoSpaceCount));
-    m_editorParagraphCountLabel->setText(QString::number(paragraphCount));
-    m_editorReadingTimeLabel->setText(tr("%1 min").arg(readingMinutes));
+    const QLocale locale;
+    m_editorWordCountLabel->setText(locale.toString(counts.words));
+    m_editorCharCountLabel->setText(locale.toString(counts.characters));
+    m_editorCharNoSpaceLabel->setText(locale.toString(counts.nonSpaceCharacters));
+    m_editorParagraphCountLabel->setText(locale.toString(counts.paragraphs));
+    m_editorReadingTimeLabel->setText(utils::readingTimeText(counts.words));
 
     // Phase 11: Get current paragraph style via QTextBlockFormat
     // TODO: Implement paragraph style detection via QTextBlockFormat properties
@@ -1336,7 +1322,7 @@ void PropertiesPanel::updateEditorStatistics() {
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs, style={}",
-                 wordCount, charCount, paragraphCount, styleId.toStdString());
+                 counts.words, counts.characters, counts.paragraphs, styleId.toStdString());
 }
 
 // =============================================================================
