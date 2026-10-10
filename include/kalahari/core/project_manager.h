@@ -131,10 +131,17 @@ public:
     /// exist yet or it is empty
     static bool canHoldNewProject(const QString& folder);
 
+    /// @brief What keeps openProject() from reading the project file @p manifestPath: the
+    /// file does not exist, it is not a .klh file or its content is wrong (e.g. an older
+    /// format)
+    /// @return One line per problem; empty when the file can be read
+    static QStringList projectFileProblems(const QString& manifestPath);
+
     /// @brief Open an existing project from its .klh file
     /// @param manifestPath Path to the .klh file
     /// @param problems Gets what is wrong when the project cannot be opened, one line each
-    /// @return true if project opened successfully, false otherwise
+    /// @return true if project opened successfully, false otherwise; the open project stays
+    ///         open when the file cannot be read (projectFileProblems())
     bool openProject(const QString& manifestPath, QStringList* problems = nullptr);
 
     /// @brief Close the current project

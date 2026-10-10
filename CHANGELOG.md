@@ -27,8 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
   Project (before: Empty Project) gets the kinds of the Base package. The New Book window
   names the folder of the book and does not create it in a folder with files, so the open
-  book is not closed for a book that cannot be made; its questions speak of books, not
-  projects, and the description of a type scrolls. The Navigator shows the
+  book is not closed for a book that cannot be made; a book that cannot be opened (e.g. of
+  an older version) is reported before the open book is closed for it, and that one stays
+  open. The questions of these commands speak of books, not projects, and the description
+  of a type in the New Book window scrolls. The Navigator shows the
   book as before, and its elements take their kinds and icons from the type: Add Chapter
   offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
   with a numbered title, Add Part its groups and Add Item the kinds of the front or back

@@ -403,6 +403,47 @@ TEST_CASE("A book that cannot be created leaves the open book open", "[project_m
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("A book that cannot be read leaves the open book open", "[project_manager]") {
+    // Regression: the open book was closed before the chosen file was read
+    QTemporaryDir dir;
+    const QDir parent(dir.path());
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Open Book", "Anna", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK(ProjectManager::projectFileProblems(manifest).isEmpty());
+
+    // A book of an older version
+    REQUIRE(parent.mkpath("Old"));
+    const QString old = parent.filePath("Old/Old.klh");
+    writeFile(old, R"({"format": 1, "title": "Old"})");
+    const QStringList found = ProjectManager::projectFileProblems(old);
+    REQUIRE_FALSE(found.isEmpty());
+    CHECK(found.first().startsWith("format: must be 2"));
+
+    QStringList problems;
+    CHECK_FALSE(pm.openProject(old, &problems));
+    CHECK(problems == found);
+    CHECK(pm.isProjectOpen());
+    CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(manifest));
+
+    // Neither a missing file nor a file of another kind closes it
+    writeFile(parent.filePath("notes.txt"), "mine");
+    CHECK(ProjectManager::projectFileProblems(parent.filePath("None.klh")) ==
+          QStringList{"None.klh: the file does not exist"});
+    CHECK(ProjectManager::projectFileProblems(parent.filePath("notes.txt")) ==
+          QStringList{"notes.txt: not a .klh file"});
+    CHECK_FALSE(pm.openProject(parent.filePath("None.klh")));
+    CHECK_FALSE(pm.openProject(parent.filePath("notes.txt")));
+    CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(manifest));
+
+    // The open book opens again from what closing it saved
+    REQUIRE(pm.openProject(manifest));
+    CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(manifest));
+    REQUIRE(pm.book() != nullptr);
+    CHECK(pm.book()->title == "Open Book");
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("The folder of a new project, and whether it can hold the project", "[project_manager]") {
     // The New Book dialog checks the folder with them before the open book is closed
     QTemporaryDir dir;

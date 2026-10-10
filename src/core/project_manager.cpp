@@ -389,6 +389,21 @@ bool ProjectManager::canHoldNewProject(const QString& folder) {
     return !info.exists() || (info.isDir() && QDir(folder).isEmpty());
 }
 
+QStringList ProjectManager::projectFileProblems(const QString& manifestPath) {
+    const QFileInfo manifestInfo(manifestPath);
+    if (!manifestInfo.isFile()) {
+        return {QStringLiteral("%1: the file does not exist").arg(manifestInfo.fileName())};
+    }
+    if (manifestInfo.suffix().compare(QStringLiteral("klh"), Qt::CaseInsensitive) != 0) {
+        return {QStringLiteral("%1: not a .klh file").arg(manifestInfo.fileName())};
+    }
+    QStringList problems;
+    if (!BookProject::load(manifestPath, problems) && problems.isEmpty()) {
+        problems.append(QStringLiteral("%1: cannot be read").arg(manifestInfo.fileName()));
+    }
+    return problems;
+}
+
 bool ProjectManager::openProject(const QString& manifestPath, QStringList* problems) {
     auto& logger = Logger::getInstance();
     const QFileInfo manifestInfo(manifestPath);
@@ -407,11 +422,11 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         return false;
     };
 
-    if (!manifestInfo.isFile()) {
-        return fail(QStringLiteral("%1: the file does not exist").arg(manifestInfo.fileName()));
-    }
-    if (manifestInfo.suffix().compare(QStringLiteral("klh"), Qt::CaseInsensitive) != 0) {
-        return fail(QStringLiteral("%1: not a .klh file").arg(manifestInfo.fileName()));
+    // The file is read before the open project is closed, so the open project stays open
+    // when the file cannot be read
+    found = projectFileProblems(manifestPath);
+    if (!found.isEmpty()) {
+        return fail(QString());
     }
 
     // Close any existing project first
@@ -419,6 +434,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         return fail(QStringLiteral("the open project cannot be closed"));
     }
 
+    // Read again: closing saved the open project, which can be this one
     logger.info("Opening project: {}", manifestPath.toStdString());
     std::optional<BookProject> project = BookProject::load(manifestPath, found);
     if (!project) {

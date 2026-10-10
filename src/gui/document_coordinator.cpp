@@ -349,6 +349,12 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
                                            closeQuestion.arg(bookName), tr("&Close Book"));
 }
 
+void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems) {
+    dialogs::MessageDialog::error(
+        m_mainWindow, tr("Open Error"),
+        tr("Failed to open book: %1").arg(QDir::toNativeSeparators(path)), detailsOf(problems));
+}
+
 void DocumentCoordinator::openFirstText() {
     auto& pm = core::ProjectManager::getInstance();
     const core::ProjectBook* book = pm.book();
@@ -405,6 +411,12 @@ void DocumentCoordinator::onOpenDocument() {
             return;
         }
     }
+    // A file that cannot be read is reported before the open book is closed for it
+    if (const QStringList problems = core::ProjectManager::projectFileProblems(filename);
+        !problems.isEmpty()) {
+        showOpenError(filename, problems);
+        return;
+    }
     if (!agreeToCloseBook(
             tr("Do you want to save changes to '%1' before opening the selected book?"),
             tr("Do you want to close '%1' and open the selected book?"))) {
@@ -414,10 +426,7 @@ void DocumentCoordinator::onOpenDocument() {
 
     QStringList problems;
     if (!pm.openProject(filename, &problems)) {
-        dialogs::MessageDialog::error(m_mainWindow, tr("Open Error"),
-                                      tr("Failed to open book: %1")
-                                          .arg(QDir::toNativeSeparators(filename)),
-                                      detailsOf(problems));
+        showOpenError(filename, problems);
         return;
     }
     // ProjectManager emits projectOpened, which triggers onProjectOpened()
@@ -475,7 +484,13 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
                 return;
             }
 
-            // Different project - handle unsaved changes before closing
+            // Different project: a file that cannot be read is reported before the open
+            // book is closed for it, and unsaved changes are handled before closing
+            if (const QStringList problems = core::ProjectManager::projectFileProblems(filePath);
+                !problems.isEmpty()) {
+                showOpenError(filePath, problems);
+                return;
+            }
             if (!agreeToCloseBook(
                     tr("Do you want to save changes to '%1' before opening the selected book?"),
                     tr("Do you want to close '%1' and open the selected book?"))) {
@@ -497,10 +512,7 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         // Do NOT fall through to try old archive format (which would always fail
         // for JSON manifests and incorrectly remove the file from recent files)
         logger.error("Failed to open .klh file as project: {}", filePath.toStdString());
-        dialogs::MessageDialog::error(
-            m_mainWindow, tr("Open Error"),
-            tr("Failed to open book: %1").arg(QDir::toNativeSeparators(filePath)),
-            detailsOf(problems));
+        showOpenError(filePath, problems);
         // Do NOT remove from recent files - the project might be recoverable
         return;
     }

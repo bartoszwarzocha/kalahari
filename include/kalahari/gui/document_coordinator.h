@@ -291,6 +291,10 @@ private:
     /// @return true when no book is open or the writer agreed; false: the command stops
     bool agreeToCloseBook(const QString& saveQuestion, const QString& closeQuestion);
 
+    /// @brief Tell the writer that the book of @p path cannot be opened, with @p problems
+    /// under Show Details
+    void showOpenError(const QString& path, const QStringList& problems);
+
     /// @brief Open the first text of the book's body in the editor, e.g. Chapter 1 of a new
     /// book; nothing when the body has no text
     void openFirstText();
