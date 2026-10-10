@@ -336,12 +336,16 @@
         <translation>Liczba słów</translation>
     </message>
     <message>
-        <source>Spellchecker</source>
-        <translation>Sprawdzanie pisowni</translation>
+        <source>Check Spelling as You Type</source>
+        <translation>Sprawdzaj pisownię podczas pisania</translation>
     </message>
     <message>
-        <source>Grammar Check</source>
-        <translation>Sprawdzanie gramatyki</translation>
+        <source>Next Spelling or Grammar Issue</source>
+        <translation>Następny błąd pisowni lub gramatyki</translation>
+    </message>
+    <message>
+        <source>Check Grammar as You Type</source>
+        <translation>Sprawdzaj gramatykę podczas pisania</translation>
     </message>
     <message>
         <source>Readability Score</source>
@@ -832,14 +836,6 @@
     <message>
         <source>Toolbar Manager</source>
         <translation>Menedżer pasków narzędzi</translation>
-    </message>
-    <message>
-        <source>Grammar Issue</source>
-        <translation>Problem gramatyczny</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Rule: %3 (%4)&lt;/i&gt;</source>
-        <translation>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Reguła: %3 (%4)&lt;/i&gt;</translation>
     </message>
     <message>
         <source>Language Changed</source>
@@ -1346,19 +1342,11 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Dodaj do słownika</translation>
     </message>
     <message>
-        <source>Ignore</source>
-        <translation>Pomiń</translation>
+        <source>Ignore All</source>
+        <translation>Pomijaj to słowo</translation>
     </message>
     <message>
-        <source>Error: &quot;%1&quot;</source>
-        <translation>Błąd: „%1”</translation>
-    </message>
-    <message>
-        <source>Explanation...</source>
-        <translation>Wyjaśnienie...</translation>
-    </message>
-    <message>
-        <source>Ignore this rule</source>
+        <source>Ignore This Rule</source>
         <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
@@ -1481,16 +1469,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 <context>
     <name>kalahari::editor::SpellCheckService</name>
     <message>
-        <source>Dictionary not found for language: %1</source>
-        <translation>Nie znaleziono słownika dla języka: %1</translation>
-    </message>
-    <message>
-        <source>Dictionary files missing for: %1</source>
-        <translation>Brak plików słownika dla: %1</translation>
-    </message>
-    <message>
-        <source>Failed to initialize Hunspell for: %1</source>
-        <translation>Nie udało się uruchomić Hunspella dla: %1</translation>
+        <source>No dictionary %1 was found</source>
+        <translation>Nie znaleziono słownika %1</translation>
     </message>
 </context>
 <context>
@@ -2863,6 +2843,49 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorGrammarPage</name>
+    <message>
+        <source>Grammar as You Type</source>
+        <translation>Sprawdzanie gramatyki podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check grammar as you type</source>
+        <translation>Sprawdzaj gramatykę podczas pisania</translation>
+    </message>
+    <message>
+        <source>LanguageTool server</source>
+        <translation>Serwer LanguageTool</translation>
+    </message>
+    <message>
+        <source>Test</source>
+        <translation>Sprawdź</translation>
+    </message>
+    <message>
+        <source>LanguageTool server:</source>
+        <translation>Serwer LanguageTool:</translation>
+    </message>
+    <message>
+        <source>Grammar, style and punctuation are checked by LanguageTool, a free program that runs on your computer. The text of the book is sent only to the server given here; without one, the grammar is not checked. The language is the one of the spelling.</source>
+        <translation>Gramatykę, styl i interpunkcję sprawdza LanguageTool – bezpłatny program działający na Twoim komputerze. Tekst książki trafia tylko do podanego tu serwera; bez niego gramatyka nie jest sprawdzana. Gramatyka jest sprawdzana w tym samym języku co pisownia.</translation>
+    </message>
+    <message>
+        <source>This is not the address of a server.</source>
+        <translation>To nie jest adres serwera.</translation>
+    </message>
+    <message>
+        <source>The server checks the text.</source>
+        <translation>Serwer sprawdza tekst.</translation>
+    </message>
+    <message>
+        <source>The server did not check the text: %1</source>
+        <translation>Serwer nie sprawdził tekstu: %1</translation>
+    </message>
+    <message>
+        <source>Connecting...</source>
+        <translation>Łączenie...</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorPagesPage</name>
     <message>
         <source>Configure the page format, the page margins and the text frame border.</source>
@@ -3027,6 +3050,57 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorSpellingPage</name>
+    <message>
+        <source>Spelling as You Type</source>
+        <translation>Sprawdzanie pisowni podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check spelling as you type</source>
+        <translation>Sprawdzaj pisownię podczas pisania</translation>
+    </message>
+    <message>
+        <source>Language of the book</source>
+        <translation>Język książki</translation>
+    </message>
+    <message>
+        <source>%1 (no dictionary)</source>
+        <translation>%1 (brak słownika)</translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source>A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
+        <translation>Błędnie zapisane słowo jest podkreślone falistą linią; po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
+    </message>
+    <message>
+        <source>Your Words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>Your words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says; Add to Dictionary in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem Dodaj do słownika z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::GeneralPage</name>
     <message>
         <source>Startup</source>
@@ -3071,6 +3145,21 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Length unit:</source>
         <translation>Jednostka długości:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::GrammarCoordinator</name>
+    <message>
+        <source>The LanguageTool server at %1 did not check the text: %2</source>
+        <translation>Serwer LanguageTool pod adresem %1 nie sprawdził tekstu: %2</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: on</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: off</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: wyłączone</translation>
     </message>
 </context>
 <context>
@@ -4042,6 +4131,10 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Pisownia</translation>
     </message>
     <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
         <source>Auto-correct</source>
         <translation>Autokorekta</translation>
     </message>
@@ -4092,16 +4185,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Planned features:
-- Spell check language selection
-- Custom dictionary management
-- Ignore rules for technical terms</source>
-        <translation>Planowane funkcje:
-- wybór języka sprawdzania pisowni
-- zarządzanie własnym słownikiem
-- reguły pomijania terminów technicznych</translation>
     </message>
     <message>
         <source>Planned features:
@@ -4195,6 +4278,37 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingCoordinator</name>
+    <message>
+        <source>No spelling dictionary for %1: the spelling is not checked</source>
+        <translation>Brak słownika dla języka %1: pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: on</source>
+        <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: off</source>
+        <translation>Sprawdzanie pisowni podczas pisania: wyłączone</translation>
+    </message>
+    <message>
+        <source>The spelling is not checked</source>
+        <translation>Pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>No misspelled words</source>
+        <translation>Brak błędów pisowni</translation>
+    </message>
+    <message>
+        <source>No misspelled words or grammar issues</source>
+        <translation>Brak błędów pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>No grammar issues</source>
+        <translation>Brak błędów gramatyki</translation>
     </message>
 </context>
 <context>

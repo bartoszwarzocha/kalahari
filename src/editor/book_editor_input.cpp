@@ -32,8 +32,25 @@ constexpr qreal AUTO_SCROLL_DROP_BAND = 24.0;      // px at the top and bottom e
 constexpr qreal AUTO_SCROLL_MIN_STEP = 2.0;        // px
 constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
+namespace {
+
+/// @brief Whether a key types: a character (also with AltGr), Backspace or Delete
+bool isTypingKey(const QKeyEvent* event) {
+    if (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) {
+        return true;
+    }
+    const bool ctrlOnly = (event->modifiers() & Qt::ControlModifier) &&
+                          !(event->modifiers() & Qt::AltModifier);
+    return !ctrlOnly && !event->text().isEmpty() && event->text().at(0).isPrint();
+}
+
+}  // namespace
+
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
+    // The word being typed gets no spelling wave until the cursor leaves it
+    const QScopedValueRollback<bool> typing(m_spellTypingEdit, isTypingKey(event));
+
     // Handle cursor navigation keys
     bool handled = false;
     bool ctrl = event->modifiers() & Qt::ControlModifier;
@@ -191,6 +208,15 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
             handled = true;
             break;
 
+        case Qt::Key_F10:
+            // Shift+F10 opens the context menu, as the menu key does, also where the system
+            // does not make a context menu event of it
+            if (event->modifiers() == Qt::ShiftModifier) {
+                showContextMenuAtCursor();
+                handled = true;
+            }
+            break;
+
         default:
             break;
     }
@@ -210,6 +236,9 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
     }
 
     if (handled) {
+        if (m_spellTypingEdit) {
+            noteSpellingTyping();
+        }
         event->accept();
     } else {
         QWidget::keyPressEvent(event);
@@ -222,6 +251,11 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         event->ignore();
         return;
     }
+
+    // Composed text is typed too (see keyPressEvent())
+    const QScopedValueRollback<bool> typing(
+        m_spellTypingEdit, !event->commitString().isEmpty() || !event->preeditString().isEmpty() ||
+                               m_hasComposition);
 
     // Phase 11: Use QTextCursor for IME operations
     if (!m_textBuffer) return;
@@ -292,6 +326,9 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         m_hasComposition = false;
     }
 
+    if (m_spellTypingEdit) {
+        noteSpellingTyping();
+    }
     event->accept();
     update();
 }
@@ -775,37 +812,50 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
-    // Convert mouse position to document position
-    CursorPosition pos = positionFromPoint(event->pos());
+    // From the keyboard (the menu key, Shift+F10) the menu is for the cursor's place
+    if (event->reason() == QContextMenuEvent::Keyboard) {
+        showContextMenuAtCursor();
+        return;
+    }
+
+    const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
         return;
     }
+    showContextMenu(pos, event->globalPos(), event->reason() == QContextMenuEvent::Mouse);
+}
 
-    // Check if position is in a misspelled word (spell check takes priority)
-    auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
-
-    if (!word.isEmpty()) {
-        // Create spell check context menu
-        QMenu* menu = createSpellCheckContextMenu(word, pos.paragraph, startOffset, endOffset);
-        menu->exec(event->globalPos());
-        delete menu;
+void BookEditor::showContextMenuAtCursor()
+{
+    if (!m_textBuffer || m_cursorPosition.paragraph < 0) {
         return;
     }
+    checkSpellingAtCursor();  // also the word just typed, without its wave yet
 
-    // Check if position is in a grammar error (Phase 6.17)
-    auto grammarError = getGrammarErrorAt(pos.paragraph, pos.offset);
-    if (grammarError.has_value()) {
-        // Create grammar check context menu
-        QMenu* menu = createGrammarContextMenu(*grammarError, pos.paragraph);
-        menu->exec(event->globalPos());
-        delete menu;
-        return;
+    // Under the cursor, so the word the menu is for stays in sight
+    QPoint menuPos = mapToGlobal(rect().center());
+    if (m_renderPipeline) {
+        const QRectF caret = m_renderPipeline->cursorRect();
+        if (!caret.isEmpty()) {
+            menuPos = mapToGlobal(caret.bottomLeft().toPoint());
+        }
     }
+    showContextMenu(m_cursorPosition, menuPos, false);
+}
+
+void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
+                                 bool fromMouse)
+{
+    // A misspelled word or a grammar issue: what to put in its place, on top of the usual
+    // menu (the spelling first, where both are)
+    const auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
+    const std::optional<GrammarError> grammarError =
+        word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset) : std::nullopt;
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
-    if (event->reason() == QContextMenuEvent::Mouse && !isInSelection(pos)) {
+    if (fromMouse && !isInSelection(pos)) {
         const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
         clearSelection();
         m_selectionAnchor = pos;
@@ -814,6 +864,11 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 
     // Default context menu
     QMenu menu(this);
+    if (!word.isEmpty()) {
+        addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
+    } else if (grammarError.has_value()) {
+        addGrammarActions(menu, *grammarError, pos.paragraph);
+    }
 
     if (hasSelection()) {
         menu.addAction(tr("Cut"), this, &BookEditor::cut);
@@ -846,7 +901,7 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         : tr("Switch to Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
-    menu.exec(event->globalPos());
+    menu.exec(globalPos);
 }
 
 }  // namespace kalahari::editor

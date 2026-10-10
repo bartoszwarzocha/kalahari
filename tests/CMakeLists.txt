@@ -42,7 +42,9 @@ set(TEST_SOURCES
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
     editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
     editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
-    editor/test_grammar_check_service.cpp   # Phase 6.14-6.17: GrammarCheckService tests
+    editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
+    editor/test_grammar.cpp                 # Grammar as you type in the editor
+    editor/test_spelling.cpp                # Spelling as you type in the editor
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # Cursor position helpers
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
@@ -66,6 +68,8 @@ set(TEST_SOURCES
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
+    gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
+    gui/test_grammar_coordinator.cpp             # Grammar as you type: server, language, command, settings page
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
@@ -149,6 +153,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings_dialog.cpp         # Editor Stage 4: settings dialog layout checks
     ${CMAKE_SOURCE_DIR}/src/gui/settings/settings_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/general_pages.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/spelling_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/grammar_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
@@ -159,6 +165,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
+    ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
+    ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_entry.cpp  # Annotations panel: filters and orders
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_card.cpp   # Annotations panel: cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_colors.cpp # Annotations: readable colors of cards
@@ -211,6 +219,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT

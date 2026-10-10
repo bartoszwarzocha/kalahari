@@ -311,6 +311,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offers in each part of the book and in the Workshop, what a new book starts with, and its
   styles. A registry in core loads and checks them. Nothing uses it yet, so the program
   works as before; the New Book and Add Element windows will use it in later stages.
+- **Spelling as you type** - 2026-10-09
+  - The editor underlines misspelled words with a wavy line, in the book's language (set in
+    its properties) or in the language chosen in Settings > Editor > Spelling. Polish and
+    English dictionaries come with the program; those of LibreOffice and of the system
+    (Linux, macOS) are found too. When the language has no dictionary, the status bar
+    says so.
+  - The paragraphs on the screen are checked first, the rest of the chapter in short steps
+    between the key presses, so typing stays smooth also in a long chapter. The word being
+    typed gets its line when the cursor leaves it, and the lines of the other words stay
+    in place while the text around them is edited.
+  - A right click on a misspelled word offers up to five words to put in its place,
+    Ignore All (the word is right until the program closes) and Add to Dictionary (right
+    for good), above the usual commands.
+  - From the keyboard: Tools > Next Spelling or Grammar Issue (F7) selects the next
+    misspelled word, from the cursor round the chapter, and opens the same menu under it;
+    the menu key and Shift+F10 open it for the word at the cursor.
+  - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
+    chapters, and remembers it. Settings > Editor > Spelling has the same switch, the
+    language and the list of the writer's own words, which can be added and removed there;
+    they are kept in `user_dictionary.txt` next to `settings.json`.
+  - The dictionary is loaded in the background, once for all open chapters, and a
+    language change does not stop the work.
+- **Grammar as you type, on the writer's LanguageTool server** - 2026-10-09
+  - The editor underlines grammar, style and punctuation issues with a wavy line. They are
+    found by LanguageTool, a free program that runs on the writer's computer, whose address
+    goes in Settings > Editor > Grammar; without one nothing is checked and the text of the
+    book is sent nowhere. The Test button there says whether the server checks the text.
+    The language is the one of the spelling.
+  - Only the paragraphs on the screen and some around them are sent, a moment after the
+    writer stops typing. The lines of an issue move with the text edited around it and stay
+    until its paragraph is checked again; an issue that applies only to finished sentences
+    waits until its sentence is finished.
+  - A right click on an issue shows what is wrong, whole, up to five replacements in bold
+    and Ignore This Rule (until the program closes), above the usual commands. Spelling
+    issues are left to the dictionary.
+  - From the keyboard: F7 goes to the grammar issues too, in the order of the text, and
+    opens the same menu; the menu key and Shift+F10 open it for the issue at the cursor.
+  - Tools > Check Grammar as You Type turns the checking on and off for all chapters and
+    remembers it; it is greyed out while no server is set. When the server does not answer,
+    the status bar says so once and the paragraphs are sent again after a while.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a

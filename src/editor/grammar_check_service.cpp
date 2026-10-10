@@ -1,188 +1,179 @@
 /// @file grammar_check_service.cpp
-/// @brief Grammar checking service implementation (OpenSpec #00042 Phase 6.14-6.17)
+/// @brief Grammar as you type: texts checked by the LanguageTool server the writer runs
 
 #include <kalahari/editor/grammar_check_service.h>
-#include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
-#include <kalahari/core/settings_manager.h>
 
-#include <QNetworkRequest>
-#include <QUrl>
-#include <QUrlQuery>
-#include <QJsonDocument>
+#include <QHostAddress>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkProxy>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QTimer>
+#include <QUrl>
+
+#include <algorithm>
+#include <array>
 
 namespace kalahari::editor {
 
-// =============================================================================
-// GrammarCheckService
-// =============================================================================
+namespace {
+
+/// @brief How many texts are checked at a time
+constexpr std::size_t MAX_SENT = 2;
+
+/// @brief How long the server is not asked after it did not answer (ms)
+constexpr int RETRY_MS = 30000;
+
+/// @brief How long an answer may take (ms): the first check in a language loads its rules
+constexpr int TRANSFER_TIMEOUT_MS = 30000;
+
+/// @brief How many replacements of an issue are kept
+constexpr qsizetype MAX_SUGGESTIONS = 5;
+
+/// @brief How much of the server's own explanation of a failure is told
+constexpr qsizetype MAX_REASON_LENGTH = 160;
+
+/// @brief The answer of a server to a text too long for it
+constexpr int HTTP_CONTENT_TOO_LARGE = 413;
+
+/// @brief The regional variants LanguageTool checks as such; for the others of their
+///        languages it gets the language alone
+constexpr std::array<const char*, 13> LANGUAGE_VARIANTS = {
+    "en-US", "en-GB", "en-AU", "en-CA", "en-NZ", "en-ZA", "de-DE",
+    "de-AT", "de-CH", "pt-PT", "pt-BR", "pt-AO", "pt-MZ"};
+
+/// @brief The kind of an issue, from its rule's category and issue type
+GrammarIssueType issueTypeOf(const QString& category, const QString& issueType) {
+    if (category == QLatin1String("TYPOS") || issueType == QLatin1String("misspelling")) {
+        return GrammarIssueType::Spelling;
+    }
+    if (category == QLatin1String("STYLE") || category == QLatin1String("REDUNDANCY") ||
+        category == QLatin1String("REPETITIONS") ||
+        category == QLatin1String("REPETITIONS_STYLE") ||
+        category == QLatin1String("PLAIN_ENGLISH") || category == QLatin1String("SEMANTICS") ||
+        issueType == QLatin1String("style")) {
+        return GrammarIssueType::Style;
+    }
+    if (category == QLatin1String("TYPOGRAPHY") || category == QLatin1String("PUNCTUATION") ||
+        category == QLatin1String("CASING") || category == QLatin1String("COMPOUNDING") ||
+        issueType == QLatin1String("typographical") || issueType == QLatin1String("whitespace")) {
+        return GrammarIssueType::Typography;
+    }
+    if (category == QLatin1String("GRAMMAR") || category == QLatin1String("CONFUSED_WORDS") ||
+        category == QLatin1String("MISC") || issueType == QLatin1String("grammar")) {
+        return GrammarIssueType::Grammar;
+    }
+    return GrammarIssueType::Other;
+}
+
+/// @brief Whether a host is this computer
+bool isLocalHost(const QString& host) {
+    return host.compare(QLatin1String("localhost"), Qt::CaseInsensitive) == 0 ||
+           QHostAddress(host).isLoopback();
+}
+
+}  // namespace
 
 GrammarCheckService::GrammarCheckService(QObject* parent)
     : QObject(parent)
-    , m_networkManager(new QNetworkAccessManager(this))
-    , m_debounceTimer(new QTimer(this))
-    , m_rateLimitTimer(new QTimer(this))
+    , m_network(new QNetworkAccessManager(this))
+    , m_retryTimer(new QTimer(this))
 {
-    // Setup debounce timer
-    m_debounceTimer->setSingleShot(true);
-    m_debounceTimer->setInterval(m_debounceMs);
-    connect(m_debounceTimer, &QTimer::timeout,
-            this, &GrammarCheckService::onDebounceTimeout);
-
-    // Setup rate limit timer
-    m_rateLimitTimer->setSingleShot(true);
-    m_rateLimitTimer->setInterval(m_rateLimitMs);
-    connect(m_rateLimitTimer, &QTimer::timeout,
-            this, &GrammarCheckService::processQueue);
-
-    // Connect network manager
-    connect(m_networkManager, &QNetworkAccessManager::finished,
-            this, &GrammarCheckService::onNetworkReply);
-
-    // The LanguageTool server the user runs; none by default, so no text leaves the computer
-    setApiEndpoint(QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
-        "editor.grammarCheck.serverUrl")));
-
-    core::Logger::getInstance().debug("GrammarCheckService created");
+    m_retryTimer->setSingleShot(true);
+    m_retryTimer->setInterval(RETRY_MS);
+    connect(m_retryTimer, &QTimer::timeout, this, [this]() {
+        m_failing = false;
+        if (isActive()) {
+            emit available();
+        }
+    });
+    connect(m_network, &QNetworkAccessManager::finished, this, &GrammarCheckService::onReply);
 }
 
 GrammarCheckService::~GrammarCheckService()
 {
-    // Disconnect from editor
-    if (m_editor) {
-        disconnect(m_editor, nullptr, this, nullptr);
+    // The replies go with the network manager; none is answered any more
+    disconnect(m_network, nullptr, this, nullptr);
+    for (const auto& [reply, request] : m_sent) {
+        reply->abort();
     }
+}
 
-    // Cancel pending requests
-    cancelPendingChecks();
+QString GrammarCheckService::endpointFor(const QString& server)
+{
+    QString address = server.trimmed();
+    if (address.isEmpty()) {
+        return QString();
+    }
+    if (!address.contains(QLatin1String("://"))) {
+        address.prepend(QLatin1String("http://"));
+    }
+    QUrl url(address);
+    const QString path = url.path();
+    if (path.isEmpty() || path == QLatin1String("/") || path == QLatin1String("/v2") ||
+        path == QLatin1String("/v2/")) {
+        url.setPath(QStringLiteral("/v2/check"));
+    }
+    return url.toString();
+}
 
-    core::Logger::getInstance().debug("GrammarCheckService destroyed");
+QString GrammarCheckService::languageFor(const QString& language)
+{
+    QString code = language.trimmed();
+    code.replace(QLatin1Char('_'), QLatin1Char('-'));
+    const qsizetype dash = code.indexOf(QLatin1Char('-'));
+    QString base = (dash < 0 ? code : code.left(dash)).toLower();
+    if (dash < 0) {
+        return base;
+    }
+    const QString variant = base + QLatin1Char('-') + code.mid(dash + 1).toUpper();
+    const bool known =
+        std::any_of(LANGUAGE_VARIANTS.begin(), LANGUAGE_VARIANTS.end(),
+                    [&variant](const char* name) { return variant == QLatin1String(name); });
+    return known ? variant : base;
 }
 
 // =============================================================================
 // Setup
 // =============================================================================
 
-void GrammarCheckService::setBookEditor(BookEditor* editor)
+void GrammarCheckService::setServer(const QString& server)
 {
-    if (m_editor == editor) {
+    const QString endpoint = endpointFor(server);
+    if (endpoint == m_endpoint) {
         return;
     }
+    m_endpoint = endpoint;
 
-    // Disconnect from previous editor
-    if (m_editor) {
-        disconnect(m_editor, nullptr, this, nullptr);
-    }
-
-    m_editor = editor;
-
-    // Clear caches
-    m_pendingParagraphs.clear();
-    m_paragraphErrors.clear();
-
-    // Connect to new editor
-    if (m_editor) {
-        connect(m_editor, &BookEditor::paragraphModified,
-                this, &GrammarCheckService::onParagraphModified);
-        connect(m_editor, &BookEditor::paragraphInserted,
-                this, &GrammarCheckService::onParagraphInserted);
-        connect(m_editor, &BookEditor::paragraphRemoved,
-                this, &GrammarCheckService::onParagraphRemoved);
-
-        // Mark all paragraphs for initial check
-        if (isActive()) {
-            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-                m_pendingParagraphs.insert(static_cast<int>(i));
-            }
-            m_debounceTimer->start();
-        }
-    }
-}
-
-void GrammarCheckService::setLanguage(const QString& language)
-{
-    if (m_language == language) {
-        return;
-    }
-
-    m_language = language;
-    core::Logger::getInstance().info("GrammarCheckService: Language set to '{}'",
-                                     language.toStdString());
-
-    // Re-check document with new language
-    if (m_editor && isActive()) {
-        checkDocumentAsync();
-    }
-}
-
-QString GrammarCheckService::language() const
-{
-    return m_language;
-}
-
-void GrammarCheckService::setApiEndpoint(const QString& url)
-{
-    // A server address alone ("http://localhost:8081") means its check endpoint
-    QString endpoint = url.trimmed();
-    if (!endpoint.isEmpty()) {
-        QUrl parsed(endpoint);
-        if (parsed.path().isEmpty() || parsed.path() == QLatin1String("/")) {
-            parsed.setPath(QStringLiteral("/v2/check"));
-            endpoint = parsed.toString();
-        }
-    }
-
-    if (m_apiEndpoint == endpoint) {
-        return;
-    }
-
-    m_apiEndpoint = endpoint;
-    core::Logger::getInstance().info("GrammarCheckService: LanguageTool server set to '{}'",
+    // A server on this computer is reached directly, whatever proxy the system has
+    m_network->setProxy(isLocalHost(QUrl(endpoint).host()) ? QNetworkProxy(QNetworkProxy::NoProxy)
+                                                           : QNetworkProxy());
+    core::Logger::getInstance().info("GrammarCheckService: LanguageTool server '{}'",
                                      endpoint.toStdString());
-
-    if (!isConfigured()) {
-        // No server: nothing is sent anywhere, and earlier results are cleared
-        cancelPendingChecks();
-        m_paragraphErrors.clear();
-        if (m_editor) {
-            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-                emit paragraphChecked(static_cast<int>(i), QList<GrammarError>());
-            }
-        }
-    } else if (m_editor && m_enabled) {
-        checkDocumentAsync();
-    }
+    restart();
 }
 
-QString GrammarCheckService::apiEndpoint() const
+QString GrammarCheckService::endpoint() const
 {
-    return m_apiEndpoint;
+    return m_endpoint;
+}
+
+bool GrammarCheckService::isConfigured() const
+{
+    const QUrl url(m_endpoint);
+    return !m_endpoint.isEmpty() && url.isValid() && !url.host().isEmpty() &&
+           (url.scheme() == QLatin1String("http") || url.scheme() == QLatin1String("https"));
 }
 
 void GrammarCheckService::setEnabled(bool enabled)
 {
-    if (m_enabled == enabled) {
-        return;
-    }
-
-    m_enabled = enabled;
-
-    if (enabled && m_editor) {
-        // Trigger full document check
-        checkDocumentAsync();
-    } else if (!enabled) {
-        // Clear pending checks and cached errors
-        cancelPendingChecks();
-        m_paragraphErrors.clear();
-
-        // Emit empty error lists for all paragraphs to clear UI
-        if (m_editor) {
-            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-                emit paragraphChecked(static_cast<int>(i), QList<GrammarError>());
-            }
-        }
+    if (m_enabled != enabled) {
+        m_enabled = enabled;
+        restart();
     }
 }
 
@@ -191,135 +182,79 @@ bool GrammarCheckService::isEnabled() const
     return m_enabled;
 }
 
-bool GrammarCheckService::isConfigured() const
-{
-    if (m_apiEndpoint.isEmpty()) {
-        return false;
-    }
-    const QUrl url(m_apiEndpoint);
-    return url.isValid() && !url.host().isEmpty() &&
-           (url.scheme() == QLatin1String("http") || url.scheme() == QLatin1String("https"));
-}
-
 bool GrammarCheckService::isActive() const
 {
-    return m_enabled && isConfigured();
+    return m_enabled && !m_failing && isConfigured();
+}
+
+void GrammarCheckService::setLanguage(const QString& language)
+{
+    const QString code = languageFor(language);
+    if (code == m_language) {
+        return;
+    }
+    m_language = code;
+    core::Logger::getInstance().info("GrammarCheckService: Language '{}'", code.toStdString());
+    restart();
+}
+
+QString GrammarCheckService::language() const
+{
+    return m_language;
+}
+
+void GrammarCheckService::setRetryDelay(int ms)
+{
+    m_retryTimer->setInterval(ms);
 }
 
 // =============================================================================
 // Checking
 // =============================================================================
 
-void GrammarCheckService::checkTextAsync(const QString& text, int paragraphIndex)
+quint64 GrammarCheckService::check(const QString& text)
 {
-    if (!isActive() || text.trimmed().isEmpty()) {
-        // No text to check, emit empty result
-        emit paragraphChecked(paragraphIndex, QList<GrammarError>());
-        return;
+    if (!isActive()) {
+        return 0;
     }
-
-    // Add to queue
-    m_requestQueue.enqueue({text, paragraphIndex});
-
-    // Process queue if no request in progress
-    if (!m_requestInProgress && !m_rateLimitTimer->isActive()) {
-        processQueue();
-    }
+    const quint64 request = ++m_lastRequest;
+    m_waiting.emplace_back(request, text);
+    sendWaiting();
+    return request;
 }
 
-void GrammarCheckService::checkDocumentAsync()
+void GrammarCheckService::cancel(quint64 request)
 {
-    if (!m_editor || !isActive()) {
-        emit documentCheckComplete();
+    const auto waiting =
+        std::find_if(m_waiting.begin(), m_waiting.end(),
+                     [request](const auto& item) { return item.first == request; });
+    if (waiting != m_waiting.end()) {
+        m_waiting.erase(waiting);
         return;
     }
-
-    // Mark all paragraphs for checking
-    m_pendingParagraphs.clear();
-    for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-        m_pendingParagraphs.insert(static_cast<int>(i));
-    }
-
-    // Start debounce timer
-    m_debounceTimer->start();
-}
-
-void GrammarCheckService::cancelPendingChecks()
-{
-    // Stop timers
-    m_debounceTimer->stop();
-    m_rateLimitTimer->stop();
-
-    // Clear queue
-    m_requestQueue.clear();
-    m_pendingParagraphs.clear();
-
-    // Cancel pending network requests
-    for (auto it = m_pendingRequests.begin(); it != m_pendingRequests.end(); ++it) {
-        QNetworkReply* reply = it.key();
+    const auto sent = std::find_if(m_sent.begin(), m_sent.end(), [request](const auto& item) {
+        return item.second.first == request;
+    });
+    if (sent != m_sent.end()) {
+        QNetworkReply* reply = sent->first;
+        m_sent.erase(sent);
         reply->abort();
-        reply->deleteLater();
-    }
-    m_pendingRequests.clear();
-    m_requestInProgress = false;
-}
-
-QList<GrammarError> GrammarCheckService::errorsForParagraph(int index) const
-{
-    return m_paragraphErrors.value(index);
-}
-
-bool GrammarCheckService::hasPendingRequests() const
-{
-    return m_requestInProgress ||
-           !m_requestQueue.isEmpty() ||
-           !m_pendingRequests.isEmpty();
-}
-
-// =============================================================================
-// Configuration
-// =============================================================================
-
-void GrammarCheckService::setEnabledCategories(const QStringList& categories)
-{
-    m_enabledCategories.clear();
-    for (const QString& cat : categories) {
-        m_enabledCategories.insert(cat);
+        sendWaiting();
     }
 }
 
-QStringList GrammarCheckService::enabledCategories() const
+int GrammarCheckService::pendingChecks() const
 {
-    return QStringList(m_enabledCategories.begin(), m_enabledCategories.end());
-}
-
-void GrammarCheckService::setDisabledCategories(const QStringList& categories)
-{
-    m_disabledCategories.clear();
-    for (const QString& cat : categories) {
-        m_disabledCategories.insert(cat);
-    }
-}
-
-QStringList GrammarCheckService::disabledCategories() const
-{
-    return QStringList(m_disabledCategories.begin(), m_disabledCategories.end());
+    return static_cast<int>(m_waiting.size() + m_sent.size());
 }
 
 void GrammarCheckService::ignoreRule(const QString& ruleId)
 {
-    if (m_ignoredRules.contains(ruleId)) {
+    if (ruleId.isEmpty() || m_ignoredRules.contains(ruleId)) {
         return;
     }
-
     m_ignoredRules.insert(ruleId);
-    core::Logger::getInstance().debug("GrammarCheckService: Ignoring rule '{}'",
-                                      ruleId.toStdString());
-
-    // Re-check document to update UI
-    if (m_editor && isActive()) {
-        checkDocumentAsync();
-    }
+    emit ruleIgnored(ruleId);
 }
 
 bool GrammarCheckService::isRuleIgnored(const QString& ruleId) const
@@ -327,323 +262,141 @@ bool GrammarCheckService::isRuleIgnored(const QString& ruleId) const
     return m_ignoredRules.contains(ruleId);
 }
 
-QSet<QString> GrammarCheckService::ignoredRules() const
-{
-    return m_ignoredRules;
-}
+// =============================================================================
+// Requests and answers
+// =============================================================================
 
-void GrammarCheckService::clearIgnoredRules()
+void GrammarCheckService::sendWaiting()
 {
-    m_ignoredRules.clear();
+    while (m_sent.size() < MAX_SENT && !m_waiting.empty()) {
+        auto [request, text] = std::move(m_waiting.front());
+        m_waiting.pop_front();
 
-    // Re-check document to update UI
-    if (m_editor && isActive()) {
-        checkDocumentAsync();
+        QNetworkRequest httpRequest{QUrl(m_endpoint)};
+        httpRequest.setHeader(QNetworkRequest::ContentTypeHeader,
+                              QByteArrayLiteral("application/x-www-form-urlencoded"));
+        httpRequest.setTransferTimeout(TRANSFER_TIMEOUT_MS);
+        const QByteArray form = "text=" + QUrl::toPercentEncoding(text) +
+                                "&language=" + QUrl::toPercentEncoding(m_language);
+        QNetworkReply* reply = m_network->post(httpRequest, form);
+        m_sent.emplace(reply, std::make_pair(request, std::move(text)));
     }
 }
 
-// =============================================================================
-// Rate Limiting Configuration
-// =============================================================================
-
-void GrammarCheckService::setRateLimitMs(int ms)
+void GrammarCheckService::onReply(QNetworkReply* reply)
 {
-    m_rateLimitMs = qMax(100, ms);  // Minimum 100ms
-    m_rateLimitTimer->setInterval(m_rateLimitMs);
-}
-
-int GrammarCheckService::rateLimitMs() const
-{
-    return m_rateLimitMs;
-}
-
-void GrammarCheckService::setDebounceMs(int ms)
-{
-    m_debounceMs = qMax(100, ms);  // Minimum 100ms
-    m_debounceTimer->setInterval(m_debounceMs);
-}
-
-int GrammarCheckService::debounceMs() const
-{
-    return m_debounceMs;
-}
-
-// =============================================================================
-// Private Slots
-// =============================================================================
-
-void GrammarCheckService::onNetworkReply(QNetworkReply* reply)
-{
-    m_requestInProgress = false;
-
-    // Get associated paragraph index
-    int paragraphIndex = m_pendingRequests.value(reply, -1);
-    m_pendingRequests.remove(reply);
-
-    QList<GrammarError> errors;
+    reply->deleteLater();
+    const auto sent = m_sent.find(reply);
+    if (sent == m_sent.end()) {
+        return;  // dropped
+    }
+    const auto [request, text] = std::move(sent->second);
+    m_sent.erase(sent);
 
     if (reply->error() == QNetworkReply::NoError) {
-        // Parse response
-        QByteArray data = reply->readAll();
-        errors = parseResponse(data);
-
-        // Cache results
-        if (paragraphIndex >= 0) {
-            m_paragraphErrors.insert(paragraphIndex, errors);
-        }
-
-        core::Logger::getInstance().debug(
-            "GrammarCheckService: Received {} errors for paragraph {}",
-            errors.size(), paragraphIndex);
-    } else if (reply->error() == QNetworkReply::OperationCanceledError) {
-        // Request was cancelled, ignore
-        core::Logger::getInstance().debug("GrammarCheckService: Request cancelled");
+        m_errorTold = false;
+        emit textChecked(request, parse(reply->readAll(), text));
+    } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ==
+               HTTP_CONTENT_TOO_LARGE) {
+        emit textChecked(request, {});  // too long for the server: nothing found in it
     } else {
-        // Network error
-        QString errorMsg = reply->errorString();
-        core::Logger::getInstance().warn("GrammarCheckService: API error: {}",
-                                         errorMsg.toStdString());
-        emit apiError(errorMsg);
-    }
-
-    reply->deleteLater();
-
-    // Emit results
-    emit paragraphChecked(paragraphIndex, errors);
-
-    // Process next in queue after rate limit delay
-    if (!m_requestQueue.isEmpty()) {
-        m_rateLimitTimer->start();
-    } else if (m_pendingRequests.isEmpty()) {
-        emit checkingFinished();
-    }
-}
-
-void GrammarCheckService::onDebounceTimeout()
-{
-    if (!m_editor || !isActive()) {
-        m_pendingParagraphs.clear();
+        // The server's own explanation (LanguageTool's first sentence), else Qt's
+        QString message = QString::fromUtf8(reply->readAll()).trimmed();
+        message = message.section(QLatin1Char('\n'), 0, 0);
+        const qsizetype sentenceEnd = message.indexOf(QLatin1String(". "));
+        if (sentenceEnd > 0) {
+            message.truncate(sentenceEnd + 1);
+        }
+        if (message.isEmpty()) {
+            message = reply->errorString();
+        }
+        emit textNotChecked(request);
+        fail(message.left(MAX_REASON_LENGTH));
         return;
     }
-
-    // Queue all pending paragraphs for checking
-    emit checkingStarted();
-
-    for (int idx : m_pendingParagraphs) {
-        if (idx < 0 || static_cast<size_t>(idx) >= m_editor->paragraphCount()) {
-            continue;
-        }
-
-        QString text = m_editor->paragraphPlainText(static_cast<size_t>(idx));
-        if (!text.trimmed().isEmpty()) {
-            m_requestQueue.enqueue({text, idx});
-        } else {
-            // Empty paragraph - emit empty result
-            m_paragraphErrors.insert(idx, QList<GrammarError>());
-            emit paragraphChecked(idx, QList<GrammarError>());
-        }
-    }
-
-    m_pendingParagraphs.clear();
-
-    // Start processing queue
-    if (!m_requestInProgress && !m_requestQueue.isEmpty()) {
-        processQueue();
-    } else if (m_requestQueue.isEmpty()) {
-        emit documentCheckComplete();
-    }
+    sendWaiting();
 }
 
-// =============================================================================
-// BookEditor Signal Handlers
-// =============================================================================
-
-void GrammarCheckService::onParagraphModified(int paragraphIndex)
+void GrammarCheckService::fail(const QString& message)
 {
-    if (isActive()) {
-        m_pendingParagraphs.insert(paragraphIndex);
-        m_debounceTimer->start();
+    core::Logger::getInstance().warn("GrammarCheckService: The server did not answer: {}",
+                                     message.toStdString());
+    m_failing = true;
+
+    // Nothing is sent until the server is asked again; the requests are answered then
+    const auto waiting = std::exchange(m_waiting, {});
+    const auto sent = std::exchange(m_sent, {});
+    for (const auto& [reply, request] : sent) {
+        reply->abort();
+    }
+    for (const auto& [request, text] : waiting) {
+        emit textNotChecked(request);
+    }
+    for (const auto& [reply, request] : sent) {
+        emit textNotChecked(request.first);
+    }
+    m_retryTimer->start();
+
+    if (!m_errorTold) {
+        m_errorTold = true;
+        emit serverError(message);
     }
 }
 
-void GrammarCheckService::onParagraphInserted(int paragraphIndex)
+void GrammarCheckService::restart()
 {
-    if (isActive()) {
-        m_pendingParagraphs.insert(paragraphIndex);
-        m_debounceTimer->start();
+    m_waiting.clear();
+    const auto sent = std::exchange(m_sent, {});
+    for (const auto& [reply, request] : sent) {
+        reply->abort();
     }
+    m_failing = false;
+    m_errorTold = false;
+    m_retryTimer->stop();
+    emit checkingChanged();
 }
 
-void GrammarCheckService::onParagraphRemoved(int paragraphIndex)
-{
-    // Remove cached errors for removed paragraph
-    m_paragraphErrors.remove(paragraphIndex);
-    m_pendingParagraphs.remove(paragraphIndex);
-}
-
-void GrammarCheckService::processQueue()
-{
-    if (m_requestInProgress || m_requestQueue.isEmpty()) {
-        return;
-    }
-
-    m_requestInProgress = true;
-    auto [text, index] = m_requestQueue.dequeue();
-    sendApiRequest(text, index);
-}
-
-// =============================================================================
-// API Request Methods
-// =============================================================================
-
-void GrammarCheckService::sendApiRequest(const QString& text, int paragraphIndex)
-{
-    QUrl url(m_apiEndpoint);
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader,
-                      "application/x-www-form-urlencoded");
-    request.setHeader(QNetworkRequest::UserAgentHeader,
-                      "Kalahari/1.0 (Grammar Checker)");
-
-    // Build request parameters
-    QUrlQuery params;
-    params.addQueryItem("text", text);
-    params.addQueryItem("language", m_language);
-
-    // Add enabled categories if specified
-    if (!m_enabledCategories.isEmpty()) {
-        QStringList catList(m_enabledCategories.begin(), m_enabledCategories.end());
-        params.addQueryItem("enabledCategories", catList.join(","));
-    }
-
-    // Add disabled categories if any
-    if (!m_disabledCategories.isEmpty()) {
-        QStringList catList(m_disabledCategories.begin(), m_disabledCategories.end());
-        params.addQueryItem("disabledCategories", catList.join(","));
-    }
-
-    // Send request
-    QByteArray postData = params.toString(QUrl::FullyEncoded).toUtf8();
-    QNetworkReply* reply = m_networkManager->post(request, postData);
-
-    // Track pending request
-    m_pendingRequests.insert(reply, paragraphIndex);
-
-    core::Logger::getInstance().debug(
-        "GrammarCheckService: Sent request for paragraph {} ({} chars)",
-        paragraphIndex, text.length());
-}
-
-QList<GrammarError> GrammarCheckService::parseResponse(const QByteArray& json)
+QList<GrammarError> GrammarCheckService::parse(const QByteArray& json, const QString& text) const
 {
     QList<GrammarError> errors;
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(json, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        core::Logger::getInstance().warn(
-            "GrammarCheckService: JSON parse error: {}",
-            parseError.errorString().toStdString());
-        return errors;
-    }
-
-    if (!doc.isObject()) {
-        return errors;
-    }
-
-    QJsonObject root = doc.object();
-    QJsonArray matches = root["matches"].toArray();
-
-    for (const QJsonValue& matchVal : matches) {
-        QJsonObject match = matchVal.toObject();
+    const QJsonArray matches =
+        QJsonDocument::fromJson(json).object().value(QLatin1String("matches")).toArray();
+    for (const auto& value : matches) {
+        const QJsonObject match = value.toObject();
+        const QJsonObject rule = match.value(QLatin1String("rule")).toObject();
+        const QJsonObject category = rule.value(QLatin1String("category")).toObject();
 
         GrammarError error;
-        error.startPos = match["offset"].toInt();
-        error.length = match["length"].toInt();
-        error.message = match["message"].toString();
-        error.shortMessage = match["shortMessage"].toString();
+        error.startPos = match.value(QLatin1String("offset")).toInt(-1);
+        error.length = match.value(QLatin1String("length")).toInt();
+        error.ruleId = rule.value(QLatin1String("id")).toString();
+        error.type = issueTypeOf(category.value(QLatin1String("id")).toString(),
+                                 rule.value(QLatin1String("issueType")).toString());
 
-        // Get rule information
-        QJsonObject rule = match["rule"].toObject();
-        error.ruleId = rule["id"].toString();
-
-        // Check if rule is ignored
-        if (m_ignoredRules.contains(error.ruleId)) {
+        // Spelling is the dictionary's; an issue lies in the text checked
+        const bool outside = error.startPos < 0 || error.length <= 0 ||
+                             error.startPos + error.length > text.size();
+        if (error.type == GrammarIssueType::Spelling || m_ignoredRules.contains(error.ruleId) ||
+            outside) {
             continue;
         }
-
-        // Get category information
-        QJsonObject category = rule["category"].toObject();
-        error.category = category["name"].toString();
-        QString categoryId = category["id"].toString();
-        error.type = categoryToType(categoryId);
-
-        // Skip spelling errors (handled by SpellCheckService)
-        if (error.type == GrammarIssueType::Spelling) {
-            continue;
+        error.text = text.mid(error.startPos, error.length);
+        error.message = match.value(QLatin1String("message")).toString();
+        error.shortMessage = match.value(QLatin1String("shortMessage")).toString();
+        error.category = category.value(QLatin1String("name")).toString();
+        error.ignoreForIncompleteSentence =
+            match.value(QLatin1String("ignoreForIncompleteSentence")).toBool();
+        const QJsonArray replacements = match.value(QLatin1String("replacements")).toArray();
+        for (const auto& replacement : replacements) {
+            const QString suggestion =
+                replacement.toObject().value(QLatin1String("value")).toString();
+            if (!suggestion.isEmpty() && error.suggestions.size() < MAX_SUGGESTIONS) {
+                error.suggestions.append(suggestion);
+            }
         }
-
-        // Get suggestions (max 5)
-        QJsonArray replacements = match["replacements"].toArray();
-        for (int i = 0; i < qMin(5, static_cast<int>(replacements.size())); ++i) {
-            QJsonObject replacement = replacements[i].toObject();
-            error.suggestions.append(replacement["value"].toString());
-        }
-
-        // Get problematic text from context
-        QJsonObject context = match["context"].toObject();
-        int contextOffset = context["offset"].toInt();
-        int contextLength = context["length"].toInt();
-        QString contextText = context["text"].toString();
-        error.text = contextText.mid(contextOffset, contextLength);
-
         errors.append(error);
     }
-
     return errors;
-}
-
-GrammarIssueType GrammarCheckService::categoryToType(const QString& category) const
-{
-    // LanguageTool category IDs mapping
-    // See: https://languagetool.org/http-api/swagger-ui/#/default/post_check
-
-    // Spelling-related categories (skip these, handled by SpellCheckService)
-    if (category == "TYPOS" ||
-        category == "SPELLING" ||
-        category == "MORFOLOGIK_RULE_EN_US" ||
-        category == "MORFOLOGIK_RULE_PL_PL") {
-        return GrammarIssueType::Spelling;
-    }
-
-    // Style categories
-    if (category == "STYLE" ||
-        category == "REDUNDANCY" ||
-        category == "REPETITIONS" ||
-        category == "SEMANTICS" ||
-        category == "PLAIN_ENGLISH") {
-        return GrammarIssueType::Style;
-    }
-
-    // Typography categories
-    if (category == "TYPOGRAPHY" ||
-        category == "PUNCTUATION" ||
-        category == "CASING" ||
-        category == "COMPOUNDING") {
-        return GrammarIssueType::Typography;
-    }
-
-    // Grammar categories
-    if (category == "GRAMMAR" ||
-        category == "CONFUSED_WORDS" ||
-        category == "MISC" ||
-        category == "GENDER_NEUTRALITY") {
-        return GrammarIssueType::Grammar;
-    }
-
-    // Default to Grammar for unknown categories
-    return GrammarIssueType::Grammar;
 }
 
 }  // namespace kalahari::editor

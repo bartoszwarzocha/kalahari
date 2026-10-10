@@ -22,11 +22,13 @@
 namespace kalahari {
 namespace gui {
 
-SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
+SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode,
+                               editor::SpellCheckService* spelling)
     : KalahariDialog(parent)
     , m_navTree(nullptr)
     , m_pageStack(nullptr)
     , m_diagnosticMode(diagnosticMode)
+    , m_spelling(spelling)
     , m_lengthUnit(currentLengthUnit())
 {
     setHeading(tr("Settings"),
@@ -91,11 +93,8 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
-    addPlannedPage(editor, tr("Spelling"),
-                   tr("Planned features:\n"
-                      "- Spell check language selection\n"
-                      "- Custom dictionary management\n"
-                      "- Ignore rules for technical terms"));
+    addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
+    addPage(editor, tr("Grammar"), []() { return new EditorGrammarPage(); });
     addPlannedPage(editor, tr("Auto-correct"),
                    tr("Planned features:\n"
                       "- Automatic capitalization\n"

@@ -1,184 +1,285 @@
 /// @file spell_check_service.cpp
-/// @brief Spell checking service implementation (OpenSpec #00042 Phase 6.4-6.9)
+/// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
 #include <kalahari/editor/spell_check_service.h>
-#include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/resource_paths.h>
 
 #include <hunspell/hunspell.hxx>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QTextStream>
+#include <QSaveFile>
 #include <QStandardPaths>
-#include <QCoreApplication>
-#include <QRegularExpression>
+#include <QStringView>
+#include <QTextStream>
+#include <QThread>
+
+#include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
+namespace {
+
 // =============================================================================
-// SpellCheckService
+// Dictionary files
+// =============================================================================
+
+/// @brief The folders dictionaries are looked for in, the first first
+QStringList dictionaryFolders() {
+    QStringList folders;
+
+    // The dictionaries shipped with Kalahari, in its resources
+    const QString resourcesDir = core::ResourcePaths::getInstance().getResourcesDir();
+    if (!resourcesDir.isEmpty()) {
+        folders.append(resourcesDir + QStringLiteral("/dictionaries"));
+    }
+    const QString appDir = QCoreApplication::applicationDirPath();
+    folders.append(appDir + QStringLiteral("/dictionaries"));
+    folders.append(appDir + QStringLiteral("/resources/dictionaries"));
+
+    // The writer's own: AppData/Kalahari/dictionaries
+    folders.append(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+                   QStringLiteral("/dictionaries"));
+
+#ifdef Q_OS_WIN
+    // LibreOffice's and Hunspell's
+    folders.append(QStringLiteral("C:/Program Files/LibreOffice/share/extensions/dict-pl"));
+    folders.append(QStringLiteral("C:/Program Files/LibreOffice/share/extensions/dict-en"));
+    folders.append(QStringLiteral("C:/Program Files (x86)/LibreOffice/share/extensions/dict-pl"));
+    folders.append(QStringLiteral("C:/Program Files (x86)/LibreOffice/share/extensions/dict-en"));
+    folders.append(QStringLiteral("C:/Program Files/hunspell/share/hunspell"));
+    folders.append(QStringLiteral("C:/hunspell"));
+#else
+    // The system's
+    folders.append(QStringLiteral("/usr/share/hunspell"));
+    folders.append(QStringLiteral("/usr/share/myspell"));
+    folders.append(QStringLiteral("/usr/share/myspell/dicts"));
+    folders.append(QStringLiteral("/usr/local/share/hunspell"));
+    folders.append(QStringLiteral("/usr/share/libreoffice/share/extensions/dict-pl"));
+    folders.append(QStringLiteral("/usr/share/libreoffice/share/extensions/dict-en"));
+    folders.append(QStringLiteral("/Library/Spelling"));
+    folders.append(QDir::homePath() + QStringLiteral("/Library/Spelling"));
+#endif
+    return folders;
+}
+
+/// @brief The folder with a dictionary's .aff and .dic files, or empty
+QString folderOf(const QString& dictionary) {
+    if (dictionary.isEmpty()) {
+        return QString();
+    }
+    for (const QString& folder : dictionaryFolders()) {
+        const QDir dir(folder);
+        if (dir.exists(dictionary + QStringLiteral(".aff")) &&
+            dir.exists(dictionary + QStringLiteral(".dic"))) {
+            return folder;
+        }
+    }
+    return QString();
+}
+
+/// @brief A file's path as Hunspell opens it
+QByteArray hunspellPath(const QString& path) {
+#ifdef _MSC_VER
+    // A UTF-8 path after the long path prefix opens whatever the system's code page
+    return QByteArrayLiteral("\\\\?\\") +
+           QDir::toNativeSeparators(QDir::cleanPath(QFileInfo(path).absoluteFilePath())).toUtf8();
+#else
+    return QFile::encodeName(path);
+#endif
+}
+
+// =============================================================================
+// Words
+// =============================================================================
+
+/// @brief A word of a text to check
+struct WordSpan {
+    qsizetype start = 0;     ///< Where it starts in the text
+    qsizetype length = 0;    ///< How long it is (in UTF-16 units)
+    int letters = 0;         ///< How many letters it has
+    bool lowercase = false;  ///< It has a lowercase letter
+};
+
+/// @brief The character at a position, and how many UTF-16 units it takes
+char32_t codePointAt(QStringView text, qsizetype i, qsizetype* size) {
+    const QChar c = text[i];
+    if (c.isHighSurrogate() && i + 1 < text.size() && text[i + 1].isLowSurrogate()) {
+        *size = 2;
+        return QChar::surrogateToUcs4(c, text[i + 1]);
+    }
+    *size = 1;
+    return c.unicode();
+}
+
+/// @brief The character before a position
+char32_t codePointBefore(QStringView text, qsizetype i) {
+    const QChar c = text[i - 1];
+    if (c.isLowSurrogate() && i >= 2 && text[i - 2].isHighSurrogate()) {
+        return QChar::surrogateToUcs4(text[i - 2], c);
+    }
+    return c.unicode();
+}
+
+/// @brief A hyphen: joins words into one (well-known)
+bool isHyphen(char32_t c) {
+    return c == U'-' || c == U'\u2010' || c == U'\u2011';
+}
+
+/// @brief An apostrophe or a hyphen: joins the letters around it into one word
+bool isJoiner(char32_t c) {
+    return c == U'\'' || c == U'\u2019' || isHyphen(c);
+}
+
+/// @brief A digit or an underscore: a word touching one is a code or a name (abc123, x_y)
+bool isCodeCharacter(char32_t c) {
+    return QChar::isNumber(c) || c == U'_';
+}
+
+/// @brief Whether a run of text without spaces is a web or e-mail address
+bool isAddress(QStringView chunk) {
+    return chunk.contains(u"://") || chunk.contains(u'@') ||
+           chunk.startsWith(u"www.", Qt::CaseInsensitive);
+}
+
+/// @brief Add the words of a run of text without spaces
+/// @param offset Where the run starts in the text
+void addWords(QStringView chunk, qsizetype offset, QList<WordSpan>& words) {
+    const qsizetype n = chunk.size();
+    qsizetype i = 0;
+    while (i < n) {
+        qsizetype size = 0;
+        if (!QChar::isLetter(codePointAt(chunk, i, &size))) {
+            i += size;
+            continue;
+        }
+
+        // Letters (with their accents), also joined by apostrophes and hyphens
+        WordSpan word;
+        qsizetype j = i;
+        while (j < n) {
+            const char32_t c = codePointAt(chunk, j, &size);
+            if (QChar::isLetter(c)) {
+                ++word.letters;
+                word.lowercase = word.lowercase || QChar::isLower(c);
+                j += size;
+            } else if (qsizetype next = 0;
+                       QChar::isMark(c) ||
+                       (isJoiner(c) && j + size < n &&
+                        QChar::isLetter(codePointAt(chunk, j + size, &next)))) {
+                j += size;  // an accent, or an apostrophe or a hyphen before a letter
+            } else {
+                break;
+            }
+        }
+
+        const bool touchesCode = (i > 0 && isCodeCharacter(codePointBefore(chunk, i))) ||
+                                 (j < n && isCodeCharacter(codePointAt(chunk, j, &size)));
+        if (!touchesCode) {
+            word.start = offset + i;
+            word.length = j - i;
+            words.append(word);
+        }
+        i = j;
+    }
+}
+
+/// @brief The words of a text, in their order, but those in addresses
+QList<WordSpan> wordsOf(QStringView text) {
+    QList<WordSpan> words;
+    const qsizetype n = text.size();
+    qsizetype i = 0;
+    while (i < n) {
+        while (i < n && text[i].isSpace()) {
+            ++i;
+        }
+        const qsizetype start = i;
+        while (i < n && !text[i].isSpace()) {
+            ++i;
+        }
+        const QStringView chunk = text.sliced(start, i - start);
+        if (!chunk.isEmpty() && !isAddress(chunk)) {
+            addWords(chunk, start, words);
+        }
+    }
+    return words;
+}
+
+/// @brief Whether a word is checked: of two letters or more, not in capitals (NATO)
+bool isChecked(const WordSpan& word) {
+    return word.letters >= 2 && word.lowercase;
+}
+
+/// @brief Whether a word has a hyphen
+bool hasHyphen(QStringView word) {
+    return std::any_of(word.begin(), word.end(),
+                       [](QChar c) { return isHyphen(c.unicode()); });
+}
+
+/// @brief A hyphenated word with spaces in place of its hyphens: its parts as words
+QString partsOf(const QString& word) {
+    QString parts = word;
+    for (QChar& c : parts) {
+        if (isHyphen(c.unicode())) {
+            c = QLatin1Char(' ');
+        }
+    }
+    return parts;
+}
+
+}  // anonymous namespace
+
+// =============================================================================
+// Construction
 // =============================================================================
 
 SpellCheckService::SpellCheckService(QObject* parent)
     : QObject(parent)
-    , m_debounceTimer(new QTimer(this))
 {
-    // Setup debounce timer
-    m_debounceTimer->setSingleShot(true);
-    m_debounceTimer->setInterval(DEBOUNCE_MS);
-    connect(m_debounceTimer, &QTimer::timeout, this, &SpellCheckService::onDebounceTimeout);
-
-    // Load user dictionary
-    loadUserDictionary();
-
-    core::Logger::getInstance().debug("SpellCheckService created");
 }
 
 SpellCheckService::~SpellCheckService()
 {
-    // Disconnect from editor
-    if (m_editor) {
-        disconnect(m_editor, nullptr, this, nullptr);
-    }
-
-    // Clean up Hunspell
-    cleanupHunspell();
-
-    core::Logger::getInstance().debug("SpellCheckService destroyed");
+    dropLoader();
 }
 
 // =============================================================================
-// Setup
+// Dictionaries
 // =============================================================================
 
-void SpellCheckService::setBookEditor(BookEditor* editor)
-{
-    if (m_editor == editor) {
-        return;
-    }
-
-    // Disconnect from previous editor
-    if (m_editor) {
-        disconnect(m_editor, nullptr, this, nullptr);
-    }
-
-    m_editor = editor;
-
-    // Clear pending checks
-    m_pendingParagraphs.clear();
-
-    // Connect to new editor
-    if (m_editor) {
-        connect(m_editor, &BookEditor::paragraphModified,
-                this, &SpellCheckService::onParagraphModified);
-        connect(m_editor, &BookEditor::paragraphInserted,
-                this, &SpellCheckService::onParagraphInserted);
-        connect(m_editor, &BookEditor::paragraphRemoved,
-                this, &SpellCheckService::onParagraphRemoved);
-
-        // Mark all paragraphs for initial check
-        if (m_enabled && isDictionaryLoaded()) {
-            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-                m_pendingParagraphs.insert(static_cast<int>(i));
-            }
-            m_debounceTimer->start();
-        }
-    }
-}
-
-bool SpellCheckService::loadDictionary(const QString& language)
-{
-    // Find dictionary files
-    QString dictPath = findDictionaryPath(language);
-    if (dictPath.isEmpty()) {
-        QString error = tr("Dictionary not found for language: %1").arg(language);
-        core::Logger::getInstance().warn("SpellCheckService: {}", error.toStdString());
-        emit dictionaryError(error);
-        return false;
-    }
-
-    QString affPath = dictPath + "/" + language + ".aff";
-    QString dicPath = dictPath + "/" + language + ".dic";
-
-    // Check files exist
-    if (!QFile::exists(affPath) || !QFile::exists(dicPath)) {
-        QString error = tr("Dictionary files missing for: %1").arg(language);
-        core::Logger::getInstance().warn("SpellCheckService: {} (aff: {}, dic: {})",
-                                         error.toStdString(), affPath.toStdString(), dicPath.toStdString());
-        emit dictionaryError(error);
-        return false;
-    }
-
-    // Initialize Hunspell
-    if (!initHunspell(affPath, dicPath)) {
-        QString error = tr("Failed to initialize Hunspell for: %1").arg(language);
-        emit dictionaryError(error);
-        return false;
-    }
-
-    m_currentLanguage = language;
-
-    // Add user dictionary words to Hunspell runtime dictionary
-    Hunspell* hunspell = static_cast<Hunspell*>(m_hunspell);
-    for (const QString& word : m_userDictionary) {
-        hunspell->add(word.toStdString());
-    }
-
-    core::Logger::getInstance().info("SpellCheckService: Loaded dictionary for '{}'", language.toStdString());
-    emit dictionaryLoaded(language);
-
-    // Trigger check of current editor if any
-    if (m_editor && m_enabled) {
-        for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-            m_pendingParagraphs.insert(static_cast<int>(i));
-        }
-        m_debounceTimer->start();
-    }
-
-    return true;
-}
-
-QStringList SpellCheckService::availableDictionaries() const
+QStringList SpellCheckService::availableDictionaries()
 {
     QStringList dictionaries;
-    QSet<QString> found;  // Avoid duplicates
-
-    QStringList searchPaths = getSystemDictionaryPaths();
-
-    for (const QString& path : searchPaths) {
-        QDir dir(path);
+    for (const QString& folder : dictionaryFolders()) {
+        const QDir dir(folder);
         if (!dir.exists()) {
             continue;
         }
-
-        // Find .aff files
-        QStringList affFiles = dir.entryList(QStringList() << "*.aff", QDir::Files);
-        for (const QString& affFile : affFiles) {
-            QString lang = affFile.left(affFile.length() - 4);  // Remove .aff
-
-            // Check that .dic file also exists
-            if (dir.exists(lang + ".dic") && !found.contains(lang)) {
-                found.insert(lang);
-                dictionaries.append(lang);
+        const QStringList affixFiles = dir.entryList({QStringLiteral("*.aff")}, QDir::Files);
+        for (const QString& affixFile : affixFiles) {
+            const QString dictionary = QFileInfo(affixFile).completeBaseName();
+            if (dir.exists(dictionary + QStringLiteral(".dic")) &&
+                !dictionaries.contains(dictionary)) {
+                dictionaries.append(dictionary);
             }
         }
     }
-
     dictionaries.sort();
     return dictionaries;
 }
 
-QString SpellCheckService::dictionaryFor(const QString& language) const
+QString SpellCheckService::dictionaryFor(const QString& language)
 {
-    const QStringList dictionaries = availableDictionaries();
     QString code = language.trimmed();
-    code.replace('-', '_');
+    code.replace(QLatin1Char('-'), QLatin1Char('_'));
     if (code.isEmpty()) {
         return QString();
     }
+    const QStringList dictionaries = availableDictionaries();
 
     // A full code such as pl_PL or en_GB names the dictionary itself
     for (const QString& dictionary : dictionaries) {
@@ -188,127 +289,171 @@ QString SpellCheckService::dictionaryFor(const QString& language) const
     }
 
     // A language such as "pl" or "en": its main dictionary (pl_PL, en_US), else any of it
-    const QString lang = code.section('_', 0, 0).toLower();
-    QString mainDictionary = lang + '_' + (lang == QLatin1String("en") ? QStringLiteral("US") : lang.toUpper());
+    const QString lang = code.section(QLatin1Char('_'), 0, 0).toLower();
+    const QString mainDictionary =
+        lang + QLatin1Char('_') +
+        (lang == QLatin1String("en") ? QStringLiteral("US") : lang.toUpper());
     if (dictionaries.contains(mainDictionary)) {
         return mainDictionary;
     }
     for (const QString& dictionary : dictionaries) {
-        if (dictionary.section('_', 0, 0).compare(lang, Qt::CaseInsensitive) == 0) {
+        if (dictionary.section(QLatin1Char('_'), 0, 0).compare(lang, Qt::CaseInsensitive) == 0) {
             return dictionary;
         }
     }
     return QString();
 }
 
-QString SpellCheckService::currentLanguage() const
+bool SpellCheckService::loadDictionary(const QString& dictionary)
 {
-    return m_currentLanguage;
+    const QString folder = folderOf(dictionary);
+    if (folder.isEmpty()) {
+        const QString error = tr("No dictionary %1 was found").arg(dictionary);
+        core::Logger::getInstance().warn("SpellCheckService: {}", error.toStdString());
+        emit dictionaryError(error);
+        return false;
+    }
+
+    dropLoader();
+    m_wantedDictionary = dictionary;
+    install(std::make_unique<Hunspell>(
+                hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".aff"))
+                    .constData(),
+                hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".dic"))
+                    .constData()),
+            dictionary);
+    return true;
+}
+
+void SpellCheckService::loadDictionaryInBackground(const QString& dictionary)
+{
+    m_wantedDictionary = dictionary;
+    startLoader();
+}
+
+bool SpellCheckService::isLoading() const
+{
+    return m_loader != nullptr;
+}
+
+void SpellCheckService::unloadDictionary()
+{
+    // The dictionary stays made until another one is (see the members), unused
+    m_wantedDictionary.clear();
+    if (m_inUse) {
+        m_inUse = false;
+        core::Logger::getInstance().info("SpellCheckService: No dictionary checks the words");
+        emit wordsChanged();
+    }
+}
+
+QString SpellCheckService::currentDictionary() const
+{
+    return m_inUse ? m_dictionary : QString();
+}
+
+bool SpellCheckService::isDictionaryLoaded() const
+{
+    return m_inUse;
+}
+
+void SpellCheckService::startLoader()
+{
+    if (m_loader != nullptr || m_wantedDictionary.isEmpty()) {
+        return;  // after the one being loaded (onLoaderFinished())
+    }
+    if (m_hunspell && m_dictionary == m_wantedDictionary) {
+        if (!m_inUse) {
+            m_inUse = true;  // made before
+            emit wordsChanged();
+        }
+        return;
+    }
+
+    const QString dictionary = m_wantedDictionary;
+    const QString folder = folderOf(dictionary);
+    if (folder.isEmpty()) {
+        const QString error = tr("No dictionary %1 was found").arg(dictionary);
+        core::Logger::getInstance().warn("SpellCheckService: {}", error.toStdString());
+        emit dictionaryError(error);
+        return;
+    }
+
+    const QByteArray affixPath =
+        hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".aff"));
+    const QByteArray wordsPath =
+        hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".dic"));
+    m_loadingDictionary = dictionary;
+    m_loader = QThread::create([this, affixPath, wordsPath]() {
+        m_loaded = std::make_unique<Hunspell>(affixPath.constData(), wordsPath.constData());
+    });
+    connect(m_loader, &QThread::finished, this, &SpellCheckService::onLoaderFinished);
+    m_loader->start(QThread::LowPriority);
+}
+
+void SpellCheckService::onLoaderFinished()
+{
+    // The notice of a loader dropped before (loadDictionary()) finds nothing to take
+    if (m_loader == nullptr || !m_loader->isFinished()) {
+        return;
+    }
+    m_loader->wait();
+    delete m_loader;
+    m_loader = nullptr;
+    std::unique_ptr<Hunspell> loaded = std::move(m_loaded);
+    const QString dictionary = std::exchange(m_loadingDictionary, QString());
+
+    if (dictionary == m_wantedDictionary) {
+        install(std::move(loaded), dictionary);
+    } else {
+        // Another dictionary is wanted now: this one goes before it is loaded
+        loaded.reset();
+        startLoader();
+    }
+}
+
+void SpellCheckService::dropLoader()
+{
+    if (m_loader == nullptr) {
+        return;
+    }
+    m_loader->wait();
+    delete m_loader;
+    m_loader = nullptr;
+    m_loaded.reset();
+    m_loadingDictionary.clear();
+}
+
+void SpellCheckService::install(std::unique_ptr<Hunspell> hunspell, const QString& dictionary)
+{
+    // Words go to the dictionary in its encoding: UTF-8 (the shipped ones) or ISO 8859-1
+    const std::string encoding = hunspell->get_dict_encoding();
+    m_latin1 = encoding == "ISO8859-1";
+    if (encoding != "UTF-8" && !m_latin1) {
+        core::Logger::getInstance().warn(
+            "SpellCheckService: Dictionary {} is in {}; words with letters outside ASCII will "
+            "be reported as misspelled",
+            dictionary.toStdString(), encoding);
+    }
+
+    m_hunspell = std::move(hunspell);
+    m_dictionary = dictionary;
+    m_inUse = true;
+    core::Logger::getInstance().info("SpellCheckService: Dictionary {} loaded",
+                                     dictionary.toStdString());
+    emit dictionaryLoaded(dictionary);
+    emit wordsChanged();
 }
 
 // =============================================================================
 // Checking
 // =============================================================================
 
-bool SpellCheckService::isCorrect(const QString& word) const
-{
-    if (!m_hunspell || word.isEmpty()) {
-        return true;  // No dictionary = no errors
-    }
-
-    // Check ignored words first
-    if (m_ignoredWords.contains(word.toLower())) {
-        return true;
-    }
-
-    // Check user dictionary
-    if (m_userDictionary.contains(word.toLower())) {
-        return true;
-    }
-
-    Hunspell* hunspell = static_cast<Hunspell*>(m_hunspell);
-    return hunspell->spell(word.toStdString()) != 0;
-}
-
-QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestions) const
-{
-    QStringList result;
-
-    if (!m_hunspell || word.isEmpty()) {
-        return result;
-    }
-
-    Hunspell* hunspell = static_cast<Hunspell*>(m_hunspell);
-    std::vector<std::string> suggests = hunspell->suggest(word.toStdString());
-
-    for (size_t i = 0; i < suggests.size() && static_cast<int>(i) < maxSuggestions; ++i) {
-        result.append(QString::fromStdString(suggests[i]));
-    }
-
-    return result;
-}
-
-QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) const
-{
-    QList<SpellErrorInfo> errors;
-
-    if (!m_hunspell || !m_enabled || text.isEmpty()) {
-        return errors;
-    }
-
-    // Extract words with positions
-    QList<QPair<int, QString>> words = extractWords(text);
-
-    for (const auto& [pos, word] : words) {
-        if (!isCorrect(word)) {
-            SpellErrorInfo error(pos, word.length(), word);
-            error.suggestions = suggestions(word, 5);
-            errors.append(error);
-        }
-    }
-
-    return errors;
-}
-
-void SpellCheckService::checkDocumentAsync()
-{
-    if (!m_editor || !m_hunspell || !m_enabled) {
-        emit documentCheckComplete();
-        return;
-    }
-
-    // Mark all paragraphs for checking
-    m_pendingParagraphs.clear();
-    for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-        m_pendingParagraphs.insert(static_cast<int>(i));
-    }
-
-    // Start debounce timer (will process all paragraphs when it fires)
-    m_debounceTimer->start();
-}
-
 void SpellCheckService::setEnabled(bool enabled)
 {
-    if (m_enabled == enabled) {
-        return;
-    }
-
-    m_enabled = enabled;
-
-    if (enabled && m_editor && isDictionaryLoaded()) {
-        // Trigger full document check
-        checkDocumentAsync();
-    } else if (!enabled) {
-        // Clear pending checks and clear errors from paragraphs
-        m_pendingParagraphs.clear();
-        m_debounceTimer->stop();
-
-        // Emit empty error lists for all paragraphs to clear UI
-        if (m_editor) {
-            for (size_t i = 0; i < m_editor->paragraphCount(); ++i) {
-                emit paragraphChecked(static_cast<int>(i), QList<SpellErrorInfo>());
-            }
-        }
+    if (m_enabled != enabled) {
+        m_enabled = enabled;
+        emit wordsChanged();
     }
 }
 
@@ -317,357 +462,248 @@ bool SpellCheckService::isEnabled() const
     return m_enabled;
 }
 
-bool SpellCheckService::isDictionaryLoaded() const
+bool SpellCheckService::isActive() const
 {
-    return m_hunspell != nullptr;
+    return m_enabled && m_inUse;
+}
+
+bool SpellCheckService::isCorrect(const QString& word) const
+{
+    if (!m_inUse || word.isEmpty()) {
+        return true;
+    }
+    if (isWordCorrect(word)) {
+        return true;
+    }
+
+    // A hyphenated word whose every part is right
+    if (!hasHyphen(word)) {
+        return false;
+    }
+    for (const WordSpan& part : wordsOf(partsOf(word))) {
+        if (isChecked(part) && !isWordCorrect(word.mid(part.start, part.length))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestions) const
+{
+    QStringList result;
+    if (!m_inUse || word.isEmpty()) {
+        return result;
+    }
+    QString asked = word;
+    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    for (const std::string& suggestion : m_hunspell->suggest(toDictionary(asked))) {
+        if (result.size() >= maxSuggestions) {
+            break;
+        }
+        result.append(fromDictionary(suggestion));
+    }
+    return result;
+}
+
+QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) const
+{
+    QList<SpellErrorInfo> errors;
+    if (!isActive() || text.isEmpty()) {
+        return errors;
+    }
+
+    for (const WordSpan& span : wordsOf(text)) {
+        if (!isChecked(span)) {
+            continue;
+        }
+        const QString word = text.mid(span.start, span.length);
+        if (isWordCorrect(word)) {
+            continue;
+        }
+        if (!hasHyphen(word)) {
+            errors.append(SpellErrorInfo(static_cast<int>(span.start),
+                                         static_cast<int>(span.length), word));
+            continue;
+        }
+
+        // A hyphenated word wrong as a whole: its wrong parts (none: it is right)
+        for (const WordSpan& part : wordsOf(partsOf(word))) {
+            const QString partWord = word.mid(part.start, part.length);
+            if (isChecked(part) && !isWordCorrect(partWord)) {
+                errors.append(SpellErrorInfo(static_cast<int>(span.start + part.start),
+                                             static_cast<int>(part.length), partWord));
+            }
+        }
+    }
+    return errors;
+}
+
+bool SpellCheckService::isWordCorrect(const QString& word) const
+{
+    if (isOwnWord(word)) {
+        return true;
+    }
+    // The dictionaries know the typewriter apostrophe (don't)
+    QString asked = word;
+    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    return m_hunspell->spell(toDictionary(asked));
+}
+
+bool SpellCheckService::isOwnWord(const QString& word) const
+{
+    if (m_userWords.isEmpty() && m_ignoredWords.isEmpty()) {
+        return false;
+    }
+    const auto known = [this](const QString& candidate) {
+        return m_userWords.contains(candidate) || m_ignoredWords.contains(candidate);
+    };
+    // As it is written, or in lower case (Kalahari for kalahari)
+    const auto knownInAnyCase = [&known](const QString& candidate) {
+        return known(candidate) || known(candidate.toLower());
+    };
+    if (knownInAnyCase(word)) {
+        return true;
+    }
+
+    // With an ending after an apostrophe (Kalahari's)
+    for (qsizetype i = 1; i < word.size(); ++i) {
+        if (word[i] == QLatin1Char('\'') || word[i] == QChar(0x2019)) {
+            return knownInAnyCase(word.left(i));
+        }
+    }
+    return false;
+}
+
+std::string SpellCheckService::toDictionary(const QString& word) const
+{
+    return m_latin1 ? word.toLatin1().toStdString() : word.toStdString();
+}
+
+QString SpellCheckService::fromDictionary(const std::string& word) const
+{
+    return m_latin1 ? QString::fromLatin1(word.data(), static_cast<qsizetype>(word.size()))
+                    : QString::fromStdString(word);
 }
 
 // =============================================================================
-// User Dictionary
+// The writer's own words
 // =============================================================================
+
+void SpellCheckService::setUserDictionaryFile(const QString& path)
+{
+    m_userDictionaryFile = path;
+    QSet<QString> words;
+    QFile file(path);
+    if (!path.isEmpty() && file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        in.setEncoding(QStringConverter::Utf8);
+        while (!in.atEnd()) {
+            const QString line = in.readLine().trimmed();
+            if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) {
+                words.insert(line);
+            }
+        }
+        core::Logger::getInstance().debug("SpellCheckService: {} words in the user dictionary",
+                                          words.size());
+    }
+    if (words != m_userWords) {
+        m_userWords = std::move(words);
+        emit wordsChanged();
+    }
+}
+
+QString SpellCheckService::userDictionaryFile() const
+{
+    return m_userDictionaryFile;
+}
 
 void SpellCheckService::addToUserDictionary(const QString& word)
 {
-    QString lowerWord = word.toLower();
-
-    if (m_userDictionary.contains(lowerWord)) {
+    const QString added = word.trimmed();
+    if (added.isEmpty() || m_userWords.contains(added)) {
         return;
     }
-
-    m_userDictionary.insert(lowerWord);
-
-    // Add to Hunspell runtime dictionary
-    if (m_hunspell) {
-        Hunspell* hunspell = static_cast<Hunspell*>(m_hunspell);
-        hunspell->add(word.toStdString());
-    }
-
-    // Persist
+    m_userWords.insert(added);
     saveUserDictionary();
-
-    core::Logger::getInstance().debug("SpellCheckService: Added '{}' to user dictionary", word.toStdString());
-
-    // Re-check document to update UI
-    if (m_editor && m_enabled) {
-        checkDocumentAsync();
-    }
-}
-
-void SpellCheckService::ignoreWord(const QString& word)
-{
-    QString lowerWord = word.toLower();
-
-    if (m_ignoredWords.contains(lowerWord)) {
-        return;
-    }
-
-    m_ignoredWords.insert(lowerWord);
-
-    core::Logger::getInstance().debug("SpellCheckService: Ignoring '{}' for this session", word.toStdString());
-
-    // Re-check document to update UI
-    if (m_editor && m_enabled) {
-        checkDocumentAsync();
-    }
+    emit wordsChanged();
 }
 
 void SpellCheckService::removeFromUserDictionary(const QString& word)
 {
-    QString lowerWord = word.toLower();
-
-    if (!m_userDictionary.contains(lowerWord)) {
-        return;
+    if (m_userWords.remove(word.trimmed())) {
+        saveUserDictionary();
+        emit wordsChanged();
     }
+}
 
-    m_userDictionary.remove(lowerWord);
-
-    // Note: Hunspell doesn't have a remove method, so we need to reload
-    // For now, the word will still pass until dictionary is reloaded
-
-    // Persist
-    saveUserDictionary();
-
-    core::Logger::getInstance().debug("SpellCheckService: Removed '{}' from user dictionary", word.toStdString());
+void SpellCheckService::setUserDictionaryWords(const QStringList& words)
+{
+    QSet<QString> kept;
+    for (const QString& word : words) {
+        const QString trimmed = word.trimmed();
+        if (!trimmed.isEmpty()) {
+            kept.insert(trimmed);
+        }
+    }
+    if (kept != m_userWords) {
+        m_userWords = std::move(kept);
+        saveUserDictionary();
+        emit wordsChanged();
+    }
 }
 
 bool SpellCheckService::isInUserDictionary(const QString& word) const
 {
-    return m_userDictionary.contains(word.toLower());
+    return m_userWords.contains(word);
 }
 
 QStringList SpellCheckService::userDictionaryWords() const
 {
-    QStringList words(m_userDictionary.begin(), m_userDictionary.end());
+    QStringList words(m_userWords.begin(), m_userWords.end());
     words.sort();
     return words;
 }
 
-// =============================================================================
-// Private Slots
-// =============================================================================
-
-void SpellCheckService::onDebounceTimeout()
+void SpellCheckService::ignoreWord(const QString& word)
 {
-    if (!m_editor || !m_hunspell || !m_enabled) {
-        m_pendingParagraphs.clear();
+    const QString ignored = word.trimmed();
+    if (ignored.isEmpty() || m_ignoredWords.contains(ignored)) {
         return;
     }
-
-    // Check all pending paragraphs
-    for (int idx : m_pendingParagraphs) {
-        if (idx < 0 || static_cast<size_t>(idx) >= m_editor->paragraphCount()) {
-            continue;
-        }
-
-        QString text = m_editor->paragraphPlainText(static_cast<size_t>(idx));
-        QList<SpellErrorInfo> errors = checkParagraph(text);
-
-        emit paragraphChecked(idx, errors);
-    }
-
-    m_pendingParagraphs.clear();
-    emit documentCheckComplete();
+    m_ignoredWords.insert(ignored);
+    emit wordsChanged();
 }
 
-// =============================================================================
-// BookEditor Signal Handlers
-// =============================================================================
-
-void SpellCheckService::onParagraphModified(int paragraphIndex)
+bool SpellCheckService::isIgnored(const QString& word) const
 {
-    if (m_enabled && isDictionaryLoaded()) {
-        m_pendingParagraphs.insert(paragraphIndex);
-        m_debounceTimer->start();
-    }
+    return m_ignoredWords.contains(word);
 }
 
-void SpellCheckService::onParagraphInserted(int paragraphIndex)
+void SpellCheckService::saveUserDictionary() const
 {
-    if (m_enabled && isDictionaryLoaded()) {
-        m_pendingParagraphs.insert(paragraphIndex);
-        m_debounceTimer->start();
-    }
-}
-
-void SpellCheckService::onParagraphRemoved(int paragraphIndex)
-{
-    // Remove any pending check for the removed paragraph
-    m_pendingParagraphs.remove(paragraphIndex);
-}
-
-// =============================================================================
-// Hunspell Management
-// =============================================================================
-
-bool SpellCheckService::initHunspell(const QString& affPath, const QString& dicPath)
-{
-    // Clean up existing instance
-    cleanupHunspell();
-
-    try {
-        Hunspell* hunspell = new Hunspell(affPath.toLocal8Bit().constData(),
-                                          dicPath.toLocal8Bit().constData());
-        m_hunspell = hunspell;
-
-        // Words go to Hunspell as UTF-8, so a dictionary in another encoding misses every
-        // word with a non-ASCII letter (the dictionaries shipped in resources are UTF-8)
-        const std::string encoding = hunspell->get_dict_encoding();
-        if (encoding != "UTF-8") {
-            core::Logger::getInstance().warn(
-                "SpellCheckService: Dictionary {} is in {}, not UTF-8; words with accented "
-                "letters will be reported as misspelled",
-                affPath.toStdString(), encoding);
-        }
-
-        core::Logger::getInstance().debug("SpellCheckService: Hunspell initialized (aff: {}, dic: {})",
-                                          affPath.toStdString(), dicPath.toStdString());
-        return true;
-    } catch (const std::exception& e) {
-        core::Logger::getInstance().error("SpellCheckService: Failed to initialize Hunspell: {}",
-                                          e.what());
-        return false;
-    }
-}
-
-void SpellCheckService::cleanupHunspell()
-{
-    if (m_hunspell) {
-        Hunspell* hunspell = static_cast<Hunspell*>(m_hunspell);
-        delete hunspell;
-        m_hunspell = nullptr;
-        m_currentLanguage.clear();
-    }
-}
-
-// =============================================================================
-// Dictionary Paths
-// =============================================================================
-
-QString SpellCheckService::findDictionaryPath(const QString& language) const
-{
-    QStringList searchPaths = getSystemDictionaryPaths();
-
-    for (const QString& path : searchPaths) {
-        QDir dir(path);
-        if (dir.exists(language + ".aff") && dir.exists(language + ".dic")) {
-            return path;
-        }
-    }
-
-    return QString();
-}
-
-QStringList SpellCheckService::getSystemDictionaryPaths() const
-{
-    QStringList paths;
-
-    // 1. The dictionaries shipped with Kalahari, in its resources
-    const QString resourcesDir = core::ResourcePaths::getInstance().getResourcesDir();
-    if (!resourcesDir.isEmpty()) {
-        paths.append(resourcesDir + "/dictionaries");
-    }
-
-    // Application directory: ./dictionaries/
-    QString appDir = QCoreApplication::applicationDirPath();
-    paths.append(appDir + "/dictionaries");
-    paths.append(appDir + "/resources/dictionaries");
-
-    // 2. User data location: AppData/Kalahari/dictionaries/
-    QString userDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    paths.append(userDataPath + "/dictionaries");
-
-#ifdef Q_OS_WIN
-    // 3. Windows: Check common locations
-    // LibreOffice extensions
-    paths.append("C:/Program Files/LibreOffice/share/extensions/dict-pl");
-    paths.append("C:/Program Files/LibreOffice/share/extensions/dict-en");
-    paths.append("C:/Program Files (x86)/LibreOffice/share/extensions/dict-pl");
-    paths.append("C:/Program Files (x86)/LibreOffice/share/extensions/dict-en");
-
-    // Hunspell default location on Windows
-    paths.append("C:/Program Files/hunspell/share/hunspell");
-    paths.append("C:/hunspell");
-#else
-    // 4. Linux/macOS: System paths
-    paths.append("/usr/share/hunspell");
-    paths.append("/usr/share/myspell");
-    paths.append("/usr/share/myspell/dicts");
-    paths.append("/usr/local/share/hunspell");
-
-    // LibreOffice on Linux
-    paths.append("/usr/share/libreoffice/share/extensions/dict-pl");
-    paths.append("/usr/share/libreoffice/share/extensions/dict-en");
-
-    // macOS
-    paths.append("/Library/Spelling");
-    paths.append(QDir::homePath() + "/Library/Spelling");
-#endif
-
-    return paths;
-}
-
-// =============================================================================
-// Word Extraction
-// =============================================================================
-
-QList<QPair<int, QString>> SpellCheckService::extractWords(const QString& text) const
-{
-    QList<QPair<int, QString>> words;
-
-    // Unicode-aware word extraction
-    // Matches sequences of Unicode letters (including Polish, German, etc.)
-    static QRegularExpression wordRe("\\b(\\p{L}+)\\b");
-
-    QRegularExpressionMatchIterator it = wordRe.globalMatch(text);
-    while (it.hasNext()) {
-        QRegularExpressionMatch match = it.next();
-        int pos = match.capturedStart();
-        QString word = match.captured();
-
-        // Skip very short words (typically not spell-checked)
-        if (word.length() >= 2) {
-            words.append({pos, word});
-        }
-    }
-
-    return words;
-}
-
-// =============================================================================
-// User Dictionary Persistence
-// =============================================================================
-
-void SpellCheckService::loadUserDictionary()
-{
-    QString path = userDictionaryPath();
-
-    QFile file(path);
-    if (!file.exists()) {
+    if (m_userDictionaryFile.isEmpty()) {
         return;
     }
+    QDir().mkpath(QFileInfo(m_userDictionaryFile).absolutePath());
 
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        core::Logger::getInstance().warn("SpellCheckService: Failed to open user dictionary: {}",
-                                         path.toStdString());
-        return;
-    }
-
-    QTextStream in(&file);
-    in.setEncoding(QStringConverter::Utf8);
-
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed().toLower();
-        if (!line.isEmpty() && !line.startsWith('#')) {
-            m_userDictionary.insert(line);
-        }
-    }
-
-    core::Logger::getInstance().debug("SpellCheckService: Loaded {} words from user dictionary",
-                                      m_userDictionary.size());
-}
-
-void SpellCheckService::saveUserDictionary()
-{
-    QString path = userDictionaryPath();
-
-    // Ensure directory exists
-    QFileInfo fileInfo(path);
-    QDir dir = fileInfo.dir();
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    QFile file(path);
+    // Written whole, in place of the old file only when it is complete
+    QSaveFile file(m_userDictionaryFile);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        core::Logger::getInstance().error("SpellCheckService: Failed to save user dictionary: {}",
-                                          path.toStdString());
+        core::Logger::getInstance().error("SpellCheckService: Cannot write the user dictionary {}",
+                                          m_userDictionaryFile.toStdString());
         return;
     }
-
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
-
-    // Write header
-    out << "# Kalahari User Dictionary\n";
-    out << "# One word per line, UTF-8 encoded\n";
-    out << "#\n";
-
-    // Write words sorted
-    QStringList words(m_userDictionary.begin(), m_userDictionary.end());
-    words.sort();
-
-    for (const QString& word : words) {
-        out << word << "\n";
+    out << "# Kalahari user dictionary: one word per line, UTF-8\n";
+    for (const QString& word : userDictionaryWords()) {
+        out << word << '\n';
     }
-
-    core::Logger::getInstance().debug("SpellCheckService: Saved {} words to user dictionary",
-                                      m_userDictionary.size());
-}
-
-QString SpellCheckService::userDictionaryPath() const
-{
-    QString userDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return userDataPath + "/user_dictionary.txt";
+    out.flush();
+    if (!file.commit()) {
+        core::Logger::getInstance().error("SpellCheckService: Cannot write the user dictionary {}",
+                                          m_userDictionaryFile.toStdString());
+    }
 }
 
 }  // namespace kalahari::editor
