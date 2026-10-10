@@ -211,12 +211,12 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
         info.typeId = QStringLiteral("kalahari.nonfiction");
         info.name = QCoreApplication::translate("TemplateRegistry", "Non-fiction");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A non-fiction book with flat chapter structure.\n\n"
+            "A non-fiction book with chapters, which can be grouped into parts.\n\n"
             "Designed for essays, guides, memoirs, and technical writing. "
             "Includes bibliography and index support.");
         info.iconId = QStringLiteral("template.nonfiction");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Flat chapter structure"),
+            QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
             QCoreApplication::translate("TemplateRegistry", "Bibliography support"),
             QCoreApplication::translate("TemplateRegistry", "Index generation"),
             QCoreApplication::translate("TemplateRegistry", "Footnotes & citations"),
@@ -237,11 +237,11 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
         info.name = QCoreApplication::translate("TemplateRegistry", "Screenplay");
         info.description = QCoreApplication::translate("TemplateRegistry",
             "A screenplay or stage play structure.\n\n"
-            "Organized by acts and scenes with proper screenplay formatting. "
+            "Acts, which can be grouped into episodes, with proper screenplay formatting. "
             "Suitable for film, TV, or theater scripts.");
         info.iconId = QStringLiteral("template.screenplay");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Act/Scene structure"),
+            QCoreApplication::translate("TemplateRegistry", "Episode/Act structure"),
             QCoreApplication::translate("TemplateRegistry", "Screenplay formatting"),
             QCoreApplication::translate("TemplateRegistry", "Character list"),
             QCoreApplication::translate("TemplateRegistry", "Scene descriptions"),

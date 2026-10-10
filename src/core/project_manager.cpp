@@ -713,6 +713,26 @@ KindRef ProjectManager::partKind() const {
     return {};
 }
 
+KindRef ProjectManager::mainTextKind() const {
+    if (!m_project) {
+        return {};
+    }
+    const BookTypeRegistry& registry = bookTypes();
+    if (const std::optional<ProjectType>& projectType = m_project->type) {
+        if (const BookTypePackage* type = registry.package(projectType->id)) {
+            if (const KindRef primary = registry.findKind(type->id, type->primaryKind)) {
+                return primary;
+            }
+        }
+    }
+    for (const KindRef& kind : m_project->kindsIn(registry, BookPlace::Main)) {
+        if (kind.kind->form == ElementForm::Text) {
+            return kind;
+        }
+    }
+    return {};
+}
+
 QString ProjectManager::defaultTitle(const KindRef& kind) const {
     if (!m_project || !kind) {
         return QString();
@@ -1166,6 +1186,8 @@ TextStatistics ProjectManager::statisticsOf(const QList<ProjectElement>& element
             ++statistics.elements;
             statistics.words += wordCount(element->id);
             ++statistics.statuses[statusOf(*element)];
+            const KindRef kind = kindOf(*element);
+            ++statistics.kinds[kind ? kind.reference() : element->kind.toString()];
         }
     }
     return statistics;

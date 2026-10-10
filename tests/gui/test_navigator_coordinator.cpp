@@ -517,7 +517,8 @@ TEST_CASE("Navigator commands: the prologue and the epilogue go where the writer
     const int prologue = indexOf(pm.textKindsFor(core::BookPlace::Main), QStringLiteral("prologue"));
     REQUIRE(prologue >= 0);
     CHECK(answering(addChapter(QString()),
-                    {acceptPlace(prologue, QStringLiteral("First in \"Part I\""))}) == 1);
+                    {acceptPlace(prologue, QStringLiteral("First in the part \"Part I\""))}) ==
+          1);
     CHECK(titles(novel.book().mainElements) == "Part I, Part II");
     CHECK(titles(novel.book().mainElements.at(0).elements) == "Prologue, Chapter 1");
     CHECK(titles(novel.savedBook().mainElements.at(0).elements) == "Prologue, Chapter 1");
@@ -747,7 +748,10 @@ TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved
                          }
                          dialog.accept();
                      }}) == 1);
-    CHECK(said.contains(QStringLiteral("The item is added at the very end of the book.")));
+    // Named after its kind, the first one the end of the book can still have
+    INFO(said.toStdString());
+    CHECK(said.contains(
+        QStringLiteral("The acknowledgments are added at the very end of the book.")));
     CHECK(novel.book().backElements.size() == 2);
 
     // Shown again: the elements are in their sections, the main one expanded as when the book

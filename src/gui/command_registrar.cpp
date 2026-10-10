@@ -284,10 +284,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // BOOK MENU
     // =========================================================================
 
+    // The open book names it after its main texts, "New Story..." (MainWindow)
     REG_CMD_TOOL_ICON("book.newChapter", QT_TRANSLATE_NOOP("CommandRegistrar", "New Chapter..."), "BOOK/New Chapter...", 10, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      callbacks.onNewChapter);
 
     REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New Scene..."), "BOOK/New Scene...", 20, true, 1);
 
@@ -306,13 +307,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("book.newMindMap", QT_TRANSLATE_NOOP("CommandRegistrar", "New Mind Map..."), "BOOK/New Mind Map...", 60, false, 1);
     REG_CMD("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New Timeline..."), "BOOK/New Timeline...", 70, true, 1);
 
-    REG_CMD("book.chapterBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Chapter Break"), "BOOK/Chapter Break", 80, false, 1);
     REG_CMD("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Scene Break"), "BOOK/Scene Break", 90, true, 1);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      callbacks.onBookProperties);
 
     // =========================================================================
     // INSERT MENU

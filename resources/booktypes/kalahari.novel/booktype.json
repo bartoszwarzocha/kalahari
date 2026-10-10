@@ -15,13 +15,25 @@
       "form": "text", "places": ["main", "part"], "limit": 1, "position": "start",
       "icon": "template.chapter",
       "name": { "pl": "Prolog", "en": "Prologue" },
-      "plural": { "pl": "Prologi", "en": "Prologues" }
+      "plural": { "pl": "Prologi", "en": "Prologues" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "prolog", "plural": "prologi",
+                "genitive": "prologu", "dative": "prologowi", "accusative": "prolog",
+                "instrumental": "prologiem", "locative": "prologu", "genitivePlural": "prologów" },
+        "en": { "singular": "prologue", "plural": "prologues", "indefinite": "a prologue" }
+      }
     },
     "epilogue": {
       "form": "text", "places": ["main", "part"], "limit": 1, "position": "end",
       "icon": "template.chapter",
       "name": { "pl": "Epilog", "en": "Epilogue" },
-      "plural": { "pl": "Epilogi", "en": "Epilogues" }
+      "plural": { "pl": "Epilogi", "en": "Epilogues" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "epilog", "plural": "epilogi",
+                "genitive": "epilogu", "dative": "epilogowi", "accusative": "epilog",
+                "instrumental": "epilogiem", "locative": "epilogu", "genitivePlural": "epilogów" },
+        "en": { "singular": "epilogue", "plural": "epilogues", "indefinite": "an epilogue" }
+      }
     }
   },
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface"],

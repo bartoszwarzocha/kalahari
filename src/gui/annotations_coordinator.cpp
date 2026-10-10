@@ -13,6 +13,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/annotation_frame.h"
 #include "kalahari/gui/panels/annotations_panel.h"
@@ -399,6 +400,19 @@ void AnnotationsCoordinator::refresh() {
     const editor::BookEditor* editor = current != nullptr ? current->getBookEditor() : nullptr;
     m_panel->setBookScopeAvailable(bookOpen);
     m_panel->setDocumentAvailable(editor != nullptr);
+
+    // The names of what the panel lists: the kind of the element in front ("Story"), and the
+    // main texts the writer opens in the book
+    std::optional<core::KindWords> inFront;
+    if (const core::ProjectElement* element =
+            bookOpen ? projects.findElement(elementIdOf(current)) : nullptr) {
+        inFront = wordsOf(*element);
+    }
+    std::optional<core::KindWords> bookTexts;
+    if (const core::KindRef mainKind = projects.mainTextKind()) {
+        bookTexts = wordsOf(mainKind);
+    }
+    m_panel->setKindNames(inFront, bookTexts, bookOpen);
     m_stale = false;
 
     std::vector<AnnotationEntry> entries;

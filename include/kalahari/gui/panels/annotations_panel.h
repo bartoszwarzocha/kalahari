@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <kalahari/core/kind_words.h>
 #include <kalahari/gui/panels/annotation_colors.h>
 #include <kalahari/gui/panels/annotation_entry.h>
 
@@ -11,6 +12,7 @@
 
 #include <array>
 #include <functional>
+#include <optional>
 #include <vector>
 
 class QAbstractButton;
@@ -76,6 +78,16 @@ public:
 
     /// @brief Whether a chapter or document is in front (what the empty panel says)
     void setDocumentAvailable(bool available);
+
+    /// @brief The names of what the panel lists, in the program's language: the button of the
+    /// text in front and what the empty panel says ("Story", "This story has no annotations")
+    /// @param inFront Kind of the element of the book in front; nullopt: a file outside the
+    ///        book, or nothing
+    /// @param bookTexts The main texts of the open book, which the writer opens to see their
+    ///        annotations ("Open a story..."); nullopt: no book, or a book without them
+    /// @param bookOpen Whether a book is open
+    void setKindNames(const std::optional<core::KindWords>& inFront,
+                      const std::optional<core::KindWords>& bookTexts, bool bookOpen);
 
     /// @brief The filters in use
     const AnnotationFilter& filter() const { return m_filter; }
@@ -151,6 +163,10 @@ private:
     /// @brief What the panel says when it shows no card
     void updateEmptyText(bool anyShown);
 
+    /// @brief The button of the text in front: its kind ("Story"), "File", or what the writer
+    /// opens in the book
+    void updateScopeText();
+
     /// @brief A card's colors from the current theme
     void colorCard(AnnotationCard* card) const;
 
@@ -186,6 +202,9 @@ private:
     AnnotationSort m_sort = AnnotationSort::TextOrder;
     AnnotationScope m_scope = AnnotationScope::Chapter;
     bool m_documentAvailable = false;
+    std::optional<core::KindWords> m_inFront;    ///< Kind of the element in front, if any
+    std::optional<core::KindWords> m_bookTexts;  ///< Main texts of the open book, if any
+    bool m_bookOpen = false;
     bool m_updatingControls = false;  ///< Controls set by the panel, not by the writer
 
     // Colors from the theme: the cards of each kind (comment, to-do, note), the controls
@@ -199,6 +218,7 @@ private:
     std::array<QToolButton*, 3> m_kindButtons{};  ///< Comment, to-do, note
     QButtonGroup* m_stateGroup{nullptr};
     QButtonGroup* m_scopeGroup{nullptr};
+    QAbstractButton* m_textScopeButton{nullptr};  ///< The text in front: "Chapter", "Story"
     QAbstractButton* m_bookScopeButton{nullptr};
     QComboBox* m_dateCombo{nullptr};
     QComboBox* m_sortCombo{nullptr};

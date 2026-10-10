@@ -155,6 +155,16 @@ private:
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
 
+    /// @brief Book > Book Properties...: the Properties panel in front with the book's
+    /// properties, its first field ready for typing
+    void showBookProperties();
+
+    /// @brief Make the Book menu follow the open book
+    ///
+    /// New Chapter... is named after the texts it adds (New Story... in a collection of short
+    /// stories) and, like Book Properties..., works only with a book open.
+    void updateBookCommands();
+
     // NOTE: createDiagnosticMenu, removeDiagnosticMenu, createDevToolsMenu, removeDevToolsMenu
     // moved to DiagnosticController (OpenSpec #00038)
 

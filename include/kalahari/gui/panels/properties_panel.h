@@ -23,6 +23,7 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QGroupBox;
 class QTimer;
 
 namespace kalahari::editor {
@@ -77,6 +78,10 @@ public slots:
     /// Switches to project properties page and populates fields from
     /// the current project in ProjectManager.
     void showProjectProperties();
+
+    /// @brief Show the book's properties with the keys in the first field, the title (Book >
+    /// Book Properties...)
+    void editProjectProperties();
 
     /// @brief Show chapter properties view
     /// @param elementId Element ID of the chapter to display
@@ -271,6 +276,7 @@ private:
     QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
     SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none
     SectionNamesEdit* m_projectSectionNames;   ///< Own names of the sections
+    QLabel* m_projectChaptersTitle;  ///< "Total Chapters:", "Total Stories:": the main texts
     QLabel* m_projectChaptersLabel;
     QLabel* m_projectWordsLabel;
     QLabel* m_projectCreatedLabel;
@@ -279,7 +285,8 @@ private:
     QLabel* m_projectRevisionCountLabel;
     QLabel* m_projectFinalCountLabel;
 
-    // Chapter Page widgets
+    // Chapter Page widgets: a text element of any kind
+    QGroupBox* m_chapterInfoGroup;  ///< "Chapter Information", "Story Information"
     QLineEdit* m_chapterTitleEdit;
     QLabel* m_chapterWordCountLabel;
     QComboBox* m_chapterStatusCombo;
@@ -287,7 +294,8 @@ private:
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
-    QLabel* m_sectionChapterCountTitle;  ///< "Chapters:", or "Elements:" outside the main one
+    QLabel* m_sectionChapterCountTitle;  ///< "Chapters:", "Stories:", or "Elements:" outside
+                                         ///< the main one
     QLabel* m_sectionChapterCountLabel;
     QLabel* m_sectionWordCountLabel;
     QLabel* m_sectionDraftCountLabel;
@@ -296,6 +304,7 @@ private:
 
     // Part Page widgets
     QLabel* m_partTitleLabel;
+    QLabel* m_partChapterCountTitle;  ///< "Chapters:", "Stories:": the main texts of the book
     QLabel* m_partChapterCountLabel;
     QLabel* m_partWordCountLabel;
     QLabel* m_partDraftCountLabel;

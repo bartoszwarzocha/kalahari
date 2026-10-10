@@ -9,6 +9,7 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -266,6 +267,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_documentCoordinator, &DocumentCoordinator::onProjectClosed);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
 
+    // The Book menu follows the open book
+    connect(&pm, &core::ProjectManager::projectOpened, this, &MainWindow::updateBookCommands);
+    connect(&pm, &core::ProjectManager::projectClosed, this, &MainWindow::updateBookCommands);
+    updateBookCommands();
+
     // OpenSpec #00043: Create debounce timer for action state updates
     // This prevents expensive updates on every cursor movement
     m_actionStateDebounceTimer = new QTimer(this);
@@ -372,6 +378,13 @@ void MainWindow::registerCommands() {
     callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
+    // Book commands: a main text of the book (a chapter, a story...), placed in the window
+    // of adding it, and the book's properties
+    callbacks.onNewChapter = [this]() {
+        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestAddChapter(QString());
+    };
+    callbacks.onBookProperties = [this]() { showBookProperties(); };
+
     // Format commands (OpenSpec #00042 Phase 7.2)
     callbacks.onFormatBold = [this]() { onFormatBold(); };
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
@@ -459,6 +472,21 @@ void MainWindow::registerCommands() {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
         dfCmd->isEnabled = [this]() {
             return isDistractionFree() || (m_dockCoordinator != nullptr && getCurrentEditor() != nullptr);
+        };
+    }
+
+    // The Book menu works with a book open; New Chapter... also needs a kind of text the
+    // body of the book can have (see updateBookCommands())
+    if (auto* newText = registry.getCommand("book.newChapter")) {
+        newText->isEnabled = []() {
+            const auto& projects = core::ProjectManager::getInstance();
+            return projects.isProjectOpen()
+                   && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
+        };
+    }
+    if (auto* properties = registry.getCommand("book.properties")) {
+        properties->isEnabled = []() {
+            return core::ProjectManager::getInstance().isProjectOpen();
         };
     }
 
@@ -1253,6 +1281,43 @@ void MainWindow::createDocks() {
 void MainWindow::resetLayout() {
     m_dockCoordinator->resetLayout(isDiagnosticMode(), isDevMode());
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
+}
+
+void MainWindow::showBookProperties() {
+    if (m_dockCoordinator == nullptr || !core::ProjectManager::getInstance().isProjectOpen()) {
+        return;
+    }
+    QDockWidget* dock = m_dockCoordinator->propertiesDock();
+    dock->show();
+    // In a tab group the panel would lie under the current tab; a floating one is a window
+    dock->raise();
+    if (dock->isFloating()) {
+        dock->activateWindow();
+    }
+    m_dockCoordinator->propertiesPanel()->editProjectProperties();
+}
+
+void MainWindow::updateBookCommands() {
+    auto& registry = CommandRegistry::getInstance();
+    if (Command* newText = registry.getCommand("book.newChapter")) {
+        // Named after the texts it adds: "New Story..." in a collection of short stories,
+        // "New Chapter..." without a book
+        const auto& projects = core::ProjectManager::getInstance();
+        const core::KindRef kind = projects.isProjectOpen()
+                                       ? projects.chapterKindFor(core::BookPlace::Main)
+                                       : core::KindRef{};
+        //: In Polish: {kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...
+        const QString label =
+            kind ? core::fillWords(tr("New {Kind}..."), {{QStringLiteral("kind"), wordsOf(kind)}})
+                 : QCoreApplication::translate("CommandRegistrar", "New Chapter...");
+        newText->label = label.toStdString();
+        newText->tooltip = newText->label;
+        if (QAction* action = registry.getAction(std::string("book.newChapter"))) {
+            action->setText(QString(label).replace('&', QStringLiteral("&&")));
+        }
+    }
+    registry.updateActionState("book.newChapter");
+    registry.updateActionState("book.properties");
 }
 
 bool MainWindow::hasUnsavedChanges() const {

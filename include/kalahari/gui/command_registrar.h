@@ -53,6 +53,13 @@ struct CommandCallbacks {
     std::function<void()> onSettings;           ///< Edit > Preferences/Settings
 
     // =========================================================================
+    // BOOK COMMANDS
+    // =========================================================================
+    std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
+                                                ///< main texts of the book: New Story...)
+    std::function<void()> onBookProperties;     ///< Book > Book Properties...
+
+    // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
     // =========================================================================
     std::function<void()> onFormatBold;         ///< Format > Bold

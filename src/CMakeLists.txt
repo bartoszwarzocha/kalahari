@@ -36,6 +36,7 @@ set(KALAHARI_CORE_SOURCES
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
+    core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
@@ -145,6 +146,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
+    gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)

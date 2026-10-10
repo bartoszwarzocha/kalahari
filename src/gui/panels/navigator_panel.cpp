@@ -9,6 +9,7 @@
 
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
@@ -944,6 +945,23 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
     };
 
+    // "Add Story", "Dodaj opowiadanie": a new element of @p kind; none when the place takes no
+    // element of the kind
+    const auto addKindAction = [&](const core::KindRef& kind) -> QAction* {
+        if (!kind) {
+            return nullptr;
+        }
+        QString iconId = kind.kind->icon;
+        if (iconId.isEmpty()) {
+            iconId = kind.kind->form == core::ElementForm::Group
+                         ? QStringLiteral("structure.part")
+                         : QStringLiteral("template.chapter");
+        }
+        return menu.addAction(
+            artProvider.getIcon(iconId, core::IconContext::Menu),
+            core::fillWords(tr("Add {Kind}"), {{QStringLiteral("kind"), wordsOf(kind)}}));
+    };
+
     const auto addRenameDeleteActions = [&]() {
         QAction* renameAction = menu.addAction(
             artProvider.getIcon("edit.rename", core::IconContext::Menu),
@@ -1024,13 +1042,12 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
 
     } else if (elementType == "group_element") {
-        // Group (part): chapters are added inside it
-        QAction* addChapterAction = menu.addAction(
-            artProvider.getIcon("template.chapter", core::IconContext::Menu),
-            tr("Add Chapter"));
-        connect(addChapterAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddChapter);
-        addChapterAction->setEnabled(
-            projectOpen && pm.chapterKindFor(core::BookPlace::Main, elementId));
+        // Group (part): the main texts of the book (chapters, stories...) are added inside it
+        if (QAction* addChapterAction =
+                addKindAction(pm.chapterKindFor(core::BookPlace::Main, elementId))) {
+            connect(addChapterAction, &QAction::triggered, this,
+                    &NavigatorPanel::onContextMenuAddChapter);
+        }
 
         menu.addSeparator();
         addRenameDeleteActions();
@@ -1049,20 +1066,16 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                elementType == "section_backmatter") {
         // Section (Front Matter, Body, Back Matter)
         if (elementType == "section_body") {
-            // Body section - can add parts and chapters
-            QAction* addPartAction = menu.addAction(
-                artProvider.getIcon("structure.part", core::IconContext::Menu),
-                tr("Add Part"));
-            connect(addPartAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddPart);
-            addPartAction->setEnabled(projectOpen && pm.partKind());
-
-            QAction* addChapterAction = menu.addAction(
-                artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                tr("Add Chapter"));
-            connect(addChapterAction, &QAction::triggered, this,
-                    &NavigatorPanel::onContextMenuAddChapter);
-            addChapterAction->setEnabled(projectOpen &&
-                                         pm.chapterKindFor(core::BookPlace::Main));
+            // Body section: parts and the main texts of the book, of the kinds of its type
+            if (QAction* addPartAction = addKindAction(pm.partKind())) {
+                connect(addPartAction, &QAction::triggered, this,
+                        &NavigatorPanel::onContextMenuAddPart);
+            }
+            if (QAction* addChapterAction =
+                    addKindAction(pm.chapterKindFor(core::BookPlace::Main))) {
+                connect(addChapterAction, &QAction::triggered, this,
+                        &NavigatorPanel::onContextMenuAddChapter);
+            }
         } else {
             // Front/Back Matter - can add items
             const core::BookPlace place = elementType == "section_frontmatter"
@@ -1092,19 +1105,15 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         const bool sectionsShown = !book || book->partsLayer;
         if (projectOpen && !sectionsShown) {
             // A book without sections: its elements are added from its item
-            QAction* addPartAction = menu.addAction(
-                artProvider.getIcon("structure.part", core::IconContext::Menu), tr("Add Part"));
-            connect(addPartAction, &QAction::triggered,
-                    this, &NavigatorPanel::onContextMenuAddPart);
-            addPartAction->setEnabled(static_cast<bool>(pm.partKind()));
-
-            QAction* addChapterAction = menu.addAction(
-                artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                tr("Add Chapter"));
-            connect(addChapterAction, &QAction::triggered, this,
-                    [this]() { emit requestAddChapter(QString()); });
-            addChapterAction->setEnabled(
-                static_cast<bool>(pm.chapterKindFor(core::BookPlace::Main)));
+            if (QAction* addPartAction = addKindAction(pm.partKind())) {
+                connect(addPartAction, &QAction::triggered,
+                        this, &NavigatorPanel::onContextMenuAddPart);
+            }
+            if (QAction* addChapterAction =
+                    addKindAction(pm.chapterKindFor(core::BookPlace::Main))) {
+                connect(addChapterAction, &QAction::triggered, this,
+                        [this]() { emit requestAddChapter(QString()); });
+            }
 
             QAction* addFirstAction = menu.addAction(
                 artProvider.getIcon("structure.frontmatter", core::IconContext::Menu),

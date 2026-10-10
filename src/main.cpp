@@ -30,6 +30,7 @@
 #include "kalahari/editor/book_editor_accessible.h"
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/gui/kalahari_style.h"
+#include "kalahari/gui/kind_names.h"
 
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
@@ -100,6 +101,7 @@ int main(int argc, char *argv[]) {
     if (language != "en") {
         if (translator.load("kalahari_" + language, ":/i18n")) {
             app.installTranslator(&translator);
+            kalahari::gui::setProgramLanguage(language);
             logger.info("UI language: {}", language.toStdString());
         } else {
             logger.warn("No translation for UI language '{}', using English", language.toStdString());

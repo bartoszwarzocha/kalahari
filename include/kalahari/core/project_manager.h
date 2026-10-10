@@ -66,6 +66,8 @@ struct TextStatistics {
     int elements = 0;                 ///< Text elements (chapters, prefaces, poems...)
     int words = 0;                    ///< Their words
     std::map<QString, int> statuses;  ///< Status ("draft", "revision", "final") -> elements
+    std::map<QString, int> kinds;     ///< Kind ("kalahari.base:chapter", KindRef::reference())
+                                      ///< -> elements
 };
 
 /// @brief Singleton manager of the book project open in the program
@@ -241,6 +243,12 @@ public:
 
     /// @brief Kind of a new part: the first group kind the project offers in the main part
     KindRef partKind() const;
+
+    /// @brief The main text kind of the book (chapter, story, poem, act): the main text kind of
+    /// its type; in a project without a type, the first text kind it offers in the main part
+    ///
+    /// The program's sentences name the texts of the book after it ("Stories: 12").
+    KindRef mainTextKind() const;
 
     /// @brief Title of a new element of @p kind: its default title in the language of the
     /// book, numbered after the elements of the kind the project has

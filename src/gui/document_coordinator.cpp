@@ -840,10 +840,10 @@ void DocumentCoordinator::onSaveAll() {
         m_statusBar->showMessage(tr("All changes saved"), 2000);
     } else {
         logger.error("Failed to save some chapters");
-        m_statusBar->showMessage(tr("Error saving some chapters"), 3000);
+        m_statusBar->showMessage(tr("Some changes could not be saved"), 3000);
         dialogs::MessageDialog::warning(
             m_mainWindow, tr("Save Warning"),
-            tr("Some chapters could not be saved. Check the log for details."));
+            tr("Some changes in the book could not be saved. Check the log for details."));
     }
 }
 
@@ -886,13 +886,14 @@ void DocumentCoordinator::onOpenStandaloneFile() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Open Standalone File");
 
-    // Show file dialog with supported file types
+    // Show file dialog with supported file types: a .kchapter file holds a text of any kind
+    // (a chapter, a story, a poem), so it is a Kalahari document
     QString filename = QFileDialog::getOpenFileName(
         m_mainWindow,
         tr("Open File"),
         ProgramFolders::windowFolder(ProgramFolders::Operation::OpenFile),
-        tr("Chapters and Text Files (*.kchapter *.txt);;Chapters (*.kchapter);;"
-           "Text Files (*.txt);;All Files (*)")
+        tr("Kalahari Documents and Text Files (*.kchapter *.txt);;"
+           "Kalahari Documents (*.kchapter);;Text Files (*.txt);;All Files (*)")
     );
 
     if (filename.isEmpty()) {
@@ -930,7 +931,8 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     if (type == core::StandaloneFile::Type::Unsupported) {
         dialogs::MessageDialog::information(
             m_mainWindow, tr("Unsupported File"),
-            tr("Kalahari cannot open '%1'.\n\nIt opens chapters (*.kchapter) and text files (*.txt).")
+            tr("Kalahari cannot open '%1'.\n\nIt opens Kalahari documents (*.kchapter) and text "
+               "files (*.txt).")
                 .arg(fileInfo.fileName()));
         logger.warn("Unsupported standalone file: {}", path.toStdString());
         return;
@@ -944,7 +946,7 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
             tr("Failed to open file: %1\n\n%2").arg(
                 QDir::toNativeSeparators(path),
                 type == core::StandaloneFile::Type::Chapter
-                    ? tr("It is not a Kalahari chapter, or it cannot be read.")
+                    ? tr("It is not a Kalahari document, or it cannot be read.")
                     : error));
         logger.error("Failed to open standalone file: {}", path.toStdString());
         return;
@@ -1089,7 +1091,7 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
 
 bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
     const QString oldPath = standaloneFileOf(editor).path();
-    const QString chapters = tr("Chapters (*.kchapter)");
+    const QString chapters = tr("Kalahari Documents (*.kchapter)");
     const QString textFiles = tr("Text Files (*.txt)");
     QString selectedFilter =
         core::StandaloneFile::typeOf(oldPath) == core::StandaloneFile::Type::PlainText

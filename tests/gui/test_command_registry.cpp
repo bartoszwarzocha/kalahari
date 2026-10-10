@@ -10,11 +10,19 @@
 /// - Category filtering (getCommandsByCategory)
 /// - All commands retrieval (getAllCommands)
 /// - Category listing (getCategories)
-/// - Action availability (unimplemented commands are disabled)
+/// - Action availability (unimplemented commands are disabled, and say they are in
+///   preparation)
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/kalahari_style.h"
 #include <QAction>
+#include <QCoreApplication>
+#include <QMainWindow>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMouseEvent>
+#include <QStatusBar>
 
 using namespace kalahari::gui;
 
@@ -307,8 +315,9 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
         QAction* action = registry.getAction(std::string("test.unimplemented"));
         REQUIRE(action != nullptr);
         REQUIRE_FALSE(action->isEnabled());
-        REQUIRE(action->toolTip() != QString("Tooltip for test.unimplemented"));
-        REQUIRE(action->toolTip().startsWith("Tooltip for test.unimplemented"));
+        // The tooltip and the status bar say it is in preparation, so it does not look broken
+        CHECK(action->toolTip() == QString("Tooltip for test.unimplemented (in preparation)"));
+        CHECK(action->statusTip() == action->toolTip());
     }
 
     SECTION("action becomes enabled once execute callback is bound") {
@@ -325,6 +334,7 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
 
         REQUIRE(action->isEnabled());
         REQUIRE(action->toolTip() == QString("Tooltip for test.lateBound"));
+        CHECK(action->statusTip().isEmpty());
     }
 
     SECTION("tooltip equal to the label is not set explicitly") {
@@ -361,6 +371,47 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
         REQUIRE(action != nullptr);
         REQUIRE_FALSE(action->isEnabled());
         REQUIRE(action->toolTip() == QString("Tooltip for test.disabled"));
+    }
+
+    registry.clear();
+}
+
+TEST_CASE("A grey menu item of a command in preparation describes it on the status bar",
+          "[gui][command][registry][action]") {
+    auto& registry = CommandRegistry::getInstance();
+    registry.clear();
+    Command cmd = createTestCommand("test.inPreparation");
+    cmd.execute = nullptr;
+    registry.registerCommand(cmd);
+    QAction* action = registry.getAction(std::string("test.inPreparation"));
+    REQUIRE(action != nullptr);
+    REQUIRE_FALSE(action->isEnabled());
+
+    // Fusion does not let the mouse rest on a grey item; the program's style does, as Windows
+    KalahariStyle style;
+    {
+        QMainWindow window;
+        window.statusBar();
+        QMenu* menu = window.menuBar()->addMenu(QStringLiteral("Book"));
+        menu->setStyle(&style);
+        menu->addAction(action);
+        window.show();
+        window.menuBar()->setActiveAction(menu->menuAction());
+        REQUIRE(menu->isVisible());
+
+        // A menu takes the mouse only after it moves a few times
+        const QPoint center = menu->actionGeometry(action).center();
+        for (int i = 0; i < 8; ++i) {
+            QMouseEvent move(QEvent::MouseMove, QPointF(center),
+                             QPointF(menu->mapToGlobal(center)), Qt::NoButton, Qt::NoButton,
+                             Qt::NoModifier);
+            QCoreApplication::sendEvent(menu, &move);
+        }
+
+        CHECK(menu->activeAction() == action);
+        CHECK(window.statusBar()->currentMessage() ==
+              QString("Tooltip for test.inPreparation (in preparation)"));
+        menu->hide();
     }
 
     registry.clear();

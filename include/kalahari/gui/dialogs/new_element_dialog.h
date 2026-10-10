@@ -46,7 +46,9 @@ struct NewElementChoice {
 ///
 /// Asks for the title of the new element and, when it can have more than one kind (a
 /// prologue or a chapter, a dedication or a preface), for its kind. Kinds are named in the
-/// language of the program. The title starts as the title of the chosen kind, selected,
+/// language of the program, and so are they in the dialog's sentences: "Add Story", "The
+/// story is added as the last one in the division "Division I"". The title starts as the
+/// title of the chosen kind, selected,
 /// so typing replaces it; it follows the kind until the writer changes it. The dialog
 /// cannot be accepted with an empty title.
 ///
@@ -92,6 +94,10 @@ public:
                     const SectionWords& words, const core::BookTypeRegistry& registry,
                     const QString& groupId = QString());
 
+    /// @brief The main text kind of the book (chapter, story, poem...), which the dialog names
+    /// when it says where the texts added to a new part go
+    void setMainKind(const core::KindRef& kind);
+
     /// @brief The kind of the new element (one of the choices)
     core::KindRef kind() const;
 
@@ -130,6 +136,11 @@ private:
     /// @brief Group @p id of the part, at any depth; nullptr when it has none
     const core::ProjectElement* groupOf(const QString& id) const;
 
+    /// @brief @p text with the names of kinds in it (core/kind_words.h): of the chosen kind
+    /// ("{kind}"), of the kind of @p group ("{group}") and of the main texts of the book
+    /// ("{main}")
+    QString named(const QString& text, const core::ProjectElement* group = nullptr) const;
+
     /// @brief The place of the chosen kind when the writer does not choose it
     core::ElementPlace defaultPlace() const;
 
@@ -152,6 +163,7 @@ private:
     SectionWords m_words;                                ///< Its name in sentences
     const core::BookTypeRegistry* m_registry = nullptr;
     QString m_openedOn;                                  ///< Group the dialog was opened on
+    core::KindRef m_mainKind;                            ///< Main text kind of the book
 
     // The place
     ElementPlacePicker* m_picker = nullptr;

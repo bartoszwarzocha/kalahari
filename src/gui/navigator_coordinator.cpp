@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
@@ -250,7 +251,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     m_statusBar->showMessage(tr("Opened: %1").arg(elementTitle), 2000);
 
     if (!complete) {
-        EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle);
+        const core::KindWords kind = element ? wordsOf(*element) : mainWords();
+        EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle, &kind);
     }
 }
 
@@ -505,8 +507,15 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& groupId) {
         const core::ProjectElement* group = pm.findElement(groupId);
         if (!group) {
             logger.error("NavigatorCoordinator: Part not found: {}", groupId.toStdString());
+            // The main texts of the book: "Could not add a story"
+            const QHash<QString, core::KindWords> nouns{
+                {QStringLiteral("kind"), wordsOf(pm.chapterKindFor(core::BookPlace::Main))}};
+            //: In Polish: Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe}
+            //: {kind:accusative}.
+            const QString text = tr("Could not find the place for the new {kind}.");
             dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
-                                            tr("Add Chapter Failed"), tr("Part not found."));
+                                            core::fillWords(tr("Add {Kind} Failed"), nouns),
+                                            core::fillWords(text, nouns));
             return;
         }
         groupTitle = group->title;
@@ -704,24 +713,23 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
     dialog.setSection(project->elementsIn(place),
                       book->partsLayer ? book->sectionName(place) : QString(),
                       SectionWords::forPart(book, place), pm.bookTypes(), groupId);
+    dialog.setMainKind(pm.mainTextKind());
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     const QString title = dialog.title();
     const core::ElementPlace at = dialog.place();
+    // The messages name the kind added: "Story added", "Could not add a story"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(dialog.kind())}};
 
     // ProjectManager makes the chapter file of a text element and saves the project at once
     const QString elementId = pm.addElement(dialog.kind(), title, at.place, at.groupId, at.index,
                                             dialog.takeInside());
     if (elementId.isEmpty()) {
         logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
-        QString failedTitle = tr("Add Item Failed");
-        if (dialogKind == dialogs::NewElementKind::Chapter) {
-            failedTitle = tr("Add Chapter Failed");
-        } else if (dialogKind == dialogs::NewElementKind::Part) {
-            failedTitle = tr("Add Part Failed");
-        }
-        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), failedTitle,
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
+                                        core::fillWords(tr("Add {Kind} Failed"), nouns),
                                         tr("Failed to save changes."));
         return;
     }
@@ -731,13 +739,8 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
     // The new element is shown, also inside a collapsed part
     refreshNavigator();
     m_navigatorPanel->revealElement(elementId);
-    if (dialogKind == dialogs::NewElementKind::Chapter) {
-        m_statusBar->showMessage(tr("Chapter added: %1").arg(title), 2000);
-    } else if (dialogKind == dialogs::NewElementKind::Part) {
-        m_statusBar->showMessage(tr("Part added: %1").arg(title), 2000);
-    } else {
-        m_statusBar->showMessage(tr("Item added: %1").arg(title), 2000);
-    }
+    //: In Polish: Dodano {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     emit documentModified();
 }
 

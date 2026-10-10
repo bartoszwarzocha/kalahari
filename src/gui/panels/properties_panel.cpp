@@ -7,6 +7,8 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
@@ -42,6 +44,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_projectInfoLayout(nullptr)
     , m_projectSectionsCombo(nullptr)
     , m_projectSectionNames(nullptr)
+    , m_projectChaptersTitle(nullptr)
     , m_projectChaptersLabel(nullptr)
     , m_projectWordsLabel(nullptr)
     , m_projectCreatedLabel(nullptr)
@@ -49,6 +52,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_projectDraftCountLabel(nullptr)
     , m_projectRevisionCountLabel(nullptr)
     , m_projectFinalCountLabel(nullptr)
+    , m_chapterInfoGroup(nullptr)
     , m_chapterTitleEdit(nullptr)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
@@ -61,6 +65,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_sectionRevisionCountLabel(nullptr)
     , m_sectionFinalCountLabel(nullptr)
     , m_partTitleLabel(nullptr)
+    , m_partChapterCountTitle(nullptr)
     , m_partChapterCountLabel(nullptr)
     , m_partWordCountLabel(nullptr)
     , m_partDraftCountLabel(nullptr)
@@ -217,14 +222,13 @@ QWidget* PropertiesPanel::createProjectPage() {
     statsLayout->setSpacing(6);
     statsLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Total chapters
+    // The main texts of the book: chapters, stories, poems... (updateProjectStatistics())
     m_projectChaptersLabel = new QLabel("0", statsGroup);
-    m_projectChaptersLabel->setToolTip(tr("Total number of chapters in the project"));
-    statsLayout->addRow(tr("Total Chapters:"), m_projectChaptersLabel);
+    m_projectChaptersTitle = new QLabel(statsGroup);
+    statsLayout->addRow(m_projectChaptersTitle, m_projectChaptersLabel);
 
-    // Total words
+    // Total words of the main section
     m_projectWordsLabel = new QLabel("0", statsGroup);
-    m_projectWordsLabel->setToolTip(tr("Total word count across all chapters"));
     statsLayout->addRow(tr("Total Words:"), m_projectWordsLabel);
 
     // Created date
@@ -245,19 +249,17 @@ QWidget* PropertiesPanel::createProjectPage() {
     statusLayout->setSpacing(6);
     statusLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Draft count
+    // The text elements of the book of each status, of every kind
     m_projectDraftCountLabel = new QLabel("0", statusGroup);
-    m_projectDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    m_projectDraftCountLabel->setToolTip(tr("Number of elements with Draft status"));
     statusLayout->addRow(tr("Draft:"), m_projectDraftCountLabel);
 
-    // Revision count
     m_projectRevisionCountLabel = new QLabel("0", statusGroup);
-    m_projectRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    m_projectRevisionCountLabel->setToolTip(tr("Number of elements with Revision status"));
     statusLayout->addRow(tr("Revision:"), m_projectRevisionCountLabel);
 
-    // Final count
     m_projectFinalCountLabel = new QLabel("0", statusGroup);
-    m_projectFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    m_projectFinalCountLabel->setToolTip(tr("Number of elements with Final status"));
     statusLayout->addRow(tr("Final:"), m_projectFinalCountLabel);
 
     layout->addWidget(statusGroup);
@@ -288,26 +290,24 @@ QWidget* PropertiesPanel::createChapterPage() {
     layout->setContentsMargins(11, 11, 11, 11);
     layout->setSpacing(11);
 
-    // Chapter Information group
-    QGroupBox* infoGroup = new QGroupBox(tr("Chapter Information"), scrollContent);
+    // The element's information; its kind names the group and the tooltips
+    // (populateChapterFields())
+    QGroupBox* infoGroup = new QGroupBox(scrollContent);
+    m_chapterInfoGroup = infoGroup;
     QFormLayout* infoLayout = new QFormLayout(infoGroup);
     infoLayout->setSpacing(6);
     infoLayout->setContentsMargins(11, 11, 11, 11);
 
     // Title
     m_chapterTitleEdit = new QLineEdit(infoGroup);
-    m_chapterTitleEdit->setToolTip(tr("Chapter title"));
-    m_chapterTitleEdit->setPlaceholderText(tr("Enter chapter title"));
     infoLayout->addRow(tr("Title:"), m_chapterTitleEdit);
 
     // Word count (read-only)
     m_chapterWordCountLabel = new QLabel("0", infoGroup);
-    m_chapterWordCountLabel->setToolTip(tr("Word count for this chapter"));
     infoLayout->addRow(tr("Word Count:"), m_chapterWordCountLabel);
 
     // Status
     m_chapterStatusCombo = new QComboBox(infoGroup);
-    m_chapterStatusCombo->setToolTip(tr("Chapter completion status"));
     m_chapterStatusCombo->addItem(tr("Draft"), "draft");
     m_chapterStatusCombo->addItem(tr("Revision"), "revision");
     m_chapterStatusCombo->addItem(tr("Final"), "final");
@@ -322,7 +322,6 @@ QWidget* PropertiesPanel::createChapterPage() {
     notesLayout->setContentsMargins(11, 11, 11, 11);
 
     m_chapterNotesEdit = new QTextEdit(notesGroup);
-    m_chapterNotesEdit->setToolTip(tr("Notes and comments for this chapter"));
     m_chapterNotesEdit->setPlaceholderText(tr("Enter notes..."));
     m_chapterNotesEdit->setMinimumHeight(100);
     m_chapterNotesEdit->setMaximumHeight(200);
@@ -367,10 +366,10 @@ QWidget* PropertiesPanel::createSectionPage() {
     statsLayout->setSpacing(6);
     statsLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Chapter count; the front and the back section count their elements
+    // The main texts of the main section (chapters, stories...); the front and the back
+    // section count their elements (populateSectionFields())
     m_sectionChapterCountLabel = new QLabel("0", statsGroup);
-    m_sectionChapterCountLabel->setToolTip(tr("Number of chapters in this section"));
-    m_sectionChapterCountTitle = new QLabel(tr("Chapters:"), statsGroup);
+    m_sectionChapterCountTitle = new QLabel(statsGroup);
     statsLayout->addRow(m_sectionChapterCountTitle, m_sectionChapterCountLabel);
 
     // Word count
@@ -387,15 +386,15 @@ QWidget* PropertiesPanel::createSectionPage() {
     statusLayout->setContentsMargins(11, 11, 11, 11);
 
     m_sectionDraftCountLabel = new QLabel("0", statusGroup);
-    m_sectionDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    m_sectionDraftCountLabel->setToolTip(tr("Number of elements with Draft status"));
     statusLayout->addRow(tr("Draft:"), m_sectionDraftCountLabel);
 
     m_sectionRevisionCountLabel = new QLabel("0", statusGroup);
-    m_sectionRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    m_sectionRevisionCountLabel->setToolTip(tr("Number of elements with Revision status"));
     statusLayout->addRow(tr("Revision:"), m_sectionRevisionCountLabel);
 
     m_sectionFinalCountLabel = new QLabel("0", statusGroup);
-    m_sectionFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    m_sectionFinalCountLabel->setToolTip(tr("Number of elements with Final status"));
     statusLayout->addRow(tr("Final:"), m_sectionFinalCountLabel);
 
     layout->addWidget(statusGroup);
@@ -437,14 +436,13 @@ QWidget* PropertiesPanel::createPartPage() {
     statsLayout->setSpacing(6);
     statsLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Chapter count
+    // The main texts of the book in the part: chapters, stories... (populatePartFields())
     m_partChapterCountLabel = new QLabel("0", statsGroup);
-    m_partChapterCountLabel->setToolTip(tr("Number of chapters in this part"));
-    statsLayout->addRow(tr("Chapters:"), m_partChapterCountLabel);
+    m_partChapterCountTitle = new QLabel(statsGroup);
+    statsLayout->addRow(m_partChapterCountTitle, m_partChapterCountLabel);
 
     // Word count
     m_partWordCountLabel = new QLabel("0", statsGroup);
-    m_partWordCountLabel->setToolTip(tr("Total word count in this part"));
     statsLayout->addRow(tr("Total Words:"), m_partWordCountLabel);
 
     layout->addWidget(statsGroup);
@@ -456,15 +454,15 @@ QWidget* PropertiesPanel::createPartPage() {
     statusLayout->setContentsMargins(11, 11, 11, 11);
 
     m_partDraftCountLabel = new QLabel("0", statusGroup);
-    m_partDraftCountLabel->setToolTip(tr("Number of chapters with Draft status"));
+    m_partDraftCountLabel->setToolTip(tr("Number of elements with Draft status"));
     statusLayout->addRow(tr("Draft:"), m_partDraftCountLabel);
 
     m_partRevisionCountLabel = new QLabel("0", statusGroup);
-    m_partRevisionCountLabel->setToolTip(tr("Number of chapters with Revision status"));
+    m_partRevisionCountLabel->setToolTip(tr("Number of elements with Revision status"));
     statusLayout->addRow(tr("Revision:"), m_partRevisionCountLabel);
 
     m_partFinalCountLabel = new QLabel("0", statusGroup);
-    m_partFinalCountLabel->setToolTip(tr("Number of chapters with Final status"));
+    m_partFinalCountLabel->setToolTip(tr("Number of elements with Final status"));
     statusLayout->addRow(tr("Final:"), m_partFinalCountLabel);
 
     layout->addWidget(statusGroup);
@@ -619,6 +617,19 @@ void PropertiesPanel::showProjectProperties() {
     m_currentChapterId.clear();
     populateProjectFields();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Project));
+}
+
+void PropertiesPanel::editProjectProperties() {
+    showProjectProperties();
+    // The page shows the title also when it was scrolled down
+    for (QWidget* widget = m_projectTitleEdit->parentWidget(); widget != nullptr;
+         widget = widget->parentWidget()) {
+        if (auto* area = qobject_cast<QScrollArea*>(widget)) {
+            area->ensureWidgetVisible(m_projectTitleEdit);
+            break;
+        }
+    }
+    m_projectTitleEdit->setFocus(Qt::OtherFocusReason);
 }
 
 void PropertiesPanel::showChapterProperties(const QString& elementId) {
@@ -1054,6 +1065,23 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         return;
     }
 
+    // The kind of the element names the group and the tooltips: "Story Information"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+    //: In Polish: Informacje o {kind:locative}
+    m_chapterInfoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
+    //: In Polish: Tytuł {kind:genitive}
+    m_chapterTitleEdit->setToolTip(core::fillWords(tr("{Kind} title"), nouns));
+    //: In Polish: Wpisz tytuł {kind:genitive}
+    m_chapterTitleEdit->setPlaceholderText(core::fillWords(tr("Enter {kind} title"), nouns));
+    //: In Polish: Liczba słów w {kind:locative}
+    m_chapterWordCountLabel->setToolTip(
+        core::fillWords(tr("Word count of {kind:s=this|p=these} {kind}"), nouns));
+    //: In Polish: Stan ukończenia {kind:genitive}
+    m_chapterStatusCombo->setToolTip(core::fillWords(tr("{Kind} completion status"), nouns));
+    //: In Polish: Notatki i uwagi do {kind:genitive}
+    m_chapterNotesEdit->setToolTip(
+        core::fillWords(tr("Notes and comments for {kind:s=this|p=these} {kind}"), nouns));
+
     // Set updating flag to prevent recursive updates
     m_isUpdating = true;
 
@@ -1082,9 +1110,16 @@ void PropertiesPanel::selectChapterStatus(const QString& status) {
 
 namespace {
 
-/// @brief Show @p statistics in the labels of the book, a section or a part; an unknown status
-/// counts as a draft
-void showStatistics(const core::TextStatistics& statistics, QLabel* elementsLabel,
+/// @brief The elements of @p kind that @p statistics counted
+int countOf(const core::TextStatistics& statistics, const core::KindRef& kind) {
+    const auto it = statistics.kinds.find(kind.reference());
+    return it == statistics.kinds.end() ? 0 : it->second;
+}
+
+/// @brief Show @p statistics in the labels of a section or a part: @p count elements (the main
+/// texts of the book, or every element), their words and statuses; an unknown status counts
+/// as a draft
+void showStatistics(const core::TextStatistics& statistics, int count, QLabel* elementsLabel,
                     QLabel* wordsLabel, QLabel* draftLabel, QLabel* revisionLabel,
                     QLabel* finalLabel) {
     int draftCount = 0;
@@ -1100,7 +1135,7 @@ void showStatistics(const core::TextStatistics& statistics, QLabel* elementsLabe
         }
     }
 
-    elementsLabel->setText(QString::number(statistics.elements));
+    elementsLabel->setText(QString::number(count));
     wordsLabel->setText(QString::number(statistics.words));
     draftLabel->setText(QString::number(draftCount));
     revisionLabel->setText(QString::number(revisionCount));
@@ -1125,10 +1160,26 @@ void PropertiesPanel::updateProjectStatistics() {
         return;
     }
 
-    // Chapters and words of the body only (not front/back matter) - industry standard for
-    // novel word counts
+    // The main texts and the words of the body only (not front/back matter) - industry
+    // standard for novel word counts. The main texts are named after their kind: "Total
+    // Stories"; a book without them counts its elements
     const core::TextStatistics body = pm.statisticsOf(book->mainElements);
-    m_projectChaptersLabel->setText(QString::number(body.elements));
+    if (const core::KindRef mainKind = pm.mainTextKind()) {
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("main"), wordsOf(mainKind)}};
+        //: In Polish: {Main:plural} razem:
+        m_projectChaptersTitle->setText(core::fillWords(tr("Total {Main:plural}:"), nouns));
+        //: In Polish: Liczba {main:genitivePlural} w książce
+        m_projectChaptersLabel->setToolTip(
+            core::fillWords(tr("Number of {main:plural} in the book"), nouns));
+        m_projectChaptersLabel->setText(QString::number(countOf(body, mainKind)));
+    } else {
+        m_projectChaptersTitle->setText(tr("Elements:"));
+        m_projectChaptersLabel->setToolTip(QString());
+        m_projectChaptersLabel->setText(QString::number(body.elements));
+    }
+    //: %1: the body with its preposition, "in the main section". In Polish: Liczba słów %1
+    m_projectWordsLabel->setToolTip(
+        tr("Number of words %1").arg(SectionWords::forPart(book, core::BookPlace::Main).inPart));
     m_projectWordsLabel->setText(QString::number(body.words));
 
     // Get status statistics of the whole book
@@ -1171,18 +1222,26 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
 
     m_sectionTitleLabel->setText(book->sectionName(place));
 
-    // The main section counts its chapters, the front and the back one their elements (a title
-    // page, an afterword)
-    const bool main = place == core::BookPlace::Main;
-    m_sectionChapterCountTitle->setText(main ? tr("Chapters:") : tr("Elements:"));
-    m_sectionChapterCountLabel->setToolTip(main ? tr("Number of chapters in this section")
-                                                : tr("Number of elements in this section"));
-
-    // Text elements of the section, with those in its parts
+    // Text elements of the section, with those in its parts. The main section counts the main
+    // texts of the book (its chapters, stories...), the front and the back one their elements
+    // (a title page, an afterword)
     const core::TextStatistics statistics = pm.statisticsOf(*elements);
-    showStatistics(statistics, m_sectionChapterCountLabel, m_sectionWordCountLabel,
-                   m_sectionDraftCountLabel, m_sectionRevisionCountLabel,
-                   m_sectionFinalCountLabel);
+    const core::KindRef mainKind =
+        place == core::BookPlace::Main ? pm.mainTextKind() : core::KindRef{};
+    if (mainKind) {
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("main"), wordsOf(mainKind)}};
+        //: The number of the main texts of the book: "Stories:". In Polish: {Main:plural}:
+        m_sectionChapterCountTitle->setText(core::fillWords(tr("{Main:plural}:"), nouns));
+        //: In Polish: Liczba {main:genitivePlural} w tej sekcji
+        m_sectionChapterCountLabel->setToolTip(
+            core::fillWords(tr("Number of {main:plural} in this section"), nouns));
+    } else {
+        m_sectionChapterCountTitle->setText(tr("Elements:"));
+        m_sectionChapterCountLabel->setToolTip(tr("Number of elements in this section"));
+    }
+    showStatistics(statistics, mainKind ? countOf(statistics, mainKind) : statistics.elements,
+                   m_sectionChapterCountLabel, m_sectionWordCountLabel, m_sectionDraftCountLabel,
+                   m_sectionRevisionCountLabel, m_sectionFinalCountLabel);
 
     logger.debug("PropertiesPanel: Section fields populated - {} chapters, {} words",
                  statistics.elements, statistics.words);
@@ -1208,10 +1267,30 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
     // Set part title
     m_partTitleLabel->setText(part->title);
 
-    // Text elements of the part
+    // Text elements of the part. It counts the main texts of the book (chapters, stories...),
+    // and the kind of the part names it: "Number of stories in this division"
     const core::TextStatistics statistics = pm.statisticsOf(part->elements);
-    showStatistics(statistics, m_partChapterCountLabel, m_partWordCountLabel,
-                   m_partDraftCountLabel, m_partRevisionCountLabel, m_partFinalCountLabel);
+    const core::KindRef mainKind = pm.mainTextKind();
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("main"), wordsOf(mainKind)},
+                                                {QStringLiteral("group"), wordsOf(*part)}};
+    if (mainKind) {
+        m_partChapterCountTitle->setText(core::fillWords(tr("{Main:plural}:"), nouns));
+        //: In Polish: Liczba {main:genitivePlural} w {group:m=tym|f=tej|n=tym|p=tych}
+        //: {group:locative}
+        m_partChapterCountLabel->setToolTip(core::fillWords(
+            tr("Number of {main:plural} in {group:s=this|p=these} {group}"), nouns));
+    } else {
+        m_partChapterCountTitle->setText(tr("Elements:"));
+        //: In Polish: Liczba elementów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}
+        m_partChapterCountLabel->setToolTip(core::fillWords(
+            tr("Number of elements in {group:s=this|p=these} {group}"), nouns));
+    }
+    //: In Polish: Liczba słów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}
+    m_partWordCountLabel->setToolTip(
+        core::fillWords(tr("Total word count in {group:s=this|p=these} {group}"), nouns));
+    showStatistics(statistics, mainKind ? countOf(statistics, mainKind) : statistics.elements,
+                   m_partChapterCountLabel, m_partWordCountLabel, m_partDraftCountLabel,
+                   m_partRevisionCountLabel, m_partFinalCountLabel);
 
     logger.debug("PropertiesPanel: Part fields populated - {} chapters, {} words",
                  statistics.elements, statistics.words);

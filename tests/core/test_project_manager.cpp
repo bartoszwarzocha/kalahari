@@ -1342,6 +1342,7 @@ TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_
     CHECK(statistics.elements == 3);
     CHECK(statistics.words == 3);
     CHECK(statistics.statuses == std::map<QString, int>{{"draft", 2}, {"final", 1}});
+    CHECK(statistics.kinds == std::map<QString, int>{{"kalahari.base:chapter", 3}});
     CHECK(pm.statisticsOf(pm.book()->frontElements).words == 2);
 
     CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 3}, {"final", 1}});
@@ -1351,6 +1352,29 @@ TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_
     CHECK(incomplete.at(1) == std::pair<QString, QString>{chapter1, "draft"});
     CHECK(incomplete.at(2) == std::pair<QString, QString>{a, "draft"});
     REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("The main text kind of a book names its texts", "[project_manager]") {
+    auto& pm = projects();
+    CHECK_FALSE(pm.mainTextKind());
+
+    const std::vector<std::pair<QString, QString>> types{
+        {"kalahari.novel", "kalahari.base:chapter"},
+        {"kalahari.short_stories", "kalahari.short_stories:story"},
+        {"kalahari.poetry", "kalahari.poetry:poem"},
+        {"kalahari.screenplay", "kalahari.screenplay:act"},
+        {"kalahari.nonfiction", "kalahari.base:chapter"},
+        // A user project: the first text kind of its main part
+        {QString(), "kalahari.base:chapter"},
+    };
+    for (const auto& [type, kind] : types) {
+        INFO(type.toStdString());
+        QTemporaryDir dir;
+        REQUIRE(pm.createProject(dir.path(), "Book", "Author", "en", true, type));
+        CHECK(pm.mainTextKind().reference() == kind);
+        REQUIRE(pm.closeProject(false));
+    }
+    CHECK_FALSE(pm.mainTextKind());
 }
 
 TEST_CASE("A new book is added to the recent books", "[project_manager]") {

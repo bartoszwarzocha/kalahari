@@ -406,11 +406,11 @@ TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialog
                             {{prologue, QStringLiteral("Prologue"), mainAt(QString(), 0)},
                              {chapter, QStringLiteral("Chapter 5"), mainAt(QString(), 3)}});
     setMain(dialog, novelBody());
-    CHECK(showsText(dialog, QStringLiteral("Choose where the new element goes in the book.")));
+    CHECK(showsText(dialog, QStringLiteral("Choose where the new prologue goes in the book.")));
 
     // At the start of the main section, as the first option says
     QRadioButton* start = option(dialog, QStringLiteral("At the start of the main section"));
-    QRadioButton* firstPart = option(dialog, QStringLiteral("First in \"Part One\""));
+    QRadioButton* firstPart = option(dialog, QStringLiteral("First in the part \"Part One\""));
     QRadioButton* elsewhere = option(dialog, QStringLiteral("Elsewhere: show the place in the list"));
     REQUIRE(start != nullptr);
     REQUIRE(firstPart != nullptr);
@@ -497,7 +497,7 @@ TEST_CASE("Navigator: the epilogue starts at the end of the part the dialog was 
     CHECK(showsText(dialog, QStringLiteral(
                                 "\"Epilogue\" will not be the last element in the main section.")));
     QRadioButton* end = option(dialog, QStringLiteral("At the end of the main section"));
-    QRadioButton* lastPart = option(dialog, QStringLiteral("Last in \"Part Two\""));
+    QRadioButton* lastPart = option(dialog, QStringLiteral("Last in the part \"Part Two\""));
     REQUIRE(end != nullptr);
     REQUIRE(lastPart != nullptr);
     CHECK(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))->isChecked());
@@ -514,7 +514,7 @@ TEST_CASE("Navigator: the epilogue starts at the end of the part the dialog was 
         QRadioButton* endNow = option(dialog, QStringLiteral("At the end of the main section"));
         REQUIRE(endNow != nullptr);
         CHECK(endNow->isChecked());
-        CHECK(option(dialog, QStringLiteral("Last in \"Part Two\"")) == nullptr);
+        CHECK(option(dialog, QStringLiteral("Last in the part \"Part Two\"")) == nullptr);
     }
 }
 
@@ -528,7 +528,7 @@ TEST_CASE("Navigator: without the part of the book the dialog only says where th
     CHECK(dialog.place() == mainAt(QString(), 0));
     CHECK_FALSE(dialog.findChild<QTreeWidget*>()->isVisibleTo(&dialog));
     CHECK(showsText(dialog,
-                    QStringLiteral("The element is added as the first one in the main section.")));
+                    QStringLiteral("The prologue is added as the first one in the main section.")));
 }
 
 TEST_CASE("Navigator: in a book without sections the list has no row of its part",
@@ -567,10 +567,11 @@ TEST_CASE("Navigator: a new chapter goes before the epilogue that ends the last 
         // Before the epilogue, at the end of the part, as the first option says
         CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" is the last element in the main "
                                                "section, so the new chapter goes before it, at "
-                                               "the end of \"Part One\". You can choose another "
-                                               "place.")));
+                                               "the end of the part \"Part One\". You can choose "
+                                               "another place.")));
         QRadioButton* inPart =
-            option(dialog, QStringLiteral("Before \"Epilogue\", at the end of \"Part One\""));
+            option(dialog,
+                   QStringLiteral("Before \"Epilogue\", at the end of the part \"Part One\""));
         QRadioButton* afterPart =
             option(dialog, QStringLiteral("At the end of the main section, after \"Part One\""));
         REQUIRE(inPart != nullptr);
@@ -597,8 +598,8 @@ TEST_CASE("Navigator: a new chapter goes before the epilogue that ends the last 
 
         CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 1));
         CHECK_FALSE(dialog.findChild<QTreeWidget*>()->isVisibleTo(&dialog));
-        CHECK(showsText(dialog, QStringLiteral("The chapter is added at the end of \"Part One\", "
-                                               "before \"Epilogue\".")));
+        CHECK(showsText(dialog, QStringLiteral("The chapter is added at the end of the part "
+                                               "\"Part One\", before \"Epilogue\".")));
     }
 }
 
@@ -619,11 +620,11 @@ TEST_CASE("Navigator: the dialog warns when the new element makes the epilogue s
     setMain(dialog, body, QStringLiteral("part2"));
 
     // The place the writer asked for, with what it changes
-    QRadioButton* inPart = option(dialog, QStringLiteral("Last in \"Part Two\""));
+    QRadioButton* inPart = option(dialog, QStringLiteral("Last in the part \"Part Two\""));
     REQUIRE(inPart != nullptr);
     CHECK(inPart->isChecked());
     CHECK(dialog.place() == mainAt(QStringLiteral("part2"), 0));
-    CHECK(showsText(dialog, QStringLiteral("Choose where the new element goes in the book.")));
+    CHECK(showsText(dialog, QStringLiteral("Choose where the new chapter goes in the book.")));
     CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" will no longer be the last element in "
                                            "the main section.")));
 
@@ -645,6 +646,8 @@ TEST_CASE("Navigator: a new part takes the epilogue that ends the book", "[gui][
     NewElementDialog dialog(NewElementKind::Part,
                             {{part, QStringLiteral("Part Two"), mainAt(QString(), 1)}});
     setMain(dialog, body);
+    // The main texts of a novel, which the dialog names
+    dialog.setMainKind(baseKind(QStringLiteral("chapter")));
     CHECK(showsText(dialog, QStringLiteral(
                                 "The part is added at the end of the main section, after \"Part "
                                 "One\".")));

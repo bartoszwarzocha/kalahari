@@ -4,7 +4,7 @@
 
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/core/art_provider.h"
-#include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
 
 #include <QCheckBox>
@@ -110,8 +110,7 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementCh
 
     // With more than one kind the writer chooses it; kinds are named in the program's language
     if (m_choices.size() > 1) {
-        const QString language =
-            QString::fromStdString(core::SettingsManager::getInstance().getLanguage());
+        const QString language = programLanguage();
         m_kindBox = new QComboBox(this);
         for (const NewElementChoice& choice : std::as_const(m_choices)) {
             m_kindBox->addItem(choice.kind ? choice.kind.kind->name.text(language) : QString());
@@ -154,7 +153,6 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementCh
     // the body as it will be.
     m_picker = new ElementPlacePicker(this);
     if (kind == NewElementKind::Part) {
-        m_picker->setLabel(tr("After adding the part"));
         m_picker->setPreview(true);
     }
     contentLayout()->addWidget(m_picker, 1);
@@ -191,6 +189,12 @@ void NewElementDialog::setSection(const QList<core::ProjectElement>& elements,
     m_words = words;
     m_registry = &registry;
     m_openedOn = groupId;
+    updatePlaces();
+}
+
+void NewElementDialog::setMainKind(const core::KindRef& kind)
+{
+    m_mainKind = kind;
     updatePlaces();
 }
 
@@ -263,8 +267,11 @@ void NewElementDialog::updatePlaces()
             }
         }
         if (group) {
-            options.append({start ? tr("First in \"%1\"").arg(group->title)
-                                  : tr("Last in \"%1\"").arg(group->title),
+            //: In Polish: Jako pierwszy element {group:genitive} „%1”
+            const QString first = tr("First in the {group} \"%1\"");
+            //: In Polish: Jako ostatni element {group:genitive} „%1”
+            const QString last = tr("Last in the {group} \"%1\"");
+            options.append({named(start ? first : last, group).arg(group->title),
                             {m_part, group->id, start ? 0 : group->elements.size()}});
         }
         m_choosing = true;
@@ -331,40 +338,43 @@ void NewElementDialog::updatePart()
                                 });
     }
     const QStringList titles = titlesOf(m_closing);
-    const QString named = ElementPlacePicker::quoted(titles);
+    const QString quoted = ElementPlacePicker::quoted(titles);
     const bool one = titles.size() == 1;
-    m_takeBox->setText(one ? tr("Move \"%1\" to the end of the new part").arg(titles.value(0))
-                           : tr("Move %1 to the end of the new part").arg(named));
+    //: In Polish: Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych}
+    //: {kind:genitive}
+    m_takeBox->setText(one ? named(tr("Move \"%1\" to the end of the new {kind}"))
+                                 .arg(titles.value(0))
+                           : named(tr("Move %1 to the end of the new {kind}")).arg(quoted));
     m_takeBox->setVisible(m_canTake);
     const bool taken = m_canTake && m_takeBox->isChecked();
 
     if (m_closing.isEmpty()) {
         showNotice(QString(), QString());
     } else if (taken) {
-        //: In Polish: Element „%1” jest teraz ostatni %2. Na końcu nowej części nadal będzie
-        //: ostatni.
+        //: In Polish: Element „%1” jest teraz ostatni %2. Na końcu
+        //: {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.
         showNotice(QStringLiteral("help.about"),
-                   one ? tr("\"%1\" is now the last element %2. At the end of the new part it "
-                            "stays the last one.")
+                   one ? named(tr("\"%1\" is now the last element %2. At the end of the new "
+                                  "{kind} it stays the last one."))
                              .arg(titles.first(), m_words.inPart)
-                       //: In Polish: Elementy %1 są teraz ostatnie %2. Na końcu nowej części
-                       //: nadal będą ostatnie.
-                       : tr("%1 are now the last elements %2. At the end of the new part they "
-                            "stay the last ones.")
-                             .arg(named, m_words.inPart));
+                       : named(tr("%1 are now the last elements %2. At the end of the new {kind} "
+                                  "they stay the last ones."))
+                             .arg(quoted, m_words.inPart));
     } else {
-        //: In Polish: Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej
-        //: części znajdą się za nim.
+        //: {main:plural}: the main texts of the book, "chapters", "stories". In Polish:
+        //: Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do
+        //: {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.
         showNotice(QStringLiteral("common.warning"),
-                   one ? tr("\"%1\" stays where it is, and the chapters added to the new part "
-                            "go after it.")
+                   one ? named(tr("\"%1\" stays where it is, and the {main:plural} added to the "
+                                  "new {kind} go after it."))
                              .arg(titles.first())
-                       //: In Polish: Elementy %1 zostaną na swoich miejscach, a rozdziały
-                       //: dodane do nowej części znajdą się za nimi.
-                       : tr("%1 stay where they are, and the chapters added to the new part go "
-                            "after them.")
-                             .arg(named));
+                       : named(tr("%1 stay where they are, and the {main:plural} added to the "
+                                  "new {kind} go after them."))
+                             .arg(quoted));
     }
+
+    //: The list of the body as it will be. In Polish: Po dodaniu {kind:genitive}
+    m_picker->setLabel(named(tr("After adding the {kind}")));
 
     // The body as it will be
     if (m_registry && chosen) {
@@ -397,13 +407,28 @@ void NewElementDialog::updateDescription()
     const QString before = list && usual.index >= 0 && usual.index < list->size()
                                ? list->at(usual.index).title
                                : QString();
-    const QString choose = tr("Choose where the new element goes in the book.");
+    //: In Polish: Wybierz, gdzie w książce {kind:m=ma się znaleźć nowy|f=ma się znaleźć
+    //: nowa|n=ma się znaleźć nowe|p=mają się znaleźć nowe} {kind}.
+    const QString choose = named(tr("Choose where the new {kind} {kind:s=goes|p=go} in the book."));
 
-    QString heading;
+    // The sentences of the places: "The story is added as the last one in the main section."
+    //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną
+    //: dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} %1.
+    const QString asLast =
+        tr("The {kind} {kind:s=is|p=are} added as the last {kind:s=one|p=ones} %1.");
+    //: %1: where in a part of the book, "at the end of the main section". In Polish: {Kind}
+    //: {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1.
+    const QString added = tr("The {kind} {kind:s=is|p=are} added %1.");
+    //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie
+    //: dodane|p=zostaną dodane} %1, przed elementem „%2”.
+    const QString addedBefore = tr("The {kind} {kind:s=is|p=are} added %1, before \"%2\".");
+
+    // Heading: "Add Story", "Add Division", "Add Dedication": the kind chosen
+    //: In Polish: Dodaj {kind:accusative}
+    const QString heading = named(tr("Add {Kind}"));
     QString description;
     switch (m_dialogKind) {
     case NewElementKind::Chapter:
-        heading = tr("Add Chapter");
         if (m_beforeClosing && m_registry) {
             QStringList closing;
             for (const core::ProjectElement* element :
@@ -414,70 +439,80 @@ void NewElementDialog::updateDescription()
             description =
                 closing.size() == 1
                     //: %2: the body with its preposition, "in the main section"; %3: the
-                    //: part. In Polish: Element „%1” jest ostatni %2, więc nowy rozdział
-                    //: zostanie dodany przed nim, na końcu części „%3”. Możesz wybrać inne
-                    //: miejsce.
-                    ? tr("\"%1\" is the last element %2, so the new chapter goes before it, at "
-                         "the end of \"%3\". You can choose another place.")
+                    //: part. In Polish: Element „%1” jest ostatni %2, więc
+                    //: {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie
+                    //: dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nim,
+                    //: na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.
+                    ? named(tr("\"%1\" is the last element %2, so the new {kind} "
+                               "{kind:s=goes|p=go} before it, at the end of the {group} \"%3\". "
+                               "You can choose another place."),
+                            group)
                           .arg(closing.first(), m_words.inPart, groupTitle)
-                    //: In Polish: Elementy %1 są ostatnie %2, więc nowy rozdział zostanie
-                    //: dodany przed nimi, na końcu części „%3”. Możesz wybrać inne miejsce.
-                    : tr("%1 are the last elements %2, so the new chapter goes before them, at "
-                         "the end of \"%3\". You can choose another place.")
+                    : named(tr("%1 are the last elements %2, so the new {kind} "
+                               "{kind:s=goes|p=go} before them, at the end of the {group} "
+                               "\"%3\". You can choose another place."),
+                            group)
                           .arg(ElementPlacePicker::quoted(closing), m_words.inPart, groupTitle);
         } else if (m_choosing) {
             description = choose;
         } else if (position == core::KindPosition::Start) {
-            description = tr("The element is added as the first one %1.").arg(m_words.inPart);
+            //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie
+            //: dodane|p=zostaną dodane} jako {kind:m=pierwszy|f=pierwsza|n=pierwsze|p=pierwsze}
+            //: %1.
+            description =
+                named(tr("The {kind} {kind:s=is|p=are} added as the first {kind:s=one|p=ones} %1."))
+                    .arg(m_words.inPart);
         } else if (position == core::KindPosition::End) {
-            description = tr("The element is added as the last one %1.").arg(m_words.inPart);
+            description = named(asLast).arg(m_words.inPart);
         } else if (!m_groupTitle.isEmpty()) {
+            // The group the dialog was opened on
+            const core::ProjectElement* openedOn =
+                m_openedOn.isEmpty() ? group : groupOf(m_openedOn);
             description =
                 before.isEmpty()
-                    ? tr("The chapter is added as the last one in \"%1\".").arg(m_groupTitle)
-                    : tr("The chapter is added at the end of \"%1\", before \"%2\".")
+                    //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie
+                    //: dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|
+                    //: p=ostatnie} w {group:locative} „%1”.
+                    ? named(tr("The {kind} {kind:s=is|p=are} added as the last "
+                               "{kind:s=one|p=ones} in the {group} \"%1\"."),
+                            openedOn)
+                          .arg(m_groupTitle)
+                    //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie
+                    //: dodane|p=zostaną dodane} na końcu {group:genitive} „%1”, przed
+                    //: elementem „%2”.
+                    : named(tr("The {kind} {kind:s=is|p=are} added at the end of the {group} "
+                               "\"%1\", before \"%2\"."),
+                            openedOn)
                           .arg(m_groupTitle, before);
         } else {
-            description =
-                before.isEmpty()
-                    //: %1: the body with its preposition, "in the main section"
-                    ? tr("The chapter is added as the last one %1.").arg(m_words.inPart)
-                    //: %1: where in the body, "at the end of the main section". In Polish:
-                    //: Rozdział zostanie dodany %1, przed elementem „%2”.
-                    : tr("The chapter is added %1, before \"%2\".").arg(m_words.atEnd, before);
+            // The body: "in the main section", "at the end of the main section"
+            description = before.isEmpty() ? named(asLast).arg(m_words.inPart)
+                                           : named(addedBefore).arg(m_words.atEnd, before);
         }
         break;
     case NewElementKind::Part:
-        heading = tr("Add Part");
         if (m_elements.isEmpty()) {
-            //: %1: where in the body, "at the end of the main section". In Polish: Część
-            //: zostanie dodana %1.
-            description = tr("The part is added %1.").arg(m_words.atEnd);
+            description = named(added).arg(m_words.atEnd);
         } else if (before.isEmpty()) {
-            //: In Polish: Część zostanie dodana %1, za elementem „%2”.
-            description = tr("The part is added %1, after \"%2\".")
+            //: In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie
+            //: dodane|p=zostaną dodane} %1, za elementem „%2”.
+            description = named(tr("The {kind} {kind:s=is|p=are} added %1, after \"%2\"."))
                               .arg(m_words.atEnd, m_elements.last().title);
         } else {
-            //: In Polish: Część zostanie dodana %1, przed elementem „%2”.
-            description = tr("The part is added %1, before \"%2\".").arg(m_words.atEnd, before);
+            description = named(addedBefore).arg(m_words.atEnd, before);
         }
         break;
     case NewElementKind::FrontMatterItem:
     case NewElementKind::BackMatterItem:
-        // The description says in which section: the book names its sections its own way
-        heading = tr("Add Item");
+        // The description says in which section: the book names its sections its own way.
+        // %1: where in a part of the book, "at the end of the front section"; in a book
+        // without sections "before the content of the book" or "at the very end of the book"
         if (m_choosing) {
             description = choose;
         } else if (before.isEmpty()) {
-            //: %1: where in a part of the book, "at the end of the front section"; in a book
-            //: without sections "before the content of the book" or "at the very end of the
-            //: book". In Polish: Element zostanie dodany %1.
-            description = tr("The item is added %1.").arg(m_words.atEnd);
+            description = named(added).arg(m_words.atEnd);
         } else {
-            //: %1: a part of the book with its preposition, "in the back section"; in a book
-            //: without sections "at the end of the book". In Polish: Element zostanie dodany
-            //: %1, przed elementem „%2”.
-            description = tr("The item is added %1, before \"%2\".").arg(m_words.inPart, before);
+            description = named(addedBefore).arg(m_words.inPart, before);
         }
         break;
     }
@@ -492,11 +527,11 @@ QString NewElementDialog::placeText(const core::ElementPlace& place) const
             return QString();
         }
         if (place.index >= group->elements.size()) {
-            return tr("Last in \"%1\"").arg(group->title);
+            return named(tr("Last in the {group} \"%1\""), group).arg(group->title);
         }
         //: %1: the element the new one goes before; %2: the part it is in. In Polish: Przed
-        //: elementem „%1”, na końcu części „%2”
-        return tr("Before \"%1\", at the end of \"%2\"")
+        //: elementem „%1”, na końcu {group:genitive} „%2”
+        return named(tr("Before \"%1\", at the end of the {group} \"%2\""), group)
             .arg(group->elements.at(place.index).title, group->title);
     }
     if (m_elements.isEmpty()) {
@@ -516,6 +551,16 @@ QString NewElementDialog::placeText(const core::ElementPlace& place) const
 const core::ProjectElement* NewElementDialog::groupOf(const QString& id) const
 {
     return findIn(m_elements, id);
+}
+
+QString NewElementDialog::named(const QString& text, const core::ProjectElement* group) const
+{
+    QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind())},
+                                          {QStringLiteral("main"), wordsOf(m_mainKind)}};
+    if (group && m_registry) {
+        nouns.insert(QStringLiteral("group"), wordsOf(*m_registry, *group));
+    }
+    return core::fillWords(text, nouns);
 }
 
 core::ElementPlace NewElementDialog::defaultPlace() const

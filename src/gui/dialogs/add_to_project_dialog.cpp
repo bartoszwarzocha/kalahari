@@ -4,11 +4,11 @@
 /// OpenSpec #00033: Project File System - Phase F
 
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/settings_manager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -102,10 +102,9 @@ void AddToProjectDialog::setupUI() {
     m_sectionCombo = new QComboBox(targetGroup);
     formLayout->addRow(m_sectionLabel, m_sectionCombo);
 
-    // Target part combo (only visible for the main section)
-    m_partLabel = new QLabel(tr("Part:"), targetGroup);
+    // Target part combo (only visible for the main section); populateParts() names it
+    m_partLabel = new QLabel(targetGroup);
     m_partCombo = new QComboBox(targetGroup);
-    m_partCombo->setToolTip(tr("Select the part where the file will be added"));
     formLayout->addRow(m_partLabel, m_partCombo);
 
     // Kind of the new element: a chapter, a prologue, a preface...
@@ -210,15 +209,26 @@ void AddToProjectDialog::populateParts() {
     const QSignalBlocker blocker(m_partCombo);
     m_partCombo->clear();
 
-    // The parts of the body; a file can also go to the body itself
+    // The parts of the body; a file can also go to the body itself. They are named after
+    // their kind: "Division:", "(No division)"
     const auto& pm = kalahari::core::ProjectManager::getInstance();
+    const QHash<QString, kalahari::core::KindWords> nouns{
+        {QStringLiteral("group"), kalahari::gui::wordsOf(pm.partKind())}};
+    //: In Polish: {Group}:
+    m_partLabel->setText(kalahari::core::fillWords(tr("{Group}:"), nouns));
+    //: In Polish: Wybierz {group:accusative}, do {group:m=którego|f=której|n=którego|p=których}
+    //: trafi plik
+    m_partCombo->setToolTip(kalahari::core::fillWords(
+        tr("Select the {group} where the file will be added"), nouns));
     const kalahari::core::ProjectBook* book = pm.book();
     const bool isBodySection = currentPlace() == kalahari::core::BookPlace::Main;
     if (book && isBodySection) {
         for (const kalahari::core::ProjectElement& element : book->mainElements) {
             if (pm.formOf(element) == kalahari::core::ElementForm::Group) {
                 if (m_partCombo->count() == 0) {
-                    m_partCombo->addItem(tr("(No part)"), QString());
+                    //: In Polish: (Bez {group:genitive})
+                    m_partCombo->addItem(kalahari::core::fillWords(tr("(No {group})"), nouns),
+                                         QString());
                 }
                 m_partCombo->addItem(element.title, element.id);
             }
@@ -241,8 +251,7 @@ void AddToProjectDialog::populateKinds() {
     const QString groupId = m_partCombo->currentData().toString();
     m_kinds = pm.textKindsFor(place, groupId);
     const kalahari::core::KindRef chapterKind = pm.chapterKindFor(place, groupId);
-    const QString language =
-        QString::fromStdString(kalahari::core::SettingsManager::getInstance().getLanguage());
+    const QString language = kalahari::gui::programLanguage();
     for (const kalahari::core::KindRef& kind : std::as_const(m_kinds)) {
         m_kindCombo->addItem(kind.kind->name.text(language));
         if (kind.kind == chapterKind.kind) {
