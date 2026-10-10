@@ -15,17 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shortcuts) where the commands get other keys. The list has the commands in the order of
   the menus, then the fixed keys of the text, the bars and the panels and the keys of the
   system, which no command can have; under it, the selected row with its keys and what
-  they do. It searches by name, by keys, or by a shortcut pressed (Search by Keys), and
-  can show only the changed shortcuts. Every key is checked: keys that type text, fixed
-  keys and the system's are refused with the reason; keys another command has are taken
-  from it only when the user says so; keys a Linux desktop or macOS may take bring a
-  warning. Remove, Restore Default, Restore All Defaults, Import and Export (a JSON file,
-  e.g. for another computer); everything works from the keyboard. The page fits a 1366 ×
-  768 screen at 125% and 150%: the Settings window is 840 px wide where the screen allows
-  and its list of groups only as wide as the longest of them, the list of commands gives up
-  its rows first, no text is cut, and the page scrolls only when nothing else is left. The
-  menus, the toolbars and every text that names a key follow the new keys at once; the
-  settings keep only the changed ones (`keyboard.shortcuts`).
+  they do. It searches by name, by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1"
+  finds F1 and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only
+  the changed shortcuts. Every key is checked: keys that type text, fixed keys and the
+  system's are refused with the reason; keys another command has are taken from it only
+  when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
+  Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another
+  computer); everything works from the keyboard. The page fits a 1366 × 768 screen at 125%
+  and 150%: the Settings window is 840 px wide where the screen allows and its list of
+  groups only as wide as the longest of them, the list of commands gives up its rows first,
+  no text is cut, and the page scrolls only when nothing else is left. The menus, the
+  toolbars and every text that names a key follow the new keys at once; the settings keep
+  only the changed ones (`keyboard.shortcuts`).
 
 - **Editor: the keys of word processors** - 2026-10-10. Ctrl+Backspace and Ctrl+Delete
   delete a word, Ctrl+Up and Ctrl+Down move to the start of the paragraph and the next

@@ -593,6 +593,65 @@ TEST_CASE("Shortcuts page: the search finds commands by name and by keys",
     onlyChanged->setChecked(false);
 }
 
+TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
+          "[gui][shortcuts][page]") {
+    registerCommands();
+    ShortcutsPage page;
+    page.load();
+    QTreeWidget* list = listOf(page);
+    auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
+    QTreeWidgetItem* find = itemNamed(list, QStringLiteral("Find..."));
+    QTreeWidgetItem* close = itemNamed(list, QStringLiteral("Close Book"));
+    QTreeWidgetItem* save = itemNamed(list, QStringLiteral("Save"));
+    QTreeWidgetItem* zoomIn = itemNamed(list, QStringLiteral("Zoom › Zoom In"));
+    QTreeWidgetItem* help = itemNamed(list, QStringLiteral("Kalahari Help (not available yet)"));
+    QTreeWidgetItem* tips = itemNamed(list, QStringLiteral("Tips (in preparation)"));
+    // Its keys: the Menu key and Shift+F10
+    QTreeWidgetItem* annotationMenu = itemNamed(list, QStringLiteral("The annotation's menu"));
+
+    // A whole key name finds that key: Ctrl+F is not Ctrl+F4, F1 is not F12 or F10
+    search->setText(QStringLiteral("ctrl+f"));
+    CHECK(isShown(find));
+    CHECK_FALSE(isShown(close));
+    search->setText(QStringLiteral("F1"));
+    CHECK(isShown(help));
+    CHECK_FALSE(isShown(tips));
+    CHECK_FALSE(isShown(annotationMenu));
+    search->setText(QStringLiteral("f12"));
+    CHECK(isShown(tips));
+    CHECK_FALSE(isShown(help));
+    search->setText(QStringLiteral("f10"));
+    CHECK(isShown(annotationMenu));
+    search->setText(QStringLiteral("ctrl++"));
+    CHECK(isShown(zoomIn));
+    CHECK_FALSE(isShown(save));
+
+    // Also with the modifiers before it, and among the keys of a row
+    search->setText(QStringLiteral("shift+f10"));
+    CHECK(isShown(annotationMenu));
+    CHECK_FALSE(isShown(tips));
+
+    // A key name being written finds the keys it begins
+    search->setText(QStringLiteral("ctr"));
+    CHECK(isShown(find));
+    CHECK(isShown(close));
+    CHECK(isShown(save));
+    search->setText(QStringLiteral("ctrl+"));
+    CHECK(isShown(find));
+    CHECK(isShown(zoomIn));
+    CHECK_FALSE(isShown(help));
+    search->setText(QStringLiteral("shift+f"));
+    CHECK(isShown(tips));
+    CHECK(isShown(annotationMenu));
+    // Also a whole key name no keys have: "shift+f1" on the way to Shift+F12 finds it
+    search->setText(QStringLiteral("shift+f1"));
+    CHECK(isShown(tips));
+    CHECK(isShown(annotationMenu));
+    search->setText(QStringLiteral("shift+f12"));
+    CHECK(isShown(tips));
+    CHECK_FALSE(isShown(annotationMenu));
+}
+
 TEST_CASE("Shortcuts page: the search by keys", "[gui][shortcuts][page]") {
     registerCommands();
     ShortcutsPage page;

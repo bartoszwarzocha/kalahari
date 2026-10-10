@@ -107,11 +107,69 @@ QString searchForm(const QString& text) {
     return form;
 }
 
-/// Whether the keys, as the system writes them or in the portable form, contain the text
-bool keysContain(QKeyCombination keys, const QString& query) {
+/// Whether a character of a text of keys stands between two key names: "+" between the
+/// keys, "," between the keys of a list, the symbols of the modifiers on macOS
+bool isKeyNameBoundary(QChar character) {
+    return QStringView(u"+,\u2303\u2325\u21E7\u2318").contains(character);
+}
+
+/// Whether a name is the whole name of a key ("h", "f1", "home"), not its beginning ("ho")
+bool isWholeKeyName(const QString& name) {
+    if (name.isEmpty()) {
+        return false;
+    }
+    for (const auto format : {QKeySequence::PortableText, QKeySequence::NativeText}) {
+        const QKeySequence keys = QKeySequence::fromString(name, format);
+        if (keys.count() == 1 && keys[0].key() != Qt::Key_unknown &&
+            keys[0].keyboardModifiers() == Qt::NoModifier &&
+            searchForm(keys.toString(format)) == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// The key name a search ends with: after its last "+" ("+" itself, the key, after "++"),
+/// without the symbols of the modifiers on macOS
+QString lastKeyName(const QString& query) {
+    QString name = query.endsWith(QLatin1String("++")) || query == QLatin1String("+")
+                       ? QStringLiteral("+")
+                       : query.mid(query.lastIndexOf(QLatin1Char('+')) + 1);
+    while (!name.isEmpty() && name.front() != QLatin1Char('+') &&
+           isKeyNameBoundary(name.front())) {
+        name.remove(0, 1);
+    }
+    return name;
+}
+
+/// Whether a text of keys ("Ctrl+F4", "Ctrl+Home, Ctrl+End") has the search from the
+/// beginning of a key name on; with toNameEnd also to the end of a key name, as for a search
+/// that ends with a whole key name: "ctrl+h" then finds Ctrl+H and not Ctrl+Home, "f1"
+/// Shift+F1 and not F12
+bool keysTextHas(const QString& keysText, const QString& query, bool toNameEnd) {
+    if (query.isEmpty()) {
+        return true;
+    }
+    const QString text = searchForm(keysText);
+    for (qsizetype at = text.indexOf(query); at >= 0; at = text.indexOf(query, at + 1)) {
+        const qsizetype end = at + query.size();
+        const bool begins =
+            at == 0 || isKeyNameBoundary(text.at(at - 1)) || isKeyNameBoundary(query.front());
+        const bool ends = !toNameEnd || end == text.size() || isKeyNameBoundary(text.at(end));
+        if (begins && ends) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Whether the keys, as the list writes them, as the system does or in the portable form,
+/// have the search (see keysTextHas())
+bool keysContain(QKeyCombination keys, const QString& query, bool toNameEnd) {
     const QKeySequence sequence(keys);
-    return searchForm(sequence.toString(QKeySequence::NativeText)).contains(query) ||
-           searchForm(sequence.toString(QKeySequence::PortableText)).contains(query);
+    return keysTextHas(ShortcutRules::keysText(keys), query, toNameEnd) ||
+           keysTextHas(sequence.toString(QKeySequence::NativeText), query, toNameEnd) ||
+           keysTextHas(sequence.toString(QKeySequence::PortableText), query, toNameEnd);
 }
 
 /// A color between two
@@ -1092,7 +1150,7 @@ bool ShortcutsPage::isShown(const QTreeWidgetItem* item,
             return true;
         }
         return searchForm(entry->menu + entry->label).contains(query) ||
-               (!keys.isEmpty() && keysContain(combinationOf(keys), query));
+               keysOfItemHave(item, keysNow, query, m_wholeKeyName);
     }
 
     const FixedKeyGroup* group = nullptr;
@@ -1106,13 +1164,27 @@ bool ShortcutsPage::isShown(const QTreeWidgetItem* item,
     if (!byText) {
         return true;
     }
-    if (searchForm(group->title + fixed->label).contains(query) ||
-        searchForm(fixed->anyKeyText).contains(query) ||
-        searchForm(fixed->summary).contains(query)) {
-        return true;
+    return searchForm(group->title + fixed->label).contains(query) ||
+           keysOfItemHave(item, keysNow, query, m_wholeKeyName);
+}
+
+bool ShortcutsPage::keysOfItemHave(const QTreeWidgetItem* item,
+                                   const CommandRegistry::ShortcutMap& keysNow,
+                                   const QString& query, bool toNameEnd) const {
+    if (const Entry* entry = entryOf(item)) {
+        const auto found = keysNow.find(entry->id);
+        return found != keysNow.end() && !found->second.isEmpty() &&
+               keysContain(combinationOf(found->second), query, toNameEnd);
     }
-    return std::any_of(fixed->keys.begin(), fixed->keys.end(),
-                       [&query](QKeyCombination keys) { return keysContain(keys, query); });
+    const FixedKeys* fixed = fixedKeysOf(item, nullptr);
+    if (fixed == nullptr) {
+        return false;
+    }
+    return keysTextHas(fixed->anyKeyText, query, toNameEnd) ||
+           keysTextHas(fixed->summary, query, toNameEnd) ||
+           std::any_of(fixed->keys.begin(), fixed->keys.end(), [&](QKeyCombination keys) {
+               return keysContain(keys, query, toNameEnd);
+           });
 }
 
 void ShortcutsPage::applyFilter() {
@@ -1120,6 +1192,21 @@ void ShortcutsPage::applyFilter() {
     // In the search by keys the field shows the keys, not a text to search for
     const QString query = m_keySearch ? QString() : searchForm(m_search->text());
     const bool filtering = m_onlyChanged->isChecked() || m_keySearch || !query.isEmpty();
+    // A whole key name finds that key: "f1" is not F12. While no keys have it, it is a name
+    // being written and finds the keys it begins: "shift+f1" finds Shift+F12 on the way
+    const auto someKeysHave = [&]() {
+        for (int top = 0; top < m_list->topLevelItemCount(); ++top) {
+            const QTreeWidgetItem* group = m_list->topLevelItem(top);
+            for (int child = 0; child < group->childCount(); ++child) {
+                if (keysOfItemHave(group->child(child), keysNow, query, true)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    m_wholeKeyName =
+        !query.isEmpty() && isWholeKeyName(lastKeyName(query)) && someKeysHave();
     bool anyShown = false;
     for (int top = 0; top < m_list->topLevelItemCount(); ++top) {
         QTreeWidgetItem* group = m_list->topLevelItem(top);

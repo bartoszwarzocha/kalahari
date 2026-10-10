@@ -140,6 +140,12 @@ private:
                                const CommandRegistry::ShortcutMap& keysNow,
                                const QString& query) const;
 
+    /// @brief Whether the keys of an item of a command or of fixed keys have the search
+    /// @param toNameEnd Up to the end of a key name, for a search that ends with a whole one
+    [[nodiscard]] bool keysOfItemHave(const QTreeWidgetItem* item,
+                                      const CommandRegistry::ShortcutMap& keysNow,
+                                      const QString& query, bool toNameEnd) const;
+
     /// @brief What the list says when nothing is left in it
     [[nodiscard]] QString noMatchText() const;
 
@@ -229,6 +235,7 @@ private:
     bool m_searchOptionsUnder = false;            ///< The search options are under the field
     bool m_keySearch = false;                     ///< Search by keys is on
     std::optional<QKeyCombination> m_searchKeys;  ///< The keys searched for
+    bool m_wholeKeyName = false;  ///< The search ends with the whole name of keys the list has
     MessageKind m_messageKind = MessageKind::Information;
     std::function<void()> m_messageAccept;
     QWidget* m_returnFocus = nullptr;  ///< What gets the keys back after a change (of the page)

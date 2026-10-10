@@ -1696,10 +1696,13 @@ opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
   window also without the shortcut of Exit; for fixed keys and the keys of the system, what
   they are and that they cannot be changed. A message under the keys takes the place of the
   note.
-- **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F);
-  **Search by Keys** – press a shortcut, and the list shows what has it (a fixed key with
-  what it does, a key that types text says so), or says it is free; Esc goes back to the
-  search by text. **Only Changed** shows only the changed shortcuts.
+- **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F). A
+  whole key name finds that key: "ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1 and
+  not F10–F12; while no keys have it, it is a name being written and finds the keys it
+  begins ("shift+f1" finds Shift+F11). **Search by Keys** – press a shortcut, and the list
+  shows what has it (a fixed key with what it does, a key that types text says so), or says
+  it is free; Esc goes back to the search by text. **Only Changed** shows only the changed
+  shortcuts.
 - **Change...** (also Enter, F2 or a double click in the list, or a click in the field) –
   the field asks for the new shortcut ("Press the new shortcut... (Esc – cancel)"). Every key
   is checked (`ShortcutRules`):
