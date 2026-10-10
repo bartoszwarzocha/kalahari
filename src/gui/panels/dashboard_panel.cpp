@@ -327,12 +327,29 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
 
     // Shortcuts row
     QWidget* shortcutsRow = new QWidget(m_shortcutsFrame);
-    QHBoxLayout* rowLayout = new QHBoxLayout(shortcutsRow);
-    rowLayout->setContentsMargins(0, 0, 0, 0);
-    rowLayout->setSpacing(48);
-    rowLayout->setAlignment(Qt::AlignCenter);
+    m_shortcutsRowLayout = new QHBoxLayout(shortcutsRow);
+    m_shortcutsRowLayout->setContentsMargins(0, 0, 0, 0);
+    m_shortcutsRowLayout->setSpacing(48);
+    m_shortcutsRowLayout->setAlignment(Qt::AlignCenter);
+    layout->addWidget(shortcutsRow);
 
-    // The commands to start with, named as in the menus and with the program's keys for them
+    updateShortcutLabels();
+    // The keys the user gives the commands in Settings > Keyboard Shortcuts
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this,
+            &DashboardPanel::updateShortcutLabels);
+
+    return m_shortcutsFrame;
+}
+
+void DashboardPanel::updateShortcutLabels()
+{
+    for (QLabel* label : m_shortcutLabels) {
+        m_shortcutsRowLayout->removeWidget(label);
+        delete label;
+    }
+    m_shortcutLabels.clear();
+
+    // The commands to start with, named as in the menus and with the keys they have
     // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter)
     const CommandRegistry& registry = CommandRegistry::getInstance();
     for (const char* id : {"file.new.project", "file.open", "file.new"}) {
@@ -348,19 +365,25 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
         }
         const QString keys = command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
 
-        QLabel* label = new QLabel(shortcutsRow);
+        QLabel* label = new QLabel(m_shortcutsRowLayout->parentWidget());
         label->setText(QString("<span style='font-weight: bold;'>%1</span>&nbsp;&nbsp;&nbsp;%2")
                        .arg(keys.toHtmlEscaped(), name.toHtmlEscaped()));
         label->setTextFormat(Qt::RichText);
-        // Ensure transparent background for individual labels
-        label->setStyleSheet("background: transparent;");
         m_shortcutLabels.push_back(label);
-        rowLayout->addWidget(label);
+        m_shortcutsRowLayout->addWidget(label);
     }
+    styleShortcutLabels();
+    // Without a command with keys the section has nothing to show
+    m_shortcutsFrame->setVisible(!m_shortcutLabels.empty());
+}
 
-    layout->addWidget(shortcutsRow);
-
-    return m_shortcutsFrame;
+void DashboardPanel::styleShortcutLabels()
+{
+    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    for (QLabel* label : m_shortcutLabels) {
+        label->setStyleSheet(QString("color: %1; background: transparent;")
+                                 .arg(theme.palette.windowText.name()));
+    }
 }
 
 QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
@@ -752,9 +775,7 @@ void DashboardPanel::applyThemeColors()
     }
 
     // Shortcut labels - ensure transparent background
-    for (auto* label : m_shortcutLabels) {
-        label->setStyleSheet(QString("color: %1; background: transparent;").arg(textColor));
-    }
+    styleShortcutLabels();
 
     // Column divider - simple vertical line with explicit background color
     if (m_columnDivider) {

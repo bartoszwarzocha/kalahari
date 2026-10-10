@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -108,6 +109,8 @@ void SettingsDialog::createNavigationTree() {
                       "- Location name completion"));
 
     addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
+    m_shortcutsItem =
+        addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
     QTreeWidgetItem* files = category(tr("Files"));
     addPlannedPage(files, tr("Backup"),
@@ -228,6 +231,10 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
                                           item->text(0).toStdString(), timer.elapsed());
     }
     m_pageStack->setCurrentWidget(built->second);
+}
+
+void SettingsDialog::showShortcutsPage() {
+    m_navTree->setCurrentItem(m_shortcutsItem);
 }
 
 void SettingsDialog::setLengthUnit(LengthUnit unit) {

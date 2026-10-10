@@ -1485,7 +1485,8 @@ One set, the same on Windows and Linux; the Windows keys are the reference. On m
 is Cmd, with the few keys of macOS listed below. Every shortcut is written out in
 `src/gui/command_registrar.cpp`, and `tests/gui/test_command_shortcuts.cpp` lists them all:
 a command that gets or changes a shortcut changes that list and this table. Another test
-fails when two commands share a key.
+fails when two commands share a key. The tables list the program's keys; the user can give
+the commands others (see Shortcut Customization).
 
 Rules for a new shortcut:
 - Not Ctrl+W: next to Ctrl+S and Ctrl+E, it would close the book by mistake while writing.
@@ -1494,6 +1495,9 @@ Rules for a new shortcut:
 - No key a desktop takes for itself: Ctrl+F1–F4 on KDE (desktops 1–4), Ctrl+F1–F12 on Xfce
   (workspaces 1–12); on macOS Cmd+H (hides the program) and F11 (shows the desktop).
   Close Book keeps Ctrl+F4, the Windows key (see Linux Desktops).
+- No key that types text and no key of Keys Outside the Menus: Settings > Keyboard
+  Shortcuts refuses them, and `tests/gui/test_shortcut_rules.cpp` checks the program's own
+  keys against the same rules (`src/gui/shortcut_rules.cpp`).
 
 #### Menu Commands
 
@@ -1546,6 +1550,21 @@ Rules for a new shortcut:
 
 #### Keys Outside the Menus
 
+These keys are fixed: Settings > Keyboard Shortcuts lists them after the commands, and no
+command can have them. The keys of the Annotations panel work only in its list, so a command
+may have them too.
+
+- **Text:** the arrows; Ctrl+Left and Ctrl+Right – by a word; Ctrl+Up – to the start of the
+  paragraph (there already: of the one before), Ctrl+Down – to the start of the next one;
+  Home and End – the line; Ctrl+Home and Ctrl+End – the text; Page Up and Page Down – a
+  screen; with Shift they select. Backspace (also Shift+Backspace) and Delete delete a
+  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter starts a
+  paragraph, and so do Shift+Enter and Ctrl+Enter for now (a line break inside a paragraph
+  needs a line break in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
+  and Alt+Shift+Backspace – redo, Alt+Backspace – undo, Shift+Delete – cut, Ctrl+Insert –
+  copy, Shift+Insert – paste; Shift+F10 and the Menu key – the context menu. The table is
+  `src/editor/text_keys.cpp`.
+- **Tabs of the texts:** Ctrl+Tab and Ctrl+Shift+Tab – the next and the previous tab.
 - **Find bar:** Enter – next match, Shift+Enter – previous match, Enter in the replace
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
   expression.
@@ -1554,24 +1573,40 @@ Rules for a new shortcut:
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.
 - **Distraction-Free:** Esc – leave it.
-- **Text:** the arrows, Ctrl+Left and Ctrl+Right (by a word), Home and End, Ctrl+Home and
-  Ctrl+End, Page Up and Page Down; with Shift they select.
+- **The system:** Tab and Shift+Tab move between the fields of a window; the keys that
+  switch windows or programs, open the system's menus or take screenshots do not reach the
+  program. Settings > Keyboard Shortcuts lists them for the system it runs on.
 
 #### macOS
 
 Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
 - File > Exit – Cmd+Q (programs quit with it; Alt+F4 does nothing there);
 - Edit > Find & Replace – Option+Cmd+F (Cmd+H hides the program);
+- Edit > Next To Do and Previous To Do – Option+Cmd+Down and Option+Cmd+Up (Option+Down and
+  Option+Up move the cursor by paragraphs);
 - View > Full Screen – Control+Cmd+F (F11 shows the desktop);
 - the options of the find bar – Option+Cmd+C, Option+Cmd+W and Option+Cmd+R (Option with a
   letter types a character: Option+C is "ć" on the Polish keyboard).
+
+The text has the keys of the text fields of macOS: Option+Left and Option+Right – by a word,
+Cmd+Left and Cmd+Right – the line, Option+Up and Option+Down – the paragraph, Cmd+Up and
+Cmd+Down – the text; Home, End, Page Up and Page Down move the view only (with Shift they
+select, Option+Page Up and Option+Page Down move the cursor); Option+Backspace and
+Option+Delete delete a word, Cmd+Backspace to the start of the line, Control+Backspace the
+last mark of a character. The Control keys: A and E – the start and the end of the
+paragraph; B, F, P, N – a character or a line; V – a screen down; H and D – delete; K – cut
+to the end of the paragraph, Y – paste it; T – swap the characters; O – a paragraph after
+the cursor; L – the line to the middle of the view. Cmd+Tab belongs to the system, so the
+tabs of the texts have no keys there.
 
 On Apple laptops the F keys are pressed with Fn.
 
 #### Linux Desktops
 
 KDE and Xfce take Ctrl+F4 for themselves by default (desktop or workspace 4), so there Close
-Book is in the File menu only.
+Book is in the File menu only, unless the user gives it another key in Settings > Keyboard
+Shortcuts. That page warns when a command gets a key such a desktop may take (Ctrl+F1–F12,
+Alt+F1–F10) and leaves the choice to the user; the program's own keys bring no warning.
 
 ### Planned Shortcuts
 
@@ -1581,7 +1616,6 @@ Commands without keys yet, with keys that are still free:
 - `Ctrl+Shift+K` - Strikethrough (in the Format menu, without keys)
 - `Ctrl+Shift+C` - Word Count
 - `Ctrl+Shift+T` - Timeline
-- `Ctrl+Tab` / `Ctrl+Shift+Tab` - Next / Previous Tab
 - `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
 - `F10` - Focused Mode (see Focus Modes)
 
@@ -1597,39 +1631,68 @@ are added:
 
 ### Shortcut Customization
 
-**Access:** Tools → Options → Keyboard Shortcuts
+**Access:** Settings > Keyboard Shortcuts (Edit > Preferences...); Help > Keyboard Shortcuts
+opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
 
 ```
-┌─────────────────────────────────────────────────┐
-│ Keyboard Shortcuts                        [X]   │
-├─────────────────────────────────────────────────┤
-│ Search: [________]  🔍                          │
-│                                                  │
-│ Command          │ Shortcut   │ [Assign] [Clear]│
-├──────────────────┼────────────┤                 │
-│ File: Save       │ Ctrl+S     │                 │
-│ File: Save As    │ Ctrl+Sh+S  │                 │
-│ Edit: Undo       │ Ctrl+Z     │                 │
-│ Edit: Redo       │ Ctrl+Y     │                 │
-│ Format: Bold     │ Ctrl+B     │                 │
-│ AI: Suggest      │ Ctrl+Sh+A  │ ← Plugin        │
-│ ...                                             │
-├─────────────────────────────────────────────────┤
-│ Conflict detection: ✅ Enabled                  │
-│                                                  │
-│ [Reset to Defaults]  [Import...]  [Export...]  │
-│                                                  │
-│                    [OK]  [Cancel]  [Apply]      │
-└─────────────────────────────────────────────────┘
+┌ Settings ────────────────────────────────────────────────────────────────────┐
+│ Search: [Command name or keys, e.g. Ctrl+F   ] [By Keys] [ ] Only Changed    │
+│ ┌ Command ───────────────────────────────────────────┬ Shortcut ───────────┐ │
+│ │ ▾ File                                             │                     │ │
+│ │     New File                                       │ Ctrl+N              │ │
+│ │     Open › Open File...                            │ Ctrl+Shift+O        │ │
+│ │     Close Book                                     │ Ctrl+F4             │ │
+│ │ ...                                                │                     │ │
+│ │ ▾ In the text – fixed keys                         │                     │ │
+│ │     Word left / right                              │ Ctrl+Left, Ctrl+... │ │
+│ │ ▾ Windows – keys of the system                     │                     │ │
+│ └────────────────────────────────────────────────────┴─────────────────────┘ │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ File › Close Book                                                        │ │
+│ │ Shortcut: [Ctrl+F4                                                     ] │ │
+│ │           [Change...] [Remove] [Restore Default]                         │ │
+│ │ Default: Ctrl+F4.                                                        │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│ [Restore All Defaults]                               [Import...] [Export...] │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Features:**
-- Search/filter commands
-- Assign new shortcut (click command, press keys)
-- Clear shortcut
-- Conflict detection (warns if shortcut already used)
-- Import/export profiles
-- Reset to defaults
+- **The list:** the commands in the groups and the order of the menus (a submenu as
+  "Open › Open File..."), then the fixed keys of each place and the keys of the system, grey
+  with a lock. A changed shortcut is bold with a mark, and its tooltip names the default. A
+  command the program does not run yet says so and keeps its keys for later.
+- **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F);
+  **By Keys** – press a shortcut, and the list shows what has it, or says it is free;
+  **Only Changed**.
+- **Change...** (also Enter, F2 or a double click in the list, or a click in the field) –
+  press the new shortcut; Esc cancels. Every key is checked (`ShortcutRules`):
+  - keys that type text, fixed keys and the keys of the system are refused, with the reason;
+  - keys another command has bring a question: Assign Anyway takes them from it;
+  - keys a desktop may take bring a warning, and Assign Anyway gives them all the same.
+- **Remove** (Delete in the list) leaves the command without a shortcut. **Restore Default**
+  gives it the program's keys; when another command has them now, it asks first. **Restore
+  All Defaults** drops every change.
+- **Import...** reads a file of shortcuts in place of the changes on the page and names the
+  keys it leaves out; **Export...** saves the changed shortcuts to a file (JSON, format
+  `kalahari-keyboard-shortcuts`), e.g. for another computer.
+- **Apply / OK** save the changes; the menus, the toolbars and every text that names a key
+  (the Dashboard, the hint of the Annotations panel, the note on Typewriter Scrolling, the
+  toolbar manager) change at once. Cancel drops them.
+- **Keyboard:** every button and field has its letter (Alt+S Search, Alt+K By Keys, Alt+O
+  Only Changed, Alt+C Change..., Alt+R Remove, Alt+D Restore Default, Alt+A Restore All
+  Defaults, Alt+I Import..., Alt+E Export...); Down or Enter in the search goes to the list;
+  Enter in the list changes the keys and does not close the window; Esc on the buttons of a
+  message closes the message.
+- **Small screens** (1366 × 768 at 150%): the list gives up its rows first, down to three;
+  the buttons of the keys go under the field where beside it they would leave it too little
+  room for the longest keys of the list; only then does the page scroll. A message under the
+  keys scrolls into sight, and the selected command stays in sight in the list.
+
+**Settings:** `keyboard.shortcuts` holds only the shortcuts the user changed: command id to
+keys in the portable form ("Ctrl+Shift+F"), "" for none. At start the program leaves out the
+keys the rules refuse (e.g. from the settings of another system) and, of two commands given
+the same keys, keeps them for the first by id. Keys a new version gives a command, which the
+user gave another command before, stay that command's.
 
 ---
 
@@ -1964,9 +2027,8 @@ This section documents the **complete vision** for Kalahari's settings hierarchy
 │  ├─ Font size (10-24pt)
 │  ├─ Line height (1.0-2.0)
 │  └─ Letter spacing
-├─ ⌨️ Keybindings                     [Phase 2]
-│  ├─ Preset (Default/Vim/Emacs)
-│  └─ Custom shortcuts
+├─ ⌨️ Keyboard Shortcuts              [Phase 1] ✅ a page of its own
+│  └─ see Keyboard Shortcuts > Shortcut Customization
 ├─ 📐 Layout & Panels                 [Phase 2]
 │  ├─ Default perspective
 │  ├─ Panel positions (saved per perspective)

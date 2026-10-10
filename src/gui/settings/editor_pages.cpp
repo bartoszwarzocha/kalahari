@@ -4,6 +4,7 @@
 /// The editors follow these settings by themselves (EditorPanel subscribes to them).
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -13,6 +14,7 @@
 #include <QDoubleSpinBox>
 #include <QFontComboBox>
 #include <QFormLayout>
+#include <QKeySequence>
 #include <QLabel>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -66,8 +68,24 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
 
     // Turned on and off with View > Typewriter Scrolling
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
-    addNote(typewriter, tr("View > Typewriter Scrolling (Ctrl+3) keeps the line you write at one "
-                           "height of the view, in the Continuous and the Page Layout view."));
+    QLabel* typewriterNote = addNote(typewriter, QString());
+    // With the keys the command has now (the user may change them)
+    const auto showTypewriterKeys = [typewriterNote]() {
+        const Command* command = CommandRegistry::getInstance().getCommand("view.typewriter");
+        const QString keys = command != nullptr && !command->shortcut.isEmpty()
+            ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
+            : QString();
+        typewriterNote->setText(
+            keys.isEmpty()
+                ? tr("View > Typewriter Scrolling keeps the line you write at one height of the "
+                     "view, in the Continuous and the Page Layout view.")
+                : tr("View > Typewriter Scrolling (%1) keeps the line you write at one height of "
+                     "the view, in the Continuous and the Page Layout view.")
+                      .arg(keys));
+    };
+    showTypewriterKeys();
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, typewriterNote,
+            showTypewriterKeys);
     auto* focus = new QSpinBox();
     focus->setRange(10, 90);
     focus->setSingleStep(5);

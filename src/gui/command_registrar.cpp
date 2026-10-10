@@ -140,17 +140,22 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // (Close is Ctrl+F4 on Windows and Ctrl+W on Linux; Find & Replace is Ctrl+H, Ctrl+R or
     // none). No shortcut uses Ctrl+Alt on Windows and Linux: Windows takes it for AltGr,
     // which types letters (ą, ć, ę...).
-    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and three commands
+    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and five commands
     // have the keys of macOS there: programs quit with Cmd+Q (Alt+F4 does nothing), Cmd+H
-    // hides the program, and F11 shows the desktop.
+    // hides the program, F11 shows the desktop, and Option+Up and Option+Down move the
+    // cursor by paragraphs in the text (editor/text_keys.h).
 #ifdef Q_OS_MACOS
     const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
     const KeyboardShortcut fullScreenShortcut(Qt::Key_F, Qt::ControlModifier | Qt::MetaModifier);
+    const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::ControlModifier | Qt::AltModifier);
+    const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::ControlModifier | Qt::AltModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
     const KeyboardShortcut fullScreenShortcut(Qt::Key_F11, Qt::NoModifier);
+    const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::AltModifier);
+    const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::AltModifier);
 #endif
 
     // =========================================================================
@@ -293,9 +298,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
     REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Next To Do"), "EDIT/Next To Do", 152, false, 0,
-                KeyboardShortcut(Qt::Key_Down, Qt::AltModifier));
+                nextTodoShortcut);
     REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previous To Do"), "EDIT/Previous To Do", 154, true, 0,
-                KeyboardShortcut(Qt::Key_Up, Qt::AltModifier));
+                previousTodoShortcut);
 
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Preferences..."), "EDIT/Preferences...", 160, false, 0,
                callbacks.onSettings);
@@ -586,7 +591,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                 KeyboardShortcut(Qt::Key_F1, Qt::NoModifier));
     REG_CMD("help.tutorial", QT_TRANSLATE_NOOP("CommandRegistrar", "Getting Started Tutorial"), "HELP/Getting Started Tutorial", 20, true, 2);
 
-    REG_CMD("help.shortcuts", QT_TRANSLATE_NOOP("CommandRegistrar", "Keyboard Shortcuts"), "HELP/Keyboard Shortcuts", 30, false, 1);
+    // Opens Settings > Keyboard Shortcuts: the list of the shortcuts, where they are changed
+    REG_CMD_CB("help.shortcuts", QT_TRANSLATE_NOOP("CommandRegistrar", "Keyboard Shortcuts"), "HELP/Keyboard Shortcuts", 30, false, 0,
+               callbacks.onKeyboardShortcuts);
     REG_CMD("help.tipsTricks", QT_TRANSLATE_NOOP("CommandRegistrar", "Tips & Tricks"), "HELP/Tips & Tricks", 40, false, 2);
     REG_CMD("help.whatsNew", QT_TRANSLATE_NOOP("CommandRegistrar", "What's New"), "HELP/What's New", 50, true, 1);
 

@@ -2,6 +2,7 @@
 /// @brief The keyboard shortcuts of the application's commands
 
 #include <catch2/catch_test_macros.hpp>
+#include "kalahari/editor/text_keys.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 
@@ -65,8 +66,14 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
 #else
         {"edit.findReplace", QStringLiteral("Ctrl+H")},
 #endif
+#ifdef Q_OS_MACOS
+        // Option+Cmd: Option+Down is the text's
+        {"edit.nextTodo", QStringLiteral("Ctrl+Alt+Down")},
+        {"edit.previousTodo", QStringLiteral("Ctrl+Alt+Up")},
+#else
         {"edit.nextTodo", QStringLiteral("Alt+Down")},
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
+#endif
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"format.bold", QStringLiteral("Ctrl+B")},
         {"format.italic", QStringLiteral("Ctrl+I")},
@@ -118,5 +125,23 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         INFO(id << " has " << keys.toString(QKeySequence::PortableText).toStdString()
                 << ", which the list above does not have");
         CHECK(documented.count(id) == 1);
+    }
+}
+
+TEST_CASE("Command shortcuts: no command takes a key of the text", "[gui][command][shortcuts]") {
+    // Regression: on macOS Option+Down, Next To Do, is the text's move to the end of the
+    // paragraph; the window's action would take it from the editor
+    registerAllCommands(CommandCallbacks{});
+
+    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+        const QKeySequence keys = command.shortcut.toQKeySequence();
+        if (keys.isEmpty()) {
+            continue;
+        }
+        const QKeyCombination combination = keys[0];
+        INFO(command.id << " has " << keys.toString(QKeySequence::PortableText).toStdString());
+        CHECK(kalahari::editor::textKeyFor(combination.key(), combination.keyboardModifiers(),
+                                           kalahari::editor::isMacOS())
+                  .action == kalahari::editor::TextKeyAction::None);
     }
 }

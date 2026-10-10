@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Settings > Keyboard Shortcuts** - 2026-10-10. A page of its own (also Help > Keyboard
+  Shortcuts) where the commands get other keys. The list has the commands in the order of
+  the menus, then the fixed keys of the text, the bars and the panels and the keys of the
+  system, which no command can have. It searches by name, by keys, or by a shortcut
+  pressed (By Keys), and can show only the changed shortcuts. Every key is checked: keys
+  that type text, fixed keys and the system's are refused with the reason; keys another
+  command has are taken from it only when the user says so; keys a Linux desktop or macOS
+  may take bring a warning. Remove, Restore Default, Restore All Defaults, Import and
+  Export (a JSON file, e.g. for another computer); everything works from the keyboard and
+  the page fits a 1366 × 768 screen at 150%. The menus, the toolbars and every text that
+  names a key follow the new keys at once; the settings keep only the changed ones
+  (`keyboard.shortcuts`).
+
+- **Editor: the keys of word processors** - 2026-10-10. Ctrl+Backspace and Ctrl+Delete
+  delete a word, Ctrl+Up and Ctrl+Down move to the start of the paragraph and the next
+  one, and the second keys of the text fields of Windows work in the text (Alt+Backspace,
+  Shift+Delete, Ctrl+Insert, Shift+Insert, Shift+F10). On macOS the text has the keys of
+  the system's text fields: Option and Cmd with the arrows, Home and End move the view,
+  and the Control keys (Control+A, E, K, Y, T, O, L and others).
+
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
   program's own window, in the look of its other dialogs, in place of the system ones. Copy
@@ -36,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The Dashboard shows the names and keys of its commands as the menus have them: it
     showed Ctrl+N as New Chapter, which is New File. The hint of the Annotations panel and
     the tooltips of the find bar's options take their keys from the program as well.
+  - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
+    with the arrows moves the cursor by paragraphs there.
+  - In Polish the keys have Polish names in the menus, the tooltips and the settings
+    (Strzałka w górę, Spacja, Enter).
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
@@ -452,6 +476,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
+  Shortcuts) and the input icon showed as a black square: their invisible frame got the
+  icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
+  the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
+  leave a shape without a fill when its group has `fill="none"`.
 
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)

@@ -15,6 +15,7 @@
 #include <vector>
 
 class QFrame;
+class QHBoxLayout;
 
 namespace kalahari {
 namespace gui {
@@ -98,6 +99,12 @@ private:
     /// @return Shortcuts widget
     QWidget* createShortcutsSection(QWidget* parent);
 
+    /// @brief Show the commands to start with and their keys, as the user set them
+    void updateShortcutLabels();
+
+    /// @brief Colors of the shortcut labels, of the current theme
+    void styleShortcutLabels();
+
     /// @brief Create the main content section (News + Recent Files)
     /// @param parent Parent widget
     /// @return Main content widget
@@ -147,6 +154,7 @@ private:
     // Shortcuts section
     QFrame* m_shortcutsFrame;          ///< Shortcuts container frame
     QLabel* m_shortcutsTitleLabel;     ///< "KEYBOARD SHORTCUTS"
+    QHBoxLayout* m_shortcutsRowLayout = nullptr;  ///< The row of the shortcut labels
     std::vector<QLabel*> m_shortcutLabels;  ///< Individual shortcut labels
 
     // Main content columns

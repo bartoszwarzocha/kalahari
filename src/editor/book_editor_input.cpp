@@ -34,172 +34,20 @@ constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
-    // Handle cursor navigation keys
+    // The keys of the text, those of the system the program runs on
     bool handled = false;
-    bool ctrl = event->modifiers() & Qt::ControlModifier;
-    bool shift = event->modifiers() & Qt::ShiftModifier;
-
-    switch (event->key()) {
-        case Qt::Key_Left:
-            if (ctrl && shift) {
-                moveCursorWordLeftWithSelection(true);
-            } else if (ctrl) {
-                moveCursorWordLeftWithSelection(false);
-            } else if (shift) {
-                moveCursorLeftWithSelection(true);
-            } else {
-                moveCursorLeftWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Right:
-            if (ctrl && shift) {
-                moveCursorWordRightWithSelection(true);
-            } else if (ctrl) {
-                moveCursorWordRightWithSelection(false);
-            } else if (shift) {
-                moveCursorRightWithSelection(true);
-            } else {
-                moveCursorRightWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Up:
-            if (shift) {
-                moveCursorUpWithSelection(true);
-            } else {
-                moveCursorUpWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Down:
-            if (shift) {
-                moveCursorDownWithSelection(true);
-            } else {
-                moveCursorDownWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Home:
-            if (ctrl && shift) {
-                moveCursorToDocStartWithSelection(true);
-            } else if (ctrl) {
-                moveCursorToDocStartWithSelection(false);
-            } else if (shift) {
-                moveCursorToLineStartWithSelection(true);
-            } else {
-                moveCursorToLineStartWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_End:
-            if (ctrl && shift) {
-                moveCursorToDocEndWithSelection(true);
-            } else if (ctrl) {
-                moveCursorToDocEndWithSelection(false);
-            } else if (shift) {
-                moveCursorToLineEndWithSelection(true);
-            } else {
-                moveCursorToLineEndWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_PageUp:
-        case Qt::Key_PageDown:
-            // One view height in every view mode (Ctrl+PageUp/PageDown would be the page
-            // jumps of a word processor); Shift extends the selection
-            if (shift && m_selection.isEmpty()) {
-                m_selectionAnchor = m_cursorPosition;
-            }
-            if (event->key() == Qt::Key_PageUp) {
-                moveCursorPageUp();
-            } else {
-                moveCursorPageDown();
-            }
-            if (shift) {
-                extendSelection(m_cursorPosition);
-            } else {
-                clearSelection();
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_A:
-            if (ctrl) {
-                selectAll();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Z:
-            if (ctrl && !shift) {
-                undo();
-                handled = true;
-            } else if (ctrl && shift) {
-                redo();  // Ctrl+Shift+Z is redo on some platforms
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Y:
-            if (ctrl) {
-                redo();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_C:
-            if (ctrl) {
-                copy();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_X:
-            if (ctrl) {
-                cut();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_V:
-            if (ctrl) {
-                paste();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-            insertNewline();
-            handled = true;
-            break;
-
-        case Qt::Key_Backspace:
-            deleteBackward();
-            handled = true;
-            break;
-
-        case Qt::Key_Delete:
-            deleteForward();
-            handled = true;
-            break;
-
-        default:
-            break;
+    const TextKey textKey = textKeyFor(event->key(), event->modifiers(), isMacOS());
+    if (textKey.action != TextKeyAction::None) {
+        performTextKey(textKey.action, textKey.extendSelection);
+        handled = true;
     }
 
     // Handle printable characters (if not already handled)
     // Note: On Windows, AltGr sends Ctrl+Alt, so we must allow text when both are pressed
     // Only block Ctrl-only combinations (real shortcuts like Ctrl+C)
-    bool alt = event->modifiers() & Qt::AltModifier;
-    bool ctrlOnly = ctrl && !alt;
+    const bool ctrl = event->modifiers() & Qt::ControlModifier;
+    const bool alt = event->modifiers() & Qt::AltModifier;
+    const bool ctrlOnly = ctrl && !alt;
     if (!handled && !ctrlOnly && !event->text().isEmpty()) {
         QString text = event->text();
         // Only handle printable characters
@@ -766,6 +614,23 @@ void BookEditor::onAutoScrollTimeout()
 void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
 {
     m_contextMenuActions = actions;
+}
+
+void BookEditor::showContextMenuFromKeyboard()
+{
+    // As the menu key: a context menu event from the keyboard, for the cursor's place, the
+    // menu under the cursor
+    QPoint place = rect().center();
+    QPoint menuPos = place;
+    if (m_renderPipeline) {
+        const QRectF caret = m_renderPipeline->cursorRect();
+        if (!caret.isEmpty()) {
+            place = caret.center().toPoint();
+            menuPos = caret.bottomLeft().toPoint();
+        }
+    }
+    QContextMenuEvent event(QContextMenuEvent::Keyboard, place, mapToGlobal(menuPos));
+    contextMenuEvent(&event);
 }
 
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)

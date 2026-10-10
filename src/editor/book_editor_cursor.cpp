@@ -5,6 +5,7 @@
 #include "book_editor_internal.h"
 #include <QAbstractTextDocumentLayout>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <QTextBoundaryFinder>
 #include <QTextLine>
 #include <QTimer>
 #include <algorithm>
@@ -15,6 +16,27 @@ namespace kalahari::editor {
 // Room kept between the cursor and the edges of the view when the view scrolls to the
 // cursor (view pixels)
 constexpr qreal CURSOR_SCROLL_MARGIN = 30.0;
+
+namespace {
+
+/// @brief A character words are made of: a letter or a digit, with its marks
+bool isWordCharacter(QChar ch) {
+    return ch.isLetterOrNumber() || ch.isMark();
+}
+
+/// @brief The offset one character before or after an offset of a paragraph's text: a
+///        letter goes with its marks, a surrogate pair whole
+int characterBoundary(const QString& text, int offset, bool forward) {
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text);
+    finder.setPosition(offset);
+    const qsizetype boundary = forward ? finder.toNextBoundary() : finder.toPreviousBoundary();
+    if (boundary < 0) {
+        return std::clamp(offset + (forward ? 1 : -1), 0, static_cast<int>(text.size()));
+    }
+    return static_cast<int>(boundary);
+}
+
+}  // namespace
 
 // =============================================================================
 // Cursor Position (Phase 3.4)
@@ -268,7 +290,8 @@ void BookEditor::moveCursorLeft()
     CursorPosition newPos = m_cursorPosition;
 
     if (newPos.offset > 0) {
-        --newPos.offset;
+        newPos.offset = characterBoundary(
+            m_textBuffer->findBlockByNumber(newPos.paragraph).text(), newPos.offset, false);
     } else if (newPos.paragraph > 0) {
         --newPos.paragraph;
         newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
@@ -292,7 +315,8 @@ void BookEditor::moveCursorRight()
     int paraLen = paragraphLength(m_textBuffer.get(), newPos.paragraph);
 
     if (newPos.offset < paraLen) {
-        ++newPos.offset;
+        newPos.offset = characterBoundary(
+            m_textBuffer->findBlockByNumber(newPos.paragraph).text(), newPos.offset, true);
     } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
         ++newPos.paragraph;
         newPos.offset = 0;
@@ -410,42 +434,8 @@ void BookEditor::moveCursorWordLeft()
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
-
-    // Invalidate preferred X position
     m_preferredCursorXValid = false;
-
-    CursorPosition newPos = m_cursorPosition;
-    QTextBlock block = m_textBuffer->findBlockByNumber(newPos.paragraph);
-    if (!block.isValid()) {
-        return;
-    }
-
-    QString text = block.text();
-
-    if (newPos.offset > 0) {
-        // Move backwards, skipping whitespace first
-        int pos = newPos.offset - 1;
-
-        // Skip trailing whitespace/punctuation
-        while (pos >= 0 && !text.at(pos).isLetterOrNumber()) {
-            --pos;
-        }
-
-        // Skip word characters to find start of word
-        while (pos >= 0 && text.at(pos).isLetterOrNumber()) {
-            --pos;
-        }
-
-        newPos.offset = pos + 1;
-    } else if (newPos.paragraph > 0) {
-        // Move to end of previous paragraph
-        --newPos.paragraph;
-        QTextBlock prevBlock = m_textBuffer->findBlockByNumber(newPos.paragraph);
-        newPos.offset = prevBlock.isValid() ? prevBlock.length() - 1 : 0;
-        if (newPos.offset < 0) newPos.offset = 0;
-    }
-
-    setCursorPosition(newPos);
+    setCursorPosition(textKeyTarget(TextKeyAction::WordLeft, m_cursorPosition));
 }
 
 void BookEditor::moveCursorWordRight()
@@ -453,40 +443,8 @@ void BookEditor::moveCursorWordRight()
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
-
-    // Invalidate preferred X position
     m_preferredCursorXValid = false;
-
-    CursorPosition newPos = m_cursorPosition;
-    QTextBlock block = m_textBuffer->findBlockByNumber(newPos.paragraph);
-    if (!block.isValid()) {
-        return;
-    }
-
-    QString text = block.text();
-    int textLen = text.length();
-
-    if (newPos.offset < textLen) {
-        int pos = newPos.offset;
-
-        // Skip current word characters
-        while (pos < textLen && text.at(pos).isLetterOrNumber()) {
-            ++pos;
-        }
-
-        // Skip whitespace/punctuation to reach next word
-        while (pos < textLen && !text.at(pos).isLetterOrNumber()) {
-            ++pos;
-        }
-
-        newPos.offset = pos;
-    } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
-        // Move to start of next paragraph
-        ++newPos.paragraph;
-        newPos.offset = 0;
-    }
-
-    setCursorPosition(newPos);
+    setCursorPosition(textKeyTarget(TextKeyAction::WordRight, m_cursorPosition));
 }
 
 void BookEditor::moveCursorToLineStart()
@@ -494,15 +452,8 @@ void BookEditor::moveCursorToLineStart()
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
-
-    // Invalidate preferred X position
     m_preferredCursorXValid = false;
-
-    CursorPosition newPos = m_cursorPosition;
-    newPos.offset = 0;  // Move to paragraph start
-
-    setCursorPosition(newPos);
-    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
+    setCursorPosition(lineStartOf(m_cursorPosition));
 }
 
 void BookEditor::moveCursorToLineEnd()
@@ -510,15 +461,8 @@ void BookEditor::moveCursorToLineEnd()
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
-
-    // Invalidate preferred X position
     m_preferredCursorXValid = false;
-
-    CursorPosition newPos = m_cursorPosition;
-    newPos.offset = paragraphLength(m_textBuffer.get(), newPos.paragraph);
-
-    setCursorPosition(newPos);
-    // NOTE: ensureCursorVisible() is already called inside setCursorPosition()
+    setCursorPosition(lineEndOf(m_cursorPosition));
 }
 
 void BookEditor::moveCursorToDocStart()
@@ -1097,259 +1041,329 @@ void BookEditor::updateSelectionInLayouts()
 }
 
 // =============================================================================
-// Selection-aware Cursor Movement (Phase 3.12)
+// The keys of the text (text_keys.h)
 // =============================================================================
 
-void BookEditor::moveCursorLeftWithSelection(bool extend)
+void BookEditor::performTextKey(TextKeyAction action, bool select)
 {
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+    using Action = TextKeyAction;
+
+    // What changes the text or only the view
+    switch (action) {
+    case Action::None:
         return;
-    }
-
-    // If there's a selection and not extending, collapse to start
-    if (!extend && hasSelection()) {
-        SelectionRange sel = m_selection.normalized();
-        setCursorPosition(sel.start);
-        clearSelection();
+    case Action::ScrollPageUp:
+        scrollByViewHeight(-1.0);
         return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorLeft();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorRightWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+    case Action::ScrollPageDown:
+        scrollByViewHeight(1.0);
         return;
-    }
-
-    // If there's a selection and not extending, collapse to end
-    if (!extend && hasSelection()) {
-        SelectionRange sel = m_selection.normalized();
-        setCursorPosition(sel.end);
-        clearSelection();
+    case Action::ScrollToStart:
+        scrollTo(0.0, false);
         return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorRight();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorUpWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorUp();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorDownWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorDown();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorWordLeftWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorWordLeft();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorWordRightWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorWordRight();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorToLineStartWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorToLineStart();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorToLineEndWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Move cursor
-    moveCursorToLineEnd();
-
-    // Extend or clear selection
-    if (extend) {
-        extendSelection(m_cursorPosition);
-    } else {
-        clearSelection();
-    }
-}
-
-void BookEditor::moveCursorToDocStartWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // For doc start/end, we need to set position before calling
-    // moveCursorToDocStart since it also scrolls
-    CursorPosition newPos = {0, 0};
-
-    if (extend) {
-        // Just set cursor position without scrolling first
-        m_preferredCursorXValid = false;
-        setCursorPosition(newPos);
-        if (!m_appearance.typewriter.enabled) {
-            setScrollOffset(0.0);
+    case Action::ScrollToEnd:
+        if (m_viewportManager) {
+            scrollTo(m_viewportManager->maxScrollPosition(), false);
         }
-        extendSelection(m_cursorPosition);
-    } else {
+        return;
+    case Action::CenterCursor:
+        centerCursorInView();
+        return;
+    case Action::DeleteBackward:
+        deleteBackward();
+        return;
+    case Action::DeleteForward:
+        deleteForward();
+        return;
+    case Action::DeleteDiacritic:
+        deleteDiacritic();
+        return;
+    case Action::DeleteWordBackward:
+        deleteTo(textKeyTarget(Action::WordLeft, m_cursorPosition));
+        return;
+    case Action::DeleteWordForward:
+        deleteTo(textKeyTarget(Action::WordRight, m_cursorPosition));
+        return;
+    case Action::DeleteToWordStart:
+        deleteTo(textKeyTarget(Action::WordStartBackward, m_cursorPosition));
+        return;
+    case Action::DeleteToWordEnd:
+        deleteTo(textKeyTarget(Action::WordEndForward, m_cursorPosition));
+        return;
+    case Action::DeleteToLineStart:
+        if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+            return;
+        }
+        // At the start of a line: the character before it, as Backspace
+        if (!hasSelection() && lineStartOf(m_cursorPosition) == m_cursorPosition) {
+            deleteBackward();
+        } else {
+            deleteTo(lineStartOf(m_cursorPosition));
+        }
+        return;
+    case Action::KillToParagraphEnd:
+        killToParagraphEnd();
+        return;
+    case Action::NewParagraph:
+        insertNewline();
+        return;
+    case Action::OpenLine:
+        // The paragraph break goes after the cursor
+        insertNewline();
+        moveCursorLeft();
+        return;
+    case Action::Transpose:
+        transposeCharacters();
+        return;
+    case Action::Yank:
+        yank();
+        return;
+    case Action::Undo:
+        undo();
+        return;
+    case Action::Redo:
+        redo();
+        return;
+    case Action::Cut:
+        cut();
+        return;
+    case Action::Copy:
+        copy();
+        return;
+    case Action::Paste:
+        paste();
+        return;
+    case Action::ContextMenu:
+        showContextMenuFromKeyboard();
+        return;
+    default:
+        break;  // A move of the cursor
+    }
+
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+        return;
+    }
+
+    // Left and Right take the cursor to the start (end) of the selection, which goes
+    if (!select && hasSelection() &&
+        (action == Action::CharacterLeft || action == Action::CharacterRight)) {
+        const SelectionRange selection = m_selection.normalized();
+        m_preferredCursorXValid = false;
+        setCursorPosition(action == Action::CharacterLeft ? selection.start : selection.end);
         clearSelection();
+        return;
+    }
+
+    if (select && m_selection.isEmpty()) {
+        m_selectionAnchor = m_cursorPosition;
+    }
+    switch (action) {
+    case Action::CharacterLeft:
+        moveCursorLeft();
+        break;
+    case Action::CharacterRight:
+        moveCursorRight();
+        break;
+    case Action::LineUp:
+        moveCursorUp();
+        break;
+    case Action::LineDown:
+        moveCursorDown();
+        break;
+    case Action::DocumentStart:
         moveCursorToDocStart();
-    }
-}
-
-void BookEditor::moveCursorToDocEndWithSelection(bool extend)
-{
-    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
-        return;
-    }
-
-    // Set anchor before moving if starting new selection
-    if (extend && m_selection.isEmpty()) {
-        m_selectionAnchor = m_cursorPosition;
-    }
-
-    // Phase 11: Use QTextBlock
-    int lastPara = m_textBuffer->blockCount() - 1;
-    QTextBlock lastBlock = m_textBuffer->lastBlock();
-    int charCount = lastBlock.isValid() ? lastBlock.length() - 1 : 0;
-    if (charCount < 0) charCount = 0;
-    CursorPosition newPos = {lastPara, charCount};
-
-    if (extend) {
+        break;
+    case Action::DocumentEnd:
+        moveCursorToDocEnd();
+        break;
+    case Action::PageUp:
+        moveCursorPageUp();
+        break;
+    case Action::PageDown:
+        moveCursorPageDown();
+        break;
+    default:
         m_preferredCursorXValid = false;
-        setCursorPosition(newPos);
-        if (!m_appearance.typewriter.enabled) {
-            setScrollOffset(m_viewportManager->maxScrollPosition());
-        }
+        setCursorPosition(textKeyTarget(action, m_cursorPosition));
+        break;
+    }
+    if (select) {
         extendSelection(m_cursorPosition);
     } else {
         clearSelection();
-        moveCursorToDocEnd();
     }
+}
+
+CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosition& from) const
+{
+    using Action = TextKeyAction;
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+        return from;
+    }
+    QTextDocument* doc = m_textBuffer.get();
+    const int lastParagraph = doc->blockCount() - 1;
+    const CursorPosition position = validateCursorPosition(from);
+    const QString text = doc->findBlockByNumber(position.paragraph).text();
+    const int length = static_cast<int>(text.size());
+
+    switch (action) {
+    case Action::WordLeft: {
+        // Back over the spaces and punctuation, then over the word; at the start of a
+        // paragraph to the end of the one before
+        if (position.offset == 0) {
+            if (position.paragraph == 0) {
+                return position;
+            }
+            return {position.paragraph - 1, paragraphLength(doc, position.paragraph - 1)};
+        }
+        int offset = position.offset;
+        while (offset > 0 && !isWordCharacter(text.at(offset - 1))) {
+            --offset;
+        }
+        while (offset > 0 && isWordCharacter(text.at(offset - 1))) {
+            --offset;
+        }
+        return {position.paragraph, offset};
+    }
+    case Action::WordRight: {
+        // Over the rest of the word, then over the spaces and punctuation; at the end of a
+        // paragraph to the start of the next one
+        if (position.offset >= length) {
+            return position.paragraph < lastParagraph ? CursorPosition{position.paragraph + 1, 0}
+                                                      : position;
+        }
+        int offset = position.offset;
+        while (offset < length && isWordCharacter(text.at(offset))) {
+            ++offset;
+        }
+        while (offset < length && !isWordCharacter(text.at(offset))) {
+            ++offset;
+        }
+        return {position.paragraph, offset};
+    }
+    case Action::WordStartBackward: {
+        // Back over what is not a word, paragraph breaks too, then over the word
+        CursorPosition to = position;
+        QString paragraphText = text;
+        while (to.offset == 0 || !isWordCharacter(paragraphText.at(to.offset - 1))) {
+            if (to.offset > 0) {
+                --to.offset;
+            } else if (to.paragraph > 0) {
+                --to.paragraph;
+                paragraphText = doc->findBlockByNumber(to.paragraph).text();
+                to.offset = static_cast<int>(paragraphText.size());
+            } else {
+                return to;  // The start of the text
+            }
+        }
+        while (to.offset > 0 && isWordCharacter(paragraphText.at(to.offset - 1))) {
+            --to.offset;
+        }
+        return to;
+    }
+    case Action::WordEndForward: {
+        // Over what is not a word, paragraph breaks too, then over the word
+        CursorPosition to = position;
+        QString paragraphText = text;
+        while (to.offset >= paragraphText.size() || !isWordCharacter(paragraphText.at(to.offset))) {
+            if (to.offset < paragraphText.size()) {
+                ++to.offset;
+            } else if (to.paragraph < lastParagraph) {
+                ++to.paragraph;
+                paragraphText = doc->findBlockByNumber(to.paragraph).text();
+                to.offset = 0;
+            } else {
+                return to;  // The end of the text
+            }
+        }
+        while (to.offset < paragraphText.size() && isWordCharacter(paragraphText.at(to.offset))) {
+            ++to.offset;
+        }
+        return to;
+    }
+    case Action::LineStart:
+        return lineStartOf(position);
+    case Action::LineEnd:
+        return lineEndOf(position);
+    case Action::ParagraphStart:
+        return {position.paragraph, 0};
+    case Action::ParagraphEnd:
+        return {position.paragraph, length};
+    case Action::ParagraphUp:
+        if (position.offset > 0) {
+            return {position.paragraph, 0};
+        }
+        return position.paragraph > 0 ? CursorPosition{position.paragraph - 1, 0} : position;
+    case Action::ParagraphDown:
+        return position.paragraph < lastParagraph ? CursorPosition{position.paragraph + 1, 0}
+                                                  : CursorPosition{position.paragraph, length};
+    case Action::ParagraphEndForward:
+        if (position.offset < length) {
+            return {position.paragraph, length};
+        }
+        return position.paragraph < lastParagraph
+            ? CursorPosition{position.paragraph + 1, paragraphLength(doc, position.paragraph + 1)}
+            : position;
+    default:
+        return position;
+    }
+}
+
+CursorPosition BookEditor::lineStartOf(const CursorPosition& position) const
+{
+    const QTextBlock block = m_textBuffer->findBlockByNumber(position.paragraph);
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
+    if (!layout || layout->lineCount() == 0) {
+        return {position.paragraph, 0};
+    }
+    const QTextLine line = layout->lineForTextPosition(position.offset);
+    return {position.paragraph, line.isValid() ? line.textStart() : 0};
+}
+
+CursorPosition BookEditor::lineEndOf(const CursorPosition& position) const
+{
+    const QTextBlock block = m_textBuffer->findBlockByNumber(position.paragraph);
+    const int length = std::max(0, block.length() - 1);
+    QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
+    if (!layout || layout->lineCount() == 0) {
+        return {position.paragraph, length};
+    }
+    const QTextLine line = layout->lineForTextPosition(position.offset);
+    if (!line.isValid() || line.lineNumber() == layout->lineCount() - 1) {
+        return {position.paragraph, length};
+    }
+    // The end of a wrapped line is the start of the next one: the cursor stays on the line
+    // before the space the line breaks at, as in QTextCursor
+    int end = line.textStart() + line.textLength();
+    if (end > line.textStart() && block.text().at(end - 1).isSpace()) {
+        --end;
+    }
+    return {position.paragraph, end};
+}
+
+void BookEditor::scrollByViewHeight(double direction)
+{
+    if (!m_viewportManager) {
+        return;
+    }
+    scrollTo(scrollOffset() + direction * m_viewportManager->visibleDocumentHeight(), false);
+}
+
+void BookEditor::centerCursorInView()
+{
+    if (!m_textBuffer || !m_viewportManager || !m_renderPipeline) {
+        return;
+    }
+    const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+    if (caret.isNull()) {
+        return;
+    }
+    // In document units: where the cursor's line is and where the middle of the view is
+    const double caretMiddle = m_renderPipeline->widgetToDocument(caret.center()).y();
+    const double viewMiddle =
+        m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y() +
+        m_viewportManager->visibleDocumentHeight() / 2.0;
+    scrollTo(scrollOffset() + caretMiddle - viewMiddle, false);
 }
 
 }  // namespace kalahari::editor

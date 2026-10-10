@@ -274,6 +274,13 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &AnnotationsPanel::applyTheme);
     applyTheme(themes.getCurrentTheme());
+
+    // The text of an empty list names the keys of Insert > Add Annotation
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this, [this]() {
+        if (!m_emptyLabel->isHidden()) {
+            updateEmptyText(false);
+        }
+    });
 }
 
 void AnnotationsPanel::setEntries(const std::vector<AnnotationEntry>& entries) {

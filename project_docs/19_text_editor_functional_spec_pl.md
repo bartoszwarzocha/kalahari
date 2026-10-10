@@ -377,6 +377,13 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 - Zaznaczanie słów (double-click), akapitów (triple-click)
 - Zaznaczanie prostokątne (Alt+drag) — opcjonalne
 
+**Klawisze tekstu** (Windows i Linux; tabela: `src/editor/text_keys.cpp`; w programie lista w Ustawieniach > Skróty klawiszowe, żadne polecenie nie może ich dostać):
+- Strzałki – znak i wiersz; Ctrl+← i Ctrl+→ – wyraz; Ctrl+↑ – początek akapitu (gdy kursor już tam jest – poprzedniego), Ctrl+↓ – początek następnego akapitu; Home i End – wiersz; Ctrl+Home i Ctrl+End – cały tekst; Page Up i Page Down – ekran. Z Shiftem zaznaczają.
+- Backspace (także Shift+Backspace) i Delete usuwają znak, Ctrl+Backspace i Ctrl+Delete – wyraz; zaznaczenie znika w całości.
+- Enter tworzy nowy akapit; Shift+Enter i Ctrl+Enter na razie również (nowy wiersz w akapicie wymaga podziału wiersza w KML).
+- Drugie skróty pól tekstowych Windows: Ctrl+Shift+Z i Alt+Shift+Backspace – ponów, Alt+Backspace – cofnij, Shift+Delete – wytnij, Ctrl+Insert – kopiuj, Shift+Insert – wklej; Shift+F10 i klawisz menu – menu kontekstowe.
+- macOS: klawisze pól tekstowych systemu (Option+←/→ – wyraz, Cmd+←/→ – wiersz, Option+↑/↓ – akapit, Cmd+↑/↓ – tekst; Home, End, Page Up i Page Down przesuwają tylko widok; klawisze z Control: A, E, K, Y, T, O, L i inne). Pełna lista: `08_gui_design.md`, Keyboard Shortcuts.
+
 **Model pozycjonowania kursora:**
 
 Kursor w KML jest reprezentowany przez trzy współrzędne:

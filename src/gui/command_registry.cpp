@@ -36,23 +36,38 @@ CommandRegistry& CommandRegistry::getInstance() {
 // ============================================================================
 
 void CommandRegistry::registerCommand(const Command& command) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // Override if exists (allows updating commands)
-    m_commands[command.id] = command;
+    registerCommand(Command(command));
 }
 
 void CommandRegistry::registerCommand(Command&& command) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // Override if exists (allows updating commands)
-    // Move command to avoid unnecessary copy
-    std::string cmdId = command.id;  // Copy ID before moving
-    m_commands[cmdId] = std::move(command);
+    std::vector<ShortcutChange> changes;
+    bool othersChanged = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // Override if exists (allows updating commands)
+        // Move command to avoid unnecessary copy
+        std::string cmdId = command.id;  // Copy ID before moving
+        // The keys it comes with are the program's; the user's may take their place
+        m_defaultShortcuts[cmdId] = command.shortcut;
+        m_commands[cmdId] = std::move(command);
+        changes = applyShortcuts(cmdId, &othersChanged);
+    }
+    finishShortcutChanges(changes, othersChanged);
 }
 
 void CommandRegistry::unregisterCommand(const std::string& commandId) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // Safe to call even if command doesn't exist
-    m_commands.erase(commandId);
+    std::vector<ShortcutChange> changes;
+    bool othersChanged = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // Safe to call even if command doesn't exist
+        m_commands.erase(commandId);
+        // Its keys may go back to the command the program gave them
+        if (m_defaultShortcuts.erase(commandId) > 0) {
+            changes = applyShortcuts(commandId, &othersChanged);
+        }
+    }
+    finishShortcutChanges(changes, othersChanged);
 }
 
 bool CommandRegistry::isCommandRegistered(const std::string& commandId) const {
@@ -229,6 +244,8 @@ void CommandRegistry::clear() {
     qDeleteAll(m_actions);
     m_actions.clear();
     m_commands.clear();
+    m_defaultShortcuts.clear();
+    m_customShortcuts.clear();
 }
 
 // ============================================================================
@@ -392,6 +409,93 @@ void CommandRegistry::updateAllActionStates() {
     // Update each action
     for (const auto& cmdId : commandIds) {
         updateActionState(cmdId);
+    }
+}
+
+// ============================================================================
+// Keyboard shortcuts
+// ============================================================================
+
+void CommandRegistry::setCustomShortcuts(const ShortcutMap& custom) {
+    std::vector<ShortcutChange> changes;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_customShortcuts = custom;
+        changes = applyShortcuts(std::string(), nullptr);
+    }
+    finishShortcutChanges(changes, true);
+}
+
+CommandRegistry::ShortcutMap CommandRegistry::customShortcuts() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_customShortcuts;
+}
+
+KeyboardShortcut CommandRegistry::defaultShortcut(const std::string& commandId) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_defaultShortcuts.find(commandId);
+    return it != m_defaultShortcuts.end() ? it->second : KeyboardShortcut();
+}
+
+CommandRegistry::ShortcutMap CommandRegistry::defaultShortcuts() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_defaultShortcuts;
+}
+
+CommandRegistry::ShortcutMap CommandRegistry::resolveShortcuts(const ShortcutMap& defaults,
+                                                               const ShortcutMap& custom) {
+    // The keys the user gave registered commands, and the first command by id with them
+    std::map<KeyboardShortcut, std::string> userKeys;
+    for (const auto& [id, keys] : custom) {
+        if (!keys.isEmpty() && defaults.count(id) > 0) {
+            userKeys.emplace(keys, id);
+        }
+    }
+
+    ShortcutMap resolved;
+    for (const auto& [id, programKeys] : defaults) {
+        const auto own = custom.find(id);
+        if (own != custom.end()) {
+            const bool keeps = own->second.isEmpty() || userKeys.at(own->second) == id;
+            resolved[id] = keeps ? own->second : KeyboardShortcut();
+        } else {
+            const bool taken = !programKeys.isEmpty() && userKeys.count(programKeys) > 0;
+            resolved[id] = taken ? KeyboardShortcut() : programKeys;
+        }
+    }
+    return resolved;
+}
+
+std::vector<CommandRegistry::ShortcutChange>
+CommandRegistry::applyShortcuts(const std::string& skipId, bool* othersChanged) {
+    std::vector<ShortcutChange> changes;
+    const ShortcutMap resolved = resolveShortcuts(m_defaultShortcuts, m_customShortcuts);
+    for (auto& [id, command] : m_commands) {
+        const auto it = resolved.find(id);
+        const KeyboardShortcut keys = it != resolved.end() ? it->second : KeyboardShortcut();
+        if (command.shortcut == keys) {
+            continue;
+        }
+        command.shortcut = keys;
+        if (othersChanged != nullptr && id != skipId) {
+            *othersChanged = true;
+        }
+        const auto action = m_actions.find(QString::fromStdString(id));
+        if (action != m_actions.end()) {
+            changes.emplace_back(action.value(), keys.toQKeySequence());
+        }
+    }
+    return changes;
+}
+
+void CommandRegistry::finishShortcutChanges(const std::vector<ShortcutChange>& changes,
+                                            bool notify) {
+    // Outside the lock: an action's changed() may reach code that asks the registry
+    for (const auto& [action, keys] : changes) {
+        action->setShortcut(keys);
+    }
+    if (notify) {
+        emit shortcutsChanged();
     }
 }
 

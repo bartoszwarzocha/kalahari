@@ -16,8 +16,8 @@
 namespace kalahari {
 namespace gui {
 
-// Helper: Translate technical menu names to display names (i18n)
-static QString translateMenuName(const std::string& technicalName) {
+// Translate technical menu names to display names (i18n)
+QString MenuBuilder::menuTitle(const std::string& technicalName) {
     // Top-level menus
     if (technicalName == "FILE") return QObject::tr("File");
     if (technicalName == "EDIT") return QObject::tr("Edit");
@@ -46,6 +46,13 @@ static QString translateMenuName(const std::string& technicalName) {
 
     // Fallback: return as-is
     return QString::fromStdString(technicalName);
+}
+
+const std::vector<std::string>& MenuBuilder::topLevelMenus() {
+    static const std::vector<std::string> menus = {
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
+    };
+    return menus;
 }
 
 void MenuBuilder::buildMenuBar(CommandRegistry& registry, QMainWindow* parent) {
@@ -77,7 +84,7 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
     auto& logger = core::Logger::getInstance();
 
     // Group commands by top-level menu (first element of menuPath)
-    std::map<std::string, std::vector<Command>> topLevelMenus;
+    std::map<std::string, std::vector<Command>> commandsByMenu;
 
     for (const Command& cmd : commands) {
         if (!cmd.showInMenu || cmd.menuPath.empty()) {
@@ -89,25 +96,20 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
         std::string topLevel;
         std::getline(pathStream, topLevel, '/');
 
-        topLevelMenus[topLevel].push_back(cmd);
+        commandsByMenu[topLevel].push_back(cmd);
     }
 
-    // Define menu order (FILE, EDIT, BOOK, INSERT, FORMAT, TOOLS, ASSISTANT, VIEW, HELP)
-    std::vector<std::string> menuOrder = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
-    };
-
     // Create top-level menus in order
-    for (const std::string& topLevel : menuOrder) {
-        auto it = topLevelMenus.find(topLevel);
-        if (it == topLevelMenus.end()) {
+    for (const std::string& topLevel : topLevelMenus()) {
+        auto it = commandsByMenu.find(topLevel);
+        if (it == commandsByMenu.end()) {
             continue;  // No commands for this menu
         }
 
         // Create top-level menu (translated)
-        QString menuTitle = translateMenuName(topLevel);
+        QString title = menuTitle(topLevel);
 
-        QMenu* topMenu = menuBar->addMenu(menuTitle);
+        QMenu* topMenu = menuBar->addMenu(title);
         // Menus hide action tooltips by default; they explain why a command is disabled
         topMenu->setToolTipsVisible(true);
         topMenu->setObjectName(QString::fromStdString(topLevel + "Menu"));  // e.g., "VIEWMenu"
@@ -141,7 +143,7 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
             // Navigate/create submenu hierarchy (translated)
             QMenu* currentMenu = topMenu;
             for (size_t j = 1; j < levels.size() - 1; ++j) {  // Skip first (top-level) and last (action)
-                currentMenu = getOrCreateSubmenu(currentMenu, translateMenuName(levels[j]));
+                currentMenu = getOrCreateSubmenu(currentMenu, menuTitle(levels[j]));
             }
 
             // Create action and add to menu

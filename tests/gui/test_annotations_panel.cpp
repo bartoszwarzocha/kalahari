@@ -395,6 +395,16 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
         REQUIRE(add != nullptr);
         const QString keys = add->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
         CHECK(hintOf(panel).contains(QStringLiteral(" with %1 or ").arg(keys)));
+
+        // The keys the user gives the command (Settings > Keyboard Shortcuts)
+        const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
+        CommandRegistry::getInstance().setCustomShortcuts({{"insert.annotation", userKeys}});
+        CHECK(hintOf(panel).contains(
+            QStringLiteral(" with %1 or ")
+                .arg(userKeys.toQKeySequence().toString(QKeySequence::NativeText))));
+        CommandRegistry::getInstance().setCustomShortcuts(
+            {{"insert.annotation", KeyboardShortcut()}});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
     }
 
     SECTION("No keys, no mention of them") {

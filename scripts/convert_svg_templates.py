@@ -37,6 +37,17 @@ def get_opacity(element):
         return 1.0
 
 
+def inherits_no_fill(element, parents):
+    """Whether the nearest ancestor that sets a fill sets fill="none"."""
+    ancestor = parents.get(element)
+    while ancestor is not None:
+        fill = ancestor.get('fill')
+        if fill is not None:
+            return fill == 'none'
+        ancestor = parents.get(ancestor)
+    return False
+
+
 def has_placeholder(svg_content):
     """Check if SVG already has color placeholders."""
     return '{COLOR_PRIMARY}' in svg_content or '{COLOR_SECONDARY}' in svg_content
@@ -72,6 +83,9 @@ def convert_svg_to_template(svg_path):
         # Track if we made any changes
         modified = False
 
+        # The parent of every element, for the fill a group gives its shapes
+        parents = {child: parent for parent in root.iter() for child in parent}
+
         # Find and process all elements
         for elem in root.iter():
             local_name = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
@@ -104,8 +118,9 @@ def convert_svg_to_template(svg_path):
             if fill and fill != 'none' and not fill.startswith('{COLOR_'):
                 elem.set('fill', color_placeholder)
                 modified = True
-            elif not fill and local_name != 'g':
-                # Add fill if element has path data or is a shape (but not empty groups)
+            elif not fill and local_name != 'g' and not inherits_no_fill(elem, parents):
+                # Add fill if element has path data or is a shape (but not empty groups, and
+                # not the shapes a group with fill="none" keeps invisible)
                 if elem.get('d') or local_name in ['circle', 'rect', 'polygon', 'polyline', 'ellipse', 'line']:
                     elem.set('fill', color_placeholder)
                     modified = True

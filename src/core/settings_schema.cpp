@@ -50,6 +50,10 @@ std::map<std::string, json> buildDefaults() {
         {"toolbars.configurations", "{}"},
         {"toolbars.configVersion", 0},
 
+        // Keyboard shortcuts the user changed: command id -> keys ("Ctrl+Shift+F", "" for
+        // none); the other commands have the program's (Settings > Keyboard Shortcuts)
+        {"keyboard.shortcuts", json::object()},
+
         // Log panel
         {"log.bufferSize", 500},
 

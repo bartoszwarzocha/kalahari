@@ -55,6 +55,9 @@ public:
     /// @return Keys of the settings written
     QStringList applyChanges();
 
+    /// @brief Open the Keyboard Shortcuts page (Help > Keyboard Shortcuts)
+    void showShortcutsPage();
+
 public slots:
     /// @brief OK: write the changed settings, then close
     void accept() override;
@@ -101,6 +104,7 @@ private:
     std::vector<SettingsPage*> m_pages;                  ///< Built pages with settings
     ThemePage* m_themePage = nullptr;
     IconsPage* m_iconsPage = nullptr;
+    QTreeWidgetItem* m_shortcutsItem = nullptr;
 };
 
 } // namespace gui

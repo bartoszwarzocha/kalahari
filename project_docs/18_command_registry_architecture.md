@@ -333,76 +333,40 @@ builder.buildToolBar(registry, window, parent):
 
 ---
 
-## ShortcutManager Integration
+## Keyboard Shortcuts
 
-**ShortcutManager** is a separate singleton that manages keyboard shortcut bindings:
+A command's keys are `Command::shortcut`; its `QAction` (`createActionForCommand()`) has them,
+so the menus and Qt's shortcut map run the command. There is no separate shortcut manager.
 
-```cpp
-class ShortcutManager {
-public:
-    static ShortcutManager& getInstance();
+**The program's keys and the user's:**
+- `registerCommand()` keeps the keys a command is registered with as the program's
+  (`defaultShortcut()`, `defaultShortcuts()`).
+- `setCustomShortcuts()` gives the commands the user's keys (Settings > Keyboard Shortcuts,
+  setting `keyboard.shortcuts`): `Command::shortcut` and the actions change at once, and a
+  command registered later (a plugin's) gets its keys when it is registered.
+- `resolveShortcuts()` decides who has which keys: the user's where given, else the
+  program's; the program's keys of a command are no command's when the user gave them to
+  another one; of commands the user gave the same keys, the first by id keeps them.
+- `shortcutsChanged()` tells the texts that name keys (the Dashboard, the hint of the
+  Annotations panel, the note on Typewriter Scrolling, the toolbar manager) and the shortcuts
+  Distraction-Free carries while the menu bar is hidden to follow.
 
-    // Binding
-    bool bindShortcut(const KeyboardShortcut& shortcut, const std::string& commandId);
-    void unbindShortcut(const KeyboardShortcut& shortcut);
-    bool isShortcutBound(const KeyboardShortcut& shortcut) const;
+**Which keys a command may have:** `ShortcutRules` (`shortcut_rules.h`): keys that type text,
+the fixed keys of the text and of the bars (`editor/text_keys.h` and the bars) and the keys of
+the system are refused; keys a desktop may take bring a warning. The settings page checks
+every key the user gives, and the program checks the keys it reads at start
+(`shortcut_settings.h`: `loadCustomShortcuts()`, `validShortcuts()`).
 
-    // Execution
-    bool executeShortcut(const KeyboardShortcut& shortcut);
+**Files:** `shortcutsToJson()` / `shortcutsFromJson()` write and read the user's keys (command
+id to the portable text of the keys, "" for none); Export and Import add the format
+(`kalahari-keyboard-shortcuts`) and its version.
 
-    // Query
-    std::optional<std::string> getCommandIdForShortcut(const KeyboardShortcut& shortcut) const;
-    std::optional<KeyboardShortcut> getShortcutForCommand(const std::string& commandId) const;
+**Workflow (Ctrl+S):**
 
-    // Persistence
-    bool saveToFile(const std::string& filename);
-    bool loadFromFile(const std::string& filename);
-};
-```
-
-**Storage:**
-- `std::map<KeyboardShortcut, std::string>` (shortcut → commandId)
-
-**Integration with CommandRegistry:**
-
-```cpp
-bool ShortcutManager::executeShortcut(const KeyboardShortcut& shortcut) {
-    auto it = m_bindings.find(shortcut);
-    if (it == m_bindings.end()) {
-        return false;  // Shortcut not bound
-    }
-
-    std::string commandId = it->second;
-    CommandExecutionResult result = CommandRegistry::getInstance().executeCommand(commandId);
-    return result == CommandExecutionResult::Success;
-}
-```
-
-**Workflow:**
-
-1. User presses keyboard combination (e.g., Ctrl+S)
-2. wxAcceleratorTable catches event → calls handler
-3. Handler creates `KeyboardShortcut` from event
-4. Calls `ShortcutManager::getInstance().executeShortcut(shortcut)`
-5. ShortcutManager looks up commandId in bindings map
-6. Calls `CommandRegistry::getInstance().executeCommand(commandId)`
-7. Command executes (same path as menu/toolbar)
-
-**Example binding:**
-
-```cpp
-void MainWindow::setupShortcuts() {
-    ShortcutManager& shortcuts = ShortcutManager::getInstance();
-
-    // Bind shortcuts from Command descriptors
-    CommandRegistry& registry = CommandRegistry::getInstance();
-    for (const auto& command : registry.getAllCommands()) {
-        if (!command.shortcut.isEmpty()) {
-            shortcuts.bindShortcut(command.shortcut, command.id);
-        }
-    }
-}
-```
+1. The user presses Ctrl+S
+2. Qt's shortcut map finds the action of `file.save` (its keys: Ctrl+S, or the user's)
+3. The action is triggered and calls `CommandRegistry::executeCommand("file.save")`
+4. The command runs, as from the menu or the toolbar
 
 ---
 
@@ -528,7 +492,7 @@ Plugin Unload:
 1. Plugin.onUnload() called
 2. Plugin unregisters commands via CommandRegistry::unregisterCommand()
 3. Next menu rebuild: Plugin commands disappear
-4. Shortcuts cleared automatically (ShortcutManager cleanup)
+4. Their actions, with their keys, go with the commands
 ```
 
 **Important:** Plugins must unregister all commands in `onUnload()` to avoid dangling function pointers!
@@ -567,19 +531,12 @@ Plugin Unload:
 
 ```
 1. User presses Ctrl+S
-   └─> wxAcceleratorTable catches event
-   └─> Calls shortcut handler
+   └─> Qt's shortcut map finds the QAction of "file.save" (Command::shortcut)
 
-2. Shortcut handler
-   └─> KeyboardShortcut shortcut('S', true, false, false);
-   └─> ShortcutManager::getInstance().executeShortcut(shortcut);
-
-3. ShortcutManager::executeShortcut(shortcut)
-   ├─> Look up commandId: auto it = m_bindings.find(shortcut);
-   ├─> Found: commandId = "file.save"
+2. The action is triggered
    └─> CommandRegistry::getInstance().executeCommand("file.save");
 
-4. (Same as Example 1, step 3-4)
+3. (Same as Example 1, step 3-4)
 ```
 
 ### Example 3: Command Disabled (No Active Document)
@@ -809,7 +766,8 @@ Avoid shortcut conflicts:
   are not used: they differ between the systems and the Linux desktops.
 - Plugins use Ctrl+Shift+X combinations; not Ctrl+Alt, which Windows takes for AltGr (it
   types letters: ą, ć, ę...)
-- Check `ShortcutManager::isShortcutBound()` before registering
+- A key the user gives a command is checked in Settings > Keyboard Shortcuts
+  (`ShortcutRules`); keys another command has are taken from it only when the user says so
 
 ---
 
@@ -938,8 +896,9 @@ macro.replay();
 - `src/gui/command_registry.cpp` - CommandRegistry implementation
 - `src/gui/menu_builder.cpp` - MenuBuilder implementation
 - `src/gui/toolbar_builder.cpp` - ToolbarBuilder implementation
-- `include/kalahari/gui/shortcut_manager.h` - ShortcutManager interface
-- `src/gui/shortcut_manager.cpp` - ShortcutManager implementation
+- `include/kalahari/gui/shortcut_rules.h` - Which keys a command may have
+- `include/kalahari/gui/shortcut_settings.h` - The user's keys in the settings and in files
+- `include/kalahari/gui/settings/shortcuts_page.h` - Settings > Keyboard Shortcuts
 
 **Tasks:**
 - Task #00031 - MenuBuilder Class (2025-11-13)

@@ -147,6 +147,21 @@ TEST_CASE("SvgConverter handles edge cases", "[svg][edge-cases]") {
         REQUIRE(result.svg.contains("{COLOR_PRIMARY}"));
     }
 
+    SECTION("Keeps the fill=\"none\" a group gives its paths") {
+        // The invisible square of the Material icons (lock, input)
+        QString svgWithNoneGroup = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <g fill="none"><path d="M0 0h24v24H0V0z"/><path d="M0 0h24v24H0V0z" opacity=".87"/></g>
+  <path d="M6 20h12V10H6v10z"/>
+</svg>)";
+
+        auto result = converter.convertToTemplate(svgWithNoneGroup);
+
+        REQUIRE(result.success);
+        // Only the lock's body gets a color, not the squares
+        REQUIRE(result.svg.count("{COLOR_PRIMARY}") == 1);
+        REQUIRE_FALSE(result.svg.contains("{COLOR_SECONDARY}"));
+    }
+
     SECTION("Handles SVG with xmlns attributes") {
         QString svgWithNamespace = R"(<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="24" height="24">
   <path d="M10 20v-6h4v6" opacity="0.87"/>

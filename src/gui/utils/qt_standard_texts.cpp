@@ -1,9 +1,9 @@
 /// @file qt_standard_texts.cpp
 /// @brief Qt's own texts that Kalahari translates
 ///
-/// Qt translates its standard buttons and text field menus through
-/// QCoreApplication::translate() with its own contexts. Kalahari ships no
-/// qtbase translations, so these entries put the texts into kalahari_*.ts
+/// Qt translates its standard buttons, text field menus and the names of the keys in
+/// shortcuts through QCoreApplication::translate() with its own contexts. Kalahari
+/// ships no qtbase translations, so these entries put the texts into kalahari_*.ts
 /// (lupdate reads the QT_TRANSLATE_NOOP markers; the array is never used).
 
 #include <QtGlobal>
@@ -39,6 +39,32 @@ namespace {
     QT_TRANSLATE_NOOP("QLineEdit", "&Paste"),
     QT_TRANSLATE_NOOP("QLineEdit", "Delete"),
     QT_TRANSLATE_NOOP("QLineEdit", "Select All"),
+
+    // Keys as the menus and Settings > Keyboard Shortcuts write them (QKeySequence::NativeText)
+    QT_TRANSLATE_NOOP("QShortcut", "Ctrl"),
+    QT_TRANSLATE_NOOP("QShortcut", "Shift"),
+    QT_TRANSLATE_NOOP("QShortcut", "Alt"),
+    QT_TRANSLATE_NOOP("QShortcut", "Meta"),
+    QT_TRANSLATE_NOOP("QShortcut", "F%1"),
+    QT_TRANSLATE_NOOP("QShortcut", "Esc"),
+    QT_TRANSLATE_NOOP("QShortcut", "Tab"),
+    QT_TRANSLATE_NOOP("QShortcut", "Backspace"),
+    QT_TRANSLATE_NOOP("QShortcut", "Return"),
+    QT_TRANSLATE_NOOP("QShortcut", "Enter"),
+    QT_TRANSLATE_NOOP("QShortcut", "Space"),
+    QT_TRANSLATE_NOOP("QShortcut", "Ins"),
+    QT_TRANSLATE_NOOP("QShortcut", "Del"),
+    QT_TRANSLATE_NOOP("QShortcut", "Home"),
+    QT_TRANSLATE_NOOP("QShortcut", "End"),
+    QT_TRANSLATE_NOOP("QShortcut", "PgUp"),
+    QT_TRANSLATE_NOOP("QShortcut", "PgDown"),
+    QT_TRANSLATE_NOOP("QShortcut", "Left"),
+    QT_TRANSLATE_NOOP("QShortcut", "Up"),
+    QT_TRANSLATE_NOOP("QShortcut", "Right"),
+    QT_TRANSLATE_NOOP("QShortcut", "Down"),
+    QT_TRANSLATE_NOOP("QShortcut", "Menu"),
+    QT_TRANSLATE_NOOP("QShortcut", "Print"),
+    QT_TRANSLATE_NOOP("QShortcut", "Pause"),
 };
 
 }  // namespace

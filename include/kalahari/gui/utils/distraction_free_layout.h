@@ -46,6 +46,10 @@ public:
     /// @param fullScreen Fill the screen while it is on (when turning it on)
     void setActive(bool active, const QList<QWidget*>& widgets = {}, bool fullScreen = true);
 
+    /// @brief While it is on, let the keys the menu commands got meanwhile work too
+    ///        (Settings > Keyboard Shortcuts)
+    void updateShortcuts();
+
 signals:
     /// @brief The window's parts were hidden (true) or brought back (false)
     void activeChanged(bool active);
@@ -58,6 +62,9 @@ protected:
 private:
     void hideParts(const QList<QWidget*>& widgets, bool fullScreen);
     void showParts();
+
+    /// @brief The window carries the menu commands with keys while the menu bar is hidden
+    void carryShortcuts();
 
     /// @brief Show the menus at the top edge, hide them away from it
     /// @param pos The mouse in the window (moved or pressed)

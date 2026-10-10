@@ -173,15 +173,7 @@ void DistractionFreeLayout::hideParts(const QList<QWidget*>& widgets, bool fullS
     // comes to the top edge (a native menu bar, as on macOS, does both by itself)
     auto* menuBar = qobject_cast<QMenuBar*>(m_window->menuWidget());
     if (menuBar != nullptr && !menuBar->isNativeMenuBar()) {
-        QList<QAction*> actions;
-        collectShortcutActions(menuBar->actions(), actions);
-        const QList<QAction*> own = m_window->actions();
-        for (QAction* action : std::as_const(actions)) {
-            if (!own.contains(action)) {
-                m_window->addAction(action);
-                action->setProperty(SHORTCUT_PROPERTY, true);
-            }
-        }
+        carryShortcuts();
 
         // Not in the window's layout, so the text stays in its place under them; opaque,
         // in the color of the window behind a menu bar
@@ -200,6 +192,28 @@ void DistractionFreeLayout::hideParts(const QList<QWidget*>& widgets, bool fullS
     m_fullScreen = fullScreen && !m_window->isFullScreen();
     if (m_fullScreen) {
         m_window->showFullScreen();
+    }
+}
+
+void DistractionFreeLayout::carryShortcuts() {
+    auto* menuBar = qobject_cast<QMenuBar*>(m_window->menuWidget());
+    if (menuBar == nullptr || menuBar->isNativeMenuBar()) {
+        return;
+    }
+    QList<QAction*> actions;
+    collectShortcutActions(menuBar->actions(), actions);
+    const QList<QAction*> own = m_window->actions();
+    for (QAction* action : std::as_const(actions)) {
+        if (!own.contains(action)) {
+            m_window->addAction(action);
+            action->setProperty(SHORTCUT_PROPERTY, true);
+        }
+    }
+}
+
+void DistractionFreeLayout::updateShortcuts() {
+    if (m_active) {
+        carryShortcuts();
     }
 }
 
