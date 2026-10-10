@@ -731,6 +731,43 @@ TEST_CASE("ProjectManager puts a new element in the place of its kind", "[projec
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Moves", "Author", "en", true, "kalahari.novel"));
+    const QString prologue =
+        pm.addElement(kind("kalahari.novel", "prologue"), "Prologue", BookPlace::Main);
+    const QString epilogue =
+        pm.addElement(kind("kalahari.novel", "epilogue"), "Epilogue", BookPlace::Main);
+    const QString second = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 2",
+                                         BookPlace::Main);
+    REQUIRE(titles(pm.book()->mainElements) == "Prologue, Chapter 1, Chapter 2, Epilogue");
+    const QString first = pm.book()->mainElements.at(1).id;
+
+    // A chapter goes after the prologue and before the epilogue
+    CHECK(pm.startIndexOf(second) == 1);
+    CHECK(pm.startIndexOf(first) == 1);
+    CHECK(pm.endIndexOf(first) == 2);
+    CHECK(pm.endIndexOf(second) == 2);
+
+    // The prologue goes first and the epilogue last; neither passes the other
+    CHECK(pm.startIndexOf(prologue) == 0);
+    CHECK(pm.endIndexOf(prologue) == 2);
+    CHECK(pm.startIndexOf(epilogue) == 1);
+    CHECK(pm.endIndexOf(epilogue) == 3);
+
+    // Without them, the start and the end of the list
+    REQUIRE(pm.removeElement(prologue).has_value());
+    REQUIRE(pm.removeElement(epilogue).has_value());
+    CHECK(pm.startIndexOf(second) == 0);
+    CHECK(pm.endIndexOf(first) == 1);
+    CHECK(pm.startIndexOf("no-element") == -1);
+    CHECK(pm.endIndexOf("no-element") == -1);
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.startIndexOf(second) == -1);
+}
+
 // =============================================================================
 // Files added to the project
 // =============================================================================

@@ -20,6 +20,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <utility>
 
 #include <zip.h>
 
@@ -897,6 +898,63 @@ bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {
         return false;
     }
     return true;
+}
+
+qsizetype ProjectManager::startIndexOf(const QString& elementId) const {
+    qsizetype from = -1;
+    const QList<ProjectElement>* list =
+        m_project ? std::as_const(*m_project).listOf(elementId, &from) : nullptr;
+    if (!list) {
+        return -1;
+    }
+    const auto isOfStart = [this](const ProjectElement& element) {
+        const KindRef kind = kindOf(element);
+        return kind && kind.kind->position == KindPosition::Start;
+    };
+    if (isOfStart(list->at(from))) {
+        return 0;
+    }
+    // After the other elements of the kinds of the start that open the list
+    qsizetype index = 0;
+    for (qsizetype i = 0; i < list->size(); ++i) {
+        if (i == from) {
+            continue;
+        }
+        if (!isOfStart(list->at(i))) {
+            break;
+        }
+        ++index;
+    }
+    return index;
+}
+
+qsizetype ProjectManager::endIndexOf(const QString& elementId) const {
+    qsizetype from = -1;
+    const QList<ProjectElement>* list =
+        m_project ? std::as_const(*m_project).listOf(elementId, &from) : nullptr;
+    if (!list) {
+        return -1;
+    }
+    const auto isOfEnd = [this](const ProjectElement& element) {
+        const KindRef kind = kindOf(element);
+        return kind && kind.kind->position == KindPosition::End;
+    };
+    const qsizetype last = list->size() - 1;
+    if (isOfEnd(list->at(from))) {
+        return last;
+    }
+    // Before the other elements of the kinds of the end that close the list
+    qsizetype index = last;
+    for (qsizetype i = last; i >= 0; --i) {
+        if (i == from) {
+            continue;
+        }
+        if (!isOfEnd(list->at(i))) {
+            break;
+        }
+        --index;
+    }
+    return index;
 }
 
 bool ProjectManager::setStatus(const QString& elementId, const QString& status) {

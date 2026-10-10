@@ -863,18 +863,21 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     auto& pm = core::ProjectManager::getInstance();
     const bool projectOpen = pm.isProjectOpen();
 
-    // Move within the element's list: a part of the book or a group
+    // Move within the element's list: a part of the book or a group. Move to Start and Move to
+    // End keep a prologue first and an epilogue last
     const auto addMoveActions = [&]() {
         QTreeWidgetItem* parent = item->parent();
         const int index = parent ? parent->indexOfChild(item) : -1;
         const int siblingCount = parent ? parent->childCount() : 0;
+        const int startIndex = static_cast<int>(pm.startIndexOf(elementId));
+        const int endIndex = static_cast<int>(pm.endIndexOf(elementId));
 
         QAction* moveToStartAction = menu.addAction(
             artProvider.getIcon("navigation.top", core::IconContext::Menu),
             tr("Move to Start"));
         connect(moveToStartAction, &QAction::triggered, this,
-                [this, elementId]() { emit elementMoved(elementId, 0); });
-        moveToStartAction->setEnabled(index > 0);
+                [this, elementId, startIndex]() { emit elementMoved(elementId, startIndex); });
+        moveToStartAction->setEnabled(startIndex >= 0 && index > startIndex);
 
         QAction* moveUpAction = menu.addAction(
             artProvider.getIcon("navigation.up", core::IconContext::Menu),
@@ -891,10 +894,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         QAction* moveToEndAction = menu.addAction(
             artProvider.getIcon("navigation.bottom", core::IconContext::Menu),
             tr("Move to End"));
-        connect(moveToEndAction, &QAction::triggered, this, [this, elementId, siblingCount]() {
-            emit elementMoved(elementId, siblingCount - 1);
-        });
-        moveToEndAction->setEnabled(index >= 0 && index < siblingCount - 1);
+        connect(moveToEndAction, &QAction::triggered, this,
+                [this, elementId, endIndex]() { emit elementMoved(elementId, endIndex); });
+        moveToEndAction->setEnabled(index >= 0 && index < endIndex);
     };
 
     const auto addRenameDeleteActions = [&]() {

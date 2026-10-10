@@ -162,6 +162,8 @@ struct BookProject {
     /// @param index Gets the index of the element in the list
     /// @return The list, or nullptr when the project has no element @p elementId
     QList<ProjectElement>* listOf(const QString& elementId, qsizetype* index = nullptr);
+    const QList<ProjectElement>* listOf(const QString& elementId,
+                                        qsizetype* index = nullptr) const;
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project
     std::optional<ProjectElement> takeElement(const QString& elementId);

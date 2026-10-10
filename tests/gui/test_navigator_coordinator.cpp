@@ -526,4 +526,28 @@ TEST_CASE("Navigator menu: moving an element to the start and to the end of its 
     CHECK(titles(novel.savedBook().mainElements) == "Chapter 2, Chapter 3, Chapter 1");
     CHECK(navigator.itemsInSection(QStringLiteral("section_body")) ==
           "Chapter 2 [Draft], Chapter 3 [Draft], Chapter 1 [Draft]");
+
+    // A chapter moved to the start stays after the prologue, and one moved to the end before
+    // the epilogue; the chapter before the epilogue is at the end already
+    core::ProjectManager& pm = novel.pm;
+    REQUIRE_FALSE(pm.addElement(pm.bookTypes().findKind(QStringLiteral("kalahari.novel"),
+                                                        QStringLiteral("prologue")),
+                                QStringLiteral("Prologue"), core::BookPlace::Main)
+                      .isEmpty());
+    REQUIRE_FALSE(pm.addElement(pm.bookTypes().findKind(QStringLiteral("kalahari.novel"),
+                                                        QStringLiteral("epilogue")),
+                                QStringLiteral("Epilogue"), core::BookPlace::Main)
+                      .isEmpty());
+    navigator.coordinator.refreshNavigator();
+    REQUIRE(titles(novel.book().mainElements) ==
+            "Prologue, Chapter 2, Chapter 3, Chapter 1, Epilogue");
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move to Start")));
+    CHECK(titles(novel.book().mainElements) ==
+          "Prologue, Chapter 1, Chapter 2, Chapter 3, Epilogue");
+    CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move to Start")));
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move to End")));
+    CHECK(titles(novel.book().mainElements) ==
+          "Prologue, Chapter 2, Chapter 3, Chapter 1, Epilogue");
+    CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move to End")));
+    CHECK(navigator.current() == first);
 }

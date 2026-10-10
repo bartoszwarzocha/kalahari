@@ -505,6 +505,16 @@ QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* 
     return list;
 }
 
+const QList<ProjectElement>* BookProject::listOf(const QString& elementId,
+                                                 qsizetype* index) const {
+    qsizetype found = -1;
+    const QList<ProjectElement>* list = findList(*this, elementId, found);
+    if (list && index) {
+        *index = found;
+    }
+    return list;
+}
+
 std::optional<ProjectElement> BookProject::takeElement(const QString& elementId) {
     qsizetype index = -1;
     QList<ProjectElement>* list = findList(*this, elementId, index);

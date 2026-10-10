@@ -279,6 +279,20 @@ public:
     /// @return false when the element or the place does not exist or the file cannot be written
     bool moveElement(const QString& elementId, qsizetype index);
 
+    /// @brief Place in its list that Move to Start gives element @p elementId
+    ///
+    /// The first place; an element of a kind that is not of the start goes after the elements
+    /// of the kinds of the start, so a chapter moved to the start stays after the prologue.
+    /// @return The index; -1 when the project has no such element
+    qsizetype startIndexOf(const QString& elementId) const;
+
+    /// @brief Place in its list that Move to End gives element @p elementId
+    ///
+    /// The last place; an element of a kind that is not of the end goes before the elements of
+    /// the kinds of the end, so a chapter moved to the end stays before the epilogue.
+    /// @return The index; -1 when the project has no such element
+    qsizetype endIndexOf(const QString& elementId) const;
+
     /// @brief Set the status of a text element ("draft", "revision" or "final")
     ///
     /// Saves the .klh file and writes the status to the element's chapter file.
