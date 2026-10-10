@@ -2,21 +2,27 @@
 /// @brief Implementation of SettingsPage
 
 #include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
 #include "kalahari/core/theme_manager.h"
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFontComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QSpinBox>
+#include <QStyle>
+#include <QStyleOption>
 #include <QVBoxLayout>
 
 #include <cmath>
@@ -59,12 +65,33 @@ json spinValue(double shown, double scale, const json& like) {
     return value;
 }
 
+/// The style of the notes (see SettingsPage::noteColor())
+QString noteStyleSheet() {
+    return QStringLiteral("color: %1;").arg(SettingsPage::noteColor().name());
+}
+
+/// The color inside a group on the window, as the style draws it (Fusion a shade darker)
+QColor groupFillOn(const QColor& window) {
+    QImage image(QSize(64, 64), QImage::Format_ARGB32_Premultiplied);
+    image.fill(window);
+    QPainter painter(&image);
+    QStyleOptionFrame option;
+    option.rect = image.rect();
+    option.palette.setColor(QPalette::Window, window);
+    QApplication::style()->drawPrimitive(QStyle::PE_FrameGroupBox, &option, &painter);
+    painter.end();
+    return image.pixelColor(image.width() / 2, image.height() - 16);
+}
+
 } // namespace
 
 SettingsPage::SettingsPage(QWidget* parent)
     : QWidget(parent)
     , m_layout(new QVBoxLayout(this))
 {
+    // A theme applied while the dialog is open recolors the notes
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            &SettingsPage::updateNoteColors);
 }
 
 void SettingsPage::load() {
@@ -232,14 +259,31 @@ QCheckBox* SettingsPage::addCheckBox(QFormLayout* form, const QString& text, con
 QLabel* SettingsPage::addNote(QLayout* layout, const QString& text) {
     auto* note = new QLabel(text);
     note->setWordWrap(true);
-    note->setStyleSheet(QStringLiteral("color: %1;")
-        .arg(core::ThemeManager::getInstance().getCurrentTheme().palette.placeholderText.name()));
+    note->setStyleSheet(noteStyleSheet());
+    m_notes.push_back(note);
     if (auto* form = qobject_cast<QFormLayout*>(layout)) {
         form->addRow(note);
     } else {
         layout->addWidget(note);
     }
     return note;
+}
+
+QColor SettingsPage::noteColor() {
+    // The placeholder color alone has 2.3:1 with the window in the light theme. A note lies
+    // on the window or in a group on it: readable on both
+    const core::Theme& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    const QColor window = theme.palette.window;
+    const QColor onWindow =
+        readableColor(theme.palette.placeholderText, window, MIN_TEXT_CONTRAST);
+    return readableColor(onWindow, groupFillOn(window), MIN_TEXT_CONTRAST);
+}
+
+void SettingsPage::updateNoteColors() {
+    const QString styleSheet = noteStyleSheet();
+    for (QLabel* note : m_notes) {
+        note->setStyleSheet(styleSheet);
+    }
 }
 
 void SettingsPage::markNotUsedYet(QWidget* field, QLabel* label) {

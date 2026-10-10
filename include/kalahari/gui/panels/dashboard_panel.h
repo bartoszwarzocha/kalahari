@@ -14,21 +14,29 @@
 #include <QScrollArea>
 #include <vector>
 
+class QEvent;
 class QFrame;
+class QObject;
 
 namespace kalahari {
 namespace gui {
+
+class DashboardHeaderLayout;
+class DashboardHintsLayout;
 
 /// @brief Dashboard panel - welcome screen with native Qt widgets
 ///
 /// Displays welcome message, keyboard shortcuts, and recent books
 /// using native Qt widgets for proper theming and scaling.
 ///
-/// Layout (75% width, centered):
-/// - Header: "Welcome to Kalahari" + tagline
-/// - Shortcuts: 3 shortcuts in horizontal row
-/// - Main content: Two 50/50 columns (News | Recent Files)
+/// Layout (75% width, centered; on a narrow panel all of it but a margin):
+/// - Header: the logo beside "Welcome to Kalahari" and the tagline, or above them
+/// - Shortcuts: 3 shortcuts in a row, or one under another where the row is too narrow
+/// - Main content: Two 50/50 columns (News | Recent Files), or one under the other
 /// - Checkbox: Auto-load last project
+///
+/// Nothing is cut off on a small screen: the texts wrap, the logo gets smaller, and a panel
+/// narrower than the longest word scrolls sideways.
 ///
 /// Features:
 /// - Welcome header with app description
@@ -71,6 +79,9 @@ protected:
     /// @param event Resize event
     void resizeEvent(QResizeEvent* event) override;
 
+    /// @brief A click on the text of the auto-load checkbox changes it
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 private slots:
     /// @brief Refresh the content (called when recent files change)
     void refreshContent();
@@ -98,6 +109,12 @@ private:
     /// @return Shortcuts widget
     QWidget* createShortcutsSection(QWidget* parent);
 
+    /// @brief Show the commands to start with and their keys, as the user set them
+    void updateShortcutLabels();
+
+    /// @brief Colors of the shortcut labels, of the current theme
+    void styleShortcutLabels();
+
     /// @brief Create the main content section (News + Recent Files)
     /// @param parent Parent widget
     /// @return Main content widget
@@ -124,11 +141,6 @@ private:
     /// and shows/hides columns accordingly. Also handles divider visibility.
     void updateColumnVisibility();
 
-    /// @brief Make path string breakable by inserting zero-width spaces after separators
-    /// @param path Original path string
-    /// @return Path with zero-width spaces for wrapping
-    QString makeBreakablePath(const QString& path) const;
-
     /// @brief Load icon with theme colors at consistent DASHBOARD_ICON_SIZE
     /// @param actionId Action ID registered in ArtProvider (e.g., "file.open")
     /// @return QPixmap at DASHBOARD_ICON_SIZE, or null if not found
@@ -140,14 +152,16 @@ private:
     QVBoxLayout* m_mainLayout;         ///< Main vertical layout
 
     // Header components
-    QLabel* m_logoLabel;               ///< Application logo (256x256)
+    DashboardHeaderLayout* m_headerLayout = nullptr;  ///< The logo beside the texts, or above them
+    QLabel* m_logoLabel;               ///< Application logo (at most 256x256)
     QLabel* m_titleLabel;              ///< "Welcome to Kalahari"
     QLabel* m_taglineLabel;            ///< Tagline text
 
     // Shortcuts section
     QFrame* m_shortcutsFrame;          ///< Shortcuts container frame
     QLabel* m_shortcutsTitleLabel;     ///< "KEYBOARD SHORTCUTS"
-    std::vector<QLabel*> m_shortcutLabels;  ///< Individual shortcut labels
+    DashboardHintsLayout* m_shortcutsLayout = nullptr;  ///< In a row, or one under another
+    std::vector<QLabel*> m_shortcutLabels;  ///< The keys and the name of each command
 
     // Main content columns
     QWidget* m_columnsWidget;          ///< Container for columns
@@ -165,6 +179,7 @@ private:
 
     // Footer
     QCheckBox* m_autoLoadCheckbox;     ///< Auto-load last project checkbox
+    QLabel* m_autoLoadLabel = nullptr;  ///< Its text, which wraps (a QCheckBox cannot)
 
     // Cached recent file cards for click handling
     std::vector<std::pair<QWidget*, QString>> m_fileCards;  ///< Card widget -> file path

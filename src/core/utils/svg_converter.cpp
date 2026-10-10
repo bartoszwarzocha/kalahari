@@ -9,6 +9,22 @@
 
 using namespace kalahari::core;
 
+namespace {
+
+/// Whether an element gets fill="none" from the nearest ancestor that sets a fill, as the
+/// invisible square of the Material icons does from its <g fill="none">
+bool inheritsNoFill(const QDomElement& element) {
+    for (QDomNode node = element.parentNode(); node.isElement(); node = node.parentNode()) {
+        const QDomElement ancestor = node.toElement();
+        if (ancestor.hasAttribute("fill")) {
+            return ancestor.attribute("fill") == "none";
+        }
+    }
+    return false;
+}
+
+}  // namespace
+
 // ============================================================================
 // SvgConverter Implementation
 // ============================================================================
@@ -133,7 +149,10 @@ QString SvgConverter::replaceColorPlaceholders(const QString& svgXml) {
             if (element.hasAttribute("fill") && element.attribute("fill") != "none") {
                 element.setAttribute("fill", colorPlaceholder);
             }
-            // Case 2: Add fill if missing (and not fill="none")
+            // Case 2: Add fill if missing (and not fill="none", also not one inherited)
+            else if (!element.hasAttribute("fill") && inheritsNoFill(element)) {
+                // Stays invisible
+            }
             else if (!element.hasAttribute("fill") && element.hasAttribute("d")) {
                 // Only add fill to <path> with data
                 element.setAttribute("fill", colorPlaceholder);

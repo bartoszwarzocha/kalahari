@@ -10,7 +10,6 @@
 #include "kalahari/core/logger.h"
 
 #include <QCoreApplication>
-#include <QKeySequence>
 
 namespace kalahari {
 namespace gui {
@@ -133,11 +132,38 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
         } while(0)
 
     // =========================================================================
+    // SHORTCUTS
+    // =========================================================================
+
+    // One set of shortcuts, the same on Windows and Linux, each written out: Qt's standard
+    // keys (QKeySequence::StandardKey) differ between the systems and the Linux desktops
+    // (Close is Ctrl+F4 on Windows and Ctrl+W on Linux; Find & Replace is Ctrl+H, Ctrl+R or
+    // none). No shortcut uses Ctrl+Alt on Windows and Linux: Windows takes it for AltGr,
+    // which types letters (ą, ć, ę...).
+    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and five commands
+    // have the keys of macOS there: programs quit with Cmd+Q (Alt+F4 does nothing), Cmd+H
+    // hides the program, F11 shows the desktop, and Option+Up and Option+Down move the
+    // cursor by paragraphs in the text (editor/text_keys.h).
+#ifdef Q_OS_MACOS
+    const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
+    const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
+    const KeyboardShortcut fullScreenShortcut(Qt::Key_F, Qt::ControlModifier | Qt::MetaModifier);
+    const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::ControlModifier | Qt::AltModifier);
+    const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::ControlModifier | Qt::AltModifier);
+#else
+    const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
+    const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
+    const KeyboardShortcut fullScreenShortcut(Qt::Key_F11, Qt::NoModifier);
+    const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::AltModifier);
+    const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::AltModifier);
+#endif
+
+    // =========================================================================
     // FILE MENU
     // =========================================================================
 
     REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "New File"), "FILE/New File", 10, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::New),
+                      KeyboardShortcut(Qt::Key_N, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onNewDocument);
 
@@ -148,7 +174,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       callbacks.onNewProject);
 
     REG_CMD_TOOL_ICON("file.open", QT_TRANSLATE_NOOP("CommandRegistrar", "Open Book..."), "FILE/Open Book...", 20, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Open),
+                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onOpenDocument);
 
@@ -160,19 +186,20 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // Recent Books - dynamic submenu (registered separately)
 
-    // OpenSpec #00030: Added Ctrl+W shortcut for Close Book
+    // Ctrl+F4, as Windows programs close a document. Not Ctrl+W: next to Ctrl+S and Ctrl+E,
+    // it would close the book by mistake while writing.
     REG_CMD_TOOL_ICON("file.close", QT_TRANSLATE_NOOP("CommandRegistrar", "Close Book"), "FILE/Close Book", 40, true, 1,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Close),
+                      KeyboardShortcut(Qt::Key_F4, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onCloseDocument);
 
     REG_CMD_TOOL_ICON("file.save", QT_TRANSLATE_NOOP("CommandRegistrar", "Save"), "FILE/Save", 50, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Save),
+                      KeyboardShortcut(Qt::Key_S, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onSaveDocument);
 
     REG_CMD_TOOL_ICON("file.saveAs", QT_TRANSLATE_NOOP("CommandRegistrar", "Save As..."), "FILE/Save As...", 60, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::SaveAs),
+                      KeyboardShortcut(Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onSaveAsDocument);
 
@@ -206,8 +233,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onExportArchive);
 
+    // Alt+F4 (Cmd+Q on macOS, see SHORTCUTS): it closes the window on Windows and on Linux
+    // desktops anyway; the menu shows it, and it works also where the window manager leaves
+    // it to the program
     REG_CMD_TOOL_ICON("file.exit", QT_TRANSLATE_NOOP("CommandRegistrar", "Exit"), "FILE/Exit", 200, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Quit),
+                      exitShortcut,
                       IconSet(),
                       callbacks.onExit);
 
@@ -216,27 +246,28 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // =========================================================================
 
     REG_CMD_TOOL_ICON("edit.undo", QT_TRANSLATE_NOOP("CommandRegistrar", "Undo"), "EDIT/Undo", 10, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Undo),
+                      KeyboardShortcut(Qt::Key_Z, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onUndo);
 
+    // Ctrl+Y; the editor takes Ctrl+Shift+Z for it too
     REG_CMD_TOOL_ICON("edit.redo", QT_TRANSLATE_NOOP("CommandRegistrar", "Redo"), "EDIT/Redo", 20, true, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Redo),
+                      KeyboardShortcut(Qt::Key_Y, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onRedo);
 
     REG_CMD_TOOL_ICON("edit.cut", QT_TRANSLATE_NOOP("CommandRegistrar", "Cut"), "EDIT/Cut", 30, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Cut),
+                      KeyboardShortcut(Qt::Key_X, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onCut);
 
     REG_CMD_TOOL_ICON("edit.copy", QT_TRANSLATE_NOOP("CommandRegistrar", "Copy"), "EDIT/Copy", 40, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Copy),
+                      KeyboardShortcut(Qt::Key_C, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onCopy);
 
     REG_CMD_TOOL_ICON("edit.paste", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste"), "EDIT/Paste", 50, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Paste),
+                      KeyboardShortcut(Qt::Key_V, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onPaste);
 
@@ -244,7 +275,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("edit.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "Delete"), "EDIT/Delete", 70, true, 1);
 
     REG_CMD_TOOL_ICON("edit.selectAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Select All"), "EDIT/Select All", 80, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::SelectAll),
+                      KeyboardShortcut(Qt::Key_A, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onSelectAll);
 
@@ -253,23 +284,23 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // OpenSpec #00030: Added keyboard shortcuts for Find operations
     REG_CMD_KEY_CB("edit.find", QT_TRANSLATE_NOOP("CommandRegistrar", "Find..."), "EDIT/Find...", 110, false, 1,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::Find), callbacks.onFind);
+                   KeyboardShortcut(Qt::Key_F, Qt::ControlModifier), callbacks.onFind);
     REG_CMD_KEY_CB("edit.findNext", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Next"), "EDIT/Find Next", 120, false, 1,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::FindNext),
+                   KeyboardShortcut(Qt::Key_F3, Qt::NoModifier),
                    callbacks.onFindNext);
     REG_CMD_KEY_CB("edit.findPrevious", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Previous"), "EDIT/Find Previous", 130, false, 1,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::FindPrevious),
+                   KeyboardShortcut(Qt::Key_F3, Qt::ShiftModifier),
                    callbacks.onFindPrevious);
     REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find & Replace..."), "EDIT/Find & Replace...", 140, false, 1,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::Replace),
+                   replaceShortcut,
                    callbacks.onFindReplace);
     REG_CMD("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in Book..."), "EDIT/Find in Book...", 150, true, 1);
 
     // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
     REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Next To Do"), "EDIT/Next To Do", 152, false, 0,
-                KeyboardShortcut(Qt::Key_Down, Qt::AltModifier));
+                nextTodoShortcut);
     REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previous To Do"), "EDIT/Previous To Do", 154, true, 0,
-                KeyboardShortcut(Qt::Key_Up, Qt::AltModifier));
+                previousTodoShortcut);
 
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Preferences..."), "EDIT/Preferences...", 160, false, 0,
                callbacks.onSettings);
@@ -357,15 +388,15 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
     // OpenSpec #00042 Phase 7.2: Connected to toolbar and editor
     REG_CMD_TOOL_ICON("format.bold", QT_TRANSLATE_NOOP("CommandRegistrar", "Bold"), "FORMAT/Bold", 100, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Bold),
+                      KeyboardShortcut(Qt::Key_B, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFormatBold);
     REG_CMD_TOOL_ICON("format.italic", QT_TRANSLATE_NOOP("CommandRegistrar", "Italic"), "FORMAT/Italic", 110, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Italic),
+                      KeyboardShortcut(Qt::Key_I, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFormatItalic);
     REG_CMD_TOOL_ICON("format.underline", QT_TRANSLATE_NOOP("CommandRegistrar", "Underline"), "FORMAT/Underline", 120, false, 0,
-                      KeyboardShortcut::fromQKeySequence(QKeySequence::Underline),
+                      KeyboardShortcut(Qt::Key_U, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFormatUnderline);
     REG_CMD_TOOL_ICON("format.strikethrough", QT_TRANSLATE_NOOP("CommandRegistrar", "Strikethrough"), "FORMAT/Strikethrough", 130, true, 0,
@@ -374,19 +405,19 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       callbacks.onFormatStrikethrough);
 
     REG_CMD_TOOL_ICON("format.alignLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Align Left"), "FORMAT/Align Left", 140, false, 0,
-                      KeyboardShortcut::fromString("Ctrl+L"),
+                      KeyboardShortcut(Qt::Key_L, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignLeft);
     REG_CMD_TOOL_ICON("format.alignCenter", QT_TRANSLATE_NOOP("CommandRegistrar", "Align Center"), "FORMAT/Align Center", 150, false, 0,
-                      KeyboardShortcut::fromString("Ctrl+E"),
+                      KeyboardShortcut(Qt::Key_E, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignCenter);
     REG_CMD_TOOL_ICON("format.alignRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Align Right"), "FORMAT/Align Right", 160, false, 0,
-                      KeyboardShortcut::fromString("Ctrl+R"),
+                      KeyboardShortcut(Qt::Key_R, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignRight);
     REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "Justify"), "FORMAT/Justify", 170, true, 0,
-                      KeyboardShortcut::fromString("Ctrl+J"),
+                      KeyboardShortcut(Qt::Key_J, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignJustify);
 
@@ -534,9 +565,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formatting Marks"), "VIEW/Show Formatting Marks", 210, true, 1);
 
     REG_CMD_KEY_CB("view.zoomIn", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom In"), "VIEW/Zoom/Zoom In", 220, false, 0,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::ZoomIn), callbacks.onZoomIn);
+                   KeyboardShortcut(Qt::Key_Plus, Qt::ControlModifier), callbacks.onZoomIn);
     REG_CMD_KEY_CB("view.zoomOut", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom Out"), "VIEW/Zoom/Zoom Out", 221, false, 0,
-                   KeyboardShortcut::fromQKeySequence(QKeySequence::ZoomOut), callbacks.onZoomOut);
+                   KeyboardShortcut(Qt::Key_Minus, Qt::ControlModifier), callbacks.onZoomOut);
     REG_CMD_KEY_CB("view.resetZoom", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom 100%"), "VIEW/Zoom/Zoom 100%", 222, true, 0,
                    KeyboardShortcut(Qt::Key_0, Qt::ControlModifier), callbacks.onZoomReset);
     REG_CMD_CB("view.zoomPageWidth", QT_TRANSLATE_NOOP("CommandRegistrar", "Page Width"), "VIEW/Zoom/Page Width", 223, false, 0,
@@ -544,9 +575,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "Whole Page"), "VIEW/Zoom/Whole Page", 224, true, 0,
                callbacks.onZoomWholePage);
 
-    // OpenSpec #00030: F11 for Full Screen (standard)
+    // F11 (Control+Cmd+F on macOS, see SHORTCUTS)
     REG_CMD_KEY("view.fullScreen", QT_TRANSLATE_NOOP("CommandRegistrar", "Full Screen"), "VIEW/Full Screen", 250, true, 0,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::FullScreen));
+                fullScreenShortcut);
 
     REG_CMD_CB("view.resetLayout", QT_TRANSLATE_NOOP("CommandRegistrar", "Reset Layout"), "VIEW/Reset Layout", 260, false, 0,
                callbacks.onResetLayout);
@@ -557,10 +588,18 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // OpenSpec #00030: F1 for Help (standard)
     REG_CMD_KEY("help.manual", QT_TRANSLATE_NOOP("CommandRegistrar", "Kalahari Help"), "HELP/Kalahari Help", 10, false, 2,
-                KeyboardShortcut::fromQKeySequence(QKeySequence::HelpContents));
+                KeyboardShortcut(Qt::Key_F1, Qt::NoModifier));
+    // F1 waits for the help: the list of the shortcuts says it is not there yet
+    if (Command* help = registry.getCommand("help.manual")) {
+        help->unavailableNote =
+            QCoreApplication::translate("CommandRegistrar", "not available yet", "Kalahari Help")
+                .toStdString();
+    }
     REG_CMD("help.tutorial", QT_TRANSLATE_NOOP("CommandRegistrar", "Getting Started Tutorial"), "HELP/Getting Started Tutorial", 20, true, 2);
 
-    REG_CMD("help.shortcuts", QT_TRANSLATE_NOOP("CommandRegistrar", "Keyboard Shortcuts"), "HELP/Keyboard Shortcuts", 30, false, 1);
+    // Opens Settings > Keyboard Shortcuts: the list of the shortcuts, where they are changed
+    REG_CMD_CB("help.shortcuts", QT_TRANSLATE_NOOP("CommandRegistrar", "Keyboard Shortcuts"), "HELP/Keyboard Shortcuts", 30, false, 0,
+               callbacks.onKeyboardShortcuts);
     REG_CMD("help.tipsTricks", QT_TRANSLATE_NOOP("CommandRegistrar", "Tips & Tricks"), "HELP/Tips & Tricks", 40, false, 2);
     REG_CMD("help.whatsNew", QT_TRANSLATE_NOOP("CommandRegistrar", "What's New"), "HELP/What's New", 50, true, 1);
 

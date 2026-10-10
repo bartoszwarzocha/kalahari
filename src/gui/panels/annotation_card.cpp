@@ -248,7 +248,7 @@ void AnnotationCard::showMenu() {
     }
     menu.addSeparator();
     QAction* deleteAction = menu.addAction(tr("Delete"), this, &AnnotationCard::deleteRequested);
-    deleteAction->setShortcut(QKeySequence::Delete);
+    deleteAction->setShortcut(QKeySequence(Qt::Key_Delete));
 
     menu.exec(m_menuButton->mapToGlobal(QPoint(0, m_menuButton->height())));
 }

@@ -220,10 +220,6 @@
         <translation>Przypis końcowy</translation>
     </message>
     <message>
-        <source>Annotation</source>
-        <translation>Adnotacja</translation>
-    </message>
-    <message>
         <source>Special Character...</source>
         <translation>Znak specjalny...</translation>
     </message>
@@ -591,6 +587,26 @@
         <source>Annotations</source>
         <translation>Uwagi</translation>
     </message>
+    <message>
+        <source>not available yet</source>
+        <comment>Kalahari Help</comment>
+        <translation>jeszcze niedostępna</translation>
+    </message>
+</context>
+<context>
+    <name>QAbstractSpinBox</name>
+    <message>
+        <source>&amp;Select All</source>
+        <translation>&amp;Zaznacz wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Step up</source>
+        <translation>Zwięk&amp;sz</translation>
+    </message>
+    <message>
+        <source>Step &amp;down</source>
+        <translation>Z&amp;mniejsz</translation>
+    </message>
 </context>
 <context>
     <name>QLineEdit</name>
@@ -931,6 +947,140 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Restore Defaults</source>
         <translation>Przywróć domyślne</translation>
+    </message>
+</context>
+<context>
+    <name>QShortcut</name>
+    <message>
+        <source>Ctrl</source>
+        <translation>Ctrl</translation>
+    </message>
+    <message>
+        <source>Shift</source>
+        <translation>Shift</translation>
+    </message>
+    <message>
+        <source>Alt</source>
+        <translation>Alt</translation>
+    </message>
+    <message>
+        <source>Meta</source>
+        <translation>Meta</translation>
+    </message>
+    <message>
+        <source>F%1</source>
+        <translation>F%1</translation>
+    </message>
+    <message>
+        <source>Esc</source>
+        <translation>Esc</translation>
+    </message>
+    <message>
+        <source>Tab</source>
+        <translation>Tab</translation>
+    </message>
+    <message>
+        <source>Backspace</source>
+        <translation>Backspace</translation>
+    </message>
+    <message>
+        <source>Return</source>
+        <translation>Enter</translation>
+    </message>
+    <message>
+        <source>Enter</source>
+        <translation>Enter</translation>
+    </message>
+    <message>
+        <source>Space</source>
+        <translation>Spacja</translation>
+    </message>
+    <message>
+        <source>Ins</source>
+        <translation>Insert</translation>
+    </message>
+    <message>
+        <source>Del</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <source>Home</source>
+        <translation>Home</translation>
+    </message>
+    <message>
+        <source>End</source>
+        <translation>End</translation>
+    </message>
+    <message>
+        <source>PgUp</source>
+        <translation>Page Up</translation>
+    </message>
+    <message>
+        <source>PgDown</source>
+        <translation>Page Down</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Strzałka w lewo</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>Strzałka w górę</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <translation>Strzałka w dół</translation>
+    </message>
+    <message>
+        <source>Menu</source>
+        <translation>Menu</translation>
+    </message>
+    <message>
+        <source>Print</source>
+        <translation>Print Screen</translation>
+    </message>
+    <message>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+</context>
+<context>
+    <name>QWidgetTextControl</name>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Link Location</source>
+        <translation>Kopiuj &amp;adres odnośnika</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>Zaznacz wszystko</translation>
     </message>
 </context>
 <context>
@@ -1285,33 +1435,10 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::RecentBooksMenu</name>
-    <message>
-        <source>Recent Books</source>
-        <translation>Ostatnie książki</translation>
-    </message>
-    <message>
-        <source>No Recent Files</source>
-        <translation>Brak ostatnich plików</translation>
-    </message>
-    <message>
-        <source>Clear Recent Files</source>
-        <translation>Wyczyść listę ostatnich plików</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::editor::BookEditor</name>
     <message>
         <source>Words: %1</source>
         <translation>Słowa: %1</translation>
-    </message>
-    <message>
-        <source>Insert Comment</source>
-        <translation>Wstaw komentarz</translation>
-    </message>
-    <message>
-        <source>Enter comment:</source>
-        <translation>Treść komentarza:</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -1361,14 +1488,6 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <source>Ignore this rule</source>
         <translation>Pomijaj tę regułę</translation>
     </message>
-    <message>
-        <source>TODO</source>
-        <translation>TODO</translation>
-    </message>
-    <message>
-        <source>Note</source>
-        <translation>Notatka</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -1381,8 +1500,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Edytor do pisania i poprawiania tekstu książki</translation>
     </message>
     <message>
-        <source>Use arrow keys to navigate, Ctrl+Home/End for document start/end</source>
-        <translation>Strzałki przesuwają kursor, Ctrl+Home i Ctrl+End – na początek i koniec dokumentu</translation>
+        <source>The arrow keys move the cursor; %1 and %2 go to the start and the end of the text</source>
+        <translation>Strzałki przesuwają kursor, a %1 i %2 – na początek i na koniec tekstu</translation>
     </message>
 </context>
 <context>
@@ -1396,24 +1515,24 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Aa</translation>
     </message>
     <message>
-        <source>Match Case (Alt+C)</source>
-        <translation>Uwzględniaj wielkość liter (Alt+C)</translation>
+        <source>Match Case (%1)</source>
+        <translation>Uwzględniaj wielkość liter (%1)</translation>
     </message>
     <message>
         <source>W</source>
         <translation>W</translation>
     </message>
     <message>
-        <source>Match Whole Word (Alt+W)</source>
-        <translation>Tylko całe wyrazy (Alt+W)</translation>
+        <source>Match Whole Word (%1)</source>
+        <translation>Tylko całe wyrazy (%1)</translation>
     </message>
     <message>
         <source>.*</source>
         <translation>.*</translation>
     </message>
     <message>
-        <source>Use Regular Expression (Alt+R)</source>
-        <translation>Wyrażenie regularne (Alt+R)</translation>
+        <source>Use Regular Expression (%1)</source>
+        <translation>Wyrażenie regularne (%1)</translation>
     </message>
     <message>
         <source>Previous Match (Shift+Enter)</source>
@@ -1725,6 +1844,41 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::AnnotationsPage</name>
+    <message>
+        <source>New Annotations</source>
+        <translation>Nowe uwagi</translation>
+    </message>
+    <message>
+        <source>Your name or pen name</source>
+        <translation>Twoje imię lub pseudonim</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>The name shown on new annotations. Without it, they have no author.</source>
+        <translation>Imię widoczne na nowych uwagach. Bez niego uwagi nie mają autora.</translation>
+    </message>
+    <message>
+        <source>Marks in the Text</source>
+        <translation>Znaczniki w tekście</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
+        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
+    </message>
+    <message>
+        <source>Mark Size:</source>
+        <translation>Wielkość znaczników:</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::AnnotationsPanel</name>
     <message>
         <source>Search the annotations...</source>
@@ -1799,6 +1953,10 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Książka nie ma uwag.</translation>
     </message>
     <message>
+        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note from the context menu.</source>
+        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</translation>
+    </message>
+    <message>
         <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
         <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
     </message>
@@ -1821,41 +1979,6 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Next</source>
         <translation>Następna</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::AnnotationsPage</name>
-    <message>
-        <source>New Annotations</source>
-        <translation>Nowe uwagi</translation>
-    </message>
-    <message>
-        <source>Your name or pen name</source>
-        <translation>Twoje imię lub pseudonim</translation>
-    </message>
-    <message>
-        <source>Author:</source>
-        <translation>Autor:</translation>
-    </message>
-    <message>
-        <source>The name shown on new annotations. Without it, they have no author.</source>
-        <translation>Imię widoczne na nowych uwagach. Bez niego uwagi nie mają autora.</translation>
-    </message>
-    <message>
-        <source>Marks in the Text</source>
-        <translation>Znaczniki w tekście</translation>
-    </message>
-    <message>
-        <source> %</source>
-        <translation> %</translation>
-    </message>
-    <message>
-        <source>Size of the marks of comments, to-dos and notes in the text (100% suits the text&apos;s font)</source>
-        <translation>Wielkość znaczników komentarzy, uwag do zrobienia i notatek w tekście (100% – dopasowana do czcionki tekstu)</translation>
-    </message>
-    <message>
-        <source>Mark Size:</source>
-        <translation>Wielkość znaczników:</translation>
     </message>
 </context>
 <context>
@@ -1904,35 +2027,6 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>%1 (not available yet)</source>
         <translation>%1 (jeszcze niedostępne)</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::CommentsPanel</name>
-    <message>
-        <source>No comments in document</source>
-        <translation>Brak komentarzy w dokumencie</translation>
-    </message>
-    <message>
-        <source>Edit</source>
-        <translation>Edytuj</translation>
-    </message>
-    <message>
-        <source>Edit selected comment</source>
-        <translation>Edytuj zaznaczony komentarz</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Delete selected comment</source>
-        <translation>Usuń zaznaczony komentarz</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot;
-on: &quot;%2&quot;</source>
-        <translation>„%1”
-do: „%2”</translation>
     </message>
 </context>
 <context>
@@ -2003,18 +2097,6 @@ do: „%2”</translation>
     <message>
         <source>KEYBOARD SHORTCUTS</source>
         <translation>SKRÓTY KLAWISZOWE</translation>
-    </message>
-    <message>
-        <source>New Book</source>
-        <translation>Nowa książka</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Otwórz</translation>
-    </message>
-    <message>
-        <source>New Chapter</source>
-        <translation>Nowy rozdział</translation>
     </message>
     <message>
         <source>Kalahari News</source>
@@ -2838,10 +2920,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Przewijanie jak w maszynie do pisania</translation>
     </message>
     <message>
-        <source>View &gt; Typewriter Scrolling (Ctrl+3) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
-        <translation>Widok &gt; Przewijanie jak w maszynie do pisania (Ctrl+3) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
-    </message>
-    <message>
         <source> % from the top</source>
         <translation> % od góry</translation>
     </message>
@@ -2860,6 +2938,14 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Glide to the next line instead of jumping</source>
         <translation>Płynne przejście do następnego wiersza zamiast skoku</translation>
+    </message>
+    <message>
+        <source>View &gt; Typewriter Scrolling keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
+        <translation>Widok &gt; Przewijanie jak w maszynie do pisania utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>View &gt; Typewriter Scrolling (%1) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
+        <translation>Widok &gt; Przewijanie jak w maszynie do pisania (%1) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
     </message>
 </context>
 <context>
@@ -3309,10 +3395,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
-    </message>
-    <message>
-        <source>Press Esc to leave Distraction-Free</source>
-        <translation>Naciśnij Esc, aby wyjść z trybu bez rozpraszania</translation>
     </message>
     <message>
         <source>About Qt</source>
@@ -3981,6 +4063,21 @@ Tej operacji nie można cofnąć.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::RecentBooksMenu</name>
+    <message>
+        <source>Recent Books</source>
+        <translation>Ostatnie książki</translation>
+    </message>
+    <message>
+        <source>No Recent Files</source>
+        <translation>Brak ostatnich plików</translation>
+    </message>
+    <message>
+        <source>Clear Recent Files</source>
+        <translation>Wyczyść listę ostatnich plików</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::SearchPanel</name>
     <message>
         <source>Search... (placeholder)</source>
@@ -4185,6 +4282,10 @@ Tej operacji nie można cofnąć.</translation>
         <source>Choose a group on the left; Apply and OK save only the options you changed.</source>
         <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
     </message>
+    <message>
+        <source>Keyboard Shortcuts</source>
+        <translation>Skróty klawiszowe</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -4195,6 +4296,992 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ShortcutRules</name>
+    <message>
+        <source>Character left / right</source>
+        <translation>Znak w lewo / w prawo</translation>
+    </message>
+    <message>
+        <source>Word left / right</source>
+        <translation>Wyraz w lewo / w prawo</translation>
+    </message>
+    <message>
+        <source>Line up / down</source>
+        <translation>Wiersz w górę / w dół</translation>
+    </message>
+    <message>
+        <source>Start / end of the paragraph</source>
+        <translation>Początek / koniec akapitu</translation>
+    </message>
+    <message>
+        <source>Start of the paragraph / next paragraph</source>
+        <translation>Początek akapitu / następny akapit</translation>
+    </message>
+    <message>
+        <source>Start / end of the line</source>
+        <translation>Początek / koniec wiersza</translation>
+    </message>
+    <message>
+        <source>Start / end of the text</source>
+        <translation>Początek / koniec tekstu</translation>
+    </message>
+    <message>
+        <source>Screen up / down</source>
+        <translation>Ekran w górę / w dół</translation>
+    </message>
+    <message>
+        <source>Scrolling without the cursor</source>
+        <translation>Przewijanie bez przesuwania kursora</translation>
+    </message>
+    <message>
+        <source>Delete the character before / after the cursor</source>
+        <translation>Usuń znak przed / za kursorem</translation>
+    </message>
+    <message>
+        <source>Delete the word before / after the cursor</source>
+        <translation>Usuń wyraz przed / za kursorem</translation>
+    </message>
+    <message>
+        <source>Delete to the start of the line</source>
+        <translation>Usuń do początku wiersza</translation>
+    </message>
+    <message>
+        <source>Delete the diacritic</source>
+        <translation>Usuń znak diakrytyczny</translation>
+    </message>
+    <message>
+        <source>Cut to the end of the paragraph / paste what was cut</source>
+        <translation>Wytnij do końca akapitu / wklej wycięty tekst</translation>
+    </message>
+    <message>
+        <source>Swap the characters around the cursor</source>
+        <translation>Zamień miejscami znaki przy kursorze</translation>
+    </message>
+    <message>
+        <source>New paragraph</source>
+        <translation>Nowy akapit</translation>
+    </message>
+    <message>
+        <source>New paragraph after the cursor</source>
+        <translation>Nowy akapit za kursorem</translation>
+    </message>
+    <message>
+        <source>Undo (second shortcut)</source>
+        <translation>Cofnij (drugi skrót)</translation>
+    </message>
+    <message>
+        <source>Redo (second shortcut)</source>
+        <translation>Ponów (drugi skrót)</translation>
+    </message>
+    <message>
+        <source>Cut, copy, paste (second shortcuts)</source>
+        <translation>Wytnij, kopiuj, wklej (drugie skróty)</translation>
+    </message>
+    <message>
+        <source>Context menu</source>
+        <translation>Menu podręczne</translation>
+    </message>
+    <message>
+        <source>Next / previous tab</source>
+        <translation>Następna / poprzednia karta</translation>
+    </message>
+    <message>
+        <source>Next / previous match</source>
+        <translation>Następne / poprzednie wystąpienie</translation>
+    </message>
+    <message>
+        <source>Replace (in the replace field)</source>
+        <translation>Zamień (w polu zamiany)</translation>
+    </message>
+    <message>
+        <source>Match case</source>
+        <translation>Uwzględniaj wielkość liter</translation>
+    </message>
+    <message>
+        <source>Whole words</source>
+        <translation>Tylko całe wyrazy</translation>
+    </message>
+    <message>
+        <source>Regular expression</source>
+        <translation>Wyrażenie regularne</translation>
+    </message>
+    <message>
+        <source>Close the bar</source>
+        <translation>Zamknij pasek</translation>
+    </message>
+    <message>
+        <source>Keep the text</source>
+        <translation>Zachowaj tekst</translation>
+    </message>
+    <message>
+        <source>Choose an annotation</source>
+        <translation>Wybór uwagi</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Edytuj</translation>
+    </message>
+    <message>
+        <source>Delete the annotation</source>
+        <translation>Usuń uwagę</translation>
+    </message>
+    <message>
+        <source>The annotation&apos;s menu</source>
+        <translation>Menu uwagi</translation>
+    </message>
+    <message>
+        <source>Back to the text</source>
+        <translation>Powrót do tekstu</translation>
+    </message>
+    <message>
+        <source>%1 switches the windows of the system: it does not reach the program.</source>
+        <translation>%1 przełącza okna systemu – nie dotrze do programu.</translation>
+    </message>
+    <message>
+        <source>Close the window (also the Exit command)</source>
+        <translation>Zamknij okno (także polecenie Zakończ)</translation>
+    </message>
+    <message>
+        <source>%1 closes the window in Windows, so only the Exit command can have it.</source>
+        <translation>%1 zamyka okno w systemie Windows, więc może go mieć tylko polecenie Zakończ.</translation>
+    </message>
+    <message>
+        <source>Switch windows</source>
+        <translation>Przełącz okno</translation>
+    </message>
+    <message>
+        <source>Window menu</source>
+        <translation>Menu okna</translation>
+    </message>
+    <message>
+        <source>%1 opens the window menu of the system.</source>
+        <translation>%1 otwiera menu okna systemu.</translation>
+    </message>
+    <message>
+        <source>Start menu</source>
+        <translation>Menu Start</translation>
+    </message>
+    <message>
+        <source>%1 opens the Start menu.</source>
+        <translation>%1 otwiera menu Start.</translation>
+    </message>
+    <message>
+        <source>Task Manager</source>
+        <translation>Menedżer zadań</translation>
+    </message>
+    <message>
+        <source>%1 opens the Task Manager.</source>
+        <translation>%1 otwiera Menedżera zadań.</translation>
+    </message>
+    <message>
+        <source>Windows key</source>
+        <translation>Klawisz Windows</translation>
+    </message>
+    <message>
+        <source>Win+…</source>
+        <translation>Win+…</translation>
+    </message>
+    <message>
+        <source>Polish letters (AltGr)</source>
+        <translation>Polskie litery (AltGr)</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+…</source>
+        <translation>Ctrl+Alt+…</translation>
+    </message>
+    <message>
+        <source>Screenshot</source>
+        <translation>Zrzut ekranu</translation>
+    </message>
+    <message>
+        <source>%1 takes a screenshot in the system.</source>
+        <translation>%1 robi zrzut ekranu w systemie.</translation>
+    </message>
+    <message>
+        <source>Field by field</source>
+        <translation>Pole po polu</translation>
+    </message>
+    <message>
+        <source>%1 closes the window on the Linux desktops, so only the Exit command can have it.</source>
+        <translation>%1 zamyka okno na pulpitach Linuksa, więc może go mieć tylko polecenie Zakończ.</translation>
+    </message>
+    <message>
+        <source>%1 opens the window menu of the desktop.</source>
+        <translation>%1 otwiera menu okna pulpitu.</translation>
+    </message>
+    <message>
+        <source>Super key</source>
+        <translation>Klawisz Super</translation>
+    </message>
+    <message>
+        <source>Super+…</source>
+        <translation>Super+…</translation>
+    </message>
+    <message>
+        <source>Desktop keys (Ctrl+Alt)</source>
+        <translation>Klawisze pulpitu (Ctrl+Alt)</translation>
+    </message>
+    <message>
+        <source>%1 takes a screenshot on the desktop.</source>
+        <translation>%1 robi zrzut ekranu na pulpicie.</translation>
+    </message>
+    <message>
+        <source>Quit (also the Exit command)</source>
+        <translation>Zakończ program (także polecenie Zakończ)</translation>
+    </message>
+    <message>
+        <source>%1 quits programs in macOS, so only the Exit command can have it.</source>
+        <translation>%1 kończy programy w systemie macOS, więc może go mieć tylko polecenie Zakończ.</translation>
+    </message>
+    <message>
+        <source>Switch programs</source>
+        <translation>Przełącz program</translation>
+    </message>
+    <message>
+        <source>Hide Kalahari / the other programs</source>
+        <translation>Ukryj Kalahari / inne programy</translation>
+    </message>
+    <message>
+        <source>%1 hides programs in macOS.</source>
+        <translation>%1 ukrywa programy w systemie macOS.</translation>
+    </message>
+    <message>
+        <source>Force Quit</source>
+        <translation>Wymuś koniec</translation>
+    </message>
+    <message>
+        <source>%1 opens Force Quit Applications.</source>
+        <translation>%1 otwiera okno „Wymuś koniec aplikacji”.</translation>
+    </message>
+    <message>
+        <source>Spotlight and input sources</source>
+        <translation>Spotlight i źródła wprowadzania</translation>
+    </message>
+    <message>
+        <source>%1 opens Spotlight or switches the input source.</source>
+        <translation>%1 otwiera Spotlight albo przełącza źródło wprowadzania.</translation>
+    </message>
+    <message>
+        <source>Mission Control and Spaces</source>
+        <translation>Mission Control i biurka</translation>
+    </message>
+    <message>
+        <source>%1 belongs to Mission Control: it does not reach the program.</source>
+        <translation>%1 należy do Mission Control – nie dotrze do programu.</translation>
+    </message>
+    <message>
+        <source>Keyboard navigation</source>
+        <translation>Nawigacja klawiaturą</translation>
+    </message>
+    <message>
+        <source>%1 moves the keys to the menu bar, the Dock or the windows of macOS.</source>
+        <translation>%1 przenosi klawiaturę na pasek menu, do Docka albo do okien systemu macOS.</translation>
+    </message>
+    <message>
+        <source>Screenshots</source>
+        <translation>Zrzuty ekranu</translation>
+    </message>
+    <message>
+        <source>%1 takes a screenshot in macOS.</source>
+        <translation>%1 robi zrzut ekranu w systemie macOS.</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Ustawienia</translation>
+    </message>
+    <message>
+        <source>%1 opens the settings of programs in macOS, so only the Settings command can have it.</source>
+        <translation>%1 otwiera ustawienia programów w systemie macOS, więc może go mieć tylko polecenie Ustawienia.</translation>
+    </message>
+    <message>
+        <source>%1 types text. Add ⌘ or ⌃ to it, or choose one of the keys F1–F12.</source>
+        <translation>%1 wpisuje tekst. Dodaj ⌘ albo ⌃ albo wybierz klawisz F1–F12.</translation>
+    </message>
+    <message>
+        <source>%1 types text. Add Ctrl or Alt to it, or choose one of the keys F1–F12.</source>
+        <translation>%1 wpisuje tekst. Dodaj Ctrl albo Alt albo wybierz klawisz F1–F12.</translation>
+    </message>
+    <message>
+        <source>In KDE and Xfce %1 switches the desktops, so there it may not reach the program.</source>
+        <translation>W KDE i Xfce %1 przełącza pulpity, więc tam może nie docierać do programu.</translation>
+    </message>
+    <message>
+        <source>The Linux desktops use %1 for their menus and windows, so there it may not reach the program.</source>
+        <translation>Pulpity Linuksa używają %1 do swoich menu i okien, więc tam może nie docierać do programu.</translation>
+    </message>
+    <message>
+        <source>%1 shows the desktop in macOS, so it may not reach the program.</source>
+        <translation>%1 pokazuje biurko w systemie macOS, więc może nie docierać do programu.</translation>
+    </message>
+    <message>
+        <source>Win</source>
+        <translation>Win</translation>
+    </message>
+    <message>
+        <source>Super</source>
+        <translation>Super</translation>
+    </message>
+    <message>
+        <source>Fixed: in the text</source>
+        <translation>Stałe: w tekście</translation>
+    </message>
+    <message>
+        <source>Selecting: Shift with the keys above</source>
+        <translation>Zaznaczanie: Shift z powyższymi klawiszami</translation>
+    </message>
+    <message>
+        <source>Fixed: tabs</source>
+        <translation>Stałe: karty</translation>
+    </message>
+    <message>
+        <source>%1 goes to the next tab.</source>
+        <translation>%1 przechodzi do następnej karty.</translation>
+    </message>
+    <message>
+        <source>%1 goes back to the previous tab.</source>
+        <translation>%1 wraca do poprzedniej karty.</translation>
+    </message>
+    <message>
+        <source>%1 closes the windows, the find bar and the annotation frame.</source>
+        <translation>%1 zamyka okna, pasek wyszukiwania i ramkę uwagi.</translation>
+    </message>
+    <message>
+        <source>Fixed: the find bar</source>
+        <translation>Stałe: pasek wyszukiwania</translation>
+    </message>
+    <message>
+        <source>In the find bar %1 goes to the next match.</source>
+        <translation>Na pasku wyszukiwania %1 przechodzi do następnego wystąpienia.</translation>
+    </message>
+    <message>
+        <source>In the find bar %1 goes to the previous match.</source>
+        <translation>Na pasku wyszukiwania %1 przechodzi do poprzedniego wystąpienia.</translation>
+    </message>
+    <message>
+        <source>In the replace field %1 replaces the match.</source>
+        <translation>W polu zamiany %1 zamienia wystąpienie.</translation>
+    </message>
+    <message>
+        <source>In the find bar %1 turns on “%2”.</source>
+        <translation>Na pasku wyszukiwania %1 włącza „%2”.</translation>
+    </message>
+    <message>
+        <source>Fixed: the annotation frame</source>
+        <translation>Stałe: ramka uwagi</translation>
+    </message>
+    <message>
+        <source>In the annotation frame %1 keeps the text.</source>
+        <translation>W ramce uwagi %1 zachowuje tekst.</translation>
+    </message>
+    <message>
+        <source>Discard</source>
+        <translation>Odrzuć</translation>
+    </message>
+    <message>
+        <source>Fixed: the Annotations panel</source>
+        <translation>Stałe: panel uwag</translation>
+    </message>
+    <message>
+        <source>Done / resolved</source>
+        <translation>Zrobione / rozwiązane</translation>
+    </message>
+    <message>
+        <source>Fixed: Distraction-Free</source>
+        <translation>Stałe: bez rozpraszania</translation>
+    </message>
+    <message>
+        <source>Exit</source>
+        <translation>Wyjście</translation>
+    </message>
+    <message>
+        <source>%1 goes to the next field.</source>
+        <translation>%1 przechodzi do następnego pola.</translation>
+    </message>
+    <message>
+        <source>%1 goes back to the previous field.</source>
+        <translation>%1 wraca do poprzedniego pola.</translation>
+    </message>
+    <message>
+        <source>a fixed key</source>
+        <translation>klawisz stały</translation>
+    </message>
+    <message>
+        <source>Fixed: the Windows system</source>
+        <translation>Stałe: System Windows</translation>
+    </message>
+    <message>
+        <source>%1: the Windows key belongs to the system: the program will not get it.</source>
+        <translation>%1: klawisz Windows należy do systemu – program go nie dostanie.</translation>
+    </message>
+    <message>
+        <source>the Windows key</source>
+        <translation>klawisz Windows</translation>
+    </message>
+    <message>
+        <source>In Windows Ctrl+Alt is the AltGr key, with which ą, ć, ę… are typed. A shortcut with Ctrl+Alt would type a letter or not work. Choose a shortcut without Ctrl+Alt.</source>
+        <translation>Ctrl+Alt to w systemie Windows klawisz AltGr, którym pisze się ą, ć, ę… Skrót z Ctrl+Alt wpisywałby literę albo nie działał. Wybierz skrót bez Ctrl+Alt.</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt is AltGr</source>
+        <translation>Ctrl+Alt to AltGr</translation>
+    </message>
+    <message>
+        <source>Fixed: the Linux desktop</source>
+        <translation>Stałe: pulpit Linuksa</translation>
+    </message>
+    <message>
+        <source>%1: the Super key belongs to the desktop: the program will not get it.</source>
+        <translation>%1: klawisz Super należy do pulpitu – program go nie dostanie.</translation>
+    </message>
+    <message>
+        <source>the Super key</source>
+        <translation>klawisz Super</translation>
+    </message>
+    <message>
+        <source>The Linux desktops take keys with Ctrl+Alt for themselves (the terminal, the workspaces, the consoles), and in Windows Ctrl+Alt is the AltGr key, with which ą, ć, ę… are typed. Choose a shortcut without Ctrl+Alt.</source>
+        <translation>Pulpity Linuksa zajmują klawisze z Ctrl+Alt (terminal, obszary robocze, konsole), a w systemie Windows Ctrl+Alt to klawisz AltGr, którym pisze się ą, ć, ę… Wybierz skrót bez Ctrl+Alt.</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt belongs to the desktop</source>
+        <translation>Ctrl+Alt należy do pulpitu</translation>
+    </message>
+    <message>
+        <source>Fixed: the macOS system</source>
+        <translation>Stałe: System macOS</translation>
+    </message>
+    <message>
+        <source>%1 switches the programs of the system: it does not reach the program.</source>
+        <translation>%1 przełącza programy systemu – nie dotrze do programu.</translation>
+    </message>
+    <message>
+        <source>extends the selection by a character</source>
+        <translation>rozszerza zaznaczenie o znak</translation>
+    </message>
+    <message>
+        <source>moves the cursor by a character</source>
+        <translation>przesuwa kursor o znak</translation>
+    </message>
+    <message>
+        <source>extends the selection by a word</source>
+        <translation>rozszerza zaznaczenie o wyraz</translation>
+    </message>
+    <message>
+        <source>moves the cursor by a word</source>
+        <translation>przesuwa kursor o wyraz</translation>
+    </message>
+    <message>
+        <source>extends the selection to the start of the word</source>
+        <translation>rozszerza zaznaczenie do początku wyrazu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the start of the word</source>
+        <translation>przesuwa kursor na początek wyrazu</translation>
+    </message>
+    <message>
+        <source>extends the selection to the end of the word</source>
+        <translation>rozszerza zaznaczenie do końca wyrazu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the end of the word</source>
+        <translation>przesuwa kursor na koniec wyrazu</translation>
+    </message>
+    <message>
+        <source>extends the selection by a line</source>
+        <translation>rozszerza zaznaczenie o wiersz</translation>
+    </message>
+    <message>
+        <source>moves the cursor by a line</source>
+        <translation>przesuwa kursor o wiersz</translation>
+    </message>
+    <message>
+        <source>extends the selection to the start of the line</source>
+        <translation>rozszerza zaznaczenie do początku wiersza</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the start of the line</source>
+        <translation>przesuwa kursor na początek wiersza</translation>
+    </message>
+    <message>
+        <source>extends the selection to the end of the line</source>
+        <translation>rozszerza zaznaczenie do końca wiersza</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the end of the line</source>
+        <translation>przesuwa kursor na koniec wiersza</translation>
+    </message>
+    <message>
+        <source>extends the selection to the start of the paragraph</source>
+        <translation>rozszerza zaznaczenie do początku akapitu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the start of the paragraph</source>
+        <translation>przesuwa kursor do początku akapitu</translation>
+    </message>
+    <message>
+        <source>extends the selection to the next paragraph</source>
+        <translation>rozszerza zaznaczenie do następnego akapitu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the next paragraph</source>
+        <translation>przesuwa kursor do następnego akapitu</translation>
+    </message>
+    <message>
+        <source>extends the selection to the end of the paragraph</source>
+        <translation>rozszerza zaznaczenie do końca akapitu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the end of the paragraph</source>
+        <translation>przesuwa kursor do końca akapitu</translation>
+    </message>
+    <message>
+        <source>extends the selection to the start of the text</source>
+        <translation>rozszerza zaznaczenie do początku tekstu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the start of the text</source>
+        <translation>przesuwa kursor na początek tekstu</translation>
+    </message>
+    <message>
+        <source>extends the selection to the end of the text</source>
+        <translation>rozszerza zaznaczenie do końca tekstu</translation>
+    </message>
+    <message>
+        <source>moves the cursor to the end of the text</source>
+        <translation>przesuwa kursor na koniec tekstu</translation>
+    </message>
+    <message>
+        <source>extends the selection by a screen</source>
+        <translation>rozszerza zaznaczenie o ekran</translation>
+    </message>
+    <message>
+        <source>scrolls the text by a screen</source>
+        <translation>przewija tekst o ekran</translation>
+    </message>
+    <message>
+        <source>scrolls the text by a screen without moving the cursor</source>
+        <translation>przewija tekst o ekran bez przesuwania kursora</translation>
+    </message>
+    <message>
+        <source>scrolls the text to the start without moving the cursor</source>
+        <translation>przewija tekst na początek bez przesuwania kursora</translation>
+    </message>
+    <message>
+        <source>scrolls the text to the end without moving the cursor</source>
+        <translation>przewija tekst na koniec bez przesuwania kursora</translation>
+    </message>
+    <message>
+        <source>scrolls the text so that the cursor is in the middle</source>
+        <translation>przewija tekst tak, aby kursor był pośrodku</translation>
+    </message>
+    <message>
+        <source>deletes the character before the cursor</source>
+        <translation>usuwa znak przed kursorem</translation>
+    </message>
+    <message>
+        <source>deletes the character after the cursor</source>
+        <translation>usuwa znak za kursorem</translation>
+    </message>
+    <message>
+        <source>deletes the diacritic of the letter before the cursor</source>
+        <translation>usuwa znak diakrytyczny litery przed kursorem</translation>
+    </message>
+    <message>
+        <source>deletes the word before the cursor</source>
+        <translation>usuwa wyraz przed kursorem</translation>
+    </message>
+    <message>
+        <source>deletes the word after the cursor</source>
+        <translation>usuwa wyraz za kursorem</translation>
+    </message>
+    <message>
+        <source>deletes the text to the start of the word</source>
+        <translation>usuwa tekst do początku wyrazu</translation>
+    </message>
+    <message>
+        <source>deletes the text to the end of the word</source>
+        <translation>usuwa tekst do końca wyrazu</translation>
+    </message>
+    <message>
+        <source>deletes the text to the start of the line</source>
+        <translation>usuwa tekst do początku wiersza</translation>
+    </message>
+    <message>
+        <source>cuts the text to the end of the paragraph</source>
+        <translation>wycina tekst do końca akapitu</translation>
+    </message>
+    <message>
+        <source>starts a new paragraph</source>
+        <translation>zaczyna nowy akapit</translation>
+    </message>
+    <message>
+        <source>starts a new paragraph after the cursor</source>
+        <translation>zaczyna nowy akapit za kursorem</translation>
+    </message>
+    <message>
+        <source>swaps the characters around the cursor</source>
+        <translation>zamienia miejscami znaki przy kursorze</translation>
+    </message>
+    <message>
+        <source>pastes the text cut last</source>
+        <translation>wkleja ostatnio wycięty tekst</translation>
+    </message>
+    <message>
+        <source>undoes (the second shortcut of Undo)</source>
+        <translation>cofa (drugi skrót Cofnij)</translation>
+    </message>
+    <message>
+        <source>redoes (the second shortcut of Redo)</source>
+        <translation>ponawia (drugi skrót Ponów)</translation>
+    </message>
+    <message>
+        <source>cuts (the second shortcut of Cut)</source>
+        <translation>wycina (drugi skrót Wytnij)</translation>
+    </message>
+    <message>
+        <source>copies (the second shortcut of Copy)</source>
+        <translation>kopiuje (drugi skrót Kopiuj)</translation>
+    </message>
+    <message>
+        <source>pastes (the second shortcut of Paste)</source>
+        <translation>wkleja (drugi skrót Wklej)</translation>
+    </message>
+    <message>
+        <source>opens the context menu</source>
+        <translation>otwiera menu podręczne</translation>
+    </message>
+    <message>
+        <source>In the text %1 %2.</source>
+        <translation>W tekście %1 %2.</translation>
+    </message>
+    <message>
+        <source>It is a fixed key: choose another shortcut.</source>
+        <translation>To klawisz stały – wybierz inny skrót.</translation>
+    </message>
+    <message>
+        <source>In Xfce %1 switches the desktops, so there it may not reach the program.</source>
+        <translation>W Xfce %1 przełącza pulpity, więc tam może nie docierać do programu.</translation>
+    </message>
+    <message>
+        <source>types text</source>
+        <translation>wpisuje tekst</translation>
+    </message>
+    <message>
+        <source>a key of the system</source>
+        <translation>klawisz systemu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ShortcutsPage</name>
+    <message>
+        <source>&amp;Search:</source>
+        <translation>&amp;Szukaj:</translation>
+    </message>
+    <message>
+        <source>Press a shortcut to see what it does</source>
+        <translation>Naciśnij skrót, aby zobaczyć, co robi</translation>
+    </message>
+    <message>
+        <source>&amp;Only Changed</source>
+        <translation>&amp;Tylko zmienione</translation>
+    </message>
+    <message>
+        <source>Show only the shortcuts you changed</source>
+        <translation>Pokaż tylko zmienione skróty</translation>
+    </message>
+    <message>
+        <source>Command</source>
+        <translation>Polecenie</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>Commands and their shortcuts</source>
+        <translation>Polecenia i ich skróty</translation>
+    </message>
+    <message>
+        <source>Shortcut:</source>
+        <translation>Skrót:</translation>
+    </message>
+    <message>
+        <source>&amp;Change...</source>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>Press the new shortcut of the command</source>
+        <translation>Naciśnij nowy skrót polecenia</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Leave the command without a shortcut</source>
+        <translation>Pozostaw polecenie bez skrótu</translation>
+    </message>
+    <message>
+        <source>Restore &amp;Default</source>
+        <translation>Przywróć &amp;domyślny</translation>
+    </message>
+    <message>
+        <source>Give the command its default shortcut</source>
+        <translation>Przywróć poleceniu domyślny skrót</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Restore &amp;All Defaults</source>
+        <translation>Przywróć &amp;wszystkie domyślne</translation>
+    </message>
+    <message>
+        <source>Give every command its default shortcut</source>
+        <translation>Przywróć wszystkim poleceniom domyślne skróty</translation>
+    </message>
+    <message>
+        <source>&amp;Import...</source>
+        <translation>&amp;Importuj...</translation>
+    </message>
+    <message>
+        <source>Read shortcuts from a file in place of your changes</source>
+        <translation>Wczytaj skróty z pliku w miejsce Twoich zmian</translation>
+    </message>
+    <message>
+        <source>&amp;Export...</source>
+        <translation>&amp;Eksportuj...</translation>
+    </message>
+    <message>
+        <source>Save your changed shortcuts to a file, e.g. for another computer</source>
+        <translation>Zapisz zmienione skróty w pliku, np. dla innego komputera</translation>
+    </message>
+    <message>
+        <source>Assi&amp;gn Anyway</source>
+        <translation>&amp;Przypisz mimo to</translation>
+    </message>
+    <message>
+        <source>The shortcuts could not be saved to %1: %2</source>
+        <translation>Nie udało się zapisać skrótów w pliku %1: %2</translation>
+    </message>
+    <message>
+        <source>%1 is not a file of Kalahari keyboard shortcuts.</source>
+        <translation>%1 nie jest plikiem skrótów klawiszowych Kalahari.</translation>
+    </message>
+    <message>
+        <source>%1 could not be read: %2</source>
+        <translation>Nie udało się odczytać pliku %1: %2</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>Default: %1</source>
+        <translation>Domyślnie: %1</translation>
+    </message>
+    <message>
+        <source>%1, changed</source>
+        <translation>%1, zmieniony</translation>
+    </message>
+    <message>
+        <source>No changed shortcut matches the search.</source>
+        <translation>Żaden zmieniony skrót nie pasuje do wyszukiwania.</translation>
+    </message>
+    <message>
+        <source>You have not changed any shortcut.</source>
+        <translation>Nie zmieniono żadnego skrótu.</translation>
+    </message>
+    <message>
+        <source>No command has %1.</source>
+        <translation>%1 nie ma żadne polecenie.</translation>
+    </message>
+    <message>
+        <source>No command has %1: the shortcut is free.</source>
+        <translation>%1 nie ma żadne polecenie – skrót jest wolny.</translation>
+    </message>
+    <message>
+        <source>Nothing matches the search.</source>
+        <translation>Nic nie pasuje do szukanego tekstu.</translation>
+    </message>
+    <message>
+        <source>No shortcut</source>
+        <translation>Bez skrótu</translation>
+    </message>
+    <message>
+        <source>Default: no shortcut.</source>
+        <translation>Domyślnie: bez skrótu.</translation>
+    </message>
+    <message>
+        <source>Default: %1 (now the shortcut of %2).</source>
+        <translation>Domyślnie: %1 (teraz skrót polecenia %2).</translation>
+    </message>
+    <message>
+        <source>Default: %1.</source>
+        <translation>Domyślnie: %1.</translation>
+    </message>
+    <message>
+        <source>Choose a command of the menu to see or change its shortcut.</source>
+        <translation>Wybierz polecenie z menu, aby zobaczyć lub zmienić jego skrót.</translation>
+    </message>
+    <message>
+        <source>These keys work only while the list of the panel is active, so a command may have them as well.</source>
+        <translation>Te klawisze działają tylko wtedy, gdy aktywna jest lista panelu, więc polecenie też może je mieć.</translation>
+    </message>
+    <message>
+        <source>Restore A&amp;nyway</source>
+        <translation>Przywróć &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>kalahari-shortcuts</source>
+        <translation>skroty-kalahari</translation>
+    </message>
+    <message>
+        <source>Export Keyboard Shortcuts</source>
+        <translation>Eksportuj skróty klawiszowe</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts (*.json)</source>
+        <translation>Skróty klawiszowe (*.json)</translation>
+    </message>
+    <message>
+        <source>Import Keyboard Shortcuts</source>
+        <translation>Importuj skróty klawiszowe</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Command name or keys, e.g. %1</source>
+        <translation>Nazwa polecenia albo klawisze, np. %1</translation>
+    </message>
+    <message>
+        <source>Search by &amp;Keys</source>
+        <translation>Szukaj po &amp;klawiszach</translation>
+    </message>
+    <message>
+        <source>in preparation</source>
+        <translation>w przygotowaniu</translation>
+    </message>
+    <message>
+        <source>%1 already belongs to &lt;b&gt;%2&lt;/b&gt;: if you assign it here, that command will be left without a shortcut.</source>
+        <translation>%1 ma już polecenie &lt;b&gt;%2&lt;/b&gt; – jeśli przypiszesz go tutaj, tamto polecenie zostanie bez skrótu.</translation>
+    </message>
+    <message>
+        <source>%1 now has no shortcut.</source>
+        <translation>%1 – teraz bez skrótu.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Saved %n changed shortcut(s) to the file %1.</source>
+        <translation>
+            <numerusform>Zapisano %n zmieniony skrót do pliku %1.</numerusform>
+            <numerusform>Zapisano %n zmienione skróty do pliku %1.</numerusform>
+            <numerusform>Zapisano %n zmienionych skrótów do pliku %1.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>“%1” (the keys cannot be read)</source>
+        <translation>„%1” (nie da się odczytać klawiszy)</translation>
+    </message>
+    <message>
+        <source>“%1” (Kalahari has no such command)</source>
+        <translation>„%1” (Kalahari nie ma takiego polecenia)</translation>
+    </message>
+    <message>
+        <source>%1 for “%2” (%3)</source>
+        <translation>%1 dla „%2” (%3)</translation>
+    </message>
+    <message>
+        <source>%1 for “%2” (the file gives it to “%3” too)</source>
+        <translation>%1 dla „%2” (plik daje go też poleceniu „%3”)</translation>
+    </message>
+    <message numerus="yes">
+        <source>Read %n shortcut(s) from the file %1.</source>
+        <translation>
+            <numerusform>Wczytano %n skrót z pliku %1.</numerusform>
+            <numerusform>Wczytano %n skróty z pliku %1.</numerusform>
+            <numerusform>Wczytano %n skrótów z pliku %1.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>and %n more</source>
+        <translation>
+            <numerusform>i jeszcze %n</numerusform>
+            <numerusform>i jeszcze %n</numerusform>
+            <numerusform>i jeszcze %n</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Skipped %n: %1.</source>
+        <translation>
+            <numerusform>Pominięto %n: %1.</numerusform>
+            <numerusform>Pominięto %n: %1.</numerusform>
+            <numerusform>Pominięto %n: %1.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Apply or OK will save the changes.</source>
+        <translation>Zastosuj lub OK zapisze zmiany.</translation>
+    </message>
+    <message>
+        <source>Default: no shortcut</source>
+        <translation>Domyślnie: bez skrótu</translation>
+    </message>
+    <message>
+        <source>The command is not available yet: its shortcut is reserved.</source>
+        <translation>Polecenie jeszcze niedostępne – skrót jest zarezerwowany.</translation>
+    </message>
+    <message>
+        <source>Alt+F4 closes the window also without this shortcut: Windows does it.</source>
+        <translation>Alt+F4 zamyka okno także bez tego skrótu – robi to Windows.</translation>
+    </message>
+    <message>
+        <source>Alt+F4 closes the window also without this shortcut: the desktop does it.</source>
+        <translation>Alt+F4 zamyka okno także bez tego skrótu – robi to pulpit.</translation>
+    </message>
+    <message>
+        <source>A key of the system: the program does not get it or cannot change it.</source>
+        <translation>Klawisz systemu – program go nie dostaje albo nie może go zmienić.</translation>
+    </message>
+    <message>
+        <source>Keys of the system: the program does not get them or cannot change them.</source>
+        <translation>Klawisze systemu – program ich nie dostaje albo nie może ich zmienić.</translation>
+    </message>
+    <message>
+        <source>A fixed key: it works as in other programs and cannot be changed.</source>
+        <translation>Klawisz stały – działa jak w innych programach i nie można go zmienić.</translation>
+    </message>
+    <message>
+        <source>Fixed keys: they work as in other programs and cannot be changed.</source>
+        <translation>Klawisze stałe – działają jak w innych programach i nie można ich zmienić.</translation>
+    </message>
+    <message>
+        <source>The default shortcut %1 now belongs to &lt;b&gt;%2&lt;/b&gt;: if you restore it, that command will be left without a shortcut.</source>
+        <translation>Domyślny skrót %1 ma teraz polecenie &lt;b&gt;%2&lt;/b&gt; – jeśli go przywrócisz, tamto polecenie zostanie bez skrótu.</translation>
+    </message>
+    <message>
+        <source>All the commands already have their default shortcuts.</source>
+        <translation>Wszystkie polecenia mają już domyślne skróty.</translation>
+    </message>
+    <message>
+        <source>All the commands have their default shortcuts again. Apply or OK will save this change, Cancel will discard it.</source>
+        <translation>Wszystkie polecenia mają znów domyślne skróty. Zastosuj lub OK zapisze tę zmianę, Anuluj ją odrzuci.</translation>
+    </message>
+    <message>
+        <source>There are no changed shortcuts: the file would be empty. Change a shortcut, then export it.</source>
+        <translation>Nie ma zmienionych skrótów – plik byłby pusty. Zmień skrót, a potem go wyeksportuj.</translation>
+    </message>
+    <message>
+        <source>Press a shortcut... (Esc – normal search)</source>
+        <translation>Naciśnij skrót... (Esc – zwykłe szukanie)</translation>
+    </message>
+    <message>
+        <source>Press the new shortcut... (Esc – cancel)</source>
+        <translation>Naciśnij nowy skrót... (Esc – anuluj)</translation>
     </message>
 </context>
 <context>

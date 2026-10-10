@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QKeySequence>
 #include <QMessageBox>
 #include <QRegularExpression>
 
@@ -445,7 +446,10 @@ void ToolbarManagerDialog::populateAvailableCommands() {
         QString category = QString::fromStdString(cmd.category);
         QString cmdId = QString::fromStdString(cmd.id);
         QString label = QString::fromStdString(cmd.label);
-        QString shortcut = cmd.shortcut.toString();
+        // As the menus write the keys
+        const QString shortcut = cmd.shortcut.isEmpty()
+            ? QString()
+            : cmd.shortcut.toQKeySequence().toString(QKeySequence::NativeText);
 
         // Create category item if needed
         if (!categoryItems.contains(category)) {

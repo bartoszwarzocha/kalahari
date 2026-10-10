@@ -2,6 +2,7 @@
 /// @brief The frame an annotation's text is written in, at its place in the text
 
 #include "kalahari/gui/panels/annotation_frame.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotation_card.h"
 
 #include <QAbstractTextDocumentLayout>
@@ -52,10 +53,21 @@ bool isCancelKey(const QKeyEvent* event) {
 }
 
 /// @brief A shortcut of the window that works while the frame has the keys: saving, closing
-/// and quitting (what is written is kept before)
+/// and quitting (what is written is kept before), with the program's keys for them
 bool reachesWindow(const QKeyEvent* event) {
-    return event->matches(QKeySequence::Save) || event->matches(QKeySequence::SaveAs) ||
-           event->matches(QKeySequence::Close) || event->matches(QKeySequence::Quit);
+    // As QKeyEvent::matches(): the keypad and the group switch make no difference
+    const Qt::KeyboardModifiers modifiers =
+        event->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
+    const QKeyCombination keys(modifiers, static_cast<Qt::Key>(event->key()));
+    const CommandRegistry& registry = CommandRegistry::getInstance();
+    for (const char* id : {"file.save", "file.saveAs", "file.close", "file.exit"}) {
+        const Command* command = registry.getCommand(id);
+        if (command != nullptr && !command->shortcut.isEmpty() &&
+            command->shortcut.toQKeySequence()[0] == keys) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace

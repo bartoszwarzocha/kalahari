@@ -95,6 +95,7 @@ struct CommandCallbacks {
     // =========================================================================
     // HELP COMMANDS
     // =========================================================================
+    std::function<void()> onKeyboardShortcuts;  ///< Help > Keyboard Shortcuts
     std::function<void()> onAbout;              ///< Help > About Kalahari
 };
 

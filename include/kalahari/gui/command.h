@@ -190,6 +190,9 @@ struct Command {
     // ========================================================================
     KeyboardShortcut shortcut;   ///< Keyboard shortcut
     bool isShortcutCustomizable = true; ///< Allow user to change shortcut
+    std::string unavailableNote; ///< What the list of the shortcuts says after the label while
+                                 ///< the command does not run yet ("not available yet");
+                                 ///< empty: "in preparation"
 
     // ========================================================================
     // Execution Logic

@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -10,14 +11,18 @@
 
 #include <QApplication>
 #include <QElapsedTimer>
+#include <QFont>
 #include <QLabel>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
 #include <QStackedWidget>
+#include <QStyle>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -36,9 +41,10 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     setCompactHeading(true);
     setApplyButtonVisible(true);
     setModal(true);
-    // Tall enough for the longest editor page where the screen allows; a page that does
+    // Tall enough for the longest editor page where the screen allows, wide enough for the
+    // search and the keys of the Keyboard Shortcuts page in one row each; a page that does
     // not fit scrolls
-    QSize size(800, 700);
+    QSize size(840, 700);
     if (const QScreen* screen = this->screen()) {
         size = size.boundedTo(screen->availableGeometry().size() * 0.9);
     }
@@ -58,6 +64,14 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     contentLayout()->addWidget(splitter, 1);
 
     createNavigationTree();
+
+    // The groups as wide as the longest of them, with room for a scroll bar on a low screen:
+    // the pages get the rest
+    m_navTree->resizeColumnToContents(0);
+    const int navWidth =
+        m_navTree->columnWidth(0) + 2 * m_navTree->frameWidth() +
+        m_navTree->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, m_navTree);
+    splitter->setSizes({navWidth, std::max(width() - navWidth, 0)});
 
     connect(m_navTree, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem* current) { showPage(current); });
@@ -108,6 +122,8 @@ void SettingsDialog::createNavigationTree() {
                       "- Location name completion"));
 
     addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
+    m_shortcutsItem =
+        addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
     QTreeWidgetItem* files = category(tr("Files"));
     addPlannedPage(files, tr("Backup"),
@@ -162,18 +178,27 @@ QTreeWidgetItem* SettingsDialog::addPage(QTreeWidgetItem* parent, const QString&
 void SettingsDialog::addPlannedPage(QTreeWidgetItem* parent, const QString& title,
                                     const QString& description) {
     QTreeWidgetItem* item = addPage(parent, title, [title, description]() {
-        const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
         auto* placeholder = new QWidget();
         auto* layout = new QVBoxLayout(placeholder);
+        // The color of the window's text: a font, not a style sheet, so that it follows the
+        // theme (a style sheet keeps the colors of the theme the page was opened in)
         auto* titleLabel = new QLabel(title);
-        titleLabel->setStyleSheet(QStringLiteral("font-size: 18px; font-weight: bold; color: %1;")
-            .arg(theme.palette.windowText.name()));
+        QFont titleFont = titleLabel->font();
+        titleFont.setPixelSize(18);
+        titleFont.setBold(true);
+        titleLabel->setFont(titleFont);
         layout->addWidget(titleLabel);
         auto* descriptionLabel = new QLabel(tr("These settings will be available in a future version.")
                                             + QStringLiteral("\n\n") + description);
         descriptionLabel->setWordWrap(true);
-        descriptionLabel->setStyleSheet(QStringLiteral("color: %1; margin-top: 20px;")
-            .arg(theme.palette.placeholderText.name()));
+        // Muted and readable, as the notes of the pages, also after the theme changes
+        const auto styleDescription = [descriptionLabel]() {
+            descriptionLabel->setStyleSheet(QStringLiteral("color: %1; margin-top: 20px;")
+                                                .arg(SettingsPage::noteColor().name()));
+        };
+        styleDescription();
+        QObject::connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
+                         descriptionLabel, styleDescription);
         layout->addWidget(descriptionLabel);
         layout->addStretch();
         return placeholder;
@@ -228,6 +253,10 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
                                           item->text(0).toStdString(), timer.elapsed());
     }
     m_pageStack->setCurrentWidget(built->second);
+}
+
+void SettingsDialog::showShortcutsPage() {
+    m_navTree->setCurrentItem(m_shortcutsItem);
 }
 
 void SettingsDialog::setLengthUnit(LengthUnit unit) {

@@ -53,7 +53,7 @@ struct TestWindow {
     QAction* save = nullptr;        ///< File > Save, Ctrl+S
     QAction* zoomIn = nullptr;      ///< View > Zoom > Zoom In, Ctrl+=
     QAction* about = nullptr;       ///< Help > About, no shortcut
-    QAction* quit = nullptr;        ///< File > Quit, Ctrl+Q, also the window's own
+    QAction* quit = nullptr;        ///< File > Exit, Alt+F4, also the window's own
     QToolBar* fileBar = nullptr;
     QToolBar* hiddenBar = nullptr;  ///< Hidden before
     QDockWidget* navigator = nullptr;
@@ -72,8 +72,8 @@ struct TestWindow {
         QMenu* file = menuBar->addMenu(QStringLiteral("File"));
         save = file->addAction(QStringLiteral("Save"));
         save->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
-        quit = new QAction(QStringLiteral("Quit"), &window);
-        quit->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Q));
+        quit = new QAction(QStringLiteral("Exit"), &window);
+        quit->setShortcut(QKeySequence(Qt::ALT | Qt::Key_F4));
         file->addAction(quit);
         window.addAction(quit);
         QMenu* zoom = menuBar->addMenu(QStringLiteral("View"))->addMenu(QStringLiteral("Zoom"));
@@ -328,12 +328,23 @@ TEST_CASE("Distraction-Free layout: the menu shortcuts work while the menu bar i
     CHECK(saved == 1);
     CHECK(zoomed == 2);
 
+    // Keys a command gets meanwhile (Settings > Keyboard Shortcuts) work as well
+    int about = 0;
+    QObject::connect(w.about, &QAction::triggered, [&about] { ++about; });
+    w.about->setShortcut(QKeySequence(Qt::Key_F12));
+    layout.updateShortcuts();
+    press(w.text, Qt::Key_F12);
+    CHECK(about == 1);
+
     // Back on the menu bar, a shortcut triggers its command once
     layout.setActive(false);
     press(w.text, Qt::Key_S, Qt::ControlModifier);
     press(w.text, Qt::Key_Equal, Qt::ControlModifier);
+    press(w.text, Qt::Key_F12);
     CHECK(saved == 2);
     CHECK(zoomed == 3);
+    CHECK(about == 2);
+    CHECK_FALSE(w.window.actions().contains(w.about));
 }
 
 TEST_CASE("Distraction-Free layout: the menus show over the text at the top edge",

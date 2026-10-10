@@ -25,6 +25,7 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/editor_render_pipeline.h>  // Phase 12.3: Unified render pipeline
+#include <kalahari/editor/text_keys.h>
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -287,10 +288,12 @@ public:
     /// If at paragraph end, moves to start of next paragraph.
     void moveCursorWordRight();
 
-    /// @brief Move cursor to start of current line (Home)
+    /// @brief Move cursor to the start of its line on the screen (Home)
     void moveCursorToLineStart();
 
-    /// @brief Move cursor to end of current line (End)
+    /// @brief Move cursor to the end of its line on the screen (End)
+    ///
+    /// A line wrapped at a space ends before that space, so the cursor stays on the line.
     void moveCursorToLineEnd();
 
     /// @brief Move cursor to document start (Ctrl+Home)
@@ -312,6 +315,16 @@ public:
     /// page mode both move by one page: the next page shows where this one was, the cursor
     /// on the same line of it.
     void moveCursorPageDown();
+
+    /// @brief Do what a key of the text does (see text_keys.h)
+    ///
+    /// keyPressEvent() calls it for the keys of the system the program runs on; the action
+    /// of any system works on every one.
+    /// @param action What the key does
+    /// @param select A move extends the selection (the key with Shift) instead of dropping
+    ///        it; Left and Right without it take the cursor to the start or the end of the
+    ///        selection
+    void performTextKey(TextKeyAction action, bool select = false);
 
     // =========================================================================
     // Selection (Phase 3.10/3.12)
@@ -983,7 +996,9 @@ protected:
     /// @brief Key press event handler
     /// @param event The key event
     ///
-    /// Handles keyboard navigation (arrow keys, Home, End, Page Up/Down).
+    /// The keys of the text (text_keys.h) for the system the program runs on, and typed
+    /// characters. The shortcuts of the commands never come here: the window's actions take
+    /// them first.
     void keyPressEvent(QKeyEvent* event) override;
 
     /// @brief Mouse press event handler (Phase 3.9/3.11)
@@ -1263,18 +1278,50 @@ private:
     /// @param newCursor The new cursor position
     void extendSelection(const CursorPosition& newCursor);
 
-    /// @brief Move cursor with optional selection extension
-    /// @param extend If true, extend selection rather than clear it
-    void moveCursorLeftWithSelection(bool extend);
-    void moveCursorRightWithSelection(bool extend);
-    void moveCursorUpWithSelection(bool extend);
-    void moveCursorDownWithSelection(bool extend);
-    void moveCursorWordLeftWithSelection(bool extend);
-    void moveCursorWordRightWithSelection(bool extend);
-    void moveCursorToLineStartWithSelection(bool extend);
-    void moveCursorToLineEndWithSelection(bool extend);
-    void moveCursorToDocStartWithSelection(bool extend);
-    void moveCursorToDocEndWithSelection(bool extend);
+    // =========================================================================
+    // The keys of the text (text_keys.h)
+    // =========================================================================
+
+    /// @brief Where a move of the keys of the text by words, lines on the screen or
+    ///        paragraphs takes the cursor from a position (the position itself for any
+    ///        other action)
+    CursorPosition textKeyTarget(TextKeyAction action, const CursorPosition& from) const;
+
+    /// @brief The start of the line on the screen a position is on
+    CursorPosition lineStartOf(const CursorPosition& position) const;
+
+    /// @brief The end of the line on the screen a position is on (before the space a
+    ///        wrapped line breaks at)
+    CursorPosition lineEndOf(const CursorPosition& position) const;
+
+    /// @brief Scroll the view by its height (-1 up, 1 down); the cursor stays
+    void scrollByViewHeight(double direction);
+
+    /// @brief Scroll the cursor's line to the middle of the view
+    void centerCursorInView();
+
+    /// @brief Delete from the cursor to a position, or the selection when there is one
+    ///
+    /// The annotations of the deleted text stay on its place.
+    void deleteTo(const CursorPosition& position);
+
+    /// @brief Delete the last mark of the character before the cursor (é becomes e), or
+    ///        the character when it has none
+    void deleteDiacritic();
+
+    /// @brief Delete to the end of the paragraph, or the paragraph break at its end, and
+    ///        keep the text for yank(); presses in a row keep all they deleted
+    void killToParagraphEnd();
+
+    /// @brief Type the text the last presses of killToParagraphEnd() deleted
+    void yank();
+
+    /// @brief Swap the characters on both sides of the cursor and go past them; at the end
+    ///        of a paragraph swap the two before it
+    void transposeCharacters();
+
+    /// @brief Open the context menu at the cursor, as the menu key does
+    void showContextMenuFromKeyboard();
 
     // =========================================================================
     // Distraction-Free writing
@@ -1351,6 +1398,11 @@ private:
     std::vector<PageMove> m_pageMoves;                      ///< Page Up/Down moves in a row, one way
     double m_pageMovesDirection = 0.0;                      ///< Their way: 1 down, -1 up
     CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position the last of them gave
+
+    // killToParagraphEnd() presses in a row: the cursor and the document's revision the
+    // last of them left
+    CursorPosition m_killCursor{-1, -1};
+    int m_killRevision = -1;
 
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range

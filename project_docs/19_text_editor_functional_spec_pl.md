@@ -321,7 +321,7 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 - Subtelny kursor, minimalistyczna estetyka
 
 **Wejście/Wyjście:**
-- Wejście: F11 lub dedykowany skrót (Ctrl+Shift+F)
+- Wejście: Shift+F11 (Widok > Bez rozpraszania); F11 to pełny ekran
 - Wyjście: Escape (z potwierdzeniem lub bez, konfigurowalne)
 - Przesunięcie kursora do góry ekranu pokazuje minimalne menu (opcjonalnie)
 
@@ -352,7 +352,7 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 **Skróty:**
 - Ctrl+\ lub View → Split Horizontal
 - Ctrl+Shift+\ lub View → Split Vertical
-- Ctrl+W zamyka aktywny panel (jeśli split)
+- Ten sam skrót zamyka podział (Ctrl+W pozostaje wolny: leży obok Ctrl+S i Ctrl+E, więc łatwo nim coś przypadkiem zamknąć)
 
 ---
 
@@ -376,6 +376,13 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 - Zaznaczanie myszą, klawiaturą (Shift+strzałki)
 - Zaznaczanie słów (double-click), akapitów (triple-click)
 - Zaznaczanie prostokątne (Alt+drag) — opcjonalne
+
+**Klawisze tekstu** (Windows i Linux; tabela: `src/editor/text_keys.cpp`; w programie lista w Ustawieniach > Skróty klawiszowe, żadne polecenie nie może ich dostać):
+- Strzałki – znak i wiersz; Ctrl+← i Ctrl+→ – wyraz; Ctrl+↑ – początek akapitu (gdy kursor już tam jest – poprzedniego), Ctrl+↓ – początek następnego akapitu; Home i End – wiersz; Ctrl+Home i Ctrl+End – cały tekst; Page Up i Page Down – ekran. Z Shiftem zaznaczają.
+- Backspace (także Shift+Backspace) i Delete usuwają znak, Ctrl+Backspace i Ctrl+Delete – wyraz; zaznaczenie znika w całości.
+- Enter tworzy nowy akapit; Shift+Enter i Ctrl+Enter na razie również (nowy wiersz w akapicie wymaga podziału wiersza w KML).
+- Drugie skróty pól tekstowych Windows: Ctrl+Shift+Z i Alt+Shift+Backspace – ponów, Alt+Backspace – cofnij, Shift+Delete – wytnij, Ctrl+Insert – kopiuj, Shift+Insert – wklej; Shift+F10 i klawisz menu – menu kontekstowe.
+- macOS: klawisze pól tekstowych systemu (Option+←/→ – wyraz, Cmd+←/→ – wiersz, Option+↑/↓ – akapit, Cmd+↑/↓ – tekst; Home, End, Page Up i Page Down przesuwają tylko widok; klawisze z Control: A, E, K, Y, T, O, L i inne). Pełna lista: `08_gui_design.md`, Keyboard Shortcuts.
 
 **Model pozycjonowania kursora:**
 
@@ -745,7 +752,7 @@ Skrót: **Ctrl+G** otwiera dialog z zakładkami:
 **Cel:** szybkie punkty kontrolne przed dużymi zmianami.
 
 **Tworzenie:**
-- Ręcznie: Ctrl+Shift+S
+- Ręcznie: skrót do ustalenia (Ctrl+Shift+S to Zapisz jako)
 - Automatycznie: przed „Zamień wszystko", przed wklejeniem dużego fragmentu
 
 **Zarządzanie:**
@@ -766,7 +773,7 @@ Skrót: **Ctrl+G** otwiera dialog z zakładkami:
 
 ### 8.7. Zakładki
 
-- Dodaj zakładkę w miejscu kursora (Ctrl+B lub F2)
+- Dodaj zakładkę w miejscu kursora (skrót do ustalenia: Ctrl+B to Pogrubienie, F2 – panel Nawigator)
 - Nazwij zakładkę (opcjonalnie)
 - Szybka nawigacja między zakładkami
 - Lista zakładek w dialogu „Idź do"
@@ -788,7 +795,7 @@ Skrót: **Ctrl+G** otwiera dialog z zakładkami:
 ### 9.1. Komentarze
 
 **Dodawanie:**
-- Zaznacz tekst → Ctrl+Alt+C → wpisz komentarz
+- Zaznacz tekst → Ctrl+Shift+M (Wstaw > Dodaj uwagę) → rodzaj „Komentarz” → wpisz komentarz (nie Ctrl+Alt+C: w Windows to AltGr+C, czyli „ć”)
 - Komentarz jako element `<comment>` w KML
 
 **Wyświetlanie (konfigurowalne):**
@@ -834,7 +841,7 @@ Podobne do komentarzy, ale inna kolorystyka i cel:
 
 ### 9.3. Przypisy dolne (footnotes)
 
-- Wstaw przypis: Ctrl+Alt+F
+- Wstaw przypis: skrót do ustalenia (bez Ctrl+Alt – w Windows to AltGr, którym pisze się polskie litery)
 - Edycja treści przypisu inline (w miejscu wstawienia)
 - Automatyczna numeracja i renumeracja
 - Wyświetlanie: na dole strony (tryb Strona) lub inline (tryb Ciągły)

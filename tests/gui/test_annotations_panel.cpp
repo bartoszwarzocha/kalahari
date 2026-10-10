@@ -26,6 +26,7 @@
 #include <QGuiApplication>
 #include <QHelpEvent>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
@@ -371,6 +372,50 @@ TEST_CASE("Annotations panel: cards of the annotations that pass the filters",
     CHECK(panel.card(note.key()) == nullptr);
 }
 
+TEST_CASE("Annotations panel: the hint of a chapter without annotations has the keys of Add "
+          "Annotation",
+          "[gui][annotations]") {
+    // The keys come from the command: written in the panel a second time, they could drift
+    // apart from it, as the Dashboard's did
+    const auto hintOf = [](const AnnotationsPanel& panel) {
+        for (const QLabel* label : panel.findChildren<QLabel*>()) {
+            if (label->text().startsWith(QStringLiteral("This chapter has no annotations."))) {
+                return label->text();
+            }
+        }
+        return QString();
+    };
+
+    SECTION("The command's keys") {
+        registerAllCommands(CommandCallbacks{});
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        REQUIRE(add != nullptr);
+        const QString keys = add->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+        CHECK(hintOf(panel).contains(QStringLiteral(" with %1 or ").arg(keys)));
+
+        // The keys the user gives the command (Settings > Keyboard Shortcuts)
+        const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
+        CommandRegistry::getInstance().setCustomShortcuts({{"insert.annotation", userKeys}});
+        CHECK(hintOf(panel).contains(
+            QStringLiteral(" with %1 or ")
+                .arg(userKeys.toQKeySequence().toString(QKeySequence::NativeText))));
+        CommandRegistry::getInstance().setCustomShortcuts(
+            {{"insert.annotation", KeyboardShortcut()}});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
+    }
+
+    SECTION("No keys, no mention of them") {
+        CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
+    }
+}
+
 TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][annotations]") {
     // Regression: the author was only in the tooltip of a part of the card, so the user's
     // test did not find it
@@ -621,6 +666,7 @@ TEST_CASE("Annotations frame: Enter starts a new line, Ctrl+Enter and Save keep 
 
 TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting go through",
           "[gui][annotations]") {
+    registerAllCommands(CommandCallbacks{});  // the window's commands and their keys
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
@@ -636,11 +682,17 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK(keepsFromShortcuts(text, Qt::Key_Down, Qt::AltModifier));
     CHECK(keepsFromShortcuts(text, Qt::Key_F9, Qt::NoModifier));
     CHECK(keepsFromShortcuts(save, Qt::Key_F9, Qt::NoModifier));
+
+    // Saving, closing the book and quitting go through, with the program's keys for them,
+    // the same on every system (Qt's standard Close is Ctrl+W on Linux)
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier));
-    for (const QKeySequence& close : QKeySequence::keyBindings(QKeySequence::Close)) {
-        const QKeyCombination combination = close[0];
-        CHECK_FALSE(keepsFromShortcuts(text, combination.key(), combination.keyboardModifiers()));
-    }
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier));
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_F4, Qt::ControlModifier));
+    const Command* exitCommand = CommandRegistry::getInstance().getCommand("file.exit");
+    REQUIRE(exitCommand != nullptr);
+    const QKeyCombination exitKeys = exitCommand->shortcut.toQKeySequence()[0];
+    CHECK_FALSE(keepsFromShortcuts(text, exitKeys.key(), exitKeys.keyboardModifiers()));
+    CHECK(keepsFromShortcuts(text, Qt::Key_W, Qt::ControlModifier));
 
     // A key the frame does not use does not reach the editor under it
     press(text, Qt::Key_B, Qt::ControlModifier);

@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Settings > Keyboard Shortcuts** - 2026-10-10. A page of its own (also Help > Keyboard
+  Shortcuts) where the commands get other keys. The list has the commands in the order of
+  the menus, then the fixed keys of the text, the bars and the panels and the keys of the
+  system, which no command can have; under it, the selected row with its keys and what
+  they do. It searches by name, by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1"
+  finds F1 and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only
+  the changed shortcuts. Every key is checked: keys that type text, fixed keys and the
+  system's are refused with the reason; keys another command has are taken from it only
+  when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
+  Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another
+  computer); everything works from the keyboard. The page fits a 1366 × 768 screen at 125%
+  and 150%: the Settings window is 840 px wide where the screen allows and its list of
+  groups only as wide as the longest of them, the list of commands gives up its rows first,
+  no text is cut, and the page scrolls only when nothing else is left. The menus, the
+  toolbars and every text that names a key follow the new keys at once; the settings keep
+  only the changed ones (`keyboard.shortcuts`).
+
+- **Editor: the keys of word processors** - 2026-10-10. Ctrl+Backspace and Ctrl+Delete
+  delete a word, Ctrl+Up and Ctrl+Down move to the start of the paragraph and the next
+  one, and the second keys of the text fields of Windows work in the text (Alt+Backspace,
+  Shift+Delete, Ctrl+Insert, Shift+Insert, Shift+F10). On macOS the text has the keys of
+  the system's text fields: Option and Cmd with the arrows, Home and End move the view,
+  and the Control keys (Control+A, E, K, Y, T, O, L and others).
+
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
   program's own window, in the look of its other dialogs, in place of the system ones. Copy
@@ -18,6 +42,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The program's messages move to it in the following changes.
 
 ### Changed
+
+- **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
+  out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
+  commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
+  Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
+  Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
+  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it was
+  Ctrl+H on GNOME, Align Right's Ctrl+R on KDE and nothing elsewhere), Full Screen F11,
+  Help F1. Ctrl+W does nothing, so it cannot close the book by mistake.
+  - macOS has its own keys where its system needs them: Exit Cmd+Q, Find & Replace
+    Option+Cmd+F (Cmd+H hides the program), Full Screen Control+Cmd+F (F11 shows the
+    desktop), and the options of the find bar Option+Cmd+C, W and R (Option with a letter
+    types a character there, Option+C is "ć" on the Polish keyboard).
+  - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
+    keys; on Linux, Ctrl+F4 did not reach the window from it.
+  - The Dashboard shows the names and keys of its commands as the menus have them: New
+    Book, Open Book and Open File (it showed Ctrl+N as New Chapter, which is New File). The
+    hint of the Annotations panel and the tooltips of the find bar's options take their keys
+    from the program as well.
+  - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
+    with the arrows moves the cursor by paragraphs there.
+  - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
+    a field Ctrl+Y redoes and Alt+Backspace undoes; Ctrl+E and Ctrl+U center and underline
+    also from a field (Qt went to the end of the line and deleted it there), and Ctrl+D,
+    Ctrl+K, Ctrl+Shift+A and Ctrl+Shift+Insert do nothing in a field (Qt deleted,
+    deselected and pasted with them); Left and Right over a selection move the cursor from
+    where it is; Shift+F10 opens the context menu; Enter on a check box, an option, a
+    drop-down list or a button that is not the default one goes to the window's default
+    button (on GNOME, Xfce and the other GTK desktops it pressed the button or opened the
+    list). On Windows and Linux a read-only text and a selectable label keep Ctrl+C,
+    Ctrl+Insert and Ctrl+A for themselves (in the Log they copied and selected the book's
+    text), and the context menus of the fields always show their keys (Qt left out the keys
+    a command of the window has too).
+  - In Polish the keys have Polish names in the menus, the tooltips and the settings
+    (Strzałka w górę, Spacja, Enter).
+
+- **Dashboard on a small screen** - 2026-10-10. On a 1366 × 768 screen at 125% and 150%,
+  with the side panels open or closed, nothing of the Dashboard is cut off. The hints of
+  the shortcuts go one under another where one row is too narrow for them, with the keys
+  and the commands in two columns, and on the narrowest panel each command goes under its
+  keys. The title, the tagline, the headings, the cards of the recent books (a book's path
+  also inside a name too long for the line) and the text of the check box wrap. The logo
+  is at most 40% of the panel's height and goes above the title on a narrow panel; a
+  narrow card puts the book's icon above its texts. The content takes three quarters of a
+  wide panel, more where it needs it, and only a panel narrower than the longest word
+  scrolls sideways.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
@@ -434,6 +504,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
+  texts of the Settings pages and the descriptions of the planned pages had a contrast of
+  2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
+  least 4.5:1 (WCAG AA), also inside the groups, and a theme applied while the window is
+  open changes them too. The titles of the planned pages kept the color of the theme they
+  were opened in: black on the dark window.
+
+- **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
+  Shortcuts) and the input icon showed as a black square: their invisible frame got the
+  icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
+  the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
+  leave a shape without a fill when its group has `fill="none"`.
 
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)

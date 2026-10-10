@@ -65,9 +65,9 @@ enum class SplitOrientation {
 /// @endcode
 ///
 /// Keyboard shortcuts:
-/// - Ctrl+Backslash: Split horizontally
-/// - Ctrl+Shift+Backslash: Split vertically
-/// - Ctrl+W: Close split (secondary editor)
+/// - Ctrl+Backslash: Split horizontally, or close the split
+/// - Ctrl+Shift+Backslash: Split vertically, or close the split
+/// (Ctrl+W is left unused by the program, so that it closes nothing by mistake)
 class SplitEditorPanel : public QWidget {
     Q_OBJECT
 
@@ -132,7 +132,7 @@ public:
     /// @return true if split was closed, false if not split
     ///
     /// Removes the secondary editor and restores single-editor view.
-    /// Shortcut: Ctrl+W
+    /// Shortcut: Ctrl+Backslash or Ctrl+Shift+Backslash while split
     bool closeSplit();
 
     /// @brief Close a specific editor by index
@@ -230,9 +230,8 @@ protected:
     /// @param event The key event
     ///
     /// Handles split-related shortcuts:
-    /// - Ctrl+Backslash: Split horizontal
-    /// - Ctrl+Shift+Backslash: Split vertical
-    /// - Ctrl+W: Close split
+    /// - Ctrl+Backslash: Split horizontal, or close the split
+    /// - Ctrl+Shift+Backslash: Split vertical, or close the split
     void keyPressEvent(QKeyEvent* event) override;
 
     /// @brief Event filter to track focus changes

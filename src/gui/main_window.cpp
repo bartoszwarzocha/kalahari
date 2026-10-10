@@ -5,6 +5,7 @@
 #include "kalahari/gui/diagnostic_controller.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/settings_coordinator.h"
+#include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
@@ -200,6 +201,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_distractionFreeLayout = new utils::DistractionFreeLayout(this);
     connect(m_distractionFreeLayout, &utils::DistractionFreeLayout::activeChanged,
             this, &MainWindow::onDistractionFreeChanged);
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged,
+            m_distractionFreeLayout, &utils::DistractionFreeLayout::updateShortcuts);
 
     // Connect StatisticsCollector for status bar updates (OpenSpec #00042 Task 6.13)
     connect(m_documentCoordinator, &DocumentCoordinator::documentOpened,
@@ -434,10 +437,15 @@ void MainWindow::registerCommands() {
     callbacks.onToolbarManager = [this]() { m_toolbarManager->openToolbarManagerDialog(); };
 
     // Help commands
+    callbacks.onKeyboardShortcuts = [this]() { m_settingsCoordinator->openKeyboardShortcuts(); };
     callbacks.onAbout = [this]() { onAbout(); };
 
     // Register all commands with the callbacks
     int count = registerAllCommands(callbacks);
+
+    // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
+    // program's, in the menus and the toolbars built next
+    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
 
     // OpenSpec #00040: Setup fullscreen command callbacks (post-registration modification)
     CommandRegistry& registry = CommandRegistry::getInstance();

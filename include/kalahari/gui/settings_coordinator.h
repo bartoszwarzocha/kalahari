@@ -53,6 +53,9 @@ public:
     /// @note Creates modal SettingsDialog, connects signals, handles OK/Cancel
     void openSettingsDialog();
 
+    /// @brief Open the settings dialog at Keyboard Shortcuts (Help > Keyboard Shortcuts)
+    void openKeyboardShortcuts();
+
     /// @brief Set callback for checking diagnostic mode
     /// @param callback Function returning current diagnostic mode state
     void setDiagnosticModeGetter(std::function<bool()> callback);
@@ -78,6 +81,10 @@ private:
 
     /// @brief Offer to restart Kalahari so a new UI language takes effect
     void offerRestartForLanguage();
+
+    /// @brief Show the settings dialog until it is closed
+    /// @param shortcuts Open it at Keyboard Shortcuts
+    void runSettingsDialog(bool shortcuts);
 };
 
 } // namespace gui

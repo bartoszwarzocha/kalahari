@@ -26,8 +26,11 @@
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QShortcut>
+#include <QStringList>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QToolButton>
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
@@ -533,6 +536,39 @@ TEST_CASE("Stage3 find: keys typed in the find bar do not reach the text",
     // A key the field leaves unused does not move the editor's cursor
     press(find, Qt::Key_Down);
     CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+}
+
+TEST_CASE("Stage3 find: the options have the keys their tooltips show",
+          "[editor][stage3][search]") {
+    // Alt+C, Alt+W and Alt+R; on macOS Option+Cmd, as Option with a letter types a character
+    // there (Option+C is "ć" on the Polish keyboard)
+#ifdef Q_OS_MACOS
+    const Qt::KeyboardModifiers modifiers = Qt::ControlModifier | Qt::AltModifier;
+#else
+    const Qt::KeyboardModifiers modifiers = Qt::AltModifier;
+#endif
+    FindReplaceBar bar;
+    QStringList keys;
+    for (const QShortcut* shortcut : bar.findChildren<QShortcut*>()) {
+        keys << shortcut->key().toString(QKeySequence::PortableText);
+    }
+    QStringList tooltips;
+    for (const QToolButton* option : bar.findChildren<QToolButton*>()) {
+        if (option->isCheckable()) {
+            tooltips << option->toolTip();
+        }
+    }
+    REQUIRE(tooltips.size() == 3);
+
+    for (const Qt::Key key : {Qt::Key_C, Qt::Key_W, Qt::Key_R}) {
+        const QKeySequence sequence(QKeyCombination(modifiers, key));
+        INFO(sequence.toString(QKeySequence::PortableText).toStdString());
+        CHECK(keys.contains(sequence.toString(QKeySequence::PortableText)));
+        const QString shown =
+            QStringLiteral("(%1)").arg(sequence.toString(QKeySequence::NativeText));
+        CHECK(std::any_of(tooltips.cbegin(), tooltips.cend(),
+                          [&shown](const QString& tooltip) { return tooltip.endsWith(shown); }));
+    }
 }
 
 TEST_CASE("Stage3 find: after an edit, Find Next goes on from the cursor",
