@@ -4395,8 +4395,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Zamknij okno (także polecenie Zakończ)</translation>
     </message>
     <message>
-        <source>Alt+F4 closes the window in Windows, so only the Exit command can have it.</source>
-        <translation>Alt+F4 zamyka okno w systemie Windows, więc może go mieć tylko polecenie Zakończ.</translation>
+        <source>%1 closes the window in Windows, so only the Exit command can have it.</source>
+        <translation>%1 zamyka okno w systemie Windows, więc może go mieć tylko polecenie Zakończ.</translation>
     </message>
     <message>
         <source>Switch windows</source>
@@ -4455,8 +4455,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Pole po polu</translation>
     </message>
     <message>
-        <source>Alt+F4 closes the window on the Linux desktops, so only the Exit command can have it.</source>
-        <translation>Alt+F4 zamyka okno na pulpitach Linuksa, więc może go mieć tylko polecenie Zakończ.</translation>
+        <source>%1 closes the window on the Linux desktops, so only the Exit command can have it.</source>
+        <translation>%1 zamyka okno na pulpitach Linuksa, więc może go mieć tylko polecenie Zakończ.</translation>
     </message>
     <message>
         <source>%1 opens the window menu of the desktop.</source>

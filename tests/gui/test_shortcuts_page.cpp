@@ -16,14 +16,17 @@
 #include <QCheckBox>
 #include <QDir>
 #include <QFile>
+#include <QFontInfo>
 #include <QFontMetrics>
 #include <QFrame>
+#include <QHeaderView>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QStyleOption>
@@ -31,6 +34,7 @@
 #include <QTreeWidget>
 
 #include <algorithm>
+#include <sstream>
 #include <string>
 
 using namespace kalahari::gui;
@@ -109,13 +113,16 @@ T* child(QWidget& page, const QString& name) {
 }
 
 QPushButton* button(QWidget& page, const QString& text) {
+    QPushButton* found = nullptr;
     for (QPushButton* candidate : page.findChildren<QPushButton*>()) {
         if (candidate->text() == text) {
-            return candidate;
+            found = candidate;
+            break;
         }
     }
-    FAIL("No button " << text.toStdString());
-    return nullptr;
+    INFO("No button " << text.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 /// The texts of the items the list shows under a group (or of its groups)
@@ -130,30 +137,51 @@ QStringList shownTexts(const QTreeWidgetItem* parent, int column = 0) {
 }
 
 QTreeWidgetItem* groupNamed(QTreeWidget* list, const QString& text) {
-    for (int index = 0; index < list->topLevelItemCount(); ++index) {
+    QTreeWidgetItem* found = nullptr;
+    for (int index = 0; index < list->topLevelItemCount() && found == nullptr; ++index) {
         if (list->topLevelItem(index)->text(0) == text) {
-            return list->topLevelItem(index);
+            found = list->topLevelItem(index);
         }
     }
-    FAIL("No group " << text.toStdString());
-    return nullptr;
+    INFO("No group " << text.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 QTreeWidgetItem* itemNamed(QTreeWidget* list, const QString& text) {
-    for (int top = 0; top < list->topLevelItemCount(); ++top) {
+    QTreeWidgetItem* found = nullptr;
+    for (int top = 0; top < list->topLevelItemCount() && found == nullptr; ++top) {
         QTreeWidgetItem* group = list->topLevelItem(top);
-        for (int index = 0; index < group->childCount(); ++index) {
+        for (int index = 0; index < group->childCount() && found == nullptr; ++index) {
             if (group->child(index)->text(0) == text) {
-                return group->child(index);
+                found = group->child(index);
             }
         }
     }
-    FAIL("No item " << text.toStdString());
-    return nullptr;
+    INFO("No item " << text.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 bool isShown(const QTreeWidgetItem* item) {
     return !item->isHidden() && !item->parent()->isHidden();
+}
+
+/// Whether the list shows the whole row of the item (bottom() is the row's last pixel)
+bool inSight(const QTreeWidget* list, const QTreeWidgetItem* item) {
+    const QRect row = list->visualItemRect(item);
+    return row.isValid() && row.top() >= 0 && row.bottom() < list->viewport()->height();
+}
+
+/// Where the row of the item is and how much room the rows have, for a failed check
+std::string placeOf(const QTreeWidget* list, const QTreeWidgetItem* item) {
+    const QRect row = list->visualItemRect(item);
+    std::ostringstream text;
+    text << "row " << row.top() << "-" << row.bottom() << ", rows' room "
+         << list->viewport()->height() << ", list " << list->height() << ", header "
+         << list->header()->height() << ", horizontal scroll bar "
+         << list->horizontalScrollBar()->isVisible();
+    return text.str();
 }
 
 QString messageOf(QWidget& page) {
@@ -804,6 +832,8 @@ TEST_CASE("Shortcuts page: fits a small screen", "[gui][shortcuts][page]") {
     dialog.resize(840, 509);
     settle();
     CHECK(page->height() <= viewport->height());
+    // The columns fit: the list does not scroll sideways
+    CHECK(list->header()->length() <= list->viewport()->width());
 
     // At 150%, 90% of 911 × 464: the list shrinks, the fields and the buttons stay whole, and
     // where even the smallest list leaves too little room the page scrolls, never sideways
@@ -811,6 +841,7 @@ TEST_CASE("Shortcuts page: fits a small screen", "[gui][shortcuts][page]") {
     settle();
     CHECK(page->minimumSizeHint().width() <= viewport->width());
     CHECK(page->height() >= page->minimumSizeHint().height());
+    CHECK(list->header()->length() <= list->viewport()->width());
     if (page->height() > viewport->height()) {
         CHECK(list->height() == list->minimumHeight());
     }
@@ -978,23 +1009,71 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when the list get
     settle();
     ShortcutsPage* page = pageOf(dialog);
     QTreeWidget* list = listOf(*page);
+    // A window as low as leaves the list a few rows over its smallest height, for a message
+    // to take (the larger controls of macOS need more than 460 pixels for it)
+    const int rowHeight = list->visualItemRect(list->topLevelItem(0)).height();
+    const int roomy = list->minimumHeight() + 3 * rowHeight;
+    for (int height = 470; height <= 800 && list->height() < roomy; height += 10) {
+        dialog.resize(840, height);
+        settle();
+    }
+    REQUIRE(list->height() >= roomy);
     REQUIRE(page->selectCommand("view.focus"));
     QTreeWidgetItem* item = list->currentItem();
-    list->scrollToItem(item, QAbstractItemView::PositionAtBottom);
+    // As the page scrolls (scrollToItem() would go past the list's own scrollTo())
+    list->scrollTo(list->indexFromItem(item), QAbstractItemView::PositionAtBottom);
     settle();
     const QRect before = list->visualItemRect(item);
-    INFO("row " << before.top() << "-" << before.bottom() << ", list " << list->height());
-    // The command is the last row the list shows whole (bottom() is the row's last pixel)
-    REQUIRE(list->viewport()->rect().contains(before));
+    INFO("before: " << placeOf(list, item));
+    // The command is the last row the list shows whole
+    REQUIRE(inSight(list, item));
     REQUIRE(before.bottom() + before.height() >= list->viewport()->height());
     const int listHeight = list->height();
 
     // A message under the keys takes rows from the list
     page->assignKeys(QKeyCombination(CTRL, Qt::Key_S));
     settle();
+    INFO("after: " << placeOf(list, item));
     REQUIRE_FALSE(messageOf(*page).isEmpty());
     REQUIRE(list->height() < listHeight);
-    CHECK(list->viewport()->rect().contains(list->visualItemRect(item)));
+    CHECK(inSight(list, item));
+    dialog.reject();
+}
+
+TEST_CASE("Shortcuts page: the selected command stays in sight when its rows get less room",
+          "[gui][shortcuts][page]") {
+    // Regression: only a lower list kept it in sight. A higher header, or a scroll bar that
+    // does not lie over the rows (it does on macOS), take the rows' room too, and the list
+    // keeps its height.
+    registerCommands();
+    SettingsDialog dialog(nullptr);
+    dialog.resize(840, 460);
+    dialog.showShortcutsPage();
+    dialog.show();
+    settle();
+    ShortcutsPage* page = pageOf(dialog);
+    QTreeWidget* list = listOf(*page);
+    REQUIRE(page->selectCommand("view.focus"));
+    QTreeWidgetItem* item = list->currentItem();
+    // As the page scrolls (scrollToItem() would go past the list's own scrollTo())
+    list->scrollTo(list->indexFromItem(item), QAbstractItemView::PositionAtBottom);
+    settle();
+    const QRect before = list->visualItemRect(item);
+    INFO("before: " << placeOf(list, item));
+    // The command is the last row the list shows whole
+    REQUIRE(inSight(list, item));
+    REQUIRE(before.bottom() + before.height() >= list->viewport()->height());
+    const int listHeight = list->height();
+    const int room = list->viewport()->height();
+
+    QFont font = list->header()->font();
+    font.setPixelSize(QFontInfo(font).pixelSize() * 2);
+    list->header()->setFont(font);
+    settle();
+    INFO("after: " << placeOf(list, item));
+    REQUIRE(list->height() == listHeight);
+    REQUIRE(list->viewport()->height() < room);
+    CHECK(inSight(list, item));
     dialog.reject();
 }
 

@@ -132,6 +132,40 @@ public:
     [[nodiscard]] QSize sizeHint() const override {
         return {QTreeWidget::sizeHint().width(), minimumHeight()};
     }
+
+    /// Scrolled by pixels (the style of macOS), Qt leaves the last pixel of a row it brings
+    /// up from below under the edge of the list: the row is shown whole. (scrollToItem()
+    /// goes past this: the page scrolls with scrollTo().)
+    void scrollTo(const QModelIndex& index, ScrollHint hint = EnsureVisible) override {
+        QTreeWidget::scrollTo(index, hint);
+        if (verticalScrollMode() != ScrollPerPixel ||
+            (hint != EnsureVisible && hint != PositionAtBottom)) {
+            return;
+        }
+        const QRect row = visualRect(index);
+        const int hidden = row.bottom() - (viewport()->height() - 1);
+        if (row.isValid() && hidden > 0 && row.top() - hidden >= 0) {
+            verticalScrollBar()->setValue(verticalScrollBar()->value() + hidden);
+        }
+    }
+
+protected:
+    /// The rows get less room (what is under the list grows, a scroll bar comes, the header
+    /// gets higher): the selected row stays in sight if it was
+    void resizeEvent(QResizeEvent* event) override {
+        // The size is the rows' room (the viewport's), and the base fits the scroll bar to it
+        QTreeWidget::resizeEvent(event);
+        const int before = event->oldSize().height();
+        QTreeWidgetItem* current = currentItem();
+        if (current == nullptr || before <= event->size().height()) {
+            return;
+        }
+        // The rows have not moved: was the row in the room the list had?
+        const QRect row = visualItemRect(current);
+        if (row.isValid() && row.bottom() >= 0 && row.top() < before) {
+            scrollTo(indexFromItem(current));
+        }
+    }
 };
 
 /// Paints a command's name with a muted note after it ("not available yet"), and a group of
@@ -662,7 +696,7 @@ bool ShortcutsPage::selectCommand(const std::string& commandId) {
     }
     entry->item->parent()->setExpanded(true);
     m_list->setCurrentItem(entry->item);
-    m_list->scrollToItem(entry->item);
+    m_list->scrollTo(m_list->indexFromItem(entry->item));
     return true;
 }
 
@@ -1675,24 +1709,6 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
         arrangeKeysRow();
     } else if (event->type() == QEvent::Resize && watched == m_list->viewport()) {
         fitKeysColumn();
-    } else if (event->type() == QEvent::Resize && watched == m_list) {
-        // The list gets lower when what is under it grows (a message, a longer note): the
-        // selected row stays in sight if it was. The rows have not moved: was it in the
-        // part of the list that is gone?
-        const auto* resize = static_cast<QResizeEvent*>(event);
-        const int lost = resize->oldSize().height() - resize->size().height();
-        const QTreeWidgetItem* current = m_list->currentItem();
-        if (current != nullptr && lost > 0) {
-            const QRect row = m_list->visualItemRect(current);
-            if (row.isValid() && row.top() >= 0 &&
-                row.top() < m_list->viewport()->height() + lost) {
-                QTimer::singleShot(0, m_list, [this]() {
-                    if (QTreeWidgetItem* item = m_list->currentItem()) {
-                        m_list->scrollToItem(item);
-                    }
-                });
-            }
-        }
     }
     return SettingsPage::eventFilter(watched, event);
 }

@@ -371,7 +371,7 @@ FixedKeyGroup ShortcutRules::systemGroup() const {
         system.title = tr("Fixed: the Windows system");
         system.rows.push_back(
             {tr("Close the window (also the Exit command)"), {keyWith(ALT, Qt::Key_F4)}, NONE, {},
-             tr("Alt+F4 closes the window in Windows, so only the Exit command can have it."),
+             tr("%1 closes the window in Windows, so only the Exit command can have it."),
              "file.exit"});
         system.rows.push_back(
             {tr("Switch windows"),
@@ -410,8 +410,8 @@ FixedKeyGroup ShortcutRules::systemGroup() const {
         system.title = tr("Fixed: the Linux desktop");
         system.rows.push_back(
             {tr("Close the window (also the Exit command)"), {keyWith(ALT, Qt::Key_F4)}, NONE, {},
-             tr("Alt+F4 closes the window on the Linux desktops, so only the Exit command can "
-                "have it."),
+             tr("%1 closes the window on the Linux desktops, so only the Exit command can have "
+                "it."),
              "file.exit"});
         system.rows.push_back(
             {tr("Switch windows"), {keyWith(ALT, Qt::Key_Tab), keyWith(ALT | SHIFT, Qt::Key_Tab)},
