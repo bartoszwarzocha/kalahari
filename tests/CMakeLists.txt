@@ -67,6 +67,7 @@ set(TEST_SOURCES
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_dialogs.cpp                         # The program's own dialogs
+    gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
@@ -176,6 +177,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
@@ -224,6 +226,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
