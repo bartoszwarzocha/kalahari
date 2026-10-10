@@ -111,6 +111,22 @@ TEST_CASE("SvgConverter validates SVG syntax", "[svg][validation]") {
         REQUIRE_FALSE(result.success);
     }
 
+    SECTION("Names the root element of a file that is not an SVG image") {
+        auto result = converter.validate(QStringLiteral("<html><body/></html>"));
+
+        REQUIRE_FALSE(result.success);
+        REQUIRE(result.errorMessage == QStringLiteral(
+            "The file is not an SVG image (its root element is <html>)"));
+    }
+
+    SECTION("Rejects an SVG image without viewBox") {
+        auto result = converter.validate(
+            QStringLiteral(R"(<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h4"/></svg>)"));
+
+        REQUIRE_FALSE(result.success);
+        REQUIRE(result.errorMessage == QStringLiteral("The <svg> element has no viewBox attribute"));
+    }
+
     SECTION("Accepts valid SVG") {
         QString validSvg = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>

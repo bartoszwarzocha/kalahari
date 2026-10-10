@@ -2,12 +2,15 @@
 /// @brief Implementation of IconDownloaderDialog
 
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QVBoxLayout>
+#include <QScrollArea>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QLabel>
@@ -17,7 +20,6 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QSvgWidget>
-#include <QMessageBox>
 #include <QDir>
 #include <QFile>
 
@@ -59,21 +61,24 @@ IconDownloaderDialog::~IconDownloaderDialog() {
 }
 
 void IconDownloaderDialog::setupUi() {
-    setWindowTitle("Icon Downloader");
+    setWindowTitle(tr("Icon Downloader"));
     setModal(true);
-    resize(600, 650);
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 650));
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    // The settings scroll on a small screen (e.g. 1366x768 at 150%); the buttons stay
+    auto* content = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(content);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
 
     // === URL Input Group ===
-    QGroupBox* urlGroup = new QGroupBox("Icon URL", this);
+    QGroupBox* urlGroup = new QGroupBox(tr("Icon URL"), this);
     QVBoxLayout* urlLayout = new QVBoxLayout(urlGroup);
 
     // Use theme-aware muted text color
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     QLabel* urlHint = new QLabel(
-        "Enter full URL to SVG icon. Example:\n"
-        "https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg",
+        tr("Enter full URL to SVG icon. Example:") + QStringLiteral("\n"
+        "https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg"),
         urlGroup);
     urlHint->setWordWrap(true);
     urlHint->setStyleSheet(QString("color: %1; font-size: 11px;")
@@ -82,28 +87,28 @@ void IconDownloaderDialog::setupUi() {
 
     m_sourceUrlEdit = new QLineEdit(urlGroup);
     m_sourceUrlEdit->setPlaceholderText("https://...");
-    m_sourceUrlEdit->setToolTip("Full URL to SVG file");
+    m_sourceUrlEdit->setToolTip(tr("Full URL to SVG file"));
     urlLayout->addWidget(m_sourceUrlEdit);
 
     mainLayout->addWidget(urlGroup);
 
     // === Output Settings Group ===
-    QGroupBox* outputGroup = new QGroupBox("Output Settings", this);
+    QGroupBox* outputGroup = new QGroupBox(tr("Output Settings"), this);
     QVBoxLayout* outputLayout = new QVBoxLayout(outputGroup);
 
     QHBoxLayout* nameLayout = new QHBoxLayout();
-    nameLayout->addWidget(new QLabel("Icon name:", outputGroup));
+    nameLayout->addWidget(new QLabel(tr("Icon name:"), outputGroup));
     m_iconNameEdit = new QLineEdit(outputGroup);
-    m_iconNameEdit->setPlaceholderText("e.g., save, folder_open");
-    m_iconNameEdit->setToolTip("Name for saved file (without .svg)");
+    m_iconNameEdit->setPlaceholderText(tr("e.g., save, folder_open"));
+    m_iconNameEdit->setToolTip(tr("Name for saved file (without .svg)"));
     nameLayout->addWidget(m_iconNameEdit);
     outputLayout->addLayout(nameLayout);
 
     QHBoxLayout* themeLayout = new QHBoxLayout();
-    themeLayout->addWidget(new QLabel("Save to theme:", outputGroup));
+    themeLayout->addWidget(new QLabel(tr("Save to theme:"), outputGroup));
     m_themeCombo = new QComboBox(outputGroup);
     m_themeCombo->addItems({"twotone", "rounded", "outlined"});
-    m_themeCombo->setToolTip("Target theme directory");
+    m_themeCombo->setToolTip(tr("Target theme directory"));
     themeLayout->addWidget(m_themeCombo);
     themeLayout->addStretch();
     outputLayout->addLayout(themeLayout);
@@ -111,10 +116,10 @@ void IconDownloaderDialog::setupUi() {
     mainLayout->addWidget(outputGroup);
 
     // === Progress Group ===
-    QGroupBox* progressGroup = new QGroupBox("Download Progress", this);
+    QGroupBox* progressGroup = new QGroupBox(tr("Download Progress"), this);
     QVBoxLayout* progressLayout = new QVBoxLayout(progressGroup);
 
-    m_statusLabel = new QLabel("Ready to download", progressGroup);
+    m_statusLabel = new QLabel(tr("Ready to download"), progressGroup);
     progressLayout->addWidget(m_statusLabel);
 
     m_progressBar = new QProgressBar(progressGroup);
@@ -125,7 +130,7 @@ void IconDownloaderDialog::setupUi() {
     mainLayout->addWidget(progressGroup);
 
     // === Preview Group ===
-    QGroupBox* previewGroup = new QGroupBox("Preview", this);
+    QGroupBox* previewGroup = new QGroupBox(tr("Preview"), this);
     QVBoxLayout* previewLayout = new QVBoxLayout(previewGroup);
 
     m_previewWidget = new QSvgWidget(previewGroup);
@@ -138,29 +143,36 @@ void IconDownloaderDialog::setupUi() {
     mainLayout->addWidget(previewGroup);
 
     // === Error Display ===
-    QLabel* errorLabel = new QLabel("Errors:", this);
+    QLabel* errorLabel = new QLabel(tr("Errors:"), this);
     mainLayout->addWidget(errorLabel);
 
     m_errorDisplay = new QTextEdit(this);
     m_errorDisplay->setReadOnly(true);
     m_errorDisplay->setMaximumHeight(100);
-    m_errorDisplay->setPlaceholderText("No errors");
+    m_errorDisplay->setPlaceholderText(tr("No errors"));
     mainLayout->addWidget(m_errorDisplay);
+    mainLayout->addStretch(1);
+
+    auto* scrollArea = new QScrollArea(this);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setWidget(content);
+    auto* dialogLayout = new QVBoxLayout(this);
+    dialogLayout->addWidget(scrollArea, 1);
 
     // === Buttons ===
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    m_downloadButton = new QPushButton("Download", this);
+    m_downloadButton = new QPushButton(tr("Download"), this);
     m_downloadButton->setDefault(true);
     buttonLayout->addWidget(m_downloadButton);
 
-    m_cancelButton = new QPushButton("Close", this);
+    m_cancelButton = new QPushButton(tr("Close"), this);
     buttonLayout->addWidget(m_cancelButton);
 
-    mainLayout->addLayout(buttonLayout);
-
-    setLayout(mainLayout);
+    dialogLayout->addLayout(buttonLayout);
 }
 
 void IconDownloaderDialog::setupConnections() {
@@ -200,7 +212,7 @@ void IconDownloaderDialog::onDownloadClicked() {
     // Update UI state
     m_isDownloading = true;
     m_downloadButton->setEnabled(false);
-    m_statusLabel->setText(QString("Downloading..."));
+    m_statusLabel->setText(tr("Downloading..."));
 
     Logger::getInstance().info("IconDownloaderDialog: Downloading from {}", url.toStdString());
 
@@ -210,14 +222,11 @@ void IconDownloaderDialog::onDownloadClicked() {
 
 void IconDownloaderDialog::onCancelClicked() {
     if (m_isDownloading) {
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            this,
-            "Cancel Download",
-            "Download is in progress. Are you sure you want to cancel?",
-            QMessageBox::Yes | QMessageBox::No
-        );
+        const bool stop = dialogs::MessageDialog::confirm(this, tr("Cancel Download"),
+            tr("The download is in progress. Do you want to stop it?"),
+            tr("&Stop Download"));
 
-        if (reply == QMessageBox::No) {
+        if (!stop) {
             return;
         }
     }
@@ -233,7 +242,7 @@ void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QStrin
     // Convert SVG to template format
     auto conversionResult = m_converter->convertToTemplate(svgData);
     if (!conversionResult.success) {
-        addError(QString("Conversion failed: %1").arg(conversionResult.errorMessage));
+        addError(tr("Conversion failed: %1").arg(conversionResult.errorMessage));
         m_failedDownloads++;
         checkDownloadComplete();
         return;
@@ -244,7 +253,7 @@ void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QStrin
     QDir dir;
     if (!dir.exists(dirPath)) {
         if (!dir.mkpath(dirPath)) {
-            addError(QString("Failed to create directory: %1").arg(dirPath));
+            addError(tr("Failed to create directory: %1").arg(dirPath));
             m_failedDownloads++;
             checkDownloadComplete();
             return;
@@ -254,7 +263,7 @@ void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QStrin
     QString filePath = QString("resources/icons/%1/%2.svg").arg(theme, m_currentIconName);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        addError(QString("Failed to write file: %1").arg(filePath));
+        addError(tr("Failed to write file: %1").arg(filePath));
         m_failedDownloads++;
         checkDownloadComplete();
         return;
@@ -275,7 +284,7 @@ void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QStrin
 void IconDownloaderDialog::onDownloadError(const QString& /*url*/, const QString& errorMessage) {
     Logger::getInstance().error("IconDownloaderDialog: Download error: {}", errorMessage.toStdString());
 
-    addError(QString("%1").arg(errorMessage));
+    addError(errorMessage);
     m_failedDownloads++;
     checkDownloadComplete();
 }
@@ -283,7 +292,7 @@ void IconDownloaderDialog::onDownloadError(const QString& /*url*/, const QString
 void IconDownloaderDialog::onDownloadProgress(int current, int total, const QString& /*url*/) {
     int percentage = (total > 0) ? (current * 100 / total) : 0;
     m_progressBar->setValue(percentage);
-    m_statusLabel->setText(QString("Downloading... (%1/%2)").arg(current).arg(total));
+    m_statusLabel->setText(tr("Downloading... (%1/%2)").arg(current).arg(total));
 }
 
 void IconDownloaderDialog::checkDownloadComplete() {
@@ -295,10 +304,10 @@ void IconDownloaderDialog::checkDownloadComplete() {
         m_progressBar->setValue(100);
 
         if (m_failedDownloads == 0) {
-            m_statusLabel->setText(QString("✓ Downloaded and saved successfully"));
+            m_statusLabel->setText(QStringLiteral("✓ ") + tr("Downloaded and saved successfully"));
             Logger::getInstance().info("IconDownloaderDialog: Download successful");
         } else {
-            m_statusLabel->setText(QString("✗ Download failed"));
+            m_statusLabel->setText(QStringLiteral("✗ ") + tr("Download failed"));
             Logger::getInstance().warn("IconDownloaderDialog: Download failed");
         }
     }
@@ -309,19 +318,20 @@ bool IconDownloaderDialog::validateInput() {
     QString iconName = m_iconNameEdit->text().trimmed();
 
     if (url.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Please enter a URL.");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"), tr("Please enter a URL."));
         m_sourceUrlEdit->setFocus();
         return false;
     }
 
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        QMessageBox::warning(this, "Invalid Input", "URL must start with http:// or https://");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"),
+                                        tr("The URL must start with http:// or https://."));
         m_sourceUrlEdit->setFocus();
         return false;
     }
 
     if (iconName.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Please enter an icon name.");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"), tr("Please enter an icon name."));
         m_iconNameEdit->setFocus();
         return false;
     }

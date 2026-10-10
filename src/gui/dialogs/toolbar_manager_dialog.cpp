@@ -4,8 +4,10 @@
 /// OpenSpec #00031: Toolbar System
 
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/art_provider.h"
 
 #include <QVBoxLayout>
@@ -14,8 +16,6 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QHeaderView>
-#include <QInputDialog>
-#include <QMessageBox>
 #include <QRegularExpression>
 
 using namespace kalahari::gui::dialogs;
@@ -45,8 +45,9 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
     , m_toolbarManager(manager)
 {
     setWindowTitle(tr("Customize Toolbars"));
-    setMinimumSize(900, 600);
-    resize(1000, 650);
+    // Smaller where the screen is, e.g. 1366x768 at 150%: the lists get shorter
+    setMinimumSize(640, 420);
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(1000, 650));
 
     // Initialize built-in toolbar IDs
     // OpenSpec #00037: Added quickActions, insert, styles, help toolbars
@@ -83,8 +84,11 @@ void ToolbarManagerDialog::setupUI() {
     splitter->addWidget(createAvailableCommandsPanel());
     splitter->addWidget(createCurrentToolbarPanel());
 
-    // Set initial sizes (left smaller, center and right equal)
-    splitter->setSizes({220, 350, 350});
+    // The commands get the most room, so their names can be read on a small screen too
+    splitter->setSizes({180, 500, 220});
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setStretchFactor(2, 0);
 
     mainLayout->addWidget(splitter, 1);
 
@@ -175,8 +179,11 @@ QWidget* ToolbarManagerDialog::createAvailableCommandsPanel() {
     m_availableCommands->setHeaderLabels({tr("Command"), tr("Shortcut")});
     m_availableCommands->setRootIsDecorated(true);
     m_availableCommands->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_availableCommands->header()->setStretchLastSection(true);
+    // The names get the room; the shortcuts only as much as they need
+    m_availableCommands->setIndentation(m_availableCommands->fontMetrics().height());
+    m_availableCommands->header()->setStretchLastSection(false);
     m_availableCommands->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_availableCommands->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     groupLayout->addWidget(m_availableCommands, 1);
 
     // Add button
@@ -462,6 +469,7 @@ void ToolbarManagerDialog::populateAvailableCommands() {
         // Add command item
         QTreeWidgetItem* cmdItem = new QTreeWidgetItem(categoryItems[category]);
         cmdItem->setText(0, label);
+        cmdItem->setToolTip(0, label);
         cmdItem->setText(1, shortcut);
         cmdItem->setData(0, Qt::UserRole, cmdId);
 
@@ -733,24 +741,18 @@ void ToolbarManagerDialog::onNewToolbar() {
         return;
     }
 
-    bool ok;
-    QString name = QInputDialog::getText(this,
-        tr("New Toolbar"),
-        tr("Enter toolbar name:"),
-        QLineEdit::Normal,
-        QString(),
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
+    const std::optional<QString> name = TextInputDialog::getText(this,
+        tr("New Toolbar"), tr("Toolbar name"), QString(), tr("&Create"));
+    if (!name) {
         return;
     }
 
     // Create toolbar via ToolbarManager (it will generate unique ID)
-    QString toolbarId = m_toolbarManager->createUserToolbar(name.trimmed());
+    QString toolbarId = m_toolbarManager->createUserToolbar(*name);
 
     // Update local state
     m_pendingChanges[toolbarId] = QStringList();
-    m_toolbarNames[toolbarId] = name.trimmed();
+    m_toolbarNames[toolbarId] = *name;
     m_originalConfigs[toolbarId] = QStringList();
 
     populateToolbarList();
@@ -775,14 +777,13 @@ void ToolbarManagerDialog::onDeleteToolbar() {
         return;
     }
 
-    QMessageBox::StandardButton result = QMessageBox::question(this,
+    const bool remove = MessageDialog::confirm(this,
         tr("Delete Toolbar"),
-        tr("Are you sure you want to delete the toolbar '%1'?")
+        tr("Do you want to delete the toolbar \"%1\"?")
             .arg(m_toolbarNames[m_selectedToolbarId]),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+        tr("&Delete"), MessageDialog::Kind::Warning, MessageDialog::DefaultButton::Cancel);
 
-    if (result != QMessageBox::Yes) {
+    if (!remove) {
         return;
     }
 
@@ -808,26 +809,22 @@ void ToolbarManagerDialog::onRenameToolbar() {
         return;
     }
 
-    bool ok;
-    QString name = QInputDialog::getText(this,
-        tr("Rename Toolbar"),
-        tr("Enter new name:"),
-        QLineEdit::Normal,
-        m_toolbarNames[m_selectedToolbarId],
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
+    const std::optional<QString> name = TextInputDialog::getText(this,
+        tr("Rename Toolbar"), tr("New name"), m_toolbarNames[m_selectedToolbarId], tr("&Rename"));
+    if (!name) {
         return;
     }
 
-    m_toolbarNames[m_selectedToolbarId] = name.trimmed();
+    // Rebuilding the list clears the selection and m_selectedToolbarId with it
+    const QString toolbarId = m_selectedToolbarId;
+    m_toolbarNames[toolbarId] = *name;
     populateToolbarList();
     setModified(true);
 
     // Re-select the renamed toolbar
     for (int i = 0; i < m_toolbarList->count(); ++i) {
         QListWidgetItem* item = m_toolbarList->item(i);
-        if (item->data(Qt::UserRole).toString() == m_selectedToolbarId) {
+        if (item->data(Qt::UserRole).toString() == toolbarId) {
             m_toolbarList->setCurrentItem(item);
             break;
         }
@@ -847,14 +844,13 @@ void ToolbarManagerDialog::onReset() {
         return;
     }
 
-    QMessageBox::StandardButton result = QMessageBox::question(this,
+    const bool reset = MessageDialog::confirm(this,
         tr("Reset Toolbars"),
-        tr("Are you sure you want to reset all toolbars to their default configurations?\n\n"
+        tr("Do you want to reset all toolbars to their default configurations?\n\n"
            "This will remove all user-defined toolbars and restore built-in toolbars to defaults."),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+        tr("&Reset"), MessageDialog::Kind::Warning, MessageDialog::DefaultButton::Cancel);
 
-    if (result != QMessageBox::Yes) {
+    if (!reset) {
         return;
     }
 
