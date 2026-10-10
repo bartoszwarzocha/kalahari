@@ -6,6 +6,7 @@
 #include <QDialog>
 #include <QString>
 
+class QDialogButtonBox;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
@@ -79,6 +80,16 @@ public:
     /// @brief At least the minimum width, and the height the content needs at that width
     QSize sizeHint() const override;
 
+protected:
+    /// @brief The buttons that close the dialog, for a dialog that adds one of its own
+    QDialogButtonBox* buttonBox() const { return m_buttonBox; }
+
+    /// @brief Add a button at the left end of the row, apart from the ones that close the
+    ///        dialog, on every system (e.g. Copy of a message)
+    /// @param text Button text, with a mnemonic
+    /// @return The button; it does not close the dialog
+    QPushButton* addSideButton(const QString& text);
+
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open
     void applyClicked();
@@ -95,6 +106,8 @@ private:
     QLabel* m_titleLabel = nullptr;
     QLabel* m_descriptionLabel = nullptr;
     QVBoxLayout* m_contentLayout = nullptr;
+    QDialogButtonBox* m_buttonBox = nullptr;
+    QHBoxLayout* m_sideButtonLayout = nullptr;
     QPushButton* m_acceptButton = nullptr;
     QPushButton* m_cancelButton = nullptr;
     QPushButton* m_applyButton = nullptr;

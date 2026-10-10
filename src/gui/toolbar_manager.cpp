@@ -249,7 +249,7 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 
         // Context menu
         toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
-        QObject::connect(toolbar, &QWidget::customContextMenuRequested, m_mainWindow,
+        QObject::connect(toolbar, &QWidget::customContextMenuRequested, &m_connectionContext,
             [this, toolbar](const QPoint& pos) {
                 showContextMenu(toolbar->mapToGlobal(pos));
             });
@@ -299,7 +299,7 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
 
     // OpenSpec #00031 - Phase E: Set up context menu for right-click
     toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(toolbar, &QWidget::customContextMenuRequested, m_mainWindow,
+    QObject::connect(toolbar, &QWidget::customContextMenuRequested, &m_connectionContext,
         [this, toolbar](const QPoint& pos) {
             showContextMenu(toolbar->mapToGlobal(pos));
         });
@@ -450,7 +450,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
         action->setData(QString::fromStdString(id));
 
         // Connect to toggle slot
-        QObject::connect(action, &QAction::toggled, m_mainWindow, [this, id](bool checked) {
+        QObject::connect(action, &QAction::toggled, &m_connectionContext, [this, id](bool checked) {
             showToolbar(id, checked);
         });
 
@@ -484,7 +484,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
             action->setChecked(toolbar->isVisible());
             action->setData(toolbarId);
 
-            QObject::connect(action, &QAction::toggled, m_mainWindow, [this, id](bool checked) {
+            QObject::connect(action, &QAction::toggled, &m_connectionContext, [this, id](bool checked) {
                 showToolbar(id, checked);
             });
 
@@ -507,7 +507,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     toolbarsMenu->addAction(managerAction);
 
     // OpenSpec #00031: Connect Toolbar Manager dialog
-    QObject::connect(managerAction, &QAction::triggered, m_mainWindow, [this]() {
+    QObject::connect(managerAction, &QAction::triggered, &m_connectionContext, [this]() {
         dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
         if (dialog.exec() == QDialog::Accepted) {
             // Configurations already applied via dialog
@@ -992,7 +992,7 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
     QAction* lockAction = menu.addAction(QObject::tr("Lock Toolbar Positions"));
     lockAction->setCheckable(true);
     lockAction->setChecked(m_toolbarsLocked);
-    QObject::connect(lockAction, &QAction::toggled, m_mainWindow, [this](bool checked) {
+    QObject::connect(lockAction, &QAction::toggled, &m_connectionContext, [this](bool checked) {
         setToolbarsLocked(checked);
     });
 
@@ -1000,14 +1000,14 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
 
     // Customize
     QAction* customizeAction = menu.addAction(QObject::tr("Customize..."));
-    QObject::connect(customizeAction, &QAction::triggered, m_mainWindow, [this]() {
+    QObject::connect(customizeAction, &QAction::triggered, &m_connectionContext, [this]() {
         dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
         dialog.exec();
     });
 
     // Reset
     QAction* resetAction = menu.addAction(QObject::tr("Reset to Default"));
-    QObject::connect(resetAction, &QAction::triggered, m_mainWindow, [this]() {
+    QObject::connect(resetAction, &QAction::triggered, &m_connectionContext, [this]() {
         // Confirm before reset
         QMessageBox::StandardButton result = QMessageBox::question(
             m_mainWindow,
@@ -1132,7 +1132,7 @@ void ToolbarManager::addViewMenuAction(const QString& toolbarId, const QString& 
     action->setChecked(toolbar->isVisible());
     action->setData(toolbarId);
 
-    QObject::connect(action, &QAction::toggled, m_mainWindow, [this, id](bool checked) {
+    QObject::connect(action, &QAction::toggled, &m_connectionContext, [this, id](bool checked) {
         showToolbar(id, checked);
     });
 
@@ -1179,7 +1179,7 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
 
     // Connect font family combo
     if (m_fontComboBox) {
-        QObject::connect(m_fontComboBox, &QFontComboBox::currentFontChanged, m_mainWindow,
+        QObject::connect(m_fontComboBox, &QFontComboBox::currentFontChanged, &m_connectionContext,
                          [this](const QFont& font) {
             if (m_fontWidgetsSyncing || !m_getEditorCallback) {
                 return;
@@ -1205,7 +1205,7 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
     // Connect font size spinner
     if (m_fontSizeSpinner) {
         QObject::connect(m_fontSizeSpinner, QOverload<int>::of(&QSpinBox::valueChanged),
-                         m_mainWindow, [this](int size) {
+                         &m_connectionContext, [this](int size) {
             if (m_fontWidgetsSyncing || !m_getEditorCallback) {
                 return;
             }

@@ -18,7 +18,6 @@ set(KALAHARI_CORE_SOURCES
     core/project_database.cpp
     core/python_interpreter.cpp
     core/cmd_line_parser.cpp
-    core/diagnostic_manager.cpp
     core/plugin_manager.cpp
     core/plugin_manifest.cpp
     core/plugin_archive.cpp
@@ -40,7 +39,6 @@ set(KALAHARI_CORE_SOURCES
     core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
-    core/fallback_theme.cpp  # Task #00023: Emergency fallback themes
     # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable
     # (avoid Q_OBJECT DLL export issues with MOC-generated symbols)
 )
@@ -121,11 +119,7 @@ target_link_libraries(kalahari_core PUBLIC
     OpenSSL::Crypto   # OpenSpec #00038: SHA256 hashing
 )
 
-# Static library - no post-build copy needed
-
 # Kalahari executable target
-# NOTE: GUI layer removed during Qt migration (Step 0.2)
-# Will be rebuilt with Qt6 in subsequent phases
 
 # Executable source files
 set(KALAHARI_SOURCES
@@ -148,6 +142,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/add_to_project_dialog.cpp  # AddToProjectDialog - Add standalone file to project (OpenSpec #00033)
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
+    gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
@@ -171,7 +166,6 @@ set(KALAHARI_SOURCES
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
-    gui/toolbar_builder.cpp
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
@@ -239,6 +233,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_project_dialog.h  # AddToProjectDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

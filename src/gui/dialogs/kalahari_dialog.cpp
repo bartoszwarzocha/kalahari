@@ -81,16 +81,21 @@ KalahariDialog::KalahariDialog(QWidget* parent)
     m_contentLayout->setSpacing(SPACING);
     body->addLayout(m_contentLayout, 1);
 
-    auto* buttons = new QDialogButtonBox(this);
-    m_acceptButton = buttons->addButton(tr("OK"), QDialogButtonBox::AcceptRole);
-    m_cancelButton = buttons->addButton(tr("Cancel"), QDialogButtonBox::RejectRole);
-    m_applyButton = buttons->addButton(tr("Apply"), QDialogButtonBox::ApplyRole);
+    m_buttonBox = new QDialogButtonBox(this);
+    m_acceptButton = m_buttonBox->addButton(tr("OK"), QDialogButtonBox::AcceptRole);
+    m_cancelButton = m_buttonBox->addButton(tr("Cancel"), QDialogButtonBox::RejectRole);
+    m_applyButton = m_buttonBox->addButton(tr("Apply"), QDialogButtonBox::ApplyRole);
     m_applyButton->hide();
     m_acceptButton->setDefault(true);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(m_buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     connect(m_applyButton, &QPushButton::clicked, this, &KalahariDialog::applyClicked);
-    body->addWidget(buttons);
+    // Buttons that do not close the dialog go at the left end, the button box on the rest
+    auto* buttonRow = new QHBoxLayout();
+    m_sideButtonLayout = new QHBoxLayout();
+    buttonRow->addLayout(m_sideButtonLayout);
+    buttonRow->addWidget(m_buttonBox, 1);
+    body->addLayout(buttonRow);
     layout->addLayout(body);
 
     updateHeadingStyle();
@@ -131,6 +136,14 @@ void KalahariDialog::addField(const QString& label, QWidget* field)
     fieldLayout->addWidget(fieldLabel);
     fieldLayout->addWidget(field);
     m_contentLayout->addLayout(fieldLayout);
+}
+
+QPushButton* KalahariDialog::addSideButton(const QString& text)
+{
+    auto* button = new QPushButton(text, this);
+    button->setAutoDefault(false);
+    m_sideButtonLayout->addWidget(button);
+    return button;
 }
 
 void KalahariDialog::setAcceptText(const QString& text)
