@@ -37,6 +37,8 @@ void BookEditor::setupFindReplace()
             this, &BookEditor::onTextReplaced);
     connect(m_findReplaceBar, &FindReplaceBar::closed,
             this, &BookEditor::hideFindReplace);
+    connect(m_findReplaceBar, &FindReplaceBar::textFocusRequested,
+            this, [this]() { setFocus(); });
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
     syncSearchOrigin();

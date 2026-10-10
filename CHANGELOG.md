@@ -516,6 +516,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
   disabled wherever they can do nothing.
 
+- **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
+  Replace on the last match and Replace All turn their button off, and the cursor went on to
+  the font box of the toolbar: Undo did not take the replacement back, and what was typed
+  changed the font name. The cursor now goes back to the text, where Undo takes the
+  replacement back.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at

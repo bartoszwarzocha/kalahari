@@ -1637,7 +1637,10 @@ checked by `tests/gui/test_edit_coordinator.cpp`):
 
 The menu bar (Alt, F10) and the window's toolbars, also a floating one, give the commands to
 the element that had the cursor. The commands are enabled only where they can do something:
-they follow the cursor from element to element, the selection, the text and the clipboard.
+they follow the cursor from element to element, the selection, the text and the clipboard. A
+button of the find bar that turns off with the cursor (Replace on the last match, Replace
+All) gives the cursor back to the text, where Undo takes the replacement back; Qt would give
+it to the next element of the window, the font box of the toolbar.
 
 #### macOS
 

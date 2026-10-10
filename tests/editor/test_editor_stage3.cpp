@@ -31,6 +31,7 @@
 #include <QTextBlock>
 #include <QTextLayout>
 #include <QToolButton>
+#include <QVBoxLayout>
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
@@ -536,6 +537,74 @@ TEST_CASE("Stage3 find: keys typed in the find bar do not reach the text",
     // A key the field leaves unused does not move the editor's cursor
     press(find, Qt::Key_Down);
     CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+}
+
+TEST_CASE("Stage3 find: the keys go back to the text when the button with them turns off",
+          "[editor][stage3][search]") {
+    // Regression: Replace on the last match turned the button off, and Qt gave the keys to
+    // the next element of the window, the font box of the toolbar: Undo did not take the
+    // replacement back there, and what was typed changed the font name
+    QWidget window;
+    auto* layout = new QVBoxLayout(&window);
+    auto* fontBox = new QLineEdit(&window);  // before the text in the window, as the toolbar
+    layout->addWidget(fontBox);
+    auto* editor = new BookEditor(&window);
+    layout->addWidget(editor);
+    window.resize(600, 400);
+    editor->fromKml(kWords);
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    bar->setSearchText(QStringLiteral("another"));  // a single match
+    QLineEdit* replaceField = nullptr;
+    for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
+        if (input->placeholderText() == QStringLiteral("Replace...")) {
+            replaceField = input;
+        }
+    }
+    REQUIRE(replaceField != nullptr);
+    replaceField->setText(QStringLiteral("one more"));
+    QPushButton* replace = nullptr;
+    QPushButton* replaceAll = nullptr;
+    for (QPushButton* button : bar->findChildren<QPushButton*>()) {
+        if (button->text() == QStringLiteral("Replace")) {
+            replace = button;
+        } else if (button->text() == QStringLiteral("Replace All")) {
+            replaceAll = button;
+        }
+    }
+    REQUIRE(replace != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    const QString replaced =
+        QStringLiteral("One word, then one more word.\nNo match here.\nThe last word.");
+
+    SECTION("Replace on the last match") {
+        replace->setFocus();
+        replace->click();  // selects the match
+        CHECK(window.focusWidget() == replace);
+        replace->click();
+        CHECK(editor->plainText() == replaced);
+        CHECK_FALSE(replace->isEnabled());
+        CHECK(window.focusWidget() == editor);
+    }
+
+    SECTION("Replace All") {
+        replaceAll->setFocus();
+        replaceAll->click();
+        CHECK(editor->plainText() == replaced);
+        CHECK_FALSE(replaceAll->isEnabled());
+        CHECK(window.focusWidget() == editor);
+    }
+
+    SECTION("the button keeps the keys while there are matches") {
+        bar->setSearchText(QStringLiteral("word"));
+        replace->setFocus();
+        replace->click();
+        replace->click();
+        CHECK(editor->plainText() ==
+              QStringLiteral("One one more, then another word.\nNo match here.\nThe last word."));
+        CHECK(window.focusWidget() == replace);
+    }
 }
 
 TEST_CASE("Stage3 find: the options have the keys their tooltips show",

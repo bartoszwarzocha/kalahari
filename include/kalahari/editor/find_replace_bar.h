@@ -102,6 +102,12 @@ signals:
     /// @param text The new search text
     void searchTextChanged(const QString& text);
 
+    /// @brief Emitted when the keys go back to the text
+    ///
+    /// A button that turns off with the keys (Replace on the last match) would give them to
+    /// the next element of the window, the font box of the toolbar.
+    void textFocusRequested();
+
 protected:
     /// @brief Keep the keys typed in the bar away from the editor under it
     /// @param event Key event

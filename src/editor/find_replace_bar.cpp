@@ -486,6 +486,16 @@ void FindReplaceBar::updateButtonStates()
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
     bool canReplace = hasMatches;
 
+    // A button that turns off with the keys would give them to the next element of the
+    // window, the font box of the toolbar: they go back to the text, where Undo takes back
+    // the replacement just done
+    const QWidget* keys = window()->focusWidget();
+    if (!hasMatches && keys != nullptr &&
+        (keys == m_prevBtn || keys == m_nextBtn || keys == m_replaceBtn ||
+         keys == m_replaceAllBtn)) {
+        emit textFocusRequested();
+    }
+
     // Navigation buttons
     m_prevBtn->setEnabled(hasMatches);
     m_nextBtn->setEnabled(hasMatches);
