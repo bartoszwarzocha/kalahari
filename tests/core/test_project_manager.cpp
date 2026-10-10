@@ -1189,7 +1189,13 @@ TEST_CASE("ProjectManager imports only what goes into the book's folder",
     CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("outside.txt")));
     CHECK_FALSE(QFileInfo::exists(imported.filePath("absolute.txt")));
     CHECK_FALSE(QFileInfo::exists(imported.filePath("drive.txt")));
-    CHECK_FALSE(QFileInfo::exists(imported.filePath("C:")));
+    // Nothing named after a drive is in the book's folder, looked for in its list: on Windows
+    // QDir::filePath("C:") is "C:", the current folder of drive C, and "C:drive2.txt" is in it
+    const QStringList names =
+        imported.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
+    CHECK_FALSE(names.contains("C:"));
+    CHECK_FALSE(names.contains("C:drive2.txt"));
+    CHECK_FALSE(QFileInfo::exists(QStringLiteral("C:drive2.txt")));
     REQUIRE(pm.closeProject(false));
 
     SECTION("An archive without a book") {
