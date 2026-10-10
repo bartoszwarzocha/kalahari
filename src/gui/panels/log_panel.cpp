@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/widgets/tool_button_columns.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/theme_manager.h"
@@ -10,7 +11,6 @@
 #include "kalahari/core/art_provider.h"
 
 #include <QTextEdit>
-#include <QToolBar>
 #include <QHBoxLayout>
 #include <QClipboard>
 #include <QApplication>
@@ -248,10 +248,7 @@ void LogPanel::setupLayout() {
 }
 
 void LogPanel::createToolbar() {
-    m_toolBar = new QToolBar(this);
-    m_toolBar->setOrientation(Qt::Vertical);
-    m_toolBar->setIconSize(QSize(20, 20));
-    m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_toolBar = new ToolButtonColumns(20, this);
 
     auto& artProvider = core::ArtProvider::getInstance();
 

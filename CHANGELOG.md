@@ -28,7 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   also open within the screen. The command line help (`--help`) and its errors show in the
   program's window, in Polish when the program runs in Polish. In the Toolbar Manager a
   renamed toolbar stays selected and the command names are no longer cut off. The icon
-  downloader's texts and its download errors are translated too.
+  downloader's texts and its download errors are translated too. The Log panel's buttons
+  wrap into a second column when the panel is low instead of hiding behind an arrow, and
+  they can be reached with Tab.
 
 - **Qt's own texts in Polish** - 2026-10-10. The menus Qt builds itself are in Polish when
   the program runs in Polish: the scroll bar menu (Przewiń tutaj, Do góry, Strona w dół...),
