@@ -124,6 +124,9 @@ public:
 
     /// @brief Words to put in place of a misspelled one, the likeliest first
     ///
+    /// The word typed without its accents, with them put right, comes first. For a word with
+    /// a capital first letter the dictionary's suggestions for it written small count too, and
+    /// the writer's own words close to the word are among the dictionary's suggestions.
     /// Takes up to a few tenths of a second for a long word, so it is asked only when the
     /// writer wants them.
     QStringList suggestions(const QString& word, int maxSuggestions = 5) const;

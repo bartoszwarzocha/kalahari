@@ -261,6 +261,74 @@ TEST_CASE("SpellCheckService: the words checked", "[editor][spell_check]") {
     }
 }
 
+TEST_CASE("SpellCheckService: the suggestions, the likeliest first", "[editor][spell_check]") {
+    SECTION("a word typed without its accents: the word with them first") {
+        SpellCheckService polish;
+        REQUIRE(polish.loadDictionary(QStringLiteral("pl_PL")));
+        CHECK(polish.suggestions(QStringLiteral("ktory")).value(0) ==
+              QStringLiteral("kt\u00f3ry"));
+        // Also at the start of a sentence, where the dictionary offers names first (Kory, Tory)
+        CHECK(polish.suggestions(QStringLiteral("Ktory")).value(0) ==
+              QStringLiteral("Kt\u00f3ry"));
+        CHECK(polish.suggestions(QStringLiteral("Dzis")).value(0) == QStringLiteral("Dzi\u015b"));
+        CHECK(polish.suggestions(QStringLiteral("Zolw")).value(0) ==
+              QStringLiteral("\u017b\u00f3\u0142w"));
+        // Each of the words with the same letters before any other (Lod, Lodzi)
+        const QStringList lodz = polish.suggestions(QStringLiteral("Lodz"));
+        REQUIRE(lodz.size() >= 3);
+        CHECK(lodz.mid(0, 3).contains(QStringLiteral("\u0141\u00f3d\u017a")));
+    }
+
+    SECTION("a word starting a sentence: the word written small, with its capital") {
+        auto service = english();
+        CHECK(service->suggestions(QStringLiteral("teh")).value(0) == QStringLiteral("the"));
+        CHECK(service->suggestions(QStringLiteral("Teh")).value(0) == QStringLiteral("The"));
+        CHECK(service->suggestions(QStringLiteral("Thier")).value(0) == QStringLiteral("Their"));
+    }
+
+    SECTION("a misspelled name: the name first") {
+        auto service = english();
+        CHECK(service->suggestions(QStringLiteral("Amercia")).value(0) ==
+              QStringLiteral("America"));
+        CHECK(service->suggestions(QStringLiteral("Sarha")).value(0) == QStringLiteral("Sarah"));
+    }
+
+    SECTION("never the word itself, never twice, no more than asked for") {
+        auto service = english();
+        QStringList suggestions = service->suggestions(QStringLiteral("Teh"), 3);
+        CHECK(suggestions.size() == 3);
+        CHECK_FALSE(suggestions.contains(QStringLiteral("Teh")));
+        CHECK(suggestions.removeDuplicates() == 0);
+        suggestions = service->suggestions(QStringLiteral("Teh"), 50);
+        CHECK(suggestions.size() > 5);
+        CHECK_FALSE(suggestions.contains(QStringLiteral("Teh")));
+        CHECK(suggestions.removeDuplicates() == 0);
+    }
+
+    SECTION("the writer's own words close to the word") {
+        auto service = english();
+        service->addToUserDictionary(QStringLiteral("Ysolde"));
+        service->addToUserDictionary(QStringLiteral("zorblax"));
+        service->addToUserDictionary(QStringLiteral("Tehk"));
+
+        // Before the dictionary's words farther from the word typed (Soled)
+        CHECK(service->suggestions(QStringLiteral("Ysoled")).value(0) ==
+              QStringLiteral("Ysolde"));
+        // A word written small with a capital at the start of a sentence
+        CHECK(service->suggestions(QStringLiteral("Zorbalx")).value(0) ==
+              QStringLiteral("Zorblax"));
+        CHECK(service->suggestions(QStringLiteral("zorbalx")).value(0) ==
+              QStringLiteral("zorblax"));
+        // But after the dictionary's words closer to it
+        const QStringList teh = service->suggestions(QStringLiteral("Teh"));
+        CHECK(teh.value(0) == QStringLiteral("The"));
+        CHECK(teh.contains(QStringLiteral("Tehk")));
+        // And not at all when far from it
+        CHECK_FALSE(service->suggestions(QStringLiteral("Ysoled")).contains(
+            QStringLiteral("zorblax"), Qt::CaseInsensitive));
+    }
+}
+
 // ============================================================================
 // The writer's own words
 // ============================================================================

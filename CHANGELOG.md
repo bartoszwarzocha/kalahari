@@ -316,6 +316,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A right click on a misspelled word offers up to five words to put in its place,
     Ignore All (the word is right until the program closes) and Add to Dictionary (right
     for good), above the usual commands.
+  - The likeliest word comes first: a word typed without its accents gets the word with
+    them (ktory: który, Lodz: Łódź), a word starting a sentence also gets the words written
+    small (Teh: The), while a misspelled name still gets the name, and the writer's own
+    words close to the misspelled one are offered too.
   - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
     from the cursor round the chapter, and opens the same menu under it; the menu key and
     Shift+F10 open it for the word at the cursor.

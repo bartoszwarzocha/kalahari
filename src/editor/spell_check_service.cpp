@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -229,6 +230,114 @@ QString partsOf(const QString& word) {
         }
     }
     return parts;
+}
+
+// =============================================================================
+// Suggestions
+// =============================================================================
+
+/// How far a suggestion is from the word typed: the cost of each change
+constexpr int ACCENT_COST = 1;  ///< A letter typed without its accent, or with another one
+constexpr int SWAP_COST = 2;    ///< Two letters next to each other swapped
+constexpr int LETTER_COST = 4;  ///< A letter wrong, missing or extra
+
+/// @brief Whether a word has a capital first letter and no other (Ktory, Teh): it starts a
+///        sentence, or it is a name
+bool isCapitalized(const QString& word) {
+    if (word.size() < 2 || !word.front().isUpper()) {
+        return false;
+    }
+    const QString rest = word.sliced(1);
+    return rest == rest.toLower();
+}
+
+/// @brief A word with a capital first letter (The for the)
+QString capitalized(const QString& word) {
+    if (word.isEmpty() || !word.front().isLower()) {
+        return word;
+    }
+    return word.front().toUpper() + word.sliced(1);
+}
+
+/// @brief A letter in lower case without its accent (o for O with an acute, l for L with a
+///        stroke)
+QChar withoutAccent(QChar letter) {
+    const QChar lower = letter.toLower();
+    // Letters with a stroke are not accented letters for Unicode
+    switch (lower.unicode()) {
+    case 0x0142:  // l with stroke
+        return QLatin1Char('l');
+    case 0x0111:  // d with stroke
+        return QLatin1Char('d');
+    case 0x00F8:  // o with stroke
+        return QLatin1Char('o');
+    default:
+        break;
+    }
+    const QString decomposed = QString(lower).normalized(QString::NormalizationForm_D);
+    return decomposed.isEmpty() ? lower : decomposed.front();
+}
+
+/// @brief A word in lower case without its accents: the letters of a word typed without them
+QString lettersOf(const QString& word) {
+    QString letters;
+    letters.reserve(word.size());
+    for (const QChar c : word) {
+        if (c.category() != QChar::Mark_NonSpacing) {
+            letters.append(withoutAccent(c));
+        }
+    }
+    return letters;
+}
+
+/// @brief How far a suggestion is from the word typed, in any case (see the costs above)
+int distanceBetween(const QString& typed, const QString& suggestion) {
+    const QString a = typed.toLower();
+    const QString b = suggestion.toLower();
+    const qsizetype columns = b.size() + 1;
+
+    // The cost of turning the first i letters of the one into the first j of the other
+    std::vector<int> costs(static_cast<std::size_t>((a.size() + 1) * columns));
+    const auto cost = [&costs, columns](qsizetype i, qsizetype j) -> int& {
+        return costs[static_cast<std::size_t>((i * columns) + j)];
+    };
+    for (qsizetype i = 0; i <= a.size(); ++i) {
+        cost(i, 0) = static_cast<int>(i) * LETTER_COST;
+    }
+    for (qsizetype j = 0; j <= b.size(); ++j) {
+        cost(0, j) = static_cast<int>(j) * LETTER_COST;
+    }
+    for (qsizetype i = 1; i <= a.size(); ++i) {
+        for (qsizetype j = 1; j <= b.size(); ++j) {
+            int change = 0;
+            if (a[i - 1] != b[j - 1]) {
+                change = withoutAccent(a[i - 1]) == withoutAccent(b[j - 1]) ? ACCENT_COST
+                                                                            : LETTER_COST;
+            }
+            int best = std::min({cost(i - 1, j) + LETTER_COST, cost(i, j - 1) + LETTER_COST,
+                                 cost(i - 1, j - 1) + change});
+            if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) {
+                best = std::min(best, cost(i - 2, j - 2) + SWAP_COST);
+            }
+            cost(i, j) = best;
+        }
+    }
+    return cost(a.size(), b.size());
+}
+
+/// @brief Two lists in turns, from the first one (a1 b1 a2 b2 ...)
+QStringList inTurns(const QStringList& first, const QStringList& second) {
+    QStringList merged;
+    merged.reserve(first.size() + second.size());
+    for (qsizetype i = 0; i < std::max(first.size(), second.size()); ++i) {
+        if (i < first.size()) {
+            merged.append(first[i]);
+        }
+        if (i < second.size()) {
+            merged.append(second[i]);
+        }
+    }
+    return merged;
 }
 
 }  // anonymous namespace
@@ -496,11 +605,65 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
     }
     QString asked = word;
     asked.replace(QChar(0x2019), QLatin1Char('\''));
-    for (const std::string& suggestion : m_hunspell->suggest(toDictionary(asked))) {
+    const bool capitalizedWord = isCapitalized(asked);
+    const auto suggest = [this, &asked](const QString& misspelled, bool capitalize) {
+        QStringList found;
+        for (const std::string& suggestion : m_hunspell->suggest(toDictionary(misspelled))) {
+            const QString offered = fromDictionary(suggestion);
+            found.append(capitalize ? capitalized(offered) : offered);
+        }
+        found.removeAll(asked);
+        return found;
+    };
+    QStringList found = suggest(asked, false);
+
+    // A word with a capital first letter, at the start of a sentence or a name: for it the
+    // dictionary offers names and capitalized words first (Kory and Tory for the Polish
+    // "Ktory" typed without its accent) and the words written small only later. Its
+    // suggestions for the word written small go in turns with them, from the list whose first
+    // word is closer to the word typed.
+    if (capitalizedWord) {
+        const QStringList small = suggest(asked.toLower(), true);
+        const bool namesFirst = !found.isEmpty() &&
+                                (small.isEmpty() || distanceBetween(asked, found.front()) <
+                                                        distanceBetween(asked, small.front()));
+        found = namesFirst ? inTurns(found, small) : inTurns(small, found);
+    }
+
+    // The writer's own words close to the word typed (the names of the book): before the
+    // suggestions not closer to it than they are
+    const int farthest = lettersOf(asked).size() <= 4 ? LETTER_COST : 2 * LETTER_COST;
+    QList<std::pair<int, QString>> ownWords;
+    for (const QString& own : m_userWords) {
+        const QString offered = capitalizedWord ? capitalized(own) : own;
+        const int distance = distanceBetween(asked, offered);
+        if (distance <= farthest && offered != asked) {
+            ownWords.append({distance, offered});
+        }
+    }
+    std::sort(ownWords.begin(), ownWords.end());
+    for (const std::pair<int, QString>& own : std::as_const(ownWords)) {
+        const int distance = own.first;
+        const auto notCloser =
+            std::find_if(found.begin(), found.end(), [&asked, distance](const QString& offered) {
+                return distanceBetween(asked, offered) >= distance;
+            });
+        found.insert(notCloser, own.second);
+    }
+
+    // The word typed without its accents, with them put right, comes first
+    const QString typedLetters = lettersOf(asked);
+    std::stable_partition(found.begin(), found.end(), [&typedLetters](const QString& offered) {
+        return lettersOf(offered) == typedLetters;
+    });
+
+    for (const QString& suggestion : std::as_const(found)) {
         if (result.size() >= maxSuggestions) {
             break;
         }
-        result.append(fromDictionary(suggestion));
+        if (!result.contains(suggestion)) {
+            result.append(suggestion);
+        }
     }
     return result;
 }
