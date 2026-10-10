@@ -443,6 +443,24 @@ private:
 - ---
 - Copy Full Path
 
+**Dashboard** (the first tab, `DashboardPanel`): the logo with the title and the tagline,
+the keys of New Book, Open Book and Open File, the news and the recent books (cards), and
+Open last project on startup. On a small screen (1366 × 768 at 125% and 150%, the side
+panels open or closed) nothing of it is cut off:
+- the content takes three quarters of a wide panel, more where it needs it, and all of a
+  narrow one but 16 px on each side;
+- the logo is at most 256 px and 40% of the panel's height; where the title and the tagline
+  do not fit beside a logo of 96 px, it goes above them at that size, and they are
+  centered and wrap;
+- the hints of the shortcuts go one under another where one row is too narrow for them,
+  with the keys and the commands in two columns in the middle; where even the columns do
+  not fit, each command goes under its keys;
+- below 750 px the news and the recent books go one under the other; a narrow card puts the
+  book's icon above its texts, which wrap (a book's path also inside a name too long for the
+  line);
+- the text of the check box wraps, and a click on it changes the box;
+- only a panel narrower than the longest word scrolls sideways.
+
 **Implementation:**
 ```cpp
 class EditorNotebook : public wxAuiNotebook {

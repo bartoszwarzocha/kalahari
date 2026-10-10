@@ -7,7 +7,10 @@
 
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/panels/dashboard_layouts.h"
 #include "kalahari/gui/utils/layout_utils.h"
+#include "kalahari/gui/widgets/path_label.h"
+#include "kalahari/gui/widgets/wrapping_label.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/recent_books_manager.h"
@@ -26,7 +29,6 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QDir>
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QApplication>
@@ -36,6 +38,12 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+constexpr double LOGO_SHARE_OF_HEIGHT = 0.4;  ///< The logo's share of the panel's height at most
+
+} // namespace
 
 /// @brief Clickable card widget with hover effect
 class ClickableCard : public QFrame {
@@ -160,20 +168,19 @@ void DashboardPanel::setupUI()
     m_scrollArea = new QScrollArea(this);
     m_scrollArea->setWidgetResizable(true);
     m_scrollArea->setFrameShape(QFrame::NoFrame);
-    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // The content wraps to the panel's width; only a panel narrower than its longest word
+    // scrolls sideways, so that nothing is cut off
+    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     // Content widget inside scroll area
     m_contentWidget = new QWidget(m_scrollArea);
     m_scrollArea->setWidget(m_contentWidget);
 
-    // Main layout - center content at 75% width using stretch
-    QHBoxLayout* centeringLayout = new QHBoxLayout(m_contentWidget);
-    centeringLayout->setContentsMargins(0, 0, 0, 0);
+    // Main layout - the content in the middle, at 75% of the width (more where it likes more,
+    // and on a narrow panel all of it but a margin on each side)
+    DashboardContentLayout* centeringLayout = new DashboardContentLayout(m_contentWidget);
 
-    // Left spacer (12.5%)
-    centeringLayout->addStretch(1);
-
-    // Content container (75%)
+    // Content container
     QWidget* centeredContent = new QWidget(m_contentWidget);
     QVBoxLayout* contentLayout = new QVBoxLayout(centeredContent);
     contentLayout->setContentsMargins(0, 48, 0, 32);  // Top and bottom padding
@@ -191,25 +198,32 @@ void DashboardPanel::setupUI()
     QWidget* mainContent = createMainContentSection(centeredContent);
     contentLayout->addWidget(mainContent, 1);
 
-    // 4. Auto-load checkbox - with extra bottom padding for visibility
+    // 4. Auto-load checkbox - with extra bottom padding for visibility. Its text is a label
+    //    beside it, which wraps on a narrow panel (the text of a QCheckBox cannot)
     QWidget* checkboxContainer = new QWidget(centeredContent);
     QHBoxLayout* checkboxLayout = new QHBoxLayout(checkboxContainer);
     checkboxLayout->setContentsMargins(0, 24, 0, 32);  // Extra bottom margin
+    checkboxLayout->setSpacing(style()->pixelMetric(QStyle::PM_CheckBoxLabelSpacing));
 
-    m_autoLoadCheckbox = new QCheckBox(tr("Open last project on startup"), checkboxContainer);
-    m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+    const QString autoLoadText = tr("Open last project on startup");
+    const QString autoLoadTip =
+        tr("Automatically open the most recently used project when Kalahari starts");
+    m_autoLoadCheckbox = new QCheckBox(checkboxContainer);
+    m_autoLoadCheckbox->setAccessibleName(autoLoadText);
+    m_autoLoadCheckbox->setToolTip(autoLoadTip);
+    m_autoLoadLabel = new WrappingLabel(autoLoadText, checkboxContainer);
+    m_autoLoadLabel->setBuddy(m_autoLoadCheckbox);
+    m_autoLoadLabel->setToolTip(autoLoadTip);
+    m_autoLoadLabel->installEventFilter(this);
 
     checkboxLayout->addStretch();
-    checkboxLayout->addWidget(m_autoLoadCheckbox);
+    checkboxLayout->addWidget(m_autoLoadCheckbox, 0, Qt::AlignTop);
+    checkboxLayout->addWidget(m_autoLoadLabel);
     checkboxLayout->addStretch();
 
     contentLayout->addWidget(checkboxContainer);
 
-    // Add centered content with 6:1 ratio (75% center)
-    centeringLayout->addWidget(centeredContent, 6);
-
-    // Right spacer (12.5%)
-    centeringLayout->addStretch(1);
+    centeringLayout->addWidget(centeredContent);
 
     outerLayout->addWidget(m_scrollArea);
 
@@ -242,64 +256,44 @@ void DashboardPanel::setupUI()
 QWidget* DashboardPanel::createHeaderSection(QWidget* parent)
 {
     QWidget* headerWidget = new QWidget(parent);
-    QHBoxLayout* mainLayout = new QHBoxLayout(headerWidget);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(24);
-    mainLayout->setAlignment(Qt::AlignCenter);
 
-    // Logo (256x256 logical pixels, scaled for HiDPI)
+    // Logo, as large as the header makes it (at most 256x256 logical pixels), drawn from the
+    // whole image so that it is sharp at any size and scaling
     m_logoLabel = new QLabel(headerWidget);
-    m_logoLabel->setFixedSize(256, 256);
-    m_logoLabel->setScaledContents(false);
-
-    // Load logo from resources with HiDPI support
+    m_logoLabel->setAlignment(Qt::AlignCenter);
+    // The header gives it its size, whatever the image's own
+    m_logoLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     QString logoPath = core::ResourcePaths::getInstance().getResourcesDir() + "/images/app_logo.png";
     QPixmap logoPixmap(logoPath);
     if (!logoPixmap.isNull()) {
-        // Get device pixel ratio for HiDPI scaling
-        qreal dpr = m_logoLabel->devicePixelRatioF();
-        int targetSize = static_cast<int>(256 * dpr);
-
-        // Scale to target size with smooth transformation
-        QPixmap scaledLogo = logoPixmap.scaled(targetSize, targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        scaledLogo.setDevicePixelRatio(dpr);
-        m_logoLabel->setPixmap(scaledLogo);
-        m_logoLabel->setAlignment(Qt::AlignCenter);
+        m_logoLabel->setScaledContents(true);
+        m_logoLabel->setPixmap(logoPixmap);
     } else {
         core::Logger::getInstance().warn("DashboardPanel: Could not load logo from {}", logoPath.toStdString());
         m_logoLabel->setText(tr("Logo"));
-        m_logoLabel->setAlignment(Qt::AlignCenter);
     }
 
-    // Text container (title + tagline)
-    QWidget* textWidget = new QWidget(headerWidget);
-    QVBoxLayout* textLayout = new QVBoxLayout(textWidget);
-    textLayout->setContentsMargins(0, 0, 0, 0);
-    textLayout->setSpacing(8);
-    textLayout->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
-
-    // Title
-    m_titleLabel = new QLabel(tr("Welcome to Kalahari"), textWidget);
+    // Title and tagline: beside the logo each fits in its line; under it they are centered
+    // and wrap where the panel is narrower than their line
+    m_titleLabel = new WrappingLabel(tr("Welcome to Kalahari"), headerWidget);
     QFont titleFont = m_titleLabel->font();
     titleFont.setPointSize(24);
     titleFont.setWeight(QFont::Light);
     m_titleLabel->setFont(titleFont);
-    m_titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Tagline
-    m_taglineLabel = new QLabel(tr("A Comprehensive Writer's IDE"), textWidget);
+    m_taglineLabel = new WrappingLabel(tr("A Comprehensive Writer's IDE"), headerWidget);
     QFont taglineFont = m_taglineLabel->font();
     taglineFont.setPointSize(12);
     taglineFont.setWeight(QFont::Light);
     m_taglineLabel->setFont(taglineFont);
-    m_taglineLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_taglineLabel->setAlignment(Qt::AlignCenter);
 
-    textLayout->addWidget(m_titleLabel);
-    textLayout->addWidget(m_taglineLabel);
-
-    // Add to main layout: [Logo] | [Text]
-    mainLayout->addWidget(m_logoLabel);
-    mainLayout->addWidget(textWidget);
+    // [Logo] | [Title / Tagline], or the logo above them
+    m_headerLayout = new DashboardHeaderLayout(headerWidget);
+    m_headerLayout->addWidget(m_logoLabel);
+    m_headerLayout->addWidget(m_titleLabel);
+    m_headerLayout->addWidget(m_taglineLabel);
 
     return headerWidget;
 }
@@ -311,11 +305,11 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
     m_shortcutsFrame->setObjectName("shortcutsFrame");
 
     QVBoxLayout* layout = new QVBoxLayout(m_shortcutsFrame);
-    layout->setContentsMargins(32, 16, 32, 16);
+    layout->setContentsMargins(16, 16, 16, 16);
     layout->setSpacing(12);
 
     // Title
-    m_shortcutsTitleLabel = new QLabel(tr("KEYBOARD SHORTCUTS"), m_shortcutsFrame);
+    m_shortcutsTitleLabel = new WrappingLabel(tr("KEYBOARD SHORTCUTS"), m_shortcutsFrame);
     QFont titleFont = m_shortcutsTitleLabel->font();
     titleFont.setPointSize(9);
     titleFont.setWeight(QFont::Light);
@@ -325,12 +319,9 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
 
     layout->addWidget(m_shortcutsTitleLabel);
 
-    // Shortcuts row
+    // Shortcuts in a row, or one under another where the panel is narrow
     QWidget* shortcutsRow = new QWidget(m_shortcutsFrame);
-    m_shortcutsRowLayout = new QHBoxLayout(shortcutsRow);
-    m_shortcutsRowLayout->setContentsMargins(0, 0, 0, 0);
-    m_shortcutsRowLayout->setSpacing(48);
-    m_shortcutsRowLayout->setAlignment(Qt::AlignCenter);
+    m_shortcutsLayout = new DashboardHintsLayout(shortcutsRow);
     layout->addWidget(shortcutsRow);
 
     updateShortcutLabels();
@@ -344,7 +335,7 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
 void DashboardPanel::updateShortcutLabels()
 {
     for (QLabel* label : m_shortcutLabels) {
-        m_shortcutsRowLayout->removeWidget(label);
+        m_shortcutsLayout->removeWidget(label);
         delete label;
     }
     m_shortcutLabels.clear();
@@ -365,12 +356,18 @@ void DashboardPanel::updateShortcutLabels()
         }
         const QString keys = command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
 
-        QLabel* label = new QLabel(m_shortcutsRowLayout->parentWidget());
-        label->setText(QString("<span style='font-weight: bold;'>%1</span>&nbsp;&nbsp;&nbsp;%2")
-                       .arg(keys.toHtmlEscaped(), name.toHtmlEscaped()));
-        label->setTextFormat(Qt::RichText);
-        m_shortcutLabels.push_back(label);
-        m_shortcutsRowLayout->addWidget(label);
+        // The keys in bold and the command beside them, or under them on a narrow panel
+        QWidget* row = m_shortcutsLayout->parentWidget();
+        QLabel* keysLabel = new QLabel(row);
+        keysLabel->setTextFormat(Qt::RichText);
+        keysLabel->setText(
+            QString("<span style='font-weight: bold;'>%1</span>").arg(keys.toHtmlEscaped()));
+        QLabel* nameLabel = new WrappingLabel(name, row);
+        nameLabel->setTextFormat(Qt::PlainText);
+        nameLabel->setAlignment(Qt::AlignCenter);
+        m_shortcutsLayout->addHint(keysLabel, nameLabel);
+        m_shortcutLabels.push_back(keysLabel);
+        m_shortcutLabels.push_back(nameLabel);
     }
     styleShortcutLabels();
     // Without a command with keys the section has nothing to show
@@ -436,7 +433,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     //m_newsIcon->setPixmap(newsIcon.pixmap(headerIconSize, headerIconSize));
     //newsIconLayout->addWidget(m_newsIcon);
 
-    m_newsTitle = new QLabel(tr("Kalahari News"), newsHeader);
+    m_newsTitle = new WrappingLabel(tr("Kalahari News"), newsHeader);
     QFont newsTitleFont = m_newsTitle->font();
     newsTitleFont.setPointSize(13);
     newsTitleFont.setWeight(QFont::Medium);
@@ -499,7 +496,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     //m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
     //filesIconLayout->addWidget(m_filesIcon);
 
-    m_filesTitle = new QLabel(tr("Recent Files"), filesHeader);
+    m_filesTitle = new WrappingLabel(tr("Recent Files"), filesHeader);
     QFont filesTitleFont = m_filesTitle->font();
     filesTitleFont.setPointSize(13);
     filesTitleFont.setWeight(QFont::Medium);
@@ -592,9 +589,8 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     //card->setBorderColor(QColor(r, g, b));
     card->setBorderColor(borderColor);
 
-    QHBoxLayout* cardLayout = new QHBoxLayout(card);
-    cardLayout->setContentsMargins(12, 12, 12, 12);
-    cardLayout->setSpacing(12);
+    // The icon beside the texts, or above them in a narrow card
+    DashboardCardLayout* cardLayout = new DashboardCardLayout(card);
 
     // Book icon - use auto_stories from twotone style
     int iconSize = getIconSize();
@@ -637,6 +633,8 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     // Title
     QLabel* titleLabel = new QLabel(title, contentWidget);
     titleLabel->setObjectName("cardTitle");
+    titleLabel->setTextFormat(Qt::PlainText);
+    titleLabel->setWordWrap(true);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(12);
     titleFont.setWeight(QFont::DemiBold);
@@ -645,17 +643,15 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     // Description (author | type)
     QLabel* descLabel = new QLabel(QString("%1 | %2").arg(author, bookType), contentWidget);
     descLabel->setObjectName("cardDescription");
+    descLabel->setTextFormat(Qt::PlainText);
+    descLabel->setWordWrap(true);
     QFont descFont = descLabel->font();
     descFont.setPointSize(11);
     descLabel->setFont(descFont);
 
-    // Path - with breakable characters for proper wrapping at any point
-    QString nativePath = QDir::toNativeSeparators(filePath);
-    QString breakablePath = makeBreakablePath(nativePath);
-    QLabel* pathLabel = new QLabel(breakablePath, contentWidget);
+    // Path - it wraps after its separators, and inside a name longer than the line
+    QLabel* pathLabel = new PathLabel(filePath, contentWidget);
     pathLabel->setObjectName("cardPath");
-    pathLabel->setWordWrap(true);
-    pathLabel->setTextFormat(Qt::PlainText);
     QFont pathFont = pathLabel->font();
     pathFont.setPointSize(8);
     pathLabel->setFont(pathFont);
@@ -663,6 +659,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     // Date
     QLabel* dateLabel = new QLabel(dateStr, contentWidget);
     dateLabel->setObjectName("cardDate");
+    dateLabel->setWordWrap(true);
     QFont dateFont = dateLabel->font();
     dateFont.setPointSize(8);
     dateLabel->setFont(dateFont);
@@ -672,7 +669,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     contentLayout->addWidget(pathLabel);
     contentLayout->addWidget(dateLabel);
 
-    cardLayout->addWidget(contentWidget, 1);
+    cardLayout->addWidget(contentWidget);
 
     // Set click handler
     card->onClick = [this, filePath]() {
@@ -698,6 +695,7 @@ void DashboardPanel::updateRecentFilesList()
     if (recentFiles.isEmpty()) {
         QLabel* noFilesLabel = new QLabel(tr("No recent projects yet."), m_filesListWidget);
         noFilesLabel->setObjectName("noItemsLabel");
+        noFilesLabel->setWordWrap(true);
         QFont font = noFilesLabel->font();
         font.setItalic(true);
         noFilesLabel->setFont(font);
@@ -726,6 +724,7 @@ void DashboardPanel::populateNewsColumn()
     // Placeholder for news
     QLabel* noNewsLabel = new QLabel(tr("No news yet."), m_newsListWidget);
     noNewsLabel->setObjectName("noItemsLabel");
+    noNewsLabel->setWordWrap(true);
     QFont font = noNewsLabel->font();
     font.setItalic(true);
     noNewsLabel->setFont(font);
@@ -862,9 +861,9 @@ void DashboardPanel::applyThemeColors()
         label->setStyleSheet(noItemsStyle);
     }
 
-    // Checkbox styling - only text color, let Qt handle the indicator
-    if (m_autoLoadCheckbox) {
-        m_autoLoadCheckbox->setStyleSheet(QString("QCheckBox { color: %1; }").arg(textColor));
+    // Checkbox text - only its color, Qt draws the indicator
+    if (m_autoLoadLabel) {
+        m_autoLoadLabel->setStyleSheet(QString("color: %1;").arg(textColor));
     }
 
     // Refresh icons with current theme colors using getThemedIcon API
@@ -954,6 +953,12 @@ void DashboardPanel::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
 
+    // On a low screen the logo leaves room for the shortcuts and the recent books
+    if (m_headerLayout) {
+        m_headerLayout->setLargestLogo(
+            static_cast<int>(event->size().height() * LOGO_SHARE_OF_HEIGHT));
+    }
+
     // Check if we need to switch layout mode based on width threshold
     bool shouldBeSingleColumn = event->size().width() < SINGLE_COLUMN_THRESHOLD;
 
@@ -972,6 +977,13 @@ void DashboardPanel::reorganizeLayout(bool singleColumn)
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel::reorganizeLayout - switching to {} column mode",
                  singleColumn ? "single" : "dual");
+
+    // One column under the other is as wide as its cards need at least (a panel narrower
+    // than that scrolls sideways instead of cutting them off); two share the width equally
+    const QSizePolicy::Policy columnWidth =
+        singleColumn ? QSizePolicy::Preferred : QSizePolicy::Ignored;
+    m_newsColumn->setSizePolicy(columnWidth, QSizePolicy::Preferred);
+    m_recentFilesColumn->setSizePolicy(columnWidth, QSizePolicy::Preferred);
 
     // Remove all widgets from grid layout first
     m_columnsGridLayout->removeWidget(m_newsColumn);
@@ -1049,6 +1061,20 @@ void DashboardPanel::reorganizeLayout(bool singleColumn)
     }
 }
 
+bool DashboardPanel::eventFilter(QObject* watched, QEvent* event)
+{
+    // A click on the checkbox's text changes it, as on the text of a QCheckBox
+    if (watched == m_autoLoadLabel && event->type() == QEvent::MouseButtonRelease) {
+        const auto* mouse = static_cast<QMouseEvent*>(event);
+        if (mouse->button() == Qt::LeftButton &&
+            m_autoLoadLabel->rect().contains(mouse->position().toPoint())) {
+            m_autoLoadCheckbox->click();
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
 void DashboardPanel::updateColumnVisibility()
 {
     auto& logger = core::Logger::getInstance();
@@ -1105,20 +1131,6 @@ void DashboardPanel::updateColumnVisibility()
     }
 }
 
-QString DashboardPanel::makeBreakablePath(const QString& path) const
-{
-    // Insert zero-width space (U+200B) after each path separator
-    // This allows QLabel word wrap to break at any separator without visible changes
-    const QChar zeroWidthSpace(0x200B);
-    QString result = path;
-
-    // Replace backslash with backslash + zero-width space
-    result.replace("\\", QString("\\") + zeroWidthSpace);
-    // Replace forward slash with forward slash + zero-width space
-    result.replace("/", QString("/") + zeroWidthSpace);
-
-    return result;
-}
 
 QPixmap DashboardPanel::loadThemedIcon(const QString& actionId) const
 {

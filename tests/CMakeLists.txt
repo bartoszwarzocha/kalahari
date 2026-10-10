@@ -79,6 +79,8 @@ set(TEST_SOURCES
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
+    gui/test_dashboard_panel.cpp                 # The Dashboard on a small screen
+    gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -181,10 +183,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager

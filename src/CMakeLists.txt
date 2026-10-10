@@ -168,7 +168,9 @@ set(KALAHARI_SOURCES
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
     gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
     gui/widgets/color_config_widget.cpp
+    gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
+    gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/toolbar_manager.cpp
@@ -179,6 +181,7 @@ set(KALAHARI_SOURCES
     gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
+    gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow or a low panel
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
