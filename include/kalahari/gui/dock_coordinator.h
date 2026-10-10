@@ -18,6 +18,7 @@ class QLabel;
 class QToolButton;
 class QWidget;
 class QAction;
+class QRect;
 
 namespace kalahari {
 namespace gui {
@@ -30,6 +31,7 @@ class DashboardPanel;
 class SearchPanel;
 class AssistantPanel;
 class AnnotationsPanel;
+class InfoBar;
 class StandaloneInfoBar;
 
 /// @brief Coordinates dock widgets and panel management
@@ -69,9 +71,41 @@ public:
     void createDocks();
 
     /// @brief Reset dock layout to default
+    ///
+    /// On a small screen the default is the layout of fitToScreen(), and the bar above the
+    /// text says why the panels on the right are gone.
     /// @param diagnosticMode true if diagnostic mode is enabled
     /// @param devMode true if dev mode is enabled
     void resetLayout(bool diagnosticMode, bool devMode);
+
+    /// @brief The first layout of a window without a saved one: on a small screen the layout
+    /// of fitToScreen(), and the bar of showLayoutNotice() the first time only, so that later
+    /// starts keep the writer's own layout without a word
+    /// @param screenArea The part of the window's screen that windows can take (the screen
+    ///        without the taskbar)
+    void fitFirstLayout(const QRect& screenArea);
+
+    /// @brief On a small screen (narrower than SMALL_SCREEN_WIDTH), a layout that leaves the
+    /// text room: a narrower Navigator and no panels on the right
+    ///
+    /// The panels on the right are hidden, not removed: View > Panels shows each of them in
+    /// its place again, as does the button of the bar of showLayoutNotice().
+    /// @param screenArea The part of the window's screen that windows can take
+    /// @return Whether the screen is small and the layout was fitted to it
+    bool fitToScreen(const QRect& screenArea);
+
+    /// @brief A screen whose part for windows is narrower than this, in the pixels Qt counts
+    /// after the system's scaling, is small: the Navigator, the text and the panels on the
+    /// right do not fit side by side. 1366×768 at 125% is 1093 pixels wide, at 150% 911.
+    static constexpr int SMALL_SCREEN_WIDTH = 1200;
+
+    /// @brief Show the bar above the text that says the panels on the right were hidden for a
+    /// small screen and how to show them again
+    void showLayoutNotice();
+
+    /// @brief Show the panels on the right again, with the Annotations panel on top, and hide
+    /// the bar of showLayoutNotice()
+    void showRightPanels();
 
     // =========================================================================
     // Dock customization
@@ -126,6 +160,9 @@ public:
 
     /// @brief Get Standalone info bar
     [[nodiscard]] StandaloneInfoBar* standaloneInfoBar() const { return m_standaloneInfoBar; }
+
+    /// @brief The bar of showLayoutNotice()
+    [[nodiscard]] InfoBar* layoutNoticeBar() const { return m_layoutNoticeBar; }
 
     // =========================================================================
     // Dock accessors
@@ -285,6 +322,9 @@ private:
     /// @return The command's action, or nullptr when there is none
     QAction* createPanelAction(const std::string& cmdId, QDockWidget* dock);
 
+    /// @brief The docks on the right of the window, in the order of their tabs
+    [[nodiscard]] QList<QDockWidget*> rightDocks() const;
+
     QMainWindow* m_mainWindow;
 
     // Dock widgets
@@ -308,6 +348,7 @@ private:
     QTabWidget* m_centralTabs{nullptr};
     QWidget* m_centralWrapper{nullptr};
     StandaloneInfoBar* m_standaloneInfoBar{nullptr};
+    InfoBar* m_layoutNoticeBar{nullptr};  ///< The panels on the right hidden for a small screen
 
     // View actions (panel toggles)
     QAction* m_viewNavigatorAction{nullptr};

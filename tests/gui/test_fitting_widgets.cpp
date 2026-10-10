@@ -1,11 +1,16 @@
 /// @file test_fitting_widgets.cpp
-/// @brief Widgets that fit a small screen: items that go on in more rows
+/// @brief Widgets that fit a small screen: items that go on in more rows, and bars whose
+/// message takes more lines
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/info_bar.h"
+#include "kalahari/gui/widgets/standalone_info_bar.h"
 
 #include <QLayoutItem>
 #include <QLineEdit>
+#include <QPushButton>
+#include <QToolButton>
 #include <QWidget>
 
 using namespace kalahari::gui;
@@ -18,6 +23,11 @@ QWidget* box(QWidget* parent, int width, int height = 20) {
     widget->setFixedSize(width, height);
     return widget;
 }
+
+/// A sentence that takes more lines in a narrow widget
+const QString LONG_MESSAGE = QStringLiteral(
+    "The screen is small, so the panels on the right are hidden. View > Panels shows them "
+    "again.");
 
 }  // anonymous namespace
 
@@ -106,4 +116,68 @@ TEST_CASE("Flow layout: an item that expands takes the room left in its row",
         CHECK(field->width() == 200);
         CHECK(button->x() == 210);
     }
+}
+
+// =============================================================================
+// InfoBar
+// =============================================================================
+
+TEST_CASE("Info bar: its message takes more lines in a narrow bar", "[gui][widgets]") {
+    // Regression: the bar of a file outside the book made the window as wide as its message
+    InfoBar bar;
+    bar.setMessage(LONG_MESSAGE);
+    bar.setActionText(QStringLiteral("Show Panels"));
+
+    CHECK(bar.message() == LONG_MESSAGE);
+    CHECK(bar.minimumSizeHint().width() < bar.sizeHint().width());
+    REQUIRE(bar.hasHeightForWidth());
+    CHECK(bar.heightForWidth(300) > bar.heightForWidth(1000));
+}
+
+TEST_CASE("Info bar: its button and its close button", "[gui][widgets]") {
+    InfoBar bar;
+    bar.setMessage(QStringLiteral("The panels on the right are hidden."));
+    auto* action = bar.findChild<QPushButton*>();
+    auto* close = bar.findChild<QToolButton*>();
+    REQUIRE(action != nullptr);
+    REQUIRE(close != nullptr);
+    CHECK_FALSE(action->isVisibleTo(&bar));  // no button without its text
+    CHECK(close->isVisibleTo(&bar));
+
+    bar.setActionText(QStringLiteral("Show Panels"));
+    bar.setActionToolTip(QStringLiteral("Show the panels on the right"));
+    CHECK(action->isVisibleTo(&bar));
+    CHECK(action->text() == QStringLiteral("Show Panels"));
+    CHECK(action->toolTip() == QStringLiteral("Show the panels on the right"));
+
+    int actions = 0;
+    int dismissals = 0;
+    QObject::connect(&bar, &InfoBar::actionClicked, [&actions]() { ++actions; });
+    QObject::connect(&bar, &InfoBar::dismissed, [&dismissals]() { ++dismissals; });
+    action->click();
+    CHECK(actions == 1);
+    CHECK(dismissals == 0);
+    close->click();
+    CHECK(dismissals == 1);
+
+    SECTION("an empty text hides the button again") {
+        bar.setActionText(QString());
+        CHECK_FALSE(action->isVisibleTo(&bar));
+    }
+}
+
+TEST_CASE("Info bar: a file outside the book offers to add it", "[gui][widgets]") {
+    StandaloneInfoBar bar;
+    bar.setFilePath(QStringLiteral("/notes/notes.txt"));
+    CHECK(bar.filePath() == QStringLiteral("/notes/notes.txt"));
+    CHECK_FALSE(bar.message().isEmpty());
+
+    int requests = 0;
+    QObject::connect(&bar, &StandaloneInfoBar::addToProjectClicked,
+                     [&requests]() { ++requests; });
+    auto* action = bar.findChild<QPushButton*>();
+    REQUIRE(action != nullptr);
+    REQUIRE(action->isVisibleTo(&bar));
+    action->click();
+    CHECK(requests == 1);
 }

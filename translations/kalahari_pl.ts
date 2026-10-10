@@ -1480,6 +1480,28 @@ Zawiera część wstępną (strona tytułowa, dedykacja), prolog i epilog oraz c
     </message>
 </context>
 <context>
+    <name>kalahari::gui::DockCoordinator</name>
+    <message>
+        <source>The screen is small, so the panels on the right are hidden. View &gt; Panels shows them again.</source>
+        <translation>Ekran jest mały, więc panele po prawej stronie są ukryte. Pokażesz je w menu Widok &gt; Panele.</translation>
+    </message>
+    <message>
+        <source>Show Panels</source>
+        <translation>Pokaż panele</translation>
+    </message>
+    <message>
+        <source>Show the panels on the right</source>
+        <translation>Pokaż panele po prawej stronie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::InfoBar</name>
+    <message>
+        <source>Dismiss this message</source>
+        <translation>Ukryj ten komunikat</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::RecentBooksMenu</name>
     <message>
         <source>Recent Books</source>
@@ -4439,10 +4461,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Add this file to a project for full features</source>
         <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
-    </message>
-    <message>
-        <source>Dismiss this message</source>
-        <translation>Ukryj ten komunikat</translation>
     </message>
 </context>
 <context>

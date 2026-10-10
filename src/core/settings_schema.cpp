@@ -24,6 +24,8 @@ std::map<std::string, json> buildDefaults() {
         {"window.maximized", false},
         {"window.geometry", ""},  // QMainWindow::saveGeometry() as base64
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
+        // The bar that says the panels on the right were hidden for a small screen was shown
+        {"window.smallScreenNoticeShown", false},
         {"recent_files", json::array()},
 
         // Interface

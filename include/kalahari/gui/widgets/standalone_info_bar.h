@@ -6,12 +6,9 @@
 
 #pragma once
 
-#include <QFrame>
-#include <QString>
+#include "kalahari/gui/widgets/info_bar.h"
 
-class QLabel;
-class QPushButton;
-class QToolButton;
+#include <QString>
 
 namespace kalahari {
 namespace gui {
@@ -41,7 +38,7 @@ namespace gui {
 /// connect(infoBar, &StandaloneInfoBar::dismissed,
 ///         infoBar, &QWidget::hide);
 /// @endcode
-class StandaloneInfoBar : public QFrame {
+class StandaloneInfoBar : public InfoBar {
     Q_OBJECT
 
 public:
@@ -60,41 +57,11 @@ public:
     /// @return Current file path
     QString filePath() const { return m_filePath; }
 
-    /// @brief Set custom message text
-    /// @param message Custom message (default: "This file is not part of a project.")
-    void setMessage(const QString& message);
-
 signals:
     /// @brief Emitted when "Add to Project" button is clicked
     void addToProjectClicked();
 
-    /// @brief Emitted when the bar is dismissed (close button clicked)
-    void dismissed();
-
-private slots:
-    /// @brief Handle dismiss button click
-    void onDismiss();
-
-    /// @brief Handle theme changes
-    void onThemeChanged();
-
 private:
-    /// @brief Setup the UI layout and widgets
-    void setupUI();
-
-    /// @brief Create signal/slot connections
-    void createConnections();
-
-    /// @brief Update styling based on current theme
-    void updateStyling();
-
-    /// @brief Update icons based on current theme
-    void updateIcons();
-
-    QLabel* m_iconLabel;        ///< Info icon label
-    QLabel* m_messageLabel;     ///< Main message label
-    QPushButton* m_addButton;   ///< "Add to Project" button
-    QToolButton* m_closeButton; ///< Close/dismiss button
     QString m_filePath;         ///< Path to the standalone file
 };
 

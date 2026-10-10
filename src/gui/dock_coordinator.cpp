@@ -13,8 +13,10 @@
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/art_provider.h"
 #include <QMainWindow>
@@ -25,9 +27,28 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QAction>
+#include <QRect>
+#include <QScreen>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// @brief Width of the Navigator on a small screen, in percent of the screen's width: 200
+/// pixels of 911 (1366×768 at 150%), within its minimum and its usual width
+constexpr int SMALL_SCREEN_NAVIGATOR_PERCENT = 22;
+
+/// @brief The part of the screen of @p window that windows can take (the screen without the
+/// taskbar); empty without a screen
+QRect screenArea(const QWidget* window) {
+    const QScreen* screen = window->screen();
+    return screen ? screen->availableGeometry() : QRect();
+}
+
+} // anonymous namespace
 
 DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
@@ -68,6 +89,15 @@ void DockCoordinator::createDocks() {
     // The Annotations tab is on top by default
     m_annotationsDock->raise();
 
+    // A panel on the right shown again: the bar that says they were hidden has done its job
+    for (QDockWidget* dock : rightDocks()) {
+        connect(dock, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+            if (visible) {
+                m_layoutNoticeBar->hide();
+            }
+        });
+    }
+
     // Setup VIEW menu panel actions
     setupViewMenuActions();
 
@@ -83,6 +113,19 @@ void DockCoordinator::createCentralWidget() {
     QVBoxLayout* centralLayout = new QVBoxLayout(m_centralWrapper);
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
+
+    // Above the text: why the panels on the right are hidden on a small screen (hidden until
+    // then)
+    m_layoutNoticeBar = new InfoBar(m_centralWrapper);
+    m_layoutNoticeBar->setMessage(
+        tr("The screen is small, so the panels on the right are hidden. "
+           "View > Panels shows them again."));
+    m_layoutNoticeBar->setActionText(tr("Show Panels"));
+    m_layoutNoticeBar->setActionToolTip(tr("Show the panels on the right"));
+    m_layoutNoticeBar->hide();
+    centralLayout->addWidget(m_layoutNoticeBar);
+    connect(m_layoutNoticeBar, &InfoBar::actionClicked, this, &DockCoordinator::showRightPanels);
+    connect(m_layoutNoticeBar, &InfoBar::dismissed, m_layoutNoticeBar, &QWidget::hide);
 
     // Create central tabbed workspace
     m_centralTabs = new QTabWidget(m_centralWrapper);
@@ -482,6 +525,61 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
 
     logger.info("DockCoordinator: Layout reset: side columns {}px each (diag={}, dev={})",
                 sideWidth, diagnosticMode, devMode);
+
+    // On a small screen the default leaves the text room, and the bar says why
+    if (fitToScreen(screenArea(m_mainWindow))) {
+        showLayoutNotice();
+    } else {
+        m_layoutNoticeBar->hide();
+    }
+}
+
+void DockCoordinator::fitFirstLayout(const QRect& screenArea) {
+    if (!fitToScreen(screenArea)) {
+        return;
+    }
+    auto& settings = core::SettingsManager::getInstance();
+    if (!settings.get<bool>("window.smallScreenNoticeShown", false)) {
+        showLayoutNotice();
+        settings.set<bool>("window.smallScreenNoticeShown", true);
+    }
+}
+
+bool DockCoordinator::fitToScreen(const QRect& screenArea) {
+    if (screenArea.isEmpty() || screenArea.width() >= SMALL_SCREEN_WIDTH) {
+        return false;
+    }
+
+    for (QDockWidget* dock : rightDocks()) {
+        dock->hide();
+    }
+
+    const int narrowest = m_navigatorDock->minimumSizeHint().width();
+    const int width = std::clamp(screenArea.width() * SMALL_SCREEN_NAVIGATOR_PERCENT / 100,
+                                 narrowest, qMax(narrowest, m_navigatorDock->sizeHint().width()));
+    m_mainWindow->resizeDocks({m_navigatorDock}, {width}, Qt::Horizontal);
+
+    core::Logger::getInstance().info(
+        "DockCoordinator: a small screen ({}px wide): the panels on the right are hidden, "
+        "the Navigator is {}px wide",
+        screenArea.width(), width);
+    return true;
+}
+
+void DockCoordinator::showLayoutNotice() {
+    m_layoutNoticeBar->show();
+}
+
+void DockCoordinator::showRightPanels() {
+    for (QDockWidget* dock : rightDocks()) {
+        dock->show();
+    }
+    m_annotationsDock->raise();
+    m_layoutNoticeBar->hide();
+}
+
+QList<QDockWidget*> DockCoordinator::rightDocks() const {
+    return {m_propertiesDock, m_searchDock, m_assistantDock, m_annotationsDock};
 }
 
 } // namespace gui

@@ -60,6 +60,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QToolButton>
+#include <QScreen>
 #include <QStyle>
 #include <QProgressDialog>
 #include <QTimer>
@@ -1522,6 +1523,10 @@ void MainWindow::showEvent(QShowEvent* event) {
         if (!windowState.isEmpty() && !toolbarResetNeeded) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
+        } else if (const QScreen* screen = this->screen()) {
+            // No saved layout (the first start, or the toolbars were reset): a small screen
+            // gets a layout that leaves the text room
+            m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
 
         // Task #00019: Restore toolbar state (visibility)

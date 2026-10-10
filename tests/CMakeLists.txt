@@ -177,6 +177,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
@@ -234,6 +235,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
