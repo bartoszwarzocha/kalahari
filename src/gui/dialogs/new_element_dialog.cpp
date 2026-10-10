@@ -1,6 +1,6 @@
 /// @file new_element_dialog.cpp
-/// @brief Dialog for a new element of the book in the Navigator: chapter, part, front or
-/// back matter item
+/// @brief Dialog for a new element of the book in the Navigator: chapter, part, or an item of
+/// the front or back section
 
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/core/art_provider.h"
@@ -354,13 +354,13 @@ void NewElementDialog::updatePart()
                              .arg(named, m_words.inPart));
     } else {
         //: In Polish: Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej
-        //: części staną za nim.
+        //: części znajdą się za nim.
         showNotice(QStringLiteral("common.warning"),
                    one ? tr("\"%1\" stays where it is, and the chapters added to the new part "
                             "go after it.")
                              .arg(titles.first())
                        //: In Polish: Elementy %1 zostaną na swoich miejscach, a rozdziały
-                       //: dodane do nowej części staną za nimi.
+                       //: dodane do nowej części znajdą się za nimi.
                        : tr("%1 stay where they are, and the chapters added to the new part go "
                             "after them.")
                              .arg(named));
@@ -413,14 +413,15 @@ void NewElementDialog::updateDescription()
             const QString groupTitle = group ? group->title : QString();
             description =
                 closing.size() == 1
-                    //: %2: the body with its preposition, "in the main section". In Polish:
-                    //: Element „%1” jest ostatni %2, więc nowy rozdział stanie przed nim, na
-                    //: końcu „%3”. Możesz wybrać inne miejsce.
+                    //: %2: the body with its preposition, "in the main section"; %3: the
+                    //: part. In Polish: Element „%1” jest ostatni %2, więc nowy rozdział
+                    //: zostanie dodany przed nim, na końcu części „%3”. Możesz wybrać inne
+                    //: miejsce.
                     ? tr("\"%1\" is the last element %2, so the new chapter goes before it, at "
                          "the end of \"%3\". You can choose another place.")
                           .arg(closing.first(), m_words.inPart, groupTitle)
-                    //: In Polish: Elementy %1 są ostatnie %2, więc nowy rozdział stanie przed
-                    //: nimi, na końcu „%3”. Możesz wybrać inne miejsce.
+                    //: In Polish: Elementy %1 są ostatnie %2, więc nowy rozdział zostanie
+                    //: dodany przed nimi, na końcu części „%3”. Możesz wybrać inne miejsce.
                     : tr("%1 are the last elements %2, so the new chapter goes before them, at "
                          "the end of \"%3\". You can choose another place.")
                           .arg(ElementPlacePicker::quoted(closing), m_words.inPart, groupTitle);
@@ -442,7 +443,7 @@ void NewElementDialog::updateDescription()
                     //: %1: the body with its preposition, "in the main section"
                     ? tr("The chapter is added as the last one %1.").arg(m_words.inPart)
                     //: %1: where in the body, "at the end of the main section". In Polish:
-                    //: Rozdział zostanie dodany %1, przed „%2”.
+                    //: Rozdział zostanie dodany %1, przed elementem „%2”.
                     : tr("The chapter is added %1, before \"%2\".").arg(m_words.atEnd, before);
         }
         break;
@@ -453,27 +454,30 @@ void NewElementDialog::updateDescription()
             //: zostanie dodana %1.
             description = tr("The part is added %1.").arg(m_words.atEnd);
         } else if (before.isEmpty()) {
-            //: In Polish: Część zostanie dodana %1, za „%2”.
+            //: In Polish: Część zostanie dodana %1, za elementem „%2”.
             description = tr("The part is added %1, after \"%2\".")
                               .arg(m_words.atEnd, m_elements.last().title);
         } else {
-            //: In Polish: Część zostanie dodana %1, przed „%2”.
+            //: In Polish: Część zostanie dodana %1, przed elementem „%2”.
             description = tr("The part is added %1, before \"%2\".").arg(m_words.atEnd, before);
         }
         break;
     case NewElementKind::FrontMatterItem:
     case NewElementKind::BackMatterItem:
-        heading = m_dialogKind == NewElementKind::FrontMatterItem ? tr("Add Front Matter Item")
-                                                                  : tr("Add Back Matter Item");
+        // The description says in which section: the book names its sections its own way
+        heading = tr("Add Item");
         if (m_choosing) {
             description = choose;
         } else if (before.isEmpty()) {
-            //: %1: a part of the book with its preposition, "in the front section"
-            description = tr("The item is added as the last one %1.").arg(m_words.inPart);
+            //: %1: where in a part of the book, "at the end of the front section"; in a book
+            //: without sections "before the content of the book" or "at the very end of the
+            //: book". In Polish: Element zostanie dodany %1.
+            description = tr("The item is added %1.").arg(m_words.atEnd);
         } else {
-            //: %1: where in a part of the book, "at the end of the front section". In Polish:
-            //: Element zostanie dodany %1, przed „%2”.
-            description = tr("The item is added %1, before \"%2\".").arg(m_words.atEnd, before);
+            //: %1: a part of the book with its preposition, "in the back section"; in a book
+            //: without sections "at the end of the book". In Polish: Element zostanie dodany
+            //: %1, przed elementem „%2”.
+            description = tr("The item is added %1, before \"%2\".").arg(m_words.inPart, before);
         }
         break;
     }
@@ -490,7 +494,8 @@ QString NewElementDialog::placeText(const core::ElementPlace& place) const
         if (place.index >= group->elements.size()) {
             return tr("Last in \"%1\"").arg(group->title);
         }
-        //: %1: the element the new one goes before; %2: the part it is in
+        //: %1: the element the new one goes before; %2: the part it is in. In Polish: Przed
+        //: elementem „%1”, na końcu części „%2”
         return tr("Before \"%1\", at the end of \"%2\"")
             .arg(group->elements.at(place.index).title, group->title);
     }
@@ -500,11 +505,11 @@ QString NewElementDialog::placeText(const core::ElementPlace& place) const
     const QString atEnd = SectionWords::capitalized(m_words.atEnd);
     if (place.index >= m_elements.size()) {
         //: An option: %1 is where in a part of the book, "At the end of the main section"; %2
-        //: is the title of its last element. In Polish: %1, za „%2”
+        //: is the title of its last element. In Polish: %1, za elementem „%2”
         return tr("%1, after \"%2\"").arg(atEnd, m_elements.last().title);
     }
     //: An option: %1 is where in a part of the book, "At the end of the main section"; %2 is the
-    //: title of the element the new one goes before. In Polish: %1, przed „%2”
+    //: title of the element the new one goes before. In Polish: %1, przed elementem „%2”
     return tr("%1, before \"%2\"").arg(atEnd, m_elements.at(place.index).title);
 }
 

@@ -3,6 +3,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
@@ -23,8 +24,13 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QTemporaryDir>
+#include <QListWidget>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
+
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace kalahari::gui::dialogs;
 using kalahari::core::BookPlace;
@@ -746,5 +752,198 @@ TEST_CASE("New Book: the dialog checks the folder of the book", "[gui][dialogs]"
         title->clear();
         CHECK_FALSE(create->isEnabled());
         CHECK(folderLine->text().isEmpty());
+    }
+}
+
+namespace {
+
+/// @brief The New Book window with the built-in book types, and its fields of sections
+struct NewBook {
+    NewBook() {
+        kalahari::core::ProjectManager::getInstance().loadBookTypes(
+            {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+        dialog = std::make_unique<NewItemDialog>(NewItemMode::Project);
+        sections = dialog->findChild<QComboBox*>(QStringLiteral("newBookSectionsCombo"));
+        namesRow = dialog->findChild<QWidget*>(QStringLiteral("newBookSectionNames"));
+        REQUIRE(sections != nullptr);
+        REQUIRE(namesRow != nullptr);
+        names = namesRow->findChildren<QLineEdit*>();
+        REQUIRE(names.size() == 3);
+        for (QComboBox* combo : dialog->findChildren<QComboBox*>()) {
+            if (combo->findData(QStringLiteral("pl")) >= 0) {
+                language = combo;
+            }
+        }
+        REQUIRE(language != nullptr);
+    }
+
+    /// Choose the template @p id ("template.novel")
+    void choose(const char* id) const {
+        auto* templates = dialog->findChild<QListWidget*>();
+        REQUIRE(templates != nullptr);
+        for (int i = 0; i < templates->count(); ++i) {
+            if (templates->item(i)->data(Qt::UserRole).toString() == QLatin1String(id)) {
+                templates->setCurrentRow(i);
+                return;
+            }
+        }
+        FAIL("No template " << id);
+    }
+
+    /// Choose the book's language @p code ("pl")
+    void speak(const char* code) const {
+        language->setCurrentIndex(language->findData(QString::fromLatin1(code)));
+    }
+
+    /// Choose the item of the Sections field whose value is @p item
+    void chooseSections(const char* item) const {
+        const int index = sections->findData(QString::fromLatin1(item));
+        REQUIRE(index >= 0);
+        sections->setCurrentIndex(index);
+    }
+
+    /// The texts of the items of the Sections field
+    std::string items() const {
+        QStringList texts;
+        for (int i = 0; i < sections->count(); ++i) {
+            texts << sections->itemText(i);
+        }
+        return texts.join(QStringLiteral(" | ")).toStdString();
+    }
+
+    /// The fields of own names: their texts, or their placeholders
+    std::string namesOf(bool placeholders = false) const {
+        QStringList texts;
+        for (const QLineEdit* name : names) {
+            texts << (placeholders ? name->placeholderText() : name->text());
+        }
+        return texts.join(QStringLiteral(", ")).toStdString();
+    }
+
+    /// Fill in a title and a new folder, and create the book
+    NewItemResult create(const QTemporaryDir& dir) const {
+        for (QLineEdit* field : dialog->findChildren<QLineEdit*>()) {
+            if (field->placeholderText() == QStringLiteral("Enter book title...")) {
+                field->setText(QStringLiteral("Sections"));
+            } else if (field->placeholderText() == QStringLiteral("Select book folder...")) {
+                field->setText(dir.path());
+            }
+        }
+        for (QPushButton* button : dialog->findChildren<QPushButton*>()) {
+            if (button->text() == QStringLiteral("Create Book")) {
+                REQUIRE(button->isEnabled());
+                button->click();
+            }
+        }
+        REQUIRE(dialog->QDialog::result() == QDialog::Accepted);
+        return dialog->result();
+    }
+
+    std::unique_ptr<NewItemDialog> dialog;
+    QComboBox* sections = nullptr;
+    QComboBox* language = nullptr;
+    QWidget* namesRow = nullptr;
+    QList<QLineEdit*> names;
+};
+
+} // namespace
+
+TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]") {
+    using kalahari::core::BookSections;
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.resetToDefaults();  // each section starts without the choice the last one saved
+    const QString custom = QString::fromLatin1(kalahari::core::ProjectBook::CUSTOM_SECTIONS);
+    QTemporaryDir dir;
+
+    NewBook book;
+    book.speak("en");
+    book.choose("template.novel");
+
+    // The sets of names in the language of the book, own names and no sections
+    CHECK(book.items() ==
+          "Front Section \u00B7 Main Section \u00B7 Back Section | Front Matter \u00B7 Body "
+          "\u00B7 Back Matter | Opening Fragment \u00B7 Main Fragment \u00B7 Closing Fragment | "
+          "Opening \u00B7 Development \u00B7 Closing | Custom Names | No Sections");
+    book.speak("pl");
+    CHECK(book.items() ==
+          "Sekcja początkowa \u00B7 Sekcja główna \u00B7 Sekcja końcowa | Strony początkowe "
+          "\u00B7 Tekst główny \u00B7 Strony końcowe | Fragment początkowy \u00B7 Fragment "
+          "główny \u00B7 Fragment końcowy | Otwarcie \u00B7 Rozwinięcie \u00B7 Zamknięcie | "
+          "Custom Names | No Sections");
+
+    // A novel shows the first set, and no row of own names
+    CHECK(book.sections->currentData().toString() == QStringLiteral("sections"));
+    CHECK_FALSE(book.namesRow->isVisibleTo(book.dialog.get()));
+
+    // A user project and a screenplay start without sections; the novel keeps the choice
+    book.chooseSections("matter");
+    book.choose("template.empty");
+    CHECK(book.sections->currentData().toString() == QStringLiteral("none"));
+    book.choose("template.screenplay");
+    CHECK(book.sections->currentData().toString() == QStringLiteral("none"));
+    book.choose("template.shortStories");
+    CHECK(book.sections->currentData().toString() == QStringLiteral("matter"));
+
+    SECTION("Own names start as the names of the set chosen before") {
+        book.chooseSections("custom");
+        CHECK(book.namesRow->isVisibleTo(book.dialog.get()));
+        CHECK(book.namesOf() == "Strony początkowe, Tekst główny, Strony końcowe");
+        CHECK(book.namesOf(true) == "Sekcja początkowa, Sekcja główna, Sekcja końcowa");
+
+        // In the language of the book, until the writer types in them
+        book.speak("en");
+        CHECK(book.namesOf() == "Front Matter, Body, Back Matter");
+        CHECK(book.namesOf(true) == "Front Section, Main Section, Back Section");
+        type(book.names.at(1), QStringLiteral("x"));
+        book.names.at(1)->setText(QStringLiteral(" Story "));
+        book.names.at(2)->clear();
+        book.speak("pl");
+        CHECK(book.namesOf() == "Front Matter,  Story , ");
+
+        // The book gets them without the spaces at their ends, and the next book starts with
+        // them
+        const NewItemResult result = book.create(dir);
+        REQUIRE(result.sections.has_value());
+        CHECK(*result.sections ==
+              BookSections{true, custom,
+                           {QStringLiteral("Front Matter"), QStringLiteral("Story"), QString()}});
+        CHECK(settings.get<std::string>("project.sectionSet") == "custom");
+        CHECK(settings.get<std::vector<std::string>>("project.sectionNames") ==
+              std::vector<std::string>{"Front Matter", "Story", ""});
+
+        NewBook next;
+        next.choose("template.novel");
+        CHECK(next.sections->currentData().toString() == custom);
+        CHECK(next.namesOf() == "Front Matter, Story, ");
+        next.speak("en");
+        CHECK(next.namesOf() == "Front Matter, Story, ");  // the writer's names stay
+        next.choose("template.empty");
+        CHECK(next.sections->currentData().toString() == QStringLiteral("none"));
+    }
+
+    SECTION("A book without sections keeps the names of the first set") {
+        book.choose("template.novel");
+        book.chooseSections("none");
+        const NewItemResult result = book.create(dir);
+        REQUIRE(result.sections.has_value());
+        CHECK(*result.sections == BookSections{false, QString(), {}});
+        CHECK(settings.get<std::string>("project.sectionSet") == "none");
+
+        NewBook next;
+        next.choose("template.poetry");
+        CHECK(next.sections->currentData().toString() == QStringLiteral("none"));
+    }
+
+    SECTION("The choice for a type without sections is not remembered") {
+        book.choose("template.screenplay");
+        book.chooseSections("arc");
+        const NewItemResult result = book.create(dir);
+        REQUIRE(result.sections.has_value());
+        CHECK(*result.sections == BookSections{true, QStringLiteral("arc"), {}});
+        CHECK(settings.get<std::string>("project.sectionSet") == "sections");
+
+        NewBook next;
+        next.choose("template.novel");
+        CHECK(next.sections->currentData().toString() == QStringLiteral("sections"));
     }
 }

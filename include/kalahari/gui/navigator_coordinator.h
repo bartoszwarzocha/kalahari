@@ -13,6 +13,7 @@
 #include <functional>
 #include <optional>
 
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 
 class QTabWidget;
@@ -170,9 +171,25 @@ public slots:
     /// @brief Handle add part request from navigator context menu
     void onRequestAddPart();
 
-    /// @brief Handle add item request from navigator context menu (front/back matter)
+    /// @brief Handle add item request from navigator context menu (front/back section)
     /// @param sectionType Section type ("front_matter" or "back_matter")
     void onRequestAddItem(const QString& sectionType);
+
+    /// @brief Show the sections of the book in the Navigator, or hide them; saves the .klh
+    /// file
+    /// @param shown Whether the Navigator shows the sections
+    void onRequestShowSections(bool shown);
+
+    /// @brief Show the sections of the book in the Navigator or not, and name them; saves the
+    /// .klh file, and refreshes the Navigator and the Properties panel
+    /// @param sections Whether the Navigator shows the sections, and their names
+    void onRequestSections(const kalahari::core::BookSections& sections);
+
+    /// @brief Ask for a new name of a section of the book and give it; saves the .klh file
+    ///
+    /// The section gets the writer's own name, and the other two keep the names they have.
+    /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
+    void onRequestRenameSection(const QString& sectionType);
 
 signals:
     /// @brief Emitted when an element is selected/opened

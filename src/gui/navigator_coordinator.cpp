@@ -25,6 +25,33 @@
 namespace kalahari {
 namespace gui {
 
+namespace {
+
+/// A section of the book as the Navigator names its item, with its icon
+struct SectionItem {
+    const char* type;     ///< Type of the Navigator's item, e.g. "section_body"
+    core::BookPlace place;
+    const char* iconId;   ///< Icon of the item
+};
+
+constexpr SectionItem SECTION_ITEMS[] = {
+    {"section_frontmatter", core::BookPlace::Front, "structure.frontmatter"},
+    {"section_body", core::BookPlace::Main, "structure.body"},
+    {"section_backmatter", core::BookPlace::Back, "structure.backmatter"},
+};
+
+/// The section whose Navigator's item has type @p type, or nullptr
+const SectionItem* sectionItem(const QString& type) {
+    for (const SectionItem& section : SECTION_ITEMS) {
+        if (type == QLatin1String(section.type)) {
+            return &section;
+        }
+    }
+    return nullptr;
+}
+
+}  // namespace
+
 NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
                                              PropertiesPanel* propertiesPanel,
                                              QTabWidget* centralTabs,
@@ -526,6 +553,116 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
     addElement(front ? dialogs::NewElementKind::FrontMatterItem
                      : dialogs::NewElementKind::BackMatterItem,
                pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
+}
+
+void NavigatorCoordinator::onRequestShowSections(bool shown) {
+    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    if (!book) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: Show sections requested but no project open");
+        return;
+    }
+
+    // The elements stay in their sections; only the Navigator shows them another way
+    core::BookSections sections = book->sections();
+    sections.shown = shown;
+    onRequestSections(sections);
+}
+
+void NavigatorCoordinator::onRequestSections(const core::BookSections& sections) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    const core::ProjectBook* book = pm.book();
+    if (!book) {
+        logger.warn("NavigatorCoordinator: Sections requested but no project open");
+        return;
+    }
+    const core::BookSections previous = book->sections();
+    if (sections == previous) {
+        return;
+    }
+
+    const bool showing = sections.shown && !previous.shown;
+    const bool hiding = !sections.shown && previous.shown;
+    if (!pm.setSections(sections)) {
+        logger.error("NavigatorCoordinator: Failed to save the project after changing sections");
+        const QString title = showing  ? tr("Show Sections Failed")
+                              : hiding ? tr("Hide Sections Failed")
+                                       : tr("Rename Sections Failed");
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), title,
+                                        tr("Failed to save changes."));
+        m_propertiesPanel->refresh();  // its fields show the sections the book still has
+        return;
+    }
+    logger.info("NavigatorCoordinator: Sections {}, names: {}",
+                pm.book()->partsLayer ? "shown" : "hidden",
+                pm.book()->sectionSet.toStdString());
+
+    refreshNavigator();
+    if (showing) {
+        // The sections come back as when the book opens: the main one expanded
+        QStringList expanded = m_navigatorPanel->expandedItemIds();
+        expanded << QStringLiteral("type:section_body:%1")
+                        .arg(pm.book()->sectionName(core::BookPlace::Main));
+        m_navigatorPanel->setExpandedItemIds(expanded);
+    }
+    if (hiding && m_propertiesPanel->currentPage() == PropertiesPanel::Page::Section) {
+        // A hidden section has no item to show the properties of
+        m_propertiesPanel->showProjectProperties();
+    } else {
+        m_propertiesPanel->refresh();
+    }
+    m_statusBar->showMessage(showing  ? tr("Sections shown")
+                             : hiding ? tr("Sections hidden")
+                                      : tr("Sections renamed"),
+                             2000);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::onRequestRenameSection(const QString& sectionType) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    const core::ProjectBook* book = pm.book();
+    const SectionItem* section = sectionItem(sectionType);
+    if (!book || !section) {
+        logger.warn("NavigatorCoordinator: No section to rename: {}", sectionType.toStdString());
+        return;
+    }
+
+    const QString currentName = book->sectionName(section->place);
+    dialogs::RenameElementDialog dialog(currentName, QLatin1String(section->iconId),
+                                        qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const QString newName = dialog.name();
+    if (newName.isEmpty() || newName == currentName) {
+        return;  // No change
+    }
+
+    // The section gets the writer's own name; the other two keep the names they have
+    core::BookSections sections = book->sections();
+    sections.set = QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS);
+    sections.names.clear();
+    for (const SectionItem& item : SECTION_ITEMS) {
+        sections.names << (item.place == section->place ? newName
+                                                         : book->sectionName(item.place));
+    }
+    if (!pm.setSections(sections)) {
+        logger.error("NavigatorCoordinator: Failed to save the project after renaming a section");
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Rename Failed"),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    logger.info("NavigatorCoordinator: Renamed section '{}' to '{}'",
+                currentName.toStdString(), newName.toStdString());
+
+    refreshNavigator();
+    m_propertiesPanel->refresh();
+    m_statusBar->showMessage(tr("Renamed to '%1'").arg(newName), 2000);
+    emit documentModified();
 }
 
 void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,

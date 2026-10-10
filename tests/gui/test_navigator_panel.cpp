@@ -133,6 +133,109 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     CHECK(findItem(tree, "Chapter 1")->text(0) == QStringLiteral("*Chapter 1 [Draft]"));
 }
 
+TEST_CASE("Navigator: the sections have the names the book gives them", "[gui][navigator]") {
+    core::BookProject project = novel({}, {element("Chapter 1", "kalahari.base:chapter")},
+                                      {element("Afterword", "kalahari.base:afterword")});
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    const auto names = [tree]() {
+        const QTreeWidgetItem* root = tree->topLevelItem(0);
+        QStringList list;
+        for (int i = 0; i < root->childCount(); ++i) {
+            list << root->child(i)->text(0);
+        }
+        return list.join(QStringLiteral(", ")).toStdString();
+    };
+    core::ProjectBook& book = project.books[0];
+
+    // The first set, in the language of the book
+    panel.loadProject(project, registry());
+    CHECK(names() == "Front Section, Main Section, Back Section");
+    book.language = QStringLiteral("pl");
+    panel.loadProject(project, registry());
+    CHECK(names() == "Sekcja początkowa, Sekcja główna, Sekcja końcowa");
+
+    // Another set, and the writer's own names
+    book.setSections({true, QStringLiteral("matter"), {}});
+    panel.loadProject(project, registry());
+    CHECK(names() == "Strony początkowe, Tekst główny, Strony końcowe");
+    const QString custom = QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS);
+    book.setSections({true, custom,
+                      {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                       QStringLiteral("Dodatki")}});
+    panel.loadProject(project, registry());
+    CHECK(names() == "Wstęp, Opowieść, Dodatki");
+
+    // A renamed section stays expanded or collapsed
+    findSection(tree, QStringLiteral("section_backmatter"))->setExpanded(true);
+    findSection(tree, QStringLiteral("section_body"))->setExpanded(false);
+    const QStringList expanded = panel.expandedItemIds();
+    book.setSections({true, custom,
+                      {QStringLiteral("Wstęp"), QStringLiteral("Historia"),
+                       QStringLiteral("Aneksy")}});
+    panel.loadProject(project, registry());
+    panel.setExpandedItemIds(expanded);
+    CHECK(names() == "Wstęp, Historia, Aneksy");
+    CHECK(findSection(tree, QStringLiteral("section_backmatter"))->isExpanded());
+    CHECK_FALSE(findSection(tree, QStringLiteral("section_body"))->isExpanded());
+}
+
+TEST_CASE("Navigator: a book without sections shows its elements one after another",
+          "[gui][navigator]") {
+    core::ProjectElement part = element("Part One", "kalahari.base:part");
+    part.elements.append(element("Chapter 2", "kalahari.base:chapter"));
+    core::BookProject project =
+        novel({element("Title", "kalahari.base:title_page"),
+               element("Dedication", "kalahari.base:dedication")},
+              {element("Chapter 1", "kalahari.base:chapter"), part},
+              {element("Afterword", "kalahari.base:afterword")});
+    project.books[0].partsLayer = false;
+
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(project, registry());
+
+    // No items of sections: the elements of the front, main and back section in reading order
+    REQUIRE(tree->topLevelItemCount() == 1);
+    const QTreeWidgetItem* root = tree->topLevelItem(0);
+    QStringList ids;
+    for (int i = 0; i < root->childCount(); ++i) {
+        ids << root->child(i)->data(0, Qt::UserRole).toString();
+    }
+    CHECK(ids.join(QStringLiteral(", ")).toStdString() ==
+          "Title, Dedication, Chapter 1, Part One, Afterword");
+    CHECK(findSection(tree, QStringLiteral("section_body")) == nullptr);
+    CHECK(findItem(tree, "Chapter 2")->parent() == findItem(tree, "Part One"));
+
+    // The book's item takes the drops of its elements; an element is dragged only within its
+    // section, and its new index is in the list of the section
+    CHECK(root->flags().testFlag(Qt::ItemIsDropEnabled));
+    const auto drop = [tree](const char* dragged, const char* target, bool below) {
+        return gui::NavigatorPanel::dropIndexOf(findItem(tree, QString::fromLatin1(dragged)),
+                                                findItem(tree, QString::fromLatin1(target)),
+                                                below);
+    };
+    CHECK(drop("Part One", "Chapter 1", false) == 0);
+    CHECK(drop("Chapter 1", "Part One", true) == 1);
+    CHECK(drop("Dedication", "Title", false) == 0);
+    CHECK(drop("Chapter 1", "Part One", false) == -1);   // where it is
+    CHECK(drop("Chapter 1", "Dedication", true) == -1);  // another section
+    CHECK(drop("Afterword", "Part One", true) == -1);
+    CHECK(drop("Chapter 2", "Chapter 1", false) == -1);  // another list
+
+    // With sections, the elements are in the items of their sections
+    project.books[0].partsLayer = true;
+    panel.loadProject(project, registry());
+    CHECK(findItem(tree, "Chapter 1")->parent() ==
+          findSection(tree, QStringLiteral("section_body")));
+    CHECK(findItem(tree, "Title")->parent() ==
+          findSection(tree, QStringLiteral("section_frontmatter")));
+    CHECK_FALSE(tree->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK(drop("Part One", "Chapter 1", false) == 0);
+}
+
 TEST_CASE("Navigator: elements show the icons of their kinds", "[gui][navigator]") {
     const core::ProjectElement motto =
         element("Motto", "kalahari.base:motto", "book/motto_001.kchapter");

@@ -7,6 +7,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/core/logger.h"
@@ -38,6 +39,9 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_projectAuthorEdit(nullptr)
     , m_projectLanguageCombo(nullptr)
     , m_projectGenreEdit(nullptr)
+    , m_projectInfoLayout(nullptr)
+    , m_projectSectionsCombo(nullptr)
+    , m_projectSectionNames(nullptr)
     , m_projectChaptersLabel(nullptr)
     , m_projectWordsLabel(nullptr)
     , m_projectCreatedLabel(nullptr)
@@ -50,6 +54,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_chapterStatusCombo(nullptr)
     , m_chapterNotesEdit(nullptr)
     , m_sectionTitleLabel(nullptr)
+    , m_sectionChapterCountTitle(nullptr)
     , m_sectionChapterCountLabel(nullptr)
     , m_sectionWordCountLabel(nullptr)
     , m_sectionDraftCountLabel(nullptr)
@@ -187,6 +192,22 @@ QWidget* PropertiesPanel::createProjectPage() {
     m_projectGenreEdit->setToolTip(tr("Book genre (e.g., Fiction, Mystery, Romance)"));
     m_projectGenreEdit->setPlaceholderText(tr("Enter genre"));
     infoLayout->addRow(tr("Genre:"), m_projectGenreEdit);
+
+    // Sections: the names of the three sections of the book, in its language, or none
+    m_projectSectionsCombo = new SectionsComboBox(infoGroup);
+    m_projectSectionsCombo->setObjectName(QStringLiteral("projectSectionsCombo"));
+    // A long set of names does not widen the narrow panel: the field shows its beginning
+    m_projectSectionsCombo->setSizeAdjustPolicy(
+        QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_projectSectionsCombo->setMinimumContentsLength(10);
+    infoLayout->addRow(tr("Sections:"), m_projectSectionsCombo);
+
+    // The writer's own names, one below the other in the narrow panel
+    m_projectSectionNames = new SectionNamesEdit(Qt::Vertical, infoGroup);
+    m_projectSectionNames->setObjectName(QStringLiteral("projectSectionNames"));
+    infoLayout->addRow(tr("Section names:"), m_projectSectionNames);
+    infoLayout->setRowVisible(m_projectSectionNames, false);
+    m_projectInfoLayout = infoLayout;
 
     layout->addWidget(infoGroup);
 
@@ -346,10 +367,11 @@ QWidget* PropertiesPanel::createSectionPage() {
     statsLayout->setSpacing(6);
     statsLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Chapter count
+    // Chapter count; the front and the back section count their elements
     m_sectionChapterCountLabel = new QLabel("0", statsGroup);
     m_sectionChapterCountLabel->setToolTip(tr("Number of chapters in this section"));
-    statsLayout->addRow(tr("Chapters:"), m_sectionChapterCountLabel);
+    m_sectionChapterCountTitle = new QLabel(tr("Chapters:"), statsGroup);
+    statsLayout->addRow(m_sectionChapterCountTitle, m_sectionChapterCountLabel);
 
     // Word count
     m_sectionWordCountLabel = new QLabel("0", statsGroup);
@@ -575,6 +597,10 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onProjectLanguageChanged);
     connect(m_projectGenreEdit, &QLineEdit::editingFinished,
             this, &PropertiesPanel::onProjectGenreChanged);
+    connect(m_projectSectionsCombo, &QComboBox::currentIndexChanged,
+            this, &PropertiesPanel::onProjectSectionsChanged);
+    connect(m_projectSectionNames, &SectionNamesEdit::editingFinished,
+            this, &PropertiesPanel::onProjectSectionNamesChanged);
 
     // Connect chapter field changes
     connect(m_chapterTitleEdit, &QLineEdit::editingFinished,
@@ -700,6 +726,10 @@ void PropertiesPanel::disconnectFromEditor() {
     m_activeEditorPanel = nullptr;
 }
 
+PropertiesPanel::Page PropertiesPanel::currentPage() const {
+    return static_cast<Page>(m_stackedWidget->currentIndex());
+}
+
 void PropertiesPanel::refresh() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::refresh()");
@@ -773,6 +803,7 @@ void PropertiesPanel::onProjectTitleChanged() {
     logger.info("PropertiesPanel: Project title changed to: {}", newTitle.toStdString());
     book->title = newTitle;
     pm.setDirty(true);
+    emit bookChanged();  // the Navigator shows the new title
 }
 
 void PropertiesPanel::onProjectAuthorChanged() {
@@ -807,6 +838,12 @@ void PropertiesPanel::onProjectLanguageChanged(int index) {
     logger.info("PropertiesPanel: Project language changed to: {}", langCode.toStdString());
     book->language = langCode;
     pm.setDirty(true);
+
+    // The names of the sets, and of the sections, are in the language of the book
+    m_isUpdating = true;
+    populateBookSections(*book);
+    m_isUpdating = false;
+    emit bookChanged();
 }
 
 void PropertiesPanel::onProjectGenreChanged() {
@@ -824,6 +861,41 @@ void PropertiesPanel::onProjectGenreChanged() {
     logger.info("PropertiesPanel: Project genre changed to: {}", newGenre.toStdString());
     book->genre = newGenre;
     pm.setDirty(true);
+}
+
+void PropertiesPanel::onProjectSectionsChanged() {
+    if (m_isUpdating) return;
+
+    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    if (!book) return;
+
+    const QString chosen = m_projectSectionsCombo->choice();
+    core::BookSections sections = book->sections();
+    if (chosen == QLatin1String(SectionsComboBox::NO_SECTIONS)) {
+        sections.shown = false;  // the names stay for when the writer shows the sections again
+    } else if (chosen == QLatin1String(core::ProjectBook::CUSTOM_SECTIONS)) {
+        // The writer's names start as the names the sections have now
+        sections = core::BookSections{true, chosen, m_projectSectionNames->names()};
+    } else {
+        sections = core::BookSections{true, chosen, {}};
+    }
+    showSectionNamesRow();
+
+    core::Logger::getInstance().info("PropertiesPanel: Sections changed to: {}",
+                                     chosen.toStdString());
+    emit requestSections(sections);
+}
+
+void PropertiesPanel::onProjectSectionNamesChanged() {
+    if (m_isUpdating) return;
+    if (m_projectSectionsCombo->choice() != QLatin1String(core::ProjectBook::CUSTOM_SECTIONS)) {
+        return;
+    }
+    if (!core::ProjectManager::getInstance().book()) return;
+
+    emit requestSections(core::BookSections{
+        true, QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS),
+        m_projectSectionNames->names()});
 }
 
 void PropertiesPanel::onChapterTitleChanged() {
@@ -931,6 +1003,7 @@ void PropertiesPanel::populateProjectFields() {
     }
 
     m_projectGenreEdit->setText(book->genre);
+    populateBookSections(*book);
 
     // Update statistics
     updateProjectStatistics();
@@ -942,6 +1015,26 @@ void PropertiesPanel::populateProjectFields() {
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Project fields populated");
+}
+
+void PropertiesPanel::populateBookSections(const core::ProjectBook& book) {
+    m_projectSectionsCombo->setLanguage(book.language);
+    m_projectSectionsCombo->choose(SectionsComboBox::itemOf(book.sections()));
+
+    // The fields of own names hold the names the sections have, in the language of the book
+    QStringList names;
+    for (core::BookPlace place : SECTION_PLACES) {
+        names << book.sectionName(place);
+    }
+    m_projectSectionNames->setLanguage(book.language);
+    m_projectSectionNames->setNames(names);
+    showSectionNamesRow();
+}
+
+void PropertiesPanel::showSectionNamesRow() {
+    m_projectInfoLayout->setRowVisible(
+        m_projectSectionNames,
+        m_projectSectionsCombo->choice() == QLatin1String(core::ProjectBook::CUSTOM_SECTIONS));
 }
 
 void PropertiesPanel::populateChapterFields(const QString& elementId) {
@@ -1061,25 +1154,29 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
         return;
     }
 
-    // Determine section name and get elements
-    QString sectionName;
-    const QList<core::ProjectElement>* elements = nullptr;
-
+    // The section, with the name the book gives it, and its elements
+    core::BookPlace place = core::BookPlace::Main;
     if (sectionType == "section_frontmatter") {
-        sectionName = tr("Front Matter");
-        elements = &book->frontElements;
-    } else if (sectionType == "section_body") {
-        sectionName = tr("Body");
-        elements = &book->mainElements;
+        place = core::BookPlace::Front;
     } else if (sectionType == "section_backmatter") {
-        sectionName = tr("Back Matter");
-        elements = &book->backElements;
-    } else {
+        place = core::BookPlace::Back;
+    } else if (sectionType != "section_body") {
         logger.warn("PropertiesPanel: Unknown section type: {}", sectionType.toStdString());
         return;
     }
+    const QList<core::ProjectElement>* elements =
+        place == core::BookPlace::Front  ? &book->frontElements
+        : place == core::BookPlace::Back ? &book->backElements
+                                         : &book->mainElements;
 
-    m_sectionTitleLabel->setText(sectionName);
+    m_sectionTitleLabel->setText(book->sectionName(place));
+
+    // The main section counts its chapters, the front and the back one their elements (a title
+    // page, an afterword)
+    const bool main = place == core::BookPlace::Main;
+    m_sectionChapterCountTitle->setText(main ? tr("Chapters:") : tr("Elements:"));
+    m_sectionChapterCountLabel->setToolTip(main ? tr("Number of chapters in this section")
+                                                : tr("Number of elements in this section"));
 
     // Text elements of the section, with those in its parts
     const core::TextStatistics statistics = pm.statisticsOf(*elements);

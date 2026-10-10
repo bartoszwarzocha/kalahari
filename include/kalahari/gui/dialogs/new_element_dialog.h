@@ -1,6 +1,6 @@
 /// @file new_element_dialog.h
-/// @brief Dialog for a new element of the book in the Navigator: chapter, part, front or
-/// back matter item
+/// @brief Dialog for a new element of the book in the Navigator: chapter, part, or an item of
+/// the front or back section
 
 #pragma once
 
@@ -30,8 +30,8 @@ namespace dialogs {
 enum class NewElementKind {
     Chapter,          ///< A chapter, at the end of a part or of the body of the book
     Part,             ///< A part, at the end of the book's body
-    FrontMatterItem,  ///< An item at the end of the front matter (title page, dedication...)
-    BackMatterItem,   ///< An item at the end of the back matter (afterword, glossary...)
+    FrontMatterItem,  ///< An item at the end of the front section (title page, dedication...)
+    BackMatterItem,   ///< An item at the end of the back section (afterword, glossary...)
 };
 
 /// @brief A kind the new element can have, with the title it starts with and its place

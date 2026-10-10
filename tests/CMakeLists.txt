@@ -190,6 +190,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/item_templates.cpp           # Templates of the New Book dialog
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
@@ -246,6 +247,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT

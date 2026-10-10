@@ -69,6 +69,11 @@ std::map<std::string, json> buildDefaults() {
         {"project.defaultAuthor", ""},
         {"project.defaultLanguage", "en"},
         {"project.defaultLocation", ""},
+        // The writer's last choice of sections for a book type that shows them: a set of
+        // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
+        {"project.sectionSet", "sections"},
+        // The writer's own names of the front, main and back section, for "custom"
+        {"project.sectionNames", json::array()},
 
         // Plugins
         {"plugins.allowUnsigned", false},

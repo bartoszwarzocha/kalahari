@@ -3,8 +3,9 @@
 ///
 /// AddToProjectDialog allows users to add a standalone file (not part of the
 /// project) to the current project structure. Users can choose the target
-/// section (front matter, body, back matter), the part in the body, the kind of
-/// the new element and whether to copy or move the file.
+/// section (front, main, back, with the book's names; in a book without sections, the place
+/// in the book), the part in the main section, the kind of the new element and whether to copy
+/// or move the file.
 ///
 /// OpenSpec #00033: Project File System - Phase F
 
@@ -33,7 +34,7 @@ namespace dialogs {
 ///
 /// Contains all information needed to add a file to the project structure.
 struct AddToProjectResult {
-    core::BookPlace place = core::BookPlace::Main;  ///< Section: front matter, body, back matter
+    core::BookPlace place = core::BookPlace::Main;  ///< Section: front, main or back
     QString groupId;         ///< Part ID in the body; empty: the body itself or another section
     core::KindRef kind;      ///< Kind of the new element (a chapter, a prologue...)
     QString newTitle;        ///< Display title for the file in the project
@@ -48,8 +49,9 @@ struct AddToProjectResult {
 ///
 /// AddToProjectDialog allows users to integrate standalone files into the
 /// current project structure. The user can:
-/// - Select a target section (front matter, body, back matter)
-/// - Select a target part (only when body section is selected and the book has parts)
+/// - Select a target section (front, main, back), named as the book names them; in a book
+///   without sections, the place in the book (its beginning, its content, its end)
+/// - Select a target part (only when the main section is selected and the book has parts)
 /// - Select the kind of the new element: a text kind the project offers there
 /// - Set a display title for the file
 /// - Choose whether to copy or move the file
@@ -166,10 +168,13 @@ private:
     // Form Widgets
     // ========================================================================
 
-    /// @brief Target section selection (front matter, body, back matter)
+    /// @brief Target section selection (front, main, back)
     QComboBox* m_sectionCombo;
 
-    /// @brief Target part selection (shown only for Body section of a book with parts)
+    /// @brief Label for section combo: "Section:", or "Place:" in a book without sections
+    QLabel* m_sectionLabel = nullptr;
+
+    /// @brief Target part selection (shown only for the main section of a book with parts)
     QComboBox* m_partCombo;
 
     /// @brief Label for part combo (to hide when not applicable)

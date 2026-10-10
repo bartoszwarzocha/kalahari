@@ -18,8 +18,34 @@
 #include <QFont>
 #include <QPixmap>
 #include <QScrollArea>
+#include <QSignalBlocker>
+
+#include <algorithm>
+#include <string>
+#include <vector>
 
 using namespace kalahari::gui::dialogs;
+
+namespace {
+
+/// The writer's last choice in the Sections field for a template that shows sections
+constexpr const char* SECTIONS_SETTING = "project.sectionSet";
+
+/// The writer's own names of the sections, when the last choice was own names
+constexpr const char* SECTION_NAMES_SETTING = "project.sectionNames";
+
+/// Set of names @p id, or the first set when the program has no such set
+const kalahari::core::SectionNameSet& sectionNameSet(const QString& id) {
+    const QList<kalahari::core::SectionNameSet>& sets =
+        kalahari::core::ProjectBook::sectionNameSets();
+    const auto found = std::find_if(sets.cbegin(), sets.cend(),
+                                    [&id](const kalahari::core::SectionNameSet& set) {
+                                        return set.id == id;
+                                    });
+    return found != sets.cend() ? *found : sets.first();
+}
+
+}  // namespace
 
 // ============================================================================
 // Constructor
@@ -254,6 +280,28 @@ QWidget* NewItemDialog::createDetailsGroup() {
         layout->addWidget(m_languageCombo, row, 1, 1, 2);
         row++;
 
+        // Sections: the names of the three sections of the book, in its language, or none
+        QLabel* sectionsLabel = new QLabel(tr("Sections:"), group);
+        layout->addWidget(sectionsLabel, row, 0);
+
+        m_sectionsCombo = new SectionsComboBox(group);
+        m_sectionsCombo->setObjectName(QStringLiteral("newBookSectionsCombo"));
+        sectionsLabel->setBuddy(m_sectionsCombo);
+        layout->addWidget(m_sectionsCombo, row, 1, 1, 2);
+        row++;
+
+        // The writer's own names of the sections
+        m_sectionNamesLabel = new QLabel(tr("Section names:"), group);
+        layout->addWidget(m_sectionNamesLabel, row, 0);
+
+        m_sectionNames = new SectionNamesEdit(Qt::Horizontal, group);
+        m_sectionNames->setObjectName(QStringLiteral("newBookSectionNames"));
+        m_sectionNamesLabel->setBuddy(m_sectionNames->firstField());
+        layout->addWidget(m_sectionNames, row, 1, 1, 2);
+        m_sectionNamesLabel->hide();
+        m_sectionNames->hide();
+        row++;
+
         // Location
         m_locationLabel = new QLabel(tr("Location:"), group);
         layout->addWidget(m_locationLabel, row, 0);
@@ -313,6 +361,14 @@ void NewItemDialog::createConnections() {
                 this, [this](const QString&) { validateInput(); });
         connect(m_subfolderCheck, &QCheckBox::toggled,
                 this, [this](bool) { validateInput(); });
+
+        // The names of the sets are in the language of the book
+        connect(m_languageCombo, &QComboBox::currentIndexChanged,
+                this, [this](int) { populateSections(); });
+        connect(m_sectionsCombo, &QComboBox::currentIndexChanged,
+                this, [this](int) { onSectionsChosen(); });
+        connect(m_sectionNames, &SectionNamesEdit::edited,
+                this, [this]() { m_sectionNamesTyped = true; });
     }
 
     // Dialog buttons
@@ -481,6 +537,122 @@ void NewItemDialog::loadDefaults() {
         } else {
             m_locationEdit->setText(QString::fromStdString(defaultLocation));
         }
+
+        // Sections: the writer's last choice for a template that shows them, none for the
+        // others
+        populateSections();
+        m_sectionsShown = QString::fromStdString(settings.get<std::string>(SECTIONS_SETTING));
+        if (m_sectionsCombo->findData(m_sectionsShown) < 0) {
+            m_sectionsShown = kalahari::core::ProjectBook::sectionNameSets().first().id;
+        }
+        m_sectionsHidden = QString::fromLatin1(SectionsComboBox::NO_SECTIONS);
+        m_namesSet = SectionsComboBox::isNameSet(m_sectionsShown)
+                         ? m_sectionsShown
+                         : kalahari::core::ProjectBook::sectionNameSets().first().id;
+        if (m_sectionsShown == QLatin1String(kalahari::core::ProjectBook::CUSTOM_SECTIONS)) {
+            QStringList names;
+            for (const std::string& name :
+                 settings.get<std::vector<std::string>>(SECTION_NAMES_SETTING)) {
+                names << QString::fromStdString(name);
+            }
+            m_sectionNames->setNames(names);
+            m_sectionNamesTyped = true;
+        }
+    }
+}
+
+void NewItemDialog::populateSections() {
+    if (!m_sectionsCombo) {
+        return;
+    }
+    const QString language = m_languageCombo->currentData().toString();
+    m_sectionsCombo->setLanguage(language);
+    m_sectionNames->setLanguage(language);
+    fillSectionNames();
+}
+
+bool NewItemDialog::showsSections(const QString& templateId) {
+    const QString typeId = TemplateRegistry::getInstance().getTemplate(templateId).typeId;
+    if (typeId.isEmpty()) {
+        return false;  // a user project
+    }
+    const kalahari::core::BookTypePackage* type =
+        kalahari::core::ProjectManager::getInstance().bookTypes().package(typeId);
+    return type != nullptr && type->partsLayer;
+}
+
+void NewItemDialog::showSectionsChoice() {
+    if (!m_sectionsCombo) {
+        return;
+    }
+    const QListWidgetItem* current = m_templateList->currentItem();
+    const bool shown = current && showsSections(current->data(Qt::UserRole).toString());
+    {
+        const QSignalBlocker blocker(m_sectionsCombo);
+        m_sectionsCombo->choose(shown ? m_sectionsShown : m_sectionsHidden);
+    }
+    onSectionsChosen();
+}
+
+void NewItemDialog::onSectionsChosen() {
+    const QString chosen = m_sectionsCombo->choice();
+    const QListWidgetItem* current = m_templateList->currentItem();
+    if (current && showsSections(current->data(Qt::UserRole).toString())) {
+        m_sectionsShown = chosen;
+    } else {
+        m_sectionsHidden = chosen;
+    }
+    if (SectionsComboBox::isNameSet(chosen)) {
+        m_namesSet = chosen;
+    }
+
+    const bool custom = chosen == QLatin1String(kalahari::core::ProjectBook::CUSTOM_SECTIONS);
+    m_sectionNamesLabel->setVisible(custom);
+    m_sectionNames->setVisible(custom);
+    fillSectionNames();
+}
+
+void NewItemDialog::fillSectionNames() {
+    if (m_sectionNamesTyped || !m_sectionsCombo) {
+        return;
+    }
+    const QString language = m_languageCombo->currentData().toString();
+    const kalahari::core::SectionNameSet& set = sectionNameSet(m_namesSet);
+    QStringList names;
+    for (kalahari::core::BookPlace place : SECTION_PLACES) {
+        names << set.name(place, language);
+    }
+    m_sectionNames->setNames(names);
+}
+
+kalahari::core::BookSections NewItemDialog::chosenSections() const {
+    kalahari::core::BookSections sections;
+    const QString chosen = m_sectionsCombo->choice();
+    if (chosen == QLatin1String(SectionsComboBox::NO_SECTIONS)) {
+        sections.shown = false;  // with the names of the first set, if the writer shows them
+        return sections;
+    }
+    sections.set = chosen;
+    if (chosen == QLatin1String(kalahari::core::ProjectBook::CUSTOM_SECTIONS)) {
+        sections.names = m_sectionNames->names();
+    }
+    return sections;
+}
+
+void NewItemDialog::saveSectionsChoice() const {
+    const QListWidgetItem* current = m_templateList->currentItem();
+    if (!current || !showsSections(current->data(Qt::UserRole).toString())) {
+        return;  // the others start without sections
+    }
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const QString chosen = m_sectionsCombo->choice();
+    settings.set<std::string>(SECTIONS_SETTING, chosen.toStdString());
+    if (chosen == QLatin1String(kalahari::core::ProjectBook::CUSTOM_SECTIONS)) {
+        std::vector<std::string> names;
+        for (const QString& name : m_sectionNames->names()) {
+            names.push_back(name.toStdString());
+        }
+        settings.set<std::vector<std::string>>(SECTION_NAMES_SETTING, names);
     }
 }
 
@@ -499,6 +671,7 @@ void NewItemDialog::onTemplateSelected(QListWidgetItem* current, QListWidgetItem
 
     QString templateId = current->data(Qt::UserRole).toString();
     updateDescription(templateId);
+    showSectionsChoice();
     validateInput();
 }
 
@@ -541,6 +714,8 @@ void NewItemDialog::onAccept() {
         m_result.language = m_languageCombo->currentData().toString();
         m_result.location = m_locationEdit->text().trimmed();
         m_result.createSubfolder = m_subfolderCheck->isChecked();
+        m_result.sections = chosenSections();
+        saveSectionsChoice();
     }
 
     accept();

@@ -40,6 +40,8 @@ constexpr int ICON_ROLE = Qt::UserRole + 2;
 constexpr int KIND_ROLE = Qt::UserRole + 3;
 /// Title of an element, without the status and modified marks
 constexpr int TITLE_ROLE = Qt::UserRole + 4;
+/// Section of the book an element is in (core::BookPlace as int)
+constexpr int PLACE_ROLE = Qt::UserRole + 5;
 
 /// Whether an item of @p type holds other items: the document, its sections, groups...
 bool isContainerType(const QString& type) {
@@ -49,9 +51,10 @@ bool isContainerType(const QString& type) {
            type == QLatin1String("other_files");
 }
 
-/// Tree of the Navigator. An element is dragged only to another place of its list (a part of
-/// the book or a group); the drop does not change the tree, it asks for the move, and the tree
-/// shows the new order once it is loaded again.
+/// Tree of the Navigator. An element is dragged only to another place of its list (a section
+/// of the book or a group); the drop does not change the tree, it asks for the move, and the
+/// tree shows the new order once it is loaded again. In a book without sections the elements
+/// of the three sections are all under the book's item, each section after the one before it.
 class NavigatorTree : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
@@ -88,19 +91,11 @@ private:
     /// New index of the dragged element in its list when it is dropped at @p pos; -1 when it
     /// cannot go there or stays where it is
     int dropIndex(const QPoint& pos) const {
-        QTreeWidgetItem* dragged = selectedItems().value(0);
-        QTreeWidgetItem* target = itemAt(pos);
-        if (!dragged || !target || target == dragged || !dragged->parent() ||
-            target->parent() != dragged->parent()) {
-            return -1;
-        }
-        const QTreeWidgetItem* list = dragged->parent();
         switch (dropIndicatorPosition()) {
         case AboveItem:
         case BelowItem:
-            return kalahari::gui::NavigatorPanel::dropIndex(list->indexOfChild(dragged),
-                                                            list->indexOfChild(target),
-                                                            dropIndicatorPosition() == BelowItem);
+            return kalahari::gui::NavigatorPanel::dropIndexOf(
+                selectedItems().value(0), itemAt(pos), dropIndicatorPosition() == BelowItem);
         default:  // On the item or beside the items: not a place in the list
             return -1;
         }
@@ -338,24 +333,40 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     // Document is not draggable or droppable
     rootItem->setFlags(rootItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
 
-    // The three parts of the book, also when empty, so that elements can be added to them.
-    // Elements are dragged only within their section or group, which therefore take drops.
-    QTreeWidgetItem* frontMatterItem =
-        addSectionItem(rootItem, tr("Front Matter"), QStringLiteral("section_frontmatter"));
-    QTreeWidgetItem* bodyItem =
-        addSectionItem(rootItem, tr("Body"), QStringLiteral("section_body"));
-    QTreeWidgetItem* backMatterItem =
-        addSectionItem(rootItem, tr("Back Matter"), QStringLiteral("section_backmatter"));
+    if (book && !book->partsLayer) {
+        // A book without sections: the elements of its three sections in reading order. The
+        // book's item takes the drops of the elements.
+        rootItem->setFlags(rootItem->flags() | Qt::ItemIsDropEnabled);
+        addElementItems(rootItem, book->frontElements, registry, core::BookPlace::Front);
+        addElementItems(rootItem, book->mainElements, registry, core::BookPlace::Main);
+        addElementItems(rootItem, book->backElements, registry, core::BookPlace::Back);
+    } else {
+        // The three sections of the book with its names, also when empty, so that elements can
+        // be added to them. Elements are dragged only within their section or group, which
+        // therefore take drops.
+        const core::ProjectBook noBook;
+        const core::ProjectBook& names = book ? *book : noBook;
+        QTreeWidgetItem* frontMatterItem =
+            addSectionItem(rootItem, names.sectionName(core::BookPlace::Front),
+                           QStringLiteral("section_frontmatter"));
+        QTreeWidgetItem* bodyItem = addSectionItem(
+            rootItem, names.sectionName(core::BookPlace::Main), QStringLiteral("section_body"));
+        QTreeWidgetItem* backMatterItem =
+            addSectionItem(rootItem, names.sectionName(core::BookPlace::Back),
+                           QStringLiteral("section_backmatter"));
 
-    if (book) {
-        addElementItems(frontMatterItem, book->frontElements, registry);
-        addElementItems(bodyItem, book->mainElements, registry);
-        addElementItems(backMatterItem, book->backElements, registry);
+        if (book) {
+            addElementItems(frontMatterItem, book->frontElements, registry,
+                            core::BookPlace::Front);
+            addElementItems(bodyItem, book->mainElements, registry, core::BookPlace::Main);
+            addElementItems(backMatterItem, book->backElements, registry,
+                            core::BookPlace::Back);
+        }
+
+        frontMatterItem->setExpanded(false);  // Collapsed by default
+        bodyItem->setExpanded(true);          // Expand body by default
+        backMatterItem->setExpanded(false);   // Collapsed by default
     }
-
-    frontMatterItem->setExpanded(false);  // Collapsed by default
-    bodyItem->setExpanded(true);          // Expand body by default
-    backMatterItem->setExpanded(false);   // Collapsed by default
 
     // Re-add standalone files (they were saved before clearing)
     for (const QString& path : standaloneFilePaths) {
@@ -392,6 +403,35 @@ int NavigatorPanel::dropIndex(int from, int target, bool below) {
     return to == from ? -1 : to;
 }
 
+int NavigatorPanel::dropIndexOf(const QTreeWidgetItem* dragged, const QTreeWidgetItem* target,
+                                bool below) {
+    if (!dragged || !target || target == dragged || !dragged->parent() ||
+        target->parent() != dragged->parent() ||
+        target->data(0, PLACE_ROLE) != dragged->data(0, PLACE_ROLE)) {
+        return -1;
+    }
+
+    // The list of the element starts at the first item of its section: in a book without
+    // sections the book's item holds the three lists one after another
+    const QTreeWidgetItem* parent = dragged->parent();
+    const QVariant place = dragged->data(0, PLACE_ROLE);
+    int first = -1;
+    int from = -1;
+    int to = -1;
+    for (int i = 0; i < parent->childCount(); ++i) {
+        const QTreeWidgetItem* child = parent->child(i);
+        if (first < 0 && child->data(0, PLACE_ROLE) == place) {
+            first = i;
+        }
+        if (child == dragged) {
+            from = i;
+        } else if (child == target) {
+            to = i;
+        }
+    }
+    return dropIndex(from - first, to - first, below);
+}
+
 QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
                                  const core::ProjectElement& element) {
     const core::KindRef kind = core::BookProject::kindOf(registry, element);
@@ -411,7 +451,8 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
 
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
-                                     const core::BookTypeRegistry& registry) {
+                                     const core::BookTypeRegistry& registry,
+                                     core::BookPlace place) {
     auto& artProvider = core::ArtProvider::getInstance();
 
     for (const core::ProjectElement& element : elements) {
@@ -441,11 +482,12 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         item->setData(0, ICON_ROLE, iconId);
         item->setData(0, KIND_ROLE, element.kind.toString());
         item->setData(0, TITLE_ROLE, element.title);
+        item->setData(0, PLACE_ROLE, static_cast<int>(place));
         item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
         item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
 
         if (form == core::ElementForm::Group) {
-            addElementItems(item, element.elements, registry);
+            addElementItems(item, element.elements, registry, place);
             item->setExpanded(true);  // Expand groups by default
         }
     }
@@ -863,12 +905,15 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     auto& pm = core::ProjectManager::getInstance();
     const bool projectOpen = pm.isProjectOpen();
 
-    // Move within the element's list: a part of the book or a group. Move to Start and Move to
-    // End keep a prologue first and an epilogue last
+    // Move within the element's list: a section of the book or a group. Move to Start and Move
+    // to End keep a prologue first and an epilogue last
     const auto addMoveActions = [&]() {
-        QTreeWidgetItem* parent = item->parent();
-        const int index = parent ? parent->indexOfChild(item) : -1;
-        const int siblingCount = parent ? parent->childCount() : 0;
+        const core::BookProject* project = pm.project();
+        qsizetype listIndex = -1;
+        const QList<core::ProjectElement>* list =
+            project ? project->listOf(elementId, &listIndex) : nullptr;
+        const int index = list ? static_cast<int>(listIndex) : -1;
+        const int siblingCount = list ? static_cast<int>(list->size()) : 0;
         const int startIndex = static_cast<int>(pm.startIndexOf(elementId));
         const int endIndex = static_cast<int>(pm.endIndexOf(elementId));
 
@@ -1030,11 +1075,63 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
         }
 
+        // The writer can name each section
+        menu.addSeparator();
+        QAction* renameAction = menu.addAction(
+            artProvider.getIcon("edit.rename", core::IconContext::Menu), tr("Rename..."));
+        connect(renameAction, &QAction::triggered, this,
+                [this, elementType]() { emit requestRenameSection(elementType); });
+        renameAction->setEnabled(projectOpen);
+
         menu.addSeparator();
         addExpandCollapseActions();
 
     } else if (elementType == "document") {
         // Document root
+        const core::ProjectBook* book = pm.book();
+        const bool sectionsShown = !book || book->partsLayer;
+        if (projectOpen && !sectionsShown) {
+            // A book without sections: its elements are added from its item
+            QAction* addPartAction = menu.addAction(
+                artProvider.getIcon("structure.part", core::IconContext::Menu), tr("Add Part"));
+            connect(addPartAction, &QAction::triggered,
+                    this, &NavigatorPanel::onContextMenuAddPart);
+            addPartAction->setEnabled(static_cast<bool>(pm.partKind()));
+
+            QAction* addChapterAction = menu.addAction(
+                artProvider.getIcon("template.chapter", core::IconContext::Menu),
+                tr("Add Chapter"));
+            connect(addChapterAction, &QAction::triggered, this,
+                    [this]() { emit requestAddChapter(QString()); });
+            addChapterAction->setEnabled(
+                static_cast<bool>(pm.chapterKindFor(core::BookPlace::Main)));
+
+            QAction* addFirstAction = menu.addAction(
+                artProvider.getIcon("structure.frontmatter", core::IconContext::Menu),
+                tr("Add Item at the Beginning of the Book"));
+            connect(addFirstAction, &QAction::triggered, this,
+                    [this]() { emit requestAddItem(QStringLiteral("front_matter")); });
+            addFirstAction->setEnabled(!pm.textKindsFor(core::BookPlace::Front).isEmpty());
+
+            QAction* addLastAction = menu.addAction(
+                artProvider.getIcon("structure.backmatter", core::IconContext::Menu),
+                tr("Add Item at the End of the Book"));
+            connect(addLastAction, &QAction::triggered, this,
+                    [this]() { emit requestAddItem(QStringLiteral("back_matter")); });
+            addLastAction->setEnabled(!pm.textKindsFor(core::BookPlace::Back).isEmpty());
+
+            menu.addSeparator();
+        }
+        if (projectOpen) {
+            // Showing or hiding the sections moves no element
+            QAction* showSectionsAction = menu.addAction(tr("Show Sections"));
+            showSectionsAction->setCheckable(true);
+            showSectionsAction->setChecked(sectionsShown);
+            connect(showSectionsAction, &QAction::toggled, this,
+                    [this](bool shown) { emit requestShowSections(shown); });
+            menu.addSeparator();
+        }
+
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
             tr("Project Properties..."));
@@ -1618,9 +1715,15 @@ QTreeWidgetItem* NavigatorPanel::findItemByTypeAndTextRecursive(QTreeWidgetItem*
         return nullptr;
     }
 
-    // Check if this item matches
+    // Check if this item matches. The tree has one document, one of each section and one
+    // "Other Files"; their names change (a renamed book or section), so the type finds them.
     QString itemType = parent->data(0, Qt::UserRole + 1).toString();
-    if (itemType == elementType && parent->text(0) == text) {
+    const bool single = itemType == QLatin1String("document") ||
+                        itemType == QLatin1String("section_frontmatter") ||
+                        itemType == QLatin1String("section_body") ||
+                        itemType == QLatin1String("section_backmatter") ||
+                        itemType == QLatin1String("other_files");
+    if (itemType == elementType && (single || parent->text(0) == text)) {
         return parent;
     }
 

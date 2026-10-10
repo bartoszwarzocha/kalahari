@@ -38,7 +38,6 @@
 #include <QDir>
 #include <QProgressDialog>
 #include <QApplication>
-#include <QHash>
 #include <functional>
 #include <map>
 
@@ -70,19 +69,6 @@ EditorKind editorKind(const EditorPanel* editor) {
 /// File of a standalone file tab
 core::StandaloneFile standaloneFileOf(const EditorPanel* editor) {
     return editor->property("standaloneFile").value<core::StandaloneFile>();
-}
-
-/// Package of the book type of a template of the New Book window; empty for the empty
-/// project, which is a user project
-QString bookTypeOf(const QString& templateId) {
-    static const QHash<QString, QString> types{
-        {QStringLiteral("template.novel"), QStringLiteral("kalahari.novel")},
-        {QStringLiteral("template.shortStories"), QStringLiteral("kalahari.short_stories")},
-        {QStringLiteral("template.nonfiction"), QStringLiteral("kalahari.nonfiction")},
-        {QStringLiteral("template.screenplay"), QStringLiteral("kalahari.screenplay")},
-        {QStringLiteral("template.poetry"), QStringLiteral("kalahari.poetry")},
-    };
-    return types.value(templateId);
 }
 
 /// What is wrong, one problem per line, for the details of a message
@@ -297,8 +283,10 @@ void DocumentCoordinator::onNewProject() {
     // onProjectOpened() shows it
     auto& pm = core::ProjectManager::getInstance();
     QStringList problems;
+    const QString typeId =
+        dialogs::TemplateRegistry::getInstance().getTemplate(result.templateId).typeId;
     if (!pm.createProject(result.location, result.title, result.author, result.language,
-                          result.createSubfolder, bookTypeOf(result.templateId), &problems)) {
+                          result.createSubfolder, typeId, &problems, result.sections)) {
         logger.error("Failed to create project: {}", result.title.toStdString());
         dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
                                       tr("Could not create the book '%1'.").arg(result.title),

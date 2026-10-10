@@ -110,6 +110,18 @@ struct SectionNameSet {
     QString name(BookPlace place, const QString& language) const;
 };
 
+/// @brief Whether the Navigator shows the front, main and back section of a book, and their
+/// names
+struct BookSections {
+    bool shown = true;  ///< Whether the Navigator shows the sections (ProjectBook::partsLayer)
+    QString set;        ///< Their names: the id of a set (ProjectBook::sectionNameSets()) or
+                        ///< ProjectBook::CUSTOM_SECTIONS for names; empty: the first set
+    QStringList names;  ///< The writer's names of the front, main and back section
+                        ///< (CUSTOM_SECTIONS)
+
+    bool operator==(const BookSections&) const = default;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
     static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
@@ -143,6 +155,16 @@ struct ProjectBook {
     /// @brief The book's set of names, the first one when it has the writer's own names or a
     /// set this version does not know
     const SectionNameSet& sectionNameSet() const;
+
+    /// @brief Whether the Navigator shows the book's sections, and their names
+    BookSections sections() const;
+
+    /// @brief Show the sections in the Navigator or not, and name them
+    ///
+    /// The writer's names lose the spaces at their ends; a name that is empty, or missing, is
+    /// the name of the first set in the language of the book. Showing or hiding the sections
+    /// moves no element: each one stays in its section.
+    void setSections(const BookSections& sections);
 
     /// @brief Sets of names of the three parts, in the order the program offers them
     static const QList<SectionNameSet>& sectionNameSets();

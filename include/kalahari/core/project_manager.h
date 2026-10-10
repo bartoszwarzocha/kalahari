@@ -103,6 +103,8 @@ public:
     /// @param typeId Package of the book type, e.g. "kalahari.novel"; empty: a user project
     ///        with the kinds of the base package
     /// @param problems Gets what is wrong when the project cannot be created, one line each
+    /// @param sections Whether the Navigator shows the sections of the book, and their names;
+    ///        none: as the type says (a user project shows none), with the first set of names
     /// @return false when the folder exists and is not empty, the type is not installed or a
     ///         file cannot be written; the open project stays open when the folder is wrong
     ///
@@ -117,7 +119,8 @@ public:
                        const QString& language,
                        bool createSubfolder = true,
                        const QString& typeId = QString(),
-                       QStringList* problems = nullptr);
+                       QStringList* problems = nullptr,
+                       const std::optional<BookSections>& sections = std::nullopt);
 
     /// @brief Folder that createProject() makes the project in
     /// @param parentDir Folder of the project, or the folder it is made in (createSubfolder)
@@ -303,6 +306,12 @@ public:
     /// @brief Give element @p elementId the title @p title and save the .klh file
     /// @return false when the project has no such element or the file cannot be written
     bool renameElement(const QString& elementId, const QString& title);
+
+    /// @brief Show the sections of the book in the Navigator or not, and name them
+    /// (ProjectBook::setSections()); saves the .klh file
+    /// @return false when no project is open or the file cannot be written; the book keeps
+    ///         its sections then
+    bool setSections(const BookSections& sections);
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project and
     /// save the .klh file

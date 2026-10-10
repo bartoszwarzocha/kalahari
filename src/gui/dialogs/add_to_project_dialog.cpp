@@ -4,7 +4,9 @@
 /// OpenSpec #00033: Project File System - Phase F
 
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
+#include "kalahari/gui/section_words.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 
@@ -95,15 +97,15 @@ void AddToProjectDialog::setupUI() {
     formLayout->setSpacing(6);
     formLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Target section combo
+    // Target section combo; populateSections() names it
+    m_sectionLabel = new QLabel(targetGroup);
     m_sectionCombo = new QComboBox(targetGroup);
-    m_sectionCombo->setToolTip(tr("Select the project section where the file will be added"));
-    formLayout->addRow(tr("Section:"), m_sectionCombo);
+    formLayout->addRow(m_sectionLabel, m_sectionCombo);
 
-    // Target part combo (only visible for body section)
+    // Target part combo (only visible for the main section)
     m_partLabel = new QLabel(tr("Part:"), targetGroup);
     m_partCombo = new QComboBox(targetGroup);
-    m_partCombo->setToolTip(tr("Select the part where the file will be added (body section only)"));
+    m_partCombo->setToolTip(tr("Select the part where the file will be added"));
     formLayout->addRow(m_partLabel, m_partCombo);
 
     // Kind of the new element: a chapter, a prologue, a preface...
@@ -176,14 +178,27 @@ void AddToProjectDialog::createConnections() {
 }
 
 void AddToProjectDialog::populateSections() {
+    using kalahari::core::BookPlace;
     m_sectionCombo->clear();
 
-    // Data contains the section's place in the book
-    m_sectionCombo->addItem(tr("Front Matter"), static_cast<int>(kalahari::core::BookPlace::Front));
-    m_sectionCombo->addItem(tr("Body"), static_cast<int>(kalahari::core::BookPlace::Main));
-    m_sectionCombo->addItem(tr("Back Matter"), static_cast<int>(kalahari::core::BookPlace::Back));
+    // The sections with the book's names; a book without sections has places in the book: its
+    // beginning, its content and its end. Data contains the section's place in the book.
+    const kalahari::core::ProjectBook* book = kalahari::core::ProjectManager::getInstance().book();
+    const bool sectionsShown = !book || book->partsLayer;
+    const kalahari::core::ProjectBook noBook;
+    for (BookPlace place : {BookPlace::Front, BookPlace::Main, BookPlace::Back}) {
+        const QString name =
+            sectionsShown ? (book ? *book : noBook).sectionName(place)
+                          : SectionWords::capitalized(SectionWords::forPart(book, place).inPart);
+        m_sectionCombo->addItem(name, static_cast<int>(place));
+    }
+    m_sectionLabel->setText(sectionsShown ? tr("Section:") : tr("Place:"));
+    m_sectionCombo->setToolTip(sectionsShown
+                                   ? tr("Select the section of the book where the file will be "
+                                        "added")
+                                   : tr("Select where in the book the file will be added"));
 
-    // Default to Body section
+    // Default to the main section
     m_sectionCombo->setCurrentIndex(1);
 }
 

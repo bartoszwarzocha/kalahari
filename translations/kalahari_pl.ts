@@ -1139,10 +1139,6 @@ Uruchomić ponownie teraz?</translation>
         <translation>Układ części i rozdziałów</translation>
     </message>
     <message>
-        <source>Front matter (title, dedication)</source>
-        <translation>Część wstępna (tytuł, dedykacja)</translation>
-    </message>
-    <message>
         <source>Word count tracking</source>
         <translation>Liczenie słów</translation>
     </message>
@@ -1249,18 +1245,6 @@ Akty i sceny z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyj
     <message>
         <source>Poetry Collection</source>
         <translation>Tomik wierszy</translation>
-    </message>
-    <message>
-        <source>A collection of poems organized by sections.
-
-Flexible structure for organizing poems into thematic sections. Supports various poetry formats and styles.</source>
-        <translation>Zbiór wierszy podzielony na sekcje.
-
-Elastyczny układ do grupowania wierszy w sekcje tematyczne. Obsługuje różne formy i style poezji.</translation>
-    </message>
-    <message>
-        <source>Section/Poem structure</source>
-        <translation>Układ sekcji i wierszy</translation>
     </message>
     <message>
         <source>Thematic grouping</source>
@@ -1463,20 +1447,36 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Układ budowany w Nawigatorze</translation>
     </message>
     <message>
-        <source>A traditional novel structure with parts and chapters.
-
-Includes front matter (title page, dedication), a prologue and an epilogue, and back matter (afterword, acknowledgments). Perfect for fiction writing with a clear hierarchical organization.</source>
-        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
-
-Zawiera część wstępną (strona tytułowa, dedykacja), prolog i epilog oraz część końcową (posłowie, podziękowania). Dobry do prozy o wyraźnym, wielopoziomowym układzie.</translation>
-    </message>
-    <message>
         <source>Prologue and epilogue</source>
         <translation>Prolog i epilog</translation>
     </message>
     <message>
-        <source>Back matter (afterword, acknowledgments)</source>
-        <translation>Część końcowa (posłowie, podziękowania)</translation>
+        <source>A traditional novel structure with parts and chapters.
+
+A title page and a dedication at the beginning, a prologue and an epilogue in the text, and an afterword and acknowledgments at the end.</source>
+        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
+
+Na początku strona tytułowa i dedykacja, w tekście prolog i epilog, a na końcu posłowie i podziękowania.</translation>
+    </message>
+    <message>
+        <source>Title page and dedication at the beginning</source>
+        <translation>Strona tytułowa i dedykacja na początku</translation>
+    </message>
+    <message>
+        <source>Afterword and acknowledgments at the end</source>
+        <translation>Posłowie i podziękowania na końcu</translation>
+    </message>
+    <message>
+        <source>A collection of poems that can be grouped into cycles.
+
+Flexible structure for grouping poems into thematic cycles. Supports various poetry formats and styles.</source>
+        <translation>Zbiór wierszy, które można łączyć w cykle.
+
+Elastyczny układ do grupowania wierszy w cykle tematyczne. Obsługuje różne formy i style poezji.</translation>
+    </message>
+    <message>
+        <source>Cycle/Poem structure</source>
+        <translation>Układ cykli i wierszy</translation>
     </message>
 </context>
 <context>
@@ -3231,20 +3231,12 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>W innym miejscu – wskaż je na liście</translation>
     </message>
     <message>
-        <source>Click the element it is to go before</source>
-        <translation>Kliknij element, przed którym ma stanąć</translation>
-    </message>
-    <message>
         <source>Move the element up</source>
         <translation>Przesuń element wyżej</translation>
     </message>
     <message>
         <source>Move the element down</source>
         <translation>Przesuń element niżej</translation>
-    </message>
-    <message>
-        <source>Click the element it is to go before, or move it with the buttons %1.</source>
-        <translation>Kliknij element, przed którym ma stanąć, albo przesuń go przyciskami %1.</translation>
     </message>
     <message>
         <source>&quot;%1&quot; will no longer be the first element %2.</source>
@@ -3277,6 +3269,14 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>%1 and %2</source>
         <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>Click the element it is to go before</source>
+        <translation>Kliknij element, przed którym ma się znaleźć nowy element</translation>
+    </message>
+    <message>
+        <source>Click the element it is to go before, or move it with the buttons %1.</source>
+        <translation>Kliknij element, przed którym ma się znaleźć nowy element, albo przesuń go przyciskami %1.</translation>
     </message>
 </context>
 <context>
@@ -3716,6 +3716,30 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>&amp;Delete</source>
         <translation>&amp;Usuń</translation>
     </message>
+    <message>
+        <source>Show Sections Failed</source>
+        <translation>Nie udało się pokazać sekcji</translation>
+    </message>
+    <message>
+        <source>Hide Sections Failed</source>
+        <translation>Nie udało się ukryć sekcji</translation>
+    </message>
+    <message>
+        <source>Sections shown</source>
+        <translation>Sekcje są widoczne</translation>
+    </message>
+    <message>
+        <source>Sections hidden</source>
+        <translation>Sekcje są ukryte</translation>
+    </message>
+    <message>
+        <source>Rename Sections Failed</source>
+        <translation>Nie udało się zmienić nazw sekcji</translation>
+    </message>
+    <message>
+        <source>Sections renamed</source>
+        <translation>Zmieniono nazwy sekcji</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -3766,18 +3790,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Project Structure</source>
         <translation>Struktura projektu</translation>
-    </message>
-    <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
-    </message>
-    <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
     </message>
     <message>
         <source>Files</source>
@@ -3866,6 +3878,18 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Move to End</source>
         <translation>Przenieś na koniec</translation>
+    </message>
+    <message>
+        <source>Add Item at the Beginning of the Book</source>
+        <translation>Dodaj element na początku książki</translation>
+    </message>
+    <message>
+        <source>Add Item at the End of the Book</source>
+        <translation>Dodaj element na końcu książki</translation>
+    </message>
+    <message>
+        <source>Show Sections</source>
+        <translation>Pokaż sekcje</translation>
     </message>
 </context>
 <context>
@@ -4191,18 +4215,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Zastosuj:</translation>
     </message>
     <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
-    </message>
-    <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
-    </message>
-    <message>
         <source>-</source>
         <translation>-</translation>
     </message>
@@ -4230,6 +4242,22 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Status Change Failed</source>
         <translation>Nie udało się zmienić stanu</translation>
     </message>
+    <message>
+        <source>Elements:</source>
+        <translation>Elementy:</translation>
+    </message>
+    <message>
+        <source>Number of elements in this section</source>
+        <translation>Liczba elementów w tej sekcji</translation>
+    </message>
+    <message>
+        <source>Sections:</source>
+        <translation>Sekcje:</translation>
+    </message>
+    <message>
+        <source>Section names:</source>
+        <translation>Nazwy sekcji:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SearchPanel</name>
@@ -4244,6 +4272,36 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Full implementation in Phase 1</source>
         <translation>Pełna wersja w fazie 1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SectionNamesEdit</name>
+    <message>
+        <source>Name of the first section</source>
+        <translation>Nazwa pierwszej sekcji</translation>
+    </message>
+    <message>
+        <source>Name of the second section</source>
+        <translation>Nazwa drugiej sekcji</translation>
+    </message>
+    <message>
+        <source>Name of the third section</source>
+        <translation>Nazwa trzeciej sekcji</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SectionsComboBox</name>
+    <message>
+        <source>Names of the three sections the Navigator divides the book into: the front, the main and the back one. Without sections the Navigator shows the elements of the book in one list.</source>
+        <translation>Nazwy trzech sekcji, na które Nawigator dzieli książkę: początkowej, głównej i końcowej. Bez sekcji Nawigator pokazuje elementy książki na jednej liście.</translation>
+    </message>
+    <message>
+        <source>Custom Names</source>
+        <translation>Własne nazwy</translation>
+    </message>
+    <message>
+        <source>No Sections</source>
+        <translation>Bez sekcji</translation>
     </message>
 </context>
 <context>
@@ -5275,20 +5333,12 @@ Harmonogram projektu:
         <translation>Miejsce docelowe</translation>
     </message>
     <message>
-        <source>Select the project section where the file will be added</source>
-        <translation>Wybierz sekcję projektu, do której trafi plik</translation>
-    </message>
-    <message>
         <source>Section:</source>
         <translation>Sekcja:</translation>
     </message>
     <message>
         <source>Part:</source>
         <translation>Część:</translation>
-    </message>
-    <message>
-        <source>Select the part where the file will be added (body section only)</source>
-        <translation>Wybierz część, do której trafi plik (tylko w części głównej)</translation>
     </message>
     <message>
         <source>Enter display title...</source>
@@ -5327,24 +5377,28 @@ Harmonogram projektu:
         <translation>Dodaj do projektu</translation>
     </message>
     <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
-    </message>
-    <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
-    </message>
-    <message>
         <source>Kind:</source>
         <translation>Rodzaj:</translation>
     </message>
     <message>
         <source>(No part)</source>
         <translation>(Bez części)</translation>
+    </message>
+    <message>
+        <source>Select the part where the file will be added</source>
+        <translation>Wybierz część, do której trafi plik</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <translation>Miejsce:</translation>
+    </message>
+    <message>
+        <source>Select the section of the book where the file will be added</source>
+        <translation>Wybierz sekcję książki, do której trafi plik</translation>
+    </message>
+    <message>
+        <source>Select where in the book the file will be added</source>
+        <translation>Wybierz miejsce w książce, do którego trafi plik</translation>
     </message>
 </context>
 <context>
@@ -5400,14 +5454,6 @@ Harmonogram projektu:
         <translation>Dodaj część</translation>
     </message>
     <message>
-        <source>Add Front Matter Item</source>
-        <translation>Dodaj element części wstępnej</translation>
-    </message>
-    <message>
-        <source>Add Back Matter Item</source>
-        <translation>Dodaj element części końcowej</translation>
-    </message>
-    <message>
         <source>Title</source>
         <translation>Tytuł</translation>
     </message>
@@ -5424,28 +5470,12 @@ Harmonogram projektu:
         <translation>Wybierz, gdzie w książce ma się znaleźć nowy element.</translation>
     </message>
     <message>
-        <source>First in &quot;%1&quot;</source>
-        <translation>Jako pierwszy element w „%1”</translation>
-    </message>
-    <message>
-        <source>Last in &quot;%1&quot;</source>
-        <translation>Jako ostatni element w „%1”</translation>
-    </message>
-    <message>
         <source>After adding the part</source>
         <translation>Po dodaniu części</translation>
     </message>
     <message>
         <source>The list only shows how the book will look.</source>
         <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
-    </message>
-    <message>
-        <source>Move &quot;%1&quot; to the end of the new part</source>
-        <translation>Przenieś „%1” na koniec nowej części</translation>
-    </message>
-    <message>
-        <source>Move %1 to the end of the new part</source>
-        <translation>Przenieś %1 na koniec nowej części</translation>
     </message>
     <message>
         <source>&quot;%1&quot; is now the last element %2. At the end of the new part it stays the last one.</source>
@@ -5456,22 +5486,6 @@ Harmonogram projektu:
         <translation>Elementy %1 są teraz ostatnie %2. Na końcu nowej części nadal będą ostatnie.</translation>
     </message>
     <message>
-        <source>&quot;%1&quot; stays where it is, and the chapters added to the new part go after it.</source>
-        <translation>Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej części staną za nim.</translation>
-    </message>
-    <message>
-        <source>%1 stay where they are, and the chapters added to the new part go after them.</source>
-        <translation>Elementy %1 zostaną na swoich miejscach, a rozdziały dodane do nowej części staną za nimi.</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; is the last element %2, so the new chapter goes before it, at the end of &quot;%3&quot;. You can choose another place.</source>
-        <translation>Element „%1” jest ostatni %2, więc nowy rozdział stanie przed nim, na końcu „%3”. Możesz wybrać inne miejsce.</translation>
-    </message>
-    <message>
-        <source>%1 are the last elements %2, so the new chapter goes before them, at the end of &quot;%3&quot;. You can choose another place.</source>
-        <translation>Elementy %1 są ostatnie %2, więc nowy rozdział stanie przed nimi, na końcu „%3”. Możesz wybrać inne miejsce.</translation>
-    </message>
-    <message>
         <source>The element is added as the first one %1.</source>
         <translation>Element zostanie dodany jako pierwszy %1.</translation>
     </message>
@@ -5480,52 +5494,88 @@ Harmonogram projektu:
         <translation>Element zostanie dodany jako ostatni %1.</translation>
     </message>
     <message>
-        <source>The chapter is added as the last one in &quot;%1&quot;.</source>
-        <translation>Rozdział zostanie dodany jako ostatni w „%1”.</translation>
-    </message>
-    <message>
-        <source>The chapter is added at the end of &quot;%1&quot;, before &quot;%2&quot;.</source>
-        <translation>Rozdział zostanie dodany na końcu „%1”, przed „%2”.</translation>
-    </message>
-    <message>
         <source>The chapter is added as the last one %1.</source>
         <translation>Rozdział zostanie dodany jako ostatni %1.</translation>
-    </message>
-    <message>
-        <source>The chapter is added %1, before &quot;%2&quot;.</source>
-        <translation>Rozdział zostanie dodany %1, przed „%2”.</translation>
     </message>
     <message>
         <source>The part is added %1.</source>
         <translation>Część zostanie dodana %1.</translation>
     </message>
     <message>
+        <source>Add Item</source>
+        <translation>Dodaj element</translation>
+    </message>
+    <message>
+        <source>Move &quot;%1&quot; to the end of the new part</source>
+        <translation>Przenieś element „%1” na koniec nowej części</translation>
+    </message>
+    <message>
+        <source>Move %1 to the end of the new part</source>
+        <translation>Przenieś elementy %1 na koniec nowej części</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; stays where it is, and the chapters added to the new part go after it.</source>
+        <translation>Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej części znajdą się za nim.</translation>
+    </message>
+    <message>
+        <source>%1 stay where they are, and the chapters added to the new part go after them.</source>
+        <translation>Elementy %1 zostaną na swoich miejscach, a rozdziały dodane do nowej części znajdą się za nimi.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the last element %2, so the new chapter goes before it, at the end of &quot;%3&quot;. You can choose another place.</source>
+        <translation>Element „%1” jest ostatni %2, więc nowy rozdział zostanie dodany przed nim, na końcu części „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>%1 are the last elements %2, so the new chapter goes before them, at the end of &quot;%3&quot;. You can choose another place.</source>
+        <translation>Elementy %1 są ostatnie %2, więc nowy rozdział zostanie dodany przed nimi, na końcu części „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>First in &quot;%1&quot;</source>
+        <translation>Jako pierwszy element części „%1”</translation>
+    </message>
+    <message>
+        <source>Last in &quot;%1&quot;</source>
+        <translation>Jako ostatni element części „%1”</translation>
+    </message>
+    <message>
+        <source>The chapter is added as the last one in &quot;%1&quot;.</source>
+        <translation>Rozdział zostanie dodany jako ostatni w części „%1”.</translation>
+    </message>
+    <message>
+        <source>The chapter is added at the end of &quot;%1&quot;, before &quot;%2&quot;.</source>
+        <translation>Rozdział zostanie dodany na końcu części „%1”, przed elementem „%2”.</translation>
+    </message>
+    <message>
+        <source>The chapter is added %1, before &quot;%2&quot;.</source>
+        <translation>Rozdział zostanie dodany %1, przed elementem „%2”.</translation>
+    </message>
+    <message>
         <source>The part is added %1, after &quot;%2&quot;.</source>
-        <translation>Część zostanie dodana %1, za „%2”.</translation>
+        <translation>Część zostanie dodana %1, za elementem „%2”.</translation>
     </message>
     <message>
         <source>The part is added %1, before &quot;%2&quot;.</source>
-        <translation>Część zostanie dodana %1, przed „%2”.</translation>
-    </message>
-    <message>
-        <source>The item is added as the last one %1.</source>
-        <translation>Element zostanie dodany jako ostatni %1.</translation>
+        <translation>Część zostanie dodana %1, przed elementem „%2”.</translation>
     </message>
     <message>
         <source>The item is added %1, before &quot;%2&quot;.</source>
-        <translation>Element zostanie dodany %1, przed „%2”.</translation>
+        <translation>Element zostanie dodany %1, przed elementem „%2”.</translation>
     </message>
     <message>
         <source>Before &quot;%1&quot;, at the end of &quot;%2&quot;</source>
-        <translation>Przed „%1”, na końcu „%2”</translation>
+        <translation>Przed elementem „%1”, na końcu części „%2”</translation>
     </message>
     <message>
         <source>%1, after &quot;%2&quot;</source>
-        <translation>%1, za „%2”</translation>
+        <translation>%1, za elementem „%2”</translation>
     </message>
     <message>
         <source>%1, before &quot;%2&quot;</source>
-        <translation>%1, przed „%2”</translation>
+        <translation>%1, przed elementem „%2”</translation>
+    </message>
+    <message>
+        <source>The item is added %1.</source>
+        <translation>Element zostanie dodany %1.</translation>
     </message>
 </context>
 <context>
@@ -5689,6 +5739,14 @@ Harmonogram projektu:
     <message>
         <source>The folder &apos;%1&apos; is not empty. Choose another folder or create a subfolder with the book name.</source>
         <translation>Folder „%1” nie jest pusty. Wybierz inny folder albo zaznacz tworzenie podfolderu z nazwą książki.</translation>
+    </message>
+    <message>
+        <source>Sections:</source>
+        <translation>Sekcje:</translation>
+    </message>
+    <message>
+        <source>Section names:</source>
+        <translation>Nazwy sekcji:</translation>
     </message>
 </context>
 <context>

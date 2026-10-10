@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "kalahari/core/book_type_package.h"
+
 #include <QWidget>
 #include <QMap>
 #include <QSet>
@@ -35,9 +37,10 @@ namespace gui {
 
 /// @brief Navigator panel showing project structure tree
 ///
-/// Displays a QTreeWidget for the book of the project: its front, main and back parts with
-/// their elements, and the elements inside groups (parts). Supports icons, element selection,
-/// and automatic theme refresh.
+/// Displays a QTreeWidget for the book of the project: its front, main and back sections with
+/// the book's names and their elements, and the elements inside groups (parts). A book without
+/// sections shows the elements of the three sections one after another under the book's item.
+/// Supports icons, element selection, and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
 ///
 /// Item data: Qt::UserRole holds the element ID (the path of a standalone file), Qt::UserRole + 1
@@ -74,6 +77,13 @@ public:
     /// element at @p target of the list, or below it (@p below)
     /// @return The index; -1 when the element stays where it is
     static int dropIndex(int from, int target, bool below);
+
+    /// @brief New index of the element of item @p dragged in its list when it is dropped above
+    /// item @p target, or below it (@p below)
+    /// @return The index; -1 when @p target is not in the same list (a section of the book or
+    ///         a group) or the element stays where it is
+    static int dropIndexOf(const QTreeWidgetItem* dragged, const QTreeWidgetItem* target,
+                           bool below);
 
     /// @brief Clear tree (when no document is loaded)
     void clearDocument();
@@ -162,9 +172,17 @@ signals:
     /// @brief Request to add a new part to the body
     void requestAddPart();
 
-    /// @brief Request to add an item to front/back matter
+    /// @brief Request to add an item to the front or back section
     /// @param sectionType "front_matter" or "back_matter"
     void requestAddItem(const QString& sectionType);
+
+    /// @brief Request to show the sections of the book, or to hide them
+    /// @param shown Whether the Navigator shows the sections
+    void requestShowSections(bool shown);
+
+    /// @brief Request to rename a section of the book
+    /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
+    void requestRenameSection(const QString& sectionType);
 
     /// @brief Request to move an element up or down
     /// @param elementId Element ID
@@ -264,9 +282,10 @@ private:
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
     QString getIconIdForType(const QString& elementType) const;
 
-    /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
+    /// @brief Add the items of @p elements of section @p place, and of the elements inside
+    /// them, under @p parent
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
-                         const core::BookTypeRegistry& registry);
+                         const core::BookTypeRegistry& registry, core::BookPlace place);
 
     /// @brief Title of an element as the tree shows it: "*" when it has unsaved changes, and
     /// for a text element its status when it is not final ("Chapter 1 [Draft]")
@@ -326,7 +345,8 @@ private:
 
     /// @brief Find item by type-text identifier (OpenSpec #00034 Phase F)
     /// @param elementType Element type stored in Qt::UserRole + 1
-    /// @param text Item text
+    /// @param text Item text; not compared for the items the tree has one of: the document,
+    ///        its sections and "Other Files", whose names change
     /// @return Tree item or nullptr if not found
     QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
 

@@ -292,6 +292,90 @@ TEST_CASE("ProjectManager creates a book of a type", "[project_manager]") {
     }
 }
 
+TEST_CASE("A new book shows the sections the writer chose", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    const QString custom = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+
+    SECTION("Without a choice, as the type says, with the first set of names") {
+        REQUIRE(pm.createProject(dir.path(), "Novel", "Anna", "pl", true, "kalahari.novel"));
+        CHECK(pm.book()->sections() == BookSections{true, QString(), {}});
+        REQUIRE(pm.closeProject(false));
+        REQUIRE(pm.createProject(dir.path(), "Pilot", "Anna", "pl", true,
+                                 "kalahari.screenplay"));
+        CHECK(pm.book()->sections() == BookSections{false, QString(), {}});
+        REQUIRE(pm.closeProject(false));
+        REQUIRE(pm.createProject(dir.path(), "Notes", "Anna", "pl", true));
+        CHECK(pm.book()->sections() == BookSections{false, QString(), {}});
+        REQUIRE(pm.closeProject(false));
+    }
+
+    SECTION("A set of names, and no sections for a type that shows them") {
+        REQUIRE(pm.createProject(dir.path(), "Novel", "Anna", "pl", true, "kalahari.novel",
+                                 nullptr, BookSections{true, QStringLiteral("arc"), {}}));
+        CHECK(pm.book()->sectionName(BookPlace::Main) == "Rozwinięcie");
+        const QString manifest = pm.getManifestPath();
+        REQUIRE(pm.closeProject(false));
+        CHECK(savedProject(manifest).books.first().sections() ==
+              BookSections{true, QStringLiteral("arc"), {}});
+
+        REQUIRE(pm.createProject(dir.path(), "Plain", "Anna", "pl", true, "kalahari.novel",
+                                 nullptr, BookSections{false, QString(), {}}));
+        CHECK_FALSE(pm.book()->partsLayer);
+        REQUIRE(pm.closeProject(false));
+    }
+
+    SECTION("The writer's own names, and sections for a user project") {
+        REQUIRE(pm.createProject(dir.path(), "Notes", "Anna", "pl", true, QString(), nullptr,
+                                 BookSections{true, custom,
+                                              {QStringLiteral(" Wstęp "),
+                                               QStringLiteral("Opowieść"), QString()}}));
+        CHECK(pm.book()->partsLayer);
+        CHECK(pm.book()->sectionNames ==
+              QStringList{"Wstęp", "Opowieść", "Sekcja końcowa"});
+        const QString manifest = pm.getManifestPath();
+        REQUIRE(pm.closeProject(false));
+        CHECK(savedProject(manifest).books.first().sectionNames ==
+              QStringList{"Wstęp", "Opowieść", "Sekcja końcowa"});
+    }
+}
+
+TEST_CASE("ProjectManager shows, hides and names the sections of the open book",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK_FALSE(pm.setSections(BookSections{}));  // no book is open
+
+    REQUIRE(pm.createProject(dir.path(), "Sections", "Anna", "pl", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString custom = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+    const std::string elements =
+        titles(pm.book()->frontElements) + " | " + titles(pm.book()->mainElements);
+
+    // Saved at once; the elements stay in their sections
+    REQUIRE(pm.setSections(BookSections{false, QString(), {}}));
+    CHECK_FALSE(pm.book()->partsLayer);
+    CHECK_FALSE(pm.isDirty());
+    CHECK_FALSE(savedProject(manifest).books.first().partsLayer);
+    CHECK(titles(pm.book()->frontElements) + " | " + titles(pm.book()->mainElements) ==
+          elements);
+
+    const BookSections own{true, custom,
+                           {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                            QStringLiteral("Dodatki")}};
+    REQUIRE(pm.setSections(own));
+    CHECK(pm.book()->sectionName(BookPlace::Main) == "Opowieść");
+    CHECK(savedProject(manifest).books.first().sections() == own);
+
+    // A file that cannot be written: the book keeps its sections
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkpath(manifest));
+    CHECK_FALSE(pm.setSections(BookSections{false, QStringLiteral("arc"), {}}));
+    CHECK(pm.book()->sections() == own);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("A new book starts with the elements of its type", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

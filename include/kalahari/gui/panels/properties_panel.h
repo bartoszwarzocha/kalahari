@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include "kalahari/core/book_project.h"
+
 #include <QWidget>
 #include <QString>
 
@@ -32,12 +34,14 @@ namespace kalahari {
 namespace gui {
 
 class EditorPanel;
+class SectionNamesEdit;
+class SectionsComboBox;
 
 /// @brief Contextual properties panel with three views
 ///
 /// Shows different content based on current context:
 /// - NoProject: Placeholder message when no project is open
-/// - Project: Project metadata (title, author, language, genre, statistics)
+/// - Project: Project metadata (title, author, language, genre, sections, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes)
 /// - Editor: Text selection statistics (word/char count, paragraph style)
 ///
@@ -63,6 +67,9 @@ public:
 
     /// @brief Destructor
     ~PropertiesPanel() override = default;
+
+    /// @brief The page the panel shows
+    Page currentPage() const;
 
 public slots:
     /// @brief Show project properties view
@@ -136,6 +143,12 @@ private slots:
     /// @brief Handle project genre changed
     void onProjectGenreChanged();
 
+    /// @brief The writer chose another item of the Sections field
+    void onProjectSectionsChanged();
+
+    /// @brief The writer changed the own names of the sections
+    void onProjectSectionNamesChanged();
+
     /// @brief Handle chapter title changed
     void onChapterTitleChanged();
 
@@ -166,6 +179,14 @@ signals:
     /// @param elementId Element ID of the chapter
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
+
+    /// @brief The writer chose how the Navigator divides the book: sections @p sections
+    /// @note The Navigator's coordinator saves them, and refreshes the Navigator and the panel
+    void requestSections(const kalahari::core::BookSections& sections);
+
+    /// @brief The title or the language of the book changed in the panel: the Navigator shows
+    /// the title, and the names of the sections in the language of the book
+    void bookChanged();
 
 private:
     /// @brief Setup UI components
@@ -222,6 +243,12 @@ private:
     /// @brief Update project statistics
     void updateProjectStatistics();
 
+    /// @brief Fill the Sections field and the own names of the sections of book @p book
+    void populateBookSections(const core::ProjectBook& book);
+
+    /// @brief Show the row of own names when the Sections field says own names
+    void showSectionNamesRow();
+
     /// @brief Format date for display
     /// @param dateTime Date and time; invalid when unknown
     /// @return Formatted date string, in local time
@@ -241,6 +268,9 @@ private:
     QLineEdit* m_projectAuthorEdit;
     QComboBox* m_projectLanguageCombo;
     QLineEdit* m_projectGenreEdit;
+    QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
+    SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none
+    SectionNamesEdit* m_projectSectionNames;   ///< Own names of the sections
     QLabel* m_projectChaptersLabel;
     QLabel* m_projectWordsLabel;
     QLabel* m_projectCreatedLabel;
@@ -257,6 +287,7 @@ private:
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
+    QLabel* m_sectionChapterCountTitle;  ///< "Chapters:", or "Elements:" outside the main one
     QLabel* m_sectionChapterCountLabel;
     QLabel* m_sectionWordCountLabel;
     QLabel* m_sectionDraftCountLabel;

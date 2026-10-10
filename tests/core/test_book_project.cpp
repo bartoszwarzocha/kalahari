@@ -605,6 +605,70 @@ TEST_CASE("Book project: the names of the parts are saved and read back",
     CHECK(saved(none).isUndefined());
 }
 
+TEST_CASE("Book project: the sections are shown or hidden, and named", "[core][bookproject]") {
+    ProjectBook book;
+    book.language = QStringLiteral("pl");
+    ProjectElement dedication;
+    dedication.id = QStringLiteral("e1");
+    dedication.title = QStringLiteral("Dedykacja");
+    book.frontElements << dedication;
+    const auto names = [&book]() {
+        return joined({book.sectionName(BookPlace::Front), book.sectionName(BookPlace::Main),
+                       book.sectionName(BookPlace::Back)});
+    };
+    const QString custom = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+
+    // A set of names
+    book.setSections({true, QStringLiteral("matter"), {}});
+    CHECK(book.partsLayer);
+    CHECK(book.sectionSet == QStringLiteral("matter"));
+    CHECK(book.sectionNames.isEmpty());
+    CHECK(book.sections() == BookSections{true, QStringLiteral("matter"), {}});
+    CHECK(names() == "Strony początkowe, Tekst główny, Strony końcowe");
+
+    // Hidden sections keep their names, and each element stays in its section
+    book.setSections({false, QStringLiteral("matter"), {}});
+    CHECK_FALSE(book.partsLayer);
+    CHECK(book.sections() == BookSections{false, QStringLiteral("matter"), {}});
+    CHECK(names() == "Strony początkowe, Tekst główny, Strony końcowe");
+    CHECK(book.frontElements.size() == 1);
+    CHECK(book.mainElements.isEmpty());
+
+    // The writer's own names lose the spaces at their ends; an empty or missing name is the
+    // name of the first set in the language of the book
+    book.setSections({true, custom, {QStringLiteral("  Przedmowa  "), QStringLiteral(" ")}});
+    CHECK(book.sectionSet == custom);
+    CHECK(names() == "Przedmowa, Sekcja główna, Sekcja końcowa");
+    CHECK(book.sections() ==
+          BookSections{true, custom,
+                       {QStringLiteral("Przedmowa"), QStringLiteral("Sekcja główna"),
+                        QStringLiteral("Sekcja końcowa")}});
+    book.language = QStringLiteral("en");
+    book.setSections({true, custom, {}});
+    CHECK(names() == "Front Section, Main Section, Back Section");
+
+    // Fields of the writer's names that this version does not know stay with the writer's
+    // names, and go with them
+    book.sectionNamesExtra.insert(QStringLiteral("workshop"), QStringLiteral("Notatki"));
+    book.setSections({true, custom,
+                      {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                       QStringLiteral("Dodatki")}});
+    CHECK(book.sectionNamesExtra.value(QStringLiteral("workshop")).toString() ==
+          QStringLiteral("Notatki"));
+    book.setSections({true, QStringLiteral("arc"),
+                      {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                       QStringLiteral("Dodatki")}});
+    CHECK(book.sectionNames.isEmpty());  // names only with the writer's names
+    CHECK(book.sectionNamesExtra.isEmpty());
+    CHECK(book.sections() == BookSections{true, QStringLiteral("arc"), {}});
+    CHECK(names() == "Opening, Development, Closing");
+
+    // No set: the first one
+    book.setSections({true, QString(), {}});
+    CHECK(book.sectionNameSet().id == QStringLiteral("sections"));
+    CHECK(book.frontElements.size() == 1);
+}
+
 TEST_CASE("Book project: changing an element of a copy leaves the project as it was",
           "[core][bookproject]") {
     const BookProject project = projectOf(NOVEL);

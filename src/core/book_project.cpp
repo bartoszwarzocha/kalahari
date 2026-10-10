@@ -571,6 +571,31 @@ QString ProjectBook::sectionName(BookPlace place) const {
     return sectionNameSet().name(place, language);
 }
 
+BookSections ProjectBook::sections() const {
+    BookSections sections;
+    sections.shown = partsLayer;
+    sections.set = sectionSet;
+    if (sectionSet == QLatin1String(CUSTOM_SECTIONS)) {
+        sections.names = sectionNames;
+    }
+    return sections;
+}
+
+void ProjectBook::setSections(const BookSections& sections) {
+    partsLayer = sections.shown;
+    sectionSet = sections.set;
+    sectionNames.clear();
+    if (sectionSet != QLatin1String(CUSTOM_SECTIONS)) {
+        sectionNamesExtra = QJsonObject();  // the fields of names the book no longer has
+        return;
+    }
+    const SectionNameSet& first = sectionNameSets().first();
+    for (qsizetype i = 0; i < std::ssize(BOOK_PARTS); ++i) {
+        const QString given = sections.names.value(i).trimmed();
+        sectionNames << (given.isEmpty() ? first.name(BOOK_PARTS[i].place, language) : given);
+    }
+}
+
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
            file == other.file && status == other.status && elements == other.elements &&

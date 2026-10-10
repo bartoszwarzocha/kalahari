@@ -16,7 +16,9 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
+#include <QLabel>
 #include <QFileInfo>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
@@ -226,19 +228,49 @@ struct Navigator {
         return texts.join(QStringLiteral(", ")).toStdString();
     }
 
-    /// Choose the action @p text of the menu of the item of element @p id
-    /// @return Whether the menu had the action, enabled
-    bool chooseInMenu(const QString& id, const QString& text) {
+    /// The item of section @p type ("section_body"); nullptr: none
+    QTreeWidgetItem* section(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
-        QTreeWidgetItem* found = item(id);
+        for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+            if ((*it)->data(0, Qt::UserRole + 1).toString() == type) {
+                return *it;
+            }
+        }
+        return nullptr;
+    }
+
+    /// The item of the book
+    QTreeWidgetItem* bookItem() const {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        REQUIRE(tree->topLevelItemCount() > 0);
+        return tree->topLevelItem(0);
+    }
+
+    /// The texts of the items under the item of the book
+    std::string itemsInBook() const {
+        const QTreeWidgetItem* book = bookItem();
+        QStringList texts;
+        for (int i = 0; i < book->childCount(); ++i) {
+            texts << book->child(i)->text(0);
+        }
+        return texts.join(QStringLiteral(", ")).toStdString();
+    }
+
+    /// Show the menu of @p found and choose its action @p text when the menu has it, enabled,
+    /// and @p choose says so
+    /// @return Whether the menu had the action, enabled
+    bool inMenuOf(QTreeWidgetItem* found, const QString& text, bool choose = true) {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
         REQUIRE(found != nullptr);
         tree->scrollToItem(found);
-        bool chosen = false;
+        bool enabled = false;
         bool shown = false;
         QTimer timer;
         timer.setInterval(10);
-        QObject::connect(&timer, &QTimer::timeout, [&timer, &chosen, &shown, &text]() {
+        QObject::connect(&timer, &QTimer::timeout, [&timer, &enabled, &shown, &text, choose]() {
             auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
             if (!menu) {
                 return;
@@ -247,8 +279,10 @@ struct Navigator {
             shown = true;
             for (QAction* action : menu->actions()) {
                 if (action->text() == text && action->isEnabled()) {
-                    chosen = true;
-                    action->trigger();
+                    enabled = true;
+                    if (choose) {
+                        action->trigger();
+                    }
                 }
             }
             menu->close();
@@ -256,7 +290,15 @@ struct Navigator {
         timer.start();
         emit tree->customContextMenuRequested(tree->visualItemRect(found).center());
         REQUIRE(shown);
-        return chosen;
+        return enabled;
+    }
+
+    /// Choose the action @p text of the menu of the item of element @p id
+    /// @return Whether the menu had the action, enabled
+    bool chooseInMenu(const QString& id, const QString& text) {
+        QTreeWidgetItem* found = item(id);
+        REQUIRE(found != nullptr);
+        return inMenuOf(found, text);
     }
 
     /// The texts of the items in section @p type ("section_body")
@@ -626,4 +668,264 @@ TEST_CASE("Navigator menu: moving an element to the start and to the end of its 
           "Prologue, Chapter 2, Chapter 3, Chapter 1, Epilogue");
     CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move to End")));
     CHECK(navigator.current() == first);
+}
+
+TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved at once",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& coordinator = navigator.coordinator;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestShowSections, &coordinator,
+                     &gui::NavigatorCoordinator::onRequestShowSections);
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestRenameSection, &coordinator,
+                     &gui::NavigatorCoordinator::onRequestRenameSection);
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestMoveElement, &coordinator,
+                     &gui::NavigatorCoordinator::onRequestMove);
+    navigator.panel->resize(400, 600);
+    navigator.window.resize(400, 600);
+    navigator.window.show();
+
+    // Two chapters, and an item at each end of the book
+    answering([&] { coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
+    answering([&] { coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
+    answering([&] { coordinator.onRequestAddItem(QStringLiteral("front_matter")); },
+              {acceptWith(QStringLiteral("For Anna"))});
+    answering([&] { coordinator.onRequestAddItem(QStringLiteral("back_matter")); },
+              {acceptWith(QStringLiteral("Thanks"))});
+    REQUIRE(titles(novel.book().mainElements) == "Chapter 1, Chapter 2");
+    const QString first = novel.book().mainElements.at(0).id;
+    const QString second = novel.book().mainElements.at(1).id;
+
+    // A section shown in the Properties panel goes when the sections are hidden
+    navigator.properties->showSectionProperties(QStringLiteral("section_body"));
+    REQUIRE(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Section);
+
+    // Hidden from the book's menu: the elements one after another, each in its section
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Show Sections")));
+    CHECK_FALSE(novel.book().partsLayer);
+    CHECK_FALSE(novel.savedBook().partsLayer);
+    CHECK(titles(novel.book().frontElements) == "For Anna");
+    CHECK(titles(novel.book().backElements) == "Thanks");
+    CHECK(navigator.itemsInBook() ==
+          "For Anna [Draft], Chapter 1 [Draft], Chapter 2 [Draft], Thanks [Draft]");
+    CHECK(navigator.section(QStringLiteral("section_body")) == nullptr);
+    CHECK(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Project);
+
+    // The elements move within their sections
+    CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move Up")));
+    CHECK_FALSE(navigator.chooseInMenu(second, QStringLiteral("Move Down")));
+    CHECK(navigator.chooseInMenu(second, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 2, Chapter 1");
+    CHECK(navigator.itemsInBook() ==
+          "For Anna [Draft], Chapter 2 [Draft], Chapter 1 [Draft], Thanks [Draft]");
+
+    // The book's menu adds the elements its sections had added
+    QStringList requested;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddPart,
+                     [&requested]() { requested << QStringLiteral("part"); });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddChapter,
+                     [&requested](const QString& groupId) {
+                         requested << QStringLiteral("chapter:") + groupId;
+                     });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddItem,
+                     [&requested](const QString& section) { requested << section; });
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part")));
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Chapter")));
+    CHECK(navigator.inMenuOf(navigator.bookItem(),
+                             QStringLiteral("Add Item at the Beginning of the Book")));
+    CHECK(navigator.inMenuOf(navigator.bookItem(),
+                             QStringLiteral("Add Item at the End of the Book")));
+    CHECK(requested.join(QStringLiteral(", ")).toStdString() ==
+          "part, chapter:, front_matter, back_matter");
+
+    // An item added from the book's menu says where it goes
+    QString said;
+    CHECK(answering([&] { coordinator.onRequestAddItem(QStringLiteral("back_matter")); },
+                    {[&said](QDialog& dialog) {
+                         for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+                             said += label->text() + QLatin1Char('\n');
+                         }
+                         dialog.accept();
+                     }}) == 1);
+    CHECK(said.contains(QStringLiteral("The item is added at the very end of the book.")));
+    CHECK(novel.book().backElements.size() == 2);
+
+    // Shown again: the elements are in their sections, the main one expanded as when the book
+    // opens
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Show Sections")));
+    CHECK(novel.book().partsLayer);
+    CHECK(novel.savedBook().partsLayer);
+    CHECK(navigator.itemsInSection(QStringLiteral("section_frontmatter")) == "For Anna [Draft]");
+    CHECK(navigator.itemsInSection(QStringLiteral("section_body")) ==
+          "Chapter 2 [Draft], Chapter 1 [Draft]");
+    CHECK(navigator.section(QStringLiteral("section_body"))->isExpanded());
+    CHECK_FALSE(navigator.section(QStringLiteral("section_frontmatter"))->isExpanded());
+    CHECK(navigator.bookItem()->isExpanded());
+    CHECK_FALSE(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part"), false));
+
+    // A section gets the writer's name; the others keep theirs
+    CHECK(navigator.inMenuOf(navigator.section(QStringLiteral("section_body")),
+                             QStringLiteral("Rename..."), false));
+    navigator.properties->showSectionProperties(QStringLiteral("section_body"));
+    CHECK(answering([&] { coordinator.onRequestRenameSection(QStringLiteral("section_body")); },
+                    {acceptWith(QStringLiteral(" Story "))}) == 1);
+    CHECK(novel.book().sectionSet == QStringLiteral("custom"));
+    CHECK(novel.book().sectionNames ==
+          QStringList{QStringLiteral("Front Section"), QStringLiteral("Story"),
+                      QStringLiteral("Back Section")});
+    CHECK(novel.savedBook().sectionNames == novel.book().sectionNames);
+    CHECK(navigator.section(QStringLiteral("section_body"))->text(0) == QStringLiteral("Story"));
+    const auto propertiesShow = [&navigator](const QString& text) {
+        for (const QLabel* label : navigator.properties->findChildren<QLabel*>()) {
+            if (label->isVisibleTo(navigator.properties) && label->text() == text) {
+                return true;
+            }
+        }
+        return false;
+    };
+    CHECK(propertiesShow(QStringLiteral("Story")));
+    CHECK(propertiesShow(QStringLiteral("Chapters:")));
+
+    // The back section counts its elements, not chapters
+    navigator.properties->showSectionProperties(QStringLiteral("section_backmatter"));
+    CHECK(propertiesShow(QStringLiteral("Back Section")));
+    CHECK(propertiesShow(QStringLiteral("Elements:")));
+    CHECK_FALSE(propertiesShow(QStringLiteral("Chapters:")));
+
+    // A dialog closed without a new name changes nothing
+    CHECK(answering([&] {
+              coordinator.onRequestRenameSection(QStringLiteral("section_frontmatter"));
+          }) == 1);
+    CHECK(novel.book().sectionName(core::BookPlace::Front) == QStringLiteral("Front Section"));
+}
+
+TEST_CASE("Properties panel: the sections of the book and their names, saved at once",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& coordinator = navigator.coordinator;
+    gui::PropertiesPanel* properties = navigator.properties;
+    QObject::connect(properties, &gui::PropertiesPanel::requestSections, &coordinator,
+                     &gui::NavigatorCoordinator::onRequestSections);
+    QObject::connect(properties, &gui::PropertiesPanel::bookChanged, &coordinator,
+                     &gui::NavigatorCoordinator::refreshNavigator);
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestShowSections, &coordinator,
+                     &gui::NavigatorCoordinator::onRequestShowSections);
+    navigator.window.resize(400, 600);
+    navigator.window.show();
+    properties->showProjectProperties();
+
+    auto* sections = properties->findChild<QComboBox*>(QStringLiteral("projectSectionsCombo"));
+    auto* namesRow = properties->findChild<QWidget*>(QStringLiteral("projectSectionNames"));
+    REQUIRE(sections != nullptr);
+    REQUIRE(namesRow != nullptr);
+    const QList<QLineEdit*> names = namesRow->findChildren<QLineEdit*>();
+    REQUIRE(names.size() == 3);
+    QComboBox* language = nullptr;
+    QLineEdit* title = nullptr;
+    for (QComboBox* combo : properties->findChildren<QComboBox*>()) {
+        if (combo->findData(QStringLiteral("pl")) >= 0) {
+            language = combo;
+        }
+    }
+    for (QLineEdit* field : properties->findChildren<QLineEdit*>()) {
+        if (field->placeholderText() == QStringLiteral("Enter project title")) {
+            title = field;
+        }
+    }
+    REQUIRE(language != nullptr);
+    REQUIRE(title != nullptr);
+
+    const auto choose = [sections](const char* item) {
+        const int index = sections->findData(QString::fromLatin1(item));
+        REQUIRE(index >= 0);
+        sections->setCurrentIndex(index);
+    };
+    const auto rename = [](QLineEdit* field, const QString& name) {
+        field->setText(name);
+        QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+        QApplication::sendEvent(field, &enter);
+    };
+    const auto namesInFields = [&names]() {
+        QStringList texts;
+        for (const QLineEdit* field : names) {
+            texts << field->text();
+        }
+        return texts.join(QStringLiteral(", ")).toStdString();
+    };
+    const auto sectionsInNavigator = [&navigator]() {
+        QStringList texts;
+        for (const char* type : {"section_frontmatter", "section_body", "section_backmatter"}) {
+            const QTreeWidgetItem* item = navigator.section(QString::fromLatin1(type));
+            texts << (item ? item->text(0) : QStringLiteral("-"));
+        }
+        return texts.join(QStringLiteral(", ")).toStdString();
+    };
+    const auto namesRowShown = [namesRow, properties]() {
+        return namesRow->isVisibleTo(properties);
+    };
+
+    // The novel's sections, their sets in the language of the book
+    CHECK(sections->currentData().toString() == QStringLiteral("sections"));
+    CHECK(sections->itemText(0) ==
+          QStringLiteral("Front Section · Main Section · Back Section"));
+    CHECK_FALSE(namesRowShown());
+
+    // Another set: the Navigator shows its names, the .klh file has it
+    choose("matter");
+    CHECK(novel.book().sectionSet == QStringLiteral("matter"));
+    CHECK(novel.savedBook().sectionSet == QStringLiteral("matter"));
+    CHECK(sectionsInNavigator() == "Front Matter, Body, Back Matter");
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Sections renamed"));
+
+    // The language of the book names the sets and the sections at once
+    language->setCurrentIndex(language->findData(QStringLiteral("pl")));
+    CHECK(novel.book().language == QStringLiteral("pl"));
+    CHECK(sections->itemText(1) ==
+          QStringLiteral("Strony początkowe · Tekst główny · Strony końcowe"));
+    CHECK(sections->currentData().toString() == QStringLiteral("matter"));
+    CHECK(sectionsInNavigator() == "Strony początkowe, Tekst główny, Strony końcowe");
+
+    // Own names start as the names the sections have
+    choose("custom");
+    CHECK(namesRowShown());
+    CHECK(namesInFields() == "Strony początkowe, Tekst główny, Strony końcowe");
+    CHECK(novel.book().sectionSet == QStringLiteral("custom"));
+    CHECK(novel.savedBook().sectionNames ==
+          QStringList{QStringLiteral("Strony początkowe"), QStringLiteral("Tekst główny"),
+                      QStringLiteral("Strony końcowe")});
+
+    // The writer's name, without the spaces at its ends; an empty one is the name of the first
+    // set
+    rename(names.at(1), QStringLiteral(" Historia "));
+    rename(names.at(2), QString());
+    CHECK(novel.savedBook().sectionNames ==
+          QStringList{QStringLiteral("Strony początkowe"), QStringLiteral("Historia"),
+                      QStringLiteral("Sekcja końcowa")});
+    CHECK(sectionsInNavigator() == "Strony początkowe, Historia, Sekcja końcowa");
+    CHECK(namesInFields() == "Strony początkowe, Historia, Sekcja końcowa");
+
+    // No sections: the elements in one list, and the names kept for when the sections return
+    choose("none");
+    CHECK_FALSE(novel.book().partsLayer);
+    CHECK_FALSE(novel.savedBook().partsLayer);
+    CHECK_FALSE(namesRowShown());
+    CHECK(sectionsInNavigator() == "-, -, -");
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Sections hidden"));
+    choose("custom");
+    CHECK(novel.book().partsLayer);
+    CHECK(sectionsInNavigator() == "Strony początkowe, Historia, Sekcja końcowa");
+    CHECK(navigator.section(QStringLiteral("section_body"))->isExpanded());
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Sections shown"));
+
+    // The field follows the Navigator's menu
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Show Sections")));
+    CHECK_FALSE(novel.book().partsLayer);
+    CHECK(sections->currentData().toString() == QStringLiteral("none"));
+    CHECK_FALSE(namesRowShown());
+
+    // The Navigator shows the new title of the book
+    rename(title, QStringLiteral("Renamed Book"));
+    CHECK(novel.book().title == QStringLiteral("Renamed Book"));
+    CHECK(navigator.bookItem()->text(0) == QStringLiteral("Renamed Book"));
 }

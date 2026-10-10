@@ -241,7 +241,8 @@ bool ProjectManager::createProject(const QString& parentDir,
                                    const QString& language,
                                    bool createSubfolder,
                                    const QString& typeId,
-                                   QStringList* problems) {
+                                   QStringList* problems,
+                                   const std::optional<BookSections>& sections) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problems](const QString& problem) {
         logger.error("createProject: {}", problem.toStdString());
@@ -307,6 +308,9 @@ bool ProjectManager::createProject(const QString& parentDir,
     book.author = author;
     book.language = language;
     book.partsLayer = type ? type->partsLayer : false;
+    if (sections) {
+        book.setSections(*sections);
+    }
     book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
     project.books.append(book);
 
@@ -963,6 +967,23 @@ bool ProjectManager::renameElement(const QString& elementId, const QString& titl
     if (stateOf(elementId) && !writeChapterFile(*element, std::nullopt)) {
         Logger::getInstance().warn("renameElement: The title of {} is not in its chapter file",
                                    elementId.toStdString());
+    }
+    return true;
+}
+
+bool ProjectManager::setSections(const BookSections& sections) {
+    ProjectBook* current = book();
+    if (!current) {
+        Logger::getInstance().warn("setSections: No project is open");
+        return false;
+    }
+    const BookSections previous = current->sections();
+    const QJsonObject previousExtra = current->sectionNamesExtra;
+    current->setSections(sections);
+    if (!saveManifest()) {
+        current->setSections(previous);
+        current->sectionNamesExtra = previousExtra;
+        return false;
     }
     return true;
 }

@@ -161,6 +161,16 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddPart);
     connect(m_dockCoordinator, &DockCoordinator::requestAddItem,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddItem);
+    // The sections of the book: shown or not, and their names
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameSection,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameSection);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSections);
+    // The Navigator shows the title of the book and the names of its sections in its language
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigator);
     // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
     connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
