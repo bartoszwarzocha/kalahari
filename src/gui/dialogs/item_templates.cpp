@@ -271,22 +271,22 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     }
 
     // ========================================================================
-    // Empty Project Template
+    // User Project: a book without a type
     // ========================================================================
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.empty");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Empty Project");
+        info.name = QCoreApplication::translate("TemplateRegistry", "User Project");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A blank project with no predefined structure.\n\n"
-            "Start from scratch and build your own structure. "
-            "Recommended for advanced users who want full control.");
+            "A book without a type: it starts empty, and you build it in the Navigator from "
+            "the elements of the Base package, such as a title page, a dedication, chapters, "
+            "parts and an afterword.");
         info.iconId = QStringLiteral("template.empty");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "No predefined structure"),
-            QCoreApplication::translate("TemplateRegistry", "Full customization"),
-            QCoreApplication::translate("TemplateRegistry", "Add elements manually"),
-            QCoreApplication::translate("TemplateRegistry", "For advanced users")
+            QCoreApplication::translate("TemplateRegistry", "No book type"),
+            QCoreApplication::translate("TemplateRegistry", "Starts empty"),
+            QCoreApplication::translate("TemplateRegistry", "Elements of the Base package"),
+            QCoreApplication::translate("TemplateRegistry", "Structure built in the Navigator")
         };
         info.fileExtension = QString();
         info.isBuiltin = true;

@@ -471,7 +471,8 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
           "kalahari.novel:prologue, kalahari.base:part, kalahari.base:chapter, "
           "kalahari.novel:epilogue");
     CHECK(references(project.kindsInside(registry, QStringLiteral("part"))) ==
-          "kalahari.base:chapter, kalahari.base:motto");
+          "kalahari.novel:prologue, kalahari.base:chapter, kalahari.novel:epilogue, "
+          "kalahari.base:motto");
 
     const KindRef bibliography =
         BookProject::kindOf(registry, project.books.at(0).backElements.at(0));

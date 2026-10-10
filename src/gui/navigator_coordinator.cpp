@@ -19,6 +19,7 @@
 #include <QStatusBar>
 #include <QMessageBox>
 #include <chrono>
+#include <optional>
 
 namespace kalahari {
 namespace gui {
@@ -398,6 +399,7 @@ void NavigatorCoordinator::onRequestMove(const QString& elementId, int direction
                 elementId.toStdString(), index, newIndex);
 
     refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
     m_statusBar->showMessage(direction < 0 ? tr("Moved up") : tr("Moved down"), 2000);
     emit documentModified();
 }
@@ -463,6 +465,7 @@ void NavigatorCoordinator::onElementMoved(const QString& elementId, int index) {
 
     // The tree shows the order of the project, also when the move failed
     refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
 }
 
 
@@ -551,25 +554,56 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
         return;
     }
 
-    // Each kind with the title its new element starts with ("Chapter 3")
+    // The list the dialog was opened on: a part of the book or a group
+    const core::BookProject* project = pm.project();
+    const core::ProjectElement* group = groupId.isEmpty() ? nullptr : pm.findElement(groupId);
+    if (!project || (!groupId.isEmpty() && !group)) {
+        logger.warn("NavigatorCoordinator: No list to add to");
+        return;
+    }
+    const QList<core::ProjectElement>& list = group ? group->elements : project->elementsIn(place);
+
+    // Each kind with the title its new element starts with ("Chapter 3") and the element it
+    // goes before when it does not go last (a chapter goes before the epilogue)
     QList<dialogs::NewElementChoice> choices;
     int currentIndex = 0;
     for (const core::KindRef& kind : kinds) {
         if (kind.kind == current.kind) {
             currentIndex = static_cast<int>(choices.size());
         }
-        choices.append({kind, pm.defaultTitle(kind)});
+        const qsizetype index = pm.newIndexIn(list, kind);
+        choices.append({kind, pm.defaultTitle(kind),
+                        index < list.size() ? list.at(index).title : QString()});
     }
 
     dialogs::NewElementDialog dialog(dialogKind, choices, currentIndex, groupTitle,
                                      qobject_cast<QWidget*>(parent()));
+
+    // With the parts layer, the writer chooses where a prologue or an epilogue goes
+    const core::ProjectBook* book = pm.book();
+    if (place == core::BookPlace::Main && book && book->partsLayer) {
+        dialog.setBody(book->mainElements, pm.bookTypes(), groupId);
+    }
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     const QString title = dialog.title();
+    const core::KindRef kind = dialog.kind();
+
+    // The place the writer chose; without the parts layer a prologue opens the body of the
+    // book and an epilogue closes it; other kinds take their place in the list
+    QString targetGroupId = groupId;
+    qsizetype index = -1;
+    if (const std::optional<dialogs::NewElementPlace> chosen = dialog.place()) {
+        targetGroupId = chosen->groupId;
+        index = chosen->index;
+    } else if (place == core::BookPlace::Main && kind &&
+               kind.kind->position != core::KindPosition::Any) {
+        targetGroupId.clear();
+    }
 
     // ProjectManager makes the chapter file of a text element and saves the project at once
-    const QString elementId = pm.addElement(dialog.kind(), title, place, groupId);
+    const QString elementId = pm.addElement(kind, title, place, targetGroupId, index);
     if (elementId.isEmpty()) {
         logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
         QString failedTitle = tr("Add Item Failed");
@@ -585,7 +619,9 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
     logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
                 elementId.toStdString());
 
+    // The new element is shown, also inside a collapsed part
     refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
     if (dialogKind == dialogs::NewElementKind::Chapter) {
         m_statusBar->showMessage(tr("Chapter added: %1").arg(title), 2000);
     } else if (dialogKind == dialogs::NewElementKind::Part) {

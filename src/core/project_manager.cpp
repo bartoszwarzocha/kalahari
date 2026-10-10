@@ -11,9 +11,11 @@
 
 #include <QDateTime>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QTimeZone>
 #include <QUuid>
 
@@ -86,6 +88,117 @@ QDateTime now() {
     return QDateTime::fromSecsSinceEpoch(QDateTime::currentSecsSinceEpoch(), QTimeZone::utc());
 }
 
+/// Folder of the files of @p place, relative to the project: the book's or the Workshop's
+QString folderOf(BookPlace place, const ProjectBook* book) {
+    if (place == BookPlace::Workshop) {
+        return QString::fromLatin1(BookProject::WORKSHOP_FOLDER);
+    }
+    return book && !book->folder.isEmpty() ? book->folder
+                                           : QString::fromLatin1(BookProject::BOOK_FOLDER);
+}
+
+/// A chapter file that no element of @p project and no file of @p projectDir has, for a new
+/// element of kind @p kindId in @p folder: <folder>/<kind>_001.kchapter, _002...
+QString freeChapterFile(const BookProject& project, const QString& projectDir,
+                        const QString& folder, const QString& kindId) {
+    static const QRegularExpression notPlain(QStringLiteral("[^A-Za-z0-9_]"));
+    QString name = kindId.isEmpty() ? QStringLiteral("chapter") : kindId;
+    name.replace(notPlain, QStringLiteral("_"));
+
+    const QDir dir(projectDir);
+    for (int number = 1;; ++number) {
+        const QString file = QStringLiteral("%1/%2_%3.kchapter")
+                                 .arg(folder, name)
+                                 .arg(number, 3, 10, QLatin1Char('0'));
+        if (!project.hasFile(file) && !QFileInfo::exists(dir.filePath(file))) {
+            return file;
+        }
+    }
+}
+
+/// Log of the database of a project, which has the changes not yet written to project.db
+constexpr QLatin1String DATABASE_LOG("project.db-wal");
+
+/// Whether file @p path of a project, relative to its folder, serves only the project open
+/// in this place: its lock, the log files of its database and the database's backups
+bool isLocalFile(const QString& path) {
+    static const QStringList files{QStringLiteral(".kalahari.lock"), QString(DATABASE_LOG),
+                                   QStringLiteral("project.db-shm"),
+                                   QStringLiteral("project.db-journal")};
+    static const QStringList folders{QStringLiteral(".backups"), QStringLiteral(".kalahari")};
+    const QString first = path.section(QLatin1Char('/'), 0, 0);
+    return files.contains(path) || (path.contains(QLatin1Char('/')) && folders.contains(first));
+}
+
+/// Whether archive entry @p path served only the project where it was archived: its lock and
+/// the shared memory of its database, which archives of earlier versions have. The log of the
+/// database stays, as it may have changes that the database file does not have.
+bool isArchivedLocalFile(const QString& path) {
+    return path == QLatin1String(".kalahari.lock") || path == QLatin1String("project.db-shm");
+}
+
+/// Files of project folder @p projectDir that go to its archive, relative to it, with "/";
+/// without file @p skipped (the archive, when it is written to the project's folder)
+QStringList archivedFiles(const QString& projectDir, const QString& skipped) {
+    QStringList files;
+    const QDir dir(projectDir);
+    const QString skippedPath = dir.relativeFilePath(QFileInfo(skipped).absoluteFilePath());
+    QDirIterator it(projectDir, QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot,
+                    QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString path = dir.relativeFilePath(it.next());
+        if (!isLocalFile(path) && path != skippedPath) {
+            files.append(path);
+        }
+    }
+    files.sort();
+    return files;
+}
+
+/// Path inside the project's folder of archive entry @p name, with "/"; empty for an entry
+/// that would land outside the folder (an absolute path, a drive or "..")
+QString entryPath(const QString& name) {
+    QString path = name;
+    path.replace(QLatin1Char('\\'), QLatin1Char('/'));  // archives of earlier versions
+    if (path.startsWith(QLatin1Char('/')) || path.contains(QLatin1Char(':'))) {
+        return QString();
+    }
+    QStringList parts = path.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    parts.removeAll(QStringLiteral("."));
+    if (parts.contains(QStringLiteral(".."))) {
+        return QString();
+    }
+    return parts.join(QLatin1Char('/'));
+}
+
+/// A source of libzip for file @p path; libzip reads the file when the archive is closed
+zip_source_t* fileSource(const QString& path, zip_error_t* error) {
+#ifdef _WIN32
+    // Narrow file names are not Unicode on Windows
+    return zip_source_win32w_create(reinterpret_cast<const wchar_t*>(path.utf16()), 0, -1,
+                                    error);
+#else
+    return zip_source_file_create(QFile::encodeName(path).constData(), 0, -1, error);
+#endif
+}
+
+/// Archive @p path opened with libzip's @p flags; nullptr, with the reason in @p error, when
+/// it cannot be opened
+zip_t* openZip(const QString& path, int flags, QString* error) {
+    zip_error_t zipError;
+    zip_error_init(&zipError);
+    zip_source_t* source = fileSource(path, &zipError);
+    zip_t* archive = source ? zip_open_from_source(source, flags, &zipError) : nullptr;
+    if (!archive) {
+        if (source) {
+            zip_source_free(source);
+        }
+        *error = QString::fromUtf8(zip_error_strerror(&zipError));
+    }
+    zip_error_fini(&zipError);
+    return archive;
+}
+
 }  // namespace
 
 // =============================================================================
@@ -126,43 +239,51 @@ bool ProjectManager::createProject(const QString& parentDir,
                                    const QString& author,
                                    const QString& language,
                                    bool createSubfolder,
-                                   const QString& typeId) {
+                                   const QString& typeId,
+                                   QStringList* problems) {
     auto& logger = Logger::getInstance();
+    const auto fail = [&logger, problems](const QString& problem) {
+        logger.error("createProject: {}", problem.toStdString());
+        if (problems) {
+            problems->append(problem);
+        }
+        return false;
+    };
 
     const QString fileName = safeFileName(title);
     if (fileName.isEmpty()) {
-        logger.error("createProject: The book has no title");
-        return false;
+        return fail(QStringLiteral("the book has no title"));
     }
 
     // The type before anything is written
     const BookTypePackage* type = nullptr;
     if (!typeId.isEmpty()) {
         type = bookTypes().package(typeId);
-        if (!type || type->role != PackageRole::Type) {
-            logger.error("createProject: The book type {} is not installed", typeId.toStdString());
-            return false;
+        if (!type) {
+            return fail(QStringLiteral("the book type %1 is not installed").arg(typeId));
+        }
+        if (type->role != PackageRole::Type) {
+            return fail(QStringLiteral("%1 is not a book type").arg(typeId));
         }
     }
 
-    // Close any existing project first
-    if (isProjectOpen() && !closeProject(true)) {
-        logger.warn("createProject: Failed to close existing project");
-        return false;
-    }
-
-    // The project's folder must be new or empty
+    // The project's folder must be new or empty; the open project stays open when it is not
     const QString projectDir =
         QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
     const bool folderExisted = QFileInfo(projectDir).exists();
     if (folderExisted && (!QFileInfo(projectDir).isDir() || !QDir(projectDir).isEmpty())) {
-        logger.error("createProject: {} exists and is not an empty folder",
-                     projectDir.toStdString());
-        return false;
+        return fail(QStringLiteral("%1: the folder exists and is not empty")
+                        .arg(QDir::toNativeSeparators(projectDir)));
     }
+
+    // Close any existing project first
+    if (isProjectOpen() && !closeProject(true)) {
+        return fail(QStringLiteral("the open project cannot be closed"));
+    }
+
     if (!QDir().mkpath(projectDir)) {
-        logger.error("createProject: Cannot make the folder {}", projectDir.toStdString());
-        return false;
+        return fail(QStringLiteral("%1: the folder cannot be made")
+                        .arg(QDir::toNativeSeparators(projectDir)));
     }
 
     BookProject project;
@@ -201,16 +322,53 @@ bool ProjectManager::createProject(const QString& parentDir,
         }
     };
 
-    if (!project.save(manifestPath)) {
-        undo();
-        return false;
+    // The elements a book of the type starts with, each with the text of its kind's template.
+    // Kinds that open in a window of their own wait until the program has the window.
+    if (type) {
+        QHash<const ElementKind*, int> numbers;
+        for (const StartElement& start : bookTypes().startElements(type->id)) {
+            if (!start.kind || start.kind.kind->form != ElementForm::Text) {
+                logger.debug("createProject: The book does not start with {}, which the "
+                             "program cannot open yet",
+                             start.kind.reference().toStdString());
+                continue;
+            }
+            const ProjectBook& first = project.books.first();
+            ProjectElement element;
+            element.id = project.newElementId();
+            element.kind = KindReference{start.kind.package->id, start.kind.kind->id};
+            element.title = start.kind.kind->defaultTitle(language, ++numbers[start.kind.kind]);
+            element.file = freeChapterFile(project, projectDir, folderOf(start.place, &first),
+                                           start.kind.kind->id);
+            element.status = QStringLiteral("draft");
+
+            ChapterDocument chapter;
+            chapter.setKml(startingText(start.kind, first));
+            chapter.setTitle(element.title);
+            chapter.setStatus(element.status);
+            const QString path = QDir(projectDir).filePath(element.file);
+            if (!QDir().mkpath(QFileInfo(path).absolutePath()) || !chapter.save(path)) {
+                undo();
+                return fail(QStringLiteral("%1: the file cannot be written")
+                                .arg(QDir::toNativeSeparators(path)));
+            }
+            project.elementsIn(start.place).append(element);
+        }
     }
 
-    QStringList problems;
-    if (!openProject(manifestPath, &problems)) {
-        logger.error("createProject: The new project cannot be opened");
+    if (!project.save(manifestPath)) {
         undo();
-        return false;
+        return fail(QStringLiteral("%1: the file cannot be written")
+                        .arg(QDir::toNativeSeparators(manifestPath)));
+    }
+
+    QStringList found;
+    if (!openProject(manifestPath, &found)) {
+        undo();
+        if (problems) {
+            problems->append(found);
+        }
+        return fail(QStringLiteral("the new project cannot be opened"));
     }
 
     logger.info("Project created successfully: {}", manifestPath.toStdString());
@@ -529,7 +687,7 @@ const ProjectElement* ProjectManager::findElement(const QString& elementId) cons
 }
 
 QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
-                                   const QString& groupId) {
+                                   const QString& groupId, qsizetype index) {
     auto& logger = Logger::getInstance();
     QList<ProjectElement>* list = listForNew(kind, place, groupId);
     if (!list) {
@@ -541,6 +699,11 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
                      kind.reference().toStdString());
         return QString();
     }
+    if (index > list->size()) {
+        logger.error("addElement: The list has no place {}", index);
+        return QString();
+    }
+    const qsizetype at = index < 0 ? newIndexIn(*list, kind) : index;
 
     ProjectElement element;
     element.id = m_project->newElementId();
@@ -549,15 +712,15 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     if (kind.kind->form == ElementForm::Text) {
         element.file = newChapterFile(kind, place);
         element.status = QStringLiteral("draft");
-        if (!writeChapterFile(element, QString())) {
+        if (!writeChapterFile(element, book() ? startingText(kind, *book()) : QString())) {
             m_elementStates.remove(element.id);
             return QString();
         }
     }
 
-    list->append(element);
+    list->insert(at, element);
     if (!saveManifest()) {
-        list->removeLast();
+        list->removeAt(at);
         if (!element.file.isEmpty()) {
             QFile::remove(filePathOf(element));
         }
@@ -568,6 +731,26 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     logger.info("addElement: Added '{}' ({}, id: {})", title.toStdString(),
                 kind.reference().toStdString(), element.id.toStdString());
     return element.id;
+}
+
+qsizetype ProjectManager::newIndexIn(const QList<ProjectElement>& elements,
+                                     const KindRef& kind) const {
+    const KindPosition position = kind ? kind.kind->position : KindPosition::Any;
+    if (position == KindPosition::Start) {
+        return 0;
+    }
+    if (position == KindPosition::End) {
+        return elements.size();
+    }
+    qsizetype index = elements.size();
+    while (index > 0) {
+        const KindRef previous = kindOf(elements.at(index - 1));
+        if (!previous || previous.kind->position != KindPosition::End) {
+            break;
+        }
+        --index;
+    }
+    return index;
 }
 
 QString ProjectManager::addFile(const QString& sourcePath, bool copy, const KindRef& kind,
@@ -619,9 +802,10 @@ QString ProjectManager::addFile(const QString& sourcePath, bool copy, const Kind
     }
 
     if (written) {
-        list->append(element);
+        const qsizetype at = newIndexIn(*list, kind);
+        list->insert(at, element);
         if (!saveManifest()) {
-            list->removeLast();
+            list->removeAt(at);
             written = false;
         }
     }
@@ -992,25 +1176,26 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
 }
 
 QString ProjectManager::newChapterFile(const KindRef& kind, BookPlace place) const {
-    QString folder = QString::fromLatin1(BookProject::WORKSHOP_FOLDER);
-    if (place != BookPlace::Workshop) {
-        folder = book() && !book()->folder.isEmpty() ? book()->folder
-                                                     : QString::fromLatin1(BookProject::BOOK_FOLDER);
-    }
-    static const QRegularExpression notPlain(QStringLiteral("[^A-Za-z0-9_]"));
-    QString name = kind ? kind.kind->id : QStringLiteral("chapter");
-    name.replace(notPlain, QStringLiteral("_"));
+    return freeChapterFile(*m_project, getProjectPath(), folderOf(place, book()),
+                           kind ? kind.kind->id : QString());
+}
 
-    // The first name no element and no file has: chapter_001, chapter_002, ...
-    const QDir projectDir(getProjectPath());
-    for (int number = 1;; ++number) {
-        const QString file = QStringLiteral("%1/%2_%3.kchapter")
-                                 .arg(folder, name)
-                                 .arg(number, 3, 10, QLatin1Char('0'));
-        if (!m_project->hasFile(file) && !QFileInfo::exists(projectDir.filePath(file))) {
-            return file;
-        }
+QString ProjectManager::startingText(const KindRef& kind, const ProjectBook& book) {
+    if (!kind || kind.kind->templateFile.isEmpty()) {
+        return QString();
     }
+    const QString path = QDir(kind.package->directory).filePath(kind.kind->templateFile);
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(path);
+    if (!chapter) {
+        Logger::getInstance().warn("The template {} cannot be read, so the element starts "
+                                   "empty",
+                                   path.toStdString());
+        return QString();
+    }
+    QString kml = chapter->kml();
+    kml.replace(QStringLiteral("{title}"), book.title.toHtmlEscaped());
+    kml.replace(QStringLiteral("{author}"), book.author.toHtmlEscaped());
+    return kml;
 }
 
 QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace place,
@@ -1047,179 +1232,207 @@ QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace
     return list;
 }
 
-void ProjectManager::collectFilesForArchive(const std::filesystem::path& dir,
-                                           std::vector<std::filesystem::path>& files,
-                                           const std::string& excludeFolder) {
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
-        // Skip excluded folder
-        std::string pathStr = entry.path().string();
-        if (pathStr.find("/" + excludeFolder + "/") != std::string::npos ||
-            pathStr.find("\\" + excludeFolder + "\\") != std::string::npos ||
-            entry.path().filename() == excludeFolder) {
-            continue;
-        }
-
-        if (entry.is_regular_file()) {
-            files.push_back(entry.path());
-        }
-    }
-}
-
 bool ProjectManager::exportArchive(const QString& outputPath,
-                                   std::function<void(int)> progressCallback) {
+                                   std::function<void(int)> progressCallback,
+                                   QStringList* problems) {
     auto& logger = Logger::getInstance();
+    const auto fail = [&logger, problems](const QString& problem) {
+        logger.error("exportArchive: {}", problem.toStdString());
+        if (problems) {
+            problems->append(problem);
+        }
+        return false;
+    };
 
     if (!isProjectOpen()) {
-        logger.error("exportArchive: No project open");
-        return false;
+        return fail(QStringLiteral("no project is open"));
     }
-
     logger.info("Exporting project to: {}", outputPath.toStdString());
 
-    // Collect files to archive (excluding .kalahari folder)
-    std::vector<std::filesystem::path> files;
-    collectFilesForArchive(m_projectPath, files, ".kalahari");
-
-    if (files.empty()) {
-        logger.error("exportArchive: No files to archive");
-        return false;
+    // The database file alone has everything, so its log files stay out of the archive; a log
+    // that cannot be written to it goes with it
+    const QString projectDir = getProjectPath();
+    QStringList files = archivedFiles(projectDir, outputPath);
+    if (m_database && m_database->isOpen() && !m_database->checkpoint()) {
+        logger.warn("exportArchive: The database log cannot be written to project.db, so the "
+                    "archive has the log");
+        if (QFileInfo::exists(QDir(projectDir).filePath(DATABASE_LOG))) {
+            files.append(DATABASE_LOG);
+        }
+    }
+    if (files.isEmpty()) {
+        return fail(QStringLiteral("the project folder has no files"));
     }
 
-    // Create ZIP archive
-    int zipError = 0;
-    zip_t* archive = zip_open(outputPath.toStdString().c_str(),
-                              ZIP_CREATE | ZIP_TRUNCATE, &zipError);
+    QString error;
+    zip_t* archive = openZip(outputPath, ZIP_CREATE | ZIP_TRUNCATE, &error);
     if (!archive) {
-        logger.error("exportArchive: Failed to create ZIP file: error {}", zipError);
-        return false;
+        return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), error));
     }
 
-    // Add each file to archive
-    for (size_t i = 0; i < files.size(); ++i) {
-        std::filesystem::path relativePath = files[i].lexically_relative(m_projectPath);
-
-        // Create zip source from file
-        zip_source_t* source = zip_source_file(archive, files[i].string().c_str(), 0, -1);
-        if (!source) {
-            logger.warn("exportArchive: Failed to create source for: {}", files[i].string());
-            continue;
+    const QDir dir(projectDir);
+    for (qsizetype i = 0; i < files.size(); ++i) {
+        // Entries are named with "/" in UTF-8, so the archive opens on every system
+        const QString& name = files.at(i);
+        zip_error_t sourceError;
+        zip_error_init(&sourceError);
+        zip_source_t* source = fileSource(dir.filePath(name), &sourceError);
+        if (!source || zip_file_add(archive, name.toUtf8().constData(), source,
+                                    ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) < 0) {
+            const QString reason = source ? QString::fromUtf8(zip_strerror(archive))
+                                          : QString::fromUtf8(zip_error_strerror(&sourceError));
+            zip_error_fini(&sourceError);
+            if (source) {
+                zip_source_free(source);
+            }
+            zip_discard(archive);
+            QFile::remove(outputPath);
+            return fail(QStringLiteral("%1: %2").arg(name, reason));
         }
-
-        // Add file to archive with UTF-8 encoding for path
-        if (zip_file_add(archive, relativePath.string().c_str(), source, ZIP_FL_ENC_UTF_8) < 0) {
-            logger.warn("exportArchive: Failed to add file: {}", relativePath.string());
-            zip_source_free(source);
-            continue;
-        }
-
-        // Report progress
+        zip_error_fini(&sourceError);
         if (progressCallback) {
             progressCallback(static_cast<int>((i + 1) * 100 / files.size()));
         }
     }
 
-    // Close archive
+    // The files are read and packed here
     if (zip_close(archive) < 0) {
-        logger.error("exportArchive: Failed to close ZIP file");
-        return false;
+        const QString reason = QString::fromUtf8(zip_strerror(archive));
+        zip_discard(archive);
+        QFile::remove(outputPath);
+        return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), reason));
     }
 
-    logger.info("exportArchive: Successfully exported {} files", files.size());
+    logger.info("exportArchive: Exported {} files", files.size());
     return true;
 }
 
 bool ProjectManager::importArchive(const QString& archivePath,
                                    const QString& targetDir,
-                                   std::function<void(int)> progressCallback) {
+                                   std::function<void(int)> progressCallback,
+                                   QStringList* problems) {
     auto& logger = Logger::getInstance();
+    const auto fail = [&logger, problems](const QString& problem) {
+        logger.error("importArchive: {}", problem.toStdString());
+        if (problems) {
+            problems->append(problem);
+        }
+        return false;
+    };
 
     logger.info("Importing archive: {} to {}", archivePath.toStdString(), targetDir.toStdString());
 
-    // Open ZIP archive
-    int zipError = 0;
-    zip_t* archive = zip_open(archivePath.toStdString().c_str(), ZIP_RDONLY, &zipError);
+    // The project goes to a new folder named after the archive
+    const QString extractDir = QDir(targetDir).filePath(archiveProjectName(archivePath));
+    if (QFileInfo::exists(extractDir)) {
+        return fail(QStringLiteral("%1: the folder already exists")
+                        .arg(QDir::toNativeSeparators(extractDir)));
+    }
+
+    QString error;
+    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &error);
     if (!archive) {
-        logger.error("importArchive: Failed to open ZIP file: error {}", zipError);
-        return false;
+        return fail(QStringLiteral("%1: %2").arg(QFileInfo(archivePath).fileName(), error));
     }
-
-    // Determine project name from archive name
-    QFileInfo archiveInfo(archivePath);
-    QString projectName = archiveInfo.completeBaseName();
-    if (projectName.endsWith(".klh", Qt::CaseInsensitive)) {
-        projectName.chop(4);
-    }
-
-    QString extractDir = targetDir + "/" + projectName;
-
-    // Check for name conflicts
-    if (QDir(extractDir).exists()) {
-        logger.error("importArchive: Target directory already exists: {}", extractDir.toStdString());
+    if (!QDir().mkpath(extractDir)) {
         zip_close(archive);
-        return false;
+        return fail(QStringLiteral("%1: the folder cannot be made")
+                        .arg(QDir::toNativeSeparators(extractDir)));
     }
 
-    // Create extract directory
-    QDir().mkpath(extractDir);
+    // Nothing of a failed import stays behind
+    const auto undo = [&extractDir]() { QDir(extractDir).removeRecursively(); };
 
-    // Extract all entries
-    zip_int64_t numEntries = zip_get_num_entries(archive, 0);
-    for (zip_int64_t i = 0; i < numEntries; ++i) {
-        const char* name = zip_get_name(archive, i, ZIP_FL_ENC_UTF_8);
-        if (!name) continue;
-
-        QString entryPath = extractDir + "/" + QString::fromUtf8(name);
-
-        // Check if it's a directory (ends with /)
-        if (QString::fromUtf8(name).endsWith('/')) {
-            QDir().mkpath(entryPath);
-            continue;
-        }
-
-        // Ensure parent directory exists
-        QFileInfo fileInfo(entryPath);
-        QDir().mkpath(fileInfo.absolutePath());
-
-        // Open file in archive
-        zip_file_t* zf = zip_fopen_index(archive, i, 0);
-        if (!zf) {
-            logger.warn("importArchive: Failed to open entry: {}", name);
-            continue;
-        }
-
-        // Read and write file
-        QFile outFile(entryPath);
-        if (outFile.open(QIODevice::WriteOnly)) {
-            char buffer[8192];
-            zip_int64_t bytesRead;
-            while ((bytesRead = zip_fread(zf, buffer, sizeof(buffer))) > 0) {
-                outFile.write(buffer, bytesRead);
+    const QDir dir(extractDir);
+    const zip_int64_t count = zip_get_num_entries(archive, 0);
+    for (zip_int64_t i = 0; i < count; ++i) {
+        const char* rawName = zip_get_name(archive, static_cast<zip_uint64_t>(i), 0);
+        const QString name = rawName ? QString::fromUtf8(rawName) : QString();
+        const QString path = entryPath(name);
+        if (path.isEmpty()) {
+            if (!name.isEmpty() && !name.endsWith(QLatin1Char('/'))) {
+                logger.warn("importArchive: Skipped {}, which is outside the project",
+                            name.toStdString());
             }
-            outFile.close();
-        } else {
-            logger.warn("importArchive: Failed to create file: {}", entryPath.toStdString());
+            continue;
+        }
+        if (name.endsWith(QLatin1Char('/')) || name.endsWith(QLatin1Char('\\'))) {
+            dir.mkpath(path);
+            continue;
+        }
+        if (isArchivedLocalFile(path)) {
+            logger.debug("importArchive: Skipped {}, which served the project where it was "
+                         "archived",
+                         path.toStdString());
+            continue;
         }
 
-        zip_fclose(zf);
+        const QString filePath = dir.filePath(path);
+        QString reason;
+        zip_file_t* entry = zip_fopen_index(archive, static_cast<zip_uint64_t>(i), 0);
+        if (!entry) {
+            reason = QString::fromUtf8(zip_strerror(archive));
+        } else {
+            QSaveFile file(filePath);
+            if (!QDir().mkpath(QFileInfo(filePath).absolutePath()) ||
+                !file.open(QIODevice::WriteOnly)) {
+                reason = file.errorString();
+            } else {
+                char buffer[8192];
+                zip_int64_t read = 0;
+                while ((read = zip_fread(entry, buffer, sizeof(buffer))) > 0) {
+                    if (file.write(buffer, read) != read) {
+                        break;
+                    }
+                }
+                if (read < 0) {
+                    reason = QString::fromUtf8(zip_file_strerror(entry));
+                } else if (read > 0 || !file.commit()) {
+                    reason = file.errorString();
+                }
+            }
+            zip_fclose(entry);
+        }
+        if (!reason.isNull()) {
+            zip_close(archive);
+            undo();
+            return fail(QStringLiteral("%1: %2").arg(path, reason));
+        }
 
-        // Report progress
         if (progressCallback) {
-            progressCallback(static_cast<int>((i + 1) * 100 / numEntries));
+            progressCallback(static_cast<int>((i + 1) * 100 / count));
         }
     }
-
     zip_close(archive);
 
-    // Find and open the .klh manifest
-    QDir projectDir(extractDir);
-    QStringList klhFiles = projectDir.entryList({"*.klh"}, QDir::Files);
-    if (klhFiles.isEmpty()) {
-        logger.error("importArchive: No .klh manifest found in archive");
-        return false;
+    // The manifest is at the top of the project
+    const QStringList manifests = dir.entryList({QStringLiteral("*.klh")}, QDir::Files);
+    if (manifests.isEmpty()) {
+        undo();
+        return fail(QStringLiteral("%1: the archive has no .klh file")
+                        .arg(QFileInfo(archivePath).fileName()));
     }
 
-    logger.info("importArchive: Opening extracted project: {}", klhFiles.first().toStdString());
-    return openProject(extractDir + "/" + klhFiles.first());
+    logger.info("importArchive: Opening extracted project: {}", manifests.first().toStdString());
+    QStringList found;
+    if (!openProject(dir.filePath(manifests.first()), &found)) {
+        undo();
+        if (problems) {
+            problems->append(found);
+        }
+        return false;
+    }
+    return true;
+}
+
+QString ProjectManager::archiveProjectName(const QString& archivePath) {
+    QString name = QFileInfo(archivePath).fileName();
+    for (const QLatin1String suffix : {QLatin1String(".zip"), QLatin1String(".klh")}) {
+        if (name.endsWith(suffix, Qt::CaseInsensitive)) {
+            name.chop(suffix.size());
+        }
+    }
+    return name.isEmpty() ? QStringLiteral("project") : name;
 }
 
 } // namespace core

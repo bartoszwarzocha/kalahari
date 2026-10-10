@@ -12,6 +12,7 @@
   "kinds": {
     "title_page": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "template": "templates/title_page.kchapter",
       "name": { "pl": "Strona tytułowa", "en": "Title page" },
       "plural": { "pl": "Strony tytułowe", "en": "Title pages" }
     },

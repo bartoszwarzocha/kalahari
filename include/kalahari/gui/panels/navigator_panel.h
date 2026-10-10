@@ -114,6 +114,11 @@ public:
     /// @param ids Item IDs as returned by expandedItemIds()
     void setExpandedItemIds(const QStringList& ids);
 
+    /// @brief Show an element: expand the items above it, make it the current item and
+    /// scroll to it
+    /// @param elementId Element ID; nothing happens when the tree has no such element
+    void revealElement(const QString& elementId);
+
     /// @brief Refresh a single item's display text by element ID
     /// @param elementId Element ID of the item to refresh
     /// @note Updates the display title (including status suffix) from ProjectManager

@@ -9,14 +9,17 @@
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
 
+#include <QAction>
 #include <QApplication>
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
 #include <QFileInfo>
 #include <QLineEdit>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
@@ -99,6 +102,22 @@ Answer acceptKind(int index) {
     };
 }
 
+/// @brief Choose the kind at @p index of the dialog's list and the place whose option is
+/// @p option, and accept the title the kind gets
+Answer acceptPlace(int index, const QString& option) {
+    return [index, option](QDialog& dialog) {
+        if (auto* kinds = dialog.findChild<QComboBox*>()) {
+            kinds->setCurrentIndex(index);
+        }
+        for (QRadioButton* button : dialog.findChildren<QRadioButton*>()) {
+            if (button->text() == option) {
+                button->click();
+            }
+        }
+        dialog.accept();
+    };
+}
+
 /// @brief Answer a question with @p button
 Answer click(QMessageBox::StandardButton button) {
     return [button](QDialog& dialog) {
@@ -112,6 +131,8 @@ Answer click(QMessageBox::StandardButton button) {
 }
 
 /// @brief A new novel, open in ProjectManager until the test ends
+///
+/// The commands start from an empty book: the elements a novel starts with are taken out.
 struct OpenNovel {
     QTemporaryDir dir;
     core::ProjectManager& pm = core::ProjectManager::getInstance();
@@ -121,6 +142,12 @@ struct OpenNovel {
         REQUIRE(pm.createProject(dir.path(), QStringLiteral("Navigator Test"),
                                  QStringLiteral("Author"), QStringLiteral("en"), false,
                                  QStringLiteral("kalahari.novel")));
+        for (const QList<core::ProjectElement>* list :
+             {&book().frontElements, &book().mainElements}) {
+            while (!list->isEmpty()) {
+                REQUIRE(pm.removeElement(list->first().id).has_value());
+            }
+        }
     }
     ~OpenNovel() { pm.closeProject(false); }
     OpenNovel(const OpenNovel&) = delete;
@@ -167,6 +194,14 @@ struct Navigator {
         return nullptr;
     }
 
+    /// The element of the current item of the tree; empty: none or not an element
+    QString current() const {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        return tree->currentItem() ? tree->currentItem()->data(0, Qt::UserRole).toString()
+                                   : QString();
+    }
+
     /// The texts of the items under the item of element @p id
     std::string itemsIn(const QString& id) const {
         const QTreeWidgetItem* parent = item(id);
@@ -176,6 +211,39 @@ struct Navigator {
             texts << parent->child(i)->text(0);
         }
         return texts.join(QStringLiteral(", ")).toStdString();
+    }
+
+    /// Choose the action @p text of the menu of the item of element @p id
+    /// @return Whether the menu had the action, enabled
+    bool chooseInMenu(const QString& id, const QString& text) {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        QTreeWidgetItem* found = item(id);
+        REQUIRE(found != nullptr);
+        tree->scrollToItem(found);
+        bool chosen = false;
+        bool shown = false;
+        QTimer timer;
+        timer.setInterval(10);
+        QObject::connect(&timer, &QTimer::timeout, [&timer, &chosen, &shown, &text]() {
+            auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+            if (!menu) {
+                return;
+            }
+            timer.stop();
+            shown = true;
+            for (QAction* action : menu->actions()) {
+                if (action->text() == text && action->isEnabled()) {
+                    chosen = true;
+                    action->trigger();
+                }
+            }
+            menu->close();
+        });
+        timer.start();
+        emit tree->customContextMenuRequested(tree->visualItemRect(found).center());
+        REQUIRE(shown);
+        return chosen;
     }
 
     /// The texts of the items in section @p type ("section_body")
@@ -241,13 +309,14 @@ TEST_CASE("Navigator commands: parts, chapters and items of the kinds chosen, sa
     CHECK(chapter.kind.toString() == QStringLiteral("kalahari.base:chapter"));
     CHECK(QFileInfo::exists(pm.filePathOf(chapter)));
 
-    // A prologue in the body itself, chosen from the kinds of the body; its title follows it
+    // A prologue in the body itself, chosen from the kinds of the body; its title follows it,
+    // and it opens the body
     const int prologue = indexOf(pm.textKindsFor(core::BookPlace::Main), QStringLiteral("prologue"));
     REQUIRE(prologue >= 0);
     CHECK(answering([&] { navigator.coordinator.onRequestAddChapter(QString()); },
                     {acceptKind(prologue)}) == 1);
-    CHECK(titles(novel.book().mainElements) == "Part I, Prologue");
-    CHECK(novel.book().mainElements.last().kind.toString() ==
+    CHECK(titles(novel.book().mainElements) == "Prologue, Part I");
+    CHECK(novel.book().mainElements.first().kind.toString() ==
           QStringLiteral("kalahari.novel:prologue"));
 
     // An item of the front matter, with a title of its own
@@ -257,14 +326,14 @@ TEST_CASE("Navigator commands: parts, chapters and items of the kinds chosen, sa
 
     // A dialog closed without adding adds nothing
     CHECK(answering([&] { navigator.coordinator.onRequestAddPart(); }) == 1);
-    CHECK(titles(novel.book().mainElements) == "Part I, Prologue");
+    CHECK(titles(novel.book().mainElements) == "Prologue, Part I");
 
     // The project is saved at once, and the navigator shows it
-    CHECK(titles(novel.savedBook().mainElements) == "Part I, Prologue");
-    CHECK(titles(novel.savedBook().mainElements.first().elements) == "Chapter 1");
+    CHECK(titles(novel.savedBook().mainElements) == "Prologue, Part I");
+    CHECK(titles(novel.savedBook().mainElements.last().elements) == "Chapter 1");
     CHECK(titles(novel.savedBook().frontElements) == "For Anna");
     CHECK(navigator.itemsInSection(QStringLiteral("section_body")) ==
-          "Part I, Prologue [Draft]");
+          "Prologue [Draft], Part I");
     CHECK(navigator.itemsIn(part.id) == "Chapter 1 [Draft]");
     CHECK(navigator.itemsInSection(QStringLiteral("section_frontmatter")) == "For Anna [Draft]");
 }
@@ -311,6 +380,7 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
         CHECK(titles(novel.savedBook().mainElements) == "Chapter 2, Part I");
         CHECK(navigator.itemsInSection(QStringLiteral("section_body")) ==
               "Chapter 2 [Draft], Part I");
+        CHECK(navigator.current() == bodyChapterId);
 
         // Beyond the end of the list nothing moves
         navigator.coordinator.onRequestMove(bodyChapterId, -1);
@@ -345,4 +415,95 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
         CHECK(QFileInfo::exists(
             QDir(novel.dir.path()).filePath(chapter.file)));
     }
+}
+
+TEST_CASE("Navigator commands: the prologue and the epilogue go where the writer chooses",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    const auto addChapter = [&navigator](const QString& groupId) {
+        return [&navigator, groupId] { navigator.coordinator.onRequestAddChapter(groupId); };
+    };
+
+    // Two parts, with a chapter each
+    answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs});
+    answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs});
+    REQUIRE(novel.book().mainElements.size() == 2);
+    const QString partOne = novel.book().mainElements.at(0).id;
+    const QString partTwo = novel.book().mainElements.at(1).id;
+    CHECK(navigator.current() == partTwo);
+    answering(addChapter(partOne), {acceptAsItIs});
+    answering(addChapter(partTwo), {acceptAsItIs});
+    CHECK(titles(novel.book().mainElements.at(1).elements) == "Chapter 2");
+
+    // The navigator shows the new element, also in a part that was collapsed
+    REQUIRE(navigator.item(partTwo) != nullptr);
+    CHECK(navigator.item(partTwo)->isExpanded());
+    CHECK(navigator.current() == novel.book().mainElements.at(1).elements.first().id);
+
+    // The prologue first in the first part
+    const int prologue = indexOf(pm.textKindsFor(core::BookPlace::Main), QStringLiteral("prologue"));
+    REQUIRE(prologue >= 0);
+    CHECK(answering(addChapter(QString()),
+                    {acceptPlace(prologue, QStringLiteral("First in \"Part I\""))}) == 1);
+    CHECK(titles(novel.book().mainElements) == "Part I, Part II");
+    CHECK(titles(novel.book().mainElements.at(0).elements) == "Prologue, Chapter 1");
+    CHECK(titles(novel.savedBook().mainElements.at(0).elements) == "Prologue, Chapter 1");
+    CHECK(navigator.itemsIn(partOne) == "Prologue [Draft], Chapter 1 [Draft]");
+
+    // The epilogue, from the menu of the second part, closes that part
+    const int epilogue =
+        indexOf(pm.textKindsFor(core::BookPlace::Main, partTwo), QStringLiteral("epilogue"));
+    REQUIRE(epilogue >= 0);
+    CHECK(answering(addChapter(partTwo), {acceptKind(epilogue)}) == 1);
+    CHECK(titles(novel.book().mainElements.at(1).elements) == "Chapter 2, Epilogue");
+
+    // A new chapter of that part goes before the epilogue
+    CHECK(answering(addChapter(partTwo), {acceptAsItIs}) == 1);
+    CHECK(titles(novel.book().mainElements.at(1).elements) == "Chapter 2, Chapter 3, Epilogue");
+
+    // Moved to the end of the body
+    const QString epilogueId = novel.book().mainElements.at(1).elements.last().id;
+    REQUIRE(pm.removeElement(epilogueId).has_value());
+    CHECK(answering(addChapter(partTwo),
+                    {acceptPlace(epilogue, QStringLiteral("At the end of the body of the book"))}) ==
+          1);
+    CHECK(titles(novel.book().mainElements) == "Part I, Part II, Epilogue");
+}
+
+TEST_CASE("Navigator menu: moving an element to the start and to the end of its list",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::elementMoved, &navigator.coordinator,
+                     &gui::NavigatorCoordinator::onElementMoved);
+    navigator.panel->resize(400, 600);
+    navigator.window.resize(400, 600);
+    navigator.window.show();
+
+    for (int i = 0; i < 3; ++i) {
+        answering([&] { navigator.coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
+    }
+    const QList<core::ProjectElement>& body = novel.book().mainElements;
+    REQUIRE(titles(body) == "Chapter 1, Chapter 2, Chapter 3");
+    const QString first = body.at(0).id;
+    const QString last = body.at(2).id;
+
+    // The first element cannot go to the start, the last one cannot go to the end
+    CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move to Start")));
+    CHECK_FALSE(navigator.chooseInMenu(last, QStringLiteral("Move to End")));
+
+    // The moved element stays the current one
+    CHECK(navigator.chooseInMenu(last, QStringLiteral("Move to Start")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 3, Chapter 1, Chapter 2");
+    CHECK(navigator.current() == last);
+    CHECK(navigator.chooseInMenu(last, QStringLiteral("Move to End")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 1, Chapter 2, Chapter 3");
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move to End")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 2, Chapter 3, Chapter 1");
+    CHECK(navigator.current() == first);
+    CHECK(titles(novel.savedBook().mainElements) == "Chapter 2, Chapter 3, Chapter 1");
+    CHECK(navigator.itemsInSection(QStringLiteral("section_body")) ==
+          "Chapter 2 [Draft], Chapter 3 [Draft], Chapter 1 [Draft]");
 }

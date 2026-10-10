@@ -102,17 +102,22 @@ public:
     /// @param createSubfolder Make the project's folder, named after the title, in parentDir
     /// @param typeId Package of the book type, e.g. "kalahari.novel"; empty: a user project
     ///        with the kinds of the base package
-    /// @return false when the folder exists, the type is not installed or a file cannot be
-    ///         written
+    /// @param problems Gets what is wrong when the project cannot be created, one line each
+    /// @return false when the folder exists and is not empty, the type is not installed or a
+    ///         file cannot be written; the open project stays open when the folder is wrong
     ///
-    /// The project starts as the folder and its .klh file; the folders of the files are made
-    /// when they are needed.
+    /// A book of a type starts with the elements the type names, titled in the language of
+    /// the book: a novel with a title page and Chapter 1, a screenplay with a title page and
+    /// Act I. A kind's template gives a new element its text, with the book's title and author
+    /// in place of "{title}" and "{author}". A user project starts empty. The folders of the
+    /// other files are made when they are needed.
     bool createProject(const QString& parentDir,
                        const QString& title,
                        const QString& author,
                        const QString& language,
                        bool createSubfolder = true,
-                       const QString& typeId = QString());
+                       const QString& typeId = QString(),
+                       QStringList* problems = nullptr);
 
     /// @brief Open an existing project from its .klh file
     /// @param manifestPath Path to the .klh file
@@ -227,20 +232,31 @@ public:
     ProjectElement* findElement(const QString& elementId);
     const ProjectElement* findElement(const QString& elementId) const;
 
-    /// @brief Add a new element of @p kind with @p title at the end of @p place of the book,
-    /// or of group @p groupId
+    /// @brief Add a new element of @p kind with @p title to @p place of the book, or to group
+    /// @p groupId
     ///
-    /// A text element gets an empty chapter file of its own in the book's folder and the
-    /// status "draft". Saves the .klh file.
+    /// A text element gets a chapter file of its own in the book's folder, with the text of
+    /// its kind's template, and the status "draft". Saves the .klh file.
+    /// @param index Place of the element in its list; -1: the place of its kind, newIndexIn()
     /// @return The new element's id; empty when the kind cannot be there or is a window kind,
-    ///         the project has no group @p groupId, or a file cannot be written
+    ///         the project has no group @p groupId, @p index is beyond the list, or a file
+    ///         cannot be written
     QString addElement(const KindRef& kind, const QString& title, BookPlace place,
-                       const QString& groupId = QString());
+                       const QString& groupId = QString(), qsizetype index = -1);
+
+    /// @brief Place in @p elements that a new element of @p kind takes when the writer does not
+    /// choose it
+    ///
+    /// A kind of the start (a prologue) goes first, a kind of the end (an epilogue) last, and
+    /// any other kind last before the elements of the kinds of the end: a new chapter goes
+    /// before the epilogue.
+    qsizetype newIndexIn(const QList<ProjectElement>& elements, const KindRef& kind) const;
 
     /// @brief Add a chapter or text file as a new text element of @p kind
     ///
     /// The file goes to the book's folder, named after its kind and a number; a text file
-    /// (.txt) becomes a chapter, its lines the paragraphs. Saves the .klh file.
+    /// (.txt) becomes a chapter, its lines the paragraphs. The element takes the place of its
+    /// kind in its list, newIndexIn(). Saves the .klh file.
     /// @param sourcePath The chapter (.kchapter) or text file
     /// @param copy true to copy the file, false to move it
     /// @return The new element's id; empty when it cannot be added
@@ -318,27 +334,39 @@ public:
     // Archive Operations
     // =========================================================================
 
-    /// @brief Export project to .klh.zip archive
-    /// @param outputPath Path to output .klh.zip file
-    /// @param progressCallback Optional callback for progress (0-100)
-    /// @return true if export succeeded, false otherwise
+    /// @brief Write the open project to a .klh.zip archive
     ///
-    /// Creates ZIP archive containing entire project folder structure.
-    /// Excludes .kalahari/ cache folder (backup, cache, recovery).
+    /// The archive has the files of the project's folder, with "/" in their names, so that it
+    /// opens on every system. The database is brought up to date first, so its log files stay
+    /// out (a log that cannot be written to the database goes with it), and so do the lock of
+    /// the open project and the backups of its database: they serve the project only here.
+    /// @param outputPath Path of the .klh.zip file
+    /// @param progressCallback Optional callback for progress (0-100)
+    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @return true if the archive was written
     bool exportArchive(const QString& outputPath,
-                       std::function<void(int)> progressCallback = nullptr);
+                       std::function<void(int)> progressCallback = nullptr,
+                       QStringList* problems = nullptr);
 
-    /// @brief Import project from .klh.zip archive
-    /// @param archivePath Path to .klh.zip file
-    /// @param targetDir Directory where project will be extracted
-    /// @param progressCallback Optional callback for progress (0-100)
-    /// @return true if import succeeded and project opened, false otherwise
+    /// @brief Unpack a .klh.zip archive to a new folder and open the project in it
     ///
-    /// Extracts archive to targetDir/<archive_name>/ folder.
-    /// Automatically opens the extracted project on success.
+    /// The project goes to targetDir/<archiveProjectName()>, which must not exist yet. Entries
+    /// that would land outside that folder are skipped, and so are the lock and the database's
+    /// shared memory file that archives of earlier versions have. When the project cannot be
+    /// unpacked or opened, the new folder is removed.
+    /// @param archivePath Path of the .klh.zip file
+    /// @param targetDir Folder in which the project's folder is made
+    /// @param progressCallback Optional callback for progress (0-100)
+    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @return true if the project was unpacked and opened
     bool importArchive(const QString& archivePath,
                        const QString& targetDir,
-                       std::function<void(int)> progressCallback = nullptr);
+                       std::function<void(int)> progressCallback = nullptr,
+                       QStringList* problems = nullptr);
+
+    /// @brief Name of the folder that importArchive() makes for @p archivePath: the archive's
+    /// name without ".klh.zip"
+    static QString archiveProjectName(const QString& archivePath);
 
 signals:
     /// @brief Emitted when a project is successfully opened
@@ -395,18 +423,14 @@ private:
     /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter
     QString newChapterFile(const KindRef& kind, BookPlace place) const;
 
+    /// @brief The text a new element of @p kind starts with: its template's, with the title
+    /// and the author of @p book in place of "{title}" and "{author}"; empty without a template
+    static QString startingText(const KindRef& kind, const ProjectBook& book);
+
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there
     QList<ProjectElement>* listForNew(const KindRef& kind, BookPlace place,
                                       const QString& groupId);
-
-    /// @brief Collect files recursively for archive export
-    /// @param dir Directory to scan
-    /// @param files Output vector of file paths
-    /// @param excludeFolder Folder name to exclude (e.g., ".kalahari")
-    void collectFilesForArchive(const std::filesystem::path& dir,
-                               std::vector<std::filesystem::path>& files,
-                               const std::string& excludeFolder);
 
     // =========================================================================
     // Member Variables

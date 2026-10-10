@@ -223,7 +223,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
               {"form", "name", "plural", "icon", "places", "limit", "title", "numbering",
-               "template", "editor", "generated", "settings", "workshopGroup"},
+               "template", "position", "editor", "generated", "settings", "workshopGroup"},
               problems);
 
     ElementKind kind;
@@ -313,6 +313,22 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         } else if (checkPackageFile(directory, templateFile, QStringLiteral(".kchapter"),
                                     field + QStringLiteral(".template"), problems)) {
             kind.templateFile = templateFile.toString();
+        }
+    }
+
+    const QJsonValue position = object.value(QStringLiteral("position"));
+    if (!position.isUndefined()) {
+        if (position.toString() == QLatin1String("start")) {
+            kind.position = KindPosition::Start;
+        } else if (position.toString() == QLatin1String("end")) {
+            kind.position = KindPosition::End;
+        } else {
+            addProblem(problems, field + QStringLiteral(".position"),
+                       QStringLiteral("must be \"start\" or \"end\""));
+        }
+        if (!kind.places.contains(QStringLiteral("main"))) {
+            addProblem(problems, field + QStringLiteral(".position"),
+                       QStringLiteral("only a kind of the main part has a position"));
         }
     }
 

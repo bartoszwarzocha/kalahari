@@ -76,7 +76,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "File Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
+        {"file.new", "file.new.project", "file.open", "file.close", "file.save", "file.saveAs"}
     };
 
     // Edit Toolbar

@@ -17,7 +17,8 @@
       "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" }
     },
     "conclusion": {
-      "form": "text", "places": ["main"], "limit": 1, "icon": "template.chapter",
+      "form": "text", "places": ["main"], "limit": 1, "position": "end",
+      "icon": "template.chapter",
       "name": { "pl": "Zakończenie", "en": "Conclusion" },
       "plural": { "pl": "Zakończenia", "en": "Conclusions" }
     },

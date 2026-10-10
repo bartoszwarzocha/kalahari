@@ -863,23 +863,38 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     auto& pm = core::ProjectManager::getInstance();
     const bool projectOpen = pm.isProjectOpen();
 
-    // Move Up/Down within the element's list
+    // Move within the element's list: a part of the book or a group
     const auto addMoveActions = [&]() {
         QTreeWidgetItem* parent = item->parent();
-        int index = parent ? parent->indexOfChild(item) : -1;
-        int siblingCount = parent ? parent->childCount() : 0;
+        const int index = parent ? parent->indexOfChild(item) : -1;
+        const int siblingCount = parent ? parent->childCount() : 0;
+
+        QAction* moveToStartAction = menu.addAction(
+            artProvider.getIcon("navigation.top", core::IconContext::Menu),
+            tr("Move to Start"));
+        connect(moveToStartAction, &QAction::triggered, this,
+                [this, elementId]() { emit elementMoved(elementId, 0); });
+        moveToStartAction->setEnabled(index > 0);
 
         QAction* moveUpAction = menu.addAction(
-            artProvider.getIcon("nav.up", core::IconContext::Menu),
+            artProvider.getIcon("navigation.up", core::IconContext::Menu),
             tr("Move Up"));
         connect(moveUpAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveUp);
         moveUpAction->setEnabled(index > 0);
 
         QAction* moveDownAction = menu.addAction(
-            artProvider.getIcon("nav.down", core::IconContext::Menu),
+            artProvider.getIcon("navigation.down", core::IconContext::Menu),
             tr("Move Down"));
         connect(moveDownAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveDown);
         moveDownAction->setEnabled(index >= 0 && index < siblingCount - 1);
+
+        QAction* moveToEndAction = menu.addAction(
+            artProvider.getIcon("navigation.bottom", core::IconContext::Menu),
+            tr("Move to End"));
+        connect(moveToEndAction, &QAction::triggered, this, [this, elementId, siblingCount]() {
+            emit elementMoved(elementId, siblingCount - 1);
+        });
+        moveToEndAction->setEnabled(index >= 0 && index < siblingCount - 1);
     };
 
     const auto addRenameDeleteActions = [&]() {
@@ -1513,6 +1528,18 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
     // otherwise a collapsed part would reopen on every load
     m_treeWidget->collapseAll();
     expandItemsById(ids);
+}
+
+void NavigatorPanel::revealElement(const QString& elementId) {
+    QTreeWidgetItem* item = findItemByElementId(elementId);
+    if (!item) {
+        return;
+    }
+    for (QTreeWidgetItem* parent = item->parent(); parent; parent = parent->parent()) {
+        parent->setExpanded(true);
+    }
+    m_treeWidget->setCurrentItem(item);
+    m_treeWidget->scrollToItem(item, QAbstractItemView::EnsureVisible);
 }
 
 void NavigatorPanel::collectExpandedIds(QTreeWidgetItem* item, QStringList& expandedIds) const {

@@ -1092,34 +1092,6 @@ Elastyczny układ do grupowania wierszy w sekcje tematyczne. Obsługuje różne 
         <translation>Strofy</translation>
     </message>
     <message>
-        <source>Empty Project</source>
-        <translation>Pusty projekt</translation>
-    </message>
-    <message>
-        <source>A blank project with no predefined structure.
-
-Start from scratch and build your own structure. Recommended for advanced users who want full control.</source>
-        <translation>Pusty projekt bez gotowego układu.
-
-Zacznij od zera i zbuduj własny układ. Dla zaawansowanych użytkowników, którzy chcą mieć pełną kontrolę.</translation>
-    </message>
-    <message>
-        <source>No predefined structure</source>
-        <translation>Bez gotowego układu</translation>
-    </message>
-    <message>
-        <source>Full customization</source>
-        <translation>Pełna swoboda</translation>
-    </message>
-    <message>
-        <source>Add elements manually</source>
-        <translation>Elementy dodawane ręcznie</translation>
-    </message>
-    <message>
-        <source>For advanced users</source>
-        <translation>Dla zaawansowanych</translation>
-    </message>
-    <message>
         <source>Chapter</source>
         <translation>Rozdział</translation>
     </message>
@@ -1278,6 +1250,30 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     <message>
         <source>Hierarchy support</source>
         <translation>Hierarchia miejsc</translation>
+    </message>
+    <message>
+        <source>User Project</source>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>A book without a type: it starts empty, and you build it in the Navigator from the elements of the Base package, such as a title page, a dedication, chapters, parts and an afterword.</source>
+        <translation>Książka bez typu: na początku jest pusta, a budujesz ją w Nawigatorze z elementów pakietu „Podstawa”, takich jak strona tytułowa, dedykacja, rozdziały, części i posłowie.</translation>
+    </message>
+    <message>
+        <source>No book type</source>
+        <translation>Bez typu książki</translation>
+    </message>
+    <message>
+        <source>Starts empty</source>
+        <translation>Na początku pusta</translation>
+    </message>
+    <message>
+        <source>Elements of the Base package</source>
+        <translation>Elementy pakietu „Podstawa”</translation>
+    </message>
+    <message>
+        <source>Structure built in the Navigator</source>
+        <translation>Układ budowany w Nawigatorze</translation>
     </message>
 </context>
 <context>
@@ -2286,24 +2282,12 @@ Czy na pewno kontynuować?</translation>
         <translation>Nie udało się utworzyć projektu</translation>
     </message>
     <message>
-        <source>Could not create project &apos;%1&apos;.
-
-Check that the location is writable and try again.</source>
-        <translation>Nie udało się utworzyć projektu „%1”.
-
-Sprawdź, czy w wybranym miejscu można zapisywać pliki, i spróbuj ponownie.</translation>
-    </message>
-    <message>
         <source>Open Book</source>
         <translation>Otwórz książkę</translation>
     </message>
     <message>
         <source>Kalahari Books (*.klh)</source>
         <translation>Książki Kalahari (*.klh)</translation>
-    </message>
-    <message>
-        <source>current project</source>
-        <translation>bieżącego projektu</translation>
     </message>
     <message>
         <source>Do you want to save changes to &apos;%1&apos; before opening the selected project?</source>
@@ -2530,10 +2514,6 @@ Czy wybrać inne miejsce?</translation>
         <translation>Import zakończony</translation>
     </message>
     <message>
-        <source>Project imported and opened successfully.</source>
-        <translation>Zaimportowano i otwarto projekt.</translation>
-    </message>
-    <message>
         <source>Import Failed</source>
         <translation>Import nie powiódł się</translation>
     </message>
@@ -2600,6 +2580,32 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     <message>
         <source>&apos;%1&apos; is open in another tab.</source>
         <translation>„%1” jest otwarty w innej karcie.</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before creating the new book?</source>
+        <translation>Czy zapisać zmiany w „%1” przed utworzeniem nowej książki?</translation>
+    </message>
+    <message>
+        <source>Do you want to close &apos;%1&apos; and create the new book?</source>
+        <translation>Czy zamknąć „%1” i utworzyć nową książkę?</translation>
+    </message>
+    <message>
+        <source>Could not create the book &apos;%1&apos;.</source>
+        <translation>Nie udało się utworzyć książki „%1”.</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before importing the archive?</source>
+        <translation>Czy zapisać zmiany w „%1” przed importem archiwum?</translation>
+    </message>
+    <message>
+        <source>Do you want to close &apos;%1&apos; and open the imported book?</source>
+        <translation>Czy zamknąć „%1” i otworzyć zaimportowaną książkę?</translation>
+    </message>
+    <message>
+        <source>The book was imported to:
+%1</source>
+        <translation>Książka została zaimportowana do folderu:
+%1</translation>
     </message>
 </context>
 <context>
@@ -3538,6 +3544,14 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Failed to save changes.</source>
         <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Move to Start</source>
+        <translation>Przenieś na początek</translation>
+    </message>
+    <message>
+        <source>Move to End</source>
+        <translation>Przenieś na koniec</translation>
     </message>
 </context>
 <context>
@@ -5087,6 +5101,66 @@ Harmonogram projektu:
     <message>
         <source>Kind</source>
         <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Elsewhere: show the place in the list</source>
+        <translation>W innym miejscu – wskaż je na liście</translation>
+    </message>
+    <message>
+        <source>Click the element the new one is to go before</source>
+        <translation>Kliknij element, przed którym ma się znaleźć nowy</translation>
+    </message>
+    <message>
+        <source>Move the new element up</source>
+        <translation>Przesuń nowy element wyżej</translation>
+    </message>
+    <message>
+        <source>Move the new element down</source>
+        <translation>Przesuń nowy element niżej</translation>
+    </message>
+    <message>
+        <source>The chapter is added at the end of the part &quot;%1&quot;, before &quot;%2&quot;.</source>
+        <translation>Rozdział zostanie dodany na końcu części „%1”, przed „%2”.</translation>
+    </message>
+    <message>
+        <source>The chapter is added at the end of the body of the book, before &quot;%1&quot;.</source>
+        <translation>Rozdział zostanie dodany na końcu części głównej książki, przed „%1”.</translation>
+    </message>
+    <message>
+        <source>The part is added at the end of the book, before &quot;%1&quot;.</source>
+        <translation>Część zostanie dodana na końcu książki, przed „%1”.</translation>
+    </message>
+    <message>
+        <source>Choose where the new element goes in the book.</source>
+        <translation>Wybierz, gdzie w książce ma się znaleźć nowy element.</translation>
+    </message>
+    <message>
+        <source>The element is added as the first one in the body of the book.</source>
+        <translation>Element zostanie dodany jako pierwszy w części głównej książki.</translation>
+    </message>
+    <message>
+        <source>The element is added as the last one in the body of the book.</source>
+        <translation>Element zostanie dodany jako ostatni w części głównej książki.</translation>
+    </message>
+    <message>
+        <source>At the start of the body of the book</source>
+        <translation>Na początku części głównej</translation>
+    </message>
+    <message>
+        <source>At the end of the body of the book</source>
+        <translation>Na końcu części głównej</translation>
+    </message>
+    <message>
+        <source>First in &quot;%1&quot;</source>
+        <translation>Jako pierwszy element w „%1”</translation>
+    </message>
+    <message>
+        <source>Last in &quot;%1&quot;</source>
+        <translation>Jako ostatni element w „%1”</translation>
     </message>
 </context>
 <context>

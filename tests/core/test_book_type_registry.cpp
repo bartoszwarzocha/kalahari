@@ -344,7 +344,7 @@ TEST_CASE("Built-in book types: groups hold the kinds their type allows inside t
     loadBuiltIn(registry);
 
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.novel"), QStringLiteral("part"))) ==
-          "chapter, motto");
+          "prologue, chapter, epilogue, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.nonfiction"),
                                        QStringLiteral("part"))) == "chapter, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.short_stories"),
@@ -377,11 +377,20 @@ TEST_CASE("Built-in book types: a kind comes from the type or from a package it 
     CHECK(prologue.kind->allows(BookPlace::Main));
     CHECK_FALSE(prologue.kind->allows(BookPlace::Back));
 
+    // A prologue opens the story and an epilogue closes it, in the book or in a part of it
+    CHECK(prologue.kind->position == KindPosition::Start);
+    CHECK(prologue.kind->allowsInside(QStringLiteral("part")));
+    CHECK(chapter.kind->position == KindPosition::Any);
+
     // Stories use the novel too, for its styles
     const KindRef epilogue =
         registry.findKind(QStringLiteral("kalahari.short_stories"), QStringLiteral("epilogue"));
     REQUIRE(epilogue);
     CHECK(epilogue.package->id == QStringLiteral("kalahari.novel"));
+    CHECK(epilogue.kind->position == KindPosition::End);
+    CHECK(epilogue.kind->allowsInside(QStringLiteral("part")));
+    CHECK(registry.findKind(QStringLiteral("kalahari.nonfiction"), QStringLiteral("conclusion"))
+              .kind->position == KindPosition::End);
 
     CHECK_FALSE(registry.findKind(QStringLiteral("kalahari.novel"), QStringLiteral("act")));
     CHECK_FALSE(registry.findKind(QStringLiteral("no.such.type"), QStringLiteral("chapter")));
@@ -818,6 +827,35 @@ TEST_CASE("Book type packages: a template file of the package", "[core][booktype
               .kind->templateFile == QStringLiteral("templates/prologue.kchapter"));
 }
 
+TEST_CASE("Book type packages: a kind at the start or at the end of the main part",
+          "[core][booktypes]") {
+    PackageFolder folder;
+    QJsonObject type = testType();
+    setAt(type, QStringLiteral("kinds.prologue.position"), QStringLiteral("start"));
+    setAt(type, QStringLiteral("kinds.epilogue"), jsonOf(R"({
+        "form": "text", "places": ["main", "part"], "position": "end",
+        "name": { "en": "Epilogue" }, "plural": { "en": "Epilogues" } })"));
+    setAt(type, QStringLiteral("main"),
+          QJsonArray{QStringLiteral("prologue"), QStringLiteral("part"),
+                     QStringLiteral("chapter"), QStringLiteral("epilogue")});
+    folder.writeTestPackages(type);
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    REQUIRE(registry.problems().isEmpty());
+
+    const auto positionOf = [&registry](const char* kindId) {
+        const KindRef ref =
+            registry.findKind(QStringLiteral("test.type"), QString::fromLatin1(kindId));
+        REQUIRE(ref);
+        return ref.kind->position;
+    };
+    CHECK(positionOf("prologue") == KindPosition::Start);
+    CHECK(positionOf("epilogue") == KindPosition::End);
+    CHECK(positionOf("chapter") == KindPosition::Any);
+    CHECK(positionOf("part") == KindPosition::Any);
+}
+
 // =============================================================================
 // Packages with problems
 // =============================================================================
@@ -900,6 +938,12 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
                                     "template": "map.kchapter",
                                     "name": { "en": "Map" }, "plural": { "en": "Maps" } })")),
          "kinds.map.template: only a text kind has a template"},
+        {"an unknown position", set("kinds.prologue.position", "middle"),
+         "kinds.prologue.position: must be \"start\" or \"end\""},
+        {"a position outside the main part",
+         set("kinds.motto", jsonValue(R"({ "form": "text", "places": ["front"], "position": "end",
+                                      "name": { "en": "Motto" }, "plural": { "en": "Mottos" } })")),
+         "kinds.motto.position: only a kind of the main part has a position"},
         {"a window of a text kind", set("kinds.prologue.editor", "text"),
          "kinds.prologue.editor: only a window kind has an editor"},
         {"a text kind made by a tool", set("kinds.prologue.generated", true),

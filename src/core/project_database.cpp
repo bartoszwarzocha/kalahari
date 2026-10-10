@@ -83,6 +83,21 @@ bool ProjectDatabase::isOpen() const
     return m_db.isOpen();
 }
 
+bool ProjectDatabase::checkpoint()
+{
+    if (!isOpen()) {
+        return false;
+    }
+    // TRUNCATE also empties the log, so nothing is left only in it
+    QSqlQuery query(m_db);
+    if (!query.exec(QStringLiteral("PRAGMA wal_checkpoint(TRUNCATE)")) || !query.next()) {
+        m_lastError = query.lastError().text();
+        return false;
+    }
+    // The first column is 1 when another connection kept the checkpoint from finishing
+    return query.value(0).toInt() == 0;
+}
+
 void ProjectDatabase::configurePragmas()
 {
     QSqlQuery query(m_db);

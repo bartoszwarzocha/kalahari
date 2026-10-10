@@ -48,9 +48,12 @@
 /// A kind (rodzaj): "form" ("text", "group" or "window"), "name" and "plural", "icon",
 /// "places" (front, main, back, workshop or ids of group kinds it can be inside), "limit"
 /// (most elements of the kind in a book), "title" (default title, "%n" is the number) with
-/// "numbering" ("arabic" or "roman"), "template" (text kinds: a starting .kchapter file),
-/// "editor", "generated" and "settings" (window kinds), "workshopGroup" (kinds of the
-/// Workshop: "libraries" or "resources", the group they go to when the Workshop is grouped).
+/// "numbering" ("arabic" or "roman"), "template" (text kinds: a .kchapter file whose text a
+/// new element starts with; "{title}" and "{author}" in it become the book's title and
+/// author), "position" (kinds of the main part: "start" for a kind that opens the story, like
+/// a prologue, "end" for one that closes it, like an epilogue), "editor", "generated" and
+/// "settings" (window kinds), "workshopGroup" (kinds of the Workshop: "libraries" or
+/// "resources", the group they go to when the Workshop is grouped).
 ///
 /// styles.json has the fields of the paragraph_styles and character_styles tables of
 /// project.db, with names in several languages and the style of the next paragraph:
@@ -117,6 +120,13 @@ enum class TitleNumbering {
     Roman    ///< "Act III"
 };
 
+/// @brief Where the elements of a kind stand in the main part of the book
+enum class KindPosition {
+    Any,    ///< Where the writer puts them (chapters, parts)
+    Start,  ///< At the start, before the other elements: a prologue
+    End     ///< At the end, after the other elements: an epilogue
+};
+
 /// @brief Group of the Workshop that a kind goes to when the Workshop is grouped
 enum class WorkshopGroup {
     None,       ///< First level of the Workshop: working notes, mind maps, timelines...
@@ -157,6 +167,7 @@ struct ElementKind {
     LocalizedText title;                 ///< Default title, "%n" is the number; empty: the name
     TitleNumbering numbering = TitleNumbering::Arabic;
     QString templateFile;                ///< Text kinds: starting .kchapter, in the package
+    KindPosition position = KindPosition::Any;  ///< Where its elements stand in the main part
     QString editor;                      ///< Window kinds: id of the window that opens the element
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window

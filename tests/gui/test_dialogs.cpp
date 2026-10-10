@@ -16,9 +16,15 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QRadioButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+
+#include <optional>
 
 using namespace kalahari::gui::dialogs;
 using kalahari::core::KindRef;
+using kalahari::core::ProjectElement;
 
 namespace {
 
@@ -38,14 +44,96 @@ void type(QLineEdit* field, const QString& letter) {
     QApplication::sendEvent(field, &press);
 }
 
-/// @brief Kind @p id of the base package of the resources folder
-KindRef baseKind(const QString& id) {
+/// @brief The book types of the resources folder
+const kalahari::core::BookTypeRegistry& builtInTypes() {
     static const kalahari::core::BookTypeRegistry registry = [] {
         kalahari::core::BookTypeRegistry loaded;
         loaded.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
         return loaded;
     }();
-    return registry.findKind(QStringLiteral("kalahari.base"), id);
+    return registry;
+}
+
+/// @brief Kind @p id of the base package of the resources folder
+KindRef baseKind(const QString& id) {
+    return builtInTypes().findKind(QStringLiteral("kalahari.base"), id);
+}
+
+/// @brief Kind @p id of the novel package of the resources folder
+KindRef novelKind(const QString& id) {
+    return builtInTypes().findKind(QStringLiteral("kalahari.novel"), id);
+}
+
+/// @brief Element @p id of the body of a novel: a chapter, or a part with @p elements
+ProjectElement element(const QString& id, const QString& title,
+                       const QList<ProjectElement>& elements = {}) {
+    ProjectElement made;
+    made.id = id;
+    made.kind = {QStringLiteral("kalahari.base"),
+                 id.startsWith(QStringLiteral("part")) ? QStringLiteral("part")
+                                                       : QStringLiteral("chapter")};
+    made.title = title;
+    made.elements = elements;
+    return made;
+}
+
+/// @brief The body of a novel: "Part One" (Chapter 1, Chapter 2), "Chapter 3", "Part Two"
+/// (Chapter 4)
+QList<ProjectElement> novelBody() {
+    return {element(QStringLiteral("part1"), QStringLiteral("Part One"),
+                    {element(QStringLiteral("c1"), QStringLiteral("Chapter 1")),
+                     element(QStringLiteral("c2"), QStringLiteral("Chapter 2"))}),
+            element(QStringLiteral("c3"), QStringLiteral("Chapter 3")),
+            element(QStringLiteral("part2"), QStringLiteral("Part Two"),
+                    {element(QStringLiteral("c4"), QStringLiteral("Chapter 4"))})};
+}
+
+/// @brief The option of the place with text @p text
+QRadioButton* option(const QDialog& dialog, const QString& text) {
+    for (QRadioButton* button : dialog.findChildren<QRadioButton*>()) {
+        if (button->text() == text) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
+/// @brief The item of the list of the body with text @p text
+QTreeWidgetItem* listItem(const QDialog& dialog, const QString& text) {
+    auto* list = dialog.findChild<QTreeWidget*>();
+    REQUIRE(list != nullptr);
+    for (QTreeWidgetItemIterator it(list); *it; ++it) {
+        if ((*it)->text(0) == text) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+/// @brief The text of the item before which the new element @p title is in the list, and of
+/// the item it is in: "Part One > Chapter 1"; "> Part One" for the start of the body;
+/// "Part Two >" for the end of Part Two
+std::string shownPlace(const QDialog& dialog, const QString& title) {
+    QTreeWidgetItem* shown = listItem(dialog, title);
+    REQUIRE(shown != nullptr);
+    CHECK(shown->font(0).bold());
+    CHECK(shown->isSelected());
+    const QTreeWidgetItem* parent = shown->parent();
+    const QTreeWidget* list = shown->treeWidget();
+    const int index = parent ? parent->indexOfChild(shown) : list->indexOfTopLevelItem(shown);
+    const int count = parent ? parent->childCount() : list->topLevelItemCount();
+    const QString in = parent ? parent->text(0) : QString();
+    const QString next = index + 1 < count
+                             ? (parent ? parent->child(index + 1) : list->topLevelItem(index + 1))
+                                   ->text(0)
+                             : QString();
+    return (in + QStringLiteral(" > ") + next).trimmed().toStdString();
+}
+
+/// @brief Press @p key in @p widget
+void press(QWidget* widget, Qt::Key key) {
+    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+    QApplication::sendEvent(widget, &event);
 }
 
 } // anonymous namespace
@@ -227,4 +315,130 @@ TEST_CASE("Navigator: the rename dialog starts with the current name", "[gui][di
 
     name->setText(QStringLiteral(" The Beginning  "));
     CHECK(dialog.name() == QStringLiteral("The Beginning"));
+}
+
+TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialogs]") {
+    const KindRef prologue = novelKind(QStringLiteral("prologue"));
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(prologue);
+    REQUIRE(chapter);
+    NewElementDialog dialog(NewElementKind::Chapter, {{prologue, QStringLiteral("Prologue")},
+                                                      {chapter, QStringLiteral("Chapter 5")}});
+    dialog.setBody(novelBody(), builtInTypes());
+    CHECK(showsText(dialog, QStringLiteral("Choose where the new element goes in the book.")));
+
+    // At the start of the body, as the first option says
+    QRadioButton* start = option(dialog, QStringLiteral("At the start of the body of the book"));
+    QRadioButton* firstPart = option(dialog, QStringLiteral("First in \"Part One\""));
+    QRadioButton* elsewhere = option(dialog, QStringLiteral("Elsewhere: show the place in the list"));
+    REQUIRE(start != nullptr);
+    REQUIRE(firstPart != nullptr);
+    REQUIRE(elsewhere != nullptr);
+    CHECK(start->isVisibleTo(&dialog));
+    CHECK(start->isChecked());
+    CHECK(dialog.place() == NewElementPlace{QString(), 0});
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "> Part One");
+
+    // First in the first part
+    firstPart->click();
+    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 0});
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "Part One > Chapter 1");
+
+    // Moved down with the button, and with the key in the list: any place in a part, between
+    // the parts and at the end
+    auto* list = dialog.findChild<QTreeWidget*>();
+    REQUIRE(list != nullptr);
+    QPushButton* down = nullptr;
+    QPushButton* up = nullptr;
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->toolTip() == QStringLiteral("Move the new element down")) {
+            down = button;
+        } else if (button->toolTip() == QStringLiteral("Move the new element up")) {
+            up = button;
+        }
+    }
+    REQUIRE(down != nullptr);
+    REQUIRE(up != nullptr);
+    down->click();
+    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 1});
+    CHECK(elsewhere->isChecked());
+    press(list, Qt::Key_Down);
+    press(list, Qt::Key_Down);
+    CHECK(dialog.place() == NewElementPlace{QString(), 1});
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "> Chapter 3");
+    for (int i = 0; i < 10; ++i) {
+        down->click();
+    }
+    CHECK(dialog.place() == NewElementPlace{QString(), 3});
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == ">");
+    CHECK_FALSE(down->isEnabled());
+    CHECK(up->isEnabled());
+
+    // Clicking an element puts the new one before it
+    emit list->itemClicked(listItem(dialog, QStringLiteral("Chapter 4")), 0);
+    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part2"), 0});
+    emit list->itemClicked(listItem(dialog, QStringLiteral("Part One")), 0);
+    CHECK(dialog.place() == NewElementPlace{QString(), 0});
+    CHECK(start->isChecked());
+    CHECK_FALSE(up->isEnabled());
+
+    // The title the writer types shows in the list
+    auto* title = dialog.findChild<QLineEdit*>();
+    REQUIRE(title != nullptr);
+    title->setText(QStringLiteral("Before It All"));
+    CHECK(shownPlace(dialog, QStringLiteral("Before It All")) == "> Part One");
+
+    // A chapter takes the place of its kind: the dialog does not ask
+    auto* kinds = dialog.findChild<QComboBox*>();
+    REQUIRE(kinds != nullptr);
+    kinds->setCurrentIndex(1);
+    CHECK_FALSE(dialog.place().has_value());
+    CHECK_FALSE(list->isVisibleTo(&dialog));
+    CHECK(showsText(dialog, QStringLiteral("body of the book")));
+
+    // Back to the prologue: the start of the body again
+    kinds->setCurrentIndex(0);
+    CHECK(list->isVisibleTo(&dialog));
+    CHECK(dialog.place() == NewElementPlace{QString(), 0});
+}
+
+TEST_CASE("Navigator: the epilogue starts at the end of the part the dialog was opened on",
+          "[gui][dialogs]") {
+    const KindRef epilogue = novelKind(QStringLiteral("epilogue"));
+    REQUIRE(epilogue);
+    NewElementDialog dialog(NewElementKind::Chapter, {{epilogue, QStringLiteral("Epilogue")}}, 0,
+                            QStringLiteral("Part One"));
+    dialog.setBody(novelBody(), builtInTypes(), QStringLiteral("part1"));
+
+    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 2});
+    CHECK(shownPlace(dialog, QStringLiteral("Epilogue")) == "Part One >");
+    QRadioButton* end = option(dialog, QStringLiteral("At the end of the body of the book"));
+    QRadioButton* lastPart = option(dialog, QStringLiteral("Last in \"Part Two\""));
+    REQUIRE(end != nullptr);
+    REQUIRE(lastPart != nullptr);
+    CHECK(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))->isChecked());
+
+    lastPart->click();
+    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part2"), 1});
+    end->click();
+    CHECK(dialog.place() == NewElementPlace{QString(), 3});
+
+    SECTION("Without parts, the end of the body or a place in the list") {
+        dialog.setBody({element(QStringLiteral("c1"), QStringLiteral("Chapter 1"))},
+                       builtInTypes());
+        CHECK(dialog.place() == NewElementPlace{QString(), 1});
+        CHECK(end->isVisibleTo(&dialog));
+        CHECK_FALSE(option(dialog, QStringLiteral("Last in \"Part Two\""))->isVisibleTo(&dialog));
+    }
+}
+
+TEST_CASE("Navigator: without the body of the book the prologue opens it", "[gui][dialogs]") {
+    // A book without the parts layer: the dialog does not ask for the place
+    const KindRef prologue = novelKind(QStringLiteral("prologue"));
+    REQUIRE(prologue);
+    NewElementDialog dialog(NewElementKind::Chapter, {{prologue, QStringLiteral("Prologue")}});
+
+    CHECK_FALSE(dialog.place().has_value());
+    CHECK(showsText(dialog,
+                    QStringLiteral("The element is added as the first one in the body of the book.")));
 }

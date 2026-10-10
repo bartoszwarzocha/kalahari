@@ -284,6 +284,17 @@ private:
     /// @return true if operation should continue, false if cancelled
     bool maybeSave();
 
+    /// @brief Before a command that puts another book in the place of the open one: asks
+    /// whether to save the book's changes or, without changes, whether to close it
+    /// @param saveQuestion The question with unsaved changes; "%1" is the book's title
+    /// @param closeQuestion The question without them; "%1" is the book's title
+    /// @return true when no book is open or the writer agreed; false: the command stops
+    bool agreeToCloseBook(const QString& saveQuestion, const QString& closeQuestion);
+
+    /// @brief Open the first text of the book's body in the editor, e.g. Chapter 1 of a new
+    /// book; nothing when the body has no text
+    void openFirstText();
+
     /// @brief Get currently active EditorPanel tab
     /// @return Active EditorPanel or nullptr if not an editor tab
     EditorPanel* getCurrentEditor() const;

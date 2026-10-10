@@ -4,13 +4,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/database_types.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -18,7 +21,11 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 
+#include <zip.h>
+
+#include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace kalahari::core;
@@ -99,6 +106,75 @@ QString kmlWith(const QString& text) {
     return QStringLiteral("<kml><p>%1</p></kml>").arg(text);
 }
 
+/// Paragraphs of the text of element @p id
+QStringList paragraphsOf(const QString& id) {
+    kalahari::editor::KmlDocumentModel model;
+    REQUIRE(model.loadKml(chapterFileOf(id).kml()));
+    QStringList paragraphs;
+    for (size_t i = 0; i < model.paragraphCount(); ++i) {
+        paragraphs << model.paragraphText(i);
+    }
+    return paragraphs;
+}
+
+/// Whether the database of the open project has paragraph style @p id
+bool hasParagraphStyle(const QString& id) {
+    ProjectDatabase* database = ProjectManager::getInstance().getDatabase();
+    REQUIRE(database != nullptr);
+    const QList<ParagraphStyle> styles = database->getParagraphStyles();
+    return std::any_of(styles.cbegin(), styles.cend(),
+                       [&id](const ParagraphStyle& style) { return style.id == id; });
+}
+
+/// An archive entry: its name and its data
+using Entry = std::pair<QByteArray, QByteArray>;
+
+/// Write archive @p path with @p entries, named as they are
+void writeArchive(const QString& path, const QList<Entry>& entries) {
+    int error = 0;
+    zip_t* archive = zip_open(QFile::encodeName(path).constData(), ZIP_CREATE | ZIP_TRUNCATE,
+                              &error);
+    REQUIRE(archive != nullptr);
+    for (const Entry& entry : entries) {
+        zip_source_t* source = zip_source_buffer(archive, entry.second.constData(),
+                                                 static_cast<zip_uint64_t>(entry.second.size()), 0);
+        REQUIRE(source != nullptr);
+        REQUIRE(zip_file_add(archive, entry.first.constData(), source, ZIP_FL_ENC_RAW) >= 0);
+    }
+    REQUIRE(zip_close(archive) == 0);
+}
+
+/// Names of the entries of archive @p path, sorted
+QStringList entriesOf(const QString& path) {
+    int error = 0;
+    zip_t* archive = zip_open(QFile::encodeName(path).constData(), ZIP_RDONLY, &error);
+    REQUIRE(archive != nullptr);
+    QStringList names;
+    const zip_int64_t count = zip_get_num_entries(archive, 0);
+    for (zip_int64_t i = 0; i < count; ++i) {
+        names << QString::fromUtf8(zip_get_name(archive, static_cast<zip_uint64_t>(i), 0));
+    }
+    zip_discard(archive);
+    names.sort();
+    return names;
+}
+
+/// Files of folder @p path, with the files of the folders in it, as archive entries named
+/// with @p separator
+QList<Entry> entriesOfFolder(const QString& path, QChar separator) {
+    QList<Entry> entries;
+    const QDir dir(path);
+    QDirIterator it(path, QDir::Files | QDir::Hidden, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString name = dir.relativeFilePath(it.next());
+        QFile file(dir.filePath(name));
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        entries.append({QString(name).replace(QLatin1Char('/'), separator).toUtf8(),
+                        file.readAll()});
+    }
+    return entries;
+}
+
 }  // namespace
 
 // =============================================================================
@@ -161,8 +237,31 @@ TEST_CASE("ProjectManager creates a book of a type", "[project_manager]") {
     CHECK(book->folder == "book");
     CHECK(book->partsLayer);
 
-    // The project starts as its .klh file; the book's folder comes with its first file
-    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("book")));
+    // The book starts with the elements of its type, in the language of its text
+    REQUIRE(book->frontElements.size() == 1);
+    const ProjectElement titlePage = book->frontElements.first();
+    CHECK(titlePage.kind == KindReference{"kalahari.base", "title_page"});
+    CHECK(titlePage.title == "Strona tytułowa");
+    CHECK(titlePage.file == "book/title_page_001.kchapter");
+    CHECK(titlePage.status == "draft");
+    REQUIRE(book->mainElements.size() == 1);
+    const ProjectElement chapter = book->mainElements.first();
+    CHECK(chapter.kind == KindReference{"kalahari.base", "chapter"});
+    CHECK(chapter.title == "Rozdział 1");
+    CHECK(chapter.file == "book/chapter_001.kchapter");
+    CHECK(chapter.status == "draft");
+    CHECK(book->backElements.isEmpty());
+    CHECK(project->workshop.elements.isEmpty());
+
+    // The title page has the title and the author of the book, the chapter no text
+    const ChapterDocument titleFile = chapterFileOf(titlePage.id);
+    CHECK(titleFile.title() == "Strona tytułowa");
+    CHECK(titleFile.status() == "draft");
+    CHECK(paragraphsOf(titlePage.id) == QStringList{"My Novel", "", "Anna Nowak"});
+    CHECK(pm.wordCount(titlePage.id) == 4);
+    const ChapterDocument chapterFile = chapterFileOf(chapter.id);
+    CHECK(chapterFile.title() == "Rozdział 1");
+    CHECK(chapterFile.kml().isEmpty());
     CHECK_FALSE(pm.isDirty());
     REQUIRE(pm.closeProject(false));
 
@@ -170,6 +269,20 @@ TEST_CASE("ProjectManager creates a book of a type", "[project_manager]") {
     REQUIRE(saved.type.has_value());
     CHECK(saved.type->id == "kalahari.novel");
     CHECK(saved.books.first().title == "My Novel");
+    CHECK(titles(saved.books.first().frontElements) == "Strona tytułowa");
+    CHECK(titles(saved.books.first().mainElements) == "Rozdział 1");
+
+    SECTION("The title and the author as they are written") {
+        REQUIRE(pm.createProject(dir.path(), "Tom & Jerry", "Anna \"Ania\" <Nowak>", "en", true,
+                                 "kalahari.novel"));
+        REQUIRE(pm.book() != nullptr);
+        REQUIRE_FALSE(pm.book()->frontElements.isEmpty());
+        CHECK(pm.book()->frontElements.first().title == "Title page");
+        CHECK(pm.book()->mainElements.first().title == "Chapter 1");
+        CHECK(paragraphsOf(pm.book()->frontElements.first().id) ==
+              QStringList{"Tom & Jerry", "", "Anna \"Ania\" <Nowak>"});
+        REQUIRE(pm.closeProject(false));
+    }
 
     SECTION("A type without the parts layer") {
         REQUIRE(pm.createProject(dir.path(), "Pilot", "Anna", "en", true, "kalahari.screenplay"));
@@ -177,6 +290,27 @@ TEST_CASE("ProjectManager creates a book of a type", "[project_manager]") {
         CHECK_FALSE(pm.book()->partsLayer);
         REQUIRE(pm.closeProject(false));
     }
+}
+
+TEST_CASE("A new book starts with the elements of its type", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    // Titles of the front part | titles of the main part
+    const auto start = [&pm, &dir](const char* type) {
+        REQUIRE(pm.createProject(dir.path(), QString::fromLatin1(type), "Anna", "en", true,
+                                 QString::fromLatin1(type)));
+        const ProjectBook* book = pm.book();
+        REQUIRE(book != nullptr);
+        CHECK(book->backElements.isEmpty());
+        const std::string parts = titles(book->frontElements) + " | " + titles(book->mainElements);
+        REQUIRE(pm.closeProject(false));
+        return parts;
+    };
+    CHECK(start("kalahari.novel") == "Title page | Chapter 1");
+    CHECK(start("kalahari.short_stories") == "Title page | Story 1");
+    CHECK(start("kalahari.nonfiction") == "Title page, Introduction | Chapter 1");
+    CHECK(start("kalahari.screenplay") == "Title page | Act I");
+    CHECK(start("kalahari.poetry") == "Title page | Poem 1");
 }
 
 TEST_CASE("A user project has the kinds of the base package", "[project_manager]") {
@@ -197,20 +331,31 @@ TEST_CASE("A user project has the kinds of the base package", "[project_manager]
 
     CHECK(pm.chapterKindFor(BookPlace::Main).reference() == "kalahari.base:chapter");
     CHECK(pm.partKind().reference() == "kalahari.base:part");
+
+    // It starts empty
+    CHECK(pm.book()->frontElements.isEmpty());
+    CHECK(pm.book()->mainElements.isEmpty());
+    CHECK(pm.book()->backElements.isEmpty());
+    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("book")));
     REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("ProjectManager does not create a project it cannot make", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
+    QStringList problems;
 
     SECTION("A type that is not installed") {
-        CHECK_FALSE(pm.createProject(dir.path(), "Thriller", "Anna", "en", true, "acme.thriller"));
+        CHECK_FALSE(pm.createProject(dir.path(), "Thriller", "Anna", "en", true, "acme.thriller",
+                                     &problems));
+        CHECK(problems == QStringList{"the book type acme.thriller is not installed"});
         CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("Thriller")));
     }
 
     SECTION("A package that is not a type") {
-        CHECK_FALSE(pm.createProject(dir.path(), "Base", "Anna", "en", true, "kalahari.base"));
+        CHECK_FALSE(pm.createProject(dir.path(), "Base", "Anna", "en", true, "kalahari.base",
+                                     &problems));
+        CHECK(problems == QStringList{"kalahari.base is not a book type"});
         CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("Base")));
     }
 
@@ -218,9 +363,14 @@ TEST_CASE("ProjectManager does not create a project it cannot make", "[project_m
         REQUIRE(QDir(dir.path()).mkpath("Taken"));
         const QString file = QDir(dir.path()).filePath("Taken/notes.txt");
         writeFile(file, "mine");
-        CHECK_FALSE(pm.createProject(dir.path(), "Taken", "Anna", "en", true, "kalahari.novel"));
+        CHECK_FALSE(pm.createProject(dir.path(), "Taken", "Anna", "en", true, "kalahari.novel",
+                                     &problems));
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().endsWith(": the folder exists and is not empty"));
         CHECK(QFileInfo::exists(file));
         CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("Taken/Taken.klh")));
+        CHECK(QDir(dir.path()).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot |
+                                         QDir::Hidden) == QStringList{"Taken"});
     }
 
     CHECK_FALSE(pm.isProjectOpen());
@@ -232,6 +382,25 @@ TEST_CASE("ProjectManager does not create a project it cannot make", "[project_m
         CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(QDir(folder).filePath("Book.klh")));
         REQUIRE(pm.closeProject(false));
     }
+}
+
+TEST_CASE("A book that cannot be created leaves the open book open", "[project_manager]") {
+    // Regression: the open book was closed before the folder of the new one was checked
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Open Book", "Anna", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(QDir(dir.path()).mkpath("Taken"));
+    writeFile(QDir(dir.path()).filePath("Taken/notes.txt"), "mine");
+
+    QStringList problems;
+    CHECK_FALSE(pm.createProject(dir.path(), "Taken", "Anna", "en", true, "kalahari.novel",
+                                 &problems));
+    REQUIRE(problems.size() == 1);
+    CHECK(problems.first().endsWith(": the folder exists and is not empty"));
+    CHECK(pm.isProjectOpen());
+    CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(manifest));
+    REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("ProjectManager keeps the identity and unknown fields of a project", "[project_manager]") {
@@ -313,7 +482,12 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     QJsonObject root = readJson(manifest);
     QJsonArray books = root["books"].toArray();
     QJsonObject book = books.first().toObject();
-    QJsonObject group = book["main"].toArray().first().toObject();
+    QJsonObject group;
+    for (const auto& element : book["main"].toArray()) {
+        if (element.toObject()["id"].toString() == part) {
+            group = element.toObject();
+        }
+    }
     QJsonObject scene = group["elements"].toArray().first().toObject();
     scene["kind"] = "acme.thriller:scene";
     group["kind"] = "acme.thriller:arc";
@@ -346,9 +520,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     // Its text opens, is counted and keeps its status
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Dark night"));
     CHECK(pm.wordCount(chapter) == 2);
-    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 1}});
+    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 2}});  // and the title page
     REQUIRE(pm.setStatus(chapter, "final"));
     CHECK(chapterFileOf(chapter).status() == "final");
+    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 1}, {"final", 1}});
 
     // No new elements of its kinds: the project does not offer them
     CHECK(pm.textKindsFor(BookPlace::Main, part).isEmpty());
@@ -366,26 +541,25 @@ TEST_CASE("ProjectManager gives a new element a chapter file named after its kin
     REQUIRE(pm.createProject(dir.path(), "New Chapters", "Author", "en", true, "kalahari.novel"));
     const QDir project(pm.getProjectPath());
 
-    // A file that no element names takes chapter_002
-    REQUIRE(project.mkpath("book"));
+    // The book starts with chapter_001; a file that no element names takes chapter_002
     writeFile(project.filePath("book/chapter_002.kchapter"), "");
 
     const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
     const QString first = pm.addElement(chapter, "One", BookPlace::Main);
     const QString second = pm.addElement(chapter, "Two", BookPlace::Main);
-    const QString titlePage =
-        pm.addElement(kind("kalahari.novel", "title_page"), "Title Page", BookPlace::Front);
+    const QString dedication =
+        pm.addElement(kind("kalahari.novel", "dedication"), "For Anna", BookPlace::Front);
     REQUIRE_FALSE(first.isEmpty());
     REQUIRE_FALSE(second.isEmpty());
-    REQUIRE_FALSE(titlePage.isEmpty());
+    REQUIRE_FALSE(dedication.isEmpty());
 
     const ProjectElement* one = pm.findElement(first);
     REQUIRE(one != nullptr);
-    CHECK(one->file == "book/chapter_001.kchapter");
+    CHECK(one->file == "book/chapter_003.kchapter");
     CHECK(one->kind == KindReference{"kalahari.base", "chapter"});
     CHECK(one->status == "draft");
-    CHECK(pm.findElement(second)->file == "book/chapter_003.kchapter");
-    CHECK(pm.findElement(titlePage)->file == "book/title_page_001.kchapter");
+    CHECK(pm.findElement(second)->file == "book/chapter_004.kchapter");
+    CHECK(pm.findElement(dedication)->file == "book/dedication_001.kchapter");
 
     const ChapterDocument file = chapterFileOf(first);
     CHECK(file.title() == "One");
@@ -395,8 +569,8 @@ TEST_CASE("ProjectManager gives a new element a chapter file named after its kin
     // The .klh file has them at once
     CHECK_FALSE(pm.isDirty());
     const BookProject saved = savedProject(pm.getManifestPath());
-    CHECK(titles(saved.books.first().mainElements) == "One, Two");
-    CHECK(titles(saved.books.first().frontElements) == "Title Page");
+    CHECK(titles(saved.books.first().mainElements) == "Chapter 1, One, Two");
+    CHECK(titles(saved.books.first().frontElements) == "Title page, For Anna");
     REQUIRE(pm.closeProject(false));
 }
 
@@ -411,27 +585,41 @@ TEST_CASE("ProjectManager offers the kinds of the project's type, within their l
     CHECK(pm.chapterKindFor(BookPlace::Main).reference() == "kalahari.base:chapter");
     CHECK(pm.partKind().reference() == "kalahari.base:part");
 
-    // One title page
+    // One title page: the one the book starts with
     const KindRef titlePage = kind("kalahari.novel", "title_page");
-    CHECK(references(pm.textKindsFor(BookPlace::Front)).find("title_page") != std::string::npos);
-    REQUIRE_FALSE(pm.addElement(titlePage, "Title Page", BookPlace::Front).isEmpty());
     CHECK(references(pm.textKindsFor(BookPlace::Front)).find("title_page") == std::string::npos);
     CHECK(pm.addElement(titlePage, "Second Title Page", BookPlace::Front).isEmpty());
 
-    // A part has no file; chapters and mottos go into it, a prologue does not
+    // Without it, a new one can be added, with the text of its template
+    REQUIRE(pm.removeElement(pm.book()->frontElements.first().id).has_value());
+    CHECK(references(pm.textKindsFor(BookPlace::Front)).find("title_page") != std::string::npos);
+    const QString newTitlePage = pm.addElement(titlePage, "Title Page", BookPlace::Front);
+    REQUIRE_FALSE(newTitlePage.isEmpty());
+    CHECK(pm.findElement(newTitlePage)->file == "book/title_page_002.kchapter");
+    CHECK(paragraphsOf(newTitlePage) == QStringList{"Kinds", "", "Author"});
+    CHECK(references(pm.textKindsFor(BookPlace::Front)).find("title_page") == std::string::npos);
+
+    // A part has no file; chapters, mottos, the prologue and the epilogue go into it
     const QString part = pm.addElement(pm.partKind(), "Part One", BookPlace::Main);
     REQUIRE_FALSE(part.isEmpty());
     CHECK(pm.findElement(part)->file.isEmpty());
     CHECK(pm.findElement(part)->status.isEmpty());
     CHECK(references(pm.textKindsFor(BookPlace::Main, part)) ==
-          "kalahari.base:chapter, kalahari.base:motto");
+          "kalahari.novel:prologue, kalahari.base:chapter, kalahari.novel:epilogue, "
+          "kalahari.base:motto");
     const QString chapter =
         pm.addElement(pm.chapterKindFor(BookPlace::Main, part), "Chapter 1", BookPlace::Main, part);
     REQUIRE_FALSE(chapter.isEmpty());
     REQUIRE(pm.findElement(part)->elements.size() == 1);
     CHECK(pm.findElement(part)->elements.first().id == chapter);
-    CHECK(pm.addElement(kind("kalahari.novel", "prologue"), "Prologue", BookPlace::Main, part)
-              .isEmpty());
+
+    // The book has one prologue: in the part, none in the body
+    REQUIRE_FALSE(
+        pm.addElement(kind("kalahari.novel", "prologue"), "Prologue", BookPlace::Main, part)
+            .isEmpty());
+    CHECK(references(pm.textKindsFor(BookPlace::Main)) ==
+          "kalahari.base:chapter, kalahari.novel:epilogue");
+    CHECK(pm.addElement(kind("kalahari.novel", "prologue"), "Prologue", BookPlace::Main).isEmpty());
 
     // Kinds the type does not offer there, window elements and groups that do not exist
     CHECK(pm.addElement(kind("kalahari.base", "introduction"), "Intro", BookPlace::Front)
@@ -441,7 +629,7 @@ TEST_CASE("ProjectManager offers the kinds of the project's type, within their l
               .isEmpty());
     CHECK(pm.addElement(pm.chapterKindFor(BookPlace::Main), "Lost", BookPlace::Main, chapter)
               .isEmpty());
-    CHECK(titles(pm.book()->mainElements) == "Part One");
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1, Part One");
     REQUIRE(pm.closeProject(false));
 
     SECTION("Short stories") {
@@ -470,8 +658,8 @@ TEST_CASE("ProjectManager renames, moves and removes elements", "[project_manage
     CHECK(chapterFileOf(a).title() == "First");
 
     REQUIRE(pm.moveElement(part, 0));
-    CHECK(titles(pm.book()->mainElements) == "Part, First, B");
-    CHECK_FALSE(pm.moveElement(b, 3));
+    CHECK(titles(pm.book()->mainElements) == "Part, Chapter 1, First, B");
+    CHECK_FALSE(pm.moveElement(b, 4));
     CHECK_FALSE(pm.moveElement("no-element", 0));
 
     const QString file = pm.filePathOf(*pm.findElement(c));
@@ -485,7 +673,62 @@ TEST_CASE("ProjectManager renames, moves and removes elements", "[project_manage
     REQUIRE(pm.closeProject(false));
 
     const BookProject saved = savedProject(manifest);
-    CHECK(titles(saved.books.first().mainElements) == "First, B");
+    CHECK(titles(saved.books.first().mainElements) == "Chapter 1, First, B");
+}
+
+TEST_CASE("ProjectManager puts a new element in the place of its kind", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Places", "Author", "en", true, "kalahari.novel"));
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const KindRef prologueKind = kind("kalahari.novel", "prologue");
+    const KindRef epilogueKind = kind("kalahari.novel", "epilogue");
+
+    // The prologue goes first, the epilogue last, and a new chapter or part before the epilogue
+    const QString epilogue = pm.addElement(epilogueKind, "Epilogue", BookPlace::Main);
+    const QString prologue = pm.addElement(prologueKind, "Prologue", BookPlace::Main);
+    REQUIRE_FALSE(epilogue.isEmpty());
+    REQUIRE_FALSE(prologue.isEmpty());
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 2", BookPlace::Main).isEmpty());
+    const QString part = pm.addElement(pm.partKind(), "Part One", BookPlace::Main);
+    REQUIRE_FALSE(part.isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Prologue, Chapter 1, Chapter 2, Part One, Epilogue");
+    CHECK(pm.newIndexIn(pm.book()->mainElements, prologueKind) == 0);
+    CHECK(pm.newIndexIn(pm.book()->mainElements, chapter) == 4);
+    CHECK(pm.newIndexIn(pm.book()->mainElements, epilogueKind) == 5);
+
+    // In a part as well
+    REQUIRE(pm.removeElement(prologue).has_value());
+    REQUIRE(pm.removeElement(epilogue).has_value());
+    REQUIRE_FALSE(pm.addElement(chapter, "Inside", BookPlace::Main, part).isEmpty());
+    REQUIRE_FALSE(pm.addElement(epilogueKind, "Last Words", BookPlace::Main, part).isEmpty());
+    REQUIRE_FALSE(pm.addElement(prologueKind, "First Words", BookPlace::Main, part).isEmpty());
+    REQUIRE_FALSE(pm.addElement(chapter, "Also Inside", BookPlace::Main, part).isEmpty());
+    CHECK(titles(pm.findElement(part)->elements) ==
+          "First Words, Inside, Also Inside, Last Words");
+
+    // A text file added to the book goes there too
+    const QString textPath = QDir(dir.path()).filePath("notes.txt");
+    writeFile(textPath, "Notes");
+    REQUIRE_FALSE(pm.addFile(textPath, true, chapter, "Notes", BookPlace::Main, part).isEmpty());
+    CHECK(titles(pm.findElement(part)->elements) ==
+          "First Words, Inside, Also Inside, Notes, Last Words");
+
+    // The place the writer chose: any place in the list, its end too, but not beyond it
+    REQUIRE_FALSE(pm.addElement(chapter, "Between", BookPlace::Main, QString(), 1).isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1, Between, Chapter 2, Part One");
+    CHECK(pm.addElement(chapter, "Beyond", BookPlace::Main, QString(), 5).isEmpty());
+    REQUIRE_FALSE(pm.addElement(chapter, "Last", BookPlace::Main, QString(), 4).isEmpty());
+    REQUIRE_FALSE(pm.addElement(chapter, "First", BookPlace::Main, part, 0).isEmpty());
+    CHECK(titles(pm.findElement(part)->elements) ==
+          "First, First Words, Inside, Also Inside, Notes, Last Words");
+
+    // The .klh file has them in their places
+    const BookProject saved = savedProject(pm.getManifestPath());
+    CHECK(titles(saved.books.first().mainElements) == "Chapter 1, Between, Chapter 2, Part One, Last");
+    CHECK(titles(saved.books.first().mainElements.at(3).elements) ==
+          "First, First Words, Inside, Also Inside, Notes, Last Words");
+    REQUIRE(pm.closeProject(false));
 }
 
 // =============================================================================
@@ -505,7 +748,7 @@ TEST_CASE("ProjectManager makes a chapter of a text file added to the project",
     SECTION("Copied") {
         const QString id = pm.addFile(textPath, true, chapter, "Notes", BookPlace::Main);
         REQUIRE_FALSE(id.isEmpty());
-        CHECK(pm.findElement(id)->file == "book/chapter_001.kchapter");
+        CHECK(pm.findElement(id)->file == "book/chapter_002.kchapter");
         CHECK(pm.findElement(id)->status == "draft");
         CHECK(QFile::exists(textPath));
         CHECK(pm.wordCount(id) == 4);  // "&" is no word
@@ -529,7 +772,7 @@ TEST_CASE("ProjectManager makes a chapter of a text file added to the project",
         writeFile(imagePath, "png");
         CHECK(pm.addFile(imagePath, false, chapter, "Cover", BookPlace::Main).isEmpty());
         CHECK(QFile::exists(imagePath));
-        CHECK(pm.book()->mainElements.isEmpty());
+        CHECK(titles(pm.book()->mainElements) == "Chapter 1");
     }
 
     REQUIRE(pm.closeProject(false));
@@ -665,15 +908,21 @@ TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_
     REQUIRE(pm.saveAllDirty());
     REQUIRE(pm.setStatus(b, "final"));
 
+    // The book starts with a title page ("Counts", "Author") and an empty chapter, both drafts
+    const QString titlePage = pm.book()->frontElements.first().id;
+    const QString chapter1 = pm.book()->mainElements.first().id;
     const TextStatistics statistics = pm.statisticsOf(pm.book()->mainElements);
-    CHECK(statistics.elements == 2);
+    CHECK(statistics.elements == 3);
     CHECK(statistics.words == 3);
-    CHECK(statistics.statuses == std::map<QString, int>{{"draft", 1}, {"final", 1}});
+    CHECK(statistics.statuses == std::map<QString, int>{{"draft", 2}, {"final", 1}});
+    CHECK(pm.statisticsOf(pm.book()->frontElements).words == 2);
 
-    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 1}, {"final", 1}});
+    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 3}, {"final", 1}});
     const auto incomplete = pm.getIncompleteElements();
-    REQUIRE(incomplete.size() == 1);
-    CHECK(incomplete.front() == std::pair<QString, QString>{a, "draft"});
+    REQUIRE(incomplete.size() == 3);
+    CHECK(incomplete.at(0) == std::pair<QString, QString>{titlePage, "draft"});
+    CHECK(incomplete.at(1) == std::pair<QString, QString>{chapter1, "draft"});
+    CHECK(incomplete.at(2) == std::pair<QString, QString>{a, "draft"});
     REQUIRE(pm.closeProject(false));
 }
 
@@ -697,4 +946,153 @@ TEST_CASE("A new book is added to the recent books", "[project_manager]") {
 
     REQUIRE(pm.closeProject(false));
     recent.removeRecentFile(manifest);
+}
+
+// =============================================================================
+// Archives
+// =============================================================================
+
+TEST_CASE("ProjectManager exports the open book to an archive and imports it",
+          "[project_manager][archive]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+    const QString chapter = pm.book()->mainElements.first().id;
+    pm.setChapterContent(chapter, kmlWith("Far away"));
+    REQUIRE(pm.saveChapterContent(chapter));
+
+    // A style in the database, and a backup of the database, which serves this computer only
+    ParagraphStyle style;
+    style.id = "travel_note";
+    style.name = "Travel note";
+    REQUIRE(pm.getDatabase() != nullptr);
+    pm.getDatabase()->saveParagraphStyle(style);
+    const QDir project(pm.getProjectPath());
+    REQUIRE(project.mkpath(".backups"));
+    writeFile(project.filePath(".backups/project_backup.db"), "old");
+
+    // The archive has the files of the book, without its lock, the log files of its database
+    // and the backups; the book stays open
+    const QString archive = project.filePath("Travels.klh.zip");
+    QStringList problems;
+    int progress = 0;
+    REQUIRE(pm.exportArchive(archive, [&progress](int percent) { progress = percent; },
+                             &problems));
+    CHECK(problems.isEmpty());
+    CHECK(progress == 100);
+    CHECK(pm.isProjectOpen());
+    const QStringList entries{"Travels.klh", "book/chapter_001.kchapter",
+                              "book/title_page_001.kchapter", "project.db"};
+    CHECK(entriesOf(archive) == entries);
+
+    // An archive written to the book's folder is not in the next one
+    REQUIRE(pm.exportArchive(archive));
+    CHECK(entriesOf(archive) == entries);
+
+    // The imported book opens in a folder of its own, with its text and its styles
+    const QString target = QDir(dir.path()).filePath("imported");
+    REQUIRE(pm.importArchive(archive, target, nullptr, &problems));
+    CHECK(problems.isEmpty());
+    const QDir imported(QDir(target).filePath("Travels"));
+    CHECK(QFileInfo(pm.getProjectPath()) == QFileInfo(imported.path()));
+    CHECK(pm.book()->title == "Travels");
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1");
+    CHECK(pm.loadChapterContent(chapter) == kmlWith("Far away"));
+    CHECK(hasParagraphStyle("travel_note"));
+    CHECK_FALSE(QFileInfo::exists(imported.filePath(".backups/project_backup.db")));
+    REQUIRE(pm.closeProject(false));
+
+    // A second import does not touch the folder of the first
+    writeFile(imported.filePath("mine.txt"), "mine");
+    CHECK_FALSE(pm.importArchive(archive, target, nullptr, &problems));
+    REQUIRE(problems.size() == 1);
+    CHECK(problems.first().endsWith(": the folder already exists"));
+    CHECK(QFileInfo::exists(imported.filePath("mine.txt")));
+    CHECK_FALSE(pm.isProjectOpen());
+}
+
+TEST_CASE("ProjectManager imports an archive of an earlier version", "[project_manager][archive]") {
+    // Regression: earlier versions archived the open book as it was, with its lock, which kept
+    // the imported book from opening, the log files of its database, and names with "\" on
+    // Windows
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Old Archive", "Anna", "en", true, "kalahari.novel"));
+    const QString chapter = pm.book()->mainElements.first().id;
+    pm.setChapterContent(chapter, kmlWith("Kept text"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    ParagraphStyle style;
+    style.id = "old_note";
+    style.name = "Old note";
+    REQUIRE(pm.getDatabase() != nullptr);
+    pm.getDatabase()->saveParagraphStyle(style);
+
+    const QList<Entry> entries = entriesOfFolder(pm.getProjectPath(), QLatin1Char('\\'));
+    REQUIRE(pm.closeProject(false));
+    QStringList names;
+    for (const Entry& entry : entries) {
+        names << QString::fromUtf8(entry.first);
+    }
+    REQUIRE(names.contains(".kalahari.lock"));
+    REQUIRE(names.contains("project.db-wal"));
+    REQUIRE(names.contains("book\\chapter_001.kchapter"));
+    const QString archive = QDir(dir.path()).filePath("Old Archive.klh.zip");
+    writeArchive(archive, entries);
+
+    QStringList problems;
+    REQUIRE(pm.importArchive(archive, QDir(dir.path()).filePath("imported"), nullptr, &problems));
+    CHECK(problems.isEmpty());
+    const QDir imported(QDir(dir.path()).filePath("imported/Old Archive"));
+    CHECK(QFileInfo(pm.getProjectPath()) == QFileInfo(imported.path()));
+    CHECK(QFileInfo(imported.filePath("book/chapter_001.kchapter")).isFile());
+    CHECK(pm.loadChapterContent(chapter) == kmlWith("Kept text"));
+    CHECK(hasParagraphStyle("old_note"));  // which the log of the database had
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager imports only what goes into the book's folder",
+          "[project_manager][archive]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Safe", "Anna", "en", true));
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    QFile file(manifest);
+    REQUIRE(file.open(QIODevice::ReadOnly));
+
+    const QString archive = QDir(dir.path()).filePath("Safe copy.klh.zip");
+    writeArchive(archive, {{"Safe.klh", file.readAll()},
+                           {"../outside.txt", "x"},
+                           {"notes/../../outside2.txt", "x"},
+                           {"/absolute.txt", "x"},
+                           {"C:/drive.txt", "x"},
+                           {"C:drive2.txt", "x"},
+                           {"./notes/./kept.txt", "kept"}});
+    const QString target = QDir(dir.path()).filePath("imported");
+    REQUIRE(pm.importArchive(archive, target));
+    const QDir imported(QDir(target).filePath("Safe copy"));
+    CHECK(QFileInfo(imported.filePath("notes/kept.txt")).isFile());
+    CHECK(QDir(target).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden) ==
+          QStringList{"Safe copy"});
+    CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("outside.txt")));
+    CHECK_FALSE(QFileInfo::exists(imported.filePath("absolute.txt")));
+    CHECK_FALSE(QFileInfo::exists(imported.filePath("drive.txt")));
+    CHECK_FALSE(QFileInfo::exists(imported.filePath("C:")));
+    REQUIRE(pm.closeProject(false));
+
+    SECTION("An archive without a book") {
+        const QString notes = QDir(dir.path()).filePath("Notes.klh.zip");
+        writeArchive(notes, {{"notes.txt", "x"}});
+        QStringList problems;
+        CHECK_FALSE(pm.importArchive(notes, target, nullptr, &problems));
+        CHECK(problems == QStringList{"Notes.klh.zip: the archive has no .klh file"});
+        CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Notes")));
+    }
+}
+
+TEST_CASE("An imported book takes the name of its archive", "[project_manager][archive]") {
+    CHECK(ProjectManager::archiveProjectName("/books/My Novel.klh.zip") == "My Novel");
+    CHECK(ProjectManager::archiveProjectName("C:/books/My Novel.KLH.ZIP") == "My Novel");
+    CHECK(ProjectManager::archiveProjectName("/books/v1.2 draft.zip") == "v1.2 draft");
+    CHECK(ProjectManager::archiveProjectName("/books/.klh.zip") == "project");
 }
