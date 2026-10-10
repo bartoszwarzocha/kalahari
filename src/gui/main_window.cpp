@@ -9,6 +9,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -68,6 +69,7 @@
 #include <QProgressDialog>
 #include <QInputDialog>
 #include <QTimer>
+#include <QAbstractItemView>
 #include <map>
 
 namespace kalahari {
@@ -239,6 +241,16 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     m_annotationsCoordinator->connectCommands();
 
+    // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
+    // is done in the Annotations panel is undone in the text in front
+    m_editCoordinator = new EditCoordinator(
+        [this]() -> editor::BookEditor* {
+            EditorPanel* panel = getCurrentEditor();
+            return panel != nullptr ? panel->getBookEditor() : nullptr;
+        },
+        this);
+    m_editCoordinator->connectCommands();
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -306,6 +318,9 @@ MainWindow::~MainWindow() {
     if (m_annotationsCoordinator) {
         disconnect(m_annotationsCoordinator, nullptr, this, nullptr);
     }
+    // The edit commands stop following the keys before the widgets go
+    delete m_editCoordinator;
+    m_editCoordinator = nullptr;
 
     // Block signals to prevent any delivery during child destruction
     blockSignals(true);
@@ -608,68 +623,53 @@ void MainWindow::onExit() {
     QApplication::quit();
 }
 
-void MainWindow::onUndo() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Undo");
+// The edit commands work on the element with the keys (EditCoordinator): where they cannot,
+// they do nothing
 
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->undo();
+void MainWindow::onUndo() {
+    core::Logger::getInstance().info("Action triggered: Undo");
+    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Undo)) {
         statusBar()->showMessage(tr("Undo performed"), 2000);
     }
 }
 
 void MainWindow::onRedo() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Redo");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->redo();
+    core::Logger::getInstance().info("Action triggered: Redo");
+    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Redo)) {
         statusBar()->showMessage(tr("Redo performed"), 2000);
     }
 }
 
 void MainWindow::onCut() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Cut");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->cut();
+    core::Logger::getInstance().info("Action triggered: Cut");
+    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Cut)) {
         statusBar()->showMessage(tr("Cut to clipboard"), 2000);
     }
 }
 
 void MainWindow::onCopy() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Copy");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->copy();
+    core::Logger::getInstance().info("Action triggered: Copy");
+    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Copy)) {
         statusBar()->showMessage(tr("Copied to clipboard"), 2000);
     }
 }
 
 void MainWindow::onPaste() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Paste");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->paste();
+    core::Logger::getInstance().info("Action triggered: Paste");
+    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Paste)) {
         statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
     }
 }
 
 void MainWindow::onSelectAll() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Select All");
-
-    EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
-        editor->getBookEditor()->selectAll();
+    core::Logger::getInstance().info("Action triggered: Select All");
+    if (!m_editCoordinator) {
+        return;
+    }
+    // A list selects its items: there is no text to tell of
+    QWidget* element = m_editCoordinator->focusedElement();
+    if (m_editCoordinator->execute(EditCoordinator::Edit::SelectAll, element) &&
+        qobject_cast<QAbstractItemView*>(element) == nullptr) {
         statusBar()->showMessage(tr("All text selected"), 2000);
     }
 }
@@ -900,6 +900,11 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
 }
 
 void MainWindow::updateEditorActionStates() {
+    // Undo, Redo and the clipboard follow the element with the keys
+    if (m_editCoordinator) {
+        m_editCoordinator->updateStates();
+    }
+
     // Update action states based on current editor state
     EditorPanel* editor = getCurrentEditor();
     if (!editor || !editor->getBookEditor()) {
@@ -908,36 +913,6 @@ void MainWindow::updateEditorActionStates() {
 
     editor::BookEditor* bookEditor = editor->getBookEditor();
     CommandRegistry& registry = CommandRegistry::getInstance();
-
-    // Update Cut/Copy enabled state based on selection
-    bool hasSelection = bookEditor->hasSelection();
-    if (auto* cutCmd = registry.getCommand("edit.cut")) {
-        cutCmd->isEnabled = [hasSelection]() { return hasSelection; };
-        registry.updateActionState("edit.cut");
-    }
-    if (auto* copyCmd = registry.getCommand("edit.copy")) {
-        copyCmd->isEnabled = [hasSelection]() { return hasSelection; };
-        registry.updateActionState("edit.copy");
-    }
-
-    // Update Undo/Redo enabled state
-    bool canUndo = bookEditor->canUndo();
-    bool canRedo = bookEditor->canRedo();
-    if (auto* undoCmd = registry.getCommand("edit.undo")) {
-        undoCmd->isEnabled = [canUndo]() { return canUndo; };
-        registry.updateActionState("edit.undo");
-    }
-    if (auto* redoCmd = registry.getCommand("edit.redo")) {
-        redoCmd->isEnabled = [canRedo]() { return canRedo; };
-        registry.updateActionState("edit.redo");
-    }
-
-    // Update Paste enabled state
-    bool canPaste = bookEditor->canPaste();
-    if (auto* pasteCmd = registry.getCommand("edit.paste")) {
-        pasteCmd->isEnabled = [canPaste]() { return canPaste; };
-        registry.updateActionState("edit.paste");
-    }
 
     // Update format action checked states
     bool isBold = bookEditor->isBold();

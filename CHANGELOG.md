@@ -505,6 +505,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Clipboard and undo on the element with the cursor** - 2026-10-10. Undo, Redo, Cut,
+  Copy, Paste and Select All, with their keys, from the Edit menu and from the toolbar,
+  work on the element with the cursor and on no other: the book's text, a field of a
+  panel, a list. Ctrl+V in the Log pasted into the book, and the Edit menu and the toolbar
+  worked on the book wherever the cursor was. In a text that only shows (the Log) Paste,
+  Cut, Undo and Redo do nothing, Copy and Select All work; a list copies its current item.
+  In the Annotations panel and the find bar, outside their fields, Undo and Redo undo what
+  was done there in the text (an annotation marked done, a replacement). Elsewhere (a
+  button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
+  disabled wherever they can do nothing.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at

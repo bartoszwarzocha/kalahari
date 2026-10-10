@@ -1620,6 +1620,25 @@ Ctrl+Insert and Ctrl+A for themselves (the window's Copy and Select All copied a
 the book's text), and the context menus of the fields show the keys of their items, also
 where a command of the window has the same keys. macOS keeps the keys of its own fields.
 
+#### The Edit Commands
+
+Undo, Redo, Cut, Copy, Paste and Select All, with their keys, from the Edit menu and from the
+toolbar, work on the element with the cursor and on no other (`src/gui/edit_coordinator.cpp`,
+checked by `tests/gui/test_edit_coordinator.cpp`):
+- the book's text, a field of a panel, the field of a spin box or of a combo box one types
+  into: every command;
+- a text or a field that only shows (the Log): Copy and Select All; Cut, Paste, Undo and Redo
+  do nothing;
+- a list: Copy takes the text of its current item; Select All selects all its items where it
+  can select more than one;
+- the Annotations panel and the find bar outside their fields: Undo and Redo undo what was
+  done there in the text (an annotation marked done or deleted, a replacement);
+- elsewhere (a button, the Dashboard): nothing.
+
+The menu bar (Alt, F10) and the window's toolbars, also a floating one, give the commands to
+the element that had the cursor. The commands are enabled only where they can do something:
+they follow the cursor from element to element, the selection, the text and the clipboard.
+
 #### macOS
 
 Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
