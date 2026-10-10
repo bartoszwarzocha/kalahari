@@ -19,20 +19,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Book projects in the new format** - 2026-10-09. The program opens and saves books in the
+- **Book projects in the new format** - 2026-10-10. The program opens and saves books in the
   new project file (`.klh`, format 2) and no longer reads the old one: the example project
   ExampleNovel is in the new format, and books of older versions do not open (no conversion
   while Kalahari has a single user). When a book cannot be opened, the message says what is
-  wrong with its file. A new book gets the type chosen in the New Book window; an empty
-  project gets the kinds of the Base package. The Navigator shows the book as before, and
-  its elements take their kinds and icons from the type: Add Chapter offers the type's text
-  kinds of the body (in a novel a prologue, a chapter or an epilogue) with a numbered title,
-  Add Part its groups and Add Item the kinds of the front or back matter that the book can
-  still take (a dedication only once). A chapter can be in the body itself, outside parts.
-  Adding, renaming, moving and deleting elements and changing their status save the book at
-  once, and dragging an element to another place of its section or part moves it in the
-  book (before, the move was lost). Add to Project asks for the kind of the new element and
-  can add a chapter to the body itself.
+  wrong with its file. A new book gets the type chosen in the New Book window with the type's
+  start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
+  Project (before: Empty Project) gets the kinds of the Base package. The Navigator shows the
+  book as before, and its elements take their kinds and icons from the type: Add Chapter
+  offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
+  with a numbered title, Add Part its groups and Add Item the kinds of the front or back
+  matter that the book can still take (a dedication only once). A prologue goes at the start
+  of the body or first in its first part, and an epilogue at the end of the body or last in
+  its last part; the writer chooses, or shows another place in a list. A chapter can be in
+  the body itself, outside parts. Adding, renaming, moving and deleting elements and changing
+  their status save the book at once, and dragging an element to another place of its
+  section or part moves it in the book (before, the move was lost). Move to Start and Move to
+  End join Move Up and Move Down, and the Navigator shows a new or moved element, also inside
+  a collapsed part. Deleting an element says that its file stays in the book's folder. Add to
+  Project asks for the kind of the new element and can add a chapter to the body itself.
+  Close Book is on the File toolbar. A project archive leaves out the lock, the database log
+  files and the backups of the open book, whose log is first written to its database, and
+  import skips the lock and the database's shared memory that earlier archives have, so an
+  archive of an open book imports again; a failed import removes what it wrote. The book,
+  Navigator and file commands show their messages and questions in the program's own window,
+  with what is wrong under Show Details.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
