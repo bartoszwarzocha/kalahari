@@ -5120,6 +5120,33 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::MessageDialog</name>
+    <message>
+        <source>Details</source>
+        <translation>Szczegóły</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Skopiowano</translation>
+    </message>
+    <message>
+        <source>Copy the message to the clipboard</source>
+        <translation>Kopiuj komunikat do schowka</translation>
+    </message>
+    <message>
+        <source>Show &amp;Details</source>
+        <translation>Pokaż &amp;szczegóły</translation>
+    </message>
+    <message>
+        <source>Hide &amp;Details</source>
+        <translation>Ukryj &amp;szczegóły</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewElementDialog</name>
     <message>
         <source>Add Chapter</source>

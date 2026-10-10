@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
+  its details, a question with buttons named after the action, and a typed text now have the
+  program's own window, in the look of its other dialogs, in place of the system ones. Copy
+  puts the message and its details on the clipboard; every button works from the keyboard.
+  The program's messages move to it in the following changes.
+
 ### Changed
 
 - **One version number** - 2026-10-09. The About window, the program and the command
