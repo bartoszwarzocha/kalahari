@@ -1241,8 +1241,13 @@ void DocumentCoordinator::onExportArchive() {
             byStatus[status].append(title);
         }
 
+        // The statuses by the names the Navigator gives them
         for (const auto& [status, titles] : byStatus) {
-            warningText += QStringLiteral("[") + status.toUpper() + QStringLiteral("]: ") + titles.join(QStringLiteral(", ")) + QStringLiteral("\n");
+            const QString name = status == QLatin1String("draft")      ? tr("Draft")
+                                 : status == QLatin1String("revision") ? tr("Revision")
+                                                                       : status;
+            warningText += name + QStringLiteral(": ") + titles.join(QStringLiteral(", ")) +
+                           QStringLiteral("\n");
         }
 
         warningText += QStringLiteral("\n") + tr("Do you want to export anyway?");

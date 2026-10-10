@@ -2619,6 +2619,14 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
         <source>Do you want to close &apos;%1&apos; and open the selected book?</source>
         <translation>Czy zamknąć „%1” i otworzyć wybraną książkę?</translation>
     </message>
+    <message>
+        <source>Draft</source>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <translation>Poprawki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorColorsPage</name>

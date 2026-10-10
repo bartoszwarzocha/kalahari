@@ -49,7 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   import skips the lock and the database's shared memory that earlier archives have, so an
   archive of an open book imports again; a failed import removes what it wrote. The book,
   Navigator and file commands show their messages and questions in the program's own window,
-  with what is wrong under Show Details.
+  with what is wrong under Show Details; the export's list of files that are not final names
+  their statuses as the Navigator does (Draft, Revision).
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
