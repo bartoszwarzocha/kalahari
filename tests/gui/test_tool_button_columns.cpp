@@ -8,6 +8,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QToolButton>
+#include <QWidget>
 
 using kalahari::gui::LogPanel;
 using kalahari::gui::ToolButtonColumns;
@@ -28,11 +29,14 @@ bool allVisible(const ToolButtonColumns& columns)
 } // anonymous namespace
 
 TEST_CASE("Panel buttons: a low panel shows them in more columns", "[gui][widgets]") {
-    ToolButtonColumns columns(20);
+    // A child widget: the system limits how small a window may be (macOS), not a child
+    QWidget host;
+    host.resize(800, 600);
+    auto& columns = *new ToolButtonColumns(20, &host);
     for (int i = 0; i < 4; ++i) {
         columns.addAction(new QAction(QStringLiteral("Action %1").arg(i + 1), &columns));
     }
-    columns.show();
+    host.show();
     const QSize cell = columns.buttons().first()->sizeHint();
 
     SECTION("Tall enough: one column") {
