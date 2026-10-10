@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   renamed toolbar stays selected and the command names are no longer cut off. The icon
   downloader's texts and its download errors are translated too.
 
+- **Qt's own texts in Polish** - 2026-10-10. The menus Qt builds itself are in Polish when
+  the program runs in Polish: the scroll bar menu (Przewiń tutaj, Do góry, Strona w dół...),
+  the menu of multi-line text fields and of number fields (Krok w górę, Krok w dół), the
+  names screen readers hear for panel and tab buttons and for their actions, and Qt's own
+  file window where the system has none (some Linux desktops).
+
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
   program's own window, in the look of its other dialogs, in place of the system ones. Copy

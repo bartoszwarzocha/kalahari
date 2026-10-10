@@ -5915,4 +5915,466 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <translation>Konwersja dała nieprawidłowy plik SVG: %1</translation>
     </message>
 </context>
+<context>
+    <name>CloseButton</name>
+    <message>
+        <source>Close Tab</source>
+        <translation>Zamknij kartę</translation>
+    </message>
+</context>
+<context>
+    <name>QAbstractSpinBox</name>
+    <message>
+        <source>&amp;Select All</source>
+        <translation>&amp;Zaznacz wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Step up</source>
+        <translation>Krok w &amp;górę</translation>
+    </message>
+    <message>
+        <source>Step &amp;down</source>
+        <translation>Krok w &amp;dół</translation>
+    </message>
+</context>
+<context>
+    <name>QAccessibleActionInterface</name>
+    <message>
+        <source>Press</source>
+        <translation>Naciśnij</translation>
+    </message>
+    <message>
+        <source>Triggers the action</source>
+        <translation>Wykonuje polecenie</translation>
+    </message>
+    <message>
+        <source>Increase</source>
+        <translation>Zwiększ</translation>
+    </message>
+    <message>
+        <source>Increase the value</source>
+        <translation>Zwiększa wartość</translation>
+    </message>
+    <message>
+        <source>Decrease</source>
+        <translation>Zmniejsz</translation>
+    </message>
+    <message>
+        <source>Decrease the value</source>
+        <translation>Zmniejsza wartość</translation>
+    </message>
+    <message>
+        <source>Shows the menu</source>
+        <translation>Pokazuje menu</translation>
+    </message>
+    <message>
+        <source>SetFocus</source>
+        <translation>Ustaw fokus</translation>
+    </message>
+    <message>
+        <source>Sets the focus</source>
+        <translation>Ustawia fokus</translation>
+    </message>
+    <message>
+        <source>Toggle</source>
+        <translation>Przełącz</translation>
+    </message>
+    <message>
+        <source>Toggles the state</source>
+        <translation>Przełącza stan</translation>
+    </message>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the left</source>
+        <translation>Przewija w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the right</source>
+        <translation>Przewija w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls up</source>
+        <translation>Przewija w górę</translation>
+    </message>
+    <message>
+        <source>Scrolls down</source>
+        <translation>Przewija w dół</translation>
+    </message>
+    <message>
+        <source>Goes back a page</source>
+        <translation>Cofa o stronę</translation>
+    </message>
+    <message>
+        <source>Goes to the next page</source>
+        <translation>Przechodzi o stronę dalej</translation>
+    </message>
+</context>
+<context>
+    <name>QComboBox</name>
+    <message>
+        <source>Open the combo box selection popup</source>
+        <translation>Otwiera listę do wyboru</translation>
+    </message>
+</context>
+<context>
+    <name>QDockWidget</name>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Float</source>
+        <translation>Odepnij</translation>
+    </message>
+    <message>
+        <source>Undocks and re-attaches the dock widget</source>
+        <translation>Odpina panel i dołącza go z powrotem</translation>
+    </message>
+</context>
+<context>
+    <name>QFileDialog</name>
+    <message>
+        <source>Look in:</source>
+        <translation>Szukaj w:</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Wstecz</translation>
+    </message>
+    <message>
+        <source>Go back</source>
+        <translation>Wróć</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Dalej</translation>
+    </message>
+    <message>
+        <source>Go forward</source>
+        <translation>Przejdź dalej</translation>
+    </message>
+    <message>
+        <source>Parent Directory</source>
+        <translation>Folder nadrzędny</translation>
+    </message>
+    <message>
+        <source>Go to the parent directory</source>
+        <translation>Przejdź do folderu nadrzędnego</translation>
+    </message>
+    <message>
+        <source>Create New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>Create a New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>List View</source>
+        <translation>Widok listy</translation>
+    </message>
+    <message>
+        <source>Change to list view mode</source>
+        <translation>Przełącz na widok listy</translation>
+    </message>
+    <message>
+        <source>Detail View</source>
+        <translation>Widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Change to detail view mode</source>
+        <translation>Przełącz na widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Sidebar</source>
+        <translation>Pasek boczny</translation>
+    </message>
+    <message>
+        <source>List of places and bookmarks</source>
+        <translation>Lista miejsc i zakładek</translation>
+    </message>
+    <message>
+        <source>Recent Places</source>
+        <translation>Ostatnie miejsca</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <translation>Pliki</translation>
+    </message>
+    <message>
+        <source>File &amp;name:</source>
+        <translation>&amp;Nazwa pliku:</translation>
+    </message>
+    <message>
+        <source>Directory:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Files of type:</source>
+        <translation>Pliki typu:</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Directories</source>
+        <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation>Zapisz jako</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Find Directory</source>
+        <translation>Wybierz folder</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Show &amp;hidden files</source>
+        <translation>Pokaż &amp;ukryte pliki</translation>
+    </message>
+    <message>
+        <source>&amp;New Folder</source>
+        <translation>&amp;Nowy folder</translation>
+    </message>
+    <message>
+        <source>New Folder</source>
+        <translation>Nowy folder</translation>
+    </message>
+    <message>
+        <source>Show </source>
+        <translation>Pokaż </translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <source>Alias</source>
+        <translation>Alias</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>Drive</source>
+        <translation>Dysk</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Nieznany</translation>
+    </message>
+    <message>
+        <source>%1 already exists.
+Do you want to replace it?</source>
+        <translation>Plik %1 już istnieje.
+Czy go zastąpić?</translation>
+    </message>
+    <message>
+        <source>%1
+File not found.
+Please verify the correct file name was given.</source>
+        <translation>%1
+Nie znaleziono pliku.
+Sprawdź, czy nazwa pliku jest poprawna.</translation>
+    </message>
+    <message>
+        <source>%1
+Directory not found.
+Please verify the correct directory name was given.</source>
+        <translation>%1
+Nie znaleziono folderu.
+Sprawdź, czy nazwa folderu jest poprawna.</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to delete &apos;%1&apos;?</source>
+        <translation>Czy na pewno usunąć „%1”?</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is write protected.
+Do you want to delete it anyway?</source>
+        <translation>„%1” jest chroniony przed zapisem.
+Czy mimo to go usunąć?</translation>
+    </message>
+    <message>
+        <source>Could not delete directory.</source>
+        <translation>Nie można usunąć folderu.</translation>
+    </message>
+</context>
+<context>
+    <name>QFileSystemModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Typ</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Date Modified</source>
+        <translation>Data modyfikacji</translation>
+    </message>
+    <message>
+        <source>Computer</source>
+        <translation>Komputer</translation>
+    </message>
+</context>
+<context>
+    <name>QScrollBar</name>
+    <message>
+        <source>Scroll here</source>
+        <translation>Przewiń tutaj</translation>
+    </message>
+    <message>
+        <source>Left edge</source>
+        <translation>Lewa krawędź</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <translation>Do góry</translation>
+    </message>
+    <message>
+        <source>Right edge</source>
+        <translation>Prawa krawędź</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Do dołu</translation>
+    </message>
+    <message>
+        <source>Page left</source>
+        <translation>Strona w lewo</translation>
+    </message>
+    <message>
+        <source>Page up</source>
+        <translation>Strona w górę</translation>
+    </message>
+    <message>
+        <source>Page right</source>
+        <translation>Strona w prawo</translation>
+    </message>
+    <message>
+        <source>Page down</source>
+        <translation>Strona w dół</translation>
+    </message>
+    <message>
+        <source>Scroll left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll up</source>
+        <translation>Przewiń w górę</translation>
+    </message>
+    <message>
+        <source>Scroll right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scroll down</source>
+        <translation>Przewiń w dół</translation>
+    </message>
+</context>
+<context>
+    <name>QTabBar</name>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+</context>
+<context>
+    <name>QWidgetTextControl</name>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Link Location</source>
+        <translation>Kopiuj &amp;adres odnośnika</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>Zaznacz wszystko</translation>
+    </message>
+</context>
 </TS>
