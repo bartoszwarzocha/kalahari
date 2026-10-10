@@ -6,6 +6,7 @@
 /// Redesign: Native Qt widgets (QGridLayout, QLabel, QFrame)
 
 #include "kalahari/gui/panels/dashboard_panel.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
@@ -18,6 +19,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFrame>
+#include <QKeySequence>
 #include <QLabel>
 #include <QFileInfo>
 #include <QDateTime>
@@ -330,22 +332,25 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
     rowLayout->setSpacing(48);
     rowLayout->setAlignment(Qt::AlignCenter);
 
-    // Create shortcut items
-    struct ShortcutInfo {
-        QString key;
-        QString action;
-    };
+    // The commands to start with, named as in the menus and with the program's keys for them
+    // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter)
+    const CommandRegistry& registry = CommandRegistry::getInstance();
+    for (const char* id : {"file.new.project", "file.open", "file.new"}) {
+        const Command* command = registry.getCommand(id);
+        if (command == nullptr || command->shortcut.isEmpty()) {
+            continue;
+        }
+        QString name = QString::fromStdString(command->label);
+        if (name.endsWith(QStringLiteral("..."))) {
+            name.chop(3);
+        } else if (name.endsWith(QChar(0x2026))) {  // an ellipsis
+            name.chop(1);
+        }
+        const QString keys = command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
 
-    std::vector<ShortcutInfo> shortcuts = {
-        {"Ctrl+Shift+N", tr("New Book")},
-        {"Ctrl+O", tr("Open")},
-        {"Ctrl+N", tr("New Chapter")}
-    };
-
-    for (const auto& shortcut : shortcuts) {
         QLabel* label = new QLabel(shortcutsRow);
         label->setText(QString("<span style='font-weight: bold;'>%1</span>&nbsp;&nbsp;&nbsp;%2")
-                       .arg(shortcut.key, shortcut.action));
+                       .arg(keys.toHtmlEscaped(), name.toHtmlEscaped()));
         label->setTextFormat(Qt::RichText);
         // Ensure transparent background for individual labels
         label->setStyleSheet("background: transparent;");

@@ -621,6 +621,7 @@ TEST_CASE("Annotations frame: Enter starts a new line, Ctrl+Enter and Save keep 
 
 TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting go through",
           "[gui][annotations]") {
+    registerAllCommands(CommandCallbacks{});  // the window's commands and their keys
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
@@ -636,11 +637,17 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK(keepsFromShortcuts(text, Qt::Key_Down, Qt::AltModifier));
     CHECK(keepsFromShortcuts(text, Qt::Key_F9, Qt::NoModifier));
     CHECK(keepsFromShortcuts(save, Qt::Key_F9, Qt::NoModifier));
+
+    // Saving, closing the book and quitting go through, with the program's keys for them,
+    // the same on every system (Qt's standard Close is Ctrl+W on Linux)
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier));
-    for (const QKeySequence& close : QKeySequence::keyBindings(QKeySequence::Close)) {
-        const QKeyCombination combination = close[0];
-        CHECK_FALSE(keepsFromShortcuts(text, combination.key(), combination.keyboardModifiers()));
-    }
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier));
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_F4, Qt::ControlModifier));
+    const Command* exitCommand = CommandRegistry::getInstance().getCommand("file.exit");
+    REQUIRE(exitCommand != nullptr);
+    const QKeyCombination exitKeys = exitCommand->shortcut.toQKeySequence()[0];
+    CHECK_FALSE(keepsFromShortcuts(text, exitKeys.key(), exitKeys.keyboardModifiers()));
+    CHECK(keepsFromShortcuts(text, Qt::Key_W, Qt::ControlModifier));
 
     // A key the frame does not use does not reach the editor under it
     press(text, Qt::Key_B, Qt::ControlModifier);

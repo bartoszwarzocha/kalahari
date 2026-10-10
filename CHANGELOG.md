@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
+  out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
+  commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
+  Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
+  Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
+  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it had no
+  keys or, on KDE, Align Right's Ctrl+R), Full Screen F11, Help F1. Ctrl+W does nothing, so
+  it cannot close the book by mistake. On macOS, Exit is Cmd+Q and Find & Replace is
+  Option+Cmd+F (Cmd+H hides the program).
+  - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
+    keys; on Linux, Ctrl+F4 did not reach the window from it.
+  - The Dashboard shows the names and keys of its commands as the menus have them: it
+    showed Ctrl+N as New Chapter, which is New File.
+
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
   0.3.1, 0.3.0 and the README 0.3.2.
