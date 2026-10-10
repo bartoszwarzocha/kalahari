@@ -435,6 +435,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
+  click on the editor's scroll bar when there was nothing to scroll went on to the text
+  under it: it moved the cursor, and a double click selected a word. Such a click, and a
+  press of the right mouse button on the scroll bars, also closed the frame of an
+  annotation being written. A press on a scroll bar now stays with it; the right button
+  still opens the scroll bar's menu.
+
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
   brought the Properties panel to the front of its tab group, so the Annotations panel

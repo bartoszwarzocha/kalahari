@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QTextLine>
 #include <QEasingCurve>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QVariantAnimation>
 #include <QScreen>
@@ -37,6 +38,26 @@ constexpr int MAX_CURSOR_PLACING_ROUNDS = 4;
 
 // Distance of the Distraction-Free texts (word count, hint, clock) from the view's edges
 constexpr qreal DISTRACTION_FREE_TEXT_MARGIN = 20.0;
+
+namespace {
+
+/// @brief A scroll bar of the editor: every press on it stays with it
+///
+/// Qt 6.9 passes a press a scroll bar does not use (one of the right button, or one on a
+/// bar without a range) on to the widget under it: the editor would take it for a click in
+/// the text, moving the cursor or selecting a word
+class EditorScrollBar : public QScrollBar {
+public:
+    using QScrollBar::QScrollBar;
+
+protected:
+    void mousePressEvent(QMouseEvent* event) override {
+        QScrollBar::mousePressEvent(event);
+        event->accept();
+    }
+};
+
+}  // namespace
 
 // =============================================================================
 // Scrolling
@@ -495,7 +516,7 @@ void BookEditor::onScrollAnimationValueChanged(const QVariant& value)
 void BookEditor::setupScrollBar()
 {
     // Create vertical scrollbar (with an arrow pointer, not the editor's I-beam)
-    m_verticalScrollBar = new QScrollBar(Qt::Vertical, this);
+    m_verticalScrollBar = new EditorScrollBar(Qt::Vertical, this);
     m_verticalScrollBar->setCursor(Qt::ArrowCursor);
     m_verticalScrollBar->setMinimum(0);
     m_verticalScrollBar->setMaximum(0);
@@ -521,7 +542,7 @@ void BookEditor::setupScrollBar()
     }
 
     // Horizontal scrollbar: while the zoomed page is wider than the view
-    m_horizontalScrollBar = new QScrollBar(Qt::Horizontal, this);
+    m_horizontalScrollBar = new EditorScrollBar(Qt::Horizontal, this);
     m_horizontalScrollBar->setCursor(Qt::ArrowCursor);
     m_horizontalScrollBar->setRange(0, 0);
     m_horizontalScrollBar->setSingleStep(static_cast<int>(WHEEL_SCROLL_STEP));

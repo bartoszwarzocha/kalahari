@@ -144,14 +144,13 @@ struct PressCounter : QObject {
     }
 };
 
-/// A click of the left mouse button on a widget (and on to its parents, as long as none
-/// takes it)
-void click(QWidget* widget, const QPointF& pos) {
+/// A click of a mouse button, the left one unless told, on a widget (and on to its parents,
+/// as long as none takes it)
+void click(QWidget* widget, const QPointF& pos, Qt::MouseButton button = Qt::LeftButton) {
     const QPointF globalPos = widget->mapToGlobal(pos);
-    QMouseEvent press(QEvent::MouseButtonPress, pos, globalPos, Qt::LeftButton, Qt::LeftButton,
-                      Qt::NoModifier);
+    QMouseEvent press(QEvent::MouseButtonPress, pos, globalPos, button, button, Qt::NoModifier);
     QApplication::sendEvent(widget, &press);
-    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, Qt::LeftButton, Qt::NoButton,
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, button, Qt::NoButton,
                         Qt::NoModifier);
     QApplication::sendEvent(widget, &release);
 }
@@ -1330,16 +1329,25 @@ TEST_CASE("Annotations: the keys going elsewhere in the program close the frame,
     // Qt gives the keys to the first widget under a click that takes them, before the click
     // arrives (the editor, for a click on its scroll bar): done so here before each click
 
-    SECTION("a click on the editor's scroll bar: the frame stays open, the keys come back") {
+    SECTION("a click on the editor's scroll bar, also of the right button and with nothing to "
+            "scroll: the frame stays open, the keys come back") {
+        QScrollBar* bar = editor->verticalScrollBar();
+        REQUIRE(bar->isVisible());
+        REQUIRE(bar->maximum() == bar->minimum());  // the short text fits in the view
         editor->setFocus(Qt::MouseFocusReason);
-        click(editor->verticalScrollBar(), QPointF(2, 2));
+        click(bar, QPointF(2, 2));
         QApplication::processEvents();
-        CHECK(coordinator.isWriting());
+        REQUIRE(coordinator.isWriting());
         CHECK(text->hasFocus());
         editor->setFocus(Qt::MouseFocusReason);
-        secondClick(editor->verticalScrollBar(), QPointF(2, 2));
+        secondClick(bar, QPointF(2, 2));
         QApplication::processEvents();
-        CHECK(coordinator.isWriting());
+        REQUIRE(coordinator.isWriting());
+        CHECK(text->hasFocus());
+        editor->setFocus(Qt::MouseFocusReason);
+        click(bar, QPointF(2, 2), Qt::RightButton);
+        QApplication::processEvents();
+        REQUIRE(coordinator.isWriting());
         CHECK(text->hasFocus());
         CHECK(editor->annotations().empty());
     }
