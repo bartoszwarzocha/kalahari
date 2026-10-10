@@ -1021,12 +1021,6 @@ void ShortcutsPage::updateColors() {
     m_mutedColor =
         readableColor(theme.palette.placeholderText, theme.palette.base, MIN_TEXT_CONTRAST);
     m_changedColor = readableColor(theme.palette.link, theme.palette.base, MIN_TEXT_CONTRAST);
-    // The note under the keys is muted too, on the window's background
-    m_detailInfo->setStyleSheet(
-        QStringLiteral("color: %1;")
-            .arg(readableColor(theme.palette.placeholderText, theme.palette.window,
-                               MIN_TEXT_CONTRAST)
-                     .name()));
 
     for (int top = 0; top < m_list->topLevelItemCount(); ++top) {
         QTreeWidgetItem* group = m_list->topLevelItem(top);

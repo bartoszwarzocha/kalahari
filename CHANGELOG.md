@@ -480,6 +480,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
+  texts of the Settings pages and the descriptions of the planned pages had a contrast of
+  2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
+  least 4.5:1 (WCAG AA), also inside the groups, and a theme applied while the window is
+  open changes them too. The titles of the planned pages kept the color of the theme they
+  were opened in: black on the dark window.
+
 - **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
   Shortcuts) and the input icon showed as a black square: their invisible frame got the
   icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),

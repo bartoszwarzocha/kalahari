@@ -11,6 +11,7 @@
 
 #include <QApplication>
 #include <QElapsedTimer>
+#include <QFont>
 #include <QLabel>
 #include <QScreen>
 #include <QScrollArea>
@@ -177,18 +178,27 @@ QTreeWidgetItem* SettingsDialog::addPage(QTreeWidgetItem* parent, const QString&
 void SettingsDialog::addPlannedPage(QTreeWidgetItem* parent, const QString& title,
                                     const QString& description) {
     QTreeWidgetItem* item = addPage(parent, title, [title, description]() {
-        const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
         auto* placeholder = new QWidget();
         auto* layout = new QVBoxLayout(placeholder);
+        // The color of the window's text: a font, not a style sheet, so that it follows the
+        // theme (a style sheet keeps the colors of the theme the page was opened in)
         auto* titleLabel = new QLabel(title);
-        titleLabel->setStyleSheet(QStringLiteral("font-size: 18px; font-weight: bold; color: %1;")
-            .arg(theme.palette.windowText.name()));
+        QFont titleFont = titleLabel->font();
+        titleFont.setPixelSize(18);
+        titleFont.setBold(true);
+        titleLabel->setFont(titleFont);
         layout->addWidget(titleLabel);
         auto* descriptionLabel = new QLabel(tr("These settings will be available in a future version.")
                                             + QStringLiteral("\n\n") + description);
         descriptionLabel->setWordWrap(true);
-        descriptionLabel->setStyleSheet(QStringLiteral("color: %1; margin-top: 20px;")
-            .arg(theme.palette.placeholderText.name()));
+        // Muted and readable, as the notes of the pages, also after the theme changes
+        const auto styleDescription = [descriptionLabel]() {
+            descriptionLabel->setStyleSheet(QStringLiteral("color: %1; margin-top: 20px;")
+                                                .arg(SettingsPage::noteColor().name()));
+        };
+        styleDescription();
+        QObject::connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
+                         descriptionLabel, styleDescription);
         layout->addWidget(descriptionLabel);
         layout->addStretch();
         return placeholder;

@@ -5,6 +5,8 @@
 #include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
@@ -14,6 +16,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
@@ -25,9 +28,44 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <vector>
+
 using namespace kalahari::gui;
 
 namespace {
+
+/// Brings back the theme the test started with
+class ThemeRestorer {
+public:
+    ThemeRestorer()
+        : m_name(QString::fromStdString(
+              kalahari::core::ThemeManager::getInstance().getCurrentTheme().name))
+    {
+    }
+    ~ThemeRestorer() { kalahari::core::ThemeManager::getInstance().reloadTheme(m_name); }
+    ThemeRestorer(const ThemeRestorer&) = delete;
+    ThemeRestorer& operator=(const ThemeRestorer&) = delete;
+
+private:
+    QString m_name;
+};
+
+/// The color a label's text is drawn in (its style sheet's, or the palette's)
+QColor textColorOf(QLabel* label) {
+    label->ensurePolished();
+    return label->palette().color(label->foregroundRole());
+}
+
+/// The color inside a group box on the window, as it is drawn
+QColor groupFillOn(const QColor& window) {
+    QGroupBox group;
+    QPalette palette = group.palette();
+    palette.setColor(QPalette::Window, window);
+    group.setPalette(palette);
+    group.setAutoFillBackground(true);
+    group.resize(80, 80);
+    return group.grab().toImage().pixelColor(40, 60);
+}
 
 /// Open every page of the dialog (pages are built when first opened)
 void openAllPages(SettingsDialog& dialog) {
@@ -292,6 +330,54 @@ TEST_CASE("Settings dialog: options that need a restart are marked", "[gui][sett
         noteShown = noteShown || label->text() == QStringLiteral("Takes effect after restarting Kalahari.");
     }
     CHECK(noteShown);
+}
+
+TEST_CASE("Settings dialog: the notes can be read in every theme", "[gui][settings]") {
+    // Regression: the notes had the theme's placeholder color, 2.3:1 with the window in the
+    // light theme and 3.6:1 in the dark one, where normal text needs 4.5:1 (WCAG AA). So had
+    // the descriptions of the planned pages, whose titles kept the color of the theme they
+    // were opened in.
+    auto& themes = kalahari::core::ThemeManager::getInstance();
+    const ThemeRestorer restorer;
+    REQUIRE(themes.reloadTheme(QStringLiteral("Light")));
+    SettingsDialog dialog(nullptr);
+    dialog.show();  // Open while the theme changes
+    openAllPages(dialog);
+
+    std::vector<QLabel*> notes;
+    for (const SettingsPage* page : dialog.findChildren<SettingsPage*>()) {
+        notes.insert(notes.end(), page->notes().begin(), page->notes().end());
+    }
+    const QString planned = QStringLiteral("These settings will be available in a future version.");
+    std::vector<QLabel*> plannedTitles;
+    for (QLabel* label : dialog.findChildren<QLabel*>()) {
+        if (label->text().startsWith(planned)) {
+            notes.push_back(label);
+            // The title is the first text of the planned page
+            plannedTitles.push_back(
+                label->parentWidget()->findChildren<QLabel*>(Qt::FindDirectChildrenOnly).front());
+        }
+    }
+    REQUIRE(notes.size() > plannedTitles.size());
+    REQUIRE_FALSE(plannedTitles.empty());
+
+    for (const QString& theme : {QStringLiteral("Dark"), QStringLiteral("Light")}) {
+        INFO(theme.toStdString());
+        REQUIRE(themes.reloadTheme(theme));
+        QApplication::processEvents();  // The windows get the palette of the theme
+        // A note lies on the window or in a group, which Fusion fills a shade darker
+        const QColor window = themes.getCurrentTheme().palette.window;
+        const QColor group = groupFillOn(window);
+        for (QLabel* note : notes) {
+            INFO(note->text().left(60).toStdString());
+            CHECK(contrastRatio(textColorOf(note), window) >= MIN_TEXT_CONTRAST);
+            CHECK(contrastRatio(textColorOf(note), group) >= MIN_TEXT_CONTRAST);
+        }
+        for (QLabel* title : plannedTitles) {
+            INFO(title->text().toStdString());
+            CHECK(textColorOf(title) == themes.getCurrentTheme().palette.windowText);
+        }
+    }
 }
 
 TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settings]") {
