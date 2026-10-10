@@ -1579,6 +1579,29 @@ may have them too.
   switch windows or programs, open the system's menus or take screenshots do not reach the
   program. Settings > Keyboard Shortcuts lists them for the system it runs on.
 
+#### Fields, Lists and Buttons
+
+Qt gives its fields, lists and buttons the keys of the system it runs on, and on Linux those
+of the desktop. The program gives them the keys of Windows on Linux as well
+(`src/gui/widget_keys.cpp`, checked by `tests/gui/test_widget_keys.cpp`):
+- in a field Ctrl+Z and Alt+Backspace undo; Ctrl+Y, Ctrl+Shift+Z and Alt+Shift+Backspace
+  redo;
+- Ctrl+D, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+Shift+A, Ctrl+Shift+Insert and the keys of Sun
+  keyboards F14, F16, F18 and F20 do nothing in a field or a list (on Linux Qt deletes, goes
+  to the end of the line, deselects, pastes, undoes, copies or cuts with them), so Align
+  Center and Underline work from a field too;
+- Left and Right over a selection move the cursor from where it is (on Linux Qt jumps to
+  the edge of the selection);
+- Shift+F10, like the Menu key, opens the context menu of the widget with the keys;
+- Enter on a check box, an option, a drop-down list or a button that is not the default one
+  goes to the window's default button (on GNOME, Xfce and the other GTK desktops it pressed
+  the button or opened the list); Space presses the button or opens the list, as before.
+
+On Windows and Linux a read-only text and a label whose text can be selected keep Ctrl+C,
+Ctrl+Insert and Ctrl+A for themselves (the window's Copy and Select All copied and selected
+the book's text), and the context menus of the fields show the keys of their items, also
+where a command of the window has the same keys. macOS keeps the keys of its own fields.
+
 #### macOS
 
 Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:

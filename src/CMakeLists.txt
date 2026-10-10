@@ -166,6 +166,7 @@ set(KALAHARI_SOURCES
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
+    gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
@@ -256,6 +257,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h

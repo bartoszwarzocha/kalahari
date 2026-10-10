@@ -40,6 +40,22 @@ namespace {
     QT_TRANSLATE_NOOP("QLineEdit", "Delete"),
     QT_TRANSLATE_NOOP("QLineEdit", "Select All"),
 
+    // Context menu of number fields (QSpinBox, QDoubleSpinBox), with the items above
+    QT_TRANSLATE_NOOP("QAbstractSpinBox", "&Select All"),
+    QT_TRANSLATE_NOOP("QAbstractSpinBox", "&Step up"),
+    QT_TRANSLATE_NOOP("QAbstractSpinBox", "Step &down"),
+
+    // Context menu of texts and of labels whose text can be selected (QTextEdit,
+    // QPlainTextEdit, QLabel)
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "&Undo"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "&Redo"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "Cu&t"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "&Copy"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "Copy &Link Location"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "&Paste"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "Delete"),
+    QT_TRANSLATE_NOOP("QWidgetTextControl", "Select All"),
+
     // Keys as the menus and Settings > Keyboard Shortcuts write them (QKeySequence::NativeText)
     QT_TRANSLATE_NOOP("QShortcut", "Ctrl"),
     QT_TRANSLATE_NOOP("QShortcut", "Shift"),

@@ -61,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the tooltips of the find bar's options take their keys from the program as well.
   - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
     with the arrows moves the cursor by paragraphs there.
+  - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
+    a field Ctrl+Y redoes and Alt+Backspace undoes; Ctrl+E and Ctrl+U center and underline
+    also from a field (Qt went to the end of the line and deleted it there), and Ctrl+D,
+    Ctrl+K, Ctrl+Shift+A and Ctrl+Shift+Insert do nothing in a field (Qt deleted,
+    deselected and pasted with them); Left and Right over a selection move the cursor from
+    where it is; Shift+F10 opens the context menu; Enter on a check box, an option, a
+    drop-down list or a button that is not the default one goes to the window's default
+    button (on GNOME, Xfce and the other GTK desktops it pressed the button or opened the
+    list). On Windows and Linux a read-only text and a selectable label keep Ctrl+C,
+    Ctrl+Insert and Ctrl+A for themselves (in the Log they copied and selected the book's
+    text), and the context menus of the fields always show their keys (Qt left out the keys
+    a command of the window has too).
   - In Polish the keys have Polish names in the menus, the tooltips and the settings
     (Strzałka w górę, Spacja, Enter).
 

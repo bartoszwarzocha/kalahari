@@ -594,6 +594,21 @@
     </message>
 </context>
 <context>
+    <name>QAbstractSpinBox</name>
+    <message>
+        <source>&amp;Select All</source>
+        <translation>&amp;Zaznacz wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Step up</source>
+        <translation>Zwięk&amp;sz</translation>
+    </message>
+    <message>
+        <source>Step &amp;down</source>
+        <translation>Z&amp;mniejsz</translation>
+    </message>
+</context>
+<context>
     <name>QLineEdit</name>
     <message>
         <source>&amp;Undo</source>
@@ -1031,6 +1046,41 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Pause</source>
         <translation>Pause</translation>
+    </message>
+</context>
+<context>
+    <name>QWidgetTextControl</name>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Link Location</source>
+        <translation>Kopiuj &amp;adres odnośnika</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>Zaznacz wszystko</translation>
     </message>
 </context>
 <context>

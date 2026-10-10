@@ -252,7 +252,8 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     row(keysFor(tr("Redo (second shortcut)"), {A::Redo}));
     row(keysFor(tr("Cut, copy, paste (second shortcuts)"), {A::Cut, A::Copy, A::Paste}));
     if (!mac) {
-        // The Menu key opens it in every widget (QContextMenuEvent), Shift+F10 in the editor
+        // The Menu key and Shift+F10 open it in every widget: the Menu key through Qt
+        // (QContextMenuEvent), Shift+F10 through Windows and on Linux through WidgetKeys
         FixedKeys menu = keysFor(tr("Context menu"), {A::ContextMenu});
         const QKeyCombination menuKey = keyWith(NONE, Qt::Key_Menu);
         menu.keys.prepend(menuKey);

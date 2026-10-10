@@ -65,6 +65,7 @@ set(TEST_SOURCES
     gui/test_shortcut_rules.cpp                  # Which keys a command can have, on each system
     gui/test_shortcut_customization.cpp          # The user's keys: registry, settings, files
     gui/test_shortcuts_page.cpp                  # Settings > Keyboard Shortcuts
+    gui/test_widget_keys.cpp                     # Qt's widgets have the keys of Windows
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
@@ -160,6 +161,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
+    ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # Menu titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
@@ -220,6 +222,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
