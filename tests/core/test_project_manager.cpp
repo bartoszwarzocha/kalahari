@@ -8,6 +8,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
 #include <QCoreApplication>
@@ -207,6 +208,83 @@ TEST_CASE("ProjectManager closes the database after projectAboutToClose", "[proj
     CHECK(pm.getDatabase() == nullptr);
     CHECK(pm.project() == nullptr);
     CHECK_FALSE(pm.isProjectOpen());
+}
+
+TEST_CASE("Closing a book backs up its database where the settings say", "[project_manager]") {
+    QTemporaryDir dir;
+    const QDir root(dir.path());
+    auto& pm = projects();
+    auto& settings = SettingsManager::getInstance();
+    settings.set<std::string>(BackupManager::FOLDER_SETTING,
+                              root.filePath("Backups").toStdString());
+    settings.set<int>(BackupManager::COUNT_SETTING, 2);
+
+    REQUIRE(pm.createProject(root.filePath("Books"), "Travels", "Anna", "en", true));
+    const QString projectFolder = pm.getProjectPath();
+    const QString manifest = QDir(projectFolder).filePath("Travels.klh");
+    // A change of the database just before the book is closed
+    ParagraphStyle style;
+    style.id = "travel_note";
+    style.name = "Travel note";
+    REQUIRE(pm.getDatabase() != nullptr);
+    pm.getDatabase()->saveParagraphStyle(style);
+    REQUIRE(pm.closeProject(false));
+
+    // The book has a folder in the common folder, and its own .backups folder stays empty
+    const QDir backups(root.filePath("Backups/Travels"));
+    const QStringList filter{QStringLiteral("project_*.db")};
+    const QStringList copies = backups.entryList(filter, QDir::Files);
+    REQUIRE(copies.size() == 1);
+    CHECK_FALSE(QFileInfo::exists(QDir(projectFolder).filePath(".backups")));
+
+    // The copy alone has the change, also when it was still in the log of the database
+    {
+        QTemporaryDir restored;
+        REQUIRE(QFile::copy(backups.filePath(copies.first()),
+                            QDir(restored.path()).filePath("project.db")));
+        ProjectDatabase database;
+        REQUIRE(database.open(restored.path()));
+        const QList<ParagraphStyle> styles = database.getParagraphStyles();
+        CHECK(std::any_of(styles.cbegin(), styles.cend(), [](const ParagraphStyle& saved) {
+            return saved.id == "travel_note";
+        }));
+        database.close();
+    }
+
+    // As many copies as the settings say: the oldest goes (the earlier copies are made older,
+    // as if they were made on other days)
+    int day = 1;
+    const auto ageCopies = [&backups, &filter, &day]() {
+        for (const QString& copy : backups.entryList(filter, QDir::Files)) {
+            if (copy.startsWith("project_2000")) {
+                continue;
+            }
+            const QString aged =
+                backups.filePath(QString("project_200001%1_000000.db").arg(day, 2, 10, QChar('0')));
+            REQUIRE(QFile::rename(backups.filePath(copy), aged));
+            QFile file(aged);
+            REQUIRE(file.open(QIODevice::ReadWrite));
+            REQUIRE(file.setFileTime(QDateTime(QDate(2000, 1, day), QTime(0, 0)),
+                                     QFileDevice::FileModificationTime));
+            ++day;
+        }
+    };
+    for (int round = 0; round < 2; ++round) {
+        ageCopies();
+        REQUIRE(pm.openProject(manifest));
+        REQUIRE(pm.closeProject(false));
+    }
+    const QStringList left = backups.entryList(filter, QDir::Files, QDir::Name);
+    REQUIRE(left.size() == 2);
+    CHECK(left.first() == "project_20000102_000000.db");
+    CHECK_FALSE(left.last().startsWith("project_2000"));
+
+    // Without a common folder the copy goes to the book's own .backups folder
+    settings.set<std::string>(BackupManager::FOLDER_SETTING, std::string());
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.closeProject(false));
+    const QDir ownBackups(QDir(projectFolder).filePath(".backups"));
+    CHECK(ownBackups.entryList(filter, QDir::Files).size() == 1);
 }
 
 TEST_CASE("ProjectManager creates a book of a type", "[project_manager]") {

@@ -2,9 +2,11 @@
 /// @brief Implementation of ProjectManager: the book project open in the program
 
 #include <kalahari/core/project_manager.h>
+#include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/resource_paths.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/editor/clipboard_handler.h>
@@ -503,8 +505,20 @@ bool ProjectManager::closeProject(bool promptSave) {
 
     // OpenSpec #00041: Backup and close database
     if (m_backupManager && m_database && m_database->isOpen()) {
+        // The copy of project.db alone has everything: what the database's log still holds
+        // goes into the file first
+        if (!m_database->checkpoint()) {
+            Logger::getInstance().warn("closeProject: The database log cannot be written to "
+                                       "project.db, so its backup can miss the last changes");
+        }
+        // Where the Folders page of the Settings says, and as many copies as it says
+        const auto& settings = SettingsManager::getInstance();
+        m_backupManager->setCommonFolder(
+            QString::fromStdString(settings.get<std::string>(BackupManager::FOLDER_SETTING)),
+            m_project ? m_project->id : QString());
         m_backupManager->createBackup();
-        m_backupManager->rotateBackups(5);
+        m_backupManager->rotateBackups(
+            std::max(1, settings.get<int>(BackupManager::COUNT_SETTING)));
     }
     if (m_database) {
         m_database->close();

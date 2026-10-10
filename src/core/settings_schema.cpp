@@ -68,7 +68,22 @@ std::map<std::string, json> buildDefaults() {
         // New projects
         {"project.defaultAuthor", ""},
         {"project.defaultLanguage", "en"},
+        // Folder of the books (Settings > Files > Folders); empty: Kalahari in Documents
         {"project.defaultLocation", ""},
+        // Folder of the archives of books; empty: Archives in the default folder of the books
+        {"project.archiveLocation", ""},
+        // One folder of the database backups of all books; empty: the .backups folder of each
+        // book
+        {"project.backupFolder", ""},
+        // How many of the newest database backups of each book are kept
+        {"project.backupCount", 5},
+        // The folders the windows of these operations used last (empty: none yet)
+        {"project.lastFolders.newBook", ""},
+        {"project.lastFolders.openBook", ""},
+        {"project.lastFolders.openFile", ""},
+        {"project.lastFolders.exportArchive", ""},
+        {"project.lastFolders.importArchive", ""},
+        {"project.lastFolders.importDestination", ""},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

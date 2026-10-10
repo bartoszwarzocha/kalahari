@@ -13,6 +13,7 @@
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_database.h"
@@ -294,6 +295,10 @@ void DocumentCoordinator::onNewProject() {
         return;
     }
 
+    // The next new book starts in the folder this one was created in
+    ProgramFolders::remember(ProgramFolders::Operation::NewBook,
+                             QFileInfo(pm.getProjectPath()).absolutePath());
+
     m_updateWindowTitle();
     logger.info("Project created: {} in {}", result.title.toStdString(),
                 result.location.toStdString());
@@ -377,7 +382,7 @@ void DocumentCoordinator::onOpenDocument() {
     QString filename = QFileDialog::getOpenFileName(
         m_mainWindow,
         tr("Open Book"),
-        QString(),
+        ProgramFolders::windowFolder(ProgramFolders::Operation::OpenBook),
         tr("Kalahari Books (*.klh)")
     );
 
@@ -385,6 +390,10 @@ void DocumentCoordinator::onOpenDocument() {
         logger.info("Open cancelled by user");
         return;
     }
+    // The next window starts in the folder that holds the folder of this book, with the
+    // folders of the other books
+    ProgramFolders::remember(ProgramFolders::Operation::OpenBook,
+                             QFileInfo(QFileInfo(filename).absolutePath()).absolutePath());
 
     // Use ProjectManager to open the project
     auto& pm = core::ProjectManager::getInstance();
@@ -881,7 +890,7 @@ void DocumentCoordinator::onOpenStandaloneFile() {
     QString filename = QFileDialog::getOpenFileName(
         m_mainWindow,
         tr("Open File"),
-        QString(),
+        ProgramFolders::windowFolder(ProgramFolders::Operation::OpenFile),
         tr("Chapters and Text Files (*.kchapter *.txt);;Chapters (*.kchapter);;"
            "Text Files (*.txt);;All Files (*)")
     );
@@ -890,6 +899,8 @@ void DocumentCoordinator::onOpenStandaloneFile() {
         logger.info("Open standalone file cancelled by user");
         return;
     }
+    ProgramFolders::remember(ProgramFolders::Operation::OpenFile,
+                             QFileInfo(filename).absolutePath());
 
     openStandaloneFile(filename);
 }
@@ -1209,11 +1220,14 @@ void DocumentCoordinator::onExportArchive() {
     QString outputPath = QFileDialog::getSaveFileName(
         m_mainWindow,
         tr("Export Project Archive"),
-        QDir::homePath() + "/" + defaultName + ".klh.zip",
+        QDir(ProgramFolders::windowFolder(ProgramFolders::Operation::ExportArchive))
+            .filePath(defaultName + QStringLiteral(".klh.zip")),
         tr("Kalahari Archive (*.klh.zip)")
     );
 
     if (outputPath.isEmpty()) return;
+    ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
+                             QFileInfo(outputPath).absolutePath());
 
     // Check for incomplete elements (not final status)
     auto incompleteElements = pm.getIncompleteElements();
@@ -1284,20 +1298,23 @@ void DocumentCoordinator::onImportArchive() {
     QString archivePath = QFileDialog::getOpenFileName(
         m_mainWindow,
         tr("Import Project Archive"),
-        QDir::homePath(),
+        ProgramFolders::windowFolder(ProgramFolders::Operation::ImportArchive),
         tr("Kalahari Archive (*.klh.zip)")
     );
 
     if (archivePath.isEmpty()) return;
+    ProgramFolders::remember(ProgramFolders::Operation::ImportArchive,
+                             QFileInfo(archivePath).absolutePath());
 
     // Select target directory
     QString targetDir = QFileDialog::getExistingDirectory(
         m_mainWindow,
         tr("Select Destination Folder"),
-        QDir::homePath()
+        ProgramFolders::windowFolder(ProgramFolders::Operation::ImportDestination)
     );
 
     if (targetDir.isEmpty()) return;
+    ProgramFolders::remember(ProgramFolders::Operation::ImportDestination, targetDir);
 
     // The book gets a folder of its own there
     const QString projectName = core::ProjectManager::archiveProjectName(archivePath);

@@ -88,11 +88,19 @@ void SettingsPage::reload(Binding& binding) {
 
 bool SettingsPage::isChanged() const {
     for (const Binding& binding : m_bindings) {
-        if (binding.shown() != binding.loaded) {
+        if (bindingChanged(binding)) {
             return true;
         }
     }
     return false;
+}
+
+bool SettingsPage::bindingChanged(const Binding& binding) {
+    return binding.shown() != binding.loaded;
+}
+
+SettingsPage::Problem SettingsPage::problem() const {
+    return {};
 }
 
 std::vector<std::string> SettingsPage::apply() {

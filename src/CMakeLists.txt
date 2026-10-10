@@ -164,6 +164,7 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/annotations_page.cpp
+    gui/settings/folders_page.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
@@ -171,6 +172,7 @@ set(KALAHARI_SOURCES
     gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
     gui/widgets/flow_layout.cpp  # FlowLayout - items in more rows in a narrow panel
     gui/widgets/sections_field.cpp  # Fields of the sections of a book: their names or none
+    gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Choose... and Restore Default
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
@@ -188,6 +190,7 @@ set(KALAHARI_SOURCES
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
+    gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
@@ -258,6 +261,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h

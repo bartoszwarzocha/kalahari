@@ -589,6 +589,37 @@
     </message>
 </context>
 <context>
+    <name>ProgramFolders</name>
+    <message>
+        <source>Archives</source>
+        <translation>Archiwa</translation>
+    </message>
+    <message>
+        <source>Backups</source>
+        <translation>Kopie zapasowe</translation>
+    </message>
+    <message>
+        <source>Give the full path of the folder.</source>
+        <translation>Podaj pełną ścieżkę folderu.</translation>
+    </message>
+    <message>
+        <source>This is a file, not a folder.</source>
+        <translation>To jest plik, a nie folder.</translation>
+    </message>
+    <message>
+        <source>The drive of this folder is not available.</source>
+        <translation>Dysk tego folderu jest niedostępny.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot create this folder.</source>
+        <translation>Kalahari nie może utworzyć tego folderu.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in this folder.</source>
+        <translation>Kalahari nie może zapisywać plików w tym folderze.</translation>
+    </message>
+</context>
+<context>
     <name>QLineEdit</name>
     <message>
         <source>&amp;Undo</source>
@@ -1492,6 +1523,100 @@ Elastyczny układ do grupowania wierszy w cykle tematyczne. Obsługuje różne f
     <message>
         <source>Show the panels on the right</source>
         <translation>Pokaż panele po prawej stronie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FolderField</name>
+    <message>
+        <source>Choose...</source>
+        <translation>Wybierz...</translation>
+    </message>
+    <message>
+        <source>Restore Default</source>
+        <translation>Przywróć domyślny</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Put the default folder in the field: %1</source>
+        <translation>Wstaw do pola folder domyślny: %1</translation>
+    </message>
+    <message>
+        <source>Kalahari will create this folder when it is first needed.</source>
+        <translation>Kalahari utworzy ten folder, gdy będzie potrzebny.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FoldersPage</name>
+    <message>
+        <source>Books</source>
+        <translation>Książki</translation>
+    </message>
+    <message>
+        <source>Books folder:</source>
+        <translation>Folder książek:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Books</source>
+        <translation>Wybierz folder książek</translation>
+    </message>
+    <message>
+        <source>Archives</source>
+        <translation>Archiwa</translation>
+    </message>
+    <message>
+        <source>Archives folder:</source>
+        <translation>Folder archiwów:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Archives</source>
+        <translation>Wybierz folder archiwów</translation>
+    </message>
+    <message>
+        <source>Database Backups</source>
+        <translation>Kopie zapasowe bazy</translation>
+    </message>
+    <message>
+        <source>In the folder of each book (its .backups folder)</source>
+        <translation>W folderze każdej książki (w jej podfolderze .backups)</translation>
+    </message>
+    <message>
+        <source>In one folder for all books:</source>
+        <translation>We wspólnym folderze wszystkich książek:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Backups</source>
+        <translation>Wybierz folder kopii zapasowych</translation>
+    </message>
+    <message>
+        <source>Folder of the backups of all books</source>
+        <translation>Folder kopii zapasowych wszystkich książek</translation>
+    </message>
+    <message>
+        <source>How many of the newest backups of each book Kalahari keeps; it deletes the older ones</source>
+        <translation>Ile najnowszych kopii każdej książki zachowuje Kalahari; starsze usuwa</translation>
+    </message>
+    <message>
+        <source>Copies to keep:</source>
+        <translation>Liczba kopii:</translation>
+    </message>
+    <message>
+        <source>When a book is closed, Kalahari copies its database (project.db) and keeps the given number of the newest copies. In the common folder each book has a folder of its own. The copies made before a change stay where they are.</source>
+        <translation>Przy zamykaniu książki Kalahari kopiuje jej bazę danych (project.db) i zachowuje podaną liczbę najnowszych kopii. We wspólnym folderze każda książka ma własny folder. Kopie zrobione przed zmianą zostają tam, gdzie są.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; cannot be used. %2</source>
+        <translation>Nie można użyć folderu „%1”. %2</translation>
+    </message>
+    <message>
+        <source>The New Book window suggests this folder for a new book, and the Open Book window and the window choosing where an imported book goes open in it. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
+        <translation>Okno „Nowa książka” proponuje ten folder jako miejsce nowej książki, a okna „Otwórz książkę” i wyboru miejsca importu otwierają się w nim. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
+    </message>
+    <message>
+        <source>The windows exporting a book and choosing an archive to import open in this folder. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
+        <translation>Okna eksportu książki i wyboru archiwum do importu otwierają się w tym folderze. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
     </message>
 </context>
 <context>
@@ -4434,18 +4559,6 @@ Czy zapisać go przed zamknięciem?</translation>
     </message>
     <message>
         <source>Planned features:
-- Automatic backup frequency
-- Backup location selection
-- Number of backup copies to keep
-- Restore from backup</source>
-        <translation>Planowane funkcje:
-- częstotliwość automatycznych kopii zapasowych
-- wybór miejsca kopii zapasowych
-- liczba przechowywanych kopii
-- przywracanie z kopii zapasowej</translation>
-    </message>
-    <message>
-        <source>Planned features:
 - Auto-save interval
 - Auto-save on focus loss
 - Session recovery options</source>
@@ -4493,6 +4606,22 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Choose a group on the left; Apply and OK save only the options you changed.</source>
         <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
+    </message>
+    <message>
+        <source>Folders</source>
+        <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Planned features:
+- Automatic backup frequency
+- Restore from backup
+
+The folder of the database backups and the number of copies kept are on the Folders page.</source>
+        <translation>Planowane funkcje:
+- częstotliwość automatycznych kopii zapasowych
+- przywracanie z kopii zapasowej
+
+Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie „Foldery”.</translation>
     </message>
 </context>
 <context>
@@ -5705,14 +5834,6 @@ Harmonogram projektu:
         <translation>Folder, w którym powstanie książka</translation>
     </message>
     <message>
-        <source>Browse...</source>
-        <translation>Przeglądaj...</translation>
-    </message>
-    <message>
-        <source>Browse for book folder</source>
-        <translation>Wybierz folder książki</translation>
-    </message>
-    <message>
         <source>Create subfolder with book name</source>
         <translation>Utwórz podfolder z nazwą książki</translation>
     </message>
@@ -5747,6 +5868,14 @@ Harmonogram projektu:
     <message>
         <source>Section names:</source>
         <translation>Nazwy sekcji:</translation>
+    </message>
+    <message>
+        <source>Choose...</source>
+        <translation>Wybierz...</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
     </message>
 </context>
 <context>

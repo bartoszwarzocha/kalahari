@@ -7,12 +7,12 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/utils/program_folders.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QFileDialog>
-#include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
 #include <QFont>
@@ -25,6 +25,7 @@
 #include <vector>
 
 using namespace kalahari::gui::dialogs;
+using kalahari::gui::ProgramFolders;
 
 namespace {
 
@@ -311,8 +312,8 @@ QWidget* NewItemDialog::createDetailsGroup() {
         m_locationEdit->setToolTip(tr("The folder where the book will be created"));
         layout->addWidget(m_locationEdit, row, 1);
 
-        m_browseBtn = new QPushButton(tr("Browse..."), group);
-        m_browseBtn->setToolTip(tr("Browse for book folder"));
+        m_browseBtn = new QPushButton(tr("Choose..."), group);
+        m_browseBtn->setToolTip(tr("Choose the folder in the system window"));
         layout->addWidget(m_browseBtn, row, 2);
         row++;
 
@@ -528,15 +529,9 @@ void NewItemDialog::loadDefaults() {
             m_languageCombo->setCurrentIndex(langIndex);
         }
 
-        // Load default location
-        std::string defaultLocation = settings.get<std::string>("project.defaultLocation");
-        if (defaultLocation.empty()) {
-            // Use Documents folder as default
-            QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-            m_locationEdit->setText(docsPath);
-        } else {
-            m_locationEdit->setText(QString::fromStdString(defaultLocation));
-        }
+        // The folder of the last new book, at first the folder of the books from the settings
+        m_locationEdit->setText(QDir::toNativeSeparators(
+            ProgramFolders::startFolder(ProgramFolders::Operation::NewBook)));
 
         // Sections: the writer's last choice for a template that shows them, none for the
         // others
@@ -676,15 +671,21 @@ void NewItemDialog::onTemplateSelected(QListWidgetItem* current, QListWidgetItem
 }
 
 void NewItemDialog::onBrowseLocation() {
-    QString currentPath = m_locationEdit->text();
-    if (currentPath.isEmpty()) {
-        currentPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    // The folder in the field; the folder the field started with is created at its first use,
+    // and a typed folder that does not exist yet opens the window in the nearest one that does
+    const QString location = m_locationEdit->text().trimmed();
+    QString start = ProgramFolders::samePath(
+                        location, ProgramFolders::startFolder(ProgramFolders::Operation::NewBook))
+                        ? ProgramFolders::windowFolder(ProgramFolders::Operation::NewBook)
+                        : ProgramFolders::existingFolderAt(location);
+    if (start.isEmpty()) {
+        start = ProgramFolders::windowFolder(ProgramFolders::Operation::NewBook);
     }
 
     QString folder = QFileDialog::getExistingDirectory(
         this,
         tr("Select Book Location"),
-        currentPath,
+        start,
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     if (!folder.isEmpty()) {
