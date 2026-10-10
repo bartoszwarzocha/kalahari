@@ -74,6 +74,17 @@ TEST_CASE("Properties panel: the counts of the editor in front, as the status ba
         CHECK(labelText(panel, "editorReadingTime") == gui::utils::readingTimeText(words));
     }
 
+    SECTION("new rules of counting: the numbers follow at once, without an edit") {
+        bookEditor->fromKml(test::kmlOf({QStringLiteral("– Yes – he said.")}));
+        waitForPanel();
+        REQUIRE(labelText(panel, "editorWordCount") == QStringLiteral("3"));
+        core::WordCountRules dashesAsWords;
+        dashesAsWords.dashesAreWords = true;
+        bookEditor->setWordCountRules(dashesAsWords);
+        waitForPanel();
+        CHECK(labelText(panel, "editorWordCount") == QStringLiteral("5"));
+    }
+
     SECTION("no editor in front: nothing to count") {
         panel.setActiveEditor(nullptr);
         panel.refresh();

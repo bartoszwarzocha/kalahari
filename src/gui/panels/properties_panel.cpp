@@ -690,6 +690,9 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
     // Typing changes the counts without a cursor signal
     connect(bookEditor, &editor::BookEditor::contentChanged,
             this, &PropertiesPanel::onEditorCursorChanged);
+    // So do new rules of counting, without an edit
+    connect(bookEditor, &editor::BookEditor::countsChanged,
+            this, &PropertiesPanel::onEditorCursorChanged);
 
     // Show editor properties and update stats
     showEditorProperties();
@@ -707,6 +710,8 @@ void PropertiesPanel::disconnectFromEditor() {
         disconnect(bookEditor, &editor::BookEditor::cursorPositionChanged,
                    this, &PropertiesPanel::onEditorCursorChanged);
         disconnect(bookEditor, &editor::BookEditor::contentChanged,
+                   this, &PropertiesPanel::onEditorCursorChanged);
+        disconnect(bookEditor, &editor::BookEditor::countsChanged,
                    this, &PropertiesPanel::onEditorCursorChanged);
     }
 
