@@ -1066,9 +1066,13 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when its rows get
     const int listHeight = list->height();
     const int room = list->viewport()->height();
 
-    QFont font = list->header()->font();
+    // A larger font makes the header higher. A style can keep the header's height whatever
+    // the font (that of macOS does): the minimum height makes it higher there too.
+    QHeaderView* header = list->header();
+    header->setMinimumHeight(header->height() * 2);
+    QFont font = header->font();
     font.setPixelSize(QFontInfo(font).pixelSize() * 2);
-    list->header()->setFont(font);
+    header->setFont(font);
     settle();
     INFO("after: " << placeOf(list, item));
     REQUIRE(list->height() == listHeight);
