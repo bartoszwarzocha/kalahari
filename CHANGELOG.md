@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Annotations: the frame closes with a click beside it or with its X** - 2026-10-09. A
-  click in the text beside the frame of an annotation, or on the X in its top right
-  corner, closes it and keeps what was written, as Ctrl+Enter does; a new annotation left
-  empty is not added. Esc still drops what was written.
+- **Annotations: the frame closes when the writer goes elsewhere, or with its X** -
+  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
+  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
+  toolbar or the menu bar), the keys going to another place of the program, or the X in
+  its top right corner; a new annotation left empty is not added. The frame stays open
+  while another application is in front, for its own context menu and while the text is
+  scrolled with the scroll bars. Esc still drops what was written.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed

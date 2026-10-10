@@ -7,6 +7,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
 #include <QEvent>
+#include <QFocusEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -14,6 +15,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextEdit>
@@ -23,6 +25,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -58,6 +62,28 @@ bool reachesWindow(const QKeyEvent* event) {
     return event->matches(QKeySequence::Save) || event->matches(QKeySequence::SaveAs) ||
            event->matches(QKeySequence::Close) || event->matches(QKeySequence::Quit);
 }
+
+/// @brief Tells of every mouse press of the program before it goes on, the second press of
+/// a double click too (installed on the application)
+class PressWatcher : public QObject {
+public:
+    using Handler = std::function<void(QObject* receiver)>;
+
+    PressWatcher(Handler handler, QObject* parent)
+        : QObject(parent)
+        , m_handler(std::move(handler)) {}
+
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonPress ||
+            event->type() == QEvent::MouseButtonDblClick) {
+            m_handler(watched);
+        }
+        return false;
+    }
+
+private:
+    Handler m_handler;
+};
 
 }  // namespace
 
@@ -108,7 +134,7 @@ AnnotationFrame::AnnotationFrame(QWidget* editor)
     m_closeButton->setAccessibleName(tr("Close"));
     m_closeButton->setFocusPolicy(Qt::NoFocus);
     m_closeButton->setAutoRaise(true);
-    connect(m_closeButton, &QToolButton::clicked, this, &AnnotationFrame::closeRequested);
+    connect(m_closeButton, &QToolButton::clicked, this, &AnnotationFrame::requestClose);
     header->addWidget(m_closeButton);
     layout->addLayout(header);
 
@@ -151,6 +177,13 @@ AnnotationFrame::AnnotationFrame(QWidget* editor)
     // The frame follows its place as the editor changes
     editor->installEventFilter(this);
     updateTextHeight();
+
+    // While it is shown, a click anywhere else in the program closes it
+    m_pressWatcher = new PressWatcher([this](QObject* receiver) { onPress(receiver); }, this);
+}
+
+AnnotationFrame::~AnnotationFrame() {
+    stopWatching();  // nothing of the program reaches a frame being destroyed
 }
 
 QString AnnotationFrame::saveKeysText() {
@@ -256,6 +289,119 @@ void AnnotationFrame::requestSave() {
     }
 }
 
+void AnnotationFrame::requestCancel() {
+    m_closing = true;  // what was written is not kept afterwards
+    emit cancelRequested();
+}
+
+void AnnotationFrame::requestClose() {
+    if (!m_closing) {
+        m_closing = true;
+        emit closeRequested();
+    }
+}
+
+void AnnotationFrame::startWatching() {
+    if (m_watching) {
+        return;
+    }
+    m_watching = true;
+    qApp->installEventFilter(m_pressWatcher);
+    connect(qApp, &QApplication::focusChanged, this, &AnnotationFrame::onFocusChanged);
+}
+
+void AnnotationFrame::stopWatching() {
+    if (!m_watching) {
+        return;
+    }
+    m_watching = false;
+    qApp->removeEventFilter(m_pressWatcher);
+    disconnect(qApp, &QApplication::focusChanged, this, &AnnotationFrame::onFocusChanged);
+}
+
+void AnnotationFrame::onPress(QObject* receiver) {
+    if (!receiver->isWidgetType()) {
+        return;
+    }
+    const auto* widget = static_cast<const QWidget*>(receiver);
+
+    // Closed before the click goes on: the click acts on what the frame kept
+    if (leavesFrame(widget)) {
+        requestClose();
+        return;
+    }
+
+    // Qt gives the keys to the first widget under a click that takes them, before the click
+    // arrives: a click on the editor's scroll bars gives them to the editor. They come back
+    // to where they were in the frame (also while the window is not in front yet)
+    if (!isFrameWidget(widget) && !isFrameWidget(window()->focusWidget())) {
+        QWidget* keys = focusWidget();
+        if (keys == nullptr || !isAncestorOf(keys)) {
+            keys = m_textEdit;
+        }
+        keys->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void AnnotationFrame::onFocusChanged(QWidget* old, QWidget* now) {
+    if (isFrameWidget(now)) {
+        m_keysAway = false;
+        m_keysLeftByMouse = false;
+        return;
+    }
+    if (old != nullptr ? !isFrameWidget(old) : !m_keysAway) {
+        return;  // the keys were not in the frame
+    }
+    const bool byMouse = std::exchange(m_keysLeftByMouse, false);
+
+    // No window of the program has the keys: another application is in front. The frame
+    // stays open; the keys come back to it with the program's window
+    if (now == nullptr) {
+        m_keysAway = true;
+        return;
+    }
+    m_keysAway = false;
+
+    // Taken by a click before it arrives: the click decides (see onPress). The wheel takes
+    // them to a field it turns, with no click to decide: looked at once the event is over
+    if (byMouse) {
+        QTimer::singleShot(0, this, &AnnotationFrame::checkKeys);
+        return;
+    }
+    if (leavesFrame(now)) {
+        requestClose();
+    }
+}
+
+void AnnotationFrame::checkKeys() {
+    const QWidget* keys = QApplication::focusWidget();
+    if (m_watching && keys != nullptr && leavesFrame(keys)) {
+        requestClose();
+    }
+}
+
+bool AnnotationFrame::isFrameWidget(const QWidget* widget) const {
+    return widget != nullptr && (widget == this || isAncestorOf(widget));
+}
+
+bool AnnotationFrame::leavesFrame(const QWidget* widget) const {
+    if (isFrameWidget(widget)) {
+        return false;
+    }
+
+    // A menu or a list over everything (the frame's own context menu among them) goes and
+    // gives the keys back; a tooltip goes at a click
+    const Qt::WindowType type = widget->window()->windowType();
+    if (type == Qt::Popup || type == Qt::ToolTip) {
+        return false;
+    }
+
+    // The editor's scroll bars only move the view: the frame goes along with its place
+    const QWidget* editorWidget = parentWidget();
+    return qobject_cast<const QScrollBar*>(widget) == nullptr || editorWidget == nullptr ||
+           !editorWidget->isAncestorOf(widget);
+}
+
 void AnnotationFrame::paintEvent(QPaintEvent* event) {
     Q_UNUSED(event)
     QPainter painter(this);
@@ -287,7 +433,7 @@ void AnnotationFrame::resizeEvent(QResizeEvent* event) {
 
 void AnnotationFrame::keyPressEvent(QKeyEvent* event) {
     if (isCancelKey(event)) {
-        emit cancelRequested();
+        requestCancel();
     } else if (isSaveKey(event)) {
         requestSave();
     }
@@ -298,14 +444,20 @@ void AnnotationFrame::keyReleaseEvent(QKeyEvent* event) {
     event->accept();
 }
 
+void AnnotationFrame::showEvent(QShowEvent* event) {
+    QFrame::showEvent(event);
+    startWatching();
+}
+
+void AnnotationFrame::hideEvent(QHideEvent* event) {
+    stopWatching();
+    QFrame::hideEvent(event);
+}
+
 bool AnnotationFrame::eventFilter(QObject* watched, QEvent* event) {
     if (watched == parentWidget()) {
         if (event->type() == QEvent::Paint || event->type() == QEvent::Resize) {
             schedulePlacement();
-        } else if (event->type() == QEvent::MouseButtonPress && !isHidden()) {
-            // A click in the editor beside the frame closes it; the click goes on to the
-            // editor
-            emit closeRequested();
         }
         return false;
     }
@@ -314,6 +466,10 @@ bool AnnotationFrame::eventFilter(QObject* watched, QEvent* event) {
     }
 
     switch (event->type()) {
+    case QEvent::FocusOut:
+        // A click or the wheel taking the keys elsewhere (see onFocusChanged)
+        m_keysLeftByMouse = static_cast<QFocusEvent*>(event)->reason() == Qt::MouseFocusReason;
+        return false;
     case QEvent::ShortcutOverride: {
         // The keys stay in the frame: no shortcut of the window but saving, closing and
         // quitting
@@ -327,7 +483,7 @@ bool AnnotationFrame::eventFilter(QObject* watched, QEvent* event) {
     case QEvent::KeyPress: {
         auto* key = static_cast<QKeyEvent*>(event);
         if (isCancelKey(key)) {
-            emit cancelRequested();
+            requestCancel();
             return true;
         }
         if (isSaveKey(key) ||
