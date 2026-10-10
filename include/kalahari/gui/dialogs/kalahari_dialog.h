@@ -10,13 +10,16 @@ class QDialogButtonBox;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
-class QScrollArea;
+class QMargins;
 class QShowEvent;
 class QSize;
 class QVBoxLayout;
 
 namespace kalahari {
 namespace gui {
+
+class FittingScrollArea;
+
 namespace dialogs {
 
 /// @brief The base of the program's own dialogs
@@ -80,7 +83,8 @@ public:
     /// @param visible true to show it (by default it is hidden)
     void setApplyButtonVisible(bool visible);
 
-    /// @brief At least the minimum width, and the height the content needs at that width
+    /// @brief At least the minimum width, and the height the heading and the content need
+    ///        at that width
     QSize sizeHint() const override;
 
 protected:
@@ -91,6 +95,10 @@ protected:
     /// @brief Resize to @p wanted, or less where the screen is smaller, and keep the
     ///        whole window on the screen (e.g. after details were shown)
     void fitToScreen(const QSize& wanted);
+
+    /// @brief The window's frame the system adds around the dialog: its own when the window
+    ///        exists, else the style's guess
+    QMargins frameMargins() const;
 
     /// @brief The buttons that close the dialog, for a dialog that adds one of its own
     QDialogButtonBox* buttonBox() const { return m_buttonBox; }
@@ -116,7 +124,7 @@ private:
     QLabel* m_iconLabel = nullptr;
     QLabel* m_titleLabel = nullptr;
     QLabel* m_descriptionLabel = nullptr;
-    QScrollArea* m_contentArea = nullptr;
+    FittingScrollArea* m_contentArea = nullptr;
     QVBoxLayout* m_contentLayout = nullptr;
     QDialogButtonBox* m_buttonBox = nullptr;
     QHBoxLayout* m_sideButtonLayout = nullptr;

@@ -3,19 +3,19 @@
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QDialogButtonBox>
-#include <QScrollBar>
 #include <QFont>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QScreen>
-#include <QScrollArea>
 #include <QShowEvent>
 #include <QStyle>
 #include <QVBoxLayout>
+#include <QWindow>
 
 #include <algorithm>
 
@@ -32,42 +32,6 @@ constexpr int COMPACT_MARGIN = 8;         ///< Above and below a compact heading
 constexpr int MINIMUM_WIDTH = 460;        ///< Room for a title in a field
 constexpr qreal TITLE_SCALE = 1.3;        ///< Size of the heading's title against the dialog's font
 constexpr qreal COMPACT_TITLE_SCALE = 1.1;
-
-/// @brief Room for the content that asks for all the content needs and scrolls only when
-///        the screen cannot give it (a plain QScrollArea asks for a fixed, small size)
-class ContentArea : public QScrollArea {
-public:
-    using QScrollArea::QScrollArea;
-
-    QSize sizeHint() const override
-    {
-        return widget() ? widget()->sizeHint() : QScrollArea::sizeHint();
-    }
-
-    QSize minimumSizeHint() const override
-    {
-        // Never narrower than the content (a wrapped text gets taller instead), but as
-        // low as a small screen needs: the rest scrolls
-        constexpr int LOWEST = 80;
-        if (!widget()) {
-            return QScrollArea::minimumSizeHint();
-        }
-        const QSize content = widget()->minimumSizeHint();
-        return {content.width() + verticalScrollBar()->sizeHint().width(),
-                std::min(content.height(), LOWEST)};
-    }
-
-protected:
-    /// The dialog's layout keeps the area's old size: content shown or hidden later
-    /// (e.g. the details of a message) tells it the new one
-    bool eventFilter(QObject* watched, QEvent* event) override
-    {
-        if (watched == widget() && event->type() == QEvent::LayoutRequest) {
-            updateGeometry();
-        }
-        return QScrollArea::eventFilter(watched, event);
-    }
-};
 
 } // anonymous namespace
 
@@ -120,17 +84,12 @@ KalahariDialog::KalahariDialog(QWidget* parent)
     auto* body = new QVBoxLayout();
     body->setContentsMargins(MARGIN, MARGIN, MARGIN, MARGIN);
     body->setSpacing(MARGIN);
-    m_contentArea = new ContentArea(this);
-    m_contentArea->setFrameShape(QFrame::NoFrame);
-    m_contentArea->setWidgetResizable(true);
-    m_contentArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto* content = new QWidget(m_contentArea);
+    auto* content = new QWidget();
     m_contentLayout = new QVBoxLayout(content);
     m_contentLayout->setContentsMargins(0, 0, 0, 0);
     m_contentLayout->setSpacing(SPACING);
-    m_contentArea->setWidget(content);
+    m_contentArea = new FittingScrollArea(content, this);
     m_contentArea->viewport()->setAutoFillBackground(false);
-    content->setAutoFillBackground(false);
     body->addWidget(m_contentArea, 1);
 
     m_buttonBox = new QDialogButtonBox(this);
@@ -213,10 +172,14 @@ QSize KalahariDialog::sizeHint() const
     // The plain hint is narrower than the minimum width, and its height is for that
     // width: wrapped heading texts take more lines there, which would leave a gap
     // above the buttons of the wider dialog
+    // The content's own wrapped texts are measured at its own, narrower hint: at the
+    // dialog's width they take fewer lines
     QSize hint = QDialog::sizeHint().expandedTo(minimumSize());
-    if (layout()->hasHeightForWidth()) {
-        hint.setHeight(layout()->totalHeightForWidth(hint.width()));
-    }
+    const int height = layout()->hasHeightForWidth() ? layout()->totalHeightForWidth(hint.width())
+                                                     : hint.height();
+    const int contentWidth = hint.width() - 2 * MARGIN;
+    hint.setHeight(height - m_contentArea->sizeHint().height() +
+                   m_contentArea->contentHeightForWidth(contentWidth));
     return hint;
 }
 
@@ -243,10 +206,7 @@ void KalahariDialog::fitToScreen(const QSize& wanted)
         return;
     }
     // Room for the window's title bar and border, which the system adds around it
-    const int border = style()->pixelMetric(QStyle::PM_DefaultFrameWidth, nullptr, this);
-    const int titleBar = style()->pixelMetric(QStyle::PM_TitleBarHeight, nullptr, this);
-    const QRect available = screen->availableGeometry().adjusted(
-        border, titleBar + border, -border, -border);
+    const QRect available = screen->availableGeometry() - frameMargins();
 
     const QSize fitting = wanted.boundedTo(available.size()).expandedTo(minimumSize());
     if (fitting != size()) {
@@ -260,6 +220,22 @@ void KalahariDialog::fitToScreen(const QSize& wanted)
     if (placed.topLeft() != geometry().topLeft()) {
         move(placed.topLeft() - (geometry().topLeft() - pos()));
     }
+}
+
+QMargins KalahariDialog::frameMargins() const
+{
+    // The system knows its frame once the window exists (a title bar of about 31 px and a
+    // border of 8 px on Windows); before that, or without a frame, the style's guess
+    const QWindow* window = windowHandle();
+    if (window) {
+        const QMargins margins = window->frameMargins();
+        if (!margins.isNull()) {
+            return margins;
+        }
+    }
+    const int border = style()->pixelMetric(QStyle::PM_DefaultFrameWidth, nullptr, this);
+    const int titleBar = style()->pixelMetric(QStyle::PM_TitleBarHeight, nullptr, this);
+    return {border, titleBar + border, border, border};
 }
 
 void KalahariDialog::updateHeadingStyle()

@@ -72,6 +72,7 @@ set(TEST_SOURCES
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
     gui/test_tool_button_columns.cpp             # Panel buttons that wrap into columns
+    gui/test_fitting_scroll_area.cpp             # Content that scrolls only on a small screen
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
@@ -175,6 +176,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/tool_button_columns.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/fitting_scroll_area.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
@@ -228,6 +230,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT

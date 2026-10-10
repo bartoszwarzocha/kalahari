@@ -24,7 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
   past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
   the heading and the buttons stay in view, and a window opens as tall as the screen allows
-  before it scrolls. About, the Toolbar Manager, the icon downloader and the main window
+  before it scrolls. In a lower window lists first give up their room, and only then the
+  content scrolls; wrapped texts leave no empty line above the buttons, and the title bar
+  stays on the screen. About, the Toolbar Manager, the icon downloader and the main window
   also open within the screen. The command line help (`--help`) and its errors show in the
   program's window, in Polish when the program runs in Polish. In the Toolbar Manager a
   renamed toolbar stays selected and the command names are no longer cut off. The icon
