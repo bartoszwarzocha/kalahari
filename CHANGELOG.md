@@ -311,6 +311,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offers in each part of the book and in the Workshop, what a new book starts with, and its
   styles. A registry in core loads and checks them. Nothing uses it yet, so the program
   works as before; the New Book and Add Element windows will use it in later stages.
+- **Spelling as you type** - 2026-10-09
+  - The editor underlines misspelled words with a wavy line, in the book's language (set in
+    its properties) or in the language chosen in Settings > Editor > Spelling. Polish and
+    English dictionaries come with the program; those of LibreOffice and of the system
+    (Linux, macOS) are found too. When the language has no dictionary, the status bar
+    says so. The languages go by their names in the language of the program (in the
+    Polish one: francuski), also in the list of the dictionaries in the settings.
+  - The paragraphs on the screen are checked first, the rest of the chapter in short steps
+    between the key presses, so typing stays smooth also in a long chapter. The word being
+    typed gets its line when the cursor leaves it, and the lines of the other words stay
+    in place while the text around them is edited.
+  - A right click on a misspelled word offers up to five words to put in its place,
+    Ignore All (the word is right until the program closes) and Add to Dictionary (right
+    for good), above the usual commands.
+  - The likeliest word comes first: a word typed without its accents gets the word with
+    them (ktory: który, Lodz: Łódź), a word starting a sentence also gets the words written
+    small (Teh: The), while a misspelled name still gets the name, and the writer's own
+    words close to the misspelled one are offered too.
+  - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
+    from the cursor round the chapter, and opens the same menu under it; the menu key and
+    Shift+F10 open it for the word at the cursor.
+  - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
+    chapters, and remembers it. Settings > Editor > Spelling has the same switch, the
+    language and the list of the writer's own words, which can be added and removed there;
+    they are kept in `user_dictionary.txt` next to `settings.json`.
+  - The dictionary is loaded in the background, once for all open chapters, and a
+    language change does not stop the work.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a

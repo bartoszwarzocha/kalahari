@@ -14,6 +14,9 @@ class QMainWindow;
 class QStatusBar;
 
 namespace kalahari {
+namespace editor {
+class SpellCheckService;
+}
 namespace gui {
 
 class DashboardPanel;
@@ -57,6 +60,9 @@ public:
     /// @param callback Function returning current diagnostic mode state
     void setDiagnosticModeGetter(std::function<bool()> callback);
 
+    /// @brief The dictionary of the editors, whose own words the dialog edits
+    void setSpellCheckService(editor::SpellCheckService* service);
+
 public slots:
     /// @brief React to settings applied by the dialog, refreshing only what changed
     /// @param changedKeys Keys of the settings written
@@ -74,6 +80,7 @@ private:
     DockCoordinator* m_dockCoordinator;
     QStatusBar* m_statusBar;
     std::function<bool()> m_diagnosticModeGetter;
+    editor::SpellCheckService* m_spellCheckService = nullptr;  ///< Not owned
     bool m_languageChanged = false;  ///< UI language changed while the dialog was open
 
     /// @brief Offer to restart Kalahari so a new UI language takes effect

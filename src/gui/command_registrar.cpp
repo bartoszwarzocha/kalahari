@@ -412,10 +412,15 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       nullptr);
 
-    REG_CMD_TOOL_ICON("tools.spellcheck", QT_TRANSLATE_NOOP("CommandRegistrar", "Spellchecker"), "TOOLS/Spellchecker", 40, false, 2,
-                      KeyboardShortcut(),
+    // Turns the spelling as you type on and off (SpellingCoordinator gives it its callback)
+    REG_CMD_TOOL_ICON("tools.spellcheck", QT_TRANSLATE_NOOP("CommandRegistrar", "Check Spelling as You Type"), "TOOLS/Check Spelling as You Type", 40, false, 0,
+                      KeyboardShortcut(Qt::Key_F7, Qt::ShiftModifier),
                       IconSet(),
                       nullptr);
+
+    // Selects the next misspelled word and offers what to put in its place (SpellingCoordinator)
+    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Next Misspelling"), "TOOLS/Next Misspelling", 45, false, 0,
+                KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
     REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Grammar Check"), "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "Readability Score"), "TOOLS/Readability Score", 60, true, 2);

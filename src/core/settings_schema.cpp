@@ -83,7 +83,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.firstLineIndent", true},
         {"editor.indentSize", 24.0},
 
-        // Editor: spelling. An empty language follows the book's language
+        // Editor: spelling as you type. The language is a dictionary (pl_PL) or a language
+        // (pl); empty: the book's language
+        {"editor.spellCheck.enabled", true},
         {"editor.spellCheck.language", ""},
 
         // Editor: grammar. The address of the user's LanguageTool server; empty: off
