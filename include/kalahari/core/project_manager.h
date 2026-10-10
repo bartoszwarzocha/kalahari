@@ -378,7 +378,7 @@ public:
     /// @param problems What went wrong, one problem per line; may be nullptr
     /// @return true if the archive was written
     bool exportArchive(const QString& outputPath,
-                       std::function<void(int)> progressCallback = nullptr,
+                       const std::function<void(int)>& progressCallback = nullptr,
                        QStringList* problems = nullptr);
 
     /// @brief Unpack a .klh.zip archive to a new folder and open the project in it
@@ -394,7 +394,7 @@ public:
     /// @return true if the project was unpacked and opened
     bool importArchive(const QString& archivePath,
                        const QString& targetDir,
-                       std::function<void(int)> progressCallback = nullptr,
+                       const std::function<void(int)>& progressCallback = nullptr,
                        QStringList* problems = nullptr);
 
     /// @brief Name of the folder that importArchive() makes for @p archivePath: the archive's

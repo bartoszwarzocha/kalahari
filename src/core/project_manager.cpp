@@ -1320,7 +1320,7 @@ QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace
 }
 
 bool ProjectManager::exportArchive(const QString& outputPath,
-                                   std::function<void(int)> progressCallback,
+                                   const std::function<void(int)>& progressCallback,
                                    QStringList* problems) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problems](const QString& problem) {
@@ -1396,7 +1396,7 @@ bool ProjectManager::exportArchive(const QString& outputPath,
 
 bool ProjectManager::importArchive(const QString& archivePath,
                                    const QString& targetDir,
-                                   std::function<void(int)> progressCallback,
+                                   const std::function<void(int)>& progressCallback,
                                    QStringList* problems) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problems](const QString& problem) {
