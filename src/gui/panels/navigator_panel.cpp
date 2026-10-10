@@ -8,6 +8,7 @@
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
@@ -28,7 +29,6 @@
 #include <QPalette>
 #include <QBrush>
 #include <QDropEvent>
-#include <QMessageBox>
 #include <functional>
 
 
@@ -1647,7 +1647,8 @@ void NavigatorPanel::onContextMenuSetStatus(QAction* action) {
     // ProjectManager saves the project at once
     auto& pm = core::ProjectManager::getInstance();
     if (!pm.setStatus(elementId, newStatus)) {
-        QMessageBox::warning(this, tr("Status Change Failed"), tr("Failed to save changes."));
+        dialogs::MessageDialog::warning(this, tr("Status Change Failed"),
+                                        tr("Failed to save changes."));
         return;
     }
     refreshItem(elementId);

@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/core/logger.h"
@@ -25,7 +26,6 @@
 #include <QScrollArea>
 #include <QEvent>
 #include <QDateTime>
-#include <QMessageBox>
 
 namespace kalahari {
 namespace gui {
@@ -850,7 +850,7 @@ void PropertiesPanel::onChapterTitleChanged() {
     // ProjectManager saves the project at once, and the title to the .kchapter file
     if (!pm.renameElement(m_currentChapterId, newTitle)) {
         m_chapterTitleEdit->setText(previousTitle);
-        QMessageBox::warning(this, tr("Rename Failed"), tr("Failed to save changes."));
+        dialogs::MessageDialog::warning(this, tr("Rename Failed"), tr("Failed to save changes."));
         return;
     }
 
@@ -874,7 +874,8 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     // ProjectManager saves the project at once, and a copy of the status to the .kchapter file
     if (!pm.setStatus(m_currentChapterId, statusCode)) {
         selectChapterStatus(core::ProjectManager::statusOf(*element));
-        QMessageBox::warning(this, tr("Status Change Failed"), tr("Failed to save changes."));
+        dialogs::MessageDialog::warning(this, tr("Status Change Failed"),
+                                        tr("Failed to save changes."));
         return;
     }
 

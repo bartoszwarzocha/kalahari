@@ -4,6 +4,7 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -13,11 +14,10 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
-#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
-#include <QMessageBox>
+#include <QDir>
 #include <chrono>
 #include <optional>
 
@@ -264,11 +264,8 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
     // ProjectManager saves the project at once
     if (!pm.renameElement(elementId, newTitle)) {
         logger.error("NavigatorCoordinator: Failed to save the project after rename");
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Rename Failed"),
-            tr("Failed to save changes.")
-        );
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Rename Failed"),
+                                        tr("Failed to save changes."));
         return;
     }
     logger.info("NavigatorCoordinator: Renamed element '{}' to '{}'",
@@ -294,32 +291,27 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         logger.warn("NavigatorCoordinator: Element not found for delete: {}", elementId.toStdString());
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Delete Failed"),
-            tr("Could not find the element to delete.")
-        );
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Delete Failed"),
+                                        tr("Could not find the element to delete."));
         return;
     }
 
-    // Confirm deletion, naming the element's kind in the program's language ("chapter"); a
-    // kind of a package that is not installed is named by its id ("title page")
-    const core::KindRef kind = pm.kindOf(*element);
-    const QString kindName = kind
-        ? kind.kind->name
-              .text(QString::fromStdString(core::SettingsManager::getInstance().getLanguage()))
-              .toLower()
-        : QString(element->kind.kindId).replace(QLatin1Char('_'), QLatin1Char(' '));
-
-    auto reply = QMessageBox::question(
-        qobject_cast<QWidget*>(parent()),
-        tr("Confirm Delete"),
-        tr("Are you sure you want to delete this %1?\n\nThis action cannot be undone.")
-            .arg(kindName),
-        QMessageBox::Yes | QMessageBox::No
-    );
-
-    if (reply != QMessageBox::Yes) {
+    // Confirm deletion, saying where the files go: they stay in the book's folder
+    QString question = tr("Delete \"%1\" from the book?").arg(element->title);
+    if (!element->file.isEmpty()) {
+        question += QStringLiteral("\n\n") +
+                    tr("Its file stays in the book's folder:\n%1")
+                        .arg(QDir::toNativeSeparators(pm.filePathOf(*element)));
+    }
+    if (!element->elements.isEmpty()) {
+        question += QStringLiteral("\n\n") +
+                    tr("The elements inside it are deleted from the book too; their files stay "
+                       "in the book's folder.");
+    }
+    if (!dialogs::MessageDialog::confirm(qobject_cast<QWidget*>(parent()), tr("Confirm Delete"),
+                                         question, tr("&Delete"),
+                                         dialogs::MessageDialog::Kind::Warning,
+                                         dialogs::MessageDialog::DefaultButton::Cancel)) {
         return;
     }
 
@@ -328,11 +320,8 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     const std::optional<core::ProjectElement> removed = pm.removeElement(elementId);
     if (!removed) {
         logger.error("NavigatorCoordinator: Failed to save the project after delete");
-        QMessageBox::warning(
-            qobject_cast<QWidget*>(parent()),
-            tr("Delete Failed"),
-            tr("Failed to save changes.")
-        );
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Delete Failed"),
+                                        tr("Failed to save changes."));
         return;
     }
     logger.info("NavigatorCoordinator: Deleted element: {}", elementId.toStdString());
@@ -488,11 +477,8 @@ void NavigatorCoordinator::onRequestAddChapter(const QString& groupId) {
         const core::ProjectElement* group = pm.findElement(groupId);
         if (!group) {
             logger.error("NavigatorCoordinator: Part not found: {}", groupId.toStdString());
-            QMessageBox::warning(
-                qobject_cast<QWidget*>(parent()),
-                tr("Add Chapter Failed"),
-                tr("Part not found.")
-            );
+            dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
+                                            tr("Add Chapter Failed"), tr("Part not found."));
             return;
         }
         groupTitle = group->title;
@@ -612,8 +598,8 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
         } else if (dialogKind == dialogs::NewElementKind::Part) {
             failedTitle = tr("Add Part Failed");
         }
-        QMessageBox::warning(qobject_cast<QWidget*>(parent()), failedTitle,
-                             tr("Failed to save changes."));
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), failedTitle,
+                                        tr("Failed to save changes."));
         return;
     }
     logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),

@@ -853,6 +853,10 @@ Uruchomić ponownie teraz?</translation>
         <source>Annotations</source>
         <translation>Uwagi</translation>
     </message>
+    <message>
+        <source>&amp;Reset</source>
+        <translation>&amp;Przywróć</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -2554,14 +2558,6 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
         <translation>Nie udało się zapisać pliku: %1</translation>
     </message>
     <message>
-        <source>Failed to save file: %1
-
-%2</source>
-        <translation>Nie udało się zapisać pliku: %1
-
-%2</translation>
-    </message>
-    <message>
         <source>Saved: %1</source>
         <translation>Zapisano: %1</translation>
     </message>
@@ -2606,6 +2602,26 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
 %1</source>
         <translation>Książka została zaimportowana do folderu:
 %1</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Do&amp;n&apos;t Save</source>
+        <translation>&amp;Nie zapisuj</translation>
+    </message>
+    <message>
+        <source>&amp;Close Book</source>
+        <translation>&amp;Zamknij książkę</translation>
+    </message>
+    <message>
+        <source>&amp;Export</source>
+        <translation>&amp;Eksportuj</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose Another Folder</source>
+        <translation>&amp;Wybierz inny folder</translation>
     </message>
 </context>
 <context>
@@ -3319,6 +3335,14 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Untitled</source>
         <translation>Bez tytułu</translation>
     </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Do&amp;n&apos;t Save</source>
+        <translation>&amp;Nie zapisuj</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -3345,14 +3369,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Confirm Delete</source>
         <translation>Potwierdź usunięcie</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to delete this %1?
-
-This action cannot be undone.</source>
-        <translation>Czy na pewno usunąć ten element (%1)?
-
-Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Deleted successfully</source>
@@ -3401,6 +3417,24 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Add Item Failed</source>
         <translation>Nie udało się dodać elementu</translation>
+    </message>
+    <message>
+        <source>Delete &quot;%1&quot; from the book?</source>
+        <translation>Usunąć „%1” z książki?</translation>
+    </message>
+    <message>
+        <source>Its file stays in the book&apos;s folder:
+%1</source>
+        <translation>Plik elementu zostanie w folderze książki:
+%1</translation>
+    </message>
+    <message>
+        <source>The elements inside it are deleted from the book too; their files stay in the book&apos;s folder.</source>
+        <translation>Elementy, które zawiera, też zostaną usunięte z książki; ich pliki zostaną w folderze książki.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
     </message>
 </context>
 <context>

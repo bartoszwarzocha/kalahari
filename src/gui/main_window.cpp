@@ -15,6 +15,7 @@
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/menu_builder.h"
@@ -61,7 +62,6 @@
 #include <QToolButton>
 #include <QStyle>
 #include <QProgressDialog>
-#include <QInputDialog>
 #include <QTimer>
 #include <map>
 
@@ -1068,24 +1068,22 @@ void MainWindow::createDocks() {
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
         if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
-            auto reply = QMessageBox::question(
-                this,
-                tr("Unsaved Changes"),
+            const auto reply = dialogs::MessageDialog::ask(
+                this, tr("Unsaved Changes"),
                 tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                QMessageBox::Save);
+                tr("&Save"), tr("Do&n't Save"));
 
-            if (reply == QMessageBox::Cancel) {
+            if (reply == dialogs::MessageDialog::Answer::Cancel) {
                 return;  // Do NOT close the tab.
             }
 
-            if (reply == QMessageBox::Save) {
+            if (reply == dialogs::MessageDialog::Answer::Accept) {
                 // Close the tab only once its content is saved: a failed or cancelled
                 // save keeps it open, with its changes
                 if (!m_documentCoordinator->saveEditor(editor)) {
                     return;
                 }
-            } else {  // QMessageBox::Discard
+            } else {  // Don't Save
                 m_documentCoordinator->discardEditorChanges(editor);
             }
         }
@@ -1303,26 +1301,22 @@ void MainWindow::closeEvent(QCloseEvent* event) {
             ? m_documentCoordinator->unsavedDocumentNames() : QStringList();
         const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
 
-        auto reply = QMessageBox::question(
-            this,
-            tr("Unsaved Changes"),
-            tr("Do you want to save changes to %1?").arg(filename),
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-            QMessageBox::Save
-        );
+        const auto reply = dialogs::MessageDialog::ask(
+            this, tr("Unsaved Changes"), tr("Do you want to save changes to %1?").arg(filename),
+            tr("&Save"), tr("Do&n't Save"));
 
-        if (reply == QMessageBox::Save) {
+        if (reply == dialogs::MessageDialog::Answer::Accept) {
             // Save the project and every editor tab; whatever could not be saved (failed
             // or cancelled) keeps the window open with its changes
             if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;
             }
-        } else if (reply == QMessageBox::Cancel) {
+        } else if (reply == dialogs::MessageDialog::Answer::Cancel) {
             event->ignore();
             return;
         }
-        // Discard -> continue with close
+        // Don't Save -> continue with close
     }
 
     // Phase F: Save Navigator expansion state before closing

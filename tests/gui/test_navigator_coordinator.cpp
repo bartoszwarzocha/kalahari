@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
@@ -17,7 +18,6 @@
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QMenu>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStatusBar>
@@ -118,15 +118,19 @@ Answer acceptPlace(int index, const QString& option) {
     };
 }
 
-/// @brief Answer a question with @p button
-Answer click(QMessageBox::StandardButton button) {
-    return [button](QDialog& dialog) {
-        auto* box = qobject_cast<QMessageBox*>(&dialog);
-        if (QAbstractButton* answer = box ? box->button(button) : nullptr) {
-            answer->click();
-        } else {
+/// @brief Answer a question of the program's message window with the button of its action
+/// (@p doIt) or with Cancel; @p asked gets the question, with its title
+Answer answerQuestion(bool doIt, QString* asked = nullptr) {
+    return [doIt, asked](QDialog& dialog) {
+        auto* message = qobject_cast<gui::dialogs::MessageDialog*>(&dialog);
+        if (!message) {
             dialog.reject();
+            return;
         }
+        if (asked) {
+            *asked = message->clipboardText();
+        }
+        (doIt ? message->acceptButton() : message->cancelButton())->click();
     };
 }
 
@@ -394,15 +398,31 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
               "Part I, Chapter 2 [Draft]");
     }
 
+    SECTION("Deleting a chapter says where its file stays") {
+        const core::ProjectElement* bodyChapter = pm.findElement(bodyChapterId);
+        REQUIRE(bodyChapter != nullptr);
+        const QString file = pm.filePathOf(*bodyChapter);
+        QString asked;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(bodyChapterId); },
+                        {answerQuestion(true, &asked)}) == 1);
+        CHECK(asked.contains(QStringLiteral("Its file stays in the book's folder:\n") +
+                             QDir::toNativeSeparators(file)));
+        CHECK(titles(novel.book().mainElements) == "Part I");
+        CHECK(QFileInfo::exists(file));
+    }
+
     SECTION("Deleting a part takes its chapters out of the project and closes their tabs") {
-        // Not without the writer's word
+        // Not without the writer's word; the question says that the files stay
+        QString asked;
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
-                        {click(QMessageBox::No)}) == 1);
+                        {answerQuestion(false, &asked)}) == 1);
+        CHECK(asked.contains(QStringLiteral("Delete \"Part I\" from the book?")));
+        CHECK(asked.contains(QStringLiteral("their files stay in the book's folder")));
         CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2");
         CHECK(navigator.tabs->count() == 1);
 
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
-                        {click(QMessageBox::Yes)}) == 1);
+                        {answerQuestion(true)}) == 1);
         CHECK(titles(novel.book().mainElements) == "Chapter 2");
         CHECK(titles(novel.savedBook().mainElements) == "Chapter 2");
         CHECK(pm.findElement(chapter.id) == nullptr);
