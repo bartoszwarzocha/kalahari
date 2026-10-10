@@ -10,6 +10,9 @@ class QDialogButtonBox;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
+class QScrollArea;
+class QShowEvent;
+class QSize;
 class QVBoxLayout;
 
 namespace kalahari {
@@ -81,6 +84,14 @@ public:
     QSize sizeHint() const override;
 
 protected:
+    /// @brief Keep the whole dialog on a small screen: the content scrolls, the heading
+    ///        and the buttons stay in view
+    void showEvent(QShowEvent* event) override;
+
+    /// @brief Resize to @p wanted, or less where the screen is smaller, and keep the
+    ///        whole window on the screen (e.g. after details were shown)
+    void fitToScreen(const QSize& wanted);
+
     /// @brief The buttons that close the dialog, for a dialog that adds one of its own
     QDialogButtonBox* buttonBox() const { return m_buttonBox; }
 
@@ -105,6 +116,7 @@ private:
     QLabel* m_iconLabel = nullptr;
     QLabel* m_titleLabel = nullptr;
     QLabel* m_descriptionLabel = nullptr;
+    QScrollArea* m_contentArea = nullptr;
     QVBoxLayout* m_contentLayout = nullptr;
     QDialogButtonBox* m_buttonBox = nullptr;
     QHBoxLayout* m_sideButtonLayout = nullptr;

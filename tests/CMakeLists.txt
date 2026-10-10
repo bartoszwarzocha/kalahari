@@ -179,6 +179,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_dialog.cpp             # Own window for choosing a color
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
@@ -229,6 +230,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT

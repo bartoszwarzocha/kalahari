@@ -26,10 +26,10 @@
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
-#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
@@ -91,7 +91,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Set window properties
     setWindowTitle("Kalahari Writer's IDE");
-    resize(1280, 720);
+    utils::resizeWithinScreen(this, QSize(1280, 720));
 
     // Create UI components (Command Registry pattern)
     registerCommands();    // Register all commands with CommandRegistry
@@ -1016,19 +1016,6 @@ void MainWindow::onAbout() {
     logger.info("About dialog closed");
 }
 
-void MainWindow::onAboutQt() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: About Qt");
-
-    dialogs::MessageDialog::information(this, tr("About Qt"),
-        tr("Kalahari uses Qt %1, a C++ toolkit for cross-platform applications.\n\n"
-           "Qt is available under the GNU Lesser General Public License version 3. "
-           "Copyright (C) The Qt Company Ltd. and other contributors.\n\n"
-           "More information: https://www.qt.io").arg(QString::fromLatin1(qVersion())));
-
-    logger.info("About Qt dialog displayed");
-}
-
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
 void MainWindow::createDocks() {
@@ -1532,6 +1519,11 @@ void MainWindow::showEvent(QShowEvent* event) {
 
         auto& settings = core::SettingsManager::getInstance();
         restoreGeometry(settings.getBinary("window.geometry"));
+        // A size saved on a larger screen, or at a smaller scaling, would leave the window
+        // bigger than this screen
+        if (!isMaximized() && !isFullScreen()) {
+            utils::resizeWithinScreen(this, size());
+        }
 
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value

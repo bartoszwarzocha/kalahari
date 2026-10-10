@@ -17,6 +17,7 @@
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
@@ -112,24 +113,39 @@ int main(int argc, char *argv[]) {
 
     // Parse command line arguments
     kalahari::core::CmdLineParser cmdLine(argc, argv);
-    cmdLine.setApplicationDescription("Kalahari", "Writer's IDE for book authors");
-    cmdLine.addSwitch("", "cli", "Run in CLI mode (no GUI)");
-    cmdLine.addSwitch("d", "diag", "Enable diagnostic mode (show Diagnostics menu)");
-    cmdLine.addSwitch("", "dev", "Enable developer tools (Dev Tools menu + CLI features)");
-    cmdLine.addSwitch("", "benchmark", "Run performance benchmark and exit");
-    cmdLine.addOption("", "project", "Open project from path (for --benchmark)", "path");
-    cmdLine.addOption("", "chapter", "Open specific chapter by title (for --benchmark)", "title");
-    cmdLine.addOption("", "get-icon", "Download icon from URL (requires --cli)", "url");
-    cmdLine.addOption("", "icon-name", "Output icon name (required with --get-icon)", "name");
-    cmdLine.addOption("", "theme", "Target theme: twotone, rounded, outlined (default: twotone)", "theme");
+    cmdLine.setApplicationDescription("Kalahari",
+        QCoreApplication::translate("main", "Writer's IDE for book authors"));
+    cmdLine.addSwitch("", "cli", QCoreApplication::translate("main", "Run in CLI mode (no GUI)"));
+    cmdLine.addSwitch("d", "diag",
+        QCoreApplication::translate("main", "Enable diagnostic mode (show Diagnostics menu)"));
+    cmdLine.addSwitch("", "dev",
+        QCoreApplication::translate("main", "Enable developer tools (Dev Tools menu + CLI features)"));
+    cmdLine.addSwitch("", "benchmark",
+        QCoreApplication::translate("main", "Run performance benchmark and exit"));
+    cmdLine.addOption("", "project",
+        QCoreApplication::translate("main", "Open project from path (for --benchmark)"), "path");
+    cmdLine.addOption("", "chapter",
+        QCoreApplication::translate("main", "Open specific chapter by title (for --benchmark)"), "title");
+    cmdLine.addOption("", "get-icon",
+        QCoreApplication::translate("main", "Download icon from URL (requires --cli)"), "url");
+    cmdLine.addOption("", "icon-name",
+        QCoreApplication::translate("main", "Output icon name (required with --get-icon)"), "name");
+    cmdLine.addOption("", "theme",
+        QCoreApplication::translate("main", "Target theme: twotone, rounded, outlined (default: twotone)"),
+        "theme");
 
     if (!cmdLine.parse()) {
         // In the console the text goes to the output; the program's own window shows it
         // too, as a GUI program on Windows has no console
+        // The windows show their icons: the main window registers them only later
+        kalahari::gui::registerAllIcons();
         if (cmdLine.helpRequested()) {
             fprintf(stdout, "%s", cmdLine.helpText().toLocal8Bit().constData());
-            kalahari::gui::dialogs::MessageDialog::information(nullptr,
+            kalahari::gui::dialogs::MessageDialog help(
+                kalahari::gui::dialogs::MessageDialog::Kind::Information,
                 QCoreApplication::translate("main", "Command Line"), cmdLine.helpText());
+            help.setMonospaced(true);
+            help.exec();
             return 0;
         }
         logger.info("Command line parsing failed");

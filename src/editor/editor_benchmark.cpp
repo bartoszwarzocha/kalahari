@@ -331,9 +331,9 @@ std::vector<BenchmarkResult> EditorBenchmark::runAll()
         if (refOps > 0) {
             double ratio = result.opsPerSecond / refOps;
             if (ratio >= 1.0) {
-                comparison = QString(" [OK: %.1fx reference]").arg(ratio);
+                comparison = QString(" [OK: %1x reference]").arg(ratio, 0, 'f', 1);
             } else {
-                comparison = QString(" [SLOW: %.1fx reference]").arg(ratio);
+                comparison = QString(" [SLOW: %1x reference]").arg(ratio, 0, 'f', 1);
             }
         }
         logger.info("{}{}", result.toString().toStdString(), comparison.toStdString());

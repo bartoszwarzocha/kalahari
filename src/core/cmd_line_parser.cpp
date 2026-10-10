@@ -189,9 +189,11 @@ QString CmdLineParser::getOptionValue(const QString& name) const {
 // =============================================================================
 
 void CmdLineParser::init() {
-    // Add help option manually (only -h and --help, not --help-all)
+    // Add help option manually (only -h and --help, not --help-all);
+    // lupdate finds its text in gui/utils/core_texts.cpp
     QCommandLineOption helpOption(QStringList() << "h" << "help",
-                                   "Displays help on commandline options.");
+        QCoreApplication::translate("kalahari::core::CmdLineParser",
+                                    "Displays help on commandline options."));
     m_parser.addOption(helpOption);
 
     // Track help switch

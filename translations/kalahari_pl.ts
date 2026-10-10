@@ -1902,10 +1902,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Click to select color</source>
         <translation>Kliknij, aby wybrać kolor</translation>
     </message>
-    <message>
-        <source>Select Color</source>
-        <translation>Wybierz kolor</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::gui::CommandRegistry</name>
@@ -3239,18 +3235,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
 <context>
     <name>kalahari::gui::MainWindow</name>
     <message>
-        <source>Kalahari uses Qt %1, a C++ toolkit for cross-platform applications.
-
-Qt is available under the GNU Lesser General Public License version 3. Copyright (C) The Qt Company Ltd. and other contributors.
-
-More information: https://www.qt.io</source>
-        <translation>Kalahari korzysta z Qt %1 – biblioteki C++ do tworzenia programów działających w wielu systemach.
-
-Qt jest udostępniane na licencji GNU Lesser General Public License w wersji 3. Copyright (C) The Qt Company Ltd. i inni autorzy.
-
-Więcej informacji: https://www.qt.io</translation>
-    </message>
-    <message>
         <source>Dashboard</source>
         <translation>Pulpit</translation>
     </message>
@@ -3325,10 +3309,6 @@ Więcej informacji: https://www.qt.io</translation>
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
-    </message>
-    <message>
-        <source>About Qt</source>
-        <translation>O Qt</translation>
     </message>
     <message>
         <source>Unsaved Changes</source>
@@ -5593,6 +5573,102 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
 <context>
     <name>kalahari::gui::IconDownloaderDialog</name>
     <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Icon URL</source>
+        <translation>Adres ikony</translation>
+    </message>
+    <message>
+        <source>Enter full URL to SVG icon. Example:</source>
+        <translation>Wpisz pełny adres URL ikony SVG. Przykład:</translation>
+    </message>
+    <message>
+        <source>Full URL to SVG file</source>
+        <translation>Pełny adres URL pliku SVG</translation>
+    </message>
+    <message>
+        <source>Output Settings</source>
+        <translation>Zapis</translation>
+    </message>
+    <message>
+        <source>Icon name:</source>
+        <translation>Nazwa ikony:</translation>
+    </message>
+    <message>
+        <source>e.g., save, folder_open</source>
+        <translation>np. save, folder_open</translation>
+    </message>
+    <message>
+        <source>Name for saved file (without .svg)</source>
+        <translation>Nazwa zapisanego pliku (bez .svg)</translation>
+    </message>
+    <message>
+        <source>Save to theme:</source>
+        <translation>Zapisz w stylu:</translation>
+    </message>
+    <message>
+        <source>Target theme directory</source>
+        <translation>Katalog docelowego stylu ikon</translation>
+    </message>
+    <message>
+        <source>Download Progress</source>
+        <translation>Postęp pobierania</translation>
+    </message>
+    <message>
+        <source>Ready to download</source>
+        <translation>Gotowe do pobrania</translation>
+    </message>
+    <message>
+        <source>Errors:</source>
+        <translation>Błędy:</translation>
+    </message>
+    <message>
+        <source>No errors</source>
+        <translation>Brak błędów</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Pobierz</translation>
+    </message>
+    <message>
+        <source>Downloading...</source>
+        <translation>Pobieranie…</translation>
+    </message>
+    <message>
+        <source>Conversion failed: %1</source>
+        <translation>Nie udało się przekształcić ikony: %1</translation>
+    </message>
+    <message>
+        <source>Failed to create directory: %1</source>
+        <translation>Nie udało się utworzyć katalogu: %1</translation>
+    </message>
+    <message>
+        <source>Failed to write file: %1</source>
+        <translation>Nie udało się zapisać pliku: %1</translation>
+    </message>
+    <message>
+        <source>Downloading... (%1/%2)</source>
+        <translation>Pobieranie… (%1/%2)</translation>
+    </message>
+    <message>
+        <source>Downloaded and saved successfully</source>
+        <translation>Pobrano i zapisano</translation>
+    </message>
+    <message>
+        <source>Download failed</source>
+        <translation>Nie udało się pobrać</translation>
+    </message>
+    <message>
+        <source>Icon Downloader</source>
+        <translation>Pobieranie ikon</translation>
+    </message>
+    <message>
         <source>Cancel Download</source>
         <translation>Przerwij pobieranie</translation>
     </message>
@@ -5624,12 +5700,219 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
 <context>
     <name>main</name>
     <message>
+        <source>Writer&apos;s IDE for book authors</source>
+        <translation>Środowisko do pisania książek</translation>
+    </message>
+    <message>
+        <source>Run in CLI mode (no GUI)</source>
+        <translation>Uruchom w trybie wiersza poleceń (bez okien)</translation>
+    </message>
+    <message>
+        <source>Enable diagnostic mode (show Diagnostics menu)</source>
+        <translation>Włącz tryb diagnostyczny (menu Diagnostyka)</translation>
+    </message>
+    <message>
+        <source>Enable developer tools (Dev Tools menu + CLI features)</source>
+        <translation>Włącz narzędzia deweloperskie (menu Narzędzia deweloperskie i funkcje wiersza poleceń)</translation>
+    </message>
+    <message>
+        <source>Run performance benchmark and exit</source>
+        <translation>Wykonaj test wydajności i zakończ</translation>
+    </message>
+    <message>
+        <source>Open project from path (for --benchmark)</source>
+        <translation>Otwórz projekt ze ścieżki (dla --benchmark)</translation>
+    </message>
+    <message>
+        <source>Open specific chapter by title (for --benchmark)</source>
+        <translation>Otwórz rozdział o podanym tytule (dla --benchmark)</translation>
+    </message>
+    <message>
+        <source>Download icon from URL (requires --cli)</source>
+        <translation>Pobierz ikonę z adresu URL (wymaga --cli)</translation>
+    </message>
+    <message>
+        <source>Output icon name (required with --get-icon)</source>
+        <translation>Nazwa pobranej ikony (wymagana z --get-icon)</translation>
+    </message>
+    <message>
+        <source>Target theme: twotone, rounded, outlined (default: twotone)</source>
+        <translation>Styl ikon: twotone, rounded, outlined (domyślnie twotone)</translation>
+    </message>
+    <message>
         <source>Command Line</source>
         <translation>Wiersz poleceń</translation>
     </message>
     <message>
         <source>The command line could not be read.</source>
         <translation>Nie udało się odczytać wiersza poleceń.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ColorDialog</name>
+    <message>
+        <source>Select Color</source>
+        <translation>Wybierz kolor</translation>
+    </message>
+    <message>
+        <source>Select</source>
+        <translation>Wybierz</translation>
+    </message>
+    <message>
+        <source>&amp;Palette</source>
+        <translation>&amp;Paleta</translation>
+    </message>
+    <message>
+        <source>Palette</source>
+        <translation>Paleta</translation>
+    </message>
+    <message>
+        <source>Rec&amp;ent colors</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The colors you select appear here.</source>
+        <translation>Tutaj pojawią się wybrane kolory.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pre&amp;vious</source>
+        <translation>Poprzedn&amp;i</translation>
+    </message>
+    <message>
+        <source>Bring back the previous color</source>
+        <translation>Przywróć poprzedni kolor</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation>Nowy</translation>
+    </message>
+    <message>
+        <source>&amp;HEX</source>
+        <translation>&amp;HEX</translation>
+    </message>
+    <message>
+        <source>&amp;Red</source>
+        <translation>&amp;Czerwony</translation>
+    </message>
+    <message>
+        <source>&amp;Green</source>
+        <translation>&amp;Zielony</translation>
+    </message>
+    <message>
+        <source>&amp;Blue</source>
+        <translation>&amp;Niebieski</translation>
+    </message>
+    <message>
+        <source>New color %1</source>
+        <translation>Nowy kolor %1</translation>
+    </message>
+</context>
+<context>
+    <name>QCommandLineParser</name>
+    <message>
+        <source>Unknown option &apos;%1&apos;.</source>
+        <translation>Nieznana opcja „%1”.</translation>
+    </message>
+    <message>
+        <source>Unknown options: %1.</source>
+        <translation>Nieznane opcje: %1.</translation>
+    </message>
+    <message>
+        <source>Missing value after &apos;%1&apos;.</source>
+        <translation>Brak wartości po „%1”.</translation>
+    </message>
+    <message>
+        <source>Unexpected value after &apos;%1&apos;.</source>
+        <translation>Nieoczekiwana wartość po „%1”.</translation>
+    </message>
+    <message>
+        <source>Usage: %1</source>
+        <translation>Użycie: %1</translation>
+    </message>
+    <message>
+        <source>[options]</source>
+        <translation>[opcje]</translation>
+    </message>
+    <message>
+        <source>Options:</source>
+        <translation>Opcje:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::CmdLineParser</name>
+    <message>
+        <source>Displays help on commandline options.</source>
+        <translation>Wyświetla pomoc dotyczącą opcji wiersza poleceń.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::IconDownloader</name>
+    <message>
+        <source>Invalid URL: %1</source>
+        <translation>Nieprawidłowy adres URL: %1</translation>
+    </message>
+    <message>
+        <source>Not found (404): %1</source>
+        <translation>Nie znaleziono (404): %1</translation>
+    </message>
+    <message>
+        <source>Access denied (403): %1</source>
+        <translation>Odmowa dostępu (403): %1</translation>
+    </message>
+    <message>
+        <source>The server did not answer within %1 seconds</source>
+        <translation>Serwer nie odpowiedział w ciągu %1 s</translation>
+    </message>
+    <message>
+        <source>Cannot connect to the server</source>
+        <translation>Nie można połączyć się z serwerem</translation>
+    </message>
+    <message>
+        <source>The proxy server did not let the connection through</source>
+        <translation>Serwer pośredniczący (proxy) nie przepuścił połączenia</translation>
+    </message>
+    <message>
+        <source>A secure connection to the server failed</source>
+        <translation>Nie udało się nawiązać bezpiecznego połączenia z serwerem</translation>
+    </message>
+    <message>
+        <source>Download failed: %1</source>
+        <translation>Pobieranie nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>The downloaded file is empty</source>
+        <translation>Pobrany plik jest pusty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::SvgConverter</name>
+    <message>
+        <source>The SVG file is empty</source>
+        <translation>Plik SVG jest pusty</translation>
+    </message>
+    <message>
+        <source>Invalid XML in line %1, column %2: %3</source>
+        <translation>Błąd składni XML w wierszu %1, kolumnie %2: %3</translation>
+    </message>
+    <message>
+        <source>The file is not an SVG image (its root element is &lt;%1&gt;)</source>
+        <translation>Plik nie jest obrazem SVG (jego elementem głównym jest &lt;%1&gt;)</translation>
+    </message>
+    <message>
+        <source>The &lt;svg&gt; element has no viewBox attribute</source>
+        <translation>Element &lt;svg&gt; nie ma atrybutu viewBox</translation>
+    </message>
+    <message>
+        <source>Conversion produced invalid SVG: %1</source>
+        <translation>Konwersja dała nieprawidłowy plik SVG: %1</translation>
     </message>
 </context>
 </TS>

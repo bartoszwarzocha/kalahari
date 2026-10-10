@@ -7,6 +7,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/art_provider.h"
 
 #include <QVBoxLayout>
@@ -44,8 +45,9 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
     , m_toolbarManager(manager)
 {
     setWindowTitle(tr("Customize Toolbars"));
-    setMinimumSize(900, 600);
-    resize(1000, 650);
+    // Smaller where the screen is, e.g. 1366x768 at 150%: the lists get shorter
+    setMinimumSize(640, 420);
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(1000, 650));
 
     // Initialize built-in toolbar IDs
     // OpenSpec #00037: Added quickActions, insert, styles, help toolbars
@@ -82,8 +84,11 @@ void ToolbarManagerDialog::setupUI() {
     splitter->addWidget(createAvailableCommandsPanel());
     splitter->addWidget(createCurrentToolbarPanel());
 
-    // Set initial sizes (left smaller, center and right equal)
-    splitter->setSizes({220, 350, 350});
+    // The commands get the most room, so their names can be read on a small screen too
+    splitter->setSizes({180, 500, 220});
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setStretchFactor(2, 0);
 
     mainLayout->addWidget(splitter, 1);
 
@@ -174,8 +179,11 @@ QWidget* ToolbarManagerDialog::createAvailableCommandsPanel() {
     m_availableCommands->setHeaderLabels({tr("Command"), tr("Shortcut")});
     m_availableCommands->setRootIsDecorated(true);
     m_availableCommands->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_availableCommands->header()->setStretchLastSection(true);
+    // The names get the room; the shortcuts only as much as they need
+    m_availableCommands->setIndentation(m_availableCommands->fontMetrics().height());
+    m_availableCommands->header()->setStretchLastSection(false);
     m_availableCommands->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_availableCommands->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     groupLayout->addWidget(m_availableCommands, 1);
 
     // Add button
@@ -461,6 +469,7 @@ void ToolbarManagerDialog::populateAvailableCommands() {
         // Add command item
         QTreeWidgetItem* cmdItem = new QTreeWidgetItem(categoryItems[category]);
         cmdItem->setText(0, label);
+        cmdItem->setToolTip(0, label);
         cmdItem->setText(1, shortcut);
         cmdItem->setData(0, Qt::UserRole, cmdId);
 
@@ -806,14 +815,16 @@ void ToolbarManagerDialog::onRenameToolbar() {
         return;
     }
 
-    m_toolbarNames[m_selectedToolbarId] = *name;
+    // Rebuilding the list clears the selection and m_selectedToolbarId with it
+    const QString toolbarId = m_selectedToolbarId;
+    m_toolbarNames[toolbarId] = *name;
     populateToolbarList();
     setModified(true);
 
     // Re-select the renamed toolbar
     for (int i = 0; i < m_toolbarList->count(); ++i) {
         QListWidgetItem* item = m_toolbarList->item(i);
-        if (item->data(Qt::UserRole).toString() == m_selectedToolbarId) {
+        if (item->data(Qt::UserRole).toString() == toolbarId) {
             m_toolbarList->setCurrentItem(item);
             break;
         }

@@ -164,12 +164,25 @@ void MessageDialog::copyToClipboard()
                        [button = m_copyButton, text]() { button->setText(text); });
 }
 
+void MessageDialog::setMonospaced(bool monospaced)
+{
+    m_textLabel->setFont(monospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont)
+                                    : font());
+    // Columns keep their lines; the window gets as wide as they are, up to the screen
+    m_textLabel->setWordWrap(!monospaced);
+}
+
 void MessageDialog::toggleDetails()
 {
     const bool show = m_detailsEdit->isHidden();
     m_detailsEdit->setVisible(show);
     m_detailsButton->setText(show ? tr("Hide &Details") : tr("Show &Details"));
-    adjustSize();
+    // Once the layout has taken in the shown or hidden details
+    QTimer::singleShot(0, this, [this]() {
+        if (isVisible()) {
+            fitToScreen(sizeHint());
+        }
+    });
 }
 
 void MessageDialog::showEvent(QShowEvent* event)

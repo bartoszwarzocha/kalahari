@@ -31,6 +31,15 @@ namespace {
     QT_TRANSLATE_NOOP("QPlatformTheme", "Reset"),
     QT_TRANSLATE_NOOP("QPlatformTheme", "Restore Defaults"),
 
+    // Command line help (QCommandLineParser::helpText)
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Usage: %1"),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "[options]"),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Options:"),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Unknown option '%1'."),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Unknown options: %1."),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Missing value after '%1'."),
+    QT_TRANSLATE_NOOP("QCommandLineParser", "Unexpected value after '%1'."),
+
     // Context menu of text fields (QLineEdit)
     QT_TRANSLATE_NOOP("QLineEdit", "&Undo"),
     QT_TRANSLATE_NOOP("QLineEdit", "&Redo"),

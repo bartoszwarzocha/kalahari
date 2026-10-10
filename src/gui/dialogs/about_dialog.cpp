@@ -2,6 +2,7 @@
 /// @brief Implementation of AboutDialog
 
 #include "kalahari/gui/dialogs/about_dialog.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/version.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -9,6 +10,7 @@
 #include <QLabel>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QPainter>
 #include <QFont>
 
@@ -22,9 +24,10 @@ AboutDialog::AboutDialog(QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("About Kalahari Writer's IDE"));
-    setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint |
-                   Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
-    setFixedSize(600, 600);
+    setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
+    // Lower where the screen is, e.g. 1366x768 at 150%: the tabs scroll
+    setMinimumWidth(600);
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 600));
 
     // Main layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -39,7 +42,11 @@ AboutDialog::AboutDialog(QWidget* parent)
 
     // Tab widget
     QTabWidget* tabWidget = new QTabWidget(this);
-    tabWidget->addTab(createAboutTab(), tr("About"));
+    auto* aboutArea = new QScrollArea(tabWidget);
+    aboutArea->setWidgetResizable(true);
+    aboutArea->setFrameShape(QFrame::NoFrame);
+    aboutArea->setWidget(createAboutTab());
+    tabWidget->addTab(aboutArea, tr("About"));
     tabWidget->addTab(createComponentsTab(), tr("Third-Party Components"));
     tabWidget->addTab(createLicenseTab(), tr("License"));
     mainLayout->addWidget(tabWidget, 1);

@@ -1,18 +1,25 @@
 /// @file test_message_dialog.cpp
-/// @brief The program's own messages, questions, typed texts and progress, in place of the system ones
+/// @brief The program's own messages, questions, typed texts, progress and colors, in place of the system ones
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/progress_dialog.h"
+#include "kalahari/gui/dialogs/color_dialog.h"
+#include "kalahari/core/settings_manager.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
+#include <QSpinBox>
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QTimer>
 
 #include <functional>
@@ -311,4 +318,215 @@ TEST_CASE("Own messages: the progress of a long task", "[gui][dialogs]") {
         CHECK(dialog.isVisible());
         dialog.hide();
     }
+}
+
+namespace {
+
+/// @brief Type a text into a field key by key, as the writer does
+void typeText(QWidget* field, const QString& text) {
+    for (const QChar ch : text) {
+        QKeyEvent event(QEvent::KeyPress, 0, Qt::NoModifier, QString(ch));
+        QApplication::sendEvent(field, &event);
+    }
+}
+
+/// @brief Press a key in a widget
+void pressIn(QWidget* widget, Qt::Key key) {
+    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+    QApplication::sendEvent(widget, &event);
+}
+
+} // anonymous namespace
+
+TEST_CASE("Own messages: choosing a color", "[gui][dialogs]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<std::vector<std::string>>("ui.recentColors", {});
+
+    ColorDialog dialog(QColor(QStringLiteral("#123456")), QStringLiteral("Primary icon color"));
+
+    CHECK(dialog.windowTitle() == QStringLiteral("Select Color"));
+    CHECK(showsText(dialog, QStringLiteral("Primary icon color")));
+    CHECK(dialog.color() == QColor(QStringLiteral("#123456")));
+    CHECK(dialog.hexField()->text() == QStringLiteral("#123456"));
+    CHECK(dialog.redField()->value() == 0x12);
+    CHECK(dialog.greenField()->value() == 0x34);
+    CHECK(dialog.blueField()->value() == 0x56);
+    CHECK(dialog.paletteList()->count() == ColorDialog::paletteColors().size());
+    CHECK(ColorDialog::paletteColors().size() == 60);
+    CHECK(dialog.paletteList()->selectedItems().isEmpty());
+    CHECK(dialog.acceptButton()->text() == QStringLiteral("Select"));
+
+    SECTION("Getting into the palette with the keyboard keeps the color") {
+        QFocusEvent focusIn(QEvent::FocusIn, Qt::TabFocusReason);
+        QApplication::sendEvent(dialog.paletteList(), &focusIn);
+        CHECK(dialog.color() == QColor(QStringLiteral("#123456")));
+    }
+
+    SECTION("The arrows move in the palette and choose the color") {
+        dialog.setColor(Qt::black);  // The last row starts with black
+        REQUIRE(dialog.paletteList()->currentRow() == 50);
+        pressIn(dialog.paletteList(), Qt::Key_Right);
+        CHECK(dialog.color() == ColorDialog::paletteColors().at(51));
+        pressIn(dialog.paletteList(), Qt::Key_Up);
+        CHECK(dialog.color() == ColorDialog::paletteColors().at(41));
+        CHECK(dialog.hexField()->text() == ColorDialog::paletteColors().at(41).name().toUpper());
+    }
+
+    SECTION("A typed HEX chooses the color once it is complete") {
+        dialog.hexField()->clear();
+        typeText(dialog.hexField(), QStringLiteral("#ff80"));
+        CHECK_FALSE(dialog.acceptButton()->isEnabled());
+        CHECK(dialog.color() == QColor(QStringLiteral("#123456")));
+        typeText(dialog.hexField(), QStringLiteral("00"));
+        CHECK(dialog.acceptButton()->isEnabled());
+        CHECK(dialog.color() == QColor(QStringLiteral("#ff8000")));
+        CHECK(dialog.redField()->value() == 255);
+        CHECK(dialog.greenField()->value() == 128);
+    }
+
+    SECTION("Red, green and blue choose the color") {
+        dialog.redField()->setValue(200);
+        dialog.blueField()->setValue(10);
+        CHECK(dialog.color() == QColor(200, 0x34, 10));
+        CHECK(dialog.hexField()->text() == QColor(200, 0x34, 10).name().toUpper());
+    }
+
+    SECTION("Previous brings back the color the setting had") {
+        dialog.setColor(QColor(QStringLiteral("#abcdef")));
+        dialog.previousButton()->click();
+        CHECK(dialog.color() == QColor(QStringLiteral("#123456")));
+    }
+
+    SECTION("Select keeps the color among the recent ones, newest first") {
+        CHECK_FALSE(dialog.recentList()->isVisibleTo(&dialog));
+        dialog.setColor(QColor(QStringLiteral("#abcdef")));
+        dialog.accept();
+        CHECK(dialog.result() == QDialog::Accepted);
+        CHECK(ColorDialog::recentColors() == QStringList{QStringLiteral("#abcdef")});
+
+        ColorDialog::addRecentColor(QColor(QStringLiteral("#112233")));
+        ColorDialog::addRecentColor(QColor(QStringLiteral("#abcdef")));
+        CHECK(ColorDialog::recentColors() ==
+              QStringList({QStringLiteral("#abcdef"), QStringLiteral("#112233")}));
+
+        ColorDialog next(QColor(QStringLiteral("#000000")));
+        CHECK(next.recentList()->isVisibleTo(&next));
+        CHECK(next.recentList()->count() == 2);
+    }
+
+    SECTION("A palette color picked before is marked in both lists next time") {
+        const QColor picked = ColorDialog::paletteColors().at(41);
+        dialog.setColor(picked);
+        dialog.accept();
+
+        ColorDialog next(dialog.color());
+        REQUIRE(next.recentList()->count() == 1);
+        CHECK(next.recentList()->item(0)->isSelected());
+        REQUIRE(next.paletteList()->selectedItems().size() == 1);
+        CHECK(next.paletteList()->selectedItems().first() == next.paletteList()->item(41));
+    }
+
+    SECTION("At most ten recent colors are kept") {
+        for (int i = 0; i < 12; ++i) {
+            ColorDialog::addRecentColor(QColor(i * 10, 0, 0));
+        }
+        CHECK(ColorDialog::recentColors().size() == ColorDialog::MAX_RECENT_COLORS);
+        CHECK(ColorDialog::recentColors().first() == QColor(110, 0, 0).name());
+    }
+
+    SECTION("getColor gives the chosen color, or nothing when cancelled") {
+        whenShown<ColorDialog>([](ColorDialog* shown) {
+            shown->setColor(QColor(QStringLiteral("#00ff00")));
+            shown->acceptButton()->click();
+        });
+        CHECK(ColorDialog::getColor(Qt::red, nullptr) == QColor(QStringLiteral("#00ff00")));
+
+        whenShown<ColorDialog>([](ColorDialog* shown) { shown->reject(); });
+        CHECK_FALSE(ColorDialog::getColor(Qt::red, nullptr).has_value());
+    }
+
+    settings.set<std::vector<std::string>>("ui.recentColors", {});
+}
+
+TEST_CASE("Own messages: a long message fits the screen and scrolls", "[gui][dialogs]") {
+    const QRect screen = QApplication::primaryScreen()->availableGeometry();
+    QStringList lines;
+    for (int i = 0; i < 300; ++i) {
+        lines.append(QStringLiteral("Line %1 of a long report").arg(i + 1));
+    }
+    MessageDialog dialog(MessageDialog::Kind::Error, QStringLiteral("Import Failed"),
+                         lines.join(QLatin1Char('\n')));
+    dialog.show();
+    QApplication::processEvents();
+
+    // The window stays on the screen with its buttons; the message scrolls
+    CHECK(dialog.height() <= screen.height());
+    CHECK(screen.contains(dialog.geometry()));
+    const QRect accept(dialog.acceptButton()->mapTo(&dialog, QPoint(0, 0)),
+                       dialog.acceptButton()->size());
+    CHECK(dialog.rect().contains(accept));
+    auto* area = dialog.findChild<QScrollArea*>();
+    REQUIRE(area != nullptr);
+    CHECK(area->verticalScrollBar()->isVisible());
+
+    // A short message needs no scrolling
+    MessageDialog shortMessage(MessageDialog::Kind::Information, QStringLiteral("Saved"),
+                               QStringLiteral("The book was saved."));
+    shortMessage.show();
+    QApplication::processEvents();
+    auto* shortArea = shortMessage.findChild<QScrollArea*>();
+    REQUIRE(shortArea != nullptr);
+    CHECK_FALSE(shortArea->verticalScrollBar()->isVisible());
+}
+
+TEST_CASE("Own messages: a window uses the height of the screen before it scrolls",
+          "[gui][dialogs]") {
+    // Taller than the two thirds of the screen Qt gives a window, lower than the screen
+    const QRect screen = QApplication::primaryScreen()->availableGeometry();
+    QStringList lines;
+    MessageDialog probe(MessageDialog::Kind::Information, QStringLiteral("Report"),
+                        QStringLiteral("Line"));
+    const int lineHeight = probe.fontMetrics().lineSpacing();
+    const int count = (screen.height() * 3 / 4 - 200) / lineHeight;
+    for (int i = 0; i < count; ++i) {
+        lines.append(QStringLiteral("Line %1").arg(i + 1));
+    }
+    MessageDialog dialog(MessageDialog::Kind::Information, QStringLiteral("Report"),
+                         lines.join(QLatin1Char('\n')));
+    REQUIRE(dialog.sizeHint().height() > screen.height() * 2 / 3);
+    REQUIRE(dialog.sizeHint().height() < screen.height() - 40);
+    dialog.show();
+    QApplication::processEvents();
+
+    CHECK(dialog.height() == dialog.sizeHint().height());
+    auto* area = dialog.findChild<QScrollArea*>();
+    REQUIRE(area != nullptr);
+    CHECK_FALSE(area->verticalScrollBar()->isVisible());
+
+    // Shown details make the window taller, not the message scroll
+    MessageDialog withDetails(MessageDialog::Kind::Error, QStringLiteral("Import Failed"),
+                              QStringLiteral("The archive could not be read."));
+    withDetails.setDetails(QStringLiteral("zip: bad header at byte 0"));
+    withDetails.show();
+    QApplication::processEvents();
+    const int before = withDetails.height();
+    withDetails.detailsButton()->click();
+    // The window is resized once the layout has taken the details in, then the area
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(withDetails.height() > before);
+    auto* detailsArea = withDetails.findChild<QScrollArea*>();
+    REQUIRE(detailsArea != nullptr);
+    CHECK_FALSE(detailsArea->verticalScrollBar()->isVisible());
+    withDetails.detailsButton()->click();
+    QApplication::processEvents();
+    CHECK(withDetails.height() == before);
+
+    // The color window shows all of itself
+    ColorDialog colors(QColor(Qt::red), QStringLiteral("Primary"));
+    colors.show();
+    QApplication::processEvents();
+    auto* colorArea = colors.findChild<QScrollArea*>();
+    REQUIRE(colorArea != nullptr);
+    CHECK_FALSE(colorArea->verticalScrollBar()->isVisible());
 }
