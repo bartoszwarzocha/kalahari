@@ -2,6 +2,7 @@
 /// @brief Implementation of IconDownloaderDialog
 
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/core/logger.h"
@@ -17,7 +18,6 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QSvgWidget>
-#include <QMessageBox>
 #include <QDir>
 #include <QFile>
 
@@ -210,14 +210,11 @@ void IconDownloaderDialog::onDownloadClicked() {
 
 void IconDownloaderDialog::onCancelClicked() {
     if (m_isDownloading) {
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            this,
-            "Cancel Download",
-            "Download is in progress. Are you sure you want to cancel?",
-            QMessageBox::Yes | QMessageBox::No
-        );
+        const bool stop = dialogs::MessageDialog::confirm(this, tr("Cancel Download"),
+            tr("The download is in progress. Do you want to stop it?"),
+            tr("&Stop Download"));
 
-        if (reply == QMessageBox::No) {
+        if (!stop) {
             return;
         }
     }
@@ -309,19 +306,20 @@ bool IconDownloaderDialog::validateInput() {
     QString iconName = m_iconNameEdit->text().trimmed();
 
     if (url.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Please enter a URL.");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"), tr("Please enter a URL."));
         m_sourceUrlEdit->setFocus();
         return false;
     }
 
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        QMessageBox::warning(this, "Invalid Input", "URL must start with http:// or https://");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"),
+                                        tr("The URL must start with http:// or https://."));
         m_sourceUrlEdit->setFocus();
         return false;
     }
 
     if (iconName.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Please enter an icon name.");
+        dialogs::MessageDialog::warning(this, tr("Invalid Input"), tr("Please enter an icon name."));
         m_iconNameEdit->setFocus();
         return false;
     }

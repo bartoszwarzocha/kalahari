@@ -4,6 +4,7 @@
 /// OpenSpec #00031: Toolbar System
 
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/art_provider.h"
@@ -14,8 +15,6 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QHeaderView>
-#include <QInputDialog>
-#include <QMessageBox>
 #include <QRegularExpression>
 
 using namespace kalahari::gui::dialogs;
@@ -733,24 +732,18 @@ void ToolbarManagerDialog::onNewToolbar() {
         return;
     }
 
-    bool ok;
-    QString name = QInputDialog::getText(this,
-        tr("New Toolbar"),
-        tr("Enter toolbar name:"),
-        QLineEdit::Normal,
-        QString(),
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
+    const std::optional<QString> name = TextInputDialog::getText(this,
+        tr("New Toolbar"), tr("Toolbar name"), QString(), tr("&Create"));
+    if (!name) {
         return;
     }
 
     // Create toolbar via ToolbarManager (it will generate unique ID)
-    QString toolbarId = m_toolbarManager->createUserToolbar(name.trimmed());
+    QString toolbarId = m_toolbarManager->createUserToolbar(*name);
 
     // Update local state
     m_pendingChanges[toolbarId] = QStringList();
-    m_toolbarNames[toolbarId] = name.trimmed();
+    m_toolbarNames[toolbarId] = *name;
     m_originalConfigs[toolbarId] = QStringList();
 
     populateToolbarList();
@@ -775,14 +768,13 @@ void ToolbarManagerDialog::onDeleteToolbar() {
         return;
     }
 
-    QMessageBox::StandardButton result = QMessageBox::question(this,
+    const bool remove = MessageDialog::confirm(this,
         tr("Delete Toolbar"),
-        tr("Are you sure you want to delete the toolbar '%1'?")
+        tr("Do you want to delete the toolbar \"%1\"?")
             .arg(m_toolbarNames[m_selectedToolbarId]),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+        tr("&Delete"), MessageDialog::Kind::Warning, MessageDialog::DefaultButton::Cancel);
 
-    if (result != QMessageBox::Yes) {
+    if (!remove) {
         return;
     }
 
@@ -808,19 +800,13 @@ void ToolbarManagerDialog::onRenameToolbar() {
         return;
     }
 
-    bool ok;
-    QString name = QInputDialog::getText(this,
-        tr("Rename Toolbar"),
-        tr("Enter new name:"),
-        QLineEdit::Normal,
-        m_toolbarNames[m_selectedToolbarId],
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
+    const std::optional<QString> name = TextInputDialog::getText(this,
+        tr("Rename Toolbar"), tr("New name"), m_toolbarNames[m_selectedToolbarId], tr("&Rename"));
+    if (!name) {
         return;
     }
 
-    m_toolbarNames[m_selectedToolbarId] = name.trimmed();
+    m_toolbarNames[m_selectedToolbarId] = *name;
     populateToolbarList();
     setModified(true);
 
@@ -847,14 +833,13 @@ void ToolbarManagerDialog::onReset() {
         return;
     }
 
-    QMessageBox::StandardButton result = QMessageBox::question(this,
+    const bool reset = MessageDialog::confirm(this,
         tr("Reset Toolbars"),
-        tr("Are you sure you want to reset all toolbars to their default configurations?\n\n"
+        tr("Do you want to reset all toolbars to their default configurations?\n\n"
            "This will remove all user-defined toolbars and restore built-in toolbars to defaults."),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+        tr("&Reset"), MessageDialog::Kind::Warning, MessageDialog::DefaultButton::Cancel);
 
-    if (result != QMessageBox::Yes) {
+    if (!reset) {
         return;
     }
 

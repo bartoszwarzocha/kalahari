@@ -26,6 +26,7 @@
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
@@ -1019,7 +1020,11 @@ void MainWindow::onAboutQt() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: About Qt");
 
-    QMessageBox::aboutQt(this, tr("About Qt"));
+    dialogs::MessageDialog::information(this, tr("About Qt"),
+        tr("Kalahari uses Qt %1, a C++ toolkit for cross-platform applications.\n\n"
+           "Qt is available under the GNU Lesser General Public License version 3. "
+           "Copyright (C) The Qt Company Ltd. and other contributors.\n\n"
+           "More information: https://www.qt.io").arg(QString::fromLatin1(qVersion())));
 
     logger.info("About Qt dialog displayed");
 }

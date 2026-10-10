@@ -16,6 +16,7 @@
 #include <QTranslator>
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
@@ -123,8 +124,21 @@ int main(int argc, char *argv[]) {
     cmdLine.addOption("", "theme", "Target theme: twotone, rounded, outlined (default: twotone)", "theme");
 
     if (!cmdLine.parse()) {
-        logger.info("Command line parsing failed or help requested");
-        return 0;
+        // In the console the text goes to the output; the program's own window shows it
+        // too, as a GUI program on Windows has no console
+        if (cmdLine.helpRequested()) {
+            fprintf(stdout, "%s", cmdLine.helpText().toLocal8Bit().constData());
+            kalahari::gui::dialogs::MessageDialog::information(nullptr,
+                QCoreApplication::translate("main", "Command Line"), cmdLine.helpText());
+            return 0;
+        }
+        logger.info("Command line parsing failed");
+        fprintf(stderr, "%s\n", cmdLine.errorText().toLocal8Bit().constData());
+        kalahari::gui::dialogs::MessageDialog::error(nullptr,
+            QCoreApplication::translate("main", "Command Line"),
+            QCoreApplication::translate("main", "The command line could not be read."),
+            cmdLine.errorText());
+        return 1;
     }
 
     // ========================================================================

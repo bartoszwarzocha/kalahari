@@ -626,6 +626,10 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>&amp;Restart Now</source>
+        <translation>&amp;Uruchom ponownie teraz</translation>
+    </message>
+    <message>
         <source>Dashboard</source>
         <translation>Pulpit</translation>
     </message>
@@ -1522,6 +1526,18 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 <context>
     <name>kalahari::gui::AdvancedGeneralPage</name>
     <message>
+        <source>Do you want to enable the diagnostic menu?
+
+This exposes advanced debugging tools.</source>
+        <translation>Czy włączyć menu diagnostyczne?
+
+Udostępnia ono zaawansowane narzędzia diagnostyczne.</translation>
+    </message>
+    <message>
+        <source>&amp;Enable</source>
+        <translation>&amp;Włącz</translation>
+    </message>
+    <message>
         <source>Warning: These settings are for advanced users and developers.
 Incorrect configuration may affect application stability.</source>
         <translation>Uwaga: te ustawienia są przeznaczone dla zaawansowanych użytkowników i programistów.
@@ -1552,14 +1568,6 @@ The menu stays for this session only.</source>
 - stanem składników
 
 Menu zostaje tylko do końca tej sesji.</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to enable diagnostic menu?
-
-This exposes advanced debugging tools.</source>
-        <translation>Czy na pewno włączyć menu diagnostyczne?
-
-Udostępnia ono zaawansowane narzędzia do debugowania.</translation>
     </message>
 </context>
 <context>
@@ -2048,6 +2056,28 @@ do: „%2”</translation>
 <context>
     <name>kalahari::gui::DiagnosticController</name>
     <message>
+        <source>This benchmark will temporarily modify the editor content.
+The original content will NOT be preserved.</source>
+        <translation>Test wydajności tymczasowo zmieni treść edytora.
+Pierwotna treść NIE zostanie zachowana.</translation>
+    </message>
+    <message>
+        <source>&amp;Run Benchmark</source>
+        <translation>&amp;Uruchom test</translation>
+    </message>
+    <message>
+        <source>This will IMMEDIATELY crash the application!
+
+All unsaved work will be LOST.</source>
+        <translation>Program NATYCHMIAST ulegnie awarii!
+
+Wszystkie niezapisane zmiany zostaną UTRACONE.</translation>
+    </message>
+    <message>
+        <source>&amp;Crash Now</source>
+        <translation>&amp;Wywołaj awarię</translation>
+    </message>
+    <message>
         <source>Diagnostic mode enabled</source>
         <translation>Włączono tryb diagnostyczny</translation>
     </message>
@@ -2212,22 +2242,8 @@ do: „%2”</translation>
         <translation>Test wydajności edytora</translation>
     </message>
     <message>
-        <source>This benchmark will temporarily modify the editor content.
-The original content will NOT be preserved.
-
-Do you want to continue?</source>
-        <translation>Test wydajności zmieni treść w edytorze.
-Pierwotna treść NIE zostanie zachowana.
-
-Czy kontynuować?</translation>
-    </message>
-    <message>
         <source>Running Editor Benchmark...</source>
         <translation>Trwa test wydajności edytora...</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Anuluj</translation>
     </message>
     <message>
         <source>Editor Benchmark Results
@@ -2262,18 +2278,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Force Crash</source>
         <translation>Wymuś awarię</translation>
-    </message>
-    <message>
-        <source>This will IMMEDIATELY crash the application!
-
-All unsaved work will be LOST.
-
-Are you sure you want to continue?</source>
-        <translation>Program NATYCHMIAST ulegnie awarii!
-
-Cała niezapisana praca PRZEPADNIE.
-
-Czy na pewno kontynuować?</translation>
     </message>
     <message>
         <source>Crash cancelled</source>
@@ -3235,6 +3239,18 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
 <context>
     <name>kalahari::gui::MainWindow</name>
     <message>
+        <source>Kalahari uses Qt %1, a C++ toolkit for cross-platform applications.
+
+Qt is available under the GNU Lesser General Public License version 3. Copyright (C) The Qt Company Ltd. and other contributors.
+
+More information: https://www.qt.io</source>
+        <translation>Kalahari korzysta z Qt %1 – biblioteki C++ do tworzenia programów działających w wielu systemach.
+
+Qt jest udostępniane na licencji GNU Lesser General Public License w wersji 3. Copyright (C) The Qt Company Ltd. i inni autorzy.
+
+Więcej informacji: https://www.qt.io</translation>
+    </message>
+    <message>
         <source>Dashboard</source>
         <translation>Pulpit</translation>
     </message>
@@ -3309,10 +3325,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
-    </message>
-    <message>
-        <source>Press Esc to leave Distraction-Free</source>
-        <translation>Naciśnij Esc, aby wyjść z trybu bez rozpraszania</translation>
     </message>
     <message>
         <source>About Qt</source>
@@ -5402,6 +5414,42 @@ Harmonogram projektu:
 <context>
     <name>kalahari::gui::dialogs::ToolbarManagerDialog</name>
     <message>
+        <source>New name</source>
+        <translation>Nowa nazwa</translation>
+    </message>
+    <message>
+        <source>Toolbar name</source>
+        <translation>Nazwa paska narzędzi</translation>
+    </message>
+    <message>
+        <source>&amp;Create</source>
+        <translation>&amp;Utwórz</translation>
+    </message>
+    <message>
+        <source>Do you want to delete the toolbar &quot;%1&quot;?</source>
+        <translation>Czy usunąć pasek narzędzi „%1”?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>Do you want to reset all toolbars to their default configurations?
+
+This will remove all user-defined toolbars and restore built-in toolbars to defaults.</source>
+        <translation>Czy przywrócić domyślny układ wszystkich pasków narzędzi?
+
+Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do ustawień domyślnych.</translation>
+    </message>
+    <message>
+        <source>&amp;Reset</source>
+        <translation>&amp;Przywróć</translation>
+    </message>
+    <message>
         <source>Customize Toolbars</source>
         <translation>Dostosuj paski narzędzi</translation>
     </message>
@@ -5530,36 +5578,58 @@ Harmonogram projektu:
         <translation>Nowy pasek</translation>
     </message>
     <message>
-        <source>Enter toolbar name:</source>
-        <translation>Nazwa paska:</translation>
-    </message>
-    <message>
         <source>Delete Toolbar</source>
         <translation>Usuń pasek</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to delete the toolbar &apos;%1&apos;?</source>
-        <translation>Czy na pewno usunąć pasek „%1”?</translation>
     </message>
     <message>
         <source>Rename Toolbar</source>
         <translation>Zmień nazwę paska</translation>
     </message>
     <message>
-        <source>Enter new name:</source>
-        <translation>Nowa nazwa:</translation>
-    </message>
-    <message>
         <source>Reset Toolbars</source>
         <translation>Przywróć paski narzędzi</translation>
     </message>
+</context>
+<context>
+    <name>kalahari::gui::IconDownloaderDialog</name>
     <message>
-        <source>Are you sure you want to reset all toolbars to their default configurations?
-
-This will remove all user-defined toolbars and restore built-in toolbars to defaults.</source>
-        <translation>Czy na pewno przywrócić domyślny układ wszystkich pasków narzędzi?
-
-Paski użytkownika zostaną usunięte, a paski wbudowane wrócą do ustawień domyślnych.</translation>
+        <source>Cancel Download</source>
+        <translation>Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>The download is in progress. Do you want to stop it?</source>
+        <translation>Trwa pobieranie. Czy je przerwać?</translation>
+    </message>
+    <message>
+        <source>&amp;Stop Download</source>
+        <translation>&amp;Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>Invalid Input</source>
+        <translation>Nieprawidłowe dane</translation>
+    </message>
+    <message>
+        <source>Please enter a URL.</source>
+        <translation>Wpisz adres URL.</translation>
+    </message>
+    <message>
+        <source>The URL must start with http:// or https://.</source>
+        <translation>Adres URL musi zaczynać się od http:// lub https://.</translation>
+    </message>
+    <message>
+        <source>Please enter an icon name.</source>
+        <translation>Wpisz nazwę ikony.</translation>
+    </message>
+</context>
+<context>
+    <name>main</name>
+    <message>
+        <source>Command Line</source>
+        <translation>Wiersz poleceń</translation>
+    </message>
+    <message>
+        <source>The command line could not be read.</source>
+        <translation>Nie udało się odczytać wiersza poleceń.</translation>
     </message>
 </context>
 </TS>

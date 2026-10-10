@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Own windows instead of the system ones** - 2026-10-10. The benchmark, the forced crash,
+  the icon downloader, the Toolbar Manager (new, renamed and deleted toolbars, reset), the Log
+  panel, the diagnostic menu setting, the language restart question, the damaged chapter
+  warning, About Qt and the command line help now use the program's own message, question,
+  text and progress windows. Questions name their action on the button ("Delete", "Reset"),
+  and for steps that cannot be undone Enter presses Cancel.
+
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
   program's own window, in the look of its other dialogs, in place of the system ones. Copy

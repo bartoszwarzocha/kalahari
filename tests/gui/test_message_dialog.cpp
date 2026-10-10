@@ -1,8 +1,9 @@
 /// @file test_message_dialog.cpp
-/// @brief The program's own messages, questions and typed texts, in place of the system ones
+/// @brief The program's own messages, questions, typed texts and progress, in place of the system ones
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/progress_dialog.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -10,6 +11,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QTimer>
 
@@ -275,5 +277,38 @@ TEST_CASE("Own messages: a text to type", "[gui][dialogs]") {
         whenShown<TextInputDialog>([](TextInputDialog* shown) { shown->cancelButton()->click(); });
         CHECK_FALSE(TextInputDialog::getText(nullptr, QStringLiteral("New Toolbar"),
                                              QStringLiteral("Name")).has_value());
+    }
+}
+
+TEST_CASE("Own messages: the progress of a long task", "[gui][dialogs]") {
+    ProgressDialog dialog(QStringLiteral("Export"), QStringLiteral("Exporting the archive..."));
+    auto* bar = dialog.findChild<QProgressBar*>();
+    REQUIRE(bar != nullptr);
+
+    CHECK(dialog.windowTitle() == QStringLiteral("Export"));
+    CHECK(showsText(dialog, QStringLiteral("Exporting the archive...")));
+    CHECK(dialog.windowModality() == Qt::WindowModal);
+    CHECK_FALSE(dialog.acceptButton()->isVisibleTo(&dialog));
+    CHECK(dialog.cancelButton()->isVisibleTo(&dialog));
+
+    dialog.setRange(0, 10);
+    dialog.setValue(4);
+    CHECK(dialog.value() == 4);
+    CHECK(bar->maximum() == 10);
+
+    SECTION("Cancel and Esc ask the task to stop") {
+        dialog.show();
+        press(dialog, Qt::Key_Escape);
+        CHECK(dialog.wasCanceled());
+        CHECK_FALSE(dialog.isVisible());
+    }
+
+    SECTION("A task that cannot stop has no Cancel, and Esc does not close it") {
+        dialog.setCancelVisible(false);
+        dialog.show();
+        press(dialog, Qt::Key_Escape);
+        CHECK_FALSE(dialog.wasCanceled());
+        CHECK(dialog.isVisible());
+        dialog.hide();
     }
 }

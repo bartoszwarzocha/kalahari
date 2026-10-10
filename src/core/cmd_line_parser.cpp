@@ -107,20 +107,26 @@ bool CmdLineParser::parse() {
         return false;
     }
 
-    // Check if help was requested
+    // Help: the caller shows helpText() in the program's own window (QCommandLineParser's
+    // showHelp() would use a system message box on Windows and exit at once)
     if (m_parser.isSet("help")) {
-        // showHelp() displays help and exits the application
-        // On Windows GUI apps: shows QMessageBox when stdout unavailable
-        // On console apps: prints to stdout
         Logger::getInstance().info("Help requested via command line");
-        m_parser.showHelp(0);  // This calls exit(0)
-        // Never reached
+        m_helpRequested = true;
+        return false;
     }
 
     // Parsing succeeded
     m_parsed = true;
     Logger::getInstance().info("Command line parsed successfully");
     return true;
+}
+
+QString CmdLineParser::helpText() const {
+    return m_parser.helpText();
+}
+
+QString CmdLineParser::errorText() const {
+    return m_parser.errorText();
 }
 
 bool CmdLineParser::hasSwitch(const QString& name) const {
