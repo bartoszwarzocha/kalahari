@@ -37,7 +37,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
     // Regression: Close Book took Qt's standard Close keys, Ctrl+F4 on Windows but Ctrl+W on
     // Linux, and Find & Replace had Ctrl+H, Ctrl+R (Align Right's) or none. Every shortcut
     // is written out; a command that gets or changes one is added here, and to the list of
-    // shortcuts in the documentation. On macOS Qt shows Ctrl as Cmd.
+    // shortcuts in the documentation. On macOS Qt shows Ctrl as Cmd and Meta as Control.
     const std::map<std::string, QString> documented = {
         {"file.new", QStringLiteral("Ctrl+N")},
         {"file.new.project", QStringLiteral("Ctrl+Shift+N")},
@@ -89,7 +89,11 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"view.zoomIn", QStringLiteral("Ctrl++")},
         {"view.zoomOut", QStringLiteral("Ctrl+-")},
         {"view.resetZoom", QStringLiteral("Ctrl+0")},
+#ifdef Q_OS_MACOS
+        {"view.fullScreen", QStringLiteral("Ctrl+Meta+F")},  // Control+Cmd+F: F11 shows the desktop
+#else
         {"view.fullScreen", QStringLiteral("F11")},
+#endif
         {"help.manual", QStringLiteral("F1")},
     };
 

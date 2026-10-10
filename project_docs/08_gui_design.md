@@ -1479,56 +1479,121 @@ Motivate writers through achievements, challenges, and statistics.
 
 ## Keyboard Shortcuts
 
-### Default Shortcuts (80+ total)
+### Shortcuts in the Program
 
-#### File (10)
-- `Ctrl+N` - New Project
-- `Ctrl+O` - Open Project
-- `Ctrl+S` - Save
-- `Ctrl+Shift+S` - Save As
-- `Ctrl+W` - Close Document
+One set, the same on Windows and Linux; the Windows keys are the reference. On macOS Ctrl
+is Cmd, with the few keys of macOS listed below. Every shortcut is written out in
+`src/gui/command_registrar.cpp`, and `tests/gui/test_command_shortcuts.cpp` lists them all:
+a command that gets or changes a shortcut changes that list and this table. Another test
+fails when two commands share a key.
+
+Rules for a new shortcut:
+- Not Ctrl+W: next to Ctrl+S and Ctrl+E, it would close the book by mistake while writing.
+- No Ctrl+Alt on Windows and Linux: Windows takes it for AltGr, which types letters
+  (ą, ć, ę...).
+- No key a desktop takes for itself: Ctrl+F1–F4 on KDE (desktops 1–4), Ctrl+F1–F12 on Xfce
+  (workspaces 1–12); on macOS Cmd+H (hides the program) and F11 (shows the desktop).
+  Close Book keeps Ctrl+F4, the Windows key (see Linux Desktops).
+
+#### Menu Commands
+
+| Command | Shortcut |
+|---|---|
+| File > New File | Ctrl+N |
+| File > New Book... | Ctrl+Shift+N |
+| File > Open Book... | Ctrl+O |
+| File > Open > Open File... | Ctrl+Shift+O |
+| File > Close Book | Ctrl+F4 |
+| File > Save | Ctrl+S |
+| File > Save As... | Ctrl+Shift+S |
+| File > Exit | Alt+F4 |
+| Edit > Undo | Ctrl+Z |
+| Edit > Redo | Ctrl+Y (in the text also Ctrl+Shift+Z) |
+| Edit > Cut | Ctrl+X |
+| Edit > Copy | Ctrl+C |
+| Edit > Paste | Ctrl+V |
+| Edit > Select All | Ctrl+A |
+| Edit > Find... | Ctrl+F |
+| Edit > Find Next | F3 |
+| Edit > Find Previous | Shift+F3 |
+| Edit > Find & Replace... | Ctrl+H |
+| Edit > Next To Do | Alt+Down |
+| Edit > Previous To Do | Alt+Up |
+| Insert > Add Annotation... | Ctrl+Shift+M |
+| Format > Bold | Ctrl+B |
+| Format > Italic | Ctrl+I |
+| Format > Underline | Ctrl+U |
+| Format > Align Left | Ctrl+L |
+| Format > Align Center | Ctrl+E |
+| Format > Align Right | Ctrl+R |
+| Format > Justify | Ctrl+J |
+| View > Panels > Navigator | F2 |
+| View > Panels > Log | F4 |
+| View > Panels > Search | F5 |
+| View > Panels > Assistant | F6 |
+| View > Panels > Properties | F8 |
+| View > Panels > Annotations | F9 |
+| View > View Mode > Continuous | Ctrl+1 |
+| View > View Mode > Page Layout | Ctrl+2 |
+| View > Typewriter Scrolling | Ctrl+3 |
+| View > Focus | Ctrl+4 |
+| View > Distraction-Free | Shift+F11 |
+| View > Zoom > Zoom In | Ctrl++ |
+| View > Zoom > Zoom Out | Ctrl+- |
+| View > Zoom > Zoom 100% | Ctrl+0 |
+| View > Full Screen | F11 |
+| Help > Kalahari Help | F1 |
+
+#### Keys Outside the Menus
+
+- **Find bar:** Enter – next match, Shift+Enter – previous match, Enter in the replace
+  field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
+  expression.
+- **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
+  edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
+  Esc – back to the text.
+- **Distraction-Free:** Esc – leave it.
+- **Text:** the arrows, Ctrl+Left and Ctrl+Right (by a word), Home and End, Ctrl+Home and
+  Ctrl+End, Page Up and Page Down; with Shift they select.
+
+#### macOS
+
+Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
+- File > Exit – Cmd+Q (programs quit with it; Alt+F4 does nothing there);
+- Edit > Find & Replace – Option+Cmd+F (Cmd+H hides the program);
+- View > Full Screen – Control+Cmd+F (F11 shows the desktop);
+- the options of the find bar – Option+Cmd+C, Option+Cmd+W and Option+Cmd+R (Option with a
+  letter types a character: Option+C is "ć" on the Polish keyboard).
+
+On Apple laptops the F keys are pressed with Fn.
+
+#### Linux Desktops
+
+KDE and Xfce take Ctrl+F4 for themselves by default (desktop or workspace 4), so there Close
+Book is in the File menu only.
+
+### Planned Shortcuts
+
+Commands without keys yet, with keys that are still free:
 - `Ctrl+P` - Print
-- `Ctrl+Q` - Exit
-
-#### Edit (15)
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` / `Ctrl+Shift+Z` - Redo
-- `Ctrl+X` - Cut
-- `Ctrl+C` - Copy
-- `Ctrl+V` - Paste
-- `Ctrl+A` - Select All
-- `Ctrl+F` - Find
-- `Ctrl+H` - Replace
 - `Ctrl+G` - Go to Line
-- `F3` - Find Next
-
-#### Format (10)
-- `Ctrl+B` - Bold
-- `Ctrl+I` - Italic
-- `Ctrl+U` - Underline
-- `Ctrl+Shift+K` - Strikethrough
-- `Ctrl+0` - Normal style
-- `Ctrl+1` - Heading 1
-- `Ctrl+2` - Heading 2
-
-#### View (10)
-- `F11` - Fullscreen
-- `F9` - Normal mode
-- `F10` - Focused mode
-- `Ctrl+\` - Toggle Focus Mode
-- `F5-F8` - Quick perspective switch
-- `Ctrl+1-5` - Toggle panels
-
-#### Tools (8)
-- `F7` - Spell Check
+- `Ctrl+Shift+K` - Strikethrough (in the Format menu, without keys)
 - `Ctrl+Shift+C` - Word Count
 - `Ctrl+Shift+T` - Timeline
-- `Ctrl+Shift+M` - Mind Map
+- `Ctrl+Tab` / `Ctrl+Shift+Tab` - Next / Previous Tab
+- `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
+- `F10` - Focused Mode (see Focus Modes)
 
-#### Window (5)
-- `Ctrl+Tab` - Next Tab
-- `Ctrl+Shift+Tab` - Previous Tab
-- `Ctrl+F4` - Close Tab
+Keys planned before that other commands have now; these commands get new keys when they
+are added:
+- Normal style (`Ctrl+0`: Zoom 100%), Heading 1 and 2 (`Ctrl+1`, `Ctrl+2`: the view modes)
+- Normal Mode (`F9`: the Annotations panel), Toggle Focus Mode (`Ctrl+\`: splitting the
+  editor, in `SplitEditorPanel`, which the program does not use yet)
+- Quick perspective switch (`F5`–`F8`: the panels), panel toggles (`Ctrl+1`–`Ctrl+5`: the
+  view modes, Typewriter Scrolling and Focus)
+- Mind Map (`Ctrl+Shift+M`: Add Annotation)
+- Close Tab (`Ctrl+F4`: Close Book)
 
 ### Shortcut Customization
 
@@ -1572,7 +1637,9 @@ Motivate writers through achievements, challenges, and statistics.
 
 **3 modes for different concentration levels:**
 
-### Normal Mode (F9)
+### Normal Mode
+
+**Key:** to be chosen (F9 is the Annotations panel).
 
 **Layout:**
 - All panels visible (per current perspective)
@@ -1601,7 +1668,9 @@ Motivate writers through achievements, challenges, and statistics.
 
 ---
 
-### Distraction-Free Mode (F11)
+### Distraction-Free Mode (Shift+F11)
+
+In the program: View > Distraction-Free (F11 is View > Full Screen).
 
 **Layout:**
 - Fullscreen

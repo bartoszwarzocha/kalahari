@@ -138,14 +138,19 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // One set of shortcuts, the same on Windows and Linux, each written out: Qt's standard
     // keys (QKeySequence::StandardKey) differ between the systems and the Linux desktops
     // (Close is Ctrl+F4 on Windows and Ctrl+W on Linux; Find & Replace is Ctrl+H, Ctrl+R or
-    // none). macOS shows Ctrl as Cmd, and keeps two keys for itself: Cmd+H hides the
-    // program, and Cmd+Q quits it.
+    // none). No shortcut uses Ctrl+Alt on Windows and Linux: Windows takes it for AltGr,
+    // which types letters (ą, ć, ę...).
+    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and three commands
+    // have the keys of macOS there: programs quit with Cmd+Q (Alt+F4 does nothing), Cmd+H
+    // hides the program, and F11 shows the desktop.
 #ifdef Q_OS_MACOS
     const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
+    const KeyboardShortcut fullScreenShortcut(Qt::Key_F, Qt::ControlModifier | Qt::MetaModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
+    const KeyboardShortcut fullScreenShortcut(Qt::Key_F11, Qt::NoModifier);
 #endif
 
     // =========================================================================
@@ -565,9 +570,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "Whole Page"), "VIEW/Zoom/Whole Page", 224, true, 0,
                callbacks.onZoomWholePage);
 
-    // OpenSpec #00030: F11 for Full Screen (standard)
+    // F11 (Control+Cmd+F on macOS, see SHORTCUTS)
     REG_CMD_KEY("view.fullScreen", QT_TRANSLATE_NOOP("CommandRegistrar", "Full Screen"), "VIEW/Full Screen", 250, true, 0,
-                KeyboardShortcut(Qt::Key_F11, Qt::NoModifier));
+                fullScreenShortcut);
 
     REG_CMD_CB("view.resetLayout", QT_TRANSLATE_NOOP("CommandRegistrar", "Reset Layout"), "VIEW/Reset Layout", 260, false, 0,
                callbacks.onResetLayout);

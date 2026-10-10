@@ -195,9 +195,9 @@ private:
     QShortcut* m_escapeShortcut = nullptr;    ///< Escape to close
     QShortcut* m_findNextShortcut = nullptr;  ///< Enter to find next
     QShortcut* m_findPrevShortcut = nullptr;  ///< Shift+Enter to find previous
-    QShortcut* m_toggleCaseShortcut = nullptr;   ///< Alt+C for case
-    QShortcut* m_toggleWordShortcut = nullptr;   ///< Alt+W for whole word
-    QShortcut* m_toggleRegexShortcut = nullptr;  ///< Alt+R for regex
+    QShortcut* m_toggleCaseShortcut = nullptr;   ///< Alt+C for case (Option+Cmd+C on macOS)
+    QShortcut* m_toggleWordShortcut = nullptr;   ///< Alt+W for whole word (Option+Cmd+W)
+    QShortcut* m_toggleRegexShortcut = nullptr;  ///< Alt+R for regex (Option+Cmd+R)
 };
 
 }  // namespace kalahari::editor

@@ -53,7 +53,7 @@ struct TestWindow {
     QAction* save = nullptr;        ///< File > Save, Ctrl+S
     QAction* zoomIn = nullptr;      ///< View > Zoom > Zoom In, Ctrl+=
     QAction* about = nullptr;       ///< Help > About, no shortcut
-    QAction* quit = nullptr;        ///< File > Quit, Ctrl+Q, also the window's own
+    QAction* quit = nullptr;        ///< File > Exit, Alt+F4, also the window's own
     QToolBar* fileBar = nullptr;
     QToolBar* hiddenBar = nullptr;  ///< Hidden before
     QDockWidget* navigator = nullptr;
@@ -72,8 +72,8 @@ struct TestWindow {
         QMenu* file = menuBar->addMenu(QStringLiteral("File"));
         save = file->addAction(QStringLiteral("Save"));
         save->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
-        quit = new QAction(QStringLiteral("Quit"), &window);
-        quit->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Q));
+        quit = new QAction(QStringLiteral("Exit"), &window);
+        quit->setShortcut(QKeySequence(Qt::ALT | Qt::Key_F4));
         file->addAction(quit);
         window.addAction(quit);
         QMenu* zoom = menuBar->addMenu(QStringLiteral("View"))->addMenu(QStringLiteral("Zoom"));

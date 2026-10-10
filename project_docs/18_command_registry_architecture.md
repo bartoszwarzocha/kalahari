@@ -444,7 +444,7 @@ private:
         cmd.tooltip = "Export current document to PDF format";
         cmd.category = "Export";  // Custom category (creates new menu)
         cmd.icons = IconSet("plugins/export/icons/pdf.png");
-        cmd.shortcut = KeyboardShortcut('P', true, true);  // Ctrl+Alt+P
+        cmd.shortcut = KeyboardShortcut('P', true, false, true);  // Ctrl+Shift+P
         cmd.showInMenu = true;
         cmd.showInToolbar = false;
         cmd.execute = [this]() {
@@ -803,8 +803,12 @@ cmd.isEnabled = [this]() {
 ### 5. Shortcut Conflicts
 
 Avoid shortcut conflicts:
-- Core commands use standard shortcuts (Ctrl+S, Ctrl+C, Ctrl+V)
-- Plugins use Ctrl+Alt+X or Ctrl+Shift+X combinations
+- Core commands have one set of shortcuts, the same on Windows and Linux, written out in
+  `src/gui/command_registrar.cpp` and listed in `tests/gui/test_command_shortcuts.cpp` and in
+  `08_gui_design.md` (Keyboard Shortcuts). Qt's standard keys (`QKeySequence::StandardKey`)
+  are not used: they differ between the systems and the Linux desktops.
+- Plugins use Ctrl+Shift+X combinations; not Ctrl+Alt, which Windows takes for AltGr (it
+  types letters: ą, ć, ę...)
 - Check `ShortcutManager::isShortcutBound()` before registering
 
 ---

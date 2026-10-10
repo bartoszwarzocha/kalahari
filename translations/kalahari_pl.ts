@@ -1396,24 +1396,24 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Aa</translation>
     </message>
     <message>
-        <source>Match Case (Alt+C)</source>
-        <translation>Uwzględniaj wielkość liter (Alt+C)</translation>
+        <source>Match Case (%1)</source>
+        <translation>Uwzględniaj wielkość liter (%1)</translation>
     </message>
     <message>
         <source>W</source>
         <translation>W</translation>
     </message>
     <message>
-        <source>Match Whole Word (Alt+W)</source>
-        <translation>Tylko całe wyrazy (Alt+W)</translation>
+        <source>Match Whole Word (%1)</source>
+        <translation>Tylko całe wyrazy (%1)</translation>
     </message>
     <message>
         <source>.*</source>
         <translation>.*</translation>
     </message>
     <message>
-        <source>Use Regular Expression (Alt+R)</source>
-        <translation>Wyrażenie regularne (Alt+R)</translation>
+        <source>Use Regular Expression (%1)</source>
+        <translation>Wyrażenie regularne (%1)</translation>
     </message>
     <message>
         <source>Previous Match (Shift+Enter)</source>
@@ -1799,6 +1799,10 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Książka nie ma uwag.</translation>
     </message>
     <message>
+        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note from the context menu.</source>
+        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</translation>
+    </message>
+    <message>
         <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
         <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
     </message>
@@ -2003,18 +2007,6 @@ do: „%2”</translation>
     <message>
         <source>KEYBOARD SHORTCUTS</source>
         <translation>SKRÓTY KLAWISZOWE</translation>
-    </message>
-    <message>
-        <source>New Book</source>
-        <translation>Nowa książka</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Otwórz</translation>
-    </message>
-    <message>
-        <source>New Chapter</source>
-        <translation>Nowy rozdział</translation>
     </message>
     <message>
         <source>Kalahari News</source>

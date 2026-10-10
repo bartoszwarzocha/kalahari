@@ -24,14 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
   Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
   Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
-  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it had no
-  keys or, on KDE, Align Right's Ctrl+R), Full Screen F11, Help F1. Ctrl+W does nothing, so
-  it cannot close the book by mistake. On macOS, Exit is Cmd+Q and Find & Replace is
-  Option+Cmd+F (Cmd+H hides the program).
+  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it was
+  Ctrl+H on GNOME, Align Right's Ctrl+R on KDE and nothing elsewhere), Full Screen F11,
+  Help F1. Ctrl+W does nothing, so it cannot close the book by mistake.
+  - macOS has its own keys where its system needs them: Exit Cmd+Q, Find & Replace
+    Option+Cmd+F (Cmd+H hides the program), Full Screen Control+Cmd+F (F11 shows the
+    desktop), and the options of the find bar Option+Cmd+C, W and R (Option with a letter
+    types a character there, Option+C is "ć" on the Polish keyboard).
   - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
     keys; on Linux, Ctrl+F4 did not reach the window from it.
   - The Dashboard shows the names and keys of its commands as the menus have them: it
-    showed Ctrl+N as New Chapter, which is New File.
+    showed Ctrl+N as New Chapter, which is New File. The hint of the Annotations panel and
+    the tooltips of the find bar's options take their keys from the program as well.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed

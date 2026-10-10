@@ -26,6 +26,7 @@
 #include <QGuiApplication>
 #include <QHelpEvent>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
@@ -369,6 +370,40 @@ TEST_CASE("Annotations panel: cards of the annotations that pass the filters",
     panel.setEntries({comment});
     CHECK(idsOf(panel.shownEntries()) == QStringLiteral("c"));
     CHECK(panel.card(note.key()) == nullptr);
+}
+
+TEST_CASE("Annotations panel: the hint of a chapter without annotations has the keys of Add "
+          "Annotation",
+          "[gui][annotations]") {
+    // The keys come from the command: written in the panel a second time, they could drift
+    // apart from it, as the Dashboard's did
+    const auto hintOf = [](const AnnotationsPanel& panel) {
+        for (const QLabel* label : panel.findChildren<QLabel*>()) {
+            if (label->text().startsWith(QStringLiteral("This chapter has no annotations."))) {
+                return label->text();
+            }
+        }
+        return QString();
+    };
+
+    SECTION("The command's keys") {
+        registerAllCommands(CommandCallbacks{});
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        REQUIRE(add != nullptr);
+        const QString keys = add->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+        CHECK(hintOf(panel).contains(QStringLiteral(" with %1 or ").arg(keys)));
+    }
+
+    SECTION("No keys, no mention of them") {
+        CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
+    }
 }
 
 TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][annotations]") {

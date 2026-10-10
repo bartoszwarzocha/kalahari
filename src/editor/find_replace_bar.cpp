@@ -66,24 +66,22 @@ void FindReplaceBar::setupUi()
     findRow->addWidget(m_searchInput, 1);
 
     // Option toggle buttons
+    // The tooltips, with the keys: createShortcuts()
     m_caseSensitiveBtn = new QToolButton(this);
     m_caseSensitiveBtn->setText(tr("Aa"));
     m_caseSensitiveBtn->setCheckable(true);
-    m_caseSensitiveBtn->setToolTip(tr("Match Case (Alt+C)"));
     m_caseSensitiveBtn->setFixedSize(28, 24);
     findRow->addWidget(m_caseSensitiveBtn);
 
     m_wholeWordBtn = new QToolButton(this);
     m_wholeWordBtn->setText(tr("W"));
     m_wholeWordBtn->setCheckable(true);
-    m_wholeWordBtn->setToolTip(tr("Match Whole Word (Alt+W)"));
     m_wholeWordBtn->setFixedSize(28, 24);
     findRow->addWidget(m_wholeWordBtn);
 
     m_regexBtn = new QToolButton(this);
     m_regexBtn->setText(tr(".*"));
     m_regexBtn->setCheckable(true);
-    m_regexBtn->setToolTip(tr("Use Regular Expression (Alt+R)"));
     m_regexBtn->setFixedSize(28, 24);
     findRow->addWidget(m_regexBtn);
 
@@ -167,14 +165,28 @@ void FindReplaceBar::createShortcuts()
     // Escape to close
     m_escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
 
-    // Alt+C for case sensitive
-    m_toggleCaseShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_C), this);
+    // Alt+C, Alt+W and Alt+R turn the options on and off. On macOS Option+Cmd: there Option
+    // with a letter types a character (Option+C is "ć" on the Polish keyboard)
+#ifdef Q_OS_MACOS
+    const Qt::KeyboardModifiers toggleModifiers = Qt::ControlModifier | Qt::AltModifier;
+#else
+    const Qt::KeyboardModifiers toggleModifiers = Qt::AltModifier;
+#endif
+    m_toggleCaseShortcut =
+        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_C)), this);
+    m_toggleWordShortcut =
+        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_W)), this);
+    m_toggleRegexShortcut =
+        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_R)), this);
 
-    // Alt+W for whole word
-    m_toggleWordShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_W), this);
-
-    // Alt+R for regex
-    m_toggleRegexShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_R), this);
+    // The tooltips show the keys as the system writes them
+    const auto keysOf = [](const QShortcut* shortcut) {
+        return shortcut->key().toString(QKeySequence::NativeText);
+    };
+    m_caseSensitiveBtn->setToolTip(tr("Match Case (%1)").arg(keysOf(m_toggleCaseShortcut)));
+    m_wholeWordBtn->setToolTip(tr("Match Whole Word (%1)").arg(keysOf(m_toggleWordShortcut)));
+    m_regexBtn->setToolTip(
+        tr("Use Regular Expression (%1)").arg(keysOf(m_toggleRegexShortcut)));
 }
 
 void FindReplaceBar::createConnections()
