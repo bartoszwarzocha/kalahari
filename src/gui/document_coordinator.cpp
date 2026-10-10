@@ -300,7 +300,7 @@ void DocumentCoordinator::onNewProject() {
     if (!pm.createProject(result.location, result.title, result.author, result.language,
                           result.createSubfolder, bookTypeOf(result.templateId), &problems)) {
         logger.error("Failed to create project: {}", result.title.toStdString());
-        dialogs::MessageDialog::error(m_mainWindow, tr("Project Creation Failed"),
+        dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
                                       tr("Could not create the book '%1'.").arg(result.title),
                                       detailsOf(problems));
         return;
@@ -309,7 +309,7 @@ void DocumentCoordinator::onNewProject() {
     m_updateWindowTitle();
     logger.info("Project created: {} in {}", result.title.toStdString(),
                 result.location.toStdString());
-    m_statusBar->showMessage(tr("Project created: %1").arg(result.title), 3000);
+    m_statusBar->showMessage(tr("Book created: %1").arg(result.title), 3000);
     emit documentOpened();
 
     // The writer can start writing at once
@@ -345,7 +345,7 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
 
     // Clean: plain confirmation to avoid an accidental project switch. ProjectManager closes
     // the book, and its projectAboutToClose() prepares the services for that.
-    return dialogs::MessageDialog::confirm(m_mainWindow, tr("Close Current Project?"),
+    return dialogs::MessageDialog::confirm(m_mainWindow, tr("Close Book?"),
                                            closeQuestion.arg(bookName), tr("&Close Book"));
 }
 
@@ -406,8 +406,8 @@ void DocumentCoordinator::onOpenDocument() {
         }
     }
     if (!agreeToCloseBook(
-            tr("Do you want to save changes to '%1' before opening the selected project?"),
-            tr("Do you want to close '%1' and open the selected project?"))) {
+            tr("Do you want to save changes to '%1' before opening the selected book?"),
+            tr("Do you want to close '%1' and open the selected book?"))) {
         logger.debug("User cancelled opening new project");
         return;
     }
@@ -477,8 +477,8 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
 
             // Different project - handle unsaved changes before closing
             if (!agreeToCloseBook(
-                    tr("Do you want to save changes to '%1' before opening the selected project?"),
-                    tr("Do you want to close '%1' and open the selected project?"))) {
+                    tr("Do you want to save changes to '%1' before opening the selected book?"),
+                    tr("Do you want to close '%1' and open the selected book?"))) {
                 logger.debug("User cancelled opening new project");
                 return;
             }
@@ -499,10 +499,7 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         logger.error("Failed to open .klh file as project: {}", filePath.toStdString());
         dialogs::MessageDialog::error(
             m_mainWindow, tr("Open Error"),
-            tr("Failed to open project: %1\n\n"
-               "The project may be corrupted, locked by another instance, "
-               "or there may be a database error.")
-                .arg(QFileInfo(filePath).fileName()),
+            tr("Failed to open book: %1").arg(QDir::toNativeSeparators(filePath)),
             detailsOf(problems));
         // Do NOT remove from recent files - the project might be recoverable
         return;

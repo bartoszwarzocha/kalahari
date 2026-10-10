@@ -146,6 +146,9 @@ private:
     void updateDescription(const QString& templateId);
 
     /// @brief Validate input and update Create button state
+    ///
+    /// In project mode the folder of the new book must be new or empty; the folder line
+    /// names it, or says what to change when it is not.
     void validateInput();
 
     /// @brief Load default values from SettingsManager
@@ -214,6 +217,12 @@ private:
 
     /// @brief Label for location row
     QLabel* m_locationLabel;
+
+    /// @brief Icon of the folder line: a warning when the book cannot be made in the folder
+    QLabel* m_folderIcon;
+
+    /// @brief Folder line: the folder the book will be in, or why it cannot be made there
+    QLabel* m_folderLabel;
 
     // ========================================================================
     // Dialog Buttons

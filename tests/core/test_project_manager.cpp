@@ -403,6 +403,40 @@ TEST_CASE("A book that cannot be created leaves the open book open", "[project_m
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("The folder of a new project, and whether it can hold the project", "[project_manager]") {
+    // The New Book dialog checks the folder with them before the open book is closed
+    QTemporaryDir dir;
+    const QDir parent(dir.path());
+
+    SECTION("A subfolder named after the title, with the characters of a file name") {
+        CHECK(ProjectManager::newProjectFolder(dir.path(), "  Who? Me: <yes>  ", true) ==
+              QDir::cleanPath(parent.filePath("Who_ Me_ _yes_")));
+        CHECK(ProjectManager::newProjectFolder(dir.path() + "/", "Book", true) ==
+              QDir::cleanPath(parent.filePath("Book")));
+    }
+
+    SECTION("The folder itself without a subfolder") {
+        CHECK(ProjectManager::newProjectFolder(dir.path() + "/", "Book", false) ==
+              QDir::cleanPath(dir.path()));
+    }
+
+    SECTION("No folder without a title") {
+        CHECK(ProjectManager::newProjectFolder(dir.path(), "   ", true).isEmpty());
+        CHECK(ProjectManager::newProjectFolder(dir.path(), QString(), false).isEmpty());
+    }
+
+    SECTION("A new or empty folder can hold it, a folder with files or a file cannot") {
+        CHECK(ProjectManager::canHoldNewProject(parent.filePath("New")));
+        REQUIRE(parent.mkpath("Empty"));
+        CHECK(ProjectManager::canHoldNewProject(parent.filePath("Empty")));
+        REQUIRE(parent.mkpath("Taken"));
+        writeFile(parent.filePath("Taken/notes.txt"), "mine");
+        CHECK_FALSE(ProjectManager::canHoldNewProject(parent.filePath("Taken")));
+        CHECK_FALSE(ProjectManager::canHoldNewProject(parent.filePath("Taken/notes.txt")));
+        CHECK_FALSE(ProjectManager::canHoldNewProject(dir.path()));
+    }
+}
+
 TEST_CASE("ProjectManager keeps the identity and unknown fields of a project", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

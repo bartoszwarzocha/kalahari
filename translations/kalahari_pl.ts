@@ -940,24 +940,12 @@ Uruchomić ponownie teraz?</translation>
         <translation>Powieść</translation>
     </message>
     <message>
-        <source>A traditional novel structure with parts and chapters.
-
-Includes front matter (title page, dedication) and back matter (epilogue, acknowledgments). Perfect for fiction writing with a clear hierarchical organization.</source>
-        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
-
-Zawiera część wstępną (strona tytułowa, dedykacja) i część końcową (epilog, podziękowania). Dobry do prozy o wyraźnym, wielopoziomowym układzie.</translation>
-    </message>
-    <message>
         <source>Part/Chapter structure</source>
         <translation>Układ części i rozdziałów</translation>
     </message>
     <message>
         <source>Front matter (title, dedication)</source>
         <translation>Część wstępna (tytuł, dedykacja)</translation>
-    </message>
-    <message>
-        <source>Back matter (epilogue, notes)</source>
-        <translation>Część końcowa (epilog, przypisy)</translation>
     </message>
     <message>
         <source>Word count tracking</source>
@@ -1278,6 +1266,22 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     <message>
         <source>Structure built in the Navigator</source>
         <translation>Układ budowany w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>A traditional novel structure with parts and chapters.
+
+Includes front matter (title page, dedication), a prologue and an epilogue, and back matter (afterword, acknowledgments). Perfect for fiction writing with a clear hierarchical organization.</source>
+        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
+
+Zawiera część wstępną (strona tytułowa, dedykacja), prolog i epilog oraz część końcową (posłowie, podziękowania). Dobry do prozy o wyraźnym, wielopoziomowym układzie.</translation>
+    </message>
+    <message>
+        <source>Prologue and epilogue</source>
+        <translation>Prolog i epilog</translation>
+    </message>
+    <message>
+        <source>Back matter (afterword, acknowledgments)</source>
+        <translation>Część końcowa (posłowie, podziękowania)</translation>
     </message>
 </context>
 <context>
@@ -2278,32 +2282,12 @@ Czy na pewno kontynuować?</translation>
         <translation>Utworzono nowy dokument</translation>
     </message>
     <message>
-        <source>Project created: %1</source>
-        <translation>Utworzono projekt: %1</translation>
-    </message>
-    <message>
-        <source>Project Creation Failed</source>
-        <translation>Nie udało się utworzyć projektu</translation>
-    </message>
-    <message>
         <source>Open Book</source>
         <translation>Otwórz książkę</translation>
     </message>
     <message>
         <source>Kalahari Books (*.klh)</source>
         <translation>Książki Kalahari (*.klh)</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to &apos;%1&apos; before opening the selected project?</source>
-        <translation>Czy zapisać zmiany w „%1” przed otwarciem wybranego projektu?</translation>
-    </message>
-    <message>
-        <source>Close Current Project?</source>
-        <translation>Zamknąć bieżący projekt?</translation>
-    </message>
-    <message>
-        <source>Do you want to close &apos;%1&apos; and open the selected project?</source>
-        <translation>Czy zamknąć „%1” i otworzyć wybrany projekt?</translation>
     </message>
     <message>
         <source>Open Error</source>
@@ -2320,14 +2304,6 @@ Czy na pewno kontynuować?</translation>
     <message>
         <source>The file &apos;%1&apos; no longer exists.</source>
         <translation>Plik „%1” już nie istnieje.</translation>
-    </message>
-    <message>
-        <source>Failed to open project: %1
-
-The project may be corrupted, locked by another instance, or there may be a database error.</source>
-        <translation>Nie udało się otworzyć projektu: %1
-
-Projekt może być uszkodzony lub otwarty w innym oknie programu albo wystąpił błąd bazy danych.</translation>
     </message>
     <message>
         <source>Failed to open document: %1</source>
@@ -2622,6 +2598,26 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     <message>
         <source>C&amp;hoose Another Folder</source>
         <translation>&amp;Wybierz inny folder</translation>
+    </message>
+    <message>
+        <source>New Book</source>
+        <translation>Nowa książka</translation>
+    </message>
+    <message>
+        <source>Book created: %1</source>
+        <translation>Utworzono książkę: %1</translation>
+    </message>
+    <message>
+        <source>Close Book?</source>
+        <translation>Zamknąć książkę?</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before opening the selected book?</source>
+        <translation>Czy zapisać zmiany w „%1” przed otwarciem wybranej książki?</translation>
+    </message>
+    <message>
+        <source>Do you want to close &apos;%1&apos; and open the selected book?</source>
+        <translation>Czy zamknąć „%1” i otworzyć wybraną książkę?</translation>
     </message>
 </context>
 <context>
@@ -5373,6 +5369,18 @@ Harmonogram projektu:
     <message>
         <source>Select Book Location</source>
         <translation>Wybierz miejsce książki</translation>
+    </message>
+    <message>
+        <source>The book will be created in the folder &apos;%1&apos;.</source>
+        <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; is already in this location and is not empty. Change the title or the location.</source>
+        <translation>Folder „%1” już istnieje w tym miejscu i nie jest pusty. Zmień tytuł albo miejsce.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; is not empty. Choose another folder or create a subfolder with the book name.</source>
+        <translation>Folder „%1” nie jest pusty. Wybierz inny folder albo zaznacz tworzenie podfolderu z nazwą książki.</translation>
     </message>
 </context>
 <context>

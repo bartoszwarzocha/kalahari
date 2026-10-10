@@ -6,10 +6,14 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
+#include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QDir>
+#include <QFile>
 #include <QFrame>
 #include <QKeyEvent>
 #include <QLabel>
@@ -17,6 +21,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QTemporaryDir>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -441,4 +446,67 @@ TEST_CASE("Navigator: without the body of the book the prologue opens it", "[gui
     CHECK_FALSE(dialog.place().has_value());
     CHECK(showsText(dialog,
                     QStringLiteral("The element is added as the first one in the body of the book.")));
+}
+
+TEST_CASE("New Book: the dialog checks the folder of the book", "[gui][dialogs]") {
+    // Regression: a folder with files was found only after the open book was closed
+    QTemporaryDir dir;
+    const QDir parent(dir.path());
+    REQUIRE(parent.mkpath(QStringLiteral("Taken")));
+    QFile notes(parent.filePath(QStringLiteral("Taken/notes.txt")));
+    REQUIRE(notes.open(QIODevice::WriteOnly));
+    notes.write("mine");
+    notes.close();
+
+    NewItemDialog dialog(NewItemMode::Project);
+    QLineEdit* title = nullptr;
+    QLineEdit* location = nullptr;
+    for (QLineEdit* field : dialog.findChildren<QLineEdit*>()) {
+        if (field->placeholderText() == QStringLiteral("Enter book title...")) {
+            title = field;
+        } else if (field->placeholderText() == QStringLiteral("Select book folder...")) {
+            location = field;
+        }
+    }
+    QPushButton* create = nullptr;
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->text() == QStringLiteral("Create Book")) {
+            create = button;
+        }
+    }
+    auto* subfolder = dialog.findChild<QCheckBox*>();
+    const auto* folderLine = dialog.findChild<QLabel*>(QStringLiteral("newBookFolderLabel"));
+    REQUIRE(title != nullptr);
+    REQUIRE(location != nullptr);
+    REQUIRE(create != nullptr);
+    REQUIRE(subfolder != nullptr);
+    REQUIRE(folderLine != nullptr);
+
+    location->setText(dir.path());
+    title->setText(QStringLiteral("New One"));
+    CHECK(create->isEnabled());
+    CHECK(folderLine->text() == QStringLiteral("The book will be created in the folder 'New One'."));
+
+    title->setText(QStringLiteral("Taken"));
+    CHECK_FALSE(create->isEnabled());
+    CHECK(folderLine->text().startsWith(
+        QStringLiteral("The folder 'Taken' is already in this location and is not empty.")));
+
+    SECTION("Without a subfolder the chosen folder itself must be new or empty") {
+        subfolder->setChecked(false);
+        location->setText(parent.filePath(QStringLiteral("Taken")));
+        CHECK_FALSE(create->isEnabled());
+        CHECK(folderLine->text().startsWith(QStringLiteral("The folder 'Taken' is not empty.")));
+
+        location->setText(parent.filePath(QStringLiteral("Empty")));
+        CHECK(create->isEnabled());
+        CHECK(folderLine->text() ==
+              QStringLiteral("The book will be created in the folder 'Empty'."));
+    }
+
+    SECTION("Without a title there is no folder") {
+        title->clear();
+        CHECK_FALSE(create->isEnabled());
+        CHECK(folderLine->text().isEmpty());
+    }
 }

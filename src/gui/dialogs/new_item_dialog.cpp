@@ -5,6 +5,7 @@
 
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QVBoxLayout>
@@ -13,7 +14,10 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QDir>
+#include <QFileInfo>
 #include <QFont>
+#include <QPixmap>
+#include <QScrollArea>
 
 using namespace kalahari::gui::dialogs;
 
@@ -38,6 +42,8 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     , m_authorLabel(nullptr)
     , m_languageLabel(nullptr)
     , m_locationLabel(nullptr)
+    , m_folderIcon(nullptr)
+    , m_folderLabel(nullptr)
     , m_buttonBox(nullptr)
     , m_createBtn(nullptr)
 {
@@ -50,7 +56,7 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
 
     // Set dialog size constraints
     setMinimumSize(700, 500);
-    resize(850, 550);
+    resize(850, 620);
 
     // Initialize result structure
     m_result.mode = m_mode;
@@ -143,13 +149,17 @@ QWidget* NewItemDialog::createDescriptionPanel() {
     separator->setFrameShadow(QFrame::Sunken);
     layout->addWidget(separator);
 
-    // Description text (rich text)
+    // Description text (rich text); it scrolls when the panel is too low for the features
     m_descriptionLabel = new QLabel(panel);
     m_descriptionLabel->setWordWrap(true);
     m_descriptionLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     m_descriptionLabel->setTextFormat(Qt::RichText);
-    m_descriptionLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-    layout->addWidget(m_descriptionLabel, 1);
+    QScrollArea* descriptionScroll = new QScrollArea(panel);
+    descriptionScroll->setFrameShape(QFrame::NoFrame);
+    descriptionScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    descriptionScroll->setWidgetResizable(true);
+    descriptionScroll->setWidget(m_descriptionLabel);
+    layout->addWidget(descriptionScroll, 1);
 
     return panel;
 }
@@ -263,6 +273,21 @@ QWidget* NewItemDialog::createDetailsGroup() {
         m_subfolderCheck->setChecked(true);
         m_subfolderCheck->setToolTip(tr("When checked, creates a new folder named after the book inside the selected location"));
         layout->addWidget(m_subfolderCheck, row, 1, 1, 2);
+        row++;
+
+        // The folder of the new book, or why the book cannot be made there
+        QWidget* folderLine = new QWidget(group);
+        QHBoxLayout* folderLayout = new QHBoxLayout(folderLine);
+        folderLayout->setContentsMargins(0, 0, 0, 0);
+        m_folderIcon = new QLabel(folderLine);
+        m_folderIcon->setFixedSize(16, 16);
+        folderLayout->addWidget(m_folderIcon, 0, Qt::AlignTop);
+        m_folderLabel = new QLabel(folderLine);
+        m_folderLabel->setObjectName(QStringLiteral("newBookFolderLabel"));
+        m_folderLabel->setTextFormat(Qt::PlainText);
+        m_folderLabel->setWordWrap(true);
+        folderLayout->addWidget(m_folderLabel, 1);
+        layout->addWidget(folderLine, row, 1, 1, 2);
     }
 
     // Make columns stretch properly
@@ -286,6 +311,8 @@ void NewItemDialog::createConnections() {
                 this, &NewItemDialog::onBrowseLocation);
         connect(m_locationEdit, &QLineEdit::textChanged,
                 this, [this](const QString&) { validateInput(); });
+        connect(m_subfolderCheck, &QCheckBox::toggled,
+                this, [this](bool) { validateInput(); });
     }
 
     // Dialog buttons
@@ -383,11 +410,41 @@ void NewItemDialog::validateInput() {
         valid = false;
     }
 
-    // For project mode, location is also required
+    // For project mode, location is also required, and the book's folder must be new or empty
     if (m_mode == NewItemMode::Project) {
-        if (m_locationEdit->text().trimmed().isEmpty()) {
+        const QString location = m_locationEdit->text().trimmed();
+        if (location.isEmpty()) {
             valid = false;
         }
+
+        const bool subfolder = m_subfolderCheck->isChecked();
+        const QString folder =
+            location.isEmpty() ? QString()
+                               : kalahari::core::ProjectManager::newProjectFolder(
+                                     location, m_nameEdit->text(), subfolder);
+        QString folderName = QFileInfo(folder).fileName();
+        if (folderName.isEmpty()) {
+            folderName = QDir::toNativeSeparators(folder);  // a drive or the root
+        }
+        QString warningIcon;
+        if (folder.isEmpty()) {
+            m_folderLabel->clear();
+        } else if (kalahari::core::ProjectManager::canHoldNewProject(folder)) {
+            m_folderLabel->setText(tr("The book will be created in the folder '%1'.")
+                                       .arg(folderName));
+        } else {
+            valid = false;
+            warningIcon = QStringLiteral("common.warning");
+            m_folderLabel->setText(
+                subfolder ? tr("The folder '%1' is already in this location and is not empty. "
+                               "Change the title or the location.").arg(folderName)
+                          : tr("The folder '%1' is not empty. Choose another folder or create "
+                               "a subfolder with the book name.").arg(folderName));
+        }
+        m_folderIcon->setPixmap(
+            warningIcon.isEmpty()
+                ? QPixmap()
+                : kalahari::core::ArtProvider::getInstance().getIcon(warningIcon).pixmap(16, 16));
     }
 
     // Template must be selected
@@ -492,6 +549,9 @@ void NewItemDialog::onAccept() {
 void NewItemDialog::onThemeChanged() {
     // Refresh template icons
     populateTemplates();
+
+    // Refresh the icon of the folder line
+    validateInput();
 
     // Refresh description icon
     QListWidgetItem* current = m_templateList->currentItem();

@@ -25,7 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while Kalahari has a single user). When a book cannot be opened, the message says what is
   wrong with its file. A new book gets the type chosen in the New Book window with the type's
   start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
-  Project (before: Empty Project) gets the kinds of the Base package. The Navigator shows the
+  Project (before: Empty Project) gets the kinds of the Base package. The New Book window
+  names the folder of the book and does not create it in a folder with files, so the open
+  book is not closed for a book that cannot be made; its questions speak of books, not
+  projects, and the description of a type scrolls. The Navigator shows the
   book as before, and its elements take their kinds and icons from the type: Add Chapter
   offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
   with a numbered title, Add Part its groups and Add Item the kinds of the front or back

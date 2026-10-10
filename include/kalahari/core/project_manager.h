@@ -119,6 +119,18 @@ public:
                        const QString& typeId = QString(),
                        QStringList* problems = nullptr);
 
+    /// @brief Folder that createProject() makes the project in
+    /// @param parentDir Folder of the project, or the folder it is made in (createSubfolder)
+    /// @param title Title of the book, which names the subfolder
+    /// @param createSubfolder The project's folder is named after the title, in parentDir
+    /// @return The folder; empty when the title gives no name, so no project can be made
+    static QString newProjectFolder(const QString& parentDir, const QString& title,
+                                    bool createSubfolder);
+
+    /// @brief Whether createProject() can make a project in @p folder: the folder does not
+    /// exist yet or it is empty
+    static bool canHoldNewProject(const QString& folder);
+
     /// @brief Open an existing project from its .klh file
     /// @param manifestPath Path to the .klh file
     /// @param problems Gets what is wrong when the project cannot be opened, one line each

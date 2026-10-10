@@ -158,14 +158,15 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
         info.name = QCoreApplication::translate("TemplateRegistry", "Novel");
         info.description = QCoreApplication::translate("TemplateRegistry",
             "A traditional novel structure with parts and chapters.\n\n"
-            "Includes front matter (title page, dedication) and back matter "
-            "(epilogue, acknowledgments). Perfect for fiction writing with "
-            "a clear hierarchical organization.");
+            "Includes front matter (title page, dedication), a prologue and "
+            "an epilogue, and back matter (afterword, acknowledgments). Perfect "
+            "for fiction writing with a clear hierarchical organization.");
         info.iconId = QStringLiteral("template.novel");
         info.features = QStringList{
             QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
             QCoreApplication::translate("TemplateRegistry", "Front matter (title, dedication)"),
-            QCoreApplication::translate("TemplateRegistry", "Back matter (epilogue, notes)"),
+            QCoreApplication::translate("TemplateRegistry", "Prologue and epilogue"),
+            QCoreApplication::translate("TemplateRegistry", "Back matter (afterword, acknowledgments)"),
             QCoreApplication::translate("TemplateRegistry", "Word count tracking"),
             QCoreApplication::translate("TemplateRegistry", "Character & location banks")
         };

@@ -269,10 +269,9 @@ bool ProjectManager::createProject(const QString& parentDir,
     }
 
     // The project's folder must be new or empty; the open project stays open when it is not
-    const QString projectDir =
-        QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
+    const QString projectDir = newProjectFolder(parentDir, title, createSubfolder);
     const bool folderExisted = QFileInfo(projectDir).exists();
-    if (folderExisted && (!QFileInfo(projectDir).isDir() || !QDir(projectDir).isEmpty())) {
+    if (!canHoldNewProject(projectDir)) {
         return fail(QStringLiteral("%1: the folder exists and is not empty")
                         .arg(QDir::toNativeSeparators(projectDir)));
     }
@@ -374,6 +373,20 @@ bool ProjectManager::createProject(const QString& parentDir,
 
     logger.info("Project created successfully: {}", manifestPath.toStdString());
     return true;
+}
+
+QString ProjectManager::newProjectFolder(const QString& parentDir, const QString& title,
+                                         bool createSubfolder) {
+    const QString fileName = safeFileName(title);
+    if (fileName.isEmpty()) {
+        return QString();
+    }
+    return QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
+}
+
+bool ProjectManager::canHoldNewProject(const QString& folder) {
+    const QFileInfo info(folder);
+    return !info.exists() || (info.isDir() && QDir(folder).isEmpty());
 }
 
 bool ProjectManager::openProject(const QString& manifestPath, QStringList* problems) {
