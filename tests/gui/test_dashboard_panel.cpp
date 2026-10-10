@@ -15,6 +15,7 @@
 #include <QCheckBox>
 #include <QDir>
 #include <QFrame>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QScrollArea>
@@ -85,6 +86,13 @@ void click(QWidget* widget) {
                           Qt::NoModifier);
         QCoreApplication::sendEvent(widget, &event);
     }
+}
+
+/// Show a panel to Qt without a window on the screen: the screen of the machine running the
+/// tests (or its window manager) limits none of the sizes the tests give the panel
+void showOffScreen(QWidget& panel) {
+    panel.setAttribute(Qt::WA_DontShowOnScreen);
+    panel.show();
 }
 
 /// Let the layouts follow a change of size (they ask for it in posted events)
@@ -163,6 +171,11 @@ QStringList cutOff(DashboardPanel& dashboard, QSize size) {
     return found;
 }
 
+/// What a panel of @p size cuts off, in one text that a failed check shows (empty: nothing)
+std::string cutOffText(DashboardPanel& dashboard, QSize size) {
+    return cutOff(dashboard, size).join(QStringLiteral("; ")).toStdString();
+}
+
 /// A shortcut of the Dashboard: its keys and its command
 struct Shortcut {
     QLabel* keys;
@@ -192,13 +205,15 @@ std::vector<Shortcut> shortcutsOf(DashboardPanel& dashboard) {
 }
 
 QLabel* labelWith(DashboardPanel& dashboard, const QString& text) {
+    QLabel* found = nullptr;
     for (QLabel* label : dashboard.findChildren<QLabel*>()) {
         if (label->text() == text) {
-            return label;
+            found = label;
         }
     }
-    FAIL("No label " << text.toStdString());
-    return nullptr;
+    INFO("No label " << text.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 /// A widget's place in the Dashboard's content
@@ -241,11 +256,11 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
 
     SECTION("in the program's texts") {
         DashboardPanel dashboard;
-        dashboard.show();
+        showOffScreen(dashboard);
         for (const QSize size : {AT_125_PANELS_CLOSED, AT_125_PANELS_OPEN, AT_150_PANELS_CLOSED,
                                  AT_150_PANELS_OPEN, QSize(600, 457)}) {
             INFO("panel " << size.width() << "x" << size.height());
-            CHECK(cutOff(dashboard, size).join(QStringLiteral("; ")).toStdString().empty());
+            CHECK(cutOffText(dashboard, size) == std::string());
         }
     }
 
@@ -254,10 +269,10 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
         RecentBookGuard longPath(
             QStringLiteral("6e1ac65f-8806-5aba-876d-5f142cdd2d6b/Przykladowa powiesc.klh"));
         DashboardPanel dashboard;
-        dashboard.show();
+        showOffScreen(dashboard);
         for (const QSize size : {AT_125_PANELS_OPEN, AT_150_PANELS_OPEN}) {
             INFO("panel " << size.width() << "x" << size.height());
-            CHECK(cutOff(dashboard, size).join(QStringLiteral("; ")).toStdString().empty());
+            CHECK(cutOffText(dashboard, size) == std::string());
             CHECK_FALSE(scrollAreaOf(dashboard)->horizontalScrollBar()->isVisible());
         }
     }
@@ -267,10 +282,10 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
         QCoreApplication::installTranslator(&longerTexts);
         {
             DashboardPanel dashboard;
-            dashboard.show();
+            showOffScreen(dashboard);
             for (const QSize size : {AT_125_PANELS_OPEN, AT_150_PANELS_OPEN}) {
                 INFO("panel " << size.width() << "x" << size.height());
-                CHECK(cutOff(dashboard, size).join(QStringLiteral("; ")).toStdString().empty());
+                CHECK(cutOffText(dashboard, size) == std::string());
             }
         }
         QCoreApplication::removeTranslator(&longerTexts);
@@ -280,7 +295,7 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
 TEST_CASE("Dashboard: a panel narrower than a word scrolls sideways", "[gui][dashboard]") {
     registerAllCommands(CommandCallbacks{});
     DashboardPanel dashboard;
-    dashboard.show();
+    showOffScreen(dashboard);
     dashboard.resize(120, 360);
     settle();
     QScrollArea* area = scrollAreaOf(dashboard);
@@ -354,12 +369,15 @@ TEST_CASE("Dashboard: the shortcuts in a row, in two columns, or each command un
 TEST_CASE("Dashboard: the shortcuts one under another on a narrow panel", "[gui][dashboard]") {
     registerAllCommands(CommandCallbacks{});
     DashboardPanel dashboard;
-    dashboard.show();
+    showOffScreen(dashboard);
     auto* frame = dashboard.findChild<QFrame*>(QStringLiteral("shortcutsFrame"));
     REQUIRE(frame != nullptr);
     const std::vector<Shortcut> shortcuts = shortcutsOf(dashboard);
     REQUIRE(shortcuts.size() == 3);
-    CHECK(shortcuts[0].keys->text().contains(QStringLiteral(">Ctrl+Shift+N<")));
+    // The keys as the menus write them: Ctrl+Shift+N, on macOS Shift and Command with N
+    const QString newBookKeys =
+        QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N).toString(QKeySequence::NativeText);
+    CHECK(shortcuts[0].keys->text().contains(QLatin1Char('>') + newBookKeys + QLatin1Char('<')));
     CHECK(shortcuts[0].command->text() == QStringLiteral("New Book"));
 
     // One row on a wide panel, each command beside its keys
@@ -397,9 +415,29 @@ TEST_CASE("Dashboard: the shortcuts one under another on a narrow panel", "[gui]
     const int middle = placeOf(dashboard, frame).center().x();
     CHECK(std::abs((columnsLeft + columnsRight) / 2 - middle) <= 1);
 
-    // Each command under its keys on the narrowest one, both in the middle
-    dashboard.resize(AT_150_PANELS_OPEN);
+    // Each command under its keys on the narrowest one, both in the middle. Where the keys
+    // are written shorter (macOS) the two columns fit it: there the panel is made narrower
+    // than the columns
+    const auto* hints =
+        dynamic_cast<const DashboardHintsLayout*>(shortcuts[0].keys->parentWidget()->layout());
+    REQUIRE(hints != nullptr);
+    int keysColumn = 0;
+    int commandsColumn = 0;
+    for (int index = 0; index + 1 < hints->count(); index += 2) {
+        keysColumn = std::max(keysColumn, hints->itemAt(index)->sizeHint().width());
+        commandsColumn = std::max(commandsColumn, hints->itemAt(index + 1)->sizeHint().width());
+    }
+    const int columnsWidth = keysColumn + DashboardHintsLayout::KEYS_SPACING + commandsColumn;
+    QSize narrow = AT_150_PANELS_OPEN;
+    dashboard.resize(narrow);
     settle();
+    for (int pass = 0; pass < 3 && hints->contentsRect().width() >= columnsWidth; ++pass) {
+        narrow.rwidth() -= hints->contentsRect().width() - columnsWidth + 1;
+        dashboard.resize(narrow);
+        settle();
+    }
+    INFO("panel " << narrow.width() << " px wide, columns " << columnsWidth << " px");
+    REQUIRE(hints->contentsRect().width() < columnsWidth);
     const int narrowMiddle = placeOf(dashboard, frame).center().x();
     for (const Shortcut& shortcut : shortcuts) {
         const QRect keys = placeOf(dashboard, shortcut.keys);
@@ -414,7 +452,7 @@ TEST_CASE("Dashboard: the logo beside the title, above it on a narrow panel",
           "[gui][dashboard]") {
     registerAllCommands(CommandCallbacks{});
     DashboardPanel dashboard;
-    dashboard.show();
+    showOffScreen(dashboard);
     QLabel* title = labelWith(dashboard, QStringLiteral("Welcome to Kalahari"));
     QLabel* tagline = labelWith(dashboard, QStringLiteral("A Comprehensive Writer's IDE"));
     QWidget* logo = nullptr;
@@ -465,7 +503,7 @@ TEST_CASE("Dashboard: a narrow card puts the book's icon above its texts", "[gui
     INFO("path " << path.toStdString());
     RecentBookGuard recentBook(path);
     DashboardPanel dashboard;
-    dashboard.show();
+    showOffScreen(dashboard);
     QLabel* bookTitle = labelWith(dashboard, QStringLiteral("Przykladowa powiesc"));
     auto* icon = dashboard.findChild<QFrame*>(QStringLiteral("fileIconFrame"));
     REQUIRE(icon != nullptr);
@@ -525,7 +563,7 @@ TEST_CASE("Dashboard: the text of the auto-load checkbox changes it", "[gui][das
     settings.set("startup.autoLoadLastProject", false);
     {
         DashboardPanel dashboard;
-        dashboard.show();
+        showOffScreen(dashboard);
         auto* checkBox = dashboard.findChild<QCheckBox*>();
         REQUIRE(checkBox != nullptr);
         QLabel* text = labelWith(dashboard, QStringLiteral("Open last project on startup"));

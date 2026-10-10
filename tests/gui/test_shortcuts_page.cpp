@@ -641,8 +641,14 @@ TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
     CHECK(isShown(zoomIn));
     CHECK_FALSE(isShown(help));
     search->setText(QStringLiteral("shift+f"));
-    CHECK(isShown(tips));
-    CHECK(isShown(annotationMenu));
+    if (onMac()) {
+        // There Control+Shift+F selects the next character: a whole key name, which finds it
+        CHECK(isShown(itemNamed(list, QStringLiteral("Selecting: Shift with the keys above"))));
+        CHECK_FALSE(isShown(tips));
+    } else {
+        CHECK(isShown(tips));
+        CHECK(isShown(annotationMenu));
+    }
     // Also a whole key name no keys have: "shift+f1" on the way to Shift+F12 finds it
     search->setText(QStringLiteral("shift+f1"));
     CHECK(isShown(tips));
