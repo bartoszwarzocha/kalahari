@@ -188,6 +188,7 @@ set(KALAHARI_SOURCES
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
+    gui/utils/language_names.cpp  # Names of languages in the language of the user interface
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting

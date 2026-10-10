@@ -597,6 +597,329 @@
     </message>
 </context>
 <context>
+    <name>LanguageNames</name>
+    <message>
+        <source>Afrikaans</source>
+        <translation>afrikaans</translation>
+    </message>
+    <message>
+        <source>Aragonese</source>
+        <translation>aragoński</translation>
+    </message>
+    <message>
+        <source>Arabic</source>
+        <translation>arabski</translation>
+    </message>
+    <message>
+        <source>Belarusian</source>
+        <translation>białoruski</translation>
+    </message>
+    <message>
+        <source>Bulgarian</source>
+        <translation>bułgarski</translation>
+    </message>
+    <message>
+        <source>Bengali</source>
+        <translation>bengalski</translation>
+    </message>
+    <message>
+        <source>Tibetan</source>
+        <translation>tybetański</translation>
+    </message>
+    <message>
+        <source>Breton</source>
+        <translation>bretoński</translation>
+    </message>
+    <message>
+        <source>Bosnian</source>
+        <translation>bośniacki</translation>
+    </message>
+    <message>
+        <source>Catalan</source>
+        <translation>kataloński</translation>
+    </message>
+    <message>
+        <source>Kurdish (Sorani)</source>
+        <translation>kurdyjski (sorani)</translation>
+    </message>
+    <message>
+        <source>Czech</source>
+        <translation>czeski</translation>
+    </message>
+    <message>
+        <source>Welsh</source>
+        <translation>walijski</translation>
+    </message>
+    <message>
+        <source>Danish</source>
+        <translation>duński</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation>niemiecki</translation>
+    </message>
+    <message>
+        <source>Greek</source>
+        <translation>grecki</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>angielski</translation>
+    </message>
+    <message>
+        <source>Esperanto</source>
+        <translation>esperanto</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>hiszpański</translation>
+    </message>
+    <message>
+        <source>Estonian</source>
+        <translation>estoński</translation>
+    </message>
+    <message>
+        <source>Basque</source>
+        <translation>baskijski</translation>
+    </message>
+    <message>
+        <source>Persian</source>
+        <translation>perski</translation>
+    </message>
+    <message>
+        <source>Finnish</source>
+        <translation>fiński</translation>
+    </message>
+    <message>
+        <source>Faroese</source>
+        <translation>farerski</translation>
+    </message>
+    <message>
+        <source>French</source>
+        <translation>francuski</translation>
+    </message>
+    <message>
+        <source>Western Frisian</source>
+        <translation>zachodniofryzyjski</translation>
+    </message>
+    <message>
+        <source>Irish</source>
+        <translation>irlandzki</translation>
+    </message>
+    <message>
+        <source>Scottish Gaelic</source>
+        <translation>szkocki gaelicki</translation>
+    </message>
+    <message>
+        <source>Galician</source>
+        <translation>galicyjski</translation>
+    </message>
+    <message>
+        <source>Gujarati</source>
+        <translation>gudżarati</translation>
+    </message>
+    <message>
+        <source>Guarani</source>
+        <translation>guarani</translation>
+    </message>
+    <message>
+        <source>Hebrew</source>
+        <translation>hebrajski</translation>
+    </message>
+    <message>
+        <source>Hindi</source>
+        <translation>hindi</translation>
+    </message>
+    <message>
+        <source>Croatian</source>
+        <translation>chorwacki</translation>
+    </message>
+    <message>
+        <source>Hungarian</source>
+        <translation>węgierski</translation>
+    </message>
+    <message>
+        <source>Armenian</source>
+        <translation>ormiański</translation>
+    </message>
+    <message>
+        <source>Indonesian</source>
+        <translation>indonezyjski</translation>
+    </message>
+    <message>
+        <source>Icelandic</source>
+        <translation>islandzki</translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation>włoski</translation>
+    </message>
+    <message>
+        <source>Japanese</source>
+        <translation>japoński</translation>
+    </message>
+    <message>
+        <source>Georgian</source>
+        <translation>gruziński</translation>
+    </message>
+    <message>
+        <source>Kazakh</source>
+        <translation>kazachski</translation>
+    </message>
+    <message>
+        <source>Khmer</source>
+        <translation>khmerski</translation>
+    </message>
+    <message>
+        <source>Kurdish (Kurmanji)</source>
+        <translation>kurdyjski (kurmandżi)</translation>
+    </message>
+    <message>
+        <source>Korean</source>
+        <translation>koreański</translation>
+    </message>
+    <message>
+        <source>Kurdish</source>
+        <translation>kurdyjski</translation>
+    </message>
+    <message>
+        <source>Latin</source>
+        <translation>łaciński</translation>
+    </message>
+    <message>
+        <source>Luxembourgish</source>
+        <translation>luksemburski</translation>
+    </message>
+    <message>
+        <source>Lao</source>
+        <translation>laotański</translation>
+    </message>
+    <message>
+        <source>Lithuanian</source>
+        <translation>litewski</translation>
+    </message>
+    <message>
+        <source>Latvian</source>
+        <translation>łotewski</translation>
+    </message>
+    <message>
+        <source>Macedonian</source>
+        <translation>macedoński</translation>
+    </message>
+    <message>
+        <source>Mongolian</source>
+        <translation>mongolski</translation>
+    </message>
+    <message>
+        <source>Malay</source>
+        <translation>malajski</translation>
+    </message>
+    <message>
+        <source>Maltese</source>
+        <translation>maltański</translation>
+    </message>
+    <message>
+        <source>Norwegian</source>
+        <translation>norweski</translation>
+    </message>
+    <message>
+        <source>Nepali</source>
+        <translation>nepalski</translation>
+    </message>
+    <message>
+        <source>Dutch</source>
+        <translation>niderlandzki</translation>
+    </message>
+    <message>
+        <source>Norwegian Nynorsk</source>
+        <translation>norweski (nynorsk)</translation>
+    </message>
+    <message>
+        <source>Occitan</source>
+        <translation>oksytański</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polski</translation>
+    </message>
+    <message>
+        <source>Portuguese</source>
+        <translation>portugalski</translation>
+    </message>
+    <message>
+        <source>Romanian</source>
+        <translation>rumuński</translation>
+    </message>
+    <message>
+        <source>Russian</source>
+        <translation>rosyjski</translation>
+    </message>
+    <message>
+        <source>Sinhala</source>
+        <translation>syngaleski</translation>
+    </message>
+    <message>
+        <source>Slovak</source>
+        <translation>słowacki</translation>
+    </message>
+    <message>
+        <source>Slovenian</source>
+        <translation>słoweński</translation>
+    </message>
+    <message>
+        <source>Albanian</source>
+        <translation>albański</translation>
+    </message>
+    <message>
+        <source>Serbian</source>
+        <translation>serbski</translation>
+    </message>
+    <message>
+        <source>Swedish</source>
+        <translation>szwedzki</translation>
+    </message>
+    <message>
+        <source>Swahili</source>
+        <translation>suahili</translation>
+    </message>
+    <message>
+        <source>Tamil</source>
+        <translation>tamilski</translation>
+    </message>
+    <message>
+        <source>Telugu</source>
+        <translation>telugu</translation>
+    </message>
+    <message>
+        <source>Thai</source>
+        <translation>tajski</translation>
+    </message>
+    <message>
+        <source>Turkish</source>
+        <translation>turecki</translation>
+    </message>
+    <message>
+        <source>Ukrainian</source>
+        <translation>ukraiński</translation>
+    </message>
+    <message>
+        <source>Urdu</source>
+        <translation>urdu</translation>
+    </message>
+    <message>
+        <source>Uzbek</source>
+        <translation>uzbecki</translation>
+    </message>
+    <message>
+        <source>Vietnamese</source>
+        <translation>wietnamski</translation>
+    </message>
+    <message>
+        <source>Chinese</source>
+        <translation>chiński</translation>
+    </message>
+</context>
+<context>
     <name>QLineEdit</name>
     <message>
         <source>&amp;Undo</source>
@@ -3037,8 +3360,9 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Język książki</translation>
     </message>
     <message>
-        <source>%1 (no dictionary)</source>
-        <translation>%1 (brak słownika)</translation>
+        <source>%1: no dictionary</source>
+        <extracomment>%1 is the language as in the list, for example French (fr_FR)</extracomment>
+        <translation>%1: brak słownika</translation>
     </message>
     <message>
         <source>Language:</source>
@@ -4238,7 +4562,8 @@ Tej operacji nie można cofnąć.</translation>
     <name>kalahari::gui::SpellingCoordinator</name>
     <message>
         <source>No spelling dictionary for %1: the spelling is not checked</source>
-        <translation>Brak słownika dla języka %1: pisownia nie jest sprawdzana</translation>
+        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
+        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
     </message>
     <message>
         <source>Spelling as you type: on</source>

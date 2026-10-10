@@ -308,7 +308,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     its properties) or in the language chosen in Settings > Editor > Spelling. Polish and
     English dictionaries come with the program; those of LibreOffice and of the system
     (Linux, macOS) are found too. When the language has no dictionary, the status bar
-    says so.
+    says so. The languages go by their names in the language of the program (in the
+    Polish one: francuski), also in the list of the dictionaries in the settings.
   - The paragraphs on the screen are checked first, the rest of the chapter in short steps
     between the key presses, so typing stays smooth also in a long chapter. The word being
     typed gets its line when the cursor leaves it, and the lines of the other words stay

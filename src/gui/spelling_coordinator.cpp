@@ -10,10 +10,10 @@
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 
 #include <QDir>
-#include <QLocale>
 #include <QMetaObject>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -46,13 +46,6 @@ constexpr int DICTIONARY_MESSAGE_MS = 5000;
 /// @brief How long the message that there is no misspelled word stays in the status bar
 ///        (ms), as the message that there is no to-do
 constexpr int NEXT_MESSAGE_MS = 3000;
-
-/// @brief The name of a language in that language (Deutsch), else its code
-QString languageName(const QString& language) {
-    const QLocale locale(language);
-    const QString name = locale.language() == QLocale::C ? QString() : locale.nativeLanguageName();
-    return name.isEmpty() ? language : name;
-}
 
 }  // namespace
 
@@ -195,8 +188,9 @@ void SpellingCoordinator::updateDictionary() {
         m_missingLanguage = language;
         logger.info("SpellingCoordinator: No dictionary for the language '{}'",
                     language.toStdString());
+        //: %1 is the name of the language as in a list of languages (in Polish: francuski)
         showMessage(tr("No spelling dictionary for %1: the spelling is not checked")
-                        .arg(languageName(language)),
+                        .arg(utils::languageName(language)),
                     DICTIONARY_MESSAGE_MS);
     }
 }
