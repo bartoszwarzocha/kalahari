@@ -496,6 +496,15 @@ TEST_CASE("Built-in book types: default titles", "[core][booktypes]") {
     CHECK(kind("kalahari.poetry", "poem")->defaultTitle(pl, 1) == QStringLiteral("Wiersz 1"));
     CHECK(kind("kalahari.short_stories", "story")->defaultTitle(pl, 1) ==
           QStringLiteral("Opowiadanie 1"));
+    // A group of stories: in English not "Section", which names the sections of a book
+    CHECK(kind("kalahari.short_stories", "section")->name.text(pl) == QStringLiteral("Dział"));
+    CHECK(kind("kalahari.short_stories", "section")->name.text(en) == QStringLiteral("Division"));
+    CHECK(kind("kalahari.short_stories", "section")->plural.text(en) ==
+          QStringLiteral("Divisions"));
+    CHECK(kind("kalahari.short_stories", "section")->defaultTitle(pl, 2) ==
+          QStringLiteral("Dział II"));
+    CHECK(kind("kalahari.short_stories", "section")->defaultTitle(en, 2) ==
+          QStringLiteral("Division II"));
     // Roman numerals end at 3999
     CHECK(kind("kalahari.base", "part")->defaultTitle(en, 4000) == QStringLiteral("Part 4000"));
     // Without a title, the name

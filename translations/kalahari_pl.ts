@@ -1182,18 +1182,6 @@ Uruchomić ponownie teraz?</translation>
         <translation>Zbiór opowiadań</translation>
     </message>
     <message>
-        <source>A collection of independent short stories.
-
-Flat structure without parts - each story stands alone. Great for anthologies, collections, or episodic content.</source>
-        <translation>Zbiór niezależnych opowiadań.
-
-Płaski układ bez części – każde opowiadanie jest osobną całością. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
-    </message>
-    <message>
-        <source>Flat story structure</source>
-        <translation>Płaski układ opowiadań</translation>
-    </message>
-    <message>
         <source>Independent stories</source>
         <translation>Niezależne opowiadania</translation>
     </message>
@@ -1508,6 +1496,18 @@ Elastyczny układ do grupowania wierszy w cykle tematyczne. Obsługuje różne f
     <message>
         <source>Cycle/Poem structure</source>
         <translation>Układ cykli i wierszy</translation>
+    </message>
+    <message>
+        <source>A collection of short stories that can be grouped into divisions.
+
+Each story stands alone, and a division gathers stories with a common theme. Great for anthologies, collections, or episodic content.</source>
+        <translation>Zbiór opowiadań, które można łączyć w działy.
+
+Każde opowiadanie jest osobną całością, a dział zbiera opowiadania o wspólnym temacie. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
+    </message>
+    <message>
+        <source>Division/Story structure</source>
+        <translation>Układ działów i opowiadań</translation>
     </message>
 </context>
 <context>

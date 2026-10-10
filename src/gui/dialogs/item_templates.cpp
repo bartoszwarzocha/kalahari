@@ -186,12 +186,12 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
         info.typeId = QStringLiteral("kalahari.short_stories");
         info.name = QCoreApplication::translate("TemplateRegistry", "Short Story Collection");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A collection of independent short stories.\n\n"
-            "Flat structure without parts - each story stands alone. "
+            "A collection of short stories that can be grouped into divisions.\n\n"
+            "Each story stands alone, and a division gathers stories with a common theme. "
             "Great for anthologies, collections, or episodic content.");
         info.iconId = QStringLiteral("template.shortStories");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Flat story structure"),
+            QCoreApplication::translate("TemplateRegistry", "Division/Story structure"),
             QCoreApplication::translate("TemplateRegistry", "Independent stories"),
             QCoreApplication::translate("TemplateRegistry", "Per-story statistics"),
             QCoreApplication::translate("TemplateRegistry", "Easy reordering"),

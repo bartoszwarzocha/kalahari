@@ -6,7 +6,7 @@
   "name": { "pl": "Zbiór opowiadań", "en": "Short Story Collection" },
   "description": {
     "pl": "Opowiadania jednego autora albo antologia; opowiadania można łączyć w działy.",
-    "en": "Stories by one author or an anthology; stories can be grouped into sections."
+    "en": "Stories by one author or an anthology; stories can be grouped into divisions."
   },
   "icon": "template.shortStories",
   "uses": ["kalahari.base", "kalahari.novel"],
@@ -19,9 +19,9 @@
     },
     "section": {
       "form": "group", "places": ["main"], "icon": "structure.part",
-      "name": { "pl": "Dział", "en": "Section" },
-      "plural": { "pl": "Działy", "en": "Sections" },
-      "title": { "pl": "Dział %n", "en": "Section %n" }, "numbering": "roman"
+      "name": { "pl": "Dział", "en": "Division" },
+      "plural": { "pl": "Działy", "en": "Divisions" },
+      "title": { "pl": "Dział %n", "en": "Division %n" }, "numbering": "roman"
     },
     "contributors": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
