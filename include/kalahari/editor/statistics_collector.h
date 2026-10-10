@@ -65,6 +65,10 @@ public:
     // =========================================================================
 
     /// @brief Set the editor to track
+    ///
+    /// The words written and deleted are counted in it from now on: its text as it is now,
+    /// a text loaded into it later and new rules of counting are not words written. An
+    /// editor destroyed while it is tracked is forgotten.
     /// @param editor BookEditor to monitor (nullptr to disconnect)
     /// @note Previous editor is automatically disconnected
     void setBookEditor(BookEditor* editor);
@@ -82,7 +86,8 @@ public:
     int wordCount() const;
 
     /// @brief Get the character count including spaces
-    /// @return Number of characters (0 if no document)
+    /// @return Number of characters, without the paragraph and line breaks (0 if no
+    ///         document)
     int characterCount() const;
 
     /// @brief Get the character count excluding spaces
@@ -156,6 +161,12 @@ private slots:
 
     /// @brief Handle debounced statistics recalculation
     void debouncedRecalculate();
+
+    /// @brief Count from the counts of now, with no words written or deleted
+    void rebase();
+
+    /// @brief Forget the tracked editor when it is destroyed
+    void onEditorDestroyed(QObject* object);
 
 private:
     /// @brief Called when editor content changes

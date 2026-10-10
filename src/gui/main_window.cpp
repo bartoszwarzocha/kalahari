@@ -43,7 +43,7 @@
 #include "kalahari/core/book_element.h"
 #include "kalahari/core/part.h"
 #include "kalahari/core/recent_books_manager.h"
-#include "kalahari/editor/statistics_collector.h"
+#include "kalahari/gui/widgets/status_bar_statistics.h"
 #include <QActionGroup>
 #include <QMenuBar>
 #include <QToolBar>
@@ -201,22 +201,6 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_distractionFreeLayout, &utils::DistractionFreeLayout::activeChanged,
             this, &MainWindow::onDistractionFreeChanged);
 
-    // Connect StatisticsCollector for status bar updates (OpenSpec #00042 Task 6.13)
-    connect(m_documentCoordinator, &DocumentCoordinator::documentOpened,
-            this, [this]() {
-        if (auto* collector = m_documentCoordinator->statisticsCollector()) {
-            // The collector outlives documents, so connect it only once
-            connect(collector, &editor::StatisticsCollector::statisticsChanged,
-                    this, &MainWindow::updateStatusBarStatistics, Qt::UniqueConnection);
-            core::Logger::getInstance().debug("MainWindow: Connected StatisticsCollector to status bar");
-        }
-    });
-    connect(m_documentCoordinator, &DocumentCoordinator::documentClosed,
-            this, [this]() {
-        // Reset statistics display when document closes
-        updateStatusBarStatistics(0, 0, 0);
-        core::Logger::getInstance().debug("MainWindow: Reset status bar statistics on document close");
-    });
     logger.debug("MainWindow: DocumentCoordinator created");
 
     // The annotation commands and the Annotations panel; a chapter is opened as from the
@@ -286,10 +270,6 @@ MainWindow::~MainWindow() {
     // Disconnect from coordinators (they may have timers or async operations)
     if (m_documentCoordinator) {
         disconnect(m_documentCoordinator, nullptr, this, nullptr);
-        // Also disconnect StatisticsCollector if it exists
-        if (auto* collector = m_documentCoordinator->statisticsCollector()) {
-            disconnect(collector, nullptr, this, nullptr);
-        }
     }
     if (m_settingsCoordinator) {
         disconnect(m_settingsCoordinator, nullptr, this, nullptr);
@@ -550,23 +530,6 @@ void MainWindow::createStatusBar() {
 
     statusBar()->showMessage(tr("Ready"), 3000);  // Show for 3 seconds
 
-    // =========================================================================
-    // OpenSpec #00042 Task 6.13: Status bar statistics display
-    // =========================================================================
-
-    // Create permanent labels for statistics (right-aligned)
-    m_wordCountLabel = new QLabel(tr("Words: 0"), this);
-    m_wordCountLabel->setFrameStyle(QFrame::NoFrame);
-    m_wordCountLabel->setMinimumWidth(100);
-
-    m_charCountLabel = new QLabel(tr("Characters: 0"), this);
-    m_charCountLabel->setFrameStyle(QFrame::NoFrame);
-    m_charCountLabel->setMinimumWidth(120);
-
-    m_readingTimeLabel = new QLabel(tr("Reading: 0 min"), this);
-    m_readingTimeLabel->setFrameStyle(QFrame::NoFrame);
-    m_readingTimeLabel->setMinimumWidth(100);
-
     // Page of the cursor (Page Layout view) and zoom of the editor in front
     m_pageLabel = new QLabel(this);
     m_pageLabel->setFrameStyle(QFrame::NoFrame);
@@ -581,9 +544,9 @@ void MainWindow::createStatusBar() {
     // Add widgets to status bar (permanent = right side)
     statusBar()->addPermanentWidget(m_pageLabel);
     statusBar()->addPermanentWidget(m_zoomLabel);
-    statusBar()->addPermanentWidget(m_wordCountLabel);
-    statusBar()->addPermanentWidget(m_charCountLabel);
-    statusBar()->addPermanentWidget(m_readingTimeLabel);
+
+    // Words, characters and reading time of the document in front, right of the zoom
+    m_statusBarStatistics = new StatusBarStatistics(statusBar(), this);
 
     logger.debug("Status bar created successfully with statistics labels");
 }
@@ -1109,6 +1072,12 @@ void MainWindow::createDocks() {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
 
+        // The page, the zoom and the counts of the document in front in the status bar
+        // (none over the Dashboard or without a tab)
+        EditorPanel* front = getCurrentEditor();
+        m_statusBarStatistics->setEditor(front ? front->getBookEditor() : nullptr);
+        updatePageStatus();
+
         // Distraction-Free needs a document in front: it goes off over the Dashboard or
         // without a tab, and its command waits for a document
         if (isDistractionFree() && getCurrentEditor() == nullptr) {
@@ -1184,7 +1153,6 @@ void MainWindow::createDocks() {
                 // Also an editor opened during Distraction-Free writing
                 bookEditor->setDistractionFree(isDistractionFree());
             }
-            updatePageStatus();
 
             // OpenSpec #00042 Task 7.4: Connect properties panel to active editor
             if (propertiesPanel) {
@@ -1591,27 +1559,6 @@ void MainWindow::showEvent(QShowEvent* event) {
 // =============================================================================
 // Navigator Context Menu Handlers - Moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
 // =============================================================================
-
-// =============================================================================
-// Status Bar Statistics (OpenSpec #00042 Task 6.13)
-// =============================================================================
-
-void MainWindow::updateStatusBarStatistics(int words, int chars, int paragraphs) {
-    Q_UNUSED(paragraphs);  // Reserved for future use (paragraph count display)
-
-    // Calculate reading time at 200 words per minute
-    int readingMinutes = (words + 199) / 200;  // Round up
-
-    if (m_wordCountLabel) {
-        m_wordCountLabel->setText(tr("Words: %1").arg(words));
-    }
-    if (m_charCountLabel) {
-        m_charCountLabel->setText(tr("Characters: %1").arg(chars));
-    }
-    if (m_readingTimeLabel) {
-        m_readingTimeLabel->setText(tr("Reading: %1 min").arg(readingMinutes));
-    }
-}
 
 // =============================================================================
 // Editor Settings Application (OpenSpec #00042)

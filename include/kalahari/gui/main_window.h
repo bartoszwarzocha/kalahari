@@ -45,6 +45,7 @@ class PropertiesPanel;
 class LogPanel;
 class MenuBuilder;      // Task #00025
 class BusyIndicator;    // Reusable spinner overlay
+class StatusBarStatistics;  // Counts of the document in front in the status bar
 class DiagnosticController;  // OpenSpec #00038 - Diagnostic/dev mode controller
 class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
@@ -274,13 +275,6 @@ private slots:
     /// Updates enabled/checked state for Edit and Format menu actions.
     void updateEditorActionStates();
 
-    /// @brief Update status bar statistics display
-    /// @param words Word count
-    /// @param chars Character count
-    /// @param paragraphs Paragraph count
-    /// @note Connected to StatisticsCollector::statisticsChanged() signal (OpenSpec #00042 Task 6.13)
-    void updateStatusBarStatistics(int words, int chars, int paragraphs);
-
     /// @brief Slot for Help > About action
     void onAbout();
 
@@ -354,10 +348,8 @@ private:
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;
 
-    // Status bar statistics labels (OpenSpec #00042 Task 6.13)
-    QLabel* m_wordCountLabel{nullptr};                ///< Word count display
-    QLabel* m_charCountLabel{nullptr};                ///< Character count display
-    QLabel* m_readingTimeLabel{nullptr};              ///< Reading time display
+    // Status bar: the counts, the page and the zoom of the document in front
+    StatusBarStatistics* m_statusBarStatistics{nullptr};  ///< Words, characters, reading time
     QLabel* m_pageLabel{nullptr};                     ///< Page of the cursor (Page Layout view)
     QLabel* m_zoomLabel{nullptr};                     ///< Zoom of the editor in front
 

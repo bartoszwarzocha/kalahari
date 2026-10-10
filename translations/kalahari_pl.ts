@@ -2854,6 +2854,18 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Wysokość wiersza z kursorem:</translation>
     </message>
     <message>
+        <source>Word Count</source>
+        <translation>Liczenie słów</translation>
+    </message>
+    <message>
+        <source>Count standalone dialogue dashes as words</source>
+        <translation>Licz samodzielne myślniki dialogowe jako słowa</translation>
+    </message>
+    <message>
+        <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>
+        <translation>Myślnik oddzielony spacjami od sąsiednich słów, na przykład na początku kwestii dialogowej. Microsoft Word liczy go jako słowo, LibreOffice – nie.</translation>
+    </message>
+    <message>
         <source>Smooth scrolling</source>
         <translation>Płynne przewijanie</translation>
     </message>
@@ -3243,18 +3255,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Gotowe</translation>
     </message>
     <message>
-        <source>Words: 0</source>
-        <translation>Słowa: 0</translation>
-    </message>
-    <message>
-        <source>Characters: 0</source>
-        <translation>Znaki: 0</translation>
-    </message>
-    <message>
-        <source>Reading: 0 min</source>
-        <translation>Czytanie: 0 min</translation>
-    </message>
-    <message>
         <source>Undo performed</source>
         <translation>Cofnięto</translation>
     </message>
@@ -3341,18 +3341,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Do you want to save changes to %1?</source>
         <translation>Czy zapisać zmiany w %1?</translation>
-    </message>
-    <message>
-        <source>Words: %1</source>
-        <translation>Słowa: %1</translation>
-    </message>
-    <message>
-        <source>Characters: %1</source>
-        <translation>Znaki: %1</translation>
-    </message>
-    <message>
-        <source>Reading: %1 min</source>
-        <translation>Czytanie: %1 min</translation>
     </message>
     <message>
         <source>Page %1 of %2</source>
@@ -4214,6 +4202,41 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Dismiss this message</source>
         <translation>Ukryj ten komunikat</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatusBarStatistics</name>
+    <message>
+        <source>Words in the document. With a selection: words in the selection and in the whole document.</source>
+        <translation>Słowa w dokumencie. Przy zaznaczeniu: słowa w zaznaczeniu i w całym dokumencie.</translation>
+    </message>
+    <message>
+        <source>Characters with spaces, without paragraph ends. With a selection: characters in the selection and in the whole document.</source>
+        <translation>Znaki ze spacjami, bez końców akapitów. Przy zaznaczeniu: znaki w zaznaczeniu i w całym dokumencie.</translation>
+    </message>
+    <message>
+        <source>Reading time of the whole document at %1 words a minute</source>
+        <translation>Czas czytania całego dokumentu w tempie %1 słów na minutę</translation>
+    </message>
+    <message>
+        <source>Words: %1 of %2</source>
+        <translation>Słowa: %1 z %2</translation>
+    </message>
+    <message>
+        <source>Characters: %1 of %2</source>
+        <translation>Znaki: %1 z %2</translation>
+    </message>
+    <message>
+        <source>Words: %1</source>
+        <translation>Słowa: %1</translation>
+    </message>
+    <message>
+        <source>Characters: %1</source>
+        <translation>Znaki: %1</translation>
+    </message>
+    <message>
+        <source>Reading: %1 min</source>
+        <translation>Czytanie: %1 min</translation>
     </message>
 </context>
 <context>

@@ -78,7 +78,7 @@ Zamiast czystego HTML, używamy własnego języka znaczników HTML-like. Kontrol
   <scene-break type="ornament" />
 
   <p style="normal">
-    Spotkał <char-ref id="anna">Annę</char-ref> na ulicy.
+    Spotkał <charref id="r1" target="anna">Annę</charref> na ulicy.
     <comment author="Autor" date="2025-12-18" collapsed="true">
       Sprawdzić czy to pasuje do timeline'u
     </comment>
@@ -188,9 +188,9 @@ Zamiast czystego HTML, używamy własnego języka znaczników HTML-like. Kontrol
 #### Referencje do bibliotek
 | Element | Opis |
 |---------|------|
-| `<char-ref>` | Link do postaci, atrybut: id |
-| `<loc-ref>` | Link do lokacji, atrybut: id |
-| `<item-ref>` | Link do przedmiotu, atrybut: id |
+| `<charref>` | Link do postaci, atrybuty: id, target |
+| `<locref>` | Link do lokacji, atrybuty: id, target |
+| `<itemref>` | Link do przedmiotu, atrybuty: id, target |
 | `<cite>` | Cytowanie bibliograficzne, atrybut: id |
 
 ### 4.4. Renderowanie adnotacji

@@ -1284,10 +1284,10 @@ void PropertiesPanel::updateEditorStatistics() {
     int paragraphCount = 0;
 
     if (bookEditor->hasSelection()) {
-        const QString text = bookEditor->selectedText();
-        const core::TextCounts counts = core::countText(text);
+        // Counted as the status bar counts them
+        const core::TextCounts counts = bookEditor->selectionCounts();
         wordCount = counts.words;
-        charCount = static_cast<int>(text.length());
+        charCount = counts.characters;
         charNoSpaceCount = counts.nonSpaceCharacters;
         m_editorTitleLabel->setText(tr("Selection Statistics"));
 

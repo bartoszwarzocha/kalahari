@@ -96,7 +96,7 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    const TextCounts counts = countText(m_plainText);
+    const TextCounts counts = countText(m_plainText, wordCountRules());
     m_wordCount = counts.words;
     m_characterCount = counts.nonSpaceCharacters;
     m_paragraphCount = calculateParagraphCount(m_plainText);

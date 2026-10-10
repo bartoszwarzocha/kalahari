@@ -78,6 +78,14 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addCheckBox(typewriter, tr("Smooth scrolling"), "editor.typewriter.smoothScroll")
         ->setToolTip(tr("Glide to the next line instead of jumping"));
 
+    // The counts of the whole program: the status bar, the panels, Distraction-Free writing
+    QFormLayout* wordCount = addGroup(tr("Word Count"));
+    addCheckBox(wordCount, tr("Count standalone dialogue dashes as words"),
+                "editor.wordCount.dashesAsWords");
+    addNote(wordCount, tr("A dash separated by spaces from the words around it, as at the start "
+                          "of a line of dialogue. Microsoft Word counts it as a word, LibreOffice "
+                          "does not."));
+
     pageLayout()->addStretch();
 }
 

@@ -38,8 +38,7 @@ StatisticsCollector::~StatisticsCollector()
 
     // Disconnect from editor
     if (m_editor) {
-        disconnect(m_editor, &BookEditor::contentChanged,
-                   this, &StatisticsCollector::onContentChanged);
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
     core::Logger::getInstance().debug("StatisticsCollector destroyed");
@@ -55,29 +54,27 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
         return;
     }
 
-    // Disconnect from previous editor
+    // The last edits in the previous editor still count to the session
     if (m_editor) {
-        disconnect(m_editor, &BookEditor::contentChanged,
-                   this, &StatisticsCollector::onContentChanged);
+        if (m_debounceTimer->isActive()) {
+            m_debounceTimer->stop();
+            debouncedRecalculate();
+        }
+        disconnect(m_editor, nullptr, this, nullptr);
     }
 
     m_editor = editor;
 
-    // Connect to new editor
     if (m_editor) {
         connect(m_editor, &BookEditor::contentChanged,
                 this, &StatisticsCollector::onContentChanged);
-        recalculateStats();
-        m_previousWordCount = m_wordCount;
-    } else {
-        // Reset statistics when no editor
-        m_wordCount = 0;
-        m_characterCount = 0;
-        m_characterCountNoSpaces = 0;
+        // A newly loaded text, or new rules of counting, are not words written or deleted
+        connect(m_editor, &BookEditor::documentChanged, this, &StatisticsCollector::rebase);
+        connect(m_editor, &BookEditor::countsChanged, this, &StatisticsCollector::rebase);
+        // An editor closed while it is followed is forgotten
+        connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed);
     }
-
-    emit statisticsChanged(m_wordCount, m_characterCount,
-                          m_editor ? static_cast<int>(m_editor->paragraphCount()) : 0);
+    rebase();
 }
 
 void StatisticsCollector::setDatabase(core::ProjectDatabase* database)
@@ -296,6 +293,23 @@ void StatisticsCollector::debouncedRecalculate()
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
+void StatisticsCollector::rebase()
+{
+    // The counts of now are where the next words written or deleted are counted from
+    m_debounceTimer->stop();
+    recalculateStats();
+    m_previousWordCount = m_wordCount;
+    emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
+}
+
+void StatisticsCollector::onEditorDestroyed(QObject* object)
+{
+    if (object == m_editor) {
+        m_editor = nullptr;
+        rebase();
+    }
+}
+
 void StatisticsCollector::recalculateStats()
 {
     if (!m_editor) {
@@ -305,11 +319,11 @@ void StatisticsCollector::recalculateStats()
         return;
     }
 
-    // Phase 11.10: Use cached counts from editor for O(1) performance
-    // This avoids iterating over all paragraphs on every contentChanged
-    m_wordCount = static_cast<int>(m_editor->wordCount());
-    m_characterCount = static_cast<int>(m_editor->characterCount());
-    m_characterCountNoSpaces = static_cast<int>(m_editor->characterCountNoSpaces());
+    // The editor caches the counts per paragraph, so only edited paragraphs are counted
+    const core::TextCounts counts = m_editor->textCounts();
+    m_wordCount = counts.words;
+    m_characterCount = counts.characters;
+    m_characterCountNoSpaces = counts.nonSpaceCharacters;
 }
 
 void StatisticsCollector::updateHourlyStats(int wordsDelta)

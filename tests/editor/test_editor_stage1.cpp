@@ -17,14 +17,17 @@
 #include "editor_test_utils.h"
 
 #include <QElapsedTimer>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QLineEdit>
+#include <QLocale>
 #include <QPaintEvent>
 #include <QPixmap>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QString>
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -37,7 +40,14 @@ namespace {
 
 /// Counts of the editor's whole text, computed from scratch - the oracle for the cache.
 core::TextCounts countsFromScratch(const BookEditor& editor) {
-    return core::countText(editor.plainText());
+    return core::countText(editor.plainText(), editor.wordCountRules());
+}
+
+/// The rules that count the dialogue dashes as words
+core::WordCountRules dashesAsWords() {
+    core::WordCountRules rules;
+    rules.dashesAreWords = true;
+    return rules;
 }
 
 /// A paragraph long enough to wrap onto several lines in a 400-900 px wide editor.
@@ -53,6 +63,14 @@ QStringList longParagraphs(int count) {
 
 qreal documentHeight(const BookEditor& editor) {
     return editor.textDocument()->documentLayout()->documentSize().height();
+}
+
+/// What the editor shows, painted into an image
+QImage editorImage(BookEditor& editor) {
+    QImage image(editor.size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    editor.render(&image);
+    return image;
 }
 
 /// Records the areas of the paint events a widget receives
@@ -121,6 +139,7 @@ TEST_CASE("Stage1 word count: cached counts follow every kind of edit",
     auto checkAgainstScratch = [&editor]() {
         const core::TextCounts expected = countsFromScratch(editor);
         CHECK(editor.wordCount() == static_cast<size_t>(expected.words));
+        CHECK(editor.characterCount() == static_cast<size_t>(expected.characters));
         CHECK(editor.characterCountNoSpaces() ==
               static_cast<size_t>(expected.nonSpaceCharacters));
     };
@@ -165,6 +184,105 @@ TEST_CASE("Stage1 word count: cached counts follow every kind of edit",
         CHECK(editor.wordCount() == 6);
         checkAgainstScratch();
     }
+
+    SECTION("new rules of counting count every paragraph again") {
+        REQUIRE(editor.wordCount() == 7);  // the paragraphs' counts are cached
+        editor.setWordCountRules(dashesAsWords());
+        CHECK(editor.wordCount() == 9);
+        checkAgainstScratch();
+        editor.setCursorPosition({1, 0});
+        editor.insertText(QStringLiteral("– "));
+        CHECK(editor.wordCount() == 10);
+        checkAgainstScratch();
+    }
+}
+
+TEST_CASE("Stage1 word count: the characters leave out the paragraph ends",
+          "[editor][stage1][statistics]") {
+    // As Word and LibreOffice count the characters with spaces
+    BookEditor editor;
+    editor.fromKml(QStringLiteral("<kml><p>One two</p><p></p><p>Three</p></kml>"));
+    CHECK(editor.characterCount() == 12);
+    CHECK(editor.characterCountNoSpaces() == 11);
+    CHECK(editor.textCounts().words == 3);
+    CHECK(editor.textCounts().characters == 12);
+}
+
+TEST_CASE("Stage1 word count: the counts of the selection", "[editor][stage1][statistics]") {
+    BookEditor editor;
+    editor.fromKml(QStringLiteral(
+        "<kml><p>One two three</p><p>– Tak – powiedział.</p><p>Last one</p></kml>"));
+
+    SECTION("nothing selected counts nothing") {
+        const core::TextCounts counts = editor.selectionCounts();
+        CHECK(counts.words == 0);
+        CHECK(counts.characters == 0);
+        CHECK(counts.nonSpaceCharacters == 0);
+    }
+
+    SECTION("a part of a paragraph: a word cut by the selection is a word") {
+        editor.setSelection({{0, 2}, {0, 9}});  // "e two t"
+        const core::TextCounts counts = editor.selectionCounts();
+        CHECK(counts.words == 3);
+        CHECK(counts.characters == 7);
+        CHECK(counts.nonSpaceCharacters == 5);
+    }
+
+    SECTION("across paragraphs, without their ends") {
+        editor.setSelection({{0, 8}, {2, 4}});  // "three", the second paragraph, "Last"
+        const core::TextCounts counts = editor.selectionCounts();
+        CHECK(counts.words == 4);
+        CHECK(counts.characters == 5 + 19 + 4);
+        CHECK(counts.nonSpaceCharacters == 5 + 16 + 4);
+    }
+
+    SECTION("selected backwards, the same counts") {
+        editor.setSelection({{2, 4}, {0, 8}});
+        CHECK(editor.selectionCounts().words == 4);
+        CHECK(editor.selectionCounts().characters == 28);
+    }
+
+    SECTION("the whole text, the counts of the text") {
+        editor.selectAll();
+        const core::TextCounts selection = editor.selectionCounts();
+        const core::TextCounts text = editor.textCounts();
+        CHECK(selection.words == text.words);
+        CHECK(selection.characters == text.characters);
+        CHECK(selection.nonSpaceCharacters == text.nonSpaceCharacters);
+    }
+
+    SECTION("by the editor's rules of counting") {
+        editor.setSelection({{1, 0}, {1, 5}});  // "– Tak"
+        CHECK(editor.selectionCounts().words == 1);
+        editor.setWordCountRules(dashesAsWords());
+        CHECK(editor.selectionCounts().words == 2);
+    }
+}
+
+TEST_CASE("Stage1 word count: new rules of counting are told, the text stays",
+          "[editor][stage1][statistics]") {
+    BookEditor editor;
+    editor.fromKml(QStringLiteral("<kml><p>– Tak – powiedział.</p></kml>"));
+    REQUIRE(editor.wordCount() == 2);
+    // Counted by hand: the test target does not link Qt6::Test (QSignalSpy)
+    int counts = 0;
+    int content = 0;
+    QObject::connect(&editor, &BookEditor::countsChanged, [&counts]() { ++counts; });
+    QObject::connect(&editor, &BookEditor::contentChanged, [&content]() { ++content; });
+
+    editor.setWordCountRules(dashesAsWords());
+    CHECK(counts == 1);
+    CHECK(editor.wordCount() == 4);
+    CHECK(editor.wordCountRules() == dashesAsWords());
+
+    // The same rules again change nothing
+    editor.setWordCountRules(dashesAsWords());
+    CHECK(counts == 1);
+
+    editor.setWordCountRules(core::WordCountRules{});
+    CHECK(counts == 2);
+    CHECK(editor.wordCount() == 2);
+    CHECK(content == 0);
 }
 
 TEST_CASE("Stage1 word count: a saved chapter reports the editor's count",
@@ -222,6 +340,54 @@ TEST_CASE("Stage1 word count: a chapter file counts the text the editor shows",
                       "<kml><p>Kept</p><section><p>Hidden</p></section>stray<p>Last</p></kml>"),
                   QStringLiteral("Kept\nLast"));
     }
+}
+
+TEST_CASE("Stage1 word count: Distraction-Free shows it on a plate over the text",
+          "[editor][stage1][statistics][distraction-free]") {
+    // Regression: the count at the bottom of the view mixed with the lines of text under it
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(900, 600));
+    EditorAppearance appearance = editor->appearance();
+    appearance.colorMode = EditorColorMode::Dark;
+    appearance.typography.lineHeight = 1.0;        // lines close together, under the count too
+    appearance.distractionFree.uiFadeTimeout = 0;  // the texts at the edges do not fade
+    appearance.distractionFree.showClock = false;
+    appearance.distractionFree.showWordCount = false;
+    editor->setAppearance(appearance);
+    // One paragraph filling the view many times over, with no space between paragraphs
+    editor->fromKml(kmlOf({longParagraphs(40).join(QLatin1Char(' '))}));
+    editor->setDistractionFree(true);
+
+    // Where the count is: at the bottom in the middle, inside the margin of the view
+    const QString count =
+        QStringLiteral("Words: %1").arg(QLocale().toString(editor->textCounts().words));
+    const QRectF area = QRectF(editor->rect()).adjusted(20.0, 20.0, -20.0, -20.0);
+    const QRectF label = QFontMetricsF(appearance.typography.uiFont, editor.get())
+                             .boundingRect(area, Qt::AlignHCenter | Qt::AlignBottom, count);
+    const QRect place = label.adjusted(-2.0, -1.0, 2.0, 1.0).toAlignedRect();
+    const auto brightest = [&place](const QImage& image) {
+        int gray = 0;
+        for (int y = place.top(); y <= place.bottom(); ++y) {
+            for (int x = place.left(); x <= place.right(); ++x) {
+                gray = std::max(gray, qGray(image.pixel(x, y)));
+            }
+        }
+        return gray;
+    };
+    const int text = qGray(appearance.colors.textColor(EditorColorMode::Dark).rgb());
+    const int dimmed = qGray(appearance.colors.focusInactiveColor(EditorColorMode::Dark).rgb());
+    const int paper = qGray(appearance.colors.background(EditorColorMode::Dark).rgb());
+    const int between = (text + dimmed) / 2;
+
+    // Without the count, the light lines of text run there
+    REQUIRE(brightest(editorImage(*editor)) > between);
+
+    // With it, only its dimmed letters on the dark paper
+    appearance.distractionFree.showWordCount = true;
+    editor->setAppearance(appearance);
+    const int withCount = brightest(editorImage(*editor));
+    CHECK(withCount < between);
+    CHECK(withCount > paper + 30);
 }
 
 // =============================================================================
