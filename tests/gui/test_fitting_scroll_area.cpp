@@ -33,14 +33,16 @@ TEST_CASE("Fitting scroll area: as large as its content, it scrolls only when lo
     for (int i = 0; i < 30; ++i) {
         lines->addWidget(new QLabel(QStringLiteral("Line %1").arg(i)));
     }
-    FittingScrollArea area(content);
+    // A child widget: the system keeps a window within the screen (macOS), not a child
+    QWidget host;
+    auto& area = *new FittingScrollArea(content, &host);
 
     CHECK(area.sizeHint() == content->sizeHint());
     CHECK(area.minimumSizeHint().height() < content->sizeHint().height());  // a few lines
     CHECK(area.minimumSizeHint().width() > content->minimumSizeHint().width());  // the bar
 
     area.resize(area.sizeHint());
-    area.show();
+    host.show();
     QApplication::processEvents();
     CHECK(area.verticalScrollBar()->maximum() == 0);
 
