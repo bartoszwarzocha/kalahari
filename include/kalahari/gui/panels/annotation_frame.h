@@ -14,6 +14,7 @@
 class QLabel;
 class QPushButton;
 class QTextEdit;
+class QToolButton;
 
 namespace kalahari::gui {
 
@@ -22,7 +23,11 @@ namespace kalahari::gui {
 /// Looks like a card of the Annotations panel and lies over the editor, under the place
 /// of the annotation (above it when there is no room below), within the text column. Enter
 /// starts a new line; Ctrl+Enter or Save keeps the text, Esc drops it - the frame says so.
-/// While it has the keys, the window's shortcuts do nothing (bold, the annotation
+/// Going anywhere else in the program closes it, the text kept: its X in the corner, a
+/// click outside it, or the keys going to another place of the program. It stays open
+/// while another application is in front, for a menu or a list over it (its own context
+/// menu) and for the editor's scroll bars (it goes along with its place; the keys stay in
+/// it). While it has the keys, the window's shortcuts do nothing (bold, the annotation
 /// commands... would change the text under it), except saving, closing and quitting; no
 /// key and no click goes through it to the editor.
 class AnnotationFrame : public QFrame {
@@ -42,6 +47,9 @@ public:
     /// @brief Constructor
     /// @param editor The editor it lies over (its parent)
     explicit AnnotationFrame(QWidget* editor);
+
+    /// @brief Destructor: the program is not watched any more
+    ~AnnotationFrame() override;
 
     /// @brief The keys that keep the text, as the frame shows them ("Ctrl+Enter")
     static QString saveKeysText();
@@ -87,17 +95,51 @@ signals:
     /// @brief Esc: drop the text
     void cancelRequested();
 
+    /// @brief Its X, or going anywhere else in the program: close it, the text kept. Asked
+    /// once, and never after Esc
+    void closeRequested();
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     bool focusNextPrevChild(bool next) override;
 
 private:
     /// @brief Ctrl+Enter: keep the text, when there is any
     void requestSave();
+
+    /// @brief Esc: drop the text
+    void requestCancel();
+
+    /// @brief Close the frame, the text kept (once)
+    void requestClose();
+
+    /// @brief Watch the whole program for the writer going elsewhere (while it is shown)
+    void startWatching();
+
+    /// @brief Stop watching the program
+    void stopWatching();
+
+    /// @brief A mouse press anywhere in the program, before it goes on
+    void onPress(QObject* receiver);
+
+    /// @brief The keys went from one widget of the program to another (or to none)
+    void onFocusChanged(QWidget* old, QWidget* now);
+
+    /// @brief After the click or the wheel that took the keys from the frame: unless the
+    /// click gave them back, they went elsewhere
+    void checkKeys();
+
+    /// @brief Whether the widget is the frame or in it
+    bool isFrameWidget(const QWidget* widget) const;
+
+    /// @brief Whether a click on this widget, or the keys going to it, leave the frame
+    bool leavesFrame(const QWidget* widget) const;
 
     /// @brief The text box as high as its text, between a few lines and a limit
     void updateTextHeight();
@@ -120,6 +162,12 @@ private:
     QTextEdit* m_textEdit{nullptr};
     QLabel* m_hintLabel{nullptr};
     QPushButton* m_saveButton{nullptr};
+    QToolButton* m_closeButton{nullptr};
+    QObject* m_pressWatcher{nullptr};  ///< Tells of the presses of the whole program
+    bool m_watching = false;           ///< The program is watched (the frame is shown)
+    bool m_closing = false;            ///< It asked to be closed or dropped: it asks no more
+    bool m_keysAway = false;           ///< The keys went from it to another application
+    bool m_keysLeftByMouse = false;    ///< The keys are leaving it with a click or the wheel
 };
 
 }  // namespace kalahari::gui

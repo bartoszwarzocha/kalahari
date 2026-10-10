@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Annotations: the frame closes when the writer goes elsewhere, or with its X** -
+  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
+  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
+  toolbar or the menu bar), the keys going to another place of the program, or the X in
+  its top right corner; a new annotation left empty is not added. The frame stays open
+  while another application is in front, for its own context menu and while the text is
+  scrolled with the scroll bars. Esc still drops what was written.
+
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
   0.3.1, 0.3.0 and the README 0.3.2.
@@ -434,6 +442,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
+  click on the editor's scroll bar when there was nothing to scroll went on to the text
+  under it: it moved the cursor, and a double click selected a word. Such a click, and a
+  press of the right mouse button on the scroll bars, also closed the frame of an
+  annotation being written. A press on a scroll bar now stays with it; the right button
+  still opens the scroll bar's menu.
 
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
