@@ -199,12 +199,13 @@ void BookEditor::scrollToCursorLine()
     };
 
     // The band of the view the line must be within: the view without a margin at its top
-    // and bottom edges, as document y relative to the scroll position (the scroll position
+    // and bottom edges, and below the find/replace bar over its top (a match found is not
+    // under the bar), as document y relative to the scroll position (the scroll position
     // is drawn at the view's top inset, and the zoom scales by the view scale)
     const qreal scrollY = m_viewportManager->scrollPosition();
     const qreal scale = m_viewportManager->viewScale();
     const qreal inset = m_viewportManager->viewTopInset();
-    const qreal bandTop = (CURSOR_SCROLL_MARGIN - inset) / scale;
+    const qreal bandTop = (CURSOR_SCROLL_MARGIN + findReplaceBarHeight() - inset) / scale;
     const qreal bandBottom =
         (static_cast<qreal>(height()) - CURSOR_SCROLL_MARGIN - inset) / scale;
 
@@ -576,15 +577,18 @@ void BookEditor::moveCursorByViewHeight(double direction)
         !m_renderPipeline) {
         return;
     }
-    const double viewHeight = m_viewportManager->visibleDocumentHeight();
+    // The view below the find/replace bar over its top
+    const double topBar = m_renderPipeline->context().topBarHeight;
+    const double viewHeight =
+        m_viewportManager->visibleDocumentHeight() - topBar / m_viewportManager->viewScale();
     if (viewHeight <= 0.0) {
         return;
     }
     m_renderPipeline->ensureVisibleLaidOut();
 
     QTextDocument* doc = m_textBuffer.get();
-    const auto viewTop = [this] {
-        return m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y();
+    const auto viewTop = [this, topBar] {
+        return m_renderPipeline->widgetToDocument(QPointF(0.0, topBar)).y();
     };
     const auto caretTop = [this](const CursorPosition& position) {
         return m_renderPipeline->widgetToDocument(m_renderPipeline->caretRect(position).topLeft())

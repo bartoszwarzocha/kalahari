@@ -40,6 +40,10 @@ struct SearchMatch;
 /// +-----------------------------------------------------------------+
 /// @endcode
 ///
+/// In a narrow text area (a small screen with the panels shown) the groups of buttons go on
+/// in the next rows: the bar's height depends on its width (heightForWidth()), and the editor
+/// gives it the rows it needs.
+///
 /// Keyboard shortcuts:
 /// - Enter: Find Next
 /// - Shift+Enter: Find Previous
@@ -109,6 +113,9 @@ protected:
 
     /// @brief Enter in the fields: Find Next (Shift+Enter: Find Previous) or Replace
     bool eventFilter(QObject* watched, QEvent* event) override;
+
+    /// @brief A line under the bar parts it from the text
+    void paintEvent(QPaintEvent* event) override;
 
 private slots:
     /// @brief Handle search text changes

@@ -168,6 +168,7 @@ set(KALAHARI_SOURCES
     gui/widgets/length_spin_box.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
+    gui/widgets/flow_layout.cpp  # FlowLayout - items in more rows in a narrow panel
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
@@ -252,6 +253,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h

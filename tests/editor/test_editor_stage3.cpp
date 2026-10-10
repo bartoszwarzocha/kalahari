@@ -5,16 +5,19 @@
 /// QDropEvent::source() is set only during a real drag, which tests cannot run. The mouse
 /// and drag events are sent to the editor as the window system delivers them.
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/render_context.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include "editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
+#include <QApplication>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -26,6 +29,7 @@
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QToolButton>
 #include <QTextBlock>
 #include <QTextLayout>
 #include <QWheelEvent>
@@ -37,6 +41,7 @@
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
+using Catch::Approx;
 
 namespace {
 
@@ -664,6 +669,169 @@ TEST_CASE("Stage3 find: a match far down a long chapter is shown when found",
     const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
     CHECK(caret.top() >= 0.0);
     CHECK(caret.bottom() <= editor->height());
+}
+
+TEST_CASE("Stage3 find: a match found above the view is not under the bar",
+          "[editor][stage3][search]") {
+    // Regression: the line of the match came into view at the top edge, under the bar
+    QStringList paragraphs;
+    for (int i = 0; i < 200; ++i) {
+        paragraphs << (i == 50 ? QStringLiteral("The needle is here.")
+                               : QStringLiteral("Paragraph %1 with enough words to wrap onto a "
+                                                "second line in a window of this width.").arg(i));
+    }
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->setCursorPosition({199, 0});
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    bar->setSearchText(QStringLiteral("needle"));
+
+    editor->findPrevious();
+
+    CHECK(editor->selection().normalized().start == CursorPosition{50, 4});
+    const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(caret.top() >= bar->geometry().bottom());
+    CHECK(caret.bottom() <= editor->height());
+}
+
+TEST_CASE("Stage3 find: in a narrow view the buttons of the bar go on in more rows",
+          "[editor][stage3][search]") {
+    // Regression: on a small screen with the panels shown the view of the text is narrow,
+    // and the bar cut off its buttons at the right edge
+    auto editor = editorWith(kWords);
+    editor->show();  // the rows of the bar are laid out in a shown bar
+    editor->showFindReplace();
+    QApplication::processEvents();
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    const int rowsHeight = bar->height();  // the find row and the replace row
+    const auto onOneRow = [bar](const QWidget* left, const QWidget* right) {
+        return left->mapTo(bar, left->rect().center()).y() ==
+               right->mapTo(bar, right->rect().center()).y();
+    };
+    const QList<QLineEdit*> fields = bar->findChildren<QLineEdit*>();
+    REQUIRE(fields.size() == 2);
+    QToolButton* next = nullptr;
+    for (QToolButton* button : bar->findChildren<QToolButton*>()) {
+        if (button->toolTip().startsWith(QStringLiteral("Next Match"))) {
+            next = button;
+        }
+    }
+    REQUIRE(next != nullptr);
+    CHECK(onOneRow(fields[0], next));
+
+    resizeWidget(*editor, QSize(300, 400));
+    QApplication::processEvents();
+
+    CHECK(bar->width() < 300);
+    CHECK(bar->minimumSizeHint().width() <= bar->width());
+    CHECK(bar->height() > rowsHeight);
+    CHECK(bar->height() == bar->heightForWidth(bar->width()));
+    CHECK_FALSE(onOneRow(fields[0], next));
+    for (const QAbstractButton* button : bar->findChildren<QAbstractButton*>()) {
+        if (button->isVisibleTo(bar)) {
+            CAPTURE(button->toolTip().toStdString());
+            CHECK(bar->rect().contains(QRect(button->mapTo(bar, QPoint(0, 0)), button->size())));
+        }
+    }
+
+    SECTION("a wide view has them in one row again") {
+        resizeWidget(*editor, QSize(600, 400));
+        QApplication::processEvents();
+        CHECK(bar->height() == rowsHeight);
+        CHECK(onOneRow(fields[0], next));
+    }
+
+    SECTION("Find alone takes only the rows of the find row") {
+        const int narrowHeight = bar->height();
+        editor->showFind();
+        QApplication::processEvents();
+        CHECK_FALSE(bar->isReplaceMode());
+        CHECK(bar->height() < narrowHeight);
+        CHECK(bar->height() == bar->heightForWidth(bar->width()));
+    }
+}
+
+TEST_CASE("Stage3 find: the text starts below the bar, and goes back up when it closes",
+          "[editor][stage3][search]") {
+    // Regression: in a narrow view (a small screen with the panels shown) the bar takes
+    // more rows, and at a small zoom the first lines of the text were under it, showing
+    // through its gaps
+    auto editor = editorWith(kWords);
+    resizeWidget(*editor, QSize(300, 400));
+    editor->setZoomFactor(0.5);
+    editor->show();
+    QApplication::processEvents();
+    const auto caretTop = [&editor] {
+        return editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF().top();
+    };
+    const qreal top = caretTop();  // the cursor at the start of the text
+
+    editor->showFindReplace();
+    QApplication::processEvents();
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    REQUIRE(bar->height() > top);  // higher than the room above the text
+    CHECK(bar->autoFillBackground());  // the lines scrolled under it do not show through
+    CHECK(caretTop() >= bar->geometry().bottom());
+    CHECK(caretTop() == Approx(top + bar->height()).margin(0.5));
+
+    SECTION("closed, the bar gives the room back") {
+        editor->hideFindReplace();
+        CHECK(caretTop() == Approx(top).margin(0.5));
+    }
+}
+
+TEST_CASE("Stage3 find: with the bar open the whole text comes into view",
+          "[editor][stage3][search]") {
+    // A narrow view at the smallest zoom: the bar is higher than the room below the text
+    QStringList paragraphs;
+    for (int i = 0; i < 300; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 with enough words to wrap onto a second "
+                                     "line in a window of this width.").arg(i);
+    }
+    auto editor = editorWith(kmlOf(paragraphs));
+    resizeWidget(*editor, QSize(300, 400));
+    editor->setZoomFactor(MIN_ZOOM_FACTOR);
+    editor->show();
+    editor->showFindReplace();
+    QApplication::processEvents();
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    const auto caret = [&editor] {
+        return editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    };
+    const auto press = [&editor](Qt::Key key) {
+        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+        QCoreApplication::sendEvent(editor.get(), &event);
+    };
+
+    SECTION("the last line, above the bottom edge") {
+        editor->setCursorPosition({299, static_cast<int>(paragraphs[299].size())});
+        CHECK(caret().top() >= bar->geometry().bottom());
+        CHECK(caret().bottom() <= editor->height());
+    }
+
+    SECTION("a click beside the scroll bar's handle scrolls by the view below the bar") {
+        // No line is skipped: the bar's rows are not a part of the view
+        const double height = editor->height();
+        const int belowBar = editor->verticalScrollBar()->pageStep();
+        editor->hideFindReplace();
+        REQUIRE(editor->verticalScrollBar()->pageStep() ==
+                static_cast<int>(height / editor->zoomFactor()));
+        CHECK(belowBar == static_cast<int>((height - bar->height()) / editor->zoomFactor()));
+    }
+
+    SECTION("Page Down and Page Up keep the cursor's line below the bar") {
+        for (const Qt::Key key : {Qt::Key_PageDown, Qt::Key_PageDown, Qt::Key_PageDown,
+                                  Qt::Key_PageUp, Qt::Key_PageUp, Qt::Key_PageUp}) {
+            press(key);
+            CAPTURE(editor->cursorPosition().paragraph);
+            CHECK(caret().top() >= bar->geometry().bottom());
+            CHECK(caret().bottom() <= editor->height());
+        }
+        CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+    }
 }
 
 // =============================================================================

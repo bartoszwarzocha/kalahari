@@ -370,6 +370,12 @@ bool BookEditor::event(QEvent* event)
                            this);
         return true;
     }
+    // The rows of the find/replace bar changed (a longer count of the matches goes on in the
+    // next row of a narrow bar): it gets the height they need
+    if (event->type() == QEvent::LayoutRequest && m_findReplaceBar &&
+        !m_findReplaceBar->isHidden()) {
+        placeFindReplaceBar();
+    }
     return QWidget::event(event);
 }
 
@@ -405,10 +411,9 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     // Notify ViewportManager of size changes
     updateViewport();
 
-    // Position FindReplaceBar at top if visible
-    if (m_findReplaceBar && m_findReplaceBar->isVisible()) {
-        int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
-        m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
+    // Position FindReplaceBar at top if open (also in a tab behind the others)
+    if (m_findReplaceBar && !m_findReplaceBar->isHidden()) {
+        placeFindReplaceBar();
     }
 
     // The text keeps the page's width in every view: a new size only moves the page in the

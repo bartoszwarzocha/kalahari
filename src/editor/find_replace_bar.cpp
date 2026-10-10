@@ -5,6 +5,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -14,8 +15,24 @@
 #include <QToolButton>
 #include <QShortcut>
 #include <QKeyEvent>
+#include <QPainter>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// @brief The fields' narrowest width: the bar fits a narrow text area (a small screen with
+/// the panels shown)
+constexpr int INPUT_MINIMUM_WIDTH = 120;
+
+/// @brief The fields' widest width: in a wide text area the room left over stays at the end
+/// of the rows, and the two fields are as wide
+constexpr int INPUT_MAXIMUM_WIDTH = 360;
+
+/// @brief The space between the field and the groups of buttons
+constexpr int GROUP_SPACING = 8;
+
+} // anonymous namespace
 
 // =============================================================================
 // Construction / Destruction
@@ -47,6 +64,9 @@ void FindReplaceBar::setupUi()
 {
     auto& art = core::ArtProvider::getInstance();
 
+    // The bar is over the text: its background hides the lines scrolled under it
+    setAutoFillBackground(true);
+
     // Main vertical layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(6, 4, 6, 4);
@@ -55,64 +75,79 @@ void FindReplaceBar::setupUi()
     // =========================================================================
     // Row 1: Find row
     // =========================================================================
+    // The field and the groups of buttons side by side; in a narrow text area (a small
+    // screen) the groups go on in the next row, and Close stays at the end of the first
     QHBoxLayout* findRow = new QHBoxLayout();
     findRow->setSpacing(4);
+    auto* findItems = new gui::FlowLayout();
+    findItems->setSpacing(GROUP_SPACING);
+    findRow->addLayout(findItems, 1);
 
     // Search input
     m_searchInput = new QLineEdit(this);
     m_searchInput->setPlaceholderText(tr("Find..."));
-    m_searchInput->setMinimumWidth(200);
+    m_searchInput->setMinimumWidth(INPUT_MINIMUM_WIDTH);
+    m_searchInput->setMaximumWidth(INPUT_MAXIMUM_WIDTH);
+    m_searchInput->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_searchInput->setClearButtonEnabled(true);
-    findRow->addWidget(m_searchInput, 1);
+    findItems->addWidget(m_searchInput);
 
     // Option toggle buttons
-    m_caseSensitiveBtn = new QToolButton(this);
+    auto* options = new QWidget(this);
+    auto* optionsLayout = new QHBoxLayout(options);
+    optionsLayout->setContentsMargins(0, 0, 0, 0);
+    optionsLayout->setSpacing(4);
+
+    m_caseSensitiveBtn = new QToolButton(options);
     m_caseSensitiveBtn->setText(tr("Aa"));
     m_caseSensitiveBtn->setCheckable(true);
     m_caseSensitiveBtn->setToolTip(tr("Match Case (Alt+C)"));
     m_caseSensitiveBtn->setFixedSize(28, 24);
-    findRow->addWidget(m_caseSensitiveBtn);
+    optionsLayout->addWidget(m_caseSensitiveBtn);
 
-    m_wholeWordBtn = new QToolButton(this);
+    m_wholeWordBtn = new QToolButton(options);
     m_wholeWordBtn->setText(tr("W"));
     m_wholeWordBtn->setCheckable(true);
     m_wholeWordBtn->setToolTip(tr("Match Whole Word (Alt+W)"));
     m_wholeWordBtn->setFixedSize(28, 24);
-    findRow->addWidget(m_wholeWordBtn);
+    optionsLayout->addWidget(m_wholeWordBtn);
 
-    m_regexBtn = new QToolButton(this);
+    m_regexBtn = new QToolButton(options);
     m_regexBtn->setText(tr(".*"));
     m_regexBtn->setCheckable(true);
     m_regexBtn->setToolTip(tr("Use Regular Expression (Alt+R)"));
     m_regexBtn->setFixedSize(28, 24);
-    findRow->addWidget(m_regexBtn);
+    optionsLayout->addWidget(m_regexBtn);
 
-    // Separator
-    findRow->addSpacing(8);
+    findItems->addWidget(options);
 
-    // Navigation buttons
-    m_prevBtn = new QToolButton(this);
+    // Navigation buttons, with the count of the matches
+    auto* navigation = new QWidget(this);
+    auto* navigationLayout = new QHBoxLayout(navigation);
+    navigationLayout->setContentsMargins(0, 0, 0, 0);
+    navigationLayout->setSpacing(4);
+
+    m_prevBtn = new QToolButton(navigation);
     m_prevBtn->setIcon(art.getIcon("navigation.up", core::IconContext::Button));
     m_prevBtn->setToolTip(tr("Previous Match (Shift+Enter)"));
     m_prevBtn->setFixedSize(28, 24);
-    findRow->addWidget(m_prevBtn);
+    navigationLayout->addWidget(m_prevBtn);
 
-    m_nextBtn = new QToolButton(this);
+    m_nextBtn = new QToolButton(navigation);
     m_nextBtn->setIcon(art.getIcon("navigation.down", core::IconContext::Button));
     m_nextBtn->setToolTip(tr("Next Match (Enter)"));
     m_nextBtn->setFixedSize(28, 24);
-    findRow->addWidget(m_nextBtn);
+    navigationLayout->addWidget(m_nextBtn);
 
     // Separator
-    findRow->addSpacing(8);
+    navigationLayout->addSpacing(GROUP_SPACING - navigationLayout->spacing());
 
     // Match count label
-    m_matchCountLabel = new QLabel(tr("No results"), this);
+    m_matchCountLabel = new QLabel(tr("No results"), navigation);
     m_matchCountLabel->setMinimumWidth(60);
-    findRow->addWidget(m_matchCountLabel);
+    navigationLayout->addWidget(m_matchCountLabel);
 
-    // Stretch to push close button to right
-    findRow->addStretch(1);
+    findItems->addWidget(navigation);
 
     // Close button
     m_closeBtn = new QToolButton(this);
@@ -120,43 +155,47 @@ void FindReplaceBar::setupUi()
     m_closeBtn->setToolTip(tr("Close (Escape)"));
     m_closeBtn->setFixedSize(24, 24);
     m_closeBtn->setAutoRaise(true);
-    findRow->addWidget(m_closeBtn);
+    findRow->addWidget(m_closeBtn, 0, Qt::AlignTop);
 
     mainLayout->addLayout(findRow);
 
     // =========================================================================
     // Row 2: Replace row
     // =========================================================================
+    // In a narrow text area the buttons go on in the next row
     m_replaceSection = new QWidget(this);
-    QHBoxLayout* replaceRow = new QHBoxLayout(m_replaceSection);
+    auto* replaceRow = new gui::FlowLayout(m_replaceSection);
     replaceRow->setContentsMargins(0, 0, 0, 0);
-    replaceRow->setSpacing(4);
+    replaceRow->setSpacing(GROUP_SPACING);
 
     // Replace input
     m_replaceInput = new QLineEdit(m_replaceSection);
     m_replaceInput->setPlaceholderText(tr("Replace..."));
-    m_replaceInput->setMinimumWidth(200);
+    m_replaceInput->setMinimumWidth(INPUT_MINIMUM_WIDTH);
+    m_replaceInput->setMaximumWidth(INPUT_MAXIMUM_WIDTH);
+    m_replaceInput->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_replaceInput->setClearButtonEnabled(true);
-    replaceRow->addWidget(m_replaceInput, 1);
+    replaceRow->addWidget(m_replaceInput);
 
     // Replace buttons
-    m_replaceBtn = new QPushButton(tr("Replace"), m_replaceSection);
+    auto* replaceButtons = new QWidget(m_replaceSection);
+    auto* replaceButtonsLayout = new QHBoxLayout(replaceButtons);
+    replaceButtonsLayout->setContentsMargins(0, 0, 0, 0);
+    replaceButtonsLayout->setSpacing(4);
+
+    m_replaceBtn = new QPushButton(tr("Replace"), replaceButtons);
     m_replaceBtn->setToolTip(tr("Replace Current Match"));
     m_replaceBtn->setFixedHeight(24);
-    replaceRow->addWidget(m_replaceBtn);
+    replaceButtonsLayout->addWidget(m_replaceBtn);
 
-    m_replaceAllBtn = new QPushButton(tr("Replace All"), m_replaceSection);
+    m_replaceAllBtn = new QPushButton(tr("Replace All"), replaceButtons);
     m_replaceAllBtn->setToolTip(tr("Replace All Matches"));
     m_replaceAllBtn->setFixedHeight(24);
-    replaceRow->addWidget(m_replaceAllBtn);
+    replaceButtonsLayout->addWidget(m_replaceAllBtn);
 
-    // Add stretch to align with find row
-    replaceRow->addStretch(1);
+    replaceRow->addWidget(replaceButtons);
 
     mainLayout->addWidget(m_replaceSection);
-
-    // Set fixed height for compact appearance
-    setMaximumHeight(70);
 
     // Initial button states
     updateButtonStates();
@@ -251,7 +290,6 @@ void FindReplaceBar::setSearchEngine(editor::SearchEngine* engine)
 void FindReplaceBar::showFind()
 {
     m_replaceSection->setVisible(false);
-    setMaximumHeight(40);
     adjustSize();
     searchAgain();
 }
@@ -259,7 +297,6 @@ void FindReplaceBar::showFind()
 void FindReplaceBar::showFindReplace()
 {
     m_replaceSection->setVisible(true);
-    setMaximumHeight(70);
     adjustSize();
     searchAgain();
 }
@@ -325,6 +362,15 @@ bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
         }
     }
     return QWidget::eventFilter(watched, event);
+}
+
+void FindReplaceBar::paintEvent(QPaintEvent* event)
+{
+    QWidget::paintEvent(event);
+
+    QPainter painter(this);
+    painter.setPen(palette().color(QPalette::Mid));
+    painter.drawLine(0, height() - 1, width() - 1, height() - 1);
 }
 
 // =============================================================================

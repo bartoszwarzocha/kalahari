@@ -76,6 +76,7 @@ set(TEST_SOURCES
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
+    gui/test_fitting_widgets.cpp                 # Widgets that fit a small screen
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -185,6 +186,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/item_templates.cpp           # Templates of the New Book dialog
@@ -239,6 +241,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
