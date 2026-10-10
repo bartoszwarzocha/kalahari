@@ -37,7 +37,11 @@ TEST_CASE("Panel buttons: a low panel shows them in more columns", "[gui][widget
         columns.addAction(new QAction(QStringLiteral("Action %1").arg(i + 1), &columns));
     }
     host.show();
-    const QSize cell = columns.buttons().first()->sizeHint();
+    // The cell fits the largest button (the sizes differ per style)
+    QSize cell(0, 0);
+    for (const QToolButton* button : columns.buttons()) {
+        cell = cell.expandedTo(button->sizeHint());
+    }
 
     SECTION("Tall enough: one column") {
         columns.resize(columns.sizeHint());
