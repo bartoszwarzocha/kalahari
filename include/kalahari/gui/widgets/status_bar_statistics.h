@@ -48,6 +48,10 @@ public:
     /// @brief The label of the reading time
     QLabel* readingTimeLabel() const { return m_readingTime; }
 
+    /// @brief The reading time of @p words words, a minute begun being a minute: "Reading:
+    ///        18 min", from an hour on "Reading: 12 h 31 min" (or "Reading: 2 h")
+    [[nodiscard]] static QString readingTimeText(int words);
+
 private:
     /// @brief Show the counts of the editor now
     void update();
@@ -62,7 +66,7 @@ private:
     editor::BookEditor* m_editor{nullptr};  ///< The editor in front, or nullptr
     QLabel* m_words{nullptr};               ///< "Words: 3,480" or "Words: 12 of 3,480"
     QLabel* m_characters{nullptr};          ///< "Characters: 20,112"
-    QLabel* m_readingTime{nullptr};         ///< "Reading: 18 min"
+    QLabel* m_readingTime{nullptr};         ///< readingTimeText()
     QTimer* m_timer{nullptr};               ///< schedule()
 };
 

@@ -104,6 +104,30 @@ TEST_CASE("Status bar counts: large numbers in the system's way, a minute begun 
     CHECK(statistics.readingTimeLabel()->text() == QStringLiteral("Reading: 3 min"));
 }
 
+TEST_CASE("Status bar counts: a reading time of an hour or more in hours and minutes",
+          "[gui][statistics]") {
+    constexpr int perMinute = StatusBarStatistics::WORDS_PER_MINUTE;
+    CHECK(StatusBarStatistics::readingTimeText(0) == QStringLiteral("Reading: 0 min"));
+    CHECK(StatusBarStatistics::readingTimeText(1) == QStringLiteral("Reading: 1 min"));
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 59) ==
+          QStringLiteral("Reading: 59 min"));
+    // A minute begun is a minute, so the 60th minute makes an hour
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 59 + 1) ==
+          QStringLiteral("Reading: 1 h"));
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60) ==
+          QStringLiteral("Reading: 1 h"));
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60 + 1) ==
+          QStringLiteral("Reading: 1 h 1 min"));
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 120) ==
+          QStringLiteral("Reading: 2 h"));
+    // The long chapter of the example book
+    CHECK(StatusBarStatistics::readingTimeText(150017) ==
+          QStringLiteral("Reading: 12 h 31 min"));
+    // Large numbers of hours in the system's way
+    CHECK(StatusBarStatistics::readingTimeText(perMinute * 60 * 1500) ==
+          QStringLiteral("Reading: %1 h").arg(number(1500)));
+}
+
 TEST_CASE("Status bar counts: with a selection, its counts out of the whole text",
           "[gui][statistics]") {
     QStatusBar statusBar;

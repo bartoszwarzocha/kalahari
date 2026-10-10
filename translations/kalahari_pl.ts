@@ -4238,6 +4238,14 @@ Tej operacji nie można cofnąć.</translation>
         <source>Reading: %1 min</source>
         <translation>Czytanie: %1 min</translation>
     </message>
+    <message>
+        <source>Reading: %1 h</source>
+        <translation>Czytanie: %1 godz.</translation>
+    </message>
+    <message>
+        <source>Reading: %1 h %2 min</source>
+        <translation>Czytanie: %1 godz. %2 min</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::TagsPanel</name>

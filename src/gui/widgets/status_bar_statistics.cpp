@@ -93,9 +93,24 @@ void StatusBarStatistics::update()
         m_characters->setText(tr("Characters: %1").arg(locale.toString(text.characters)));
     }
 
+    m_readingTime->setText(readingTimeText(text.words));
+}
+
+QString StatusBarStatistics::readingTimeText(int words)
+{
+    constexpr int MINUTES_PER_HOUR = 60;
     // Rounded up: a minute begun is a minute
-    const int minutes = (text.words + WORDS_PER_MINUTE - 1) / WORDS_PER_MINUTE;
-    m_readingTime->setText(tr("Reading: %1 min").arg(locale.toString(minutes)));
+    const int minutes = (words + WORDS_PER_MINUTE - 1) / WORDS_PER_MINUTE;
+    const QLocale locale;
+    if (minutes < MINUTES_PER_HOUR) {
+        return tr("Reading: %1 min").arg(locale.toString(minutes));
+    }
+    const int hours = minutes / MINUTES_PER_HOUR;
+    const int rest = minutes % MINUTES_PER_HOUR;
+    if (rest == 0) {
+        return tr("Reading: %1 h").arg(locale.toString(hours));
+    }
+    return tr("Reading: %1 h %2 min").arg(locale.toString(hours), locale.toString(rest));
 }
 
 void StatusBarStatistics::schedule()

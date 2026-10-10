@@ -458,7 +458,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   any tab was closed, and the zoom of the last document stayed over the Dashboard. The
   characters no longer include the paragraph ends, as in Word and LibreOffice, and the
   numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
-  too.
+  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
+  31 min" instead of "Reading: 751 min").
 
 - **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
   bottom of the view was drawn straight over the lines of text and mixed with them. The
