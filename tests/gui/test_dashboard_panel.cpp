@@ -18,9 +18,11 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QProxyStyle>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStringList>
+#include <QStyleOption>
 #include <QTranslator>
 
 #include <algorithm>
@@ -289,6 +291,40 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
             }
         }
         QCoreApplication::removeTranslator(&longerTexts);
+    }
+}
+
+TEST_CASE("Dashboard: the checkbox keeps its size where the style puts margins around it",
+          "[gui][dashboard]") {
+    // macOS puts margins around a checkbox for layouts, inside its rectangle: on a narrow
+    // panel they took the box beyond its row, which squeezed it
+    class MarginsAroundCheckBox : public QProxyStyle {
+    public:
+        QRect subElementRect(SubElement element, const QStyleOption* option,
+                             const QWidget* widget) const override {
+            if (element == SE_CheckBoxLayoutItem) {
+                return option->rect.adjusted(2, 2, -3, -2);
+            }
+            return QProxyStyle::subElementRect(element, option, widget);
+        }
+        QSize sizeFromContents(ContentsType type, const QStyleOption* option, const QSize& size,
+                               const QWidget* widget) const override {
+            const QSize contents = QProxyStyle::sizeFromContents(type, option, size, widget);
+            return type == CT_CheckBox ? contents + QSize(5, 4) : contents;
+        }
+    };
+    registerAllCommands(CommandCallbacks{});
+    RecentBookGuard recentBook;
+    MarginsAroundCheckBox style;
+    DashboardPanel dashboard;
+    auto* checkBox = dashboard.findChild<QCheckBox*>();
+    REQUIRE(checkBox != nullptr);
+    checkBox->setStyle(&style);
+    showOffScreen(dashboard);
+    for (const QSize size : {AT_125_PANELS_OPEN, AT_150_PANELS_OPEN}) {
+        INFO("panel " << size.width() << "x" << size.height());
+        CHECK(cutOffText(dashboard, size) == std::string());
+        CHECK(checkBox->size() == checkBox->sizeHint());
     }
 }
 

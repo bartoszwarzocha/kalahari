@@ -209,6 +209,9 @@ void DashboardPanel::setupUI()
     const QString autoLoadTip =
         tr("Automatically open the most recently used project when Kalahari starts");
     m_autoLoadCheckbox = new QCheckBox(checkboxContainer);
+    // The layout gives the box its whole rectangle: the margins macOS puts around it for
+    // layouts would take it beyond the row on a narrow panel, which squeezes it
+    m_autoLoadCheckbox->setAttribute(Qt::WA_LayoutUsesWidgetRect);
     m_autoLoadCheckbox->setAccessibleName(autoLoadText);
     m_autoLoadCheckbox->setToolTip(autoLoadTip);
     m_autoLoadLabel = new WrappingLabel(autoLoadText, checkboxContainer);
