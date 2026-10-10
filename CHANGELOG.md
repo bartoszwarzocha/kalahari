@@ -285,6 +285,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Menu commands and settings page for features that will not be built:
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
+### Fixed
+
+- **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
+  project archive, InDesign ICML, export settings, Find in book, saving the current
+  perspective) and the log warned about each of them when the menus were built.
+
 ### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and

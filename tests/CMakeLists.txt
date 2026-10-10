@@ -60,6 +60,7 @@ set(TEST_SOURCES
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
+    gui/test_command_icons.cpp                   # Every command in a menu has an icon
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
