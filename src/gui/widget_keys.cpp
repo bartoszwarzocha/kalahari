@@ -290,17 +290,10 @@ bool WidgetKeys::keyPress(QWidget* widget, QKeyEvent* event) {
 }
 
 bool WidgetKeys::openContextMenu(QWidget* widget, QKeyEvent* event) {
-    // The key first, as on Windows: a widget that takes Shift+F10 (the editor, the list of
-    // the annotations) opens its menu itself
-    QKeyEvent key = copyOf(event, event->type(), event->isAutoRepeat());
-    bool gone = false;  // the widget may go while it handles the key
-    const QMetaObject::Connection watching =
-        connect(widget, &QObject::destroyed, this, [&gone] { gone = true; });
-    deliverAgain(widget, &key);
-    disconnect(watching);
-
-    // Then the context menu of the widget with the keys, at its cursor, as Windows sends it
-    if (!key.isAccepted() && !gone && widget->isEnabled()) {
+    // As on Windows, where the key does not reach the widgets (no command may have it): the
+    // context menu of the widget with the keys, at its cursor, as the Menu key opens it. A
+    // widget that takes every key (the find bar) does not keep the menu from its fields
+    if (widget->isEnabled()) {
         const QPoint pos = widget->inputMethodQuery(Qt::ImCursorRectangle).toRect().center();
         QContextMenuEvent menuEvent(QContextMenuEvent::Keyboard, pos, widget->mapToGlobal(pos),
                                     event->modifiers());

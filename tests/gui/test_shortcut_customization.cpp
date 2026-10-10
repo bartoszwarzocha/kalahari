@@ -252,6 +252,12 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
     REQUIRE_FALSE(typewriter.isEmpty());
     // The Dashboard writes the keys in bold before the command
     CHECK(textsOf(dashboard).contains(QStringLiteral(">%1<").arg(native(newBook))));
+    // Its commands to start with: New Book, Open Book and Open File
+    const KeyboardShortcut openFile = keysOf("file.open.file");
+    CHECK(openFile == KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier));
+    CHECK(textsOf(dashboard).contains(QStringLiteral(">%1<").arg(native(openFile))));
+    CHECK(textsOf(dashboard).contains(QStringLiteral("Open File")));
+    CHECK_FALSE(textsOf(dashboard).contains(QStringLiteral("New File")));
     CHECK(textsOf(editorPage).contains(QStringLiteral("(%1)").arg(native(typewriter))));
 
     const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier | Qt::ShiftModifier);
@@ -262,7 +268,7 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
 
     // Without keys for any of its commands the Dashboard leaves the section out
     registry.setCustomShortcuts(
-        {{"file.new.project", {}}, {"file.open", {}}, {"file.new", {}}});
+        {{"file.new.project", {}}, {"file.open", {}}, {"file.open.file", {}}});
     auto* section = dashboard.findChild<QFrame*>(QStringLiteral("shortcutsFrame"));
     REQUIRE(section != nullptr);
     CHECK(section->isHidden());

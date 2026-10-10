@@ -30,9 +30,8 @@ namespace gui {
 /// @brief A filter of the application that gives Qt's widgets the keys of Windows
 ///
 /// It takes only the keys it changes; the filters the program installs on its widgets see
-/// every other key first (Enter on a button and Shift+F10 too: those go on to the widget
-/// again, through its filters). A field that records shortcuts keeps every key while it
-/// records.
+/// every other key first (Enter on a button too: it goes on to the button again, through its
+/// filters). A field that records shortcuts keeps every key while it records.
 class WidgetKeys : public QObject {
     Q_OBJECT
 
@@ -67,8 +66,8 @@ private:
     /// @brief A key pressed in a widget
     bool keyPress(QWidget* widget, QKeyEvent* event);
 
-    /// @brief Shift+F10: the key first, as on Windows; the context menu when no widget
-    ///        took it
+    /// @brief Shift+F10: the context menu of the widget with the keys, as the Menu key opens
+    ///        it; on Windows the key does not reach the widgets either
     bool openContextMenu(QWidget* widget, QKeyEvent* event);
 
     /// @brief Enter on a button: on to the window as on Windows, through the button's

@@ -150,7 +150,7 @@ protected:
     }
 };
 
-/// A widget that takes Shift+F10 itself and opens its menu with it, as the book editor does
+/// A widget that would open its menu with Shift+F10 itself, as the book editor does
 class MenuKeyWidget : public QWidget {
 public:
     int keys = 0;
@@ -171,28 +171,10 @@ protected:
     }
 };
 
-/// A line that goes while it handles Shift+F10
-class VanishingLine : public QLineEdit {
-public:
-    explicit VanishingLine(int& menus)
-        : m_menus(menus) {}
-
+/// A bar that takes every key its fields leave unused, as the find bar does
+class KeyTakingBar : public QWidget {
 protected:
-    void keyPressEvent(QKeyEvent* event) override {
-        if (event->key() == Qt::Key_F10) {
-            event->ignore();
-            delete this;
-            return;
-        }
-        QLineEdit::keyPressEvent(event);
-    }
-    void contextMenuEvent(QContextMenuEvent* event) override {
-        ++m_menus;
-        event->accept();
-    }
-
-private:
-    int& m_menus;
+    void keyPressEvent(QKeyEvent* event) override { event->accept(); }
 };
 
 /// A filter that takes Enter on a button itself, as the frame of an annotation does
@@ -524,20 +506,20 @@ TEST_CASE("Shift+F10 opens the context menu, as on Windows", "[gui][widget_keys]
         CHECK(line.position == line.inputMethodQuery(Qt::ImCursorRectangle).toRect().center());
     }
 
-    SECTION("A widget that takes Shift+F10 opens its menu itself, once") {
+    SECTION("A widget gets the menu and not the key, once, as on Windows") {
         MenuKeyWidget widget;
         CHECK(press(&widget, Qt::Key_F10, SHIFT));
-        CHECK(widget.keys == 1);
-        CHECK(widget.menus == 0);
+        CHECK(widget.keys == 0);
+        CHECK(widget.menus == 1);
     }
 
-    SECTION("A widget that goes while it handles the key gets no menu") {
-        int menus = 0;
-        auto* line = new VanishingLine(menus);
-        line->setText(QStringLiteral("Ala ma kota"));
-        QKeyEvent pressed(QEvent::KeyPress, Qt::Key_F10, SHIFT);
-        QApplication::sendEvent(line, &pressed);
-        CHECK(menus == 0);
+    SECTION("A bar that takes every key its fields leave unused keeps no menu from them") {
+        KeyTakingBar bar;
+        MenuLine line;
+        line.setParent(&bar);
+        CHECK(press(&line, Qt::Key_F10, SHIFT));
+        CHECK(line.menus == 1);
+        CHECK(line.reason == QContextMenuEvent::Keyboard);
     }
 
     SECTION("Of a list, at its current item") {

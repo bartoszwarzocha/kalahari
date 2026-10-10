@@ -56,9 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     types a character there, Option+C is "ć" on the Polish keyboard).
   - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
     keys; on Linux, Ctrl+F4 did not reach the window from it.
-  - The Dashboard shows the names and keys of its commands as the menus have them: it
-    showed Ctrl+N as New Chapter, which is New File. The hint of the Annotations panel and
-    the tooltips of the find bar's options take their keys from the program as well.
+  - The Dashboard shows the names and keys of its commands as the menus have them: New
+    Book, Open Book and Open File (it showed Ctrl+N as New Chapter, which is New File). The
+    hint of the Annotations panel and the tooltips of the find bar's options take their keys
+    from the program as well.
   - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
     with the arrows moves the cursor by paragraphs there.
   - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
