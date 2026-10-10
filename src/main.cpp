@@ -19,6 +19,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/widget_wheel.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cmd_line_parser.h"
@@ -70,6 +71,9 @@ int main(int argc, char *argv[]) {
     app.setApplicationName("Kalahari");
     app.setOrganizationName("Bartosz W. Warzocha & Kalahari Team");
     app.setApplicationVersion(QString::fromLatin1(kalahari::VERSION_STRING));
+
+    // The mouse wheel changes only the field with the focus, as on Windows
+    kalahari::gui::installWidgetWheel(app);
 
     // Screen readers see the book editor as editable text
     kalahari::editor::installBookEditorAccessibility();
