@@ -21,7 +21,8 @@ namespace kalahari::gui {
 ///
 /// A spin box, a combo box or a slider (not a scroll bar) takes the focus from a click or
 /// Tab, no longer from the wheel. The wheel over it while it has no focus goes on to the
-/// widget around it: a page, a list or a panel that scrolls.
+/// widget around it: a page, a list or a panel that scrolls. With the focus the field turns
+/// as Qt turns it on the system: on macOS a combo box does not, as there.
 class WidgetWheel : public QObject {
 public:
     /// @brief The filter, to install on the application

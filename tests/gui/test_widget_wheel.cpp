@@ -8,12 +8,18 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QLineEdit>
+#include <QProxyStyle>
 #include <QScrollBar>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStyle>
+#include <QStyleOptionComboBox>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <QWidget>
+
+#include <utility>
+#include <vector>
 
 using kalahari::gui::WidgetWheel;
 namespace test = kalahari::test;
@@ -68,6 +74,18 @@ struct Fields {
     }
 };
 
+/// The style of macOS for a combo box: the wheel does not turn it
+class NoWheelComboBoxStyle : public QProxyStyle {
+public:
+    int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
+                  QStyleHintReturn* returnData) const override {
+        if (hint == SH_ComboBox_AllowWheelScrolling) {
+            return 0;
+        }
+        return QProxyStyle::styleHint(hint, option, widget, returnData);
+    }
+};
+
 }  // anonymous namespace
 
 TEST_CASE("Mouse wheel: only spin boxes, combo boxes and sliders are fields it turns",
@@ -86,21 +104,27 @@ TEST_CASE("Mouse wheel: the fields take the focus from a click or Tab, not from 
           "[gui][wheel]") {
     InstalledWheel wheel;
     Fields fields;
-    // Qt's own: the wheel gives them the focus
+    // Qt's own policies differ between the systems: on macOS a combo box and a slider take
+    // the focus from Tab only, like buttons. A spin box takes it from the wheel everywhere.
     REQUIRE(fields.spinBox->focusPolicy() == Qt::WheelFocus);
-    REQUIRE(fields.comboBox->focusPolicy() == Qt::WheelFocus);
-    const Qt::FocusPolicy sliderPolicy = fields.slider->focusPolicy();
-    const Qt::FocusPolicy scrollBarPolicy = fields.scrollBar->focusPolicy();
+    const std::vector<std::pair<QWidget*, Qt::FocusPolicy>> before = {
+        {fields.spinBox, fields.spinBox->focusPolicy()},
+        {fields.comboBox, fields.comboBox->focusPolicy()},
+        {fields.slider, fields.slider->focusPolicy()},
+        {fields.scrollBar, fields.scrollBar->focusPolicy()},
+    };
 
     fields.window.ensurePolished();
     for (QWidget* widget : fields.window.findChildren<QWidget*>()) {
         widget->ensurePolished();
     }
     CHECK(fields.spinBox->focusPolicy() == Qt::StrongFocus);
-    CHECK(fields.comboBox->focusPolicy() == Qt::StrongFocus);
-    // Those the wheel does not give the focus keep theirs
-    CHECK(fields.slider->focusPolicy() == sliderPolicy);
-    CHECK(fields.scrollBar->focusPolicy() == scrollBarPolicy);
+    for (const auto& [widget, policy] : before) {
+        // The fields the wheel turns no longer take the focus from it; the others, and the
+        // policies without the wheel, stay as they were
+        const bool fromWheel = WidgetWheel::turnsValue(widget) && policy == Qt::WheelFocus;
+        CHECK(widget->focusPolicy() == (fromWheel ? Qt::StrongFocus : policy));
+    }
 }
 
 TEST_CASE("Mouse wheel: over a field without the focus it goes on, with the focus it turns "
@@ -133,13 +157,48 @@ TEST_CASE("Mouse wheel: over a field without the focus it goes on, with the focu
     CHECK(turnWheel(*fields.spinBox));
     CHECK(fields.spinBox->value() == 6);
 
+    // A combo box turns as the system's style lets it: not on macOS, where the wheel scrolls
+    // the page around it even with the focus (Qt 6.4 keeps the wheel there and turns nothing,
+    // so then only the value tells)
+    QStyleOptionComboBox option;
+    option.initFrom(fields.comboBox);
+    const bool comboBoxTurns = fields.comboBox->style()->styleHint(
+                                   QStyle::SH_ComboBox_AllowWheelScrolling, &option,
+                                   fields.comboBox) != 0;
     fields.comboBox->setFocus(Qt::TabFocusReason);
     REQUIRE(fields.comboBox->hasFocus());
-    CHECK(turnWheel(*fields.comboBox));
-    CHECK(fields.comboBox->currentIndex() == 0);
+    const bool comboBoxTook = turnWheel(*fields.comboBox);
+    if (comboBoxTurns) {
+        CHECK(comboBoxTook);
+    }
+    CHECK(fields.comboBox->currentIndex() == (comboBoxTurns ? 0 : 1));
 
     fields.slider->setFocus(Qt::TabFocusReason);
     REQUIRE(fields.slider->hasFocus());
     CHECK(turnWheel(*fields.slider));
     CHECK(fields.slider->value() != 5);
+}
+
+TEST_CASE("Mouse wheel: a combo box as on macOS takes the focus from Tab, never the wheel",
+          "[gui][wheel]") {
+    // There a combo box takes the focus from Tab only, like a button, and its style does
+    // not let the wheel turn it: the filter changes neither
+    NoWheelComboBoxStyle style;  // outlives the combo box
+    InstalledWheel wheel;
+    Fields fields;
+    fields.comboBox->setStyle(&style);
+    fields.comboBox->setFocusPolicy(Qt::TabFocus);
+    fields.window.show();
+    fields.window.activateWindow();
+    REQUIRE(test::waitUntil([&fields] { return QApplication::activeWindow() == &fields.window; }));
+    CHECK(fields.comboBox->focusPolicy() == Qt::TabFocus);
+
+    // Without the focus the wheel goes on to the widget around. With it the combo box gets
+    // the wheel and turns nothing; whether it passes the wheel on depends on the Qt version,
+    // so only the value tells.
+    CHECK_FALSE(turnWheel(*fields.comboBox));
+    fields.comboBox->setFocus(Qt::TabFocusReason);
+    REQUIRE(fields.comboBox->hasFocus());
+    turnWheel(*fields.comboBox);
+    CHECK(fields.comboBox->currentIndex() == 1);
 }
