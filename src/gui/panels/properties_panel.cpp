@@ -670,6 +670,15 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
 
     if (!editorPanel) {
         logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
+        // The counts were of the document that left the front: without one the panel shows
+        // the book, as before a document was opened (the status bar shows no counts then)
+        if (static_cast<Page>(m_stackedWidget->currentIndex()) == Page::Editor) {
+            if (core::ProjectManager::getInstance().isProjectOpen()) {
+                showProjectProperties();
+            } else {
+                showNoProject();
+            }
+        }
         return;
     }
 

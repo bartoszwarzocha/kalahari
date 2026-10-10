@@ -24,6 +24,13 @@ QString labelText(const gui::PropertiesPanel& panel, const char* name) {
     return label->text();
 }
 
+/// Whether the panel shows its label @p name, that is the label is on the page in front
+bool showsLabel(const gui::PropertiesPanel& panel, const char* name) {
+    const auto* label = panel.findChild<QLabel*>(QLatin1String(name));
+    REQUIRE(label != nullptr);
+    return label->isVisibleTo(&panel);
+}
+
 /// Run the event loop past the panel's wait after an edit or a new selection
 void waitForPanel() {
     test::runEventLoop(300);
@@ -44,6 +51,7 @@ TEST_CASE("Properties panel: the counts of the editor in front, as the status ba
 
     gui::PropertiesPanel panel;
     panel.setActiveEditor(&editorPanel);
+    REQUIRE(showsLabel(panel, "editorWordCount"));
     CHECK(labelText(panel, "editorWordCount") == QStringLiteral("4"));
     CHECK(labelText(panel, "editorCharCount") == QStringLiteral("17"));
     CHECK(labelText(panel, "editorCharNoSpace") == QStringLiteral("15"));
@@ -85,10 +93,13 @@ TEST_CASE("Properties panel: the counts of the editor in front, as the status ba
         CHECK(labelText(panel, "editorWordCount") == QStringLiteral("5"));
     }
 
-    SECTION("no editor in front: nothing to count") {
+    SECTION("no editor in front (the Dashboard): no counts of a document not in front") {
         panel.setActiveEditor(nullptr);
-        panel.refresh();
-        CHECK(labelText(panel, "editorParagraphCount") == QStringLiteral("0"));
-        CHECK(labelText(panel, "editorReadingTime") == QStringLiteral("0 min"));
+        CHECK_FALSE(showsLabel(panel, "editorWordCount"));
+        CHECK_FALSE(showsLabel(panel, "editorReadingTime"));
+        // Back with the editor in front
+        panel.setActiveEditor(&editorPanel);
+        CHECK(showsLabel(panel, "editorWordCount"));
+        CHECK(labelText(panel, "editorWordCount") == QStringLiteral("4"));
     }
 }
